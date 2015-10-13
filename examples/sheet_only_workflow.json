@@ -1,0 +1,13 @@
+{                       // 最外层任务定义框
+  "id":"28282871",      // 任务运行ID
+  "type" : "workflow",     // 分为 workflow module tool link  tool为单个调用Tool模块模式
+  "name" : "meta.meta_base",  // 调用模块的名称，包含完整的模块路径
+  "options":{     // 用户设置的参数
+	    "infas": "test.fasta",
+    	"id": 0.97,
+    	"sort_size": 2,
+    	"rev": true,
+    	"c": 0.8,
+    	"db":"16s_bacteria"
+  }
+}

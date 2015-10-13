@@ -1,0 +1,29 @@
+{
+  "id":"28282871",
+  "type" : "link", // link模式，可省略
+  "components":{
+      "quality1":{
+            "type" : "tool",
+            "name" : "seq.quality",
+            "options":{
+                "fasta":"/mnt/iluster/test/test.fa"
+            }
+        },
+        "quality2":{
+            "type" : "tool",
+            "name" : "seq.quality",
+            "options":{
+                "fasta":"/mnt/iluster/test/test1.fa"
+            }
+        },
+        "moduletest":{
+            "type" : "module",
+            "name" : "seq.moduletest",
+            "rely" : ["quality1","quality2"],
+            "options":{
+                "fasta1":{"from":"quality1.output"},
+                "fasta2":{"from":"quality2.output"}
+            }
+        }
+  }
+}

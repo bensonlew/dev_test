@@ -1,0 +1,14 @@
+{                       // 最外层任务定义框
+  "id":"28282871",      // 任务运行ID
+  "type" : "module",     // 分为 workflow module tool link  module为单个调用Module模块模式
+  "name" : "seq.annotation",  // 调用模块的名称，包含完整的模块路径
+  "options":{     // 用户设置的参数
+      "fasta":"/mnt/iluster/test/test.fa",    // fasta为 seq.annotation 的 infile类型参数
+      "orf_prediction": true,    // flag类型参数
+      "seq_type":"dna",      // 单选类型参数
+      "blast_type":"mblast",      // 单选类型参数
+      "db_list" : ["nt","nr","go","strings","uniprot","kegg"], // 多选类型参数
+      "chuncksize" : 5000,   // int 类型参数
+      "org": "euk"   // string类型参数
+  }
+}

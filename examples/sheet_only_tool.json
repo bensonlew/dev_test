@@ -1,0 +1,12 @@
+{                       // 最外层任务定义框
+  "id":"28282871",      // 任务运行ID
+  "type" : "tool",     // 分为 workflow module tool link  tool为单个调用Tool模块模式
+  "name" : "blast.ncbi_blastall",  // 调用模块的名称，包含完整的模块路径
+  "options":{     // 用户设置的参数
+      "fasta":"/mnt/iluster/test/test.fa",    // fasta为 blast.ncbi_blastall 的 infile类型参数
+      "ref" : "/mnt/iluster/test/ref.fa",    // 自定义比对序列
+      "mode": "customer",    // 单选参数 自定义参考序列模式
+      "blasttype":"blastn",      // 单选参数 比对类型
+      "evalue": 1e-5   // float类型参数
+  }
+}

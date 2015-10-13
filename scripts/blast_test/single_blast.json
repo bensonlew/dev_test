@@ -1,0 +1,11 @@
+{
+  "id":"001",
+  "type" : "tool",
+  "name" : "ncbi.blast",
+  "options":{
+      "query":"/mnt/ilustre/users/sanger/anttest1.fasta",
+      "database":"nt",
+      "evalue": 1e-5
+  }
+}
+
