@@ -22,7 +22,7 @@ class BlastAgent(Agent):
             {"name": "reference", "type": "infile", "format": "fasta"},  # 参考序列  选择customer时启用
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
             {"name": "num_threads", "type": "int", "default": 10},  # cpu数
-            {"name": "output", "type": "outfile", "format": "fasta"}  # cpu数
+            {"name": "output", "type": "outfile", "format": "blastxml"}  # cpu数
         ]
         self.add_option(options)
 
@@ -54,7 +54,7 @@ class BlastTool(Tool):
         super(BlastTool, self).__init__(config)  # 调用父类初始化
         self._version = "2.2.31"  # 定义程序版本
         self.db_path = os.path.join(self.config.SOFTWARE_DIR, "blast/ncbi/db")
-        self.cmd_path = "blast/ncbi/blast-2.2.31+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
+        self.cmd_path = "align/ncbi/blast-2.2.31+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
         self.relation = {
             "blastn": ["DNA", "DNA"],
             "blastp": ["Protein", "Protein"],

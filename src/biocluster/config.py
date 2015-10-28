@@ -12,9 +12,10 @@ import struct
 import platform
 import re
 import importlib
+import web
 
 
-#@singleton
+@singleton
 class Config(object):
     def __init__(self):
         self.rcf = ConfigParser.RawConfigParser()
@@ -45,6 +46,14 @@ class Config(object):
         self.MAX_JOB_NUMBER = int(self.rcf.get("Job", 'max_job_number'))
         self.MAX_WORKFLOW_NUMBER = int(self.rcf.get("Job", 'max_workflow_number'))
         self.JOB_MASTER_IP = self.rcf.get(self.JOB_PLATFORM, "master_ip")
+
+        #db
+        self.DB_TYPE = self.rcf.get("DB", "dbtype")
+        self.DB_HOST = self.rcf.get("DB", "host")
+        self.DB_USER = self.rcf.get("DB", "user")
+        self.DB_PASSWD = self.rcf.get("DB", "passwd")
+        self.DB_NAME = self.rcf.get("DB", "db")
+        self.DB_PORT = self.rcf.get("DB", "port")
 
     def get_listen_ip(self):
         """
@@ -106,3 +115,8 @@ class Config(object):
             return lpt
         else:
             return self.get_listen_port()
+
+    def get_db(self):
+        if self.DB_TYPE == "mysql":
+            return web.database(dbn=self.DB_TYPE, host=self.DB_HOST, db=self.DB_NAME, user=self.DB_USER,
+                                passwd=self.DB_PASSWD, prot=self.DB_PORT)
