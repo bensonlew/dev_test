@@ -35,7 +35,7 @@ class UsearchOtuAgent(Agent):
         """
         if not self.option("fasta").is_set:
             raise OptionError(u"必须设置输入fasta文件.")
-        if self.option("identity").value < 0 or self.option("identity").value > 1:
+        if self.option("identity") < 0 or self.option("identity") > 1:
             raise OptionError(u"identity值必须在0-1范围内.")
         return True
 
@@ -68,12 +68,12 @@ class UsearchOtuTool(Tool):
         return cmd
 
     def cmd3(self):
-        ratio = str(100-float(self.option('id').value)*100)
+        ratio = str(100-float(self.option('id'))*100)
         cmd = "uparse -cluster_otus meta_derepprefix_sorted.fasta -otus cluster.fasta -otu_radius_pct "+ratio
         return cmd
 
     def cmd4(self):
-        cmd = "uparse -usearch_global meta.fasta -db cluster.fasta -strand plus -id "+self.option('id').value+" -uc map.uc"
+        cmd = "uparse -usearch_global meta.fasta -db cluster.fasta -strand plus -id "+self.option('id')+" -uc map.uc"
         return cmd
 
     def cmd5(self):
@@ -105,15 +105,15 @@ class UsearchOtuTool(Tool):
         """
         return cmd
 
-    def collect_output(self):
+    def set_output(self):
         os.link(self.work_dir+'otu_table.xls', self.output_dir+'otu_table.xls')
-        self.option('otu_table').value = self.output_dir+'otu_table.xls'
+        self.option('otu_table', value=self.output_dir+'otu_table.xls')
         os.link(self.work_dir+'otu_rep.fasta', self.output_dir+'otu_rep.fasta')
-        self.option('otu_rep').value = self.output_dir+'otu_rep.fasta'
+        self.option('otu_rep', value=self.output_dir+'otu_rep.fasta')
         os.link(self.work_dir+'otu_seqids.txt', self.output_dir+'otu_seqids.txt')
-        self.option('otu_seqids').value = self.output_dir+'otu_seqids.txt'
+        self.option('otu_seqids', value=self.output_dir+'otu_seqids.txt')
         os.link(self.work_dir+'otu_table.biom', self.output_dir+'otu_table.biom')
-        self.option('otu_biom').value = self.output_dir+'otu_table.biom'
+        self.option('otu_biom', value=self.output_dir+'otu_table.biom')
 
     def run(self):
         super(UsearchOtuTool, self).run()
@@ -123,7 +123,6 @@ class UsearchOtuTool(Tool):
             i += 1
             self.logger.info(u"开始运行cmd"+i)
             cmd = getattr(self, 'cmd'+i)()
-            cmd = "cd " + self.work_dir + "\n" + cmd
             command = self.add_command('cmd'+i, cmd)
             command.run()
             self.wait(command)
@@ -133,5 +132,5 @@ class UsearchOtuTool(Tool):
             else:
                 self.set_error(u"cmd"+i+u"运行出错!")
                 break
-        self.collect_output()
+        self.set_output()
 
