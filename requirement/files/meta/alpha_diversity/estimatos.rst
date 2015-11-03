@@ -21,7 +21,7 @@ Path
 -----------------------------------
 
 ::
-样本  ace       ace_hci      ace_lci     chao       chao_hci    chao_lci    
+sample  ace       ace_hci      ace_lci     chao       chao_hci    chao_lci    
 N1  0.000000    0.000000    0.000000    1.000000    0.000000    0.000000        
 N2  1.000000    1.000000    1.000000    1.000000    1.036240    1.000000    
 
