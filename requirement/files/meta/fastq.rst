@@ -11,7 +11,7 @@ Path
 功能和用途描述
 -----------------------------------
 
-用于存储DNA测序序列及其质量存储
+用于存储DNA/RNA/Protien序列,序列方向，以及碱基质量等信息
 
 
 格式定义文档
@@ -25,24 +25,30 @@ FASTQ : https://en.wikipedia.org/wiki/FASTQ_format
 
 ::
 
-    @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
-    GGGTGATGGCCGCTGCCGATGGCGTCAAATCCCACC
-    +SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
-    IIIIIIIIIIIIIIIIIIIIIIIIIIIIII9IG9IC
+    >SEQUENCE_1 some discription
+    IPQFASRKQLSDAILKEAEEKIKEELKAQGKPEKIWDNIIPGKMNSFIADNSQLDSKLTL
+    +
+    !''*((((***+))%%%++)(%%%%).1***-+*''))**55CCF>>>>>>CCCCCCC65
+    >SEQUENCE_2 some discription
+    SATVSEINSETDFVAKNDQFIALTKDTTAHIQSNSLQSVEELHSSTINGVKFEEYLKSQI
+    +
+    !***((((*%%+))%%%++)(%%%%).1***-+*''))**55CCF>cc>>>CC56CCC##
+
 
 
 属性及其含义
 -----------------------------------
 
-* ``isgzip``   是否被gzip压缩
-* ``encode``   质量编码方式
-* ``seq_number`` 序列数量
-* ``bases``      碱基总数
-* ``longest``    最长序列碱基数
-* ``shortest``   最短序列碱基数
+* ``isgzip``    是否被gzip压缩
+* ``encode``    质量编码方式
+* ``seq_number``    序列数量
+* ``bases`` 碱基总数
+* ``longest``   最长序列碱基数
+* ``shortest``  最短序列碱基数
 
 
 相关方法
 -----------------------------------
 
-``gzip`` 将序列压缩保存
+``gzip``    将序列压缩保存
+``convert_to_fasta``    将这个文件转化成fasta文件
