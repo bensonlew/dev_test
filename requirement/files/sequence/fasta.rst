@@ -5,7 +5,7 @@
 Path
 -----------
 
-**seq.fasta**
+**sequence.fasta**
 
 
 功能和用途描述

@@ -96,8 +96,7 @@ class BlastTool(Tool):
         db_name = os.path.basename(self.option("reference").prop['path'])
         cmd = os.path.join(self.cmd_path, "makeblastdb")
         seq_type = "nucl" if self.option("reference").prop['seq_type'] == "DNA" else "prot"
-        cmd += " -dbtype %s -in %s -parse_seqids -title %s -out %s " % (seq_type, self.option("reference").prop['path'],
-                                                                        db_name, db_name)
+        cmd += " -dbtype %s -in %s -parse_seqids -title %s -out %s " % (seq_type, self.option("reference").prop['path'], db_name, db_name)
         self.logger.info(u"开始运行makeblastdb")
         makedb_obj = self.add_command("makeblastdb", cmd).run()
         self.wait(makedb_obj)

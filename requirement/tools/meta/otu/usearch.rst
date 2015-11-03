@@ -33,13 +33,12 @@ http://drive5.com/usearch/features_search.html
 
 ::
 
-{'name': 'fasta', 'type': 'infile', 'format': 'Fasta', 'require': True, 'default': 'meta.fasta'},
-{'name': 'id', 'type': 'float', 'require': False, 'default': 0.97},
-{'name': 'sort_size', 'type': 'int', 'require': False, 'default': 2},
-{'name': 'otu_table', 'type': 'outfile', 'format': 'OtuTable', 'default': 'otu_table.xls'},
-{'name': 'otu_rep', 'type': 'outfile', 'format': 'Fasta', 'default': 'otu_rep.fasta'},
-{'name': 'otu_seqids', 'type': 'outfile', 'format': 'OtuSeqids', 'default': 'otu_seqids.txt'},
-{'name': 'otu_biom', 'type': 'outfile', 'format': 'Biom', 'default': 'otu_table.biom'}
+    {'name': 'fasta', 'type': 'infile', 'format': 'Fasta'},  # 输入fasta文件，序列名称格式为'>sampleID_seqID'.
+    {'name': 'identity', 'type': 'float', 'default': 0.97},  # 相似性值，范围0-1.
+    {'name': 'otu_table', 'type': 'outfile', 'format': 'OtuTable'},  # 输出结果otu表
+    {'name': 'otu_rep', 'type': 'outfile', 'format': 'Fasta'},  # 输出结果otu代表序列
+    {'name': 'otu_seqids', 'type': 'outfile', 'format': 'OtuSeqids'},  # 输出结果otu中包含序列列表
+    {'name': 'otu_biom', 'type': 'outfile', 'format': 'Biom', 'default': 'otu_table.biom'}  # 输出结果biom格式otu表
 
 运行逻辑
 -----------------------------------

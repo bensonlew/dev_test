@@ -44,4 +44,5 @@ OTU表格，用于记录每个样本的OTU信息
 -----------------------------------
 
 ``convert_to_biom`` 将这个otu表格转化为同名的biom文件
+``convert_to_shared`` 将otu表格转化为shared文件
 
