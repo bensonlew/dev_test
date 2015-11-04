@@ -57,27 +57,29 @@ class UsearchOtuTool(Tool):
 
         super(UsearchOtuTool, self).__init__(config)
         self._version = "v7.0"
-        self.cmd_path = "meta/usearch"
+        self.usearch_path = "meta/usearch/"
+        self.script_path = "meta/scripts/"
+        self.biom_path = "meta/bin/"
 
     def cmd1(self):
-        cmd = "uparse -derep_prefix meta.fasta -output meta_derepprefix.fasta -sizeout"
+        cmd = self.usearch_path+"uparse -derep_prefix meta.fasta -output meta_derepprefix.fasta -sizeout"
         return cmd
 
     def cmd2(self):
-        cmd = "uparse -sortbysize meta_derepprefix.fasta -output meta_derepprefix_sorted.fasta -minsize 2"
+        cmd = self.usearch_path+"uparse -sortbysize meta_derepprefix.fasta -output meta_derepprefix_sorted.fasta -minsize 2"
         return cmd
 
     def cmd3(self):
         ratio = str(100-float(self.option('id'))*100)
-        cmd = "uparse -cluster_otus meta_derepprefix_sorted.fasta -otus cluster.fasta -otu_radius_pct "+ratio
+        cmd = self.usearch_path+"uparse -cluster_otus meta_derepprefix_sorted.fasta -otus cluster.fasta -otu_radius_pct "+ratio
         return cmd
 
     def cmd4(self):
-        cmd = "uparse -usearch_global meta.fasta -db cluster.fasta -strand plus -id "+self.option('id')+" -uc map.uc"
+        cmd = self.usearch_path+"uparse -usearch_global meta.fasta -db cluster.fasta -strand plus -id "+self.option('id')+" -uc map.uc"
         return cmd
 
     def cmd5(self):
-        cmd = """uc2otuseqids.pl -i map.uc -o cluster.seqids
+        cmd = self.script_path+"""uc2otuseqids.pl -i map.uc -o cluster.seqids
         cat cluster.seqids|awk '{split($0,line,\"\\t\");new=line[1];for(i=2;i<NF+1;i++){match(line[i],/_[^_]+$/);smp=substr(line[i],1,RSTART-1);id=substr(line[i],RSTART+1,RLENGTH);nsmp=smp;gsub(/_/,\".\",nsmp);new=new\"\\t\"nsmp\"_\"id;print nsmp\"\\t\"smp;print line[i]\"\\t\"smp >\"cluster.groups\"};print new >\"cluster.seqids.tmp\";}'|sort|uniq >name.check
         awk '{ print $1,\"OTU\"NR >\"cluster2otu.rename\";$1=\"OTU\"NR;print $0 }' cluster.seqids|sed 's/ /\\t/g' >otu_seqids.txt
         awk '{$1=\"OTU\"NR;print $0}' cluster.seqids.tmp|sed 's/ /\\t/g' > otu.seqids.tmp
@@ -85,14 +87,14 @@ class UsearchOtuTool(Tool):
         return cmd
 
     def cmd6(self):
-        cmd = """make_otu_table.py -i otu.seqids.tmp  -o otu_table.biom
+        cmd = self.script_path+"""make_otu_table.py -i otu.seqids.tmp  -o otu_table.biom
         cat name.check|awk '{gsub(/\\./,\"\\\\.\",$1);print \"sed '\\''s/\\\"\"$1\"\\\"/\\\"\"$2\"\\\"/g'\\''  otu_table.biom >otu_table.biom.tmp\\nmv otu_table.biom.tmp otu_table.biom\";}' >otu.name.check.sh\n\
         sh otu.name.check.sh
         """
         return cmd
 
     def cmd7(self):
-        cmd = """
+        cmd = self.biom_path+"""
         biom convert -i otu_table.biom -o otu_table.txt  --table-type \"otu table\"  --to-tsv
         cat otu_table.txt|sed -n '2p'|sed 's/#//' >otu_table.xls
         cat otu_table.txt|sed -n '3,$p'|sort -V |sed 's/\\.0//g' >>otu_table.xls
@@ -100,9 +102,7 @@ class UsearchOtuTool(Tool):
         return cmd
 
     def cmd8(self):
-        cmd = """
-        pick_rep_set.py -i otu_seqids.txt -f meta.fasta -m most_abundant -o otu_reps.fasta
-        """
+        cmd = self.script_path+"""pick_rep_set.py -i otu_seqids.txt -f meta.fasta -m most_abundant -o otu_reps.fasta"""
         return cmd
 
     def set_output(self):

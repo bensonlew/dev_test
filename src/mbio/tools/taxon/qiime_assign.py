@@ -59,6 +59,7 @@ class QiimeAssignTool(Tool):
     """
     def __init__(self, config):
         super(QiimeAssignTool, self).__init__(config)
+        self.script_path = "meta/scripts/"
 
     def run_prepare(self):
         cmd = ''
@@ -82,7 +83,7 @@ class QiimeAssignTool(Tool):
         if self.option("customer_mode"):
             ref_fas = self.option('ref_fasta').prop['path']
             ref_tax = self.option('ref_taxon').prop['path']
-        cmd = "assign_taxonomy.py  -m rdp -i seqs.fasta -c "+self.option('confidence')+"  -r "+ref_fas+" -t "+ref_tax+" -o .  --rdp_max_memory 50000"
+        cmd = self.script_path+"assign_taxonomy.py  -m rdp -i seqs.fasta -c "+self.option('confidence')+"  -r "+ref_fas+" -t "+ref_tax+" -o .  --rdp_max_memory 50000"
         assign = self.add_command("assign", cmd)
         self.logger.info(u"开始运行assign")
         assign.run()
