@@ -5,16 +5,16 @@
 Path
 -----------
 
-**meta.otu.usearch**
+**taxon.qiime_assign**
 
 程序安装路径
 -----------------------------------
 
-/mnt/ilustre/users/sanger/app/meta/usearch.v7.0
+/mnt/ilustre/users/sanger/app/meta/scripts/assign_taxonomy.py
 
 功能和用途描述
 -----------------------------------
-
+对多序列fasta使用qiime基于RDP方法进行物种分类。
 
 
 使用程序
@@ -24,8 +24,7 @@ http://drive5.com/usearch/features_search.html
 
 主要命令及功能模块
 -----------------------------------
-
-
+assign_taxonomy.py  -m rdp -i seqs.fasta -c 0.7  -r ref.fasta -t ref.tax -o .  --rdp_max_memory 50000
 
 
 参数设计
@@ -42,4 +41,4 @@ http://drive5.com/usearch/features_search.html
 
 运行逻辑
 -----------------------------------
-
+单个命令运行完成即可。

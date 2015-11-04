@@ -128,9 +128,8 @@ class UsearchOtuTool(Tool):
             self.wait(command)
             if command.return_code == 0:
                 self.logger.info(u"运行cmd"+i+u"完成")
-                self.end()
             else:
                 self.set_error(u"cmd"+i+u"运行出错!")
                 break
         self.set_output()
-
+        self.end()
