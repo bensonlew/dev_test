@@ -14,11 +14,13 @@ class FastqFile(File):
     需要安装gzip
     需要安装fastoolkit，命令fastq_to_fasta用于将fastq转化为fasta
     需要安装seqstat软件，版本1.9g(Oct 2002),软件用法:  seqstat <fasta文件>，根据stdout的输出，统计fasta的信息
-    :param _fastaname:由fastq文件转化而来的fasta文件
-    :param _filename: 若fastq为gz格式,为解压后fastq文件，若fastq不是gz格式，等于prop["path"]
-    :param is_convert: 是否已经转化成fasta
     """
     def __init__(self):
+        """
+        :param _fastaname:由fastq文件转化而来的fasta文件
+        :param _filename: 若fastq为gz格式,为解压后fastq文件，若fastq不是gz格式，等于prop["path"]
+        :param is_convert: 是否已经转化成fasta
+        """
         super(FastqFile, self).__init__()
         self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/seqstat")
         self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/fastq_to_fasta")
@@ -65,7 +67,20 @@ class FastqFile(File):
                 raise FileError(u"文件格式错误")
             if self.prop["seq_number"] < 1:
                 raise FileError(u"应该至少含有一条序列")
+            if not self.check_name():
+                raise FileError(u"文件后缀名称不正确")
         return True
+
+    def check_name(self):
+        """
+        检测文件的命名，仅当文件的后缀名为.fastq,.fq,.fastq.gz,.fq.gz的时候返回True
+        :return: bool
+        """
+        if re.search(r'\.(fastq|fq)$', self.prop['basename'])\
+           or re.search(r'\.(fastq|fq)\.gz', self.prop['basename']):
+            return True
+        else:
+            return False
 
     def _prepare(self):
         """
@@ -73,7 +88,7 @@ class FastqFile(File):
         生成临时文件夹，当输入的文件是gz格式时，解压到tmp里
         """
         filename = self.prop['path']
-        basename = os.path.basename(filename)
+        basename = self.prop['basename']
         filepath = os.path.dirname(os.path.abspath(filename))
         os.mkdir(filepath + "/tmp")
         fastaname = filepath + "/tmp/" + basename + ".fasta"
@@ -82,7 +97,7 @@ class FastqFile(File):
             filename = filepath + "/tmp/" + basename
             fastaname = filename + ".fasta"
             try:
-                subprocess.check_call('gunzip -c ' + filepath + "> " + filename)
+                subprocess.check_call('gunzip -c ' + filepath + "> " + filename, shell=True)
             except subprocess.CalledProcessError:
                 raise Exception(u"非标准格式的gz文件！")
         self.filename = filename
@@ -90,7 +105,7 @@ class FastqFile(File):
 
     def gunzip(self):
         """
-        解压fastq,因为在get_info()中，如果判定是压缩文件的话会先解压，所以质粒只需返回文件地址即可
+        解压fastq,因为在get_info()中，如果判定是压缩文件的话会先解压，所以这里只需返回文件地址即可
         :return: 解压后的fastq文件
         """
         return self.filename
