@@ -87,4 +87,4 @@ class FastqFileDir(Directory):
             if "file_number" not in self.prop.keys():
                 raise FileError(u"还未设置该文件夹下的fastq文件数目")
             if self.prop['file_number'] != self.get_fastq_number():
-                raise FileError(u"实际fastq文件数目不等于期望值")
+                raise FileError(u"实际fastq文件数目不等于设定值")

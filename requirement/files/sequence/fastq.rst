@@ -18,7 +18,7 @@ Path
 -----------------------------------
 
 FASTQ : https://en.wikipedia.org/wiki/FASTQ_format
-输入文件既可以是fastq，也可以是fastq.gz
+输入文件可以是.fastq,.fq,.fastq.gz或者.fq.gz
 
 格式举例
 -----------------------------------

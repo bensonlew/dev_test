@@ -25,8 +25,9 @@ pass
  ./
  ../
  fastq1.fastq
- fastq2.fastq
- fastq3.fastq
+ fastq2.fq
+ fastq3.fastq.gz
+ fastq4.fq.gz
 
 
 
@@ -38,7 +39,5 @@ pass
 相关方法
 -----------------------------------
 
-``type_check``  检查这个文件夹下的文件类型是否正确
-``number_check``    检查这个文件夹下的文件数目是否正确
-``cat_files``   将所有的fastq文件按照一定规则合并成一个fastq文件(合并过程中会按照文件名对fastq的名称做改变)
+``get_fastq_number``    获取这个文件夹下fastq文件的数目
 ``convert_to_fasta``    将这个文件夹转化为fasta_dir, 里面包含的fastq文件都将一一转化
