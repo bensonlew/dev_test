@@ -25,7 +25,7 @@ pass
  ./
  ../
  fasta1.fasta
- fasta2.fasta
+ fasta2.fa
  fasta3.fasta
 
 
@@ -33,11 +33,11 @@ pass
 属性及其含义
 -----------------------------------
 
-* ``file_number``   文件夹中fastq文件的数目
+* ``file_number``   文件夹中fasta文件的数目
 
 相关方法
 -----------------------------------
 
-``type_check``  检查这个文件夹下的文件类型是否正确
-``number_check``    检查这个文件夹下的文件数目是否正确
-``cat_files``   将所有的fastq文件按照一定规则合并成一个fasta文件(合并过程中会按照文件名对fasta的名称做改变)
+``cat_fasta``   将所有的fasta合并成一个fasta文件
+``cat_fastas_for_meta`` 将所有的fasta按照一定的规则合并成一个fasta文件
+``get_fasta_number``    获取这个文件夹下fasta的数目

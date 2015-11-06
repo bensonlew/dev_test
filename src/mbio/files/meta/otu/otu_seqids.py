@@ -11,10 +11,10 @@ class OtuSeqidsFile(File):
     """
     OtuSeqids
     """
-    def __init__(self, filename):
+    def __init__(self):
         """
         """
-        super(OtuSeqidsFile, self).__init__(filename)
+        super(OtuSeqidsFile, self).__init__()
 
     def get_info(self):
         """

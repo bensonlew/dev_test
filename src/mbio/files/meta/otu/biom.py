@@ -15,10 +15,10 @@ class BiomFile(File):
     """
     Biom文件格式类, 需安装biom工具软件
     """
-    def __init__(self, filename):
+    def __init__(self):
         """
         """
-        super(BiomFile, self).__init__(filename)
+        super(BiomFile, self).__init__()
         self.biom_path = os.path.join(Config().SOFTWARE_DIR, "meta/bin/biom")
 
     def get_info(self):
