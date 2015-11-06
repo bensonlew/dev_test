@@ -32,19 +32,13 @@ ordination.pl -type pcoa -outdir outdir -dist distancematrix
 
 ::
 
-            {"name": "method", "type": "string", "default": "bray_curtis"},  # 默认计算矩阵的方法，bray_curtis，待定
-            {"name": "input1", "type": "infile", "format": "OtuTable"},  # 输入文件,为otutable
-            {"name": "input2", "type": "infile", "format": "distancematrix"},  # 如果输入距离矩阵，将覆盖otutable和距离算法。
-            {"name": "output1", "type": "outfile", "format": "CoordinateTable"},  # 样本的坐标表
-            {"name": "output2", "type": "outfile", "format": "CoordinateTable"},  # 样本权重值表
-            {"name": "output4", "type": "outfile", "format": "WeightTable"},  # 各主成分的解释度权重值表。
-
+            {"name": "input", "type": "infile", "format": "distancematrix"},  # 输入距离矩阵
+            {"name": "output", "type": "outfile", "format": "pcoa_outdir"},  # 包含样本的坐标表，样本权重表，主成分解释度表
 
 运行逻辑
 -----------------------------------
 
-如果提供距离矩阵，将直接计算PCOA分析得到几个结果表，如果没有，则需要提供otu表和距离算法，计算获得距离矩阵，再进行PCOA分析。
-
+提供距离矩阵，计算PCOA分析得到几个结果表
 
 
 
