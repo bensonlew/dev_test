@@ -101,12 +101,12 @@ class DistanceCalcTool(Tool):
         self.wait()
         if dist_matrix_command.return_code == 0:
             self.logger.info(u'运行qiime/beta_diversity.py完成')
-            self.end()
             oldfile = (outputdir + '/' + self.option('method') + '_' + 
                  os.path.splitext(os.path.basename(self.option('input1')))[0]
                  + '.txt')
             newfile = outputdir + '/' + self.option('method') + '_' + filename
             os.rename(oldfile,newfile)
+            self.end()
         else :
             self.set_error(u'运行qiime/beta_diversity.py出错')
         
