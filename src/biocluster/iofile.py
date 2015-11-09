@@ -155,6 +155,27 @@ class Directory(FileBase):
     def __init__(self):
         super(Directory, self).__init__()
 
+    def set_file_number(self, number):
+        """
+        设置这个文件夹的有效文件数目
+        """
+        if self.is_set:
+            self.set_property("file_number", number)
+        else:
+            raise Exception(u'请先设置文件路径')
+
+    def _make_tmp_dir(self):
+        """
+        在该文件夹下建立一个临时文件夹
+        :return:临时文件夹的路径
+        """
+        if self.is_set:
+            tmp_dir = self.prop['path'] + "/tmp"
+            if not os.path.exists(tmp_dir):
+                os.mkdir(tmp_dir)
+            return tmp_dir
+        raise Exception(u'请先设置文件路径')
+
     def check(self):
         """
 
@@ -163,4 +184,3 @@ class Directory(FileBase):
         super(Directory, self).check()
         if not('path' in self.prop.keys() and os.path.isdir(self.prop['path'])):
             raise FileError(u"文件夹路径不正确，请设置正确的文件夹路径!")
-
