@@ -1,7 +1,7 @@
 <?php
 
-$client = "client01";
-$key = "1ZYw71APsQ";
+$client = "test";
+$key = "Aw21cADS3u";
 
 function signature()
 {

@@ -40,6 +40,11 @@ class Command(object):
         self.threading_lock = threading.Lock()
         self._psutil_process = None
         self._all_processes = []
+        self._is_error = False
+
+    @property
+    def is_error(self):
+        return self._is_error
 
     @property
     def pid(self):
@@ -137,6 +142,7 @@ class Command(object):
             self._subprocess = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                                 env=os.environ)
         except Exception, e:
+            self._is_error = True
             self.tool.set_error(e)
         else:
             self._pid = self._subprocess.pid

@@ -2,9 +2,13 @@
 # __author__ = 'guoquan'
 import web
 from mainapp.libs.signature import check_sig
+from mainapp.controllers.pipline import Pipline
 
-web.config.debug = False
-urls = ("/hello", "hello")
+#web.config.debug = False
+urls = (
+    "/hello", "hello",
+    "/pipline","Pipline"
+    )
 
 
 class hello(object):
