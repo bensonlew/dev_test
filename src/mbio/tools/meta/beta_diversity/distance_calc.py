@@ -9,27 +9,28 @@ from mbio.files.otu_table import OtuTableFile
 
 class DistanceCalcAgent(Agent):
     """
-    qiime 
+    qiime
     version 1.0
     author shenghe
     last_modified:2015.11.5
     """
-    METHOD = ['abund_jaccard','binary_chisq','binary_chord',
-              'binary_euclidean','binary_hamming','binary_jaccard',
-              'inary_lennon','binary_ochiai','binary_otu_gain',
-              'binary_pearson','binary_sorensen_dice',
-              'bray_curtis','bray_curtis_faith','bray_curtis_magurran',
-              'canberra','chisq','chord','euclidean','gower',
-              'hellinger','kulczynski','manhattan','morisita_horn',
-              'pearson','soergel','spearman_approx','specprof',
-              'unifrac','unifrac_g','unifrac_g_full_tree',
-              'unweighted_unifrac','unweighted_unifrac_full_tree',
-              'weighted_normalized_unifrac','weighted_unifrac']
-    UNIFRACMETHOD = ['unifrac','unifrac_g','unifrac_g_full_tree',
-              'unweighted_unifrac','unweighted_unifrac_full_tree',
-              'weighted_normalized_unifrac','weighted_unifrac']
-    def __init__(self,parent):
-        super(DistanceCalcAgent,self).__init__(parent)
+    METHOD = ['abund_jaccard', 'binary_chisq', 'binary_chord',
+              'binary_euclidean', 'binary_hamming', 'binary_jaccard',
+              'inary_lennon', 'binary_ochiai', 'binary_otu_gain',
+              'binary_pearson', 'binary_sorensen_dice',
+              'bray_curtis', 'bray_curtis_faith', 'bray_curtis_magurran',
+              'canberra', 'chisq', 'chord', 'euclidean', 'gower',
+              'hellinger', 'kulczynski', 'manhattan', 'morisita_horn',
+              'pearson', 'soergel', 'spearman_approx', 'specprof',
+              'unifrac', 'unifrac_g', 'unifrac_g_full_tree',
+              'unweighted_unifrac', 'unweighted_unifrac_full_tree',
+              'weighted_normalized_unifrac', 'weighted_unifrac']
+    UNIFRACMETHOD = ['unifrac', 'unifrac_g', 'unifrac_g_full_tree',
+                     'unweighted_unifrac', 'unweighted_unifrac_full_tree',
+                     'weighted_normalized_unifrac', 'weighted_unifrac']
+
+    def __init__(self, parent):
+        super(DistanceCalcAgent, self).__init__(parent)
         options = [
             {"name": "method", "type": "string", "default": "bray_curtis"},
             {"name": "input1", "type": "infile", "format": "otu_table"},
@@ -49,7 +50,7 @@ class DistanceCalcAgent(Agent):
             raise OptionError(u'必须提供输出文件名')
         if self.option('method').value in DistanceCalcAgent.METHOD:
             pass
-        else :
+        else:
             raise OptionError(u'错误或者不支持的距离矩阵计算方法')
         if self.option('method').value in DistanceCalcAgent.UNIFRACMETHOD:
             if not self.option('input2').is_set:
@@ -63,9 +64,11 @@ class DistanceCalcAgent(Agent):
         self._cpu = 2  # 目前还不知道哪些距离计算消耗较多
         self._memory = ''
 
+
 class DistanceCalcTool(Tool):
-    def __init__(self,config):
-        super(DistanceCalcTool,self).__init__(config)
+
+    def __init__(self, config):
+        super(DistanceCalcTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
         self.cmd_path = 'python/lib/site-package/qiime/beta_diversity.py'
         # 安装位置不确定，待定
@@ -76,7 +79,7 @@ class DistanceCalcTool(Tool):
         运行
         :return:
         """
-        super(DistanceCalcTool,self).run()
+        super(DistanceCalcTool, self).run()
         self.run_beta_diversity()
 
     def run_beta_diversity(self):
@@ -88,28 +91,28 @@ class DistanceCalcTool(Tool):
         filename = os.path.basename(self.option('output'))
         cmd = self.cmd_path
         if self.option('method') in DistanceCalcAgent.UNIFRACMETHOD:
-            cmd += ' -m %s -i %s -o %s -t %s'%(
-                self.option('method'),self.option('input1'),
-                outputdir,self.option('input2'))
-        else :
-            cmd += ' -m %s -i %s -o %s'%(
-                self.option('method'),self.option('input1'),
+            cmd += ' -m %s -i %s -o %s -t %s' % (
+                self.option('method'), self.option('input1'),
+                outputdir, self.option('input2'))
+        else:
+            cmd += ' -m %s -i %s -o %s' % (
+                self.option('method'), self.option('input1'),
                 outputdir)
         self.logger.info(u'运行qiime/beta_diversity.py程序')
-        dist_matrix_command = self.add_command('distance_matrix',cmd)
+        dist_matrix_command = self.add_command('distance_matrix', cmd)
         dist_matrix_command.run()
         self.wait()
         if dist_matrix_command.return_code == 0:
             self.logger.info(u'运行qiime/beta_diversity.py完成')
-            self.end()
-            oldfile = (outputdir + '/' + self.option('method') + '_' + 
-                 os.path.splitext(os.path.basename(self.option('input1')))[0]
-                 + '.txt')
+            oldfile = (outputdir + '/' + self.option('method') + '_' +
+                       os.path.splitext(os.path.basename(
+                           self.option('input1')))[0]
+                       + '.txt')
             newfile = outputdir + '/' + self.option('method') + '_' + filename
-            os.rename(oldfile,newfile)
-        else :
+            os.rename(oldfile, newfile)
+            self.end()
+        else:
             self.set_error(u'运行qiime/beta_diversity.py出错')
-        
 
     def biom_otu_table(self):
         """
@@ -118,4 +121,4 @@ class DistanceCalcTool(Tool):
         """
         temp = OtuTableFile()
         temp.convert_to_biom((self.option('input1') + '.biom'))
-        self.option('input1',(self.option('input1') + '.biom'))
+        self.option('input1', (self.option('input1') + '.biom'))

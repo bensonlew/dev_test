@@ -7,6 +7,7 @@ from biocluster.core.exceptions import OptionError
 from mbio.files.group_table import GroupTable
 from mbio.files.anosim_outdir import AnosimOutdir
 
+
 class AnosimAgent(Agent):
     """
     qiime
@@ -14,8 +15,9 @@ class AnosimAgent(Agent):
     author: shenghe
     last_modified:2015.11.6
     """
-    def __init__(self,parent):
-        super(AnosimAgent,self).__init__(parent)
+
+    def __init__(self, parent):
+        super(AnosimAgent, self).__init__(parent)
         options = [
             {"name": "input1", "type": "infile", "format": "distance_matrix"},
             {"name": "output", "type": "outfile", "format": "anosim_outdir"},
@@ -43,9 +45,11 @@ class AnosimAgent(Agent):
         self._cpu = 2  # 暂定
         self._memory = ''
 
+
 class AnosimTool(Tool):
-    def __init__(self,config):
-        super(AnosimTool,self).__init__(config)
+
+    def __init__(self, config):
+        super(AnosimTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
         self.cmd_path = 'python/lib/site-package/qiime/compare_categories.py'
         # 安装位置不确定，待定
@@ -55,7 +59,7 @@ class AnosimTool(Tool):
         运行
         :return:
         """
-        super(AnosimTool,self).run()
+        super(AnosimTool, self).run()
         self.run_compare_categories()
 
     def run_compare_categories(self):
@@ -70,28 +74,28 @@ class AnosimTool(Tool):
         tempgroup.get_info()
         groupname = tempgroup.prop['name']
         # 此文件实例目前没有完成，假定其有一个name的属性标示group名字
-        cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c %s'%(
-                self.option('input2'),self.option('input1'),
-                self.option('output'),groupname)
-        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c %s'%(
-                self.option('input2'),self.option('input1'),
-                self.option('output'),groupname)
+        cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c %s' % (
+            self.option('input2'), self.option('input1'),
+            self.option('output'), groupname)
+        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c %s' % (
+            self.option('input2'), self.option('input1'),
+            self.option('output'), groupname)
         self.logger.info(u'运行qiime/compare_categories.py,计算adonis/anosim程序')
-        dist_anosim_command = self.add_command('anosim',cmd1)
+        dist_anosim_command = self.add_command('anosim', cmd1)
         dist_anosim_command.run()
         self.wait()
         if dist_anosim_command.return_code == 0:
             self.logger.info(u'运行qiime/compare_categories.py计算anosim完成')
-        else :
+        else:
             self.set_error(u'运行qiime/compare_categories.py计算anosim出错')
-        dist_adonis_command = self.add_command('adonis',cmd2)
+        dist_adonis_command = self.add_command('adonis', cmd2)
         dist_adonis_command.run()
         self.wait()
         if dist_adonis_command.return_code == 0:
             self.logger.info(u'运行qiime/compare_categories.py计算adonis完成')
             self.format_result()
             self.end()
-        else :
+        else:
             self.set_error(u'运行qiime/compare_categories.py计算adonis出错')
 
     def format_result(self):
@@ -105,4 +109,3 @@ class AnosimTool(Tool):
             pass
         else:
             result.merge()  # 写merge方法
-
