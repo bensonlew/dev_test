@@ -17,9 +17,9 @@ class RarefactionAgent(Agent):
         super(EstimatosAgent, self).__init__(parent)
         options = [
             {"name": "otutable", "type": "infile", "format": "xls"},  # 输入文件            
-            {"name": "indices", "type": "string", "default": "sobs-chao-shannon"},  # 指数类型
+            {"name": "indices", "type": "string", "default": "chao-shannon"},  # 指数类型
             {"name": "random_number", "type": "int", "default": 100}, #随机取样数
-            {"name": "rarefaction", "type": "outfile", "format": "txt"} # 输出结果
+            {"name": "rarefaction", "type": "outfile", "format": "dir"} # 输出结果
         ]
         self.add_option(options)
 
@@ -51,7 +51,7 @@ class RarefactionTool(object):
         cmd += ' -i %s -l %s -o %s \n' % ('otu_table.xls','0.97','otu.shared')
         cmd +='mothur "#rarefaction.single(shared=otu.shared,calc=sobs-%s,groupmode=f,freq=%s,processors=10)"'
                                                          %(self.option('indices'),self.option('random_number'))
-
+        cmd +='\n mkdir %s|find -name "*.%s"|xargs mv -t %s' %('rarefaction','rarefaction','rarefaction')
         self.logger.info(u"开始运行rarefacton")
         rarefaction_command = self.add_command("rarefaction", cmd)
         rarefaction_command.run()
@@ -63,10 +63,6 @@ class RarefactionTool(object):
             self.set_error(u"运行rarefaction出错！")
             break
         self.set_output()
-
-    # def set_output(self): 
-
-
         
     def run(self):
         """
@@ -74,7 +70,7 @@ class RarefactionTool(object):
         """
         super(RarefactionTool,self).run()
         self.rarefaction()
-        # self.set_output()
+
 
 
 
