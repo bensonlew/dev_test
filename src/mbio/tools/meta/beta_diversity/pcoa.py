@@ -5,6 +5,7 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 
+
 class PcoaAgent(Agent):
     """
     脚本ordination.pl
@@ -12,18 +13,16 @@ class PcoaAgent(Agent):
     author: shenghe
     last_modified:2015.11.5
     """
-    def __init__(self,parent):
-        super(PcoaAgent,self).__init__()
+
+    def __init__(self, parent):
+        super(PcoaAgent, self).__init__()
         options = [
             {"name": "input", "type": "infile", "format": "distance_matrix"},
             # 输入文件距离矩阵
             {"name": "output", "type": "outfile", "format": "pcoa_outdir"},
-            # 样本的坐标表,样本权重值表,各主成分的解释度权重值表。
-            # {"name": "output2", "type": "outfile", "format": "CoordinateTable"},  # 
-            # {"name": "output4", "type": "outfile", "format": "WeightTable"},  # 
         ]
         self.add_option(options)
-        
+
     def check_options(self):
         """
         重写参数检查
@@ -39,11 +38,13 @@ class PcoaAgent(Agent):
         设置所需资源
         """
         self._cpu = 2  # 需要资源数暂时不清楚
-        self._memory = ''  # 
+        self._memory = ''  #
+
 
 class PcoaTool(Tool):
-    def __init__(self,config):
-        super(PcoaTool,self).__init__(config)
+
+    def __init__(self, config):
+        super(PcoaTool, self).__init__(config)
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
         self.cmd_path = 'meta/ordination.pl'  # 暂不确定
 
@@ -52,7 +53,7 @@ class PcoaTool(Tool):
         运行
         :return:
         """
-        super(PcoaTool,self).run()
+        super(PcoaTool, self).run()
         self.run_ordination()
 
     def run_ordination(self):
@@ -61,10 +62,10 @@ class PcoaTool(Tool):
         :return:
         """
         cmd = self.cmd_path
-        cmd += ' -type pcoa -dist %s -outdir %s'%(
-                self.option('input'),self.option('output'))
+        cmd += ' -type pcoa -dist %s -outdir %s' % (
+            self.option('input'), self.option('output'))
         self.logger.info(u'运行ordination.pl程序计算pcoa')
-        ordination_command = self.add_command('ordination_pcoa',cmd)
+        ordination_command = self.add_command('ordination_pcoa', cmd)
         ordination_command.run()
         self.wait()
         if ordination_command.return_code == 0:
