@@ -13,6 +13,10 @@ class RarefactionAgent(Agent):
     author: qindanhua  
     last_modify: 2015.11.05  
     """
+    ESTIMATORS = ['sobs','chao','ace','jack','bootstrap','simpsoneven',
+    'shannoneven','heip','smithwilson','bergerparker','shannon',
+    'npshannon','simpson','invsimpson','coverage','qstat']
+
     def __init__(self, parent):
         super(EstimatosAgent, self).__init__(parent)
         options = [
@@ -29,13 +33,16 @@ class RarefactionAgent(Agent):
         """
         if not self.option("otutable").is_set:
             raise OptionError(u"请选择otu表")
+        for estimators in self.options('indices').split('-'):
+            if not estimators in ESTIMATORS:
+                raise OptionError(u"请选择正确的指数类型")
 
     def set_resource(self):
-        """
-        所需资源
-        """
-        self._cpu = 10
-        self._memory = ''
+            """
+            所需资源
+            """
+            self._cpu = 10
+            self._memory = ''
 
 
 class RarefactionTool(object):
@@ -50,8 +57,9 @@ class RarefactionTool(object):
         cmd = os.path.join(self.cmd_path,'otu2shared.pl')
         cmd += ' -i %s -l %s -o %s \n' % ('otu_table.xls','0.97','otu.shared')
         cmd +='mothur "#rarefaction.single(shared=otu.shared,calc=sobs-%s,groupmode=f,freq=%s,processors=10)"'
-                                                         %(self.option('indices'),self.option('random_number'))
-        cmd +='\n mkdir %s|find -name "*.%s"|xargs mv -t %s' %('rarefaction','rarefaction','rarefaction')
+                                            %('-'.join(self.option('indices')),self.option('random_number'))
+        for estimators in self.options('indices').split('-'):
+            cmd +='\n mkdir %s|find -name "otu*%s"|xargs mv -t %s \n' %(estimators,estimators,estimators)
         self.logger.info(u"开始运行rarefacton")
         rarefaction_command = self.add_command("rarefaction", cmd)
         rarefaction_command.run()
@@ -63,6 +71,10 @@ class RarefactionTool(object):
             self.set_error(u"运行rarefaction出错！")
             break
         self.set_output()
+    
+    def set_output(self):
+        os.link(self.work_dir+'rarefaction', self.output_dir+'rarefaction')
+        self.option('rarefaction', value=self.output_dir+'rarefaction')
         
     def run(self):
         """

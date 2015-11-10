@@ -8,11 +8,15 @@ from biocluster.core.exceptions import OptionError
 
 class EstimatorsAgent(Agent):
     """
-    estimators:用于生成所有样本的指数表 #undone
+    estimators:用于生成所有样本的指数表 
     version 1.0  
     author: qindanhua  
-    last_modify: 2015.11.04  
+    last_modify: 2015.11.10  
     """
+    ESTIMATORS = ['sobs','chao','ace','jack','bootstrap','simpsoneven',
+    'shannoneven','heip','smithwilson','bergerparker','shannon',
+    'npshannon','simpson','invsimpson','coverage','qstat']
+
     def __init__(self, parent):
         super(EstimatorsAgent, self).__init__(parent)
         options = [
@@ -28,6 +32,9 @@ class EstimatorsAgent(Agent):
         """
         if not self.option("otutable").is_set:
             raise OptionError(u"请选择otu表")
+        for estimators in self.options('indices').split('-'):
+            if not estimators in ESTIMATORS:
+                raise OptionError(u"请选择正确的指数类型")
 
     def set_resource(self):
         """
@@ -37,15 +44,13 @@ class EstimatorsAgent(Agent):
         self._memory = ''
 
 
-
 class EstimatorsTool(object):
     """
     version 1.0
     """
     def __init__(self, config):
         super(EstimatorsTool, self).__init__(config)
-        self.cmd_path = 'meta/alpha/estimators'
-
+        self.cmd_path = 'meta/alpha/'
 
     def cmd1(self):
         """
@@ -59,7 +64,8 @@ class EstimatorsTool(object):
         """
         返回mothur运行生成各样本指数值文件命令
         """
-        cmd2 = 'mothur "#summary.single(shared=otu.shared,groupmode=f,calc=ace-chao-shannon-simpson)"'
+
+        cmd2 = 'mothur "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' %(self.option('indices'))
         return cmd2
 
     def cmd3(self):
@@ -71,10 +77,16 @@ class EstimatorsTool(object):
         return cmd3
 
     def set_output(self):
+        """
+        将结果文件链接至output
+        """
         os.link(self.work_dir+'estimators', self.output_dir+'estimators')
         self.option('estimators', value=self.output_dir+'estimators')
 
     def run(self):
+        """
+        运行
+        """
         super(EstimatorsTool,self).run()
         i = 0
         while i < 4:
