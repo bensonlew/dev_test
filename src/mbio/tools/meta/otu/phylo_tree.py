@@ -53,10 +53,10 @@ class PhyloTreeTool(Tool):
         command.run()
         self.wait()
         if command.return_code == 0:
-            self.logger.info(u"运行rarefaction完成！")
+            self.logger.info(u"运行phylo_tree完成！")
             self.end()
         else:
-            self.set_error(u"运行rarefaction出错！")
+            self.set_error(u"运行phylo_tree出错！")
             break
         self.set_output()
 
