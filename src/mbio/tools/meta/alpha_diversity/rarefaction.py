@@ -11,7 +11,7 @@ class RarefactionAgent(Agent):
     rarefaction:稀释曲线 #undone
     version 1.0  
     author: qindanhua  
-    last_modify: 2015.11.05  
+    last_modify: 2015.11.10  
     """
     ESTIMATORS = ['sobs','chao','ace','jack','bootstrap','simpsoneven',
     'shannoneven','heip','smithwilson','bergerparker','shannon',
@@ -45,7 +45,7 @@ class RarefactionAgent(Agent):
             self._memory = ''
 
 
-class RarefactionTool(object):
+class RarefactionTool(Tool):
     """
     version 1.0
     """
