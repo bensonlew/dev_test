@@ -6,6 +6,7 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 
+
 class PhyloTreeAgent(Agent):
     """
     phylo_tree:生成OTU代表序列的树文件
@@ -14,7 +15,7 @@ class PhyloTreeAgent(Agent):
     last_modify: 2015.11.10  
     """
 
-    def __init__(self,parent):
+    def __init__(self, parent):
         super(PhyloTreeAgent, self).__init__(parent)
         options = [
             {"name": "otu_reps.fasta", "type": "infile", "format": "fasta"},  # 输入文件
@@ -30,19 +31,20 @@ class PhyloTreeAgent(Agent):
             raise OptionError(u"请传入OTU代表序列文件")
 
     def set_resource(self):
-            """
-            所需资源
-            """
-            self._cpu = 10
-            self._memory = ''
+        """
+        所需资源
+        """
+        self._cpu = 10
+        self._memory = ''
 
 
 class PhyloTreeTool(Tool):
     """
     version 1.0
     """
-    def __init__(self,config):
-        super(RarefactionTool, self).__init__(config)
+
+    def __init__(self, config):
+        super(PhyloTreeTool, self).__init__(config)
         self.cmd_path = 'meta/otu/'
 
     def phylo_tree(self):
@@ -61,13 +63,12 @@ class PhyloTreeTool(Tool):
         self.set_output()
 
     def set_output(self):
-        os.link(self.work_dir+'phylo.tre', self.output_dir+'phylo.tre')
-        self.option('phylo.tre', value=self.output_dir+'phylo.tre')
+        os.link(self.work_dir + 'phylo.tre', self.output_dir + 'phylo.tre')
+        self.option('phylo.tre', value=self.output_dir + 'phylo.tre')
 
     def run(self):
         """
         运行
         """
-        super(PhyloTreeTool,self).run()
+        super(PhyloTreeTool, self).run()
         self.phylo_tree()
-        
