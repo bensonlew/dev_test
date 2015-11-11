@@ -14,8 +14,9 @@ class DistanceBoxAgent(Agent):
     author shenghe
     last_modified:2015.11.6
     """
-    def __init__(self,parent):
-        super(DistanceBoxAgent,self).__init__(parent)
+
+    def __init__(self, parent):
+        super(DistanceBoxAgent, self).__init__(parent)
         options = [
             {"name": "input1", "type": "infile", "format": "distance_matrix"},
             {"name": "output", "type": "outfile", "format": "dist_box_outdir"},
@@ -45,8 +46,9 @@ class DistanceBoxAgent(Agent):
 
 
 class DistanceBoxTool(Tool):
-    def __init__(self,config):
-        super(DistanceBoxTool,self).__init__(config)
+
+    def __init__(self, config):
+        super(DistanceBoxTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
         self.cmd_path = 'python/lib/site-package/qiime/make_distance_boxplots.py'
         # 安装位置不确定，待定
@@ -56,7 +58,7 @@ class DistanceBoxTool(Tool):
         运行
         :return:
         """
-        super(DistanceBoxTool,self).run()
+        super(DistanceBoxTool, self).run()
         self.run_box()
 
     def run_box(self):
@@ -72,16 +74,16 @@ class DistanceBoxTool(Tool):
         groupname = tempgroup.prop['name']
         # 此文件实例目前没有完成，假定其有一个name的属性标示group名字
 
-        cmd += ' -m %s -d %s -o %s -f %s'%(
-                self.option('input2'),self.option('input1'),
-                self.option('output'),groupname)
+        cmd += ' -m %s -d %s -o %s -f %s' % (
+            self.option('input2'), self.option('input1'),
+            self.option('output'), groupname)
         self.logger.info(u'运行qiime/make_distance_boxplots.py程序')
-        box_command = self.add_command('box',cmd)
+        box_command = self.add_command('box', cmd)
         box_command.run()
         self.wait()
         if box_command.return_code == 0:
             self.logger.info(u'运行qiime/make_distance_boxplots.py完成')
             pass
             self.end()
-        else :
+        else:
             self.set_error(u'运行qiime/make_distance_boxplots.py出错')

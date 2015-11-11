@@ -5,6 +5,7 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 
+
 class RdaCcaAgent(Agent):
     """
     脚本ordination.pl
@@ -12,8 +13,9 @@ class RdaCcaAgent(Agent):
     author: shenghe
     last_modified:2015.11.5
     """
-    def __init__(self,parent):
-        super(RdaCcaAgent,self).__init__(parent)
+
+    def __init__(self, parent):
+        super(RdaCcaAgent, self).__init__(parent)
         options = [
             {"name": "input1", "type": "infile", "format": "otu_table"},
             # 输入文件otu表
@@ -41,11 +43,13 @@ class RdaCcaAgent(Agent):
         设置所需资源
         """
         self._cpu = 2  # 需要资源数暂时不清楚
-        self._memory = ''  # 
+        self._memory = ''  #
+
 
 class RdaCcaTool(Tool):
-    def __init__(self,config):
-        super(RdaCcaTool,self).__init__(config)
+
+    def __init__(self, config):
+        super(RdaCcaTool, self).__init__(config)
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
         self.cmd_path = 'meta/ordination.pl'  # 暂不确定
 
@@ -54,7 +58,7 @@ class RdaCcaTool(Tool):
         运行
         :return:
         """
-        super(RdaCcaTool,self).run()
+        super(RdaCcaTool, self).run()
         self.run_ordination()
 
     def run_ordination(self):
@@ -63,10 +67,10 @@ class RdaCcaTool(Tool):
         :return:
         """
         cmd = self.cmd_path
-        cmd += ' -type rdacca -community %s -environment %s -outdir %s'%(
-                self.option('input1'),self.option('input2'),
-                self.option('output'))
-        ordination_command = self.add_command('ordination_rda_cca',cmd)
+        cmd += ' -type rdacca -community %s -environment %s -outdir %s' % (
+            self.option('input1'), self.option('input2'),
+            self.option('output'))
+        ordination_command = self.add_command('ordination_rda_cca', cmd)
         ordination_command.run()
         self.wait()
         if ordination_command.return_code == 0:
