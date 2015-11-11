@@ -119,4 +119,4 @@ class Config(object):
     def get_db(self):
         if self.DB_TYPE == "mysql":
             return web.database(dbn=self.DB_TYPE, host=self.DB_HOST, db=self.DB_NAME, user=self.DB_USER,
-                                passwd=self.DB_PASSWD, prot=self.DB_PORT)
+                                passwd=self.DB_PASSWD, port=int(self.DB_PORT))

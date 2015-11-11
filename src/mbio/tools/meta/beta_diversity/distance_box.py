@@ -43,6 +43,7 @@ class DistanceBoxAgent(Agent):
         self._cpu = 2  # 服务器，目前是一个样本的矩阵计算使用了6-8s
         self._memory = ''
 
+
 class DistanceBoxTool(Tool):
     def __init__(self,config):
         super(DistanceBoxTool,self).__init__(config)
