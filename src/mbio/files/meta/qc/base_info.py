@@ -5,18 +5,18 @@ from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
 
-class BaseInfo(File):
+class BaseInfoFile(File):
     """
-    定义BaseInfo(meta里的单样本碱基质量)文件
+    定义BaseInfoFile(meta里的单样本碱基质量)文件
     """
     def __init__(self):
-        super(BaseInfo, self).__init__()
+        super(BaseInfoFile, self).__init__()
 
     def get_info(self):
         """
         获取文件属性
         """
-        super(BaseInfo, self).get_info()
+        super(BaseInfoFile, self).get_info()
         file_info = self.get_file_info()
         self.set_property("longest_cycle", file_info)
 
@@ -25,7 +25,7 @@ class BaseInfo(File):
         检测文件是否满足要求,发生错误时应该触发FileError异常
         :return: bool
         """
-        if super(BaseInfo, self).check():
+        if super(BaseInfoFile, self).check():
             if not self.check_format:
                 raise FileError(u"文件格式错误")
         return True
@@ -36,8 +36,9 @@ class BaseInfo(File):
         :param row:行数
         """
         row = 0
-        with open(self.prop['path'], 'r'):
-            row += 1
+        with open(self.prop['path'], 'r') as f:
+            if f.readline():
+                row += 1
         return row - 1
 
     @property
