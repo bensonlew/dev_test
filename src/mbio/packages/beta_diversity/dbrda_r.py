@@ -15,6 +15,7 @@ def get_argu():
     """
     命令行模式下运行此脚本的参数获取方法
     路径请使用'/',不要使用'\\'
+
     """
     parse = argparse.ArgumentParser(prog='dbrda_r.py',
                                     usage=u'关于此脚本的说明',
@@ -45,6 +46,7 @@ def get_argu():
 def create_r(outputdir, dis_matrix, maping):
     """
     生成可以运行的R脚本
+
     :param outputdir: 输出文件夹
     :param dis_matrix: 输入矩阵
     :param maping: 输入分组文件

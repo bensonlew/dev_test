@@ -12,7 +12,6 @@ function signature()
     $string["timestamp"] = time();
     $list = array($key, $string["timestamp"], $string["nonce"]);
     sort($list,SORT_STRING);
-    print_r($list);
     $string["signature"] = sha1(join("",$list));
     return $string;
 }

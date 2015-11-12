@@ -104,7 +104,10 @@ class WorkJob(object):
             "server": socket.gethostname(),
             "has_run": 1,
             "run_time": datetime.datetime.now(),
-            "pid": pid
+            "pid": pid,
+            "is_end": 0,
+            "is_error": 0,
+            "error": ""
         }
         self.db.update("workflow", where="id = %s" % self.database_id, **data)
 
@@ -144,7 +147,7 @@ class WorkJob(object):
         self.lock()
         self.get_json()
         if args.daemon:
-            self.daemonize()
+            self.daemonize(stderr=args.log)
         else:
             self.pid = os.getpid()
         self.update_workflow(self.pid)
@@ -153,7 +156,6 @@ class WorkJob(object):
 
     def start(self):
         write_log("Start running workflow:%s" % self.workflow_id)
-        path =""
         if self.json_data["type"] == "workflow":
             path = self.json_data["name"]
         elif self.json_data["type"] == "link":
@@ -162,8 +164,20 @@ class WorkJob(object):
             path = "single"
         wf = load_class_by_path(path, "workflow")
         wsheet = Sheet(data=self.json_data)
-        workflow = wf(wsheet)
-        workflow.run()
+
+        try:
+            workflow = wf(wsheet)
+            workflow.config.USE_DB = True
+            workflow.run()
+        except Exception, e:
+            data = {
+                "is_error": 1,
+                "error": "%s: %s" % (e.__class__.__name__, e),
+                "end_time": datetime.datetime.now(),
+                "is_end": 1
+            }
+            self.db.update("workflow", where="id = %s" % self.database_id, **data)
+
         write_log("End running workflow:%s" % self.workflow_id)
 
 

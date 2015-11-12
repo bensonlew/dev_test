@@ -48,6 +48,7 @@ class RarefactionAgent(Agent):
 class RarefactionTool(Tool):
     """
     version 1.0
+
     """
     def __init__(self, config):
         super(RarefactionTool, self).__init__(config)

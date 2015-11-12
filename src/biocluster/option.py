@@ -83,7 +83,7 @@ class Option(object):
         """
         if self._type in {'outfile', 'infile'}:
             if isinstance(value, unicode) or isinstance(value, str):
-                if os.path.isfile(value):
+                if os.path.exists(value):
                     self._value.set_path(value)
                 else:
                     raise OptionError(u"文件不存在！")
