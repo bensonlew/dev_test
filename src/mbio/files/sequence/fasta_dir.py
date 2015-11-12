@@ -8,17 +8,19 @@ from biocluster.core.exceptions import FileError
 from biocluster.iofile import Directory
 
 
-class FastaFileDir(Directory):
+class FastaDirFile(Directory):
     """
     定义fasta文件夹
     需要biopython
     """
     def __init__(self):
         """
-        :param fastqs: 不带路径的fastq的文件名集合
+        :param fastas: 不带路径的fastq的文件名集合
+        :param fastas_full: 带路径的fastq的文件名集合
         """
-        super(FastaFileDir, self).__init__()
+        super(FastaDirFile, self).__init__()
         self.fastas = list()
+        self.fastas_full = list()
 
     def get_info(self):
         """
@@ -40,6 +42,8 @@ class FastaFileDir(Directory):
             if re.search(r'\.(fasta|fa)$', file_):
                 count += 1
                 self.fastas.append(file_)
+                full_name = os.join(self.prop['path'], file_)
+                self.fastas_full.append(full_name)
         return count
 
     def cat_fastas(self):
@@ -89,7 +93,7 @@ class FastaFileDir(Directory):
         检测文件夹是否满足要求，不满足时触发FileError异常
         :return:
         """
-        if super(FastaFileDir, self).check():
+        if super(FastaDirFile, self).check():
             if "file_number" not in self.prop.keys():
                 raise FileError(u"还未设置该文件夹下的fasta文件数目")
             if self.prop['file_number'] != self.get_fasta_number():

@@ -5,18 +5,18 @@ from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
 
-class ReadsLenInfo(File):
+class ReadsLenInfoFile(File):
     """
-    定义ReadsLenInfo(meta里reads长度分布)文件
+    定义ReadsLenInfoFile(meta里reads长度分布)文件
     """
     def __init__(self):
-        super(ReadsLenInfo, self).__init__()
+        super(ReadsLenInfoFile, self).__init__()
 
     def get_info(self):
         """
         获取文件属性
         """
-        super(ReadsLenInfo, self).get_info()
+        super(ReadsLenInfoFile, self).get_info()
         sample_number = self.get_sample_number()
         step = self.get_step()
         self.set_property("sample_number", sample_number)
@@ -27,7 +27,7 @@ class ReadsLenInfo(File):
         检测文件是否满足要求,发生错误时应该触发FileError异常
         :return: bool
         """
-        if super(ReadsLenInfo, self).check():
+        if super(ReadsLenInfoFile, self).check():
             if not self.check_file_name:
                 raise FileError(u"文件名错误")
             if not self.check_format:

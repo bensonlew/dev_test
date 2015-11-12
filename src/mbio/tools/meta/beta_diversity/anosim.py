@@ -57,14 +57,17 @@ class AnosimTool(Tool):
     def run(self):
         """
         运行
+
         :return:
         """
         super(AnosimTool, self).run()
         self.run_compare_categories()
 
-    def run_compare_categories(self):
+    def run_compare_categories(self,ddd):
         """
-        运行qiime/compare_categories
+        ddddddd
+
+        :param ddd:
         :return:
         """
         cmd = self.cmd_path
@@ -101,6 +104,7 @@ class AnosimTool(Tool):
     def format_result(self):
         """
         整理anosim和adonis两个的结果到一个表中
+
         :return:
         """
         result = AnosimOutdir()  # 需要创建类型，在类型中设定合并两个文件的方法
