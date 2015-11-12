@@ -45,7 +45,6 @@ class VennTableAgent(Agent):
 class VennTableTool(Tool):
     def __init__(self, config):
         super(VennTableTool, self).__init__(config)
-        self.script_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/venn_table.py")
         self.R_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/R")
         self._version = 1.0
 
