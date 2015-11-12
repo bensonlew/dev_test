@@ -15,6 +15,7 @@ class FastaFile(File):
     def __init__(self):
         super(FastaFile, self).__init__()
         self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/seqstat")
+        self.sample_name
 
     def get_info(self):
         """
@@ -42,6 +43,18 @@ class FastaFile(File):
             if self.prop["seq_number"] < 1:
                 raise FileError(u"应该至少含有一条序列")
         return True
+
+    @property
+    def sample_name(self):
+        """
+        :param sample_name: 样本名，为文件名去掉后缀以后的值
+        """
+        if self.is_set:
+            basename = self.prop['basename']
+            if re.search(r'\.(fasta|fa)$', basename):
+                return re.search(r'(.+)\.(fasta|fa)$', basename).group(1)
+            else:
+                return basename
 
     def ncbi_blast_tool_check(self):
         """
@@ -132,7 +145,7 @@ class FastaFile(File):
                 m_id = re_id.match(line)
                 if m_id is not None:
                     n += 1
-                    if n == chunk+1:
+                    if n == chunk + 1:
                         wf.close()
                         s += 1
                         n = 0

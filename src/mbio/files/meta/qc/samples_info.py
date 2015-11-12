@@ -7,18 +7,18 @@ from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
 
-class SamplesInfo(File):
+class SamplesInfoFile(File):
     """
     定义samplesInfo(meta里的单样本碱基质量)文件
     """
     def __init__(self):
-        super(SamplesInfo, self).__init__()
+        super(SamplesInfoFile, self).__init__()
 
     def get_info(self):
         """
         获取文件属性
         """
-        super(SamplesInfo, self).get_info()
+        super(SamplesInfoFile, self).get_info()
         file_info = self.get_file_info()
         self.set_property("sample_number", file_info[0])
         self.set_property("total_reads", file_info[1])
@@ -32,7 +32,7 @@ class SamplesInfo(File):
         检测文件是否满足要求,发生错误时应该触发FileError异常
         :return: bool
         """
-        if super(SamplesInfo, self).check():
+        if super(SamplesInfoFile, self).check():
             if not self.check_format:
                 raise FileError(u"文件格式错误")
         return True

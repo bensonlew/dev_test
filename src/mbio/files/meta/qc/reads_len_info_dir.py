@@ -6,7 +6,7 @@ from biocluster.core.exceptions import FileError
 from biocluster.iofile import Directory
 
 
-class ReadsLenInfoDir(Directory):
+class ReadsLenInfoDirFile(Directory):
     """
     定义reads_len_info文件夹格式
     """
@@ -14,7 +14,7 @@ class ReadsLenInfoDir(Directory):
         """
         :param reads_len_info: 不带路径的reads_len_info文件名集合
         """
-        super(ReadsLenInfoDir, self).__init__()
+        super(ReadsLenInfoDirFile, self).__init__()
         self.reads_len_info = list()
 
     def get_info(self):
@@ -34,7 +34,7 @@ class ReadsLenInfoDir(Directory):
         filelist = os.listdir(self.prop['path'])
         count = 0
         for file_ in filelist:
-            if re.search(r'\.reads_len_info$'):
+            if re.search(r'\.reads_len_info$', file_):
                 count += 1
                 self.reads_len_info.append(file_)
         return count
@@ -53,7 +53,7 @@ class ReadsLenInfoDir(Directory):
         """
         检测文件夹是否满足要求，不满足时触发FileError异常
         """
-        if super(ReadsLenInfoDir, self).check():
+        if super(ReadsLenInfoDirFile, self).check():
             if self.prop['file_number'] != self.get_reads_len_info_number():
                 raise FileError(u"文件夹里reads_len_info文件数目不为四个！")
             self._check_file_name()

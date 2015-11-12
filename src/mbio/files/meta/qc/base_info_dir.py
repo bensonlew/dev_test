@@ -6,12 +6,12 @@ from biocluster.core.exceptions import FileError
 from biocluster.iofile import Directory
 
 
-class BaseInfoDir(Directory):
+class BaseInfoDirFile(Directory):
     """
     定义base_info文件夹
     """
     def __init__(self):
-        super(BaseInfoDir, self).__init__()
+        super(BaseInfoDirFile, self).__init__()
 
     def get_info(self):
         """
@@ -37,7 +37,7 @@ class BaseInfoDir(Directory):
         """
         检测文件夹是否满足要求，不满足是触发FileError异常
         """
-        if super(BaseInfoDir, self).check():
+        if super(BaseInfoDirFile, self).check():
             if "file_number" not in self.prop.keys():
                 raise FileError(u"还未设置该文件夹下的base_info文件数目")
             if self.prop['file_number'] != self.get_fastq_number():
