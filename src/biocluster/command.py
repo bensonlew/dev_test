@@ -162,7 +162,7 @@ class Command(object):
                             argspec = inspect.getargspec(func)
                             args = argspec.args
                             if len(args) != 3:
-                                Exception(u"状态监测函数参数必须为3个(包括self)!")
+                                Exception("状态监测函数参数必须为3个(包括self)!")
                             func(self, line)   # check function(toolself, command, line)  single line
                 else:
                     endtime = datetime.datetime.now()
@@ -180,14 +180,14 @@ class Command(object):
         :return: self
         """
         if self._pid != "":
-            raise OSError(u"命令已经运行，不能重复运行!")
+            raise OSError("命令已经运行，不能重复运行!")
         if "|" in self.cmd or ">" in self.cmd or "<" in self.cmd:
-            raise Exception(u"不能使用管道符或重定向符!")
+            raise Exception("不能使用管道符或重定向符!")
         command = self.software_dir + "/" + self.cmd
         args = shlex.split(command)
         if not os.path.isfile(args[0]):
-            self.tool.set_error(u"运行的命令文件不存在")
-            raise Exception(u"你所运行的命令文件不存在，请确认!")
+            self.tool.set_error("运行的命令文件不存在")
+            raise Exception("你所运行的命令文件不存在，请确认!")
         thread = threading.Thread(target=self._run)
         thread.start()
         return self

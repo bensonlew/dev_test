@@ -57,7 +57,7 @@ class LocalActor(gevent.Greenlet):
             self._agent.fire('runstart', message["data"])
         self._update = datetime.datetime.now()
         if (not isinstance(message, dict)) or ('state' not in message.keys()):
-            self._agent.logger.warning(u"接收到不符合规范的消息，丢弃!")
+            self._agent.logger.warning("接收到不符合规范的消息，丢弃!")
         if message['state'] != "keepalive":
             if hasattr(self._agent, message['state']+'_callback'):
                 func = getattr(self._agent, message['state']+'_callback')
@@ -68,7 +68,7 @@ class LocalActor(gevent.Greenlet):
                 elif len(args) == 2:
                     func(message['data'])
                 else:
-                    raise Exception(u"状态回调函数参数不能超过2个(包括self)!")
+                    raise Exception("状态回调函数参数不能超过2个(包括self)!")
             else:
                 self.default_callback(message)
 
@@ -76,7 +76,7 @@ class LocalActor(gevent.Greenlet):
         """
         消息处理函数不存在时对默认的处理方法
         """
-        self._agent.logger.warning(self._agent.name+u"没有定义消息对应的处理函数" + message['state'] + "!")
+        self._agent.logger.warning(self._agent.name+ "没有定义消息对应的处理函数" + message['state'] + "!")
 
     def _run(self):
         self._start_time = datetime.datetime.now()
@@ -107,8 +107,8 @@ class RemoteActor(threading.Thread):
         :return: None
         """
         while (not self._tool.is_end) or len(self._tool.states) > 0:
-            if self._tool.exit_signal:
-                self._tool.logger.debug(u"接收到退出信号，终止Actor信号发送!")
+            if self._tool.exit_signal and len(self._tool.states) == 0:
+                self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
                 break
             if len(self._tool.states) > 0:
                 self.mutex.acquire()
@@ -126,9 +126,9 @@ class RemoteActor(threading.Thread):
                             elif len(args) == 2:
                                 func(action['data'])
                             else:
-                                raise Exception(u"action处理函数参数不能超过2个(包括self)!")
+                                raise Exception("action处理函数参数不能超过2个(包括self)!")
                         else:
-                            self._tool.logger.warn(u"没有为返回action %s设置处理函数!" % action['action'])
+                            self._tool.logger.warn("没有为返回action %s设置处理函数!" % action['action'])
                 if state.name in {"finish", "error"}:
                     break
             else:
@@ -144,9 +144,9 @@ class RemoteActor(threading.Thread):
                             elif len(args) == 2:
                                 func(action['data'])
                             else:
-                                raise Exception(u"action处理函数参数不能超过2个(包括self)!")
+                                raise Exception("action处理函数参数不能超过2个(包括self)!")
                         else:
-                            self._tool.logger.warn(u"没有为返回action %s设置处理函数!" % action['action'])
+                            self._tool.logger.warn("没有为返回action %s设置处理函数!" % action['action'])
             time.sleep(int(self.config.KEEP_ALIVE_TIME))
 
     def send_state(self, state):
@@ -168,18 +168,18 @@ class RemoteActor(threading.Thread):
             self._lost_connection_count += 1
             if state.name == "keepalive":
                 if self._lost_connection_count >= 3:
-                    self._tool.logger.error(u"网络连接出现错误，尝试三次仍然无法连接，即将退出运行:%s" % e)
+                    self._tool.logger.error("网络连接出现错误，尝试三次仍然无法连接，即将退出运行:%s" % e)
                     self._tool.exit_signal = True
                     sys.exit(1)
                 else:
-                    self._tool.logger.error(u"网络连接出现错误，将重新尝试连接:%s" % e)
+                    self._tool.logger.error("网络连接出现错误，将重新尝试连接:%s" % e)
             else:
-                self._tool.logger.error(u"网络连接出现错误，消息无法传递，即将退出运行:%s" % e)
+                self._tool.logger.error("网络连接出现错误，消息无法传递，即将退出运行:%s" % e)
                 self._tool.exit_signal = True
                 sys.exit(1)
         else:
             if not isinstance(result, dict):
-                self._tool.logger.error(u"接收到异常信息，退出运行!")
+                self._tool.logger.error("接收到异常信息，退出运行!")
                 sys.exit(1)
             self._lost_connection_count = 0
             return result

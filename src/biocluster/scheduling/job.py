@@ -33,7 +33,7 @@ class JobManager(object):
         filled = False
         while len(self.get_unfinish_jobs()) >= self.max_job_number:
             if not filled:
-                agent.logger.info(u"任务队列达到最大上限%s个，排队等待运行!" % self.max_job_number)
+                agent.logger.info("任务队列达到最大上限%s个，排队等待运行!" % self.max_job_number)
             filled = True
             gevent.sleep(1)
         else:

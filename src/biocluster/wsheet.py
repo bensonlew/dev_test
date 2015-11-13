@@ -58,12 +58,12 @@ class Sheet(object):
 
         if self.type == "link":
             if component not in self._data['components'].keys():
-                raise Exception(u"列表中没有components:%s" % component)
+                raise Exception("列表中没有components:%s" % component)
             data = self._data['components'][component]['options']
         else:
             data = self._data['options']
         if name not in data.keys():
-            raise Exception(u"没有参数%s" % name)
+            raise Exception("没有参数%s" % name)
         return data[name]
 
     def options(self, component=None):
@@ -73,7 +73,7 @@ class Sheet(object):
         """
         if self.type == "link":
             if component not in self._data['components'].keys():
-                raise Exception(u"列表中没有components:%s" % component)
+                raise Exception("列表中没有components:%s" % component)
             data = self._data['components'][component]['options']
         else:
             data = self._data['options']

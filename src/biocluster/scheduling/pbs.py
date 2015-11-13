@@ -45,7 +45,7 @@ class PBS(Job):
         output = os.popen('ssh %s "/opt/torque/bin/qsub %s"' % (self.master_ip, pbs_file))
         text = output.read()
         if re.match(r'Maximum number', text):
-            self.agent.logger.warn(u"到达最大任务书，30秒后尝试再次投递!")
+            self.agent.logger.warn("到达最大任务书，30秒后尝试再次投递!")
             gevent.sleep(30)
             self.submit()
         else:
@@ -54,7 +54,7 @@ class PBS(Job):
                 self.id = m.group(1)
                 return self.id
             else:
-                self.agent.logger.warn(u"任务投递系统出现错误:%s，30秒后尝试再次投递!\n" % output)
+                self.agent.logger.warn("任务投递系统出现错误:%s，30秒后尝试再次投递!\n" % output)
                 gevent.sleep(30)
                 self.submit()
 
