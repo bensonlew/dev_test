@@ -237,6 +237,8 @@ class Tool(object):
         filepath = os.path.join(self.work_dir, command.name+"_resource.txt")
         while True:
             if not command.has_run:
+                if command.is_error:
+                    break
                 continue
             if command.is_running:
                 processes = command.get_psutil_processes()

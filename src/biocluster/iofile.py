@@ -159,7 +159,10 @@ class Directory(FileBase):
         """
         设置这个文件夹的有效文件数目
         """
-        self.set_property("file_number", number)
+        if self.is_set:
+            self.set_property("file_number", number)
+        else:
+            raise Exception(u'请先设置文件路径')
 
     def check(self):
         """
@@ -169,3 +172,7 @@ class Directory(FileBase):
         super(Directory, self).check()
         if not('path' in self.prop.keys() and os.path.isdir(self.prop['path'])):
             raise FileError(u"文件夹路径不正确，请设置正确的文件夹路径!")
+
+    def get_info(self):
+        if not ('path' in self.prop.keys() and os.path.exists(self.prop['path'])):
+            raise FileError(u"文件夹路径不正确或文件夹不存在")

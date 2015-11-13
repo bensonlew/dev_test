@@ -10,17 +10,19 @@ class Sheet(object):
     """
     workflow 表单
     """
-    def __init__(self, jsonfile):
+    def __init__(self, jsonfile="", data={}):
         """
         根据配置文件或者配置对象生成Sheet对象
-        :param jsonfile:
-        :param config_dict:
+        :param jsonfile: file path
+        :param data:  Python object convert from json file,未指定jsonfile时生效
         :return:
         """
         self._data = {}
         if jsonfile:
             with open(jsonfile, 'r') as f:
                 self._data = json.load(f)
+        else:
+            self._data = data
 
     @property
     def id(self):
