@@ -19,8 +19,8 @@ class OtuTableFile(File):
         """
         """
         super(OtuTableFile, self).__init__()
-        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "meta/bin/biom")
-        self.otu2shared_path = os.path.join(Config().SOFTWARE_DIR, "meta/bin/otu2shared.pl")
+        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "/Python/bin")
+        self.otu2shared_path = os.path.join(Config().SOFTWARE_DIR, "meta/scripts/otu2shared.pl")
 
     def get_info(self):
         """

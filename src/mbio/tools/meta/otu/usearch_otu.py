@@ -20,12 +20,12 @@ class UsearchOtuAgent(Agent):
     def __init__(self, parent=None):
         super(UsearchOtuAgent, self).__init__(parent)
         options = [
-            {'name': 'fasta', 'type': 'infile', 'format': 'Fasta'},  # 输入fasta文件，序列名称格式为'>sampleID_seqID'.
+            {'name': 'fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 输入fasta文件，序列名称格式为'>sampleID_seqID'.
             {'name': 'identity', 'type': 'float', 'default': 0.97},  # 相似性值，范围0-1.
-            {'name': 'otu_table', 'type': 'outfile', 'format': 'OtuTable'},  # 输出结果otu表
-            {'name': 'otu_rep', 'type': 'outfile', 'format': 'Fasta'},  # 输出结果otu代表序列
-            {'name': 'otu_seqids', 'type': 'outfile', 'format': 'OtuSeqids'},  # 输出结果otu中包含序列列表
-            {'name': 'otu_biom', 'type': 'outfile', 'format': 'Biom'}  # 输出结果biom格式otu表
+            {'name': 'otu_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出结果otu表
+            {'name': 'otu_rep', 'type': 'outfile', 'format': 'sequence.fasta'},  # 输出结果otu代表序列
+            {'name': 'otu_seqids', 'type': 'outfile', 'format': 'meta.otu.otu_seqids'},  # 输出结果otu中包含序列列表
+            {'name': 'otu_biom', 'type': 'outfile', 'format': 'meta.otu.biom'}  # 输出结果biom格式otu表
         ]
         self.add_option(options)
 
@@ -75,7 +75,7 @@ class UsearchOtuTool(Tool):
         return cmd
 
     def cmd4(self):
-        cmd = self.usearch_path+"uparse -usearch_global meta.fasta -db cluster.fasta -strand plus -id "+self.option('id')+" -uc map.uc"
+        cmd = self.usearch_path+"uparse -usearch_global meta.fasta -db cluster.fasta -strand plus -id "+str(self.option('id'))+" -uc map.uc"
         return cmd
 
     def cmd5(self):
@@ -113,19 +113,21 @@ class UsearchOtuTool(Tool):
 
     def run(self):
         super(UsearchOtuTool, self).run()
-        os.link(self.option("query").value.prop['path'], self.work_dir+'/meta.fasta')
+        self.logger.info("将输入文件链接到工作目录")
+        os.link(self.option("fasta").prop['path'], self.work_dir+'/meta.fasta')
+        self.logger.info("OK")
         i = 0
         while i < 9:
             i += 1
-            self.logger.info(u"开始运行cmd"+i)
-            cmd = getattr(self, 'cmd'+i)()
-            command = self.add_command('cmd'+i, cmd)
+            self.logger.info("开始运行cmd"+str(i))
+            cmd = getattr(self, 'cmd'+str(i))()
+            command = self.add_command('cmd'+str(i), cmd)
             command.run()
             self.wait(command)
             if command.return_code == 0:
-                self.logger.info(u"运行cmd"+i+u"完成")
+                self.logger.info("运行cmd"+str(i)+"完成")
             else:
-                self.set_error(u"cmd"+i+u"运行出错!")
+                self.set_error("cmd"+str(i)+"运行出错!")
                 break
         self.set_output()
         self.end()

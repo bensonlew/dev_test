@@ -19,14 +19,14 @@ class QiimeAssignAgent(Agent):
         """
         super(QiimeAssignAgent, self).__init__(parent)
         options = [
-            {'name': 'fasta', 'type': 'infile', 'format': 'Fasta'},  # 输入fasta文件
+            {'name': 'fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 输入fasta文件
             {'name': 'revcomp', 'type': 'bool'},  # 序列是否翻转
             {'name': 'confidence', 'type': 'float', 'default': 0.7},  # 置信度值
             {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
             {'name': 'database', 'type': 'str'},  # 数据库选择
-            {'name': 'ref_fasta', 'type': 'infile', 'format': 'fasta'},  # 参考fasta序列
-            {'name': 'ref_taxon', 'type': 'infile', 'format': 'SeqTaxon'},  # 参考taxon文件
-            {'name': 'taxon_file', 'type': 'outfile', 'format': 'SeqTaxon'}  # 输出序列的分类信息文件
+            {'name': 'ref_fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 参考fasta序列
+            {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
+            {'name': 'taxon_file', 'type': 'outfile', 'format': 'taxon.seq_taxon'}  # 输出序列的分类信息文件
         ]
         self.add_options(options)
 
@@ -64,9 +64,9 @@ class QiimeAssignTool(Tool):
     def run_prepare(self):
         cmd = ''
         if self.option('revcomp'):
-            cmd = "revcomp "+self.option('fasta')+" > seqs.fasta"
+            cmd = "revcomp "+self.option('fasta').prop['path']+" > seqs.fasta"
         else:
-            cmd = "ln -s "+self.option('fasta')+" seqs.fasta"
+            cmd = "ln -s "+self.option('fasta').prop['path']+" seqs.fasta"
         prepare = self.add_command("prepare", cmd)
         self.logger.info("开始运行prepare")
         prepare.run()
