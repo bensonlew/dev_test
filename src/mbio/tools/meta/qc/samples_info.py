@@ -33,9 +33,9 @@ class SamplesInfoAgent(Agent):
         :return:
         """
         if not (self.option("fasta_path").is_set or self.option("fastq_path").is_set):
-            raise OptionError(u"参数fasta_path和参数fastq_path不能都为空")
+            raise OptionError("参数fasta_path和参数fastq_path不能都为空")
         if not self.option("sample_number").is_set:
-            raise OptionError(u"必须设置参数sample_number")
+            raise OptionError("必须设置参数sample_number")
         # 设置文件夹的文件数目，并检测与实际的数目是否一致
         if self.option("fastq_path").is_set:
             self.option("fastq_path").set_file_number(self.option("sample_number"))
@@ -62,9 +62,9 @@ class SamplesInfoTool(Tool):
         """
         生成samples_info表
         """
-        self.logger.info(u'生成fasta文件夹')
+        self.logger.info('生成fasta文件夹')
         self._get_fasta_dir()
-        self.logger.info(u'成功生成fasta文件夹,开始统计样本信息')
+        self.logger.info('成功生成fasta文件夹,开始统计样本信息')
         file_name = os.path.join(self.output_dir, self.id + ".samples_info")
         with open(file_name, "w") as f:
             head = ["sample", "reads", "bases", "avg", "min", "max"]
@@ -83,7 +83,7 @@ class SamplesInfoTool(Tool):
                     info.append(fastafile.prop["longest"])
                     f.write("\t".join(info) + "\n")
         self.option("samples_info").set_path(file_name)
-        self.logger.info(u'样本信息统计完毕！')
+        self.logger.info('样本信息统计完毕！')
 
     def _get_fasta_dir(self):
         """

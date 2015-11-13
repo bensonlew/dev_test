@@ -32,12 +32,14 @@ def main():
         parser.print_help()
         sys.exit(1)
     if args.database:
-        args.database = True
         write_log("Reading data from database,loop checking ...")
         while True:
             wj = WorkJob()
             wj.run()
             time.sleep(2)
+    else:
+        wj = WorkJob()
+        wj.run()
 
 
 def write_log(data):
@@ -87,17 +89,17 @@ class WorkJob(object):
     def get_from_file(self, path):
         with open(path, 'r') as f:
             data = json.load(f)
-            self.workflow_id = data.workflow_id
+            self.workflow_id = data["id"]
             return data
 
     def insert_workflow(self, data):
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$workflow_id",
-                                vars={'workflow_id': data.workflow_id})
+                                vars={'workflow_id': data["id"]})
         if len(results) < 1:
-            return self.db.insert("workflow", workflow_id=data.workflow_id, json=json.dumps(data))
+            return self.db.insert("workflow", workflow_id=data["id"], json=json.dumps(data))
         else:
-            write_log("Workflow %s already in database, skip insert ..." % data.workflow_id)
-            return results[0].id
+            # write_log("Workflow %s already in database, skip insert ..." % data["id"])
+            raise Exception("Workflow %s already in database, Please use -r rerun it!")
 
     def update_workflow(self, pid):
         data = {
@@ -162,7 +164,7 @@ class WorkJob(object):
             path = "link"
         else:
             path = "single"
-        wf = load_class_by_path(path, "workflow")
+        wf = load_class_by_path(path, "Workflow")
         wsheet = Sheet(data=self.json_data)
 
         try:

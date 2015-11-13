@@ -23,9 +23,9 @@ class Report(object):
 
         tool = self.workflow.find_tool_by_id(msg['id'])
         if not tool:
-            self.workflow.logger.error(u"Server在workflow中找不到对应的tool: {} !".format(msg['id']))
+            self.workflow.logger.error("Server在workflow中找不到对应的tool: {} !".format(msg['id']))
         if (not isinstance(msg, dict)) or ('id' not in msg.keys()):
-            self.workflow.logger.error(u"Server接收到不符合规范的消息: 不是字典类型或没有key值'id'!")
+            self.workflow.logger.error("Server接收到不符合规范的消息: 不是字典类型或没有key值'id'!")
         else:
             tool.actor.receive(msg)
         return tool.get_callback_action()

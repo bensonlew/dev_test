@@ -22,13 +22,13 @@ class Option(object):
         self._format = None
         self._check = None
         if not isinstance(opt, dict):
-            raise OptionError(u"opt必须为一个字典")
+            raise OptionError("opt必须为一个字典")
         for attr in ('name', 'type'):
             if attr not in opt.keys():
-                raise OptionError(u"必须设置参数属性 {}".format(attr))
+                raise OptionError("必须设置参数属性 {}".format(attr))
         if opt['type'] in {'outfile', 'infile'}:
             if 'format' not in opt.keys():
-                raise OptionError(u"必须设置参数属性 format")
+                raise OptionError("必须设置参数属性 format")
             else:
                 self._format = opt['format']
                 self._check = opt['check'] if 'check' in opt.keys() else False
@@ -37,7 +37,7 @@ class Option(object):
             self._value = opt['default'] if 'default' in opt.keys() else False
 
         if opt['type'] not in {"int", "float", "string", "bool", "infile", "outfile"}:
-            raise OptionError(u"参数属性不在规范范围内type：{}".format(self._type))
+            raise OptionError("参数属性不在规范范围内type：{}".format(self._type))
 
         self._name = opt['name']
         self._type = opt['type']
@@ -86,14 +86,14 @@ class Option(object):
                 if os.path.exists(value):
                     self._value.set_path(value)
                 else:
-                    raise OptionError(u"文件不存在！")
+                    raise OptionError("文件不存在！")
             else:
                 self._check_type(value)
                 class_obj = load_class_by_path(self._format, "File")
                 if isinstance(value, class_obj):
                     self._value = value
                 else:
-                    raise OptionError(u"设置的文件对象格式不匹配")
+                    raise OptionError("设置的文件对象格式不匹配")
         else:
             self._check_type(value)
             self._value = value
@@ -128,16 +128,16 @@ class Option(object):
         """
         if self._type == "int":
             if not isinstance(value, int):
-                raise OptionError(u"参数值类型不符合{}:{}".format(self._type, value))
+                raise OptionError("参数值类型不符合{}:{}".format(self._type, value))
         if self._type == "float":
             if not isinstance(value, float):
-                raise OptionError(u"参数值类型不符合{}:{}".format(self._type, value))
+                raise OptionError("参数值类型不符合{}:{}".format(self._type, value))
         if self._type == "bool":
             if not isinstance(value, bool):
-                raise OptionError(u"参数值类型不符合{}:{}".format(self._type, value))
+                raise OptionError("参数值类型不符合{}:{}".format(self._type, value))
         if self._type == "string":
             if not (isinstance(value, unicode) or isinstance(value, str)):
-                raise OptionError(u"参数值类型不符合{}:{}".format(self._type, value))
+                raise OptionError("参数值类型不符合{}:{}".format(self._type, value))
         if self._type in {"infile", "outfile"}:
             if not isinstance(value, FileBase):
-                raise OptionError(u"参数值类型不符合{}:{}".format(self._type, value))
+                raise OptionError("参数值类型不符合{}:{}".format(self._type, value))

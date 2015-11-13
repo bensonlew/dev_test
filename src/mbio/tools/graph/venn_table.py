@@ -30,9 +30,9 @@ class VennTableAgent(Agent):
         :return:
         """
         if not self.option("otu_table").is_set:
-            raise OptionError(u"参数otu_table不能为空")
+            raise OptionError("参数otu_table不能为空")
         if not self.option("group_table").is_set:
-            raise OptionError(u"参数group_table不能为空")
+            raise OptionError("参数group_table不能为空")
 
     def set_resource(self):
         """

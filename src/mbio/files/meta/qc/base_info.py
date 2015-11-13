@@ -27,7 +27,7 @@ class BaseInfoFile(File):
         """
         if super(BaseInfoFile, self).check():
             if not self.check_format:
-                raise FileError(u"文件格式错误")
+                raise FileError("文件格式错误")
         return True
 
     def get_file_info(self):

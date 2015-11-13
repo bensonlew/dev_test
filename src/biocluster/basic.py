@@ -46,7 +46,7 @@ class Rely(object):
         """
         for r in rely:
             if not isinstance(r, Basic):
-                raise Exception(u"依赖对象不正确!")
+                raise Exception("依赖对象不正确!")
             else:
                 self._relys.append(r)
 
@@ -63,7 +63,7 @@ class Rely(object):
                 if not r.is_end:
                     is_end = False
         else:
-            raise Exception(u"依赖对象不能为空!")
+            raise Exception("依赖对象不能为空!")
         return is_end
 
 
@@ -161,7 +161,7 @@ class Basic(EventObject):
     @output_dir.setter
     def output_dir(self, value):
         if not os.path.isdir(value):
-            raise Exception(u"目录%s不存在，请确认!" % value)
+            raise Exception("目录%s不存在，请确认!" % value)
         else:
             self._output_path = value
 
@@ -175,7 +175,7 @@ class Basic(EventObject):
         if not name:
             return self._options
         elif name not in self._options.keys():
-            raise OptionError(u"参数%s不存在，请先添加参数" % name)
+            raise OptionError("参数%s不存在，请先添加参数" % name)
         else:
             return self._options[name]
 
@@ -188,7 +188,7 @@ class Basic(EventObject):
         :return: 参数对应的值
         """
         if name not in self._options.keys():
-            raise Exception(u"参数%s不存在，请先添加参数" % name)
+            raise Exception("参数%s不存在，请先添加参数" % name)
         if value is None:
             return self._options[name].value
         else:
@@ -202,7 +202,7 @@ class Basic(EventObject):
         :return: None
         """
         if not isinstance(options, dict):
-            raise Exception(u"参数格式错误!")
+            raise Exception("参数格式错误!")
         for name, value in options.items():
             self.option(name, value)
             if self._options[name].type == "infile":  # 检查输出文件是否满足要求
@@ -217,13 +217,13 @@ class Basic(EventObject):
                 elif re.search(r"Workflow$", class_name):
                     function_name += "_workflow_check"
                 else:
-                    raise Exception(u"类名称不正确!")
+                    raise Exception("类名称不正确!")
                 # class_obj = load_class_by_path(self._options[name].format, "File")
                 if self._options[name].check:
                     if hasattr(self.option(name), self._options[name].check):
                         getattr(self.option(name), self._options[name].check)()
                     else:
-                        raise Exception(u"文件类%s中未定义指定的检测函数%s!" %
+                        raise Exception("文件类%s中未定义指定的检测函数%s!" %
                                         (self._options[name].format, self._options[name].check))
                 else:
                     if hasattr(self.option(name), function_name):
@@ -271,10 +271,10 @@ class Basic(EventObject):
         :return: None
         """
         if not isinstance(option, list):
-            raise Exception(u"参数格式错误!")
+            raise Exception("参数格式错误!")
         for opt in option:
             if not isinstance(opt, dict) or 'name' not in opt.keys():
-                raise Exception(u"参数格式错误!")
+                raise Exception("参数格式错误!")
             self._options[opt['name']] = Option(opt)
 
     def __get_min_name(self):
@@ -285,7 +285,7 @@ class Basic(EventObject):
         base = ['Basic', 'Module', 'Tool', 'Agent', 'Workflow']
 
         if class_name in base:
-            raise Exception(u"抽象类%s不允许实例化!" % class_name)
+            raise Exception("抽象类%s不允许实例化!" % class_name)
         for b in base:
             if re.search((b+"$"), class_name):
                 # return re.sub((b + "$"), '', class_name).lower()
@@ -325,7 +325,7 @@ class Basic(EventObject):
         """
         for c in child:
             if not isinstance(c, Basic):
-                raise Exception(u"child参数必须为Basic或其子类的实例对象!")
+                raise Exception("child参数必须为Basic或其子类的实例对象!")
             if not self._children:                # 第一次添加子模块时初始化childend事件
                 self.add_event('childend', True)  # 子对象事件结束事件
                 self.on('childend', self.__event_childend)
@@ -392,11 +392,11 @@ class Basic(EventObject):
         self.set_end()
         self.fire('end')
         if not os.listdir(self.output_dir):
-            self.logger.debug(u"输出目录%s为空,你确定已经设置了输出目录?" % self.output_dir)
+            self.logger.debug("输出目录%s为空,你确定已经设置了输出目录?" % self.output_dir)
         for option in self._options.values():
             if option.type == 'outfile':
                 if not option.is_set:
-                    self.logger.debug(u"输出参数%s没有设置输出文件路径,你确定此处不需要设置?" % option.name)
+                    self.logger.debug("输出参数%s没有设置输出文件路径,你确定此处不需要设置?" % option.name)
 
     def on_rely(self, rely, func,  data=None):
         """
@@ -413,9 +413,9 @@ class Basic(EventObject):
             rely_list = rely
         for r in rely_list:
             if not isinstance(r, Basic):
-                raise Exception(u"rely参数必须为Basic或其子类的实例对象!")
+                raise Exception("rely参数必须为Basic或其子类的实例对象!")
             if r not in self._children:
-                raise Exception(u"rely模块必须为本对象的子模块!")
+                raise Exception("rely模块必须为本对象的子模块!")
         rl = Rely(*rely)
         self._rely.append(rl)
         self.add_event(rl.name)

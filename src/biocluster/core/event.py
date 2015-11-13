@@ -74,9 +74,9 @@ class EventHandler(object):
                         func(para, event_data)
                 if length > 2:
                     if inspect.ismethod(func):
-                        raise Exception(u"指定的绑定函数%s为bound method,参数超过限制个数!" % func)
+                        raise Exception("指定的绑定函数%s为bound method,参数超过限制个数!" % func)
                     else:
-                        raise Exception(u"指定的绑定函数%s为unbound function,参数超过限制个数!" % func)
+                        raise Exception("指定的绑定函数%s为unbound function,参数超过限制个数!" % func)
         return waiter
 
     def bind(self, func, bindobject, data=None):
@@ -114,7 +114,7 @@ class EventHandler(object):
         :return: self
         """
         if self.is_start:
-            raise Exception(u"事件已经启动监听，绑定事件处理函数应该在启动事件前进行!" % self.name)
+            raise Exception("事件已经启动监听，绑定事件处理函数应该在启动事件前进行!" % self.name)
         else:
             waiter = self.__bind(func, bindobject, data)
             self._func.append(waiter)
@@ -156,7 +156,7 @@ class EventHandler(object):
         current = gevent.getcurrent()
         for gl in self._greenlets:
             if gl is current:
-                raise Exception(u"不能在当前事件触发的函数中停止当前事件监听!")
+                raise Exception("不能在当前事件触发的函数中停止当前事件监听!")
         if self._event.ready():
             if len(self._greenlets) > 0:
                 gevent.joinall(self._greenlets)
@@ -173,7 +173,7 @@ class EventHandler(object):
         :return: self
         """
         if self.is_start:
-            raise Exception(u"事件已经启动监听，需的调用EventHandler.stop方法停止后才能重新启动!" % self.name)
+            raise Exception("事件已经启动监听，需的调用EventHandler.stop方法停止后才能重新启动!" % self.name)
         else:
             self._event = AsyncResult()
             self._greenlets = []
@@ -284,7 +284,7 @@ class EventObject(object):
         :return: self
         """
         if event in self.events.keys():
-            raise Exception(u"事件已经存在，请勿重复添加")
+            raise Exception("事件已经存在，请勿重复添加")
         if self.check_event_name(event):
             if loop:
                 self.events[event] = LoopEventHandler(event)
@@ -301,9 +301,9 @@ class EventObject(object):
         :return: bool
         """
         if not isinstance(name, types.StringType):
-            raise Exception(u"事件名称必须为字符串")
+            raise Exception("事件名称必须为字符串")
         elif not name.islower():
-            raise Exception(u"事件名称必须都会小写字母！")
+            raise Exception("事件名称必须都会小写字母！")
         else:
             return True
 
@@ -371,7 +371,7 @@ class EventObject(object):
             pass
         else:
             if self.is_end:
-                raise Exception(u"已经运行结束，如需重新运行，请使用restartListener方法!")
+                raise Exception("已经运行结束，如需重新运行，请使用restartListener方法!")
             else:
                 for eve in self.events.values():
                     eve.start()
@@ -419,7 +419,7 @@ class EventObject(object):
         :return: None
         """
         if self.is_start:
-            raise Exception(u"已经启动事件监听，使用此方法前需使用setEnd或stopListener方法结束事件监听!")
+            raise Exception("已经启动事件监听，使用此方法前需使用setEnd或stopListener方法结束事件监听!")
         else:
             self.stop_listener()
             for eve in self.events.values():

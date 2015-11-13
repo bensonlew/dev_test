@@ -39,6 +39,6 @@ class BaseInfoDirFile(Directory):
         """
         if super(BaseInfoDirFile, self).check():
             if "file_number" not in self.prop.keys():
-                raise FileError(u"还未设置该文件夹下的base_info文件数目")
+                raise FileError("还未设置该文件夹下的base_info文件数目")
             if self.prop['file_number'] != self.get_fastq_number():
-                raise FileError(u"实际base_info文件数目不等于设定值")
+                raise FileError("实际base_info文件数目不等于设定值")

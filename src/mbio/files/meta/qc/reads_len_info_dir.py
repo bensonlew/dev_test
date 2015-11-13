@@ -47,7 +47,7 @@ class ReadsLenInfoDirFile(Directory):
         for file_ in self.reads_len_info:
             (str_, step) = re.split(r'-', file_)
             if str_ != "step" or step not in list_:
-                raise FileError(file_ + u'命名不符合规范')
+                raise FileError(file_ + '命名不符合规范')
 
     def check(self):
         """
@@ -55,5 +55,5 @@ class ReadsLenInfoDirFile(Directory):
         """
         if super(ReadsLenInfoDirFile, self).check():
             if self.prop['file_number'] != self.get_reads_len_info_number():
-                raise FileError(u"文件夹里reads_len_info文件数目不为四个！")
+                raise FileError("文件夹里reads_len_info文件数目不为四个！")
             self._check_file_name()
