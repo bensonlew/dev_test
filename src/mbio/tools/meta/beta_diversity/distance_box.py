@@ -30,11 +30,11 @@ class DistanceBoxAgent(Agent):
         :return:
         """
         if not self.option('input1').is_set:
-            raise OptionError(u'必须提供距离矩阵文件')
+            raise OptionError('必须提供距离矩阵文件')
         if not self.option('input2').is_set:
-            raise OptionError(u'必须提供分组信息文件')
+            raise OptionError('必须提供分组信息文件')
         if not self.option('output').is_set:
-            raise OptionError(u'必须提供输出文件夹')
+            raise OptionError('必须提供输出文件夹')
         return True
 
     def set_resource(self):
@@ -77,13 +77,13 @@ class DistanceBoxTool(Tool):
         cmd += ' -m %s -d %s -o %s -f %s' % (
             self.option('input2'), self.option('input1'),
             self.option('output'), groupname)
-        self.logger.info(u'运行qiime/make_distance_boxplots.py程序')
+        self.logger.info('运行qiime/make_distance_boxplots.py程序')
         box_command = self.add_command('box', cmd)
         box_command.run()
         self.wait()
         if box_command.return_code == 0:
-            self.logger.info(u'运行qiime/make_distance_boxplots.py完成')
+            self.logger.info('运行qiime/make_distance_boxplots.py完成')
             pass
             self.end()
         else:
-            self.set_error(u'运行qiime/make_distance_boxplots.py出错')
+            self.set_error('运行qiime/make_distance_boxplots.py出错')

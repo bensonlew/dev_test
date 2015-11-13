@@ -31,11 +31,11 @@ class DbrdaAgent(Agent):
         :return:
         """
         if not self.option('input1').is_set:
-            raise OptionError(u'必须提供距离矩阵表')
+            raise OptionError('必须提供距离矩阵表')
         if not self.option('input2').is_set:
-            raise OptionError(u'必须提供分组信息表')
+            raise OptionError('必须提供分组信息表')
         if not self.option('output').is_set:
-            raise OptionError(u'必须指定输出文件夹')
+            raise OptionError('必须指定输出文件夹')
 
     def set_resource(self):
         """
@@ -64,11 +64,11 @@ class DbrdaTool(Tool):
         运行dbrda.py
         :return:
         """
-        self.logger.info(u'运行dbrda_r.py程序计算Dbrda')
+        self.logger.info('运行dbrda_r.py程序计算Dbrda')
         return_mess = db_rda(self.option('input1'), self.option('input2'), self.option('output'))
         if return_mess == 0:
-            self.logger.info(u'运行dbrda_r.py程序计算Dbrda完成')
+            self.logger.info('运行dbrda_r.py程序计算Dbrda完成')
             self.end()
         else:
-            self.set_error(u'运行dbrda_r.py程序计算Dbrda出错')
+            self.set_error('运行dbrda_r.py程序计算Dbrda出错')
         

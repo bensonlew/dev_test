@@ -18,9 +18,9 @@ class PcoaOutdirFile(Directory):
         获取文件夹属性
         """
         if 'path' not in self.prop.keys():
-            raise FileError(u'请先设置文件夹路径！')
+            raise FileError('请先设置文件夹路径！')
         if not os.path.isdir(self.prop['path']):
-            raise FileError(u'文件夹路径不正确!')
+            raise FileError('文件夹路径不正确!')
         dirinfo = self.get_pcoa_info()
         dirpath = self.prop['path'].rstrip('/') + '/'
         self.set_property('sites_file', dirpath + dirinfo[2][2])
@@ -95,11 +95,11 @@ class PcoaOutdirFile(Directory):
             else:
                 pass
         if pcoa_importance != 1:
-            raise FileError(u'*pcoa_importance.xls文件不存在或存在多组数据')
+            raise FileError('*pcoa_importance.xls文件不存在或存在多组数据')
         elif pcoa_rotation != 1:
-            raise FileError(u'*pcoa_rotation.xls文件不存在或存在多组数据')
+            raise FileError('*pcoa_rotation.xls文件不存在或存在多组数据')
         elif pcoa_sites != 1:
-            raise FileError(u'*pcoa_sites.xls文件不存在或存在多组数据')
+            raise FileError('*pcoa_sites.xls文件不存在或存在多组数据')
         else:
             pass
         return (pcoa_importance_file, pcoa_rotation_file, pcoa_sites_file)

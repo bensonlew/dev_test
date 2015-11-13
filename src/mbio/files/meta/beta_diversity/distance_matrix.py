@@ -99,9 +99,9 @@ class DistanceMatrixFile(File):
             for n in range(self.prop['samp_numb'] + 1):
                 for m in range(self.prop['samp_numb'] + 1):
                     if self.get_value(n,m) != self.get_value(m,n):
-                        raise FileError(u'距离矩阵格式不正确')
+                        raise FileError('距离矩阵格式不正确')
             if len(self.prop['samp_list']) != len(set(self.prop['samp_list'])):
-                raise FileError(u'存在重复的样本名')
+                raise FileError('存在重复的样本名')
 
     def choose(self,sample_list = [],Except = False,path ='unknown'):
         """

@@ -94,6 +94,13 @@ class Workflow(Basic):
         """
         super(Workflow, self).run()
         if self.config.USE_DB:
+            db = self.config.get_db()
+            data = {
+                "last_update": datetime.datetime.now(),
+                "workdir": self.work_dir
+            }
+            db.update("workflow", where="workflow_id = %s" % self._id, **data)
+            gevent.sleep(30)
             gevent.spawn(self.__update_database)
         self.rpc_server.run()
 
@@ -107,12 +114,13 @@ class Workflow(Basic):
             data = {
                 "is_end": 1,
                 "end_time": datetime.datetime.now(),
+                "workdir": self.work_dir,
                 "output": self.output_dir
             }
             db.update("workflow", where="workflow_id = %s" % self._id, **data)
 
         self.rpc_server.server.close()
-        self.logger.info(u"运行结束!")
+        self.logger.info("运行结束!")
 
     def exit(self, exitcode=1):
         """
@@ -129,6 +137,7 @@ class Workflow(Basic):
                 "error": "程序主动退出",
                 "end_time": datetime.datetime.now(),
                 "is_end": 1,
+                "workdir": self.work_dir,
                 "output": self.output_dir
             }
             db.update("workflow", where="workflow_id = %s" % self._id, **data)
@@ -142,12 +151,12 @@ class Workflow(Basic):
         """
         db = self.config.get_db()
         while self.is_end is False:
+            gevent.sleep(30)
             data = {
-                "last_update": datetime.datetime.now(),
-                "workdir": self.work_dir
+                "last_update": datetime.datetime.now()
             }
             db.update("workflow", where="workflow_id = %s" % self._id, **data)
-            gevent.sleep(30)
+
 
 
 

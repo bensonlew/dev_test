@@ -35,9 +35,9 @@ class ReadsLenInfoAgent(Agent):
         :return:
         """
         if not self.option("fasta_path").is_set:
-            raise OptionError(u"参数fasta_path不能都为空")
+            raise OptionError("参数fasta_path不能都为空")
         if not self.option("sample_number").is_set:
-            raise OptionError(u"必须设置参数sample_number")
+            raise OptionError("必须设置参数sample_number")
         # 设置文件夹的文件数目，并检测与实际的数目是否一致
         self.option("fasta_path").set_file_number(self.option("sample_number"))
         self.option("fasta_path").check()

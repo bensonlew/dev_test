@@ -30,9 +30,9 @@ class HclusterAgent(Agent):
         :return:
         """
         if not self.option('input').is_set:
-            raise OptionError(u'必须提供输入距离矩阵表')
+            raise OptionError('必须提供输入距离矩阵表')
         if not self.option('output').is_set:
-            raise OptionError(u'必须指定输出文件夹')
+            raise OptionError('必须指定输出文件夹')
 
     def set_resource(self):
         """
@@ -65,12 +65,12 @@ class HclusterTool(Tool):
         cmd = self.cmd_path
         cmd += ' -i %s -o %s -m average' % (
             self.option('input'), self.option('output'))
-        self.logger.info(u'运行plot-hcluster_tree.pl程序计算Hcluster')
+        self.logger.info('运行plot-hcluster_tree.pl程序计算Hcluster')
         hcluster_command = self.add_command('hcluster', cmd)
         hcluster_command.run()
         self.wait()
         if hcluster_command.return_code == 0:
-            self.logger.info(u'运行plot-hcluster_tree.pl程序计算Hcluster完成')
+            self.logger.info('运行plot-hcluster_tree.pl程序计算Hcluster完成')
             self.end()
         else:
-            self.set_error(u'运行plot-hcluster_tree.pl程序计算Hcluster出错')
+            self.set_error('运行plot-hcluster_tree.pl程序计算Hcluster出错')
