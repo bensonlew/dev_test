@@ -55,6 +55,9 @@ class Config(object):
         self.DB_NAME = self.rcf.get("DB", "db")
         self.DB_PORT = self.rcf.get("DB", "port")
 
+        # deamon mode
+        self.USE_DB = False
+
     def get_listen_ip(self):
         """
         获取配置文件中IP列表与本机匹配的IP作为本机监听地址

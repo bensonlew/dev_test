@@ -101,11 +101,11 @@ class Tool(object):
         :return: 返回Command对象
         """
         if name in self._commands.keys():
-            raise Exception(u"命令名称已经存在，请勿重复添加")
+            raise Exception("命令名称已经存在，请勿重复添加")
         if not isinstance(name, types.StringType):
-            raise Exception(u"命令名称必须为字符串")
+            raise Exception("命令名称必须为字符串")
         elif not name.islower():
-            raise Exception(u"命令名称必须都为小写字母！")
+            raise Exception("命令名称必须都为小写字母！")
         else:
             cmd = Command(name, cmd, self)
             self._commands[name] = cmd
@@ -122,7 +122,7 @@ class Tool(object):
         if not name:
             return self._options
         elif name not in self._options.keys():
-            raise Exception(u"参数%s不存在，请先添加参数" % name)
+            raise Exception("参数%s不存在，请先添加参数" % name)
         else:
             return self._options[name]
 
@@ -135,7 +135,7 @@ class Tool(object):
         :return: 参数对应的值
         """
         if name not in self._options.keys():
-            raise Exception(u"参数%s不存在，请先添加参数" % name)
+            raise Exception("参数%s不存在，请先添加参数" % name)
         if value is None:
             return self._options[name].value
         else:
@@ -149,7 +149,7 @@ class Tool(object):
         :return:
         """
         if not isinstance(options, dict):
-            raise Exception(u"参数格式错误!")
+            raise Exception("参数格式错误!")
         for name, value in options.items():
             self.option(name, value)
 
@@ -166,13 +166,13 @@ class Tool(object):
                     cmds.append(c)
                 else:
                     if c not in self._commands.keys():
-                        raise Exception(u"Commnad名称不存在！")
+                        raise Exception("Commnad名称不存在！")
                     cmds.append(self._commands[c])
         else:
             cmds = self._commands.values()
         while True:
             if self.exit_signal:
-                self.logger.info(u"接收到退出信号，终止程序运行!")
+                self.logger.info("接收到退出信号，终止程序运行!")
                 self.exit()
             if len(self._commands) == 0:
                 break
@@ -196,9 +196,9 @@ class Tool(object):
         :return: self
         """
         if not isinstance(name, types.StringType):
-            raise Exception(u"状态名称必须为字符串")
+            raise Exception("状态名称必须为字符串")
         elif not name.islower():
-            raise Exception(u"状态名称必须都为小写字母！")
+            raise Exception("状态名称必须都为小写字母！")
         else:
             self.mutex.acquire()
             self._states.append(State(name, data))
@@ -213,7 +213,7 @@ class Tool(object):
         """
         self.actor.start()
         self._run = True
-        self.logger.info(u"开始运行!")
+        self.logger.info("开始运行!")
 
     def _resource_record(self, command):
         """
@@ -291,7 +291,7 @@ class Tool(object):
 
         :return:
         """
-        self.logger.info(u"接收到action退出指令:%s" % str(data))
+        self.logger.info("接收到action退出指令:%s" % str(data))
         self.exit()
 
     def end(self):
@@ -302,7 +302,7 @@ class Tool(object):
         """
         self.save_output()
         self.add_state('finish')
-        self.logger.info(u"程序运行完成")
+        self.logger.info("程序运行完成")
 
     def exit(self, status=1):
         """
@@ -349,7 +349,7 @@ class Tool(object):
         :return:
         """
         self.add_state('error', error_data)
-        self.logger.info(u"运行出错:%s" % error_data )
+        self.logger.info("运行出错:%s" % error_data )
         self.exit_signal = True
 
     @staticmethod

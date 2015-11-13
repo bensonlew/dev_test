@@ -29,9 +29,9 @@ class ReadsLenInfoFile(File):
         """
         if super(ReadsLenInfoFile, self).check():
             if not self.check_file_name:
-                raise FileError(u"文件名错误")
+                raise FileError("文件名错误")
             if not self.check_format:
-                raise FileError(u"文件格式错误")
+                raise FileError("文件格式错误")
         return True
 
     def get_sample_number(self):

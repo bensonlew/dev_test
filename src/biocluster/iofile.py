@@ -64,7 +64,7 @@ class FileBase(object):
         检测当前文件对象是否满足运行需求,需在扩展子类中重写
         """
         if not self.is_set:
-            raise Exception(u"请先设置文件路径!")
+            raise Exception("请先设置文件路径!")
 
 
 class File(FileBase):
@@ -86,7 +86,7 @@ class File(FileBase):
             self.set_property('dirname', os.path.dirname(self.prop['path']))
             self.set_property('basename', os.path.basename(self.prop['path']))
         else:
-            raise FileError(u"请先设置正确的文件路径!")
+            raise FileError("请先设置正确的文件路径!")
 
     def check(self):
         """
@@ -99,11 +99,11 @@ class File(FileBase):
             if self.prop['size'] > 0:
                 return True
             else:
-                raise FileError(u"文件大小为空")
+                raise FileError("文件大小为空")
                 # return {'pass': False, "info": "文件大小为空!"}
         else:
             # return {'pass': False, "info": "!"}
-            raise FileError(u"文件路径不在正确或文件不存在")
+            raise FileError("文件路径不在正确或文件不存在")
 
     def get_md5(self):
         """
@@ -155,15 +155,6 @@ class Directory(FileBase):
     def __init__(self):
         super(Directory, self).__init__()
 
-    def set_file_number(self, number):
-        """
-        设置这个文件夹的有效文件数目
-        """
-        if self.is_set:
-            self.set_property("file_number", number)
-        else:
-            raise Exception(u'请先设置文件路径')
-
     def check(self):
         """
 
@@ -171,9 +162,8 @@ class Directory(FileBase):
         """
         super(Directory, self).check()
         if not('path' in self.prop.keys() and os.path.isdir(self.prop['path'])):
-            raise FileError(u"文件夹路径不正确，请设置正确的文件夹路径!")
+            raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
 
     def get_info(self):
         if not ('path' in self.prop.keys() and os.path.exists(self.prop['path'])):
-            raise FileError(u"文件夹路径不正确或文件夹不存在")
-
+            raise FileError("文件夹路径不正确或文件夹不存在")

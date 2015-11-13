@@ -30,9 +30,9 @@ class BaseInfoAgent(Agent):
         :return:
         """
         if not self.option("fastq_path").is_set:
-            raise OptionError(u"参数fastq_path不能为空")
+            raise OptionError("参数fastq_path不能为空")
         if not self.option("sample_number").is_set:
-            raise OptionError(u"必须设置参数sample_number")
+            raise OptionError("必须设置参数sample_number")
         self.option("fastq_path").set_file_number(self.option("sample_number"))
         self.option("fastq_path").check()
         return True
@@ -72,7 +72,7 @@ class BaseInfoTool(Tool):
             subprocess.check_call(self.fastx_stats_path + " - i " + fastq
                                   + " -Q 33 -o " + file_name)
         except subprocess.CalledProcessError:
-            raise Exception(u'_fastx_quality_stats 运行出错！')
+            raise Exception('_fastx_quality_stats 运行出错！')
 
     def run(self):
         """

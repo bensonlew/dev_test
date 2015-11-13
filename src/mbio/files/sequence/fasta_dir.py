@@ -29,7 +29,7 @@ class FastaDirFile(Directory):
         if 'path' in self.prop.keys() and os.path.isdir(self.prop['path']):
             self.set_property("fasta_number", self.get_fasta_number())
         else:
-            raise FileError(u"文件夹路径不正确，请设置正确的文件夹路径!")
+            raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
 
     def get_fasta_number(self):
         """
@@ -62,7 +62,7 @@ class FastaDirFile(Directory):
                 subprocess.check_call(cat_str, shell=True)
                 return cat_fasta
             except subprocess.CalledProcessError:
-                error = u"合并 " + fasta + u" 文件时出错"
+                error = "合并 " + fasta + u" 文件时出错"
                 raise Exception(error)
 
     def cat_fastas_for_meta(self):
@@ -95,6 +95,6 @@ class FastaDirFile(Directory):
         """
         if super(FastaDirFile, self).check():
             if "file_number" not in self.prop.keys():
-                raise FileError(u"还未设置该文件夹下的fasta文件数目")
+                raise FileError("还未设置该文件夹下的fasta文件数目")
             if self.prop['file_number'] != self.get_fasta_number():
-                raise FileError(u"实际fasta文件数目不等于设定值")
+                raise FileError("实际fasta文件数目不等于设定值")

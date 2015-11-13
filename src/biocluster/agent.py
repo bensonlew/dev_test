@@ -110,7 +110,7 @@ class Agent(Basic):
         """
         self.set_resource()
         if self._cpu < 1:
-            raise Exception(u"必须重写方法set_resource,并指定所需资源")
+            raise Exception("必须重写方法set_resource,并指定所需资源")
         return self._cpu, self._memory
 
     def set_resource(self):
@@ -217,7 +217,7 @@ class Agent(Basic):
         self._status = "E"
         self._end_run_time = datetime.datetime.now()
         secends = (self._end_run_time - self._start_run_time).seconds
-        self.logger.info(u"任务运行结束，运行时间:%ss" % secends)
+        self.logger.info("任务运行结束，运行时间:%ss" % secends)
         self.end()
 
     def error_callback(self, data):
@@ -230,7 +230,7 @@ class Agent(Basic):
         :return: None
         """
         self.fire("error", data)
-        self.logger.error(u"发现运行错误，退出流程:%s" % data)
+        self.logger.error("发现运行错误，退出流程:%s" % data)
         self.get_workflow().exit()
 
     def _event_keepaliveout(self):
@@ -241,7 +241,7 @@ class Agent(Basic):
 
         :return:
         """
-        self.logger.error(u"远程Tool连接超时，尝试重新运行!")
+        self.logger.error("远程Tool连接超时，尝试重新运行!")
         self.rerun()
 
     def _event_waittimeout(self):
@@ -253,7 +253,7 @@ class Agent(Basic):
 
         :return:
         """
-        self.logger.error(u"远程任务超过规定时间未能运行，尝试删除任务重新运行!")
+        self.logger.error("远程任务超过规定时间未能运行，尝试删除任务重新运行!")
         self.rerun()
 
     def _event_runstart(self, data):
@@ -264,4 +264,4 @@ class Agent(Basic):
         """
         self._start_run_time = datetime.datetime.now()
         secends = (self._start_run_time - self._run_time).seconds
-        self.logger.info(u"远程任务开始运行，任务ID:%s,远程主机:%s,:排队时间%ss" % (self.job.id, data, secends))
+        self.logger.info("远程任务开始运行，任务ID:%s,远程主机:%s,:排队时间%ss" % (self.job.id, data, secends))
