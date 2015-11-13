@@ -35,14 +35,14 @@ class QiimeAssignAgent(Agent):
         检查参数设置
         """
         if not self.option("fasta").is_set:
-            raise OptionError(u"必须设置参数fasta")
+            raise OptionError("必须设置参数fasta")
         if not self.option("revcomp").is_set:
-            raise OptionError(u"必须设置参数revcomp")
+            raise OptionError("必须设置参数revcomp")
         if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea', 'silva119/18s_eukaryota', 'unite6.0/its_fungi', 'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS', 'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
-            raise OptionError(u"数据库{}不被支持".fomat(self.option("database")))
+            raise OptionError("数据库{}不被支持".fomat(self.option("database")))
         if self.option("customer_mode"):
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
-                raise OptionError(u"数据库自定义模式必须设置ref_fasta和ref_taxon参数")
+                raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
 
     def set_resource(self):
         """
@@ -68,13 +68,13 @@ class QiimeAssignTool(Tool):
         else:
             cmd = "ln -s "+self.option('fasta')+" seqs.fasta"
         prepare = self.add_command("prepare", cmd)
-        self.logger.info(u"开始运行prepare")
+        self.logger.info("开始运行prepare")
         prepare.run()
         self.wait(prepare)
         if prepare.return_code == 0:
-            self.logger.info(u"prepare运行完成")
+            self.logger.info("prepare运行完成")
         else:
-            self.set_error(u"prepare运行出错!")
+            self.set_error("prepare运行出错!")
         return prepare.return_code
 
     def run_assign(self):
@@ -85,7 +85,7 @@ class QiimeAssignTool(Tool):
             ref_tax = self.option('ref_taxon').prop['path']
         cmd = self.script_path+"assign_taxonomy.py  -m rdp -i seqs.fasta -c "+self.option('confidence')+"  -r "+ref_fas+" -t "+ref_tax+" -o .  --rdp_max_memory 50000"
         assign = self.add_command("assign", cmd)
-        self.logger.info(u"开始运行assign")
+        self.logger.info("开始运行assign")
         assign.run()
         self.wait(assign)
         if assign.return_code == 0:
@@ -94,7 +94,7 @@ class QiimeAssignTool(Tool):
             self.option('taxon_file', value=self.output_dir+'seqs_tax_assignments.txt')
             self.set_end()
         else:
-            self.set_error(u"assign运行出错!")
+            self.set_error("assign运行出错!")
 
     def run(self):
         super(QiimeAssignTool, self).run()

@@ -29,9 +29,9 @@ class PcoaAgent(Agent):
         :return:
         """
         if not self.option('input').is_set:
-            raise OptionError(u'必须提供输入距离矩阵表')
+            raise OptionError('必须提供输入距离矩阵表')
         if not self.option('output').is_set:
-            raise OptionError(u'必须指定输出文件夹')
+            raise OptionError('必须指定输出文件夹')
 
     def set_resource(self):
         """
@@ -64,12 +64,12 @@ class PcoaTool(Tool):
         cmd = self.cmd_path
         cmd += ' -type pcoa -dist %s -outdir %s' % (
             self.option('input'), self.option('output'))
-        self.logger.info(u'运行ordination.pl程序计算pcoa')
+        self.logger.info('运行ordination.pl程序计算pcoa')
         ordination_command = self.add_command('ordination_pcoa', cmd)
         ordination_command.run()
         self.wait()
         if ordination_command.return_code == 0:
-            self.logger.info(u'运行ordination.pl程序计算pcoa完成')
+            self.logger.info('运行ordination.pl程序计算pcoa完成')
             self.end()
         else:
-            self.set_error(u'运行ordination.pl程序计算pcoa出错')
+            self.set_error('运行ordination.pl程序计算pcoa出错')

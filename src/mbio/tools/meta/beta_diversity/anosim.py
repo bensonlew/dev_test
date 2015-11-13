@@ -31,11 +31,11 @@ class AnosimAgent(Agent):
         :return:
         """
         if not self.option('input1').is_set:
-            raise OptionError(u'必须提供距离矩阵文件')
+            raise OptionError('必须提供距离矩阵文件')
         if not self.option('input1').is_set:
-            raise OptionError(u'必须提供分组信息文件')
+            raise OptionError('必须提供分组信息文件')
         if not self.option('output').is_set:
-            raise OptionError(u'必须提供输出文件夹')
+            raise OptionError('必须提供输出文件夹')
         return True
 
     def set_resource(self):
@@ -80,23 +80,23 @@ class AnosimTool(Tool):
         cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c %s' % (
             self.option('input2'), self.option('input1'),
             self.option('output'), groupname)
-        self.logger.info(u'运行qiime/compare_categories.py,计算adonis/anosim程序')
+        self.logger.info('运行qiime/compare_categories.py,计算adonis/anosim程序')
         dist_anosim_command = self.add_command('anosim', cmd1)
         dist_anosim_command.run()
         self.wait()
         if dist_anosim_command.return_code == 0:
-            self.logger.info(u'运行qiime/compare_categories.py计算anosim完成')
+            self.logger.info('运行qiime/compare_categories.py计算anosim完成')
         else:
-            self.set_error(u'运行qiime/compare_categories.py计算anosim出错')
+            self.set_error('运行qiime/compare_categories.py计算anosim出错')
         dist_adonis_command = self.add_command('adonis', cmd2)
         dist_adonis_command.run()
         self.wait()
         if dist_adonis_command.return_code == 0:
-            self.logger.info(u'运行qiime/compare_categories.py计算adonis完成')
+            self.logger.info('运行qiime/compare_categories.py计算adonis完成')
             self.format_result()
             self.end()
         else:
-            self.set_error(u'运行qiime/compare_categories.py计算adonis出错')
+            self.set_error('运行qiime/compare_categories.py计算adonis出错')
 
     def format_result(self):
         """
