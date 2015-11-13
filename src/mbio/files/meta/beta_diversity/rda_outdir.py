@@ -18,9 +18,9 @@ class RdaOutdirFile(Directory):
         获取文件夹属性
         """
         if 'path' not in self.prop.keys():
-            raise FileError(u'请先设置文件夹路径！')
+            raise FileError('请先设置文件夹路径！')
         if not os.path.isdir(self.prop['path']):
-            raise FileError(u'文件夹路径不正确!')
+            raise FileError('文件夹路径不正确!')
         dirinfo = self.get_rda_info()
         dirpath = self.prop['path'].rstrip('/') + '/'
         self.set_property('sites_file', dirpath + dirinfo[6][2])
@@ -128,15 +128,15 @@ class RdaOutdirFile(Directory):
             else:
                 pass
         if importance != 1:
-            raise FileError(u'*importance.xls文件不存在或存在多组数据')
+            raise FileError('*importance.xls文件不存在或存在多组数据')
         elif species != 1:
-            raise FileError(u'*species.xls文件不存在或存在多组数据')
+            raise FileError('*species.xls文件不存在或存在多组数据')
         elif sites != 1:
-            raise FileError(u'*sites.xls文件不存在或存在多组数据')
+            raise FileError('*sites.xls文件不存在或存在多组数据')
         elif dca != 1:
-            raise FileError(u'*dca.txt文件不存在或存在多组数据')
+            raise FileError('*dca.txt文件不存在或存在多组数据')
         elif environment != 1:
-            raise FileError(u'*environment.xls文件不存在或存在多组数据')
+            raise FileError('*environment.xls文件不存在或存在多组数据')
         else:
             pass
         return (importance_file, species_file, sites_file, dca_file, environment_file)

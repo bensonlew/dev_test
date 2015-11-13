@@ -19,9 +19,9 @@ class AnosimOutdirFile(Directory):
         获取文件夹属性
         """
         if 'path' not in self.prop.keys():
-            raise FileError(u'请先设置文件夹路径！')
+            raise FileError('请先设置文件夹路径！')
         if not os.path.isdir(self.prop['path']):
-            raise FileError(u'文件夹路径不正确!')
+            raise FileError('文件夹路径不正确!')
         self.format_result()
         self.set_property('method', ['anosim', 'adonis'])
 
@@ -39,9 +39,9 @@ class AnosimOutdirFile(Directory):
             # 父类check方法检查
             filelist = os.listdir(self.prop['path'])
             if 'adonis_results.txt' not in filelist:
-                raise FileError(u'')
+                raise FileError('没有adonis结果')
             if 'anosim_results.txt' not in filelist:
-                raise FileError(u'')
+                raise FileError('没有anosim结果')
             dirpath = self.prop['path'].rstrip('/')
             anosim = File()
             anosim.set_path(dirpath + 'anosim_results.txt')

@@ -22,19 +22,19 @@ def get_argu():
 >>>>>>> f381101c0b2ea19c0657b1efce841f5806cef0b8
     """
     parse = argparse.ArgumentParser(prog='dbrda_r.py',
-                                    usage=u'关于此脚本的说明',
-                                    description=u'输入矩阵和分组信息文件，\
+                                    usage='关于此脚本的说明',
+                                    description='输入矩阵和分组信息文件，\
                                     利用R软件计算分析db-RDA。',
-                                    epilog=u'请确保参数准确',
+                                    epilog='请确保参数准确',
                                     version='v1.0',
                                     parents='')
     parse.add_argument('-d', '--distance_matrix',
-                       required=True, help=u'输入距离矩阵，矩阵必须对称')
+                       required=True, help='输入距离矩阵，矩阵必须对称')
     parse.add_argument('-m', '--map_file',
-                       required=True, help=u'分组信息文件，\
+                       required=True, help='分组信息文件，\
                        必须只有一种分组方案，表头注释‘#’开头，tab分隔符')
     parse.add_argument('-o', '--output',
-                       required=True, help=u'输出文件夹')
+                       required=True, help='输出文件夹')
     args = parse.parse_args()
 
     outputdir = args.output.rstrip('/')
