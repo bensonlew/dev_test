@@ -22,7 +22,6 @@ class BaseInfoAgent(Agent):
             {"name": "sample_number", "type": "string"},  # 项目中包含的样本的数目，应当和输入文件夹中的fastq文件的数目一致，用于检查是否有样本遗漏
             {"name": "base_info_path", "type": "outfile", "format": "base_info_dir"}]  # 输出的base_info文件夹
         self.add_option(options)
-        self.fastx_stats_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/fastx_quality_stats")
 
     def check_options(self):
         """
@@ -49,6 +48,7 @@ class BaseInfoTool(Tool):
     def __init__(self, config):
         super(BaseInfoTool, self).__init__(config)
         self._version = 1.0
+        self.fastx_stats_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/fastx_quality_stats")
 
     def _run_fastx(self):
         """
