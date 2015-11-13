@@ -25,7 +25,7 @@ class UsearchOtuAgent(Agent):
             {'name': 'otu_table', 'type': 'outfile', 'format': 'OtuTable'},  # 输出结果otu表
             {'name': 'otu_rep', 'type': 'outfile', 'format': 'Fasta'},  # 输出结果otu代表序列
             {'name': 'otu_seqids', 'type': 'outfile', 'format': 'OtuSeqids'},  # 输出结果otu中包含序列列表
-            {'name': 'otu_biom', 'type': 'outfile', 'format': 'Biom', 'default': 'otu_table.biom'}  # 输出结果biom格式otu表
+            {'name': 'otu_biom', 'type': 'outfile', 'format': 'Biom'}  # 输出结果biom格式otu表
         ]
         self.add_option(options)
 
@@ -79,29 +79,25 @@ class UsearchOtuTool(Tool):
         return cmd
 
     def cmd5(self):
-        cmd = self.script_path+"""uc2otuseqids.pl -i map.uc -o cluster.seqids
-        cat cluster.seqids|awk '{split($0,line,\"\\t\");new=line[1];for(i=2;i<NF+1;i++){match(line[i],/_[^_]+$/);smp=substr(line[i],1,RSTART-1);id=substr(line[i],RSTART+1,RLENGTH);nsmp=smp;gsub(/_/,\".\",nsmp);new=new\"\\t\"nsmp\"_\"id;print nsmp\"\\t\"smp;print line[i]\"\\t\"smp >\"cluster.groups\"};print new >\"cluster.seqids.tmp\";}'|sort|uniq >name.check
-        awk '{ print $1,\"OTU\"NR >\"cluster2otu.rename\";$1=\"OTU\"NR;print $0 }' cluster.seqids|sed 's/ /\\t/g' >otu_seqids.txt
-        awk '{$1=\"OTU\"NR;print $0}' cluster.seqids.tmp|sed 's/ /\\t/g' > otu.seqids.tmp
-        """
+        cmd = self.script_path+"""uc2otuseqids.pl -i map.uc -o cluster.seqids"""
         return cmd
 
     def cmd6(self):
-        cmd = self.script_path+"""make_otu_table.py -i otu.seqids.tmp  -o otu_table.biom
-        cat name.check|awk '{gsub(/\\./,\"\\\\.\",$1);print \"sed '\\''s/\\\"\"$1\"\\\"/\\\"\"$2\"\\\"/g'\\''  otu_table.biom >otu_table.biom.tmp\\nmv otu_table.biom.tmp otu_table.biom\";}' >otu.name.check.sh\n\
-        sh otu.name.check.sh
-        """
+        os.system("""cat cluster.seqids|awk '{split($0,line,\"\\t\");new=line[1];for(i=2;i<NF+1;i++){match(line[i],/_[^_]+$/);smp=substr(line[i],1,RSTART-1);id=substr(line[i],RSTART+1,RLENGTH);nsmp=smp;gsub(/_/,\".\",nsmp);new=new\"\\t\"nsmp\"_\"id;print nsmp\"\\t\"smp;print line[i]\"\\t\"smp >\"cluster.groups\"};print new >\"cluster.seqids.tmp\";}'|sort|uniq >name.check""")
+        os.system("""awk '{ print $1,\"OTU\"NR >\"cluster2otu.rename\";$1=\"OTU\"NR;print $0 }' cluster.seqids|sed 's/ /\\t/g' >otu_seqids.txt""")
+        os.system("""awk '{$1=\"OTU\"NR;print $0}' cluster.seqids.tmp|sed 's/ /\\t/g' > otu.seqids.tmp""")
+        cmd = self.script_path+"""make_otu_table.py -i otu.seqids.tmp  -o otu_table.biom"""
         return cmd
 
     def cmd7(self):
-        cmd = self.biom_path+"""
-        biom convert -i otu_table.biom -o otu_table.txt  --table-type \"otu table\"  --to-tsv
-        cat otu_table.txt|sed -n '2p'|sed 's/#//' >otu_table.xls
-        cat otu_table.txt|sed -n '3,$p'|sort -V |sed 's/\\.0//g' >>otu_table.xls
-        """
+        os.system("""cat name.check|awk '{gsub(/\\./,\"\\\\.\",$1);print \"sed '\\''s/\\\"\"$1\"\\\"/\\\"\"$2\"\\\"/g'\\''  otu_table.biom >otu_table.biom.tmp\\nmv otu_table.biom.tmp otu_table.biom\";}' >otu.name.check.sh""")
+        os.system("""sh otu.name.check.sh""")
+        cmd = self.biom_path+"""biom convert -i otu_table.biom -o otu_table.txt  --table-type \"otu table\"  --to-tsv"""
         return cmd
 
     def cmd8(self):
+        os.system("""cat otu_table.txt|sed -n '2p'|sed 's/#//' >otu_table.xls""")
+        os.system("""cat otu_table.txt|sed -n '3,$p'|sort -V |sed 's/\\.0//g' >>otu_table.xls""")
         cmd = self.script_path+"""pick_rep_set.py -i otu_seqids.txt -f meta.fasta -m most_abundant -o otu_reps.fasta"""
         return cmd
 

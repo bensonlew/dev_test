@@ -15,7 +15,11 @@ def get_argu():
     """
     命令行模式下运行此脚本的参数获取方法
     路径请使用'/',不要使用'\\'
+<<<<<<< HEAD
+    :param return: 输出文件夹，距离矩阵，分组信息
+=======
 
+>>>>>>> f381101c0b2ea19c0657b1efce841f5806cef0b8
     """
     parse = argparse.ArgumentParser(prog='dbrda_r.py',
                                     usage=u'关于此脚本的说明',
@@ -98,6 +102,7 @@ def format_result(outputdir):
     """
     对生成的文件进行格式整理，删除文件中的引号，添加开头的制表符
     :param outputdir:输出文件夹
+    :pararm return:
     """
     sites = open('%s/db_rda_sites.temp.txt' % (outputdir))
     biplot = open('%s/db_rda_factor.temp.txt' % (outputdir))
@@ -120,11 +125,13 @@ def format_result(outputdir):
 def db_rda(dis_matrix, maping, outputdir):
     """
     输入距离矩阵，分组信息，输出文件夹，进行db_rda分析
+    :pararm return: 成功完成返回‘0’
     """
     create_r(outputdir, dis_matrix, maping)
     script = outputdir + '/temp_r.R'
     run_r_script(script)
     format_result(outputdir)
+    return 0
 
 
 def main():
