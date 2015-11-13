@@ -26,8 +26,6 @@ class ReadsLenInfoAgent(Agent):
                    {"name": "sample_number", "type": "string"},  # 项目中包含的样本的数目，应当和输入文件夹中的fsta或者fastq文件的数目一致，用于检查是否有样本遗漏
                    {"name": "reads_len_info", "type": "outfile", "format": "reads_len_info_dir"}]  # 输出的reads_len_info文件夹
         self.add_option(options)
-        self.longest = ""
-        self.allow_step = [1, 20, 50, 100]
 
     def check_options(self):
         """
@@ -57,6 +55,8 @@ class ReadsLenInfoTool(Tool):
     def __init__(self, config):
         super(ReadsLenInfoTool, self).__init__(config)
         self._version = 1.0
+        self.longest = ""
+        self.allow_step = [1, 20, 50, 100]
 
     def _create_reads_len_info(self):
         """
