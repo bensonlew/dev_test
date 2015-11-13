@@ -10,6 +10,8 @@ import sys
 from .rpc import RPC
 from .logger import Wlog
 from .agent import Agent
+import datetime
+import gevent
 
 
 class Workflow(Basic):
@@ -91,6 +93,8 @@ class Workflow(Basic):
         :return:
         """
         super(Workflow, self).run()
+        if self.config.USE_DB:
+            gevent.spawn(self.__update_database)
         self.rpc_server.run()
 
     def end(self):
@@ -98,6 +102,15 @@ class Workflow(Basic):
         停止运行
         """
         super(Workflow, self).end()
+        if self.config.USE_DB:
+            db = self.config.get_db()
+            data = {
+                "is_end": 1,
+                "end_time": datetime.datetime.now(),
+                "output": self.output_dir
+            }
+            db.update("workflow", where="workflow_id = %s" % self._id, **data)
+
         self.rpc_server.server.close()
         self.logger.info(u"运行结束!")
 
@@ -109,7 +122,41 @@ class Workflow(Basic):
         :return:
         """
         self.rpc_server.server.close()
+        if self.config.USE_DB:
+            db = self.config.get_db()
+            data = {
+                "is_error": 1,
+                "error": "程序主动退出",
+                "end_time": datetime.datetime.now(),
+                "is_end": 1,
+                "output": self.output_dir
+            }
+            db.update("workflow", where="workflow_id = %s" % self._id, **data)
         sys.exit(exitcode)
+
+    def __update_database(self):
+        """
+        每隔30s定时更新数据库last_update时间
+
+        :return:
+        """
+        db = self.config.get_db()
+        while self.is_end is False:
+            data = {
+                "last_update": datetime.datetime.now(),
+                "workdir": self.work_dir
+            }
+            db.update("workflow", where="workflow_id = %s" % self._id, **data)
+            gevent.sleep(30)
+
+
+
+
+
+
+
+
+
 
 
 

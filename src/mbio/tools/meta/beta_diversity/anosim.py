@@ -103,9 +103,6 @@ class AnosimTool(Tool):
         整理anosim和adonis两个的结果到一个表中
         :return:
         """
-        result = AnosimOutdir()  # 需要创建类型，在类型中设定合并两个文件的方法
+        result = AnosimOutdir()
         result.set_path(self.option('output').rstrip('/'))
-        if result.prop['merge']:  # 应该设定merge属性
-            pass
-        else:
-            result.merge()  # 写merge方法
+        result.format_result()

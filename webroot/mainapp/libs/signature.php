@@ -1,7 +1,7 @@
 <?php
 
-$client = "client01";
-$key = "1ZYw71APsQ";
+$client = "test";
+$key = "Aw21cADS3u";
 
 function signature()
 {
@@ -12,7 +12,6 @@ function signature()
     $string["timestamp"] = time();
     $list = array($key, $string["timestamp"], $string["nonce"]);
     sort($list,SORT_STRING);
-    print_r($list);
     $string["signature"] = sha1(join("",$list));
     return $string;
 }

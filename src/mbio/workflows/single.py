@@ -20,7 +20,7 @@ class SingleWorkflow(Workflow):
         task.set_options(self._sheet.options())
         task.on('end', self.end)
         task.run()
-        self._output_dir = task.output_dir
+        self.output_dir = task.output_dir
         super(SingleWorkflow, self).run()
 
 

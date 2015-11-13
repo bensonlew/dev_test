@@ -164,18 +164,6 @@ class Directory(FileBase):
         else:
             raise Exception(u'请先设置文件路径')
 
-    def _make_tmp_dir(self):
-        """
-        在该文件夹下建立一个临时文件夹
-        :return:临时文件夹的路径
-        """
-        if self.is_set:
-            tmp_dir = self.prop['path'] + "/tmp"
-            if not os.path.exists(tmp_dir):
-                os.mkdir(tmp_dir)
-            return tmp_dir
-        raise Exception(u'请先设置文件路径')
-
     def check(self):
         """
 
@@ -184,3 +172,8 @@ class Directory(FileBase):
         super(Directory, self).check()
         if not('path' in self.prop.keys() and os.path.isdir(self.prop['path'])):
             raise FileError(u"文件夹路径不正确，请设置正确的文件夹路径!")
+
+    def get_info(self):
+        if not ('path' in self.prop.keys() and os.path.exists(self.prop['path'])):
+            raise FileError(u"文件夹路径不正确或文件夹不存在")
+

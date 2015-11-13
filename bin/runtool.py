@@ -1,4 +1,4 @@
-#!/mnt/ilustre/users/sanger/app/Python/bin/python
+#!/bin/env python
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 
