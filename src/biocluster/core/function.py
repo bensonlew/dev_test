@@ -34,6 +34,7 @@ def load_class_by_path(path, tp="Agent"):
         "Tool": "mbio.tools.",
         "Module": "mbio.modules.",
         "Workflow": "mbio.workflows.",
+        "Package": "mbio.pacakages.",
         "File": "mbio.files."
     }
     class_name = get_clsname_form_path(path, tp)
