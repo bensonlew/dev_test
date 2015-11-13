@@ -44,6 +44,6 @@ class GroupTableFile(File):
     def check(self):
         if super(GroupTableFile, self).check():
             if self.prop['sample_number'] == 0:
-                raise FileError(u'应该至少包含一个样本')
+                raise FileError('应该至少包含一个样本')
             if self.prop['group_number'] == 0:
-                raise FileError(u'应该至少包含一个分组')
+                raise FileError('应该至少包含一个分组')

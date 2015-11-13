@@ -34,7 +34,7 @@ class FastqDirFile(Directory):
             self.unzip_fastq()
             self.set_property("fastq_number", self.get_fastq_number())
         else:
-            raise FileError(u"文件夹路径不正确，请设置正确的文件夹路径!")
+            raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
 
     def get_fastq_number(self):
         """
@@ -67,9 +67,9 @@ class FastqDirFile(Directory):
                         subprocess.check_call(convert_str, shell=True)
                         self.is_convert = True
                     except subprocess.CalledProcessError:
-                        raise Exception(u'fastq转化fasta失败！')
+                        raise Exception('fastq转化fasta失败！')
             else:
-                raise Exception(u'文件还没有解压')
+                raise Exception('文件还没有解压')
         return os.path.join(tmp_dir, 'converted_fastas')
 
     def unzip_fastq(self):
@@ -87,7 +87,7 @@ class FastqDirFile(Directory):
                         subprocess.check_call('gunzip -c ' + fastq + " > " + new_fastq, shell=True)
                         self.unzip_file.append(new_fastq)
                     except subprocess.CalledProcessError:
-                        raise Exception(u"解压缩文件失败!")
+                        raise Exception("解压缩文件失败!")
                 else:
                     self.unzip_file.append(fastq)
             self.has_unziped = True
@@ -99,6 +99,6 @@ class FastqDirFile(Directory):
         """
         if super(FastqDirFile, self).check():
             if "file_number" not in self.prop.keys():
-                raise FileError(u"还未设置该文件夹下的fastq文件数目")
+                raise FileError("还未设置该文件夹下的fastq文件数目")
             if self.prop['file_number'] != self.get_fastq_number():
-                raise FileError(u"实际fastq文件数目不等于设定值")
+                raise FileError("实际fastq文件数目不等于设定值")

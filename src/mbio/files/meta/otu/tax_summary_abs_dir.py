@@ -23,7 +23,7 @@ class TaxSummyAbsDir(Directory):
             self.set_file_number(14)
             self.get_file_number()
         else:
-            raise FileError(u"文件夹路径不正确，请设置正确的文件夹路径!")
+            raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
 
     def get_file_number(self):
         """
@@ -47,4 +47,4 @@ class TaxSummyAbsDir(Directory):
         """
         if super(TaxSummyAbsDir, self).check():
             if self.biom != 7 or self.otu_table != 7:
-                raise FileError(u"文件夹里biom文件和self.otu_table文件数目不正确！")
+                raise FileError("文件夹里biom文件和self.otu_table文件数目不正确！")

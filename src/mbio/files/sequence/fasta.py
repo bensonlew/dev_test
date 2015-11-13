@@ -39,9 +39,9 @@ class FastaFile(File):
         # print self.prop
         if super(FastaFile, self).check():
             if self.prop['format'] != 'FASTA':
-                raise FileError(u"文件格式错误")
+                raise FileError("文件格式错误")
             if self.prop["seq_number"] < 1:
-                raise FileError(u"应该至少含有一条序列")
+                raise FileError("应该至少含有一条序列")
         return True
 
     @property
@@ -68,7 +68,7 @@ class FastaFile(File):
         """
         if self.check():
             if self.prop['seq_type'] not in {"DNA", "Protein"}:
-                raise FileError(u"不支持此类型的Fasta进行blast比对")
+                raise FileError("不支持此类型的Fasta进行blast比对")
         return True
 
     def get_seq_info(self):
@@ -88,7 +88,7 @@ class FastaFile(File):
             # print (fformat, seq_type, seq_number, bases, longest, shortest)
             return fformat, seq_type, seq_number, bases, longest, shortest
         except subprocess.CalledProcessError:
-            raise Exception(u"seqstat 运行出错！")
+            raise Exception("seqstat 运行出错！")
 
     # def filter(self, smin=0, smax=0):
     #     """
