@@ -40,10 +40,10 @@ class SamplesInfoFile(File):
     def get_file_info(self):
         """
         获取samples_info文件的信息
-        :param row:行数
-        :param colname:列名
-        :param samples:样本数
-        :param stat:统计信息
+        row: 行数
+        colname: 列名
+        samples: 样本数
+        stat: 统计信息
         """
         row = 0
         colname = list()

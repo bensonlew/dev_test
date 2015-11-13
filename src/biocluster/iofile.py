@@ -159,22 +159,7 @@ class Directory(FileBase):
         """
         设置这个文件夹的有效文件数目
         """
-        if self.is_set:
-            self.set_property("file_number", number)
-        else:
-            raise Exception(u'请先设置文件路径')
-
-    def _make_tmp_dir(self):
-        """
-        在该文件夹下建立一个临时文件夹
-        :return:临时文件夹的路径
-        """
-        if self.is_set:
-            tmp_dir = self.prop['path'] + "/tmp"
-            if not os.path.exists(tmp_dir):
-                os.mkdir(tmp_dir)
-            return tmp_dir
-        raise Exception(u'请先设置文件路径')
+        self.set_property("file_number", number)
 
     def check(self):
         """
