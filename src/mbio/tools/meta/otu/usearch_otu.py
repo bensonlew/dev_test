@@ -34,9 +34,9 @@ class UsearchOtuAgent(Agent):
         检查参数设置
         """
         if not self.option("fasta").is_set:
-            raise OptionError(u"必须设置输入fasta文件.")
+            raise OptionError("必须设置输入fasta文件.")
         if self.option("identity") < 0 or self.option("identity") > 1:
-            raise OptionError(u"identity值必须在0-1范围内.")
+            raise OptionError("identity值必须在0-1范围内.")
         return True
 
     def set_resource(self):
