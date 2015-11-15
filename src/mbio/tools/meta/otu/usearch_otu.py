@@ -59,7 +59,7 @@ class UsearchOtuTool(Tool):
         self._version = "v7.0"
         self.usearch_path = "meta/usearch/"
         self.script_path = "meta/scripts/"
-        self.biom_path = "meta/bin/"
+        self.biom_path = "Python/bin/"
 
     def cmd1(self):
         cmd = self.usearch_path+"uparse -derep_prefix meta.fasta -output meta_derepprefix.fasta -sizeout"
@@ -70,12 +70,12 @@ class UsearchOtuTool(Tool):
         return cmd
 
     def cmd3(self):
-        ratio = str(100-float(self.option('id'))*100)
+        ratio = str(100-float(self.option('identity'))*100)
         cmd = self.usearch_path+"uparse -cluster_otus meta_derepprefix_sorted.fasta -otus cluster.fasta -otu_radius_pct "+ratio
         return cmd
 
     def cmd4(self):
-        cmd = self.usearch_path+"uparse -usearch_global meta.fasta -db cluster.fasta -strand plus -id "+str(self.option('id'))+" -uc map.uc"
+        cmd = self.usearch_path+"uparse -usearch_global meta.fasta -db cluster.fasta -strand plus -id "+str(self.option('identity'))+" -uc map.uc"
         return cmd
 
     def cmd5(self):
@@ -102,14 +102,18 @@ class UsearchOtuTool(Tool):
         return cmd
 
     def set_output(self):
-        os.link(self.work_dir+'otu_table.xls', self.output_dir+'otu_table.xls')
-        self.option('otu_table', value=self.output_dir+'otu_table.xls')
-        os.link(self.work_dir+'otu_rep.fasta', self.output_dir+'otu_rep.fasta')
-        self.option('otu_rep', value=self.output_dir+'otu_rep.fasta')
-        os.link(self.work_dir+'otu_seqids.txt', self.output_dir+'otu_seqids.txt')
-        self.option('otu_seqids', value=self.output_dir+'otu_seqids.txt')
-        os.link(self.work_dir+'otu_table.biom', self.output_dir+'otu_table.biom')
-        self.option('otu_biom', value=self.output_dir+'otu_table.biom')
+        self.logger.info("设置输出结果")
+        # self.logger.info(self.work_dir+'/otu_table.xls')
+        # self.logger.info(self.output_dir+'/otu_table.xls')
+        os.link(self.work_dir+'/otu_table.xls', self.output_dir+'/otu_table.xls')
+        self.option('otu_table').set_path(self.output_dir+'/otu_table.xls')
+        os.link(self.work_dir+'/otu_reps.fasta', self.output_dir+'/otu_reps.fasta')
+        self.option('otu_rep').set_path(self.output_dir+'/otu_reps.fasta')
+        os.link(self.work_dir+'/otu_seqids.txt', self.output_dir+'/otu_seqids.txt')
+        self.option('otu_seqids').set_path(self.output_dir+'/otu_seqids.txt')
+        os.link(self.work_dir+'/otu_table.biom', self.output_dir+'/otu_table.biom')
+        self.option('otu_biom').set_path(self.output_dir+'/otu_table.biom')
+        self.logger.info("OK,all things done.")
 
     def run(self):
         super(UsearchOtuTool, self).run()
@@ -117,7 +121,7 @@ class UsearchOtuTool(Tool):
         os.link(self.option("fasta").prop['path'], self.work_dir+'/meta.fasta')
         self.logger.info("OK")
         i = 0
-        while i < 9:
+        while i < 8:
             i += 1
             self.logger.info("开始运行cmd"+str(i))
             cmd = getattr(self, 'cmd'+str(i))()

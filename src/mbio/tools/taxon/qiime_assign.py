@@ -7,6 +7,7 @@ from biocluster.tool import Tool
 from biocluster.agent import Agent
 from biocluster.core.exceptions import OptionError
 import os
+import subprocess
 
 
 class QiimeAssignAgent(Agent):
@@ -23,12 +24,12 @@ class QiimeAssignAgent(Agent):
             {'name': 'revcomp', 'type': 'bool'},  # 序列是否翻转
             {'name': 'confidence', 'type': 'float', 'default': 0.7},  # 置信度值
             {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
-            {'name': 'database', 'type': 'str'},  # 数据库选择
+            {'name': 'database', 'type': 'string'},  # 数据库选择
             {'name': 'ref_fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 参考fasta序列
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
             {'name': 'taxon_file', 'type': 'outfile', 'format': 'taxon.seq_taxon'}  # 输出序列的分类信息文件
         ]
-        self.add_options(options)
+        self.add_option(options)
 
     def check_options(self):
         """
@@ -36,13 +37,14 @@ class QiimeAssignAgent(Agent):
         """
         if not self.option("fasta").is_set:
             raise OptionError("必须设置参数fasta")
-        if not self.option("revcomp").is_set:
+        if self.option("revcomp") not in [True, False]:
             raise OptionError("必须设置参数revcomp")
-        if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea', 'silva119/18s_eukaryota', 'unite6.0/its_fungi', 'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS', 'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
-            raise OptionError("数据库{}不被支持".fomat(self.option("database")))
         if self.option("customer_mode"):
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
+        else:
+            if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea', 'silva119/18s_eukaryota', 'unite6.0/its_fungi', 'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS', 'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
+                raise OptionError("数据库{}不被支持".fomat(self.option("database")))
 
     def set_resource(self):
         """
@@ -62,41 +64,46 @@ class QiimeAssignTool(Tool):
         self.script_path = "meta/scripts/"
 
     def run_prepare(self):
-        cmd = ''
         if self.option('revcomp'):
-            cmd = "revcomp "+self.option('fasta').prop['path']+" > seqs.fasta"
+            self.logger.info("revcomp 输入的fasta文件")
+            try:
+                subprocess.check_output(self.config.SOFTWARE_DIR+"/seqs/revcomp "+self.option('fasta').prop['path']+" > seqs.fasta", shell=True)
+                self.logger.info("OK")
+                return True
+            except subprocess.CalledProcessError:
+                self.logger.info("revcomp 出错")
+                return False
         else:
-            cmd = "ln -s "+self.option('fasta').prop['path']+" seqs.fasta"
-        prepare = self.add_command("prepare", cmd)
-        self.logger.info("开始运行prepare")
-        prepare.run()
-        self.wait(prepare)
-        if prepare.return_code == 0:
-            self.logger.info("prepare运行完成")
-        else:
-            self.set_error("prepare运行出错!")
-        return prepare.return_code
+            self.logger.info("链接输入文件到工作目录")
+            os.link(self.option('fasta').prop['path'], self.work_dir+"seqs.fasta")
+            self.logger.info("OK")
+            return True
 
     def run_assign(self):
-        ref_fas = self.config.SOFTWARE_DIR+"/taxon_db/"+self.option('database')+'.fas'
-        ref_tax = self.config.SOFTWARE_DIR+"/taxon_db/"+self.option('database')+'.tax'
+        ref_fas = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.fasta'
+        ref_tax = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.tax'
         if self.option("customer_mode"):
             ref_fas = self.option('ref_fasta').prop['path']
             ref_tax = self.option('ref_taxon').prop['path']
-        cmd = self.script_path+"assign_taxonomy.py  -m rdp -i seqs.fasta -c "+self.option('confidence')+"  -r "+ref_fas+" -t "+ref_tax+" -o .  --rdp_max_memory 50000"
+        # export RDP_JAR_PATH=$HOME/app/rdp_classifier_2.2/rdp_classifier-2.2.jar"
+        self.set_environ(RDP_JAR_PATH=self.config.SOFTWARE_DIR+"/meta/rdp_classifier_2.2/rdp_classifier-2.2.jar")
+        cmd = self.script_path+"assign_taxonomy.py  -m rdp -i seqs.fasta -c "+str(self.option('confidence'))+"  -r "+ref_fas+" -t "+ref_tax+" -o .  --rdp_max_memory 50000"
+        self.logger.info(u"生成命令: "+cmd)
         assign = self.add_command("assign", cmd)
         self.logger.info("开始运行assign")
         assign.run()
         self.wait(assign)
         if assign.return_code == 0:
-            self.logger.info(u"assign运行完成")
-            os.link(self.work_dir+'seqs_tax_assignments.txt', self.output_dir+'seqs_tax_assignments.txt')
-            self.option('taxon_file', value=self.output_dir+'seqs_tax_assignments.txt')
-            self.set_end()
+            self.logger.info("assign运行完成")
+            os.link(self.work_dir+'/seqs_tax_assignments.txt', self.output_dir+'/seqs_tax_assignments.txt')
+            self.option('taxon_file').set_path(self.output_dir+'/seqs_tax_assignments.txt')
         else:
             self.set_error("assign运行出错!")
 
     def run(self):
         super(QiimeAssignTool, self).run()
-        if self.run_prepare() == 0:
+        if self.run_prepare():
             self.run_assign()
+            self.end()
+        else:
+            self.set_error("run_prepare运行出错!")
