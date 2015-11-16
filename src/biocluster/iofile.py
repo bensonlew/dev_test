@@ -167,4 +167,3 @@ class Directory(FileBase):
     def get_info(self):
         if not ('path' in self.prop.keys() and os.path.exists(self.prop['path'])):
             raise FileError("文件夹路径不正确或文件夹不存在")
-

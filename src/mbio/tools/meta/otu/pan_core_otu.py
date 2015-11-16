@@ -31,7 +31,7 @@ class PanCoreOtuAgent(Agent):
         :return:
         """
         if not self.option("otu_table").is_set:
-            raise OptionError(u"参数otu_table不能为空")
+            raise OptionError("参数otu_table不能为空")
 
     def set_resource(self):
         """

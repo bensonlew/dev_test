@@ -22,9 +22,9 @@ class PcaOutdirFile(Directory):
         获取文件夹属性
         """
         if 'path' not in self.prop.keys():
-            raise FileError(u'请先设置文件夹路径！')
+            raise FileError('请先设置文件夹路径！')
         if not os.path.isdir(self.prop['path']):
-            raise FileError(u'文件夹路径不正确!')
+            raise FileError('文件夹路径不正确!')
         dirinfo = self.get_pca_info()
         dirpath = self.prop['path'].rstrip('/') + '/'
         self.set_property('sites_file', dirpath + dirinfo[3][2])
@@ -128,14 +128,14 @@ class PcaOutdirFile(Directory):
                 pca_envfit += 1
                 pca_envfit_file = name
         if pca_importance != 1:
-            raise FileError(u'*pca_importance.xls文件不存在或存在多组数据')
+            raise FileError('*pca_importance.xls文件不存在或存在多组数据')
         elif pca_rotation != 1:
-            raise FileError(u'*pca_rotation.xls文件不存在或存在多组数据')
+            raise FileError('*pca_rotation.xls文件不存在或存在多组数据')
         elif pca_sites != 1:
-            raise FileError(u'*pca_sites.xls文件不存在或存在多组数据')
+            raise FileError('*pca_sites.xls文件不存在或存在多组数据')
         else:
             if pca_envfit_score != 1 and pca_envfit == 1:
-                raise FileError(u'环境因子结果数据缺失或存在多组数据')
+                raise FileError('环境因子结果数据缺失或存在多组数据')
             elif pca_envfit_score == 1 and pca_envfit != 1:
                 pass
             elif pca_envfit_score == 1 and pca_envfit == 1:

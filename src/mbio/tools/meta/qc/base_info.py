@@ -22,7 +22,6 @@ class BaseInfoAgent(Agent):
             {"name": "sample_number", "type": "string"},  # 项目中包含的样本的数目，应当和输入文件夹中的fastq文件的数目一致，用于检查是否有样本遗漏
             {"name": "base_info_path", "type": "outfile", "format": "base_info_dir"}]  # 输出的base_info文件夹
         self.add_option(options)
-        self.fastx_stats_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/fastx_quality_stats")
 
     def check_options(self):
         """
@@ -30,9 +29,9 @@ class BaseInfoAgent(Agent):
         :return:
         """
         if not self.option("fastq_path").is_set:
-            raise OptionError(u"参数fastq_path不能为空")
+            raise OptionError("参数fastq_path不能为空")
         if not self.option("sample_number").is_set:
-            raise OptionError(u"必须设置参数sample_number")
+            raise OptionError("必须设置参数sample_number")
         self.option("fastq_path").set_file_number(self.option("sample_number"))
         self.option("fastq_path").check()
         return True
@@ -49,6 +48,7 @@ class BaseInfoTool(Tool):
     def __init__(self, config):
         super(BaseInfoTool, self).__init__(config)
         self._version = 1.0
+        self.fastx_stats_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/fastx_quality_stats")
 
     def _run_fastx(self):
         """
@@ -72,7 +72,7 @@ class BaseInfoTool(Tool):
             subprocess.check_call(self.fastx_stats_path + " - i " + fastq
                                   + " -Q 33 -o " + file_name)
         except subprocess.CalledProcessError:
-            raise Exception(u'_fastx_quality_stats 运行出错！')
+            raise Exception('_fastx_quality_stats 运行出错！')
 
     def run(self):
         """

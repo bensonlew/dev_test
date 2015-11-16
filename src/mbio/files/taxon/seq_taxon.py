@@ -12,10 +12,10 @@ class SeqTaxonFile(File):
     """
     Taxon文件格式类
     """
-    def __init__(self, filename):
+    def __init__(self):
         """
         """
-        super(SeqTaxonFile, self).__init__(filename)
+        super(SeqTaxonFile, self).__init__()
 
     def get_info(self):
         """

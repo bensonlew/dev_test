@@ -62,9 +62,9 @@ class FastqFile(File):
         """
         if super(FastqFile, self).check():
             if self.prop['fasta_format'] != 'DNA':
-                raise FileError(u"文件格式错误")
+                raise FileError("文件格式错误")
             if self.prop["seq_number"] < 1:
-                raise FileError(u"应该至少含有一条序列")
+                raise FileError("应该至少含有一条序列")
         return True
 
     def _prepare(self):
@@ -84,7 +84,7 @@ class FastqFile(File):
             try:
                 subprocess.check_call('gunzip -c ' + filepath + "> " + filename)
             except subprocess.CalledProcessError:
-                raise Exception(u"非标准格式的gz文件！")
+                raise Exception("非标准格式的gz文件！")
         self.filename = filename
         self.fastaname = fastaname
 
@@ -108,7 +108,7 @@ class FastqFile(File):
                 subprocess.check_call(gzip_str, shell=True)
                 return gzip_file
             except subprocess.CalledProcessError:
-                raise Exception(u"压缩fastq文件失败！")
+                raise Exception("压缩fastq文件失败！")
 
     def convert_to_fasta(self):
         """
@@ -122,7 +122,7 @@ class FastqFile(File):
                 subprocess.check_call(convert_str, shell=True)
                 self.is_convert = True
             except subprocess.CalledProcessError:
-                raise Exception(u'fastq转化fasta失败！')
+                raise Exception('fastq转化fasta失败！')
         return self.fastaname
 
     def get_seq_info(self):
@@ -140,4 +140,4 @@ class FastqFile(File):
             longest = re.split(r':\s+', result[10])[1]
             return seq_type, seq_number, bases, shortest, longest
         except subprocess.CalledProcessError:
-            raise Exception(u"seqstat 运行出错！")
+            raise Exception("seqstat 运行出错！")

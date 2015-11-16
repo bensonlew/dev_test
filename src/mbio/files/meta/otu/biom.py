@@ -71,7 +71,7 @@ class BiomFile(File):
             metadata = re.split(r':\s+', result[12])[1]
             return (sample_num, otu_num, seq_num, metadata)
         except subprocess.CalledProcessError:
-            raise Exception(u"biom summarize-table 运行出错！")
+            raise Exception("biom summarize-table 运行出错！")
 
     def convert_to_otu_table(self, otutable_filepath):
         """
@@ -85,6 +85,6 @@ class BiomFile(File):
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
-            raise Exception(u"biom convert 运行出错！")
+            raise Exception("biom convert 运行出错！")
         return True
 
