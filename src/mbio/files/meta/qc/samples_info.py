@@ -49,26 +49,28 @@ class SamplesInfoFile(File):
         colname = list()
         stat = {'reads': 0, 'bases': 0, 'min': Decimal('Infinity'), 'max': 0, 'avg': 0}
         with open(self.prop['path'], 'r') as f:
-            line = f.readline()
-            line = re.split("\s+", line)
-            row += 1
-            if row == 1:
-                for i in range(0, len(line)):
-                    colname[i] = line[i]
-            else:
-                for i in range(0, len(line)):
-                    if colname[i] == "reads":
-                        stat['reads'] += line[i]
-                    if colname[i] == "bases":
-                        stat['bases'] += line[i]
-                    if colname[i] == "min":
-                        stat['min'] = min(line[i], stat['min'])
-                    if colname[i] == "max":
-                        stat['max'] = max(line[i], stat['max'])
-                    if colname[i] == "avg":
-                        stat['avg'] += line[i]
+            for line in f:
+                line = line.rstrip("\n")
+                line = re.split("\t", line)
+                row += 1
+                if row == 1:
+                    for i in range(0, len(line)):
+                        colname.append(line[i])
+                else:
+                    for i in range(0, len(line)):
+                        if colname[i] == "reads":
+                            stat['reads'] = str(int(stat['reads']) + int(line[i]))
+                        if colname[i] == "bases":
+                            stat['bases'] = str(int(stat['bases']) + int(line[i]))
+                        if colname[i] == "min":
+                            stat['min'] = min(line[i], stat['min'])
+                        if colname[i] == "max":
+                            stat['max'] = max(line[i], stat['max'])
+                        if colname[i] == "avg":
+                            stat['avg'] = str(int(stat['avg']) + int(line[i]))
+        print row
         samples = row - 1
-        stat['avg'] = stat['avg'] / samples
+        stat['avg'] = int(stat['avg']) / int(samples)
         return samples, stat['reads'], stat['bases'], stat['avg'], stat['min'], stat['max']
 
     @property

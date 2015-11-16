@@ -32,11 +32,11 @@ class RdaCcaAgent(Agent):
         :return:
         """
         if not self.option('input1').is_set:
-            raise OptionError(u'必须提供otu表')
+            raise OptionError('必须提供otu表')
         if not self.option('input2').is_set:
-            raise OptionError(u'必须提供环境因子表')
+            raise OptionError('必须提供环境因子表')
         if not self.option('output').is_set:
-            raise OptionError(u'必须指定输出文件夹')  # 没有检查是不是文件夹
+            raise OptionError('必须指定输出文件夹')  # 没有检查是不是文件夹
 
     def set_resource(self):
         """
@@ -74,7 +74,7 @@ class RdaCcaTool(Tool):
         ordination_command.run()
         self.wait()
         if ordination_command.return_code == 0:
-            self.logger.info(u'运行ordination.pl程序计算rdacca完成')
+            self.logger.info('运行ordination.pl程序计算rdacca完成')
             self.end()
         else:
-            self.set_error(u'运行ordination.pl程序计算rdacca出错')
+            self.set_error('运行ordination.pl程序计算rdacca出错')

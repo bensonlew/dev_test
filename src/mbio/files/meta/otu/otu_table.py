@@ -19,8 +19,8 @@ class OtuTableFile(File):
         """
         """
         super(OtuTableFile, self).__init__()
-        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "meta/bin/biom")
-        self.otu2shared_path = os.path.join(Config().SOFTWARE_DIR, "meta/bin/otu2shared.pl")
+        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "/Python/bin")
+        self.otu2shared_path = os.path.join(Config().SOFTWARE_DIR, "meta/scripts/otu2shared.pl")
 
     def get_info(self):
         """
@@ -43,7 +43,7 @@ class OtuTableFile(File):
             if self.prop['form']:
                 pass
             else:
-                raise FileError(u"文件格式错误")
+                raise FileError("文件格式错误")
         return True
 
     def get_otuinfo(self):
@@ -82,7 +82,7 @@ class OtuTableFile(File):
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
-            raise Exception(u"biom convert 运行出错！")
+            raise Exception("biom convert 运行出错！")
         return True
 
     def convert_to_shared(self, shared_filepath):
@@ -92,11 +92,10 @@ class OtuTableFile(File):
         # otu2shared.pl -i otutable -l 0.97 -o otu.shared
         if self.prop['metadata'] == "taxonomy":
             raise FileError(u"can not covert otutable with taxon info.")
-            os.sys.exit()
         cmd = self.otu2shared_path + " -i " + self.prop['path'] + " -o " + shared_filepath
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
-            raise Exception(u"otu2shared.pl 运行出错！")
+            raise Exception("otu2shared.pl 运行出错！")
         return True
 

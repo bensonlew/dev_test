@@ -47,18 +47,18 @@ class NewickTreeFile(File):
             if len(tree) == 1:
                 pass
             else:
-                raise FileError(u'文件中存在多个newick树')
+                raise FileError('文件中存在多个newick树')
                 # 可以保留第一个数，删除其他树，继续操作
             tree = tree[0].rstrip()
             if tree.count('(') == tree.count(')'):
                 pass
             else:
-                raise FileError(u'树文件格式错误')
+                raise FileError('树文件格式错误')
             if len(re.findall(r':[\.0-9]+', tree)) == tree.count(':'):
                 pass
             else:
-                raise FileError(u'程序只接受带有分支距离的树文件，或者文件中距离表示错误')
+                raise FileError('程序只接受带有分支距离的树文件，或者文件中距离表示错误')
             if tree[-1] == ';' and tree[-2] == ')':
                 pass
             else:
-                raise FileError(u'文件结尾不是分号‘;’')
+                raise FileError('文件结尾不是分号‘;’')

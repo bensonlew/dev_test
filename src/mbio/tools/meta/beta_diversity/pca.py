@@ -33,9 +33,9 @@ class PcaAgent(Agent):
         :return:
         """
         if not self.option('input1').is_set:
-            raise OptionError(u'必须提供输入otu表')
+            raise OptionError('必须提供输入otu表')
         if not self.option('output').is_set:
-            raise OptionError(u'必须指定输出文件夹')  # 没有检查是不是文件夹
+            raise OptionError('必须指定输出文件夹')  # 没有检查是不是文件夹
 
     def set_resource(self):
         """
@@ -74,12 +74,12 @@ class PcaTool(Tool):
         else:
             cmd += ' -type pca -community %s -outdir %s' % (
                 self.option('input1'), self.option('output'))
-        self.logger.info(u'运行ordination.pl程序计算pca')
+        self.logger.info('运行ordination.pl程序计算pca')
         ordination_command = self.add_command('ordination_pca', cmd)
         ordination_command.run()
         self.wait()
         if ordination_command.return_code == 0:
-            self.logger.info(u'运行ordination.pl程序计算pca完成')
+            self.logger.info('运行ordination.pl程序计算pca完成')
             self.end()
         else:
-            self.set_error(u'运行ordination.pl程序计算pca出错')
+            self.set_error('运行ordination.pl程序计算pca出错')

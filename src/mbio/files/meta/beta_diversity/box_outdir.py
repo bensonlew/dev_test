@@ -57,6 +57,6 @@ class BoxOutdirFile(Directory):
                 box_file = name
         if box != 1:
             print 'BBBBBBBBBB',box,'AAAAAAAAAAAAAAAAAAA'
-            raise FileError(u'不存在或者存在多个箱式图数据文件')
+            raise FileError('不存在或者存在多个箱式图数据文件')
         else:
             return box_file
