@@ -231,7 +231,7 @@ class Agent(Basic):
         """
         self.fire("error", data)
         self.logger.error("发现运行错误，退出流程:%s" % data)
-        self.get_workflow().exit()
+        self.get_workflow().exit(data="%s %s" % (self.fullname, data))
 
     def _event_keepaliveout(self):
         """
