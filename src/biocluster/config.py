@@ -14,6 +14,8 @@ import re
 import importlib
 import web
 
+#web.config.debug = False
+
 
 @singleton
 class Config(object):
@@ -55,8 +57,12 @@ class Config(object):
         self.DB_NAME = self.rcf.get("DB", "db")
         self.DB_PORT = self.rcf.get("DB", "port")
 
-        # deamon mode
-        self.USE_DB = False
+        # service mode
+        self.USE_DB = False  # daemon mode
+        self.SERVICE_LOG = self.rcf.get("SERVICE", "log")
+        self.SERVICE_LOOP = int(self.rcf.get("SERVICE", "loop"))
+        self.SERVICE_PROCESSES = int(self.rcf.get("SERVICE", "processes"))
+        self.SERVICE_PID = int(self.rcf.get("SERVICE", "pid"))
 
     def get_listen_ip(self):
         """

@@ -92,7 +92,6 @@ class OtuTableFile(File):
         # otu2shared.pl -i otutable -l 0.97 -o otu.shared
         if self.prop['metadata'] == "taxonomy":
             raise FileError(u"can not covert otutable with taxon info.")
-            os.sys.exit()
         cmd = self.otu2shared_path + " -i " + self.prop['path'] + " -o " + shared_filepath
         try:
             subprocess.check_output(cmd, shell=True)

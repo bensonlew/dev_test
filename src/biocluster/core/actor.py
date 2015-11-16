@@ -110,6 +110,14 @@ class RemoteActor(threading.Thread):
             if self._tool.exit_signal and len(self._tool.states) == 0:
                 self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
                 break
+            is_main_thread_active = True
+            for i in threading.enumerate():
+                if i.name == "MainThread":
+                    is_main_thread_active = i.is_alive()
+            if not is_main_thread_active and len(self._tool.states) == 0 and self._tool.exit_signal is not True:
+                self.send_state(State('error', "检测到远程主线程异常结束"))
+                self._tool.logger.debug("检测到主线程已退出，终止运行!")
+                break
             if len(self._tool.states) > 0:
                 self.mutex.acquire()
                 state = self._tool.states.pop(0)
