@@ -30,6 +30,8 @@ class NewickTreeFile(File):
         :return:
         """
         tempfile = open(self.prop['path'])
+        if not tempfile.readlines():
+            raise FileError('树文件为空')
         tree = tempfile.readlines()[0].rstrip()
         raw_samp = re.findall(r'(([\.0-9a-zA-Z_-]+):[0-9])', tree)
         samp = [i[1] for i in raw_samp]
