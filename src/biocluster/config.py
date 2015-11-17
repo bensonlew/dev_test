@@ -14,6 +14,8 @@ import re
 import importlib
 import web
 
+web.config.debug = False
+
 
 @singleton
 class Config(object):
@@ -24,7 +26,8 @@ class Config(object):
         self.WORK_DIR = self.rcf.get("Basic", "work_dir")
         # network
         self.LISTEN_IP = self.get_listen_ip()
-        self.LISTEN_PORT = self.get_listen_port()
+        self._listen_port = None
+        #self.LISTEN_PORT = self.get_listen_port()
         # tool
         self.KEEP_ALIVE_TIME = int(self.rcf.get("Tool", "keep_alive_time"))
         self.MAX_KEEP_ALIVE_TIME = int(self.rcf.get("Tool", "max_keep_alive_time"))
@@ -55,8 +58,12 @@ class Config(object):
         self.DB_NAME = self.rcf.get("DB", "db")
         self.DB_PORT = self.rcf.get("DB", "port")
 
-        # deamon mode
-        self.USE_DB = False
+        # service mode
+        self.USE_DB = False  # daemon mode
+        self.SERVICE_LOG = self.rcf.get("SERVICE", "log")
+        self.SERVICE_LOOP = int(self.rcf.get("SERVICE", "loop"))
+        self.SERVICE_PROCESSES = int(self.rcf.get("SERVICE", "processes"))
+        self.SERVICE_PID = self.rcf.get("SERVICE", "pid")
 
     def get_listen_ip(self):
         """
@@ -77,6 +84,13 @@ class Config(object):
             return '127.0.0.1'
         if 'Linux' in platform.system():
             return getip("ib0")
+
+    @property
+    def LISTEN_PORT(self):
+        if self._listen_port:
+            return self._listen_port
+        else:
+            return self.get_listen_port()
 
     def get_listen_port(self):
         # writer = 'yuguo'

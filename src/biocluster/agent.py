@@ -179,6 +179,7 @@ class Agent(Basic):
         self.job = self._job_manager.add_job(self)
         self._run_time = datetime.datetime.now()
         self._status = "Q"
+        self.actor.start()
 
     def rerun(self):
         """
@@ -186,8 +187,13 @@ class Agent(Basic):
 
         :return:
         """
-        self.job.resubmit()
+        self.save_class_path()
+        self.save_config()
+        self._run_time = datetime.datetime.now()
         self._status = "Q"
+        self.actor = LocalActor(self)
+        self.actor.start()
+        self.job.resubmit()
 
     def set_callback_action(self, action, data=None):
         """
@@ -231,7 +237,7 @@ class Agent(Basic):
         """
         self.fire("error", data)
         self.logger.error("发现运行错误，退出流程:%s" % data)
-        self.get_workflow().exit()
+        self.get_workflow().exit(data="%s %s" % (self.fullname, data))
 
     def _event_keepaliveout(self):
         """

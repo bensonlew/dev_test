@@ -20,21 +20,41 @@ class FastqDirFile(Directory):
         :param unzip_file: 带路径的fastq文件名的集合
         """
         super(FastqDirFile, self).__init__()
-        self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/fastq_to_fasta")
+        self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/fastq_to_fasta")
         self.fastqs = list()
-        self.is_converted = False
+        self.is_convert = False
         self.has_unziped = False
         self.unzip_file = list()
+        self.has_work_dir = False
+        self.work_dir = ""
 
     def get_info(self):
         """
         获取文件夹属性
         """
         if 'path' in self.prop.keys() and os.path.isdir(self.prop['path']):
-            self.unzip_fastq()
             self.set_property("fastq_number", self.get_fastq_number())
+            self.set_property("fastq_basename", self.fastqs)
         else:
             raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
+
+    def get_full_info(self, work_path):
+        """
+        建立与这个fastq_dir相关的文件夹，获取全部的信息(包括fastq解压)
+
+        :param work_path: 工作文件夹的路径
+        """
+        self.make_work_dir(work_path)
+        self.unzip_fastq()
+        self.set_property("unzip_fastqs", self.unzip_file)
+
+    def set_file_number(self, number):
+        """
+        设定文件中期望的fastq文件数，会与实际检测到的fastq做一个比较检验
+
+        :param number: 设定的文件数
+        """
+        self.prop["expect_number"] = number
 
     def get_fastq_number(self):
         """
@@ -49,18 +69,32 @@ class FastqDirFile(Directory):
                 self.fastqs.append(file_)
         return count
 
+    def make_work_dir(self, work_path):
+        """
+        创建临时文件夹
+
+        :param work_path: 工作文件夹的路径
+        """
+        if not os.path.exists(work_path):
+            os.mkdir(work_path)
+        if os.path.isdir(work_path):  # 防止os.mkdir失败，做一次检测
+            self.work_dir = work_path
+            self.has_work_dir = True
+
     def covert_to_fasta(self):
         """
         将所有的fastq转化为fasta文件，当fastq是gz格式的时候，先解压再转化
         :return:转化后的fasta文件夹地址
         """
-        tmp_dir = self._make_tmp_dir(self)
+        if not self.has_work_dir:
+            raise Exception("还未建立工作路径！")
         if not self.is_convert:
-            os.mkdir(tmp_dir + '/converted_fastas')
+            if not os.path.exists(os.path.join(self.work_dir, 'converted_fastas')):
+                os.mkdir(os.path.join(self.work_dir, 'converted_fastas'))
             if self.has_unziped:
                 for fastq in self.unzip_file:
-                    fasta = re.search(r'(.+)\.(fastq|fq)').group(1)
-                    fasta = tmp_dir + '/converted_fastas/' + os.path.basename(fasta) + ".fasta"
+                    fasta = re.search(r'(.+)\.(fastq|fq)', fastq).group(1)
+                    fasta = os.path.join(self.work_dir, 'converted_fastas', os.path.basename(fasta) + ".fasta")
                     try:
                         convert_str = (self.fastq_to_fasta_path + ' -Q 33' + ' -i '
                                        + fastq + ' -o ' + fasta)
@@ -70,19 +104,20 @@ class FastqDirFile(Directory):
                         raise Exception('fastq转化fasta失败！')
             else:
                 raise Exception('文件还没有解压')
-        return os.path.join(tmp_dir, 'converted_fastas')
+        return os.path.join(self.work_dir, 'converted_fastas')
 
     def unzip_fastq(self):
         """
         将压缩的fastq解压
         """
-        tmp_dir = self._make_tmp_dir(self)
+        if not self.has_work_dir:
+            raise Exception("还未建立工作路径！")
         if not self.has_unziped:
-            for fastq in self.fastqs:
-                fastq = os.join(self.prop['path'], fastq)
+            for fastq in self.prop["fastq_basename"]:
+                fastq = os.path.join(self.prop['path'], fastq)
                 if re.search(r'\.(fastq|fq)\.gz', fastq):
                     ungz_name = re.search(r'(.+)\.(fastq|fq)\.gz$').group(1)
-                    new_fastq = os.path.join(tmp_dir, ungz_name + ".fastq")
+                    new_fastq = os.path.join(self.work_dir, ungz_name + ".fastq")
                     try:
                         subprocess.check_call('gunzip -c ' + fastq + " > " + new_fastq, shell=True)
                         self.unzip_file.append(new_fastq)
@@ -98,7 +133,7 @@ class FastqDirFile(Directory):
         :return:
         """
         if super(FastqDirFile, self).check():
-            if "file_number" not in self.prop.keys():
+            if "expect_number" not in self.prop.keys():
                 raise FileError("还未设置该文件夹下的fastq文件数目")
-            if self.prop['file_number'] != self.get_fastq_number():
+            if self.prop['expect_number'] != self.get_fastq_number():
                 raise FileError("实际fastq文件数目不等于设定值")

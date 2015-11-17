@@ -176,14 +176,16 @@ class Tool(object):
                 self.exit()
             if len(self._commands) == 0:
                 break
-            has_running = False
+            is_running = False
             for command in cmds:
                 gevent.sleep(1)
-                if command.has_run and command.is_running:
+                if command.is_running:
+                        is_running = True
+                if not command.has_run:
                     gevent.sleep(1)
-                    if command.has_run and command.is_running:
-                        has_running = True
-            if not has_running:
+                    if command.is_running:
+                        is_running = True
+            if not is_running:
                 break
 
     def add_state(self, name, data=None):

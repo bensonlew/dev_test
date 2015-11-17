@@ -76,7 +76,7 @@ class LocalActor(gevent.Greenlet):
         """
         消息处理函数不存在时对默认的处理方法
         """
-        self._agent.logger.warning(self._agent.name+ "没有定义消息对应的处理函数" + message['state'] + "!")
+        self._agent.logger.warning(self._agent.name + "没有定义消息对应的处理函数" + message['state'] + "!")
 
     def _run(self):
         self._start_time = datetime.datetime.now()
@@ -85,6 +85,8 @@ class LocalActor(gevent.Greenlet):
             # message = self.inbox.get()
             # self.receive(message)
             self.check_time()
+            if self._agent.is_end:
+                break
             gevent.sleep(0)
 
 
@@ -109,6 +111,14 @@ class RemoteActor(threading.Thread):
         while (not self._tool.is_end) or len(self._tool.states) > 0:
             if self._tool.exit_signal and len(self._tool.states) == 0:
                 self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
+                break
+            is_main_thread_active = True
+            for i in threading.enumerate():
+                if i.name == "MainThread":
+                    is_main_thread_active = i.is_alive()
+            if not is_main_thread_active and len(self._tool.states) == 0 and self._tool.exit_signal is not True:
+                self.send_state(State('error', "检测到远程主线程异常结束"))
+                self._tool.logger.debug("检测到主线程已退出，终止运行!")
                 break
             if len(self._tool.states) > 0:
                 self.mutex.acquire()

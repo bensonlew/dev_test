@@ -24,12 +24,14 @@ class FastaFile(File):
         """
         super(FastaFile, self).get_info()
         seqinfo = self.get_seq_info()
+        sample_name = self.sample_name()
         self.set_property("format", seqinfo[0])
         self.set_property("seq_type", seqinfo[1])
         self.set_property("seq_number", seqinfo[2])
         self.set_property("bases", seqinfo[3])
         self.set_property("longest", seqinfo[4])
         self.set_property("shortest", seqinfo[5])
+        self.set_property("sample_name", sample_name)
 
     def check(self):
         """
@@ -44,17 +46,15 @@ class FastaFile(File):
                 raise FileError("应该至少含有一条序列")
         return True
 
-    @property
     def sample_name(self):
         """
-        :param sample_name: 样本名，为文件名去掉后缀以后的值
+        获取样本名
         """
-        if self.is_set:
-            basename = self.prop['basename']
-            if re.search(r'\.(fasta|fa)$', basename):
-                return re.search(r'(.+)\.(fasta|fa)$', basename).group(1)
-            else:
-                return basename
+        basename = os.path.basename(self.prop['path'])
+        if re.search(r'\.(fasta|fa)$', basename):
+            return re.search(r'(.+)\.(fasta|fa)$', basename).group(1)
+        else:
+            return basename
 
     def ncbi_blast_tool_check(self):
         """
