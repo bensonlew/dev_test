@@ -26,6 +26,14 @@ class ReadsLenInfoDirFile(Directory):
         else:
             raise FileError(u"文件夹路径不正确，请设置正确的文件夹路径!")
 
+    def set_file_number(self, number):
+        """
+        设置文件夹内的文件数目，这个文件格式的文件数目应该是4
+
+        :param number:文件数目
+        """
+        self.set_property("expect_number", number)
+
     def get_reads_len_info_number(self):
         """
         获取文件夹下的reads_len_info文件的数目

@@ -31,14 +31,14 @@ class GroupTableFile(File):
         with open(self.prop['path'], 'r') as f:
             sample = dict()
             group = dict()
-            line = f.readline()
-            line = re.split("\s+", line)
-            row += 1
-            if row > 1:
-                if line[0] not in sample.keys():
-                    sample[line[0]] = 1
-                if line[1] not in group.keys():
-                    group[line[0]] = 1
+            for line in f:
+                line = re.split("\s+", line)
+                row += 1
+                if row > 1:
+                    if line[0] not in sample.keys():
+                        sample[line[0]] = 1
+                    if line[1] not in group.keys():
+                        group[line[0]] = 1
             return (sample, group)
 
     def check(self):
