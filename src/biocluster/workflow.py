@@ -29,6 +29,7 @@ class Workflow(Basic):
             os.makedirs(self._output_path)
         self._logger = Wlog(self).get_logger('')
         self.rpc_server = RPC(self)
+        self.db = self.config.get_db()
 
     def __work_dir(self):
         """
@@ -100,7 +101,6 @@ class Workflow(Basic):
                 "workdir": self.work_dir
             }
             db.update("workflow", where="workflow_id = %s" % self._id, **data)
-            gevent.sleep(30)
             gevent.spawn(self.__update_database)
         self.rpc_server.run()
 
@@ -122,7 +122,7 @@ class Workflow(Basic):
         self.rpc_server.server.close()
         self.logger.info("运行结束!")
 
-    def exit(self, exitcode=1):
+    def exit(self, exitcode=1, data=""):
         """
         立即退出当前流程
 
@@ -134,7 +134,7 @@ class Workflow(Basic):
             db = self.config.get_db()
             data = {
                 "is_error": 1,
-                "error": "程序主动退出",
+                "error": "程序主动退出:%s" % data,
                 "end_time": datetime.datetime.now(),
                 "is_end": 1,
                 "workdir": self.work_dir,
@@ -149,13 +149,23 @@ class Workflow(Basic):
 
         :return:
         """
-        db = self.config.get_db()
         while self.is_end is False:
             gevent.sleep(30)
             data = {
                 "last_update": datetime.datetime.now()
             }
-            db.update("workflow", where="workflow_id = %s" % self._id, **data)
+            self.db.update("workflow", where="workflow_id = %s" % self._id, **data)
+            results = self.db.query("SELECT * FROM tostop WHERE workflow_id=$workflow_id and done  = 0",
+                                    vars={'workflow_id': self._id})
+            if len(results) > 0:
+                data = results[0]
+                update_data = {
+                    "stoptime": datetime.datetime.now(),
+                    "done": 1
+                }
+                self.db.update("tostop", where="workflow_id = %s" % self._id, **update_data)
+                self.exit(data=data.reson)
+
 
 
 

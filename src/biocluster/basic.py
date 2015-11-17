@@ -230,7 +230,7 @@ class Basic(EventObject):
                         getattr(self.option(name), function_name)()
                     else:
                         getattr(self.option(name), "check")()
-            self.check_options()
+        self.check_options()
 
     def check_options(self):
         """
@@ -395,7 +395,7 @@ class Basic(EventObject):
             self.logger.debug("输出目录%s为空,你确定已经设置了输出目录?" % self.output_dir)
         for option in self._options.values():
             if option.type == 'outfile':
-                if not option.is_set:
+                if not option.value.is_set:
                     self.logger.debug("输出参数%s没有设置输出文件路径,你确定此处不需要设置?" % option.name)
 
     def on_rely(self, rely, func,  data=None):

@@ -67,7 +67,7 @@ class Command(object):
         """
         返回是否已经开始运行
         """
-        if self._subprocess:
+        if self._subprocess is not None or self.is_error:
             return True
         else:
             return False
@@ -77,11 +77,14 @@ class Command(object):
         """
         返回是否在运行状态
         """
-        if not self._subprocess:
+        if not self._subprocess or self.is_error:
             return False
-        if self._subprocess.poll() is None:
-            return True
-        else:
+        try:
+            if self._subprocess.poll() is None:
+                return True
+            else:
+                return False
+        except:
             return False
 
     @property
@@ -89,7 +92,7 @@ class Command(object):
         """
         获取命令退出时返回的状态编码
         """
-        if not self._subprocess:
+        if not self._subprocess or self.is_error:
             return None
         return self._subprocess.returncode
 
@@ -153,9 +156,8 @@ class Command(object):
             with open(tmp_file, "w") as f:
                 starttime = datetime.datetime.now()
                 f.write("%s\t运行开始\n" % starttime)
-                while self._subprocess.poll() is None:
-                    line = self._subprocess.stdout.readline()
-                    if line:
+                while True:
+                    for line in self._subprocess.stdout.readlines():
                         f.write(line)
                         if hasattr(self.tool, self.name + '_check'):
                             func = getattr(self.tool, self.name + '_check')
@@ -163,7 +165,10 @@ class Command(object):
                             args = argspec.args
                             if len(args) != 3:
                                 Exception("状态监测函数参数必须为3个(包括self)!")
+                            line = line.strip()
                             func(self, line)   # check function(toolself, command, line)  single line
+                    if self.is_error or not self.is_running:
+                        break
                 else:
                     endtime = datetime.datetime.now()
                     use_time = (endtime - starttime).seconds
@@ -205,6 +210,7 @@ class Command(object):
                 self.kill()
             self._subprocess = None
             self._pid = ""
+            self._is_error = False
         self.run()
         return self
 
@@ -213,5 +219,5 @@ class Command(object):
         结束命令运行
         :return:
         """
-        if self._subprocess and (not self._subprocess.poll()):
+        if self.is_running:
             self._subprocess.kill()

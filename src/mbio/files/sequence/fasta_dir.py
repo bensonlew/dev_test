@@ -21,6 +21,8 @@ class FastaDirFile(Directory):
         super(FastaDirFile, self).__init__()
         self.fastas = list()
         self.fastas_full = list()
+        self.has_work_dir = False
+        self.work_dir = ""
 
     def get_info(self):
         """
@@ -31,6 +33,29 @@ class FastaDirFile(Directory):
         else:
             raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
 
+    def get_full_info(self, work_path):
+        """
+        建立与这个fastq_dir相关的文件夹，获取全部的信息
+
+        :param work_path: 工作文件夹的路径
+        """
+        self.make_work_dir(work_path)
+        self.set_property("fasta_number", self.get_fasta_number())
+        self.set_property("fasta_basename", self.fastas)
+        self.set_property("fasta_fullname", self.fastas_full)
+
+    def make_work_dir(self, work_path):
+        """
+        创建临时文件夹
+
+        :param work_path: 工作文件夹的路径
+        """
+        if not os.path.exists(work_path):
+            os.mkdir(work_path)
+        if os.path.isdir(work_path):  # 防止os.mkdir失败，做一次检测
+            self.work_dir = work_path
+            self.has_work_dir = True
+
     def get_fasta_number(self):
         """
         获取文件夹下fasta的数目
@@ -38,11 +63,13 @@ class FastaDirFile(Directory):
         """
         filelist = os.listdir(self.prop['path'])
         count = 0
+        self.fastas = list()
+        self.fastas_full = list()
         for file_ in filelist:
             if re.search(r'\.(fasta|fa)$', file_):
                 count += 1
                 self.fastas.append(file_)
-                full_name = os.join(self.prop['path'], file_)
+                full_name = os.path.join(self.prop['path'], file_)
                 self.fastas_full.append(full_name)
         return count
 
@@ -51,8 +78,9 @@ class FastaDirFile(Directory):
         将所有的fasta文件合并到一起
         :return: 合并到一起的fasta文件路径
         """
-        tmp_dir = self._make_tmp_dir()
-        cat_fasta = tmp_dir + "/cat_fasta.fasta"
+        if not self.has_work_dir:
+            raise Exception("还未建立工作路径！")
+        cat_fasta = self.work_dir + "/cat_fasta.fasta"
         if os.path.exists(cat_fasta):
             os.remove(cat_fasta)
         os.mknod(cat_fasta)
@@ -73,8 +101,9 @@ class FastaDirFile(Directory):
               将所有的fasta合并到一起
         :return: 合并到一起的fasta文件的路径
         """
-        tmp_dir = self._make_tmp_dir()
-        cat_fasta = tmp_dir + "/cat_meta.fasta"
+        if not self.has_work_dir:
+            raise Exception("还未建立工作路径！")
+        cat_fasta = self.work_dir + "/cat_meta.fasta"
         if os.path.exists(cat_fasta):
             os.remove(cat_fasta)
         os.mknod(cat_fasta)
