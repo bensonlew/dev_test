@@ -179,6 +179,7 @@ class Agent(Basic):
         self.job = self._job_manager.add_job(self)
         self._run_time = datetime.datetime.now()
         self._status = "Q"
+        self.actor.start()
 
     def rerun(self):
         """
@@ -186,8 +187,13 @@ class Agent(Basic):
 
         :return:
         """
-        self.job.resubmit()
+        self.save_class_path()
+        self.save_config()
+        self._run_time = datetime.datetime.now()
         self._status = "Q"
+        self.actor = LocalActor(self)
+        self.actor.start()
+        self.job.resubmit()
 
     def set_callback_action(self, action, data=None):
         """

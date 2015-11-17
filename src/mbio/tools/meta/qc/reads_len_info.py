@@ -2,11 +2,12 @@
 # __author__ = 'xuting'
 from __future__ import division
 import os
+import re
 from collections import defaultdict
 from Bio import SeqIO
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-from mbio.files.fasta import FastaFile
+from mbio.files.sequence.fasta import FastaFile
 from biocluster.core.exceptions import OptionError
 
 
@@ -22,9 +23,9 @@ class ReadsLenInfoAgent(Agent):
         :param allow_step:允许的步长
         """
         super(ReadsLenInfoAgent, self).__init__(parent)
-        options = [{"name": "fasta_path", "type": "infile", "format": "fasta_dir"},  # 输入的fasta文件夹
-                   {"name": "sample_number", "type": "string"},  # 项目中包含的样本的数目，应当和输入文件夹中的fsta或者fastq文件的数目一致，用于检查是否有样本遗漏
-                   {"name": "reads_len_info", "type": "outfile", "format": "reads_len_info_dir"}]  # 输出的reads_len_info文件夹
+        options = [{"name": "fasta_path", "type": "infile", "format": "sequence.fasta_dir"},  # 输入的fasta文件夹
+                   {"name": "sample_number", "type": "int"},  # 项目中包含的样本的数目，应当和输入文件夹中的fsta或者fastq文件的数目一致，用于检查是否有样本遗漏
+                   {"name": "reads_len_info", "type": "outfile", "format": "meta.qc.reads_len_info_dir"}]  # 输出的reads_len_info文件夹
         self.add_option(options)
 
     def check_options(self):
@@ -34,7 +35,7 @@ class ReadsLenInfoAgent(Agent):
         """
         if not self.option("fasta_path").is_set:
             raise OptionError("参数fasta_path不能都为空")
-        if not self.option("sample_number").is_set:
+        if not self.option("sample_number"):
             raise OptionError("必须设置参数sample_number")
         # 设置文件夹的文件数目，并检测与实际的数目是否一致
         self.option("fasta_path").set_file_number(self.option("sample_number"))
@@ -56,38 +57,45 @@ class ReadsLenInfoTool(Tool):
         super(ReadsLenInfoTool, self).__init__(config)
         self._version = 1.0
         self.longest = ""
-        self.allow_step = [1, 20, 50, 100]
+        self.allowed_step = [1, 20, 50, 100]
 
     def _create_reads_len_info(self):
         """
         生成4个reads_len_info文件
         """
-        tmp_dir = os.path.join(self.option("fasta_path").prop["path"], "reads_len_info")
+        tmp_dir = os.path.join(self.work_dir, "output", "reads_len_info")
         if not os.path.exists(tmp_dir):
             os.mkdir(tmp_dir)
         self.option("reads_len_info").set_path(tmp_dir)
         # 寻找最长的序列
+        self.logger.info("开始寻找所有样本中最长的序列")
         max_list = list()
-        for fasta in self.option("fasta_path").fasta_full:
+        self.option("fasta_path").get_full_info(os.path.join(self.work_dir, "output", "fasta_work_dir"))
+        for fasta in self.option("fasta_path").prop["fasta_fullname"]:
             # 获取每一个fasta的全路径
             myfasta = FastaFile()
             myfasta.set_path(fasta)
             max_list.append(int(myfasta.prop["longest"]))
         self.longest = max(max_list)
+        self.logger.info("最长的序列寻找完毕，长度为" + str(self.longest))
         for i in self.allowed_step:
             self._write_head(i)
-        for fasta in self.option("fasta_path").fasta_full:
+        for fasta in self.option("fasta_path").prop["fasta_fullname"]:
+            self.logger.info("开始统计 " + str(fasta) + " 的长度分布")
             self._len_stat(fasta)
+            self.logger.info(str(fasta) + " 的长度分布统计完毕")
 
     def _write_head(self, step):
         """
         往reads_len_info文件里输出表头
+
+        :param step:文件的步长
         """
-        file_name = os.path.join(self.option("reads_len_info").prop["path"],
-                                 "step_" + step + ".reads_len_info")
+        file_name = os.path.join(self.work_dir, "output", "reads_len_info",
+                                 "step_" + str(step) + ".reads_len_info")
         with open(file_name, "w") as f:
             f.write("sample" + "\t")
-            col = self.longest // step
+            col = self.longest + step
             head = list()
             for i in range(step, col, step):
                 if step == 1:
@@ -100,35 +108,42 @@ class ReadsLenInfoTool(Tool):
     def _len_stat(self, fasta):
         """
         统计一个fasta文件的长度分布, 往不同的step文件里输出一行(一个样本的长度分布）
-        :param step_1: 用于记录步长为1的reads的分布信息
-        :param step_20: 用于记录步长为20的reads的分布信息 例如区间21-40 对应的应该是step_20[40]
-        :param step_50: 用于记录步长为50的reads的分布信息
-        :param step_100: 用于记录步长为100的reads的分布信息
+        step_1: 用于记录步长为1的reads的分布信息
+        step_20: 用于记录步长为20的reads的分布信息 例如区间21-40 对应的应该是step_20[40]
+        step_50: 用于记录步长为50的reads的分布信息
+        step_100: 用于记录步长为100的reads的分布信息
         """
-        self.step_1 = defaultdict()
-        self.step_20 = defaultdict()
-        self.step_50 = defaultdict()
-        self.step_100 = defaultdict()
+        sample_name = os.path.basename(fasta)
+        sample_name = re.sub(r"\.(fasta|fa)$", r"", sample_name)
+        self.step_1 = defaultdict(int)
+        self.step_20 = defaultdict(int)
+        self.step_50 = defaultdict(int)
+        self.step_100 = defaultdict(int)
         for seq in SeqIO.parse(fasta, "fasta"):
             len_ = len(seq.seq)
-            for i in self.allow_step:
-                self._find_range(len_, i, eval("self.step_" + "i"))
-        for mystep in self.allow_step:
-            self._write_len_info(mystep, eval("self.step_" + "i"))
+            for i in self.allowed_step:
+                self._find_range(len_, i, eval("self.step_" + str(i)))
+        for mystep in self.allowed_step:
+            self._write_len_info(mystep, eval("self.step_" + str(mystep)), sample_name)
 
-    def _write_len_info(self, step, dict_):
+    def _write_len_info(self, step, dict_, sample_name):
         """
         往step_1.reads_len_info;step_20.reads_len_info;step_50.reads_len_info;step_100.reads_len_info
         输出一行
+
+        :param step: 步长
+        :param dict_: 步长对应的字典，长度分布数据
+        :param sample_name: 样本名称
         """
-        i = step
-        file_name = os.path.join(self.option("reads_len_info").prop["path"],
-                                 "step_" + step + ".reads_len_info")
-        with open(file_name, "w") as f:
+        file_name = os.path.join(self.work_dir, "output", "reads_len_info",
+                                 "step_" + str(step) + ".reads_len_info")
+        with open(file_name, "a") as f:
             temp_list = list()
-            for i in range(i, self.longest, step):
+            temp_list.append(sample_name)
+            col = self.longest + step
+            for i in range(step, col, step):
                 temp_list.append(dict_[i])
-            f.write("\t".join(temp_list) + "\n")
+            f.write("\t".join(str(x) for x in temp_list) + "\n")
 
     @staticmethod
     def _find_range(len_, step, dict_):
@@ -136,6 +151,10 @@ class ReadsLenInfoTool(Tool):
         计算某一个长度序列应该属于哪个区间，并将相应的dict 加1
         例如某条序列 长度len_为32，要计算步长20时，属于哪个区间，则传入参数应当是(32, 20, step_20)
         最后计算可知32 属于21-40的区间，字典step_20[40]应当加1
+
+        :param len_:  序列的长度
+        :param step:  步长
+        :param dict_: 需要处理的字典
         """
         i = step
         while True:
@@ -148,5 +167,7 @@ class ReadsLenInfoTool(Tool):
         """
         运行
         """
-        super(ReadsLenInfoTool).run()
+        super(ReadsLenInfoTool, self).run()
         self._create_reads_len_info()
+        self.logger.debug("所有样本的长度统计均已完成，程序即将退出")
+        self.end()
