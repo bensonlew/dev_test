@@ -6,12 +6,11 @@ import json
 import sys
 import datetime
 import os
-import socket
 import time
-from biocluster.core.function import load_class_by_path
+from biocluster.core.function import load_class_by_path, daemonize
 from biocluster.wsheet import Sheet
 from biocluster.config import Config
-from multiprocessing import Pool
+from multiprocessing import Process
 import atexit
 
 parser = argparse.ArgumentParser(description="run a workflow")
@@ -29,101 +28,86 @@ parser.add_argument("-l", "--log", default=logfile,  help="write a log file,lose
 args = parser.parse_args()
 
 
-DB = Config().get_db()
-
-
 def main():
     if not (args.service or args.json or args.rerun_id):
         parser.print_help()
         sys.exit(1)
-    if args.daemon:
-        daemonize(stderr=args.log, stdout=args.log)
+    wj = WorkJob()
     if args.service:
         if os.path.isfile(Config().SERVICE_PID):
             raise Exception("PID file already exists,if this service already running?")
+        if args.daemon:
+            daemonize(stderr=Config().SERVICE_LOG, stdout=Config().SERVICE_LOG)
+
         write_log("start running in service mode ...")
-        atexit.register(delpid)
-        pid = str(os.getpid())
-        file(Config().SERVICE_PID, 'w+').write('%s\n' % pid)
+        writepid()
+        process_array = []
         while True:
             time.sleep(Config().SERVICE_LOOP)
-            pool = Pool(processes=Config().SERVICE_PROCESSES, maxtasksperchild=1)
-            pool.apply_async(run_job)
+            json_data = check_run()
+            if json_data:
+                process = Process(target=wj.start, args=(json_data,))
+                process_array.append(process)
+                process.start()
+            for p in process_array:
+                if not p.is_alive():
+                    p.join()
+                    process_array.remove(p)
     else:
-        run_job()
+        if args.daemon:
+            daemonize(stderr=args.log, stdout=args.log)
+        json_data = check_run()
+        if json_data:
+            wj.start(json_data)
 
 
-def run_job():
+def check_run():
     wj = WorkJob()
-    wj.run()
+    wj.lock()
+    json_data = None
+    if args.service:
+        json_data = wj.get_from_database()
+    elif args.json:
+        json_data = wj.get_from_file(args.json)
+    elif args.rerun_id:
+        json_data = wj.get_from_database(args.rerun_id)
+    if json_data:
+        wj.update_workflow()
+    wj.unlock()
+    return json_data
 
 
 def delpid():
     os.remove(Config().SERVICE_PID)
 
 
+def writepid():
+    pid = str(os.getpid())
+    with open(Config().SERVICE_PID, 'w+') as f:
+        f.write('%s\n' % pid)
+    atexit.register(delpid)
+
+
 def write_log(data):
-    with open(args.log, "a") as f:
-        line = str(datetime.datetime.now()) + "\t" + data + "\n"
-        f.write(line)
-
-
-def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='dev/null'):
-
-    try:
-        pid = os.fork()
-        if pid > 0:
-            sys.exit(0)
-    except OSError, e:
-        sys.stderr.write("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror))
-        sys.exit(1)
-
-    # 从母体环境脱离
-    os.chdir("/")
-    os.umask(0)
-    os.setsid()
-    # 执行第二次fork
-    try:
-        pid = os.fork()
-        if pid > 0:
-            sys.exit(0)  # second parent out
-    except OSError, e:
-        sys.stderr.write("fork #2 failed: (%d) %s]n" % (e.errno, e.strerror))
-        sys.exit(1)
-
-    # 进程已经是守护进程了，重定向标准文件描述符
-    for f in sys.stdout, sys.stderr:
-        f.flush()
-    si = file(stdin, 'r')
-    so = file(stdout, 'a+')
-    se = file(stderr, 'a+', 0)
-    os.dup2(si.fileno(), sys.stdin.fileno())
-    os.dup2(so.fileno(), sys.stdout.fileno())
-    os.dup2(se.fileno(), sys.stderr.fileno())
+    log_file = args.log
+    if args.service and args.daemon:
+        log_file = Config().SERVICE_LOG
+    with open(log_file, "a") as f:
+        line = str(datetime.datetime.now()) + "\t" + data
+        f.write(line + "\n")
 
 
 class WorkJob(object):
     def __init__(self):
-        self.database_id = None
         self.workflow_id = args.rerun_id
-        self.json_data = None
         self.pid = os.getpid()
+        self._db = Config().get_db()
 
     @property
     def db(self):
-        if os.getpid() == self.pid:
-            return DB
-        else:
-            return Config().get_db()
-
-    def get_json(self):
-        if args.service:
-            self.json_data = self.get_from_database()
-        elif args.json:
-            self.json_data = self.get_from_file(args.json)
-            self.database_id = self.insert_workflow(self.json_data)
-        elif args.rerun_id:
-            self.json_data = self.get_from_database(args.rerun_id)
+        if self.pid != os.getpid():
+            self._db = Config().get_db()
+        return self._db
 
     def lock(self):
         self.db.query("LOCK TABLE `workflow` WRITE")
@@ -131,17 +115,13 @@ class WorkJob(object):
     def get_from_database(self, workflow_id=None):
         if workflow_id:
             results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$workflow_id",
-                                    vars={'workflow_id': self.workflow_id})
+                                    vars={'workflow_id': workflow_id})
         else:
             results = self.db.query("SELECT * FROM workflow WHERE has_run = 0 order by id desc limit 0,1")
         if len(results) > 0:
             data = results[0]
-            self.database_id = data.id
             self.workflow_id = data.workflow_id
             return json.loads(data.json)
-        else:
-            write_log("No workflow is ready to run in the database!")
-            sys.exit(0)
 
     def unlock(self):
         self.db.query("UNLOCK TABLES")
@@ -149,7 +129,10 @@ class WorkJob(object):
     def get_from_file(self, path):
         with open(path, 'r') as f:
             data = json.load(f)
+            if "type" not in data.keys() or "id" not in data.keys():
+                raise Exception("Json格式错误")
             self.workflow_id = data["id"]
+            self.insert_workflow(data)
             return data
 
     def insert_workflow(self, data):
@@ -163,7 +146,7 @@ class WorkJob(object):
 
     def update_workflow(self):
         data = {
-            "server": socket.gethostname(),
+            "server": hostname(),
             "has_run": 1,
             "run_time": datetime.datetime.now(),
             "pid": os.getpid(),
@@ -171,28 +154,29 @@ class WorkJob(object):
             "is_error": 0,
             "error": ""
         }
-        self.db.update("workflow", where="id = %s" % self.database_id, **data)
+        self.db.update("workflow", where="workflow_id = %s" % self.workflow_id, **data)
 
-    def run(self):
-        self.lock()
-        self.get_json()
+    # def run(self):
+    #     self.lock()
+    #     self.get_json()
+    #
+    #     self.update_workflow()
+    #     self.unlock()
+    #     self.start()
 
-        self.update_workflow()
-        self.unlock()
-        self.start()
-
-    def start(self):
+    def start(self, json_data):
+        self.workflow_id = json_data["id"]
         write_log("Start running workflow:%s" % self.workflow_id)
-        if self.json_data["type"] == "workflow":
-            path = self.json_data["name"]
-        elif self.json_data["type"] == "link":
+        if json_data["type"] == "workflow":
+            path = json_data["name"]
+        elif json_data["type"] == "link":
             path = "link"
         else:
             path = "single"
 
         try:
             wf = load_class_by_path(path, "Workflow")
-            wsheet = Sheet(data=self.json_data)
+            wsheet = Sheet(data=json_data)
             workflow = wf(wsheet)
             workflow.config.USE_DB = True
             workflow.run()
@@ -203,10 +187,23 @@ class WorkJob(object):
                 "end_time": datetime.datetime.now(),
                 "is_end": 1
             }
-            self.db.update("workflow", where="id = %s" % self.database_id, **data)
+            self.db.update("workflow", where="workflow_id = %s" % self.workflow_id, **data)
 
         write_log("End running workflow:%s" % self.workflow_id)
 
+
+def hostname():
+    sys_name = os.name
+    if sys_name == 'nt':
+            host_name = os.getenv('computername')
+            return host_name
+    elif sys_name == 'posix':
+            with os.popen('echo $HOSTNAME') as f:
+                host_name = f.readline()
+                host_name.strip("\n")
+                return host_name
+    else:
+            return 'Unkwon hostname'
 
 if __name__ == "__main__":
     main()

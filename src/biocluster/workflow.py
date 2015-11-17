@@ -27,7 +27,7 @@ class Workflow(Basic):
         self._output_path = self._work_dir + "/output"
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
-        self._logger = Wlog(self).get_logger('')
+        self._logger = Wlog(self).get_logger(self._id)
         self.rpc_server = RPC(self)
         self.db = self.config.get_db()
 

@@ -342,7 +342,7 @@ class Basic(EventObject):
             return self._logger
         else:
             workflow = self.get_workflow()
-            self._logger = Wlog(workflow).get_logger(self._full_name)
+            self._logger = Wlog(workflow).get_logger(self._full_name + "(" + self.get_workflow()._id + ")")
             return self._logger
 
     def __init_events(self):
