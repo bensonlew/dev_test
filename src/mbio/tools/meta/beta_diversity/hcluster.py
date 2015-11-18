@@ -47,8 +47,8 @@ class HclusterTool(Tool):
     def __init__(self, config):
         super(HclusterTool, self).__init__(config)
         self._version = 'v2.1-20140214'  # plot-hcluster_tree.pl版本
-        self.cmd_path = '/mnt/ilustre/users/sanger/app/meta/scripts/beta_diversity/plot-hcluster_tree.pl'
-        # 如果使用add_command，软件路径会被自动加载
+        self.cmd_path = os.path.join(
+            self.config.SOFTWARE_DIR, 'meta/scripts/beta_diversity/plot-hcluster_tree.pl')
 
     def run(self):
         """
@@ -75,9 +75,8 @@ class HclusterTool(Tool):
             self.logger.info('生成 hc.cmd.r 文件失败')
             self.set_error('无法生成 hc.cmd.r 文件')
         try:
-            subprocess.check_output(
-                '/mnt/ilustre/app/pub/R/bin/R --restore --no-save < %s/hc.cmd.r' % self.work_dir, shell=True)
-            # R路径仅仅是暂时测试用
+            subprocess.check_output(self.config.SOFTWARE_DIR +
+                                    '/R-3.2.2/bin/R --restore --no-save < %s/hc.cmd.r' % self.work_dir, shell=True)
             self.logger.info('生成树文件成功')
         except subprocess.CalledProcessError:
             self.logger.info('生成树文件失败')
@@ -94,23 +93,3 @@ class HclusterTool(Tool):
         self.option('newicktree', linkfile)
         self.logger.info(self.option('newicktree').prop)
         self.end()
-
-        # hcluster_command = self.add_command('hcluster', cmd)
-        # hcluster_command.run()
-        # self.wait()
-        # if hcluster_command.return_code == 0:
-        #     self.logger.info('运行plot-hcluster_tree.pl程序计算Hcluster完成')
-        #     filename = self.work_dir + 'hcluster_' + \
-        #         os.path.basename(self.option('dis_matrix').prop[
-        #                          'path']) + '_average.tre'
-        #     linkfile = self.output_dir + '/hcluster.tre'
-        #     self.logger.info(filename + linkfile)
-        #     if os.path.exists(linkfile):
-        #         os.remove(linkfile)
-        #     os.link(filename, linkfile)
-        #     self.option('newicktree', linkfile)
-        #     self.logger.info(self.option('newicktree').prop)
-        #     self.end()
-        # else:
-        #     self.logger.info(hcluster_command.return_code)
-        #     self.set_error('运行plot-hcluster_tree.pl程序计算Hcluster出错')

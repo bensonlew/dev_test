@@ -44,13 +44,12 @@ class DbrdaTool(Tool):
     def __init__(self, config):
         super(DbrdaTool, self).__init__(config)
         self._version = '1.0'
-        self.cmd_path = 'packages/dbrda_r.py'
+        self.cmd_path = 'mbio/packages/beta_diversity/dbrda_r.py'
         # 脚本路径，并不使用
 
     def run(self):
         """
         运行
-        :return:
         """
         super(DbrdaTool, self).run()
         self.run_dbrda()
@@ -58,17 +57,25 @@ class DbrdaTool(Tool):
     def run_dbrda(self):
         """
         运行dbrda.py
-        :return:
         """
         self.logger.info('运行dbrda_r.py程序计算Dbrda')
         return_mess = db_rda(self.option('dis_matrix').prop['path'], self.option('group').prop['path'], self.work_dir)
         if return_mess == 0:
-            self.logger.info('运行dbrda_r.py程序计算Dbrda完成')
-            os.link(self.work_dir + '/db_rda_factor.txt', self.output_dir + '/db_rda_factor.txt')
-            os.link(self.work_dir + '/db_rda_results.txt', self.output_dir + '/db_rda_results.txt')
-            os.link(self.work_dir + '/db_rda_sites.txt', self.output_dir + '/db_rda_sites.txt')
-            self.option('dbrda_dir').setpath(self.output_dir)
+            factor = self.output_dir + '/db_rda_factor.txt'
+            result = self.output_dir + '/db_rda_results.txt'
+            sites = self.output_dir + '/db_rda_sites.txt'
+            if os.path.exists(factor):
+                os.remove(factor)
+            if os.path.exists(result):
+                os.remove(result)
+            if os.path.exists(sites):
+                os.remove(sites)
+            os.link(self.work_dir + '/db_rda_factor.txt', factor)
+            os.link(self.work_dir + '/db_rda_results.txt', result)
+            os.link(self.work_dir + '/db_rda_sites.txt', sites)
+            self.option('dbrda_dir').set_path(self.output_dir)
             self.logger.info(self.option('dbrda_dir').prop)
+            self.logger.info('运行dbrda_r.py程序计算Dbrda完成')
             self.end()
         else:
             self.set_error('运行dbrda_r.py程序计算Dbrda出错')

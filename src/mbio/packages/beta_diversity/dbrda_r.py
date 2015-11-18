@@ -9,6 +9,7 @@
 import os
 # import argparse
 import platform
+from biocluster.config import Config
 
 
 # def get_argu():
@@ -90,8 +91,7 @@ def run_r_script(script, delscript=True):
     if platform.system() == 'Windows':
         os.system('R CMD BATCH --vanilla --slave %s ' % (script))
     elif platform.system() == 'Linux':
-        os.system('/mnt/ilustre/app/pub/R/bin/Rscript %s' % (script))
-        # R路径暂时测试用
+        os.system('%s/R-3.2.2/bin/Rscript %s' % (Config().SOFTWARE_DIR, script))
     else:
         pass
     if delscript:
