@@ -6,12 +6,14 @@ from web import form
 from mainapp.libs.json_check import check_json
 import json
 from mainapp.models.workflow import Workflow
+import os
 
 
 class Pipline(object):
 
     def GET(self):
-        render = web.template.render('mainapp/views')
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../views/'))
+        render = web.template.render(path)
         return render.pipline(self.get_form())
 
     @check_sig
@@ -19,11 +21,14 @@ class Pipline(object):
     def POST(self):
         data = web.input()
         json_obj = json.loads(data.json)
+        if "type" not in json_obj.keys() or "id" not in json_obj.keys():
+            info = {"success": False, "info": "Json内容不正确!!"}
+            return json.dumps(info)
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(json_obj['id'])
         if len(workflow_data) > 0:
-            print workflow_data[0]
-            info = {"success": False, "info": u"流程ID重复!"}
+            # print workflow_data[0]
+            info = {"success": False, "info": "流程ID重复!"}
             return json.dumps(info)
         else:
             insert_data = {"client": data.client,
@@ -32,7 +37,7 @@ class Pipline(object):
                            "ip": web.ctx.ip
                            }
             workflow_module.add_record(insert_data)
-            info = {"success": True, "info": u"添加队列成功!"}
+            info = {"success": True, "info": "添加队列成功!"}
             return json.dumps(info)
 
     @staticmethod

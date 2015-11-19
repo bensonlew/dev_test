@@ -150,23 +150,26 @@ class Command(object):
         else:
             self._pid = self._subprocess.pid
             self._last_run_cmd = self.cmd
-
+        if not self._subprocess:
+            return self
         try:
             tmp_file = os.path.join(self.work_dir, self._name + ".o")
             with open(tmp_file, "w") as f:
                 starttime = datetime.datetime.now()
                 f.write("%s\t运行开始\n" % starttime)
                 while True:
-                    for line in self._subprocess.stdout.readlines():
-                        f.write(line)
-                        if hasattr(self.tool, self.name + '_check'):
-                            func = getattr(self.tool, self.name + '_check')
-                            argspec = inspect.getargspec(func)
-                            args = argspec.args
-                            if len(args) != 3:
-                                Exception("状态监测函数参数必须为3个(包括self)!")
-                            line = line.strip()
-                            func(self, line)   # check function(toolself, command, line)  single line
+                    line = self._subprocess.stdout.readline()
+                    if not line:
+                        break
+                    f.write(line)
+                    if hasattr(self.tool, self.name + '_check'):
+                        func = getattr(self.tool, self.name + '_check')
+                        argspec = inspect.getargspec(func)
+                        args = argspec.args
+                        if len(args) != 3:
+                            Exception("状态监测函数参数必须为3个(包括self)!")
+                        line = line.strip()
+                        func(self, line)   # check function(toolself, command, line)  single line
                     if self.is_error or not self.is_running:
                         break
                 else:

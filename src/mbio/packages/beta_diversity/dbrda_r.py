@@ -1,50 +1,51 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shenghe'
 # __version__ = 'v1.0'
-# __last_modified__ = '20151110'
+# __last_modified__ = '20151117'
 """
 
 """
 
 import os
-import argparse
+# import argparse
 import platform
+from biocluster.config import Config
 
 
-def get_argu():
-    """
-    命令行模式下运行此脚本的参数获取方法
-    路径请使用'/',不要使用'\\'
-<<<<<<< HEAD
-    :param return: 输出文件夹，距离矩阵，分组信息
-=======
+# def get_argu():
+#     """
+#     命令行模式下运行此脚本的参数获取方法
+#     路径请使用'/',不要使用'\\'
+# <<<<<<< HEAD
+#     :param return: 输出文件夹，距离矩阵，分组信息
+# =======
 
->>>>>>> f381101c0b2ea19c0657b1efce841f5806cef0b8
-    """
-    parse = argparse.ArgumentParser(prog='dbrda_r.py',
-                                    usage='关于此脚本的说明',
-                                    description='输入矩阵和分组信息文件，\
-                                    利用R软件计算分析db-RDA。',
-                                    epilog='请确保参数准确',
-                                    version='v1.0',
-                                    parents='')
-    parse.add_argument('-d', '--distance_matrix',
-                       required=True, help='输入距离矩阵，矩阵必须对称')
-    parse.add_argument('-m', '--map_file',
-                       required=True, help='分组信息文件，\
-                       必须只有一种分组方案，表头注释‘#’开头，tab分隔符')
-    parse.add_argument('-o', '--output',
-                       required=True, help='输出文件夹')
-    args = parse.parse_args()
+# >>>>>>> f381101c0b2ea19c0657b1efce841f5806cef0b8
+#     """
+#     parse = argparse.ArgumentParser(prog='dbrda_r.py',
+#                                     usage='关于此脚本的说明',
+#                                     description='输入矩阵和分组信息文件，\
+#                                     利用R软件计算分析db-RDA。',
+#                                     epilog='请确保参数准确',
+#                                     version='v1.0',
+#                                     parents='')
+#     parse.add_argument('-d', '--distance_matrix',
+#                        required=True, help='输入距离矩阵，矩阵必须对称')
+#     parse.add_argument('-m', '--map_file',
+#                        required=True, help='分组信息文件，\
+#                        必须只有一种分组方案，表头注释‘#’开头，tab分隔符')
+#     parse.add_argument('-o', '--output',
+#                        required=True, help='输出文件夹')
+#     args = parse.parse_args()
 
-    outputdir = args.output.rstrip('/')
-    if os.path.exists(outputdir):
-        pass
-    else:
-        os.makedirs(outputdir)
-    dis_matrix = args.distance_matrix
-    maping = args.map_file
-    return outputdir, dis_matrix, maping
+#     outputdir = args.output.rstrip('/')
+#     if os.path.exists(outputdir):
+#         pass
+#     else:
+#         os.makedirs(outputdir)
+#     dis_matrix = args.distance_matrix
+#     maping = args.map_file
+#     return outputdir, dis_matrix, maping
 
 
 def create_r(outputdir, dis_matrix, maping):
@@ -90,12 +91,13 @@ def run_r_script(script, delscript=True):
     if platform.system() == 'Windows':
         os.system('R CMD BATCH --vanilla --slave %s ' % (script))
     elif platform.system() == 'Linux':
-        os.system('Rscript %s' % (script))
+        os.system('%s/R-3.2.2/bin/Rscript %s' % (Config().SOFTWARE_DIR, script))
     else:
         pass
     if delscript:
         os.remove(script)
-        os.remove(os.path.dirname(script) + '/temp_r.Rout')
+        if os.path.exists(os.path.dirname(script) + '/temp_r.Rout'):
+            os.remove(os.path.dirname(script) + '/temp_r.Rout')
 
 
 def format_result(outputdir):
