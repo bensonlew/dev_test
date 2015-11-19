@@ -32,14 +32,28 @@ class GroupTableFile(File):
             sample = dict()
             group = dict()
             for line in f:
-                line = re.split("\s+", line)
+                line = line.rstrip("\n")
+                line = re.split("\t", line)
                 row += 1
-                if row > 1:
-                    if line[0] not in sample.keys():
-                        sample[line[0]] = 1
-                    if line[1] not in group.keys():
-                        group[line[0]] = 1
+                if line[0] not in sample.keys():
+                    sample[line[0]] = 1
+                if line[1] not in group.keys():
+                    group[line[0]] = 1
             return (sample, group)
+
+    def format_check(self):
+        with open(self.prop['path'], 'r') as f:
+            line = f.readline().rstrip("\n")
+            line = line.split("\t")
+            length = len(line)
+            if length < 2:
+                raise FileError('group_table 文件至少应该有两列')
+            for line in f:
+                line = line.rstrip("\n")
+                line = re.split("\t", line)
+                len_ = len(line)
+                if len_ != length:
+                    raise FileError("文件的列数不相等")
 
     def check(self):
         if super(GroupTableFile, self).check():
@@ -47,3 +61,4 @@ class GroupTableFile(File):
                 raise FileError('应该至少包含一个样本')
             if self.prop['group_number'] == 0:
                 raise FileError('应该至少包含一个分组')
+            self.format_check()
