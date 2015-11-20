@@ -15,7 +15,7 @@ def pan_core(otutable, dowhat, groupfile='none'):
         sys.exit()
     cmd = '''
     library(vegan)
-    pan_core <- function (comm, dowhat = "pan" , method = "exact", permutations = 100, conditioned = TRUE, gamma = "jack1", w = NULL, subset, ...)
+    pan_core <- function (comm, dowhat = "pan" , method = "random", permutations = 100, conditioned = TRUE, gamma = "jack1", w = NULL, subset, ...)
     {
       METHODS <- c("collector", "random", "exact", "rarefaction", "coleman")
       method <- match.arg(method, METHODS)
@@ -163,14 +163,18 @@ def pan_core(otutable, dowhat, groupfile='none'):
         stop("no proper data to run.")
     }
     colnames(richness_out) <- c("group",seq(1,ncol(data)))
-    write.table(richness_out,paste(dowhat,".richness.xls",spe=""),sep="\\t",col.names=T,row.names=F)
+    write.table(richness_out,paste(dowhat,".richness.xls",sep=""),sep="\\t",col.names=T,row.names=F)
     '''
-    cmdfile = open("tmp.r", 'w')
+    output = os.getcwd()
+    output = os.path.join(output, dowhat + ".r")
+    cmdfile = open(dowhat + ".r", 'w')
     cmdfile.write(cmd)
     cmdfile.close()
+    return output
     # os.system("Rscript tmp.r")
 
 
 # test
 if __name__ == "__main__":
-    pan_core("otu_table.txt", dowhat="core")
+    pan_core("otu_table.xls", dowhat="core")
+    pan_core("otu_table.xls", dowhat="pan")
