@@ -27,15 +27,17 @@ class PcaOutdirFile(Directory):
             raise FileError('文件夹路径不正确!')
         dirinfo = self.get_pca_info()
         dirpath = self.prop['path'].rstrip('/') + '/'
-        self.set_property('sites_file', dirpath + dirinfo[3][2])
-        self.set_property('ortation_file', dirpath + dirinfo[3][1])
-        self.set_property('PC_imp_file', dirpath + dirinfo[3][0])
+        self.set_property('sites_file', dirpath + dirinfo[2][2])
+        self.set_property('ortation_file', dirpath + dirinfo[2][1])
+        self.set_property('PC_imp_file', dirpath + dirinfo[2][0])
         self.set_property('sample', dirinfo[0])
         self.set_property('PC', dirinfo[1])
-        if dirinfo[3][3]:
-            self.set_property('envfit_file', dirpath + dirinfo[3][5])
-            self.set_property('envfit_score_file', dirpath + dirinfo[3][4])
-            self.set_property('env_list', dirinfo[2])
+        self.set_property('env_set', False)
+        if dirinfo[2][3]:
+            self.set_property('PC', True)
+            self.set_property('envfit_file', dirpath + dirinfo[2][5])
+            self.set_property('envfit_score_file', dirpath + dirinfo[2][4])
+            self.set_property('env_list', dirinfo[3])
 
     def get_pca_info(self):
         """
@@ -52,11 +54,12 @@ class PcaOutdirFile(Directory):
         imp_lines = temp_importance.readlines()
         PC = [(i.rstrip().split()[0], i.rstrip().split()[1])
               for i in imp_lines[1:]]
+        env = []
         if filelist[3]:
             temp_env = open(dirpath + filelist[4])
             env_lines = temp_env.readlines()
             env = [i.split()[0] for i in env_lines[1:]]
-        return sample, PC, env, filelist
+        return sample, PC, filelist, env
 
     def check(self):
         """
