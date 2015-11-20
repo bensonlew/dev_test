@@ -13,9 +13,9 @@ class EstimatorsAgent(Agent):
     author: qindanhua  
     last_modify: 2015.11.10  
     """
-    ESTIMATORS = ['sobs','chao','ace','jack','bootstrap','simpsoneven',
-    'shannoneven','heip','smithwilson','bergerparker','shannon',
-    'npshannon','simpson','invsimpson','coverage','qstat']
+    ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven',
+    'shannoneven', 'heip', 'smithwilson', 'bergerparker', 'shannon',
+    'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
 
     def __init__(self, parent):
         super(EstimatorsAgent, self).__init__(parent)
@@ -70,7 +70,7 @@ class EstimatorsTool(Tool):
         cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' %(self.option('indices'))
         print cmd
         self.logger.info("开始运行mothur")
-        command = self.add_command("mothur",cmd)
+        command = self.add_command("mothur", cmd)
         command.run()
         self.wait(command)
         if command.return_code == 0:
@@ -79,7 +79,7 @@ class EstimatorsTool(Tool):
         else:
             self.set_error("运行mothur运行出错!")
         # cmd2 = '/mnt/ilustre/users/sanger/qdh_test/estimatorsV3.py'
-        os.system("python /mnt/ilustre/users/sanger/qdh_test/estimatorsV3.py")
+        os.system("python %sestimatorsV3.py" % self.estimator_path)
         self.set_output()
 
 
@@ -90,14 +90,14 @@ class EstimatorsTool(Tool):
         self.logger.info("set out put")
         os.link(self.work_dir+'/estimators', self.output_dir+'/estimators')
         self.option('estimators').set_path(self.output_dir+'/estimators')
-        self.logger.info(self.option('estimators').prop)
+        # self.logger.info(self.option('estimators').prop)
         self.logger.info("done")
 
     def run(self):
         """
         运行
         """
-        super(EstimatorsTool,self).run()
+        super(EstimatorsTool, self).run()
         self.shared()
         self.mothur()
         self.end()
