@@ -76,7 +76,7 @@ class LocalActor(gevent.Greenlet):
         """
         消息处理函数不存在时对默认的处理方法
         """
-        self._agent.logger.warning(self._agent.name+ "没有定义消息对应的处理函数" + message['state'] + "!")
+        self._agent.logger.warning(self._agent.name + "没有定义消息对应的处理函数" + message['state'] + "!")
 
     def _run(self):
         self._start_time = datetime.datetime.now()
@@ -85,6 +85,8 @@ class LocalActor(gevent.Greenlet):
             # message = self.inbox.get()
             # self.receive(message)
             self.check_time()
+            if self._agent.is_end:
+                break
             gevent.sleep(0)
 
 

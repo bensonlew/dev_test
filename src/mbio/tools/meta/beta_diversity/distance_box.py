@@ -4,7 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
-from mbio.files.files.meta.otu.group_table import GroupTable
+from mbio.files.meta.otu.group_table import GroupTableFile
 
 
 class DistanceBoxAgent(Agent):
