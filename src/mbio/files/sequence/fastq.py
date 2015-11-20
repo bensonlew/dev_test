@@ -5,7 +5,6 @@ import re
 import subprocess
 from biocluster.iofile import File
 from biocluster.config import Config
-from biocluster.core.exceptions import FileError
 
 
 class FastqFile(File):
@@ -21,9 +20,7 @@ class FastqFile(File):
     def __init__(self):
         super(FastqFile, self).__init__()
         self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/seqstat")
-        self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/fastq_to_fasta")
-        self._fastaname = ""
-        self._filename = ""
+        self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/fastq_to_fasta")
         self.is_convert = False
 
     @property
@@ -37,18 +34,26 @@ class FastqFile(File):
         else:
             return False
 
-    def get_info(self):
+    def get_ino(self):
         """
-        获取文件属性
-        当fastq是gz格式的时候，新建一个tmp文件夹，把文件解压到tmp里
-        将fastq转化成fasta，并统计相关信息
-        :return:
+        获取文件的基本属性
         """
         super(FastqFile, self).get_info()
-        self._prepare()
+        self.set_property("is_gz", self.is_gz)
+
+    def get_full_info(self, work_path):
+        """
+        获取文件属性
+        当fastq是gz格式的时候,解压到work_path
+        将fastq转化成fasta，并统计相关信息
+        :param work_path:工作文件夹路径
+        """
+        self._prepare(work_path)
         self.convert_to_fasta()
         seqinfo = self.get_seq_info()
         self.set_property("format", "FASTQ")
+        self.set_property("unzip", self.unzipfile)
+        self.set_property("fasta", self.fastaname)
         self.set_property("fasta_fomat", seqinfo[0])
         self.set_property("seq_number", seqinfo[1])
         self.set_property("bases", seqinfo[2])
@@ -61,54 +66,23 @@ class FastqFile(File):
         :return: bool
         """
         if super(FastqFile, self).check():
-            if self.prop['fasta_format'] != 'DNA':
-                raise FileError("文件格式错误")
-            if self.prop["seq_number"] < 1:
-                raise FileError("应该至少含有一条序列")
-        return True
+            return True
 
-    def _prepare(self):
+    def _prepare(self, work_path):
         """
         为获取序列的信息做准备
         生成临时文件夹，当输入的文件是gz格式时，解压到tmp里
         """
-        filename = self.prop['path']
-        basename = os.path.basename(filename)
-        filepath = os.path.dirname(os.path.abspath(filename))
-        os.mkdir(filepath + "/tmp")
-        fastaname = filepath + "/tmp/" + basename + ".fasta"
+        self.unzipfile = self.prop['path']
+        basename = os.path.basename(self.prop['path'])
+        self.fastaname = os.path.join(work_path, basename + ".fasta")
         if self.is_gz:
             basename = re.search(r'(.+)\.gz', basename).group(1)
-            filename = filepath + "/tmp/" + basename
-            fastaname = filename + ".fasta"
+            self.unzipfile = os.path.join(work_path, basename)
             try:
-                subprocess.check_call('gunzip -c ' + filepath + "> " + filename)
+                subprocess.check_call('gunzip -c ' + self.prop['path'] + "> " + self.unzipfile)
             except subprocess.CalledProcessError:
                 raise Exception("非标准格式的gz文件！")
-        self.filename = filename
-        self.fastaname = fastaname
-
-    def gunzip(self):
-        """
-        解压fastq,因为在get_info()中，如果判定是压缩文件的话会先解压，所以质粒只需返回文件地址即可
-        :return: 解压后的fastq文件
-        """
-        return self.filename
-
-    def gzip(self):
-        """
-        当文件不是gz格式的时候，压缩这个fastq，是gz格式的时候，直接返回该文件
-        """
-        if self.is_gz:
-            return self.prop["path"]
-        else:
-            try:
-                gzip_file = self.filename + ".gz"
-                gzip_str = "gzip -c " + self.filename + " > " + gzip_file
-                subprocess.check_call(gzip_str, shell=True)
-                return gzip_file
-            except subprocess.CalledProcessError:
-                raise Exception("压缩fastq文件失败！")
 
     def convert_to_fasta(self):
         """
@@ -118,7 +92,7 @@ class FastqFile(File):
         if not self.is_convert:
             try:
                 convert_str = (self.fastq_to_fasta_path + ' -Q 33' + ' -i '
-                               + self.filename + ' -o ' + self.fastaname)
+                               + self.unzipfile + ' -o ' + self.fastaname)
                 subprocess.check_call(convert_str, shell=True)
                 self.is_convert = True
             except subprocess.CalledProcessError:
