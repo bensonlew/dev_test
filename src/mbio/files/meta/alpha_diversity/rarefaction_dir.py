@@ -28,7 +28,7 @@ class RarefactionDirFile(Directory):
         """
         获取文件夹信息
         """
-        file_name = os.listdir(self.prop('path'))
+        file_name = os.listdir(self.prop['path'])
         sample_num = len(file_name)
         sample_name = []
         maker = '.rarefaction'
