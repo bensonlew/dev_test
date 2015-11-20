@@ -4,8 +4,7 @@ import os
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-from biocluster.config import Config
-from venn_table import venn_table
+# from mbio.packages.graph.venn_table import venn_table
 
 
 class VennTableAgent(Agent):
@@ -14,14 +13,14 @@ class VennTableAgent(Agent):
     author: xuting
     last_modify: 2015.11.11
     需要R软件
-    需要venn_table.py的package包
     """
     def __init__(self, parent):
         super(VennTableAgent, self).__init__(parent)
         options = [
-            {"name": "otu_table", "type": "infile", "format": "otu_table"},  # 输入的OTU表格
-            {"name": "group_table", "type": "infile", "format": "group_table"},  # 输入的group表格
-            {"name": "venn_table", "type": "outfile", "format": "venn_table"}]  # 输入的Venn表格
+            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU表格
+            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表格
+            {"name": "venn_table.xls", "type": "outfile", "format": "meta.qc.venn_table"} # 输入的Venn表格
+        ]
         self.add_option(options)
 
     def check_options(self):
@@ -45,15 +44,41 @@ class VennTableAgent(Agent):
 class VennTableTool(Tool):
     def __init__(self, config):
         super(VennTableTool, self).__init__(config)
-        self.R_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/R")
+        self.R_path = 'R-3.2.2/bin/'
+        self.venn_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
+        self.python_path = '/mnt/ilustre/users/sanger/app/Python/bin/'
+        print self.R_path
         self._version = 1.0
 
     def _create_venn_table(self):
         """
         调用脚本venn_table.py,输出venn表格
         """
-        venn_path = venn_table(self.option("otu_table"), self.option("group_table"), self.R_path)
-        self.option("venn_table").set_path(venn_path)
+        venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' %(self.python_path, self.venn_path,
+                    self.option("otu_table").prop['path'], self.option("group_table").prop['path'])
+        print venn_cmd
+        os.system(venn_cmd)
+        cmd = self.R_path + 'Rscript cmd.r'
+        print cmd
+        self.logger.info("开始运行venn_table")
+        command = self.add_command("venn_table", cmd)
+        command.run()
+        self.wait(command)
+        if command.return_code == 0:
+            self.logger.info("运行venn_table完成")
+            # self.end()
+        else:
+            self.set_error("运行venn_table运行出错!")
+        self.set_output()
+
+    def set_output(self):
+        """
+        将结果文件链接至output
+        """
+        self.logger.info("set out put")
+        os.link(self.work_dir+'/venn_table.xls', self.output_dir+'/venn_table.xls')
+        self.option('venn_table.xls').set_path(self.output_dir+'/venn_table.xls')
+        self.logger.info("done")
 
     def run(self):
         """
@@ -61,3 +86,4 @@ class VennTableTool(Tool):
         """
         super(VennTableTool, self).run()
         self._create_venn_table()
+        self.end()
