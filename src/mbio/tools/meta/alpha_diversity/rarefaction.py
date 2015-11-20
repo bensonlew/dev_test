@@ -61,7 +61,7 @@ class RarefactionTool(Tool):
         """
         cmd = os.path.join(self.shared_path, 'otu2shared.pl')
         cmd += ' -i %s -l %s -o %s' % (self.option("otutable").prop["path"], '0.97', 'otu.shared')
-        print cmd
+        # print cmd
         os.system(cmd)
 
     def mothur(self):
@@ -73,7 +73,6 @@ class RarefactionTool(Tool):
         # print cmd
         self.logger.info("开始运行mothur")
         mothur_command = self.add_command("mothur", cmd)
-        # print mothur_command
         mothur_command.run()
         self.wait(mothur_command)
         if mothur_command.return_code == 0:
@@ -90,16 +89,11 @@ class RarefactionTool(Tool):
         for estimators in self.option('indices').split('-'):
             cmd = 'mkdir %s|find -name "otu*%s"|xargs mv -t %s' % (estimators, estimators, estimators,)
             os.system(cmd)
-            os.system('cp -r %s %s' % (estimators,self.output_dir))
-            # print cmd
-            # os.link(self.work_dir+'/'+ estimators, self.output_dir+'/'+ estimators)
-            # self.option(estimators).set_path(self.output_dir+'/'+estimators)
+            os.system('cp -r %s %s' % (estimators, self.output_dir))
         os.system('mkdir rarefaction|find -name "otu*rarefaction"|xargs mv -t rarefaction')
         os.system('cp -r rarefaction %s' % self.output_dir)
         os.system('mkdir rabund|find -name "otu*rabund"|xargs mv -t rabund')
         os.system('cp -r rabund %s' % self.output_dir)
-        # os.link(self.work_dir+'/rarefaction/', self.output_dir+'/rarefaction/')
-        # print self.work_dir
         self.option('rarefaction').set_path(self.output_dir+'/rarefaction')
         self.logger.info("done")
 
