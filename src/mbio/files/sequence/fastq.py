@@ -20,8 +20,8 @@ class FastqFile(File):
     """
     def __init__(self):
         super(FastqFile, self).__init__()
-        self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/seqstat")
-        self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/fastq_to_fasta")
+        self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "seqs/seqstat")
+        self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/fastq_to_fasta")
         self._fastaname = ""
         self._filename = ""
         self.is_convert = False

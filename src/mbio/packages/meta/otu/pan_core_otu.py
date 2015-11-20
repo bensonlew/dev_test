@@ -173,4 +173,4 @@ def pan_core(otutable, dowhat, groupfile='none'):
 
 # test
 if __name__ == "__main__":
-    pan_core("otu_table.xls", dowhat="pan")
+    pan_core("otu_table.txt", dowhat="core")

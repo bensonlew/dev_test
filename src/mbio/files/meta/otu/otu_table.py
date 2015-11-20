@@ -54,8 +54,8 @@ class OtuTableFile(File):
         with open(self.prop['path'], 'r') as f:
             heads = f.readline().rstrip().split('\t')
             colnum = len(heads)
-            if not re.match(r'#*OTU ID', heads[0]):
-                form = False
+            # if not re.match(r'#*OTU ID', heads[0]):
+            #     form = False
             if colnum < 2:
                 form = False
             if form:

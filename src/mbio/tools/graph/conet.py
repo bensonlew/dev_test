@@ -22,10 +22,11 @@ class ConetAgent(Agent):
         options = [
             {"name": "data_file", "type": "infile", "format": "meta.otu.otu_table"},  # 输入数据矩阵
             {"name": "feature_file", "type": "infile", "format": "meta.env_table"},  # 输入环境特征文件
+            {"name": "stand", "type": "string"},  # 数据标准化方法
             {"name": "method", "type": "string", "default": "correl_spearman"},  # Cooccurrence方法
-            {"name": "lower_threshold", "type": "float", "default": 0.6},  # Cooccurrence 阈值，最小值
-            {"name": "upper_threshold", "type": "float", "default": 1},  # Cooccurrence 阈值，最大值
-            {"name": "network_file", "type": "outfile", "format": "meta.gml"},  # 输出网络图文件
+            {"name": "lower_threshold", "type": "float", "default": -0.7},  # Cooccurrence 阈值，最小值
+            {"name": "upper_threshold", "type": "float", "default": 0.7},  # Cooccurrence 阈值，最大值
+            {"name": "network_file", "type": "outfile", "format": "graph.gml"},  # 输出网络图文件
             {"name": "randomization", "type": "bool", "default": True},  # 是否进行网络图随机化计算
             {"name": "iterations", "type": "int", "default": 100},  # 随机化迭代次数
             {"name": "resamplemethod", "type": "string", "default": "permute"},  # 重抽样方法
@@ -39,6 +40,9 @@ class ConetAgent(Agent):
         """
         if not self.option("data_file").is_set:
             raise OptionError("必须设置参数data_file")
+        if self.option("stand"):
+            if self.option("stand") not in ("row_stand", "row_stand_robust", "row_norm", "row_downsample", "row_norm_external", "col_norm", "col_downsample", "col_norm_external", "log2"):
+                raise OptionError("参数stand不在范围内")
         if self.option("resamplemethod") not in ("permute", "bootstrap"):
             raise OptionError("参数resamplemethod只能选择'permute', 'bootstrap'")
         else:
@@ -57,18 +61,18 @@ class ConetAgent(Agent):
 class ConetTool(Tool):
     def __init__(self, config):
         super(ConetTool, self).__init__(config)
-        self.script_path = "meta/CoNet3/lib/CoNet.jar"
+        self.script_path = self.config.SOFTWARE_DIR+"/meta/CoNet3/lib/CoNet.jar"
 
     def run(self):
         super(ConetTool, self).run()
         self.run_conet()
 
     def run_conet(self):
-        cmd = "java -Xmx"+self._memory+"m -cp "+self.script_path+" be.ac.vub.bsb.cooccurrence.cmd.CooccurrenceAnalyser --method ensemble --format GML --matrixtype abundance --outout network.gml --input "+self.option("data_file")+" --ensemblemethods "+self.option("method")+" --ensembleparams "+self.option("method")+"~upper_threshold="+self.option("upper_threshold")+"/"+self.option("method")+"~lower_threshold="+self.option("lower_threshold")
+        cmd = "/java -Xmx6000m -cp "+self.script_path+" be.ac.vub.bsb.cooccurrence.cmd.CooccurrenceAnalyser --method ensemble --format GML --matrixtype abundance --output network.gml --input "+self.option("data_file").prop['path']+" --ensemblemethods "+self.option("method")+" --ensembleparams "+self.option("method")+"~upperThreshold="+str(self.option("upper_threshold"))+"/"+self.option("method")+"~lowerThreshold="+str(self.option("lower_threshold"))
         if self.option("feature_file").is_set:
             cmd += " --features "+self.option("feature_file")
         if self.option("randomization"):
-            cmd += " --resamplemethod"+self.option("resamplemethod")+" --iterations "+self.option("iterations")+" --pval_threshold "+self.option("pval_threshold")
+            cmd += " --resamplemethod "+self.option("resamplemethod")+" --iterations "+str(self.option("iterations"))+" --edgethreshold "+str(self.option("pval_threshold"))
         self.logger.info(u"生成命令: "+cmd)
         conet = self.add_command("conet", cmd)
         self.logger.info("开始运行conet")
