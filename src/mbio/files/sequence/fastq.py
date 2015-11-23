@@ -22,7 +22,6 @@ class FastqFile(File):
         self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "seqs/seqstat")
         self._fastaname = ""
         self._filename = ""
-        self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/seqstat")
         self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/fastq_to_fasta")
         self.is_convert = False
 

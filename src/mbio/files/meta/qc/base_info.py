@@ -49,12 +49,13 @@ class BaseInfoFile(File):
         row = 0
         head = ["column", "count", "min", "max", "mean", "Q1", "med", "Q3"]
         with open(self.prop['path'], 'r') as f:
-            line = f.readline()
-            row += 1
-            line = re.split(r'\s+', line)
-            if row == 1:
-                format_ = True
-                for col in head:
-                    if col not in line:
-                        format_ = False
-                return format_
+            for line in f:
+                line = line.rstrip("\n")
+                row += 1
+                line = re.split(r'\s+', line)
+                if row == 1:
+                    format_ = True
+                    for col in head:
+                        if col not in line:
+                            format_ = False
+        return format_
