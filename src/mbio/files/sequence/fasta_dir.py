@@ -44,6 +44,14 @@ class FastaDirFile(Directory):
         self.set_property("fasta_basename", self.fastas)
         self.set_property("fasta_fullname", self.fastas_full)
 
+    def set_file_number(self, number):
+        """
+        设定文件中期望的fasta文件数，会与实际检测到的fasta做一个比较检验
+
+        :param number: 设定的文件数
+        """
+        self.prop["expect_number"] = number
+
     def make_work_dir(self, work_path):
         """
         创建临时文件夹

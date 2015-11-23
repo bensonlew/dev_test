@@ -19,7 +19,7 @@ class OtuTableFile(File):
         """
         """
         super(OtuTableFile, self).__init__()
-        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "/Python/bin")
+        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "Python/bin/")
         self.otu2shared_path = os.path.join(Config().SOFTWARE_DIR, "meta/scripts/otu2shared.pl")
 
     def get_info(self):
@@ -54,8 +54,8 @@ class OtuTableFile(File):
         with open(self.prop['path'], 'r') as f:
             heads = f.readline().rstrip().split('\t')
             colnum = len(heads)
-            if not re.match(r'#*OTU ID', heads[0]):
-                form = False
+            # if not re.match(r'#*OTU ID', heads[0]):
+            #     form = False
             if colnum < 2:
                 form = False
             if form:
@@ -92,7 +92,7 @@ class OtuTableFile(File):
         # otu2shared.pl -i otutable -l 0.97 -o otu.shared
         if self.prop['metadata'] == "taxonomy":
             raise FileError(u"can not covert otutable with taxon info.")
-        cmd = self.otu2shared_path + " -i " + self.prop['path'] + " -o " + shared_filepath
+        cmd = self.otu2shared_path + " -l 0.97 -i " + self.prop['path'] + " -o " + shared_filepath
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:

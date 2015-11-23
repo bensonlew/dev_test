@@ -2,8 +2,9 @@
 # __author__ = 'qiuping'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-import os
 from biocluster.core.exceptions import OptionError
+import os
+import subprocess
 
 
 class LefseAgent(Agent):
@@ -18,9 +19,11 @@ class LefseAgent(Agent):
         options = [
             {"name": "lefse_input", "type": "infile", "format": "meta.otu.otu_table"},#输入文件，biom格式的otu表
             {"name": "lefse_group", "type": "infile", "format": "meta.otu.group_table"},  # 输入分组文件
-            {"name": "LDA", "type": "outfile", "format": "pdf"},  # 输出的结果,包括lefse分析的lda图
-            {"name": "clado", "type": "outfile", "format": "pdf"},  # 输出结果,结果为lefse分析的clado图
-            {"name": "lefse_xls", "type": "outfile", "format": "statistical.lda_table"}  # 输出结果
+            {"name": "LDA", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出的结果,包括lefse分析的lda图
+            {"name": "clado", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出结果,结果为lefse分析的clado图
+            {"name": "lefse_xls", "type": "outfile", "format": "statistical.lda_table"},  # 输出结果
+            {"name": "l", "type":"string", "default":"6"},
+            {"name": "lda_filter", "type": "float", "default":2.0 }
         ]
         self.add_option(options)
 
@@ -51,35 +54,75 @@ class LefseTool(Tool):
     def __init__(self,config):
         super(LefseTool,self).__init__(config)
         self._version = '1.0.1'
-        self.cmd_path = 'meta/scripts'
+        self.biom_path = "Python/bin/"
+        self.script_path = "Python/bin/"
+        self.plot_lefse_path = "meta/lefse/"
 
-    def run_lefse(self):
-        """
-        返回lefse分析的命令
-        """
-        biom_table = self.option('lefse_input').convert_to_biom('otu_table.biom')
-        cmd = self.cmd_path + "analysis_lefse.py -i otu_table.biom -m %s -o lefse_result" % (self.option('lefse_group').prop["path"])
-        self.logger.info("开始运行lefse分析脚本")
-        lefse_obj = self.add_command("lefse", cmd).run()
-        self.wait(lefse_obj)
-        if lefse_obj.return_code == 0:
-            self.logger.info("lefse分析运行完成")
+
+    def run_biom(self):
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR+"/gcc/5.1.0/lib64:$LD_LIBRARY_PATH")
+        biom_cmd = self.biom_path + "biom convert -i %s -o otu_taxa_table.biom --table-type \"OTU table\" --process-obs-metadata taxonomy  --to-hdf5" % self.option('lefse_input').prop["path"]
+        self.logger.info("开始运行biom_cmd")
+        biom_command = self.add_command("biom_cmd", biom_cmd).run()
+        self.wait(biom_command)
+        if biom_command.return_code == 0:
+            self.logger.info("biom_cmd运行完成")
             self.end()
         else:
-            self.set_error("lefse分析运行出错!")
+            self.set_error("biom_cmd运行出错!")
+
+    def run_script(self):
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR+"/gcc/5.1.0/lib64:$LD_LIBRARY_PATH")
+        script_cmd = self.script_path + "summarize_taxa.py -i otu_taxa_table.biom -o tax_summary_a -L 1,2,3,4,5,6,7 -a"
+        self.logger.info("开始运行script_cmd")
+        script_command = self.add_command("script_cmd", script_cmd).run()
+        self.wait(script_command)
+        if script_command.return_code == 0:
+            self.logger.info("script_cmd运行完成")
+            self.end()
+        else:
+            self.set_error("script_cmd运行出错!")
+
+    def run_sum_tax(self):
+        cmd = "for ((i=1;i<=7;i+=1)){\n\
+            /mnt/ilustre/users/sanger/app/meta/scripts/sum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt -o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
+            mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
+        }"
+        try:
+            subprocess.check_output(cmd, shell=True)
+            self.logger.info("run_sum_tax运行完成")
+            return True
+        except subprocess.CalledProcessError:
+            self.logger.info("run_sum_tax运行出错")
+            return False
+
+    def run_plot_lefse(self):
+        plot_cmd = self.plot_lefse_path + "plot-lefse.pl -o . -i tax_summary_a -l %s -m %s\n" % (self.option("l").prop['path'], self.option('lefse_group').prop['path'])
+        self.logger.info("开始运行plot_cmd")
+        plot_command = self.add_command("plot_cmd", plot_cmd).run()
+        self.wait(plot_command)
+        if plot_command.return_code == 0:
+            self.logger.info("plot_cmd运行完成")
+            self.end()
+        else:
+            self.set_error("plot_cmd运行出错!")
 
     def set_lefse_output(self):
         """
         将结果文件链接至output
         """
-        os.link(self.work_dir + '/lefse_result/lefse/lefse_LDA.cladogram.pdf', self.output_dir + 'lefse_LDA.cladogram.pdf')
-        self.option('clado', value=self.output_dir+'lefse_LDA.cladogram.pdf')
-        os.link(self.work_dir + '/lefse_result/lefse/lefse_LDA.pdf', self.output_dir + 'lefse_LDA.pdf')
+        os.link(self.work_dir + '/lefse/lefse_LDA.cladogram.pdf', self.output_dir + 'lefse_LDA.cladogram.pdf')
+        self.option('clado').set_path(self.output_dir+'/otu_table.xls')
+        os.link(self.work_dir + '/lefse/lefse_LDA.pdf', self.output_dir + 'lefse_LDA.pdf')
         self.option('LDA', value=self.output_dir+'lefse_LDA.pdf')
-        os.link(self.work_dir + '/lefse_result/lefse/lefse_LDA.xls', self.output_dir + 'lefse_LDA.xls')
+        os.link(self.work_dir + '/lefse/lefse_LDA.xls', self.output_dir + 'lefse_LDA.xls')
         self.option('lefse_xls', value=self.output_dir+'lefse_LDA.xls')
 
     def run(self):
         super(LefseTool,self).run()
-        self.run_lefse()
+        self.run_biom()
+        self.run_script()
+        self.run_sum_tax()
+        self.run_plot_lefse()
         self.set_lefse_output()
+        

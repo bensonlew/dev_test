@@ -7,18 +7,18 @@ from biocluster.iofile import Directory
 from biocluster.core.exceptions import FileError
 
 
-class RarefactionFileDir(Directory):
+class RarefactionDirFile(Directory):
     """
     定义Rarefaction格式文件夹
     """
     def __init__(self):
-        super(RarefactionFileDir,self).__init__()
+        super(RarefactionDirFile,self).__init__()
 
     def get_info(self):
         """
         获取文件夹属性
         """
-        super(RarefactionFileDir, self).get_info()
+        super(RarefactionDirFile, self).get_info()
         info = self.get_rarefaction_dir_info()
         self.set_property('file_name',info[0])
         self.set_property('sample_num',info[1])
@@ -28,7 +28,7 @@ class RarefactionFileDir(Directory):
         """
         获取文件夹信息
         """
-        file_name = os.listdir(self.prop('path'))
+        file_name = os.listdir(self.prop['path'])
         sample_num = len(file_name)
         sample_name = []
         maker = '.rarefaction'
@@ -49,12 +49,12 @@ class RarefactionFileDir(Directory):
         """
         检测文件夹是否满足要求，不满足时报错
         """
-        check = get_rarefaction_dir_info()
-        if super(RarefactionFileDir,self).check():
+        check = self.get_rarefaction_dir_info()
+        if super(RarefactionDirFile,self).check():
             if check[3] == 'True':
                 pass
             else:
-                raise FileError(u"文件格式错误")
+                raise FileError("文件格式错误")
         return True
 
 

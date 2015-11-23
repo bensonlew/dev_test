@@ -3,7 +3,9 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
+import subprocess
 from biocluster.core.exceptions import OptionError
+from mbio.files.meta.beta_diversity.nmds_outdir import NmdsOutdirFile
 
 
 class NmdsAgent(Agent):
@@ -11,37 +13,32 @@ class NmdsAgent(Agent):
     脚本ordination.pl
     version v1.0
     author: shenghe
-    last_modified:2015.11.5
+    last_modified:2015.11.18
     """
 
     def __init__(self, parent):
-        super(NmdsAgent, self).__init__()
+        super(NmdsAgent, self).__init__(parent)
         options = [
-            {"name": "input", "type": "infile", "format": "distance_matrix"},
-            # 输入文件距离矩阵
-            {"name": "output", "type": "outfile", "format": "Nmds_outdir"},
-            # 样本的坐标表
-            # 目前没有关于计算维度的设置
-
+            {"name": "dis_matrix", "type": "infile",
+             "format": "meta.beta_diversity.distance_matrix"},
+            {"name": "nmds_outdir", "type": "outfile",
+             "format": "meta.beta_diversity.nmds_outdir"}
         ]
         self.add_option(options)
 
     def check_options(self):
         """
         重写参数检查
-        :return:
         """
-        if not self.option('input').is_set:
+        if not self.option('dis_matrix').is_set:
             raise OptionError('必须提供输入距离矩阵表')
-        if not self.option('output').is_set:
-            raise OptionError('必须指定输出文件夹')
 
     def set_resource(self):
         """
         设置所需资源
         """
-        self._cpu = 2  # 需要资源数暂时不清楚
-        self._memory = ''  #
+        self._cpu = 2
+        self._memory = ''
 
 
 class NmdsTool(Tool):
@@ -49,12 +46,12 @@ class NmdsTool(Tool):
     def __init__(self, config):
         super(NmdsTool, self).__init__(config)
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
-        self.cmd_path = 'meta/ordination.pl'  # 暂不确定
+        self.cmd_path = os.path.join(
+            self.config.SOFTWARE_DIR, 'meta/scripts/beta_diversity/ordination.pl')
 
     def run(self):
         """
         运行
-        :return:
         """
         super(NmdsTool, self).run()
         self.run_ordination()
@@ -62,17 +59,34 @@ class NmdsTool(Tool):
     def run_ordination(self):
         """
         运行ordination.pl
-        :return:
         """
         cmd = self.cmd_path
         cmd += ' -type nmds -dist %s -outdir %s' % (
-            self.option('input'), self.option('output'))
+            self.option('dis_matrix').prop['path'], self.work_dir)
         self.logger.info('运行ordination.pl程序计算Nmds')
-        ordination_command = self.add_command('ordination_nmds', cmd)
-        ordination_command.run()
-        self.wait()
-        if ordination_command.return_code == 0:
-            self.logger.info('运行ordination.pl程序计算Nmds完成')
-            self.end()
-        else:
-            self.set_error('运行ordination.pl程序计算Nmds出错')
+        self.logger.info(cmd)
+        try:
+            subprocess.check_output(cmd, shell=True)
+            self.logger.info('生成 cmd.r 文件成功')
+        except subprocess.CalledProcessError:
+            self.logger.info('生成 cmd.r 文件失败')
+            self.set_error('无法生成 cmd.r 文件')
+        try:
+            subprocess.check_output(self.config.SOFTWARE_DIR +
+                                    '/R-3.2.2/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
+            self.logger.info('nmds计算成功')
+        except subprocess.CalledProcessError:
+            self.logger.info('nmds计算失败')
+            self.set_error('R程序计算nmds失败')
+        nmds_results = NmdsOutdirFile()
+        nmds_results.set_path(self.work_dir + '/nmds')
+        sites = nmds_results.prop['sites_file']
+        linksites = os.path.join(self.output_dir, os.path.basename(sites))
+        if os.path.exists(linksites):
+            os.remove(linksites)
+        os.link(sites, linksites)
+        self.option('nmds_outdir', self.output_dir)
+        self.logger.info(self.option('nmds_outdir').prop)
+        self.logger.info('运行ordination.pl程序计算nmds完成')
+        self.end()
+
