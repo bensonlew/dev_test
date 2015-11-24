@@ -59,7 +59,7 @@ class UsearchOtuTool(Tool):
         self._version = "v7.0"
         self.usearch_path = "meta/usearch/"
         self.script_path = "meta/scripts/"
-        self.biom_path = "Python/bin/"
+        self.qiime_path = "Python/bin/"
 
     def cmd1(self):
         cmd = self.usearch_path+"uparse -derep_prefix meta.fasta -output meta_derepprefix.fasta -sizeout"
@@ -86,19 +86,19 @@ class UsearchOtuTool(Tool):
         os.system("""cat cluster.seqids|awk '{split($0,line,\"\\t\");new=line[1];for(i=2;i<NF+1;i++){match(line[i],/_[^_]+$/);smp=substr(line[i],1,RSTART-1);id=substr(line[i],RSTART+1,RLENGTH);nsmp=smp;gsub(/_/,\".\",nsmp);new=new\"\\t\"nsmp\"_\"id;print nsmp\"\\t\"smp;print line[i]\"\\t\"smp >\"cluster.groups\"};print new >\"cluster.seqids.tmp\";}'|sort|uniq >name.check""")
         os.system("""awk '{ print $1,\"OTU\"NR >\"cluster2otu.rename\";$1=\"OTU\"NR;print $0 }' cluster.seqids|sed 's/ /\\t/g' >otu_seqids.txt""")
         os.system("""awk '{$1=\"OTU\"NR;print $0}' cluster.seqids.tmp|sed 's/ /\\t/g' > otu.seqids.tmp""")
-        cmd = self.script_path+"""make_otu_table.py -i otu.seqids.tmp  -o otu_table.biom"""
+        cmd = self.qiime_path+"""make_otu_table.py -i otu.seqids.tmp  -o otu_table.biom"""
         return cmd
 
     def cmd7(self):
         os.system("""cat name.check|awk '{gsub(/\\./,\"\\\\.\",$1);print \"sed '\\''s/\\\"\"$1\"\\\"/\\\"\"$2\"\\\"/g'\\''  otu_table.biom >otu_table.biom.tmp\\nmv otu_table.biom.tmp otu_table.biom\";}' >otu.name.check.sh""")
         os.system("""sh otu.name.check.sh""")
-        cmd = self.biom_path+"""biom convert -i otu_table.biom -o otu_table.txt  --table-type \"otu table\"  --to-tsv"""
+        cmd = self.qiime_path+"""biom convert -i otu_table.biom -o otu_table.txt  --table-type \"OTU table\"  --to-tsv"""
         return cmd
 
     def cmd8(self):
         os.system("""cat otu_table.txt|sed -n '2p'|sed 's/#//' >otu_table.xls""")
         os.system("""cat otu_table.txt|sed -n '3,$p'|sort -V |sed 's/\\.0//g' >>otu_table.xls""")
-        cmd = self.script_path+"""pick_rep_set.py -i otu_seqids.txt -f meta.fasta -m most_abundant -o otu_reps.fasta"""
+        cmd = self.qiime_path+"""pick_rep_set.py -i otu_seqids.txt -f meta.fasta -m most_abundant -o otu_reps.fasta"""
         return cmd
 
     def set_output(self):
