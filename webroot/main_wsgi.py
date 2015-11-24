@@ -3,10 +3,12 @@
 import web
 from mainapp.libs.signature import check_sig
 from mainapp.controllers.pipline import Pipline
+from mainapp.controllers.filecheck import FileCheck
 
 # web.config.debug = False
 urls = (
     "/hello", "hello",
+    "/filecheck", "FileCheck",
     "/pipline", "Pipline"
     )
 
@@ -14,7 +16,7 @@ urls = (
 class hello(object):
     @check_sig
     def GET(self):
-        return "xxxx"
+        return "zzz"
 
 
 application = web.application(urls, globals()).wsgifunc()

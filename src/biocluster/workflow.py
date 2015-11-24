@@ -27,7 +27,8 @@ class Workflow(Basic):
         self._output_path = self._work_dir + "/output"
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
-        self._logger = Wlog(self).get_logger(self._id)
+        self._logger = Wlog(self).get_logger("")
+        self._logger = Wlog(self).get_logger("")
         self.rpc_server = RPC(self)
         self.db = self.config.get_db()
 
@@ -94,14 +95,14 @@ class Workflow(Basic):
         :return:
         """
         super(Workflow, self).run()
+        data = {
+            "last_update": datetime.datetime.now(),
+            "workdir": self.work_dir
+        }
+        self._update(data)
         if self.config.USE_DB:
-            db = self.config.get_db()
-            data = {
-                "last_update": datetime.datetime.now(),
-                "workdir": self.work_dir
-            }
-            db.update("workflow", where="workflow_id = %s" % self._id, **data)
-            gevent.spawn(self.__update_database)
+            gevent.spawn(self.__update_service)
+            gevent.spawn(self.__check_tostop)
         self.rpc_server.run()
 
     def end(self):
@@ -109,15 +110,14 @@ class Workflow(Basic):
         停止运行
         """
         super(Workflow, self).end()
-        if self.config.USE_DB:
-            db = self.config.get_db()
-            data = {
-                "is_end": 1,
-                "end_time": datetime.datetime.now(),
-                "workdir": self.work_dir,
-                "output": self.output_dir
-            }
-            db.update("workflow", where="workflow_id = %s" % self._id, **data)
+
+        data = {
+            "is_end": 1,
+            "end_time": datetime.datetime.now(),
+            "workdir": self.work_dir,
+            "output": self.output_dir
+        }
+        self._update(data)
 
         self.rpc_server.server.close()
         self.logger.info("运行结束!")
@@ -130,41 +130,63 @@ class Workflow(Basic):
         :return:
         """
         self.rpc_server.server.close()
-        if self.config.USE_DB:
-            db = self.config.get_db()
-            data = {
-                "is_error": 1,
-                "error": "程序主动退出:%s" % data,
-                "end_time": datetime.datetime.now(),
-                "is_end": 1,
-                "workdir": self.work_dir,
-                "output": self.output_dir
-            }
-            db.update("workflow", where="workflow_id = %s" % self._id, **data)
+        data = {
+            "is_error": 1,
+            "error": "程序主动退出:%s" % data,
+            "end_time": datetime.datetime.now(),
+            "is_end": 1,
+            "workdir": self.work_dir,
+            "output": self.output_dir
+        }
+        self._update(data)
         sys.exit(exitcode)
 
-    def __update_database(self):
+    def __update_service(self):
         """
         每隔30s定时更新数据库last_update时间
 
         :return:
         """
         while self.is_end is False:
-            gevent.sleep(30)
-            data = {
-                "last_update": datetime.datetime.now()
-            }
-            self.db.update("workflow", where="workflow_id = %s" % self._id, **data)
-            results = self.db.query("SELECT * FROM tostop WHERE workflow_id=$workflow_id and done  = 0",
-                                    vars={'workflow_id': self._id})
-            if len(results) > 0:
-                data = results[0]
-                update_data = {
-                    "stoptime": datetime.datetime.now(),
-                    "done": 1
-                }
-                self.db.update("tostop", where="workflow_id = %s" % self._id, **update_data)
-                self.exit(data=data.reson)
+            gevent.sleep(15)
+            try:
+                self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
+                              vars={'id': self._id})
+            except Exception, e:
+                self.logger.info("数据库更新异常: %s" % e)
+
+    def _update(self, data):
+        """
+        插入数据库，更新流程运行状态,只在后台服务调用时生效
+
+        :param data: 需要更新的数据
+        :return:
+        """
+        if self.config.USE_DB:
+            myvar = dict(id=self._id)
+            self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+
+    def __check_tostop(self):
+        """
+        检查数据库的停止指令，如果收到则退出流程
+
+        :return:
+        """
+        while self.is_end is False:
+            gevent.sleep(15)
+            myvar = dict(id=self._id)
+            try:
+                results = self.db.query("SELECT * FROM tostop WHERE workflow_id=$id and done  = 0", vars={'id': self._id})
+                if len(results) > 0:
+                    data = results[0]
+                    update_data = {
+                        "stoptime": datetime.datetime.now(),
+                        "done": 1
+                    }
+                    self.db.update("tostop", vars=myvar, where="workflow_id = $id", **update_data)
+                    self.exit(data=data.reson)
+            except Exception, e:
+                self.logger.info("查询数据库异常: %s" % e)
 
 
 
