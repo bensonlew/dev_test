@@ -5,25 +5,22 @@
 
 from biocluster.iofile import File
 import re
-import subprocess
-from biocluster.config import Config
-import os
-from biocluster.core.exceptions import FileError
 
 
 class LdaTableFile(File):
     """
     定义LdaTable文件
     """
+
     def __init__(self):
-        super(LdaTableFile,self).__init__()
+        super(LdaTableFile, self).__init__()
 
     def check(self):
         """
         检测文件是否满足要求
         :return:
         """
-        super(LdaTableFile,self).check()
+        super(LdaTableFile, self).check()
 
     def get_info(self):
         """
@@ -31,33 +28,45 @@ class LdaTableFile(File):
         """
         super(LdaTableFile, self).get_info()
         info = self.get_file_info()
-        self.set_property("organism_number",len(info))
-        self.set_property("organism_name",info)
-
+        self.set_property("organism_number", len(info))
+        self.set_property("organism_name", info)
 
     def get_file_info(self):
         """
         获取lda_table文件的信息
         """
-        name_list = {}
-        f = open(self.prop['path'],'r')
+        name_list = []
+        f = open(self.prop['path'], 'r')
         for line in f:
-           foo = line.split('\t',1)
-           name_list.append(foo[0])
+            foo = line.split('/t', 1)
+            name_list.append(foo[0])
         f.close()
         return name_list
 
-    def get_use_info(self,use_file_path):
+    def get_use_info(self, use_file_path):
         """
         获取lda判别有效信息行的内容
         """
-        f = open(self.prop['path'],'r')
-        w = open("%s" % use_file_path,'w')
+        f = open(self.prop['path'], 'r')
+        w = open("%s" % use_file_path, 'w')
         for line in f:
             if "-" in line:
                 pass
             else:
                 w.write(line)
 
-
-
+    def is_useful(self):
+        """
+        检查生成的lda表格是否有意义的数据存在
+        :return:
+        """
+        f = open(self.prop['path'], 'r')
+        lines = f.readlines()
+        a = ''
+        for line in lines:
+            l = line.split('\t')
+            a += l[2]
+        if re.match(r'\S', a):
+            print 'use'
+        else:
+            print 'not use'

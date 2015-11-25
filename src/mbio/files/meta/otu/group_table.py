@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import re
+import os
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
@@ -62,3 +63,21 @@ class GroupTableFile(File):
             if self.prop['group_number'] == 0:
                 raise FileError('应该至少包含一个分组')
             self.format_check()
+
+
+def etst():
+    with open("C:\Users\ping.qiu\Desktop\qiuping_test\\testfile\map.txt", 'r') as f:
+        line = f.readline().rstrip("\n")
+        line = line.split("\t")
+        print line 
+        length = len(line)
+        if length < 2:
+            raise FileError('group_table 文件至少应该有两列')
+        for line in f:
+            line = line.rstrip("\n")
+            line = re.split("\t", line)
+            print line
+            len_ = len(line)
+            if len_ != length:
+                raise FileError("文件的列数不相等")
+etst()
