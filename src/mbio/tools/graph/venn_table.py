@@ -19,7 +19,7 @@ class VennTableAgent(Agent):
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU表格
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表格
-            {"name": "venn_table.xls", "type": "outfile", "format": "meta.qc.venn_table"} # 输入的Venn表格
+            {"name": "venn_table.xls", "type": "outfile", "format": "meta.qc.venn_table"}  # 输入的Venn表格
         ]
         self.add_option(options)
 
@@ -54,8 +54,9 @@ class VennTableTool(Tool):
         """
         调用脚本venn_table.py,输出venn表格
         """
-        venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' %(self.python_path, self.venn_path,
-                    self.option("otu_table").prop['path'], self.option("group_table").prop['path'])
+        venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path,
+                                                                      self.option("otu_table").prop['path'],
+                                                                      self.option("group_table").prop['path'])
         print venn_cmd
         os.system(venn_cmd)
         cmd = self.R_path + 'Rscript cmd.r'
