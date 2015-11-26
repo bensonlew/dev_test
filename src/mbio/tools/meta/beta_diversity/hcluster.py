@@ -21,7 +21,8 @@ class HclusterAgent(Agent):
             {"name": "dis_matrix", "type": "infile",
                 "format": "meta.beta_diversity.distance_matrix"},
             {"name": "newicktree", "type": "outfile",
-                "format": "meta.beta_diversity.newick_tree"}
+                "format": "meta.beta_diversity.newick_tree"},
+            {"name": "linkage", "type": "string", "default": "average"}
         ]
         self.add_option(options)
 
@@ -33,6 +34,8 @@ class HclusterAgent(Agent):
             raise OptionError('必须提供输入距离矩阵表')
         else:
             self.option('dis_matrix').check()
+        if self.option('linkage') not in ['average', 'single', 'complete']:
+            raise OptionError('错误的层级聚类方式：%s' % self.option('linkage'))
 
     def set_resource(self):
         """
@@ -64,10 +67,10 @@ class HclusterTool(Tool):
         运行plot-hcluster_tree.pl
         """
         cmd = self.cmd_path
-        cmd += ' -i %s -o %s -m average' % (
-            self.option('dis_matrix').prop['path'], self.work_dir)
+        cmd += ' -i %s -o %s -m %s' % (
+            self.option('dis_matrix').prop['path'], self.work_dir, self.option('linkage'))
         self.logger.info('运行plot-hcluster_tree.pl程序计算Hcluster')
-
+        self.logger.info(cmd)
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info('生成 hc.cmd.r 文件成功')
@@ -83,7 +86,7 @@ class HclusterTool(Tool):
             self.set_error('无法生成树文件')
         filename = self.work_dir + '/hcluster_tree_' + \
             os.path.basename(self.option('dis_matrix').prop[
-                'path']) + '_average.tre'
+                'path']) + '_' + self.option('linkage') + '.tre'
         linkfile = self.output_dir + '/hcluster.tre'
         self.logger.info(filename)
         self.logger.info(linkfile)
