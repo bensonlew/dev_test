@@ -4,8 +4,6 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
-from mbio.files.group_table import GroupTable
-from mbio.files.anosim_outdir import AnosimOutdir
 
 
 class AnosimAgent(Agent):
@@ -13,36 +11,34 @@ class AnosimAgent(Agent):
     qiime
     version v1.0
     author: shenghe
-    last_modified:2015.11.6
+    last_modified:2015.11.19
     """
 
     def __init__(self, parent):
         super(AnosimAgent, self).__init__(parent)
         options = [
-            {"name": "input1", "type": "infile", "format": "distance_matrix"},
-            {"name": "output", "type": "outfile", "format": "anosim_outdir"},
-            {"name": "input2", "type": "infile", "format": "group_table"}
+            {"name": "dis_matrix", "type": "infile", "format": "meta.beta_diversity.distance_matrix"},
+            {"name": "anosim_outdir", "type": "outfile", "format": "meta.beta_diversity.anosim_outdir"},
+            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
         ]
         self.add_option(options)
 
     def check_options(self):
         """
         重写参数检查
-        :return:
+
         """
-        if not self.option('input1').is_set:
+        if not self.option('dis_matrix').is_set:
             raise OptionError('必须提供距离矩阵文件')
-        if not self.option('input1').is_set:
+        if not self.option('group').is_set:
             raise OptionError('必须提供分组信息文件')
-        if not self.option('output').is_set:
-            raise OptionError('必须提供输出文件夹')
         return True
 
     def set_resource(self):
         """
         设置所需资源
         """
-        self._cpu = 2  # 暂定
+        self._cpu = 2
         self._memory = ''
 
 
@@ -51,13 +47,13 @@ class AnosimTool(Tool):
     def __init__(self, config):
         super(AnosimTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
-        self.cmd_path = 'python/lib/site-package/qiime/compare_categories.py'
-        # 安装位置不确定，待定
+        self.cmd_path = 'Python/bin/compare_categories.py'
+        # self.set_environ(LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
+
 
     def run(self):
         """
         运行
-        :return:
         """
         super(AnosimTool, self).run()
         self.run_compare_categories()
@@ -65,44 +61,48 @@ class AnosimTool(Tool):
     def run_compare_categories(self):
         """
         运行qiime/compare_categories
-        :return:
         """
         cmd = self.cmd_path
-
-        tempgroup = GroupTable()  # 实例化GroupTable
-        tempgroup.set_path(self.option('input2'))
-        tempgroup.get_info()
-        groupname = tempgroup.prop['name']
-        # 此文件实例目前没有完成，假定其有一个name的属性标示group名字
-        cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c %s' % (
-            self.option('input2'), self.option('input1'),
-            self.option('output'), groupname)
-        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c %s' % (
-            self.option('input2'), self.option('input1'),
-            self.option('output'), groupname)
+        addline = '#ID\tgroup\n'
+        groupfile = open(self.option('group').prop['path'], 'r')
+        new = open(os.path.join(self.work_dir, 'temp.gup'), 'w')
+        lines = groupfile.readlines()
+        new.write(addline)
+        for i in lines:
+            new.write(i)
+        groupfile.close()
+        new.close()
+        cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c "group"' % (
+            os.path.join(self.work_dir, 'temp.gup'),
+            self.option('dis_matrix').prop['path'],
+            self.work_dir)
+        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c "group"' % (
+            os.path.join(self.work_dir, 'temp.gup'),
+            self.option('dis_matrix').prop['path'],
+            self.work_dir)
         self.logger.info('运行qiime/compare_categories.py,计算adonis/anosim程序')
         dist_anosim_command = self.add_command('anosim', cmd1)
         dist_anosim_command.run()
         self.wait()
         if dist_anosim_command.return_code == 0:
-            self.logger.info('运行qiime/compare_categories.py计算anosim完成')
+            self.logger.info('运行qiime:compare_categories.py计算anosim完成')
         else:
-            self.set_error('运行qiime/compare_categories.py计算anosim出错')
+            self.set_error('运行qiime:compare_categories.py计算anosim出错')
         dist_adonis_command = self.add_command('adonis', cmd2)
         dist_adonis_command.run()
         self.wait()
         if dist_adonis_command.return_code == 0:
-            self.logger.info('运行qiime/compare_categories.py计算adonis完成')
-            self.format_result()
+            self.logger.info('运行qiime:compare_categories.py计算adonis完成')
+            if os.path.exists(os.path.join(self.output_dir, 'adonis_results.txt')):
+                os.remove(os.path.join(self.output_dir, 'adonis_results.txt'))
+            if os.path.exists(os.path.join(self.output_dir, 'anosim_results.txt')):
+                os.remove(os.path.join(self.output_dir, 'anosim_results.txt'))
+            os.link(os.path.join(self.work_dir, 'adonis_results.txt'),
+                    os.path.join(self.output_dir, 'adonis_results.txt'))
+            os.link(os.path.join(self.work_dir, 'anosim_results.txt'),
+                    os.path.join(self.output_dir, 'anosim_results.txt'))
+            self.option('anosim_outdir', self.output_dir)
+            self.option('anosim_outdir').format_result()
             self.end()
         else:
-            self.set_error('运行qiime/compare_categories.py计算adonis出错')
-
-    def format_result(self):
-        """
-        整理anosim和adonis两个的结果到一个表中
-        :return:
-        """
-        result = AnosimOutdir()
-        result.set_path(self.option('output').rstrip('/'))
-        result.format_result()
+            self.set_error('运行qiime:compare_categories.py计算adonis出错')

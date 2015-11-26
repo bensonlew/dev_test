@@ -32,37 +32,58 @@ def main():
     if not (args.service or args.json or args.rerun_id):
         parser.print_help()
         sys.exit(1)
-    wj = WorkJob()
     if args.service:
         if os.path.isfile(Config().SERVICE_PID):
             raise Exception("PID file already exists,if this service already running?")
+        date_run = ""
         if args.daemon:
-            daemonize(stderr=Config().SERVICE_LOG, stdout=Config().SERVICE_LOG)
-
+            log = getlogpath()
+            daemonize(stderr=log, stdout=log)
+            date_run = time.strftime('%Y%m%d', time.localtime(time.time()))
         write_log("start running in service mode ...")
         writepid()
         process_array = []
+        wj = WorkJob()
         while True:
+            if date_run != time.strftime('%Y%m%d', time.localtime(time.time())):
+                date_run = time.strftime('%Y%m%d', time.localtime(time.time()))
+                log = getlogpath()
+                so = file(log, 'a+')
+                se = file(log, 'a+', 0)
+                os.dup2(so.fileno(), sys.stdout.fileno())
+                os.dup2(se.fileno(), sys.stderr.fileno())
             time.sleep(Config().SERVICE_LOOP)
-            json_data = check_run()
+            t = wj.db.transaction()
+            try:
+                json_data = check_run(wj)
+            except Exception, e:
+                write_log("运行出错: %s" % e)
+                t.rollback()
+                continue
+            else:
+                t.commit()
             if json_data:
                 process = Process(target=wj.start, args=(json_data,))
                 process_array.append(process)
                 process.start()
-            for p in process_array:
-                if not p.is_alive():
-                    p.join()
-                    process_array.remove(p)
+            while len(process_array) >= Config().SERVICE_PROCESSES:
+                write_log("Running workflow %s, reach the max limit,waiting ...")
+
+                for p in process_array:
+                    if not p.is_alive():
+                        p.join()
+                        process_array.remove(p)
+                time.sleep(1)
     else:
         if args.daemon:
             daemonize(stderr=args.log, stdout=args.log)
         json_data = check_run()
         if json_data:
+            wj = WorkJob()
             wj.start(json_data)
 
 
-def check_run():
-    wj = WorkJob()
+def check_run(wj):
     wj.lock()
     json_data = None
     if args.service:
@@ -88,10 +109,18 @@ def writepid():
     atexit.register(delpid)
 
 
+def getlogpath():
+    timestr = time.strftime('%Y%m%d', time.localtime(time.time()))
+    if not os.path.exists(Config().SERVICE_LOG):
+        os.mkdir(Config().SERVICE_LOG)
+    log = os.path.join(Config().SERVICE_LOG, "%s.log" % timestr)
+    return log
+
+
 def write_log(data):
     log_file = args.log
     if args.service and args.daemon:
-        log_file = Config().SERVICE_LOG
+        log_file = getlogpath()
     with open(log_file, "a") as f:
         line = str(datetime.datetime.now()) + "\t" + data
         f.write(line + "\n")
@@ -101,11 +130,14 @@ class WorkJob(object):
     def __init__(self):
         self.workflow_id = args.rerun_id
         self.pid = os.getpid()
-        self._db = Config().get_db()
+        self._db = None
 
     @property
     def db(self):
         if self.pid != os.getpid():
+            self.pid = os.getpid()
+            self._db = Config().get_db()
+        if not self._db:
             self._db = Config().get_db()
         return self._db
 
@@ -154,7 +186,8 @@ class WorkJob(object):
             "is_error": 0,
             "error": ""
         }
-        self.db.update("workflow", where="workflow_id = %s" % self.workflow_id, **data)
+        myvar = dict(id=self.workflow_id)
+        self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
 
     # def run(self):
     #     self.lock()
@@ -181,13 +214,15 @@ class WorkJob(object):
             workflow.config.USE_DB = True
             workflow.run()
         except Exception, e:
+            write_log(":%s" % self.workflow_id)
             data = {
                 "is_error": 1,
                 "error": "运行异常:%s: %s" % (e.__class__.__name__, e),
                 "end_time": datetime.datetime.now(),
                 "is_end": 1
             }
-            self.db.update("workflow", where="workflow_id = %s" % self.workflow_id, **data)
+            myvar = dict(id=self.workflow_id)
+            self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
 
         write_log("End running workflow:%s" % self.workflow_id)
 
@@ -200,8 +235,7 @@ def hostname():
     elif sys_name == 'posix':
             with os.popen('echo $HOSTNAME') as f:
                 host_name = f.readline()
-                host_name.strip("\n")
-                return host_name
+                return host_name.strip('\n')
     else:
             return 'Unkwon hostname'
 

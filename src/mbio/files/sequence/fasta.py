@@ -14,7 +14,7 @@ class FastaFile(File):
     """
     def __init__(self):
         super(FastaFile, self).__init__()
-        self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "biosquid/bin/seqstat")
+        self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "seqs/seqstat")
         self.sample_name
 
     def get_info(self):

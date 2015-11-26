@@ -58,7 +58,7 @@ def get_classpath_by_object(obj):
     return ".".join(paths)
 
 
-def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='dev/null'):
+def daemonize(stdout='/dev/null', stderr='dev/null'):
 
     try:
         pid = os.fork()
@@ -84,9 +84,8 @@ def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='dev/null'):
     # 进程已经是守护进程了，重定向标准文件描述符
     for f in sys.stdout, sys.stderr:
         f.flush()
-    si = file(stdin, 'r')
+
     so = file(stdout, 'a+')
     se = file(stderr, 'a+', 0)
-    os.dup2(si.fileno(), sys.stdin.fileno())
     os.dup2(so.fileno(), sys.stdout.fileno())
     os.dup2(se.fileno(), sys.stderr.fileno())
