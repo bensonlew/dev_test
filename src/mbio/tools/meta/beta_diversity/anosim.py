@@ -19,7 +19,8 @@ class AnosimAgent(Agent):
         options = [
             {"name": "dis_matrix", "type": "infile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "anosim_outdir", "type": "outfile", "format": "meta.beta_diversity.anosim_outdir"},
-            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
+            {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "permutations", "type": "int", "default": 999}
         ]
         self.add_option(options)
 
@@ -72,14 +73,14 @@ class AnosimTool(Tool):
             new.write(i)
         groupfile.close()
         new.close()
-        cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c "group"' % (
+        cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c "group" -n %d' % (
             os.path.join(self.work_dir, 'temp.gup'),
             self.option('dis_matrix').prop['path'],
-            self.work_dir)
-        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c "group"' % (
+            self.work_dir, self.option('permutations'))
+        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c "group" -n %d' % (
             os.path.join(self.work_dir, 'temp.gup'),
             self.option('dis_matrix').prop['path'],
-            self.work_dir)
+            self.work_dir, self.option('permutations'))
         self.logger.info('运行qiime/compare_categories.py,计算adonis/anosim程序')
         dist_anosim_command = self.add_command('anosim', cmd1)
         dist_anosim_command.run()
