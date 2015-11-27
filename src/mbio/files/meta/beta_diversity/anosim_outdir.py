@@ -92,3 +92,4 @@ class AnosimOutdirFile(Directory):
         self.set_property('permutation', permu)
         self.set_property('groups_num', groups_num)
         self.set_property('sample_num', sample)
+        self.set_property('format_file', os.path.join(self.prop['path'], 'format_results.txt'))
