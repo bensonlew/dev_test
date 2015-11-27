@@ -54,8 +54,9 @@ class VennTableTool(Tool):
         """
         调用脚本venn_table.py,输出venn表格
         """
-        venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' %(self.python_path, self.venn_path,
-                    self.option("otu_table").prop['path'], self.option("group_table").prop['path'])
+        venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path,
+                                                                      self.option("otu_table").prop['path'],
+                                                                      self.option("group_table").prop['path'])
         print venn_cmd
         os.system(venn_cmd)
         cmd = self.R_path + 'Rscript cmd.r'

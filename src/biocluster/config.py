@@ -27,7 +27,7 @@ class Config(object):
         # network
         self.LISTEN_IP = self.get_listen_ip()
         self._listen_port = None
-        #self.LISTEN_PORT = self.get_listen_port()
+        # self.LISTEN_PORT = self.get_listen_port()
         # tool
         self.KEEP_ALIVE_TIME = int(self.rcf.get("Tool", "keep_alive_time"))
         self.MAX_KEEP_ALIVE_TIME = int(self.rcf.get("Tool", "max_keep_alive_time"))
@@ -50,7 +50,7 @@ class Config(object):
         self.MAX_WORKFLOW_NUMBER = int(self.rcf.get("Job", 'max_workflow_number'))
         self.JOB_MASTER_IP = self.rcf.get(self.JOB_PLATFORM, "master_ip")
 
-        #db
+        # db
         self.DB_TYPE = self.rcf.get("DB", "dbtype")
         self.DB_HOST = self.rcf.get("DB", "host")
         self.DB_USER = self.rcf.get("DB", "user")

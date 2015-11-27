@@ -48,7 +48,7 @@ class AnosimTool(Tool):
         super(AnosimTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
         self.cmd_path = 'Python/bin/compare_categories.py'
-        self.set_environ(LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
+        # self.set_environ(LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
 
 
     def run(self):
@@ -93,6 +93,10 @@ class AnosimTool(Tool):
         self.wait()
         if dist_adonis_command.return_code == 0:
             self.logger.info('运行qiime:compare_categories.py计算adonis完成')
+            if os.path.exists(os.path.join(self.output_dir, 'adonis_results.txt')):
+                os.remove(os.path.join(self.output_dir, 'adonis_results.txt'))
+            if os.path.exists(os.path.join(self.output_dir, 'anosim_results.txt')):
+                os.remove(os.path.join(self.output_dir, 'anosim_results.txt'))
             os.link(os.path.join(self.work_dir, 'adonis_results.txt'),
                     os.path.join(self.output_dir, 'adonis_results.txt'))
             os.link(os.path.join(self.work_dir, 'anosim_results.txt'),

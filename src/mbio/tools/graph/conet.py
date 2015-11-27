@@ -62,13 +62,18 @@ class ConetTool(Tool):
     def __init__(self, config):
         super(ConetTool, self).__init__(config)
         self.script_path = self.config.SOFTWARE_DIR+"/meta/CoNet3/lib/CoNet.jar"
+        self.java_path = "/sun_jdk1.8.0/bin/"
 
     def run(self):
         super(ConetTool, self).run()
         self.run_conet()
 
     def run_conet(self):
-        cmd = "/java -Xmx6000m -cp "+self.script_path+" be.ac.vub.bsb.cooccurrence.cmd.CooccurrenceAnalyser --method ensemble --format GML --matrixtype abundance --output network.gml --input "+self.option("data_file").prop['path']+" --ensemblemethods "+self.option("method")+" --ensembleparams "+self.option("method")+"~upperThreshold="+str(self.option("upper_threshold"))+"/"+self.option("method")+"~lowerThreshold="+str(self.option("lower_threshold"))
+        cmd = self.java_path+"/java -Xmx6000m -cp "+self.script_path+" be.ac.vub.bsb.cooccurrence.cmd.CooccurrenceAnalyser "
+        cmd += "--method ensemble --format GML --matrixtype abundance --output network.gml"
+        cmd += " --input " + self.option("data_file").prop['path']
+        cmd += " --ensemblemethods "+self.option("method")
+        cmd += " --ensembleparams "+self.option("method")+"~upperThreshold="+str(self.option("upper_threshold"))+"/"+self.option("method")+"~lowerThreshold="+str(self.option("lower_threshold"))
         if self.option("feature_file").is_set:
             cmd += " --features "+self.option("feature_file")
         if self.option("randomization"):
@@ -82,5 +87,6 @@ class ConetTool(Tool):
             self.logger.info("conet运行完成")
             os.link(self.work_dir+'/network.gml', self.output_dir+'/network.gml')
             self.option('network_file').set_path(self.output_dir+'/network.gml')
+            self.end()
         else:
             self.set_error("conet运行出错!")
