@@ -19,7 +19,7 @@ class VennTableAgent(Agent):
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU表格
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表格
-            {"name": "venn_table.xls", "type": "outfile", "format": "meta.qc.venn_table"} # 输入的Venn表格
+            {"name": "venn_table.xls", "type": "outfile", "format": "meta.otu.venn_table"} # 输入的Venn表格
         ]
         self.add_option(options)
 

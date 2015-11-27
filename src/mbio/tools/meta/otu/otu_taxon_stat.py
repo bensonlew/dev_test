@@ -21,7 +21,7 @@ class OtuTaxonStatAgent(Agent):
             {'name': 'otu_seqids', 'type': 'infile', 'format': 'meta.otu.otu_seqids'},  # 输入的seqids文件
             {'name': 'taxon_file', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 输入的taxon文件
             {'name': 'otu_taxon_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 输出的biom文件
-            {'name': 'otu_taxon_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出的biom文件
+            {'name': 'otu_taxon_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出的otu表文件
             {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_abs_dir'}]  # 输出的otu_taxon_dir文件夹
         self.add_option(options)
 
