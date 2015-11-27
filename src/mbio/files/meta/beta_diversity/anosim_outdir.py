@@ -68,12 +68,13 @@ class AnosimOutdirFile(Directory):
         整理写入到表格‘format_results.txt’中
         """
         dirpath = self.prop['path'].strip('/') + '/'
-        an = open(dirpath + 'anosim_results.txt')
-        ad = open(dirpath + 'adonis_results.txt')
-        new = open(dirpath + 'format_results.txt', 'w')
+        os.path.join(self.prop['path'], )
+        an = open(os.path.join(self.prop['path'], 'anosim_results.txt'))
+        ad = open(os.path.join(self.prop['path'], 'adonis_results.txt'))
+        new = open(os.path.join(self.prop['path'], 'format_results.txt'), 'w')
         an_line = an.readlines()
         for line in ad:
-            if re.match('qiime.data$map[[opts$category]]', line):
+            if re.match('qiime\.data$map\[\[opts$category\]\]', line):
                 ad_r = line.split()[5]
                 ad_p = line.split()[6]
         sample = an_line[2].strip().split('\t')[1]
@@ -91,3 +92,4 @@ class AnosimOutdirFile(Directory):
         self.set_property('permutation', permu)
         self.set_property('groups_num', groups_num)
         self.set_property('sample_num', sample)
+        self.set_property('format_file', os.path.join(self.prop['path'], 'format_results.txt'))

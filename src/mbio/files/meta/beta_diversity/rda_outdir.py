@@ -139,4 +139,4 @@ class RdaOutdirFile(Directory):
             raise FileError('*environment.xls文件不存在或存在多组数据')
         else:
             pass
-        return (importance_file, species_file, sites_file, dca_file, environment_file)
+        return importance_file, species_file, sites_file, dca_file, environment_file

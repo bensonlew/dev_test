@@ -34,7 +34,7 @@ class RarefactionAgent(Agent):
         if not self.option("otutable").is_set:
             raise OptionError("请选择otu表")
         for estimators in self.option('indices').split('-'):
-            if not estimators in self.ESTIMATORS:
+            if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
 
     def set_resource(self):
@@ -68,8 +68,8 @@ class RarefactionTool(Tool):
         """
         执行命令运行mothur程序，生成rarefaction结果文件
         """
-        cmd = '/meta/mothur.1.30 "#rarefaction.single(shared=otu.shared,calc=sobs-%s,groupmode=f,freq=%s,processors=10)"'\
-              % (self.option('indices'), self.option('random_number'))
+        cmd = '/meta/mothur.1.30 "#rarefaction.single(shared=otu.shared,calc=sobs-%s,groupmode=f,' \
+              'freq=%s,processors=10)"' % (self.option('indices'), self.option('random_number'))
         # print cmd
         self.logger.info("开始运行mothur")
         mothur_command = self.add_command("mothur", cmd)

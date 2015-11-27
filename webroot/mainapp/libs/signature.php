@@ -1,7 +1,7 @@
 <?php
 
-$client = "test";
-$key = "Aw21cADS3u";
+$client = "client01";
+$key = "1ZYw71APsQ";
 
 function signature()
 {
@@ -17,7 +17,7 @@ function signature()
 }
 
 $str = signature();
-$out = [];
+$out = array();
 foreach ($str as $k => $v){
     array_push($out,"$k=$v");
 }
