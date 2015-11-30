@@ -18,8 +18,7 @@ class DistanceBoxAgent(Agent):
         super(DistanceBoxAgent, self).__init__(parent)
         options = [
             {"name": "dis_matrix", "type": "infile", "format": "meta.beta_diversity.distance_matrix"},
-            {"name": "box_dir", "type": "outfile", "format": "meta.beta_diversity.box_outdir"},
-            {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
         ]
         self.add_option(options)
 
@@ -56,41 +55,47 @@ class DistanceBoxTool(Tool):
         super(DistanceBoxTool, self).run()
         self.run_box()
 
+    def add_name(self):
+        """
+        给一个分组文件添加表头
+        """
+        groupfile = open(self.option('group').prop['path'], 'r')
+        new = open(os.path.join(self.work_dir, 'temp.gup'), 'w')
+        new.write('#ID\tgroup\n')
+        for i in groupfile:
+            new.write(i)
+        groupfile.close()
+        new.close()
+
+    def linkfile(self, oldfile, newname):
+        """
+        link文件到output文件夹
+        :param oldfile: 资源文件路径
+        :param newname: 新的文件名
+        :return:
+        """
+        newpath = os.path.join(self.output_dir, newname)
+        if os.path.exists(newpath):
+            os.remove(newpath)
+        os.link(oldfile, newpath)
+
     def run_box(self):
         """
         运行qiime:make_distance_boxplots.py
         """
         cmd = self.cmd_path
-        addline = '#ID\tgroup\n'
-        groupfile = open(self.option('group').prop['path'], 'r')
-        new = open(os.path.join(self.work_dir, 'temp.gup'), 'w')
-        lines = groupfile.readlines()
-        new.write(addline)
-        for i in lines:
-            new.write(i)
-        groupfile.close()
-        new.close()
-
+        self.add_name()
         cmd += ' -m %s -d %s -o %s -f "group" --save_raw_data' % (
             os.path.join(self.work_dir, 'temp.gup'), self.option('dis_matrix').prop['path'],
             self.work_dir)
         self.logger.info('运行qiime:make_distance_boxplots.py程序')
-        self.logger.info(cmd)
         box_command = self.add_command('box', cmd)
         box_command.run()
         self.wait(box_command)
         if box_command.return_code == 0:
             self.logger.info('运行qiime/make_distance_boxplots.py完成')
-            linkfile = self.output_dir + '/group_Distances.txt'
-            linkstat = self.output_dir + '/group_Stats.txt'
-            if os.path.exists(linkfile):
-                os.remove(linkfile)
-            if os.path.exists(linkstat):
-                os.remove(linkstat)
-            os.link(self.work_dir + '/group_Distances.txt', linkfile)
-            os.link(self.work_dir + '/group_Stats.txt', linkstat)
-            self.option('box_dir', self.output_dir)
+            self.linkfile(self.work_dir + '/group_Distances.txt', 'group_Distances.txt')
+            self.linkfile(self.work_dir + '/group_Stats.txt', 'group_Stats.txt')
             self.end()
         else:
-            self.logger.info(box_command.return_code)
             self.set_error('运行qiime/make_distance_boxplots.py出错')
