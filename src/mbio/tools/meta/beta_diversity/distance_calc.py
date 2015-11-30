@@ -15,7 +15,7 @@ class DistanceCalcAgent(Agent):
     """
     METHOD = ['abund_jaccard', 'binary_chisq', 'binary_chord',
               'binary_euclidean', 'binary_hamming', 'binary_jaccard',
-              'inary_lennon', 'binary_ochiai', 'binary_otu_gain',
+              'binary_lennon', 'binary_ochiai', 'binary_otu_gain',
               'binary_pearson', 'binary_sorensen_dice',
               'bray_curtis', 'bray_curtis_faith', 'bray_curtis_magurran',
               'canberra', 'chisq', 'chord', 'euclidean', 'gower',

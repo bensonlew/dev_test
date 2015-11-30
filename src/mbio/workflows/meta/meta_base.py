@@ -134,5 +134,5 @@ class MetaBaseWorkflow(Workflow):
 
     def run(self):
         self.run_otu()
-        self.on_rely([], self.end)
+        self.on_rely([self.stat, self.est, self.rarefy], self.end)
         super(MetaBaseWorkflow, self).run()
