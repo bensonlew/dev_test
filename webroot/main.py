@@ -2,7 +2,7 @@
 # __author__ = 'guoquan'
 import web
 from mainapp.libs.signature import check_sig
-from mainapp.controllers.pipline import Pipline, PiplineState,PiplineLog,PiplineStop
+from mainapp.controllers.pipline import Pipline, PiplineState,PiplineLog,PiplineStop,PiplineQueue
 from mainapp.controllers.filecheck import FileCheck
 
 #web.config.debug = False
@@ -13,6 +13,8 @@ urls = (
     "/pipline/state", "PiplineState",
     "/pipline/log", "PiplineLog",
     "/pipline/stop", "PiplineStop",
+    "/pipline/running", "PiplineRunning",
+    "/pipline/running", "PiplineQueue"
     )
 
 

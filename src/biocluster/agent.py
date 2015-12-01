@@ -86,6 +86,11 @@ class Agent(Basic):
         """
         return self._queue
 
+    @queue.setter
+    def queue(self, queue):
+
+        self._queue = queue
+
     @property
     def mode(self):
         """
@@ -191,6 +196,7 @@ class Agent(Basic):
         self.save_config()
         self._run_time = datetime.datetime.now()
         self._status = "Q"
+        self.actor.kill()
         self.actor = LocalActor(self)
         self.actor.start()
         self.job.resubmit()

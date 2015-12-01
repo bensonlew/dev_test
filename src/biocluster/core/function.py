@@ -69,7 +69,7 @@ def daemonize(stdout='/dev/null', stderr='dev/null'):
         sys.exit(1)
 
     # 从母体环境脱离
-    os.chdir("/")
+    # os.chdir("/")
     # os.umask(0)
     os.setsid()
     # 执行第二次fork

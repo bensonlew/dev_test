@@ -7,6 +7,7 @@ from .iofile import FileBase
 from .core.function import load_class_by_path
 import os
 from .core.exceptions import OptionError
+import re
 
 
 class Option(object):
@@ -30,6 +31,7 @@ class Option(object):
             if 'format' not in opt.keys():
                 raise OptionError("必须设置参数属性 format")
             else:
+                # formats = re.split('\s*,\s*', opt['format'])
                 self._format = opt['format']
                 self._check = opt['check'] if 'check' in opt.keys() else False
                 self._value = load_class_by_path(self._format, "File")()

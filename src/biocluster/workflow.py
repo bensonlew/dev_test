@@ -12,6 +12,7 @@ from .logger import Wlog
 from .agent import Agent
 import datetime
 import gevent
+import time
 
 
 class Workflow(Basic):
@@ -37,7 +38,8 @@ class Workflow(Basic):
         获取并创建工作目录
         """
         work_dir = self.config.WORK_DIR
-        work_dir = work_dir + "/" + self.name + self._id
+        timestr = str(time.strftime('%Y%m%d', time.localtime(time.time())))
+        work_dir = work_dir + "/" + timestr + "/" + self.name + self._id
         if not os.path.exists(work_dir):
             os.makedirs(work_dir)
         return work_dir
