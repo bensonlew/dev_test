@@ -34,7 +34,7 @@ class PcaOutdirFile(Directory):
         self.set_property('PC', dirinfo[1])
         self.set_property('env_set', False)
         if dirinfo[2][3]:
-            self.set_property('PC', True)
+            self.set_property('env_set', True)
             self.set_property('envfit_file', dirpath + dirinfo[2][5])
             self.set_property('envfit_score_file', dirpath + dirinfo[2][4])
             self.set_property('env_list', dirinfo[3])

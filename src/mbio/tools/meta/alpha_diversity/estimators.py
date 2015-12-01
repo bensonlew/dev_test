@@ -13,16 +13,15 @@ class EstimatorsAgent(Agent):
     author: qindanhua  
     last_modify: 2015.11.10  
     """
-    ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven',
-    'shannoneven', 'heip', 'smithwilson', 'bergerparker', 'shannon',
-    'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
+    ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven', 'shannoneven', 'heip', 'smithwilson',
+                  'bergerparker', 'shannon', 'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
 
     def __init__(self, parent):
         super(EstimatorsAgent, self).__init__(parent)
         options = [
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},  # 输入文件
             {"name": "indices", "type": "string", "default": "ace-chao-shannon-simpson"},  # 指数类型
-            {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"} # 输出结果
+            {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}  # 输出结果
         ]
         self.add_option(options)
 
@@ -33,7 +32,7 @@ class EstimatorsAgent(Agent):
         if not self.option("otutable").is_set:
             raise OptionError("请选择otu表")
         for estimators in self.option('indices').split('-'):
-            if not estimators in self.ESTIMATORS:
+            if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
 
     def set_resource(self):
@@ -67,7 +66,7 @@ class EstimatorsTool(Tool):
         """
         返回mothur运行生成各样本指数值文件命令
         """
-        cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' %(self.option('indices'))
+        cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % (self.option('indices'))
         print cmd
         self.logger.info("开始运行mothur")
         command = self.add_command("mothur", cmd)
@@ -81,7 +80,6 @@ class EstimatorsTool(Tool):
         # cmd2 = '/mnt/ilustre/users/sanger/qdh_test/estimatorsV3.py'
         os.system("python %sestimatorsV3.py" % self.estimator_path)
         self.set_output()
-
 
     def set_output(self):
         """
@@ -101,4 +99,3 @@ class EstimatorsTool(Tool):
         self.shared()
         self.mothur()
         self.end()
-

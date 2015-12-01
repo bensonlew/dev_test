@@ -5,7 +5,6 @@ from biocluster.tool import Tool
 import os
 import subprocess
 from biocluster.core.exceptions import OptionError
-from mbio.files.meta.beta_diversity.nmds_outdir import NmdsOutdirFile
 
 
 class NmdsAgent(Agent):
@@ -20,9 +19,7 @@ class NmdsAgent(Agent):
         super(NmdsAgent, self).__init__(parent)
         options = [
             {"name": "dis_matrix", "type": "infile",
-             "format": "meta.beta_diversity.distance_matrix"},
-            {"name": "nmds_outdir", "type": "outfile",
-             "format": "meta.beta_diversity.nmds_outdir"}
+             "format": "meta.beta_diversity.distance_matrix"}
         ]
         self.add_option(options)
 
@@ -78,15 +75,16 @@ class NmdsTool(Tool):
         except subprocess.CalledProcessError:
             self.logger.info('nmds计算失败')
             self.set_error('R程序计算nmds失败')
-        nmds_results = NmdsOutdirFile()
-        nmds_results.set_path(self.work_dir + '/nmds')
-        sites = nmds_results.prop['sites_file']
-        linksites = os.path.join(self.output_dir, os.path.basename(sites))
+        filename = None
+        for name in os.listdir(self.work_dir + '/nmds'):
+            if 'nmds_sites.xls' in name:
+                filename = name
+        if not filename:
+            self.set_error('未知原因sites文件没有生成')
+        linksites = os.path.join(self.output_dir, 'nmds_sites.xls')
         if os.path.exists(linksites):
             os.remove(linksites)
-        os.link(sites, linksites)
-        self.option('nmds_outdir', self.output_dir)
-        self.logger.info(self.option('nmds_outdir').prop)
+        os.link(self.work_dir + '/nmds' + '/' + filename, linksites)
         self.logger.info('运行ordination.pl程序计算nmds完成')
         self.end()
 

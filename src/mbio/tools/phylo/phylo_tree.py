@@ -70,7 +70,7 @@ class PhyloTreeTool(Tool):
         """
         执行fasttree脚本，生成结果文件
         """
-        cmd = 'Python/bin/python %sfasttree.py -i %s' %(self.FastTree_path,'phylo.clustalw.align')
+        cmd = 'Python/bin/python %sfasttree.py -i %s' % (self.FastTree_path, 'phylo.clustalw.align')
         print cmd
         self.logger.info("开始运行fasttree")
         fasttree_command = self.add_command("fasttree", cmd)
