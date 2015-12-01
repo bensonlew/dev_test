@@ -3,10 +3,12 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
+import re
 from biocluster.core.exceptions import OptionError
 
 
 class AnosimAgent(Agent):
+
     """
     qiime
     version v1.0
@@ -17,9 +19,11 @@ class AnosimAgent(Agent):
     def __init__(self, parent):
         super(AnosimAgent, self).__init__(parent)
         options = [
-            {"name": "dis_matrix", "type": "infile", "format": "meta.beta_diversity.distance_matrix"},
-            {"name": "anosim_outdir", "type": "outfile", "format": "meta.beta_diversity.anosim_outdir"},
-            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
+            {"name": "dis_matrix", "type": "infile",
+             "format": "meta.beta_diversity.distance_matrix"},
+            {"name": "group", "type": "infile",
+             "format": "meta.otu.group_table"},
+            {"name": "permutations", "type": "int", "default": 999}
         ]
         self.add_option(options)
 
@@ -50,7 +54,6 @@ class AnosimTool(Tool):
         self.cmd_path = 'Python/bin/compare_categories.py'
         # self.set_environ(LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
 
-
     def run(self):
         """
         运行
@@ -58,51 +61,86 @@ class AnosimTool(Tool):
         super(AnosimTool, self).run()
         self.run_compare_categories()
 
-    def run_compare_categories(self):
+    def add_name(self):
         """
-        运行qiime/compare_categories
+        给一个分组文件添加表头
         """
-        cmd = self.cmd_path
-        addline = '#ID\tgroup\n'
         groupfile = open(self.option('group').prop['path'], 'r')
         new = open(os.path.join(self.work_dir, 'temp.gup'), 'w')
-        lines = groupfile.readlines()
-        new.write(addline)
-        for i in lines:
+        new.write('#ID\tgroup\n')
+        for i in groupfile:
             new.write(i)
         groupfile.close()
         new.close()
-        cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c "group"' % (
+
+    def run_compare_categories(self):
+        """
+        运行qiime:compare_categories
+        """
+        cmd = self.cmd_path
+        self.add_name()
+        cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c "group" -n %d' % (
             os.path.join(self.work_dir, 'temp.gup'),
             self.option('dis_matrix').prop['path'],
-            self.work_dir)
-        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c "group"' % (
+            self.work_dir, self.option('permutations'))
+        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c "group" -n %d' % (
             os.path.join(self.work_dir, 'temp.gup'),
             self.option('dis_matrix').prop['path'],
-            self.work_dir)
-        self.logger.info('运行qiime/compare_categories.py,计算adonis/anosim程序')
+            self.work_dir, self.option('permutations'))
+        self.logger.info('运行qiime:compare_categories.py,计算adonis&anosim程序')
         dist_anosim_command = self.add_command('anosim', cmd1)
         dist_anosim_command.run()
-        self.wait()
-        if dist_anosim_command.return_code == 0:
-            self.logger.info('运行qiime:compare_categories.py计算anosim完成')
-        else:
-            self.set_error('运行qiime:compare_categories.py计算anosim出错')
         dist_adonis_command = self.add_command('adonis', cmd2)
         dist_adonis_command.run()
         self.wait()
-        if dist_adonis_command.return_code == 0:
-            self.logger.info('运行qiime:compare_categories.py计算adonis完成')
-            if os.path.exists(os.path.join(self.output_dir, 'adonis_results.txt')):
-                os.remove(os.path.join(self.output_dir, 'adonis_results.txt'))
-            if os.path.exists(os.path.join(self.output_dir, 'anosim_results.txt')):
-                os.remove(os.path.join(self.output_dir, 'anosim_results.txt'))
-            os.link(os.path.join(self.work_dir, 'adonis_results.txt'),
-                    os.path.join(self.output_dir, 'adonis_results.txt'))
-            os.link(os.path.join(self.work_dir, 'anosim_results.txt'),
-                    os.path.join(self.output_dir, 'anosim_results.txt'))
-            self.option('anosim_outdir', self.output_dir)
-            self.option('anosim_outdir').format_result()
-            self.end()
+        if dist_anosim_command.return_code == 0:
+            self.logger.info('运行qiime:compare_categories.py计算anosim完成')
+            self.linkfile(os.path.join(self.work_dir, 'adonis_results.txt'), 'adonis_results.txt')
+            if dist_adonis_command.return_code == 0:
+                self.logger.info('运行qiime:compare_categories.py计算adonis完成')
+                self.linkfile(os.path.join(self.work_dir, 'anosim_results.txt'), 'anosim_results.txt')
+                self.format()
+                self.end()
+            else:
+                self.set_error('运行qiime:compare_categories.py计算adonis出错')
         else:
-            self.set_error('运行qiime:compare_categories.py计算adonis出错')
+            self.set_error('运行qiime:compare_categories.py计算anosim出错')
+
+    def linkfile(self, oldfile, newname):
+        """
+        link文件到output文件夹
+        :param oldfile: 资源文件路径
+        :param newname: 新的文件名
+        :return:
+        """
+        newpath = os.path.join(self.output_dir, newname)
+        if os.path.exists(newpath):
+            os.remove(newpath)
+        os.link(oldfile, newpath)
+
+    def format(self):
+        """
+        将‘adonis_results.txt’和‘anosim_results.txt’两个文件的内容
+        整理写入到表格‘format_results.txt’中
+        """
+        an = open(os.path.join(self.output_dir, 'anosim_results.txt'))
+        ad = open(os.path.join(self.output_dir, 'adonis_results.txt'))
+        new = open(os.path.join(self.output_dir, 'format_results.txt'), 'w')
+        an_line = an.readlines()
+        ad_r = ''
+        ad_p = ''
+        for line in ad:
+            self.logger.info(line)
+            if re.match(r'qiime\.data\$map\[\[opts\$category\]\]', line):
+                self.logger.info(line + '--MATCH')
+                ad_r = line.split()[5]
+                ad_p = line.split()[6]
+        an_r = an_line[4].strip().split('\t')[1]
+        an_p = an_line[5].strip().split('\t')[1]
+        permu = an_line[6].strip().split('\t')[1]
+        new.write('method\tstatisic\tp-value\tnumber of permutation\n')
+        new.write('anosim\t%s\t%s\t%s\n' % (an_r, an_p, permu))
+        new.write('adonis\t%s\t%s\t%s\n' % (ad_r, ad_p, permu))
+        new.close()
+        ad.close()
+        an.close()

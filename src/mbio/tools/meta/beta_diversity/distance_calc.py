@@ -4,7 +4,6 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
-from mbio.files.meta.otu.otu_table import OtuTableFile
 
 
 class DistanceCalcAgent(Agent):
@@ -16,7 +15,7 @@ class DistanceCalcAgent(Agent):
     """
     METHOD = ['abund_jaccard', 'binary_chisq', 'binary_chord',
               'binary_euclidean', 'binary_hamming', 'binary_jaccard',
-              'inary_lennon', 'binary_ochiai', 'binary_otu_gain',
+              'binary_lennon', 'binary_ochiai', 'binary_otu_gain',
               'binary_pearson', 'binary_sorensen_dice',
               'bray_curtis', 'bray_curtis_faith', 'bray_curtis_magurran',
               'canberra', 'chisq', 'chord', 'euclidean', 'gower',
@@ -33,9 +32,9 @@ class DistanceCalcAgent(Agent):
             {"name": "method", "type": "string", "default": "bray_curtis"},
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},
             {"name": "dis_matrix", "type": "outfile",
-                "format": "meta.beta_diversity.distance_matrix"},
+             "format": "meta.beta_diversity.distance_matrix"},
             {"name": "newicktree", "type": "infile",
-                "format": "meta.beta_diversity.newick_tree"}
+             "format": "meta.beta_diversity.newick_tree"}
         ]
         self.add_option(options)
 
@@ -64,7 +63,7 @@ class DistanceCalcTool(Tool):
         super(DistanceCalcTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
         self.cmd_path = 'Python/bin/beta_diversity.py'
-        self.set_environ(LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
         # 设置运行环境变量
         self.biom = self.biom_otu_table()  # 传入otu表需要转化为biom格式
 
@@ -79,9 +78,9 @@ class DistanceCalcTool(Tool):
         """
         运行qiime:beta_diversity.py
         """
-        cmd = self.cmd_path  # 软件安装路径会自动加载
+        cmd = self.cmd_path
         cmd += ' -m %s -i %s -o %s' % (self.option('method'), self.biom,
-                self.work_dir)
+                                       self.work_dir)
         if self.option('method') in DistanceCalcAgent.UNIFRACMETHOD:
             cmd += ' -t %s' % (self.option('newicktree').prop['path'])
         self.logger.info('运行qiime:beta_diversity.py程序')
@@ -91,16 +90,13 @@ class DistanceCalcTool(Tool):
         self.wait()
         if dist_matrix_command.return_code == 0:
             self.logger.info('运行qiime:beta_diversity.py完成')
-            filename = self.work_dir+'/' + self.option('method') + '_temp.txt'
+            filename = self.work_dir + '/' + self.option('method') + '_temp.txt'
             basename = os.path.splitext(os.path.basename(self.option('otutable').prop['path']))[0]
             linkfile = self.output_dir + '/' + self.option('method') + '_' + basename + '.txt'
             if os.path.exists(linkfile):
                 os.remove(linkfile)
             os.link(filename, linkfile)
             self.option('dis_matrix').set_path(linkfile)
-            self.logger.info(self.option('dis_matrix'))
-            self.logger.info(self.option('dis_matrix').prop['path'])
-            # self.logger.info(self.option('dis_matrix').prop)
             self.end()
         else:
             self.set_error('运行qiime:beta_diversity.py出错')
