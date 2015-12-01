@@ -65,6 +65,12 @@ class Config(object):
         self.SERVICE_PROCESSES = int(self.rcf.get("SERVICE", "processes"))
         self.SERVICE_PID = self.rcf.get("SERVICE", "pid")
 
+        # SSH
+        self.SSH_DEFAULT_IP = self.rcf.get("SSH", "default_ip")
+        # SSH1
+        self.SSH1_MODE = self.rcf.get("SSH1", "mode")
+        self.SSH1_IP_LIST = re.split('\s*,\s*', self.rcf.get("SSH1", "ip_list"))
+
     def get_listen_ip(self):
         """
         获取配置文件中IP列表与本机匹配的IP作为本机监听地址

@@ -77,9 +77,9 @@ def main():
     else:
         if args.daemon:
             daemonize(stderr=args.log, stdout=args.log)
-        json_data = check_run()
+        wj = WorkJob()
+        json_data = check_run(wj)
         if json_data:
-            wj = WorkJob()
             wj.start(json_data)
 
 
@@ -214,7 +214,7 @@ class WorkJob(object):
             workflow.config.USE_DB = True
             workflow.run()
         except Exception, e:
-            write_log(":%s" % self.workflow_id)
+            write_log("Workflow %s has error %s:%s" % (self.workflow_id, e.__class__.__name__, e))
             data = {
                 "is_error": 1,
                 "error": "运行异常:%s: %s" % (e.__class__.__name__, e),

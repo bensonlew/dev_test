@@ -10,6 +10,9 @@ from .option import Option
 import os
 from .core.function import get_classpath_by_object
 from .core.exceptions import OptionError
+from gevent.lock import BoundedSemaphore
+
+sem = BoundedSemaphore(1)
 
 
 class Rely(object):
@@ -19,10 +22,12 @@ class Rely(object):
     count = 0
 
     def __init__(self, *rely):
+        sem.acquire()
         Rely.count += 1
         self._name = "reply" + str(Rely.count)
         self._relys = []
         self.add_rely(*rely)
+        sem.release()
 
     @property
     def name(self):
@@ -307,6 +312,7 @@ class Basic(EventObject):
         """
         identifier = self._name
         count = 0
+        sem.acquire()
         if self._parent:
             for c in self._parent.children:
                 if c.name == self.name:
@@ -314,6 +320,7 @@ class Basic(EventObject):
             identifier = self._parent.id + "." + identifier
         if count > 0:
             identifier += str(count)
+        sem.release()
         return identifier
 
     def add_child(self, *child):
@@ -342,7 +349,7 @@ class Basic(EventObject):
             return self._logger
         else:
             workflow = self.get_workflow()
-            self._logger = Wlog(workflow).get_logger(self._full_name + "(" + self.get_workflow()._id + ")")
+            self._logger = Wlog(workflow).get_logger(self._full_name + "(" + workflow.id + ")")
             return self._logger
 
     def __init_events(self):
@@ -416,7 +423,7 @@ class Basic(EventObject):
                 raise Exception("rely参数必须为Basic或其子类的实例对象!")
             if r not in self._children:
                 raise Exception("rely模块必须为本对象的子模块!")
-        rl = Rely(*rely)
+        rl = Rely(*rely_list)
         self._rely.append(rl)
         self.add_event(rl.name)
         self.on(rl.name, func, data)
@@ -436,6 +443,6 @@ class Basic(EventObject):
         obj = self
         if self.parent:
             obj = self.parent
-        if self.parent:
-            obj = self.parent
+        if obj.parent:
+            obj = obj.parent
         return obj

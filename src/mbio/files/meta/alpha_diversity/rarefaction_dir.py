@@ -20,7 +20,7 @@ class RarefactionDirFile(Directory):
         """
         super(RarefactionDirFile, self).get_info()
         info = self.get_rarefaction_dir_info()
-        self.set_property('file_name',info[0])
+        self.set_property('file_name', info[0])
         self.set_property('sample_num',info[1])
         self.set_property('sample_name',info[2])
 

@@ -133,6 +133,9 @@ class PiplineLog(object):
         if len(workflow_data) > 0:
             record = workflow_data[0]
             if data.client == record.client:
+                if record.workdir is None or record.workdir == "":
+                    info = {"success": False, "info": "还没有日志!"}
+                    return json.dumps(info)
                 log_file = os.path.join(record.workdir, "log.txt")
                 if record.has_run == 0 or not os.path.exists(log_file):
                     info = {"success": False, "info": "还没有日志!"}
@@ -140,7 +143,7 @@ class PiplineLog(object):
                 else:
                     with open(log_file, "r") as f:
                         logs = f.readlines()
-                    return "".join(logs)
+                    return "<br>".join(logs)
             else:
                 info = {"success": False, "info": "没有权限查看！"}
                 return json.dumps(info)
@@ -218,5 +221,5 @@ class PiplineQueue(object):
             info = {"success": True, "count": count, "info": info}
             return json.dumps(info)
         else:
-            info = {"success": True, "count": 0, "info": "没有正在运行的流程！"}
+            info = {"success": True, "count": 0, "info": "没有正在排队的流程！"}
             return json.dumps(info)
