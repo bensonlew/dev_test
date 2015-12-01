@@ -52,7 +52,7 @@ class QiimeAssignAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '50000M'
 
 
 class QiimeAssignTool(Tool):
