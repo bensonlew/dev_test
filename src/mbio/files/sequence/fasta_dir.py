@@ -92,7 +92,7 @@ class FastaDirFile(Directory):
         if os.path.exists(cat_fasta):
             os.remove(cat_fasta)
         os.mknod(cat_fasta)
-        for fasta in self.fastas:
+        for fasta in self.fastas_full:
             try:
                 cat_str = "cat " + fasta + " >> " + cat_fasta
                 subprocess.check_call(cat_str, shell=True)
@@ -115,13 +115,13 @@ class FastaDirFile(Directory):
         if os.path.exists(cat_fasta):
             os.remove(cat_fasta)
         os.mknod(cat_fasta)
-        for fasta in self.fastas:
+        for fasta in self.fastas_full:
             basename = os.path.basename(fasta)
             sample_name = re.search(r'(.+)\.(fasta|fa)$', basename).group(1)
             with open(cat_fasta, "a") as f:
                 for seq in SeqIO.parse(fasta, "fasta"):
                     new_id = str(sample_name) + '_' + str(seq.id)
-                    f.write(new_id + "\n")
+                    f.write('>' + new_id + "\n")
                     f.write(seq.seq + "\n")
         return cat_fasta
 
@@ -131,7 +131,4 @@ class FastaDirFile(Directory):
         :return:
         """
         if super(FastaDirFile, self).check():
-            if "file_number" not in self.prop.keys():
-                raise FileError("还未设置该文件夹下的fasta文件数目")
-            if self.prop['file_number'] != self.get_fasta_number():
-                raise FileError("实际fasta文件数目不等于设定值")
+            return True
