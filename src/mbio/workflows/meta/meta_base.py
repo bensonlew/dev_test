@@ -28,10 +28,10 @@ class MetaBaseWorkflow(Workflow):
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
             {'name': 'taxon_file', 'type': 'outfile', 'format': 'taxon.seq_taxon'},  # 输出序列的分类信息文件
             {"name": "estimate_indices", "type": "string", "default": "ace-chao-shannon-simpson"},  # 指数类型
-            {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"},  # 输出结果
+            # {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"},  # 输出结果
             {"name": "rarefy_indices", "type": "string", "default": "chao-shannon"},  # 指数类型
             {"name": "random_number", "type": "int", "default": 100},  # 随机取样数
-            {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"},  # 输出结果
+            # {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"},  # 输出结果
             {'name': 'otu_taxon_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 输出的biom文件
             {'name': 'otu_taxon_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出的biom文件
             {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_abs_dir'}  # 输出的otu_taxon_dir文件夹
@@ -80,9 +80,12 @@ class MetaBaseWorkflow(Workflow):
             "revcomp": self.option("revcomp"),
             "confidence": self.option("confidence"),
             "customer_mode": self.option("customer_mode"),
-            "database": self.option("database"),
-            "ref_fasta": self.option("ref_fasta"),
-            "ref_taxon": self.option("ref_taxon")
+            "database": self.option("database")}
+            )
+        if self.option("customer_mode"):
+            self.tax.set_options({
+                "ref_fasta": self.option("ref_fasta"),
+                "ref_taxon": self.option("ref_taxon")
             })
         self.on_rely(self.tax, self.run_stat)
         self.tax.on("end", self.set_output, "tax")
@@ -97,18 +100,18 @@ class MetaBaseWorkflow(Workflow):
         self.stat.run()
 
     def run_estimate(self, relyobj):
-        self.est = self.add_tool("meta.alpha_diversity.estimators")
+        # self.est = self.add_tool("meta.alpha_diversity.estimators")
         self.est.set_options({
-            "otu_table": relyobj.rely[0].option("otu_table"),
+            "otutable": relyobj.rely[0].option("otu_table"),
             "indices": self.option("estimate_indices")
             })
-        self.est.on("end", self.set_output, "est")
+        # self.est.on("end", self.set_output, "est")
         self.est.run()
 
     def run_rarefy(self, relyobj):
-        self.rarefy = self.add_tool("meta.alpha_diversity.rarefaction")
+        # self.rarefy = self.add_tool("meta.alpha_diversity.rarefaction")
         self.rarefy.set_options({
-            "otu_table": relyobj.rely[0].option("otu_table"),
+            "otutable": relyobj.rely[0].option("otu_table"),
             "indices": self.option("rarefy_indices"),
             "random_number": self.option("random_number")
             })
@@ -117,20 +120,20 @@ class MetaBaseWorkflow(Workflow):
     def set_output(self, event):
         obj = event["bind_object"]
         if event['data'] is "otu":
-            self.option("otu_table").set_path(obj.option("otu_table"))
-            self.option("otu_rep").set_path(obj.option("otu_rep"))
-            self.option("otu_seqids").set_path(obj.option("otu_seqids"))
-            self.option("otu_biom").set_path(obj.option("otu_biom"))
+            self.option("otu_table", obj.option("otu_table"))
+            self.option("otu_rep", obj.option("otu_rep"))
+            self.option("otu_seqids", obj.option("otu_seqids"))
+            self.option("otu_biom", obj.option("otu_biom"))
         if event['data'] is "tax":
-            self.option("taxon_file").set_path(obj.option("taxon_file"))
+            self.option("taxon_file", obj.option("taxon_file"))
         if event['data'] is "stat":
-            self.option("otu_taxon_biom").set_path(obj.option("otu_taxon_biom"))
-            self.option("otu_taxon_table").set_path(obj.option("otu_taxon_table"))
-            self.option("otu_taxon_dir").set_path(obj.option("otu_taxon_dir"))
-        if event['data'] is "est":
-            self.option("estimators").set_path(obj.option("estimators"))
-        if event['data'] is "rarefy":
-            self.option("rarefaction").set_path(obj.option("rarefaction"))
+            self.option("otu_taxon_biom", obj.option("otu_taxon_biom"))
+            self.option("otu_taxon_table", obj.option("otu_taxon_table"))
+            self.option("otu_taxon_dir", obj.option("otu_taxon_dir"))
+        # if event['data'] is "est":
+        #     self.option("estimators").set_path(obj.option("estimators").prop['path'])
+        # if event['data'] is "rarefy":
+        #     self.option("rarefaction").set_path(obj.option("rarefaction").prop['path'])
 
     def run(self):
         self.run_otu()
