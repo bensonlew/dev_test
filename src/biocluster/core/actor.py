@@ -176,17 +176,14 @@ class RemoteActor(threading.Thread):
             result = client.report(msg)
         except Exception, e:
             self._lost_connection_count += 1
-            if state.name == "keepalive":
-                if self._lost_connection_count >= 3:
-                    self._tool.logger.error("网络连接出现错误，尝试三次仍然无法连接，即将退出运行:%s" % e)
-                    self._tool.exit_signal = True
-                    sys.exit(1)
-                else:
-                    self._tool.logger.error("网络连接出现错误，将重新尝试连接:%s" % e)
-            else:
-                self._tool.logger.error("网络连接出现错误，消息无法传递，即将退出运行:%s" % e)
+            if self._lost_connection_count >= 10:
+                self._tool.logger.error("网络连接出现错误，尝试10次仍然无法连接，即将退出运行:%s" % e)
                 self._tool.exit_signal = True
                 sys.exit(1)
+            else:
+                self._tool.logger.error("网络连接出现错误，将重新尝试连接:%s" % e)
+                time.sleep(1)
+                self.send_state(state)
         else:
             if not isinstance(result, dict):
                 self._tool.logger.error("接收到异常信息，退出运行!")

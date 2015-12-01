@@ -213,7 +213,8 @@ class Tool(object):
 
         :return:
         """
-        self.actor.start()
+        if not self.config.DEBUG:
+            self.actor.start()
         self._run = True
         self.logger.info("开始运行!")
 

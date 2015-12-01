@@ -12,16 +12,16 @@ class LefseAgent(Agent):
     statistical lefse+ 调用analysis_lefse.py 脚本进行lefse分析
     version v1.0
     author: qiuping
-    last_modify: 2015.11.13
+    last_modify: 2015.11.30
     """
     def __init__(self,parent):
         super(LefseAgent,self).__init__(parent)
         options = [
             {"name": "lefse_input", "type": "infile", "format": "meta.otu.otu_table"},#输入文件，biom格式的otu表
             {"name": "lefse_group", "type": "infile", "format": "meta.otu.group_table"},  # 输入分组文件
-            {"name": "LDA", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出的结果,包括lefse分析的lda图
-            {"name": "clado", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出结果,结果为lefse分析的clado图
-            {"name": "lefse_xls", "type": "outfile", "format": "statistical.lda_table"},  # 输出结果
+            #{"name": "LDA", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出的结果,包括lefse分析的lda图
+            #{"name": "clado", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出结果,结果为lefse分析的clado图
+            #{"name": "lefse_xls", "type": "outfile", "format": "statistical.lda_table"},  # 输出结果
             {"name": "l", "type": "string", "default": "6"},
             {"name": "lda_filter", "type": "float", "default": 2.0},
             {"name": "strict", "type": "int", "default": 0}
@@ -115,12 +115,15 @@ class LefseTool(Tool):
         """
         将结果文件链接至output
         """
+        for root, dirs, files in os.walk(self.output_dir):
+            for names in files:
+                os.remove(os.path.join(root, names))
         os.link(self.work_dir + '/lefse_LDA.cladogram.pdf', self.output_dir + '/lefse_LDA.cladogram.pdf')
-        self.option('clado').set_path(self.output_dir+'/lefse_LDA.cladogram.pdf')
+        #self.option('clado').set_path(self.output_dir+'/lefse_LDA.cladogram.pdf')
         os.link(self.work_dir + '/lefse_LDA.pdf', self.output_dir + '/lefse_LDA.pdf')
-        self.option('LDA').set_path(self.output_dir+'/lefse_LDA.pdf')
+        #self.option('LDA').set_path(self.output_dir+'/lefse_LDA.pdf')
         os.link(self.work_dir + '/lefse_LDA.xls', self.output_dir + '/lefse_LDA.xls')
-        self.option('lefse_xls').set_path(self.output_dir+'/lefse_LDA.xls')
+        #self.option('lefse_xls').set_path(self.output_dir+'/lefse_LDA.xls')
 
     def run(self):
         super(LefseTool,self).run()

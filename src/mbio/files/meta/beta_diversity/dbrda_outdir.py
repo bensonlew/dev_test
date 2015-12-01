@@ -15,7 +15,6 @@ class DbrdaOutdirFile(Directory):
         print 'init'
         super(DbrdaOutdirFile, self).__init__()
 
-
     def get_info(self):
         """
         获取文件夹属性
