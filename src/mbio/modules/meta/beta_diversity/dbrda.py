@@ -3,26 +3,27 @@
 
 from biocluster.module import Module
 import os
-# from biocluster.core.exceptions import OptionError
+from biocluster.core.exceptions import OptionError
 # from biocluster.core.function import load_class_by_path
 
 
-class HclusterModule(Module):
+class DbrdaModule(Module):
     def __init__(self, work_id):
-        super(HclusterModule, self).__init__(work_id)
+        super(DbrdaModule, self).__init__(work_id)
         options = [
             {"name": "method", "type": "string", "default": "bray_curtis"},
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},
             {"name": "phy_newick", "type": "infile",
              "format": "meta.beta_diversity.newick_tree"},
-            {"name": "dis_newick", "type": "outfile",
-                "format": "meta.beta_diversity.newick_tree"},
-            {"name": "linkage", "type": "string", "default": "average"}
+            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
         ]
         self.add_option(options)
 
     def check_options(self):
-        pass
+        samplelist = open(self.option('otutable').prop['path']).readline().strip().split('\t')[1:]
+        for sample in self.option('group').prop['sample']:
+            if sample not in samplelist:
+                raise OptionError('分组文件的样本(%s)在otu表的样本中不存在' % sample)
 
     def matrix_run(self):
         """
@@ -37,30 +38,27 @@ class HclusterModule(Module):
         else:
             matrix.set_options({'method': self.option('method'),
                                 'otutable': self.option('otutable').prop['path']})
-        self.on_rely(matrix, self.hcluster_run)
+        self.on_rely(matrix, self.dbrda_run)
         matrix.on('end', self.set_output, 'distance')
         matrix.run()
 
-    def hcluster_run(self, relyobj):
+    def dbrda_run(self, relyobj):
         """
-        运行计算层级聚类
-        :param relyobj: 依赖的agent
+        运行dbrda-tool
+        :param relyobj: 依赖对象
         :return:
         """
-        # matrix_agent_class = load_class_by_path('meta.beta_diversity.distance_calc')
         output_file_obj = relyobj.rely[0].option('dis_matrix')
-        hcluster = self.add_tool('meta.beta_diversity.hcluster')
-        hcluster.set_options({'dis_matrix': output_file_obj.prop['path'],
-                              'linkage': self.option('linkage')})
-        hcluster.on("end", self.set_output, 'hcluster')
-        hcluster.run()
+        dbrda = self.add_tool('meta.beta_diversity.dbrda')
+        dbrda.set_options({'dis_matrix': output_file_obj.prop['path'],
+                           'group': self.option('group').prop['path']})
+        dbrda.on("end", self.set_output, 'dbrda')
+        dbrda.run()
 
     def set_output(self, event):
         obj = event['bind_object']
-        if event['data'] == 'hcluster':
-            self.linkdir(obj.output_dir, 'Hcluster')
-            newfile = self.output_dir + '/Hcluster/' + os.path.basename(obj.option('newicktree').prop['path'])
-            self.option('dis_newick', newfile)
+        if event['data'] == 'dbrda':
+            self.linkdir(obj.output_dir, 'Dbrda')
             self.end()
         elif event['data'] == 'distance':
             self.linkdir(obj.output_dir, 'DistanceCalc')
@@ -69,7 +67,7 @@ class HclusterModule(Module):
 
     def run(self):
         self.matrix_run()
-        super(HclusterModule, self).run()
+        super(DbrdaModule, self).run()
 
     def linkdir(self, dirpath, dirname):
         """
