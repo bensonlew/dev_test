@@ -87,6 +87,8 @@ class PhyloTreeTool(Tool):
         设置输出文件
         """
         self.logger.info("set out put")
+        for f in os.listdir(self.output_dir):
+            os.remove(os.path.join(self.output_dir, f))
         os.link(self.work_dir+'/phylo.tre', self.output_dir+'/phylo.tre')
         self.option('phylo.tre').set_path(self.output_dir+'/phylo.tre')
         self.logger.info("done")

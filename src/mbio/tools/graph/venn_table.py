@@ -60,7 +60,7 @@ class VennTableTool(Tool):
         print venn_cmd
         os.system(venn_cmd)
         cmd = self.R_path + 'Rscript cmd.r'
-        print cmd
+        # print cmd
         self.logger.info("开始运行venn_table")
         command = self.add_command("venn_table", cmd)
         command.run()
@@ -77,6 +77,8 @@ class VennTableTool(Tool):
         将结果文件链接至output
         """
         self.logger.info("set out put")
+        for f in os.listdir(self.output_dir):
+            os.remove(os.path.join(self.output_dir, f))
         os.link(self.work_dir+'/venn_table.xls', self.output_dir+'/venn_table.xls')
         self.option('venn_table.xls').set_path(self.output_dir+'/venn_table.xls')
         self.logger.info("done")
