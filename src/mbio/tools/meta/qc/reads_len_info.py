@@ -23,9 +23,7 @@ class ReadsLenInfoAgent(Agent):
         :param allow_step:允许的步长
         """
         super(ReadsLenInfoAgent, self).__init__(parent)
-        options = [{"name": "fasta_path", "type": "infile", "format": "sequence.fasta_dir"},  # 输入的fasta文件夹
-                   {"name": "sample_number", "type": "int"},  # 项目中包含的样本的数目，应当和输入文件夹中的fsta或者fastq文件的数目一致，用于检查是否有样本遗漏
-                   {"name": "reads_len_info", "type": "outfile", "format": "meta.qc.reads_len_info_dir"}]  # 输出的reads_len_info文件夹
+        options = [{"name": "fasta_path", "type": "infile", "format": "sequence.fasta_dir"}]  # 输入的fasta文件夹
         self.add_option(options)
 
     def check_options(self):
@@ -35,11 +33,6 @@ class ReadsLenInfoAgent(Agent):
         """
         if not self.option("fasta_path").is_set:
             raise OptionError("参数fasta_path不能都为空")
-        if not self.option("sample_number"):
-            raise OptionError("必须设置参数sample_number")
-        # 设置文件夹的文件数目，并检测与实际的数目是否一致
-        self.option("fasta_path").set_file_number(self.option("sample_number"))
-        self.option("fasta_path").check()
         return True
 
     def set_resource(self):
@@ -57,7 +50,7 @@ class ReadsLenInfoTool(Tool):
         super(ReadsLenInfoTool, self).__init__(config)
         self._version = 1.0
         self.longest = ""
-        self.allowed_step = [1, 20, 50, 100]
+        self.allowed_step = [1, 20, 50, 100, 200]
 
     def _create_reads_len_info(self):
         """
@@ -66,7 +59,6 @@ class ReadsLenInfoTool(Tool):
         tmp_dir = os.path.join(self.work_dir, "output", "reads_len_info")
         if not os.path.exists(tmp_dir):
             os.mkdir(tmp_dir)
-        self.option("reads_len_info").set_path(tmp_dir)
         # 寻找最长的序列
         self.logger.info("开始寻找所有样本中最长的序列")
         max_list = list()
@@ -119,6 +111,7 @@ class ReadsLenInfoTool(Tool):
         self.step_20 = defaultdict(int)
         self.step_50 = defaultdict(int)
         self.step_100 = defaultdict(int)
+        self.step_200 = defaultdict(int)
         for seq in SeqIO.parse(fasta, "fasta"):
             len_ = len(seq.seq)
             for i in self.allowed_step:

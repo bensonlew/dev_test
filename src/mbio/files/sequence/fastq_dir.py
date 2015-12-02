@@ -133,7 +133,4 @@ class FastqDirFile(Directory):
         :return:
         """
         if super(FastqDirFile, self).check():
-            if "expect_number" not in self.prop.keys():
-                raise FileError("还未设置该文件夹下的fastq文件数目")
-            if self.prop['expect_number'] != self.get_fastq_number():
-                raise FileError("实际fastq文件数目不等于设定值")
+            return True
