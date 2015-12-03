@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import re
-import os
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
@@ -63,5 +62,3 @@ class GroupTableFile(File):
             if self.prop['group_number'] == 0:
                 raise FileError('应该至少包含一个分组')
             self.format_check()
-
-

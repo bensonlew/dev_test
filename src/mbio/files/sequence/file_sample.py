@@ -5,14 +5,13 @@ from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
 
-class NameSampleFile(File):
+class FileSampleFile(File):
     """
-    定义 名称——样本 的文件格式
-    这里的名称可以是文件名，当qc模块的输入是一个fastq文件夹的时候，用于规范化文件名
-    这里的名称也可以是序列名，当qc模块的输入是一个fastq文件的时候，用于拆分出各个样本
+    定义 文件名——样本 的文件格式
+    这里的名称是文件名，当qc模块的输入是一个fastq文件夹的时候，用于规范化文件名
     """
     def __init__(self):
-        super(NameSampleFile, self).__init__()
+        super(FileSampleFile, self).__init__()
         self.col = 0
         self.repeat_name = False
 
@@ -20,7 +19,7 @@ class NameSampleFile(File):
         """
         获取文件属性
         """
-        super(NameSampleFile, self).get_info()
+        super(FileSampleFile, self).get_info()
         (info, count) = self.get_file_info()
         self.set_property("sample_number", len(info))
         self.set_property("seq_number", count)
@@ -28,7 +27,7 @@ class NameSampleFile(File):
 
     def get_file_info(self):
         """
-        获取name_sample文件的信息
+        获取file_sample文件的信息
         """
         with open(self.prop['path'], 'r') as f:
             sample = dict()
@@ -48,11 +47,11 @@ class NameSampleFile(File):
         return sample, count
 
     def check(self):
-        if super(NameSampleFile, self).check():
+        if super(FileSampleFile, self).check():
             if self.prop["sample_number"] == 0:
                 raise FileError('应该至少包含一个样本')
             if self.col != 2:
                 raise FileError('这个文件的列数为2')
             if self.repeat_name:
-                raise FileError('文件名/序列名不能重复！')
+                raise FileError('文件名不能重复！')
             return True

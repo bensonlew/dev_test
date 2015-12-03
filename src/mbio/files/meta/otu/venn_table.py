@@ -2,6 +2,7 @@
 # __author__ = 'xuting'
 import re
 from biocluster.iofile import File
+from biocluster.core.exceptions import FileError
 
 
 class VennTableFile(File):
@@ -32,3 +33,15 @@ class VennTableFile(File):
                 line = re.split(r'\t', line)
                 if re.search(r'(.+)\s+only', line[0]):
                     self.group.append(re.search(r'(.+)\s+only', line[0]).group(1))
+
+    def check(self):
+        """
+        检测文件格式
+        """
+        if super(VennTableFile, self).check():
+            with open(self.prop['path']) as f:
+                line = f.readline().rstrip('\n')
+                line = re.split('\t')
+                if len(line) != 3:
+                    raise FileError('文件格式错误')
+            return True

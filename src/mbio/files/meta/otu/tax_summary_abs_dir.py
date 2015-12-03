@@ -21,9 +21,9 @@ class TaxSummaryAbsDirFile(Directory):
         获取文件夹属性
         """
         if 'path' in self.prop.keys() and os.path.isdir(self.prop['path']):
-            pass
-        else:
-            raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
+            self.get_file_number()
+            self.set_property('biom_number', self.biom)
+            self.set_property('otu_number', self.otu_table)
 
     def get_file_number(self):
         """
@@ -48,4 +48,5 @@ class TaxSummaryAbsDirFile(Directory):
         检测文件夹是否满足要求，不满足时触发FileError异常
         """
         if super(TaxSummaryAbsDirFile, self).check():
-            pass
+            if self.biom % 7 != 0:
+                raise FileError("文件格式不正确")
