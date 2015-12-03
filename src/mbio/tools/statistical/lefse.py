@@ -12,17 +12,16 @@ class LefseAgent(Agent):
     statistical lefse+ 调用analysis_lefse.py 脚本进行lefse分析
     version v1.0
     author: qiuping
-    last_modify: 2015.11.30
+    last_modify: 2015.12.03
     """
-    def __init__(self,parent):
-        super(LefseAgent,self).__init__(parent)
+    def __init__(self, parent):
+        super(LefseAgent, self).__init__(parent)
         options = [
-            {"name": "lefse_input", "type": "infile", "format": "meta.otu.otu_table"},#输入文件，biom格式的otu表
+            {"name": "lefse_input", "type": "infile", "format": "meta.otu.otu_table"},  # 输入文件，biom格式的otu表
             {"name": "lefse_group", "type": "infile", "format": "meta.otu.group_table"},  # 输入分组文件
-            #{"name": "LDA", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出的结果,包括lefse分析的lda图
-            #{"name": "clado", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出结果,结果为lefse分析的clado图
-            #{"name": "lefse_xls", "type": "outfile", "format": "statistical.lda_table"},  # 输出结果
-            {"name": "l", "type": "string", "default": "6"},
+            # {"name": "LDA", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出的结果,包括lefse分析的lda图
+            # {"name": "clado", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出结果,结果为lefse分析的clado图
+            # {"name": "lefse_xls", "type": "outfile", "format": "statistical.lda_table"},  # 输出结果
             {"name": "lda_filter", "type": "float", "default": 2.0},
             {"name": "strict", "type": "int", "default": 0}
         ]
@@ -37,7 +36,7 @@ class LefseAgent(Agent):
             raise OptionError("必须设置输入的otutable文件.")
         if not self.option("lefse_group").is_set:
             raise OptionError("必须提供分组信息文件")
-        if self.option("strict") not in [0, 1, 2]:
+        if self.option("strict") not in [0, 1]:
             raise OptionError("所设严格性超出范围值")
         return True
 
@@ -54,13 +53,12 @@ class LefseTool(Tool):
     """
     Lefse tool
     """
-    def __init__(self,config):
-        super(LefseTool,self).__init__(config)
+    def __init__(self, config):
+        super(LefseTool, self).__init__(config)
         self._version = '1.0.1'
         self.biom_path = "Python/bin/"
         self.script_path = "meta/scripts/"
         self.plot_lefse_path = "meta/lefse/"
-
 
     def run_biom(self):
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR+"/gcc/5.1.0/lib64:$LD_LIBRARY_PATH")
@@ -119,18 +117,17 @@ class LefseTool(Tool):
             for names in files:
                 os.remove(os.path.join(root, names))
         os.link(self.work_dir + '/lefse_LDA.cladogram.pdf', self.output_dir + '/lefse_LDA.cladogram.pdf')
-        #self.option('clado').set_path(self.output_dir+'/lefse_LDA.cladogram.pdf')
+        # self.option('clado').set_path(self.output_dir+'/lefse_LDA.cladogram.pdf')
         os.link(self.work_dir + '/lefse_LDA.pdf', self.output_dir + '/lefse_LDA.pdf')
-        #self.option('LDA').set_path(self.output_dir+'/lefse_LDA.pdf')
+        # self.option('LDA').set_path(self.output_dir+'/lefse_LDA.pdf')
         os.link(self.work_dir + '/lefse_LDA.xls', self.output_dir + '/lefse_LDA.xls')
-        #self.option('lefse_xls').set_path(self.output_dir+'/lefse_LDA.xls')
+        # self.option('lefse_xls').set_path(self.output_dir+'/lefse_LDA.xls')
 
     def run(self):
-        super(LefseTool,self).run()
+        super(LefseTool, self).run()
         self.run_biom()
         self.run_script()
         self.run_sum_tax()
         self.run_plot_lefse()
         self.set_lefse_output()
         self.end()
-        
