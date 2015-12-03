@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 from biocluster.iofile import File
+from biocluster.core.exceptions import FileError
 from biocluster.config import Config
 
 
@@ -53,7 +54,6 @@ class FastqFile(File):
         self._prepare(work_path)
         self.convert_to_fasta()
         seqinfo = self.get_seq_info()
-        self.set_property("format", "FASTQ")
         self.set_property("unzip", self.unzipfile)
         self.set_property("fasta", self.fastaname)
         self.set_property("fasta_fomat", seqinfo[0])
@@ -68,6 +68,26 @@ class FastqFile(File):
         :return: bool
         """
         if super(FastqFile, self).check():
+            if re.search(r'\.gz$', self.prop['path']):
+                try:
+                    cmd = "gunzip -c " + self.prop['path'] + "| head -n 5"
+                    lines = subprocess.check_output(cmd)
+                    lines = re.split('\n', lines)
+                    if not (re.search(r'^@', lines[0]) and re.search(r'^@', lines[4])):
+                        raise FileError("非压缩后的fastq格式文件")
+                except subprocess.CalledProcessError:
+                    raise FileError("非压缩后的fastq格式文件")
+            else:
+                with open(self.prop['path'], 'r') as r:
+                    line = r.next()
+                    if not re.search(r'^@', line):
+                        raise FileError("fastq文件格式错误")
+                    line = r.next()
+                    line = r.next()
+                    line = r.next()
+                    line = r.next()
+                    if not re.search(r'^@', line):
+                        raise FileError("fastq文件格式错误")
             return True
 
     def _prepare(self, work_path):
@@ -93,7 +113,7 @@ class FastqFile(File):
         """
         if not self.is_convert:
             try:
-                convert_str = (self.fastq_to_fasta_path + ' -Q 33' + ' -i '
+                convert_str = (self.fastq_to_fasta_path + ' -i '
                                + self.unzipfile + ' -o ' + self.fastaname)
                 subprocess.check_call(convert_str, shell=True)
                 self.is_convert = True

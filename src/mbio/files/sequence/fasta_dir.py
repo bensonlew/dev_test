@@ -122,7 +122,7 @@ class FastaDirFile(Directory):
                 for seq in SeqIO.parse(fasta, "fasta"):
                     new_id = str(sample_name) + '_' + str(seq.id)
                     f.write('>' + new_id + "\n")
-                    f.write(seq.seq + "\n")
+                    f.write(str(seq.seq) + "\n")
         return cat_fasta
 
     def check(self):
