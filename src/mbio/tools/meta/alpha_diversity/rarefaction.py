@@ -4,6 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 import shutil
+import glob
 from biocluster.core.exceptions import OptionError
 
 
@@ -87,17 +88,19 @@ class RarefactionTool(Tool):
         处理结果文件，将结果文件归类放入相应文件夹并将文件夹连接至output
         """
         self.logger.info("set out put")
+        for f in glob.glob(r"otu*"):
+            os.rename(f, f + '.xls')
         for root, dirs, files in os.walk(self.output_dir):
             for names in dirs:
                 shutil.rmtree(os.path.join(self.output_dir, names))
         for estimators in self.option('indices').split('-'):
-            cmd = 'mkdir %s|find -name "otu*%s"|xargs mv -t %s' % (estimators, estimators, estimators,)
+            cmd = 'mkdir %s|find -name "otu*%s*"|xargs mv -t %s' % (estimators, estimators, estimators,)
             os.system(cmd)
             os.system('cp -r %s %s' % (estimators, self.output_dir))
-        os.system('mkdir rarefaction|find -name "otu*rarefaction"|xargs mv -t rarefaction')
+        os.system('mkdir rarefaction|find -name "otu*rarefaction*"|xargs mv -t rarefaction')
         os.system('cp -r rarefaction %s' % self.output_dir)
-        os.system('mkdir rabund|find -name "otu*rabund"|xargs mv -t rabund')
-        os.system('cp -r rabund %s' % self.output_dir)
+        os.system('mkdir rabund|find -name "otu*rabund*"|xargs mv -t rabund')
+        # os.system('cp -r rabund %s' % self.output_dir)
         # self.option('rarefaction').set_path(self.output_dir+'/rarefaction')
         self.logger.info("done")
 

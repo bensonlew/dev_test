@@ -21,9 +21,9 @@ class QcFormatAgent(Agent):
         super(QcFormatAgent, self).__init__(parent)
         options = [
             {'name': 'fastq_dir', 'type': 'infile', 'format': 'sequence.fastq_dir'},  # 输入的fastq文件夹
-            {'name': 'filename_sample', 'type': 'infile', 'format': 'sequence.name_sample'},  # 文件名样品对应表
+            {'name': 'filename_sample', 'type': 'infile', 'format': 'sequence.file_sample'},  # 文件名样品对应表
             {'name': 'fastq', 'type': 'infile', 'format': 'sequence.fastq'},  # 输入的fastq文件
-            {'name': 'seqname_sample', 'type': 'infile', 'format': 'sequence.name_sample'},  # 序列名样品对应表
+            {'name': 'seqname_sample', 'type': 'infile', 'format': 'sequence.seq_sample'},  # 序列名样品对应表
             {'name': 'otu_fasta', 'type': 'outfile', 'format': 'sequence.fasta'},  # 输出的合并到一起的fasta，供后续的otu分析用
             {'name': 'renamed_fastq_dir', 'type': 'outfile', 'format': 'sequence.fastq_dir'},  # 按样本名进行重命名或者拆分的fastq文件夹
             {'name': 'fasta_dir', 'type': 'outfile', 'format': 'sequence.fasta_dir'}]  # 由fastq文件夹转化而来的fasta文件
@@ -45,7 +45,6 @@ class QcFormatAgent(Agent):
         """
         self._cpu = 10
         self._memory = ''
-        self.seq_sample = dict()
 
 
 class QcFormatTool(Tool):
@@ -54,6 +53,7 @@ class QcFormatTool(Tool):
         self.fastq_dir = os.path.join(self.work_dir, "output", "fastq_dir")
         self.fasta_dir = ''
         self.fasta = ''
+        self.seq_sample = dict()
 
     def rename_fastq(self):
         """
@@ -83,21 +83,27 @@ class QcFormatTool(Tool):
         无对应文件，拆分fastq
         """
         warninglog = False
+        count = 0
         with open(self.option('fastq').prop['path'], 'r') as f:
             for line in f:
+                count += 1
                 line = line.rstrip('\n')
                 name = re.split('\s+', line)[0]
+                name = re.sub(r'@', '', name)
                 line = re.split(r'_', name)
                 if len(line) > 2:
                     warninglog = True
-                filename = os.path.join(self.fastq_dir, line[-1] + ".fastq")
+                filename = os.path.join(self.fastq_dir, line[0] + ".fastq")
                 with open(filename, 'a') as a:
-                    a.write(">" + name + "\n")
+                    a.write("@" + name + "\n")
                     for i in range(1, 4):
-                        line = f.readline()
+                        line = f.next()
                         a.write(line)
+                if count % 10000 == 0:
+                    self.logger.info("正在输出第" + str(count) + "条序列")
         if warninglog:
             self.logger.warning("fastq文件里包含有两个以上的下划线，程序将取最后一个下划线后的内容作为样本名！")
+        self.logger.info("fastq 文件拆分完毕 ")
 
     def split_fastq_with_file(self):
         """
@@ -113,16 +119,20 @@ class QcFormatTool(Tool):
             for line in f:
                 line = line.rstrip('\n')
                 name = re.split('\s+', line)[0]
+                name = re.sub(r'@', '', name)
                 filename = os.path.join(self.fastq_dir, self.seq_sample[name] + ".fastq")
                 with open(filename, 'a') as a:
-                    a.write(">" + name + "\n")
+                    a.write("@" + name + "\n")
                     count += 1
                     for i in range(1, 4):
-                        line = f.readline()
+                        line = next(f)
                         a.write(line)
+                if count % 10000 == 0:
+                    self.logger.info("正在输出第" + str(count) + "条序列")
         percent = count / self.option('seqname_sample').prop["seq_number"]
         if percent < 0.8:
             self.logger.warning("仅" + str(percent) + "的序列在seq_number表里被找到")
+        self.logger.info("fastq 文件拆分完毕，成功生成fastq文件夹")
 
     def get_fastq_dir(self):
         """
@@ -146,6 +156,7 @@ class QcFormatTool(Tool):
         fq_dir.set_path(self.fastq_dir)
         fq_dir.get_full_info(os.path.join(self.work_dir, "output"))
         self.fasta_dir = fq_dir.covert_to_fasta()
+        self.logger.info("fasta 文件夹生成完毕")
 
     def get_fasta(self):
         """
@@ -155,8 +166,11 @@ class QcFormatTool(Tool):
         fa.set_path(self.fasta_dir)
         fa.get_full_info(os.path.join(self.work_dir, "output"))
         self.fasta = fa.cat_fastas_for_meta()
+        self.logger.debug(self.fasta)
+        self.logger.info("后续OTU分析的fasta文件生成完毕")
 
     def set_output(self):
+        self.logger.debug("set output begin")
         self.option('otu_fasta').set_path(self.fasta)
         self.option('renamed_fastq_dir').set_path(self.fastq_dir)
         self.option('fasta_dir').set_path(self.fasta_dir)
@@ -166,8 +180,14 @@ class QcFormatTool(Tool):
         运行
         """
         super(QcFormatTool, self).run()
+        if self.option('seqname_sample').is_set:
+            self.logger.info("开始解析seqname_sample文件")
+            self.option('seqname_sample').get_full_info()
+            self.option('seqname_sample').full_check()
+            self.logger.info("解析seqname_sample文件完毕")
         self.get_fastq_dir()
         self.get_fasta_dir()
         self.get_fasta()
         self.set_output()
+        self.logger.info("程序完成，即将退出")
         self.end()

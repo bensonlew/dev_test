@@ -60,10 +60,13 @@ class AlphaDiversityModule(Module):
                 shutil.rmtree(os.path.join(self.output_dir, names))
             for f in files:
                 os.remove(os.path.join(self.output_dir, f))
-        estimators = self.work_dir + '/Estimators/output/estimators'
+        estimators = self.work_dir + '/Estimators/output/estimators.xls'
         rarefaction = self.work_dir + '/Rarefaction/output/rarefaction/'
-        os.link(estimators, self.output_dir + '/estimators')
+        os.link(estimators, self.output_dir + '/estimators.xls')
         os.system('cp -r %s %s' % (rarefaction, self.output_dir))
+        for estimators in self.option('indices').split('-'):
+            est_path = self.work_dir + '/Rarefaction/output/%s/' % estimators
+            os.system('cp -r %s %s' % (est_path, self.output_dir))
         # self.option('estimators').set_path(self.output_dir+'/estimators')
         # self.option('rarefaction').set_path(self.output_dir+'/rarefaction')
         self.logger.info('done')

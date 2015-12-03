@@ -3,7 +3,7 @@
 
 from biocluster.module import Module
 import os
-# from biocluster.core.exceptions import OptionError
+from biocluster.core.exceptions import OptionError
 # from biocluster.core.function import load_class_by_path
 
 
@@ -22,7 +22,8 @@ class HclusterModule(Module):
         self.add_option(options)
 
     def check_options(self):
-        pass
+        if self.option('linkage') not in ['average', 'single', 'complete']:
+            raise OptionError('错误的层级聚类方式：%s' % self.option('linkage'))
 
     def matrix_run(self):
         """
