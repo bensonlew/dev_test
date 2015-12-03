@@ -37,8 +37,10 @@ class JobManager(object):
             filled = True
             gevent.sleep(1)
         else:
+            agent.logger.info("开始投递远程任务!")
             self.jobs.append(job)
             job.submit()
+            agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, job.id))
         return job
 
     def get_all_jobs(self):

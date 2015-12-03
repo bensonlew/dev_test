@@ -6,11 +6,12 @@ import gevent
 from gevent import Greenlet
 import datetime
 import threading
-import time
 import inspect
 import zerorpc
 import sys
 import platform
+import traceback
+import os
 
 
 class State(object):
@@ -53,24 +54,29 @@ class LocalActor(gevent.Greenlet):
 
         :param message: message为远程rpc传递的数据,python dict类型数据 必须包含 key "event"
         """
-        if self._update is None:
-            self._agent.fire('runstart', message["data"])
-        self._update = datetime.datetime.now()
-        if (not isinstance(message, dict)) or ('state' not in message.keys()):
-            self._agent.logger.warning("接收到不符合规范的消息，丢弃!")
-        if message['state'] != "keepalive":
-            if hasattr(self._agent, message['state']+'_callback'):
-                func = getattr(self._agent, message['state']+'_callback')
-                argspec = inspect.getargspec(func)
-                args = argspec.args
-                if len(args) == 1:
-                    func()
-                elif len(args) == 2:
-                    func(message['data'])
+        try:
+            if self._update is None:
+                self._agent.fire('runstart', message["data"])
+            self._update = datetime.datetime.now()
+            if (not isinstance(message, dict)) or ('state' not in message.keys()):
+                self._agent.logger.warning("接收到不符合规范的消息，丢弃!")
+            if message['state'] != "keepalive":
+                if hasattr(self._agent, message['state']+'_callback'):
+                    func = getattr(self._agent, message['state']+'_callback')
+                    argspec = inspect.getargspec(func)
+                    args = argspec.args
+                    if len(args) == 1:
+                        func()
+                    elif len(args) == 2:
+                        func(message['data'])
+                    else:
+                        raise Exception("状态回调函数参数不能超过2个(包括self)!")
                 else:
-                    raise Exception("状态回调函数参数不能超过2个(包括self)!")
-            else:
-                self.default_callback(message)
+                    self.default_callback(message)
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self._agent.get_workflow().exit(exitcode=1, data=e)
 
     def default_callback(self, message):
         """
@@ -95,12 +101,14 @@ class RemoteActor(threading.Thread):
     每个Tool远程运行时都会产生一个RemoteActor对象,负责远端运行时的消息处理机制。
     负责将Tool运行过程中添加的State状态发送到其对应的Agent对象，并调用对应的函数进行处理。如果Agent返回了Action命令，则调用对于的Action方法
     """
-    def __init__(self, tool):
+    def __init__(self, tool, main_thread):
         super(RemoteActor, self).__init__()
         self._tool = tool
         self.config = tool.config
         self.mutex = threading.Lock()
         self._lost_connection_count = 0
+        self.main_thread = main_thread
+        self._has_record_commands = []
 
     def run(self):
         """
@@ -108,15 +116,16 @@ class RemoteActor(threading.Thread):
 
         :return: None
         """
+        gevent.spawn(self.check_command)
         while (not self._tool.is_end) or len(self._tool.states) > 0:
             if self._tool.exit_signal and len(self._tool.states) == 0:
                 self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
                 break
-            is_main_thread_active = True
-            for i in threading.enumerate():
-                if i.name == "MainThread":
-                    is_main_thread_active = i.is_alive()
-            if not is_main_thread_active and len(self._tool.states) == 0 and self._tool.exit_signal is not True:
+            # is_main_thread_active = True
+            # for i in threading.enumerate():
+            #     if i.name == "MainThread":
+            #         is_main_thread_active = i.is_alive()
+            if not self.main_thread.is_alive() and len(self._tool.states) == 0 and self._tool.exit_signal is not True:
                 self.send_state(State('error', "检测到远程主线程异常结束"))
                 self._tool.logger.debug("检测到主线程已退出，终止运行!")
                 break
@@ -157,7 +166,7 @@ class RemoteActor(threading.Thread):
                                 raise Exception("action处理函数参数不能超过2个(包括self)!")
                         else:
                             self._tool.logger.warn("没有为返回action %s设置处理函数!" % action['action'])
-            time.sleep(int(self.config.KEEP_ALIVE_TIME))
+            gevent.sleep(int(self.config.KEEP_ALIVE_TIME))
 
     def send_state(self, state):
         """
@@ -170,19 +179,19 @@ class RemoteActor(threading.Thread):
                "state": state.name,
                "data": state.data
                }
-        client = zerorpc.Client()
-        client.connect(self.config.endpoint)
         try:
+            client = zerorpc.Client()
+            client.connect(self.config.endpoint)
             result = client.report(msg)
         except Exception, e:
             self._lost_connection_count += 1
             if self._lost_connection_count >= 10:
                 self._tool.logger.error("网络连接出现错误，尝试10次仍然无法连接，即将退出运行:%s" % e)
                 self._tool.exit_signal = True
-                sys.exit(1)
+                os.system("kill -9 %s" % os.getpid())
             else:
                 self._tool.logger.error("网络连接出现错误，将重新尝试连接:%s" % e)
-                time.sleep(1)
+                gevent.sleep(1)
                 self.send_state(state)
         else:
             if not isinstance(result, dict):
@@ -190,3 +199,12 @@ class RemoteActor(threading.Thread):
                 sys.exit(1)
             self._lost_connection_count = 0
             return result
+
+    def check_command(self):
+        for name, cmd in self._tool.commands.iteritems():
+            if self._tool.is_end:
+                break
+            if name not in self._has_record_commands:
+                gevent.spawn(self._tool.resource_record, cmd)
+                self._has_record_commands.append(name)
+            gevent.sleep(0)

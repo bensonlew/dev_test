@@ -10,6 +10,7 @@ import inspect
 from gevent.lock import BoundedSemaphore
 import socket
 from .exceptions import EventStopError, UnknownEventError
+import traceback
 
 
 class EventHandler(object):
@@ -55,28 +56,34 @@ class EventHandler(object):
             para = self._event.get()
             argspec = inspect.getargspec(func)
             args = argspec.args
-            if self.is_start:
-                event_data = {"bind_object": bindobject, "event": self, "data": data}
-                if inspect.ismethod(func):
-                    args.pop(0)
-                length = len(args)
-                if length == 0:
-                    func()
-                if length == 1:
-                    if args[0] == 'event':
-                        func(event_data)
-                    else:
-                        func(para)
-                if length == 2:
-                    if args[0] == 'event':
-                        func(event_data, para)
-                    else:
-                        func(para, event_data)
-                if length > 2:
+            try:
+                if self.is_start:
+                    event_data = {"bind_object": bindobject, "event": self, "data": data}
                     if inspect.ismethod(func):
-                        raise Exception("指定的绑定函数%s为bound method,参数超过限制个数!" % func)
-                    else:
-                        raise Exception("指定的绑定函数%s为unbound function,参数超过限制个数!" % func)
+                        args.pop(0)
+                    length = len(args)
+                    if length == 0:
+                        func()
+                    if length == 1:
+                        if args[0] == 'event':
+                            func(event_data)
+                        else:
+                            func(para)
+                    if length == 2:
+                        if args[0] == 'event':
+                            func(event_data, para)
+                        else:
+                            func(para, event_data)
+                    if length > 2:
+                        if inspect.ismethod(func):
+                            raise Exception("指定的绑定函数%s为bound method,参数超过限制个数!" % func)
+                        else:
+                            raise Exception("指定的绑定函数%s为unbound function,参数超过限制个数!" % func)
+            except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
+                if hasattr(bindobject, "get_workflow"):
+                    bindobject.get_workflow().exit(exitcode=1, data=e)
         return waiter
 
     def bind(self, func, bindobject, data=None):
@@ -130,6 +137,7 @@ class EventHandler(object):
             if self.is_start:
                 self._event.set(para)
             else:
+                # print self.name, self
                 raise EventStopError(self.name)
             gevent.sleep(0)
 

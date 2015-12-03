@@ -10,7 +10,7 @@ class Sheet(object):
     """
     workflow 表单
     """
-    def __init__(self, jsonfile="", data={}):
+    def __init__(self, jsonfile="", data=None):
         """
         根据配置文件或者配置对象生成Sheet对象
         :param jsonfile: file path
