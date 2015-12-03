@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 
@@ -21,9 +22,9 @@ class AlphaDiversityModule(Module):
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table"},
             {"name": "indices", "type": "string", "format": "ace-chao-shannon-simpson-coverage"},
-            {"name": "random_number", "type": "int", "default": 100},
-            {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"},
-            {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}
+            {"name": "random_number", "type": "int", "default": 100}
+            # {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"},
+            # {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}
         ]
         self.add_option(options)
         self.rank_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
@@ -54,12 +55,20 @@ class AlphaDiversityModule(Module):
 
     def set_output(self):
         self.logger.info('set output')
-        estimators = self.work_dir + '/Estimators/output/estimators'
+        for root, dirs, files in os.walk(self.output_dir):
+            for names in dirs:
+                shutil.rmtree(os.path.join(self.output_dir, names))
+            for f in files:
+                os.remove(os.path.join(self.output_dir, f))
+        estimators = self.work_dir + '/Estimators/output/estimators.xls'
         rarefaction = self.work_dir + '/Rarefaction/output/rarefaction/'
-        os.link(estimators, self.output_dir + '/estimators')
+        os.link(estimators, self.output_dir + '/estimators.xls')
         os.system('cp -r %s %s' % (rarefaction, self.output_dir))
-        self.option('estimators').set_path(self.output_dir+'/estimators')
-        self.option('rarefaction').set_path(self.output_dir+'/rarefaction')
+        for estimators in self.option('indices').split('-'):
+            est_path = self.work_dir + '/Rarefaction/output/%s/' % estimators
+            os.system('cp -r %s %s' % (est_path, self.output_dir))
+        # self.option('estimators').set_path(self.output_dir+'/estimators')
+        # self.option('rarefaction').set_path(self.output_dir+'/rarefaction')
         self.logger.info('done')
         self.end()
 

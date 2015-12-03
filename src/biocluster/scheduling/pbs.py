@@ -42,7 +42,7 @@ class PBS(Job):
         :return: jobid
         """
         pbs_file = self.create_file()
-        output = os.popen('ssh %s "/opt/torque/bin/qsub %s"' % (self.master_ip, pbs_file))
+        output = os.popen('ssh -o GSSAPIAuthentication=no %s "/opt/torque/bin/qsub %s"' % (self.master_ip, pbs_file))
         text = output.read()
         if re.match(r'Maximum number', text):
             self.agent.logger.warn("到达最大任务书，30秒后尝试再次投递!")
@@ -66,7 +66,7 @@ class PBS(Job):
         """
 
         if self.check_state():
-            os.system('ssh root@%s "/opt/torque/bin/qdel -p %s"' % (self.master_ip, self.id))
+            os.system('ssh -o GSSAPIAuthentication=no root@%s "/opt/torque/bin/qdel -p %s"' % (self.master_ip, self.id))
 
     def check_state(self):
         """
@@ -74,7 +74,7 @@ class PBS(Job):
 
         :return: string 返回任务状态代码 如果任务不存在 则返回False
         """
-        output = os.popen('ssh %s "/opt/torque/bin/qstat -f %s"' % (self.master_ip, self.id))
+        output = os.popen('ssh -o GSSAPIAuthentication=no %s "/opt/torque/bin/qstat -f %s"' % (self.master_ip, self.id))
         text = output.read()
         m = re.search(r"job_state = (\w+)", text)
         if m:

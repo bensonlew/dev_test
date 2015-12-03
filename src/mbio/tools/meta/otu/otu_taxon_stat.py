@@ -52,9 +52,9 @@ class OtuTaxonStatTool(Tool):
     def __init__(self, config):
         super(OtuTaxonStatTool, self).__init__(config)
         self._version = 1.0
-        self._biom_path = "meta/biom-format-2.1.4/scripts/biom"
-        self._make_otu_table_path = "meta/scripts/make_otu_table.py"
-        self._summarize_taxa_path = "meta/scripts/summarize_taxa.py"
+        self._biom_path = "Python/bin/biom"
+        self._make_otu_table_path = "Python/bin/make_otu_table.py"
+        self._summarize_taxa_path = "Python/bin/summarize_taxa.py"
         self._sum_tax_path = os.path.join(Config().SOFTWARE_DIR, "meta/scripts/sum_tax.fix.pl")
         self.otu_taxon_dir = os.path.join(self.work_dir, "output", "tax_summary_a")
 

@@ -21,7 +21,7 @@ class EstimatorsAgent(Agent):
         options = [
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},  # 输入文件
             {"name": "indices", "type": "string", "default": "ace-chao-shannon-simpson"},  # 指数类型
-            {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}  # 输出结果
+            # {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}  # 输出结果
         ]
         self.add_option(options)
 
@@ -74,10 +74,8 @@ class EstimatorsTool(Tool):
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("运行mothur完成")
-            # self.end()
         else:
             self.set_error("运行mothur运行出错!")
-        # cmd2 = '/mnt/ilustre/users/sanger/qdh_test/estimatorsV3.py'
         os.system("python %sestimatorsV3.py" % self.estimator_path)
         self.set_output()
 
@@ -86,9 +84,12 @@ class EstimatorsTool(Tool):
         将结果文件链接至output
         """
         self.logger.info("set out put")
-        os.link(self.work_dir+'/estimators', self.output_dir+'/estimators')
-        self.option('estimators').set_path(self.output_dir+'/estimators')
-        # self.logger.info(self.option('estimators').prop)
+        if len(os.listdir(self.output_dir)) != 0:
+            os.remove(self.output_dir+'/estimators.xls')
+            os.link(self.work_dir+'/estimators.xls', self.output_dir+'/estimators.xls')
+        else:
+            os.link(self.work_dir+'/estimators.xls', self.output_dir+'/estimators.xls')
+            # self.option('estimators').set_path(self.output_dir+'/estimators')
         self.logger.info("done")
 
     def run(self):

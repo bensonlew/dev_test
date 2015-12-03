@@ -3,27 +3,23 @@
 
 from biocluster.module import Module
 import os
-from biocluster.core.exceptions import OptionError
+# from biocluster.core.exceptions import OptionError
 # from biocluster.core.function import load_class_by_path
 
 
-class HclusterModule(Module):
+class NmdsModule(Module):
     def __init__(self, work_id):
-        super(HclusterModule, self).__init__(work_id)
+        super(NmdsModule, self).__init__(work_id)
         options = [
             {"name": "method", "type": "string", "default": "bray_curtis"},
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},
             {"name": "phy_newick", "type": "infile",
-             "format": "meta.beta_diversity.newick_tree"},
-            {"name": "dis_newick", "type": "outfile",
-                "format": "meta.beta_diversity.newick_tree"},
-            {"name": "linkage", "type": "string", "default": "average"}
+             "format": "meta.beta_diversity.newick_tree"}
         ]
         self.add_option(options)
 
     def check_options(self):
-        if self.option('linkage') not in ['average', 'single', 'complete']:
-            raise OptionError('错误的层级聚类方式：%s' % self.option('linkage'))
+        pass
 
     def matrix_run(self):
         """
@@ -38,30 +34,26 @@ class HclusterModule(Module):
         else:
             matrix.set_options({'method': self.option('method'),
                                 'otutable': self.option('otutable').prop['path']})
-        self.on_rely(matrix, self.hcluster_run)
+        self.on_rely(matrix, self.nmds_run)
         matrix.on('end', self.set_output, 'distance')
         matrix.run()
 
-    def hcluster_run(self, relyobj):
+    def nmds_run(self, relyobj):
         """
-        运行计算层级聚类
-        :param relyobj: 依赖的agent
+        运行nmds-tool
+        :param relyobj:  依赖对象
         :return:
         """
-        # matrix_agent_class = load_class_by_path('meta.beta_diversity.distance_calc')
         output_file_obj = relyobj.rely[0].option('dis_matrix')
-        hcluster = self.add_tool('meta.beta_diversity.hcluster')
-        hcluster.set_options({'dis_matrix': output_file_obj.prop['path'],
-                              'linkage': self.option('linkage')})
-        hcluster.on("end", self.set_output, 'hcluster')
-        hcluster.run()
+        nmds = self.add_tool('meta.beta_diversity.nmds')
+        nmds.set_options({'dis_matrix': output_file_obj.prop['path']})
+        nmds.on("end", self.set_output, 'nmds')
+        nmds.run()
 
     def set_output(self, event):
         obj = event['bind_object']
-        if event['data'] == 'hcluster':
-            self.linkdir(obj.output_dir, 'Hcluster')
-            newfile = self.output_dir + '/Hcluster/' + os.path.basename(obj.option('newicktree').prop['path'])
-            self.option('dis_newick', newfile)
+        if event['data'] == 'nmds':
+            self.linkdir(obj.output_dir, 'Nmds')
             self.end()
         elif event['data'] == 'distance':
             self.linkdir(obj.output_dir, 'DistanceCalc')
@@ -70,7 +62,7 @@ class HclusterModule(Module):
 
     def run(self):
         self.matrix_run()
-        super(HclusterModule, self).run()
+        super(NmdsModule, self).run()
 
     def linkdir(self, dirpath, dirname):
         """

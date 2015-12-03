@@ -97,9 +97,6 @@ class DistanceCalcTool(Tool):
                 os.remove(linkfile)
             os.link(filename, linkfile)
             self.option('dis_matrix').set_path(linkfile)
-            self.logger.info(self.option('dis_matrix'))
-            self.logger.info(self.option('dis_matrix').prop['path'])
-            # self.logger.info(self.option('dis_matrix').prop)
             self.end()
         else:
             self.set_error('运行qiime:beta_diversity.py出错')

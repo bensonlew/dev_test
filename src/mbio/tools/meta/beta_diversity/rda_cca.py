@@ -5,7 +5,6 @@ from biocluster.tool import Tool
 import os
 import subprocess
 from biocluster.core.exceptions import OptionError
-from mbio.files.meta.beta_diversity.rda_outdir import RdaOutdirFile
 
 
 class RdaCcaAgent(Agent):
@@ -20,9 +19,7 @@ class RdaCcaAgent(Agent):
         super(RdaCcaAgent, self).__init__(parent)
         options = [
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},
-            {"name": "envtable", "type": "infile", "format": "meta.env_table"},
-            {"name": "rda_outdir", "type": "outfile", "format": "meta.beta_diversity.rda_outdir"}
-            # 包括样本，物种和环境因子坐标和RDA 或者CCA轴权重值
+            {"name": "envtable", "type": "infile", "format": "meta.env_table"}
         ]
         self.add_option(options)
 
@@ -34,6 +31,7 @@ class RdaCcaAgent(Agent):
             raise OptionError('必须提供otu表')
         if not self.option('envtable').is_set:
             raise OptionError('必须提供环境因子表')
+        return True
 
     def set_resource(self):
         """
@@ -78,29 +76,53 @@ class RdaCcaTool(Tool):
         except subprocess.CalledProcessError:
             self.logger.info('Rda/Cca计算失败')
             self.set_error('R程序计算Rda/Cca失败')
-        rda_results = RdaOutdirFile()
-        rda_results.set_path(self.work_dir + '/rda')
-        self.linkfiles(rda_results)
-        self.option('rda_outdir', self.output_dir)
+        allfiles = self.get_filesname()
+        for i in range(5):
+            self.linkfile(allfiles[i], os.path.basename(allfiles[i]))
         self.logger.info('运行ordination.pl程序计算rda/cca完成')
         self.end()
 
-    def linkfiles(self, dir_obj):
+    def linkfile(self, oldfile, newname):
         """
-        整理结果到output文件夹
-        :param dir_obj: 原始文件夹RdaOutdirFile对象
+        link文件到output文件夹
+        :param oldfile: 资源文件路径
+        :param newname: 新的文件名
+        :return:
         """
-        allfile = [dir_obj.prop['sites_file'], dir_obj.prop['species_file'], dir_obj.prop['imp_file'],
-                   dir_obj.prop['dca_file'], dir_obj.prop['env_file']]
-        for afile in allfile:
-            self.linkfile(afile)
+        newpath = os.path.join(self.output_dir, newname)
+        if os.path.exists(newpath):
+            os.remove(newpath)
+        os.link(oldfile, newpath)
 
-    def linkfile(self, linkfile):
+    def get_filesname(self):
         """
-        连接一个文件到output
-        :param linkfile: 文件路径
+        获取并检查文件夹下的文件是否存在
+
+        :return rda_imp,rda_spe,rda_dca,rda_site,rda_env: 返回各个文件
         """
-        newlink = os.path.join(self.output_dir, os.path.basename(linkfile))
-        if os.path.exists(newlink):
-            os.remove(newlink)
-        os.link(linkfile, newlink)
+        filelist = os.listdir(self.work_dir + '/rda')
+        rda_imp = None
+        rda_spe = None
+        rda_dca = None
+        rda_site = None
+        rda_env = None
+        for name in filelist:
+            if '_importance.xls' in name:
+                rda_imp = name
+            elif '_sites.xls' in name:
+                rda_site = name
+            elif '_species.xls' in name:
+                rda_spe = name
+            elif '_dca.txt' in name:
+                rda_dca = name
+            elif '_environment.xls' in name:
+                rda_env = name
+        if rda_imp and rda_site and rda_spe and rda_dca and rda_env:
+            return [self.work_dir + '/rda/' + rda_imp,
+                    self.work_dir + '/rda/' + rda_spe,
+                    self.work_dir + '/rda/' + rda_dca,
+                    self.work_dir + '/rda/' + rda_site,
+                    self.work_dir + '/rda/' + rda_env]
+        else:
+            self.set_error('未知原因，数据计算结果丢失或者未生成')
+

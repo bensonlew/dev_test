@@ -52,7 +52,7 @@ class QiimeAssignAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '50000M'
 
 
 class QiimeAssignTool(Tool):
@@ -61,7 +61,7 @@ class QiimeAssignTool(Tool):
     """
     def __init__(self, config):
         super(QiimeAssignTool, self).__init__(config)
-        self.script_path = "meta/scripts/"
+        self.qiime_path = "Python/bin/"
 
     def run_prepare(self):
         if self.option('revcomp'):
@@ -87,7 +87,7 @@ class QiimeAssignTool(Tool):
             ref_tax = self.option('ref_taxon').prop['path']
         # export RDP_JAR_PATH=$HOME/app/rdp_classifier_2.2/rdp_classifier-2.2.jar"
         self.set_environ(RDP_JAR_PATH=self.config.SOFTWARE_DIR+"/meta/rdp_classifier_2.2/rdp_classifier-2.2.jar")
-        cmd = self.script_path+"assign_taxonomy.py  -m rdp -i seqs.fasta -c "+str(self.option('confidence'))+"  -r "+ref_fas+" -t "+ref_tax+" -o .  --rdp_max_memory 50000"
+        cmd = self.qiime_path+"assign_taxonomy.py  -m rdp -i seqs.fasta -c "+str(self.option('confidence'))+"  -r "+ref_fas+" -t "+ref_tax+" -o .  --rdp_max_memory 50000"
         self.logger.info(u"生成命令: "+cmd)
         assign = self.add_command("assign", cmd)
         self.logger.info("开始运行assign")
