@@ -93,7 +93,7 @@ class MetaBaseWorkflow(Workflow):
 
     def run_stat(self, relyobj):
         self.stat.set_options({
-            "otu_seqids": relyobj.rely[0].option("otu_seqids"),
+            "otu_seqids": self.option("otu_seqids"),
             "taxon_file": self.option("taxon_file")
             })
         self.stat.on("end", self.set_output, "stat")
