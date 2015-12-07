@@ -11,9 +11,9 @@ from biocluster.core.exceptions import OptionError
 class RarefactionAgent(Agent):
     """
     rarefaction:稀释曲线
-    version 1.0  
-    author: qindanhua  
-    last_modify: 2015.11.10  
+    version 1.0
+    author: qindanhua
+    last_modify: 2015.11.10
     """
     ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven',
                   'shannoneven', 'heip', 'smithwilson', 'bergerparker', 'shannon',
@@ -25,6 +25,7 @@ class RarefactionAgent(Agent):
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},  # 输入文件
             {"name": "indices", "type": "string", "default": "chao-shannon"},  # 指数类型
             {"name": "random_number", "type": "int", "default": 100},  # 随机取样数
+            {"name": "level", "type": "string", "default": "otu"},  # level水平
             # {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"}  # 输出结果
         ]
         self.add_option(options)
@@ -35,6 +36,8 @@ class RarefactionAgent(Agent):
         """
         if not self.option("otutable").is_set:
             raise OptionError("请选择otu表")
+        if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class', 'order', 'family', 'genus', 'species']:
+            raise OptionError("请选择正确的分类水平")
         for estimators in self.option('indices').split('-'):
             if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
@@ -61,8 +64,11 @@ class RarefactionTool(Tool):
         """
         执行命令获得shared格式文件，shared文件为下一命令输入文件
         """
+        otutable = self.option("otutable").prop['path']
+        if self.option("otutable").format is "meta.otu.tax_summary_dir":
+            otutable = self.option("otutable").get_table(self.option("level"))
         cmd = os.path.join(self.shared_path, 'otu2shared.pl')
-        cmd += ' -i %s -l %s -o %s' % (self.option("otutable").prop["path"], '0.97', 'otu.shared')
+        cmd += ' -i %s -l %s -o %s' % (otutable, '0.97', 'otu.shared')
         # print cmd
         os.system(cmd)
 
