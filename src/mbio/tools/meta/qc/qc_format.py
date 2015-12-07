@@ -34,7 +34,7 @@ class QcFormatAgent(Agent):
         """
         if not self.option('fastq').is_set:
             raise OptionError("参数fastq必须选择一个进行输入")
-        if self.option('fastq').format == "sequence.fastq_dir":
+        if self.get_option_object('fastq').format == "sequence.fastq_dir":
             if not self.option('filename_sample').is_set:
                 raise OptionError("fastq是一个文件夹，必须输入filename_sample参数")
 
@@ -63,14 +63,14 @@ class QcFormatTool(Tool):
                 line = line.rstrip('\n')
                 line = re.split('\t', line)
                 if re.search(r'\.(fastq|fq)\.gz', line[0]):
-                    gz_file = os.path.join(self.option('fastq_dir').prop['path'], line[0])
+                    gz_file = os.path.join(self.option('fastq').prop['path'], line[0])
                     target_file = os.path.join(self.fastq_dir, line[1] + ".fastq")
                     try:
                         subprocess.check_call('gunzip -c ' + gz_file + " >> " + target_file, shell=True)
                     except subprocess.CalledProcessError:
                         self.set_error("解压缩文件失败!检查输入是否是正确的gz文件")
                 else:
-                    file_ = os.path.join(self.option('fastq_dir').prop['path'], line[0])
+                    file_ = os.path.join(self.option('fastq').prop['path'], line[0])
                     target_file = os.path.join(self.fastq_dir, line[1] + ".fastq")
                     with open(file_, "r") as f:
                         txt = f.read()
@@ -142,9 +142,9 @@ class QcFormatTool(Tool):
         """
         if not os.path.exists(self.fastq_dir):
             os.mkdir(self.fastq_dir)
-        if self.option('fastq').format == 'sequence.fastq_dir':
+        if self.get_option_object('fastq').format == 'sequence.fastq_dir':
             self.rename_fastq()
-        if self.option('fastq').format == 'sequence.fastq':
+        if self.get_option_object('fastq').format == 'sequence.fastq':
             if not self.option('seqname_sample').is_set:
                 self.seprate_fastq()
             else:

@@ -5,6 +5,7 @@ import os
 import subprocess
 from biocluster.config import Config
 from biocluster.iofile import Directory
+from biocluster.core.exceptions import FileError
 
 
 class FastqDirFile(Directory):
@@ -35,7 +36,7 @@ class FastqDirFile(Directory):
             self.set_property("fastq_number", self.get_fastq_number())
             self.set_property("fastq_basename", self.fastqs)
         else:
-            raise Exception("文件夹路径不正确，请设置正确的文件夹路径!")
+            raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
 
     def get_full_info(self, work_path):
         """

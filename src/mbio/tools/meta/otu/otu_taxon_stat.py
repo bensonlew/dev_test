@@ -160,10 +160,11 @@ class OtuTaxonStatTool(Tool):
                 file_ = os.path.join(tax_summary_a_dir, table)
                 os.remove(file_)
             if re.search(r"new$", table):
-                name = re.sub(r"txt\.new$", r"full\.xls", table)
+                name = re.sub(r"txt\.new$", "full.xls", table)
                 file_ = os.path.join(tax_summary_a_dir, table)
                 new_file = os.path.join(tax_summary_a_dir, name)
                 os.rename(file_, new_file)
+        self.logger.info("开始整理输出文件夹")
         self.rename()
 
     def rename(self):
