@@ -1,0 +1,24 @@
+{
+	"file_path":"/mnt/ilustre/upload/miseq/m4/150807_M03152_0063_000000000-AHGPH",
+	"barcode_mismatch":0, 
+	"ignore_missing_bcl": true,
+	"base_mask":"y301,i6,y301",
+	"parent_sample":[
+		{"sequencing_detail_id": "12", "specimen_name":"MJ20150727_1","barcode":"CCAACA","lane":"1","subject":"meta","filter.min":"当这个样本有子样本的时候这个参数不论填什么，都会被忽略","program_id": "2"},
+		{"sequencing_detail_id": "13", "specimen_name":"73","barcode":"AGCACC","lane":"1","subject":"DNA", "filter.min": "200","program_id":"1"}],
+	"child_sample":[
+		{"sequencing_detail_id":"101","specimen_name":"1","barcode":"CTGCTG_GTGGCC","var_base":"11","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"102","specimen_name":"2","barcode":"TAACGA_ATATGT","var_base":"00","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"103","specimen_name":"3","barcode":"AGAGTA_TTAGGC","var_base":"34","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"104","specimen_name":"4","barcode":"GGAAGA_CTCAGA","var_base":"23","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"105","specimen_name":"5","barcode":"CTTCCA_GCCTTA","var_base":"12","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"106","specimen_name":"6","barcode":"TGACCA_ATGCCT","var_base":"01","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"107","specimen_name":"7","barcode":"AGTTCC_TGAATG","var_base":"34","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"108","specimen_name":"8","barcode":"GTACTT_CCAGCT","var_base":"23","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"109","specimen_name":"9","barcode":"CAGATC_GTGAAA","var_base":"12","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"110","specimen_name":"10","barcode":"TAATCG_ACTTGA","var_base":"01","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"111","specimen_name":"11","barcode":"ATCACG_TACAGC","var_base":"30","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"112","specimen_name":"12","barcode":"GAGATA_CTAGCT","var_base":"24","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"113","specimen_name":"13","barcode":"CGCGGT_GAGTGG","var_base":"13","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}},
+		{"sequencing_detail_id":"114","specimen_name":"14","barcode":"TCGGCA_AGTCAA","var_base":"02","parent_id":"12","primer":"GGAAGTAAAAGTCGTAACAAGG_GCTGCGTTCTTCATCGATGC","configs":{"split.barcode_miss":"0","split.primer_miss":"2","filter.min":"200"}}]
+	}

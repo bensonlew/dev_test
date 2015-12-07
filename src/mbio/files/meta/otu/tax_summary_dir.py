@@ -7,12 +7,12 @@ from mbio.files.meta.otu.otu_table import OtuTableFile
 from mbio.files.meta.otu.biom import BiomFile
 
 
-class TaxSummaryAbsDirFile(Directory):
+class TaxSummaryDirFile(Directory):
     """
     定义tax_summary_abs_dir文件夹格式
     """
     def __init__(self):
-        super(TaxSummaryAbsDirFile, self).__init__()
+        super(TaxSummaryDirFile, self).__init__()
         self.biom = 0
         self.otu_table = 0
 
@@ -21,9 +21,9 @@ class TaxSummaryAbsDirFile(Directory):
         获取文件夹属性
         """
         if 'path' in self.prop.keys() and os.path.isdir(self.prop['path']):
-            pass
-        else:
-            raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
+            self.get_file_number()
+            self.set_property('biom_number', self.biom)
+            self.set_property('otu_number', self.otu_table)
 
     def get_file_number(self):
         """
@@ -32,20 +32,31 @@ class TaxSummaryAbsDirFile(Directory):
         """
         filelist = os.listdir(self.prop['path'])
         for file_ in filelist:
-            file_ = os.path.join(self.prop['path'], filelist)
+            file_ = os.path.join(self.prop['path'], file_)
             otu = OtuTableFile()
-            otu.set_path(file_)
-            biom = BiomFile()
-            biom.set_path(file_)
-            if otu.check():
+            try:
+                otu.set_path(file_)
                 self.otu_table += 1
-            if biom.check():
+            except FileError:
+                pass
+            biom = BiomFile()
+            try:
+                biom.set_path(file_)
                 self.biom += 1
+            except FileError:
+                pass
         return (self.biom, self.otu_table)
 
     def check(self):
         """
         检测文件夹是否满足要求，不满足时触发FileError异常
         """
-        if super(TaxSummaryAbsDirFile, self).check():
-            pass
+        if super(TaxSummaryDirFile, self).check():
+            if self.biom % 8 != 0:
+                raise FileError("文件格式不正确")
+
+if __name__ == "__main__":
+    a = TaxSummaryDirFile()
+    a.set_path("tax_dir")
+    a.check()
+    print a.prop

@@ -86,7 +86,7 @@ class File(FileBase):
             self.set_property('dirname', os.path.dirname(self.prop['path']))
             self.set_property('basename', os.path.basename(self.prop['path']))
         else:
-            raise FileError("请先设置正确的文件路径!")
+            raise Exception("请先设置正确的文件路径!")
 
     def check(self):
         """
@@ -103,7 +103,7 @@ class File(FileBase):
                 # return {'pass': False, "info": "文件大小为空!"}
         else:
             # return {'pass': False, "info": "!"}
-            raise FileError("文件路径不在正确或文件不存在")
+            raise Exception("文件路径不在正确或文件不存在")
 
     def get_md5(self):
         """
@@ -162,8 +162,8 @@ class Directory(FileBase):
         """
         super(Directory, self).check()
         if not('path' in self.prop.keys() and os.path.isdir(self.prop['path'])):
-            raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
+            raise Exception("文件夹路径不正确，请设置正确的文件夹路径!")
 
     def get_info(self):
         if not ('path' in self.prop.keys() and os.path.exists(self.prop['path'])):
-            raise FileError("文件夹路径不正确或文件夹不存在")
+            raise Exception("文件夹路径不正确或文件夹不存在")

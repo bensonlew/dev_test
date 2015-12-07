@@ -42,7 +42,7 @@ class Tool(object):
         self._options = None
         self.load_config()
         self.logger = Wlog(self).get_logger('')
-        self.actor = RemoteActor(self)
+        self.actor = RemoteActor(self, threading.current_thread())
         self.mutex = threading.Lock()
         self.exit_signal = False
 
@@ -91,6 +91,10 @@ class Tool(object):
     def output_dir(self):
         return self._output_path
 
+    @property
+    def commands(self):
+        return self._commands
+
     def add_command(self, name, cmd):
         """
         执行命令生成Command对象，
@@ -109,7 +113,7 @@ class Tool(object):
         else:
             cmd = Command(name, cmd, self)
             self._commands[name] = cmd
-            gevent.spawn(self._resource_record, cmd)
+            # gevent.spawn(self._resource_record, cmd)
             return cmd
 
     def get_option_object(self, name=None):
@@ -218,7 +222,7 @@ class Tool(object):
         self._run = True
         self.logger.info("开始运行!")
 
-    def _resource_record(self, command):
+    def resource_record(self, command):
         """
         记录运行资源
 

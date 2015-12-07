@@ -91,10 +91,10 @@ class EstimatorsTool(Tool):
         """
         self.logger.info("set out put")
         if len(os.listdir(self.output_dir)) != 0:
-            os.remove(self.output_dir+'/estimators')
-            os.link(self.work_dir+'/estimators', self.output_dir+'/estimators')
+            os.remove(self.output_dir+'/estimators.xls')
+            os.link(self.work_dir+'/estimators.xls', self.output_dir+'/estimators.xls')
         else:
-            os.link(self.work_dir+'/estimators', self.output_dir+'/estimators')
+            os.link(self.work_dir+'/estimators.xls', self.output_dir+'/estimators.xls')
             # self.option('estimators').set_path(self.output_dir+'/estimators')
         self.logger.info("done")
 
