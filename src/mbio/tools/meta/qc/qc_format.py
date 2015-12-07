@@ -20,9 +20,8 @@ class QcFormatAgent(Agent):
     def __init__(self, parent):
         super(QcFormatAgent, self).__init__(parent)
         options = [
-            {'name': 'fastq_dir', 'type': 'infile', 'format': 'sequence.fastq_dir'},  # 输入的fastq文件夹
+            {'name': 'fastq', 'type': 'infile', 'format': 'sequence.fastq_dir, sequence.fastq'},  # 输入的fastq文件夹
             {'name': 'filename_sample', 'type': 'infile', 'format': 'sequence.file_sample'},  # 文件名样品对应表
-            {'name': 'fastq', 'type': 'infile', 'format': 'sequence.fastq'},  # 输入的fastq文件
             {'name': 'seqname_sample', 'type': 'infile', 'format': 'sequence.seq_sample'},  # 序列名样品对应表
             {'name': 'otu_fasta', 'type': 'outfile', 'format': 'sequence.fasta'},  # 输出的合并到一起的fasta，供后续的otu分析用
             {'name': 'renamed_fastq_dir', 'type': 'outfile', 'format': 'sequence.fastq_dir'},  # 按样本名进行重命名或者拆分的fastq文件夹
@@ -33,13 +32,11 @@ class QcFormatAgent(Agent):
         """
         参数检测
         """
-        if self.option('fastq_dir').is_set and self.option('fastq').is_set:
-            raise OptionError("请在参数fastq_dir和fastq之间选择一个进行输入！")
-        if not (self.option('fastq_dir').is_set or self.option('fastq').is_set):
-            raise OptionError("参数fastq_dir和参数fastq必须选择一个进行输入")
-        if self.option('fastq_dir').is_set:
+        if not self.option('fastq').is_set:
+            raise OptionError("参数fastq必须选择一个进行输入")
+        if self.option('fastq').format == "sequence.fastq_dir":
             if not self.option('filename_sample').is_set:
-                raise OptionError("输入fastq_dir参数后，必须输入filename_sample参数")
+                raise OptionError("fastq是一个文件夹，必须输入filename_sample参数")
 
     def set_resource(self):
         """
@@ -145,9 +142,9 @@ class QcFormatTool(Tool):
         """
         if not os.path.exists(self.fastq_dir):
             os.mkdir(self.fastq_dir)
-        if self.option('fastq_dir').is_set:
+        if self.option('fastq').format == 'sequence.fastq_dir':
             self.rename_fastq()
-        if self.option('fastq').is_set:
+        if self.option('fastq').format == 'sequence.fastq':
             if not self.option('seqname_sample').is_set:
                 self.seprate_fastq()
             else:
