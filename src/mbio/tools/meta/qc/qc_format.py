@@ -35,6 +35,8 @@ class QcFormatAgent(Agent):
         """
         if self.option('fastq_dir').is_set and self.option('fastq').is_set:
             raise OptionError("请在参数fastq_dir和fastq之间选择一个进行输入！")
+        if not (self.option('fastq_dir').is_set or self.option('fastq').is_set):
+            raise OptionError("参数fastq_dir和参数fastq必须选择一个进行输入")
         if self.option('fastq_dir').is_set:
             if not self.option('filename_sample').is_set:
                 raise OptionError("输入fastq_dir参数后，必须输入filename_sample参数")
@@ -93,16 +95,19 @@ class QcFormatTool(Tool):
                 line = re.split(r'_', name)
                 if len(line) > 2:
                     warninglog = True
-                filename = os.path.join(self.fastq_dir, line[0] + ".fastq")
+                head = line[-1]
+                line.pop(-1)
+                filename = "_".join(line)
+                filename = os.path.join(self.fastq_dir, filename + ".fastq")
                 with open(filename, 'a') as a:
-                    a.write("@" + name + "\n")
+                    a.write("@" + head + "\n")
                     for i in range(1, 4):
                         line = f.next()
                         a.write(line)
                 if count % 10000 == 0:
                     self.logger.info("正在输出第" + str(count) + "条序列")
         if warninglog:
-            self.logger.warning("fastq文件里包含有两个以上的下划线，程序将取最后一个下划线后的内容作为样本名！")
+            self.logger.warning("fastq文件里包含有两个以上的下划线，程序将取最后一个下划线之前的所有内容作为样本名！")
         self.logger.info("fastq 文件拆分完毕 ")
 
     def split_fastq_with_file(self):
@@ -155,8 +160,11 @@ class QcFormatTool(Tool):
         fq_dir = FastqDirFile()
         fq_dir.set_path(self.fastq_dir)
         fq_dir.get_full_info(os.path.join(self.work_dir, "output"))
-        self.fasta_dir = fq_dir.covert_to_fasta()
-        self.logger.info("fasta 文件夹生成完毕")
+        try:
+            self.fasta_dir = fq_dir.covert_to_fasta()
+            self.logger.info("fasta 文件夹生成完毕")
+        except Exception:
+            self.set_error("fastq转化fasta失败！")
 
     def get_fasta(self):
         """
@@ -165,12 +173,14 @@ class QcFormatTool(Tool):
         fa = FastaDirFile()
         fa.set_path(self.fasta_dir)
         fa.get_full_info(os.path.join(self.work_dir, "output"))
-        self.fasta = fa.cat_fastas_for_meta()
-        self.logger.debug(self.fasta)
-        self.logger.info("后续OTU分析的fasta文件生成完毕")
+        try:
+            self.fasta = fa.cat_fastas_for_meta()
+            self.logger.info("后续OTU分析的fasta文件生成完毕")
+        except Exception:
+            self.set_error("生成fasta失败！")
 
     def set_output(self):
-        self.logger.debug("set output begin")
+        self.logger.info("set output begin")
         self.option('otu_fasta').set_path(self.fasta)
         self.option('renamed_fastq_dir').set_path(self.fastq_dir)
         self.option('fasta_dir').set_path(self.fasta_dir)

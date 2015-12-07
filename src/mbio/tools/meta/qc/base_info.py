@@ -44,12 +44,14 @@ class BaseInfoTool(Tool):
     def _run_fastx(self):
         work_path = os.path.join(self.work_dir, "output")
         self.option('fastq_path').get_full_info(work_path)
+        base_info_dir = os.path.join(work_path, "base_info")
+        if not os.path.exists(base_info_dir):
+            os.mkdir(base_info_dir)
         cmd_list = list()
         i = 0
         for fastq in self.option('fastq_path').prop['unzip_fastqs']:
             i += 1
-            file_name = os.path.join(self.work_dir, "output",
-                                     os.path.basename(fastq) + ".fastxstat")
+            file_name = os.path.join(base_info_dir, os.path.basename(fastq) + ".fastxstat")
             cmd = self.fastx_stats_path + " -i " + fastq + " -o " + file_name
             command = self.add_command("fastx_quality_stats" + str(i), cmd)
             cmd_list.append(command)

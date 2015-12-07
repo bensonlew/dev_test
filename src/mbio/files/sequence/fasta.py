@@ -15,7 +15,6 @@ class FastaFile(File):
     def __init__(self):
         super(FastaFile, self).__init__()
         self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "seqs/seqstat")
-        self.sample_name
 
     def get_info(self):
         """
@@ -24,14 +23,12 @@ class FastaFile(File):
         """
         super(FastaFile, self).get_info()
         seqinfo = self.get_seq_info()
-        sample_name = self.sample_name()
         self.set_property("format", seqinfo[0])
         self.set_property("seq_type", seqinfo[1])
         self.set_property("seq_number", seqinfo[2])
         self.set_property("bases", seqinfo[3])
         self.set_property("longest", seqinfo[4])
         self.set_property("shortest", seqinfo[5])
-        self.set_property("sample_name", sample_name)
 
     def check(self):
         """
@@ -45,16 +42,6 @@ class FastaFile(File):
             if self.prop["seq_number"] < 1:
                 raise FileError("应该至少含有一条序列")
         return True
-
-    def sample_name(self):
-        """
-        获取样本名
-        """
-        basename = os.path.basename(self.prop['path'])
-        if re.search(r'\.(fasta|fa)$', basename):
-            return re.search(r'(.+)\.(fasta|fa)$', basename).group(1)
-        else:
-            return basename
 
     def ncbi_blast_tool_check(self):
         """
