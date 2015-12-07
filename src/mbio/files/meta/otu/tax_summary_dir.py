@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import os
+import re
 from biocluster.core.exceptions import FileError
 from biocluster.iofile import Directory
 from mbio.files.meta.otu.otu_table import OtuTableFile
@@ -9,7 +10,7 @@ from mbio.files.meta.otu.biom import BiomFile
 
 class TaxSummaryDirFile(Directory):
     """
-    定义tax_summary_abs_dir文件夹格式
+    定义tax_summary_dir文件夹格式
     """
     def __init__(self):
         super(TaxSummaryDirFile, self).__init__()
@@ -46,6 +47,36 @@ class TaxSummaryDirFile(Directory):
             except FileError:
                 pass
         return (self.biom, self.otu_table)
+
+    def get_table(self, level, full_path=False):
+        """
+        获取OTU表
+        :param level: 输入的等级
+        :param full_path: 是要full.xls表还是stat.xls表
+        """
+        list_ = os.listdir(self.prop['path'])
+        for file_ in list_:
+            if full_path:
+                pattern = r"otu_taxon_" + level + r"\.full\.xls"
+                if re.search(pattern, file_, re.IGNORECASE):
+                    return os.path.join(self.prop['path'], file_)
+            else:
+                pattern = r"otu_taxon_" + level + r"\.stat\.xls"
+                if re.search(pattern, file_, re.IGNORECASE):
+                    return os.path.join(self.prop['path'], file_)
+        raise ValueError("未找到文件，检查输入的level是否正确")
+
+    def get_biom(self, level):
+        """
+        获取biom表
+        :param level: 输入的等级
+        """
+        list_ = os.listdir(self.prop['path'])
+        for file_ in list_:
+            pattern = r"otu_taxon_" + level + r"\.biom"
+            if re.search(pattern, file_, re.IGNORECASE):
+                return os.path.join(self.prop['path'], file_)
+        raise ValueError("未找到文件，检查输入的level是否正确")
 
     def check(self):
         """
