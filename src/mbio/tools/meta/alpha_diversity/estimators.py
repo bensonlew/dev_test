@@ -8,10 +8,10 @@ from biocluster.core.exceptions import OptionError
 
 class EstimatorsAgent(Agent):
     """
-    estimators:用于生成所有样本的指数表 
-    version 1.0  
-    author: qindanhua  
-    last_modify: 2015.11.10  
+    estimators:用于生成所有样本的指数表
+    version 1.0
+    author: qindanhua
+    last_modify: 2015.11.10
     """
     ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven', 'shannoneven', 'heip', 'smithwilson',
                   'bergerparker', 'shannon', 'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
@@ -19,8 +19,9 @@ class EstimatorsAgent(Agent):
     def __init__(self, parent):
         super(EstimatorsAgent, self).__init__(parent)
         options = [
-            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},  # 输入文件
+            {"name": "otutable", "type": "infile", "format": ["meta.otu.otu_table", "meta.otu.tax_summary_dir"]},  # 输入文件
             {"name": "indices", "type": "string", "default": "ace-chao-shannon-simpson"},  # 指数类型
+            {"name": "level", "type": "string", "default": "otu"},  # level水平
             # {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}  # 输出结果
         ]
         self.add_option(options)
@@ -31,6 +32,8 @@ class EstimatorsAgent(Agent):
         """
         if not self.option("otutable").is_set:
             raise OptionError("请选择otu表")
+        if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class', 'order', 'family', 'genus', 'species']:
+            raise OptionError("请选择正确的分类水平")
         for estimators in self.option('indices').split('-'):
             if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
@@ -50,15 +53,18 @@ class EstimatorsTool(Tool):
     def __init__(self, config):
         super(EstimatorsTool, self).__init__(config)
         self.cmd_path = 'meta/alpha_diversity/'
-        self.shared_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
-        self.estimator_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
+        self.shared_path = 'meta/scripts/'
+        self.estimator_path = 'meta/scripts/'
 
     def shared(self):
         """
         执行生成shared文件的perl脚本命令
         """
+        otutable = self.option("otutable").prop['path']
+        if self.option("otutable").format is "meta.otu.tax_summary_dir":
+            otutable = self.option("otutable").get_table(self.option("level"))
         cmd = os.path.join(self.shared_path, 'otu2shared.pl')
-        cmd += ' -i %s -l 0.97 -o otu.shared' % self.option("otutable").prop['path']
+        cmd += ' -i %s -l 0.97 -o otu.shared' % otutable
         print cmd
         os.system(cmd)
 

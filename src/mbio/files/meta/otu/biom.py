@@ -19,7 +19,7 @@ class BiomFile(File):
         """
         """
         super(BiomFile, self).__init__()
-        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "meta/bin/biom")
+        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "Python/bin/")
 
     def get_info(self):
         """
