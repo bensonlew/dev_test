@@ -12,6 +12,7 @@ from biocluster.wsheet import Sheet
 from biocluster.config import Config
 from multiprocessing import Process
 import atexit
+import traceback
 
 parser = argparse.ArgumentParser(description="run a workflow")
 group = parser.add_mutually_exclusive_group()
@@ -57,6 +58,8 @@ def main():
             try:
                 json_data = check_run(wj)
             except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
                 write_log("运行出错: %s" % e)
                 t.rollback()
                 continue
@@ -66,14 +69,27 @@ def main():
                 process = Process(target=wj.start, args=(json_data,))
                 process_array.append(process)
                 process.start()
+                write_log("Running workflow %s,the process id %s ..." % (json_data["id"], process.pid))
             while len(process_array) >= Config().SERVICE_PROCESSES:
-                write_log("Running workflow %s, reach the max limit,waiting ...")
+                write_log("Running workflow %s, reach the max limit,waiting ..." % json_data["id"])
 
                 for p in process_array:
                     if not p.is_alive():
+                        exitcode = p.exitcode
+                        if exitcode != 0:
+                            write_log("流程%s运行出错: 原因未知" % json_data["id"])
+                            wj.update_error()
                         p.join()
                         process_array.remove(p)
                 time.sleep(1)
+            for p in process_array:
+                if not p.is_alive():
+                    exitcode = p.exitcode
+                    if exitcode != 0:
+                        write_log("流程%s运行出错: 原因未知" % json_data["id"])
+                        wj.update_error()
+                    p.join()
+                    process_array.remove(p)
     else:
         if args.daemon:
             daemonize(stderr=args.log, stdout=args.log)
@@ -212,8 +228,13 @@ class WorkJob(object):
             wsheet = Sheet(data=json_data)
             workflow = wf(wsheet)
             workflow.config.USE_DB = True
+            file_path = os.path.join(workflow.work_dir, "data.json")
+            with open(file_path, "w") as f:
+                json.dump(json_data, f, indent=4)
             workflow.run()
         except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
             write_log("Workflow %s has error %s:%s" % (self.workflow_id, e.__class__.__name__, e))
             data = {
                 "is_error": 1,
@@ -225,6 +246,13 @@ class WorkJob(object):
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
 
         write_log("End running workflow:%s" % self.workflow_id)
+
+    def update_error(self):
+        myvar = dict(id=self.workflow_id)
+        results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id and is_end=0 and is_error=0",
+                                vars=myvar)
+        if len(results) > 0:
+            self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="原因未知")
 
 
 def hostname():

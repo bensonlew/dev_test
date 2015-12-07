@@ -12,22 +12,20 @@ from .core.function import get_classpath_by_object
 from .core.exceptions import OptionError
 from gevent.lock import BoundedSemaphore
 
-sem = BoundedSemaphore(1)
-
 
 class Rely(object):
     """
     依赖对象,保存依赖信息
     """
     count = 0
+    sem = BoundedSemaphore(1)
 
     def __init__(self, *rely):
-        sem.acquire()
-        Rely.count += 1
-        self._name = "reply" + str(Rely.count)
-        self._relys = []
-        self.add_rely(*rely)
-        sem.release()
+        with Rely.sem:
+            Rely.count += 1
+            self._name = "reply" + str(Rely.count)
+            self._relys = []
+            self.add_rely(*rely)
 
     @property
     def name(self):
@@ -96,6 +94,7 @@ class Basic(EventObject):
             if not os.path.exists(self._output_path):
                 os.makedirs(self._output_path)
         self._options = {}
+        self.sem = BoundedSemaphore(1)
 
     @property
     def name(self):
@@ -210,31 +209,6 @@ class Basic(EventObject):
             raise Exception("参数格式错误!")
         for name, value in options.items():
             self.option(name, value)
-            if self._options[name].type == "infile":  # 检查输出文件是否满足要求
-                class_name = self.__class__.__name__
-                self_class_path = get_classpath_by_object(self)
-                paths = self_class_path.split(".")[2:]
-                function_name = "_".join(paths)
-                if re.search(r"Agent$", class_name) or re.search(r"Tool", class_name):
-                    function_name += "_tool_check"
-                elif re.search(r"Module$", class_name):
-                    function_name += "_module_check"
-                elif re.search(r"Workflow$", class_name):
-                    function_name += "_workflow_check"
-                else:
-                    raise Exception("类名称不正确!")
-                # class_obj = load_class_by_path(self._options[name].format, "File")
-                if self._options[name].check:
-                    if hasattr(self.option(name), self._options[name].check):
-                        getattr(self.option(name), self._options[name].check)()
-                    else:
-                        raise Exception("文件类%s中未定义指定的检测函数%s!" %
-                                        (self._options[name].format, self._options[name].check))
-                else:
-                    if hasattr(self.option(name), function_name):
-                        getattr(self.option(name), function_name)()
-                    else:
-                        getattr(self.option(name), "check")()
         self.check_options()
 
     def check_options(self):
@@ -280,7 +254,7 @@ class Basic(EventObject):
         for opt in option:
             if not isinstance(opt, dict) or 'name' not in opt.keys():
                 raise Exception("参数格式错误!")
-            self._options[opt['name']] = Option(opt)
+            self._options[opt['name']] = Option(opt, bind_obj=self)
 
     def __get_min_name(self):
         """
@@ -302,8 +276,8 @@ class Basic(EventObject):
         获取完整路径名,如Module.Tool
         """
         name = self._name
-        if self._parent and self._parent.name != "":
-            name = self._parent.name + "." + name
+        if self._parent and self._parent.fullname != "":
+            name = self._parent.fullname + "." + name
         return name
 
     def __name_identifier(self):
@@ -312,15 +286,14 @@ class Basic(EventObject):
         """
         identifier = self._name
         count = 0
-        sem.acquire()
         if self._parent:
-            for c in self._parent.children:
-                if c.name == self.name:
-                    count += 1
-            identifier = self._parent.id + "." + identifier
+            with self._parent.sem:
+                for c in self._parent.children:
+                    if c.name == self.name:
+                        count += 1
+                identifier = self._parent.id + "." + identifier
         if count > 0:
             identifier += str(count)
-        sem.release()
         return identifier
 
     def add_child(self, *child):
@@ -337,6 +310,8 @@ class Basic(EventObject):
                 self.add_event('childend', True)  # 子对象事件结束事件
                 self.on('childend', self.__event_childend)
                 self.add_event('childerror', True)  # 子对象事件错误事件
+                self.add_event("childrerun", True)  # 子对象重新运行
+                self.on('childrerun', self.__event_childrerun)
             self._children.append(c)
         return self
 
@@ -390,6 +365,17 @@ class Basic(EventObject):
         child.stop_listener()
         self.__check_relys()
 
+    def __event_childrerun(self, child):
+        """
+        当子模块重运行时重启其事件监听
+
+        :param child:
+        :return:
+        """
+        if self.is_start:
+            child.stop_listener()
+            child.restart_listener()
+
     def end(self):
         """
         设置对象为结束状态，并触发end事件。
@@ -423,10 +409,14 @@ class Basic(EventObject):
                 raise Exception("rely参数必须为Basic或其子类的实例对象!")
             if r not in self._children:
                 raise Exception("rely模块必须为本对象的子模块!")
-        rl = Rely(*rely_list)
-        self._rely.append(rl)
-        self.add_event(rl.name)
-        self.on(rl.name, func, data)
+        with self.sem:
+            rl = Rely(*rely_list)
+            self._rely.append(rl)
+            self.add_event(rl.name)
+            self.on(rl.name, func, data)
+            if self.is_start:
+                self.events[rl.name].start()
+            # print rely_list, rl, rl.name, self.events[rl.name]
 
     def run(self):
         """

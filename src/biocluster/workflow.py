@@ -132,6 +132,7 @@ class Workflow(Basic):
         :return:
         """
         self.rpc_server.server.close()
+        self.logger.info("程序退出: %s " % data)
         data = {
             "is_error": 1,
             "error": "程序主动退出:%s" % data,

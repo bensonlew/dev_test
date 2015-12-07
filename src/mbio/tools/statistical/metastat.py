@@ -11,7 +11,7 @@ class MetastatAgent(Agent):
     statistical metastat+ 调用metastat.py 包进行差异性分析
     version v1.0
     author: qiuping
-    last_modify: 2015.11.13
+    last_modify: 2015.11.30
     """
     def __init__(self, parent):
         super(MetastatAgent, self).__init__(parent)
@@ -30,6 +30,7 @@ class MetastatAgent(Agent):
             #{"name": "fisher_output", "type": "outfile", "format": "statistical.stat_table"},  # 费舍尔检验的输出结果
             {"name": "kru_H_input", "type": "infile", "format": "meta.otu.otu_table"},  # kruskal_wallis_H_test的输入文件
             {"name": "kru_H_group", "type": "infile", "format": "meta.otu.group_table"},  # kruskal_wallis_H_test的输入分组文件
+            {"name": "kru_H_type", "type": "string", "default": "two.side"},  #kruskal_wallis_H_test选择单双尾检验
             {"name": "kru_H_correction", "type": "string", "default": "none"},  # kruskal_wallis_H_test的多重检验校正
             #{"name": "kru_H_output", "type": "outfile", "format": "statistical.stat_table"},  # kruskal_wallis_H_test的输出结果
             {"name": "mann_input", "type": "infile", "format": "meta.otu.otu_table"},  # 秩和检验的输入文件
@@ -94,6 +95,8 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置kruskal_wallis_H_test输入的分组文件')
                 if self.option("kru_H_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
+                if self.option("kru_H_type") not in ["two.side", "greater", "less"]:
+                    raise OptionError('所输入的类型不在范围值内')
             elif i == "anova":
                 if not self.option("anova_input").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
@@ -188,9 +191,9 @@ class MetastatTool(Tool):
             elif t == "mann":
                 return_mess = two_group_test(self.option('mann_input').prop['path'], self.option('mann_group').prop['path'], self.work_dir + '/mann_result.xls', t, str(1 - self.option('mann_ci')), self.option('mann_type'), self.option('mann_correction'))
             elif t == "kru_H":
-                return_mess = mul_group_test(self.option('kru_H_input').prop['path'], self.work_dir + '/kru_H_result.xls', self.option('kru_H_group').prop['path'], t, self.option('kru_H_correction'))
+                return_mess = mul_group_test(self.option('kru_H_input').prop['path'], self.work_dir + '/kru_H_result.xls', self.work_dir + '/kru_H_post_result.xls', self.option('kru_H_group').prop['path'], t, self.option('kru_H_type'), self.option('kru_H_correction'))
             elif t == "anova":
-                return_mess = mul_group_test(self.option('anova_input').prop['path'], self.work_dir + '/anova_result.xls', self.option('anova_group').prop['path'], t, self.option('anova_correction'))
+                return_mess = mul_group_test(self.option('anova_input').prop['path'], self.work_dir + '/anova_result.xls', self.work_dir + '/anova_post_result.xls', self.option('anova_group').prop['path'], t, self.option('anova_correction'))
             if return_mess == 0:
                 self.logger.info('运行%s分析完成' % t.encode("utf-8"))
             else:
@@ -224,10 +227,14 @@ class MetastatTool(Tool):
                 #self.option('mann_output').set_path(self.output_dir + '/mann_result.xls')
             elif f == 'kru_H_result.xls':
                 os.link(self.work_dir + '/kru_H_result.xls', self.output_dir + '/kru_H_result.xls')
+            elif f == 'kru_H_post_result.xls':
+                os.link(self.work_dir + '/kru_H_post_result.xls', self.output_dir + '/kru_H_post_result.xls')
                 #self.option('kru_H_output').set_path(self.output_dir + '/kru_H_result.xls')
             elif f == 'anova_result.xls':
                 os.link(self.work_dir + '/anova_result.xls', self.output_dir + '/anova_result.xls')
                 #self.option('anova_output').set_path(self.output_dir + '/anova_result.xls')
+            elif f == 'anova_post_result.xls':
+                os.link(self.work_dir + '/anova_post_result.xls', self.output_dir + '/anova_post_result.xls')
         self.logger.info("设置结果目录成功")
 
 

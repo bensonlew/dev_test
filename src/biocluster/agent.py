@@ -199,6 +199,9 @@ class Agent(Basic):
         self.actor.kill()
         self.actor = LocalActor(self)
         self.actor.start()
+        if self.parent:
+            self.parent.fire("childrerun", self)
+        self.logger.info("开始重新投递任务!")
         self.job.resubmit()
 
     def set_callback_action(self, action, data=None):
