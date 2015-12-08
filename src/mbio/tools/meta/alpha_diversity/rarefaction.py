@@ -22,7 +22,7 @@ class RarefactionAgent(Agent):
     def __init__(self, parent):
         super(RarefactionAgent, self).__init__(parent)
         options = [
-            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},  # 输入文件
+            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
             {"name": "indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
             {"name": "freq", "type": "int", "default": 100},  # 取样频数
             {"name": "level", "type": "string", "default": "otu"},  # level水平
