@@ -23,8 +23,8 @@ class RarefactionAgent(Agent):
         super(RarefactionAgent, self).__init__(parent)
         options = [
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},  # 输入文件
-            {"name": "indices", "type": "string", "default": "chao-shannon"},  # 指数类型
-            {"name": "random_number", "type": "int", "default": 100},  # 随机取样数
+            {"name": "indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
+            {"name": "freq", "type": "int", "default": 100},  # 取样频数
             {"name": "level", "type": "string", "default": "otu"},  # level水平
             # {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"}  # 输出结果
         ]
@@ -46,7 +46,7 @@ class RarefactionAgent(Agent):
         """
             所需资源
             """
-        self._cpu = 10
+        self._cpu = 11
         self._memory = ''
 
 
@@ -77,7 +77,7 @@ class RarefactionTool(Tool):
         执行命令运行mothur程序，生成rarefaction结果文件
         """
         cmd = '/meta/mothur.1.30 "#rarefaction.single(shared=otu.shared,calc=sobs-%s,groupmode=f,' \
-              'freq=%s,processors=10)"' % (self.option('indices'), self.option('random_number'))
+              'freq=%s,processors=10)"' % (self.option('indices'), self.option('freq'))
         # print cmd
         self.logger.info("开始运行mothur")
         mothur_command = self.add_command("mothur", cmd)

@@ -11,6 +11,7 @@ import re
 import traceback
 from .core.exceptions import FileError
 
+
 class Option(object):
     """
     参数选项的属性库设定

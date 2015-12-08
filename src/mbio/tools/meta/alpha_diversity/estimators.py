@@ -42,7 +42,7 @@ class EstimatorsAgent(Agent):
         """
         所需资源
         """
-        self._cpu = 10
+        self._cpu = 11
         self._memory = ''
 
 

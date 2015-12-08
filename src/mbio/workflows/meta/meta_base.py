@@ -5,6 +5,7 @@
 
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
+import os
 
 
 class MetaBaseWorkflow(Workflow):
@@ -14,7 +15,10 @@ class MetaBaseWorkflow(Workflow):
         self._sheet = wsheet_object
         super(MetaBaseWorkflow, self).__init__(wsheet_object.id)
         options = [
-            {'name': 'fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 输入fasta文件，序列名称格式为'>sampleID_seqID'.
+            {'name': 'fastq', 'type': 'infile', 'format': ['sequence.fastq', 'sequence.fastq_dir']},  # 输入fasta文件，序列名称格式为'>sampleID_seqID'.
+            {'name': 'filename_sample', 'type': 'infile', 'format': 'sequence.file_sample'},  # 文件名样品对应表
+            {'name': 'seqname_sample', 'type': 'infile', 'format': 'sequence.seq_sample'},  # 序列名样品对应表
+            {'name': 'otu_fasta', 'type': 'outfile', 'format': 'sequence.fasta'},  # 输出的合并到一起的fasta，供后续的otu分析用
             {'name': 'identity', 'type': 'float', 'default': 0.97},  # 相似性值，范围0-1.
             {'name': 'otu_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出结果otu表
             {'name': 'otu_rep', 'type': 'outfile', 'format': 'sequence.fasta'},  # 输出结果otu代表序列
@@ -27,29 +31,43 @@ class MetaBaseWorkflow(Workflow):
             {'name': 'ref_fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 参考fasta序列
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
             {'name': 'taxon_file', 'type': 'outfile', 'format': 'taxon.seq_taxon'},  # 输出序列的分类信息文件
-            {"name": "estimate_indices", "type": "string", "default": "ace-chao-shannon-simpson"},  # 指数类型
-            # {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"},  # 输出结果
-            {"name": "rarefy_indices", "type": "string", "default": "chao-shannon"},  # 指数类型
-            {"name": "random_number", "type": "int", "default": 100},  # 随机取样数
-            # {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"},  # 输出结果
+            {"name": "otu_table", "type": "infile", "format": ["meta.otu.otu_table", "meta.otu.tax_summary_dir"]},  # 输入文件
+            {"name": "estimate_indices", "type": "string", "format": "ace-chao-shannon-simpson-coverage"},
+            {"name": "rarefy_indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
+            {"name": "rarefy_freq", "type": "int", "default": 100},
+            {"name": "alpha_level", "type": "string", "default": "otu"},  # level水平
             {'name': 'otu_taxon_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 输出的biom文件
             {'name': 'otu_taxon_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出的biom文件
-            {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_abs_dir'}  # 输出的otu_taxon_dir文件夹
+            {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_abs_dir'},  # 输出的otu_taxon_dir文件夹
+            {"name": "beta_analysis", "type": "string",
+                "default": "anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
+            {"name": "dis_method", "type": "string", "default": "bray_curtis"},
+            {"name": "phy_newick", "type": "infile",
+             "format": "meta.beta_diversity.newick_tree"},
+            {"name": "permutations", "type": "int", "default": 999},
+            {"name": "linkage", "type": "string", "default": "average"},
+            {"name": "envtable", "type": "infile", "format": "meta.env_table"},
+            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
+        self.qc = self.add_module("meta.qc.miseq_qc")
         self.otu = self.add_tool("meta.otu.usearch_otu")
         self.tax = self.add_tool("taxon.qiime_assign")
         self.stat = self.add_tool("meta.otu.otu_taxon_stat")
-        self.est = self.add_tool("meta.alpha_diversity.estimators")
-        self.rarefy = self.add_tool("meta.alpha_diversity.rarefaction")
+        # self.est = self.add_tool("meta.alpha_diversity.estimators")
+        # self.rarefy = self.add_tool("meta.alpha_diversity.rarefaction")
+        self.alpha = self.add_module("meta.alpha_diversity.alpha_diversity")
+        self.beta = self.add_module("meta.beta_diversity.beta_diversity")
 
     def check_options(self):
         """
         检查参数设置
         """
-        if not self.option("fasta").is_set:
-            raise OptionError("必须设置输入fasta文件.")
+        if not self.option("fastq").is_set:
+            raise OptionError("必须设置输入fastq文件.")
+        # if not self.option("fasta").is_set:
+        #     raise OptionError("必须设置输入fasta文件.")
         if self.option("identity") < 0 or self.option("identity") > 1:
             raise OptionError("identity值必须在0-1范围内.")
         if self.option("revcomp") not in [True, False]:
@@ -64,16 +82,29 @@ class MetaBaseWorkflow(Workflow):
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
         return True
 
+    def run_qc(self):
+        self.qc.set_options({
+                "fastq": self.option("fastq")
+            })
+        if self.option("fastq").format is 'sequence.fastq_dir':
+            self.qc.set_options({
+                "filename_sample": self.option("filename_sample")
+                })
+        if self.option("fastq").format is 'sequence.fastq':
+            self.qc.set_options({
+                "seqname_sample": self.option("seqname_sample")
+                })
+        self.on_rely(self.qc, self.run_otu)
+        self.qc.on("end", self.set_output, "qc")
+        self.qc.run()
+
     def run_otu(self):
         self.otu.set_options({
-            "fasta": self.option("fasta"),
+            "fasta": self.option("otu_fasta"),
             "identity": self.option("identity")
             })
-
-        self.on_rely(self.otu, self.run_taxon)
-        self.on_rely(self.otu, self.run_estimate)
-        self.on_rely(self.otu, self.run_rarefy)
         self.otu.on("end", self.set_output, "otu")
+        self.on_rely(self.otu, self.run_taxon)
         self.otu.run()
 
     def run_taxon(self, relyobj):
@@ -99,28 +130,36 @@ class MetaBaseWorkflow(Workflow):
             "taxon_file": self.option("taxon_file")
             })
         self.stat.on("end", self.set_output, "stat")
+        self.on_rely(self.stat, self.run_alpha)
+        self.on_rely(self.stat, self.run_beta)
         self.stat.run()
 
-    def run_estimate(self, relyobj):
-        # self.est = self.add_tool("meta.alpha_diversity.estimators")
-        self.est.set_options({
-            "otutable": relyobj.rely[0].option("otu_table"),
-            "indices": self.option("estimate_indices")
+    def run_alpha(self):
+        self.alpha.set_options({
+            'otu_table': self.option('otu_table'),
+            'estimate_indices': self.option('estimate_indices'),
+            'rarefy_indices': self.option('rarefy_indices'),
+            'rarefy_freq': self.option('rarefy_freq')
             })
-        # self.est.on("end", self.set_output, "est")
-        self.est.run()
+        self.alpha.run()
 
-    def run_rarefy(self, relyobj):
-        # self.rarefy = self.add_tool("meta.alpha_diversity.rarefaction")
-        self.rarefy.set_options({
-            "otutable": relyobj.rely[0].option("otu_table"),
-            "indices": self.option("rarefy_indices"),
-            "random_number": self.option("random_number")
+    def run_beta(self):
+        self.beta.set_options({
+            'analysis': self.option('analysis'),
+            'dis_method': self.option('dis_method'),
+            'otutable': self.option('otutable'),
+            'phy_newick': self.option('phy_newick'),
+            'permutations': self.option('permutations'),
+            'envtable': self.option('envtable'),
+            'group': self.option('group')
             })
-        self.rarefy.run()
+        self.beta.run()
 
     def set_output(self, event):
         obj = event["bind_object"]
+        if event['data'] is "qc":
+            self.option("otu_fasta", obj.option("otu_fasta"))
+            os.link(self.option("fasta").prop['path'], self.output_dir)
         if event['data'] is "otu":
             self.option("otu_table", obj.option("otu_table"))
             self.option("otu_rep", obj.option("otu_rep"))
@@ -139,5 +178,5 @@ class MetaBaseWorkflow(Workflow):
 
     def run(self):
         self.run_otu()
-        self.on_rely([self.stat, self.est, self.rarefy], self.end)
+        self.on_rely([self.stat, self.alpha, self.beta], self.end)
         super(MetaBaseWorkflow, self).run()
