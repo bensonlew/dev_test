@@ -25,6 +25,7 @@ class FastqFile(File):
         self._filename = ""
         self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/fastq_to_fasta")
         self.is_convert = False
+        self.has_sample_info = False
 
     @property
     def is_gz(self):
@@ -37,12 +38,15 @@ class FastqFile(File):
         else:
             return False
 
-    def get_ino(self):
+    def get_info(self):
         """
         获取文件的基本属性
         """
         super(FastqFile, self).get_info()
+        format_ = self.check_format()
         self.set_property("is_gz", self.is_gz)
+        self.set_property("has_sample_info", self.has_sample_info)
+        self.set_property("format", format_)
 
     def get_full_info(self, work_path):
         """
@@ -51,6 +55,7 @@ class FastqFile(File):
         将fastq转化成fasta，并统计相关信息
         :param work_path:工作文件夹路径
         """
+        self.get_info()
         self._prepare(work_path)
         self.convert_to_fasta()
         seqinfo = self.get_seq_info()
@@ -65,30 +70,45 @@ class FastqFile(File):
     def check(self):
         """
         检测文件是否满足要求,发生错误时应该触发FileError异常
-        :return: bool
         """
         if super(FastqFile, self).check():
-            if re.search(r'\.gz$', self.prop['path']):
-                try:
-                    cmd = "gunzip -c " + self.prop['path'] + "| head -n 5"
-                    lines = subprocess.check_output(cmd)
-                    lines = re.split('\n', lines)
-                    if not (re.search(r'^@', lines[0]) and re.search(r'^@', lines[4])):
-                        raise FileError("非压缩后的fastq格式文件")
-                except subprocess.CalledProcessError:
+            self.get_info()
+            return self.prop["format"]
+
+    def check_format(self):
+        """
+        检测文件是否满足要求,发生错误时应该触发FileError异常
+        :return: bool
+        """
+        if re.search(r'\.gz$', self.prop['path']):
+            try:
+                cmd = "gunzip -c " + self.prop['path'] + "| head -n 5"
+                lines = subprocess.check_output(cmd)
+                lines = re.split('\n', lines)
+                if not (re.search(r'^@', lines[0]) and re.search(r'^@', lines[4])):
                     raise FileError("非压缩后的fastq格式文件")
-            else:
-                with open(self.prop['path'], 'r') as r:
-                    line = r.next()
-                    if not re.search(r'^@', line):
-                        raise FileError("fastq文件格式错误")
-                    line = r.next()
-                    line = r.next()
-                    line = r.next()
-                    line = r.next()
-                    if not re.search(r'^@', line):
-                        raise FileError("fastq文件格式错误")
-            return True
+                myline1 = re.split('_', lines[0])
+                myline2 = re.split('_', lines[4])
+                if len(myline1) > 1 and len(myline2) > 1:
+                    self.has_sample_info = True
+            except subprocess.CalledProcessError:
+                raise FileError("非压缩后的fastq格式文件")
+        else:
+            with open(self.prop['path'], 'r') as r:
+                line = r.next()
+                if not re.search(r'^@', line):
+                    raise FileError("fastq文件格式错误")
+                myline1 = re.split('_', line)
+                line = r.next()
+                line = r.next()
+                line = r.next()
+                line = r.next()
+                if not re.search(r'^@', line):
+                    raise FileError("fastq文件格式错误")
+                myline2 = re.split('_', line)
+                if len(myline1) > 1 and len(myline2) > 1:
+                    self.has_sample_info = True
+        return True
 
     def _prepare(self, work_path):
         """
@@ -104,7 +124,7 @@ class FastqFile(File):
             try:
                 subprocess.check_call('gunzip -c ' + self.prop['path'] + "> " + self.unzipfile)
             except subprocess.CalledProcessError:
-                raise Exception("非标准格式的gz文件！")
+                raise FileError("非标准格式的gz文件！")
 
     def convert_to_fasta(self):
         """

@@ -11,10 +11,8 @@ class MiseqQcModule(Module):
     def __init__(self, work_id):
         super(MiseqQcModule, self).__init__(work_id)
         options = [
-            {'name': 'fastq_dir', 'type': 'infile', 'format': 'sequence.fastq_dir'},  # 输入的fastq文件夹
-            {'name': 'filename_sample', 'type': 'infile', 'format': 'sequence.file_sample'},  # 文件名样品对应表
-            {'name': 'fastq', 'type': 'infile', 'format': 'sequence.fastq'},  # 输入的fastq文件
-            {'name': 'seqname_sample', 'type': 'infile', 'format': 'sequence.seq_sample'},  # 序列名样品对应表
+            {'name': 'single_fastq', 'type': 'infile', 'format': 'sequence.fastq'},  # 输入的fastq文件
+            {'name': 'multi_fastq', 'type': 'infile', 'format': 'sequence.fastq_dir'},  # 输入的fastq文件夹
             {'name': 'otu_fasta', 'type': 'outfile', 'format': 'sequence.fasta'}]  # 输出的合并到一起的fasta，供后续的otu分析用
         self.add_option(options)
         self.qc_format = self.add_tool('meta.qc.qc_format')
@@ -26,35 +24,31 @@ class MiseqQcModule(Module):
         """
         检查参数设置
         """
-        if self.option('fastq_dir').is_set and self.option('fastq').is_set:
-            raise OptionError("请在参数fastq_dir和fastq之间选择一个进行输入！")
-        if not (self.option('fastq_dir').is_set or self.option('fastq').is_set):
-            raise OptionError("参数fastq_dir和参数fastq必须选择一个进行输入")
-        if self.option('fastq_dir').is_set:
-            if not self.option('filename_sample').is_set:
-                raise OptionError("输入fastq_dir参数后，必须输入filename_sample参数")
-        self.logger.info("参数检测完毕")
+        if self.option('single_fastq').is_set and self.option('multi_fastq').is_set:
+            raise OptionError("请在参数single_fastq和multi_fastq之间选择一个进行输入！")
+        if not (self.option('single_fastq').is_set or self.option('multi_fastq').is_set):
+            raise OptionError("参数single_fastq和参数multi_fastq必须选择一个进行输入")
+        if self.option('multi_fastq').is_set:
+            if not self.option('multi_fastq').prop['has_list_file']:
+                raise OptionError('multi_fastq参数中，fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
+            if self.option('single_fastq').is_set:
+                self.option('single_fastq').get_info()
+                if not self.option('single_fastq').prop['has_sample_info']:
+                    raise OptionError("single_fastq参数中的fastq文件中必须在序列名中带有样本名称(以下划线分隔)")
 
     def qc_format_run(self):
         """
         运行qc_format，对输入的fastq文件夹或者fastq文件进行格式化
         生成fastq_dir,
         """
-        if self.option('fastq_dir').is_set:
+        if self.option('multi_fastq').is_set:
             myopt = {
-                'fastq_dir': self.option('fastq_dir').prop['path'],
-                'filename_sample': self.option('filename_sample').prop['path']
+                'multi_fastq': self.option('multi_fastq').prop['path'],
             }
-        if self.option('fastq').is_set:
-            if self.option('seqname_sample').is_set:
-                myopt = {
-                    'fastq': self.option('fastq').prop['path'],
-                    'seqname_sample': self.option('seqname_sample').prop['path']
-                }
-            else:
-                myopt = {
-                    'fastq': self.option('fastq').prop['path']
-                }
+        if self.option('single_fastq').is_set:
+            myopt = {
+                'single_fastq': self.option('single_fastq').prop['path']
+            }
         self.qc_format.set_options(myopt)
         self.on_rely(self.qc_format, self.base_info_run)
         self.on_rely(self.qc_format, self.samples_info_run)

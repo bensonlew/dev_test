@@ -31,8 +31,8 @@ class OtuTableFile(File):
         info = self.get_otuinfo()
         self.set_property("form", info[0])
         self.set_property("otu_num", info[1])
-        self.set_property("sample_num", info[1])
-        self.set_property("metadata", info[2])
+        self.set_property("sample_num", info[2])
+        self.set_property("metadata", info[3])
 
     def check(self):
         """

@@ -101,17 +101,16 @@ class MiseqSplitFile(File):
             for c in self.c_props:
                 if c not in self.prop["child_sample"][0].keys():
                     raise FileError("Json文件中子样本属性 %s 缺失！" % p)
-                for c in self.prop["child_sample"]:
-                    line = c["var_base"]
+                for c_sample in self.prop["child_sample"]:
+                    line = c_sample["var_base"]
                     if len(line) != 2:
                         raise FileError("Json文件中子样本var_base属性值错误")
-                    line = re.split("_", c["barcode"])
+                    line = re.split('_', c_sample["barcode"])
                     if len(line) != 2:
                         raise FileError("Json文件中子样本barcode属性值错误")
-                    line = re.split('_', c["primer"])
+                    line = re.split('_', c_sample["primer"])
                     if len(line) != 2:
                         raise FileError("Json文件中子样本primer属性值错误")
-
             return True
 
 if __name__ == '__main__':
