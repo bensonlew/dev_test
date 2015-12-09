@@ -93,6 +93,6 @@ class HclusterTool(Tool):
         if os.path.exists(linkfile):
             os.remove(linkfile)
         os.link(filename, linkfile)
-        self.option('newicktree', linkfile)
+        self.option('newicktree').set_path(linkfile)
         self.logger.info(self.option('newicktree').prop)
         self.end()

@@ -10,31 +10,41 @@ class BetaDiversityModule(Module):
 
     def __init__(self, work_id):
         super(BetaDiversityModule, self).__init__(work_id)
-        self.logger.info('init1')
         options = [
             {"name": "analysis", "type": "string",
                 "default": "anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
-            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},
+            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
+            {"name": "level", "type": "string", "default": "otu"},
             {"name": "phy_newick", "type": "infile",
              "format": "meta.beta_diversity.newick_tree"},
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
             {"name": "envtable", "type": "infile", "format": "meta.env_table"},
-            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
+            {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "dis_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
+            {"name": "dis_newicktree", "type": "outfile", "format": "meta.beta_diversity.newick_tree"}
         ]
         self.add_option(options)
         self.matrix = self.add_tool('meta.beta_diversity.distance_calc')
         self.tools = {}
-        self.logger.info('init2')
+
+    def gettable(self):
+        """
+        根据level返回进行计算的otu表
+        :return:
+        """
+        if self.option('otutable').format == "meta.otu.tax_summary_dir":
+            return self.option('otutable').get_table(self.option('level'))
+        else:
+            return self.option('otutable').prop['path']
 
     def check_options(self):
-        self.logger.info('check1')
         if self.option('permutations') < 0 or self.option('permutations') > 10000:
             raise OptionError('参数permutations：%s 不在范围内(0-10000)' %
                               self.option('permutations'))
-        samplelist = open(self.option('otutable').prop[
-                          'path']).readline().strip().split('\t')[1:]
+        samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
+        self.option('group').get_info()
         for sample in self.option('group').prop['sample']:
             if sample not in samplelist:
                 raise OptionError('分组文件的样本(%s)在otu表的样本中不存在' % sample)
@@ -44,7 +54,7 @@ class BetaDiversityModule(Module):
             raise OptionError('计算RDA/CCA需要环境因子表')
         if ('anosim' or 'rda_cca' or 'dbrda') in self.option('analysis') and not self.option('group').is_set:
             raise OptionError('分析需要相关分组文件')
-        self.logger.info('check2')
+        return True
 
     def matrix_run(self):
         """
@@ -53,11 +63,11 @@ class BetaDiversityModule(Module):
         """
         if self.option('phy_newick').is_set:
             self.matrix.set_options({'method': self.option('dis_method'),
-                                     'otutable': self.option('otutable').prop['path'],
+                                     'otutable': self.gettable(),
                                      'newicktree': self.option('phy_newick').prop['path']})
         else:
             self.matrix.set_options({'method': self.option('dis_method'),
-                                     'otutable': self.option('otutable').prop['path']})
+                                     'otutable': self.gettable()})
         self.matrix.on('end', self.set_output, 'distance')
         self.matrix.run()
 
@@ -116,7 +126,7 @@ class BetaDiversityModule(Module):
 
     def rda_run(self):
         self.tools['rda'].set_options({
-            'otutable': self.option('otutable').prop['path'],
+            'otutable': self.gettable(),
             'envtable': self.option('envtable').prop['path']
         })
         self.tools['rda'].on('end', self.set_output, 'rda')
@@ -125,11 +135,11 @@ class BetaDiversityModule(Module):
     def pca_run(self):
         if self.option('envtable').is_set:
             self.tools['pca'].set_options({
-                'otutable': self.option('otutable').prop['path'],
+                'otutable': self.gettable(),
                 'envtable': self.option('envtable').prop['path']})
         else:
             self.tools['pca'].set_options({
-                'otutable': self.option('otutable').prop['path']})
+                'otutable': self.gettable()})
         self.tools['pca'].on('end', self.set_output, 'pca')
         self.tools['pca'].run()
 
@@ -141,8 +151,10 @@ class BetaDiversityModule(Module):
             self.linkdir(obj.output_dir, 'Rda')
         elif event['data'] == 'distance':
             self.linkdir(obj.output_dir, 'Distance')
+            self.option('dis_matrix', obj.option('dis_matrix'))
         elif event['data'] == 'hcluster':
             self.linkdir(obj.output_dir, 'Hcluster')
+            self.option('dis_newicktree', obj.option('newicktree'))
         elif event['data'] == 'anosim':
             self.linkdir(obj.output_dir, 'Anosim')
         elif event['data'] == 'box':
@@ -196,7 +208,7 @@ class BetaDiversityModule(Module):
             self.tools['hcluster'] = self.add_tool(
                 'meta.beta_diversity.hcluster')
             self.on_rely(self.matrix, self.hcluster_run)
-        if self.tools:
+        if self.tools or 'distance_matrix' in self.option('analysis'):
             self.matrix_run()
         if 'pca' in self.option('analysis'):
             self.tools['pca'] = self.add_tool('meta.beta_diversity.pca')
