@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import os
+import re
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from mbio.files.sequence.fasta import FastaFile
@@ -61,7 +62,10 @@ class SamplesInfoTool(Tool):
                 fastafile.set_path(fasta)
                 if fastafile.check():
                     info_ = list()
-                    info_.append(fastafile.prop["sample_name"])
+                    fastafile.get_info()
+                    basename = fastafile.prop["basename"]
+                    s_name = re.sub(r"(.+)\.(fa|fasta)$", r"\1", basename)
+                    info_.append(s_name)
                     info_.append(fastafile.prop["seq_number"])
                     info_.append(fastafile.prop["bases"])
                     avg = int(fastafile.prop["bases"]) / int(fastafile.prop["seq_number"])

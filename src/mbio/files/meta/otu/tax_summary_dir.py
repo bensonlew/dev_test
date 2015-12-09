@@ -61,7 +61,7 @@ class TaxSummaryDirFile(Directory):
                 if re.search(pattern, file_, re.IGNORECASE):
                     return os.path.join(self.prop['path'], file_)
             else:
-                pattern = r"otu_taxon_" + level + r"\.stat\.xls"
+                pattern = r"otu_taxon_" + level + r"\.xls"
                 if re.search(pattern, file_, re.IGNORECASE):
                     return os.path.join(self.prop['path'], file_)
         raise ValueError("未找到文件，检查输入的level是否正确")
