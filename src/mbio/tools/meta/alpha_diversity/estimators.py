@@ -19,7 +19,7 @@ class EstimatorsAgent(Agent):
     def __init__(self, parent):
         super(EstimatorsAgent, self).__init__(parent)
         options = [
-            {"name": "otutable", "type": "infile", "format": ["meta.otu.otu_table", "meta.otu.tax_summary_dir"]},  # 输入文件
+            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
             {"name": "indices", "type": "string", "default": "ace-chao-shannon-simpson"},  # 指数类型
             {"name": "level", "type": "string", "default": "otu"},  # level水平
             # {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}  # 输出结果
@@ -42,7 +42,7 @@ class EstimatorsAgent(Agent):
         """
         所需资源
         """
-        self._cpu = 10
+        self._cpu = 11
         self._memory = ''
 
 

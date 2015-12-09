@@ -11,3 +11,4 @@ dist/
 .pydevproject
 __pycache__/
 doc/
+.swp

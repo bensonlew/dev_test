@@ -150,6 +150,7 @@ class OtuTaxonStatTool(Tool):
                 file_ = os.path.join(tax_summary_a_dir, table)
                 new_file = os.path.join(tax_summary_a_dir, name)
                 os.rename(file_, new_file)
+        self.logger.info("开始整理输出文件夹")
         self.rename()
 
     def rename(self):

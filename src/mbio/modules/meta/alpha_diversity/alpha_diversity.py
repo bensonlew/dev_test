@@ -20,15 +20,17 @@ class AlphaDiversityModule(Module):
     def __init__(self, work_id):
         super(AlphaDiversityModule, self).__init__(work_id)
         options = [
-            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table"},
-            {"name": "indices", "type": "string", "format": "ace-chao-shannon-simpson-coverage"},
-            {"name": "random_number", "type": "int", "default": 100}
-            # {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"},
-            # {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}
+            {"name": "otu_table", "type": "infile", "format": ["meta.otu.otu_table", "meta.otu.tax_summary_dir"]},  # 输入文件
+            {"name": "estimate_indices", "type": "string", "format": "ace-chao-shannon-simpson-coverage"},
+            {"name": "rarefy_indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
+            {"name": "rarefy_freq", "type": "int", "default": 100},
+            {"name": "level", "type": "string", "default": "otu"}  # level水平
         ]
         self.add_option(options)
-        self.rank_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
-        self.perl_path = '/mnt/ilustre/users/sanger/app/Perl/bin/perl'
+        # self.rank_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
+        self.perl_path = 'Perl/bin/perl'
+        self.estimators = self.add_tool('meta.alpha_diversity.estimators')
+        self.rarefaction = self.add_tool('meta.alpha_diversity.rarefaction')
 
     def check_options(self):
         """
@@ -36,22 +38,29 @@ class AlphaDiversityModule(Module):
         """
         if not self.option("otu_table").is_set:
             raise OptionError("请选择otu表")
-        for estimators in self.option('indices').split('-'):
+        for estimators in self.option('estimat_indices').split('-'):
+            if estimators not in self.ESTIMATORS:
+                raise OptionError("请选择正确的指数类型")
+        for estimators in self.option('rarefy_indices').split('-'):
             if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
 
     def estimators_run(self):
-        estimators = self.add_tool('meta.alpha_diversity.estimators')
-        estimators.set_options({'otutable': self.option('otu_table'), 'indices': self.option('indices')})
-        self.on_rely(estimators, self.rarefaction_run)
-        estimators.run()
+        self.estimators.set_options({
+            'otutable': self.option('otu_table'),
+            'indices': self.option('estimate_indices')
+            })
+        # self.on_rely(estimators, self.rarefaction_run)
+        self.estimators.run()
 
     def rarefaction_run(self):
-        rarefaction = self.add_tool('meta.alpha_diversity.rarefaction')
-        rarefaction.set_options({'otutable': self.option('otu_table'), 'indices': self.option('indices'),
-                                'random_number': self.option('random_number')})
-        rarefaction.on('end', self.set_output)
-        rarefaction.run()
+        self.rarefaction.set_options({
+            'otutable': self.option('otu_table'),
+            'indices': self.option('rarefy_indices'),
+            'freq': self.option('rarefy_freq')
+            })
+        self.rarefaction.on('end', self.set_output)
+        self.rarefaction.run()
 
     def set_output(self):
         self.logger.info('set output')
@@ -74,4 +83,6 @@ class AlphaDiversityModule(Module):
 
     def run(self):
         self.estimators_run()
+        self.rarefaction_run()
+        self.on_rely([self.estimators, self.rarefaction], self.set_output)
         super(AlphaDiversityModule, self).run()
