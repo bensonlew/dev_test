@@ -5,6 +5,9 @@ import os
 import subprocess
 from biocluster.config import Config
 from biocluster.iofile import Directory
+from biocluster.core.exceptions import FileError
+from mbio.files.sequence.fastq import FastqFile
+from mbio.files.sequence.file_sample import FileSampleFile
 
 
 class FastqDirFile(Directory):
@@ -26,6 +29,7 @@ class FastqDirFile(Directory):
         self.unzip_file = list()
         self.has_work_dir = False
         self.work_dir = ""
+        self.has_list_file = False
 
     def get_info(self):
         """
@@ -34,8 +38,9 @@ class FastqDirFile(Directory):
         if 'path' in self.prop.keys() and os.path.isdir(self.prop['path']):
             self.set_property("fastq_number", self.get_fastq_number())
             self.set_property("fastq_basename", self.fastqs)
+            self.set_property("has_list_file", self.has_list_file)
         else:
-            raise Exception("文件夹路径不正确，请设置正确的文件夹路径!")
+            raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
 
     def get_full_info(self, work_path):
         """
@@ -43,30 +48,34 @@ class FastqDirFile(Directory):
 
         :param work_path: 工作文件夹的路径
         """
+        self.get_info()
         self.make_work_dir(work_path)
         self.unzip_fastq()
         self.set_property("unzip_fastqs", self.unzip_file)
-
-    def set_file_number(self, number):
-        """
-        设定文件中期望的fastq文件数，会与实际检测到的fastq做一个比较检验
-
-        :param number: 设定的文件数
-        """
-        self.prop["expect_number"] = number
 
     def get_fastq_number(self):
         """
         获取文件夹下fastq的数目
         :return:文件数目
         """
-        filelist = os.listdir(self.prop['path'])
-        count = 0
-        for file_ in filelist:
-            if re.search(r'\.(fastq|fq)$', file_) or re.search(r'\.(fastq|fq)\.gz$', file_):
-                count += 1
-                self.fastqs.append(file_)
-        return count
+        list_txt = os.path.join(self.prop['path'], "list.txt")
+        if os.path.exists(list_txt):
+            self.has_list_file = True
+            filesample = FileSampleFile()
+            filesample.set_path(list_txt)
+            for filename in filesample.prop["file_names"]:
+                my_fastq = FastqFile()
+                fq_path = os.path.join(self.prop['path'], filename)
+                my_fastq.set_path(fq_path)
+                my_fastq.get_info()
+                if my_fastq.check():
+                    self.fastqs.append(filename)
+        else:
+            filelist = os.listdir(self.prop['path'])
+            for file_ in filelist:
+                if re.search(r'\.(fastq|fq)$', file_) or re.search(r'\.(fastq|fq)\.gz$', file_):
+                    self.fastqs.append(file_)
+        return len(self.fastqs)
 
     def make_work_dir(self, work_path):
         """
@@ -132,4 +141,5 @@ class FastqDirFile(Directory):
         :return:
         """
         if super(FastqDirFile, self).check():
+            self.get_info()
             return True

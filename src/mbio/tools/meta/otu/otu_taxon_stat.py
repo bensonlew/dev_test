@@ -18,7 +18,7 @@ class OtuTaxonStatAgent(Agent):
     def __init__(self, parent):
         super(OtuTaxonStatAgent, self).__init__(parent)
         options = [
-            {'name': 'otu_seqids', 'type': 'infile', 'format': 'meta.otu.otu_seqids'},  # 输入的seqids文件
+            {'name': 'in_otu_table', 'type': 'infile', 'format': 'meta.otu.otu_table'},  # 输入的otu表
             {'name': 'taxon_file', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 输入的taxon文件
             {'name': 'otu_taxon_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 输出的biom文件
             {'name': 'otu_taxon_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出的otu表文件
@@ -29,10 +29,13 @@ class OtuTaxonStatAgent(Agent):
         """
         参数检测
         """
-        if not self.option("otu_seqids").is_set:
-            raise OptionError("参数otu_seqids不能为空")
+        if not self.option("in_otu_table").is_set:
+            raise OptionError("参数in_otu_table不能为空")
         if not self.option("taxon_file").is_set:
             raise OptionError("参数taxon_file不能为空")
+        if  self.option("in_otu_table").prop['metadata'] == "taxonomy":
+            raise OptionError("otu表不应该有taxonomy信息")
+
         return True
 
     def set_resource(self):
@@ -60,35 +63,18 @@ class OtuTaxonStatTool(Tool):
 
     def get_biom_otu(self):
         """
-        根据otu_seqids和seq_taxon文件生成biom表和otu表
+        根据in_otu_table和seq_taxon文件生成biom表和otu表
 
         :return: 生成的biom和otu文件的路径
         """
-        biom = os.path.join(self.work_dir, "output", "otu_taxon.biom")
-        otu_table_tmp = os.path.join(self.work_dir, "otu_taxon.otu_table.tmp")
-        otu_table = os.path.join(self.work_dir, "output", "otu_taxon.otu_table")
-        cmd = self._make_otu_table_path + " -i " + self.option("otu_seqids").prop['path']\
-            + " -t " + self.option("taxon_file").prop['path'] + " -o " + biom
-        create_biom = self.add_command("create_biom", cmd)
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + "/gcc/5.1.0/lib64:$LD_LIBRARY_PATH")
-        self.logger.info("开始生成biom")
-        create_biom.run()
-        self.wait(create_biom)
-        if create_biom.return_code == 0:
-            self.logger.info("biom生成成功")
-        else:
-            self.set_error("biom生成出错!")
+        otu_tax = dict()
+        with open(self.option("taxon_file").prop['path'], 'r') as r1:
+            for line in r1:
+                line = re.split('\t', line)
+                otu_tax[line[0]] = line[1]
+        taxon_otu = os.path.join(self.work_dir, "output", "otu_taxon.xls")
 
-        cmd = self._biom_path + " convert -i " + biom + " -o " + otu_table_tmp\
-            + " --header-key taxonomy --table-type \"OTU table\" --to-tsv"
-        create_otu_table = self.add_command("create_otu_table", cmd)
-        self.logger.info("开始转换生成otu_table")
-        create_otu_table.run()
-        self.wait(create_otu_table)
-        if create_otu_table.return_code == 0:
-            self.logger.info("otu_table生成成功")
-        else:
-            self.set_error("otu_table生成失败")
+
 
         otu_table_sum_tmp = os.path.join(self.work_dir, "otu_taxon.otu_table_sum.tmp")
         cmd = self._biom_path + " convert -i " + biom + " -o " + otu_table_sum_tmp\
@@ -160,7 +146,7 @@ class OtuTaxonStatTool(Tool):
                 file_ = os.path.join(tax_summary_a_dir, table)
                 os.remove(file_)
             if re.search(r"new$", table):
-                name = re.sub(r"txt\.new$", r"full\.xls", table)
+                name = re.sub(r"txt\.new$", r"full.xls", table)
                 file_ = os.path.join(tax_summary_a_dir, table)
                 new_file = os.path.join(tax_summary_a_dir, name)
                 os.rename(file_, new_file)

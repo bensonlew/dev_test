@@ -20,10 +20,11 @@ class FileSampleFile(File):
         获取文件属性
         """
         super(FileSampleFile, self).get_info()
-        (info, count) = self.get_file_info()
-        self.set_property("sample_number", len(info))
-        self.set_property("seq_number", count)
-        self.set_property("sample_names", info.keys())
+        (sample, name) = self.get_file_info()
+        self.set_property("sample_number", len(sample))
+        self.set_property("file_number", len(name))
+        self.set_property("file_names", name.keys())
+        self.set_property("sample_names", sample.keys())
 
     def get_file_info(self):
         """
@@ -32,9 +33,7 @@ class FileSampleFile(File):
         with open(self.prop['path'], 'r') as f:
             sample = dict()
             name = dict()
-            count = 0
             for line in f:
-                count += 1
                 line = line.rstrip('\n')
                 line = re.split('\t', line)
                 self.col = len(line)
@@ -44,7 +43,7 @@ class FileSampleFile(File):
                     name[line[0]] = 1
                 else:
                     self.repeat_name = True
-        return sample, count
+        return sample, name
 
     def check(self):
         if super(FileSampleFile, self).check():
