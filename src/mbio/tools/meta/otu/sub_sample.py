@@ -55,13 +55,12 @@ class SubSampleTool(Tool):
                                    os.path.basename(self.option("in_otu_table").prop["path"] + ".shared"))
         mothur_dir = os.path.join(self.work_dir, "mothur")
         os.mkdir(mothur_dir)
-        self.logger.debug(shared_path)
+        self.option("in_otu_table").get_info()
         self.option("in_otu_table").convert_to_shared(shared_path)
         cmd = self.mothur_path + " \"#set.dir(output=" + mothur_dir\
             + ");sub.sample(shared=" + shared_path + ")\""
         sub_sample_cmd = self.add_command("sub_sample_cmd", cmd)
         self.logger.info("开始运行sub.sample")
-        self.logger.debug(cmd)
         sub_sample_cmd.run()
         self.wait(sub_sample_cmd)
         if sub_sample_cmd.return_code == 0:
