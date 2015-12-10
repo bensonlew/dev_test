@@ -1,5 +1,5 @@
-# encoding: utf-8
-
+# -*- coding: utf-8 -*-
+# __author__ = 'guoquan'
 """workflow工作流类模块"""
 
 from .core.function import load_class_by_path
@@ -13,6 +13,7 @@ from .agent import Agent
 import datetime
 import gevent
 import time
+from .api.file.remote import RemoteFileManager
 
 
 class Workflow(Basic):
@@ -20,9 +21,10 @@ class Workflow(Basic):
     工作流程基类
     """
 
-    def __init__(self, work_id):
+    def __init__(self, wsheet):
         super(Workflow, self).__init__()
-        self._id = work_id
+        self._id = wsheet.work_id
+        self._sheet = wsheet
         self.config = Config()
         self._work_dir = self.__work_dir()
         self._output_path = self._work_dir + "/output"
@@ -32,6 +34,22 @@ class Workflow(Basic):
         self._logger = Wlog(self).get_logger("")
         self.rpc_server = RPC(self)
         self.db = self.config.get_db()
+
+    def set_options(self, options):
+        """
+        设置参数值，设置之前如有远程文件，则先复制远程文件到本地
+
+        :param options:
+        :return:
+        """
+        for name, opt in self._options.items():
+            if opt.type == "infile":
+                remote_file = RemoteFileManager(options['name'])
+                if remote_file.type != "local":
+                    self.logger.info("发现参数%s为远程文件%s,开始复制..." % (name, options['name']))
+                    remote_file.download(os.path.join(self.work_dir,"remote_input", name))
+                    options['name'] = remote_file.local_path
+        super(Workflow, self).set_options(options)
 
     def __work_dir(self):
         """
@@ -112,7 +130,12 @@ class Workflow(Basic):
         停止运行
         """
         super(Workflow, self).end()
-
+        if self._sheet.output:
+            remote_file = RemoteFileManager(self._sheet.ouput)
+            if remote_file.type != "local":
+                self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.ouput))
+                remote_file.upload(os.path.join(self.output_dir))
+                self.logger("结果上传完成!")
         data = {
             "is_end": 1,
             "end_time": datetime.datetime.now(),

@@ -1,5 +1,5 @@
-# encoding: utf-8
-# __author__ = 'yuguo'
+# -*- coding: utf-8 -*-
+# __author__ = 'guoquan'
 
 """参数类"""
 
@@ -26,7 +26,7 @@ class Option(object):
         self._check = None
         self._format_list = []
         self._check_list = []
-        self._bind_obj = bind_obj
+        self.bind_obj = bind_obj
         if not isinstance(opt, dict):
             raise OptionError("opt必须为一个字典")
         for attr in ('name', 'type'):
@@ -42,21 +42,23 @@ class Option(object):
                         checks = re.split('\s*,\s*', opt['check'])
                         if len(checks) == 1:
                             for index in range(len(formats)):
-                                self._format_list[index] = formats[index].strip()
-                                self._check_list[index] = checks[0].strip()
+                                self._format_list.append(formats[index].strip())
+                                self._check_list.append(checks[0].strip())
                         else:
                             for index in range(len(formats)):
                                 if index + 1 > len(checks):
-                                    self._format_list[index] = formats[index].strip()
-                                    self._check_list[index] = False
+                                    self._format_list.append(formats[index].strip())
+                                    self._check_list.append(False)
                                 else:
                                     self._format_list[index] = formats[index].strip()
                                     check_str = checks[index].strip()
-                                    self._check_list[index] = check_str if check_str != "" else False
+                                    self._check_list.append(check_str if check_str != "" else False)
                     else:
+                        # print formats
                         for index in range(len(formats)):
-                            self._format_list[index] = formats[index].strip()
-                            self._check_list[index] = False
+                            # print index
+                            self._format_list.append(formats[index].strip())
+                            self._check_list.append(False)
                     self._value = False
                 else:
                     self._format = opt['format'].strip()
@@ -91,6 +93,14 @@ class Option(object):
         return self._type
 
     @property
+    def format_list(self):
+        """
+        多格式支持时返回格式列表
+        :return:
+        """
+        return self._format_list
+
+    @property
     def value(self):
         """
         获取参数值
@@ -114,14 +124,13 @@ class Option(object):
             if isinstance(value, unicode) or isinstance(value, str):
                 if os.path.exists(value):
                     if self.type == "infile":  # 检查输出文件是否满足要求
-
                         # class_obj = load_class_by_path(self._options[name].format, "File")
                         if len(self._format_list) > 1:
                             has_pass = False
                             for index in range(len(self._format_list)):
                                 format_path = self._format_list[index]
                                 check = self._check_list[index]
-                                file_obj = self._check_file(format_path, check, value)
+                                file_obj = self._check_file(format_path, check, value, loop=True)
                                 if file_obj:
                                     has_pass = True
                                     self._value = file_obj
@@ -211,15 +220,15 @@ class Option(object):
             if not isinstance(value, FileBase):
                 raise OptionError("参数值类型不符合{}:{}".format(self._type, value))
 
-    def _check_file(self, format_path, check, path):
+    def _check_file(self, format_path, check, path, loop=False):
         """
 
         :param format_path:
         :param check:
         :return:
         """
-        class_name = self._bind_obj.__class__.__name__
-        self_class_path = get_classpath_by_object(self._bind_obj)
+        class_name = self.bind_obj.__class__.__name__
+        self_class_path = get_classpath_by_object(self.bind_obj)
         paths = self_class_path.split(".")[2:]
         function_name = "_".join(paths)
         if re.search(r"Agent$", class_name) or re.search(r"Tool$", class_name):
@@ -231,7 +240,8 @@ class Option(object):
         else:
             raise Exception("类名称不正确!")
         try:
-            file_obj = load_class_by_path(format_path, "File")().set_path(path)
+            file_obj = load_class_by_path(format_path, "File")()
+            file_obj.set_path(path)
             if check:
                 if hasattr(file_obj, check):
                     getattr(file_obj, check)()
@@ -245,16 +255,13 @@ class Option(object):
                     getattr(file_obj, "check")()
         except FileError:
             exstr = traceback.format_exc()
-            self._bind_obj.logger.debug("检测未通过(以下为调试信息，可忽略):\n%s" % exstr)
+            if loop:
+                self.bind_obj.logger.debug("检测未通过(以下为调试信息，可忽略):\n%s" % exstr)
             return False
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            if re.search(r"Tool$", class_name):
-                self._bind_obj.set_error(e)
-            else:
-                self._bind_obj.get_workflow().exit(exitcode=1, data=e)
-            return False
+            self._file_check_error(e)
         else:
             return file_obj
 
@@ -265,8 +272,8 @@ class Option(object):
         :param error:
         :return:
         """
-        class_name = self._bind_obj.__class__.__name__
+        class_name = self.bind_obj.__class__.__name__
         if re.search(r"Tool$", class_name):
-            self._bind_obj.set_error(error)
+            self.bind_obj.set_error(error)
         else:
-            self._bind_obj.get_workflow().exit(exitcode=1, data=error)
+            self.bind_obj.get_workflow().exit(exitcode=1, data=error)

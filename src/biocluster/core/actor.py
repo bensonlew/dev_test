@@ -1,4 +1,5 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
+# __author__ = 'guoquan'
 
 """actor消息处理机制"""
 
@@ -54,6 +55,9 @@ class LocalActor(gevent.Greenlet):
 
         :param message: message为远程rpc传递的数据,python dict类型数据 必须包含 key "event"
         """
+        if self._agent.is_end:
+            self._agent.logger.debug("已经停止运行，丢弃接收到的消息: %s " % message)
+            return
         try:
             if self._update is None:
                 self._agent.fire('runstart', message["data"])
