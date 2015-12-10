@@ -1,4 +1,5 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
+# __author__ = 'guoquan'
 
 """
 任务命令监控

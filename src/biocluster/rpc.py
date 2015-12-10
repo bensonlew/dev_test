@@ -1,5 +1,5 @@
-# encoding: utf-8
-# __author__ = 'yuguo'
+# -*- coding: utf-8 -*-
+# __author__ = 'guoquan'
 
 """rpc远程客户端和服务端"""
 

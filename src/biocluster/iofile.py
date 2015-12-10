@@ -1,11 +1,12 @@
-# encoding: utf-8
-# __author__ = 'yuguo'
+# -*- coding: utf-8 -*-
+# __author__ = 'guoquan'
 
 """文件基本模块"""
 
 import os
 import hashlib
 from .core.exceptions import FileError
+import re
 
 
 class FileBase(object):
@@ -34,6 +35,34 @@ class FileBase(object):
         """
         return self._is_set
 
+    @property
+    def path(self):
+        """
+        返回文件路径
+
+        :return:
+        """
+        if self.is_set:
+            return self._properties["path"]
+        else:
+            return None
+
+    @property
+    def format(self):
+        """
+        返回文件类的Path路径
+
+        :return:
+        """
+        class_name = str(type(self))
+        m = re.match(r"<class\s\'(.*)\'>", class_name)
+        class_name = m.group(1)
+        paths = class_name.split(".")
+        paths.pop()
+        paths.pop(0)
+        paths.pop(0)
+        return ".".join(paths)
+
     def set_property(self, name, value):
         """
         添加文件对象属性
@@ -48,6 +77,11 @@ class FileBase(object):
         """
         获取当前文件对象的所有属性,需在扩展子类中重写此方法
         """
+        if self.is_set:
+            self.set_property('dirname', os.path.dirname(self.prop['path']))
+            self.set_property('basename', os.path.basename(self.prop['path']))
+        else:
+            raise Exception("请先调用set_path方法设置文件路径!!")
 
     def set_path(self, path):
         """
@@ -55,8 +89,10 @@ class FileBase(object):
 
         :param path: 路径
         """
+        if not os.path.exists(path):
+            raise Exception("请先设置正确的文件或文件夹路径路径!")
         self.set_property("path", path)
-        self.get_info()
+        # self.get_info()
         self._is_set = True
 
     def check(self):
@@ -64,7 +100,7 @@ class FileBase(object):
         检测当前文件对象是否满足运行需求,需在扩展子类中重写
         """
         if not self.is_set:
-            raise Exception("请先设置文件路径!")
+            raise Exception("请先调用set_path方法设置文件路径!")
 
 
 class File(FileBase):
@@ -80,13 +116,9 @@ class File(FileBase):
 
         :return:
         """
-        if 'path' in self.prop.keys() and os.path.isfile(self.prop['path']):
-            self.set_property("size", self.get_size())
-            self.set_property("md5", self.get_md5())
-            self.set_property('dirname', os.path.dirname(self.prop['path']))
-            self.set_property('basename', os.path.basename(self.prop['path']))
-        else:
-            raise Exception("请先设置正确的文件路径!")
+        super(File, self).get_info()
+        self.set_property("size", self.get_size())
+        self.set_property("md5", self.get_md5())
 
     def check(self):
         """
@@ -95,15 +127,8 @@ class File(FileBase):
         :return:
         """
         super(File, self).check()
-        if 'path' in self.prop.keys() and os.path.isfile(self.prop['path']):
-            if self.prop['size'] > 0:
-                return True
-            else:
-                raise FileError("文件大小为空")
-                # return {'pass': False, "info": "文件大小为空!"}
-        else:
-            # return {'pass': False, "info": "!"}
-            raise Exception("文件路径不在正确或文件不存在")
+        if not ('path' in self.prop.keys() and os.path.isfile(self.prop['path'])):
+            raise FileError("文件路径不在正确或文件不存在")
 
     def get_md5(self):
         """
@@ -165,5 +190,4 @@ class Directory(FileBase):
             raise Exception("文件夹路径不正确，请设置正确的文件夹路径!")
 
     def get_info(self):
-        if not ('path' in self.prop.keys() and os.path.exists(self.prop['path'])):
-            raise Exception("文件夹路径不正确或文件夹不存在")
+        super(Directory, self).get_info()

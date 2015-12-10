@@ -8,7 +8,6 @@ import re
 from .logger import Wlog
 from .option import Option
 import os
-from .core.function import get_classpath_by_object
 from .core.exceptions import OptionError
 from gevent.lock import BoundedSemaphore
 

@@ -143,3 +143,22 @@ class Config(object):
         if self.DB_TYPE == "mysql":
             return web.database(dbn=self.DB_TYPE, host=self.DB_HOST, db=self.DB_NAME, user=self.DB_USER,
                                 passwd=self.DB_PASSWD, port=int(self.DB_PORT))
+
+    def get_netdata_config(self, type_name):
+        type_list = self.rcf.get("NETDATA", "types").split(r"\s*,\s*")
+        if type_name not in type_list:
+            raise Exception("Unkown netdata %s" % type_name)
+        options = self.rcf.options("NETDATA")
+        type_dict = {}
+        for opt in options:
+            if re.match("^" + type_name, opt):
+                type_dict[opt] = self.rcf.get("NETDATA", "opt")
+        return type_dict
+
+    def get_netdata_lib(self, type_name):
+        if type_name == "http":
+            return "http"
+        type_list = self.rcf.get("NETDATA", "types").split(r"\s*,\s*")
+        if type_name not in type_list:
+            raise Exception("Unkown netdata %s" % type_name)
+        return self.rcf.get("NETDATA", "%s_type" % type_name)

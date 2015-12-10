@@ -39,7 +39,7 @@ class Tool(object):
         self._output_path = ""
         self._run = False
         self._end = False
-        self._options = None
+        self._options = {}
         self.load_config()
         self.logger = Wlog(self).get_logger('')
         self.actor = RemoteActor(self, threading.current_thread())
@@ -347,6 +347,8 @@ class Tool(object):
         for name in vars(self.config).keys():
             if hasattr(self, name):
                 setattr(self, name, getattr(self.config, name))
+        for option in self._options.values():
+            option.bind_obj = self
 
     def set_error(self, error_data):
         """

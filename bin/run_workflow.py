@@ -13,6 +13,7 @@ from biocluster.config import Config
 from multiprocessing import Process
 import atexit
 import traceback
+import web
 
 parser = argparse.ArgumentParser(description="run a workflow")
 group = parser.add_mutually_exclusive_group()
@@ -66,28 +67,29 @@ def main():
             else:
                 t.commit()
             if json_data:
-                process = Process(target=wj.start, args=(json_data,))
+                # process = Process(target=wj.start, args=(json_data,))
+                process = Worker(wj, json_data)
                 process_array.append(process)
                 process.start()
                 write_log("Running workflow %s,the process id %s ..." % (json_data["id"], process.pid))
-            while len(process_array) >= Config().SERVICE_PROCESSES:
-                write_log("Running workflow %s, reach the max limit,waiting ..." % json_data["id"])
+                while len(process_array) >= Config().SERVICE_PROCESSES:
+                    write_log("Running workflow %s, reach the max limit,waiting ..." % json_data["id"])
 
-                for p in process_array:
-                    if not p.is_alive():
-                        exitcode = p.exitcode
-                        if exitcode != 0:
-                            write_log("流程%s运行出错: 原因未知" % json_data["id"])
-                            wj.update_error()
-                        p.join()
-                        process_array.remove(p)
-                time.sleep(1)
+                    for p in process_array:
+                        if not p.is_alive():
+                            exitcode = p.exitcode
+                            if exitcode != 0:
+                                write_log("流程%s运行出错: 原因未知" % p.json_data["id"])
+                                p.wj.update_error()
+                            p.join()
+                            process_array.remove(p)
+                    time.sleep(1)
             for p in process_array:
                 if not p.is_alive():
                     exitcode = p.exitcode
                     if exitcode != 0:
-                        write_log("流程%s运行出错: 原因未知" % json_data["id"])
-                        wj.update_error()
+                        write_log("流程%s运行出错: 原因未知" % p.json_data["id"])
+                        p.wj.update_error()
                     p.join()
                     process_array.remove(p)
     else:
@@ -142,11 +144,23 @@ def write_log(data):
         f.write(line + "\n")
 
 
+class Worker(Process):
+    def __init__(self, wj, json_data):
+        super(Worker, self).__init__()
+        self.wj = wj
+        self.json_data = json_data
+
+    def run(self):
+        super(Worker, self).run()
+        self.wj.start(self.json_data)
+
+
 class WorkJob(object):
     def __init__(self):
         self.workflow_id = args.rerun_id
         self.pid = os.getpid()
         self._db = None
+        self.client = None
 
     @property
     def db(self):
@@ -157,18 +171,32 @@ class WorkJob(object):
             self._db = Config().get_db()
         return self._db
 
+    def get_client_limit(self):
+        if self.client:
+            clients = self.db.query("SELECT * FROM clientkey where client=$client", vars={'client': self.client})
+            if len(clients) > 0:
+                client = clients[0]
+                if client.max_workflow != "" and client.max_workflow is not None:
+                    return client.max_workflow
+        return 0
+
+    def get_running_workflow(self):
+        where_dict = dict(client=self.client, has_run=1, is_end=0, is_error=0)
+        return len(self.db.select("workflow", where=web.db.sqlwhere(where_dict)))
+
     def lock(self):
         self.db.query("LOCK TABLE `workflow` WRITE")
 
     def get_from_database(self, workflow_id=None):
         if workflow_id:
-            results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$workflow_id",
+            results = self.db.query("SELECT * FROM workflow WHERE  workflow_id=$workflow_id",
                                     vars={'workflow_id': workflow_id})
         else:
             results = self.db.query("SELECT * FROM workflow WHERE has_run = 0 order by id desc limit 0,1")
         if len(results) > 0:
             data = results[0]
             self.workflow_id = data.workflow_id
+            self.client = data.client
             return json.loads(data.json)
 
     def unlock(self):
@@ -214,6 +242,18 @@ class WorkJob(object):
     #     self.start()
 
     def start(self, json_data):
+        if self.client:
+            max_limit = self.get_client_limit()
+            if max_limit > 0:
+                while True:
+                    running = self.get_running_workflow()
+                    if running <= max_limit:
+                        break
+                    else:
+                        write_log("running workflow %s reach the max limit of client %s ,waiting for 1 minute "
+                                  "and check again ..." % (self.workflow_id, self.client))
+                        time.sleep(60)
+
         self.workflow_id = json_data["id"]
         write_log("Start running workflow:%s" % self.workflow_id)
         if json_data["type"] == "workflow":
