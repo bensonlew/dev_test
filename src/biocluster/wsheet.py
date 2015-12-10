@@ -51,6 +51,17 @@ class Sheet(object):
         else:
             return "link"
 
+    @property
+    def output(self):
+        """
+        需要上传的远程路径
+        :return:
+        """
+        if 'output' in self._data.keys():
+            return self._data['output']
+        else:
+            return None
+
     def option(self, name, component=None):
         """
         获取参数值

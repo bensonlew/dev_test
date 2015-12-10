@@ -4,7 +4,6 @@
 """OTUtable格式文件类"""
 
 from biocluster.iofile import File
-import re
 import subprocess
 from biocluster.config import Config
 import os

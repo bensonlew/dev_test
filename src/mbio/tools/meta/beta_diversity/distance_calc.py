@@ -4,6 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
+from mbio.files.meta.otu.otu_table import OtuTableFile
 
 
 class DistanceCalcAgent(Agent):
@@ -30,7 +31,8 @@ class DistanceCalcAgent(Agent):
         super(DistanceCalcAgent, self).__init__(parent)
         options = [
             {"name": "method", "type": "string", "default": "bray_curtis"},
-            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},
+            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
+            {"name": "level", "type": "string", "default": "otu"},
             {"name": "dis_matrix", "type": "outfile",
              "format": "meta.beta_diversity.distance_matrix"},
             {"name": "newicktree", "type": "infile",
@@ -74,6 +76,18 @@ class DistanceCalcTool(Tool):
         super(DistanceCalcTool, self).run()
         self.run_beta_diversity()
 
+    def gettable(self):
+        """
+        根据level返回进行计算的otu表
+        :return tablepath:
+        """
+        if self.option('otutable').format == "meta.otu.tax_summary_dir":
+            newtable = OtuTableFile()
+            newtable.set_path(self.option('otutable').get_table(self.option('level')))
+            return newtable
+        else:
+            return self.option('otutable')
+        
     def run_beta_diversity(self):
         """
         运行qiime:beta_diversity.py
@@ -106,9 +120,11 @@ class DistanceCalcTool(Tool):
         将otutable转化成biom格式
         :return biom_path:返回生成的biom文件路径
         """
-        self.option('otutable').check()
+        newtable = self.gettable()
+        self.logger.info(newtable)
         biom_path = os.path.join(self.work_dir, 'temp.biom')
         if os.path.isfile(biom_path):
             os.remove(biom_path)
-        self.option('otutable').convert_to_biom(biom_path)
+        newtable.get_info()
+        newtable.convert_to_biom(biom_path)
         return biom_path

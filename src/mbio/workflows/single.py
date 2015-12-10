@@ -9,7 +9,7 @@ class SingleWorkflow(Workflow):
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        super(SingleWorkflow, self).__init__(wsheet_object.id)
+        super(SingleWorkflow, self).__init__(wsheet_object)
 
     def run(self):
         task = None

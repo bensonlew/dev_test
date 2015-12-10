@@ -1,7 +1,5 @@
-# encoding: utf-8
-# Created on 2015年5月20日
-# @author: guoquan
-# @deffield    updated:  2015-7-16
+# -*- coding: utf-8 -*-
+# __author__ = 'guoquan'
 
 import gevent
 import types

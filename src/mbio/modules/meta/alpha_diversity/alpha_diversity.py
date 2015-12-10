@@ -20,7 +20,7 @@ class AlphaDiversityModule(Module):
     def __init__(self, work_id):
         super(AlphaDiversityModule, self).__init__(work_id)
         options = [
-            {"name": "otu_table", "type": "infile", "format": ["meta.otu.otu_table", "meta.otu.tax_summary_dir"]},  # 输入文件
+            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
             {"name": "estimate_indices", "type": "string", "format": "ace-chao-shannon-simpson-coverage"},
             {"name": "rarefy_indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
             {"name": "rarefy_freq", "type": "int", "default": 100},
@@ -38,7 +38,7 @@ class AlphaDiversityModule(Module):
         """
         if not self.option("otu_table").is_set:
             raise OptionError("请选择otu表")
-        for estimators in self.option('estimat_indices').split('-'):
+        for estimators in self.option('estimate_indices').split('-'):
             if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
         for estimators in self.option('rarefy_indices').split('-'):
@@ -48,7 +48,8 @@ class AlphaDiversityModule(Module):
     def estimators_run(self):
         self.estimators.set_options({
             'otutable': self.option('otu_table'),
-            'indices': self.option('estimate_indices')
+            'indices': self.option('estimate_indices'),
+            'level': self.option('level')
             })
         # self.on_rely(estimators, self.rarefaction_run)
         self.estimators.run()
@@ -57,7 +58,8 @@ class AlphaDiversityModule(Module):
         self.rarefaction.set_options({
             'otutable': self.option('otu_table'),
             'indices': self.option('rarefy_indices'),
-            'freq': self.option('rarefy_freq')
+            'freq': self.option('rarefy_freq'),
+            'level': self.option('level')
             })
         self.rarefaction.on('end', self.set_output)
         self.rarefaction.run()
@@ -73,7 +75,9 @@ class AlphaDiversityModule(Module):
         rarefaction = self.work_dir + '/Rarefaction/output/rarefaction/'
         os.link(estimators, self.output_dir + '/estimators.xls')
         os.system('cp -r %s %s' % (rarefaction, self.output_dir))
-        for estimators in self.option('indices').split('-'):
+        for estimators in self.option('rarefy_indices').split('-'):
+            if estimators == "sobs":
+                estimators = "rarefaction"
             est_path = self.work_dir + '/Rarefaction/output/%s/' % estimators
             os.system('cp -r %s %s' % (est_path, self.output_dir))
         # self.option('estimators').set_path(self.output_dir+'/estimators')

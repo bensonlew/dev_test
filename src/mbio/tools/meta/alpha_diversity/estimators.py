@@ -4,6 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
+import subprocess
 
 
 class EstimatorsAgent(Agent):
@@ -11,7 +12,7 @@ class EstimatorsAgent(Agent):
     estimators:用于生成所有样本的指数表
     version 1.0
     author: qindanhua
-    last_modify: 2015.11.10
+    last_modify: 2015.12.10 by yuguo
     """
     ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven', 'shannoneven', 'heip', 'smithwilson',
                   'bergerparker', 'shannon', 'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
@@ -53,8 +54,7 @@ class EstimatorsTool(Tool):
     def __init__(self, config):
         super(EstimatorsTool, self).__init__(config)
         self.cmd_path = 'meta/alpha_diversity/'
-        self.shared_path = 'meta/scripts/'
-        self.estimator_path = 'meta/scripts/'
+        self.scripts_path = 'meta/scripts/'
 
     def shared(self):
         """
@@ -63,10 +63,19 @@ class EstimatorsTool(Tool):
         otutable = self.option("otutable").prop['path']
         if self.option("otutable").format is "meta.otu.tax_summary_dir":
             otutable = self.option("otutable").get_table(self.option("level"))
-        cmd = os.path.join(self.shared_path, 'otu2shared.pl')
-        cmd += ' -i %s -l 0.97 -o otu.shared' % otutable
-        print cmd
-        os.system(cmd)
+        self.logger.info("转化otutable({})为shared文件({})".format(otutable, "otu.shared"))
+        try:
+            subprocess.check_output(self.config.SOFTWARE_DIR+"/meta/scripts/otu2shared.pl "+" -i "+otutable+" -l 0.97 -o "+self.option("level")+".shared", shell=True)
+            self.logger.info("OK")
+            return True
+        except subprocess.CalledProcessError:
+            self.logger.info("转化otutable到shared文件出错")
+            return False
+
+        # cmd = os.path.join(self.shared_path, 'otu2shared.pl')
+        # cmd += ' -i %s -l 0.97 -o otu.shared' % otutable
+        # print cmd
+        # os.system(cmd)
 
     def mothur(self):
         """
@@ -80,16 +89,22 @@ class EstimatorsTool(Tool):
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("运行mothur完成")
+            try:
+                subprocess.check_output("python "+self.config.SOFTWARE_DIR+"/meta/scripts/make_estimate_table.py ", shell=True)
+                self.logger.info("OK")
+                self.set_output()
+            except subprocess.CalledProcessError:
+                self.logger.info("生成estimate文件出错!")
+                self.set_error("生成estimate文件出错!")
         else:
             self.set_error("运行mothur运行出错!")
-        os.system("python %sestimatorsV3.py" % self.estimator_path)
-        self.set_output()
+        # os.system("python %sestimatorsV3.py" % self.estimator_path)
 
     def set_output(self):
         """
         将结果文件链接至output
         """
-        self.logger.info("set out put")
+        self.logger.info("set output")
         if len(os.listdir(self.output_dir)) != 0:
             os.remove(self.output_dir+'/estimators.xls')
             os.link(self.work_dir+'/estimators.xls', self.output_dir+'/estimators.xls')
@@ -103,6 +118,8 @@ class EstimatorsTool(Tool):
         运行
         """
         super(EstimatorsTool, self).run()
-        self.shared()
-        self.mothur()
-        self.end()
+        if self.shared():
+            self.mothur()
+            self.end()
+        else:
+            self.set_error("shared运行出错!")

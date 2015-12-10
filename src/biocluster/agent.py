@@ -134,10 +134,14 @@ class Agent(Basic):
         :return: 文件路径
         """
         path = os.path.join(self.work_dir, self.name + ".pk")
+        for option in self._options.values():
+            option.bind_obj = None
         with open(path, "w") as f:
             config = PickleConfig()
             config.clone(self)
             config.save(f)
+        for option in self._options.values():
+            option.bind_obj = self
         return path
 
     def save_class_path(self):
@@ -151,7 +155,11 @@ class Agent(Basic):
         file_class_paths = []  #
         for option in self._options.values():
             if option.type in {'outfile', 'infile'}:
-                file_class_paths.append(option.format)
+                if option.format:
+                    file_class_paths.append(option.format)
+                else:
+                    for f in option.format_list:
+                        file_class_paths.append(f)
         class_list['files'] = file_class_paths
         with open(path, "w") as f:
             pickle.dump(class_list, f)
@@ -168,7 +176,11 @@ class Agent(Basic):
             output = pickle.load(f)
         for option in self._options.values():
             if option.type in {'outfile', 'infile'}:
-                load_class_by_path(option.format, "File")
+                if option.format:
+                    load_class_by_path(option.format, "File")
+                else:
+                    for f in option.format_list:
+                        load_class_by_path(f, "File")
         for name, value in output.items():
             self.option(name, value)
 

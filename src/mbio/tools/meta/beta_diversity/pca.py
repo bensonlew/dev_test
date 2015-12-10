@@ -18,11 +18,22 @@ class PcaAgent(Agent):
     def __init__(self, parent):
         super(PcaAgent, self).__init__(parent)
         options = [
-            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table"},
+            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
+            {"name": "level", "type": "string", "default": "otu"},
             {"name": "envtable", "type": "infile",
              "format": "meta.env_table"}
         ]
         self.add_option(options)
+
+    def gettable(self):
+        """
+        根据level返回进行计算的otu表
+        :return:
+        """
+        if self.option('otutable').format == "meta.otu.tax_summary_dir":
+            return self.option('otutable').get_table(self.option('level'))
+        else:
+            return self.option('otutable').prop['path']
 
     def check_options(self):
         """
@@ -30,6 +41,11 @@ class PcaAgent(Agent):
         """
         if not self.option('otutable').is_set:
             raise OptionError('必须提供输入otu表')
+        table = open(self.gettable())
+        if len(table.readlines()) < 4:
+            raise OptionError('提供的数据表信息少于3行')
+        table.close()
+        return True
 
     def set_resource(self):
         """
@@ -53,13 +69,37 @@ class PcaTool(Tool):
         super(PcaTool, self).run()
         self.run_ordination()
 
+    def formattable(self):
+        tablepath = self.gettable()
+        alllines = open(tablepath).readlines()
+        if alllines[0][0] == '#':
+            newtable = open(os.path.join(self.work_dir, 'temp.table'),'w')
+            newtable.write(alllines[0].lstrip('#'))
+            for line in alllines[1:]:
+                newtable.write(line)
+            newtable.close()
+            return os.path.join(self.work_dir, 'temp.table')
+        else:
+            return tablepath
+
+    def gettable(self):
+        """
+        根据level返回进行计算的otu表
+        :return:
+        """
+        if self.option('otutable').format == "meta.otu.tax_summary_dir":
+            return self.option('otutable').get_table(self.option('level'))
+        else:
+            return self.option('otutable').prop['path']
+
     def run_ordination(self):
         """
         运行ordination.pl
         """
+        tablepath = self.formattable()
         cmd = self.cmd_path
         cmd += ' -type pca -community %s -outdir %s' % (
-            self.option('otutable').prop['path'], self.work_dir)
+            tablepath, self.work_dir)
         if self.option('envtable').is_set:
             cmd += ' -pca_env T -environment %s' % self.option('envtable').prop[
                 'path']

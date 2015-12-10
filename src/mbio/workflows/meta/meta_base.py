@@ -15,9 +15,8 @@ class MetaBaseWorkflow(Workflow):
         self._sheet = wsheet_object
         super(MetaBaseWorkflow, self).__init__(wsheet_object.id)
         options = [
-            {'name': 'fastq', 'type': 'infile', 'format': ['sequence.fastq', 'sequence.fastq_dir']},  # 输入fasta文件，序列名称格式为'>sampleID_seqID'.
-            {'name': 'filename_sample', 'type': 'infile', 'format': 'sequence.file_sample'},  # 文件名样品对应表
-            {'name': 'seqname_sample', 'type': 'infile', 'format': 'sequence.seq_sample'},  # 序列名样品对应表
+            {'name': 'single_fastq', 'type': 'infile', 'format': 'sequence.fastq'},  # 输入的fastq文件
+            {'name': 'multi_fastq', 'type': 'infile', 'format': 'sequence.fastq_dir'},  # 输入的fastq文件夹
             {'name': 'otu_fasta', 'type': 'outfile', 'format': 'sequence.fasta'},  # 输出的合并到一起的fasta，供后续的otu分析用
             {'name': 'identity', 'type': 'float', 'default': 0.97},  # 相似性值，范围0-1.
             {'name': 'otu_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出结果otu表
@@ -41,6 +40,7 @@ class MetaBaseWorkflow(Workflow):
             {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_abs_dir'},  # 输出的otu_taxon_dir文件夹
             {"name": "beta_analysis", "type": "string",
                 "default": "anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
+            {"name": "beta_level", "type": "string", "default": "otu"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
             {"name": "phy_newick", "type": "infile",
              "format": "meta.beta_diversity.newick_tree"},
@@ -64,8 +64,10 @@ class MetaBaseWorkflow(Workflow):
         """
         检查参数设置
         """
-        if not self.option("fastq").is_set:
-            raise OptionError("必须设置输入fastq文件.")
+        if self.option('single_fastq').is_set and self.option('multi_fastq').is_set:
+            raise OptionError("请在参数single_fastq和multi_fastq之间选择一个进行输入！")
+        if not (self.option('single_fastq').is_set or self.option('multi_fastq').is_set):
+            raise OptionError("参数single_fastq和参数multi_fastq必须选择一个进行输入")
         # if not self.option("fasta").is_set:
         #     raise OptionError("必须设置输入fasta文件.")
         if self.option("identity") < 0 or self.option("identity") > 1:
@@ -83,17 +85,26 @@ class MetaBaseWorkflow(Workflow):
         return True
 
     def run_qc(self):
-        self.qc.set_options({
-                "fastq": self.option("fastq")
+        if self.option('multi_fastq').is_set:
+            self.qc.set_options({
+                'multi_fastq': self.option('multi_fastq')
             })
-        if self.option("fastq").format is 'sequence.fastq_dir':
+        if self.option('single_fastq').is_set:
             self.qc.set_options({
-                "filename_sample": self.option("filename_sample")
-                })
-        if self.option("fastq").format is 'sequence.fastq':
-            self.qc.set_options({
-                "seqname_sample": self.option("seqname_sample")
-                })
+                'single_fastq': self.option('single_fastq')
+            })
+
+        # self.qc.set_options({
+        #         "fastq": self.option("fastq")
+        #     })
+        # if self.option("fastq").format is 'sequence.fastq_dir':
+        #     self.qc.set_options({
+        #         "filename_sample": self.option("filename_sample")
+        #         })
+        # if self.option("fastq").format is 'sequence.fastq':
+        #     self.qc.set_options({
+        #         "seqname_sample": self.option("seqname_sample")
+        #         })
         self.on_rely(self.qc, self.run_otu)
         self.qc.on("end", self.set_output, "qc")
         self.qc.run()
@@ -148,6 +159,7 @@ class MetaBaseWorkflow(Workflow):
             'analysis': self.option('analysis'),
             'dis_method': self.option('dis_method'),
             'otutable': self.option('otutable'),
+            "level": self.option('beta_level'),
             'phy_newick': self.option('phy_newick'),
             'permutations': self.option('permutations'),
             'envtable': self.option('envtable'),
