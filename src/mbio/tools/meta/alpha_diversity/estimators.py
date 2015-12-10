@@ -12,7 +12,7 @@ class EstimatorsAgent(Agent):
     estimators:用于生成所有样本的指数表
     version 1.0
     author: qindanhua
-    last_modify: 2015.11.10
+    last_modify: 2015.12.10 by yuguo
     """
     ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven', 'shannoneven', 'heip', 'smithwilson',
                   'bergerparker', 'shannon', 'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
