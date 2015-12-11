@@ -33,7 +33,8 @@ class OtuTaxonStatAgent(Agent):
             raise OptionError("参数in_otu_table不能为空")
         if not self.option("taxon_file").is_set:
             raise OptionError("参数taxon_file不能为空")
-        if  self.option("in_otu_table").prop['metadata'] == "taxonomy":
+        self.option("in_otu_table").get_info()
+        if self.option("in_otu_table").prop['metadata'] == "taxonomy":
             raise OptionError("otu表不应该有taxonomy信息")
 
         return True
@@ -73,51 +74,39 @@ class OtuTaxonStatTool(Tool):
                 line = re.split('\t', line)
                 otu_tax[line[0]] = line[1]
         taxon_otu = os.path.join(self.work_dir, "output", "otu_taxon.xls")
+        self.logger.info("正在生成otu_taxon.xls")
+        with open(self.option("in_otu_table").prop['path'], 'r') as r2:
+            with open(taxon_otu, 'w') as w:
+                line1 = r2.next().rstrip('\n')
+                if re.search(r'Constructed from biom', line1):
+                    line1 = r2.next().rstrip('\n')
+                w.write(line1 + "\t" + "taxonomy" + "\n")
+                for line in r2:
+                    line = line.rstrip('\n')
+                    name = re.split('\t', line)[0]
+                    line = re.sub(r'\.0', '', line)
+                    w.write(line + '\t' + otu_tax[name] + "\n")
 
-
-
-        otu_table_sum_tmp = os.path.join(self.work_dir, "otu_taxon.otu_table_sum.tmp")
-        cmd = self._biom_path + " convert -i " + biom + " -o " + otu_table_sum_tmp\
-            + " --table-type \"OTU table\" --to-tsv"
-        create_otu_table = self.add_command("create_otu_table_sum", cmd)
-        self.logger.info("开始转换生成ori_otu_table")
-        create_otu_table.run()
-        self.wait(create_otu_table)
-        if create_otu_table.return_code == 0:
-            self.logger.info("ori_otu_table生成成功")
-        else:
-            self.set_error("ori_otu_table生成失败")
-
-        biom_tmp = os.path.join(self.work_dir, "otu_taxon.biom.tmp")
-        cmd = self._biom_path + " convert -i " + otu_table_sum_tmp + " -o " + biom_tmp\
+        biom = os.path.join(self.work_dir, "output", "otu_taxon.biom")
+        cmd = self._biom_path + " convert -i " + taxon_otu + " -o " + biom\
             + " --table-type \"OTU table\" --to-hdf5"
-        create_biom_tmp = self.add_command("create_biom_tmp", cmd)
+        create_taxon_biom = self.add_command("create_taxon_biom", cmd)
         self.logger.info("由otu开始转化biom")
-        create_biom_tmp.run()
-        self.wait(create_biom_tmp)
-        if create_biom_tmp.return_code == 0:
-            self.logger.info("ori_biom生成成功")
+        create_taxon_biom.run()
+        self.wait(create_taxon_biom)
+        if create_taxon_biom.return_code == 0:
+            self.logger.info("taxon_biom生成成功")
         else:
-            self.set_error("ori_biom生成失败")
-
-        row = 0
-        with open(otu_table, 'w') as w:
-            with open(otu_table_tmp, "r") as r:
-                line = r.next()
-                for line in r:
-                    row += 1
-                    if row == 2:
-                        line = re.sub(r"#", "", line)
-                    if row > 2:
-                        line = re.sub(r"\.0", "", line)
-                    w.write(line)
-        return (biom, otu_table)
+            self.set_error("taxon_biom生成失败")
+        return(taxon_otu, biom)
 
     def get_diff_level(self, biom):
         """
         :param biom: biom文件路径
         """
         tax_summary_a_dir = os.path.join(self.work_dir, "output", "tax_summary_a")
+        if os.path.exists(tax_summary_a_dir):
+            os.rmdir(tax_summary_a_dir)
         cmd = self._summarize_taxa_path + " -i " + biom + ' -o ' + tax_summary_a_dir\
             + " -L 1,2,3,4,5,6,7,8 -a "
         create_tax_summary = self.add_command("create_tax_summary", cmd)
@@ -139,7 +128,7 @@ class OtuTaxonStatTool(Tool):
             try:
                 subprocess.check_call(cmd, shell=True)
             except subprocess.CalledProcessError:
-                raise Exception("运行sum_tax.pl出错")
+                self.set_error("运行sum_tax.pl出错")
         list_ = os.listdir(tax_summary_a_dir)
         for table in list_:
             if re.search(r"txt$", table):
@@ -179,10 +168,30 @@ class OtuTaxonStatTool(Tool):
             newname = os.path.join(tax_summary_a_dir, newname)
             os.rename(table, newname)
 
-        os.rename(os.path.join(self.work_dir, "otu_taxon.biom.tmp"),
-                  os.path.join(tax_summary_a_dir, "otu_taxon_otu.biom"))
-        os.rename(os.path.join(self.work_dir, "otu_taxon.otu_table_sum.tmp"),
-                  os.path.join(tax_summary_a_dir, "otu_taxon_otu.xls"))
+        otu_taxon_otu = os.path.join(tax_summary_a_dir, "otu_taxon_otu.xls")
+        with open(self.option('in_otu_table').prop['path'], 'r') as r:
+            with open(otu_taxon_otu, 'w') as w:
+                line1 = r.next()
+                if re.search(r'Constructed from biom', line1):
+                    line1 = r.next()
+                w.write(line1)
+                for line in r:
+                    line = line
+                    line = re.sub(r'\.0', '', line)
+                    w.write(line)
+
+        biom = os.path.join(tax_summary_a_dir, "otu_taxon_otu.biom")
+        cmd = self._biom_path + " convert -i " + otu_taxon_otu + " -o " + biom\
+            + " --table-type \"OTU table\" --to-hdf5"
+        self.logger.debug(cmd)
+        create_taxon_biom_otu = self.add_command("create_taxon_otu_biom", cmd)
+        self.logger.info("由otu开始转化biom")
+        create_taxon_biom_otu.run()
+        self.wait(create_taxon_biom_otu)
+        if create_taxon_biom_otu.return_code == 0:
+            self.logger.info("taxon_biom_otu生成成功")
+        else:
+            self.set_error("taxon_biom_otu生成失败")
 
     def run(self):
         """

@@ -15,8 +15,7 @@ class MetaBaseWorkflow(Workflow):
         self._sheet = wsheet_object
         super(MetaBaseWorkflow, self).__init__(wsheet_object.id)
         options = [
-            {'name': 'single_fastq', 'type': 'infile', 'format': 'sequence.fastq'},  # 输入的fastq文件
-            {'name': 'multi_fastq', 'type': 'infile', 'format': 'sequence.fastq_dir'},  # 输入的fastq文件夹
+            {'name': 'in_fastq', 'type': 'infile', 'format': 'sequence.fastq,sequence.fastq_dir'},  # 输入的fastq文件或fastq文件夹
             {'name': 'otu_fasta', 'type': 'outfile', 'format': 'sequence.fasta'},  # 输出的合并到一起的fasta，供后续的otu分析用
             {'name': 'identity', 'type': 'float', 'default': 0.97},  # 相似性值，范围0-1.
             {'name': 'otu_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出结果otu表
@@ -64,10 +63,6 @@ class MetaBaseWorkflow(Workflow):
         """
         检查参数设置
         """
-        if self.option('single_fastq').is_set and self.option('multi_fastq').is_set:
-            raise OptionError("请在参数single_fastq和multi_fastq之间选择一个进行输入！")
-        if not (self.option('single_fastq').is_set or self.option('multi_fastq').is_set):
-            raise OptionError("参数single_fastq和参数multi_fastq必须选择一个进行输入")
         # if not self.option("fasta").is_set:
         #     raise OptionError("必须设置输入fasta文件.")
         if self.option("identity") < 0 or self.option("identity") > 1:
@@ -85,18 +80,18 @@ class MetaBaseWorkflow(Workflow):
         return True
 
     def run_qc(self):
-        if self.option('multi_fastq').is_set:
-            self.qc.set_options({
-                'multi_fastq': self.option('multi_fastq')
-            })
-        if self.option('single_fastq').is_set:
-            self.qc.set_options({
-                'single_fastq': self.option('single_fastq')
-            })
-
-        # self.qc.set_options({
-        #         "fastq": self.option("fastq")
+        # if self.option('multi_fastq').is_set:
+        #     self.qc.set_options({
+        #         'multi_fastq': self.option('multi_fastq')
         #     })
+        # if self.option('single_fastq').is_set:
+        #     self.qc.set_options({
+        #         'single_fastq': self.option('single_fastq')
+        #     })
+
+        self.qc.set_options({
+                "in_fastq": self.option("in_fastq")
+            })
         # if self.option("fastq").format is 'sequence.fastq_dir':
         #     self.qc.set_options({
         #         "filename_sample": self.option("filename_sample")
@@ -160,11 +155,21 @@ class MetaBaseWorkflow(Workflow):
             'dis_method': self.option('dis_method'),
             'otutable': self.option('otutable'),
             "level": self.option('beta_level'),
-            'phy_newick': self.option('phy_newick'),
-            'permutations': self.option('permutations'),
-            'envtable': self.option('envtable'),
-            'group': self.option('group')
+            'permutations': self.option('permutations')
             })
+        if self.option('phy_newick').is_set:
+            self.beta.set_options({
+                'phy_newick': self.option('phy_newick')
+                })
+        if self.option('envtable').is_set:
+            self.beta.set_options({
+                'envtable': self.option('envtable')
+                })
+        if self.option('group').is_set:
+            self.beta.set_options({
+                'group': self.option('group')
+                })
+
         self.beta.run()
 
     def set_output(self, event):

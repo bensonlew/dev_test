@@ -29,8 +29,7 @@ class OtuAnalysisModule(Module):
             {'name': 'taxon_file', 'type': 'outfile', 'format': 'taxon.seq_taxon'},  # 输出序列的分类信息文件
             {'name': 'otu_taxon_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 带分类信息的biom文件
             {'name': 'otu_taxon_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 待分类信息的otu表文件
-            {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'},  # 输出的otu_taxon_dir文件夹
-            {"name": "out_otu_table", "type": "outfile", "format": "meta.otu.otu_table"}]
+            {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'}]  # 输出的otu_taxon_dir文件夹
         self.add_option(options)
         self.usearch = self.add_tool('meta.otu.usearch_otu')
         self.qiimeassign = self.add_tool('taxon.qiime_assign')
@@ -105,8 +104,8 @@ class OtuAnalysisModule(Module):
             'in_otu_table': relyobj.rely[0].option('taxon_file').prop['path']
         }
         self.subsample.set_options(myopt)
-        self.on_rely([self.usearch, self.subsample], self.otutaxonstat_run)
-        self.on('end', self.set_subsample)
+        self.on_rely([self.qiimeassign, self.subsample], self.otutaxonstat_run)
+        self.subsample.on('end', self.set_subsample)
         self.subsample.run()
 
     def otutaxonstat_run(self, relyobj):
@@ -115,12 +114,12 @@ class OtuAnalysisModule(Module):
         """
         if self.option('subsample'):
             myopt = {
-                'otu_seqids': relyobj.rely[0].option('otu_seqids').prop['path'],
-                'taxon_file': relyobj.rely[1].option('out_otu_table').prop['path']
+                'in_otu_table': relyobj.rely[1].option('out_otu_table').prop['path'],
+                'taxon_file': relyobj.rely[0].option('taxon_file').prop['path']
             }
         else:
             myopt = {
-                'otu_seqids': relyobj.rely[0].option('otu_seqids').prop['path'],
+                'in_otu_table': relyobj.rely[0].option('otu_table').prop['path'],
                 'taxon_file': relyobj.rely[1].option('taxon_file').prop['path']
             }
         self.otutaxonstat.set_options(myopt)
@@ -132,11 +131,12 @@ class OtuAnalysisModule(Module):
         运行subsample后，设置out_otu的路径
         """
         os.system('cp -r %s/SubSample/output %s/SubSample' % (self.work_dir, self.output_dir))
+        self.option("taxon_file").get_info()
         match = re.search(r"(^.+)(\..+$)", self.option("taxon_file").prop['basename'])
         prefix = match.group(1)
         suffix = match.group(2)
         sub_sampled_otu = os.path.join(self.output_dir, "SubSample", prefix + ".subsample" + suffix)
-        self.option("out_otu_table").set_path(sub_sampled_otu)
+        self.option("otu_table").set_path(sub_sampled_otu)
 
     def set_output(self):
         self.logger.info('set output')
@@ -155,12 +155,11 @@ class OtuAnalysisModule(Module):
         self.option('otu_rep').set_path(self.output_dir + '/UsearchOtu/otu_reps.fasta')
         self.option('taxon_file').set_path(self.output_dir + '/QiimeAssign/seqs_tax_assignments.txt')
         self.option('otu_taxon_biom').set_path(self.output_dir + '/OtuTaxonStat/otu_taxon.biom')
-        self.option('otu_taxon_table').set_path(self.output_dir + '/OtuTaxonStat/otu_taxon.otu_table')
+        self.option('otu_taxon_table').set_path(self.output_dir + '/OtuTaxonStat/otu_taxon.xls')
         self.option('otu_taxon_dir').set_path(self.output_dir + '/OtuTaxonStat/tax_summary_a')
-
         self.logger.info('done')
-        self.end()
 
     def run(self):
         super(OtuAnalysisModule, self).run()
         self.usearch_run()
+        self.on_rely(self.otutaxonstat, self.end)
