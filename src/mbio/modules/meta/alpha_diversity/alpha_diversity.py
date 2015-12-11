@@ -61,7 +61,7 @@ class AlphaDiversityModule(Module):
             'freq': self.option('rarefy_freq'),
             'level': self.option('level')
             })
-        self.rarefaction.on('end', self.set_output)
+        # self.rarefaction.on('end', self.set_output)
         self.rarefaction.run()
 
     def set_output(self):
