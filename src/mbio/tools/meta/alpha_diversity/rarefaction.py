@@ -23,7 +23,7 @@ class RarefactionAgent(Agent):
     def __init__(self, parent):
         super(RarefactionAgent, self).__init__(parent)
         options = [
-            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
+            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
             {"name": "indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
             {"name": "freq", "type": "int", "default": 100},  # 取样频数
             {"name": "level", "type": "string", "default": "otu"},  # level水平
@@ -35,9 +35,10 @@ class RarefactionAgent(Agent):
         """
         检测参数是否正确
         """
-        if not self.option("otutable").is_set:
+        if not self.option("otu_table").is_set:
             raise OptionError("请选择otu表")
-        if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class', 'order', 'family', 'genus', 'species']:
+        if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class',
+                                        'order', 'family', 'genus', 'species']:
             raise OptionError("请选择正确的分类水平")
         for estimators in self.option('indices').split('-'):
             if estimators not in self.ESTIMATORS:
@@ -65,19 +66,20 @@ class RarefactionTool(Tool):
         """
         执行命令获得shared格式文件，shared文件为下一命令输入文件
         """
-        otutable = self.option("otutable").prop['path']
-        if self.option("otutable").format is "meta.otu.tax_summary_dir":
-            otutable = self.option("otutable").get_table(self.option("level"))
-        self.logger.info("转化otutable({})为shared文件({})".format(otutable, "otu.shared"))
+        otu_table = self.option("otu_table").prop['path']
+        if self.option("otu_table").format is "meta.otu.tax_summary_dir":
+            otu_table = self.option("otu_table").get_table(self.option("level"))
+        self.logger.info("转化otu_table({})为shared文件({})".format(otu_table, "otu.shared"))
         try:
-            subprocess.check_output(self.config.SOFTWARE_DIR+"/meta/scripts/otu2shared.pl "+" -i "+otutable+" -l 0.97 -o "+self.option("level")+".shared", shell=True)
+            subprocess.check_output(self.config.SOFTWARE_DIR+"/meta/scripts/otu2shared.pl "+" -i " +
+                                    otu_table+" -l 0.97 -o "+self.option("level")+".shared", shell=True)
             self.logger.info("OK")
             return True
         except subprocess.CalledProcessError:
-            self.logger.info("转化otutable到shared文件出错")
+            self.logger.info("转化otu_table到shared文件出错")
             return False
         # cmd = os.path.join(self.shared_path, 'otu2shared.pl')
-        # cmd += ' -i %s -l %s -o %s' % (otutable, '0.97', 'otu.shared')
+        # cmd += ' -i %s -l %s -o %s' % (otu_table, '0.97', 'otu.shared')
         # # print cmd
         # os.system(cmd)
 
@@ -110,11 +112,13 @@ class RarefactionTool(Tool):
                 shutil.rmtree(os.path.join(self.output_dir, names))
         for estimators in self.option('indices').split('-'):
             if estimators == "sobs":
-                os.system('mkdir rarefaction|find -name "{}*rarefaction*"|xargs mv -t rarefaction'.format(self.option("level")))
+                os.system('mkdir rarefaction|find -name "{}*rarefaction*"|xargs mv -t rarefaction'
+                          .format(self.option("level")))
                 os.system('cp -r rarefaction %s' % self.output_dir)
                 os.system('mkdir rabund|find -name "{}*rabund*"|xargs mv -t rabund'.format(self.option("level")))
             else:
-                cmd = 'mkdir %s|find -name "%s*%s*"|xargs mv -t %s' % (estimators, self.option("level"), estimators, estimators,)
+                cmd = 'mkdir %s|find -name "%s*%s*"|xargs mv -t %s' % (estimators, self.option("level"),
+                                                                       estimators, estimators,)
                 os.system(cmd)
                 os.system('cp -r %s %s' % (estimators, self.output_dir))
 
