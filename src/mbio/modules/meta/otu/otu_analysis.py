@@ -91,7 +91,7 @@ class OtuAnalysisModule(Module):
             }
         self.qiimeassign.set_options(myopt)
         if self.option('subsample'):
-            self.on_rely(self.qiimeassign, self.subsample_run)
+            self.on_rely(self.usearch, self.subsample_run)
         else:
             self.on_rely([self.usearch, self.qiimeassign], self.otutaxonstat_run)
         self.qiimeassign.run()
@@ -101,7 +101,7 @@ class OtuAnalysisModule(Module):
         运行mothur的subsample，进行抽平
         """
         myopt = {
-            'in_otu_table': relyobj.rely[0].option('taxon_file').prop['path']
+            'in_otu_table': relyobj.rely[0].option('otu_table').prop['path']
         }
         self.subsample.set_options(myopt)
         self.on_rely([self.qiimeassign, self.subsample], self.otutaxonstat_run)
@@ -131,8 +131,8 @@ class OtuAnalysisModule(Module):
         运行subsample后，设置out_otu的路径
         """
         os.system('cp -r %s/SubSample/output %s/SubSample' % (self.work_dir, self.output_dir))
-        self.option("taxon_file").get_info()
-        match = re.search(r"(^.+)(\..+$)", self.option("taxon_file").prop['basename'])
+        self.subsample.option("in_otu_table").get_info()
+        match = re.search(r"(^.+)(\..+$)", self.subsample.option("in_otu_table").prop['basename'])
         prefix = match.group(1)
         suffix = match.group(2)
         sub_sampled_otu = os.path.join(self.output_dir, "SubSample", prefix + ".subsample" + suffix)
