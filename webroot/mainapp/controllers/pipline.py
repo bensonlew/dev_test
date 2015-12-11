@@ -8,6 +8,7 @@ import json
 from mainapp.models.workflow import Workflow
 import os
 from mainapp.libs.jsonencode import CJsonEncoder
+import xml.etree.ElementTree as ET
 
 
 class Pipline(object):
@@ -40,6 +41,10 @@ class Pipline(object):
             workflow_module.add_record(insert_data)
             info = {"success": True, "info": "添加队列成功!"}
             return json.dumps(info)
+
+    def sanger_submit(self):
+        data = web.input()
+
 
     @staticmethod
     def get_form():

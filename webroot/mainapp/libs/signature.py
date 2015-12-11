@@ -14,14 +14,23 @@ class Signature(object):
 
     def __init__(self):
         data = web.input()
-        if not (hasattr(data, "signature") and hasattr(data, "timestamp") and hasattr(data, "nonce") and hasattr(data, "client")):
-            raise web.badrequest
 
-        self._signature = data.signature
-        self._timestamp = data.timestamp
-        self._nonce = data.nonce
-        self._client = data.client
-        self._ip = data.client
+        info = {
+            "signature": data.signature if hasattr(data, "signature") else web.ctx.env.get('signature'),
+            "timestamp": data.timestamp if hasattr(data, "timestamp") else web.ctx.env.get('timestamp'),
+            "nonce": data.nonce if hasattr(data, "nonce") else web.ctx.env.get('nonce'),
+            "client": data.client if hasattr(data, "client") else web.ctx.env.get('client'),
+        }
+
+        for data in info.values():
+            if not data:
+                raise web.badrequest
+
+        self._signature = info["signature"]
+        self._timestamp = info["timestamp"]
+        self._nonce = info["nonce"]
+        self._client = info["client"]
+        self._ip = web.ctx.ip
 
     def check(self):
         diff = datetime.datetime.now() - datetime.datetime.fromtimestamp(int(self._timestamp))
@@ -29,11 +38,10 @@ class Signature(object):
         if client.timelimit and abs(diff.seconds) > client.timelimit:
             raise web.notacceptable
         if client.ipmask:
-            clientip = web.ctx.ip
             ip_list = client.ipmask.split(";")
             in_range = False
             for r in ip_list:
-                if IPAddress(clientip) in IPNetwork(r):
+                if IPAddress(self._ip) in IPNetwork(r):
                     in_range = True
             if in_range is False:
                 raise web.unauthorized

@@ -23,7 +23,7 @@ class Workflow(Basic):
 
     def __init__(self, wsheet):
         super(Workflow, self).__init__()
-        self._id = wsheet.work_id
+        self._id = wsheet.id
         self._sheet = wsheet
         self.config = Config()
         self._work_dir = self.__work_dir()
@@ -44,11 +44,21 @@ class Workflow(Basic):
         """
         for name, opt in self._options.items():
             if opt.type == "infile":
-                remote_file = RemoteFileManager(options['name'])
+                path_list = options['name'].split("||")
+                file_format = None
+                if len(path_list) > 1:
+                    path = path_list[1]
+                    file_format = path_list[0]
+                else:
+                    path = path_list[0]
+                remote_file = RemoteFileManager(path)
                 if remote_file.type != "local":
                     self.logger.info("发现参数%s为远程文件%s,开始复制..." % (name, options['name']))
-                    remote_file.download(os.path.join(self.work_dir,"remote_input", name))
-                    options['name'] = remote_file.local_path
+                    remote_file.download(os.path.join(self.work_dir, "remote_input", name))
+                    if file_format:
+                        options['name'] = "%s||%s" % (file_format, remote_file.local_path)
+                    else:
+                        options['name'] = remote_file.local_path
         super(Workflow, self).set_options(options)
 
     def __work_dir(self):
@@ -134,7 +144,9 @@ class Workflow(Basic):
             remote_file = RemoteFileManager(self._sheet.ouput)
             if remote_file.type != "local":
                 self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.ouput))
+                umask = os.umask(0)
                 remote_file.upload(os.path.join(self.output_dir))
+                os.umask(umask)
                 self.logger("结果上传完成!")
         data = {
             "is_end": 1,
