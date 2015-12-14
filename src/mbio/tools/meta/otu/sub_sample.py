@@ -51,10 +51,11 @@ class SubSampleTool(Tool):
         """
         运行mothur的subsample，进行抽平
         """
-        shared_path = os.path.join(self.work_dir, "output",
+        shared_path = os.path.join(self.work_dir,
                                    os.path.basename(self.option("in_otu_table").prop["path"] + ".shared"))
         mothur_dir = os.path.join(self.work_dir, "mothur")
-        os.mkdir(mothur_dir)
+        if not os.path.exists(mothur_dir):
+            os.mkdir(mothur_dir)
         self.option("in_otu_table").get_info()
         self.option("in_otu_table").convert_to_shared(shared_path)
         cmd = self.mothur_path + " \"#set.dir(output=" + mothur_dir\
@@ -77,7 +78,7 @@ class SubSampleTool(Tool):
         prefix = match.group(1)
         suffix = match.group(2)
         sub_sampled_otu = os.path.join(self.work_dir, "output", prefix + ".subsample" + suffix)
-        cmd = self.shared2otu_path + " -i " + sub_sampled_shared + " -o " + sub_sampled_otu
+        cmd = self.shared2otu_path + " -l 0.97 -i " + sub_sampled_shared + " -o " + sub_sampled_otu
         try:
             subprocess.check_call(cmd, shell=True)
             self.option("out_otu_table").set_path(sub_sampled_otu)
