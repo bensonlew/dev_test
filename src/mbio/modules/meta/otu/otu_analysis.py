@@ -149,6 +149,8 @@ class OtuAnalysisModule(Module):
         os.system('cp -r %s/QiimeAssign/output %s/QiimeAssign' % (self.work_dir, self.output_dir))
         if not self.option('subsample'):
             self.option('otu_table').set_path(self.output_dir + '/UsearchOtu/otu_table.xls')
+        else:
+            os.system('cp -r %s/SubSample/output %s/SubSample' % (self.work_dir, self.output_dir))
         os.system('cp -r %s/OtuTaxonStat/output %s/OtuTaxonStat' % (self.work_dir, self.output_dir))
         self.option('otu_seqids').set_path(self.output_dir + '/UsearchOtu/otu_seqids.txt')
         self.option('otu_biom').set_path(self.output_dir + '/UsearchOtu/otu_table.biom')
