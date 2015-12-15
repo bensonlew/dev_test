@@ -23,7 +23,7 @@ class QiimeAssignAgent(Agent):
             {'name': 'fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 输入fasta文件
             {'name': 'revcomp', 'type': 'bool'},  # 序列是否翻转
             {'name': 'confidence', 'type': 'float', 'default': 0.7},  # 置信度值
-            {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
+            # {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
             {'name': 'database', 'type': 'string'},  # 数据库选择
             {'name': 'ref_fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 参考fasta序列
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
@@ -39,7 +39,7 @@ class QiimeAssignAgent(Agent):
             raise OptionError("必须设置参数fasta")
         if self.option("revcomp") not in [True, False]:
             raise OptionError("必须设置参数revcomp")
-        if self.option("customer_mode"):
+        if self.option('database') == "customer_mode":
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
@@ -75,14 +75,14 @@ class QiimeAssignTool(Tool):
                 return False
         else:
             self.logger.info("链接输入文件到工作目录")
-            os.link(self.option('fasta').prop['path'], self.work_dir+"seqs.fasta")
+            os.link(self.option('fasta').prop['path'], self.work_dir+"/seqs.fasta")
             self.logger.info("OK")
             return True
 
     def run_assign(self):
         ref_fas = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.fasta'
         ref_tax = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.tax'
-        if self.option("customer_mode"):
+        if self.option('database') == "customer_mode":
             ref_fas = self.option('ref_fasta').prop['path']
             ref_tax = self.option('ref_taxon').prop['path']
         # export RDP_JAR_PATH=$HOME/app/rdp_classifier_2.2/rdp_classifier-2.2.jar"
