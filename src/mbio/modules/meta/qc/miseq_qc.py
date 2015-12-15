@@ -39,7 +39,7 @@ class MiseqQcModule(Module):
         生成fastq_dir,
         """
         myopt = {
-            'in_fastq': self.option('in_fastq').prop['path']
+            'in_fastq': self.option('in_fastq')
         }
         self.qc_format.set_options(myopt)
         self.on_rely(self.qc_format, self.base_info_run)

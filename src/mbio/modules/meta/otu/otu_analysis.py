@@ -60,7 +60,7 @@ class OtuAnalysisModule(Module):
         运行Usearch，生成OTU表
         """
         myopt = {
-            'fasta': self.option('fasta').prop['path'],
+            'fasta': self.option('fasta'),
             'identity': self.option('confidence')
         }
         self.usearch.set_options(myopt)
@@ -71,23 +71,24 @@ class OtuAnalysisModule(Module):
         """
         运行Qiime Assign,获取OTU的分类信息
         """
+        myopt = dict()
         if self.option("customer_mode"):
             myopt = {
-                'fasta': relyobj.rely[0].option('otu_rep').prop['path'],
+                'fasta': relyobj.rely[0].option('otu_rep'),
                 'revcomp': self.option('revcomp'),
                 'confidence': self.option('confidence'),
-                'customer_mode': self.option('customer_mode'),
+                'customer_mode': True,
                 'database': self.option('database'),
-                'ref_fasta': self.option('ref_fasta').prop['path'],
-                'ref_taxon': self.option('ref_taxon').prop['path']
+                'ref_fasta': self.option('ref_fasta'),
+                'ref_taxon': self.option('ref_taxon')
             }
         else:
             myopt = {
-                'fasta': relyobj.rely[0].option('otu_rep').prop['path'],
+                'fasta': relyobj.rely[0].option('otu_rep'),
                 'revcomp': self.option('revcomp'),
                 'confidence': self.option('confidence'),
-                'customer_mode': self.option('customer_mode'),
-                'database': self.option('database'),
+                'customer_mode': False,
+                'database': self.option('database')
             }
         self.qiimeassign.set_options(myopt)
         if self.option('subsample'):
@@ -100,8 +101,9 @@ class OtuAnalysisModule(Module):
         """
         运行mothur的subsample，进行抽平
         """
+        myopt = dict()
         myopt = {
-            'in_otu_table': relyobj.rely[0].option('otu_table').prop['path']
+            'in_otu_table': relyobj.rely[0].option('otu_table')
         }
         self.subsample.set_options(myopt)
         self.on_rely([self.qiimeassign, self.subsample], self.otutaxonstat_run)
@@ -112,15 +114,16 @@ class OtuAnalysisModule(Module):
         """
         进行分类学统计，产生不同分类水平上OTU统计表
         """
+        myopt = dict()
         if self.option('subsample'):
             myopt = {
-                'in_otu_table': relyobj.rely[1].option('out_otu_table').prop['path'],
-                'taxon_file': relyobj.rely[0].option('taxon_file').prop['path']
+                'in_otu_table': relyobj.rely[1].option('out_otu_table'),
+                'taxon_file': relyobj.rely[0].option('taxon_file')
             }
         else:
             myopt = {
-                'in_otu_table': relyobj.rely[0].option('otu_table').prop['path'],
-                'taxon_file': relyobj.rely[1].option('taxon_file').prop['path']
+                'in_otu_table': relyobj.rely[0].option('otu_table'),
+                'taxon_file': relyobj.rely[1].option('taxon_file')
             }
         self.otutaxonstat.set_options(myopt)
         self.otutaxonstat.on('end', self.set_output)

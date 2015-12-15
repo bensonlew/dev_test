@@ -72,7 +72,9 @@ class OtuTaxonStatTool(Tool):
         with open(self.option("taxon_file").prop['path'], 'r') as r1:
             for line in r1:
                 line = re.split('\t', line)
-                otu_tax[line[0]] = line[1]
+                tmp = re.split(';', line[1])
+                new_line = '; '.join(tmp)
+                otu_tax[line[0]] = new_line
         taxon_otu = os.path.join(self.work_dir, "output", "otu_taxon.xls")
         self.logger.info("正在生成otu_taxon.xls")
         with open(self.option("in_otu_table").prop['path'], 'r') as r2:
@@ -89,7 +91,7 @@ class OtuTaxonStatTool(Tool):
 
         biom = os.path.join(self.work_dir, "output", "otu_taxon.biom")
         cmd = self._biom_path + " convert -i " + taxon_otu + " -o " + biom\
-            + " --table-type \"OTU table\" --to-hdf5"
+            + " --process-obs-metadata taxonomy --table-type \"OTU table\" --to-hdf5"
         create_taxon_biom = self.add_command("create_taxon_biom", cmd)
         self.logger.info("由otu开始转化biom")
         create_taxon_biom.run()
@@ -98,7 +100,7 @@ class OtuTaxonStatTool(Tool):
             self.logger.info("taxon_biom生成成功")
         else:
             self.set_error("taxon_biom生成失败")
-        return(taxon_otu, biom)
+        return(biom, taxon_otu)
 
     def get_diff_level(self, biom):
         """
@@ -109,6 +111,7 @@ class OtuTaxonStatTool(Tool):
             os.rmdir(tax_summary_a_dir)
         cmd = self._summarize_taxa_path + " -i " + biom + ' -o ' + tax_summary_a_dir\
             + " -L 1,2,3,4,5,6,7,8 -a "
+        self.logger.debug(cmd)
         create_tax_summary = self.add_command("create_tax_summary", cmd)
         self.logger.info("开始生成tax_summary_a文件夹")
         create_tax_summary.run()
@@ -183,7 +186,6 @@ class OtuTaxonStatTool(Tool):
         biom = os.path.join(tax_summary_a_dir, "otu_taxon_otu.biom")
         cmd = self._biom_path + " convert -i " + otu_taxon_otu + " -o " + biom\
             + " --table-type \"OTU table\" --to-hdf5"
-        self.logger.debug(cmd)
         create_taxon_biom_otu = self.add_command("create_taxon_otu_biom", cmd)
         self.logger.info("由otu开始转化biom")
         create_taxon_biom_otu.run()
