@@ -2,6 +2,7 @@
 # __author__ = 'xuting'
 import os
 import subprocess
+import shutil
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -20,8 +21,9 @@ class PanCoreOtuAgent(Agent):
     def __init__(self, parent):
         super(PanCoreOtuAgent, self).__init__(parent)
         options = [
-            {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU文件
+            {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入的OTU文件
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表格
+            {"name": "level", "type": "string", "default": "otu"},  # 物种水平
             {"name": "pan_otu_table", "type": "outfile", "format": "meta.otu.pan_core_table"},  # 输出的pan_otu表格
             {"name": "core_otu_table", "type": "outfile", "format": "meta.otu.pan_core_table"}]  # 输出的core_otu表格
         self.add_option(options)
@@ -33,6 +35,9 @@ class PanCoreOtuAgent(Agent):
         """
         if not self.option("in_otu_table").is_set:
             raise OptionError("参数otu_table不能为空")
+        if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class',
+                                        'order', 'family', 'genus', 'species']:
+            raise OptionError("请选择正确的分类水平")
         return True
 
     def set_resource(self):
@@ -54,13 +59,18 @@ class PanCoreOtuTool(Tool):
         用脚本pan_core_otu.py,输出pan_otu表格
         """
         self.logger.info("开始生成R脚本")
+        otu_path = ""
+        if self.option("in_otu_table").format == "meta.otu.tax_summary_dir":
+            otu_path = self.option("in_otu_table").get_table(self.option("level"))
+        else:
+            otu_path = self.option("in_otu_table").prop['path']
         if self.option("group_table").is_set:
             group_table = self.option("group_table").prop['path']
-            pan_otu = pan_core(self.option("in_otu_table").prop['path'], "pan", group_table)
-            core_otu = pan_core(self.option("in_otu_table"), "core", group_table)
+            pan_otu = pan_core(otu_path, "pan", group_table)
+            core_otu = pan_core(otu_path, "core", group_table)
         else:
-            pan_otu = pan_core(self.option("in_otu_table").prop['path'], "pan")
-            core_otu = pan_core(self.option("in_otu_table").prop['path'], "core")
+            pan_otu = pan_core(otu_path, "pan")
+            core_otu = pan_core(otu_path, "core")
         self.logger.info("R脚本生成完毕")
         self.logger.info("运行R,生成表格文件")
         try:
@@ -76,8 +86,12 @@ class PanCoreOtuTool(Tool):
         tmp_core = os.path.join(self.work_dir, "core.richness.xls")
         pan_dir = os.path.join(self.work_dir, "output", "pan.richness.xls")
         core_dir = os.path.join(self.work_dir, "output", "core.richness.xls")
-        os.symlink(tmp_pan, pan_dir)
-        os.symlink(tmp_core, core_dir)
+        if os.path.exists(pan_dir):
+            os.remove(pan_dir)
+        if os.path.exists(core_dir):
+            os.remove(core_dir)
+        shutil.copy2(tmp_pan, pan_dir)
+        shutil.copy2(tmp_core, core_dir)
         self.option("pan_otu_table").set_path(pan_dir)
         self.option("core_otu_table").set_path(core_dir)
 

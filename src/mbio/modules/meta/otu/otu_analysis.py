@@ -16,7 +16,6 @@ class OtuAnalysisModule(Module):
             {'name': 'identity', 'type': 'float', 'default': 0.97},  # 相似性值，范围0-1.
             {'name': 'revcomp', 'type': 'bool'},  # 序列是否翻转
             {'name': 'confidence', 'type': 'float', 'default': 0.7},  # 置信度值
-            {"name": "customer_mode", "type": "bool", "default": False},  # OTU分类分析的时候自定义数据库
             {'name': 'database', 'type': 'string'},  # 数据库选择
             {'name': 'ref_fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 参考fasta序列
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
@@ -46,7 +45,7 @@ class OtuAnalysisModule(Module):
             raise OptionError("identity值必须在0-1范围内.")
         if self.option("revcomp") not in [True, False]:
             raise OptionError("必须设置参数revcomp")
-        if self.option("customer_mode"):
+        if self.option('database') == "customer_mode":
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
@@ -72,12 +71,11 @@ class OtuAnalysisModule(Module):
         运行Qiime Assign,获取OTU的分类信息
         """
         myopt = dict()
-        if self.option("customer_mode"):
+        if self.option('database') == "customer_mode":
             myopt = {
                 'fasta': relyobj.rely[0].option('otu_rep'),
                 'revcomp': self.option('revcomp'),
                 'confidence': self.option('confidence'),
-                'customer_mode': True,
                 'database': self.option('database'),
                 'ref_fasta': self.option('ref_fasta'),
                 'ref_taxon': self.option('ref_taxon')
@@ -87,7 +85,6 @@ class OtuAnalysisModule(Module):
                 'fasta': relyobj.rely[0].option('otu_rep'),
                 'revcomp': self.option('revcomp'),
                 'confidence': self.option('confidence'),
-                'customer_mode': False,
                 'database': self.option('database')
             }
         self.qiimeassign.set_options(myopt)

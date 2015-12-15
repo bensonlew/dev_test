@@ -7,6 +7,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
+from mbio.files.meta.otu.otu_table import OtuTableFile
 
 
 class SubSampleAgent(Agent):
@@ -21,8 +22,9 @@ class SubSampleAgent(Agent):
     def __init__(self, parent):
         super(SubSampleAgent, self).__init__(parent)
         options = [
-            {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU文件
-            {"name": "out_otu_table", "type": "outfile", "format": "meta.otu.otu_table"}]  # 输出的OTU文件
+            {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入的OTU文件
+            {"name": "out_otu_table", "type": "outfile", "format": "meta.otu.otu_table"},  # 输出的OTU文件
+            {"name": "level", "type": "string", "default": "otu"}]  # 物种水平
         self.add_option(options)
 
     def check_options(self):
@@ -31,6 +33,9 @@ class SubSampleAgent(Agent):
         """
         if not self.option("in_otu_table").is_set:
             raise OptionError("参数in_otu_table不能为空")
+        if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class',
+                                        'order', 'family', 'genus', 'species']:
+            raise OptionError("请选择正确的分类水平")
         return True
 
     def set_resource(self):
@@ -51,13 +56,26 @@ class SubSampleTool(Tool):
         """
         运行mothur的subsample，进行抽平
         """
-        shared_path = os.path.join(self.work_dir,
-                                   os.path.basename(self.option("in_otu_table").prop["path"] + ".shared"))
+        if self.option("in_otu_table").format == "meta.otu.tax_summary_dir":
+            otu_table = os.path.basename(self.option("otu_table").get_table(self.option("level")))
+        else:
+            otu_table = os.path.basename(self.option("in_otu_table").prop["path"])
+        shared_path = os.path.join(self.work_dir, otu_table + ".shared")
         mothur_dir = os.path.join(self.work_dir, "mothur")
         if not os.path.exists(mothur_dir):
             os.mkdir(mothur_dir)
-        self.option("in_otu_table").get_info()
-        self.option("in_otu_table").convert_to_shared(shared_path)
+        my_table = OtuTableFile()
+        basename = ""
+        if self.option("in_otu_table").format == "meta.otu.tax_summary_dir":
+            my_table.set_path(self.option("in_otu_table").get_table(self.option("level")))
+            my_table.get_info()
+            basename = my_table.prop['basename']
+            my_table.convert_to_shared(shared_path)
+        else:
+            self.logger.debug(self.option("in_otu_table").format)
+            self.option("in_otu_table").get_info()
+            self.option("in_otu_table").convert_to_shared(shared_path)
+            basename = self.option("in_otu_table").prop['basename']
         cmd = self.mothur_path + " \"#set.dir(output=" + mothur_dir\
             + ");sub.sample(shared=" + shared_path + ")\""
         sub_sample_cmd = self.add_command("sub_sample_cmd", cmd)
@@ -74,7 +92,7 @@ class SubSampleTool(Tool):
             if re.search(r'subsample', file_):
                 sub_sampled_shared = os.path.join(mothur_dir, file_)
                 break
-        match = re.search(r"(^.+)(\..+$)", self.option("in_otu_table").prop['basename'])
+        match = re.search(r"(^.+)(\..+$)", basename)
         prefix = match.group(1)
         suffix = match.group(2)
         sub_sampled_otu = os.path.join(self.work_dir, "output", prefix + ".subsample" + suffix)

@@ -107,7 +107,7 @@ class MiseqQcModule(Module):
         """
         output = os.path.join(self.work_dir, "output/base_info")
         if os.path.exists(output):
-            os.rmdir(output)
+            shutil.rmtree(output)
         self.logger.info("开始移动baseinfo文件夹")
         base_info_dir = os.path.join(self.base_info.work_dir, "output/base_info")
         shutil.copytree(base_info_dir, output)
@@ -118,7 +118,7 @@ class MiseqQcModule(Module):
         """
         output = os.path.join(self.work_dir, "output/reads_len_info")
         if os.path.exists(output):
-            os.rmdir(output)
+            shutil.rmtree(output)
         self.logger.info("开始移动长度分布统计文件夹")
         reads_len_info = os.path.join(self.reads_len_info.work_dir, "output/reads_len_info")
         shutil.copytree(reads_len_info, output)
@@ -129,7 +129,7 @@ class MiseqQcModule(Module):
         """
         output = os.path.join(self.work_dir, "output/samples_info")
         if os.path.exists(output):
-            os.rmdir(output)
+            shutil.rmtree(output)
         self.logger.info("开始移动样品统计文件")
         samples_info_dir = os.path.join(self.samples_info.work_dir, "output/samples_info")
         shutil.copytree(samples_info_dir, output)

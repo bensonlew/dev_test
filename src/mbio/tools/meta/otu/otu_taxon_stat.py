@@ -3,6 +3,7 @@
 import os
 import re
 import subprocess
+import shutil
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -108,7 +109,7 @@ class OtuTaxonStatTool(Tool):
         """
         tax_summary_a_dir = os.path.join(self.work_dir, "output", "tax_summary_a")
         if os.path.exists(tax_summary_a_dir):
-            os.rmdir(tax_summary_a_dir)
+            shutil.rmtree(tax_summary_a_dir)
         cmd = self._summarize_taxa_path + " -i " + biom + ' -o ' + tax_summary_a_dir\
             + " -L 1,2,3,4,5,6,7,8 -a "
         self.logger.debug(cmd)

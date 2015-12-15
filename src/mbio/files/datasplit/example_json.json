@@ -1,16 +1,16 @@
 {   
 	"sequcing_id": "01",
     "sequcing_sn": "test_01",
-	"program": "bcl2fastq"
+	"program": "bcl2fastq",
 	"file_path":"/mnt/ilustre/upload/miseq/m4/150807_M03152_0063_000000000-AHGPH",
 	"config": {
 	"index_mismatch":0, 
 	"ignore_missing_bcl": true,
 	"base_mask":"y301,i6,y301"
-	}
+	},
 	"parent_sample":[
-		{"sample_name":"MJ20150727_1", "cus_sample_name": "MJ20150727_1", "MJ_sn": "test00001","index":"CCAACA", "lane":"1", "library":"meta", "has_child": true, "program": "miseq_split"},
-		{"sample_name":"73", "cus_sample_name": "bei73", "MJ_sn":"H1506240027", "index":"AGCACC","lane":"1", "library": "DNA", "has_child": false, "program": ""}],
+		{"sample_name":"MJ20150727_1", "cus_sample_name": "MJ20150727_1", "MJ_sn": "test00001","index":"CCAACA", "lane":"1", "project":"meta", "has_child": true, "program": "miseq_split"},
+		{"sample_name":"73", "cus_sample_name": "bei73", "MJ_sn":"H1506240027", "index":"AGCACC","lane":"1", "project": "DNA", "has_child": false, "program": ""}],
 
 	"child_sample":[
 		{"MJ_sn":"H1504230126", "sample_name":"MJ20150727_1", "cus_sample_name": "1", "config":{"index":"NB67", "primer":"1737F_2043R", "index_miss":0, "primer_miss":2, "filter.min":200}},
