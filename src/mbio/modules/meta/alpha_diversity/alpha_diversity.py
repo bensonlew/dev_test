@@ -47,7 +47,7 @@ class AlphaDiversityModule(Module):
 
     def estimators_run(self):
         self.estimators.set_options({
-            'otutable': self.option('otu_table'),
+            'otu_table': self.option('otu_table'),
             'indices': self.option('estimate_indices'),
             'level': self.option('level')
             })
@@ -56,7 +56,7 @@ class AlphaDiversityModule(Module):
 
     def rarefaction_run(self):
         self.rarefaction.set_options({
-            'otutable': self.option('otu_table'),
+            'otu_table': self.option('otu_table'),
             'indices': self.option('rarefy_indices'),
             'freq': self.option('rarefy_freq'),
             'level': self.option('level')

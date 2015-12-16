@@ -24,7 +24,7 @@ class MetaBaseWorkflow(Workflow):
             {'name': 'otu_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 输出结果biom格式otu表
             {'name': 'revcomp', 'type': 'bool'},  # 序列是否翻转
             {'name': 'confidence', 'type': 'float', 'default': 0.7},  # 置信度值
-            {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
+            # {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
             {'name': 'database', 'type': 'string'},  # 数据库选择
             {'name': 'ref_fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 参考fasta序列
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
@@ -35,11 +35,10 @@ class MetaBaseWorkflow(Workflow):
             {"name": "rarefy_freq", "type": "int", "default": 100},
             {"name": "alpha_level", "type": "string", "default": "otu"},  # level水平
             {"name": "beta_analysis", "type": "string",
-                "default": "anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
+                "default": "pca,hcluster"},
             {"name": "beta_level", "type": "string", "default": "otu"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
-            {"name": "phy_newick", "type": "infile",
-             "format": "meta.beta_diversity.newick_tree"},
+            {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
             {"name": "envtable", "type": "infile", "format": "meta.env_table"},
@@ -66,7 +65,7 @@ class MetaBaseWorkflow(Workflow):
             raise OptionError("identity值必须在0-1范围内.")
         if self.option("revcomp") not in [True, False]:
             raise OptionError("必须设置参数revcomp")
-        if self.option("customer_mode"):
+        if self.option('database') == "customer_mode":
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
@@ -115,10 +114,9 @@ class MetaBaseWorkflow(Workflow):
             "fasta": relyobj.rely[0].option("otu_rep"),
             "revcomp": self.option("revcomp"),
             "confidence": self.option("confidence"),
-            "customer_mode": self.option("customer_mode"),
             "database": self.option("database")}
             )
-        if self.option("customer_mode"):
+        if self.option("database") == "customer_mode":
             self.tax.set_options({
                 "ref_fasta": self.option("ref_fasta"),
                 "ref_taxon": self.option("ref_taxon")
@@ -192,5 +190,5 @@ class MetaBaseWorkflow(Workflow):
 
     def run(self):
         self.run_qc()
-        self.on_rely([self.stat, self.alpha, self.beta], self.end)
+        self.on_rely([self.alpha, self.beta], self.end)
         super(MetaBaseWorkflow, self).run()
