@@ -75,6 +75,8 @@ class QiimeAssignTool(Tool):
                 return False
         else:
             self.logger.info("链接输入文件到工作目录")
+            if os.path.exists(self.work_dir+'/seqs.fasta'):
+                os.remove(self.work_dir+'/seqs.fasta')
             os.link(self.option('fasta').prop['path'], self.work_dir+"/seqs.fasta")
             self.logger.info("OK")
             return True
@@ -95,6 +97,8 @@ class QiimeAssignTool(Tool):
         self.wait(assign)
         if assign.return_code == 0:
             self.logger.info("assign运行完成")
+            os.system('rm -rf '+self.output_dir)
+            os.system('mkdir '+self.output_dir)
             os.link(self.work_dir+'/seqs_tax_assignments.txt', self.output_dir+'/seqs_tax_assignments.txt')
             self.option('taxon_file').set_path(self.output_dir+'/seqs_tax_assignments.txt')
         else:

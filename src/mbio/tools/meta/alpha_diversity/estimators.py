@@ -5,6 +5,7 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 import subprocess
+import re
 
 
 class EstimatorsAgent(Agent):
@@ -62,8 +63,9 @@ class EstimatorsTool(Tool):
         执行生成shared文件的perl脚本命令
         """
         otu_table = self.option("otu_table").prop['path']
-        if self.option("otu_table").format is "meta.otu.tax_summary_dir":
+        if self.option("otu_table").format == "meta.otu.tax_summary_dir":
             otu_table = self.option("otu_table").get_table(self.option("level"))
+        self.logger.info("otutable format:{}".format(self.option("otu_table").format))
         self.logger.info("转化otu_table({})为shared文件({})".format(otu_table, "otu.shared"))
         try:
             subprocess.check_output(self.config.SOFTWARE_DIR+"/meta/scripts/otu2shared.pl "+" -i "+otu_table +
@@ -74,10 +76,10 @@ class EstimatorsTool(Tool):
             self.logger.info("转化otu_table到shared文件出错")
             return False
 
-        # cmd = os.path.join(self.shared_path, 'otu2shared.pl')
-        # cmd += ' -i %s -l 0.97 -o otu.shared' % otu_table
-        # print cmd
-        # os.system(cmd)
+    def mothur_check(self, command, line):
+        if re.match(r"\[ERROR\]:", line):
+            command.kill()
+            self.set_error("mothur命令报错")
 
     def mothur(self):
         """
@@ -96,11 +98,14 @@ class EstimatorsTool(Tool):
                                         shell=True)
                 self.logger.info("OK")
                 self.set_output()
+                return True
             except subprocess.CalledProcessError:
                 self.logger.info("生成estimate文件出错!")
                 self.set_error("生成estimate文件出错!")
+                return False
         else:
             self.set_error("运行mothur运行出错!")
+            return False
         # os.system("python %sestimatorsV3.py" % self.estimator_path)
 
     def set_output(self):
@@ -122,7 +127,7 @@ class EstimatorsTool(Tool):
         """
         super(EstimatorsTool, self).run()
         if self.shared():
-            self.mothur()
-            self.end()
+            if self.mothur():
+                self.end()
         else:
             self.set_error("shared运行出错!")
