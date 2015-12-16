@@ -20,7 +20,7 @@ class VennTableAgent(Agent):
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.otu_tax_summary_dir"},
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表格
-            {"name": "venn_table.xls", "type": "outfile", "format": "meta.otu.venn_table"},  # 输入的Venn表格
+            # {"name": "venn_table.xls", "type": "outfile", "format": "meta.otu.venn_table"},  # 输入的Venn表格
             {"name": "level", "type": "string", "default": "otu"}  # 物种水平
         ]
         self.add_option(options)
@@ -88,7 +88,7 @@ class VennTableTool(Tool):
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
         os.link(self.work_dir+'/venn_table.xls', self.output_dir+'/venn_table.xls')
-        self.option('venn_table.xls').set_path(self.output_dir+'/venn_table.xls')
+        # self.option('venn_table.xls').set_path(self.output_dir+'/venn_table.xls')
         self.logger.info("done")
 
     def run(self):
