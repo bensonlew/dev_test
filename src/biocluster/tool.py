@@ -310,6 +310,7 @@ class Tool(object):
         self.save_output()
         self.add_state('finish')
         self.logger.info("程序运行完成")
+        self.exit_signal = True
 
     def exit(self, status=1):
         """

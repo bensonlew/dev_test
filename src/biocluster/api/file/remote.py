@@ -8,11 +8,11 @@ from biocluster.config import Config
 class RemoteFileManager(object):
     def __init__(self, remote_path):
         self._remote_path = remote_path
-        self._check_type()
         self._path = None
         self._type = None
         self._md5 = None
         self._local_path = None
+        self._check_type()
         self.config = Config()
 
     @property
@@ -68,10 +68,10 @@ class RemoteFileManager(object):
 
         :return:
         """
-        m = re.match(r"^http://.*||^https://.*", self._remote_path)
+        m = re.match(r"^http://.*|^https://.*", self._remote_path)
         if m:
             self._type = "http"
-            self._path = m.group(0)
+            self._path = self._remote_path
             return
 
         m = re.match(r"^(\w+):/*(.*)$", self._remote_path)
@@ -80,15 +80,12 @@ class RemoteFileManager(object):
             self._path = m.group(2)
             return
 
-        m = re.match(r"^(/?.*)$", self._remote_path)
-        if m:
-            self._type = "local"
-            self._path = m.group(1)
-            return
+        self._type = "local"
+        self._path = self._remote_path
 
     def _get_lib(self):
-        module = importlib.import_module("biocluster.api.file.%s" % self._type)
         lib_name = self.config.get_netdata_lib(self._type)
+        module = importlib.import_module("biocluster.api.file.%s" % lib_name.lower())
         lib_obj = getattr(module, lib_name.upper())(self._type, self._path)
         return lib_obj
 

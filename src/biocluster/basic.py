@@ -94,6 +94,7 @@ class Basic(EventObject):
                 os.makedirs(self._output_path)
         self._options = {}
         self.sem = BoundedSemaphore(1)
+        self.API_TYPE = None
 
     @property
     def name(self):

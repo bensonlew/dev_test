@@ -10,6 +10,7 @@ import sys
 from .rpc import RPC
 from .logger import Wlog
 from .agent import Agent
+from .module import Module
 import datetime
 import gevent
 import time
@@ -34,32 +35,6 @@ class Workflow(Basic):
         self._logger = Wlog(self).get_logger("")
         self.rpc_server = RPC(self)
         self.db = self.config.get_db()
-
-    def set_options(self, options):
-        """
-        设置参数值，设置之前如有远程文件，则先复制远程文件到本地
-
-        :param options:
-        :return:
-        """
-        for name, opt in self._options.items():
-            if opt.type == "infile":
-                path_list = options['name'].split("||")
-                file_format = None
-                if len(path_list) > 1:
-                    path = path_list[1]
-                    file_format = path_list[0]
-                else:
-                    path = path_list[0]
-                remote_file = RemoteFileManager(path)
-                if remote_file.type != "local":
-                    self.logger.info("发现参数%s为远程文件%s,开始复制..." % (name, options['name']))
-                    remote_file.download(os.path.join(self.work_dir, "remote_input", name))
-                    if file_format:
-                        options['name'] = "%s||%s" % (file_format, remote_file.local_path)
-                    else:
-                        options['name'] = remote_file.local_path
-        super(Workflow, self).set_options(options)
 
     def __work_dir(self):
         """
@@ -100,20 +75,19 @@ class Workflow(Basic):
 
         :param toolid:  :py:class:`biocluster.tool.Tool` 对象的ID
         """
-        ids = toolid.split(".")
-        length = len(ids)
-        if length < 2 or length > 3:
-            return False
-        if ids[0] != self.id:
-            return False
+        # ids = toolid.split(".")
+        # length = len(ids)
+        # if length < 2 or length > 3:
+        #     return False
+        # if ids[0] != self.id:
+        #     return False
         modules = self.children
-        if length == 2:
-            for md in modules:
-                if md.id == (ids[0] + "." + ids[1]) and isinstance(md, Agent):
-                    return md
-        elif length == 3:
-            for module in modules:
-                tool = module.find_tool_by_id(toolid)
+        # if length == 2:
+        for md in modules:
+            if md.id == toolid and isinstance(md, Agent):
+                return md
+            elif isinstance(md, Module):
+                tool = md.find_tool_by_id(toolid)
                 if tool:
                     return tool
         return False
@@ -141,13 +115,13 @@ class Workflow(Basic):
         """
         super(Workflow, self).end()
         if self._sheet.output:
-            remote_file = RemoteFileManager(self._sheet.ouput)
+            remote_file = RemoteFileManager(self._sheet.output)
             if remote_file.type != "local":
-                self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.ouput))
+                self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
                 umask = os.umask(0)
                 remote_file.upload(os.path.join(self.output_dir))
                 os.umask(umask)
-                self.logger("结果上传完成!")
+                self.logger.info("结果上传完成!")
         data = {
             "is_end": 1,
             "end_time": datetime.datetime.now(),

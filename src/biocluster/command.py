@@ -165,7 +165,7 @@ class Command(object):
                     argspec = inspect.getargspec(func)
                     args = argspec.args
                     if len(args) != 3:
-                        Exception("状态监测函数参数必须为3个(包括self)!")
+                        raise Exception("状态监测函数参数必须为3个(包括self)!")
                 while True:
                     line = self._subprocess.stdout.readline()
                     if not line:

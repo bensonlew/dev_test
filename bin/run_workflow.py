@@ -79,7 +79,7 @@ def main():
                         if not p.is_alive():
                             exitcode = p.exitcode
                             if exitcode != 0:
-                                write_log("流程%s运行出错: 原因未知" % p.json_data["id"])
+                                write_log("流程%s运行出错: 程序运行异常" % p.json_data["id"])
                                 p.wj.update_error()
                             p.join()
                             process_array.remove(p)
@@ -88,7 +88,7 @@ def main():
                 if not p.is_alive():
                     exitcode = p.exitcode
                     if exitcode != 0:
-                        write_log("流程%s运行出错: 原因未知" % p.json_data["id"])
+                        write_log("流程%s运行出错: 程序运行异常" % p.json_data["id"])
                         p.wj.update_error()
                     p.join()
                     process_array.remove(p)
@@ -152,6 +152,15 @@ class Worker(Process):
 
     def run(self):
         super(Worker, self).run()
+        timestr = time.strftime('%Y%m%d', time.localtime(time.time()))
+        log_dir = os.path.join(Config().SERVICE_LOG, timestr)
+        if not os.path.exists(log_dir):
+            os.mkdir(log_dir)
+        log = os.path.join(log_dir, "%s.log" % self.json_data["id"])
+        so = file(log, 'a+')
+        se = file(log, 'a+', 0)
+        os.dup2(so.fileno(), sys.stdout.fileno())
+        os.dup2(se.fileno(), sys.stderr.fileno())
         self.wj.start(self.json_data)
 
 
@@ -292,7 +301,7 @@ class WorkJob(object):
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id and is_end=0 and is_error=0",
                                 vars=myvar)
         if len(results) > 0:
-            self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="原因未知")
+            self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="程序运行异常")
 
 
 def hostname():
