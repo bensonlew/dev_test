@@ -47,7 +47,7 @@ class AlphaDiversityModule(Module):
 
     def estimators_run(self):
         self.estimators.set_options({
-            'otutable': self.option('otu_table'),
+            'otu_table': self.option('otu_table'),
             'indices': self.option('estimate_indices'),
             'level': self.option('level')
             })
@@ -56,12 +56,12 @@ class AlphaDiversityModule(Module):
 
     def rarefaction_run(self):
         self.rarefaction.set_options({
-            'otutable': self.option('otu_table'),
+            'otu_table': self.option('otu_table'),
             'indices': self.option('rarefy_indices'),
             'freq': self.option('rarefy_freq'),
             'level': self.option('level')
             })
-        self.rarefaction.on('end', self.set_output)
+        # self.rarefaction.on('end', self.set_output)
         self.rarefaction.run()
 
     def set_output(self):
@@ -75,7 +75,9 @@ class AlphaDiversityModule(Module):
         rarefaction = self.work_dir + '/Rarefaction/output/rarefaction/'
         os.link(estimators, self.output_dir + '/estimators.xls')
         os.system('cp -r %s %s' % (rarefaction, self.output_dir))
-        for estimators in self.option('indices').split('-'):
+        for estimators in self.option('rarefy_indices').split('-'):
+            if estimators == "sobs":
+                estimators = "rarefaction"
             est_path = self.work_dir + '/Rarefaction/output/%s/' % estimators
             os.system('cp -r %s %s' % (est_path, self.output_dir))
         # self.option('estimators').set_path(self.output_dir+'/estimators')

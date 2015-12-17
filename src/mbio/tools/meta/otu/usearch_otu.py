@@ -105,6 +105,8 @@ class UsearchOtuTool(Tool):
         self.logger.info("设置输出结果")
         # self.logger.info(self.work_dir+'/otu_table.xls')
         # self.logger.info(self.output_dir+'/otu_table.xls')
+        os.system('rm -rf '+self.output_dir)
+        os.system('mkdir '+self.output_dir)
         os.link(self.work_dir+'/otu_table.xls', self.output_dir+'/otu_table.xls')
         self.option('otu_table').set_path(self.output_dir+'/otu_table.xls')
         os.link(self.work_dir+'/otu_reps.fasta', self.output_dir+'/otu_reps.fasta')
@@ -118,6 +120,8 @@ class UsearchOtuTool(Tool):
     def run(self):
         super(UsearchOtuTool, self).run()
         self.logger.info("将输入文件链接到工作目录")
+        if os.path.exists(self.work_dir+'/meta.fasta'):
+            os.remove(self.work_dir+'/meta.fasta')
         os.link(self.option("fasta").prop['path'], self.work_dir+'/meta.fasta')
         self.logger.info("OK")
         i = 0

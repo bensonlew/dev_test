@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import os
+# import subprocess
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -17,9 +18,10 @@ class VennTableAgent(Agent):
     def __init__(self, parent):
         super(VennTableAgent, self).__init__(parent)
         options = [
-            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU表格
+            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.otu_tax_summary_dir"},
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表格
-            {"name": "venn_table.xls", "type": "outfile", "format": "meta.otu.venn_table"} # 输入的Venn表格
+            {"name": "venn_table.xls", "type": "outfile", "format": "meta.otu.venn_table"},  # 输入的Venn表格
+            {"name": "level", "type": "string", "default": "otu"}  # 物种水平
         ]
         self.add_option(options)
 
@@ -30,6 +32,9 @@ class VennTableAgent(Agent):
         """
         if not self.option("otu_table").is_set:
             raise OptionError("参数otu_table不能为空")
+        if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class',
+                                        'order', 'family', 'genus', 'species']:
+            raise OptionError("请选择正确的分类水平")
         if not self.option("group_table").is_set:
             raise OptionError("参数group_table不能为空")
 
@@ -42,6 +47,9 @@ class VennTableAgent(Agent):
 
 
 class VennTableTool(Tool):
+    """
+    version 1.0
+    """
     def __init__(self, config):
         super(VennTableTool, self).__init__(config)
         self.R_path = 'R-3.2.2/bin/'
@@ -54,10 +62,11 @@ class VennTableTool(Tool):
         """
         调用脚本venn_table.py,输出venn表格
         """
-        venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path,
-                                                                      self.option("otu_table").prop['path'],
+        otu_table = self.option("otu_table").prop['path']
+        if self.option("otu_table").format is "meta.otu.tax_summary_dir":
+            otu_table = self.option("otu_table").get_table(self.option("level"))
+        venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table,
                                                                       self.option("group_table").prop['path'])
-        print venn_cmd
         os.system(venn_cmd)
         cmd = self.R_path + 'Rscript cmd.r'
         # print cmd
@@ -67,7 +76,6 @@ class VennTableTool(Tool):
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("运行venn_table完成")
-            # self.end()
         else:
             self.set_error("运行venn_table运行出错!")
         self.set_output()

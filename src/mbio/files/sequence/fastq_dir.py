@@ -63,6 +63,7 @@ class FastqDirFile(Directory):
             self.has_list_file = True
             filesample = FileSampleFile()
             filesample.set_path(list_txt)
+            filesample.get_info()
             for filename in filesample.prop["file_names"]:
                 my_fastq = FastqFile()
                 fq_path = os.path.join(self.prop['path'], filename)

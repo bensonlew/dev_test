@@ -2,6 +2,7 @@
 # __author__ = 'xuting'
 import os
 import re
+import gzip
 import subprocess
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
@@ -82,16 +83,19 @@ class FastqFile(File):
         """
         if re.search(r'\.gz$', self.prop['path']):
             try:
-                cmd = "gunzip -c " + self.prop['path'] + "| head -n 5"
-                lines = subprocess.check_output(cmd)
-                lines = re.split('\n', lines)
-                if not (re.search(r'^@', lines[0]) and re.search(r'^@', lines[4])):
-                    raise FileError("非压缩后的fastq格式文件")
-                myline1 = re.split('_', lines[0])
-                myline2 = re.split('_', lines[4])
-                if len(myline1) > 1 and len(myline2) > 1:
-                    self.has_sample_info = True
-            except subprocess.CalledProcessError:
+                with gzip.open(self.prop['path'], 'rb') as f:
+                    line1 = f.next()
+                    line = f.next()
+                    line = f.next()
+                    line = f.next()
+                    line5 = f.next()
+                    if not (re.search(r'^@', line1) and re.search(r'^@', line5)):
+                        raise FileError("非压缩后的fastq格式文件")
+                    myline1 = re.split('_', line1)
+                    myline2 = re.split('_', line5)
+                    if len(myline1) > 1 and len(myline2) > 1:
+                        self.has_sample_info = True
+            except Exception:
                 raise FileError("非压缩后的fastq格式文件")
         else:
             with open(self.prop['path'], 'r') as r:

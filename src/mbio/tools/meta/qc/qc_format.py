@@ -20,8 +20,7 @@ class QcFormatAgent(Agent):
     def __init__(self, parent):
         super(QcFormatAgent, self).__init__(parent)
         options = [
-            {'name': 'single_fastq', 'type': 'infile', 'format': 'sequence.fastq'},  # 输入的fastq文件
-            {'name': 'multi_fastq', 'type': 'infile', 'format': 'sequence.fastq_dir'},  # 输入的fastq文件夹
+            {'name': 'in_fastq', 'type': 'infile', 'format': 'sequence.fastq, sequence.fastq_dir'},  # 输入的fastq文件
             {'name': 'otu_fasta', 'type': 'outfile', 'format': 'sequence.fasta'},  # 输出的合并到一起的fasta，供后续的otu分析用
             {'name': 'renamed_fastq_dir', 'type': 'outfile', 'format': 'sequence.fastq_dir'},  # 按样本名进行重命名或者拆分的fastq文件夹
             {'name': 'fasta_dir', 'type': 'outfile', 'format': 'sequence.fasta_dir'}]  # 由fastq文件夹转化而来的fasta文件
@@ -31,17 +30,15 @@ class QcFormatAgent(Agent):
         """
         参数检测
         """
-        if self.option('single_fastq').is_set and self.option('multi_fastq').is_set:
-            raise OptionError("请在参数single_fastq和multi_fastq之间选择一个进行输入！")
-        if not (self.option('single_fastq').is_set or self.option('multi_fastq').is_set):
-            raise OptionError("参数single_fastq和multi_fastq必须选择一个进行输入")
-        if self.option('multi_fastq').is_set:
-            if not self.option('multi_fastq').prop['has_list_file']:
-                raise OptionError('multi_fastq参数中，fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
-        if self.option('single_fastq').is_set:
-            self.option('single_fastq').get_info()
-            if not self.option('single_fastq').prop['has_sample_info']:
-                raise OptionError("single_fastq参数中的fastq文件中必须在序列名中带有样本名称(以下划线分隔)")
+        if not self.option('in_fastq').is_set:
+            raise OptionError("必须输入in_fastq参数")
+        self.option('in_fastq').get_info()
+        if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
+            if not self.option('in_fastq').prop['has_list_file']:
+                raise OptionError('fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
+        if self.get_option_object('in_fastq').format == 'sequence.fastq':
+            if not self.option('in_fastq').prop['has_sample_info']:
+                raise OptionError("fastq文件中必须在序列名中带有样本名称(以下划线分隔)")
 
     def set_resource(self):
         """
@@ -63,20 +60,20 @@ class QcFormatTool(Tool):
         """
         输入是文件夹的时候，根据文件名，样本名的对应文件，重命名文件
         """
-        filename_sample = os.path.join(self.option('multi_fastq').prop['path'], "list.txt")
+        filename_sample = os.path.join(self.option('in_fastq').prop['path'], "list.txt")
         with open(filename_sample, 'r') as r:
             for line in r:
                 line = line.rstrip('\n')
                 line = re.split('\t', line)
                 if re.search(r'\.(fastq|fq)\.gz', line[0]):
-                    gz_file = os.path.join(self.option('multi_fastq').prop['path'], line[0])
+                    gz_file = os.path.join(self.option('in_fastq').prop['path'], line[0])
                     target_file = os.path.join(self.fastq_dir, line[1] + ".fastq")
                     try:
                         subprocess.check_call('gunzip -c ' + gz_file + " >> " + target_file, shell=True)
                     except subprocess.CalledProcessError:
                         self.set_error("解压缩文件失败!检查输入是否是正确的gz文件")
                 else:
-                    file_ = os.path.join(self.option('multi_fastq').prop['path'], line[0])
+                    file_ = os.path.join(self.option('in_fastq').prop['path'], line[0])
                     target_file = os.path.join(self.fastq_dir, line[1] + ".fastq")
                     with open(file_, "r") as f:
                         txt = f.read()
@@ -89,7 +86,7 @@ class QcFormatTool(Tool):
         """
         warninglog = False
         count = 0
-        with open(self.option('single_fastq').prop['path'], 'r') as f:
+        with open(self.option('in_fastq').prop['path'], 'r') as f:
             for line in f:
                 count += 1
                 line = line.rstrip('\n')
@@ -119,9 +116,9 @@ class QcFormatTool(Tool):
         """
         if not os.path.exists(self.fastq_dir):
             os.mkdir(self.fastq_dir)
-        if self.option('multi_fastq').is_set:
+        if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
             self.rename_fastq()
-        if self.option('single_fastq').is_set:
+        if self.get_option_object("in_fastq").format == 'sequence.fastq':
             self.seprate_fastq()
 
     def get_fasta_dir(self):
