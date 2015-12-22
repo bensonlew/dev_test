@@ -36,7 +36,7 @@ class Signature(object):
         diff = datetime.datetime.now() - datetime.datetime.fromtimestamp(int(self._timestamp))
         client = ClientKey(self._client)
         if client.timelimit and abs(diff.seconds) > client.timelimit:
-            info = {"success": False, "info": "验证时间超市!"}
+            info = {"success": False, "info": "验证时间超时!"}
             return json.dumps(info)
         if client.ipmask:
             ip_list = client.ipmask.split(";")

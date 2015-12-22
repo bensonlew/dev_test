@@ -37,8 +37,8 @@ class FileCheck(object):
                 if hasattr(file_obj, data.check):
                     getattr(file_obj, data.check)()
                 else:
-                    raise Exception("文件类%s中未定义指定的检测函数%s!" %
-                                    (data.format, data.check))
+                    info = {"success": False, "info": "文件类%s中未定义指定的检测函数%s!" % (data.format, data.check)}
+                    return json.dumps(info)
             else:
                 if hasattr(file_obj, function_name):
                     getattr(file_obj, function_name)()

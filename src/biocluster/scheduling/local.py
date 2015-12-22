@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from gevent import monkey; monkey.patch_all()
+
 from .job import Job
 import os
 import re

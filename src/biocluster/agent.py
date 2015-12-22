@@ -78,6 +78,8 @@ class Agent(Basic):
         self._run_time = None
         self._start_run_time = None
         self._end_run_time = None
+        self._rerun_time = 0
+        self.is_wait = False
 
     @property
     def queue(self):
@@ -204,17 +206,23 @@ class Agent(Basic):
 
         :return:
         """
-        self.save_class_path()
-        self.save_config()
-        self._run_time = datetime.datetime.now()
-        self._status = "Q"
-        self.actor.kill()
-        self.actor = LocalActor(self)
-        self.actor.start()
-        if self.parent:
-            self.parent.fire("childrerun", self)
-        self.logger.info("开始重新投递任务!")
-        self.job.resubmit()
+        self._rerun_time += 1
+        if self._rerun_time > 3:
+            data = "重运行超过3次仍未成功，终止运行!"
+            self.fire("error", "data")
+            self.logger.error(data)
+        else:
+            self.save_class_path()
+            self.save_config()
+            self._run_time = datetime.datetime.now()
+            self._status = "Q"
+            self.actor.kill()
+            self.actor = LocalActor(self)
+            self.actor.start()
+            if self.parent:
+                self.parent.fire("childrerun", self)
+            self.logger.info("开始重新投递任务!")
+            self.job.resubmit()
 
     def set_callback_action(self, action, data=None):
         """

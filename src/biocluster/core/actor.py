@@ -40,14 +40,15 @@ class LocalActor(gevent.Greenlet):
         now = datetime.datetime.now()
         if not self._keep_alive_out_fired:
             if self._update is not None:
-                if(now - self._update).seconds > self._config.MAX_KEEP_ALIVE_TIME:
+                if (now - self._update).seconds > self._config.MAX_KEEP_ALIVE_TIME:
                     self._agent.fire('keepaliveout')
                     self._keep_alive_out_fired = True
-        if not self._wait_time_out_fired:
-            if self._start_time is not None:
-                if(now - self._start_time).seconds > self._config.MAX_WAIT_TIME:
-                    self._agent.fire('waittimeout')
-                    self._wait_time_out_fired = True
+        if not self._wait_time_out_fired and self._update is None:
+            if not self._agent.is_wait:
+                if self._start_time is not None:
+                    if (now - self._start_time).seconds > self._config.MAX_WAIT_TIME:
+                        self._agent.fire('waittimeout')
+                        self._wait_time_out_fired = True
 
     def receive(self, message):
         """
@@ -205,10 +206,11 @@ class RemoteActor(threading.Thread):
             return result
 
     def check_command(self):
-        for name, cmd in self._tool.commands.iteritems():
-            if self._tool.is_end:
+        while not self._tool.is_end:
+            if (not self.main_thread.is_alive()) or self._tool.exit_signal:
                 break
-            if name not in self._has_record_commands:
-                gevent.spawn(self._tool.resource_record, cmd)
-                self._has_record_commands.append(name)
-            gevent.sleep(0)
+            for name, cmd in self._tool.commands.items():
+                if name not in self._has_record_commands:
+                    gevent.spawn(self._tool.resource_record, cmd)
+                    self._has_record_commands.append(name)
+            gevent.sleep(3)

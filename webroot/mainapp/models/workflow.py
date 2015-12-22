@@ -23,17 +23,17 @@ class Workflow(object):
         return data[0].diff
 
     def set_stop(self, wid, insert_data):
-        where_dict = dict(workflow_id=wid)
-        t = self.db.transaction()
         try:
-            self.db.update(self.table, where=web.db.sqlwhere(where_dict), is_error=1, error=insert_data["reason"],
-                           is_end=1,end_time=datetime.datetime.now())
-            self.db.insert("tstop", workflow_id=wid, **insert_data)
-        except Exception:
-            t.rollback()
+            results = self.db.query("SELECT * FROM tostop WHERE workflow_id=$id", vars={'id': wid})
+            if len(results) > 0:
+                insert_data["time"] = datetime.datetime.now()
+                insert_data["done"] = 0
+                self.db.update("tostop", vars={'id': wid}, where="workflow_id = $id", **insert_data)
+            else:
+                self.db.insert("tostop", workflow_id=wid, **insert_data)
+        except:
             return False
         else:
-            t.commit()
             return True
 
     def get_running(self, client):
@@ -43,3 +43,34 @@ class Workflow(object):
     def get_queue(self, client):
         where_dict = dict(client=client, has_run=0)
         return self.db.select(self.table, where=web.db.sqlwhere(where_dict))
+
+    def set_pause(self, wid, insert_data):
+        try:
+            results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id", vars={'id': wid})
+            if len(results) > 0:
+                insert_data["add_time"] = datetime.datetime.now()
+                insert_data["has_pause"] = 0
+                insert_data["exit_pause"] = 0
+                insert_data["has_continue"] = 0
+                insert_data["timeout"] = 0
+                self.db.update("pause", vars={'id': wid}, where="workflow_id = $id", **insert_data)
+            else:
+                self.db.insert("pause", workflow_id=wid, **insert_data)
+        except:
+            return False
+        else:
+            return True
+
+    def exit_pause(self, wid):
+        try:
+            results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id", vars={'id': wid})
+            if len(results) > 0:
+                update_data = {
+                    "exit_pause": 1,
+                    "exit_pause_time": datetime.datetime.now()
+                }
+                self.db.update("pause", vars={'id': wid}, where="workflow_id = $id", **update_data)
+        except:
+            return False
+        else:
+            return True

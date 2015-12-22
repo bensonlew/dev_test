@@ -11,7 +11,7 @@ from mainapp.libs.jsonencode import CJsonEncoder
 import xml.etree.ElementTree as ET
 
 
-class Pipline(object):
+class Pipeline(object):
 
     def GET(self):
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../views/'))
@@ -25,6 +25,7 @@ class Pipline(object):
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == "client01":
             json_obj = self.sanger_submit()
+            json_obj['client'] = client
         else:
             json_obj = self.json_submit()
         if "type" not in json_obj.keys() or "id" not in json_obj.keys():
@@ -106,7 +107,7 @@ class Pipline(object):
         )
 
 
-class PiplineState(object):
+class PipelineState(object):
 
     @check_sig
     def GET(self):
@@ -147,10 +148,19 @@ class PiplineState(object):
                         "output": record.output,
                     }
                     return json.dumps(info, cls=CJsonEncoder)
-                elif workflow_module.last_update_seconds(data.id) > 100:
+                elif workflow_module.last_update_seconds(data.id) > 200:
                     info = {
                         "success": True,
                         "state": "offline",
+                        "addtime": record.add_time,
+                        "starttime": record.run_time,
+                        "lastupdate": record.last_update
+                    }
+                    return json.dumps(info, cls=CJsonEncoder)
+                elif record.paused == 1:
+                    info = {
+                        "success": True,
+                        "state": "paused",
                         "addtime": record.add_time,
                         "starttime": record.run_time,
                         "lastupdate": record.last_update
@@ -173,7 +183,7 @@ class PiplineState(object):
             return json.dumps(info)
 
 
-class PiplineLog(object):
+class PipelineLog(object):
 
     @check_sig
     def GET(self):
@@ -206,7 +216,7 @@ class PiplineLog(object):
             return json.dumps(info)
 
 
-class PiplineStop(object):
+class PipelineStop(object):
 
     @check_sig
     def POST(self):
@@ -242,7 +252,7 @@ class PiplineStop(object):
             return json.dumps(info)
 
 
-class PiplineRunning(object):
+class PipelineRunning(object):
 
     @check_sig
     def GET(self):
@@ -264,7 +274,7 @@ class PiplineRunning(object):
             return json.dumps(info)
 
 
-class PiplineQueue(object):
+class PipelineQueue(object):
     @check_sig
     def GET(self):
         data = web.input()
@@ -281,4 +291,78 @@ class PiplineQueue(object):
             return json.dumps(info)
         else:
             info = {"success": True, "count": 0, "info": "没有正在排队的流程！"}
+            return json.dumps(info)
+
+
+class PipelinePause(object):
+
+    @check_sig
+    def POST(self):
+        data = web.input()
+        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        if not (hasattr(data, "id") and hasattr(data, "reason")) or data.id.strip() == "":
+            info = {"success": False, "info": "缺少参数!"}
+            return json.dumps(info)
+        workflow_module = Workflow()
+        workflow_data = workflow_module.get_by_workflow_id(data.id)
+        if len(workflow_data) > 0:
+            record = workflow_data[0]
+            if client == record.client:
+                if record.has_run == 1 and record.is_end:
+                    info = {"success": False, "info": "流程已经结束！"}
+                    return json.dumps(info)
+                elif record.paused == 1:
+                    info = {"success": False, "info": "流程已经暂停，请先结束暂停！"}
+                    return json.dumps(info)
+                else:
+                    insert_data = {"client": client,
+                                   "ip": web.ctx.ip,
+                                   "reson": data.reason
+                                   }
+                    if workflow_module.set_pause(data.id, insert_data):
+                        info = {"success": True, "info": "操作成功！"}
+                        return json.dumps(info)
+                    else:
+                        info = {"success": False, "info": "内部错误！"}
+                        return json.dumps(info)
+            else:
+                info = {"success": False, "info": "没有权限查看！"}
+                return json.dumps(info)
+        else:
+            info = {"success": False, "info": "流程ID不存在！"}
+            return json.dumps(info)
+
+
+class PipelineStopPause(object):
+
+    @check_sig
+    def GET(self):
+        data = web.input()
+        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        if not hasattr(data, "id") or data.id.strip() == "":
+            info = {"success": False, "info": "缺少参数!"}
+            return json.dumps(info)
+        workflow_module = Workflow()
+        workflow_data = workflow_module.get_by_workflow_id(data.id)
+        if len(workflow_data) > 0:
+            record = workflow_data[0]
+            if client == record.client:
+                if record.has_run == 1 and record.is_end:
+                    info = {"success": False, "info": "流程已经结束！"}
+                    return json.dumps(info)
+                elif record.paused != 1:
+                    info = {"success": False, "info": "流程未暂停,不能退出暂停！"}
+                    return json.dumps(info)
+                else:
+                    if workflow_module.exit_pause(data.id):
+                        info = {"success": True, "info": "操作成功！"}
+                        return json.dumps(info)
+                    else:
+                        info = {"success": False, "info": "内部错误！"}
+                        return json.dumps(info)
+            else:
+                info = {"success": False, "info": "没有权限查看！"}
+                return json.dumps(info)
+        else:
+            info = {"success": False, "info": "流程ID不存在！"}
             return json.dumps(info)

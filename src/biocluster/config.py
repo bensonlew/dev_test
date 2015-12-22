@@ -71,6 +71,9 @@ class Config(object):
         self.SSH1_MODE = self.rcf.get("SSH1", "mode")
         self.SSH1_IP_LIST = re.split('\s*,\s*', self.rcf.get("SSH1", "ip_list"))
 
+        # PAUSE
+        self.MAX_PAUSE_TIME = self.rcf.get("PAUSE", "max_time")
+
     def get_listen_ip(self):
         """
         获取配置文件中IP列表与本机匹配的IP作为本机监听地址
@@ -162,3 +165,6 @@ class Config(object):
         if type_name not in type_list:
             raise Exception("Unkown netdata %s" % type_name)
         return self.rcf.get("NETDATA", "%s_type" % type_name)
+
+    def get_api_type(self, client):
+        return self.rcf.get("API", client)

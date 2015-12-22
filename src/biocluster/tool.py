@@ -272,7 +272,7 @@ class Tool(object):
                     with open(filepath, "a") as f:
                         pid = processes[0].pid
                         cmd = " ".join(processes[0].cmdline())
-                        f.write("%s\tprocess_num:%s\tmain_pid:%s\tcmd:%s\n" % (time_now, process_num, pid, cmd))
+                        f.write("\n%s\tprocess_num:%s\tmain_pid:%s\tcmd:%s\n" % (time_now, process_num, pid, cmd))
                         for p in processes:
                             try:
                                 pid = p.pid
@@ -307,6 +307,7 @@ class Tool(object):
 
         :return:
         """
+        self._end = True
         self.save_output()
         self.add_state('finish')
         self.logger.info("程序运行完成")
@@ -319,6 +320,7 @@ class Tool(object):
         :param status: 退出运行时的exitcode
         :return:
         """
+        self._end = True
         self.exit_signal = True
         for command in self._commands.values():
             command.kill()
@@ -360,6 +362,7 @@ class Tool(object):
         """
         self.add_state('error', error_data)
         self.logger.info("运行出错:%s" % error_data )
+        self._end = True
         self.exit_signal = True
 
     @staticmethod

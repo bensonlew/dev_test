@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from gevent import monkey; monkey.patch_all()
 from .remote import RemoteFile
 from biocluster.config import Config
 import os

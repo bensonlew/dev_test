@@ -55,17 +55,15 @@ def main():
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())
             time.sleep(Config().SERVICE_LOOP)
-            t = wj.db.transaction()
+
             try:
                 json_data = check_run(wj)
             except Exception, e:
                 exstr = traceback.format_exc()
                 print exstr
                 write_log("运行出错: %s" % e)
-                t.rollback()
+                wj.unlock()
                 continue
-            else:
-                t.commit()
             if json_data:
                 # process = Process(target=wj.start, args=(json_data,))
                 process = Worker(wj, json_data)
@@ -122,7 +120,11 @@ def delpid():
 
 def writepid():
     pid = str(os.getpid())
-    with open(Config().SERVICE_PID, 'w+') as f:
+    pid_file = Config().SERVICE_PID
+    pid_file = pid_file.replace('$HOSTNAME', hostname())
+    if not os.path.exists(os.path.dirname(pid_file)):
+        os.mkdir(os.path.dirname(pid_file))
+    with open(pid_file, 'w+') as f:
         f.write('%s\n' % pid)
     atexit.register(delpid)
 
