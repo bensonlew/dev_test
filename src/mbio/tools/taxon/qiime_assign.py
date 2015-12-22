@@ -39,7 +39,7 @@ class QiimeAssignAgent(Agent):
             raise OptionError("必须设置参数fasta")
         if self.option("revcomp") not in [True, False]:
             raise OptionError("必须设置参数revcomp")
-        if self.option('database') == "customer_mode":
+        if self.option('database') == "custom_mode":
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
