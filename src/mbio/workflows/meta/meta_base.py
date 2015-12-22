@@ -5,7 +5,7 @@
 
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
-# import os
+import os
 
 
 class MetaBaseWorkflow(Workflow):
@@ -24,7 +24,7 @@ class MetaBaseWorkflow(Workflow):
             {'name': 'otu_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 输出结果biom格式otu表
             {'name': 'revcomp', 'type': 'bool'},  # 序列是否翻转
             {'name': 'confidence', 'type': 'float', 'default': 0.7},  # 置信度值
-            {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
+            # {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
             {'name': 'database', 'type': 'string'},  # 数据库选择
             {'name': 'ref_fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 参考fasta序列
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
@@ -35,11 +35,10 @@ class MetaBaseWorkflow(Workflow):
             {"name": "rarefy_freq", "type": "int", "default": 100},
             {"name": "alpha_level", "type": "string", "default": "otu"},  # level水平
             {"name": "beta_analysis", "type": "string",
-                "default": "anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
+                "default": "pca,hcluster"},
             {"name": "beta_level", "type": "string", "default": "otu"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
-            {"name": "phy_newick", "type": "infile",
-             "format": "meta.beta_diversity.newick_tree"},
+            {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
             {"name": "envtable", "type": "infile", "format": "meta.env_table"},
@@ -66,7 +65,7 @@ class MetaBaseWorkflow(Workflow):
             raise OptionError("identity值必须在0-1范围内.")
         if self.option("revcomp") not in [True, False]:
             raise OptionError("必须设置参数revcomp")
-        if self.option("customer_mode"):
+        if self.option('database') == "custom_mode":
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
@@ -115,10 +114,9 @@ class MetaBaseWorkflow(Workflow):
             "fasta": relyobj.rely[0].option("otu_rep"),
             "revcomp": self.option("revcomp"),
             "confidence": self.option("confidence"),
-            "customer_mode": self.option("customer_mode"),
             "database": self.option("database")}
             )
-        if self.option("customer_mode"):
+        if self.option("database") == "customer_mode":
             self.tax.set_options({
                 "ref_fasta": self.option("ref_fasta"),
                 "ref_taxon": self.option("ref_taxon")
@@ -145,6 +143,7 @@ class MetaBaseWorkflow(Workflow):
             'rarefy_indices': self.option('rarefy_indices'),
             'rarefy_freq': self.option('rarefy_freq')
             })
+        self.alpha.on("end", self.set_output, "alpha")
         self.alpha.run()
 
     def run_beta(self):
@@ -167,30 +166,33 @@ class MetaBaseWorkflow(Workflow):
             self.beta.set_options({
                 'group': self.option('group')
                 })
-
+        self.beta.on("end", self.set_output, "beta")
         self.beta.run()
 
     def set_output(self, event):
         obj = event["bind_object"]
         if event['data'] is "qc":
             self.option("otu_fasta", obj.option("otu_fasta"))
-            # os.link(self.option("otu_fasta").prop['path'], self.output_dir)
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/QC_stat")
         if event['data'] is "otu":
             self.option("otu_table", obj.option("otu_table"))
             self.option("otu_rep", obj.option("otu_rep"))
             self.option("otu_biom", obj.option("otu_biom"))
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Otu")
         if event['data'] is "tax":
             self.option("taxon_file", obj.option("taxon_file"))
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Tax_assign")
         if event['data'] is "stat":
             # self.option("otu_taxon_biom", obj.option("otu_taxon_biom"))
             # self.option("otu_taxon_table", obj.option("otu_taxon_table"))
             self.option("otu_taxon_dir", obj.option("otu_taxon_dir"))
-        # if event['data'] is "est":
-        #     self.option("estimators").set_path(obj.option("estimators").prop['path'])
-        # if event['data'] is "rarefy":
-        #     self.option("rarefaction").set_path(obj.option("rarefaction").prop['path'])
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/OtuTaxon_summary")
+        if event['data'] is "alpha":
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Alpha_diversity")
+        if event['data'] is "beta":
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Beta_diversity")
 
     def run(self):
         self.run_qc()
-        self.on_rely([self.stat, self.alpha, self.beta], self.end)
+        self.on_rely([self.alpha, self.beta], self.end)
         super(MetaBaseWorkflow, self).run()

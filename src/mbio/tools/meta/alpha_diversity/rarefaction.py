@@ -7,6 +7,7 @@ import shutil
 import glob
 from biocluster.core.exceptions import OptionError
 import subprocess
+import re
 
 
 class RarefactionAgent(Agent):
@@ -67,7 +68,7 @@ class RarefactionTool(Tool):
         执行命令获得shared格式文件，shared文件为下一命令输入文件
         """
         otu_table = self.option("otu_table").prop['path']
-        if self.option("otu_table").format is "meta.otu.tax_summary_dir":
+        if self.option("otu_table").format == "meta.otu.tax_summary_dir":
             otu_table = self.option("otu_table").get_table(self.option("level"))
         self.logger.info("转化otu_table({})为shared文件({})".format(otu_table, "otu.shared"))
         try:
@@ -82,6 +83,11 @@ class RarefactionTool(Tool):
         # cmd += ' -i %s -l %s -o %s' % (otu_table, '0.97', 'otu.shared')
         # # print cmd
         # os.system(cmd)
+
+    def mothur_check(self, command, line):
+        if re.match(r"\[ERROR\]:", line):
+            command.kill()
+            self.set_error("mothur命令报错")
 
     def mothur(self):
         """

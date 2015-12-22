@@ -45,7 +45,7 @@ class OtuAnalysisModule(Module):
             raise OptionError("identity值必须在0-1范围内.")
         if self.option("revcomp") not in [True, False]:
             raise OptionError("必须设置参数revcomp")
-        if self.option('database') == "customer_mode":
+        if self.option('database') == "custom_mode":
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
