@@ -47,7 +47,7 @@ class SamplesInfoTool(Tool):
         生成samples_info表
         """
         self.logger.info('生成fasta文件夹')
-        output_dir = os.path.join(self.work_dir, 'output', 'fasta')
+        output_dir = os.path.join(self.work_dir, 'fasta')
         self.option('fasta_path').get_full_info(output_dir)
         self.logger.info('成功生成fasta文件夹,开始统计样本信息')
         sample_info_dir = os.path.join(self.work_dir, 'output/samples_info')
