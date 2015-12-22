@@ -116,7 +116,7 @@ class MetaBaseWorkflow(Workflow):
             "confidence": self.option("confidence"),
             "database": self.option("database")}
             )
-        if self.option("database") == "customer_mode":
+        if self.option("database") == "custom_mode":
             self.tax.set_options({
                 "ref_fasta": self.option("ref_fasta"),
                 "ref_taxon": self.option("ref_taxon")
