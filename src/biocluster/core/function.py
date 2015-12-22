@@ -40,7 +40,14 @@ def load_class_by_path(path, tp="Agent"):
         "File": "mbio.files."
     }
     class_name = get_clsname_form_path(path, tp)
-    imp = importlib.import_module(dir_name[tp] + path)
+    module_name = dir_name[tp] + path
+    # try:
+    #    sys.modules[module_name]
+    # except KeyError:
+    imp = importlib.import_module(module_name)
+    # else:
+    #     del sys.modules[module_name]
+    #     imp = importlib.import_module(module_name)
     return getattr(imp, class_name)
 
 

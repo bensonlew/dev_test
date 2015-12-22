@@ -165,22 +165,25 @@ class Command(object):
                     argspec = inspect.getargspec(func)
                     args = argspec.args
                     if len(args) != 3:
-                        Exception("状态监测函数参数必须为3个(包括self)!")
+                        raise Exception("状态监测函数参数必须为3个(包括self)!")
                 while True:
                     line = self._subprocess.stdout.readline()
                     if not line:
-                        break
+                        if not self.is_running:
+                            break
+                        else:
+                            continue
                     f.write(line)
                     if func is not None:
                         line = line.strip()
                         func(self, line)   # check function(toolself, command, line)  single line
                     if self.is_error or not self.is_running:
                         break
-                else:
-                    endtime = datetime.datetime.now()
-                    use_time = (endtime - starttime).seconds
-                    # time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
-                    f.write("%s\t运行结束，运行时长:%ss,exitcode:%s\n" % (endtime, use_time, self.return_code))
+
+                endtime = datetime.datetime.now()
+                use_time = (endtime - starttime).seconds
+                # time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
+                f.write("%s\t运行结束，运行时长:%ss,exitcode:%s\n" % (endtime, use_time, self.return_code))
         except IOError, e:
             self.tool.set_error(e)
         return self

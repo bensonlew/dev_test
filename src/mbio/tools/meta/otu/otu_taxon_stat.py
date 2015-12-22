@@ -112,7 +112,6 @@ class OtuTaxonStatTool(Tool):
             shutil.rmtree(tax_summary_a_dir)
         cmd = self._summarize_taxa_path + " -i " + biom + ' -o ' + tax_summary_a_dir\
             + " -L 1,2,3,4,5,6,7,8 -a "
-        self.logger.debug(cmd)
         create_tax_summary = self.add_command("create_tax_summary", cmd)
         self.logger.info("开始生成tax_summary_a文件夹")
         create_tax_summary.run()

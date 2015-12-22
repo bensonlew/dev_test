@@ -62,7 +62,7 @@ class ReadsLenInfoTool(Tool):
         # 寻找最长的序列
         self.logger.info("开始寻找所有样本中最长的序列")
         max_list = list()
-        self.option("fasta_path").get_full_info(os.path.join(self.work_dir, "output", "fasta_work_dir"))
+        self.option("fasta_path").get_full_info(os.path.join(self.work_dir, "fasta_work_dir"))
         for fasta in self.option("fasta_path").prop["fasta_fullname"]:
             # 获取每一个fasta的全路径
             myfasta = FastaFile()
