@@ -21,7 +21,7 @@ class AlphaDiversityModule(Module):
         super(AlphaDiversityModule, self).__init__(work_id)
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
-            {"name": "estimate_indices", "type": "string", "format": "ace-chao-shannon-simpson-coverage"},
+            {"name": "estimate_indices", "type": "string", "default": "ace-chao-shannon-simpson-coverage"},
             {"name": "rarefy_indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
             {"name": "rarefy_freq", "type": "int", "default": 100},
             {"name": "level", "type": "string", "default": "otu"}  # level水平
