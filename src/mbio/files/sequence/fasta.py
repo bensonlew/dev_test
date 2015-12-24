@@ -36,6 +36,7 @@ class FastaFile(File):
         :return:
         """
         # print self.prop
+        self.get_info()
         if super(FastaFile, self).check():
             if self.prop['format'] != 'FASTA':
                 raise FileError("文件格式错误")

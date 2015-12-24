@@ -71,6 +71,9 @@ class Config(object):
         self.SSH1_MODE = self.rcf.get("SSH1", "mode")
         self.SSH1_IP_LIST = re.split('\s*,\s*', self.rcf.get("SSH1", "ip_list"))
 
+        # PAUSE
+        self.MAX_PAUSE_TIME = self.rcf.get("PAUSE", "max_time")
+        
         # BACKUP
         self.BACKUP_DIR = self.rcf.get("Backup", "backup_dir")
 
@@ -148,20 +151,23 @@ class Config(object):
                                 passwd=self.DB_PASSWD, port=int(self.DB_PORT))
 
     def get_netdata_config(self, type_name):
-        type_list = self.rcf.get("NETDATA", "types").split(r"\s*,\s*")
+        type_list = re.split(r"\s*,\s*", self.rcf.get("NETDATA", "types"))
         if type_name not in type_list:
             raise Exception("Unkown netdata %s" % type_name)
         options = self.rcf.options("NETDATA")
         type_dict = {}
         for opt in options:
             if re.match("^" + type_name, opt):
-                type_dict[opt] = self.rcf.get("NETDATA", "opt")
+                type_dict[opt] = self.rcf.get("NETDATA", opt)
         return type_dict
 
     def get_netdata_lib(self, type_name):
         if type_name == "http":
             return "http"
-        type_list = self.rcf.get("NETDATA", "types").split(r"\s*,\s*")
+        type_list = re.split(r"\s*,\s*", self.rcf.get("NETDATA", "types"))
         if type_name not in type_list:
             raise Exception("Unkown netdata %s" % type_name)
         return self.rcf.get("NETDATA", "%s_type" % type_name)
+
+    def get_api_type(self, client):
+        return self.rcf.get("API", client)

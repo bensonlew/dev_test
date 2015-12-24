@@ -10,7 +10,7 @@ from .option import Option
 import os
 from .core.exceptions import OptionError
 from gevent.lock import BoundedSemaphore
-
+import gevent
 
 class Rely(object):
     """
@@ -94,6 +94,7 @@ class Basic(EventObject):
                 os.makedirs(self._output_path)
         self._options = {}
         self.sem = BoundedSemaphore(1)
+        self.API_TYPE = None
 
     @property
     def name(self):
@@ -330,6 +331,7 @@ class Basic(EventObject):
         """
         添加默认触发事件
         """
+        self.add_event("start")  # 开始运行
         self.add_event('end')   # 结束事件 对象结束时触发
         self.on('end', self.__event_end)
         self.add_event('error')
@@ -421,7 +423,17 @@ class Basic(EventObject):
         """
         开始运行
         """
+
+        paused = False
+        workflow = self.get_workflow()
+        while workflow.pause:
+            if not paused:
+                self.logger.info("流程处于暂停状态，排队等待恢复运行!")
+            paused = True
+            workflow.is_wait = True
+            gevent.sleep(1)
         self.start_listener()
+        self.fire("start")
 
     def get_workflow(self):
         """

@@ -1,0 +1,19 @@
+<?xml version="1.0" standalone="yes"?>
+<workflow>
+	<project_sn>10000197</project_sn>
+	<task_id>sg139</task_id>
+	<bucket>rerewrweset</bucket>
+	<stage>
+		<id>cmd_30_1418796154010</id>
+		<name>align.seq.blast</name>
+		<type>tool</type>
+		<parameters>
+			<fasta type="sanger">test/test.fa</fasta>
+			<ref type="test" format="xxxx.yyyy">test/ref.fa</ref>
+			<mode>customer</mode>
+			<blasttype>blastn</blasttype>
+			<evalue>1e-5</evalue>
+		</parameters>
+	</stage>
+</workflow>
+

@@ -32,11 +32,11 @@ class Module(Basic):
 
         :param toolid:  :py:class:`biocluster.tool.Tool` 对象的ID
         """
-        ids = toolid.split(".")
-        if len(ids) < 3:
-            return False
-        if (ids[0] + "." + ids[1]) != self.id:
-            return False
+        # ids = toolid.split(".")
+        # if len(ids) < 3:
+        #     return False
+        # if (ids[0] + "." + ids[1]) != self.id:
+        #     return False
         childs = self.children
         for c in childs:
             if c.id == toolid:

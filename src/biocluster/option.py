@@ -10,6 +10,7 @@ from .core.exceptions import OptionError
 import re
 import traceback
 from .core.exceptions import FileError
+from .api.file.remote import RemoteFileManager
 
 
 class Option(object):
@@ -122,15 +123,47 @@ class Option(object):
         """
         if self._type in {'outfile', 'infile'}:
             if isinstance(value, unicode) or isinstance(value, str):
-                if os.path.exists(value):
-                    if self.type == "infile":  # 检查输出文件是否满足要求
+                path_list = value.split("||")
+                if len(path_list) > 1:
+                    file_path = path_list[1]
+                    file_format = path_list[0]
+                else:
+                    file_path = path_list[0]
+                    file_format = None
+                if self._type == "infile":  # 远程文件复制
+                    remote_file = RemoteFileManager(file_path)
+                    if remote_file.type != "local":
+                        self.bind_obj.logger.info("发现参数%s为远程文件%s,开始复制..." % (self.name, value))
+                        remote_file.download(os.path.join(self.bind_obj.work_dir, "remote_input", self.name))
+                        file_path = remote_file.local_path
+                if os.path.exists(file_path):
+                    # if self.type == "infile":  # 检查输出文件是否满足要求
                         # class_obj = load_class_by_path(self._options[name].format, "File")
+                    if file_format is not None:
+                        if len(self._format_list) > 1:
+                            if file_format not in self._format_list:
+                                e = "输入参数%s的文件格式%s必须在范围%s内!" % (self.name, file_format, self._format_list)
+                                self._file_check_error(e)
+                            else:
+                                self._format = file_format
+                                self._check = self._check_list[self._format_list.index(file_format)]
+                        else:
+                            if file_format != self._format:
+                                e = "输入参数%s的文件格式必须为%s,不能为%s!" % (self.name, self._format, file_format)
+                                self._file_check_error(e)
+                        file_obj = self._check_file(self._format, self._check, file_path)
+                        if file_obj:
+                            self._value = file_obj
+                        else:
+                            e = "输入参数%s的文件格式不正确!" % self.name
+                            self._file_check_error(e)
+                    else:
                         if len(self._format_list) > 1:
                             has_pass = False
                             for index in range(len(self._format_list)):
                                 format_path = self._format_list[index]
                                 check = self._check_list[index]
-                                file_obj = self._check_file(format_path, check, value, loop=True)
+                                file_obj = self._check_file(format_path, check, file_path, loop=True)
                                 if file_obj:
                                     has_pass = True
                                     self._value = file_obj
@@ -141,7 +174,7 @@ class Option(object):
                                 e = "输入参数%s的文件格式不正确!" % self.name
                                 self._file_check_error(e)
                         else:
-                            file_obj = self._check_file(self._format, self._check, value)
+                            file_obj = self._check_file(self._format, self._check, file_path)
                             if file_obj:
                                 self._value = file_obj
                             else:
@@ -170,11 +203,10 @@ class Option(object):
                     if isinstance(value, class_obj):
                         self._value = value
                     else:
-                        e = "参数%s的文件对象类型设置不正确!" % self.name
+                        e = "参数%s的文件对象类型应该为%s!" % (self.name, class_obj().format)
                         self._file_check_error(e)
         else:
-            self._check_type(value)
-            self._value = value
+            self._value = self._check_type(value)
 
     @property
     def format(self):
@@ -205,12 +237,38 @@ class Option(object):
         :return:
         """
         if self._type == "int":
-            if not isinstance(value, int):
+            try:
+                value = int(value)
+            except ValueError:
                 raise OptionError("参数值类型不符合{}:{}".format(self._type, value))
         if self._type == "float":
-            if not isinstance(value, float):
+            try:
+                value = float(value)
+            except ValueError:
                 raise OptionError("参数值类型不符合{}:{}".format(self._type, value))
         if self._type == "bool":
+            try:
+                if isinstance(value, str) or isinstance(value, unicode):
+                    if re.match(r"^[\-\+]?\d+$", value):
+                        if int(value) > 0:
+                            value = True
+                        else:
+                            value = False
+                    if re.match(r"^true$", value, re.I) or re.match(r"^y$", value, re.I)\
+                            or re.match(r"^yes$", value, re.I):
+                        value = True
+                    if re.match(r"^false$", value, re.I) or re.match(r"^no$", value, re.I)\
+                            or re.match(r"^n$", value, re.I):
+                        value = False
+                if isinstance(value, int) or isinstance(value, float):
+                    if int(value) > 0:
+                        value = True
+                    else:
+                        value = False
+                if value is None:
+                    value = False
+            except ValueError:
+                raise OptionError("参数值类型不符合{}:{}".format(self._type, value))
             if not isinstance(value, bool):
                 raise OptionError("参数值类型不符合{}:{}".format(self._type, value))
         if self._type == "string":
@@ -219,6 +277,7 @@ class Option(object):
         if self._type in {"infile", "outfile"}:
             if not isinstance(value, FileBase):
                 raise OptionError("参数值类型不符合{}:{}".format(self._type, value))
+        return value
 
     def _check_file(self, format_path, check, path, loop=False):
         """
@@ -257,11 +316,13 @@ class Option(object):
             exstr = traceback.format_exc()
             if loop:
                 self.bind_obj.logger.debug("检测未通过(以下为调试信息，可忽略):\n%s" % exstr)
+            else:
+                print exstr
             return False
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self._file_check_error(e)
+            self._file_check_error(str(e))
         else:
             return file_obj
 

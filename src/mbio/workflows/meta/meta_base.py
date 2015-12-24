@@ -30,7 +30,7 @@ class MetaBaseWorkflow(Workflow):
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
             {'name': 'taxon_file', 'type': 'outfile', 'format': 'taxon.seq_taxon'},  # 输出序列的分类信息文件
             {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'},  # 输出的otu_taxon_dir文件夹
-            {"name": "estimate_indices", "type": "string", "format": "ace-chao-shannon-simpson-coverage"},
+            {"name": "estimate_indices", "type": "string", "default": "ace-chao-shannon-simpson-coverage"},
             {"name": "rarefy_indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
             {"name": "rarefy_freq", "type": "int", "default": 100},
             {"name": "alpha_level", "type": "string", "default": "otu"},  # level水平
@@ -116,7 +116,7 @@ class MetaBaseWorkflow(Workflow):
             "confidence": self.option("confidence"),
             "database": self.option("database")}
             )
-        if self.option("database") == "customer_mode":
+        if self.option("database") == "custom_mode":
             self.tax.set_options({
                 "ref_fasta": self.option("ref_fasta"),
                 "ref_taxon": self.option("ref_taxon")
