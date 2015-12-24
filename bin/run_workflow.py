@@ -239,7 +239,8 @@ class WorkJob(object):
             "pid": os.getpid(),
             "is_end": 0,
             "is_error": 0,
-            "error": ""
+            "error": "",
+            "paused": 0
         }
         myvar = dict(id=self.workflow_id)
         self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
@@ -279,6 +280,8 @@ class WorkJob(object):
             wsheet = Sheet(data=json_data)
             workflow = wf(wsheet)
             workflow.config.USE_DB = True
+            if self.client in workflow.config.get_use_api_clients():
+                workflow.UPDATE_STATUS = True
             file_path = os.path.join(workflow.work_dir, "data.json")
             with open(file_path, "w") as f:
                 json.dump(json_data, f, indent=4)

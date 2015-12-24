@@ -5,6 +5,8 @@ import importlib
 import re
 import os
 import sys
+import json
+from datetime import datetime, date
 
 
 def get_clsname_form_path(path, tp="Agent"):
@@ -96,3 +98,13 @@ def daemonize(stdout='/dev/null', stderr='dev/null'):
     se = file(stderr, 'a+', 0)
     os.dup2(so.fileno(), sys.stdout.fileno())
     os.dup2(se.fileno(), sys.stderr.fileno())
+
+
+class CJsonEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
+        elif isinstance(obj, date):
+            return obj.strftime('%Y-%m-%d')
+        else:
+            return json.JSONEncoder.default(self, obj)

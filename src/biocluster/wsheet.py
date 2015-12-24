@@ -24,43 +24,59 @@ class Sheet(object):
         else:
             self._data = data
 
-    @property
-    def id(self):
-        """
-        任务ID
-        """
-        return self._data['id']
+    # @property
+    # def id(self):
+    #     """
+    #     任务ID
+    #     """
+    #     return self._data['id']
+    #
+    # @property
+    # def name(self):
+    #     """
+    #     模块名称
+    #     """
+    #     if 'name' in self._data.keys():
+    #         return self._data['name']
+    #     else:
+    #         return "link"
+    #
+    # @property
+    # def type(self):
+    #     """
+    #     调用类型
+    #     """
+    #     if 'type' in self._data.keys():
+    #         return self._data['type']
+    #     else:
+    #         return "link"
+    #
+    # @property
+    # def output(self):
+    #     """
+    #     需要上传的远程路径
+    #     :return:
+    #     """
+    #     if 'output' in self._data.keys():
+    #         return self._data['output']
+    #     else:
+    #         return None
 
-    @property
-    def name(self):
+    def __getattr__(self, name):
         """
-        模块名称
-        """
-        if 'name' in self._data.keys():
-            return self._data['name']
-        else:
-            return "link"
+        通过下属步骤的名字直接访问下属步骤对象
 
-    @property
-    def type(self):
-        """
-        调用类型
-        """
-        if 'type' in self._data.keys():
-            return self._data['type']
-        else:
-            return "link"
-
-    @property
-    def output(self):
-        """
-        需要上传的远程路径
+        :param name:
         :return:
         """
-        if 'output' in self._data.keys():
-            return self._data['output']
+        if name in self._data.keys():
+            return self._data[name]
         else:
             return None
+
+    @property
+    def data(self):
+        return self._data
 
     def option(self, name, component=None):
         """

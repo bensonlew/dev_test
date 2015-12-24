@@ -13,6 +13,7 @@ import platform
 import re
 import importlib
 import web
+# import subprocess
 
 web.config.debug = False
 
@@ -25,7 +26,7 @@ class Config(object):
         # basic
         self.WORK_DIR = self.rcf.get("Basic", "work_dir")
         # network
-        self.LISTEN_IP = self.get_listen_ip()
+        self._listen_ip = None
         self._listen_port = None
         # self.LISTEN_PORT = self.get_listen_port()
         # tool
@@ -74,6 +75,12 @@ class Config(object):
         # PAUSE
         self.MAX_PAUSE_TIME = self.rcf.get("PAUSE", "max_time")
 
+    @property
+    def LISTEN_IP(self):
+        if self._listen_ip is None:
+            self._listen_ip = self.get_listen_ip()
+        return self._listen_ip
+
     def get_listen_ip(self):
         """
         获取配置文件中IP列表与本机匹配的IP作为本机监听地址
@@ -82,17 +89,31 @@ class Config(object):
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             fcn = importlib.import_module("fcntl")
             return socket.inet_ntoa(fcn.ioctl(s.fileno(), 0X8915, struct.pack("256s", ethname[:15]))[20:24])
+        set_ipl_ist = self.rcf.get("Network", "ip_list")
+        ip_list = re.split('\s*,\s*', set_ipl_ist)
         if 'Windows' in platform.system():
             local_ip_list = socket.gethostbyname_ex(socket.gethostname())
-            set_ipl_ist = self.rcf.get("Network", "ip_list")
-            ip_list = re.split('\s*,\s*', set_ipl_ist)
             for lip in local_ip_list[2]:
                 for sip in ip_list:
                     if lip == sip:
                         return lip
             return '127.0.0.1'
-        if 'Linux' in platform.system():
+        if platform.system() == 'Linux' or platform.system() == 'Darwin':
             return getip("ib0")
+            # ipstr = '([0-9]{1,3}\.){3}[0-9]{1,3}'
+            # ipconfig_process = subprocess.Popen("/sbin/ifconfig", stdout=subprocess.PIPE)
+            # output = ipconfig_process.stdout.read()
+            # ip_pattern = re.compile('(inet %s)' % ipstr)
+            # if platform == "Linux":
+            #     ip_pattern = re.compile('(inet addr:%s)' % ipstr)
+            # pattern = re.compile(ipstr)
+            # for ipaddr in re.finditer(ip_pattern, str(output)):
+            #     ip = pattern.search(ipaddr.group())
+            #     print ip.group()
+            #     for sip in ip_list:
+            #         if ip.group() == sip:
+            #             return ip.group()
+
 
     @property
     def LISTEN_PORT(self):
@@ -168,3 +189,7 @@ class Config(object):
 
     def get_api_type(self, client):
         return self.rcf.get("API", client)
+
+    def get_use_api_clients(self):
+        return self.rcf.options("API")
+

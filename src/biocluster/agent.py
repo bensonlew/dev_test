@@ -71,6 +71,7 @@ class Agent(Basic):
         self.on('waittimeout', self._event_waittimeout)
         self.add_event('runstart')       # 远端开始运行
         self.on("runstart", self._event_runstart)
+        self.on("error", self._agent_event_error)
         self.endpoint = self.get_workflow().rpc_server.endpoint
         self.job = None
         self._run_mode = "Auto"      # 运行模式 Auto表示由 main.conf中的 platform参数决定
@@ -208,21 +209,19 @@ class Agent(Basic):
         """
         self._rerun_time += 1
         if self._rerun_time > 3:
-            data = "重运行超过3次仍未成功，终止运行!"
-            self.fire("error", "data")
-            self.logger.error(data)
+            self.fire("error", "重运行超过3次仍未成功!")
         else:
+            self.stop_listener()
+            self.restart_listener()
             self.save_class_path()
             self.save_config()
             self._run_time = datetime.datetime.now()
             self._status = "Q"
-            self.actor.kill()
-            self.actor = LocalActor(self)
-            self.actor.start()
-            if self.parent:
-                self.parent.fire("childrerun", self)
+            # self.actor.kill()
             self.logger.info("开始重新投递任务!")
             self.job.resubmit()
+            self.actor = LocalActor(self)
+            self.actor.start()
 
     def set_callback_action(self, action, data=None):
         """
@@ -265,7 +264,14 @@ class Agent(Basic):
         :return: None
         """
         self.fire("error", data)
-        self.logger.error("发现运行错误，退出流程:%s" % data)
+
+    def _agent_event_error(self, data):
+        """
+        Agent发生错误时默认的处理方式
+
+        :return:
+        """
+        self.logger.error("发现运行错误:%s" % data)
         self.get_workflow().exit(data="%s %s" % (self.fullname, data))
 
     def _event_keepaliveout(self):
@@ -277,7 +283,8 @@ class Agent(Basic):
         :return:
         """
         self.logger.error("远程Tool连接超时，尝试重新运行!")
-        self.rerun()
+        if self.parent:
+            self.parent.fire("childrerun", self)
 
     def _event_waittimeout(self):
         """
@@ -289,7 +296,8 @@ class Agent(Basic):
         :return:
         """
         self.logger.error("远程任务超过规定时间未能运行，尝试删除任务重新运行!")
-        self.rerun()
+        if self.parent:
+            self.parent.fire("childrerun", self)
 
     def _event_runstart(self, data):
         """

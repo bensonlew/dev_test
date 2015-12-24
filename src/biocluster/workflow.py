@@ -127,6 +127,11 @@ class Workflow(Basic):
                 self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
                 umask = os.umask(0)
                 remote_file.upload(os.path.join(self.output_dir))
+                for root, subdirs, files in os.walk("c:\\test"):
+                    for filepath in files:
+                        os.chmod(os.path.join(root, filepath), 0o777)
+                    for sub in subdirs:
+                        os.chmod(os.path.join(root, sub), 0o666)
                 os.umask(umask)
                 self.logger.info("结果上传完成!")
         data = {
@@ -147,9 +152,7 @@ class Workflow(Basic):
         :param exitcode:
         :return:
         """
-        self.rpc_server.server.close()
-        self.logger.info("程序退出: %s " % data)
-        data = {
+        update_data = {
             "is_error": 1,
             "error": "程序主动退出:%s" % data,
             "end_time": datetime.datetime.now(),
@@ -157,7 +160,9 @@ class Workflow(Basic):
             "workdir": self.work_dir,
             "output": self.output_dir
         }
-        self._update(data)
+        self._update(update_data)
+        self.logger.info("程序退出: %s " % data)
+        self.rpc_server.server.close()
         sys.exit(exitcode)
 
     def __update_service(self):
@@ -167,7 +172,7 @@ class Workflow(Basic):
         :return:
         """
         while self.is_end is False:
-            gevent.sleep(15)
+            gevent.sleep(60)
             try:
                 self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
                               vars={'id': self._id})
@@ -192,6 +197,7 @@ class Workflow(Basic):
         :return:
         """
         while self.is_end is False:
+            gevent.sleep(10)
             myvar = dict(id=self._id)
             try:
                 results = self.db.query("SELECT * FROM tostop "
@@ -206,7 +212,7 @@ class Workflow(Basic):
                     self.exit(data="接收到终止运行指令,%s" % data.reson)
             except Exception, e:
                 self.logger.info("查询数据库异常: %s" % e)
-            gevent.sleep(15)
+            gevent.sleep(10)
 
     def __check_pause(self):
         """
@@ -215,6 +221,7 @@ class Workflow(Basic):
         :return:
         """
         while self.is_end is False:
+            gevent.sleep(5)
             myvar = dict(id=self._id)
             try:
                 results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and "

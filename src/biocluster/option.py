@@ -33,6 +33,9 @@ class Option(object):
         for attr in ('name', 'type'):
             if attr not in opt.keys():
                 raise OptionError("必须设置参数属性 {}".format(attr))
+        self._name = opt['name']
+        self._type = opt['type']
+        self._is_set = False
         if opt['type'] in {'outfile', 'infile'}:
             if 'format' not in opt.keys():
                 raise OptionError("必须设置参数属性 format")
@@ -66,14 +69,15 @@ class Option(object):
                     self._check = opt['check'].strip() if 'check' in opt.keys() else False
                     self._value = load_class_by_path(self._format, "File")()
         else:
-            self._value = opt['default'] if 'default' in opt.keys() else False
+            if 'default' in opt.keys():
+                self._value = opt['default']
+            else:
+                self.bind_obj.logger.debug("参数%s没有默认值，请确认确实不需要默认值？" % self._name)
 
         if opt['type'] not in {"int", "float", "string", "bool", "infile", "outfile"}:
             raise OptionError("参数属性不在规范范围内type：{}".format(self._type))
 
-        self._name = opt['name']
-        self._type = opt['type']
-        self._is_set = False
+
 
     @property
     def name(self):
@@ -207,6 +211,7 @@ class Option(object):
                         self._file_check_error(e)
         else:
             self._value = self._check_type(value)
+        self._is_set = True
 
     @property
     def format(self):
@@ -254,11 +259,9 @@ class Option(object):
                             value = True
                         else:
                             value = False
-                    if re.match(r"^true$", value, re.I) or re.match(r"^y$", value, re.I)\
-                            or re.match(r"^yes$", value, re.I):
+                    elif re.match(r"true", value, re.I) or re.match(r"yes", value, re.I):
                         value = True
-                    if re.match(r"^false$", value, re.I) or re.match(r"^no$", value, re.I)\
-                            or re.match(r"^n$", value, re.I):
+                    elif re.match(r"false", value, re.I) or re.match(r"no", value, re.I):
                         value = False
                 if isinstance(value, int) or isinstance(value, float):
                     if int(value) > 0:
