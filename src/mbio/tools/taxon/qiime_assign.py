@@ -84,7 +84,7 @@ class QiimeAssignTool(Tool):
     def run_assign(self):
         ref_fas = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.fasta'
         ref_tax = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.tax'
-        if self.option('database') == "customer_mode":
+        if self.option('database') == "custom_mode":
             ref_fas = self.option('ref_fasta').prop['path']
             ref_tax = self.option('ref_taxon').prop['path']
         # export RDP_JAR_PATH=$HOME/app/rdp_classifier_2.2/rdp_classifier-2.2.jar"
