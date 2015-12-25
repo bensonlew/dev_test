@@ -36,7 +36,7 @@ class MiseqSplitFile(File):
         for p in self.seq_prop:
             if p not in self.jobj:
                 raise FileError("json中缺少属性：" + p)
-        self.set_property("sequcing_id", self.jobj['file_path'])
+        self.set_property("sequcing_id", self.jobj['sequcing_id'])
         self.set_property("file_path", self.jobj['file_path'])
         self.set_property("index_mismatch", self.jobj["config"]["index_mismatch"])
         self.set_property("ignore_missing_bcl", self.jobj["config"]['ignore_missing_bcl'])
@@ -111,7 +111,7 @@ class MiseqSplitFile(File):
         """
         id_list = list()
         if not self.parent_sample(sample_id, "has_child"):
-            raise ValueError("不存在子样本 %s" % sample_id)
+            raise ValueError("父样本 %s 不存在子样本" % sample_id)
         for c_id in self.prop["child_ids"]:
             if self.child_sample(c_id, "sample_name") == self.parent_sample(sample_id, "sample_name"):
                 id_list.append(self.child_sample(c_id, "sample_id"))
