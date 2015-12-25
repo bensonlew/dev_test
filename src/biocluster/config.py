@@ -73,9 +73,6 @@ class Config(object):
 
         # PAUSE
         self.MAX_PAUSE_TIME = self.rcf.get("PAUSE", "max_time")
-        
-        # BACKUP
-        self.BACKUP_DIR = self.rcf.get("Backup", "backup_dir")
 
     def get_listen_ip(self):
         """

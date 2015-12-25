@@ -104,13 +104,16 @@ class FastqDirFile(Directory):
                 for fastq in self.unzip_file:
                     fasta = re.search(r'(.+)\.(fastq|fq)', fastq).group(1)
                     fasta = os.path.join(self.work_dir, 'converted_fastas', os.path.basename(fasta) + ".fasta")
-                    try:
-                        convert_str = (self.fastq_to_fasta_path + ' -Q 33' + ' -i '
-                                       + fastq + ' -o ' + fasta)
-                        subprocess.check_call(convert_str, shell=True)
+                    convert_str = (self.fastq_to_fasta_path + ' -Q 33' + ' -i '
+                                   + fastq + ' -o ' + fasta)
+                    mycmd = subprocess.Popen(convert_str, shell=True,
+                                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                    res = mycmd.communicate()
+                    if mycmd.returncode == 0:
                         self.is_convert = True
-                    except subprocess.CalledProcessError:
-                        raise Exception('fastq转化fasta失败！')
+                    else:
+                        raise Exception('fastq转化fasta失败！\n' + convert_str + "\n" +
+                                        res[0])
             else:
                 raise Exception('文件还没有解压')
         return os.path.join(self.work_dir, 'converted_fastas')
