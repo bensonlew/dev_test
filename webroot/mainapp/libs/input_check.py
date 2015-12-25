@@ -26,6 +26,15 @@ def check_format(f):
                 if root.tag != "workflow":
                     info = {"success": False, "info": "xml根节点必须为workflow!"}
                     return json.dumps(info)
+                if root.find("project_sn") is None or root.find("project_sn").text == "":
+                    info = {"success": False, "info": "xml中必须含有project_sn有效值!"}
+                    return json.dumps(info)
+                if root.find("task_id") is None or root.find("task_id").text == "":
+                    info = {"success": False, "info": "xml中必须含有task_id有效值!"}
+                    return json.dumps(info)
+                if root.find("bucket") is None or root.find("task_id").text == "":
+                    info = {"success": False, "info": "xml中必须含有bucket有效值!"}
+                    return json.dumps(info)
                 return f(obj)
         else:
             if (not hasattr(data, "json")) or len(data.json) < 1:

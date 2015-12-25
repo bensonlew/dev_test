@@ -17,6 +17,8 @@ class SingleWorkflow(Workflow):
            task = self.add_module(self._sheet.name)
         if self._sheet.type == "tool":
            task = self.add_tool(self._sheet.name)
+        if self.UPDATE_STATUS:
+            task.UPDATE_STATUS = True
         task.set_options(self._sheet.options())
         task.on('end', self.end)
         task.run()

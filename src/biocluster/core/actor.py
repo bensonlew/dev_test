@@ -98,7 +98,7 @@ class LocalActor(gevent.Greenlet):
             self.check_time()
             if self._agent.is_end:
                 break
-            gevent.sleep(0)
+            gevent.sleep(3)
 
 
 class RemoteActor(threading.Thread):
@@ -184,10 +184,12 @@ class RemoteActor(threading.Thread):
                "state": state.name,
                "data": state.data
                }
+
         try:
             client = zerorpc.Client()
             client.connect(self.config.endpoint)
             result = client.report(msg)
+            client.close()
         except Exception, e:
             self._lost_connection_count += 1
             if self._lost_connection_count >= 10:

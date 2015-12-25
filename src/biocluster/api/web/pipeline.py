@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 import gevent
-from gevent import monkey; monkey.patch_socket()
+# from gevent import monkey; monkey.patch_socket()
 import sys
 from biocluster.config import Config
 
 
-
 class Pipeline(object):
-    def __init__(self, obj=None):
-        self._obj = obj
+    def __init__(self):
         self._api_obj = None
         self._client = None
         self._database_mode = False
@@ -20,10 +18,6 @@ class Pipeline(object):
 
     def save_to_database(self, api, data):
         pass
-
-
-    def send_from_database(self):
-        self._database_mode = True
 
     @property
     def api(self):
@@ -36,6 +30,7 @@ class Pipeline(object):
             mod = sys.modules['__main__']
             self._api_obj = getattr(mod, type_name)()
         return self._api_obj
+
 
 class Sanger(object):
     def __init__(self):

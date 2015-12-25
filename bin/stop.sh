@@ -5,5 +5,3 @@ cd ~/biocluster/bin/
 PID_FILE=`echo ../run/$HOSTNAME.pid`
 kill -9 `cat $PID_FILE`
 rm $PID_FILE
-./run_workflow.py -b -s
-su -l root -c "service httpd restart"

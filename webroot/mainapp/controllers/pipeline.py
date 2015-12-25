@@ -230,7 +230,7 @@ class PipelineStop(object):
         if len(workflow_data) > 0:
             record = workflow_data[0]
             if client == record.client:
-                if record.has_run == 1 and record.is_end:
+                if record.has_run == 1 and (record.is_end or record.is_error):
                     info = {"success": False, "info": "流程已经结束！"}
                     return json.dumps(info)
                 else:
@@ -308,7 +308,7 @@ class PipelinePause(object):
         if len(workflow_data) > 0:
             record = workflow_data[0]
             if client == record.client:
-                if record.has_run == 1 and record.is_end:
+                if record.has_run == 1 and (record.is_end or record.is_error):
                     info = {"success": False, "info": "流程已经结束！"}
                     return json.dumps(info)
                 elif record.paused == 1:
@@ -317,7 +317,7 @@ class PipelinePause(object):
                 else:
                     insert_data = {"client": client,
                                    "ip": web.ctx.ip,
-                                   "reson": data.reason
+                                   "reason": data.reason
                                    }
                     if workflow_module.set_pause(data.id, insert_data):
                         info = {"success": True, "info": "操作成功！"}
@@ -347,7 +347,7 @@ class PipelineStopPause(object):
         if len(workflow_data) > 0:
             record = workflow_data[0]
             if client == record.client:
-                if record.has_run == 1 and record.is_end:
+                if record.has_run == 1 and (record.is_end or record.is_error):
                     info = {"success": False, "info": "流程已经结束！"}
                     return json.dumps(info)
                 elif record.paused != 1:
