@@ -22,7 +22,7 @@ class BackupTimeFile(File):
             for line in r:
                 line = line.rstrip('\n')
                 line = re.split('\t', line)
-                if len(line[0]) != 2:
+                if len(line) != 2:
                     raise FileError("文件格式错误")
                 if line[0] != "year" and line[0] != 'month':
                     raise FileError("文件格式错误")

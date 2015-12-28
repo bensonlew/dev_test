@@ -4,6 +4,7 @@
 """二次拆分程序 用于对父样本(混样)进行二次拆分"""
 from __future__ import division
 import os
+import re
 import errno
 import subprocess
 from collections import defaultdict
@@ -112,7 +113,8 @@ class SecondSplitTool(Tool):
                 file_r1 = os.path.join(self.option('unzip_path'), p['mj_sn'] + "_r1.fastq")
                 file_r2 = os.path.join(self.option('unzip_path'), p['mj_sn'] + "_r2.fastq")
                 pearstr = (self.pear_path + "  -p 1.0 -j 16 -f " + file_r1 + " -r " + file_r2 + " -o " +
-                           merge_dir + "/pear_" + p['mj_sn'] + ">> " + merge_dir + "/pear.log")
+                           merge_dir + "/pear_" + p['mj_sn'] + "> " +
+                           merge_dir + "/" + p['mj_sn'] + ".pear.log")
                 command = subprocess.Popen(pearstr, shell=True)
                 cmd_list.append(command)
         for mycmd in cmd_list:
@@ -123,6 +125,33 @@ class SecondSplitTool(Tool):
                 self.logger.info("pear运行完成")
             else:
                 self.set_error("pear运行出错")
+
+    def pear_stat(self):
+        """
+        对pear输出的log文件进行统计,输出到pear.stat当中
+        """
+        merge_dir = os.path.join(self.work_dir, "merge")
+        stat_dir = os.path.join(self.work_dir, "stat")
+        for p in self.option('sample_info').prop["parent_sample"]:
+            if p["has_child"]:
+                file_name = os.path.join(merge_dir, p['mj_sn'] + ".pear.log")
+                stat_name = os.path.join(stat_dir, "pear.stat")
+                with open(file_name, 'r') as r:
+                    with open(stat_name, 'a') as a:
+                        for line in r:
+                            if re.search(r'Assembled\sreads\s\.\.', line):
+                                total_reads = re.search(r'/\s(.+)\s\(', line).group(1)
+                                total_reads = re.sub(r',', '', total_reads)
+                                rate = re.search(r'\((.+)\)', line).group(1)
+                                a.write(p['sample_id'] + "\t" + total_reads + "\t" + rate + "\n")
+            else:
+                file_name = os.path.join(self.option('unzip_path'), p['mj_sn'] + "_r1.fastq")
+                num_lines = sum(1 for line in open(file_name))
+                total_reads = num_lines / 4
+                self.logger.debug(total_reads)
+                stat_name = os.path.join(stat_dir, "pear.stat")
+                with open(stat_name, 'a') as a:
+                    a.write(p['sample_id'] + "\t" + str(int(total_reads)) + "\t" + '0' + "\n")
 
     def split(self):
         """
@@ -276,6 +305,7 @@ class SecondSplitTool(Tool):
         super(SecondSplitTool, self).run()
         self.make_ess_dir()
         self.pear()
+        self.pear_stat()
         self.split()
         self.stat()
         self.end()
