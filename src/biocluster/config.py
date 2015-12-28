@@ -74,9 +74,13 @@ class Config(object):
 
         # PAUSE
         self.MAX_PAUSE_TIME = self.rcf.get("PAUSE", "max_time")
-        
-        # BACKUP
-        self.BACKUP_DIR = self.rcf.get("Backup", "backup_dir")
+
+        # API_UPDATE
+        self._update_exclude_api = None
+        self.UPDATE_FREQUENCY = int(self.rcf.get("API_UPDATE", "frequency"))
+        self.UPDATE_MAX_RETRY = int(self.rcf.get("API_UPDATE", "max_retry"))
+        self.UPDATE_RETRY_INTERVAL = int(self.rcf.get("API_UPDATE", "retry_interval"))
+        self.UPDATE_LOG = self.rcf.get("API_UPDATE", "log")
 
     @property
     def LISTEN_IP(self):
@@ -195,4 +199,21 @@ class Config(object):
 
     def get_use_api_clients(self):
         return self.rcf.options("API")
+
+    @property
+    def UPDATE_EXCLUDE_API(self):
+        if self._update_exclude_api is not None:
+            return self._update_exclude_api
+        if self.rcf.has_option("API_UPDATE", "exclude_api"):
+            exclude_api = self.rcf.get("API_UPDATE", "exclude_api")
+            if exclude_api.strip() != "":
+                self._update_exclude_api = re.split(r"\s*,\s*", exclude_api)
+                return self._update_exclude_api
+            else:
+                self._update_exclude_api = []
+                return self._update_exclude_api
+        else:
+            self._update_exclude_api = []
+            return self._update_exclude_api
+
 
