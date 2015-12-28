@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 from __future__ import division
+import traceback
 import os
 import subprocess
 import re
@@ -132,7 +133,8 @@ class QcFormatTool(Tool):
             self.fasta_dir = fq_dir.covert_to_fasta()
             self.logger.info("fasta 文件夹生成完毕")
         except Exception:
-            self.set_error("fastq转化fasta失败！")
+            self.logger.error("fastq转化fasta失败！" + traceback.format_exc())
+            raise Exception("软件fastq_to_fasta运行出处，请查看输入的fastq是否正确")
 
     def get_fasta(self):
         """
