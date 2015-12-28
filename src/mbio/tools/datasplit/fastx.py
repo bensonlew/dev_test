@@ -165,13 +165,14 @@ class FastxTool(Tool):
     def q20_q30(self):
         cmd_list = list()
         for fastq in self.fastqs:
-            file_name = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q20q30")
+            file_name1 = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q20")
+            file_name2 = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q30")
             cmd = (self.java_dir + " -jar " + self.FastqTotalHighQualityBase +
-                   " -i " + fastq + " -q 20 >> " + file_name)
+                   " -i " + fastq + " -q 20 >> " + file_name1)
             command = subprocess.Popen(cmd, shell=True)
             cmd_list.append(command)
             cmd = (self.java_dir + " -jar " + self.FastqTotalHighQualityBase +
-                   " -i " + fastq + " -q 30 >> " + file_name)
+                   " -i " + fastq + " -q 30 >> " + file_name2)
             command = subprocess.Popen(cmd, shell=True)
             cmd_list.append(command)
         for mycmd in cmd_list:
@@ -182,6 +183,17 @@ class FastxTool(Tool):
                 self.logger.info("q20,q30统计完成")
             else:
                 self.set_error("q20,q30统计出错")
+        for fastq in self.fastqs:
+            file_name1 = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q20")
+            file_name2 = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q30")
+            file_name3 = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q20q30")
+            with open(file_name1, 'r') as r1:
+                line1 = r1.next().rstrip('\n')
+            with open(file_name2, 'r') as r2:
+                line2 = r2.next().rstrip('\n')
+            with open(file_name3, 'w') as w:
+                w.write(line1 + "\n")
+                w.write(line2 + "\n")
 
     def run(self):
         super(FastxTool, self).run()
