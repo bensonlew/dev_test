@@ -100,6 +100,22 @@ def daemonize(stdout='/dev/null', stderr='dev/null'):
     os.dup2(se.fileno(), sys.stderr.fileno())
 
 
+def get_hostname():
+    sys_name = os.name
+    if sys_name == 'nt':
+            host_name = os.getenv('computername')
+            return host_name
+    elif sys_name == 'posix':
+            with os.popen('echo $HOSTNAME') as f:
+                host_name = f.readline()
+                return host_name.strip('\n')
+    else:
+            return 'Unkwon hostname'
+
+
+hostname = get_hostname()
+
+
 class CJsonEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):

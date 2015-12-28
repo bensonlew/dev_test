@@ -7,13 +7,16 @@ import sys
 import datetime
 import os
 import time
-from biocluster.core.function import load_class_by_path, daemonize
+from biocluster.core.function import load_class_by_path, daemonize, hostname
 from biocluster.wsheet import Sheet
 from biocluster.config import Config
 from multiprocessing import Process
 import atexit
 import traceback
 import web
+from biocluster.core.function import CJsonEncoder
+import urllib
+import subprocess
 
 parser = argparse.ArgumentParser(description="run a workflow")
 group = parser.add_mutually_exclusive_group()
@@ -27,6 +30,7 @@ parser.add_argument("-b", "--daemon", action="store_true", help="run a workflow 
 logfile = os.getcwd() + "/log.txt"
 parser.add_argument("-l", "--log", default=logfile,  help="write a log file,lose efficacy when use service mode,"
                                                           "in service mode,use the config in main.conf file!")
+parser.add_argument("-u", "--update_api", action="store_true", help="run api_update command")
 args = parser.parse_args()
 
 
@@ -121,7 +125,7 @@ def delpid():
 def writepid():
     pid = str(os.getpid())
     pid_file = Config().SERVICE_PID
-    pid_file = pid_file.replace('$HOSTNAME', hostname())
+    pid_file = pid_file.replace('$HOSTNAME', hostname)
     if not os.path.exists(os.path.dirname(pid_file)):
         os.mkdir(os.path.dirname(pid_file))
     with open(pid_file, 'w+') as f:
@@ -172,6 +176,8 @@ class WorkJob(object):
         self.pid = os.getpid()
         self._db = None
         self.client = None
+        self.json_data = None
+        self._start_time = None
 
     @property
     def db(self):
@@ -233,7 +239,7 @@ class WorkJob(object):
 
     def update_workflow(self):
         data = {
-            "server": hostname(),
+            "server": hostname,
             "has_run": 1,
             "run_time": datetime.datetime.now(),
             "pid": os.getpid(),
@@ -254,6 +260,7 @@ class WorkJob(object):
     #     self.start()
 
     def start(self, json_data):
+        self.json_data = json_data
         if self.client:
             max_limit = self.get_client_limit()
             if max_limit > 0:
@@ -265,7 +272,7 @@ class WorkJob(object):
                         write_log("running workflow %s reach the max limit of client %s ,waiting for 1 minute "
                                   "and check again ..." % (self.workflow_id, self.client))
                         time.sleep(60)
-
+        self._start_time = datetime.datetime.now()
         self.workflow_id = json_data["id"]
         write_log("Start running workflow:%s" % self.workflow_id)
         if json_data["type"] == "workflow":
@@ -274,7 +281,7 @@ class WorkJob(object):
             path = "link"
         else:
             path = "single"
-
+        workflow = None
         try:
             wf = load_class_by_path(path, "Workflow")
             wsheet = Sheet(data=json_data)
@@ -298,6 +305,9 @@ class WorkJob(object):
             }
             myvar = dict(id=self.workflow_id)
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+            if workflow:
+                workflow.step.faild("运行异常:%s" % e)
+                workflow.update()
 
         write_log("End running workflow:%s" % self.workflow_id)
 
@@ -306,20 +316,29 @@ class WorkJob(object):
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id and is_end=0 and is_error=0",
                                 vars=myvar)
         if len(results) > 0:
-            self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="程序运行异常")
-
-
-def hostname():
-    sys_name = os.name
-    if sys_name == 'nt':
-            host_name = os.getenv('computername')
-            return host_name
-    elif sys_name == 'posix':
-            with os.popen('echo $HOSTNAME') as f:
-                host_name = f.readline()
-                return host_name.strip('\n')
-    else:
-            return 'Unkwon hostname'
+            self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="程序无警告异常中断")
+            if self.json_data:
+                spend_time = (datetime.datetime.now() - self._start_time()).seconds
+                json_obj = {"stage": {
+                            "task_id": self.workflow_id,
+                            "stage_id": self.json_data["stage_id"],
+                            "created_ts": datetime.datetime.now(),
+                            "error": "程序无警告异常中断",
+                            "status": "failed",
+                            "run_time": spend_time}}
+                post_data = {
+                    "content": json.dumps(json_obj, cls=CJsonEncoder)
+                }
+                data = {
+                    "task_id": self.workflow_id,
+                    "api": Config().get_api_type(self.json_data["client"]),
+                    "data": urllib.urlencode(post_data)
+                }
+                self.db.insert("apilog", **data)
 
 if __name__ == "__main__":
+    if args.update_api:
+        dir_name = os.path.dirname(os.path.realpath(__file__))
+        subprocess.Popen(os.path.join(dir_name, "api_update.py"))
     main()
+

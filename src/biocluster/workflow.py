@@ -110,13 +110,15 @@ class Workflow(Basic):
             "workdir": self.work_dir
         }
         self._update(data)
+        self.step.start()
+        self.step.update()
         if self.config.USE_DB:
             gevent.spawn(self.__update_service)
             gevent.spawn(self.__check_tostop)
             gevent.spawn(self.__check_pause)
         self.rpc_server.run()
 
-    def end(self):
+    def end(self, api_data=None):
         """
         停止运行
         """
@@ -141,11 +143,12 @@ class Workflow(Basic):
             "output": self.output_dir
         }
         self._update(data)
-
+        self.step.finish()
+        self.step.update(api_data)
         self.rpc_server.server.close()
         self.logger.info("运行结束!")
 
-    def exit(self, exitcode=1, data=""):
+    def exit(self, exitcode=1, data="", terminated=False):
         """
         立即退出当前流程
 
@@ -161,6 +164,11 @@ class Workflow(Basic):
             "output": self.output_dir
         }
         self._update(update_data)
+        if terminated:
+            self.step.terminated(data)
+        else:
+            self.step.failed(data)
+        self.step.update()
         self.logger.info("程序退出: %s " % data)
         self.rpc_server.server.close()
         sys.exit(exitcode)
@@ -209,7 +217,7 @@ class Workflow(Basic):
                         "done": 1
                     }
                     self.db.update("tostop", vars=myvar, where="workflow_id = $id", **update_data)
-                    self.exit(data="接收到终止运行指令,%s" % data.reson)
+                    self.exit(data="接收到终止运行指令,%s" % data.reson, terminated=True)
             except Exception, e:
                 self.logger.info("查询数据库异常: %s" % e)
             gevent.sleep(10)
@@ -237,6 +245,8 @@ class Workflow(Basic):
                         }
                         self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
                         self.db.query("UPDATE workflow SET paused = 1 where workflow_id=$id", vars={'id': self._id})
+                        self.step.pause()
+                        self.step.update()
                         self.logger.info("检测到暂停指令，暂停所有新模块运行: %s" % data.reason)
                     else:
                         if data.exit_pause == 0:
@@ -251,7 +261,7 @@ class Workflow(Basic):
                                     self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
                                                   vars={'id': self._id})
                                     self.exit(data="流程暂停超过规定的时间%ss,自动退出运行!" %
-                                                   self.config.MAX_PAUSE_TIME)
+                                                   self.config.MAX_PAUSE_TIME, terminated=True)
                         else:
                             if data.has_continue == 0 and data.timeout == 0:
                                 self.pause = False
@@ -263,6 +273,8 @@ class Workflow(Basic):
                                 self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
                                 self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
                                               vars={'id': self._id})
+                                self.step.start()
+                                self.step.update()
                                 self.logger.info("检测到恢复运行指令，恢复所有模块运行!")
             except Exception, e:
                 self.logger.info("查询数据库异常: %s" % e)

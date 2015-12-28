@@ -103,7 +103,7 @@ class Basic(EventObject):
         self._main_step = StepMain(self)
 
     @property
-    def main_step(self):
+    def step(self):
         """
         主步骤
 
@@ -553,6 +553,7 @@ class StepMain(Step):
         self._steps = {}
         self.bind_obj = basc_obj
         self._api_type = None
+        self._error_info = ""
 
     def __getattr__(self, name):
         """
@@ -578,7 +579,7 @@ class StepMain(Step):
             step.name = n
             self._steps[n] = step
 
-    def failed(self):
+    def failed(self, info=""):
         """
         设置状态为失败
 
@@ -587,6 +588,7 @@ class StepMain(Step):
         self._stats = "failed"
         self._has_state_change = True
         self._end_time = datetime.datetime.now()
+        self._error_info = info
 
     def pause(self):
         """
@@ -597,7 +599,7 @@ class StepMain(Step):
         self._stats = "pause"
         self._has_state_change = True
 
-    def terminated(self):
+    def terminated(self, info=""):
         """
         设置状态为终止运行
 
@@ -606,6 +608,7 @@ class StepMain(Step):
         self._stats = "terminated"
         self._has_state_change = True
         self._end_time = datetime.datetime.now()
+        self._error_info = info
 
     @property
     def api_type(self):
@@ -619,30 +622,35 @@ class StepMain(Step):
             else:
                 return False
 
-    def update(self, info=None):
+    def update(self, json_str=None):
         """
         更新状态到API
 
         :return:
         """
-        if not (self.UPDATE_STATUS and self.api_type):
+        if not (self.bind_obj.UPDATE_STATUS and self.api_type):
             return
+
         workflow = self.bind_obj.get_workflow()
         if self.has_change:
             json_obj = {"stage": {
                         "task_id": workflow.sheet.id,
                         "stage_id": workflow.sheet.stage_id,
                         "created_ts": datetime.datetime.now(),
-                        "error": info,
+                        "error": "%s" % self._error_info,
                         "status": self.stats,
                         "run_time": self.spend_time}}
             post_data = {
                 "content": json.dumps(json_obj, cls=CJsonEncoder)
             }
+            if json_str:
+                if not (isinstance(json_str, str) or isinstance(json_str, unicode)):
+                    raise ValueError("json_str必须为字符串!")
+                post_data["data"] = json_str
             data = {
+                "task_id": workflow.sheet.id,
                 "api": self.api_type,
-                "data": urllib.urlencode(post_data),
-
+                "data": urllib.urlencode(post_data)
             }
             try:
                 workflow.db.insert("apilog", **data)
@@ -666,6 +674,7 @@ class StepMain(Step):
                 "content": json.dumps(json_obj)
             }
             data = {
+                "task_id": workflow.sheet.id,
                 "api": self.api_type,
                 "data": urllib.urlencode(post_data)
             }

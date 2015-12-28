@@ -184,7 +184,7 @@ class RemoteActor(threading.Thread):
                "state": state.name,
                "data": state.data
                }
-
+        client = None
         try:
             client = zerorpc.Client()
             client.connect(self.config.endpoint)
@@ -198,6 +198,8 @@ class RemoteActor(threading.Thread):
                 os.system("kill -9 %s" % os.getpid())
             else:
                 self._tool.logger.error("网络连接出现错误，将重新尝试连接:%s" % e)
+                if client:
+                    client.close()
                 gevent.sleep(1)
                 self.send_state(state)
         else:
