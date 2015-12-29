@@ -4,7 +4,7 @@ import sys
 import gevent
 import urllib2
 import datetime
-from biocluster.core.function import hostname, daemonize
+from biocluster.core.function import hostname
 from biocluster.config import Config
 import web
 import random
@@ -36,12 +36,16 @@ class LogManager(object):
                 se = file(log, 'a+', 0)
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())
+                self.log("开始监控状态更新")
 
             ids = self.get_task_ids()
             if len(ids) > 0:
                 for tid in ids:
                     if tid not in self._running_task.keys():
                         self._running_task[tid] = gevent.spawn(TaskLog(tid).update)
+                    else:
+                        if self._running_task[tid].ready():
+                            self._running_task[tid] = gevent.spawn(TaskLog(tid).update)
             gevent.sleep(config.UPDATE_FREQUENCY)
 
     def update(self):
@@ -73,10 +77,15 @@ class LogManager(object):
         log = os.path.join(Config().UPDATE_LOG, "%s.log" % timestr)
         return log
 
+    def log(self, info):
+        print("%s\t%s" % (datetime.datetime.now(), info))
+        sys.stdout.flush()
+
 
 class TaskLog(object):
     def __init__(self, task_id):
         self._task_id = task_id
+        # self.update_ids = []
         self._data = sorted(self.get_task_data(), key=lambda d: d.id)
         self._end = False
 
@@ -105,6 +114,7 @@ class TaskLog(object):
         data = []
         for result in results:
             data.append(result)
+            # self.update_ids.append(result.id)
         return data
 
 
@@ -145,7 +155,7 @@ class Log(object):
             try:
                 if self._success == 0:
                     gevent.sleep(config.UPDATE_RETRY_INTERVAL)
-                self._try_times = 1
+                self._try_times += 1
                 code, response = self.send()
             except urllib2.HTTPError, e:
                 self._success = 0
@@ -157,17 +167,27 @@ class Log(object):
                 self._failed_times += 1
                 self.log("提交失败: %s" % e)
             else:
-                self._response_code = code
-                self._response = response
-                if response["success"] == "true" or response["success"] is True or response["success"] == 1:
-                    self._success = 1
-                    self.log("提交成功")
-                else:
+                try:
+                    response_json = json.loads(response)
+                except:
+                    self._response_code = code
+                    self._response = response
                     self._success = 0
-                    self._failed_times += 1
                     self._reject = 1
-                    self.log("提交被拒绝，终止提交:%s" % response["message"])
-                break
+                    self._failed_times += 1
+                    self.log("提交失败: 返回数据类型不正确 %s" %  response)
+                else:
+                    self._response_code = code
+                    self._response = response
+                    if response_json["success"] == "true" or response_json["success"] is True or response_json["success"] == 1:
+                        self._success = 1
+                        self.log("提交成功")
+                    else:
+                        self._success = 0
+                        self._failed_times += 1
+                        self._reject = 1
+                        self.log("提交被拒绝，终止提交:%s" % response_json["message"])
+                    break
         self._end = True
         self.save()
 
@@ -185,7 +205,7 @@ class Log(object):
             "success": self._success,
             "last_update": datetime.datetime.now(),
             "server": hostname,
-            "response": json.dumps(self._response),
+            "response": str(self._response),
             "response_code": self._response_code,
             "failed_times": self._failed_times,
             "reject": self._reject
@@ -213,9 +233,9 @@ class Sanger(Log):
         urllib2.install_opener(opener)
         request = urllib2.Request(self._url, "%s&%s" % (self.get_sig(), self.data.data))
         response = urllib2.urlopen(request)
-        json_data = response.read()
-        print("Return page:\n%s" % json_data)
-        return response.getcode(), json.loads(json_data)
+        re = response.read()
+        print("Return page:\n%s" % re)
+        return response.getcode(), re
 
     def get_sig(self):
         nonce = str(random.randint(1000, 10000))
