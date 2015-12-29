@@ -31,6 +31,17 @@ class RarefactionAgent(Agent):
             # {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"}  # 输出结果
         ]
         self.add_option(options)
+        self.step.add_steps('rarefaction')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.rarefaction.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.rarefaction.finish()
+        self.step.update()
 
     def check_options(self):
         """

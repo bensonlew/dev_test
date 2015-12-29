@@ -24,6 +24,17 @@ class VennTableAgent(Agent):
             {"name": "level", "type": "string", "default": "otu"}  # 物种水平
         ]
         self.add_option(options)
+        self.step.add_steps('venn_table')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.venn_table.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.venn_table.finish()
+        self.step.update()
 
     def check_options(self):
         """

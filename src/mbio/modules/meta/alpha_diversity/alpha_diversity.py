@@ -12,7 +12,7 @@ class AlphaDiversityModule(Module):
     alpha多样性模块
     version 1.0
     author: qindanhua
-    last_modify: 2015.11.25
+    last_modify: 2015.12.29
     """
     ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven', 'shannoneven', 'heip', 'smithwilson',
                   'bergerparker', 'shannon', 'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
@@ -31,6 +31,7 @@ class AlphaDiversityModule(Module):
         self.perl_path = 'Perl/bin/perl'
         self.estimators = self.add_tool('meta.alpha_diversity.estimators')
         self.rarefaction = self.add_tool('meta.alpha_diversity.rarefaction')
+        self.step.add_steps('estimators', 'rarefaction')
 
     def check_options(self):
         """
@@ -52,7 +53,10 @@ class AlphaDiversityModule(Module):
             'level': self.option('level')
             })
         # self.on_rely(estimators, self.rarefaction_run)
+        self.step.estimators.start()
         self.estimators.run()
+        self.step.estimators.finish()
+        self.step.update()
 
     def rarefaction_run(self):
         self.rarefaction.set_options({
@@ -62,7 +66,10 @@ class AlphaDiversityModule(Module):
             'level': self.option('level')
             })
         # self.rarefaction.on('end', self.set_output)
+        self.step.rarefaction.start()
         self.rarefaction.run()
+        self.step.rarefaction.finish()
+        self.step.update()
 
     def set_output(self):
         self.logger.info('set output')
