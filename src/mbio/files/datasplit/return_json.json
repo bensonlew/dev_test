@@ -10,8 +10,8 @@
 			"total_reads": 1132089,
 			"merge_rate": 0.99552,
 			"short_reads": 89335,
-			"no_barcode_reads": 177876,
-			"chrimera_reads": 6610,
+			"no_index_reads": 177876,
+			"chimera_reads": 6610,
 			"primer_missmatch_reads": 3901,
 			"valid_reads": 1127016
 			},
@@ -41,8 +41,8 @@
 			"total_reads": 1592455,
 			"merge_rate": 0,
 			"short_reads": 0,
-			"no_barcode_reads": 0,
-			"chrimera_reads": 0,
+			"no_index_reads": 0,
+			"chimera_reads": 0,
 			"primer_missmatch_reads": 0,
 			"valid_reads": 1592455
 			},

@@ -6,6 +6,7 @@ import os
 import errno
 import time
 import subprocess
+import shutil
 from biocluster.config import Config
 from biocluster.tool import Tool
 from biocluster.agent import Agent
@@ -21,6 +22,8 @@ class BackupAgent(Agent):
         options = [
             {'name': 'sample_info', 'type': "infile", 'format': 'datasplit.miseq_split'},  # 样本拆分信息表
             {'name': "parent_path", 'type': "string"},  # 解压后父样本的路径
+            {'name': "fastx_path", 'type': "string"},  # fastx模块的fastx路径
+            {'name': "report_path", 'type': "string"},  # bcl2fastq的Report的路径
             {'name': "child_path", 'type': "string", "default": ""},   # 解压后子样本的路径
             {'name': "time", 'type': "outfile", 'format': 'datasplit.backup_time'}  # 输出文件, 记录了备份时用到的year和month
         ]
@@ -32,6 +35,12 @@ class BackupAgent(Agent):
         """
         if not self.option("parent_path"):
             raise OptionError("参数parent_path不能为空")
+        if not self.option("fastx_path"):
+            raise OptionError("参数fastx_path不能为空")
+        if not self.option("report_path"):
+            raise OptionError("参数report_path不能为空")
+        if not self.option('sample_info').is_set:
+            raise OptionError("参数sample_info不能为空")
         return True
 
     def set_resource(self):
@@ -52,8 +61,9 @@ class BackupTool(Tool):
         year = time.localtime()[0]
         month = time.localtime()[1]
         self.create_time_file(year, month)
+        program = self.option('sample_info').prop["program"]
         name = "id_" + self.option('sample_info').prop["sequcing_id"]
-        self.seq_id = os.path.join(self.backup_dir, str(year), str(month), name)
+        self.seq_id = os.path.join(self.backup_dir, program, str(year), str(month), name)
 
     def create_time_file(self, year, month):
         """
@@ -72,7 +82,7 @@ class BackupTool(Tool):
         dir_list = list()
         for pro in self.option('sample_info').prop["projects"]:
             name = os.path.join(self.seq_id, pro)
-            name1 = os.path.join(name, "parent")
+            name1 = os.path.join(name, "parent", "fastx")
             name2 = os.path.join(name, "child")
             dir_list.append(name1)
             dir_list.append(name2)
@@ -84,6 +94,37 @@ class BackupTool(Tool):
                     pass
                 else:
                     raise OSError("创建目录失败")
+
+    def cp_fastx(self):
+        """
+        将fastx统计文件复制到相关路径下
+        """
+        self.logger.info("复制fastx统计文件")
+        for p_id in self.option('sample_info').prop["parent_ids"]:
+            mj_sn = self.option('sample_info').parent_sample(p_id, "mj_sn")
+            file_list = list()
+            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r1.fastq.fastxstat"))
+            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r1.fastq.fastxstat.box.png"))
+            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r1.fastq.fastxstat.nucl.png"))
+            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r1.fastq.q20q30"))
+            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r2.fastq.fastxstat"))
+            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r2.fastq.fastxstat.box.png"))
+            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r2.fastq.fastxstat.nucl.png"))
+            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r2.fastq.q20q30"))
+            dst = os.path.join(self.seq_id, self.option('sample_info').parent_sample(p_id, "project"),
+                               "parent", "fastx")
+            for file_name in file_list:
+                shutil.copy2(file_name, dst)
+
+    def cp_report(self):
+        """
+        将bcl2fastq的Report文件复制到相关的目录下
+        """
+        self.logger.info("复制bcl2fastq报告文件")
+        dst = os.path.join(self.seq_id, "Reports")
+        if os.path.exists(dst):
+            shutil.rmtree(dst)
+        shutil.copytree(self.option('report_path'), dst)
 
     def gz_parent(self):
         """
@@ -151,6 +192,8 @@ class BackupTool(Tool):
     def run(self):
         super(BackupTool, self).run()
         self.make_ess_dir()
+        self.cp_report()
+        self.cp_fastx()
         self.gz_parent()
         if self.option('child_path'):
             self.gz_child()

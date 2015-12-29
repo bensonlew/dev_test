@@ -41,7 +41,7 @@ class RarefactionAgent(Agent):
         if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class',
                                         'order', 'family', 'genus', 'species']:
             raise OptionError("请选择正确的分类水平")
-        for estimators in self.option('indices').split('-'):
+        for estimators in self.option('indices').split(','):
             if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
 
@@ -62,6 +62,7 @@ class RarefactionTool(Tool):
         super(RarefactionTool, self).__init__(config)
         self.cmd_path = '/meta/alpha_diversity/'
         self.shared_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
+        self.indices = '-'.join(self.option('indices').split(','))
 
     def shared(self):
         """
@@ -94,7 +95,7 @@ class RarefactionTool(Tool):
         执行命令运行mothur程序，生成rarefaction结果文件
         """
         cmd = '/meta/mothur.1.30 "#rarefaction.single(shared=otu.shared,calc=sobs-%s,groupmode=f,' \
-              'freq=%s,processors=10)"' % (self.option('indices'), self.option('freq'))
+              'freq=%s,processors=10)"' % (self.indices, self.option('freq'))
         # print cmd
         self.logger.info("开始运行mothur")
         mothur_command = self.add_command("mothur", cmd)
@@ -116,7 +117,7 @@ class RarefactionTool(Tool):
         for root, dirs, files in os.walk(self.output_dir):
             for names in dirs:
                 shutil.rmtree(os.path.join(self.output_dir, names))
-        for estimators in self.option('indices').split('-'):
+        for estimators in self.indices.split('-'):
             if estimators == "sobs":
                 os.system('mkdir rarefaction|find -name "{}*rarefaction*"|xargs mv -t rarefaction'
                           .format(self.option("level")))
