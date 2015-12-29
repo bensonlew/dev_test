@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
+import os
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -26,7 +27,7 @@ class MetastatAgent(Agent):
             {"name": "fisher_sample1", "type": "string"},  # 费舍尔检验的输入样品名称1
             {"name": "fisher_sample2", "type": "string"},  # 费舍尔检验的输入样品名称2
             {"name": "fisher_correction", "type": "string", "default": "none"},  # 费舍尔检验的多重检验校正
-            {"name": "fisher_type", "type": "string", "default":"two.side"},  # 费舍尔检验的选择单尾或双尾检验
+            {"name": "fisher_type", "type": "string", "default": "two.side"},  # 费舍尔检验的选择单尾或双尾检验
             #{"name": "fisher_output", "type": "outfile", "format": "statistical.stat_table"},  # 费舍尔检验的输出结果
             {"name": "kru_H_input", "type": "infile", "format": "meta.otu.otu_table"},  # kruskal_wallis_H_test的输入文件
             {"name": "kru_H_group", "type": "infile", "format": "meta.otu.group_table"},  # kruskal_wallis_H_test的输入分组文件
@@ -49,7 +50,7 @@ class MetastatAgent(Agent):
             {"name": "welch_ci", "type": "float", "default": 0.05},  # welch_T检验的显著性水平
             {"name": "welch_group", "type": "infile", "format": "meta.otu.group_table"},  # welch_T检验的输入分组文件
             {"name": "welch_correction", "type": "string", "default": "none"},  # welch_T检验的多重检验校正
-            {"name": "welch_type", "type": "string", "default":"two.side"},  # welch_T检验的选择单尾或双尾检验
+            {"name": "welch_type", "type": "string", "default": "two.side"},  # welch_T检验的选择单尾或双尾检验
             #{"name": "welch_output", "type": "outfile", "format": "statistical.stat_table"},  # welch_T检验的输出结果
             {"name": "anova_input", "type": "infile", "format": "meta.otu.otu_table"},  # anova分析的输入文件
             {"name": "anova_group", "type": "infile", "format": "meta.otu.group_table"},  # anova分析的输入分组文件
@@ -58,6 +59,17 @@ class MetastatAgent(Agent):
             {"name": "test", "type": "string"}   #选择统计学检验分析方法
         ]
         self.add_option(options)
+        self.step.add_steps("stat_test")
+        self.on('start', self.stepstart)
+        self.on('end', self.stepfinish)
+
+    def stepstart(self):
+        self.step.stat_test.start()
+        self.step.update()
+
+    def stepfinish(self):
+        self.step.stat_test.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -75,14 +87,16 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置卡方检验输入的otutable文件')
                 if not self.option("chi_sample1") and not self.option("chi_sample2"):
                     raise OptionError('必须设置卡方检验要比较的样品名')
-                if self.option("chi_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"]:
+                if self.option("chi_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr",
+                                                         "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
             elif i == "fisher":
                 if not self.option("fisher_input").is_set:
                     raise OptionError('必须设置费舍尔检验输入的otutable文件')
                 if not self.option("fisher_sample1") and not self.option("fisher_sample2"):
                     raise OptionError('必须设置费舍尔检验要比较的样品名')
-                if self.option("fisher_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"]:
+                if self.option("fisher_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
+                                                            "fdr", "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
                 if self.option("fisher_ci") <= 0 or self.option("fisher_ci") >= 1:
                     raise OptionError('所输入的显著水平不在范围值内')
@@ -93,7 +107,8 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
                 if not self.option("kru_H_group").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的分组文件')
-                if self.option("kru_H_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"]:
+                if self.option("kru_H_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
+                                                           "fdr", "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
                 if self.option("kru_H_type") not in ["two.side", "greater", "less"]:
                     raise OptionError('所输入的类型不在范围值内')
@@ -102,14 +117,16 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
                 if not self.option("anova_group").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的分组文件')
-                if self.option("anova_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"]:
+                if self.option("anova_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
+                                                           "fdr", "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
             elif i == "mann":
                 if not self.option("mann_input").is_set:
                     raise OptionError('必须设置wilcox秩和检验输入的otutable文件')
                 if not self.option("mann_group").is_set:
                     raise OptionError('必须设置wilcox秩和检验输入的分组文件')
-                if self.option("mann_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"]:
+                if self.option("mann_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr",
+                                                          "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
                 if self.option("mann_ci") <= 0 or self.option("mann_ci") >= 1:
                     raise OptionError('所输入的显著水平不在范围值内')
@@ -120,7 +137,8 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置student_T检验输入的otutable文件')
                 if not self.option("student_group").is_set:
                     raise OptionError('必须设置student_T检验输入的分组文件')
-                if self.option("student_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"]:
+                if self.option("student_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
+                                                             "fdr", "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
                 if self.option("student_ci") <= 0 or self.option("student_ci") >= 1:
                     raise OptionError('所输入的显著水平不在范围值内')
@@ -131,7 +149,8 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置welch_T检验输入的otutable文件')
                 if not self.option("welch_group").is_set:
                     raise OptionError('必须设置welch_T检验输入的分组文件')
-                if self.option("welch_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"]:
+                if self.option("welch_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
+                                                           "fdr", "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
                 if self.option("welch_ci") <= 0 or self.option("welch_ci") >= 1:
                     raise OptionError('所输入的显著水平不在范围值内')
@@ -165,13 +184,17 @@ class MetastatTool(Tool):
         self.set_output()
         self.end()
 
-
-
     def run_test(self):
         """
         运行metastat.py
         :return:
         """
+        def stats_update(self):
+            self.step.stat_test.start()
+            self.step.stat_test.finish()
+            self.step.update()
+
+
         for t in self.option('test').split('-'):
             # self.logger.info('运行metastat.py程序进行%s分析' % t)
             self.logger.info(t)
@@ -180,11 +203,6 @@ class MetastatTool(Tool):
             elif t == "fisher":
                 return_mess = two_sample_test(self.option('fisher_input').prop['path'], self.work_dir + '/fisher_result.xls', t, self.option('fisher_sample1'), self.option('fisher_sample2'), str(1 - self.option('fisher_ci')), self.option('fisher_type'), self.option('fisher_correction'))
             elif t == "student":
-                self.logger.info(self.option('student_input').prop['path'])
-                self.logger.info(self.option('student_group').prop['path'])
-                self.logger.info(self.work_dir + '/student_result.xls')
-                self.logger.info(t)
-                self.logger.info(self.option('student_ci'))
                 return_mess = two_group_test(self.option('student_input').prop['path'], self.option('student_group').prop['path'], self.work_dir + '/student_result.xls', t, str(1 - self.option('student_ci')), self.option('student_type'), self.option('student_correction'))
             elif t == "welch":
                 return_mess = two_group_test(self.option('welch_input').prop['path'], self.option('welch_group').prop['path'], self.work_dir + '/welch_result.xls', t, str(1 - self.option('welch_ci')), self.option('welch_type'), self.option('welch_correction'))
@@ -237,5 +255,3 @@ class MetastatTool(Tool):
                 os.link(self.work_dir + '/anova_post_result.xls', self.output_dir + '/anova_post_result.xls')
         self.logger.info("设置结果目录成功")
 
-
-        
