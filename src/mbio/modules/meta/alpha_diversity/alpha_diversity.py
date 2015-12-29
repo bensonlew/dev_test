@@ -14,8 +14,8 @@ class AlphaDiversityModule(Module):
     author: qindanhua
     last_modify: 2015.11.25
     """
-    ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven', 'shannoneven', 'heip', 'smithwilson',
-                  'bergerparker', 'shannon', 'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
+    ESTIMATORS_E = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron', 'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs', 'qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow']
+    ESTIMATORS_R = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon', 'nseqs', 'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
 
     def __init__(self, work_id):
         super(AlphaDiversityModule, self).__init__(work_id)
@@ -39,10 +39,10 @@ class AlphaDiversityModule(Module):
         if not self.option("otu_table").is_set:
             raise OptionError("请选择otu表")
         for estimators in self.option('estimate_indices').split(','):
-            if estimators not in self.ESTIMATORS:
+            if estimators not in self.ESTIMATORS_E:
                 raise OptionError("请选择正确的指数类型")
         for estimators in self.option('rarefy_indices').split(','):
-            if estimators not in self.ESTIMATORS:
+            if estimators not in self.ESTIMATORS_R:
                 raise OptionError("请选择正确的指数类型")
 
     def estimators_run(self):
