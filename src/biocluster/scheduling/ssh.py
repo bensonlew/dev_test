@@ -16,7 +16,7 @@ class SSH(Job):
 
     def submit(self):
         script = os.path.abspath(os.path.dirname(__file__) + "/../../../bin/runtool.py")
-        cmd = 'ssh -o GSSAPIAuthentication=no %s "cd %s;%s -b %s;sleep 1;cat run.pid"' \
+        cmd = 'ssh -o GSSAPIAuthentication=no %s "source ~/.bash_profile;cd %s;%s -b %s;sleep 1;cat run.pid"' \
               % (self.server_ip, self.agent.work_dir, script, self.agent.name)
         output = os.popen(cmd)
         text = output.read()

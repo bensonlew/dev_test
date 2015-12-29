@@ -5,7 +5,7 @@
 
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
-# import os
+import os
 
 
 class MetaBaseWorkflow(Workflow):
@@ -30,7 +30,7 @@ class MetaBaseWorkflow(Workflow):
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
             {'name': 'taxon_file', 'type': 'outfile', 'format': 'taxon.seq_taxon'},  # 输出序列的分类信息文件
             {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'},  # 输出的otu_taxon_dir文件夹
-            {"name": "estimate_indices", "type": "string", "format": "ace-chao-shannon-simpson-coverage"},
+            {"name": "estimate_indices", "type": "string", "default": "ace-chao-shannon-simpson-coverage"},
             {"name": "rarefy_indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
             {"name": "rarefy_freq", "type": "int", "default": 100},
             {"name": "alpha_level", "type": "string", "default": "otu"},  # level水平
@@ -65,7 +65,7 @@ class MetaBaseWorkflow(Workflow):
             raise OptionError("identity值必须在0-1范围内.")
         if self.option("revcomp") not in [True, False]:
             raise OptionError("必须设置参数revcomp")
-        if self.option('database') == "customer_mode":
+        if self.option('database') == "custom_mode":
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
@@ -116,7 +116,7 @@ class MetaBaseWorkflow(Workflow):
             "confidence": self.option("confidence"),
             "database": self.option("database")}
             )
-        if self.option("database") == "customer_mode":
+        if self.option("database") == "custom_mode":
             self.tax.set_options({
                 "ref_fasta": self.option("ref_fasta"),
                 "ref_taxon": self.option("ref_taxon")
@@ -143,6 +143,7 @@ class MetaBaseWorkflow(Workflow):
             'rarefy_indices': self.option('rarefy_indices'),
             'rarefy_freq': self.option('rarefy_freq')
             })
+        self.alpha.on("end", self.set_output, "alpha")
         self.alpha.run()
 
     def run_beta(self):
@@ -165,28 +166,31 @@ class MetaBaseWorkflow(Workflow):
             self.beta.set_options({
                 'group': self.option('group')
                 })
-
+        self.beta.on("end", self.set_output, "beta")
         self.beta.run()
 
     def set_output(self, event):
         obj = event["bind_object"]
         if event['data'] is "qc":
             self.option("otu_fasta", obj.option("otu_fasta"))
-            # os.link(self.option("otu_fasta").prop['path'], self.output_dir)
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/QC_stat")
         if event['data'] is "otu":
             self.option("otu_table", obj.option("otu_table"))
             self.option("otu_rep", obj.option("otu_rep"))
             self.option("otu_biom", obj.option("otu_biom"))
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Otu")
         if event['data'] is "tax":
             self.option("taxon_file", obj.option("taxon_file"))
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Tax_assign")
         if event['data'] is "stat":
             # self.option("otu_taxon_biom", obj.option("otu_taxon_biom"))
             # self.option("otu_taxon_table", obj.option("otu_taxon_table"))
             self.option("otu_taxon_dir", obj.option("otu_taxon_dir"))
-        # if event['data'] is "est":
-        #     self.option("estimators").set_path(obj.option("estimators").prop['path'])
-        # if event['data'] is "rarefy":
-        #     self.option("rarefaction").set_path(obj.option("rarefaction").prop['path'])
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/OtuTaxon_summary")
+        if event['data'] is "alpha":
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Alpha_diversity")
+        if event['data'] is "beta":
+            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Beta_diversity")
 
     def run(self):
         self.run_qc()

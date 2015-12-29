@@ -10,6 +10,7 @@ import sys
 from .rpc import RPC
 from .logger import Wlog
 from .agent import Agent
+from .module import Module
 import datetime
 import gevent
 import time
@@ -23,7 +24,7 @@ class Workflow(Basic):
 
     def __init__(self, wsheet):
         super(Workflow, self).__init__()
-        self._id = wsheet.work_id
+        self._id = wsheet.id
         self._sheet = wsheet
         self.config = Config()
         self._work_dir = self.__work_dir()
@@ -34,22 +35,12 @@ class Workflow(Basic):
         self._logger = Wlog(self).get_logger("")
         self.rpc_server = RPC(self)
         self.db = self.config.get_db()
+        self.pause = False
+        self._pause_time = None
 
-    def set_options(self, options):
-        """
-        设置参数值，设置之前如有远程文件，则先复制远程文件到本地
-
-        :param options:
-        :return:
-        """
-        for name, opt in self._options.items():
-            if opt.type == "infile":
-                remote_file = RemoteFileManager(options['name'])
-                if remote_file.type != "local":
-                    self.logger.info("发现参数%s为远程文件%s,开始复制..." % (name, options['name']))
-                    remote_file.download(os.path.join(self.work_dir,"remote_input", name))
-                    options['name'] = remote_file.local_path
-        super(Workflow, self).set_options(options)
+    @property
+    def sheet(self):
+        return self._sheet
 
     def __work_dir(self):
         """
@@ -57,7 +48,7 @@ class Workflow(Basic):
         """
         work_dir = self.config.WORK_DIR
         timestr = str(time.strftime('%Y%m%d', time.localtime(time.time())))
-        work_dir = work_dir + "/" + timestr + "/" + self.name + self._id
+        work_dir = work_dir + "/" + timestr + "/" + self.name + "_" + self._id
         if not os.path.exists(work_dir):
             os.makedirs(work_dir)
         return work_dir
@@ -90,20 +81,19 @@ class Workflow(Basic):
 
         :param toolid:  :py:class:`biocluster.tool.Tool` 对象的ID
         """
-        ids = toolid.split(".")
-        length = len(ids)
-        if length < 2 or length > 3:
-            return False
-        if ids[0] != self.id:
-            return False
+        # ids = toolid.split(".")
+        # length = len(ids)
+        # if length < 2 or length > 3:
+        #     return False
+        # if ids[0] != self.id:
+        #     return False
         modules = self.children
-        if length == 2:
-            for md in modules:
-                if md.id == (ids[0] + "." + ids[1]) and isinstance(md, Agent):
-                    return md
-        elif length == 3:
-            for module in modules:
-                tool = module.find_tool_by_id(toolid)
+        # if length == 2:
+        for md in modules:
+            if md.id == toolid and isinstance(md, Agent):
+                return md
+            elif isinstance(md, Module):
+                tool = md.find_tool_by_id(toolid)
                 if tool:
                     return tool
         return False
@@ -120,22 +110,32 @@ class Workflow(Basic):
             "workdir": self.work_dir
         }
         self._update(data)
+        self.step.start()
+        self.step.update()
         if self.config.USE_DB:
             gevent.spawn(self.__update_service)
             gevent.spawn(self.__check_tostop)
+            gevent.spawn(self.__check_pause)
         self.rpc_server.run()
 
-    def end(self):
+    def end(self, api_data=None):
         """
         停止运行
         """
         super(Workflow, self).end()
         if self._sheet.output:
-            remote_file = RemoteFileManager(self._sheet.ouput)
+            remote_file = RemoteFileManager(self._sheet.output)
             if remote_file.type != "local":
-                self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.ouput))
+                self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
+                umask = os.umask(0)
                 remote_file.upload(os.path.join(self.output_dir))
-                self.logger("结果上传完成!")
+                for root, subdirs, files in os.walk("c:\\test"):
+                    for filepath in files:
+                        os.chmod(os.path.join(root, filepath), 0o777)
+                    for sub in subdirs:
+                        os.chmod(os.path.join(root, sub), 0o666)
+                os.umask(umask)
+                self.logger.info("结果上传完成!")
         data = {
             "is_end": 1,
             "end_time": datetime.datetime.now(),
@@ -143,20 +143,19 @@ class Workflow(Basic):
             "output": self.output_dir
         }
         self._update(data)
-
+        self.step.finish()
+        self.step.update(api_data)
         self.rpc_server.server.close()
         self.logger.info("运行结束!")
 
-    def exit(self, exitcode=1, data=""):
+    def exit(self, exitcode=1, data="", terminated=False):
         """
         立即退出当前流程
 
         :param exitcode:
         :return:
         """
-        self.rpc_server.server.close()
-        self.logger.info("程序退出: %s " % data)
-        data = {
+        update_data = {
             "is_error": 1,
             "error": "程序主动退出:%s" % data,
             "end_time": datetime.datetime.now(),
@@ -164,7 +163,14 @@ class Workflow(Basic):
             "workdir": self.work_dir,
             "output": self.output_dir
         }
-        self._update(data)
+        self._update(update_data)
+        if terminated:
+            self.step.terminated(data)
+        else:
+            self.step.failed(data)
+        self.step.update()
+        self.logger.info("程序退出: %s " % data)
+        self.rpc_server.server.close()
         sys.exit(exitcode)
 
     def __update_service(self):
@@ -174,12 +180,12 @@ class Workflow(Basic):
         :return:
         """
         while self.is_end is False:
-            gevent.sleep(15)
+            gevent.sleep(60)
             try:
                 self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
                               vars={'id': self._id})
             except Exception, e:
-                self.logger.info("数据库更新异常: %s" % e)
+                self.logger.debug("数据库更新异常: %s" % e)
 
     def _update(self, data):
         """
@@ -199,10 +205,11 @@ class Workflow(Basic):
         :return:
         """
         while self.is_end is False:
-            gevent.sleep(15)
+            gevent.sleep(10)
             myvar = dict(id=self._id)
             try:
-                results = self.db.query("SELECT * FROM tostop WHERE workflow_id=$id and done  = 0", vars={'id': self._id})
+                results = self.db.query("SELECT * FROM tostop "
+                                        "WHERE workflow_id=$id and done  = 0", vars={'id': self._id})
                 if len(results) > 0:
                     data = results[0]
                     update_data = {
@@ -210,24 +217,65 @@ class Workflow(Basic):
                         "done": 1
                     }
                     self.db.update("tostop", vars=myvar, where="workflow_id = $id", **update_data)
-                    self.exit(data=data.reson)
+                    self.exit(data="接收到终止运行指令,%s" % data.reson, terminated=True)
             except Exception, e:
                 self.logger.info("查询数据库异常: %s" % e)
+            gevent.sleep(10)
 
+    def __check_pause(self):
+        """
+        检查暂停指令或终止暂停指令
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        :return:
+        """
+        while self.is_end is False:
+            gevent.sleep(5)
+            myvar = dict(id=self._id)
+            try:
+                results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and "
+                                        "has_continue  = 0 and timeout = 0", vars={'id': self._id})
+                if len(results) > 0:
+                    data = results[0]
+                    if data.has_pause == 0:
+                        self.pause = True
+                        self._pause_time = datetime.datetime.now()
+                        update_data = {
+                            "pause_time": datetime.datetime.now(),
+                            "has_pause": 1
+                        }
+                        self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
+                        self.db.query("UPDATE workflow SET paused = 1 where workflow_id=$id", vars={'id': self._id})
+                        self.step.pause()
+                        self.step.update()
+                        self.logger.info("检测到暂停指令，暂停所有新模块运行: %s" % data.reason)
+                    else:
+                        if data.exit_pause == 0:
+                            now = datetime.datetime.now()
+                            if self.pause:
+                                if (now - self._pause_time).seconds > self.config.MAX_PAUSE_TIME:
+                                    update_data = {
+                                        "timeout_time": datetime.datetime.now(),
+                                        "timeout": 1
+                                    }
+                                    self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
+                                    self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
+                                                  vars={'id': self._id})
+                                    self.exit(data="流程暂停超过规定的时间%ss,自动退出运行!" %
+                                                   self.config.MAX_PAUSE_TIME, terminated=True)
+                        else:
+                            if data.has_continue == 0 and data.timeout == 0:
+                                self.pause = False
+                                self._pause_time = None
+                                update_data = {
+                                        "continue_time": datetime.datetime.now(),
+                                        "has_continue": 1
+                                }
+                                self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
+                                self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
+                                              vars={'id': self._id})
+                                self.step.start()
+                                self.step.update()
+                                self.logger.info("检测到恢复运行指令，恢复所有模块运行!")
+            except Exception, e:
+                self.logger.info("查询数据库异常: %s" % e)
+            gevent.sleep(15)

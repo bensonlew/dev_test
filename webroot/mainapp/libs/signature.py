@@ -8,35 +8,46 @@ import functools
 from netaddr import IPNetwork, IPAddress
 import random
 import time
+import json
 
 
 class Signature(object):
 
     def __init__(self):
         data = web.input()
-        if not (hasattr(data, "signature") and hasattr(data, "timestamp") and hasattr(data, "nonce") and hasattr(data, "client")):
-            raise web.badrequest
+        info = {
+            "signature": data.signature if hasattr(data, "signature") else web.ctx.env.get('HTTP_SIGNATURE'),
+            "timestamp": data.timestamp if hasattr(data, "timestamp") else web.ctx.env.get('HTTP_TIMESTAMP'),
+            "nonce": data.nonce if hasattr(data, "nonce") else web.ctx.env.get('HTTP_NONCE'),
+            "client": data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT'),
+        }
 
-        self._signature = data.signature
-        self._timestamp = data.timestamp
-        self._nonce = data.nonce
-        self._client = data.client
-        self._ip = data.client
+        for data in info.values():
+            if not data:
+                raise web.badrequest
+
+        self._signature = info["signature"]
+        self._timestamp = info["timestamp"]
+        self._nonce = info["nonce"]
+        self._client = info["client"]
+        self._ip = web.ctx.ip
 
     def check(self):
         diff = datetime.datetime.now() - datetime.datetime.fromtimestamp(int(self._timestamp))
         client = ClientKey(self._client)
         if client.timelimit and abs(diff.seconds) > client.timelimit:
-            raise web.notacceptable
+            info = {"success": False, "info": "验证时间超时!"}
+            return json.dumps(info)
         if client.ipmask:
-            clientip = web.ctx.ip
             ip_list = client.ipmask.split(";")
             in_range = False
             for r in ip_list:
-                if IPAddress(clientip) in IPNetwork(r):
+                if IPAddress(self._ip) in IPNetwork(r):
                     in_range = True
             if in_range is False:
-                raise web.unauthorized
+                # raise web.unauthorized
+                info = {"success": False, "info": "IP不在允许范围内!"}
+                return json.dumps(info)
 
         x_list = [client.key, self._timestamp, self._nonce]
         x_list.sort()
@@ -56,7 +67,9 @@ def check_sig(f):
         if sig.check():
             return f(obj)
         else:
-            raise web.unauthorized
+            # raise web.unauthorized
+            info = {"success": False, "info": "身份验证未通过!"}
+            return json.dumps(info)
     return wrapper
 
 

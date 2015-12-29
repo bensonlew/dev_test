@@ -10,6 +10,11 @@ from .option import Option
 import os
 from .core.exceptions import OptionError
 from gevent.lock import BoundedSemaphore
+import gevent
+import datetime
+from .core.function import CJsonEncoder
+import json
+import urllib
 
 
 class Rely(object):
@@ -94,6 +99,17 @@ class Basic(EventObject):
                 os.makedirs(self._output_path)
         self._options = {}
         self.sem = BoundedSemaphore(1)
+        self.UPDATE_STATUS = False
+        self._main_step = StepMain(self)
+
+    @property
+    def step(self):
+        """
+        主步骤
+
+        :return:
+        """
+        return self._main_step
 
     @property
     def name(self):
@@ -330,6 +346,7 @@ class Basic(EventObject):
         """
         添加默认触发事件
         """
+        self.add_event("start")  # 开始运行
         self.add_event('end')   # 结束事件 对象结束时触发
         self.on('end', self.__event_end)
         self.add_event('error')
@@ -371,9 +388,11 @@ class Basic(EventObject):
         :param child:
         :return:
         """
-        if self.is_start:
-            child.stop_listener()
-            child.restart_listener()
+        if not self.is_start:
+            return
+        if not child.actor.ready():
+            child.actor.kill()
+        child.rerun()
 
     def end(self):
         """
@@ -422,6 +441,15 @@ class Basic(EventObject):
         开始运行
         """
         self.start_listener()
+        paused = False
+        workflow = self.get_workflow()
+        while workflow.pause:
+            if not paused:
+                self.logger.info("流程处于暂停状态，排队等待恢复运行!")
+            paused = True
+            workflow.is_wait = True
+            gevent.sleep(1)
+        self.fire("start")
 
     def get_workflow(self):
         """
@@ -435,3 +463,222 @@ class Basic(EventObject):
         if obj.parent:
             obj = obj.parent
         return obj
+
+
+class Step(object):
+    """
+    模块步骤定义
+    """
+    def __init__(self):
+        self._name = None
+        self._stats = "wait"
+        self._has_state_change = False
+        self._start_time = datetime.datetime.now()
+        self._end_time = None
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        """
+        设置步骤名称
+
+        :param value:
+        :return:
+        """
+        if re.match(r"[\w_\d]{3,20}", value):
+            self._name = value
+        elif value in ["name", "stats", "start", "finish", "clean_change", "spend_time"]:
+            raise ValueError("步骤名字不能为%s！" % value)
+        else:
+            raise ValueError("步骤名字必须为数组、字符或下划线，3-20位！")
+
+    @property
+    def has_change(self):
+        return self._has_state_change
+
+    @property
+    def stats(self):
+        return self._stats
+
+    def start(self):
+        """
+        设置步骤为开始状态
+
+        :return:
+        """
+        self._stats = "start"
+        self._has_state_change = True
+
+    def finish(self):
+        """
+        设置步骤为完成状态
+
+        :return:
+        """
+        self._stats = "finish"
+        self._has_state_change = True
+        self._end_time = datetime.datetime.now()
+
+    def clean_change(self):
+        """
+        清楚更新状态
+
+        :return:
+        """
+        self._has_state_change = False
+
+    @property
+    def spend_time(self):
+        """
+        开始到结束花费的时间
+
+        :return:
+        """
+        if self._end_time:
+            return (self._end_time - self._start_time).seconds
+        else:
+            return 0
+
+
+class StepMain(Step):
+    """
+    主步骤
+    """
+
+    def __init__(self, basc_obj):
+        super(StepMain, self).__init__()
+        self._steps = {}
+        self.bind_obj = basc_obj
+        self._api_type = None
+        self._error_info = ""
+
+    def __getattr__(self, name):
+        """
+        通过下属步骤的名字直接访问下属步骤对象
+
+        :param name:
+        :return:
+        """
+        if name in self._steps.keys():
+            return self._steps[name]
+        else:
+            raise Exception("不存在名称为%s的步骤!" % name)
+
+    def add_steps(self, *names):
+        """
+        添加下属步骤
+
+        :param names:
+        :return:
+        """
+        for n in names:
+            step = Step()
+            step.name = n
+            self._steps[n] = step
+
+    def failed(self, info=""):
+        """
+        设置状态为失败
+
+        :return:
+        """
+        self._stats = "failed"
+        self._has_state_change = True
+        self._end_time = datetime.datetime.now()
+        self._error_info = info
+
+    def pause(self):
+        """
+        设置状态为暂停
+
+        :return:
+        """
+        self._stats = "pause"
+        self._has_state_change = True
+
+    def terminated(self, info=""):
+        """
+        设置状态为终止运行
+
+        :return:
+        """
+        self._stats = "terminated"
+        self._has_state_change = True
+        self._end_time = datetime.datetime.now()
+        self._error_info = info
+
+    @property
+    def api_type(self):
+        if self._api_type:
+            return self._api_type
+        else:
+            workflow = self.bind_obj.get_workflow()
+            if workflow.sheet.client:
+                self._api_type = workflow.config.get_api_type(workflow.sheet.client)
+                return self._api_type
+            else:
+                return False
+
+    def update(self, json_str=None):
+        """
+        更新状态到API
+
+        :return:
+        """
+        if not (self.bind_obj.UPDATE_STATUS and self.api_type):
+            return
+
+        workflow = self.bind_obj.get_workflow()
+        if self.has_change:
+            json_obj = {"stage": {
+                        "task_id": workflow.sheet.id,
+                        "stage_id": workflow.sheet.stage_id,
+                        "created_ts": datetime.datetime.now(),
+                        "error": "%s" % self._error_info,
+                        "status": self.stats,
+                        "run_time": self.spend_time}}
+            post_data = {
+                "content": json.dumps(json_obj, cls=CJsonEncoder)
+            }
+            if json_str:
+                if not (isinstance(json_str, str) or isinstance(json_str, unicode)):
+                    raise ValueError("json_str必须为字符串!")
+                post_data["data"] = json_str
+            data = {
+                "task_id": workflow.sheet.id,
+                "api": self.api_type,
+                "data": urllib.urlencode(post_data)
+            }
+            try:
+                workflow.db.insert("apilog", **data)
+                self.clean_change()
+            except:
+                self.bind_obj.logger.ERROR("更新状态到数据库出错")
+        json_obj = {"step": []}
+        has_change = False
+        for step in self._steps:
+            if step.has_change:
+                has_change = True
+                state = {
+                    "name": step.name,
+                    "status": step.stats,
+                    "run_time": step.spend_time
+                }
+                json_obj["step"].append(state)
+                step.clean_change()
+        if has_change:
+            post_data = {
+                "content": json.dumps(json_obj)
+            }
+            data = {
+                "task_id": workflow.sheet.id,
+                "api": self.api_type,
+                "data": urllib.urlencode(post_data)
+            }
+            try:
+                workflow.db.insert("apilog", **data)
+            except:
+                self.bind_obj.logger.ERROR("更新状态到数据库出错")

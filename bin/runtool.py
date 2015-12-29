@@ -19,7 +19,7 @@ def main():
     name = args.tool
     class_file = name + "_class.pk"
     if args.daemon:
-        daemonize(stdout="%s.o" % name, stderr="%s.e" % name)
+        daemonize(stdout="%s.daemon.o" % name, stderr="%s.daemon.e" % name)
         write_pid()
     with open(class_file, "r") as f:
         class_list = pickle.load(f)

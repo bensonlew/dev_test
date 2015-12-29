@@ -7,13 +7,16 @@ import sys
 import datetime
 import os
 import time
-from biocluster.core.function import load_class_by_path, daemonize
+from biocluster.core.function import load_class_by_path, daemonize, hostname
 from biocluster.wsheet import Sheet
 from biocluster.config import Config
 from multiprocessing import Process
 import atexit
 import traceback
 import web
+from biocluster.core.function import CJsonEncoder
+import urllib
+import subprocess
 
 parser = argparse.ArgumentParser(description="run a workflow")
 group = parser.add_mutually_exclusive_group()
@@ -27,6 +30,7 @@ parser.add_argument("-b", "--daemon", action="store_true", help="run a workflow 
 logfile = os.getcwd() + "/log.txt"
 parser.add_argument("-l", "--log", default=logfile,  help="write a log file,lose efficacy when use service mode,"
                                                           "in service mode,use the config in main.conf file!")
+parser.add_argument("-u", "--update_api", action="store_true", help="run api_update command")
 args = parser.parse_args()
 
 
@@ -55,17 +59,15 @@ def main():
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())
             time.sleep(Config().SERVICE_LOOP)
-            t = wj.db.transaction()
+
             try:
                 json_data = check_run(wj)
             except Exception, e:
                 exstr = traceback.format_exc()
                 print exstr
                 write_log("运行出错: %s" % e)
-                t.rollback()
+                wj.unlock()
                 continue
-            else:
-                t.commit()
             if json_data:
                 # process = Process(target=wj.start, args=(json_data,))
                 process = Worker(wj, json_data)
@@ -79,7 +81,7 @@ def main():
                         if not p.is_alive():
                             exitcode = p.exitcode
                             if exitcode != 0:
-                                write_log("流程%s运行出错: 原因未知" % p.json_data["id"])
+                                write_log("流程%s运行出错: 程序运行异常" % p.json_data["id"])
                                 p.wj.update_error()
                             p.join()
                             process_array.remove(p)
@@ -88,7 +90,7 @@ def main():
                 if not p.is_alive():
                     exitcode = p.exitcode
                     if exitcode != 0:
-                        write_log("流程%s运行出错: 原因未知" % p.json_data["id"])
+                        write_log("流程%s运行出错: 程序运行异常" % p.json_data["id"])
                         p.wj.update_error()
                     p.join()
                     process_array.remove(p)
@@ -122,7 +124,11 @@ def delpid():
 
 def writepid():
     pid = str(os.getpid())
-    with open(Config().SERVICE_PID, 'w+') as f:
+    pid_file = Config().SERVICE_PID
+    pid_file = pid_file.replace('$HOSTNAME', hostname)
+    if not os.path.exists(os.path.dirname(pid_file)):
+        os.mkdir(os.path.dirname(pid_file))
+    with open(pid_file, 'w+') as f:
         f.write('%s\n' % pid)
     atexit.register(delpid)
 
@@ -152,6 +158,15 @@ class Worker(Process):
 
     def run(self):
         super(Worker, self).run()
+        timestr = time.strftime('%Y%m%d', time.localtime(time.time()))
+        log_dir = os.path.join(Config().SERVICE_LOG, timestr)
+        if not os.path.exists(log_dir):
+            os.mkdir(log_dir)
+        log = os.path.join(log_dir, "%s.log" % self.json_data["id"])
+        so = file(log, 'a+')
+        se = file(log, 'a+', 0)
+        os.dup2(so.fileno(), sys.stdout.fileno())
+        os.dup2(se.fileno(), sys.stderr.fileno())
         self.wj.start(self.json_data)
 
 
@@ -161,6 +176,8 @@ class WorkJob(object):
         self.pid = os.getpid()
         self._db = None
         self.client = None
+        self.json_data = None
+        self._start_time = None
 
     @property
     def db(self):
@@ -222,13 +239,14 @@ class WorkJob(object):
 
     def update_workflow(self):
         data = {
-            "server": hostname(),
+            "server": hostname,
             "has_run": 1,
             "run_time": datetime.datetime.now(),
             "pid": os.getpid(),
             "is_end": 0,
             "is_error": 0,
-            "error": ""
+            "error": "",
+            "paused": 0
         }
         myvar = dict(id=self.workflow_id)
         self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
@@ -242,6 +260,7 @@ class WorkJob(object):
     #     self.start()
 
     def start(self, json_data):
+        self.json_data = json_data
         if self.client:
             max_limit = self.get_client_limit()
             if max_limit > 0:
@@ -253,7 +272,7 @@ class WorkJob(object):
                         write_log("running workflow %s reach the max limit of client %s ,waiting for 1 minute "
                                   "and check again ..." % (self.workflow_id, self.client))
                         time.sleep(60)
-
+        self._start_time = datetime.datetime.now()
         self.workflow_id = json_data["id"]
         write_log("Start running workflow:%s" % self.workflow_id)
         if json_data["type"] == "workflow":
@@ -262,12 +281,14 @@ class WorkJob(object):
             path = "link"
         else:
             path = "single"
-
+        workflow = None
         try:
             wf = load_class_by_path(path, "Workflow")
             wsheet = Sheet(data=json_data)
             workflow = wf(wsheet)
             workflow.config.USE_DB = True
+            if self.client in workflow.config.get_use_api_clients():
+                workflow.UPDATE_STATUS = True
             file_path = os.path.join(workflow.work_dir, "data.json")
             with open(file_path, "w") as f:
                 json.dump(json_data, f, indent=4)
@@ -284,6 +305,9 @@ class WorkJob(object):
             }
             myvar = dict(id=self.workflow_id)
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+            if workflow:
+                workflow.step.faild("运行异常:%s" % e)
+                workflow.update()
 
         write_log("End running workflow:%s" % self.workflow_id)
 
@@ -292,20 +316,29 @@ class WorkJob(object):
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id and is_end=0 and is_error=0",
                                 vars=myvar)
         if len(results) > 0:
-            self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="原因未知")
-
-
-def hostname():
-    sys_name = os.name
-    if sys_name == 'nt':
-            host_name = os.getenv('computername')
-            return host_name
-    elif sys_name == 'posix':
-            with os.popen('echo $HOSTNAME') as f:
-                host_name = f.readline()
-                return host_name.strip('\n')
-    else:
-            return 'Unkwon hostname'
+            self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="程序无警告异常中断")
+            if self.json_data:
+                spend_time = (datetime.datetime.now() - self._start_time()).seconds
+                json_obj = {"stage": {
+                            "task_id": self.workflow_id,
+                            "stage_id": self.json_data["stage_id"],
+                            "created_ts": datetime.datetime.now(),
+                            "error": "程序无警告异常中断",
+                            "status": "failed",
+                            "run_time": spend_time}}
+                post_data = {
+                    "content": json.dumps(json_obj, cls=CJsonEncoder)
+                }
+                data = {
+                    "task_id": self.workflow_id,
+                    "api": Config().get_api_type(self.json_data["client"]),
+                    "data": urllib.urlencode(post_data)
+                }
+                self.db.insert("apilog", **data)
 
 if __name__ == "__main__":
+    if args.update_api:
+        dir_name = os.path.dirname(os.path.realpath(__file__))
+        subprocess.Popen(os.path.join(dir_name, "api_update.py"))
     main()
+

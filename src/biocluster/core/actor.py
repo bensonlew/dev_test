@@ -40,14 +40,15 @@ class LocalActor(gevent.Greenlet):
         now = datetime.datetime.now()
         if not self._keep_alive_out_fired:
             if self._update is not None:
-                if(now - self._update).seconds > self._config.MAX_KEEP_ALIVE_TIME:
+                if (now - self._update).seconds > self._config.MAX_KEEP_ALIVE_TIME:
                     self._agent.fire('keepaliveout')
                     self._keep_alive_out_fired = True
-        if not self._wait_time_out_fired:
-            if self._start_time is not None:
-                if(now - self._start_time).seconds > self._config.MAX_WAIT_TIME:
-                    self._agent.fire('waittimeout')
-                    self._wait_time_out_fired = True
+        if not self._wait_time_out_fired and self._update is None:
+            if not self._agent.is_wait:
+                if self._start_time is not None:
+                    if (now - self._start_time).seconds > self._config.MAX_WAIT_TIME:
+                        self._agent.fire('waittimeout')
+                        self._wait_time_out_fired = True
 
     def receive(self, message):
         """
@@ -97,7 +98,7 @@ class LocalActor(gevent.Greenlet):
             self.check_time()
             if self._agent.is_end:
                 break
-            gevent.sleep(0)
+            gevent.sleep(3)
 
 
 class RemoteActor(threading.Thread):
@@ -183,10 +184,12 @@ class RemoteActor(threading.Thread):
                "state": state.name,
                "data": state.data
                }
+        client = None
         try:
             client = zerorpc.Client()
             client.connect(self.config.endpoint)
             result = client.report(msg)
+            client.close()
         except Exception, e:
             self._lost_connection_count += 1
             if self._lost_connection_count >= 10:
@@ -195,6 +198,8 @@ class RemoteActor(threading.Thread):
                 os.system("kill -9 %s" % os.getpid())
             else:
                 self._tool.logger.error("网络连接出现错误，将重新尝试连接:%s" % e)
+                if client:
+                    client.close()
                 gevent.sleep(1)
                 self.send_state(state)
         else:
@@ -205,10 +210,11 @@ class RemoteActor(threading.Thread):
             return result
 
     def check_command(self):
-        for name, cmd in self._tool.commands.iteritems():
-            if self._tool.is_end:
+        while not self._tool.is_end:
+            if (not self.main_thread.is_alive()) or self._tool.exit_signal:
                 break
-            if name not in self._has_record_commands:
-                gevent.spawn(self._tool.resource_record, cmd)
-                self._has_record_commands.append(name)
-            gevent.sleep(0)
+            for name, cmd in self._tool.commands.items():
+                if name not in self._has_record_commands:
+                    gevent.spawn(self._tool.resource_record, cmd)
+                    self._has_record_commands.append(name)
+            gevent.sleep(3)

@@ -35,8 +35,10 @@ class JobManager(object):
             if not filled:
                 agent.logger.info("任务队列达到最大上限%s个，排队等待运行!" % self.max_job_number)
             filled = True
+            agent.is_wait = True
             gevent.sleep(1)
         else:
+            agent.is_wait = False
             agent.logger.info("开始投递远程任务!")
             self.jobs.append(job)
             job.submit()

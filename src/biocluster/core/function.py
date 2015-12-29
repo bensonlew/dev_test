@@ -5,6 +5,8 @@ import importlib
 import re
 import os
 import sys
+import json
+from datetime import datetime, date
 
 
 def get_clsname_form_path(path, tp="Agent"):
@@ -40,7 +42,14 @@ def load_class_by_path(path, tp="Agent"):
         "File": "mbio.files."
     }
     class_name = get_clsname_form_path(path, tp)
-    imp = importlib.import_module(dir_name[tp] + path)
+    module_name = dir_name[tp] + path
+    # try:
+    #    sys.modules[module_name]
+    # except KeyError:
+    imp = importlib.import_module(module_name)
+    # else:
+    #     del sys.modules[module_name]
+    #     imp = importlib.import_module(module_name)
     return getattr(imp, class_name)
 
 
@@ -89,3 +98,29 @@ def daemonize(stdout='/dev/null', stderr='dev/null'):
     se = file(stderr, 'a+', 0)
     os.dup2(so.fileno(), sys.stdout.fileno())
     os.dup2(se.fileno(), sys.stderr.fileno())
+
+
+def get_hostname():
+    sys_name = os.name
+    if sys_name == 'nt':
+            host_name = os.getenv('computername')
+            return host_name
+    elif sys_name == 'posix':
+            with os.popen('echo $HOSTNAME') as f:
+                host_name = f.readline()
+                return host_name.strip('\n')
+    else:
+            return 'Unkwon hostname'
+
+
+hostname = get_hostname()
+
+
+class CJsonEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
+        elif isinstance(obj, date):
+            return obj.strftime('%Y-%m-%d')
+        else:
+            return json.JSONEncoder.default(self, obj)
