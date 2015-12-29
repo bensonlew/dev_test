@@ -200,7 +200,7 @@ class RemoteActor(threading.Thread):
                 self._tool.logger.error("网络连接出现错误，将重新尝试连接:%s" % e)
                 if client:
                     client.close()
-                gevent.sleep(1)
+                gevent.sleep(3)
                 self.send_state(state)
         else:
             if not isinstance(result, dict):

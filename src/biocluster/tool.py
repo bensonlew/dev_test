@@ -16,6 +16,23 @@ import re
 import importlib
 
 
+class RemoteData(object):
+    def __init__(self, dict_data):
+        self._data = dict_data
+
+    def __getattr__(self, name):
+        """
+        通过下属步骤的名字直接访问下属步骤对象
+
+        :param name:
+        :return:
+        """
+        if name in self._data.keys():
+            return self._data[name]
+        else:
+            raise Exception("不存在名称为%s的远程数据!" % name)
+
+
 class Tool(object):
     """
     远程运行工具，与Agent对应
@@ -40,11 +57,21 @@ class Tool(object):
         self._run = False
         self._end = False
         self._options = {}
+        self._remote_data = {}
         self.load_config()
         self.logger = Wlog(self).get_logger('')
         self.actor = RemoteActor(self, threading.current_thread())
         self.mutex = threading.Lock()
         self.exit_signal = False
+        self._remote_data_object = RemoteData(self._remote_data)
+
+    @property
+    def remote(self):
+        """
+        获取远程数据对象
+        :return:
+        """
+        return self._remote_data_object
 
     @property
     def name(self):
@@ -260,8 +287,8 @@ class Tool(object):
                         memory_info = processes[0].memory_info()
                         memory_rss = friendly_size(memory_info[0])
                         memory_vms = friendly_size(memory_info[1])
-                    except:
-                        pass
+                    except Exception, e:
+                        self.logger.debug("监控资源时发生错误: %s" % e )
                     else:
                         with open(filepath, "a") as f:
                             f.write("%s\tmain_pid:%s\tcpu_percent:%s\tmemory_percent:%s\tmemory_rss:%s"
@@ -282,8 +309,8 @@ class Tool(object):
                                 memory_info = p.memory_info()
                                 memory_rss = friendly_size(memory_info[0])
                                 memory_vms = friendly_size(memory_info[1])
-                            except:
-                                pass
+                            except Exception, e:
+                                self.logger.debug("监控资源时发生错误: %s" % e )
                             else:
                                 f.write("\t\t\tpid:%s\tcpu_percent:%s\tmemory_percent:%s\tmemory_rss:%s\t"
                                         "memory_vms:%s\tcmd:%s\n" % (pid, cpu_percent, memory_percent,
