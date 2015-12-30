@@ -17,9 +17,7 @@ class RarefactionAgent(Agent):
     author: qindanhua
     last_modify: 2015.12.10 by yuguo
     """
-    ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven',
-                  'shannoneven', 'heip', 'smithwilson', 'bergerparker', 'shannon',
-                  'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
+    ESTIMATORS = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon', 'nseqs', 'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
 
     def __init__(self, parent):
         super(RarefactionAgent, self).__init__(parent)
@@ -31,6 +29,17 @@ class RarefactionAgent(Agent):
             # {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"}  # 输出结果
         ]
         self.add_option(options)
+        self.step.add_steps('rarefaction')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.rarefaction.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.rarefaction.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -94,7 +103,7 @@ class RarefactionTool(Tool):
         """
         执行命令运行mothur程序，生成rarefaction结果文件
         """
-        cmd = '/meta/mothur.1.30 "#rarefaction.single(shared=otu.shared,calc=sobs-%s,groupmode=f,' \
+        cmd = '/meta/mothur.1.30 "#rarefaction.single(shared=otu.shared,calc=%s,groupmode=f,' \
               'freq=%s,processors=10)"' % (self.indices, self.option('freq'))
         # print cmd
         self.logger.info("开始运行mothur")
@@ -119,12 +128,12 @@ class RarefactionTool(Tool):
                 shutil.rmtree(os.path.join(self.output_dir, names))
         for estimators in self.indices.split('-'):
             if estimators == "sobs":
-                os.system('mkdir rarefaction|find -name "{}*rarefaction*"|xargs mv -t rarefaction'
+                os.system('mkdir rarefaction|find -name "{}*rarefaction.xls"|xargs mv -t rarefaction'
                           .format(self.option("level")))
                 os.system('cp -r rarefaction %s' % self.output_dir)
                 os.system('mkdir rabund|find -name "{}*rabund*"|xargs mv -t rabund'.format(self.option("level")))
             else:
-                cmd = 'mkdir %s|find -name "%s*%s*"|xargs mv -t %s' % (estimators, self.option("level"),
+                cmd = 'mkdir %s|find -name "%s.*.r_%s.xls"|xargs mv -t %s' % (estimators, self.option("level"),
                                                                        estimators, estimators,)
                 os.system(cmd)
                 os.system('cp -r %s %s' % (estimators, self.output_dir))

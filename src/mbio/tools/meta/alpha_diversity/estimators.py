@@ -15,8 +15,7 @@ class EstimatorsAgent(Agent):
     author: qindanhua
     last_modify: 2015.12.10 by yuguo
     """
-    ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven', 'shannoneven', 'heip', 'smithwilson',
-                  'bergerparker', 'shannon', 'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
+    ESTIMATORS = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron', 'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs', 'qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow']
 
     def __init__(self, parent):
         super(EstimatorsAgent, self).__init__(parent)
@@ -27,6 +26,17 @@ class EstimatorsAgent(Agent):
             # {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}  # 输出结果
         ]
         self.add_option(options)
+        self.step.add_steps('estimators')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.estimators.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.estimators.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -84,7 +94,7 @@ class EstimatorsTool(Tool):
 
     def mothur(self):
         """
-        返回mothur运行生成各样本指数值文件命令
+        运行mothur软件生成各样本指数表
         """
         cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % (self.indices)
         print cmd
@@ -107,7 +117,6 @@ class EstimatorsTool(Tool):
         else:
             self.set_error("运行mothur运行出错!")
             return False
-        # os.system("python %sestimatorsV3.py" % self.estimator_path)
 
     def set_output(self):
         """

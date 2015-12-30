@@ -23,7 +23,7 @@ class FastaFile(File):
         """
         super(FastaFile, self).get_info()
         seqinfo = self.get_seq_info()
-        self.set_property("format", seqinfo[0])
+        self.set_property("file_format", seqinfo[0])
         self.set_property("seq_type", seqinfo[1])
         self.set_property("seq_number", seqinfo[2])
         self.set_property("bases", seqinfo[3])
@@ -38,7 +38,7 @@ class FastaFile(File):
         # print self.prop
         self.get_info()
         if super(FastaFile, self).check():
-            if self.prop['format'] != 'FASTA':
+            if self.prop['file_format'] != 'FASTA':
                 raise FileError("文件格式错误")
             if self.prop["seq_number"] < 1:
                 raise FileError("应该至少含有一条序列")
