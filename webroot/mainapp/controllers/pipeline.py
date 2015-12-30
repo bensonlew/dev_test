@@ -335,6 +335,9 @@ class PipelinePause(object):
 
 class PipelineStopPause(object):
 
+    def POST(self):
+        return self.GET()
+
     @check_sig
     def GET(self):
         data = web.input()

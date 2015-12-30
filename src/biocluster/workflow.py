@@ -260,7 +260,7 @@ class Workflow(Basic):
                                     self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
                                     self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
                                                   vars={'id': self._id})
-                                    self.exit(data="流程暂停超过规定的时间%ss,自动退出运行!" %
+                                    self.exit(data="暂停超过规定的时间%ss,自动退出运行!" %
                                                    self.config.MAX_PAUSE_TIME, terminated=True)
                         else:
                             if data.has_continue == 0 and data.timeout == 0:
