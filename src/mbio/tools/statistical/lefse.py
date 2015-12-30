@@ -39,6 +39,8 @@ class LefseAgent(Agent):
             raise OptionError("必须提供分组信息文件")
         if self.option("strict") not in [0, 1]:
             raise OptionError("所设严格性超出范围值")
+        if self.option("lda_filter") > 4.0 and self.option("lda_filter") < -4.0:
+            raise OptionError("所设阈值超出范围值")
         return True
 
     def set_resource(self):
