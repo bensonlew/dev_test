@@ -21,8 +21,8 @@ class AlphaDiversityModule(Module):
         super(AlphaDiversityModule, self).__init__(work_id)
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
-            {"name": "estimate_indices", "type": "string", "default": "ace-chao-shannon-simpson-coverage"},
-            {"name": "rarefy_indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
+            {"name": "estimate_indices", "type": "string", "default": "ace,chao,shannon,simpson,coverage"},
+            {"name": "rarefy_indices", "type": "string", "default": "sobs,shannon"},  # 指数类型
             {"name": "rarefy_freq", "type": "int", "default": 100},
             {"name": "level", "type": "string", "default": "otu"}  # level水平
         ]
@@ -39,10 +39,10 @@ class AlphaDiversityModule(Module):
         """
         if not self.option("otu_table").is_set:
             raise OptionError("请选择otu表")
-        for estimators in self.option('estimate_indices').split('-'):
+        for estimators in self.option('estimate_indices').split(','):
             if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
-        for estimators in self.option('rarefy_indices').split('-'):
+        for estimators in self.option('rarefy_indices').split(','):
             if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
 

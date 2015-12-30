@@ -22,7 +22,7 @@ class EstimatorsAgent(Agent):
         super(EstimatorsAgent, self).__init__(parent)
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
-            {"name": "indices", "type": "string", "default": "ace-chao-shannon-simpson-coverage"},  # 指数类型
+            {"name": "indices", "type": "string", "default": "ace,chao,shannon,simpson"},  # 指数类型
             {"name": "level", "type": "string", "default": "otu"}  # level水平
             # {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}  # 输出结果
         ]
@@ -48,7 +48,7 @@ class EstimatorsAgent(Agent):
         if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class', 'order',
                                         'family', 'genus', 'species']:
             raise OptionError("请选择正确的分类水平")
-        for estimators in self.option('indices').split('-'):
+        for estimators in self.option('indices').split(','):
             if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
 
@@ -68,7 +68,7 @@ class EstimatorsTool(Tool):
         super(EstimatorsTool, self).__init__(config)
         self.cmd_path = 'meta/alpha_diversity/'
         self.scripts_path = 'meta/scripts/'
-        # self.step.add_steps('shared', 'estimators')
+        self.indices = '-'.join(self.option('indices').split(','))
 
     def shared(self):
         """
@@ -97,7 +97,7 @@ class EstimatorsTool(Tool):
         """
         运行mothur软件生成各样本指数表
         """
-        cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % (self.option('indices'))
+        cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % (self.indices)
         print cmd
         self.logger.info("开始运行mothur")
         command = self.add_command("mothur", cmd)

@@ -67,7 +67,7 @@ def get_classpath_by_object(obj):
     return ".".join(paths)
 
 
-def daemonize(stdout='/dev/null', stderr='dev/null'):
+def daemonize(stdout='/dev/null', stderr='/dev/null'):
 
     try:
         pid = os.fork()

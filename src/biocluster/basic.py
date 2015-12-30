@@ -490,7 +490,8 @@ class Step(object):
         """
         if re.match(r"[\w_\d]{3,20}", value):
             self._name = value
-        elif value in ["name", "stats", "start", "finish", "clean_change", "spend_time"]:
+        elif value in ["name", "stats", "start", "finish", "clean_change",
+                       "spend_time", "failed", "pause", "terminated"]:
             raise ValueError("步骤名字不能为%s！" % value)
         else:
             raise ValueError("步骤名字必须为数组、字符或下划线，3-20位！")
@@ -655,8 +656,8 @@ class StepMain(Step):
             try:
                 workflow.db.insert("apilog", **data)
                 self.clean_change()
-            except:
-                self.bind_obj.logger.ERROR("更新状态到数据库出错")
+            except Exception, e:
+                self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
         json_obj = {"step": []}
         has_change = False
         for step in self._steps:
@@ -680,5 +681,5 @@ class StepMain(Step):
             }
             try:
                 workflow.db.insert("apilog", **data)
-            except:
-                self.bind_obj.logger.ERROR("更新状态到数据库出错")
+            except Exception, e:
+                self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
