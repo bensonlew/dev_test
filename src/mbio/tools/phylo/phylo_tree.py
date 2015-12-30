@@ -12,7 +12,7 @@ class PhyloTreeAgent(Agent):
     phylo_tree:生成OTU代表序列的树文件
     version 1.0  
     author: qindanhua  
-    last_modify: 2015.11.10  
+    last_modify: 2015.11.10
     """
 
     def __init__(self, parent):
@@ -22,6 +22,23 @@ class PhyloTreeAgent(Agent):
             {"name": "phylo.tre", "type": "outfile", "format": "meta.beta_diversity.newick_tree"}  # 输出结果
         ]
         self.add_option(options)
+        self.step.add_steps('clustalw', 'fasttree')
+
+    def clustalw_start_callback(self):
+        self.step.clustalw.start()
+        self.step.update()
+
+    def clustalw_end_callback(self):
+        self.step.clustalw.finish()
+        self.step.update()
+
+    def fasttree_start_callback(self):
+        self.step.fasttree.start()
+        self.step.update()
+
+    def fasttree_end_callback(self):
+        self.step.fasttree.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -53,6 +70,7 @@ class PhyloTreeTool(Tool):
         """
         执行clustalw2命令,生成中间文件phylo.clustalw.align
         """
+        self.add_state('clustalw_start', data='开始运行cluastalw命令')
         cmd = self.clustalw2_path + "clustalw2 -ALIGN -INFILE=%s -OUTFILE=phylo.clustalw.align  -OUTPUT=FASTA" % \
                                     self.option('otu_reps.fasta').prop['path']
         print cmd
@@ -65,11 +83,13 @@ class PhyloTreeTool(Tool):
             self.logger.info("运行clustal2完成！")
         else:
             self.set_error("运行clastal2出错！")
+        self.add_state('clustalw_end', data='done')
 
     def fasttree(self):
         """
         执行fasttree脚本，生成结果文件
         """
+        self.add_state('fasttree_start', data='开始运行fasttree命令，生成树文件')
         cmd = 'Python/bin/python %sfasttree.py -i %s' % (self.FastTree_path, 'phylo.clustalw.align')
         print cmd
         self.logger.info("开始运行fasttree")
@@ -81,6 +101,7 @@ class PhyloTreeTool(Tool):
         else:
             self.set_error("运行fasttree出错！")
         self.set_output()
+        self.add_state('fasttree_end', data='done')
 
     def set_output(self):
         """

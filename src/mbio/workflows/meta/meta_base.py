@@ -54,7 +54,7 @@ class MetaBaseWorkflow(Workflow):
         # self.rarefy = self.add_tool("meta.alpha_diversity.rarefaction")
         self.alpha = self.add_module("meta.alpha_diversity.alpha_diversity")
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
-        self.steps.add_steps("qcstat", "otucluster", "taxassign", "alphadiv", "betadiv")
+        self.step.add_steps("qcstat", "otucluster", "taxassign", "alphadiv", "betadiv")
 
     def check_options(self):
         """
@@ -108,9 +108,9 @@ class MetaBaseWorkflow(Workflow):
             "identity": self.option("identity")
             })
         self.otu.on("end", self.set_output, "otu")
+        self.otu.on("start", self.set_step, {'start': self.step.otucluster})
         self.on_rely(self.otu, self.run_taxon)
         self.otu.run()
-        self.otu.on("start", self.set_step, {'start': self.step.otucluster})
 
     def run_taxon(self, relyobj):
         self.tax.set_options({
@@ -179,14 +179,11 @@ class MetaBaseWorkflow(Workflow):
         self.beta.run()
 
     def set_step(self, event):
-        x = ''
         if 'start' in event['data'].keys():
             event['data']['start'].start()
-            x = event['data']['start']
         if 'end' in event['data'].keys():
             event['data']['end'].finish()
-            x = event['data']['end']
-        x.uppdate()
+        self.step.update()
 
     def set_output(self, event):
         obj = event["bind_object"]
