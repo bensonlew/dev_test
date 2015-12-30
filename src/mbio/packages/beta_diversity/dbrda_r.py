@@ -77,8 +77,8 @@ sink(NULL)
 pdf('%s/db_rda.pdf')
 tempplot <- plot(capscale.result, display=c('wa','bp'))
 dev.off()
-write.table(tempplot$sites, '%s/db_rda_sites.temp.txt',sep = '\\t',col.names = TRUE)
-write.table(tempplot$biplot, '%s/db_rda_factor.temp.txt',sep = '\\t')
+write.table(tempplot$sites, '%s/db_rda_sites.temp.txt', sep = '\\t', col.names = TRUE, quote = FALSE)
+write.table(tempplot$biplot, '%s/db_rda_factor.temp.txt', sep = '\\t', quote = FALSE)
 """ % (dis_matrix, maping, outputdir, outputdir, outputdir, outputdir)
     tempr.write(r_script)
 
@@ -100,28 +100,28 @@ def run_r_script(script, delscript=True):
             os.remove(os.path.dirname(script) + '/temp_r.Rout')
 
 
-def format_result(outputdir):
-    """
-    对生成的文件进行格式整理，删除文件中的引号，添加开头的制表符
-    :param outputdir:输出文件夹
-    :pararm return:
-    """
-    sites = open('%s/db_rda_sites.temp.txt' % (outputdir))
-    biplot = open('%s/db_rda_factor.temp.txt' % (outputdir))
-    new_sites = open('%s/db_rda_sites.txt' % (outputdir), 'w')
-    new_biplot = open('%s/db_rda_factor.txt' % (outputdir), 'w')
-    new_sites.write('\t')
-    new_biplot.write('\t')
-    for line in sites:
-        new_sites.write(line.replace('\"', ''))
-    for line in biplot:
-        new_biplot.write(line.replace('\"', ''))
-    sites.close()
-    biplot.close()
-    new_biplot.close()
-    new_sites.close()
-    os.remove('%s/db_rda_sites.temp.txt' % (outputdir))
-    os.remove('%s/db_rda_factor.temp.txt' % (outputdir))
+# def format_result(outputdir):
+#     """
+#     对生成的文件进行格式整理，删除文件中的引号，添加开头的制表符
+#     :param outputdir:输出文件夹
+#     :pararm return:
+#     """
+#     sites = open('%s/db_rda_sites.temp.txt' % (outputdir))
+#     biplot = open('%s/db_rda_factor.temp.txt' % (outputdir))
+#     new_sites = open('%s/db_rda_sites.txt' % (outputdir), 'w')
+#     new_biplot = open('%s/db_rda_factor.txt' % (outputdir), 'w')
+#     new_sites.write('\t')
+#     new_biplot.write('\t')
+#     for line in sites:
+#         new_sites.write(line.replace('\"', ''))
+#     for line in biplot:
+#         new_biplot.write(line.replace('\"', ''))
+#     sites.close()
+#     biplot.close()
+#     new_biplot.close()
+#     new_sites.close()
+#     os.remove('%s/db_rda_sites.temp.txt' % (outputdir))
+#     os.remove('%s/db_rda_factor.temp.txt' % (outputdir))
 
 
 def db_rda(dis_matrix, maping, outputdir):
@@ -132,7 +132,7 @@ def db_rda(dis_matrix, maping, outputdir):
     create_r(outputdir, dis_matrix, maping)
     script = outputdir + '/temp_r.R'
     run_r_script(script)
-    format_result(outputdir)
+    # format_result(outputdir)
     return 0
 
 

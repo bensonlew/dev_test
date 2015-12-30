@@ -23,6 +23,17 @@ class RdaCcaAgent(Agent):
             {"name": "envtable", "type": "infile", "format": "meta.env_table"}
         ]
         self.add_option(options)
+        self.step.add_steps('RDA_CCA')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.RDA_CCA.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.RDA_CCA.finish()
+        self.step.update()
 
     def gettable(self):
         """
@@ -40,8 +51,17 @@ class RdaCcaAgent(Agent):
         """
         if not self.option('otutable').is_set:
             raise OptionError('必须提供otu表')
+        samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
         if not self.option('envtable').is_set:
             raise OptionError('必须提供环境因子表')
+        else:
+            self.option('envtable').get_info()
+            if len(self.option('envtable').prop['sample']) != len(samplelist):
+                raise OptionError('OTU表中的样本数量:%s与环境因子表中的样本数量:%s不一致' % (len(samplelist),
+                    len(self.option('envtable').prop['sample'])))
+            for sample in self.option('envtable').prop['sample']:
+                if sample not in samplelist:
+                    raise OptionError('环境因子中存在，OTU表中的未知样本:%s' % sample)
         table = open(self.gettable())
         if len(table.readlines()) < 4:
             raise OptionError('提供的数据表信息少于3行')

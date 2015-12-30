@@ -22,6 +22,17 @@ class PcoaAgent(Agent):
                 "format": "meta.beta_diversity.distance_matrix"}
         ]
         self.add_option(options)
+        self.step.add_steps('PCOA')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.PCOA.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.PCOA.finish()
+        self.step.update()
 
     def check_options(self):
         """

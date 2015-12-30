@@ -71,7 +71,7 @@ class OtuAnalysisModule(Module):
         运行Qiime Assign,获取OTU的分类信息
         """
         myopt = dict()
-        if self.option('database') == "customer_mode":
+        if self.option('database') == "custom_mode":
             myopt = {
                 'fasta': relyobj.rely[0].option('otu_rep'),
                 'revcomp': self.option('revcomp'),

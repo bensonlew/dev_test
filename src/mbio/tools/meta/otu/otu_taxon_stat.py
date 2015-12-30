@@ -25,6 +25,17 @@ class OtuTaxonStatAgent(Agent):
             {'name': 'otu_taxon_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出的otu表文件
             {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'}]  # 输出的otu_taxon_dir文件夹
         self.add_option(options)
+        self.step.add_steps('OtuTaxonStat')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.OtuTaxonStat.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.OtuTaxonStat.finish()
+        self.step.update()
 
     def check_options(self):
         """
