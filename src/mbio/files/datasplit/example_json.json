@@ -1,4 +1,5 @@
 {   
+	"split_id": "21"
 	"sequcing_id": "01",
     "sequcing_sn": "test_01",
 	"program": "bcl2fastq",
