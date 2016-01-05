@@ -54,6 +54,7 @@ class MetaBaseWorkflow(Workflow):
         # self.rarefy = self.add_tool("meta.alpha_diversity.rarefaction")
         self.alpha = self.add_module("meta.alpha_diversity.alpha_diversity")
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
+        self.step.add_steps("qcstat", "otucluster", "taxassign", "alphadiv", "betadiv")
 
     def check_options(self):
         """
@@ -97,6 +98,7 @@ class MetaBaseWorkflow(Workflow):
         #         "seqname_sample": self.option("seqname_sample")
         #         })
         self.on_rely(self.qc, self.run_otu)
+        self.qc.on("start", self.set_step, {'start': self.step.qcstat})
         self.qc.on("end", self.set_output, "qc")
         self.qc.run()
 
@@ -106,6 +108,7 @@ class MetaBaseWorkflow(Workflow):
             "identity": self.option("identity")
             })
         self.otu.on("end", self.set_output, "otu")
+        self.otu.on("start", self.set_step, {'start': self.step.otucluster})
         self.on_rely(self.otu, self.run_taxon)
         self.otu.run()
 
@@ -123,6 +126,7 @@ class MetaBaseWorkflow(Workflow):
             })
         self.on_rely(self.tax, self.run_stat)
         self.tax.on("end", self.set_output, "tax")
+        self.tax.on("start", self.set_step, {'end': self.step.otucluster, 'start': self.step.taxassign})
         self.tax.run()
 
     def run_stat(self, relyobj):
@@ -131,6 +135,7 @@ class MetaBaseWorkflow(Workflow):
             "taxon_file": self.option("taxon_file")
             })
         self.stat.on("end", self.set_output, "stat")
+        self.stat.on("end", self.set_step, {'end': self.step.taxassign})
         self.on_rely(self.stat, self.run_alpha)
         self.on_rely(self.stat, self.run_beta)
         self.stat.run()
@@ -144,6 +149,8 @@ class MetaBaseWorkflow(Workflow):
             'rarefy_freq': self.option('rarefy_freq')
             })
         self.alpha.on("end", self.set_output, "alpha")
+        self.alpha.on("start", self.set_step, {'start': self.step.alphadiv})
+        self.alpha.on("end", self.set_step, {'end': self.step.alphadiv})
         self.alpha.run()
 
     def run_beta(self):
@@ -167,7 +174,16 @@ class MetaBaseWorkflow(Workflow):
                 'group': self.option('group')
                 })
         self.beta.on("end", self.set_output, "beta")
+        self.beta.on("start", self.set_step, {'start': self.step.betadiv})
+        self.beta.on("end", self.set_step, {'end': self.step.betadiv})
         self.beta.run()
+
+    def set_step(self, event):
+        if 'start' in event['data'].keys():
+            event['data']['start'].start()
+        if 'end' in event['data'].keys():
+            event['data']['end'].finish()
+        self.step.update()
 
     def set_output(self, event):
         obj = event["bind_object"]

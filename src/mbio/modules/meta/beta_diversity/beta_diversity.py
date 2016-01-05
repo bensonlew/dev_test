@@ -10,6 +10,7 @@ class BetaDiversityModule(Module):
 
     def __init__(self, work_id):
         super(BetaDiversityModule, self).__init__(work_id)
+        self.step.add_steps('ChooseAnalysis', 'MultipleAnalysis')
         options = [
             {"name": "analysis", "type": "string",
                 "default": "anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
@@ -191,6 +192,8 @@ class BetaDiversityModule(Module):
 
     def run(self):
         super(BetaDiversityModule, self).run()
+        self.step.ChooseAnalysis.start()
+        self.step.update()
         if 'anosim' in self.option('analysis'):
             self.tools['anosim'] = self.add_tool('meta.beta_diversity.anosim')
             self.on_rely(self.matrix, self.anosim_run)
@@ -218,4 +221,12 @@ class BetaDiversityModule(Module):
         if 'rda_cca' in self.option('analysis'):
             self.tools['rda'] = self.add_tool('meta.beta_diversity.rda_cca')
             self.rda_run()
+        self.step.ChooseAnalysis.finish()
+        self.step.MultipleAnalysis.start()
+        self.step.update()
+        self.on_rely(self.tools.values(), self.stepend)
         self.on_rely(self.tools.values(), self.end)
+
+    def stepend(self):
+        self.step.MultipleAnalysis.finish()
+        self.step.update()

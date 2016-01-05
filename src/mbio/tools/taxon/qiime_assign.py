@@ -30,6 +30,17 @@ class QiimeAssignAgent(Agent):
             {'name': 'taxon_file', 'type': 'outfile', 'format': 'taxon.seq_taxon'}  # 输出序列的分类信息文件
         ]
         self.add_option(options)
+        self.step.add_steps('qiime_assign')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.qiime_assign.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.qiime_assign.finish()
+        self.step.update()
 
     def check_options(self):
         """

@@ -12,17 +12,17 @@ class AlphaDiversityModule(Module):
     alpha多样性模块
     version 1.0
     author: qindanhua
-    last_modify: 2015.11.25
+    last_modify: 2015.12.29
     """
-    ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven', 'shannoneven', 'heip', 'smithwilson',
-                  'bergerparker', 'shannon', 'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
+    ESTIMATORS_E = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron', 'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs', 'qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow']
+    ESTIMATORS_R = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon', 'nseqs', 'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
 
     def __init__(self, work_id):
         super(AlphaDiversityModule, self).__init__(work_id)
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
-            {"name": "estimate_indices", "type": "string", "default": "ace-chao-shannon-simpson-coverage"},
-            {"name": "rarefy_indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
+            {"name": "estimate_indices", "type": "string", "default": "ace,chao,shannon,simpson,coverage"},
+            {"name": "rarefy_indices", "type": "string", "default": "sobs,shannon"},  # 指数类型
             {"name": "rarefy_freq", "type": "int", "default": 100},
             {"name": "level", "type": "string", "default": "otu"}  # level水平
         ]
@@ -31,6 +31,7 @@ class AlphaDiversityModule(Module):
         self.perl_path = 'Perl/bin/perl'
         self.estimators = self.add_tool('meta.alpha_diversity.estimators')
         self.rarefaction = self.add_tool('meta.alpha_diversity.rarefaction')
+        self.step.add_steps('estimators', 'rarefaction')
 
     def check_options(self):
         """
@@ -38,11 +39,11 @@ class AlphaDiversityModule(Module):
         """
         if not self.option("otu_table").is_set:
             raise OptionError("请选择otu表")
-        for estimators in self.option('estimate_indices').split('-'):
-            if estimators not in self.ESTIMATORS:
+        for estimators in self.option('estimate_indices').split(','):
+            if estimators not in self.ESTIMATORS_E:
                 raise OptionError("请选择正确的指数类型")
-        for estimators in self.option('rarefy_indices').split('-'):
-            if estimators not in self.ESTIMATORS:
+        for estimators in self.option('rarefy_indices').split(','):
+            if estimators not in self.ESTIMATORS_R:
                 raise OptionError("请选择正确的指数类型")
 
     def estimators_run(self):
@@ -52,7 +53,10 @@ class AlphaDiversityModule(Module):
             'level': self.option('level')
             })
         # self.on_rely(estimators, self.rarefaction_run)
+        self.step.estimators.start()
         self.estimators.run()
+        self.step.estimators.finish()
+        self.step.update()
 
     def rarefaction_run(self):
         self.rarefaction.set_options({
@@ -62,7 +66,10 @@ class AlphaDiversityModule(Module):
             'level': self.option('level')
             })
         # self.rarefaction.on('end', self.set_output)
+        self.step.rarefaction.start()
         self.rarefaction.run()
+        self.step.rarefaction.finish()
+        self.step.update()
 
     def set_output(self):
         self.logger.info('set output')

@@ -15,18 +15,28 @@ class EstimatorsAgent(Agent):
     author: qindanhua
     last_modify: 2015.12.10 by yuguo
     """
-    ESTIMATORS = ['sobs', 'chao', 'ace', 'jack', 'bootstrap', 'simpsoneven', 'shannoneven', 'heip', 'smithwilson',
-                  'bergerparker', 'shannon', 'npshannon', 'simpson', 'invsimpson', 'coverage', 'qstat']
+    ESTIMATORS = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron', 'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs', 'qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow']
 
     def __init__(self, parent):
         super(EstimatorsAgent, self).__init__(parent)
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
-            {"name": "indices", "type": "string", "default": "ace-chao-shannon-simpson"},  # 指数类型
+            {"name": "indices", "type": "string", "default": "ace,chao,shannon,simpson"},  # 指数类型
             {"name": "level", "type": "string", "default": "otu"}  # level水平
             # {"name": "estimators", "type": "outfile", "format": "meta.alpha_diversity.estimators"}  # 输出结果
         ]
         self.add_option(options)
+        self.step.add_steps('estimators')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.estimators.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.estimators.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -37,7 +47,7 @@ class EstimatorsAgent(Agent):
         if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class', 'order',
                                         'family', 'genus', 'species']:
             raise OptionError("请选择正确的分类水平")
-        for estimators in self.option('indices').split('-'):
+        for estimators in self.option('indices').split(','):
             if estimators not in self.ESTIMATORS:
                 raise OptionError("请选择正确的指数类型")
 
@@ -57,6 +67,7 @@ class EstimatorsTool(Tool):
         super(EstimatorsTool, self).__init__(config)
         self.cmd_path = 'meta/alpha_diversity/'
         self.scripts_path = 'meta/scripts/'
+        self.indices = '-'.join(self.option('indices').split(','))
 
     def shared(self):
         """
@@ -83,9 +94,9 @@ class EstimatorsTool(Tool):
 
     def mothur(self):
         """
-        返回mothur运行生成各样本指数值文件命令
+        运行mothur软件生成各样本指数表
         """
-        cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % (self.option('indices'))
+        cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % (self.indices)
         print cmd
         self.logger.info("开始运行mothur")
         command = self.add_command("mothur", cmd)
@@ -106,7 +117,6 @@ class EstimatorsTool(Tool):
         else:
             self.set_error("运行mothur运行出错!")
             return False
-        # os.system("python %sestimatorsV3.py" % self.estimator_path)
 
     def set_output(self):
         """

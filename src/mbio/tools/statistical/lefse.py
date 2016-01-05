@@ -26,6 +26,7 @@ class LefseAgent(Agent):
             {"name": "strict", "type": "int", "default": 0}
         ]
         self.add_option(options)
+        self.step.add_steps("run_biom", "tacxon_stat", "plot_lefse")
 
     def check_options(self):
         """
@@ -38,6 +39,8 @@ class LefseAgent(Agent):
             raise OptionError("必须提供分组信息文件")
         if self.option("strict") not in [0, 1]:
             raise OptionError("所设严格性超出范围值")
+        if self.option("lda_filter") > 4.0 and self.option("lda_filter") < -4.0:
+            raise OptionError("所设阈值超出范围值")
         return True
 
     def set_resource(self):
@@ -47,6 +50,30 @@ class LefseAgent(Agent):
         """
         self._cpu = 10
         self._memory = ''
+
+    def biom_start_callback(self):
+        self.step.run_biom.start()
+        self.step.update()
+
+    def biom_finish_callback(self):
+        self.step.run_biom.finish()
+        self.step.update()
+
+    def sum_taxa_start_callback(self):
+        self.step.tacxon_stat.start()
+        self.step.update()
+
+    def sum_taxa_finish_callback(self):
+        self.step.tacxon_stat.finish()
+        self.step.update()
+
+    def lefse_start_callback(self):
+        self.step.plot_lefse.start()
+        self.step.update()
+
+    def lefse_finish_callback(self):
+        self.step.plot_lefse.finish()
+        self.step.update()
 
 
 class LefseTool(Tool):
@@ -61,6 +88,7 @@ class LefseTool(Tool):
         self.plot_lefse_path = "meta/lefse/"
 
     def run_biom(self):
+        self.add_state("biom_start", data="开始生成biom格式文件")
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR+"/gcc/5.1.0/lib64:$LD_LIBRARY_PATH")
         biom_cmd = self.biom_path + "biom convert -i %s -o otu_taxa_table.biom --table-type \"OTU table\" --process-obs-metadata taxonomy  --to-hdf5" % self.option('lefse_input').prop["path"]
         self.logger.info("开始运行biom_cmd")
@@ -70,8 +98,10 @@ class LefseTool(Tool):
             self.logger.info("biom_cmd运行完成")
         else:
             self.set_error("biom_cmd运行出错!")
+        self.add_state("biom_finish", data="生成biom格式文件")
 
     def run_script(self):
+        self.add_state("sum_taxa_start", data="开始生成每一水平的物种统计文件")
         script_cmd = self.script_path + "summarize_taxa.py -i otu_taxa_table.biom -o tax_summary_a -L 1,2,3,4,5,6,7 -a"
         print script_cmd
         self.logger.info("开始运行script_cmd")
@@ -90,12 +120,14 @@ class LefseTool(Tool):
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info("run_sum_tax运行完成")
+            self.add_state("sum_taxa_finish", data="生成每一水平的物种统计文件完成")
             return True
         except subprocess.CalledProcessError:
             self.logger.info("run_sum_tax运行出错")
             return False
 
     def run_plot_lefse(self):
+        self.add_state("lefse_start", data="开始进行lefse分析")
         self.set_environ(PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/bin:$PATH")
         self.set_environ(R_HOME="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/")
         self.set_environ(LD_LIBRARY_PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/lib:$LD_LIBRARY_PATH")
@@ -108,6 +140,7 @@ class LefseTool(Tool):
             self.logger.info("plot_cmd运行完成")
         else:
             self.set_error("plot_cmd运行出错!")
+        self.add_state("lefse_finish", data="lefse分析完成")
 
     def set_lefse_output(self):
         """

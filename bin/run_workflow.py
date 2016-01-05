@@ -30,7 +30,6 @@ parser.add_argument("-b", "--daemon", action="store_true", help="run a workflow 
 logfile = os.getcwd() + "/log.txt"
 parser.add_argument("-l", "--log", default=logfile,  help="write a log file,lose efficacy when use service mode,"
                                                           "in service mode,use the config in main.conf file!")
-parser.add_argument("-u", "--update_api", action="store_true", help="run api_update command")
 args = parser.parse_args()
 
 
@@ -39,7 +38,9 @@ def main():
         parser.print_help()
         sys.exit(1)
     if args.service:
-        if os.path.isfile(Config().SERVICE_PID):
+        pid_file = Config().SERVICE_PID
+        pid_file = pid_file.replace('$HOSTNAME', hostname)
+        if os.path.isfile(pid_file):
             raise Exception("PID file already exists,if this service already running?")
         date_run = ""
         if args.daemon:
@@ -119,7 +120,9 @@ def check_run(wj):
 
 
 def delpid():
-    os.remove(Config().SERVICE_PID)
+    pid_file = Config().SERVICE_PID
+    pid_file = pid_file.replace('$HOSTNAME', hostname)
+    os.remove(pid_file)
 
 
 def writepid():
@@ -306,7 +309,7 @@ class WorkJob(object):
             myvar = dict(id=self.workflow_id)
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
             if workflow:
-                workflow.step.faild("运行异常:%s" % e)
+                workflow.step.failed("运行异常:%s" % e)
                 workflow.update()
 
         write_log("End running workflow:%s" % self.workflow_id)
@@ -337,8 +340,5 @@ class WorkJob(object):
                 self.db.insert("apilog", **data)
 
 if __name__ == "__main__":
-    if args.update_api:
-        dir_name = os.path.dirname(os.path.realpath(__file__))
-        subprocess.Popen(os.path.join(dir_name, "api_update.py"))
     main()
 

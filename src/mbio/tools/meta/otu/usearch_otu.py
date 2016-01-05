@@ -28,6 +28,17 @@ class UsearchOtuAgent(Agent):
             {'name': 'otu_biom', 'type': 'outfile', 'format': 'meta.otu.biom'}  # 输出结果biom格式otu表
         ]
         self.add_option(options)
+        self.step.add_steps('OTUCluster')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.OTUCluster.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.OTUCluster.finish()
+        self.step.update()
 
     def check_options(self):
         """

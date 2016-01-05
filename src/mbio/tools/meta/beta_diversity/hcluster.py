@@ -25,6 +25,17 @@ class HclusterAgent(Agent):
             {"name": "linkage", "type": "string", "default": "average"}
         ]
         self.add_option(options)
+        self.step.add_steps('hcluster')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.hcluster.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.hcluster.finish()
+        self.step.update()
 
     def check_options(self):
         """

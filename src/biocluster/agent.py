@@ -11,6 +11,7 @@ from .config import Config
 from .scheduling.job import JobManager
 from .core.function import get_classpath_by_object, load_class_by_path
 import datetime
+import types
 
 
 class PickleConfig(object):
@@ -28,6 +29,7 @@ class PickleConfig(object):
         self.SOFTWARE_DIR = ""
         self.KEEP_ALIVE_TIME = ""
         self.MAX_KEEP_ALIVE_TIME = ""
+        self._remote_data = ""
 
     def clone(self, agent):
         """
@@ -81,6 +83,7 @@ class Agent(Basic):
         self._end_run_time = None
         self._rerun_time = 0
         self.is_wait = False
+        self._remote_data = {}
 
     @property
     def queue(self):
@@ -100,6 +103,27 @@ class Agent(Basic):
         返回运行模式，默认"Auto"  表示由 main.conf中的 platform参数决定，可以在子类中重写_run_mode属性来定义运行模式
         """
         return self._run_mode
+
+    def add_remote_data(self, name, value):
+        """
+        添加需要传递到远程Tool的数据
+
+        :param name:
+        :param value:
+        :return:
+        """
+        if name in self._remote_data.keys():
+            raise Exception("远程数据名称%s已经存在，请勿重复添加" % name)
+        if not isinstance(name, types.StringType):
+            raise Exception("远程数据名称必须为字符串")
+        elif not name.islower():
+            raise Exception("命令名称必须都为小写字母！")
+        if not (isinstance(value, types.StringTypes) or isinstance(value, types.BooleanType) or
+                isinstance(value, types.IntType) or isinstance(value, types.LongType) or
+                isinstance(value, types.FloatType) or isinstance(value, types.TupleType) or
+                isinstance(value, types.ListType) or isinstance(value, types.DictType)):
+            raise Exception("远程数据值必须为Python内置数据类型: 字符串，数字，布尔，list,tuple,dict！")
+        self._remote_data[name] = value
 
     def set_queue(self, queue):
         """

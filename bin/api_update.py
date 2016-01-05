@@ -4,11 +4,33 @@
 from gevent import monkey; monkey.patch_socket()
 import argparse
 from biocluster.api.web.log import LogManager
+from biocluster.config import Config
+import os
+from biocluster.core.function import hostname, daemonize
+import atexit
+
 parser = argparse.ArgumentParser(description="update date to remote api")
 parser.add_argument("-m", "--mode", choices=["server", "retry"], default="retry", help="run mode")
 parser.add_argument("-a", "--api", help="only for retry mode, the api type to retry, must be given!")
 
 args = parser.parse_args()
+
+
+def delpid():
+    pid_file = Config().SERVICE_PID
+    pid_file = pid_file.replace('$HOSTNAME', hostname + ".api")
+    os.remove(pid_file)
+
+
+def writepid():
+    pid = str(os.getpid())
+    pid_file = Config().SERVICE_PID
+    pid_file = pid_file.replace('$HOSTNAME', hostname + ".api")
+    if not os.path.exists(os.path.dirname(pid_file)):
+        os.mkdir(os.path.dirname(pid_file))
+    with open(pid_file, 'w+') as f:
+        f.write('%s\n' % pid)
+    atexit.register(delpid)
 
 
 def main():
@@ -18,6 +40,12 @@ def main():
             lm.api = args.api
         lm.update()
     else:
+        pid_file = Config().SERVICE_PID
+        pid_file = pid_file.replace('$HOSTNAME', hostname + ".api")
+        if os.path.isfile(pid_file):
+            raise Exception("PID file already exists,if this service already running?")
+        daemonize()
+        writepid()
         lm.update_as_service()
 
 if __name__ == "__main__":

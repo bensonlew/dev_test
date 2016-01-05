@@ -21,16 +21,38 @@ class DbrdaAgent(Agent):
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
         ]
         self.add_option(options)
+        self.step.add_steps('dbRDA')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.dbRDA.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.dbRDA.finish()
+        self.step.update()
 
     def check_options(self):
         """
         检查参数
         :return: True
         """
+        samplelist = []
         if not self.option('dis_matrix').is_set:
-            raise OptionError('必须提供距离矩阵表')
+            raise OptionError('必须提供距离矩阵文件')
+        else:
+            self.option('dis_matrix').get_info()
+            samplelist = self.option('dis_matrix').prop['samp_list']
         if not self.option('group').is_set:
-            raise OptionError('必须提供分组信息表')
+            raise OptionError('必须提供分组信息文件')
+        else:
+            self.option('group').get_info()
+            if len(samplelist) != len(self.option('group').prop['sample']):
+                raise OptionError('分组文件中样本数量与距离矩阵中的样本数量不一致')
+            for sample in self.option('group').prop['sample']:
+                if sample not in samplelist:
+                    raise OptionError('分组文件的样本(%s)在otu表的样本中不存在' % sample)
         return True
 
     def set_resource(self):
@@ -87,9 +109,9 @@ class DbrdaTool(Tool):
         self.add_name()
         return_mess = db_rda(self.option('dis_matrix').prop['path'], self.work_dir + '/temp.gup', self.work_dir)
         if return_mess == 0:
-            self.linkfile(self.work_dir + '/db_rda_factor.txt', 'db_rda_factor.txt')
+            self.linkfile(self.work_dir + '/db_rda_factor.temp.txt', 'db_rda_factor.txt')
             self.linkfile(self.work_dir + '/db_rda_results.txt', 'db_rda_results.txt')
-            self.linkfile(self.work_dir + '/db_rda_sites.txt', 'db_rda_sites.txt')
+            self.linkfile(self.work_dir + '/db_rda_sites.temp.txt', 'db_rda_sites.txt')
             self.logger.info('运行dbrda_r.py程序计算Dbrda完成')
             self.end()
         else:
