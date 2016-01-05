@@ -92,10 +92,9 @@ class MiseqQcModule(Module):
         """
         设置合并到一起的fasta的文件路径
         """
-        output = os.path.join(self.work_dir, "output")
         self.logger.info("设置fasta的文件路径")
         cat_fasta = os.path.join(self.qc_format.work_dir, "output/cat_meta.fasta")
-        new_fasta = os.path.join(output, "cat_meta.fasta")
+        new_fasta = os.path.join(self.work_dir, "cat_meta.fasta")
         if os.path.exists(new_fasta):
             os.remove(new_fasta)
         os.link(cat_fasta, new_fasta)
