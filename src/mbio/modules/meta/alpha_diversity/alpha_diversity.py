@@ -14,8 +14,11 @@ class AlphaDiversityModule(Module):
     author: qindanhua
     last_modify: 2015.12.29
     """
-    ESTIMATORS_E = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron', 'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs', 'qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow']
-    ESTIMATORS_R = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon', 'nseqs', 'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
+    ESTIMATORS_E = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron',
+                    'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs',
+                    'qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow']
+    ESTIMATORS_R = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon',
+                    'nseqs', 'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
 
     def __init__(self, work_id):
         super(AlphaDiversityModule, self).__init__(work_id)
@@ -55,6 +58,9 @@ class AlphaDiversityModule(Module):
         # self.on_rely(estimators, self.rarefaction_run)
         self.step.estimators.start()
         self.estimators.run()
+        self.on_rely(self.estimators, self.finish_update)
+
+    def finish_update(self):
         self.step.estimators.finish()
         self.step.update()
 
@@ -68,8 +74,7 @@ class AlphaDiversityModule(Module):
         # self.rarefaction.on('end', self.set_output)
         self.step.rarefaction.start()
         self.rarefaction.run()
-        self.step.rarefaction.finish()
-        self.step.update()
+        self.on_rely(self.rarefaction, self.finish_update)
 
     def set_output(self):
         self.logger.info('set output')
@@ -82,7 +87,7 @@ class AlphaDiversityModule(Module):
         rarefaction = self.work_dir + '/Rarefaction/output/rarefaction/'
         os.link(estimators, self.output_dir + '/estimators.xls')
         os.system('cp -r %s %s' % (rarefaction, self.output_dir))
-        for estimators in self.option('rarefy_indices').split('-'):
+        for estimators in self.option('rarefy_indices').split(','):
             if estimators == "sobs":
                 estimators = "rarefaction"
             est_path = self.work_dir + '/Rarefaction/output/%s/' % estimators
