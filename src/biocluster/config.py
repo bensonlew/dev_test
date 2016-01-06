@@ -121,7 +121,6 @@ class Config(object):
             #         if ip.group() == sip:
             #             return ip.group()
 
-
     @property
     def LISTEN_PORT(self):
         if self._listen_port:
@@ -195,7 +194,10 @@ class Config(object):
         return self.rcf.get("NETDATA", "%s_type" % type_name)
 
     def get_api_type(self, client):
-        return self.rcf.get("API", client)
+        if self.rcf.has_option("API", client):
+            return self.rcf.get("API", client)
+        else:
+            return ""
 
     def get_use_api_clients(self):
         return self.rcf.options("API")

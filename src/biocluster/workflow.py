@@ -15,6 +15,7 @@ import datetime
 import gevent
 import time
 from .api.file.remote import RemoteFileManager
+import json
 
 
 class Workflow(Basic):
@@ -32,11 +33,13 @@ class Workflow(Basic):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
         self._logger = Wlog(self).get_logger("")
-        self._logger = Wlog(self).get_logger("")
         self.rpc_server = RPC(self)
         self.db = self.config.get_db()
         self.pause = False
         self._pause_time = None
+        self.__check_to_file_option()
+        self.step.start()
+        self.step.update()
 
     @property
     def sheet(self):
@@ -52,6 +55,20 @@ class Workflow(Basic):
         if not os.path.exists(work_dir):
             os.makedirs(work_dir)
         return work_dir
+
+    def __check_to_file_option(self):
+        """
+        转换内置的参数为文件参数
+
+        :return:
+        """
+        if "to_file" in self._sheet.data.keys():
+            for opt in self._sheet.data["to_file"]:
+                json_data = self._sheet.option(opt)
+                file_path = os.path.join(self.work_dir, "%s_input.json" % opt)
+                with open(file_path, "w") as f:
+                    json.dump(json_data, f, indent=4)
+                self._sheet.set_option(opt, file_path)
 
     def add_module(self, path):
         """
@@ -110,17 +127,18 @@ class Workflow(Basic):
             "workdir": self.work_dir
         }
         self._update(data)
-        self.step.start()
-        self.step.update()
         if self.config.USE_DB:
             gevent.spawn(self.__update_service)
             gevent.spawn(self.__check_tostop)
             gevent.spawn(self.__check_pause)
         self.rpc_server.run()
 
-    def end(self, api_data=None):
+    def end(self):
         """
-        停止运行
+        停止workflow运行
+
+        :param api_data:  需要传递给API的数据
+        :return:
         """
         super(Workflow, self).end()
         if self._sheet.output:
@@ -144,7 +162,7 @@ class Workflow(Basic):
         }
         self._update(data)
         self.step.finish()
-        self.step.update(api_data)
+        self.step.update()
         self.rpc_server.server.close()
         self.logger.info("运行结束!")
 
