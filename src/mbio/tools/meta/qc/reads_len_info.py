@@ -50,7 +50,7 @@ class ReadsLenInfoTool(Tool):
         super(ReadsLenInfoTool, self).__init__(config)
         self._version = 1.0
         self.longest = ""
-        self.allowed_step = [1, 20, 50, 100, 200]
+        self.allowed_step = [20, 50, 100, 200]
 
     def _create_reads_len_info(self):
         """
@@ -85,7 +85,7 @@ class ReadsLenInfoTool(Tool):
         :param step:文件的步长
         """
         file_name = os.path.join(self.work_dir, "output", "reads_len_info",
-                                 "step_" + str(step) + ".reads_len_info")
+                                 "step_" + str(step) + ".reads_len_info.txt")
         with open(file_name, "w") as f:
             f.write("sample" + "\t")
             col = self.longest + step
@@ -130,7 +130,7 @@ class ReadsLenInfoTool(Tool):
         :param sample_name: 样本名称
         """
         file_name = os.path.join(self.work_dir, "output", "reads_len_info",
-                                 "step_" + str(step) + ".reads_len_info")
+                                 "step_" + str(step) + ".reads_len_info.txt")
         with open(file_name, "a") as f:
             temp_list = list()
             temp_list.append(sample_name)

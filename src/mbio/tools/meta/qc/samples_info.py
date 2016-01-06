@@ -53,7 +53,7 @@ class SamplesInfoTool(Tool):
         sample_info_dir = os.path.join(self.work_dir, 'output/samples_info')
         if not os.path.exists(sample_info_dir):
             os.mkdir(sample_info_dir)
-        file_name = os.path.join(sample_info_dir, self.id + ".samples_info")
+        file_name = os.path.join(sample_info_dir, "samples_info.txt")
         with open(file_name, "w") as f:
             head = ["sample", "reads", "bases", "avg", "min", "max"]
             f.write("\t".join(head) + "\n")

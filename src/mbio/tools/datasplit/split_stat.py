@@ -17,6 +17,7 @@ class SplitStatAgent(Agent):
     """
     def __init__(self, parent=None):
         super(SplitStatAgent, self).__init__(parent)
+        self._run_mode = "ssh1"
         options = [
             {'name': 'sample_info', 'type': "infile", 'format': 'datasplit.miseq_split'},  # 样本拆分信息表
             {'name': 'fastx_path', 'type': "string"},  # fastx模块产生的统计结果的路径
@@ -56,6 +57,7 @@ class SplitStatTool(Tool):
         self.option('time').get_info()
         self.p_shrot_read = defaultdict(int)
         self.p_valid_read = defaultdict(int)
+        self.json_str = ""
         year = self.option('time').prop['year']
         month = self.option('time').prop['month']
         name = "id_" + self.option('sample_info').prop["sequcing_id"]
@@ -64,6 +66,7 @@ class SplitStatTool(Tool):
 
     def create_json(self):
         stat_json = dict()
+        stat_json["split_id"] = self.option('sample_info').prop["split_id"]
         stat_json["sequcing_id"] = self.option('sample_info').prop["sequcing_id"]
         stat_json["sequcing_sn"] = self.option('sample_info').prop["sequcing_sn"]
         report_path = os.path.join(self.seq_id, "Report")
@@ -79,6 +82,7 @@ class SplitStatTool(Tool):
         stat_json["parent_sample"] = p_sample
         stat_json["child_sample"] = c_sample
         json_path = os.path.join(self.work_dir, 'output', "stat.json")
+        self.json_str = json.dumps(stat_json)
         with open(json_path, 'w') as w:
             json.dump(stat_json, w)
 
@@ -167,8 +171,8 @@ class SplitStatTool(Tool):
             line = r.readline().rstrip('\n')
             line = re.split('\t', line)
             q30 = float(line[3])
-        my_q20 = min(q20, q30)
-        my_q30 = max(q20, q30)
+        my_q20 = max(q20, q30)
+        my_q30 = min(q20, q30)
         fastq['q20'] = my_q20
         fastq['q30'] = my_q30
         return fastq

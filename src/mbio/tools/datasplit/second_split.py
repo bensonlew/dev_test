@@ -7,6 +7,7 @@ import os
 import re
 import errno
 import subprocess
+import multiprocessing
 from collections import defaultdict
 from biocluster.config import Config
 from biocluster.tool import Tool
@@ -21,6 +22,7 @@ class SecondSplitAgent(Agent):
     """
     def __init__(self, parent=None):
         super(SecondSplitAgent, self).__init__(parent)
+        self._run_mode = "ssh1"
         options = [
             {'name': 'sample_info', 'type': "infile", 'format': 'datasplit.miseq_split'},  # 样本拆分信息表
             {'name': 'unzip_path', 'type': "string"}  # bcl2fastq软件拆分出来的fastq解压后的输出目录
@@ -157,10 +159,16 @@ class SecondSplitTool(Tool):
         """
         对所有的父样本进行遍历检测，如果该父样本有子样本，则进行2次拆分
         """
+        process_list = list()
         for p_id in self.option('sample_info').prop["parent_ids"]:
             if self.option('sample_info').parent_sample(p_id, "has_child"):
                 self.logger.info(p_id + "开始拆分")
-                self.s_split(p_id)
+                p = multiprocessing.Process(target=self.s_split, args=(p_id,))
+                process_list.append(p)
+        for p in process_list:
+            p.start()
+        for p in process_list:
+            p.join()
 
     def stat(self):
         """
