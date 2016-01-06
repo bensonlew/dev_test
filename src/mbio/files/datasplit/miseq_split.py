@@ -15,7 +15,7 @@ class MiseqSplitFile(File):
         super(MiseqSplitFile, self).__init__()
         self.seq_prop = ["sequcing_id", "sequcing_sn", "program", "file_path",
                          "config", "parent_sample", "child_sample"]
-        self.seq_config = ["index_mismatch", "ignore_missing_bcl", "base_mask"]
+        self.seq_config = ["index_missmatch", "ignore_missing_bcl", "base_mask"]
         self.p_props = ["sample_name", "index", "filter.min", "sample_id", "mj_sn",
                         "cus_sample_name", "lane", "project", "has_child", "program"]
         self.c_props = ["sample_name", "sample_id", "mj_sn", "cus_sample_name", "config"]
@@ -41,7 +41,7 @@ class MiseqSplitFile(File):
         self.set_property("sequcing_sn", self.jobj['sequcing_sn'])
         self.set_property("program", self.jobj['program'])
         self.set_property("file_path", self.jobj['file_path'])
-        self.set_property("index_mismatch", self.jobj["config"]["index_mismatch"])
+        self.set_property("index_missmatch", self.jobj["config"]["index_missmatch"])
         self.set_property("ignore_missing_bcl", self.jobj["config"]['ignore_missing_bcl'])
         self.set_property("base_mask", self.jobj["config"]["base_mask"])
         self.set_property("parent_sample", self.jobj["parent_sample"])

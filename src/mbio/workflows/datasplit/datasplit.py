@@ -102,7 +102,8 @@ class DatasplitWorkflow(Workflow):
         with open(json_file, 'r') as r:
             json_str = r.read()
         self.logger.debug(json_str)
-        self.end(json_str)
+        self.step.add_api_data("data", json_str)
+        self.end()
 
     def run(self):
         self.run_bcl2fastq()
