@@ -17,6 +17,17 @@ class BaseInfoAgent(Agent):
         options = [
             {"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"}]  # 输入fastq文件夹
         self.add_option(options)
+        self.step.add_steps("base_info_stat")
+        self.on('start', self.start_base_info)
+        self.on('end', self.end_base_info)
+
+    def start_base_info(self):
+        self.step.base_info_stat.start()
+        self.step.update()
+
+    def end_base_info(self):
+        self.step.base_info_stat.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -51,7 +62,7 @@ class BaseInfoTool(Tool):
         i = 0
         for fastq in self.option('fastq_path').prop['unzip_fastqs']:
             i += 1
-            file_name = os.path.join(base_info_dir, os.path.basename(fastq) + ".fastxstat")
+            file_name = os.path.join(base_info_dir, os.path.basename(fastq) + ".fastxstat.txt")
             cmd = self.fastx_stats_path + " -i " + fastq + " -o " + file_name
             command = self.add_command("fastx_quality_stats" + str(i), cmd)
             cmd_list.append(command)

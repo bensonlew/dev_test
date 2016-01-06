@@ -36,6 +36,7 @@ class MiseqSplitFile(File):
         for p in self.seq_prop:
             if p not in self.jobj:
                 raise FileError("json中缺少属性：" + p)
+        self.set_property("split_id", self.jobj['split_id'])
         self.set_property("sequcing_id", self.jobj['sequcing_id'])
         self.set_property("sequcing_sn", self.jobj['sequcing_sn'])
         self.set_property("program", self.jobj['program'])
