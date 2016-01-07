@@ -53,6 +53,7 @@ class RemoteFileManager(object):
         """
         将本地文件或文件夹上传到远程路径
 
+        :param from_path:
         :return:
         """
         if self._type == "local":

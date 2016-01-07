@@ -25,9 +25,9 @@ class Pipeline(object):
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == "client01":
             json_obj = self.sanger_submit()
-            json_obj['client'] = client
         else:
             json_obj = self.json_submit()
+        json_obj['client'] = client
         if "type" not in json_obj.keys() or "id" not in json_obj.keys():
             info = {"success": False, "info": "Json内容不正确!!"}
             return json.dumps(info)
@@ -81,7 +81,8 @@ class Pipeline(object):
                         json_obj['options'][opt.tag] = "%s/%s" % (file_path, opt.text)
                 else:
                     if "format" in opt.attrib.keys():
-                        json_obj['options'][opt.tag] = "%s||%s:%s" % (opt.attrib["format"], opt.attrib["type"], opt.text)
+                        json_obj['options'][opt.tag] = "%s||%s:%s" %\
+                                                       (opt.attrib["format"], opt.attrib["type"], opt.text)
                     else:
                         json_obj['options'][opt.tag] = "%s:%s" % (opt.attrib, opt.text)
             else:
@@ -262,7 +263,7 @@ class PipelineRunning(object):
         data = workflow_module.get_running(client)
         count = len(data)
         if count > 0:
-            info = []
+            info = {}
             for rec in data:
                 info["id"] = rec.workflow_id
                 info["addtime"] = rec.add_time
@@ -283,7 +284,7 @@ class PipelineQueue(object):
         data = workflow_module.get_queue(client)
         count = len(data)
         if count > 0:
-            info = []
+            info = {}
             for rec in data:
                 info["id"] = rec.workflow_id
                 info["addtime"] = rec.add_time
