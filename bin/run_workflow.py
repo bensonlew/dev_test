@@ -333,6 +333,9 @@ class WorkJob(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
+            if workflow:
+                workflow.step.failed("运行异常:%s" % e)
+                workflow.step.update()
             write_log("Workflow %s has error %s:%s" % (self.workflow_id, e.__class__.__name__, e))
             data = {
                 "is_error": 1,
@@ -342,10 +345,6 @@ class WorkJob(object):
             }
             myvar = dict(id=self.workflow_id)
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
-            if workflow:
-                workflow.step.failed("运行异常:%s" % e)
-                workflow.update()
-
         write_log("End running workflow:%s" % self.workflow_id)
 
     def update_error(self):
