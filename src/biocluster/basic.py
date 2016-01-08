@@ -644,7 +644,6 @@ class StepMain(Step):
         """
         更新状态到API
 
-        :param json_str:  api data参数数据，必须为json字符串
         :return:
         """
         if not (self.bind_obj.UPDATE_STATUS and self.api_type):

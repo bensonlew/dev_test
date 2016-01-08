@@ -82,6 +82,9 @@ class Config(object):
         self.UPDATE_RETRY_INTERVAL = int(self.rcf.get("API_UPDATE", "retry_interval"))
         self.UPDATE_LOG = self.rcf.get("API_UPDATE", "log")
 
+        #Mongo
+        self.MONGO_URI = self.rcf.get("MONGO", "uri")
+
     @property
     def LISTEN_IP(self):
         if self._listen_ip is None:
