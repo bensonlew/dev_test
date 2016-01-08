@@ -16,7 +16,9 @@ class PairFastqToFastaAgent(Agent):
         super(PairFastqToFastaAgent, self).__init__(parent)
         options = [
             {"name": "fastq_input1", "type": "infile", "format": "sequence.fastq"},
-            {"name": "fastq_input2", "type": "infile", "format": "sequence.fastq"}
+            {"name": "fastq_input2", "type": "infile", "format": "sequence.fastq"},
+            {"name": "fq1_to_fasta_id", "type": "string", "default": "none"},
+            {"name": "fq2_to_fasta_id", "type": "string", "default": "none"}
         ]
         self.add_option(options)
         self.step.add_steps("pair_fastq_to_fasta")
@@ -61,10 +63,10 @@ class PairFastqToFastaTool(Tool):
         :return:
         """
         super(PairFastqToFastaTool, self).run()
-        self.pair_fastq_to_fasta(self.option('fastq_input1').prop["path"], self.option('fastq_input2').prop["path"])
+        self.pair_fastq_to_fasta(self.option('fastq_input1').prop["path"], self.option('fastq_input2').prop["path"], self.option('fq1_to_fasta_id'), self.option('fq2_to_fasta_id'))
         self.end()
 
-    def pair_fastq_to_fasta(self, fq1, fq2):
+    def pair_fastq_to_fasta(self, fq1, fq2, id1, id2):
         """
         将fastq文件转换成fasta文件
         :param fq1:成对fastq文件1
@@ -72,6 +74,7 @@ class PairFastqToFastaTool(Tool):
         :return:
         """
         self.logger.info("开始运行fastq_to_fasta函数")
+        n = 1
         with open(fq1, 'r') as r1:
             with open(fq2, 'r') as r2:
                 with open(self.output_dir + '/fasta', 'w') as w:
@@ -80,8 +83,27 @@ class PairFastqToFastaTool(Tool):
                     length = len(file1)
                     for i in range(1, length+1):
                         if (i-1) % 4 == 0:
-                            w.write('%s' % file1[i-1].replace('@', '>'))
-                            w.write(file1[i])
-                            w.write('%s' % file2[i-1].replace('@', '>'))
-                            w.write(file2[i])
+                            if id1 == "none" and id2 == "none":
+                                w.write('%s' % file1[i-1].replace('@', '>'))
+                                w.write(file1[i])
+                                w.write('%s' % file2[i-1].replace('@', '>'))
+                                w.write(file2[i])
+                            elif id1 != "none" and id2 != "none":
+                                w.write('%s%s\n' % (id1, n))
+                                w.write(file1[i])
+                                w.write('%s%s\n' % (id2, n))
+                                w.write(file2[i])
+                                n += 1
+                            elif id1 != "none" and id2 == "none":
+                                w.write('%s%s\n' % (id1, n))
+                                w.write(file1[i])
+                                w.write('%s' % file2[i-1].replace('@', '>'))
+                                w.write(file2[i])
+                                n += 1
+                            else:
+                                w.write('%s' % file1[i-1].replace('@', '>'))
+                                w.write(file1[i])
+                                w.write('%s%s\n' % (id2, n))
+                                w.write(file2[i])
+                                n += 1
         self.logger.info("运行fastq_to_fasta函数出错")

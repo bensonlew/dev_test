@@ -15,7 +15,8 @@ class FastqToFastaAgent(Agent):
     def __init__(self, parent):
         super(FastqToFastaAgent, self).__init__(parent)
         options = [
-            {"name": "fastq_input", "type": "infile", "format": "sequence.fastq"}
+            {"name": "fastq_input", "type": "infile", "format": "sequence.fastq"},
+            {"name": "fasta_id", "type": "string", "default": "none"}
         ]
         self.add_option(options)
         self.step.add_steps("fastq_to_fasta")
@@ -58,24 +59,28 @@ class FastqToFastaTool(Tool):
         :return:
         """
         super(FastqToFastaTool, self).run()
-        self.fastq_to_fasta(self.option('fastq_input').prop["path"])
+        self.fastq_to_fasta(self.option('fastq_input').prop["path"], self.option('fasta_id'))
         self.end()
 
-    def fastq_to_fasta(self, fastq):
+    def fastq_to_fasta(self, fastq, id1):
         """
         将fastq文件转换成fasta文件
         :param fastq:
         :return:
         """
         n = 0
+        i = 1
         self.logger.info("开始运行fastq_to_fasta函数")
         with open(fastq, 'r') as r:
             with open(self.output_dir + '/fasta', 'w') as w:
                 for line in r:
                     n += 1
-                    line = line.rstrip()
                     if (n-1) % 4 == 0:
-                        w.write('%s\n' % line.replace('@', '>'))
+                        if id1 == 'none':
+                            w.write('%s' % line.replace('@', '>'))
+                        else:
+                            w.write('%s%s\n' % (id1, i))
+                            i += 1
                     if (n+2) % 4 == 0:
-                        w.write('%s\n' % line)
+                        w.write('%s' % line)
         self.logger.info("运行fastq_to_fasta函数出错")
