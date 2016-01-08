@@ -127,7 +127,7 @@ class RarefactionTool(Tool):
         for root, dirs, files in os.walk(self.output_dir):
             for names in dirs:
                 shutil.rmtree(os.path.join(self.output_dir, names))
-        for estimators in self.indices.split(','):
+        for estimators in self.indices.split('-'):
             if estimators == "sobs":
                 os.system('mkdir rarefaction|find -name "{}*rarefaction.xls"|xargs mv -t rarefaction'
                           .format(self.option("level")))
