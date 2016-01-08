@@ -6,9 +6,9 @@ import os
 import shutil
 
 
-class NETSHARE(RemoteFile):
+class Netshare(RemoteFile):
     def __init__(self, type_name, path):
-        super(NETSHARE, self).__init__(type_name, path)
+        super(Netshare, self).__init__(type_name, path)
         self.config = Config().get_netdata_config(type_name)
         self._full_path = os.path.join(self.config[type_name + "_path"], path)
 

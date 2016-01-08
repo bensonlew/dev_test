@@ -16,6 +16,7 @@ import gevent
 import time
 from .api.file.remote import RemoteFileManager
 import json
+from biocluster.api.database.base import ApiManager
 
 
 class Workflow(Basic):
@@ -38,6 +39,8 @@ class Workflow(Basic):
         self.pause = False
         self._pause_time = None
         self.__check_to_file_option()
+        self.IMPORT_REPORT_DATA = False
+        self.api = ApiManager(self)
         self.step.start()
         self.step.update()
 
@@ -137,7 +140,6 @@ class Workflow(Basic):
         """
         停止workflow运行
 
-        :param api_data:  需要传递给API的数据
         :return:
         """
         super(Workflow, self).end()
