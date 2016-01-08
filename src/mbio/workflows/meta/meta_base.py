@@ -232,5 +232,5 @@ class MetaBaseWorkflow(Workflow):
 
     def run(self):
         self.run_qc()
-        self.on_rely([self.alpha, self.beta], self.end)
+        self.on_rely([self.alpha, self.beta], self.set_end)
         super(MetaBaseWorkflow, self).run()
