@@ -150,7 +150,6 @@ class SecondSplitTool(Tool):
                 file_name = os.path.join(self.option('unzip_path'), p['mj_sn'] + "_r1.fastq")
                 num_lines = sum(1 for line in open(file_name))
                 total_reads = num_lines / 4
-                self.logger.debug(total_reads)
                 stat_name = os.path.join(stat_dir, "pear.stat")
                 with open(stat_name, 'a') as a:
                     a.write(p['sample_id'] + "\t" + str(int(total_reads)) + "\t" + '0' + "\n")
@@ -183,6 +182,16 @@ class SecondSplitTool(Tool):
                             str(self.p_chimera_index[p_id]) + "\t" + str(self.primer_miss[p_id]) + "\n")
         c_stat = os.path.join(self.work_dir, "stat", "c_stat.stat")
         with open(c_stat, 'w') as w:
+            for c_id in self.option('sample_info').prop["child_ids"]:
+                w.write(str(c_id) + "\t" + str(self.child_num[c_id]) + "\t" + str(self.short_child[c_id]) + "\n")
+
+    def my_stat(self, p_id):
+        p_stat = os.path.join(self.work_dir, "stat", "p_stat.stat")
+        with open(p_stat, 'ab') as w:
+            w.write(str(p_id) + "\t" + str(self.p_no_index[p_id]) + "\t" +
+                    str(self.p_chimera_index[p_id]) + "\t" + str(self.primer_miss[p_id]) + "\n")
+        c_stat = os.path.join(self.work_dir, "stat", "c_stat.stat")
+        with open(c_stat, 'ab') as w:
             for c_id in self.option('sample_info').prop["child_ids"]:
                 w.write(str(c_id) + "\t" + str(self.child_num[c_id]) + "\t" + str(self.short_child[c_id]) + "\n")
 
@@ -230,6 +239,7 @@ class SecondSplitTool(Tool):
                             self.p_chimera_index[p_id] += 1
                         elif f_level == 3:
                             self.primer_miss[p_id] += 1
+        self.my_stat(p_id)
 
     def logger_process(self, count):
         if count % 10000 == 0:
@@ -248,7 +258,7 @@ class SecondSplitTool(Tool):
         :param c_id: 子样本id
         :param seq: 需要进行长度校验的序列
         """
-        if len(seq) - self.f_chomp_length[c_id] - self.r_chomp_length[c_id] < int(self.option('sample_info').child_sample(c_id, "filter.min")):
+        if len(seq) - self.f_chomp_length[c_id] - self.r_chomp_length[c_id] < int(self.option('sample_info').child_sample(c_id, "filter_min")):
             name = ""
             self.short_child[c_id] += 1
         else:
@@ -315,5 +325,5 @@ class SecondSplitTool(Tool):
         self.pear()
         self.pear_stat()
         self.split()
-        self.stat()
+        # self.stat()
         self.end()
