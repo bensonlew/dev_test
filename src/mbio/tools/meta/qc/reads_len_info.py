@@ -25,6 +25,17 @@ class ReadsLenInfoAgent(Agent):
         super(ReadsLenInfoAgent, self).__init__(parent)
         options = [{"name": "fasta_path", "type": "infile", "format": "sequence.fasta_dir"}]  # 输入的fasta文件夹
         self.add_option(options)
+        self.step.add_steps("seq_len_stat")
+        self.on('start', self.start_len_stat)
+        self.on('end', self.end_len_stat)
+
+    def start_len_stat(self):
+        self.step.seq_len_stat.start()
+        self.step.update()
+
+    def end_len_stat(self):
+        self.step.seq_len_stat.end()
+        self.step.update()
 
     def check_options(self):
         """

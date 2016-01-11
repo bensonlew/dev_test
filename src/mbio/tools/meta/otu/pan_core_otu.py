@@ -27,6 +27,17 @@ class PanCoreOtuAgent(Agent):
             {"name": "pan_otu_table", "type": "outfile", "format": "meta.otu.pan_core_table"},  # 输出的pan_otu表格
             {"name": "core_otu_table", "type": "outfile", "format": "meta.otu.pan_core_table"}]  # 输出的core_otu表格
         self.add_option(options)
+        self.step.add_steps("create_pan_core")
+        self.on('start', self.start_pan_core)
+        self.on('end', self.end_pan_core)
+
+    def start_pan_core(self):
+        self.step.create_pan_core.start()
+        self.step.update()
+
+    def end_pan_core(self):
+        self.step.create_pan_core.end()
+        self.step.update()
 
     def check_options(self):
         """

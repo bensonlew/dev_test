@@ -30,6 +30,7 @@ class OtuAnalysisModule(Module):
             {'name': 'otu_taxon_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 待分类信息的otu表文件
             {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'}]  # 输出的otu_taxon_dir文件夹
         self.add_option(options)
+        self.step.add_steps("usearch", "qiimeassign", "otutaxonstat")
         self.usearch = self.add_tool('meta.otu.usearch_otu')
         self.qiimeassign = self.add_tool('taxon.qiime_assign')
         self.otutaxonstat = self.add_tool('meta.otu.otu_taxon_stat')
@@ -58,6 +59,8 @@ class OtuAnalysisModule(Module):
         """
         运行Usearch，生成OTU表
         """
+        self.step.usearch.start()
+        self.step.update()
         myopt = {
             'fasta': self.option('fasta'),
             'identity': self.option('confidence')
@@ -70,6 +73,9 @@ class OtuAnalysisModule(Module):
         """
         运行Qiime Assign,获取OTU的分类信息
         """
+        self.step.usearch.end()
+        self.step.qiimeassign.start()
+        self.step.update()
         myopt = dict()
         if self.option('database') == "custom_mode":
             myopt = {
@@ -111,6 +117,9 @@ class OtuAnalysisModule(Module):
         """
         进行分类学统计，产生不同分类水平上OTU统计表
         """
+        self.step.qiimeassign.end()
+        self.step.otutaxonstat.start()
+        self.step.update()
         myopt = dict()
         if self.option('subsample'):
             myopt = {
@@ -160,6 +169,8 @@ class OtuAnalysisModule(Module):
         self.option('otu_taxon_table').set_path(self.output_dir + '/OtuTaxonStat/otu_taxon.xls')
         self.option('otu_taxon_dir').set_path(self.output_dir + '/OtuTaxonStat/tax_summary_a')
         self.logger.info('done')
+        self.step.otutaxonstat.end()
+        self.step.update()
 
     def run(self):
         super(OtuAnalysisModule, self).run()

@@ -36,7 +36,6 @@ class DatasplitWorkflow(Workflow):
         self.logger.debug(sec_program)
         self.logger.debug(self.option('sample_info').prop['program'])
         if (sec_program == [u'']) and self.option('sample_info').prop['program'] == "bcl2fastq":
-            self.logger.debug("match")
             self.second_split = self.add_tool("datasplit.second_split")
             self.backup = self.add_tool("datasplit.backup")
             self.split_stat = self.add_tool("datasplit.split_stat")
