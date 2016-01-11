@@ -326,6 +326,7 @@ class WorkJob(object):
             workflow.config.USE_DB = True
             if self.client in workflow.config.get_use_api_clients():
                 workflow.UPDATE_STATUS = True
+                workflow.IMPORT_REPORT_DATA = True
             file_path = os.path.join(workflow.work_dir, "data.json")
             with open(file_path, "w") as f:
                 json.dump(json_data, f, indent=4)

@@ -20,18 +20,6 @@ class FileBase(object):
         self._properties = {}
         self._is_set = False
 
-    def __getattr__(self, name):
-        """
-        通过下属步骤的名字直接访问下属步骤对象
-
-        :param name:
-        :return:
-        """
-        if name in self._properties.keys():
-            return self._properties[name]
-        else:
-            raise Exception("不存在名称为%s的属性，请先使用set_property方法添加属性!" % name)
-
     @property
     def prop(self):
         """
@@ -82,9 +70,6 @@ class FileBase(object):
         :param name: string 属性名称
         :param value: 属性值
         """
-        if name in ["prop", "is_set", "format", "set_property", "get_info",
-                    "set_path", "check", "get_md5", "get_size", "link"]:
-            raise Exception("属性名称%s不能和内置属性/方法同名！" % name)
         self._properties[name] = value
         return self
 

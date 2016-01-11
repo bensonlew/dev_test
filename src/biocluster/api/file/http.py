@@ -6,9 +6,9 @@ import re
 import os
 
 
-class HTTP(RemoteFile):
+class Http(RemoteFile):
     def __init__(self, type_name, path):
-        super(HTTP, self).__init__(type_name, path)
+        super(Http, self).__init__(type_name, path)
 
     def download(self, to_path):
         m = re.match(r"https?://.*/([^/^\?]+)/?\??.*$", self._path)

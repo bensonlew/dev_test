@@ -38,7 +38,7 @@ class MetastatAgent(Agent):
             {"name": "mann_ci", "type": "float", "default": 0.05},  # 秩和检验的显著性水平
             {"name": "mann_group", "type": "infile", "format": "meta.otu.group_table"},  # 秩和检验的输入分组文件
             {"name": "mann_correction", "type": "string", "default": "none"},  # 秩和检验的多重检验校正
-            {"name": "mann_type", "type": "string", "default":"two.side"},  # 秩和检验的选择单尾或双尾检验
+            {"name": "mann_type", "type": "string", "default": "two.side"},  # 秩和检验的选择单尾或双尾检验
             #{"name": "mann_output", "type": "outfile", "format": "statistical.stat_table"},  # 秩和检验的输出结果
             {"name": "student_input", "type": "infile", "format": "meta.otu.otu_table"},  # T检验的输入文件
             {"name": "student_ci", "type": "float", "default": 0.05},  # T检验的显著性水平
