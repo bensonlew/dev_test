@@ -79,7 +79,7 @@ class MetastatAgent(Agent):
         if not self.option('test'):
             self.logger.info(self.option('test'))
             raise OptionError("必须设置输入的检验名称")
-        for i in self.option('test').split('-'):
+        for i in self.option('test').split(','):
             if i not in ["chi_sq", "fisher", "kru_H", "mann", "anova", "student", "welch"]:
                 raise OptionError("所输入的检验名称不对")
             elif i == "chi_sq":
@@ -195,7 +195,7 @@ class MetastatTool(Tool):
             self.step.update()
 
 
-        for t in self.option('test').split('-'):
+        for t in self.option('test').split(','):
             # self.logger.info('运行metastat.py程序进行%s分析' % t)
             self.logger.info(t)
             if t == "chi_sq":
