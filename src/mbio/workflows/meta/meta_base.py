@@ -208,7 +208,7 @@ class MetaBaseWorkflow(Workflow):
         if event['data'] is "beta":
             os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Beta_diversity")
 
-    def set_end(self):
+    def set_db(self):
         # 设置报告文件到数据库
         # 设置QC报告文件
         api_samples = self.api.sample
@@ -233,5 +233,5 @@ class MetaBaseWorkflow(Workflow):
 
     def run(self):
         self.run_qc()
-        self.on_rely([self.alpha, self.beta], self.set_end)
+        self.on_rely([self.alpha, self.beta], self.set_db)
         super(MetaBaseWorkflow, self).run()
