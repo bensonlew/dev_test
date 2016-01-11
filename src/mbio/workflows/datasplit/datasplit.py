@@ -36,7 +36,6 @@ class DatasplitWorkflow(Workflow):
         self.logger.debug(sec_program)
         self.logger.debug(self.option('sample_info').prop['program'])
         if (sec_program == [u'']) and self.option('sample_info').prop['program'] == "bcl2fastq":
-            self.logger.debug("match")
             self.second_split = self.add_tool("datasplit.second_split")
             self.backup = self.add_tool("datasplit.backup")
             self.split_stat = self.add_tool("datasplit.split_stat")
@@ -102,7 +101,8 @@ class DatasplitWorkflow(Workflow):
         with open(json_file, 'r') as r:
             json_str = r.read()
         self.logger.debug(json_str)
-        self.end(json_str)
+        self.step.add_api_data("data", json_str)
+        self.end()
 
     def run(self):
         self.run_bcl2fastq()

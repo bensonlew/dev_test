@@ -26,6 +26,17 @@ class SubSampleAgent(Agent):
             {"name": "out_otu_table", "type": "outfile", "format": "meta.otu.otu_table"},  # 输出的OTU文件
             {"name": "level", "type": "string", "default": "otu"}]  # 物种水平
         self.add_option(options)
+        self.step.add_steps("sub_sample")
+        self.on('start', self.start_sub_sample)
+        self.on('end', self.end_sub_sample)
+
+    def start_sub_sample(self):
+        self.step.sub_sample.start()
+        self.update()
+
+    def end_sub_sample(self):
+        self.step.sub_sample.end()
+        self.update()
 
     def check_options(self):
         """

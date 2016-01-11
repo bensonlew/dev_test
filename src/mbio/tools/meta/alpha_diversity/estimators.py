@@ -51,7 +51,7 @@ class EstimatorsAgent(Agent):
             raise OptionError("请选择正确的分类水平")
         for estimators in self.option('indices').split(','):
             if estimators not in self.ESTIMATORS:
-                raise OptionError("请选择正确的指数类型")
+                raise OptionError("error:{},请选择正确的指数类型".format(estimators))
 
     def set_resource(self):
         """

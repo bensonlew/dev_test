@@ -47,7 +47,7 @@ class FastqFile(File):
         format_ = self.check_format()
         self.set_property("is_gz", self.is_gz)
         self.set_property("has_sample_info", self.has_sample_info)
-        self.set_property("format", format_)
+        self.set_property("is_fqformat", format_)
 
     def get_full_info(self, work_path):
         """
@@ -74,7 +74,7 @@ class FastqFile(File):
         """
         if super(FastqFile, self).check():
             self.get_info()
-            return self.prop["format"]
+            return self.prop["is_fqformat"]
 
     def check_format(self):
         """

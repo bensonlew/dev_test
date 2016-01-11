@@ -93,6 +93,19 @@ class Sheet(object):
             raise Exception("没有参数%s" % name)
         return data[name]
 
+    def set_option(self, name, value):
+        """
+        重新设置参数的值
+
+        :param name:  参数名
+        :param value: 参数值
+        :return:
+        """
+        if name not in self._data['options'].keys():
+            raise Exception("没有参数%s" % name)
+        else:
+            self._data['options'][name] = value
+
     def options(self, component=None):
         """
         获取所有Option
