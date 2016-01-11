@@ -18,33 +18,25 @@ class PhyloTreeAgent(Agent):
     def __init__(self, parent):
         super(PhyloTreeAgent, self).__init__(parent)
         options = [
-            {"name": "otu_reps.fasta", "type": "infile", "format": "sequence.fasta"},  # 输入文件
-            {"name": "phylo.tre", "type": "outfile", "format": "meta.beta_diversity.newick_tree"}  # 输出结果
+            {"name": "otu_reps_fasta", "type": "infile", "format": "sequence.fasta"},  # 输入文件
+            {"name": "phylo_tre", "type": "outfile", "format": "meta.beta_diversity.newick_tree"}  # 输出结果
         ]
         self.add_option(options)
-        self.step.add_steps('clustalw', 'fasttree')
+        self.step.add_steps('phylo_tree')
 
-    def clustalw_start_callback(self):
-        self.step.clustalw.start()
+    def phylo_tree_start_callback(self):
+        self.step.phylo_tree.start()
         self.step.update()
 
-    def clustalw_end_callback(self):
-        self.step.clustalw.finish()
-        self.step.update()
-
-    def fasttree_start_callback(self):
-        self.step.fasttree.start()
-        self.step.update()
-
-    def fasttree_end_callback(self):
-        self.step.fasttree.finish()
+    def phylo_tree_end_callback(self):
+        self.step.phylo_tree.finish()
         self.step.update()
 
     def check_options(self):
         """
         检查参数是否正确
         """
-        if not self.option("otu_reps.fasta").is_set:
+        if not self.option("otu_reps_fasta").is_set:
             raise OptionError("请传入OTU代表序列文件")
 
     def set_resource(self):
@@ -70,9 +62,9 @@ class PhyloTreeTool(Tool):
         """
         执行clustalw2命令,生成中间文件phylo.clustalw.align
         """
-        self.add_state('clustalw_start', data='开始运行cluastalw命令')
+        self.add_state('phylo_tree_start', data='开始运行程序生成树文件')
         cmd = self.clustalw2_path + "clustalw2 -ALIGN -INFILE=%s -OUTFILE=phylo.clustalw.align  -OUTPUT=FASTA" % \
-                                    self.option('otu_reps.fasta').prop['path']
+                                    self.option('otu_reps_fasta').prop['path']
         print cmd
         # os.system(cmd)
         self.logger.info("开始运行clustalw2")
@@ -83,13 +75,13 @@ class PhyloTreeTool(Tool):
             self.logger.info("运行clustal2完成！")
         else:
             self.set_error("运行clastal2出错！")
-        self.add_state('clustalw_end', data='done')
+        # self.add_state('clustalw_end', data='done')
 
     def fasttree(self):
         """
         执行fasttree脚本，生成结果文件
         """
-        self.add_state('fasttree_start', data='开始运行fasttree命令，生成树文件')
+        # self.add_state('fasttree_start', data='开始运行fasttree命令，生成树文件')
         cmd = 'Python/bin/python %sfasttree.py -i %s' % (self.FastTree_path, 'phylo.clustalw.align')
         print cmd
         self.logger.info("开始运行fasttree")
@@ -101,7 +93,7 @@ class PhyloTreeTool(Tool):
         else:
             self.set_error("运行fasttree出错！")
         self.set_output()
-        self.add_state('fasttree_end', data='done')
+        self.add_state('phylo_tree_end', data='done')
 
     def set_output(self):
         """
@@ -111,7 +103,7 @@ class PhyloTreeTool(Tool):
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
         os.link(self.work_dir+'/phylo.tre', self.output_dir+'/phylo.tre')
-        self.option('phylo.tre').set_path(self.output_dir+'/phylo.tre')
+        self.option('phylo_tre').set_path(self.output_dir+'/phylo.tre')
         self.logger.info("done")
 
     def run(self):
