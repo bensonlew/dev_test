@@ -211,12 +211,13 @@ class MetaBaseWorkflow(Workflow):
     def set_end(self):
         # 设置报告文件到数据库
         # 设置QC报告文件
-        api_samples = self.api.sample()
+        api_samples = self.api.sample
         sample_info_path = self.qc.output_dir+"/samples_info/samples_info.txt"
         if not os.path.isfile(sample_info_path):
             raise Exception("找不到报告文件:{}".format(sample_info_path))
         api_samples.add_samples_info(sample_info_path)
         with open(self.qc.output_dir+"/samples_info/samples_info.txt") as f:
+            f.readline()
             for line in f:
                 s = line.split('\t')[0]
                 base_info_path = self.qc.output_dir+"/base_info/{}.fastq.fastxstat.txt".format(s)
