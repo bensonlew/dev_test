@@ -3,8 +3,8 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-import re
 import os
+from mbio.packages.sequence.search_fastx_by_id import *
 
 
 class GetFastaByIdAgent(Agent):
@@ -19,6 +19,8 @@ class GetFastaByIdAgent(Agent):
         super(GetFastaByIdAgent, self).__init__(parent)
         options = [
             {"name": "fasta", "type": "infile", "format": "sequence.fasta"},
+            {"name": "id_file", "type": "infile", "format": "sequence.fastx_id"},
+            {"name": "if_id_file", "type": "bool", "default": False},
             {"name": "id", "type": "string"}
         ]
         self.add_option(options)
@@ -57,36 +59,16 @@ class GetFastaByIdTool(Tool):
     def __init__(self, config):
         super(GetFastaByIdTool, self).__init__(config)
 
-    def search_by_id(self, fasta, fasta_id):
+    def search_by_id(self):
         """
         通过传入序列的id号，返回相应序列
-        :param fasta:
-        :param fasta_id:
-        :return:
         """
         self.logger.info("开始查找序列")
-        try:
-            with open(fasta, 'r') as f:
-                line_list = f.readlines()
-                # print line_list
-        except IOError:
-            self.logger.info("无法打开fasta文件")
-        with open('searchID_result.fasta', 'w') as out_file:
-            match = 0
-            for i in fasta_id.split(','):
-                # print i
-                for line in line_list:
-                    if re.match(r'>', line) and i in line:
-                        id_index = line_list.index(line)
-                        id_fasta = line_list[id_index + 1]
-                        out_file.write('%s%s' % (line_list[id_index], id_fasta))
-                        match += 1
-        if match == 0:
-            self.logger.info("没有找到相符id")
-        elif match < len(fasta_id.split(',')):
-            self.logger.info("只找到部分相符id")
-        else:
-            self.logger.info("完成查找")
+        if self.option('if_id_file') is False:
+            search_fasta_by_id(self.option('fasta').prop['path'], self.option('id'))
+        elif self.option('if_id_file') is True:
+            search_fasta_by_idfile(self.option('fasta').prop['path'], self.option('id_file').prop['path'])
+        self.logger.info("查找完毕")
         self.set_output()
 
     def set_output(self):
@@ -104,5 +86,5 @@ class GetFastaByIdTool(Tool):
         运行
         """
         super(GetFastaByIdTool, self).run()
-        self.search_by_id(self.option('fasta').prop['path'], self.option('id'))
+        self.search_by_id()
         self.end()

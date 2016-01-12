@@ -3,7 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-import re
+from mbio.packages.sequence.search_fastx_by_id import *
 import os
 
 
@@ -19,6 +19,8 @@ class GetFastqByIdAgent(Agent):
         super(GetFastqByIdAgent, self).__init__(parent)
         options = [
             {"name": "fastq", "type": "infile", "format": "sequence.fastq"},
+            {"name": "id_file", "type": "infile", "format": "sequence.fastx_id"},
+            {"name": "if_id_file", "type": "bool", "format": False},
             {"name": "id", "type": "string"}
         ]
         self.add_option(options)
@@ -56,39 +58,19 @@ class GetFastqByIdTool(Tool):
 
     def __init__(self, config):
         super(GetFastqByIdTool, self).__init__(config)
+        self.fastq_id_list = []
 
-    def search_by_id(self, fastq, fastq_id):
+    def search_by_id(self):
         """
         通过传入序列的id号，返回相应序列
-        :param fastq:
-        :param fastq_id:
         :return:
         """
         self.logger.info("开始查找序列")
-        try:
-            with open(fastq, 'r') as f:
-                line_list = f.readlines()
-                print line_list
-        except IOError:
-            self.logger.info("无法打开fastq文件")
-        with open('searchID_result.fastq', 'w') as out_file:
-            match = 0
-            for i in fastq_id.split(','):
-                # print i
-                for line in line_list:
-                    if re.match(r'@', line) and i in line:
-                        id_index = line_list.index(line)
-                        id_fastq = line_list[id_index + 1]
-                        next_line = line_list[id_index + 2]
-                        quality_line = line_list[id_index + 3]
-                        out_file.write('%s%s%s%s' % (line_list[id_index], id_fastq, next_line, quality_line))
-                        match += 1
-        if match == 0:
-            self.logger.info("没有找到相符id")
-        elif match < len(fastq_id.split(',')):
-            self.logger.info("只找到部分相符id")
-        else:
-            self.logger.info("完成查找")
+        if self.option('if_id_file') is False:
+            search_fastq_by_id(self.option('fastq').prop['path'], self.option('id'))
+        elif self.option('if_id_file') is True:
+            search_fastq_by_idfile(self.option('fastq').prop['path'], self.option('id_file').prop['path'])
+        self.logger.info("查找完毕")
         self.set_output()
 
     def set_output(self):
@@ -106,5 +88,5 @@ class GetFastqByIdTool(Tool):
         运行
         """
         super(GetFastqByIdTool, self).run()
-        self.search_by_id(self.option('fastq').prop['path'], self.option('id'))
+        self.search_by_id()
         self.end()
