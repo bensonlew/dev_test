@@ -223,7 +223,7 @@ class Sanger(Log):
         super(Sanger, self).__init__(data)
         self._client = "client01"
         self._key = "1ZYw71APsQ"
-        self._url = "http://172.16.3.74/api/add_task_log"
+        self._url = "http://192.168.10.161/api/add_task_log"
 
     def send(self):
         # url = "%s?%s" % (self._url, self.get_sig())

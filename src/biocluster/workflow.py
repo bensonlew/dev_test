@@ -41,6 +41,12 @@ class Workflow(Basic):
         self.__check_to_file_option()
         self.IMPORT_REPORT_DATA = False
         self.api = ApiManager(self)
+
+    def api_start(self):
+        """
+        流程开始api更新
+        :return:
+        """
         self.step.start()
         self.step.update()
 
@@ -127,6 +133,7 @@ class Workflow(Basic):
         super(Workflow, self).run()
         data = {
             "last_update": datetime.datetime.now(),
+            "pid": os.getpid(),
             "workdir": self.work_dir
         }
         self._update(data)

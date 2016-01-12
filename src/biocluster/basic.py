@@ -646,7 +646,7 @@ class StepMain(Step):
 
         :return:
         """
-        if not (self.bind_obj.UPDATE_STATUS and self.api_type):
+        if self.bind_obj.UPDATE_STATUS is not True or self.api_type is False:
             return
 
         workflow = self.bind_obj.get_workflow()
