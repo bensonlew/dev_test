@@ -21,6 +21,7 @@ def search_fasta_by_id(fasta, fasta_id):
                     id_fasta = line_list[id_index + 1]
                     out_file.write('%s%s' % (line_list[id_index], id_fasta))
                     match += 1
+    return match
 
 
 def search_fastq_by_id(fastq, fastq_id):
@@ -41,6 +42,7 @@ def search_fastq_by_id(fastq, fastq_id):
                         quality_line = line_list[id_index + 3]
                         out_file.write('%s%s%s%s' % (line_list[id_index], id_fastq, next_line, quality_line))
                         match += 1
+    return match
 
 
 def search_fasta_by_idfile(fasta, id_file):
@@ -67,6 +69,7 @@ def search_fasta_by_idfile(fasta, id_file):
                     id_fasta = line_list[id_index + 1]
                     out_file.write('%s%s' % (line_list[id_index], id_fasta))
                     match += 1
+    return match, fasta_id_list
 
 
 def search_fastq_by_idfile(fastq, id_file):
@@ -95,3 +98,4 @@ def search_fastq_by_idfile(fastq, id_file):
                     quality_line = line_list[id_index + 3]
                     out_file.write('%s%s%s%s' % (line_list[id_index], id_fastq, next_line, quality_line))
                     match += 1
+    return match, fastq_id_list

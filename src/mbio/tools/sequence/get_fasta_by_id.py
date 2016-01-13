@@ -65,10 +65,21 @@ class GetFastaByIdTool(Tool):
         """
         self.logger.info("开始查找序列")
         if self.option('if_id_file') is False:
-            search_fasta_by_id(self.option('fasta').prop['path'], self.option('id'))
+            match = search_fasta_by_id(self.option('fasta').prop['path'], self.option('id'))
+            if match == 0:
+                self.logger.info("没有找到id相应的序列")
+            elif match < len(self.option('id')):
+                self.logger.info("找到部分id的序列")
+            else:
+                self.logger.info("查找完毕")
         elif self.option('if_id_file') is True:
-            search_fasta_by_idfile(self.option('fasta').prop['path'], self.option('id_file').prop['path'])
-        self.logger.info("查找完毕")
+            match = search_fasta_by_idfile(self.option('fasta').prop['path'], self.option('id_file').prop['path'])
+            if match[0] == 0:
+                self.logger.info("没有找到id相应的序列")
+            elif match[0] < len(match[1]):
+                self.logger.info("找到部分id的序列")
+            else:
+                self.logger.info("查找完毕")
         self.set_output()
 
     def set_output(self):
