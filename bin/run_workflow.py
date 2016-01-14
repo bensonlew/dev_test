@@ -325,7 +325,7 @@ class WorkJob(object):
 
             workflow = wf(wsheet)
             workflow.config.USE_DB = True
-            if self.client in workflow.config.get_use_api_clients():
+            if self.client and self.client in workflow.config.get_use_api_clients():
                 workflow.UPDATE_STATUS = True
                 workflow.api_start()
             if self.client == "client01" and json_data["type"] == "workflow":

@@ -34,7 +34,7 @@ class ReadsLenInfoAgent(Agent):
         self.step.update()
 
     def end_len_stat(self):
-        self.step.seq_len_stat.end()
+        self.step.seq_len_stat.finish()
         self.step.update()
 
     def check_options(self):

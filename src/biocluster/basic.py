@@ -630,6 +630,11 @@ class StepMain(Step):
 
     @property
     def api_type(self):
+        """
+        从Config文件中获取client对于的API名称
+
+        :return:
+        """
         if self._api_type:
             return self._api_type
         else:
@@ -643,6 +648,7 @@ class StepMain(Step):
     def update(self):
         """
         更新状态到API
+            *只有当bind_obj的UPDATE_STATUS为True且在self.api_type不为False时才执行更新操作*
 
         :return:
         """

@@ -169,22 +169,6 @@ class SecondSplitTool(Tool):
         for p in process_list:
             p.join()
 
-    def stat(self):
-        """
-        在子样本全部拆分完毕，输出了之后，将内存中的一些统计数据写到文件当中，方便后边的模块生成json
-        """
-        self.logger.info("开始输出统计文件")
-        p_stat = os.path.join(self.work_dir, "stat", "p_stat.stat")
-        with open(p_stat, 'w') as w:
-            for p_id in self.option('sample_info').prop["parent_ids"]:
-                if self.option('sample_info').parent_sample(p_id, "has_child"):
-                    w.write(str(p_id) + "\t" + str(self.p_no_index[p_id]) + "\t" +
-                            str(self.p_chimera_index[p_id]) + "\t" + str(self.primer_miss[p_id]) + "\n")
-        c_stat = os.path.join(self.work_dir, "stat", "c_stat.stat")
-        with open(c_stat, 'w') as w:
-            for c_id in self.option('sample_info').prop["child_ids"]:
-                w.write(str(c_id) + "\t" + str(self.child_num[c_id]) + "\t" + str(self.short_child[c_id]) + "\n")
-
     def my_stat(self, p_id):
         p_stat = os.path.join(self.work_dir, "stat", "p_stat.stat")
         with open(p_stat, 'ab') as w:
@@ -192,7 +176,8 @@ class SecondSplitTool(Tool):
                     str(self.p_chimera_index[p_id]) + "\t" + str(self.primer_miss[p_id]) + "\n")
         c_stat = os.path.join(self.work_dir, "stat", "c_stat.stat")
         with open(c_stat, 'ab') as w:
-            for c_id in self.option('sample_info').prop["child_ids"]:
+            child_ids = self.option('sample_info').find_child_ids(p_id)
+            for c_id in child_ids:
                 w.write(str(c_id) + "\t" + str(self.child_num[c_id]) + "\t" + str(self.short_child[c_id]) + "\n")
 
     def s_split(self, p_id):
@@ -207,7 +192,7 @@ class SecondSplitTool(Tool):
             self.logger.info("process sequence: 1")
             for line in r:
                 c += 1
-                self.logger_process(c)
+                self.logger_process(c, p_id)
                 head = line.rstrip('\n')
                 ori_seq = r.next().rstrip('\n')
                 direction = r.next()
@@ -241,9 +226,9 @@ class SecondSplitTool(Tool):
                             self.primer_miss[p_id] += 1
         self.my_stat(p_id)
 
-    def logger_process(self, count):
+    def logger_process(self, count, p_id):
         if count % 10000 == 0:
-            self.logger.info("process sequence: " + str(count))
+            self.logger.info("process sequence " + p_id + " : " + " " + str(count))
 
     def _write_match_file(self, name, head, seq, direction, quality, c_id):
         with open(name, 'a') as a:
@@ -325,5 +310,4 @@ class SecondSplitTool(Tool):
         self.pear()
         self.pear_stat()
         self.split()
-        # self.stat()
         self.end()
