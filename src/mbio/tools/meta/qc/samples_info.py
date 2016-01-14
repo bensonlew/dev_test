@@ -19,6 +19,17 @@ class SamplesInfoAgent(Agent):
         options = [
             {"name": "fasta_path", "type": "infile", "format": "sequence.fasta_dir"}]  # 输入文件夹
         self.add_option(options)
+        self.step.add_steps("sample_info_stat")
+        self.on('start', self.start_info_stat)
+        self.on('end', self.end_info_stat)
+
+    def start_info_stat(self):
+        self.step.sample_info_stat.start()
+        self.step.update()
+
+    def end_info_stat(self):
+        self.step.sample_info_stat.end()
+        self.step.end()
 
     def check_options(self):
         """
