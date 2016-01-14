@@ -14,9 +14,10 @@ from .module import Module
 import datetime
 import gevent
 import time
-from .api.file.remote import RemoteFileManager
-import json
+from biocluster.api.file.remote import RemoteFileManager
 from biocluster.api.database.base import ApiManager
+import re
+import importlib
 
 
 class Workflow(Basic):
@@ -73,11 +74,27 @@ class Workflow(Basic):
         """
         if "to_file" in self._sheet.data.keys():
             for opt in self._sheet.data["to_file"]:
-                json_data = self._sheet.option(opt)
-                file_path = os.path.join(self.work_dir, "%s_input.json" % opt)
-                with open(file_path, "w") as f:
-                    json.dump(json_data, f, indent=4)
-                self._sheet.set_option(opt, file_path)
+                m = re.match(r"([_\w\.]+)\((.*)\)", opt)
+                if m:
+                    func_path = m.group(1)
+                    f_list = func_path.split(".")
+                    func_name = f_list.pop()
+                    lib_path = ".".join(f_list)
+                    options = m.group(2)
+                    opt_list = re.split(r"\s*,\s*", options)
+                    for optl in opt_list:
+                        imp = importlib.import_module("biocluster.api.to_file.%s" % lib_path)
+                        func = getattr(imp, func_name)
+                        self._sheet.set_option(opt, func(self._sheet.option(optl), optl, self.work_dir, self))
+                else:
+                    imp = importlib.import_module("biocluster.api.to_file.parameter")
+                    func = getattr(imp, "json_to_file")
+                    self._sheet.set_option(opt, func(self._sheet.option(opt), opt, self.work_dir, self))
+
+                # json_data = self._sheet.option(opt)
+                # file_path = os.path.join(self.work_dir, "%s_input.json" % opt)
+                # with open(file_path, "w") as f:
+                #     json.dump(json_data, f, indent=4)
 
     def add_module(self, path):
         """

@@ -114,12 +114,11 @@ class Sample(Base):
                     specimen_id = result["_id"]
                 else:
                     raise Exception("没有找到对应的样品%s信息，请先导入样品信息表!" % line_data[0])
-                step_data = []
+                step_data = {}
                 i = 0
                 for step in length_list:
                     i += 1
-                    d = {step: line_data[i]}
-                    step_data.append(d)
+                    step_data[step] = line_data[i]
                 data = {
                   "project_sn": self.bind_object.sheet.project_sn,
                   "task_id": self.bind_object.sheet.id,
