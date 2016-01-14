@@ -20,6 +20,9 @@ db = config.get_db()
 
 
 class LogManager(object):
+    """
+    远程API更新日志管理器,负责管理每个任务的日志
+    """
     def __init__(self):
         self._running_task = {}
         self.from_time = None
@@ -29,8 +32,8 @@ class LogManager(object):
         timestr = ""
         while True:
 
-            if timestr != time.strftime('%Y%m', time.localtime(time.time())):
-                timestr = time.strftime('%Y%m', time.localtime(time.time()))
+            if timestr != time.strftime('%Y%m%d', time.localtime(time.time())):
+                timestr = time.strftime('%Y%m%d', time.localtime(time.time()))
                 log = self.get_log_path()
                 so = file(log, 'a+')
                 se = file(log, 'a+', 0)
@@ -71,7 +74,7 @@ class LogManager(object):
 
     @staticmethod
     def get_log_path():
-        timestr = time.strftime('%Y%m', time.localtime(time.time()))
+        timestr = time.strftime('%Y%m%d', time.localtime(time.time()))
         if not os.path.exists(Config().UPDATE_LOG):
             os.mkdir(Config().UPDATE_LOG)
         log = os.path.join(Config().UPDATE_LOG, "%s.log" % timestr)
@@ -223,7 +226,7 @@ class Sanger(Log):
         super(Sanger, self).__init__(data)
         self._client = "client01"
         self._key = "1ZYw71APsQ"
-        self._url = "http://172.16.3.74/api/add_task_log"
+        self._url = "http://192.168.10.161/api/add_task_log"
 
     def send(self):
         # url = "%s?%s" % (self._url, self.get_sig())

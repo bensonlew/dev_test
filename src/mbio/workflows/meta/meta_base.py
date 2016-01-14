@@ -208,7 +208,7 @@ class MetaBaseWorkflow(Workflow):
         if event['data'] is "beta":
             os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Beta_diversity")
 
-    def set_end(self):
+    def set_db(self):
         # 设置报告文件到数据库
         # 设置QC报告文件
         api_samples = self.api.sample
@@ -229,9 +229,16 @@ class MetaBaseWorkflow(Workflow):
             if not os.path.isfile(reads_len_info_path):
                 raise Exception("找不到报告文件:{}".format(base_info_path))
             api_samples.add_reads_len_info(step, reads_len_info_path)
+        # 设置OTU table文件
+        api_otu = self.api.meta
+        otu_path = self.stat.output_dir+"/OtuTaxon_summary/otu_taxon.xls"
+        if not os.path.isfile(otu_path):
+            raise Exception("找不到报告文件:{}".format(otu_path))
+        api_otu.add_otu_table(otu_path, 'otu')
+
         self.end()
 
     def run(self):
         self.run_qc()
-        self.on_rely([self.alpha, self.beta], self.set_end)
+        self.on_rely([self.alpha, self.beta], self.set_db)
         super(MetaBaseWorkflow, self).run()

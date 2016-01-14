@@ -39,6 +39,7 @@ class MiseqSplitFile(File):
         self.set_property("split_id", self.jobj['split_id'])
         self.set_property("sequcing_id", self.jobj['sequcing_id'])
         self.set_property("sequcing_sn", self.jobj['sequcing_sn'])
+        self.set_property("split_id", self.jobj['split_id'])
         self.set_property("program", self.jobj['program'])
         self.set_property("file_path", self.jobj['file_path'])
         self.set_property("index_missmatch", int(self.jobj["config"]["index_missmatch"]))

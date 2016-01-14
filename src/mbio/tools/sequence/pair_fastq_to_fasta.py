@@ -7,7 +7,7 @@ from biocluster.core.exceptions import OptionError
 
 class PairFastqToFastaAgent(Agent):
     """
-    将fastq文件转换成fasta格式的文件
+    将成对fastq文件转换成fasta格式的文件
     version v1
     author：qiuping
     last_modify:2015.01.06
@@ -21,16 +21,16 @@ class PairFastqToFastaAgent(Agent):
             {"name": "fq2_to_fasta_id", "type": "string", "default": "none"}
         ]
         self.add_option(options)
-        self.step.add_steps("pair_fastq_to_fasta")
+        self.step.add_steps("pair_to_fasta")
         self.on('start', self.stepstart)
         self.on('end', self.stepfinish)
 
     def stepstart(self):
-        self.step.pair_fastq_to_fasta.start()
+        self.step.pair_to_fasta.start()
         self.step.update()
 
     def stepfinish(self):
-        self.step.pair_fastq_to_fasta.finish()
+        self.step.pair_to_fasta.finish()
         self.step.update()
 
     def check_options(self):

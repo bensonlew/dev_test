@@ -11,7 +11,7 @@ class Sample(Base):
         self._db_name = "sanger"
 
     def add_samples_info(self, file_path):
-        if self.bind_object.IMPORT_REPORT_DATA is True:
+        if self.bind_object.IMPORT_REPORT_DATA is not True:
             self.bind_object.logger.debug("非web客户端调用，跳过导入样品信息!")
             return
         if not os.path.isfile(file_path):
@@ -19,7 +19,7 @@ class Sample(Base):
         data_list = []
         with open(file_path, 'r') as f:
             l = f.readline()
-            if not re.match(r"sample\s+reads\s+bases\s+avg\s+min\s+max",l):
+            if not re.match(r"sample\s+reads\s+bases\s+avg\s+min\s+max", l):
                 raise Exception("文件%s格式不正确，请选择正确的样品信息文件" % file_path)
             while True:
                 line = f.readline().strip('\n')
@@ -46,7 +46,7 @@ class Sample(Base):
             self.bind_object.logger.info("导入样品信息数据成功:%s" % result.inserted_ids)
 
     def add_base_info(self, sample_name, file_path):
-        if self.bind_object.IMPORT_REPORT_DATA is True:
+        if self.bind_object.IMPORT_REPORT_DATA is not True:
             self.bind_object.logger.debug("非web客户端调用，跳过导入样品%s碱基统计信息!" % sample_name)
             return
         if not os.path.isfile(file_path):
@@ -60,7 +60,7 @@ class Sample(Base):
         data_list = []
         with open(file_path, 'r') as f:
             l = f.readline()
-            if not re.match(r"column\tcount\tmin\tmax\tsum\tmean\tQ1\tmed\tQ3\tIQR\tlW\trW\tA_Count\tC_Count\tG_Count\tT_Count\tN_Count\tMax_count",l):
+            if not re.match(r"column\tcount\tmin\tmax\tsum\tmean\tQ1\tmed\tQ3\tIQR\tlW\trW\tA_Count\tC_Count\tG_Count\tT_Count\tN_Count\tMax_count", l):
                 raise Exception("文件%s格式不正确，请选择正确的碱基统计文件" % file_path)
             while True:
                 line = f.readline().strip('\n')
@@ -89,7 +89,7 @@ class Sample(Base):
             self.bind_object.logger.info("导入样品%s的碱基统计信息成功" % sample_name)
 
     def add_reads_len_info(self, step_length, file_path):
-        if self.bind_object.IMPORT_REPORT_DATA is True:
+        if self.bind_object.IMPORT_REPORT_DATA is not True:
             self.bind_object.logger.debug("非web客户端调用，跳过导入%s步长序列长度统计!" % step_length)
             return
         if not os.path.isfile(file_path):
@@ -98,7 +98,7 @@ class Sample(Base):
         data_list = []
         with open(file_path, 'r') as f:
             l = f.readline()
-            if not re.match(r"sample\t", l):
+            if not re.match(r"^sample\t", l):
                 raise Exception("文件%s格式不正确，请选择正确的碱基统计文件" % file_path)
             else:
                 length_list = l.strip("\n").split("\t")

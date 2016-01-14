@@ -60,7 +60,8 @@ class SplitStatTool(Tool):
         self.json_str = ""
         year = self.option('time').prop['year']
         month = self.option('time').prop['month']
-        name = "id_" + self.option('sample_info').prop["sequcing_id"]
+        name = "id_" + str(self.option('sample_info').prop["split_id"]) +\
+               "_" + str(self.option('sample_info').prop["sequcing_sn"])
         program = self.option('sample_info').prop["program"]
         self.seq_id = os.path.join(self.backup_dir, program, str(year), str(month), name)
 

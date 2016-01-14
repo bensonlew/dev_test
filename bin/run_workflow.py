@@ -322,10 +322,13 @@ class WorkJob(object):
         try:
             wf = load_class_by_path(path, "Workflow")
             wsheet = Sheet(data=json_data)
+
             workflow = wf(wsheet)
             workflow.config.USE_DB = True
             if self.client in workflow.config.get_use_api_clients():
                 workflow.UPDATE_STATUS = True
+                workflow.api_start()
+            if self.client == "client01" and json_data["type"] == "workflow":
                 workflow.IMPORT_REPORT_DATA = True
             file_path = os.path.join(workflow.work_dir, "data.json")
             with open(file_path, "w") as f:

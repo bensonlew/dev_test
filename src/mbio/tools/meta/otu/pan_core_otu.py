@@ -36,7 +36,7 @@ class PanCoreOtuAgent(Agent):
         self.step.update()
 
     def end_pan_core(self):
-        self.step.create_pan_core.end()
+        self.step.create_pan_core.finish()
         self.step.update()
 
     def check_options(self):

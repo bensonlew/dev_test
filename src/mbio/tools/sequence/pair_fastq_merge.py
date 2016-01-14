@@ -7,30 +7,30 @@ import os
 import subprocess
 
 
-class MergeAgent(Agent):
+class PairFastqMergeAgent(Agent):
     """
     调用pear软件将pair_fastq文件根据overlap的关系将read1和read2拼接在一起
     version v1
     author：qiuping
-    last_modify:2015.01.07
+    last_modify:2015.01.11
     """
     def __init__(self, parent):
-        super(MergeAgent, self).__init__(parent)
+        super(PairFastqMergeAgent, self).__init__(parent)
         options = [
             {"name": "fastq_input1", "type": "infile", "format": "sequence.fastq"},
             {"name": "fastq_input2", "type": "infile", "format": "sequence.fastq"}
         ]
         self.add_option(options)
-        self.step.add_steps("merge")
+        self.step.add_steps("pair_merge")
         self.on('start', self.stepstart)
         self.on('end', self.stepfinish)
 
     def stepstart(self):
-        self.step.merge.start()
+        self.step.pair_merge.start()
         self.step.update()
 
     def stepfinish(self):
-        self.step.merge.finish()
+        self.step.pair_merge.finish()
         self.step.update()
 
     def check_options(self):
@@ -52,9 +52,9 @@ class MergeAgent(Agent):
         self._memory = ''
 
 
-class MergeTool(Tool):
+class PairFastqMergeTool(Tool):
     def __init__(self, config):
-        super(MergeTool, self).__init__(config)
+        super(PairFastqMergeTool, self).__init__(config)
         self._version = "v1"
         self.pear_path = "/mnt/ilustre/users/sanger/app/pear/bin/"
 
@@ -63,7 +63,7 @@ class MergeTool(Tool):
         运行
         :return:
         """
-        super(MergeTool, self).run()
+        super(PairFastqMergeTool, self).run()
         self.merge()
         self.set_merge_output()
         self.end()
