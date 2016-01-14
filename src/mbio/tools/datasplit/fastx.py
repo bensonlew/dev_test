@@ -19,6 +19,7 @@ class FastxAgent(Agent):
     """
     def __init__(self, parent=None):
         super(FastxAgent, self).__init__(parent)
+        self._run_mode = "ssh1"
         options = [
             {'name': 'sample_info', 'type': "infile", 'format': 'datasplit.miseq_split'},  # 样本拆分信息表
             {'name': 'data_path', 'type': "string"}  # bcl2fastq的下机输出目录
@@ -52,7 +53,7 @@ class FastxTool(Tool):
         self.fastx_dir = "fastxtoolkit/bin/"
         self.java_dir = os.path.join(Config().SOFTWARE_DIR, "sun_jdk1.8.0/bin/java")
         self.FastqTotalHighQualityBase = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/FastqTotalHighQualityBase.jar")
-        self.gnuplot = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/")
+        self.gnuplot = os.path.join(Config().SOFTWARE_DIR, "gnuplot/bin")
         self.option('sample_info').get_info()
         self.fastqs = list()
         self.fastx = list()

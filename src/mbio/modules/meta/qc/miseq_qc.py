@@ -18,6 +18,7 @@ class MiseqQcModule(Module):
         self.base_info = self.add_tool('meta.qc.base_info')
         self.samples_info = self.add_tool('meta.qc.samples_info')
         self.reads_len_info = self.add_tool('meta.qc.reads_len_info')
+        self.step.add_steps("fastq_format", "base_info_stat", "seq_len_stat", "sample_info_stat")
 
     def check_options(self):
         """
@@ -38,6 +39,8 @@ class MiseqQcModule(Module):
         运行qc_format，对输入的fastq文件夹或者fastq文件进行格式化
         生成fastq_dir,
         """
+        self.step.fastq_format.start()
+        self.step.update()
         myopt = {
             'in_fastq': self.option('in_fastq')
         }
@@ -53,6 +56,9 @@ class MiseqQcModule(Module):
         """
         运行碱基质量统计，对fastq文件夹里的fastq文件做碱基质量统计
         """
+        self.step.fastq_format.end()
+        self.step.base_info_stat.start()
+        self.step.update()
         self.logger.info("开始运行碱基质量统计")
         fastq_path = os.path.join(self.qc_format.work_dir, "output/fastq_dir")
         myopt = {
@@ -66,6 +72,8 @@ class MiseqQcModule(Module):
         """
         运行样品信息统计，对fasta文件夹进行样本信息统计
         """
+        self.step.sample_info_stat.start()
+        self.step.update()
         self.logger.info("开始进行样品信息统计")
         fasta_path = os.path.join(self.qc_format.work_dir, "output/converted_fastas")
         myopt = {
@@ -79,6 +87,8 @@ class MiseqQcModule(Module):
         """
         统计各个样本的序列长度分布
         """
+        self.step.seq_len_stat.start()
+        self.step.update()
         self.logger.info("开始进行序列长度分布统计")
         fasta_path = os.path.join(self.qc_format.work_dir, "output/converted_fastas")
         myopt = {
@@ -92,10 +102,9 @@ class MiseqQcModule(Module):
         """
         设置合并到一起的fasta的文件路径
         """
-        output = os.path.join(self.work_dir, "output")
         self.logger.info("设置fasta的文件路径")
         cat_fasta = os.path.join(self.qc_format.work_dir, "output/cat_meta.fasta")
-        new_fasta = os.path.join(output, "cat_meta.fasta")
+        new_fasta = os.path.join(self.work_dir, "cat_meta.fasta")
         if os.path.exists(new_fasta):
             os.remove(new_fasta)
         os.link(cat_fasta, new_fasta)
@@ -111,6 +120,8 @@ class MiseqQcModule(Module):
         self.logger.info("开始移动baseinfo文件夹")
         base_info_dir = os.path.join(self.base_info.work_dir, "output/base_info")
         shutil.copytree(base_info_dir, output)
+        self.step.base_info_stat.end()
+        self.step.update()
 
     def mv_reads_len(self):
         """
@@ -122,6 +133,8 @@ class MiseqQcModule(Module):
         self.logger.info("开始移动长度分布统计文件夹")
         reads_len_info = os.path.join(self.reads_len_info.work_dir, "output/reads_len_info")
         shutil.copytree(reads_len_info, output)
+        self.step.seq_len_stat.end()
+        self.step.update()
 
     def mv_samples_info(self):
         """
@@ -133,6 +146,8 @@ class MiseqQcModule(Module):
         self.logger.info("开始移动样品统计文件")
         samples_info_dir = os.path.join(self.samples_info.work_dir, "output/samples_info")
         shutil.copytree(samples_info_dir, output)
+        self.step.sample_info_stat.end()
+        self.step.update()
 
     def run(self):
         super(MiseqQcModule, self).run()

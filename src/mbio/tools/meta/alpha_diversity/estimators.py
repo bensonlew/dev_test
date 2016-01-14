@@ -15,7 +15,9 @@ class EstimatorsAgent(Agent):
     author: qindanhua
     last_modify: 2015.12.10 by yuguo
     """
-    ESTIMATORS = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron', 'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs', 'qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow']
+    ESTIMATORS = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron',
+                  'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs',
+                  'qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow']
 
     def __init__(self, parent):
         super(EstimatorsAgent, self).__init__(parent)
@@ -49,7 +51,7 @@ class EstimatorsAgent(Agent):
             raise OptionError("请选择正确的分类水平")
         for estimators in self.option('indices').split(','):
             if estimators not in self.ESTIMATORS:
-                raise OptionError("请选择正确的指数类型")
+                raise OptionError("error:{},请选择正确的指数类型".format(estimators))
 
     def set_resource(self):
         """
@@ -96,7 +98,7 @@ class EstimatorsTool(Tool):
         """
         运行mothur软件生成各样本指数表
         """
-        cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % (self.indices)
+        cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % self.indices
         print cmd
         self.logger.info("开始运行mothur")
         command = self.add_command("mothur", cmd)

@@ -26,6 +26,17 @@ class QcFormatAgent(Agent):
             {'name': 'renamed_fastq_dir', 'type': 'outfile', 'format': 'sequence.fastq_dir'},  # 按样本名进行重命名或者拆分的fastq文件夹
             {'name': 'fasta_dir', 'type': 'outfile', 'format': 'sequence.fasta_dir'}]  # 由fastq文件夹转化而来的fasta文件
         self.add_option(options)
+        self.step.add_steps("fastq_format")
+        self.on('start', self.start_qc)
+        self.on('end', self.end_qc)
+
+    def start_qc(self):
+        self.step.fastq_format.start()
+        self.step.update()
+
+    def end_qc(self):
+        self.step.fastq_format.finish()
+        self.step.update()
 
     def check_options(self):
         """

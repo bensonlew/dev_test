@@ -76,7 +76,7 @@ class Bcl2fastqTool(Tool):
         bcl2fastqstr = (self.bcl2fastq_path + " --input-dir " + basecall + " --runfolder-dir " +
                         self.option('sample_info').prop['file_path'] + " --output-dir " + output_dir +
                         " --sample-sheet " + sample_sheet_path +
-                        " --barcode-mismatches " + str(self.option('sample_info').prop["index_mismatch"])
+                        " --barcode-mismatches " + str(self.option('sample_info').prop["index_missmatch"])
                         + " --use-bases-mask " + str(self.option('sample_info').prop["base_mask"]) +
                         " -p 8 -d 8"
                         )

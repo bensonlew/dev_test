@@ -53,6 +53,7 @@ class RemoteFileManager(object):
         """
         将本地文件或文件夹上传到远程路径
 
+        :param from_path:
         :return:
         """
         if self._type == "local":
@@ -86,7 +87,7 @@ class RemoteFileManager(object):
     def _get_lib(self):
         lib_name = self.config.get_netdata_lib(self._type)
         module = importlib.import_module("biocluster.api.file.%s" % lib_name.lower())
-        lib_obj = getattr(module, lib_name.upper())(self._type, self._path)
+        lib_obj = getattr(module, lib_name.capitalize())(self._type, self._path)
         return lib_obj
 
 

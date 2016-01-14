@@ -116,6 +116,8 @@ def check_run(wj):
     if json_data:
         wj.update_workflow()
     wj.unlock()
+    if args.service:
+        wj.check_time_out()
     return json_data
 
 
@@ -219,6 +221,38 @@ class WorkJob(object):
             self.client = data.client
             return json.loads(data.json)
 
+    def check_time_out(self):
+        results = self.db.query("select * from workflow where has_run = 1 and is_end=0 and is_error=0 and"
+                                " (TIMESTAMPDIFF(SECOND,last_update,now()) > 200 or"
+                                " (last_update is Null and TIMESTAMPDIFF(SECOND,run_time,now()) > 300))")
+        if len(results) > 0:
+            for r in results:
+                myvar = dict(id=r.workflow_id)
+                self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="程序异常中断，可能是服务器故障导致!")
+
+                spend_time = (datetime.datetime.now() - r.run_time).seconds
+                json_data = json.loads(r.json)
+                stage_id = 0
+                if "stage_id" in json_data.keys():
+                    stage_id = json_data["stage_id"]
+                json_obj = {"stage": {
+                            "task_id": r.workflow_id,
+                            "stage_id": stage_id,
+                            "created_ts": datetime.datetime.now(),
+                            "error": "程序异常中断，可能是服务器故障导致!",
+                            "status": "failed",
+                            "run_time": spend_time}}
+                post_data = {
+                    "content": json.dumps(json_obj, cls=CJsonEncoder)
+                }
+                data = {
+                    "task_id": r.workflow_id,
+                    "api": Config().get_api_type(r.client),
+                    "data": urllib.urlencode(post_data)
+                }
+                write_log("发现异常中断任务:%s" % r.workflow_id)
+                self.db.insert("apilog", **data)
+
     def unlock(self):
         self.db.query("UNLOCK TABLES")
 
@@ -288,10 +322,14 @@ class WorkJob(object):
         try:
             wf = load_class_by_path(path, "Workflow")
             wsheet = Sheet(data=json_data)
+
             workflow = wf(wsheet)
             workflow.config.USE_DB = True
             if self.client in workflow.config.get_use_api_clients():
                 workflow.UPDATE_STATUS = True
+                workflow.api_start()
+            if self.client == "client01" and json_data["type"] == "workflow":
+                workflow.IMPORT_REPORT_DATA = True
             file_path = os.path.join(workflow.work_dir, "data.json")
             with open(file_path, "w") as f:
                 json.dump(json_data, f, indent=4)
@@ -299,6 +337,9 @@ class WorkJob(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
+            if workflow:
+                workflow.step.failed("运行异常:%s" % e)
+                workflow.step.update()
             write_log("Workflow %s has error %s:%s" % (self.workflow_id, e.__class__.__name__, e))
             data = {
                 "is_error": 1,
@@ -308,10 +349,6 @@ class WorkJob(object):
             }
             myvar = dict(id=self.workflow_id)
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
-            if workflow:
-                workflow.step.failed("运行异常:%s" % e)
-                workflow.update()
-
         write_log("End running workflow:%s" % self.workflow_id)
 
     def update_error(self):
@@ -320,11 +357,14 @@ class WorkJob(object):
                                 vars=myvar)
         if len(results) > 0:
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="程序无警告异常中断")
-            if self.json_data:
+            if self.json_data and "client" in self.json_data.keys():
                 spend_time = (datetime.datetime.now() - self._start_time()).seconds
+                stage_id = 0
+                if "stage_id" in self.json_data.keys():
+                    stage_id = self.json_data["stage_id"]
                 json_obj = {"stage": {
                             "task_id": self.workflow_id,
-                            "stage_id": self.json_data["stage_id"],
+                            "stage_id": stage_id,
                             "created_ts": datetime.datetime.now(),
                             "error": "程序无警告异常中断",
                             "status": "failed",

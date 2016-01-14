@@ -15,11 +15,11 @@ class MiseqSplitFile(File):
         super(MiseqSplitFile, self).__init__()
         self.seq_prop = ["sequcing_id", "sequcing_sn", "program", "file_path",
                          "config", "parent_sample", "child_sample"]
-        self.seq_config = ["index_mismatch", "ignore_missing_bcl", "base_mask"]
-        self.p_props = ["sample_name", "index", "filter.min", "sample_id", "mj_sn",
+        self.seq_config = ["index_missmatch", "ignore_missing_bcl", "base_mask"]
+        self.p_props = ["sample_name", "index", "sample_id", "mj_sn",
                         "cus_sample_name", "lane", "project", "has_child", "program"]
         self.c_props = ["sample_name", "sample_id", "mj_sn", "cus_sample_name", "config"]
-        self.c_config = ["index", "primer", "index_miss", "primer_miss", "filter.min"]
+        self.c_config = ["index", "primer", "index_miss", "primer_miss", "filter_min"]
 
     def get_info(self):
         """
@@ -36,11 +36,12 @@ class MiseqSplitFile(File):
         for p in self.seq_prop:
             if p not in self.jobj:
                 raise FileError("json中缺少属性：" + p)
+        self.set_property("split_id", self.jobj['split_id'])
         self.set_property("sequcing_id", self.jobj['sequcing_id'])
         self.set_property("sequcing_sn", self.jobj['sequcing_sn'])
         self.set_property("program", self.jobj['program'])
         self.set_property("file_path", self.jobj['file_path'])
-        self.set_property("index_mismatch", self.jobj["config"]["index_mismatch"])
+        self.set_property("index_missmatch", int(self.jobj["config"]["index_missmatch"]))
         self.set_property("ignore_missing_bcl", self.jobj["config"]['ignore_missing_bcl'])
         self.set_property("base_mask", self.jobj["config"]["base_mask"])
         self.set_property("parent_sample", self.jobj["parent_sample"])

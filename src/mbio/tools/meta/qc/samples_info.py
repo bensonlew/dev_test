@@ -19,6 +19,17 @@ class SamplesInfoAgent(Agent):
         options = [
             {"name": "fasta_path", "type": "infile", "format": "sequence.fasta_dir"}]  # 输入文件夹
         self.add_option(options)
+        self.step.add_steps("sample_info_stat")
+        self.on('start', self.start_info_stat)
+        self.on('end', self.end_info_stat)
+
+    def start_info_stat(self):
+        self.step.sample_info_stat.start()
+        self.step.update()
+
+    def end_info_stat(self):
+        self.step.sample_info_stat.end()
+        self.step.end()
 
     def check_options(self):
         """
@@ -53,7 +64,7 @@ class SamplesInfoTool(Tool):
         sample_info_dir = os.path.join(self.work_dir, 'output/samples_info')
         if not os.path.exists(sample_info_dir):
             os.mkdir(sample_info_dir)
-        file_name = os.path.join(sample_info_dir, self.id + ".samples_info")
+        file_name = os.path.join(sample_info_dir, "samples_info.txt")
         with open(file_name, "w") as f:
             head = ["sample", "reads", "bases", "avg", "min", "max"]
             f.write("\t".join(head) + "\n")

@@ -25,6 +25,17 @@ class ReadsLenInfoAgent(Agent):
         super(ReadsLenInfoAgent, self).__init__(parent)
         options = [{"name": "fasta_path", "type": "infile", "format": "sequence.fasta_dir"}]  # 输入的fasta文件夹
         self.add_option(options)
+        self.step.add_steps("seq_len_stat")
+        self.on('start', self.start_len_stat)
+        self.on('end', self.end_len_stat)
+
+    def start_len_stat(self):
+        self.step.seq_len_stat.start()
+        self.step.update()
+
+    def end_len_stat(self):
+        self.step.seq_len_stat.end()
+        self.step.update()
 
     def check_options(self):
         """
@@ -50,7 +61,7 @@ class ReadsLenInfoTool(Tool):
         super(ReadsLenInfoTool, self).__init__(config)
         self._version = 1.0
         self.longest = ""
-        self.allowed_step = [1, 20, 50, 100, 200]
+        self.allowed_step = [20, 50, 100, 200]
 
     def _create_reads_len_info(self):
         """
@@ -85,7 +96,7 @@ class ReadsLenInfoTool(Tool):
         :param step:文件的步长
         """
         file_name = os.path.join(self.work_dir, "output", "reads_len_info",
-                                 "step_" + str(step) + ".reads_len_info")
+                                 "step_" + str(step) + ".reads_len_info.txt")
         with open(file_name, "w") as f:
             f.write("sample" + "\t")
             col = self.longest + step
@@ -130,7 +141,7 @@ class ReadsLenInfoTool(Tool):
         :param sample_name: 样本名称
         """
         file_name = os.path.join(self.work_dir, "output", "reads_len_info",
-                                 "step_" + str(step) + ".reads_len_info")
+                                 "step_" + str(step) + ".reads_len_info.txt")
         with open(file_name, "a") as f:
             temp_list = list()
             temp_list.append(sample_name)

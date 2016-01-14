@@ -14,7 +14,10 @@ from .module import Module
 import datetime
 import gevent
 import time
-from .api.file.remote import RemoteFileManager
+from biocluster.api.file.remote import RemoteFileManager
+from biocluster.api.database.base import ApiManager
+import re
+import importlib
 
 
 class Workflow(Basic):
@@ -32,11 +35,21 @@ class Workflow(Basic):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
         self._logger = Wlog(self).get_logger("")
-        self._logger = Wlog(self).get_logger("")
         self.rpc_server = RPC(self)
         self.db = self.config.get_db()
         self.pause = False
         self._pause_time = None
+        self.__check_to_file_option()
+        self.IMPORT_REPORT_DATA = False
+        self.api = ApiManager(self)
+
+    def api_start(self):
+        """
+        流程开始api更新
+        :return:
+        """
+        self.step.start()
+        self.step.update()
 
     @property
     def sheet(self):
@@ -52,6 +65,36 @@ class Workflow(Basic):
         if not os.path.exists(work_dir):
             os.makedirs(work_dir)
         return work_dir
+
+    def __check_to_file_option(self):
+        """
+        转换内置的参数为文件参数
+
+        :return:
+        """
+        if "to_file" in self._sheet.data.keys():
+            for opt in self._sheet.data["to_file"]:
+                m = re.match(r"([_\w\.]+)\((.*)\)", opt)
+                if m:
+                    func_path = m.group(1)
+                    f_list = func_path.split(".")
+                    func_name = f_list.pop()
+                    lib_path = ".".join(f_list)
+                    options = m.group(2)
+                    opt_list = re.split(r"\s*,\s*", options)
+                    for optl in opt_list:
+                        imp = importlib.import_module("biocluster.api.to_file.%s" % lib_path)
+                        func = getattr(imp, func_name)
+                        self._sheet.set_option(opt, func(self._sheet.option(optl), optl, self.work_dir, self))
+                else:
+                    imp = importlib.import_module("biocluster.api.to_file.parameter")
+                    func = getattr(imp, "json_to_file")
+                    self._sheet.set_option(opt, func(self._sheet.option(opt), opt, self.work_dir, self))
+
+                # json_data = self._sheet.option(opt)
+                # file_path = os.path.join(self.work_dir, "%s_input.json" % opt)
+                # with open(file_path, "w") as f:
+                #     json.dump(json_data, f, indent=4)
 
     def add_module(self, path):
         """
@@ -107,20 +150,21 @@ class Workflow(Basic):
         super(Workflow, self).run()
         data = {
             "last_update": datetime.datetime.now(),
+            "pid": os.getpid(),
             "workdir": self.work_dir
         }
         self._update(data)
-        self.step.start()
-        self.step.update()
         if self.config.USE_DB:
             gevent.spawn(self.__update_service)
             gevent.spawn(self.__check_tostop)
             gevent.spawn(self.__check_pause)
         self.rpc_server.run()
 
-    def end(self, api_data=None):
+    def end(self):
         """
-        停止运行
+        停止workflow运行
+
+        :return:
         """
         super(Workflow, self).end()
         if self._sheet.output:
@@ -144,7 +188,7 @@ class Workflow(Basic):
         }
         self._update(data)
         self.step.finish()
-        self.step.update(api_data)
+        self.step.update()
         self.rpc_server.server.close()
         self.logger.info("运行结束!")
 

@@ -19,6 +19,7 @@ class BackupAgent(Agent):
     """
     def __init__(self, parent=None):
         super(BackupAgent, self).__init__(parent)
+        self._run_mode = "ssh1"
         options = [
             {'name': 'sample_info', 'type': "infile", 'format': 'datasplit.miseq_split'},  # 样本拆分信息表
             {'name': "parent_path", 'type': "string"},  # 解压后父样本的路径

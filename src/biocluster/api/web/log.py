@@ -20,6 +20,9 @@ db = config.get_db()
 
 
 class LogManager(object):
+    """
+    远程API更新日志管理器,负责管理每个任务的日志
+    """
     def __init__(self):
         self._running_task = {}
         self.from_time = None
@@ -29,8 +32,8 @@ class LogManager(object):
         timestr = ""
         while True:
 
-            if timestr != time.strftime('%Y%m', time.localtime(time.time())):
-                timestr = time.strftime('%Y%m', time.localtime(time.time()))
+            if timestr != time.strftime('%Y%m%d', time.localtime(time.time())):
+                timestr = time.strftime('%Y%m%d', time.localtime(time.time()))
                 log = self.get_log_path()
                 so = file(log, 'a+')
                 se = file(log, 'a+', 0)
@@ -71,7 +74,7 @@ class LogManager(object):
 
     @staticmethod
     def get_log_path():
-        timestr = time.strftime('%Y%m', time.localtime(time.time()))
+        timestr = time.strftime('%Y%m%d', time.localtime(time.time()))
         if not os.path.exists(Config().UPDATE_LOG):
             os.mkdir(Config().UPDATE_LOG)
         log = os.path.join(Config().UPDATE_LOG, "%s.log" % timestr)
@@ -92,15 +95,15 @@ class TaskLog(object):
     def update(self):
         for log_data in self._data:
             main = sys.modules["biocluster.api.web.log"]
-            if hasattr(main, log_data.api):
-                api = getattr(main, log_data.api)
+            if hasattr(main, log_data.api.capitalize()):
+                api = getattr(main, log_data.api.capitalize())
                 log = api(log_data)
                 log.update()
                 if log.failed:
                     self.log("停止更新当前任务日志")
                     break
             else:
-                self.log("没有找到API模块:%s" % log_data.api)
+                self.log("没有找到API模块:%s" % log_data.api.capitalize())
                 break
         self._end = True
 
@@ -223,7 +226,7 @@ class Sanger(Log):
         super(Sanger, self).__init__(data)
         self._client = "client01"
         self._key = "1ZYw71APsQ"
-        self._url = "http://172.16.3.233/api/add_task_log"
+        self._url = "http://192.168.10.161/api/add_task_log"
 
     def send(self):
         # url = "%s?%s" % (self._url, self.get_sig())
@@ -233,9 +236,9 @@ class Sanger(Log):
         urllib2.install_opener(opener)
         request = urllib2.Request(self._url, "%s&%s" % (self.get_sig(), self.data.data))
         response = urllib2.urlopen(request)
-        re = response.read()
-        print("Return page:\n%s" % re)
-        return response.getcode(), re
+        re_text = response.read()
+        print("Return page:\n%s" % re_text)
+        return response.getcode(), re_text
 
     def get_sig(self):
         nonce = str(random.randint(1000, 10000))
@@ -252,3 +255,25 @@ class Sanger(Log):
             "signature": sig
         }
         return urllib.urlencode(signature)
+
+
+class Splitdata(Log):
+
+    def __init__(self, data):
+        super(Splitdata, self).__init__(data)
+        # self._client = "client01"
+        # self._key = "1ZYw71APsQ"
+        self._url = "http://172.16.3.16/sequen/split_result"
+
+    def send(self):
+        # url = "%s?%s" % (self._url, self.get_sig())
+        httpHandler = urllib2.HTTPHandler(debuglevel=1)
+        httpsHandler = urllib2.HTTPSHandler(debuglevel=1)
+        opener = urllib2.build_opener(httpHandler, httpsHandler)
+        urllib2.install_opener(opener)
+        request = urllib2.Request(self._url, "%s" % self.data.data)
+        response = urllib2.urlopen(request)
+        re_text = response.read()
+        print("Return page:\n%s" % re_text)
+        return response.getcode(), re_text
+

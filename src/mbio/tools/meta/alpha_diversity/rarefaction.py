@@ -17,13 +17,14 @@ class RarefactionAgent(Agent):
     author: qindanhua
     last_modify: 2015.12.10 by yuguo
     """
-    ESTIMATORS = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon', 'nseqs', 'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
+    ESTIMATORS = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon',
+                  'nseqs', 'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
 
     def __init__(self, parent):
         super(RarefactionAgent, self).__init__(parent)
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
-            {"name": "indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
+            {"name": "indices", "type": "string", "default": "sobs,shannon"},  # 指数类型
             {"name": "freq", "type": "int", "default": 100},  # 取样频数
             {"name": "level", "type": "string", "default": "otu"},  # level水平
             # {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"}  # 输出结果
@@ -134,7 +135,7 @@ class RarefactionTool(Tool):
                 os.system('mkdir rabund|find -name "{}*rabund*"|xargs mv -t rabund'.format(self.option("level")))
             else:
                 cmd = 'mkdir %s|find -name "%s.*.r_%s.xls"|xargs mv -t %s' % (estimators, self.option("level"),
-                                                                       estimators, estimators,)
+                                                                              estimators, estimators,)
                 os.system(cmd)
                 os.system('cp -r %s %s' % (estimators, self.output_dir))
 
