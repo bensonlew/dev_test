@@ -229,6 +229,13 @@ class MetaBaseWorkflow(Workflow):
             if not os.path.isfile(reads_len_info_path):
                 raise Exception("找不到报告文件:{}".format(base_info_path))
             api_samples.add_reads_len_info(step, reads_len_info_path)
+        # 设置OTU table文件
+        api_otu = self.api.meta
+        otu_path = self.stat.output_dir+"/OtuTaxon_summary/otu_taxon.xls"
+        if not os.path.isfile(otu_path):
+            raise Exception("找不到报告文件:{}".format(otu_path))
+        api_otu.add_otu_table(otu_path, 'otu')
+
         self.end()
 
     def run(self):

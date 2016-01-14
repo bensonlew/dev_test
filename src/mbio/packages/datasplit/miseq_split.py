@@ -103,3 +103,9 @@ def str_check(real_str, list_str):
         if not re.search(realbase, indexbase):
             count = count + 1
     return count
+
+if __name__ == "__main__":
+    real_str = "GTGCCAGCCGCCGCGG"
+    list_str = "GTGCCAGCMGCCGCGG"
+    test = str_check(real_str, list_str)
+    print test

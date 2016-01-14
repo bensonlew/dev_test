@@ -56,7 +56,7 @@ class MiseqQcModule(Module):
         """
         运行碱基质量统计，对fastq文件夹里的fastq文件做碱基质量统计
         """
-        self.step.fastq_format.end()
+        self.step.fastq_format.finish()
         self.step.base_info_stat.start()
         self.step.update()
         self.logger.info("开始运行碱基质量统计")
@@ -120,7 +120,7 @@ class MiseqQcModule(Module):
         self.logger.info("开始移动baseinfo文件夹")
         base_info_dir = os.path.join(self.base_info.work_dir, "output/base_info")
         shutil.copytree(base_info_dir, output)
-        self.step.base_info_stat.end()
+        self.step.base_info_stat.finish()
         self.step.update()
 
     def mv_reads_len(self):
@@ -133,7 +133,7 @@ class MiseqQcModule(Module):
         self.logger.info("开始移动长度分布统计文件夹")
         reads_len_info = os.path.join(self.reads_len_info.work_dir, "output/reads_len_info")
         shutil.copytree(reads_len_info, output)
-        self.step.seq_len_stat.end()
+        self.step.seq_len_stat.finish()
         self.step.update()
 
     def mv_samples_info(self):
@@ -146,7 +146,7 @@ class MiseqQcModule(Module):
         self.logger.info("开始移动样品统计文件")
         samples_info_dir = os.path.join(self.samples_info.work_dir, "output/samples_info")
         shutil.copytree(samples_info_dir, output)
-        self.step.sample_info_stat.end()
+        self.step.sample_info_stat.finish()
         self.step.update()
 
     def run(self):
