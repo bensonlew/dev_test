@@ -28,8 +28,8 @@ class SamplesInfoAgent(Agent):
         self.step.update()
 
     def end_info_stat(self):
-        self.step.sample_info_stat.end()
-        self.step.end()
+        self.step.sample_info_stat.finish()
+        self.step.update()
 
     def check_options(self):
         """

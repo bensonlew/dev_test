@@ -73,7 +73,7 @@ class OtuAnalysisModule(Module):
         """
         运行Qiime Assign,获取OTU的分类信息
         """
-        self.step.usearch.end()
+        self.step.usearch.finish()
         self.step.qiimeassign.start()
         self.step.update()
         myopt = dict()
@@ -117,7 +117,7 @@ class OtuAnalysisModule(Module):
         """
         进行分类学统计，产生不同分类水平上OTU统计表
         """
-        self.step.qiimeassign.end()
+        self.step.qiimeassign.finish()
         self.step.otutaxonstat.start()
         self.step.update()
         myopt = dict()
@@ -169,7 +169,7 @@ class OtuAnalysisModule(Module):
         self.option('otu_taxon_table').set_path(self.output_dir + '/OtuTaxonStat/otu_taxon.xls')
         self.option('otu_taxon_dir').set_path(self.output_dir + '/OtuTaxonStat/tax_summary_a')
         self.logger.info('done')
-        self.step.otutaxonstat.end()
+        self.step.otutaxonstat.finish()
         self.step.update()
 
     def run(self):

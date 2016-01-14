@@ -63,7 +63,8 @@ class BackupTool(Tool):
         month = time.localtime()[1]
         self.create_time_file(year, month)
         program = self.option('sample_info').prop["program"]
-        name = "id_" + self.option('sample_info').prop["sequcing_id"]
+        name = "id_" + str(self.option('sample_info').prop["split_id"]) +\
+               "_" + str(self.option('sample_info').prop["sequcing_sn"])
         self.seq_id = os.path.join(self.backup_dir, program, str(year), str(month), name)
 
     def create_time_file(self, year, month):

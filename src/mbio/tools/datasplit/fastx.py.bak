@@ -6,7 +6,7 @@ import os
 import re
 import errno
 import gzip
-import threading
+import subprocess
 from biocluster.config import Config
 from biocluster.tool import Tool
 from biocluster.agent import Agent
@@ -51,8 +51,8 @@ class FastxTool(Tool):
         super(FastxTool, self).__init__(config)
         self._version = 1.0
         self.fastx_dir = "fastxtoolkit/bin/"
-        self.python_dir = "Python/bin/python"
-        self.q20q30_stat = os.path.join(Config().SOFTWARE_DIR, "datasplit/bin/q20q30_stat.py")
+        self.java_dir = os.path.join(Config().SOFTWARE_DIR, "sun_jdk1.8.0/bin/java")
+        self.FastqTotalHighQualityBase = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/FastqTotalHighQualityBase.jar")
         self.gnuplot = os.path.join(Config().SOFTWARE_DIR, "gnuplot/bin")
         self.option('sample_info').get_info()
         self.fastqs = list()
@@ -91,7 +91,6 @@ class FastxTool(Tool):
         """
         解压和重命名bcl2fastq的结果，供后续的fastxtoolkit使用
         """
-        threads = list()
         for project in self.option('sample_info').prop["projects"]:
             fq_dir = os.path.join(self.option('data_path'), project)
             fq_list = os.listdir(fq_dir)
@@ -107,20 +106,10 @@ class FastxTool(Tool):
                 self.logger.debug("开始解压文件" + fq)
                 unzip_name = os.path.join(self.work_dir, "unzip", unzip_name)
                 self.fastqs.append(unzip_name)
-                t = threading.Thread(target=self.unzip_file, args=(fq, unzip_name))
-                threads.append(t)
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-
-    def unzip_file(self, infile, outfile):
-        """
-        输入一个压缩文件名和一个输出文件名，进行文件的解压
-        """
-        with gzip.open(infile, 'rb') as r, open(outfile, 'wb') as w:
-            for line in r:
-                w.write(line)
+                r = gzip.open(fq, 'r')
+                with open(unzip_name, 'w') as w:
+                    for line in r:
+                        w.write(line)
 
     def fastxtoolkit(self):
         """
@@ -176,22 +165,36 @@ class FastxTool(Tool):
 
     def q20_q30(self):
         cmd_list = list()
-        i = 0
         for fastq in self.fastqs:
-            i += 1
-            file_name = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q20q30")
-            cmd = (self.python_dir + " " + self.q20q30_stat + " -i " + fastq + " -o " + file_name)
-            command = self.add_command("q20q30_stat" + str(i), cmd)
+            file_name1 = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q20")
+            file_name2 = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q30")
+            cmd = (self.java_dir + " -Xms40960m -Xmx40960m -jar " + self.FastqTotalHighQualityBase +
+                   " -i " + fastq + " -q 20 >> " + file_name1)
+            command = subprocess.Popen(cmd, shell=True)
+            cmd_list.append(command)
+            cmd = (self.java_dir + " -Xms40960m -Xmx40960m -jar " + self.FastqTotalHighQualityBase +
+                   " -i " + fastq + " -q 30 >> " + file_name2)
+            command = subprocess.Popen(cmd, shell=True)
             cmd_list.append(command)
         for mycmd in cmd_list:
-            self.logger.info("开始运行" + mycmd.name)
-            mycmd.run()
-        self.wait()
+            self.logger.info("开始运行java,统计q20，q30")
+            mycmd.communicate()
         for mycmd in cmd_list:
-            if mycmd.return_code == 0:
-                self.logger.info(mycmd.name + " 统计完成")
+            if mycmd.returncode == 0:
+                self.logger.info("q20,q30统计完成")
             else:
-                self.set_error(mycmd.name + " 统计出错")
+                self.set_error("q20,q30统计出错")
+        for fastq in self.fastqs:
+            file_name1 = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q20")
+            file_name2 = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q30")
+            file_name3 = os.path.join(self.work_dir, "fastx", os.path.basename(fastq) + ".q20q30")
+            with open(file_name1, 'r') as r1:
+                line1 = r1.next().rstrip('\n')
+            with open(file_name2, 'r') as r2:
+                line2 = r2.next().rstrip('\n')
+            with open(file_name3, 'w') as w:
+                w.write(line1 + "\n")
+                w.write(line2 + "\n")
 
     def run(self):
         super(FastxTool, self).run()

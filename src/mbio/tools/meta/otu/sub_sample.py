@@ -32,11 +32,11 @@ class SubSampleAgent(Agent):
 
     def start_sub_sample(self):
         self.step.sub_sample.start()
-        self.update()
+        self.step.update()
 
     def end_sub_sample(self):
-        self.step.sub_sample.end()
-        self.update()
+        self.step.sub_sample.finish()
+        self.step.update()
 
     def check_options(self):
         """
