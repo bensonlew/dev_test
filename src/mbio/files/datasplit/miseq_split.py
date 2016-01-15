@@ -18,7 +18,7 @@ class MiseqSplitFile(File):
         self.seq_config = ["index_missmatch", "ignore_missing_bcl", "base_mask"]
         self.p_props = ["sample_name", "index", "sample_id", "mj_sn",
                         "cus_sample_name", "lane", "project", "has_child", "program"]
-        self.c_props = ["sample_name", "sample_id", "mj_sn", "cus_sample_name", "config"]
+        self.c_props = ["sample_name", "sample_id", "mj_sn", "config"]  # "cus_sample_name"暂时缺失
         self.c_config = ["index", "primer", "index_miss", "primer_miss", "filter_min"]
 
     def get_info(self):
@@ -150,6 +150,36 @@ class MiseqSplitFile(File):
                 return True
         return False
 
+    def check_parent_repeat(self):
+        """
+        检测一块下机板中父样本的index是否重复
+        """
+        p_index = list()
+        for p in self.prop['parent_sample']:
+            my_index = p["index"]
+            if my_index in p_index:
+                raise FileError("父样本中的index重复")
+            else:
+                p_index.append(my_index)
+        return True
+
+    def check_child_repeat(self):
+        """
+        检测同属于一个父样本的子样本的index是否重复
+        """
+        for p_id in self.prop['parent_ids']:
+            c_ids = self.find_child_ids(p_id)
+            c_index = list()
+            for c_id in c_ids:
+                print c_id
+                my_index = self.child_sample(c_id, "index")
+                if my_index in c_index:
+                    print "c_id:" + c_id
+                    raise FileError("属于同一个父样本的子样本中的index重复")
+                else:
+                    c_index.append(my_index)
+        return True
+
     def ckeck_prop(self):
         for p in self.p_props:
             if p not in self.prop["parent_sample"][0].keys():
@@ -175,15 +205,7 @@ class MiseqSplitFile(File):
         检测文件是否满足要求,发生错误时应该触发FileError异常
         """
         if super(MiseqSplitFile, self).check():
-            if self.ckeck_prop() and self.check_config():
+            self.get_info()
+            if self.ckeck_prop() and self.check_config() and\
+               self.check_child_repeat() and self.check_parent_repeat():
                 return True
-
-if __name__ == '__main__':
-    a = MiseqSplitFile()
-    a.set_path("example_json.json")
-    a.get_info()
-    a.check()
-    print a.parent_sample("f0001", "project")
-    print a.child_sample("c0004", "cus_sample_name")
-    print a.child_sample("c0011", "index")
-    print a.prop['child_ids']

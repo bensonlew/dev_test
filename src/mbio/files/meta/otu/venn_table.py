@@ -39,6 +39,7 @@ class VennTableFile(File):
         检测文件格式
         """
         if super(VennTableFile, self).check():
+            self.get_info()
             with open(self.prop['path']) as f:
                 line = f.readline().rstrip('\n')
                 line = re.split('\t')

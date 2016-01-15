@@ -82,9 +82,11 @@ class TaxSummaryDirFile(Directory):
         """
         检测文件夹是否满足要求，不满足时触发FileError异常
         """
+        # self.get_info()
         if super(TaxSummaryDirFile, self).check():
-            if self.biom % 8 != 0:
-                raise FileError("文件格式不正确")
+            return True
+            # if self.biom % 8 != 0:
+            #    raise FileError("文件格式不正确")
 
 if __name__ == "__main__":
     a = TaxSummaryDirFile()
