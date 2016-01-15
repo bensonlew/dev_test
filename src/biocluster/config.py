@@ -60,7 +60,6 @@ class Config(object):
         self.DB_PORT = self.rcf.get("DB", "port")
 
         # service mode
-        self.USE_DB = False  # daemon mode
         self.SERVICE_LOG = self.rcf.get("SERVICE", "log")
         self.SERVICE_LOOP = int(self.rcf.get("SERVICE", "loop"))
         self.SERVICE_PROCESSES = int(self.rcf.get("SERVICE", "processes"))
@@ -82,7 +81,7 @@ class Config(object):
         self.UPDATE_RETRY_INTERVAL = int(self.rcf.get("API_UPDATE", "retry_interval"))
         self.UPDATE_LOG = self.rcf.get("API_UPDATE", "log")
 
-        #Mongo
+        # Mongo
         self.MONGO_URI = self.rcf.get("MONGO", "uri")
 
     @property
@@ -200,7 +199,7 @@ class Config(object):
         if self.rcf.has_option("API", client):
             return self.rcf.get("API", client)
         else:
-            return ""
+            return None
 
     def get_use_api_clients(self):
         return self.rcf.options("API")

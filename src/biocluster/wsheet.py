@@ -81,6 +81,9 @@ class Sheet(object):
     def option(self, name, component=None):
         """
         获取参数值
+
+        :param name:  参数名
+        :param component:
         """
 
         if self.type == "link":
@@ -109,6 +112,8 @@ class Sheet(object):
     def options(self, component=None):
         """
         获取所有Option
+
+        :param component:
         :return: dict name/value
         """
         if self.type == "link":
@@ -118,4 +123,3 @@ class Sheet(object):
         else:
             data = self._data['options']
         return data
-

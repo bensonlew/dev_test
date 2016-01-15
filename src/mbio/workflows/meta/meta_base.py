@@ -216,6 +216,7 @@ class MetaBaseWorkflow(Workflow):
         if not os.path.isfile(sample_info_path):
             raise Exception("找不到报告文件:{}".format(sample_info_path))
         api_samples.add_samples_info(sample_info_path)
+        base_info_path = ""
         with open(self.qc.output_dir+"/samples_info/samples_info.txt") as f:
             f.readline()
             for line in f:
@@ -234,7 +235,7 @@ class MetaBaseWorkflow(Workflow):
         otu_path = self.stat.output_dir+"/OtuTaxon_summary/otu_taxon.xls"
         if not os.path.isfile(otu_path):
             raise Exception("找不到报告文件:{}".format(otu_path))
-        api_otu.add_otu_table(otu_path, 'otu')
+        api_otu.add_otu_table(otu_path, 8)
 
         self.end()
 

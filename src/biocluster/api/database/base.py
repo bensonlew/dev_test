@@ -41,6 +41,6 @@ class ApiManager(object):
         :param name:
         :return:
         """
-        module = importlib.import_module("biocluster.api.database.%s" % name.lower())
+        module = importlib.import_module("mbio.api.database.%s" % name.lower())
         lib_obj = getattr(module, name.capitalize())(self._bind_object)
         return lib_obj

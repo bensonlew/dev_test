@@ -39,9 +39,19 @@ class Workflow(Basic):
         self.db = self.config.get_db()
         self.pause = False
         self._pause_time = None
-        self.__check_to_file_option()
+        self.USE_DB = False
         self.IMPORT_REPORT_DATA = False
+        self.__json_config()
+        self.__check_to_file_option()
         self.api = ApiManager(self)
+
+    def __json_config(self):
+        if self.sheet.USE_DB is True:
+            self.USE_DB = True
+        if self.sheet.UPDATE_STATUS_API is not None:
+            self.UPDATE_STATUS_API = self.sheet.UPDATE_STATUS_API
+        if self.sheet.IMPORT_REPORT_DATA is True:
+            self.IMPORT_REPORT_DATA = True
 
     def api_start(self):
         """
@@ -83,7 +93,10 @@ class Workflow(Basic):
                     options = m.group(2)
                     opt_list = re.split(r"\s*,\s*", options)
                     for optl in opt_list:
-                        imp = importlib.import_module("biocluster.api.to_file.%s" % lib_path)
+                        if re.match(r"^biocluster\.api\.to_file", lib_path):
+                            imp = importlib.import_module("%s" % lib_path)
+                        else:
+                            imp = importlib.import_module("mbio.api.to_file.%s" % lib_path)
                         func = getattr(imp, func_name)
                         self._sheet.set_option(opt, func(self._sheet.option(optl), optl, self.work_dir, self))
                 else:
@@ -154,7 +167,7 @@ class Workflow(Basic):
             "workdir": self.work_dir
         }
         self._update(data)
-        if self.config.USE_DB:
+        if self.USE_DB:
             gevent.spawn(self.__update_service)
             gevent.spawn(self.__check_tostop)
             gevent.spawn(self.__check_pause)
@@ -238,7 +251,7 @@ class Workflow(Basic):
         :param data: 需要更新的数据
         :return:
         """
-        if self.config.USE_DB:
+        if self.USE_DB:
             myvar = dict(id=self._id)
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
 

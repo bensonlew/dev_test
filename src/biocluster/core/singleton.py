@@ -6,7 +6,13 @@
 
 def singleton(cls, *args, **kw):
     """
+
     定义单例模式
+
+    :param cls:
+    :param args:
+    :param kw:
+    :return:
     """
     instances = {}
 

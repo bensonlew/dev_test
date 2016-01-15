@@ -101,6 +101,7 @@ class FileBase(object):
         """
         if not self.is_set:
             raise Exception("请先调用set_path方法设置文件路径!")
+        return True
 
 
 class File(FileBase):
@@ -129,6 +130,7 @@ class File(FileBase):
         super(File, self).check()
         if not ('path' in self.prop.keys() and os.path.isfile(self.prop['path'])):
             raise FileError("文件路径不在正确或文件不存在")
+        return True
 
     def get_md5(self):
         """
@@ -188,6 +190,7 @@ class Directory(FileBase):
         super(Directory, self).check()
         if not('path' in self.prop.keys() and os.path.isdir(self.prop['path'])):
             raise Exception("文件夹路径不正确，请设置正确的文件夹路径!")
+        return True
 
     def get_info(self):
         super(Directory, self).get_info()
