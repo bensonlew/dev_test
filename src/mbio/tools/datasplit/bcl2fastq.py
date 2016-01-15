@@ -46,6 +46,12 @@ class Bcl2fastqTool(Tool):
         self._version = 1.0
         self.bcl2fastq_path = "rawdata/bcl2fastq/bin/bcl2fastq"
         self.option('sample_info').get_info()
+        if not self.option('sample_info').check_parent_repeat():
+            self.set_error("父样本中的index重复")
+            raise Exception("父样本中的index重复")
+        if not self.option('sample_info').check_child_repeat():
+            self.set_error("属于同一个父样本的子样本中的index重复")
+            raise Exception("属于同一个父样本的子样本中的index重复")
 
     def create_sample_sheet(self):
         """

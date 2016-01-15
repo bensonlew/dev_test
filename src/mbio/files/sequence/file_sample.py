@@ -47,6 +47,7 @@ class FileSampleFile(File):
 
     def check(self):
         if super(FileSampleFile, self).check():
+            self.get_info()
             if self.prop["sample_number"] == 0:
                 raise FileError('应该至少包含一个样本')
             if self.col != 2:
