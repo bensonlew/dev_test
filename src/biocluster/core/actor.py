@@ -86,6 +86,9 @@ class LocalActor(gevent.Greenlet):
     def default_callback(self, message):
         """
         消息处理函数不存在时对默认的处理方法
+
+        :param message:   接收到的消息
+        :return:
         """
         self._agent.logger.warning(self._agent.name + "没有定义消息对应的处理函数" + message['state'] + "!")
 

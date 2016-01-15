@@ -33,6 +33,7 @@ class SeqTaxonFile(File):
         :return:
         """
         if super(SeqTaxonFile, self).check():
+            self.get_info()
             if self.prop['form']:
                 pass
             else:

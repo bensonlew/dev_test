@@ -99,7 +99,7 @@ class Basic(EventObject):
                 os.makedirs(self._output_path)
         self._options = {}
         self.sem = BoundedSemaphore(1)
-        self.UPDATE_STATUS = False
+        self.UPDATE_STATUS_API = None
         self._main_step = StepMain(self)
 
     @property
@@ -553,7 +553,6 @@ class StepMain(Step):
         super(StepMain, self).__init__()
         self._steps = {}
         self.bind_obj = basc_obj
-        self._api_type = None
         self._error_info = ""
         self._api_data = {}
 
@@ -630,23 +629,21 @@ class StepMain(Step):
 
     @property
     def api_type(self):
-        if self._api_type:
-            return self._api_type
-        else:
-            workflow = self.bind_obj.get_workflow()
-            if workflow.sheet.client and workflow.sheet.client in workflow.config.get_use_api_clients():
-                self._api_type = workflow.config.get_api_type(workflow.sheet.client)
-                return self._api_type
-            else:
-                return False
+        """
+        获取API类型
+
+        :return:
+        """
+        return self.bind_obj.UPDATE_STATUS_API
 
     def update(self):
         """
         更新状态到API
+            *只有当bind_obj的UPDATE_STATUS为True且在self.api_type不为False时才执行更新操作*
 
         :return:
         """
-        if self.bind_obj.UPDATE_STATUS is not True or self.api_type is False:
+        if not self.api_type:
             return
 
         workflow = self.bind_obj.get_workflow()

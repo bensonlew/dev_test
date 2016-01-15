@@ -85,7 +85,8 @@ class Command(object):
                 return True
             else:
                 return False
-        except:
+        except Exception, e:
+            print e
             return False
 
     @property

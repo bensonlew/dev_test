@@ -9,6 +9,7 @@ from mainapp.models.workflow import Workflow
 import os
 from mainapp.libs.jsonencode import CJsonEncoder
 import xml.etree.ElementTree as ET
+from mainapp.config.db import get_use_api_clients, get_api_type
 
 
 class Pipeline(object):
@@ -25,8 +26,15 @@ class Pipeline(object):
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == "client01":
             json_obj = self.sanger_submit()
+            if json_obj['type'] == "workflow":
+                json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
         else:
             json_obj = self.json_submit()
+        json_obj["USE_DB"] = True   # 使用数据库
+        if client in get_use_api_clients():
+            api = get_api_type(client)
+            if api:
+                json_obj["UPDATE_STATUS_API"] = api
         json_obj['client'] = client
         if "type" not in json_obj.keys() or "id" not in json_obj.keys():
             info = {"success": False, "info": "Json内容不正确!!"}

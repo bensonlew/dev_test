@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from .base import Base
+from biocluster.api.database.base import Base
 import os
 import re
 from bson.objectid import ObjectId
 import datetime
+from bson.son import SON
 
 
 class Meta(Base):
@@ -12,17 +13,18 @@ class Meta(Base):
         super(Meta, self).__init__(bind_object)
         self._db_name = "sanger"
 
-    def add_otu_table(self, file_path, level, from_out_table=0):
+    def add_otu_table(self, file_path, level, from_out_table=0, task_id=None):
         if self.bind_object.IMPORT_REPORT_DATA is not True:
             self.bind_object.logger.debug("非web客户端调用，跳过导入OTU表格!")
             return
         if not os.path.isfile(file_path):
             raise Exception("文件%s不存在!" % file_path)
-        if level not in ["kingdom", "phylum", "class", "order", "family", "genus", "species", "otu"]:
+        if level not in range(1, 9):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if from_out_table != 0 and not isinstance(from_out_table, ObjectId):
             raise Exception("from_out_table必须为ObjectId对象!")
-
+        if task_id is None:
+            task_id = self.bind_object.sheet.id
         data_list = []
         with open(file_path, 'r') as f:
             l = f.readline()
@@ -33,7 +35,7 @@ class Meta(Base):
             sample_list.pop(0)
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
-                "task_id": self.bind_object.sheet.id,
+                "task_id": task_id,
                 "name": "原始表",
                 "from_id": from_out_table,
                 "level": level,
@@ -49,18 +51,16 @@ class Meta(Base):
                 line_data = line.split("\t")
                 classify = line_data.pop()
                 classify_list = re.split(r"\s*;\s*", classify)
-                data = {
-                  "task_id": self.bind_object.sheet.id,
-                  "otu_id": inserted_id,
-                }
+                otu_list = [("task_id", task_id), ("otu_id", inserted_id)]
                 for cf in classify_list:
                     if cf != "":
-                        data[cf[0:3]] = cf
+                        otu_list.append((cf[0:3], cf))
                 i = 0
+                otu_list.append(("otu", line_data[0]))
                 for sample in sample_list:
                     i += 1
-                    data[sample] = line_data[i]
-
+                    otu_list.append((sample, line_data[i]))
+                data = SON(otu_list)
                 data_list.append(data)
         try:
             collection = self.db["sg_otu_detail"]

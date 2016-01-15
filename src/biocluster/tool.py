@@ -128,6 +128,7 @@ class Tool(object):
         可以在自类中定义命令检测函数.，函数名为 commandname_check ,此类函数将在self.run调用后自动加入微线程运行,3秒钟执行一次
         commandname_check传入参数为名称为commandname的Command对象
 
+        :param name:  命令名称
         :param cmd: 需要执行的命令，路径必须为相对于配置文件main.conf的software_dir的相对路径
         :return: 返回Command对象
         """
@@ -253,6 +254,7 @@ class Tool(object):
         """
         记录运行资源
 
+        :param command: 需要监控的Commnd对象
         :return:
         """
         def friendly_size(size):
@@ -323,6 +325,7 @@ class Tool(object):
         """
         处理远程发回的exit action
 
+        :param data:  退出指令说明
         :return:
         """
         self.logger.info("接收到action退出指令:%s" % str(data))

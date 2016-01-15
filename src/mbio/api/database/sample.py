@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from .base import Base
+from biocluster.api.database.base import Base
 import os
 import re
 
