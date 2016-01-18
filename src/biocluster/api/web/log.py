@@ -154,6 +154,7 @@ class Log(object):
             if self._try_times >= config.UPDATE_MAX_RETRY:
                 self.log("尝试提交%s次任务成功，终止尝试！" % self._try_times)
                 self._failed = True
+                self._reject = 1
                 break
             try:
                 if self._success == 0:
