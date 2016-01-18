@@ -48,7 +48,7 @@ def search_fasta_by_idfile(fasta, id_file):
                         out_file.write('{}'.format(f.next()))
                         match += 1
                         print match
-        return match
+        return match, id_list
     except IOError:
         print '无法打开fasta文件'
 
@@ -65,6 +65,6 @@ def search_fastq_by_idfile(fastq, id_file):
                         out_file.write('{}{}{}'.format(f.next(), f.next(), f.next()))
                         match += 1
                         print match
-        return match
+        return match, id_list
     except IOError:
         print '无法打开文件'
