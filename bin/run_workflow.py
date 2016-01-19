@@ -183,6 +183,7 @@ class WorkJob(object):
         self.client = None
         self.json_data = None
         self._start_time = None
+        self.error = False
 
     @property
     def db(self):
@@ -207,7 +208,7 @@ class WorkJob(object):
         return len(self.db.select("workflow", where=web.db.sqlwhere(where_dict)))
 
     def lock(self):
-        self.db.query("LOCK TABLE `workflow` WRITE")
+        self.db.query("LOCK TABLE `workflow` WRITE, `apilog` WRITE")
 
     def get_from_database(self, workflow_id=None):
         if workflow_id:
@@ -228,31 +229,10 @@ class WorkJob(object):
         if len(results) > 0:
             for r in results:
                 myvar = dict(id=r.workflow_id)
-                self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="程序异常中断，可能是服务器故障导致!")
+                error = "程序异常中断，可能是服务器故障导致!"
+                self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error=error)
                 json_data = json.loads(r.json)
-                if "UPDATE_STATUS_API" in json_data.keys():
-                    spend_time = (datetime.datetime.now() - r.run_time).seconds
-
-                    stage_id = 0
-                    if "stage_id" in json_data.keys():
-                        stage_id = json_data["stage_id"]
-                    json_obj = {"stage": {
-                                "task_id": r.workflow_id,
-                                "stage_id": stage_id,
-                                "created_ts": datetime.datetime.now(),
-                                "error": "程序异常中断，可能是服务器故障导致!",
-                                "status": "failed",
-                                "run_time": spend_time}}
-                    post_data = {
-                        "content": json.dumps(json_obj, cls=CJsonEncoder)
-                    }
-                    data = {
-                        "task_id": r.workflow_id,
-                        "api": json_data["UPDATE_STATUS_API"],
-                        "data": urllib.urlencode(post_data)
-                    }
-                    write_log("发现异常中断任务:%s" % r.workflow_id)
-                    self.db.insert("apilog", **data)
+                self.insert_api_log(json_data, error, r.run_time)
 
     def unlock(self):
         self.db.query("UNLOCK TABLES")
@@ -321,6 +301,7 @@ class WorkJob(object):
             path = "single"
         workflow = None
         try:
+            print json_data
             wf = load_class_by_path(path, "Workflow")
             wsheet = Sheet(data=json_data)
             workflow = wf(wsheet)
@@ -335,43 +316,53 @@ class WorkJob(object):
                 workflow.step.failed("运行异常:%s" % e)
                 workflow.step.update()
             write_log("Workflow %s has error %s:%s" % (self.workflow_id, e.__class__.__name__, e))
+            error = "运行异常:%s: %s" % (e.__class__.__name__, e)
             data = {
                 "is_error": 1,
-                "error": "运行异常:%s: %s" % (e.__class__.__name__, e),
+                "error": error,
                 "end_time": datetime.datetime.now(),
                 "is_end": 1
             }
             myvar = dict(id=self.workflow_id)
+            self.lock()
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+            self.insert_api_log(self.json_data, error, self._start_time)
+            self.unlock()
         write_log("End running workflow:%s" % self.workflow_id)
 
     def update_error(self):
         myvar = dict(id=self.workflow_id)
+        self.lock()
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id and is_end=0 and is_error=0",
                                 vars=myvar)
         if len(results) > 0:
-            self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error="程序无警告异常中断")
-            if self.json_data and "UPDATE_STATUS_API" in self.json_data.keys():
-                spend_time = (datetime.datetime.now() - self._start_time()).seconds
-                stage_id = 0
-                if "stage_id" in self.json_data.keys():
-                    stage_id = self.json_data["stage_id"]
-                json_obj = {"stage": {
-                            "task_id": self.workflow_id,
-                            "stage_id": stage_id,
-                            "created_ts": datetime.datetime.now(),
-                            "error": "程序无警告异常中断",
-                            "status": "failed",
-                            "run_time": spend_time}}
-                post_data = {
-                    "content": json.dumps(json_obj, cls=CJsonEncoder)
-                }
-                data = {
-                    "task_id": self.workflow_id,
-                    "api": self.json_data["UPDATE_STATUS_API"],
-                    "data": urllib.urlencode(post_data)
-                }
-                self.db.insert("apilog", **data)
+            error = "程序无警告异常中断"
+            self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error=error)
+            self.insert_api_log(self.json_data, error, self._start_time)
+        self.unlock()
+
+    def insert_api_log(self, json_data, error_info, start_time):
+        if json_data and "UPDATE_STATUS_API" in json_data.keys():
+            spend_time = (datetime.datetime.now() - start_time).seconds
+            stage_id = 0
+            if "stage_id" in json_data.keys():
+                stage_id = json_data["stage_id"]
+            json_obj = {"stage": {
+                        "task_id": json_data["id"],
+                        "stage_id": stage_id,
+                        "created_ts": datetime.datetime.now(),
+                        "error": error_info,
+                        "status": "failed",
+                        "run_time": spend_time}}
+            post_data = {
+                "content": json.dumps(json_obj, cls=CJsonEncoder)
+            }
+            data = {
+                "task_id": json_data["id"],
+                "api": json_data["UPDATE_STATUS_API"],
+                "data": urllib.urlencode(post_data)
+            }
+            self.db.insert("apilog", **data)
 
 if __name__ == "__main__":
     main()
