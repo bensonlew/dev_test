@@ -42,6 +42,7 @@ class EnvTableFile(File):
         """
         if super(EnvTableFile, self).check():
             # 父类check方法检查文件路径是否设置，文件是否存在，文件是否为空
+            self.get_info()
             if len(self.prop['sample']) != len(set(self.prop['sample'])):
                 raise FileError('存在重复的样本名')
             tempfile = open(self.prop['path'])

@@ -24,6 +24,7 @@ class QualFile(File):
         """
         检测文件是否满足要求,发生错误时应该触发FileError异常
         """
+        self.get_info()
         if super(QualFile, self).check():
             try:
                 qualfile = open(self.prop['path'])

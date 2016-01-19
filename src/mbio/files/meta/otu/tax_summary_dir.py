@@ -84,6 +84,7 @@ class TaxSummaryDirFile(Directory):
         """
         # self.get_info()
         if super(TaxSummaryDirFile, self).check():
+            self.get_info()
             return True
             # if self.biom % 8 != 0:
             #    raise FileError("文件格式不正确")
