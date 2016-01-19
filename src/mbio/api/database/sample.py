@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from biocluster.api.database.base import Base
-import os
+from biocluster.api.database.base import Base, report_check
 import re
 
 
@@ -10,12 +9,8 @@ class Sample(Base):
         super(Sample, self).__init__(bind_object)
         self._db_name = "sanger"
 
+    @report_check
     def add_samples_info(self, file_path):
-        if self.bind_object.IMPORT_REPORT_DATA is not True:
-            self.bind_object.logger.debug("非web客户端调用，跳过导入样品信息!")
-            return
-        if not os.path.isfile(file_path):
-            raise Exception("文件%s不存在!" % file_path)
         data_list = []
         with open(file_path, 'r') as f:
             l = f.readline()
@@ -45,12 +40,8 @@ class Sample(Base):
         else:
             self.bind_object.logger.info("导入样品信息数据成功:%s" % result.inserted_ids)
 
+    @report_check
     def add_base_info(self, sample_name, file_path):
-        if self.bind_object.IMPORT_REPORT_DATA is not True:
-            self.bind_object.logger.debug("非web客户端调用，跳过导入样品%s碱基统计信息!" % sample_name)
-            return
-        if not os.path.isfile(file_path):
-            raise Exception("文件%s不存在!" % file_path)
         collection = self.db["sg_specimen"]
         result = collection.find_one({"specimen_name": sample_name})
         if result:
@@ -88,13 +79,8 @@ class Sample(Base):
         else:
             self.bind_object.logger.info("导入样品%s的碱基统计信息成功" % sample_name)
 
+    @report_check
     def add_reads_len_info(self, step_length, file_path):
-        if self.bind_object.IMPORT_REPORT_DATA is not True:
-            self.bind_object.logger.debug("非web客户端调用，跳过导入%s步长序列长度统计!" % step_length)
-            return
-        if not os.path.isfile(file_path):
-            raise Exception("文件%s不存在!" % file_path)
-
         data_list = []
         with open(file_path, 'r') as f:
             l = f.readline()

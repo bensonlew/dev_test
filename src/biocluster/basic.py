@@ -660,7 +660,7 @@ class StepMain(Step):
             }
             for k, v in self._api_data.items():
                 post_data[k] = v
-
+            self._api_data.clear()
             data = {
                 "task_id": workflow.sheet.id,
                 "api": self.api_type,
