@@ -41,7 +41,6 @@ class LogManager(object):
                 self.log("开始监控状态更新")
 
             ids = self.get_task_ids()
-            print ids
             if len(ids) > 0:
                 for tid in ids:
                     if tid not in self._running_task.keys():
@@ -183,14 +182,14 @@ class Log(object):
                     response_json = json.loads(response_text)
                 except Exception, e:
                     self._response_code = code
-                    self._response = response
+                    self._response = response_text
                     self._success = 0
                     self._reject = 1
                     self._failed_times += 1
                     self.log("提交失败: 返回数据类型不正确 %s" %  e)
                 else:
                     self._response_code = code
-                    self._response = response
+                    self._response = response_text
                     if response_json["success"] == "true" \
                             or response_json["success"] is True or response_json["success"] == 1:
                         self._success = 1

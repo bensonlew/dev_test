@@ -39,6 +39,7 @@ class OtuTableFile(File):
         :return:
         """
         if super(OtuTableFile, self).check():
+
             if self.prop['form']:
                 pass
             else:
