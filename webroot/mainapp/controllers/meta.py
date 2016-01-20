@@ -31,6 +31,7 @@ class Normalize(object):
                 "to_file": "meta.export_otu_table(otu_id)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
+                "UPDATE_STATUS_API": "meta.otu",
                 "options": {
                     "otu_file": data.otu_id,
                     "name": data.name,

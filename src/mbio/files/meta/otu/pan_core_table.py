@@ -22,6 +22,7 @@ class PanCoreTableFile(File):
         检测文件是否满足要求,发生错误时应该触发FileError异常
         """
         if super(PanCoreTableFile, self).check():
+            self.get_info()
             self.check_format()
             return True
 

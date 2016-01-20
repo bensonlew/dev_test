@@ -3,6 +3,7 @@
 from biocluster.config import Config
 from pymongo import MongoClient
 import importlib
+import functools
 
 
 class Base(object):
@@ -44,3 +45,13 @@ class ApiManager(object):
         module = importlib.import_module("mbio.api.database.%s" % name.lower())
         lib_obj = getattr(module, name.capitalize())(self._bind_object)
         return lib_obj
+
+
+def report_check(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if args[0].bind_object.IMPORT_REPORT_DATA is not True:
+            return False
+        else:
+            return f(*args, **kwargs)
+    return wrapper

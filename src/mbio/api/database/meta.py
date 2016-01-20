@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from biocluster.api.database.base import Base
-import os
+from biocluster.api.database.base import Base, report_check
 import re
 from bson.objectid import ObjectId
 import datetime
 from bson.son import SON
+from types import StringTypes
 
 
 class Meta(Base):
@@ -13,16 +13,15 @@ class Meta(Base):
         super(Meta, self).__init__(bind_object)
         self._db_name = "sanger"
 
+    @report_check
     def add_otu_table(self, file_path, level, from_out_table=0, task_id=None):
-        if self.bind_object.IMPORT_REPORT_DATA is not True:
-            self.bind_object.logger.debug("非web客户端调用，跳过导入OTU表格!")
-            return
-        if not os.path.isfile(file_path):
-            raise Exception("文件%s不存在!" % file_path)
         if level not in range(1, 9):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if from_out_table != 0 and not isinstance(from_out_table, ObjectId):
-            raise Exception("from_out_table必须为ObjectId对象!")
+            if isinstance(from_out_table, StringTypes):
+                from_out_table = ObjectId(from_out_table)
+            else:
+                raise Exception("from_out_table必须为ObjectId对象或其对应的字符串!")
         if task_id is None:
             task_id = self.bind_object.sheet.id
         data_list = []

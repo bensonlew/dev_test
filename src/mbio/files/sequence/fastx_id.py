@@ -43,5 +43,6 @@ class FastxIdFile(File):
         检测文件是否满足要求，发生错误时应该触发FileError异常
         :return:
         """
+        self.get_info()
         if super(FastxIdFile, self).check():
             raise FileError('文件格式不正确')

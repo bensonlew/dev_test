@@ -55,4 +55,5 @@ class SeqSampleFile(File):
 
     def check(self):
         if super(SeqSampleFile, self).check():
+            self.get_info()
             return True
