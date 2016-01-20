@@ -11,6 +11,8 @@ import time
 from gevent.pool import Group
 import json
 import os
+from biocluster.core.function import get_clsname_form_path
+import importlib
 
 config = Config()
 db = config.get_db()
@@ -92,16 +94,18 @@ class TaskLog(object):
 
     def update(self):
         for log_data in self._data:
-            main = sys.modules["mbio.api.web.%s" % log_data.api]
-            if hasattr(main, log_data.api.capitalize()):
-                api = getattr(main, log_data.api.capitalize())
+            class_name = get_clsname_form_path(log_data.api, tp="")
+            # main = sys.modules["mbio.api.web.%s" % log_data.api]
+            main = importlib.import_module("mbio.api.web.%s" % log_data.api.lower())
+            if hasattr(main, class_name):
+                api = getattr(main, class_name)
                 log = api(log_data)
                 log.update()
                 if log.failed:
                     self.log("停止更新当前任务日志")
                     break
             else:
-                self.log("没有找到API模块:%s" % log_data.api.capitalize())
+                self.log("没有找到API模块:%s" % class_name)
                 break
         self._end = True
 
@@ -178,14 +182,14 @@ class Log(object):
                     response_json = json.loads(response_text)
                 except Exception, e:
                     self._response_code = code
-                    self._response = response
+                    self._response = response_text
                     self._success = 0
                     self._reject = 1
                     self._failed_times += 1
                     self.log("提交失败: 返回数据类型不正确 %s" %  e)
                 else:
                     self._response_code = code
-                    self._response = response
+                    self._response = response_text
                     if response_json["success"] == "true" \
                             or response_json["success"] is True or response_json["success"] == 1:
                         self._success = 1
@@ -206,7 +210,6 @@ class Log(object):
         urllib2.install_opener(opener)
         request = urllib2.Request(self._url, self._post_data)
         response = urllib2.urlopen(request)
-        re_text = response.read()
         return response
 
     def log(self, info):

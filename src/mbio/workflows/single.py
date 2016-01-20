@@ -14,11 +14,11 @@ class SingleWorkflow(Workflow):
     def run(self):
         task = None
         if self._sheet.type == "module":
-           task = self.add_module(self._sheet.name)
+            task = self.add_module(self._sheet.name)
         if self._sheet.type == "tool":
-           task = self.add_tool(self._sheet.name)
-        if self.UPDATE_STATUS:
-            task.UPDATE_STATUS = True
+            task = self.add_tool(self._sheet.name)
+        if self.UPDATE_STATUS_API:
+            task.UPDATE_STATUS_API = self.UPDATE_STATUS_API
         task.set_options(self._sheet.options())
         task.on('end', self.end)
         task.run()

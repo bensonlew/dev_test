@@ -28,7 +28,7 @@ class Normalize(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": "meta.export_otu_table(otu_id)",
+                "to_file": "meta.export_otu_table(otu_file)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.otu",
