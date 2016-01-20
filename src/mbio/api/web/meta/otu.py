@@ -20,6 +20,8 @@ class Otu(Log):
         self.db = self._config.get_db()
         self._mongo_client = MongoClient(self._config.MONGO_URI)
         self.mongodb = self._mongo_client["sanger"]
+        self._collection_name = "sg_otu_log"
+        self._id_name = "otu_id"
 
     def update(self):
         while True:
@@ -41,7 +43,7 @@ class Otu(Log):
                         status = json_data["stage"]["status"]
                         desc = json_data["stage"]["error"]
                         create_time = json_data["stage"]["created_ts"]
-                        self.add_out_log(otu_id, status, desc, create_time)
+                        self.update_log(otu_id, status, desc, create_time)
                     else:
                         continue
                 else:
@@ -69,21 +71,20 @@ class Otu(Log):
             self.log("任务ID查询异常: %s" % e)
         return False
 
-    def add_out_log(self, otu_id, status, desc, create_time):
-        collection = self.mongodb["sg_otu_log"]
-        if not isinstance(otu_id, ObjectId):
-            if isinstance(otu_id, StringTypes):
-                otu_id = ObjectId(otu_id)
+    def update_log(self, id_value, status, desc, create_time):
+        collection = self.mongodb[self._collection_name]
+        if not isinstance(id_value, ObjectId):
+            if isinstance(id_value, StringTypes):
+                id_value = ObjectId(id_value)
             else:
                 raise Exception("otu_id必须为ObjectId对象或其对应的字符串!")
         data = {
-            "otu_id": otu_id,
+            self._id_name: id_value,
             "status": status,
             "desc": desc,
             "created_ts": create_time
-
         }
-        collection.insert_one(data)
+        collection.find_one_and_update({self._id_name: id_value}, {'$set': data}, upsert=True)
 
 
 def date_hook(json_dict):

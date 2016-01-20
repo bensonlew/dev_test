@@ -4,6 +4,7 @@ from biocluster.config import Config
 from pymongo import MongoClient
 import importlib
 import functools
+from biocluster.core.function import get_clsname_form_path
 
 
 class Base(object):
@@ -42,8 +43,9 @@ class ApiManager(object):
         :param name:
         :return:
         """
+        class_name = get_clsname_form_path(name, tp="")
         module = importlib.import_module("mbio.api.database.%s" % name.lower())
-        lib_obj = getattr(module, name.capitalize())(self._bind_object)
+        lib_obj = getattr(module, class_name)(self._bind_object)
         return lib_obj
 
 

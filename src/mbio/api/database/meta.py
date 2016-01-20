@@ -38,6 +38,7 @@ class Meta(Base):
                 "name": "原始表",
                 "from_id": from_out_table,
                 "level": level,
+                "specimen_names": sample_list,
                 "created_ts": datetime.datetime.now()
             }
             collection = self.db["sg_otu"]
