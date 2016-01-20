@@ -131,4 +131,5 @@ class FastaDirFile(Directory):
         :return:
         """
         if super(FastaDirFile, self).check():
+            self.get_info()
             return True

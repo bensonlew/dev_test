@@ -96,6 +96,7 @@ class DistanceMatrixFile(File):
         """
         if super(DistanceMatrixFile, self).check():
             # 父类check方法检查文件路径是否设置，文件是否存在，文件是否为空
+            self.get_info()
             for n in range(self.prop['samp_numb'] + 1):
                 for m in range(self.prop['samp_numb'] + 1):
                     if self.get_value(n, m) != self.get_value(m, n):

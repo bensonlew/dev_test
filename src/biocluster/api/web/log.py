@@ -7,10 +7,7 @@ import datetime
 from biocluster.core.function import hostname
 from biocluster.config import Config
 import web
-import random
 import time
-import hashlib
-import urllib
 from gevent.pool import Group
 import json
 import os
@@ -80,7 +77,8 @@ class LogManager(object):
         log = os.path.join(Config().UPDATE_LOG, "%s.log" % timestr)
         return log
 
-    def log(self, info):
+    @staticmethod
+    def log(info):
         print("%s\t%s" % (datetime.datetime.now(), info))
         sys.stdout.flush()
 
@@ -94,7 +92,7 @@ class TaskLog(object):
 
     def update(self):
         for log_data in self._data:
-            main = sys.modules["biocluster.api.web.log"]
+            main = sys.modules["mbio.api.web.%s" % log_data.api]
             if hasattr(main, log_data.api.capitalize()):
                 api = getattr(main, log_data.api.capitalize())
                 log = api(log_data)
@@ -135,6 +133,8 @@ class Log(object):
         self._reject = 0
         self._end = False
         self._failed = False
+        self._url = ""
+        self._post_data = ""
 
     @property
     def failed(self):
@@ -154,12 +154,16 @@ class Log(object):
             if self._try_times >= config.UPDATE_MAX_RETRY:
                 self.log("尝试提交%s次任务成功，终止尝试！" % self._try_times)
                 self._failed = True
+                self._reject = 1
                 break
             try:
                 if self._success == 0:
                     gevent.sleep(config.UPDATE_RETRY_INTERVAL)
                 self._try_times += 1
-                code, response = self.send()
+                response = self.send()
+                code = response.getcode()
+                response_text = response.read()
+                print("Return page:\n%s" % response_text)
             except urllib2.HTTPError, e:
                 self._success = 0
                 self._failed_times += 1
@@ -171,18 +175,19 @@ class Log(object):
                 self.log("提交失败: %s" % e)
             else:
                 try:
-                    response_json = json.loads(response)
-                except:
+                    response_json = json.loads(response_text)
+                except Exception, e:
                     self._response_code = code
                     self._response = response
                     self._success = 0
                     self._reject = 1
                     self._failed_times += 1
-                    self.log("提交失败: 返回数据类型不正确 %s" %  response)
+                    self.log("提交失败: 返回数据类型不正确 %s" %  e)
                 else:
                     self._response_code = code
                     self._response = response
-                    if response_json["success"] == "true" or response_json["success"] is True or response_json["success"] == 1:
+                    if response_json["success"] == "true" \
+                            or response_json["success"] is True or response_json["success"] == 1:
                         self._success = 1
                         self.log("提交成功")
                     else:
@@ -195,8 +200,14 @@ class Log(object):
         self.save()
 
     def send(self):
-
-        return 0, {}
+        http_handler = urllib2.HTTPHandler(debuglevel=1)
+        https_handler = urllib2.HTTPSHandler(debuglevel=1)
+        opener = urllib2.build_opener(http_handler, https_handler)
+        urllib2.install_opener(opener)
+        request = urllib2.Request(self._url, self._post_data)
+        response = urllib2.urlopen(request)
+        re_text = response.read()
+        return response
 
     def log(self, info):
         print("%s\ttask:%s\tapi:%s\tlog_id:%s\t%s" % (datetime.datetime.now(),
@@ -219,61 +230,4 @@ class Log(object):
         except Exception, e:
             self.log("数据库更新错误:%s" % e)
 
-
-class Sanger(Log):
-
-    def __init__(self, data):
-        super(Sanger, self).__init__(data)
-        self._client = "client01"
-        self._key = "1ZYw71APsQ"
-        self._url = "http://192.168.10.161/api/add_task_log"
-
-    def send(self):
-        # url = "%s?%s" % (self._url, self.get_sig())
-        httpHandler = urllib2.HTTPHandler(debuglevel=1)
-        httpsHandler = urllib2.HTTPSHandler(debuglevel=1)
-        opener = urllib2.build_opener(httpHandler, httpsHandler)
-        urllib2.install_opener(opener)
-        request = urllib2.Request(self._url, "%s&%s" % (self.get_sig(), self.data.data))
-        response = urllib2.urlopen(request)
-        re_text = response.read()
-        print("Return page:\n%s" % re_text)
-        return response.getcode(), re_text
-
-    def get_sig(self):
-        nonce = str(random.randint(1000, 10000))
-        timestamp = str(int(time.time()))
-        x_list = [self._key, timestamp, nonce]
-        x_list.sort()
-        sha1 = hashlib.sha1()
-        map(sha1.update, x_list)
-        sig = sha1.hexdigest()
-        signature = {
-            "client": self._client,
-            "nonce": nonce,
-            "timestamp": timestamp,
-            "signature": sig
-        }
-        return urllib.urlencode(signature)
-
-
-class Splitdata(Log):
-
-    def __init__(self, data):
-        super(Splitdata, self).__init__(data)
-        # self._client = "client01"
-        # self._key = "1ZYw71APsQ"
-        self._url = "http://172.16.3.16/sequen/split_result"
-
-    def send(self):
-        # url = "%s?%s" % (self._url, self.get_sig())
-        httpHandler = urllib2.HTTPHandler(debuglevel=1)
-        httpsHandler = urllib2.HTTPSHandler(debuglevel=1)
-        opener = urllib2.build_opener(httpHandler, httpsHandler)
-        urllib2.install_opener(opener)
-        request = urllib2.Request(self._url, "%s" % self.data.data)
-        response = urllib2.urlopen(request)
-        re_text = response.read()
-        print("Return page:\n%s" % re_text)
-        return response.getcode(), re_text
 
