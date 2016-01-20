@@ -45,6 +45,7 @@ class NewickTreeFile(File):
         """
         if super(NewickTreeFile, self).check():
             # 父类check方法检查文件路径是否设置，文件是否存在，文件是否为空
+            self.get_info()
             tempfile = open(self.prop['path'])
             tree = tempfile.readlines()
             if len(tree) == 1:

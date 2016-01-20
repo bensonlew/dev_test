@@ -39,6 +39,7 @@ class BiomFile(File):
         :return:
         """
         if super(BiomFile, self).check():
+            self.get_info()
             if self.prop['form']:
                 pass
             else:
