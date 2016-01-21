@@ -13,11 +13,14 @@ db = client["sanger"]
 def export_otu_table(data, option_name, dir_path, bind_obj=None):
     file_path = os.path.join(dir_path, "%s_input.otu.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
-    collection = db['sg_otu']
-    result = collection.find_one({"_id": ObjectId(data)})
-    samples = result["specimen_names"]
+    collection = db['sg_otu_specimen']
+    results = collection.find({"otu_id": ObjectId(data)})
+    samples = []
+    for result in results:
+        samples.append(result["specimen_name"])
+    # samples = result["specimen_names"]
     collection = db['sg_otu_detail']
-    with open(file_path,"wb") as f:
+    with open(file_path, "wb") as f:
         f.write("OTU ID\t%s\ttaxonomy\n" % "\t".join(samples))
         for col in collection.find({"_id": ObjectId(data)}):
             line = "%s" % col["otu"]

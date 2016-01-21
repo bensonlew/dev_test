@@ -38,11 +38,18 @@ class Meta(Base):
                 "name": name if name else "原始表",
                 "from_id": from_out_table,
                 "level": level,
-                "specimen_names": sample_list,
-                "created_ts": datetime.datetime.now()
+                # "specimen_names": sample_list,
+                "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
             }
             collection = self.db["sg_otu"]
             inserted_id = collection.insert_one(insert_data).inserted_id
+
+            sample_data = []
+            for sample in sample_list:
+                sample_data.append({"otu_id":inserted_id, "specimen_name": sample })
+            collection = self.db["sg_otu_specimen"]
+            collection.insert_many(sample_data)
 
             while True:
                 line = f.readline().strip('\n')
