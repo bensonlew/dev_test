@@ -8,7 +8,7 @@ from mainapp.models.mongo.meta import Meta
 import random
 
 
-class Normalize(object):
+class Subsample(object):
 
     @check_sig
     def POST(self):
@@ -28,7 +28,7 @@ class Normalize(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": "meta.export_otu_table(otu_file)",
+                "to_file": "meta.export_otu_table(otu_id)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.otu",

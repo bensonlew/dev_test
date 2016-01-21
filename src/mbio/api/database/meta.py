@@ -14,7 +14,7 @@ class Meta(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_otu_table(self, file_path, level, from_out_table=0, task_id=None):
+    def add_otu_table(self, file_path, level, from_out_table=0, task_id=None, name=None):
         if level not in range(1, 9):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if from_out_table != 0 and not isinstance(from_out_table, ObjectId):
@@ -35,9 +35,10 @@ class Meta(Base):
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
-                "name": "原始表",
+                "name": name if name else "原始表",
                 "from_id": from_out_table,
                 "level": level,
+                "specimen_names": sample_list,
                 "created_ts": datetime.datetime.now()
             }
             collection = self.db["sg_otu"]
@@ -58,7 +59,7 @@ class Meta(Base):
                 otu_list.append(("otu", line_data[0]))
                 for sample in sample_list:
                     i += 1
-                    otu_list.append((sample, line_data[i]))
+                    otu_list.append((sample, int(line_data[i])))
                 data = SON(otu_list)
                 data_list.append(data)
         try:

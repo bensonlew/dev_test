@@ -36,6 +36,7 @@ class Pipeline(object):
             if api:
                 json_obj["UPDATE_STATUS_API"] = api
         json_obj['client'] = client
+        print json_obj
         if "type" not in json_obj.keys() or "id" not in json_obj.keys():
             info = {"success": False, "info": "Json内容不正确!!"}
             return json.dumps(info)
