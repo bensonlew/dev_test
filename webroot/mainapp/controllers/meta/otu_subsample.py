@@ -24,11 +24,11 @@ class Subsample(object):
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
-                "name": "meta.report",
+                "name": "meta.report.otu_subsample",
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": "meta.export_otu_table(otu_id)",
+                "to_file": "meta.export_otu_table(otu_file)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.otu",
@@ -37,7 +37,7 @@ class Subsample(object):
                     "name": data.name,
                     "otu_id": data.otu_id,
                     "task_id": otu_info["task_id"],
-                    "level": otu_info["level"]
+                    "size": data.size
                 }
             }
             insert_data = {"client": client,
