@@ -41,8 +41,8 @@ class MetaBaseWorkflow(Workflow):
             {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
-            {"name": "envtable", "type": "infile", "format": "meta.env_table"},
-            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
+            {"name": "envtable", "type": "infile", "format": "meta.env_table"}
+            # {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -235,8 +235,19 @@ class MetaBaseWorkflow(Workflow):
         otu_path = self.output_dir+"/OtuTaxon_summary/otu_taxon.xls"
         if not os.path.isfile(otu_path):
             raise Exception("找不到报告文件:{}".format(otu_path))
-        api_otu.add_otu_table(otu_path, 9)
-
+        otu_id = api_otu.add_otu_table(otu_path, 9)
+        # 设置alpha多样性文件
+        api_est = self.api.estimator
+        est_path = self.output_dir+"/Alpha_diversity/estimators.xls"
+        if not os.path.isfile(est_path):
+            raise Exception("找不到报告文件:{}".format(est_path))
+        api_est.add_est_table(est_path, level=9, otu_id=otu_id)
+        # 设置beta多样性文件
+        api_dist = self.api.distance
+        dist_path = self.beta.option('dis_matrix').prop['path']
+        if not os.path.isfile(dist_path):
+            raise Exception("找不到报告文件:{}".format(dist_path))
+        api_dist.add_dist_table(dist_path, level=9, otu_id=otu_id)
         self.end()
 
     def run(self):

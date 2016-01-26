@@ -18,6 +18,7 @@ from biocluster.api.file.remote import RemoteFileManager
 from biocluster.api.database.base import ApiManager
 import re
 import importlib
+import types
 
 
 class Workflow(Basic):
@@ -83,7 +84,12 @@ class Workflow(Basic):
         :return:
         """
         if "to_file" in self._sheet.data.keys():
-            for opt in self._sheet.data["to_file"]:
+            data = self._sheet.data["to_file"]
+            if isinstance(data, types.StringTypes):
+                to_files = [data]
+            else:
+                to_files = data
+            for opt in to_files:
                 m = re.match(r"([_\w\.]+)\((.*)\)", opt)
                 if m:
                     func_path = m.group(1)
