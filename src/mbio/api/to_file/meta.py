@@ -48,7 +48,7 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
     }
     collection = db['sg_otu_detail']
     name_dic = dict()
-    for col in collection.find({"otu_id": str(ObjectId(data))}):
+    for col in collection.find({"otu_id": ObjectId(data)}):
         new_classify_name = ""
         for i in range(1, level + 1):
             my_list = list()
