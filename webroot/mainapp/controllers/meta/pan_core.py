@@ -2,10 +2,12 @@
 # __author__ = 'guoquan'
 import web
 import json
+import random
+import datetime
 from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
-import random
+from mainapp.models.mongo.pan_core import PanCore as P
 
 
 class PanCore(object):
@@ -17,9 +19,19 @@ class PanCore(object):
         if not (hasattr(data, "otu_id") and hasattr(data, "level")):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
-
+        my_param = dict()
+        my_param['otu_id'] = data.otu_id
+        my_param['level'] = data.level
+        my_param['group_id'] = data.group_id
+        my_param['category_name'] = data.category_name
+        params = json.dumps(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
+            name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_pan_table"
+            pan_id = P().create_pan_core_table(1, params, data.group_id, data.otu_id, name)
+            name = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + "_core_table"
+            core_id = P().create_pan_core_table(2, params, data.group_id, data.otu_id, name)
+
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
                 "id": workflow_id,
@@ -36,7 +48,9 @@ class PanCore(object):
                     "in_otu_table": data.otu_id,
                     "group_table": data.group_id,
                     "category_name": data.category_name,
-                    "level": data.level
+                    "level": data.level,
+                    "pan_id": str(pan_id),
+                    "core_id": str(core_id)
                 }
             }
             insert_data = {"client": client,
