@@ -14,7 +14,7 @@ class Subsample(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "otu_id") and hasattr(data, "name")):
+        if not hasattr(data, "otu_id"):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
 
@@ -28,16 +28,14 @@ class Subsample(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": "meta.export_otu_table(otu_file)",
+                # "to_file": "meta.export_otu_table(otu_file)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.otu",
                 "options": {
-                    "otu_file": data.otu_id,
-                    "name": data.name,
                     "otu_id": data.otu_id,
                     "task_id": otu_info["task_id"],
-                    "size": data.size
+                    "size": otu_info["size"]
                 }
             }
             insert_data = {"client": client,

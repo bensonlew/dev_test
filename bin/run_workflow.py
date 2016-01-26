@@ -301,7 +301,6 @@ class WorkJob(object):
             path = "single"
         workflow = None
         try:
-            print json_data
             wf = load_class_by_path(path, "Workflow")
             wsheet = Sheet(data=json_data)
             workflow = wf(wsheet)
