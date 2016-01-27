@@ -20,24 +20,25 @@ class Distance(Base):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         data_list = []
+        dist_id = ''
         with open(file_path, 'r') as f:
-            l = f.readline()
+            l = f.readline().strip('\n')
             if not re.match(r"^\t", l):
                 raise Exception("文件%s格式不正确，请选择正确的distance表格文件" % file_path)
             sample_list = l.split("\t")
-            # head_list.pop(0)
+            sample_list.pop(0)
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
                 "otu_id": otu_id,
                 "level_name": level,
-                "name": name,
+                "name": name if name else "distance_origin",
                 "status": "end",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             collection = self.db["sg_beta_specimen_distance"]
-            inserted_id = collection.insert_one(insert_data).inserted_id
+            dist_id = collection.insert_one(insert_data).inserted_id
             # insert detail
             while True:
                 line = f.readline().strip('\n')
@@ -45,10 +46,10 @@ class Distance(Base):
                     break
                 line_data = line.split("\t")
                 sample_name = line_data.pop(0)
-                data = [("alpha_diversity_id", inserted_id), ("specimen_name", sample_name)]
+                data = [("specimen_distance_id", dist_id), ("specimen_name", sample_name)]
                 i = 0
                 for smp in sample_list:
-                    data.append((smp, int(line_data[i])))
+                    data.append((smp, float(line_data[i])))
                     i += 1
                 data_son = SON(data)
                 data_list.append(data_son)
@@ -59,3 +60,4 @@ class Distance(Base):
             self.bind_object.logger.error("导入distance%s信息出错:%s" % (file_path, e))
         else:
             self.bind_object.logger.info("导入distance%s信息成功!" % file_path)
+        return dist_id
