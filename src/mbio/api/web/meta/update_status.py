@@ -11,10 +11,10 @@ from pymongo import MongoClient
 import urlparse
 
 
-class Otu(Log):
+class UpdateStatus(Log):
 
     def __init__(self, data):
-        super(Otu, self).__init__(data)
+        super(UpdateStatus, self).__init__(data)
         self._config = Config()
         self._task_id = self.data.task_id
         self.db = self._config.get_db()
