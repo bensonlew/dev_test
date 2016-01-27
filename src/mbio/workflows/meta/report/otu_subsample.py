@@ -4,7 +4,7 @@
 """otu样本序列数抽平"""
 from biocluster.workflow import Workflow
 import os
-from biocluster.mbio.api.to_file.meta import export_otu_table
+from mbio.api.to_file.meta import export_otu_table
 
 
 class OtuSubsampleWorkflow(Workflow):

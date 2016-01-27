@@ -7,7 +7,7 @@ from mako.template import Template
 from biocluster.config import Config
 
 
-def two_group_test(inputfile, groupfile, outputfile, choose_test, ci=0.95, test_type="two.side", mul_test="none"):
+def two_group_test(inputfile, groupfile, outputfile, boxfile, choose_test, ci=0.95, test_type="two.side", mul_test="none"):
     """
     生成并运行R脚本，进行两组样品的差异性分析，包括student T检验，welch T检验，wilcox秩和检验
 
@@ -20,7 +20,7 @@ def two_group_test(inputfile, groupfile, outputfile, choose_test, ci=0.95, test_
     :param mul_test: 多重检验方法选择，默认为none，包括: ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"]
     """
     f = Template(filename='/mnt/ilustre/users/sanger/biocluster/src/mbio/packages/statistical/two_group_test.r')
-    two_test = f.render(inputfile=inputfile, outputfile=outputfile, groupfile=groupfile, choose_test=choose_test, test_type=test_type, mul_test=mul_test, ci=ci)
+    two_test = f.render(inputfile=inputfile, outputfile=outputfile, boxfile=boxfile, groupfile=groupfile, choose_test=choose_test, test_type=test_type, mul_test=mul_test, ci=ci)
     rfile = open("run_two_group_test.r", 'w')
     rfile.write("%s" % two_test)
     rfile.close()
@@ -50,7 +50,7 @@ def two_sample_test(inputfile,outputfile,choose_test, sample1, sample2, ci=0.95,
     return 0
 
 
-def mul_group_test(inputfile, outputfile, post_result, groupfile, choose_test, test_type = "two.side", mul_test="none"):
+def mul_group_test(inputfile, outputfile, post_result, groupfile, choose_test, test_type="two.side", mul_test="none"):
     """
     生成并运行R脚本，进行多组样本的差异性分析，包括克鲁斯卡尔-Wallis秩和检验、anova分析
     :param inputfile: 输入的某一水平的otu_taxon_table

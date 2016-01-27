@@ -184,7 +184,6 @@ class Log(object):
                     self._response_code = code
                     self._response = response_text
                     self._success = 0
-                    self._reject = 1
                     self._failed_times += 1
                     self.log("提交失败: 返回数据类型不正确 %s" %  e)
                 else:

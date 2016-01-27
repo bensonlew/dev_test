@@ -3,6 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+import os
 
 
 class PairFastqToFastaAgent(Agent):
@@ -56,6 +57,7 @@ class PairFastqToFastaTool(Tool):
     def __init__(self, config):
         super(PairFastqToFastaTool, self).__init__(config)
         self._version = "v1"
+        self.cmd = "Python/bin/"
 
     def run(self):
         """
@@ -63,47 +65,25 @@ class PairFastqToFastaTool(Tool):
         :return:
         """
         super(PairFastqToFastaTool, self).run()
-        self.pair_fastq_to_fasta(self.option('fastq_input1').prop["path"], self.option('fastq_input2').prop["path"], self.option('fq1_to_fasta_id'), self.option('fq2_to_fasta_id'))
+        self.pair_fastq_to_fasta()
         self.end()
 
-    def pair_fastq_to_fasta(self, fq1, fq2, id1, id2):
+    def pair_fastq_to_fasta(self):
         """
-        将fastq文件转换成fasta文件
-        :param fq1:成对fastq文件1
-        :param fq2:成对fastq文件2
-        :return:
+        运行pair_fastq_to_fasta.py程序，将成对fastq文件转换成fasta文件
         """
-        self.logger.info("开始运行fastq_to_fasta函数")
-        n = 1
-        with open(fq1, 'r') as r1:
-            with open(fq2, 'r') as r2:
-                with open(self.output_dir + '/fasta', 'w') as w:
-                    file1 = r1.readlines()
-                    file2 = r2.readlines()
-                    length = len(file1)
-                    for i in range(1, length+1):
-                        if (i-1) % 4 == 0:
-                            if id1 == "none" and id2 == "none":
-                                w.write('%s' % file1[i-1].replace('@', '>'))
-                                w.write(file1[i])
-                                w.write('%s' % file2[i-1].replace('@', '>'))
-                                w.write(file2[i])
-                            elif id1 != "none" and id2 != "none":
-                                w.write('%s%s\n' % (id1, n))
-                                w.write(file1[i])
-                                w.write('%s%s\n' % (id2, n))
-                                w.write(file2[i])
-                                n += 1
-                            elif id1 != "none" and id2 == "none":
-                                w.write('%s%s\n' % (id1, n))
-                                w.write(file1[i])
-                                w.write('%s' % file2[i-1].replace('@', '>'))
-                                w.write(file2[i])
-                                n += 1
-                            else:
-                                w.write('%s' % file1[i-1].replace('@', '>'))
-                                w.write(file1[i])
-                                w.write('%s%s\n' % (id2, n))
-                                w.write(file2[i])
-                                n += 1
-        self.logger.info("运行fastq_to_fasta函数出错")
+        self.logger.info("开始运行pair_fastq_to_fasta命令")
+        cmd = self.cmd + "python /mnt/ilustre/users/sanger/app/meta/scripts/pair_fastq_to_fasta.py -f %s -r %s -o fasta -n %s -m " \
+                         "%s" % (self.option('fastq_input1').prop['path'], self.option('fastq_input2').prop['path'],
+                                 self.option('fq1_to_fasta_id'), self.option('fq2_to_fasta_id'))
+        self.logger.info(cmd)
+        pair_command = self.add_command("pair_fastq_to_fasta_cmd", cmd).run()
+        self.wait(pair_command)
+        if pair_command.return_code == 0:
+            self.logger.info("pair_fastq_to_fasta_cmd运行完成")
+        else:
+            self.set_error("pair_fastq_to_fasta_cmd运行出错!")
+        for root, dirs, files in os.walk(self.output_dir):
+            for names in files:
+                os.remove(os.path.join(root, names))
+        os.link(self.work_dir + '/fasta', self.output_dir + '/fasta')

@@ -38,10 +38,15 @@ def export_otu_table(data, option_name, dir_path, bind_obj=None):
 def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
     file_path = os.path.join(dir_path, "%s_input.otu.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
-    collection = db['sg_otu']
-    result = collection.find_one({"_id": ObjectId(data)})
-    samples = result["specimen_names"]
-    level = bind_obj.sheet.option("level")
+    bind_obj.logger.debug("samples1")
+    collection = db['sg_otu_specimen']
+    results = collection.find({"otu_id": ObjectId(data)})
+    samples = list()
+    for result in results:
+        samples.append(result['specimen_name'])
+    bind_obj.logger.debug("samples")
+    bind_obj.logger.debug(samples)
+    level = int(bind_obj.sheet.option("level"))
     LEVEL = {
         1: "d__", 2: "k__", 3: "p__", 4: "c__", 5: "o__",
         6: "f__", 7: "g__", 8: "s__", 9: "otu"
@@ -50,9 +55,13 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
     name_dic = dict()
     for col in collection.find({"otu_id": ObjectId(data)}):
         new_classify_name = ""
-        for i in range(1, level + 1):
+        tmp = level + 1
+        for i in range(1, tmp):
             my_list = list()
-            my_str = col[LEVEL[i]]
+            if LEVEL[i] not in col:
+                my_str = LEVEL[i] + "no_rank"
+            else:
+                my_str = col[LEVEL[i]]
             if not my_str:
                 my_str = LEVEL[i] + "no_rank"
             my_list.append(my_str)
