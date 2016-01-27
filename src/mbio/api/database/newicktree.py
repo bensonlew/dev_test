@@ -14,7 +14,7 @@ class Newicktree(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_tree_file(self, file_path, level, task_id=None, table_id=None, table_type=None, tree_type=None, name=None, params=None):
+    def add_tree_file(self, file_path, level=None, task_id=None, table_id=None, table_type=None, tree_type=None, name=None, params=None):
         if table_type == "otu":
             if level not in range(1, 10):
                 raise Exception("level参数%s为不在允许范围内!" % level)
