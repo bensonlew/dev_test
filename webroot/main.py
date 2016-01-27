@@ -6,8 +6,8 @@ from mainapp.controllers.pipeline import Pipeline, PipelineState,PipelineLog,Pip
 from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.meta.two_group import TwoGroup
 from mainapp.controllers.filecheck import FileCheck,MultiFileCheck
+from mainapp.controllers.meta.estimators import Estimators
 from mainapp.controllers.meta.pan_core import PanCore
-
 # web.config.debug = False
 urls = (
     "/hello", "hello",
@@ -20,6 +20,8 @@ urls = (
     "/pipeline/running", "PipelineRunning",
     "/pipeline/queue", "PipelineQueue",
     "/pipeline/pause", "PipelinePause",
+    "/pipeline/stop_pause", "PipelineStopPause"
+    "/alpha/estimator", "Estimators"
     "/pipeline/stop_pause", "PipelineStopPause",
     "/meta/pan_core", "PanCore"
     )
