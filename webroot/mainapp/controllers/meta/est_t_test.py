@@ -30,18 +30,15 @@ class EstTTest(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": "meta.export_otu_table(otu_file)",
+                # "to_file": "meta.export_otu_table(otu_file)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.otu",
                 "options": {
-                    "otu_file": data.otu_id,
-                    "name": data.name,
-                    "otu_id": data.otu_id,
+                    "est_id": data.alpha_diversity_id,
                     "task_id": otu_info["task_id"],
-                    "size": data.size,
-                    "indices": data.index_type,
-                    "level": data.level
+                    "group_table": data.group_id,
+                    "category_name": data.category_name
                 }
             }
             insert_data = {"client": client,

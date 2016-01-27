@@ -32,6 +32,7 @@ class EstimatorsWorkflow(Workflow):
                                                    self.estimators.work_dir, self.estimators),
             'indices': self.option('indices')
             })
+        print(self.option('indices'))
         self.estimators.on('end', self.set_db)
         self.estimators.run()
         self.output_dir = self.estimators.output_dir
