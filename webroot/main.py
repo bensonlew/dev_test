@@ -5,6 +5,8 @@ from mainapp.libs.signature import check_sig
 from mainapp.controllers.pipeline import Pipeline, PipelineState,PipelineLog,PipelineStop,PipelineQueue,PipelineStopPause,PipelinePause
 from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.meta.two_group import TwoGroup
+from mainapp.controllers.filecheck import FileCheck,MultiFileCheck
+from mainapp.controllers.meta.pan_core import PanCore
 
 # web.config.debug = False
 urls = (
@@ -19,6 +21,7 @@ urls = (
     "/pipeline/queue", "PipelineQueue",
     "/pipeline/pause", "PipelinePause",
     "/pipeline/stop_pause", "PipelineStopPause",
+    "/meta/pan_core", "PanCore"
     )
 
 

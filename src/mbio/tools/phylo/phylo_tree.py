@@ -18,7 +18,7 @@ class PhyloTreeAgent(Agent):
     def __init__(self, parent):
         super(PhyloTreeAgent, self).__init__(parent)
         options = [
-            {"name": "otu_reps_fasta", "type": "infile", "format": "sequence.fasta"},  # 输入文件
+            {"name": "fasta_file", "type": "infile", "format": "sequence.fasta"},  # 输入文件
             {"name": "phylo_tre", "type": "outfile", "format": "meta.beta_diversity.newick_tree"}  # 输出结果
         ]
         self.add_option(options)
@@ -36,8 +36,8 @@ class PhyloTreeAgent(Agent):
         """
         检查参数是否正确
         """
-        if not self.option("otu_reps_fasta").is_set:
-            raise OptionError("请传入OTU代表序列文件")
+        if not self.option("fasta_file").is_set:
+            raise OptionError("请传入fasta序列文件")
 
     def set_resource(self):
         """
@@ -64,7 +64,7 @@ class PhyloTreeTool(Tool):
         """
         self.add_state('phylo_tree_start', data='开始运行程序生成树文件')
         cmd = self.clustalw2_path + "clustalw2 -ALIGN -INFILE=%s -OUTFILE=phylo.clustalw.align  -OUTPUT=FASTA" % \
-                                    self.option('otu_reps_fasta').prop['path']
+                                    self.option('fasta_file').prop['path']
         print cmd
         # os.system(cmd)
         self.logger.info("开始运行clustalw2")
