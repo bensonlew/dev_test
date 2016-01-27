@@ -23,8 +23,9 @@ urls = (
     "/pipeline/stop_pause", "PipelineStopPause"
     "/alpha/estimator", "Estimators"
     "/pipeline/stop_pause", "PipelineStopPause",
-    "/meta/pan_core", "PanCore"
-    )
+    "/meta/pan_core", "PanCore",
+    "/meta/beta/distance_calc", "DistanceCalc"
+)
 
 
 class hello(object):
