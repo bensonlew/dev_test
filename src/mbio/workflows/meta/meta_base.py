@@ -261,7 +261,7 @@ class MetaBaseWorkflow(Workflow):
         dist_path = self.beta.option('dis_matrix').prop['path']
         if not os.path.isfile(dist_path):
             raise Exception("找不到报告文件:{}".format(dist_path))
-        dist_id = api_dist.add_dist_table(dist_path, level=9, otu_id=otu_id)
+        dist_id = api_dist.add_dist_table(dist_path, level=9, otu_id=otu_id, major=True)
         # 设置hcluster树文件
         api_hcluster = self.api.newicktree
         hcluster_path = self.beta.output_dir+"/Hcluster/hcluster.tre"
