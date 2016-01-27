@@ -45,6 +45,7 @@ class Workflow(Basic):
         self.__json_config()
         self.__check_to_file_option()
         self.api = ApiManager(self)
+        self.api_start()
 
     def __json_config(self):
         if self.sheet.USE_DB is True:
@@ -104,7 +105,7 @@ class Workflow(Basic):
                         else:
                             imp = importlib.import_module("mbio.api.to_file.%s" % lib_path)
                         func = getattr(imp, func_name)
-                        self._sheet.set_option(opt, func(self._sheet.option(optl), optl, self.work_dir, self))
+                        self._sheet.set_option(optl, func(self._sheet.option(optl), optl, self.work_dir, self))
                 else:
                     imp = importlib.import_module("biocluster.api.to_file.parameter")
                     func = getattr(imp, "json_to_file")
