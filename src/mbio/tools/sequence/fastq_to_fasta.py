@@ -3,7 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-
+import os
 
 class FastqToFastaAgent(Agent):
     """
@@ -52,6 +52,7 @@ class FastqToFastaTool(Tool):
     def __init__(self, config):
         super(FastqToFastaTool, self).__init__(config)
         self._version = "v1"
+        self.cmd = "Python/bin/"
 
     def run(self):
         """
@@ -59,28 +60,24 @@ class FastqToFastaTool(Tool):
         :return:
         """
         super(FastqToFastaTool, self).run()
-        self.fastq_to_fasta(self.option('fastq_input').prop["path"], self.option('fasta_id'))
+        self.fastq_to_fasta()
         self.end()
 
-    def fastq_to_fasta(self, fastq, id1):
+    def fastq_to_fasta(self):
         """
-        将fastq文件转换成fasta文件
-        :param fastq:
-        :return:
+        运行fastq_to_fasta.py程序，将单个fastq文件转换成fasta文件
         """
-        n = 0
-        i = 1
-        self.logger.info("开始运行fastq_to_fasta函数")
-        with open(fastq, 'r') as r:
-            with open(self.output_dir + '/fasta', 'w') as w:
-                for line in r:
-                    n += 1
-                    if (n-1) % 4 == 0:
-                        if id1 == 'none':
-                            w.write('%s' % line.replace('@', '>'))
-                        else:
-                            w.write('%s%s\n' % (id1, i))
-                            i += 1
-                    if (n+2) % 4 == 0:
-                        w.write('%s' % line)
-        self.logger.info("运行fastq_to_fasta函数出错")
+        self.logger.info("开始运行pair_fastq_to_fasta命令")
+        cmd = self.cmd + "python /mnt/ilustre/users/sanger/app/meta/scripts/fastq_to_fasta.py -i %s -o fasta -n %s" % \
+                         (self.option('fastq_input').prop['path'], self.option('fasta_id'))
+        self.logger.info(cmd)
+        fasta_command = self.add_command("fastq_to_fasta_cmd", cmd).run()
+        self.wait(fasta_command)
+        if fasta_command.return_code == 0:
+            self.logger.info("fastq_to_fasta_cmd运行完成")
+        else:
+            self.set_error("fastq_to_fasta_cmd运行出错!")
+        for root, dirs, files in os.walk(self.output_dir):
+            for names in files:
+                os.remove(os.path.join(root, names))
+        os.link(self.work_dir + '/fasta', self.output_dir + '/fasta')

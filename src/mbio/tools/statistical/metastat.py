@@ -31,7 +31,7 @@ class MetastatAgent(Agent):
             #{"name": "fisher_output", "type": "outfile", "format": "statistical.stat_table"},  # 费舍尔检验的输出结果
             {"name": "kru_H_input", "type": "infile", "format": "meta.otu.otu_table"},  # kruskal_wallis_H_test的输入文件
             {"name": "kru_H_group", "type": "infile", "format": "meta.otu.group_table"},  # kruskal_wallis_H_test的输入分组文件
-            {"name": "kru_H_type", "type": "string", "default": "two.side"},  #kruskal_wallis_H_test选择单双尾检验
+            {"name": "kru_H_type", "type": "st ring", "default": "two.side"},  #kruskal_wallis_H_test选择单双尾检验
             {"name": "kru_H_correction", "type": "string", "default": "none"},  # kruskal_wallis_H_test的多重检验校正
             #{"name": "kru_H_output", "type": "outfile", "format": "statistical.stat_table"},  # kruskal_wallis_H_test的输出结果
             {"name": "mann_input", "type": "infile", "format": "meta.otu.otu_table"},  # 秩和检验的输入文件
@@ -80,9 +80,9 @@ class MetastatAgent(Agent):
             self.logger.info(self.option('test'))
             raise OptionError("必须设置输入的检验名称")
         for i in self.option('test').split(','):
-            if i not in ["chi_sq", "fisher", "kru_H", "mann", "anova", "student", "welch"]:
+            if i not in ["chi", "fisher", "kru_H", "mann", "anova", "student", "welch"]:
                 raise OptionError("所输入的检验名称不对")
-            elif i == "chi_sq":
+            elif i == "chi":
                 if not self.option("chi_input").is_set:
                     raise OptionError('必须设置卡方检验输入的otutable文件')
                 if not self.option("chi_sample1") and not self.option("chi_sample2"):
@@ -198,20 +198,40 @@ class MetastatTool(Tool):
         for t in self.option('test').split(','):
             # self.logger.info('运行metastat.py程序进行%s分析' % t)
             self.logger.info(t)
-            if t == "chi_sq":
-                return_mess = two_sample_test(self.option('chi_input').prop['path'], self.work_dir + '/chi_result.xls', t, self.option('chi_sample1'), self.option('chi_sample2'), self.option('chi_correction'))
+            if t == "chi":
+                return_mess = two_sample_test(self.option('chi_input').prop['path'], self.work_dir + '/chi_result.xls',
+                                              t, self.option('chi_sample1'), self.option('chi_sample2'),
+                                              self.option('chi_correction'))
             elif t == "fisher":
-                return_mess = two_sample_test(self.option('fisher_input').prop['path'], self.work_dir + '/fisher_result.xls', t, self.option('fisher_sample1'), self.option('fisher_sample2'), str(1 - self.option('fisher_ci')), self.option('fisher_type'), self.option('fisher_correction'))
+                return_mess = two_sample_test(self.option('fisher_input').prop['path'], self.work_dir +
+                                              '/fisher_result.xls', t, self.option('fisher_sample1'),
+                                              self.option('fisher_sample2'), str(1 - self.option('fisher_ci')),
+                                              self.option('fisher_type'), self.option('fisher_correction'))
             elif t == "student":
-                return_mess = two_group_test(self.option('student_input').prop['path'], self.option('student_group').prop['path'], self.work_dir + '/student_result.xls', t, str(1 - self.option('student_ci')), self.option('student_type'), self.option('student_correction'))
+                return_mess = two_group_test(self.option('student_input').prop['path'],
+                                             self.option('student_group').prop['path'], self.work_dir +
+                                             '/student_result.xls', self.work_dir + '/student_boxfile.xls', t, str(1 - self.option('student_ci')),
+                                             self.option('student_type'), self.option('student_correction'))
             elif t == "welch":
-                return_mess = two_group_test(self.option('welch_input').prop['path'], self.option('welch_group').prop['path'], self.work_dir + '/welch_result.xls', t, str(1 - self.option('welch_ci')), self.option('welch_type'), self.option('welch_correction'))
+                return_mess = two_group_test(self.option('welch_input').prop['path'],
+                                             self.option('welch_group').prop['path'], self.work_dir +
+                                             '/welch_result.xls', self.work_dir + '/welch_boxfile.xls', t, str(1 - self.option('welch_ci')),
+                                             self.option('welch_type'), self.option('welch_correction'))
             elif t == "mann":
-                return_mess = two_group_test(self.option('mann_input').prop['path'], self.option('mann_group').prop['path'], self.work_dir + '/mann_result.xls', t, str(1 - self.option('mann_ci')), self.option('mann_type'), self.option('mann_correction'))
+                return_mess = two_group_test(self.option('mann_input').prop['path'],
+                                             self.option('mann_group').prop['path'],
+                                             self.work_dir + '/mann_result.xls', self.work_dir + '/mann_boxfile.xls', t, str(1 - self.option('mann_ci')),
+                                             self.option('mann_type'), self.option('mann_correction'))
             elif t == "kru_H":
-                return_mess = mul_group_test(self.option('kru_H_input').prop['path'], self.work_dir + '/kru_H_result.xls', self.work_dir + '/kru_H_post_result.xls', self.option('kru_H_group').prop['path'], t, self.option('kru_H_type'), self.option('kru_H_correction'))
+                return_mess = mul_group_test(self.option('kru_H_input').prop['path'], self.work_dir +
+                                             '/kru_H_result.xls', self.work_dir + '/kru_H_post_result.xls',
+                                             self.option('kru_H_group').prop['path'], t, self.option('kru_H_type'),
+                                             self.option('kru_H_correction'))
             elif t == "anova":
-                return_mess = mul_group_test(self.option('anova_input').prop['path'], self.work_dir + '/anova_result.xls', self.work_dir + '/anova_post_result.xls', self.option('anova_group').prop['path'], t, self.option('anova_correction'))
+                return_mess = mul_group_test(self.option('anova_input').prop['path'], self.work_dir +
+                                             '/anova_result.xls', self.work_dir + '/anova_post_result.xls',
+                                             self.option('anova_group').prop['path'], t, self.option('anova_correction')
+                                             )
             if return_mess == 0:
                 self.logger.info('运行%s分析完成' % t.encode("utf-8"))
             else:
@@ -230,27 +250,26 @@ class MetastatTool(Tool):
         for f in files:
             if f == 'chi_result.xls':
                 os.link(self.work_dir + '/chi_result.xls', self.output_dir + '/chi_result.xls')
-                #self.option('chi_output').set_path(self.output_dir + '/chi_result.xls')
             elif f == 'fisher_result.xls':
                 os.link(self.work_dir + '/fisher_result.xls', self.output_dir + '/fisher_result.xls')
-                #self.option('fisher_output').set_path(self.output_dir + '/fisher_result.xls')
             elif f == 'student_result.xls':
                 os.link(self.work_dir + '/student_result.xls', self.output_dir + '/student_result.xls')
-                #self.option('student_output').set_path(self.output_dir + '/student_result.xls')
+            elif f == 'student_boxfile.xls':
+                os.link(self.work_dir + '/student_boxfile.xls', self.output_dir + '/student_boxfile.xls')
             elif f == 'welch_result.xls':
                 os.link(self.work_dir + '/welch_result.xls', self.output_dir + '/welch_result.xls')
-                #self.option('welch_output').set_path(self.output_dir + '/welch_result.xls')
+            elif f == 'welch_boxfile.xls':
+                os.link(self.work_dir + '/welch_boxfile.xls', self.output_dir + '/welch_boxfile.xls')
             elif f == 'mann_result.xls':
                 os.link(self.work_dir + '/mann_result.xls', self.output_dir + '/mann_result.xls')
-                #self.option('mann_output').set_path(self.output_dir + '/mann_result.xls')
+            elif f == 'mann_boxfile.xls':
+                os.link(self.work_dir + '/mann_boxfile.xls', self.output_dir + '/mann_boxfile.xls')
             elif f == 'kru_H_result.xls':
                 os.link(self.work_dir + '/kru_H_result.xls', self.output_dir + '/kru_H_result.xls')
             elif f == 'kru_H_post_result.xls':
                 os.link(self.work_dir + '/kru_H_post_result.xls', self.output_dir + '/kru_H_post_result.xls')
-                #self.option('kru_H_output').set_path(self.output_dir + '/kru_H_result.xls')
             elif f == 'anova_result.xls':
                 os.link(self.work_dir + '/anova_result.xls', self.output_dir + '/anova_result.xls')
-                #self.option('anova_output').set_path(self.output_dir + '/anova_result.xls')
             elif f == 'anova_post_result.xls':
                 os.link(self.work_dir + '/anova_post_result.xls', self.output_dir + '/anova_post_result.xls')
         self.logger.info("设置结果目录成功")

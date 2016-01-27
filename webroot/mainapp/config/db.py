@@ -41,3 +41,5 @@ def get_api_type(client):
 def get_mongo_client():
     uri = rcf.get("MONGO", "uri")
     return MongoClient(uri)
+a = rcf.get("MONGO", "uri")
+MongoClient(a)

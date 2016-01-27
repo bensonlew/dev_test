@@ -21,10 +21,13 @@ otu_data <-apply(da,2,function(x) as.numeric(x)/sum(as.numeric(x)))
 rownames(otu_data)<-rownames(da)
 samp <- samp[which(samp %in% gsamp)]
 result <- matrix(nrow = nrow(otu_data),ncol = 5)
+box_result <- matrix(nrow = nrow(otu_data),ncol = 11)
 pvalue <- 1
 for(i in 1:nrow(otu_data)){
   o1 <- as.numeric(as.vector(unlist(otu_data[i,which(samp %in% gsamp1)])))
   o2 <- as.numeric(as.vector(unlist(otu_data[i,which(samp %in% gsamp2)])))
+  sum1 <- as.numeric(summary(o1))[-4]
+  sum2 <- as.numeric(summary(o2))[-4]
   me1 <- mean(o1)
   me2 <- mean(o2)
   sd1 <- sd(o1)
@@ -39,6 +42,7 @@ for(i in 1:nrow(otu_data)){
   }
   pvalue <- c(pvalue,tt$p.value)
   result[i,] = c(rownames(otu_data)[i],me1,sd1,me2,sd2)
+  box_result[i,] = c(rownames(otu_data)[i],sum1[1],sum1[2],sum1[3],sum1[4],sum1[5],sum2[1],sum2[2],sum2[3],sum2[4],sum2[5])
 }
 pvalue <- pvalue[-1]
 pvalue <- p.adjust(as.numeric(pvalue),method = "${mul_test}")
@@ -48,4 +52,5 @@ result <- cbind(result,qv$qvalue)
 colnames(result) <- c(" ",paste("mean(",g1,")",sep=''),paste("sd(",g1,")",sep=''),paste("mean(",g2,")",sep=''),paste("sd(",g2,")",sep=''),"p-value","q-value")
 result_order <- result[order(result[,6]),]  
 write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F)
-    
+colnames(box_result) <- c(" ",paste("min(",g1,")",sep=''),paste("Q1(",g1,")",sep=''),paste("Median(",g1,")",sep=''),paste("Q3(",g1,")",sep=''),paste("max(",g1,")",sep=''),paste("min(",g2,")",sep=''),paste("Q1(",g2,")",sep=''),paste("Median(",g2,")",sep=''),paste("Q3(",g2,")",sep=''),paste("max(",g2,")",sep=''))
+write.table(box_result,"${boxfile}",sep = '\t',col.names = T,row.names = F)
