@@ -79,12 +79,12 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
     group_table = db['sg_specimen_group']
-    sample_table = db['sg_specimen_group']
+    sample_table = db['sg_specimen']
     group_name_list = list()
     group_name = bind_obj.sheet.option("category_name")
     group_name_list = re.split(',', group_name)
     with open(file_path, "wb") as f:
-        group_schema = group_table.fine_one({"_id": ObjectId(data)})
+        group_schema = group_table.find_one({"_id": ObjectId(data)})
         c_name = group_schema["category_names"]
         length = len(c_name)
         index_list = list()
@@ -96,12 +96,14 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
         sample_id = defaultdict(list)
         sample_name = defaultdict(list)
         for i in index_list:
-            sample_id[c_name[i]] = group_schema['group_schema'][i].keys()
+            sample_id[c_name[i]] = group_schema['specimen_names'][i].keys()
         for k in sample_id:
             value = sample_id[k]
             for v in value:
-                result = sample_table.fine_one({"_id": ObjectId(v)})
-                sample_name['k'].append(result['specimen_name'])
+                result = sample_table.find_one({"_id": ObjectId(v)})
+                if not result:
+                    raise Exception("无法根据传入的group_id:{}找到相应的样本名".format(data))
+                sample_name[k].append(result['specimen_name'])
         for k in sample_name:
             for i in range(len(sample_name[k])):
                 f.write("{}\t{}\n".format(k, sample_name[k][i]))

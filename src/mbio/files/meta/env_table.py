@@ -27,7 +27,7 @@ class EnvTableFile(File):
         """
         获取并返回环境因子信息
 
-        :return :  
+        :return :
         """
         tempfile = open(self.prop['path'])
         lines = tempfile.readlines()
@@ -55,6 +55,7 @@ class EnvTableFile(File):
                         pass
                     else:
                         raise FileError('存在数据冗余或者数据缺失')
+        return True
 
 
     def choose(self, env_list=[], Except=False, path='unknown'):
