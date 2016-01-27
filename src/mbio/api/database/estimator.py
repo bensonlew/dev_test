@@ -21,16 +21,17 @@ class Estimator(Base):
             task_id = self.bind_object.sheet.id
         data_list = []
         with open(file_path, 'r') as f:
-            l = f.readline()
+            l = f.readline().strip('\n')
             if not re.match(r"^sample", l):
                 raise Exception("文件%s格式不正确，请选择正确的estimator表格文件" % file_path)
             est_list = l.split("\t")
+            # est_list.pop()
             est_list.pop(0)
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
                 "otu_id": otu_id,
-                "name": name,
+                "name": name if name else "estimators_origin",
                 "level_name": level,
                 "status": "end",
                 "params": params,
@@ -48,10 +49,11 @@ class Estimator(Base):
                     break
                 line_data = line.split("\t")
                 sample_name = line_data.pop(0)
+                # line_data.pop()
                 data = [("alpha_diversity_id", inserted_id), ("specimen_name", sample_name)]
                 i = 0
                 for est in est_list:
-                    data.append((est, int(line_data[i])))
+                    data.append((est, float(line_data[i])))
                     i += 1
                 data_son = SON(data)
                 data_list.append(data_son)
