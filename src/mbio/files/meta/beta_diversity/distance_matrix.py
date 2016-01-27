@@ -103,6 +103,7 @@ class DistanceMatrixFile(File):
                         raise FileError('距离矩阵格式不正确')
             if len(self.prop['samp_list']) != len(set(self.prop['samp_list'])):
                 raise FileError('存在重复的样本名')
+            return True
 
     def choose(self, sample_list=[], Except=False, path='unknown'):
         """
