@@ -4,7 +4,6 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 import os
-import subprocess
 
 
 class PairFastqMergeAgent(Agent):
@@ -49,14 +48,20 @@ class PairFastqMergeAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = ''
+        size = os.path.getsize(self.option('fastq_input1').prop['path'])
+        n = float(size)/(1024*1024)
+        if n <= 35:
+            m = n*6 + 15
+            self._memory = '%sM' % m
+        else:
+            self._memory = '220M'
 
 
 class PairFastqMergeTool(Tool):
     def __init__(self, config):
         super(PairFastqMergeTool, self).__init__(config)
         self._version = "v1"
-        self.pear_path = "/mnt/ilustre/users/sanger/app/pear/bin/"
+        self.pear_path = "pear/bin/"
 
     def run(self):
         """
@@ -76,13 +81,13 @@ class PairFastqMergeTool(Tool):
         self.logger.info("merge_cmd开始运行")
         cmd = self.pear_path + "pear -f %s -r %s -o merge" % (self.option('fastq_input1').prop["path"],
                                                               self.option('fastq_input2').prop["path"])
-        try:
-            subprocess.check_output(cmd, shell=True)
-            self.logger.info("merge_cmd运行完成")
-            return True
-        except subprocess.CalledProcessError:
-            self.logger.info("merge运行出错")
-            return False
+        self.logger.info(cmd)
+        merge_command = self.add_command("pair_fastq_merge_cmd", cmd).run()
+        self.wait(merge_command)
+        if merge_command.return_code == 0:
+            self.logger.info("pair_fastq_merge_cmd运行完成")
+        else:
+            self.set_error("pair_fastq_merge_cmd运行出错!")
 
     def set_merge_output(self):
         """

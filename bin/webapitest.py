@@ -11,10 +11,12 @@ import os
 parser = argparse.ArgumentParser(description="submit data to web api and print the return data")
 parser.add_argument("method", type=str, choices=["get", "post"], help="get or post")
 parser.add_argument("api", type=str, help="the api address and url")
-parser.add_argument("-n", "--name", type=str, help="names for data")
-parser.add_argument("-d", "--data", type=str, help="data or files for names")
+parser.add_argument("-n", "--name", type=str, help="names for data, split by \";\"")
+parser.add_argument("-d", "--data", type=str, help="data or files for names, split by \";\"")
 parser.add_argument("-c", "--client", type=str, help="client name", default="test")
-parser.add_argument("-b", "--base_url", type=str, help="the base url of api", default="http://192.168.10.126/app/")
+parser.add_argument("-b", "--base_url",
+                    type=str, help="the base url of api, "
+                                   "default value : http://192.168.10.126/app/", default="http://192.168.10.126/app/")
 parser.add_argument("-e", "--header", action="store_true", help="use header to submit signature info")
 
 args = parser.parse_args()

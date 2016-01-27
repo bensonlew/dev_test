@@ -14,19 +14,14 @@ class Distance(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_dist_table(self, file_path, level, otu_id=None, task_id=None, name=None, params=None):
-        if level not in range(1, 10):
+    def add_dist_table(self, file_path, major=False, level=None, dist_id=None, otu_id=None, task_id=None, name=None, params=None):
+        if level and level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if task_id is None:
             task_id = self.bind_object.sheet.id
         data_list = []
-        dist_id = ''
-        with open(file_path, 'r') as f:
-            l = f.readline().strip('\n')
-            if not re.match(r"^\t", l):
-                raise Exception("文件%s格式不正确，请选择正确的distance表格文件" % file_path)
-            sample_list = l.split("\t")
-            sample_list.pop(0)
+        # insert major
+        if major:
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
@@ -39,7 +34,16 @@ class Distance(Base):
             }
             collection = self.db["sg_beta_specimen_distance"]
             dist_id = collection.insert_one(insert_data).inserted_id
-            # insert detail
+        else:
+            if dist_id is None:
+                raise Exception("major为False时需提供dist_id!")
+        # insert detail
+        with open(file_path, 'r') as f:
+            l = f.readline().strip('\n')
+            if not re.match(r"^\t", l):
+                raise Exception("文件%s格式不正确，请选择正确的distance表格文件" % file_path)
+            sample_list = l.split("\t")
+            sample_list.pop(0)
             while True:
                 line = f.readline().strip('\n')
                 if not line:
