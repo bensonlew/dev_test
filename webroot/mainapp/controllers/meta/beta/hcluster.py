@@ -24,18 +24,21 @@ class Hcluster(object):
         method = 'average'
         if hasattr(data, 'method'):
             method = data.method
-        insert_mongo_json = {
-            'task_id': matrix_info["task_id"],
-            'table_id': data.distance_id,
-            'table_type': 'dist',
-            'name': data.name,
-            'tree_Type': 'cluster',
-            'status': 'start',
-            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        collection = get_mongo_client()['sanger']['sg_newick_tree']
-        newicktree_id = collection.insert_one(insert_mongo_json).inserted_id
         if matrix_info:
+            insert_mongo_json = {
+                'task_id': matrix_info["task_id"],
+                'table_id': data.distance_id,
+                'table_type': 'dist',
+                'name': data.name,
+                'tree_Type': 'cluster',
+                'params': json.dumps(data),
+                'status': 'start',
+                'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            collection = get_mongo_client()['sanger']['sg_newick_tree']
+            newicktree_id = collection.insert_one(insert_mongo_json).inserted_id
+            update_info = {str(newicktree_id): "sg_newick_tree"}
+            update_info = json.dumps(update_info)
             workflow_id = self.get_new_id(matrix_info["task_id"], data.distance_id)
             json_data = {
                 "id": workflow_id,

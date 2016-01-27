@@ -27,21 +27,22 @@ class DistanceCalc(object):
         if hasattr(data, 'distance_algorithm'):
             method = data.distance_algorithm
         otu_info = Meta().get_otu_table_info(data.otu_id)
-        insert_mongo_json = {
-            'project_sn': otu_info['project_sn'],
-            'task_id': otu_info['task_id'],
-            'otu_id': data.otu_id,
-            'name': method + '_' + otu_info['name'],
-            'distance_algorithm': method,
-            'params': json.dumps(data),
-            'status': 'start',
-            'desc': '',
-            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        collection = get_mongo_client()['sanger']['sg_distance']
-        distance_matrix_id = collection.insert_one(insert_mongo_json).inserted_id
-        update_info = {str(distance_matrix_id): "sg_distance"}
         if otu_info:
+            insert_mongo_json = {
+                'project_sn': otu_info['project_sn'],
+                'task_id': otu_info['task_id'],
+                'otu_id': data.otu_id,
+                'name': method + '_' + otu_info['name'],
+                'distance_algorithm': method,
+                'params': json.dumps(data),
+                'status': 'start',
+                'desc': '',
+                'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            collection = get_mongo_client()['sanger']['sg_beta_specimen_distance']
+            distance_matrix_id = collection.insert_one(insert_mongo_json).inserted_id
+            update_info = {str(distance_matrix_id): "sg_beta_specimen_distance"}
+            update_info = json.dumps(update_info)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
                 "id": workflow_id,
@@ -50,7 +51,7 @@ class DistanceCalc(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                # "to_file": "meta.export_otu_table_by_level(otu_file)",
+                "to_file": "meta.export_otu_table_by_level(otu_file)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
