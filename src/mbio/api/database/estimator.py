@@ -38,7 +38,7 @@ class Estimator(Base):
             inserted_id = collection.insert_one(insert_data).inserted_id
         else:
             if est_id is None:
-                raise Exception("major为False时需提供dist_id!")
+                raise Exception("major为False时需提供est_id!")
         # insert detail
         with open(file_path, 'r') as f:
             l = f.readline().strip('\n')
