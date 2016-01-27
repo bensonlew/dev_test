@@ -17,7 +17,9 @@ class Subsample(object):
         if not hasattr(data, "otu_id"):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
-
+        my_param = dict()
+        my_param['size'] = data.size
+        params = json.dumps(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)

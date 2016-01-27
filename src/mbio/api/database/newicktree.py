@@ -35,7 +35,7 @@ class Newicktree(Base):
             }
             try:
                 collection = self.db["sg_newick_tree"]
-                collection.insert_one(insert_data)
+                tree_id = collection.insert_one(insert_data).inserted_id
             except Exception, e:
                 self.bind_object.logger.error("导入newick%s信息出错:%s" % (file_path, e))
             else:

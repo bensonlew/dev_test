@@ -38,7 +38,7 @@ class MetaBaseWorkflow(Workflow):
                 "default": "pca,hcluster"},
             {"name": "beta_level", "type": "string", "default": "otu"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
-            {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
+            # {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
             {"name": "envtable", "type": "infile", "format": "meta.env_table"}
@@ -98,7 +98,6 @@ class MetaBaseWorkflow(Workflow):
         #     self.qc.set_options({
         #         "seqname_sample": self.option("seqname_sample")
         #         })
-        self.on_rely(self.qc, self.run_otu)
         self.qc.on("start", self.set_step, {'start': self.step.qcstat})
         self.qc.on("end", self.set_output, "qc")
         self.qc.run()
@@ -110,8 +109,6 @@ class MetaBaseWorkflow(Workflow):
             })
         self.otu.on("end", self.set_output, "otu")
         self.otu.on("start", self.set_step, {'start': self.step.otucluster})
-        self.on_rely(self.otu, self.run_taxon)
-        self.on_rely(self.otu, self.run_phylotree)
         self.otu.run()
 
     def run_phylotree(self):
@@ -132,7 +129,6 @@ class MetaBaseWorkflow(Workflow):
                 "ref_fasta": self.option("ref_fasta"),
                 "ref_taxon": self.option("ref_taxon")
             })
-        self.on_rely(self.tax, self.run_stat)
         self.tax.on("end", self.set_output, "tax")
         self.tax.on("start", self.set_step, {'end': self.step.otucluster, 'start': self.step.taxassign})
         self.tax.run()
@@ -144,8 +140,6 @@ class MetaBaseWorkflow(Workflow):
             })
         self.stat.on("end", self.set_output, "stat")
         self.stat.on("end", self.set_step, {'end': self.step.taxassign})
-        self.on_rely(self.stat, self.run_alpha)
-        self.on_rely(self.stat, self.run_beta)
         self.stat.run()
 
     def run_alpha(self):
@@ -167,16 +161,17 @@ class MetaBaseWorkflow(Workflow):
             'dis_method': self.option('dis_method'),
             'otutable': self.option('otu_taxon_dir'),
             "level": self.option('beta_level'),
-            'permutations': self.option('permutations')
+            'permutations': self.option('permutations'),
+            'phy_newick': self.phylo.option('phylo_tre').prop['path']
             })
-        if self.option('phy_newick').is_set:
-            self.beta.set_options({
-                'phy_newick': self.option('phy_newick')
-                })
-        if self.option('envtable').is_set:
-            self.beta.set_options({
-                'envtable': self.option('envtable')
-                })
+        # if self.option('phy_newick').is_set:
+        #     self.beta.set_options({
+        #         'phy_newick': self.option('phy_newick')
+        #         })
+        # if self.option('envtable').is_set:
+        #     self.beta.set_options({
+        #         'envtable': self.option('envtable')
+        #         })
         # if self.option('group').is_set:
         #     self.beta.set_options({
         #         'group': self.option('group')
@@ -249,13 +244,13 @@ class MetaBaseWorkflow(Workflow):
         tree_path = self.phylo.option('phylo_tre').prop['path']
         if not os.path.isfile(tree_path):
             raise Exception("找不到报告文件:{}".format(tree_path))
-        api_tree.add_tree_file(tree_path, level=9, table_id=otu_id, table_type='otu', tree_type='phylo')
+        api_tree.add_tree_file(tree_path, major=True, level=9, table_id=otu_id, table_type='otu', tree_type='phylo')
         # 设置alpha多样性文件
         api_est = self.api.estimator
         est_path = self.output_dir+"/Alpha_diversity/estimators.xls"
         if not os.path.isfile(est_path):
             raise Exception("找不到报告文件:{}".format(est_path))
-        api_est.add_est_table(est_path, level=9, otu_id=otu_id)
+        api_est.add_est_table(est_path, major=True, level=9, otu_id=otu_id)
         # 设置beta多样性文件
         api_dist = self.api.distance
         dist_path = self.beta.option('dis_matrix').prop['path']
@@ -267,10 +262,16 @@ class MetaBaseWorkflow(Workflow):
         hcluster_path = self.beta.output_dir+"/Hcluster/hcluster.tre"
         if not os.path.isfile(hcluster_path):
             raise Exception("找不到报告文件:{}".format(hcluster_path))
-        api_hcluster.add_tree_file(hcluster_path, table_id=dist_id, table_type='dist', tree_type='cluster')
+        api_hcluster.add_tree_file(hcluster_path, major=True, table_id=dist_id, table_type='dist', tree_type='cluster')
         self.end()
 
     def run(self):
         self.run_qc()
-        self.on_rely([self.phylo, self.alpha, self.beta], self.set_db)
+        self.on_rely(self.qc, self.run_otu)
+        self.on_rely(self.otu, self.run_taxon)
+        self.on_rely(self.otu, self.run_phylotree)
+        self.on_rely(self.tax, self.run_stat)
+        self.on_rely(self.stat, self.run_alpha)
+        self.on_rely([self.stat, self.phylo], self.run_beta)
+        self.on_rely([self.alpha, self.beta], self.set_db)
         super(MetaBaseWorkflow, self).run()
