@@ -43,11 +43,11 @@ class PanCore(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": ["meta.export_otu_table(in_otu_table)", "meta.export_group_table(group_table)"],
+                "to_file": ["meta.export_otu_table_by_level(in_otu_table)", "meta.export_group_table(group_table)"],
                 # src/mbio/api/to_file/meta 括号内的值与options里面的值对应
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.otu",  # src/mbio/api/web/otu
+                "UPDATE_STATUS_API": "meta.update_status",  # src/mbio/api/web/update_status
                 "options": {
                     "update_info": update_info,
                     "in_otu_table": data.otu_id,
