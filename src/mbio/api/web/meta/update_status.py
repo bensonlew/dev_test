@@ -45,9 +45,17 @@ class UpdateStatus(Log):
                         create_time = json_data["stage"]["created_ts"]
                         self.update_log(otu_id, status, desc, create_time)
                     else:
-                        continue
+                        self._success = 0
+                        self._failed = True
+                        self._failed_times += 1
+                        self._reject = 1
+                        break
                 else:
-                    continue
+                    self._success = 0
+                    self._failed = True
+                    self._failed_times += 1
+                    self._reject = 1
+                    break
             except Exception, e:
                 self._success = 0
                 self._failed_times += 1
@@ -55,6 +63,8 @@ class UpdateStatus(Log):
             else:
                 self._success = 1
                 self.log("提交成功")
+                break
+        self._end = True
         self.save()
 
     def get_otu_id(self):
@@ -77,7 +87,7 @@ class UpdateStatus(Log):
             collection = id_value[k]
             if not isinstance(obj_id, ObjectId):
                 if isinstance(obj_id, StringTypes):
-                    obj_id = ObjectId(id_value)
+                    obj_id = ObjectId(obj_id)
                 else:
                     raise Exception("{}的值必须为ObjectId对象或其对应的字符串!".format(self._sheetname))
             data = {
