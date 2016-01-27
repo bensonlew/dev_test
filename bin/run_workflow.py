@@ -83,7 +83,7 @@ def main():
                             exitcode = p.exitcode
                             if exitcode != 0:
                                 write_log("流程%s运行出错: 程序运行异常" % p.json_data["id"])
-                                p.wj.update_error()
+                                p.wj.update_error(p.json_data["id"], p.json_data, p.start_time)
                             p.join()
                             process_array.remove(p)
                     time.sleep(1)
@@ -92,7 +92,7 @@ def main():
                     exitcode = p.exitcode
                     if exitcode != 0:
                         write_log("流程%s运行出错: 程序运行异常" % p.json_data["id"])
-                        p.wj.update_error()
+                        p.wj.update_error(p.json_data["id"], p.json_data, p.start_time)
                     p.join()
                     process_array.remove(p)
     else:
@@ -160,9 +160,11 @@ class Worker(Process):
         super(Worker, self).__init__()
         self.wj = wj
         self.json_data = json_data
+        self.start_time = None
 
     def run(self):
         super(Worker, self).run()
+        self.start_time = datetime.datetime.now()
         timestr = time.strftime('%Y%m%d', time.localtime(time.time()))
         log_dir = os.path.join(Config().SERVICE_LOG, timestr)
         if not os.path.exists(log_dir):
@@ -329,15 +331,16 @@ class WorkJob(object):
             self.unlock()
         write_log("End running workflow:%s" % self.workflow_id)
 
-    def update_error(self):
-        myvar = dict(id=self.workflow_id)
+    def update_error(self, workflow_id, json_data, start_time):
+
+        myvar = dict(id=workflow_id)
         self.lock()
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id and is_end=0 and is_error=0",
                                 vars=myvar)
         if len(results) > 0:
             error = "程序无警告异常中断"
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error=error)
-            self.insert_api_log(self.json_data, error, self._start_time)
+            self.insert_api_log(json_data, error, start_time)
         self.unlock()
 
     def insert_api_log(self, json_data, error_info, start_time):
