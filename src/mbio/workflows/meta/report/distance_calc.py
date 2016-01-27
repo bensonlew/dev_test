@@ -14,11 +14,25 @@ class DistanceCalcWorkflow(Workflow):
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
         super(DistanceCalcWorkflow, self).__init__(wsheet_object)
+        options = [
+            {"name": "otu_file", "type": "sting"},  # 需要修改，紧紧作为测试
+            {"name": "name", "type": "string"},  # 需要修改，紧紧作为测试
+            {"name": "method", "type": "string", "default": 'bray_curtis'},
+            {"name": "update_info", "type": "string"},
+            {"name": "otu_id", "type": "string"},
+            {"name": "category_name", "type": "string"},
+            {"name": "level", "type": "int"},
+            {"name": "matrix_id", "type": "string"},
+            # {"name": "matrix_out", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
+        ]
+        self.add_option(options)
+        self.set_options(self._sheet.options())
 
     def run(self):
         task = self.add_tool("meta.beta_diversity.distance_calc")
         if self.UPDATE_STATUS_API:
             task.UPDATE_STATUS_API = self.UPDATE_STATUS_API
+        self.logger.info(self._sheet.options('otu_file'))
         if 'unifrac' in self._sheet.options('method'):
             newicktree = self.get_phylo_tree()
             options = {
@@ -28,8 +42,8 @@ class DistanceCalcWorkflow(Workflow):
             }
         else:
             options = {
-                'method': self._sheet.options('method'),
-                'otutable': self._sheet.options('otu_file')
+                'method': self.options('method'),
+                'otutable': '/mnt/ilustre/users/sanger/sheng.he_test/test_file/my_otu_table.txt'
             }
         task.set_options(options)
         task.on('end', self.set_db)

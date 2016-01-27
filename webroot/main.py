@@ -19,8 +19,9 @@ urls = (
     "/pipeline/queue", "PipelineQueue",
     "/pipeline/pause", "PipelinePause",
     "/pipeline/stop_pause", "PipelineStopPause",
-    "/meta/pan_core", "PanCore"
-    )
+    "/meta/pan_core", "PanCore",
+    "/meta/beta/distance_calc", "DistanceCalc"
+)
 
 
 class hello(object):

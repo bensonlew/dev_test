@@ -47,7 +47,7 @@ class Hcluster(object):
                 "to_file": "meta.export_distance_matrix_table(distance_matrix)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                # "UPDATE_STATUS_API": "meta.otu",
+                "UPDATE_STATUS_API": "meta.update_status",
                 "options": {
                     "distance_matrix": data.distance_id,
                     "name": data.name,
