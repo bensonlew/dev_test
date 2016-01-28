@@ -13,7 +13,7 @@ class PanCore(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_pan_core_detail(self, file_path, pan_core_id, category_name):
+    def add_pan_core_detail(self, file_path, pan_core_id):
         if not isinstance(pan_core_id, ObjectId):
             if isinstance(pan_core_id, StringTypes):
                 pan_core_id = ObjectId(pan_core_id)
@@ -21,7 +21,7 @@ class PanCore(Base):
                 raise Exception("pan_core_id必须为ObjectId对象或其对应的字符串!")
         with open(file_path, 'rb') as r:
             header = r.next().rstrip("\n")
-            header.pop(0)
+            header = re.split('\t', header)
             pan_core_detail = list()
             for line in r:
                 line = line.rstrip('\n')

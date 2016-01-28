@@ -23,9 +23,17 @@ class UpdateStatus(Log):
         self._sheetname = "update_info"
 
     def update(self):
-        otu_id = self.get_otu_id()
-        otu_id = json.loads(otu_id)
+        table_id = self.get_otu_id()
         while True:
+            try:
+                print table_id
+                my_table_id = json.loads(table_id)
+            except Exception:
+                self.log("update_info:{}格式不正确".format(my_table_id))
+                self._success = 0
+                self._failed = True
+                self._reject = 1
+                break
             if self._try_times >= config.UPDATE_MAX_RETRY:
                 self.log("尝试提交%s次任务成功，终止尝试！" % self._try_times)
                 self._failed = True
@@ -35,7 +43,7 @@ class UpdateStatus(Log):
                 if self._success == 0:
                     gevent.sleep(config.UPDATE_RETRY_INTERVAL)
                 self._try_times += 1
-                if otu_id:
+                if my_table_id:
                     url_data = urlparse.parse_qs(self.data.data)
                     statu = url_data["content"][0]
                     json_data = json.loads(statu, object_hook=date_hook)
@@ -43,18 +51,29 @@ class UpdateStatus(Log):
                         status = json_data["stage"]["status"]
                         desc = json_data["stage"]["error"]
                         create_time = json_data["stage"]["created_ts"]
-                        self.update_log(otu_id, status, desc, create_time)
+                        self.update_log(my_table_id, status, desc, create_time)
                     else:
-                        continue
+                        self._success = 0
+                        self._failed = True
+                        self._failed_times += 1
+                        self._reject = 1
+                        break
                 else:
-                    continue
+                    self._success = 0
+                    self._failed = True
+                    self._failed_times += 1
+                    self._reject = 1
+                    break
             except Exception, e:
                 self._success = 0
                 self._failed_times += 1
+                print "aaaaaa"
                 self.log("提交失败: %s" % e)
             else:
                 self._success = 1
                 self.log("提交成功")
+                break
+        self._end = True
         self.save()
 
     def get_otu_id(self):
@@ -73,15 +92,15 @@ class UpdateStatus(Log):
 
     def update_log(self, id_value, status, desc, create_time):
         for k in id_value:
-            obj_id = self.mongodb[k]
-            collection = id_value[k]
+            obj_id = k
+            dbname = id_value[k]
+            collection = self.mongodb[dbname]
             if not isinstance(obj_id, ObjectId):
                 if isinstance(obj_id, StringTypes):
-                    obj_id = ObjectId(id_value)
+                    obj_id = ObjectId(obj_id)
                 else:
                     raise Exception("{}的值必须为ObjectId对象或其对应的字符串!".format(self._sheetname))
             data = {
-                '_id': obj_id,
                 "status": status,
                 "desc": desc,
                 "created_ts": create_time
