@@ -24,7 +24,9 @@ class SubSampleAgent(Agent):
         options = [
             {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入的OTU文件
             {"name": "out_otu_table", "type": "outfile", "format": "meta.otu.otu_table"},  # 输出的OTU文件
-            {"name": "level", "type": "string", "default": "otu"}]  # 物种水平
+            {"name": "level", "type": "string", "default": "otu"},
+            {"name": "size", "type": "int", "default": 0}
+        ]
         self.add_option(options)
         self.step.add_steps("sub_sample")
         self.on('start', self.start_sub_sample)
@@ -87,8 +89,12 @@ class SubSampleTool(Tool):
             self.option("in_otu_table").get_info()
             self.option("in_otu_table").convert_to_shared(shared_path)
             basename = self.option("in_otu_table").prop['basename']
-        cmd = self.mothur_path + " \"#set.dir(output=" + mothur_dir\
-            + ");sub.sample(shared=" + shared_path + ")\""
+        if self.option("size") == 0:
+            cmd = self.mothur_path + " \"#set.dir(output=" + mothur_dir\
+                + ");sub.sample(shared=" + shared_path + ")\""
+        else:
+            cmd = self.mothur_path + " \"#set.dir(output=" + mothur_dir\
+                + ");sub.sample(shared=" + shared_path + ", size=" + str(self.option("size")) + ")\""
         sub_sample_cmd = self.add_command("sub_sample_cmd", cmd)
         self.logger.info("开始运行sub.sample")
         sub_sample_cmd.run()

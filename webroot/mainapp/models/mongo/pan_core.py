@@ -27,11 +27,17 @@ class PanCore(object):
         result = collection.find_one({"_id": from_otu_table})
         project_sn = result['project_sn']
         task_id = result['task_id']
+        if pan_core_type == 1:
+            desc = "正在计算pan otu表格"
+        else:
+            desc = "正在计算core otu表格"
         insert_data = {
             "type": pan_core_type,
             "project_sn": project_sn,
             "task_id": task_id,
             "group_id": group_id,
+            "status": "start",
+            "desc": desc,
             "name": name if name else "pan_core表格",
             "params": params,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
