@@ -28,8 +28,6 @@ class DistanceCalcWorkflow(Workflow):
 
     def run(self):
         task = self.add_tool("meta.beta_diversity.distance_calc")
-        if self.UPDATE_STATUS_API:
-            task.UPDATE_STATUS_API = self.UPDATE_STATUS_API
         self.logger.info(self._sheet.option('otu_file'))
         if 'unifrac' in self._sheet.option('method'):
             newicktree = self.get_phylo_tree()

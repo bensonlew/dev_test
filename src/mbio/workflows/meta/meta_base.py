@@ -238,7 +238,7 @@ class MetaBaseWorkflow(Workflow):
         otu_path = self.output_dir+"/OtuTaxon_summary/otu_taxon.xls"
         if not os.path.isfile(otu_path):
             raise Exception("找不到报告文件:{}".format(otu_path))
-        otu_id = api_otu.add_otu_table(otu_path, 9)
+        otu_id = api_otu.add_otu_table(otu_path, major=True)
         # 设置进化树文件
         api_tree = self.api.newicktree
         tree_path = self.phylo.option('phylo_tre').prop['path']

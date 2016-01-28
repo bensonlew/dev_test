@@ -7,8 +7,7 @@ import random
 from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
-from mainapp.models.mongo.group_stat import Group_stat as G
-
+from mainapp.models.mongo.group_stat import GroupStat as G
 
 
 class TwoGroup(object):
@@ -16,7 +15,7 @@ class TwoGroup(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "otu_id"):
+        if not (hasattr(data, "otu_id")):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
         my_param = dict()
@@ -47,19 +46,19 @@ class TwoGroup(object):
                 "to_file": "meta.export_otu_table_by_level(otu_file)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status"
-            }
-            option = {
-                "update_info": update_info,
-                "otu_file": data.otu_id,
-                "level": data.level,
-                "test": data.test,
-                "correction": data.correction,
-                "ci": data.ci,
-                "type": data.type,
-                "sample1":data.sample1,
-                "sample2":data.sample2,
-                "two_sample_id":str(two_sample_id)
+                "UPDATE_STATUS_API": "meta.update_status",
+                "option": {
+                    "update_info": update_info,
+                    "otu_file": data.otu_id,
+                    "level": data.level,
+                    "test": data.test,
+                    "correction": data.correction,
+                    "ci": data.ci,
+                    "type": data.type,
+                    "sample1": data.sample1,
+                    "sample2": data.sample2,
+                    "two_sample_id": str(two_sample_id)
+                }
             }
             insert_data = {"client": client,
                            "workflow_id": workflow_id,
