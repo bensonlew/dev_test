@@ -52,10 +52,10 @@ class Hcluster(object):
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
                 "options": {
+                    "update_info": update_info,
                     "distance_matrix": data.distance_id,
                     "name": data.name,
                     "distance_id": data.distance_id,
-                    "task_id": matrix_info["task_id"],
                     "methd": method,
                     "newick_id": newicktree_id
                 }
