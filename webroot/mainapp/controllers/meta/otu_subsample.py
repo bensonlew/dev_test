@@ -47,10 +47,11 @@ class Subsample(object):
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.meta.update_status",
                 "options": {
-                    "update_info": json.dumps({str(output_otu_id)}),
+                    "update_info": json.dumps({str(output_otu_id): "sg_otu"}),
                     "input_otu_id": data.otu_id,
-                    "size": input_otu_info["size"],
-                    "output_otu_id": output_otu_id
+                    "size": data.size if hasattr(data, "size") else 0,
+                    "level": data.level_id if hasattr(data, "level_id") else 9,
+                    "output_otu_id": str(output_otu_id)
                 }
             }
             insert_mysql_data = {
