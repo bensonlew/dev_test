@@ -12,7 +12,7 @@ class GroupStat(object):
         self.client = get_mongo_client()
         self.db = self.client["sanger"]
 
-    def create_species_difference_check(self, level, check_type, group_id = 0, params, from_otu_table=0, name=None):
+    def create_species_difference_check(self, level, check_type, group_id=0, params, from_otu_table=0, name=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -33,7 +33,7 @@ class GroupStat(object):
                 "project_sn": project_sn,
                 "task_id": task_id,
                 "name": name if name else "组间差异统计表格",
-                "level_name": level
+                "level_name": level,
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
