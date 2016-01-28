@@ -15,7 +15,7 @@ db = client["sanger"]
 
 def export_distance_matrix(data, option_name, dir_path, bind_obj=None):
     file_path = os.path.join(dir_path, "%s_input.matrix.xls" % option_name)
-    bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
+    bind_obj.logger.debug("正在导出参数%s的距离矩阵为文件，路径:%s" % (option_name, file_path))
     collection = db['sg_beta_specimen_distance_detail']
     results = collection.find({"specimen_distance_id": ObjectId(data)})
     samples = []
