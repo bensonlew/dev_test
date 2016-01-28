@@ -33,6 +33,7 @@ class DistanceCalc(object):
                 'project_sn': otu_info['project_sn'],
                 'task_id': otu_info['task_id'],
                 'otu_id': data.otu_id,
+                'level_id': otu_level,
                 'name': method + '_' + otu_info['name'] + '_' + time.asctime(time.localtime(time.time())),
                 'distance_algorithm': method,
                 'params': json.dumps(data),

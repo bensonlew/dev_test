@@ -18,17 +18,17 @@ class Hcluster(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not hasattr(data, "distance_id"):
+        if not hasattr(data, "specimen_distance_id"):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
-        matrix_info = Distance().get_distance_matrix_info(data.distance_id)
+        matrix_info = Distance().get_distance_matrix_info(data.specimen_distance_id)
         method = 'average'
         if hasattr(data, 'method'):
             method = data.method
         if matrix_info:
             insert_mongo_json = {
                 'task_id': matrix_info["task_id"],
-                'table_id': data.distance_id,
+                'table_id': data.specimen_distance_id,
                 'table_type': 'dist',
                 'name': 'hcluster_' + method + '_' + time.asctime(time.localtime(time.time())),
                 'tree_Type': 'cluster',
@@ -40,7 +40,7 @@ class Hcluster(object):
             newicktree_id = collection.insert_one(insert_mongo_json).inserted_id
             update_info = {str(newicktree_id): "sg_newick_tree"}
             update_info = json.dumps(update_info)
-            workflow_id = self.get_new_id(matrix_info["task_id"], data.distance_id)
+            workflow_id = self.get_new_id(matrix_info["task_id"], data.specimen_distance_id)
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
@@ -54,8 +54,8 @@ class Hcluster(object):
                 "UPDATE_STATUS_API": "meta.update_status",
                 "options": {
                     "update_info": update_info,
-                    "distance_matrix": data.distance_id,
-                    "distance_id": data.distance_id,
+                    "distance_matrix": data.specimen_distance_id,
+                    "distance_id": data.specimen_distance_id,
                     "method": method,
                     "newick_id": str(newicktree_id)
                 }

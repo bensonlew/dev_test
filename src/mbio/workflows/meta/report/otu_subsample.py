@@ -18,7 +18,8 @@ class OtuSubsampleWorkflow(Workflow):
             {"name": "input_otu_id", "type": "string"},  # 输入的OTU id
             {"name": "size", "type": "int", "default": "min"},
             {"name": "update_info", "type": "string"},
-            {"name": "output_otu_id", "type": "string"}  # 结果的otu id
+            {"name": "output_otu_id", "type": "string"},  # 结果的otu id
+            {"name": "level", "type": "int"}
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -26,7 +27,7 @@ class OtuSubsampleWorkflow(Workflow):
 
     def run(self):
         self.task.set_options({
-                "in_otu_table": export_otu_table(self.option("input_otu_id"), "subsample_size_"+self.option("size"), self.task.work_dir, self.task),
+                "in_otu_table": export_otu_table(self.option("input_otu_id"), "otu_taxon.xls", self.task.work_dir, self),
                 "size": self.option("size")
             })
         self.task.on('end', self.set_db)
@@ -38,7 +39,7 @@ class OtuSubsampleWorkflow(Workflow):
         保存结果otu表到mongo数据库中
         """
         api_otu = self.api.meta
-        otu_path = self.task.output_dir+"/otu_taxon.xls"
+        otu_path = self.task.output_dir+"/otu_taxon_subsample.xls"
         if not os.path.isfile(otu_path):
             raise Exception("找不到报告文件:{}".format(otu_path))
         api_otu.add_otu_table(otu_path, self.option("output_otu_id"))
