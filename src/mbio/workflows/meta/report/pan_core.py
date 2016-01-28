@@ -29,15 +29,16 @@ class PanCoreWorkflow(Workflow):
             "group_table": self.option("group_table")
         }
         self.pan_core.set_options(options)
-        self.on_rely(self.pan_core, self.set_db)
+        self.pan_core.on('end', self.set_db)
         self.pan_core.run()
 
     def set_db(self):
+        self.logger.info("正在写入mongo数据库")
         api_pan_core = self.api.pan_core
         pan_path = self.pan_core.option("pan_otu_table").prop['path']
         core_path = self.pan_core.option("core_otu_table").prop['path']
         api_pan_core.add_pan_core_detail(pan_path, self.option("pan_id"))
-        api_pan_core.add_pan_core_detail(core_path, self.option("core_path"))
+        api_pan_core.add_pan_core_detail(core_path, self.option("core_id"))
         self.end()
 
     def run(self):

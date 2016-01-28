@@ -57,8 +57,8 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
     for col in collection.find({"otu_id": ObjectId(data)}):
         new_classify_name = ""
         tmp = level + 1
+        my_list = list()
         for i in range(1, tmp):
-            my_list = list()
             if LEVEL[i] not in col:
                 my_str = LEVEL[i] + "no_rank"
             else:
@@ -75,12 +75,12 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
             for sp in samples:
                 name_dic[new_classify_name][sp] += int(col[sp])
     with open(file_path, "wb") as f:
-        f.write("OTU ID\t%s\ttaxonomy\n" % "\t".join(samples))
+        f.write("OTU ID\t%s\n" % "\t".join(samples))
         for k in name_dic.iterkeys():
             line = k
             for s in samples:
                 line += "\t" + str(name_dic[k][s])
-            line += k + "\n"
+            line += "\n"
             f.write(line)
     return file_path
 
