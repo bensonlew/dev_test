@@ -14,7 +14,7 @@ class Newicktree(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_tree_file(self, file_path, major=False, level=None, task_id=None, table_id=None, table_type=None, tree_type=None, name=None, params=None):
+    def add_tree_file(self, file_path, major=False, level=None, task_id=None, table_id=None, table_type=None, tree_type=None, tree_id=None, name=None, params=None):
         if table_type == "otu":
             if level not in range(1, 10):
                 raise Exception("level参数%s为不在允许范围内!" % level)
@@ -35,17 +35,20 @@ class Newicktree(Base):
             }
             try:
                 collection = self.db["sg_newick_tree"]
-                collection.insert_one(insert_data)
+                tree_id = collection.insert_one(insert_data).inserted_id
             except Exception, e:
                 self.bind_object.logger.error("导入newick%s信息出错:%s" % (file_path, e))
             else:
                 self.bind_object.logger.info("导入newick%s信息成功!" % file_path)
+        else:
+            if tree_id is None:
+                raise Exception("major为False时需提供tree_id!")
         # update value
         with open(file_path, 'r') as f:
             line = f.readline()
             try:
                 collection = self.db["sg_newick_tree"]
-                collection.update_one({"task_id": task_id, "table_id": table_id, "table_type": table_type, "level": level, "tree_type": tree_type}, {"value": line})
+                collection.update_one({"_id": tree_id}, {"$set": {"value": line}})
             except Exception, e:
                 self.bind_object.logger.error("导入newick tree%s信息出错:%s" % (file_path, e))
             else:

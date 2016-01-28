@@ -26,7 +26,6 @@ class UpdateStatus(Log):
         table_id = self.get_otu_id()
         while True:
             try:
-                print table_id
                 my_table_id = json.loads(table_id)
             except Exception:
                 self.log("update_info:{}格式不正确".format(my_table_id))
