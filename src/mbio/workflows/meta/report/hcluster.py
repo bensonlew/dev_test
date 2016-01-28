@@ -20,8 +20,8 @@ class HclusterWorkflow(Workflow):
         if self.UPDATE_STATUS_API:
             task.UPDATE_STATUS_API = self.UPDATE_STATUS_API
         options = {
-            'linkage': self._sheet.options('method'),
-            'dis_matrix': self._sheet.options('distance_matrix')
+            'linkage': self._sheet.option('method'),
+            'dis_matrix': self._sheet.option('distance_matrix')
         }
         task.set_options(options)
         task.on('end', self.set_db)
@@ -33,9 +33,9 @@ class HclusterWorkflow(Workflow):
         """
         保存结果树结果到mongo数据库中
         """
-        api_newick = self.api.hcluster
+        api_newick = self.api.newicktree
         newick_fath = self.output_dir + "/hcluster.tre"
         if not os.path.isfile(newick_fath):
             raise Exception("找不到报告文件:{}".format(newick_fath))
-        api_newick.add_sample_newicktree(newick_fath, self._sheet.option('newick_id'))
+        api_newick.add_tree_file(newick_fath, self._sheet.option('newick_id'))
         self.end()
