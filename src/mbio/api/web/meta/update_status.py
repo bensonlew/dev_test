@@ -25,6 +25,7 @@ class UpdateStatus(Log):
     def update(self):
         table_id = self.get_otu_id()
         while True:
+            self._failed = False
             try:
                 my_table_id = json.loads(table_id)
             except Exception:
@@ -65,11 +66,12 @@ class UpdateStatus(Log):
                     break
             except Exception, e:
                 self._success = 0
+                self._failed = True
                 self._failed_times += 1
-                print "aaaaaa"
                 self.log("提交失败: %s" % e)
             else:
                 self._success = 1
+                self._failed = False
                 self.log("提交成功")
                 break
         self._end = True
@@ -99,6 +101,9 @@ class UpdateStatus(Log):
                     obj_id = ObjectId(obj_id)
                 else:
                     raise Exception("{}的值必须为ObjectId对象或其对应的字符串!".format(self._sheetname))
+            if status == "finish":
+                status = "end"
+                desc = ""
             data = {
                 "status": status,
                 "desc": desc,

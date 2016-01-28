@@ -6,11 +6,13 @@ from mainapp.controllers.pipeline import Pipeline, PipelineState,PipelineLog,Pip
 from mainapp.controllers.filecheck import FileCheck,MultiFileCheck
 from mainapp.controllers.meta.beta.distance_calc import DistanceCalc
 from mainapp.controllers.meta.beta.hcluster import Hcluster
+from mainapp.controllers.meta.pan_core import PanCore
 
 # web.config.debug = False
 urls = (
     "/hello", "hello",
-    "/meta/beta/distance_calc", "DistanceCalc",
+    "/meta/beta/distance_calc", "DistanceCalc",  # add by shenghe for test 1
+    "/meta/pan_core", "PanCore",  # pancore
     "/filecheck", "FileCheck",
     "/filecheck/multi", "MultiFileCheck",
     "/pipeline", "Pipeline",
