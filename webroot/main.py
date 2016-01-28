@@ -8,6 +8,7 @@ from mainapp.controllers.meta.two_group import TwoGroup
 from mainapp.controllers.filecheck import FileCheck,MultiFileCheck
 from mainapp.controllers.meta.estimators import Estimators
 from mainapp.controllers.meta.pan_core import PanCore
+from mainapp.controllers.meta.beta.distance_calc import DistanceCalc
 # web.config.debug = False
 urls = (
     "/hello", "hello",

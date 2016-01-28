@@ -6,9 +6,10 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
 from mainapp.config.db import get_mongo_client
-# from bson.objectid import ObjectId
+from bson.objectid import ObjectId
 import random
 import datetime
+import time
 
 
 class DistanceCalc(object):
@@ -17,12 +18,12 @@ class DistanceCalc(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "otu_id") and hasattr(data, "name")):
+        otu_level = 9
+        if not hasattr(data, "otu_id"):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
-        otu_level = 9
-        if hasattr(data, 'level'):
-            otu_level = data.level
+        if hasattr(data, 'level_id'):
+            otu_level = data.level_id
         method = 'bray_curtis'
         if hasattr(data, 'distance_algorithm'):
             method = data.distance_algorithm
@@ -32,7 +33,7 @@ class DistanceCalc(object):
                 'project_sn': otu_info['project_sn'],
                 'task_id': otu_info['task_id'],
                 'otu_id': data.otu_id,
-                'name': method + '_' + otu_info['name'],
+                'name': method + '_' + otu_info['name'] + '_' + time.asctime(time.localtime(time.time())),
                 'distance_algorithm': method,
                 'params': json.dumps(data),
                 'status': 'start',
@@ -58,7 +59,6 @@ class DistanceCalc(object):
                 "options": {
                     "update_info": update_info,
                     "otu_file": data.otu_id,
-                    "name": data.name,
                     "otu_id": data.otu_id,
                     "level": otu_level,
                     "method": method,

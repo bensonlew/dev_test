@@ -16,7 +16,6 @@ class DistanceCalcWorkflow(Workflow):
         super(DistanceCalcWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", "format": "meta.otu.otu_table"},
-            {"name": "name", "type": "string"},  # 需要修改，紧紧作为测试
             {"name": "method", "type": "string", "default": 'bray_curtis'},
             {"name": "update_info", "type": "string"},
             {"name": "otu_id", "type": "string"},
