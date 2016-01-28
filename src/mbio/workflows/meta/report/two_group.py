@@ -14,61 +14,73 @@ class TwoGroupWorkflow(Workflow):
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
         super(TwoGroupWorkflow, self).__init__(wsheet_object)
+        options = [
+            {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
+            {"name": "group_file", "type": "infile", "format": "meat.otu.group_table"},
+            {"name": "type", "type": "string"},
+            {"name": "update_info", "type": "string"},
+            {"name": "test", "type": "string"},
+            {"name": "level", "type": "int"},
+            {"name": "correction", "type": "string"},
+            {"name": "ci", "type": "float"},
+            {"name": "two_group_id", "type": "string"}
 
-    def run(self):
-        task = self.add_tool("statistical.metastat.py")
-        if self.UPDATE_STATUS_API:
-            task.UPDATE_STATUS_API = self.UPDATE_STATUS_API
-        if self._sheet.options('test') == 'student':
+        ]
+        self.add_option(options)
+        self.set_options(self._sheet.options())
+        self.two_group = self.add_tool("meta.statistical.metastat")
+
+    def run_two_group(self):
+        if self.option("test") == "student":
             options = {
-                'test': self._sheet.options('test'),
-                'student_group': self._sheet.options('student_category_name'),
-                'student_input': self._sheet.options('otu_file'),
-                'student_correction': self._sheet.options('student_correction'),
-                'student_ci': self._sheet.options('student_ci'),
-                'student_type': self._sheet.options('student_type')
+                "student_input": self.option("otu_file"),
+                "student_group": self.option("group_file"),
+                "student_ci": self.option("ci"),
+                "student_correction": self.option("correction"),
+                "student_type": self.option("type"),
+                "test": self.option("test")
+
+
             }
-        elif self._sheet.options('test') == 'welch':
+        elif self.option("test") == "mann":
             options = {
-                'test': self._sheet.options('test'),
-                'welch_group': self._sheet.options('welch_category_name'),
-                'welch_input': self._sheet.options('otu_file'),
-                'welch_correction': self._sheet.options('welch_correction'),
-                'welch_type': self._sheet.options('welch_type'),
-                'welch_ci': self._sheet.options('welch_ci')
+                "mann_input": self.option("otu_file"),
+                "mann_ci": self.option("ci"),
+                "mann_group": self.option("group_file"),
+                "mann_correction": self.option("correction"),
+                "mann_type": self.option("type"),
+                "test": self.option("test")
+
             }
-        elif self._sheet.options('test') == 'mann':
+        else:
             options = {
-                'test': self._sheet.options('test'),
-                'mann_group': self._sheet.options('mann_category_name'),
-                'mann_input': self._sheet.options('otu_file'),
-                'mann_correction': self._sheet.options('mann_correction'),
-                'mann_type': self._sheet.options('mann_type'),
-                'mann_ci': self._sheet.options('mann_ci')
+                "welch_input": self.option("otu_file"),
+                "welch_ci": self.option("ci"),
+                "welch_group": self.option("group_file"),
+                "welch_correction": self.option("correction"),
+                "welch_type": self.option("type"),
+                "test": self.option("test")
+
             }
-        task.set_options(options)
-        task.on('end', self.set_db)
-        task.run()
-        self.output_dir = task.output_dir
-        super(TwoGroupWorkflow, self).run()
+        self.two_group.set_options(options)
+        self.on_rely(self.two_group, self.set_db)
+        self.two_group.run()
 
     def set_db(self):
         """
         保存两组比较分析的结果表保存到mongo数据库中
         """
-        api_two_group = self.api.database.two_group
-        if self._sheet.options('test') == 'student':
-            box_path = self.output_dir + '/student_boxfile.xls'
-            two_group_path = self.output_dir + '/student_result.xls'
-        elif self._sheet.options('test') == 'welch':
-            box_path = self.output_dir + '/welch_boxfile.xls'
-            two_group_path = self.output_dir + '/welch_result.xls'
-        else:
-            box_path = self.output_dir + '/mann_boxfile.xls'
-            two_group_path = self.output_dir + '/mann_result.xls'
-        if not os.path.isfile(box_path):
-            raise Exception("找不到报告文件:{}".format(box_path))
-        if not os.path.isfile(two_group_path):
-            raise Exception("找不到报告文件:{}".format(two_group_path))
-        #api_otu.add_otu_table(otu_path, 9, )
+        api_two_group = self.api.stat_test
+        stat_path = self.output_dir + '/' + self.option("test") + '_result.xls'
+        boxfile_path = self.output_dir + '/' + self.option("test") + 'boxfile.xls'
+        if not os.path.isfile(stat_path):
+            raise Exception("找不到报告文件:{}".format(stat_path))
+        if not os.path.isfile(boxfile_path):
+            raise Exception("找不到报告文件:{}".format(boxfile_path))
+        api_two_group.add_species_difference_check_detail(stat_path, self.option("two_group_id"))
+        api_two_group.add_species_difference_check_detail(stat_path, self.option("two_group_id"))
         self.end()
+
+    def run(self):
+        self.run_two_group()
+        super(TwoGroupWorkflow, self).run()

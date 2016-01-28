@@ -7,9 +7,7 @@ import random
 from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
-from mainapp.models.mongo.group_stat import Group_stat as G
-
-
+from mainapp.models.mongo.group_stat import GroupStat as G
 
 
 class TwoGroup(object):
@@ -17,7 +15,7 @@ class TwoGroup(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "otu_id") and hasattr(data, "name")):
+        if not (hasattr(data, "otu_id")):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
         my_param = dict()
@@ -32,7 +30,7 @@ class TwoGroup(object):
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_two_group_stat_table"
-            two_group_id = G().create_species_difference_check(data.level, 'two_group', data.group_id, params, data.otu_id, name)
+            two_group_id = G().create_species_difference_check(data.level, 'two_group', params, data.group_id, data.otu_id, name)
             update_info = {str(two_group_id): "sg_species_difference_check"}
             update_info = json.dumps(update_info)
 
@@ -47,17 +45,18 @@ class TwoGroup(object):
                 "to_file": ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table(group_file)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status"
-            }
-            option = {
-                "otu_file": data.otu_id,
-                "update_info": update_info,
-                "level": data.level,
-                "test": data.test,
-                "group_file": data.group_detail,
-                "correction": data.correction,
-                "ci": data.ci,
-                "type": data.type
+                "UPDATE_STATUS_API": "meta.update_status",
+                "option": {
+                    "otu_file": data.otu_id,
+                    "update_info": update_info,
+                    "level": data.level,
+                    "test": data.test,
+                    "group_file": data.group_detail,
+                    "correction": data.correction,
+                    "ci": data.ci,
+                    "type": data.type,
+                    "two_group_id": str(two_group_id)
+                }
             }
             insert_data = {"client": client,
                            "workflow_id": workflow_id,
@@ -79,3 +78,9 @@ class TwoGroup(object):
         if len(workflow_data) > 0:
             return self.get_new_id(task_id, otu_id)
         return new_id
+
+    def check_options(self, data):
+        """
+        检查网页端传进来的参数是否正确
+        """
+        pass
