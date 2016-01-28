@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'xuting'
+# __author__ = 'qiuping'
 
 """pan_core OTU计算"""
 
 from biocluster.workflow import Workflow
+import os
 
 
 class TwoSampleWorkflow(Workflow):
@@ -52,10 +53,10 @@ class TwoSampleWorkflow(Workflow):
 
     def set_db(self):
         api_two_sample = self.api.stat_test
-        two_sample_path = self.out_dir + '/' + self.option("test") + '_result.xls'
+        two_sample_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         if not os.path.isfile(two_sample_path):
             raise Exception("找不到报告文件:{}".format(two_sample_path))
-        api_two_sample.add_two_sample_detail(pan_path, self.option("two_sample_id"))
+        api_two_sample.add_two_sample_detail(two_sample_path, self.option("two_sample_id"))
         self.end()
 
     def run(self):

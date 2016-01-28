@@ -1,19 +1,44 @@
 /*
 Navicat MySQL Data Transfer
 
-Source Server         : 192.168.10.51
-Source Server Version : 50528
+Source Server         : 192.168.10.126
+Source Server Version : 50173
 Source Host           : localhost:3306
 Source Database       : biocluster
 
 Target Server Type    : MYSQL
-Target Server Version : 50528
+Target Server Version : 50173
 File Encoding         : 65001
 
-Date: 2015-11-17 16:15:07
+Date: 2016-01-28 13:25:31
 */
 
 SET FOREIGN_KEY_CHECKS=0;
+
+-- ----------------------------
+-- Table structure for `apilog`
+-- ----------------------------
+DROP TABLE IF EXISTS `apilog`;
+CREATE TABLE `apilog` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `task_id` varchar(255) NOT NULL DEFAULT '0',
+  `api` varchar(255) NOT NULL,
+  `data` text,
+  `addtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `success` tinyint(4) NOT NULL DEFAULT '0',
+  `last_update` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `server` varchar(255) DEFAULT NULL,
+  `response` text,
+  `response_code` varchar(255) DEFAULT NULL,
+  `failed_times` int(11) NOT NULL DEFAULT '0',
+  `reject` tinyint(4) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `task_id_index` (`task_id`)
+) ENGINE=MyISAM AUTO_INCREMENT=970 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of apilog
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for `clientkey`
@@ -25,98 +50,41 @@ CREATE TABLE `clientkey` (
   `key` varchar(255) DEFAULT NULL,
   `ipmask` varchar(255) DEFAULT NULL,
   `timelimit` int(11) DEFAULT NULL,
+  `max_workflow` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Records of clientkey
 -- ----------------------------
-INSERT INTO `clientkey` VALUES ('1', 'client01', '1ZYw71APsQ', null, '60');
-INSERT INTO `clientkey` VALUES ('2', 'test', 'Aw21cADS3u', '172.16.3.0/24;127.0.0.1', null);
+INSERT INTO `clientkey` VALUES ('1', 'client01', '1ZYw71APsQ', '172.16.3.0/24;192.168.10.0/24;127.0.0.1', '600', '500');
+INSERT INTO `clientkey` VALUES ('2', 'test', 'Aw21cADS3u', '172.16.3.0/24;127.0.0.1', null, null);
+INSERT INTO `clientkey` VALUES ('3', 'client02', '8A2q9C35Ts', '172.16.3.0/24;192.168.10.0/24', null, '5');
 
 -- ----------------------------
--- Table structure for `command`
+-- Table structure for `pause`
 -- ----------------------------
-DROP TABLE IF EXISTS `command`;
-CREATE TABLE `command` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `t_id` int(11) NOT NULL,
-  `w_id` int(11) NOT NULL,
-  `command` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `t_id_index` (`t_id`) USING BTREE,
-  KEY `w_id_index` (`w_id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- ----------------------------
--- Records of command
--- ----------------------------
-
--- ----------------------------
--- Table structure for `logs`
--- ----------------------------
-DROP TABLE IF EXISTS `logs`;
-CREATE TABLE `logs` (
+DROP TABLE IF EXISTS `pause`;
+CREATE TABLE `pause` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `workflow_id` varchar(255) NOT NULL,
-  `log` text,
+  `reason` varchar(255) DEFAULT '',
+  `client` varchar(255) DEFAULT NULL,
+  `ip` varchar(255) DEFAULT NULL,
+  `add_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `has_pause` tinyint(4) NOT NULL DEFAULT '0',
+  `pause_time` timestamp NULL DEFAULT NULL,
+  `exit_pause` tinyint(4) NOT NULL DEFAULT '0',
+  `exit_pause_time` timestamp NULL DEFAULT NULL,
+  `has_continue` tinyint(4) NOT NULL DEFAULT '0',
+  `continue_time` timestamp NULL DEFAULT NULL,
+  `timeout` tinyint(4) NOT NULL DEFAULT '0',
+  `timeout_time` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
--- Records of logs
--- ----------------------------
-
--- ----------------------------
--- Table structure for `module`
--- ----------------------------
-DROP TABLE IF EXISTS `module`;
-CREATE TABLE `module` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `m_id` varchar(255) NOT NULL,
-  `p_id` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `path` varchar(255) NOT NULL,
-  `workdir` varchar(255) NOT NULL,
-  `start_time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
-  `is_end` tinyint(4) NOT NULL DEFAULT '0',
-  `end_time` timestamp NULL DEFAULT NULL,
-  `is_error` tinyint(4) NOT NULL DEFAULT '0',
-  `error` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `p_id_index` (`p_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- ----------------------------
--- Records of module
--- ----------------------------
-
--- ----------------------------
--- Table structure for `tool`
--- ----------------------------
-DROP TABLE IF EXISTS `tool`;
-CREATE TABLE `tool` (
-  `id` int(11) NOT NULL,
-  `t_id` varchar(255) NOT NULL,
-  `p_id` int(11) NOT NULL,
-  `p_type` varchar(255) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `path` varchar(255) NOT NULL,
-  `workdir` varchar(255) NOT NULL,
-  `start_time` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
-  `run_time` timestamp NULL DEFAULT NULL,
-  `is_end` tinyint(4) NOT NULL DEFAULT '0',
-  `end_time` timestamp NULL DEFAULT NULL,
-  `is_error` tinyint(4) NOT NULL DEFAULT '0',
-  `error` varchar(255) DEFAULT NULL,
-  `host` varchar(255) NOT NULL,
-  `jobid` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `p_id` (`p_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- ----------------------------
--- Records of tool
+-- Records of pause
 -- ----------------------------
 
 -- ----------------------------
@@ -126,14 +94,14 @@ DROP TABLE IF EXISTS `tostop`;
 CREATE TABLE `tostop` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `workflow_id` varchar(255) NOT NULL,
-  `reson` varchar(255) NOT NULL,
+  `reson` varchar(255) NOT NULL DEFAULT '',
   `client` varchar(255) NOT NULL,
-  `time` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `ip` varchar(255) DEFAULT NULL,
   `done` tinyint(4) NOT NULL DEFAULT '0',
   `stoptime` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Records of tostop
@@ -145,11 +113,11 @@ CREATE TABLE `tostop` (
 DROP TABLE IF EXISTS `workflow`;
 CREATE TABLE `workflow` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `client` varchar(255) NOT NULL,
-  `workflow_id` varchar(255) NOT NULL,
-  `json` text NOT NULL,
-  `ip` varchar(255) DEFAULT NULL,
-  `add_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `client` varchar(255) DEFAULT '' COMMENT '远程客户端名称',
+  `workflow_id` varchar(255) NOT NULL COMMENT '流程ID',
+  `json` text NOT NULL COMMENT '调用JSON文档',
+  `ip` varchar(255) DEFAULT NULL COMMENT '远程客户端IP地址',
+  `add_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `has_run` tinyint(4) NOT NULL DEFAULT '0',
   `run_time` timestamp NULL DEFAULT NULL,
   `is_end` tinyint(4) NOT NULL DEFAULT '0',
@@ -161,6 +129,11 @@ CREATE TABLE `workflow` (
   `output` varchar(255) DEFAULT NULL,
   `pid` int(11) DEFAULT NULL,
   `workdir` varchar(255) DEFAULT NULL,
+  `paused` tinyint(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `workflow_id_index` (`workflow_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=336 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of workflow
+-- ----------------------------

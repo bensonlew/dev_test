@@ -160,11 +160,10 @@ class Worker(Process):
         super(Worker, self).__init__()
         self.wj = wj
         self.json_data = json_data
-        self.start_time = None
+        self.start_time = datetime.datetime.now()
 
     def run(self):
         super(Worker, self).run()
-        self.start_time = datetime.datetime.now()
         timestr = time.strftime('%Y%m%d', time.localtime(time.time()))
         log_dir = os.path.join(Config().SERVICE_LOG, timestr)
         if not os.path.exists(log_dir):

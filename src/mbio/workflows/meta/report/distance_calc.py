@@ -16,7 +16,6 @@ class DistanceCalcWorkflow(Workflow):
         super(DistanceCalcWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", "format": "meta.otu.otu_table"},
-            {"name": "name", "type": "string"},  # 需要修改，紧紧作为测试
             {"name": "method", "type": "string", "default": 'bray_curtis'},
             {"name": "update_info", "type": "string"},
             {"name": "otu_id", "type": "string"},
@@ -29,8 +28,6 @@ class DistanceCalcWorkflow(Workflow):
 
     def run(self):
         task = self.add_tool("meta.beta_diversity.distance_calc")
-        if self.UPDATE_STATUS_API:
-            task.UPDATE_STATUS_API = self.UPDATE_STATUS_API
         self.logger.info(self._sheet.option('otu_file'))
         if 'unifrac' in self._sheet.option('method'):
             newicktree = self.get_phylo_tree()

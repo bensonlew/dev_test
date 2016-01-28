@@ -77,8 +77,6 @@ class Option(object):
         if opt['type'] not in {"int", "float", "string", "bool", "infile", "outfile"}:
             raise OptionError("参数属性不在规范范围内type：{}".format(self._type))
 
-
-
     @property
     def name(self):
         """
