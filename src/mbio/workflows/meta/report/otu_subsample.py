@@ -18,8 +18,7 @@ class OtuSubsampleWorkflow(Workflow):
             {"name": "input_otu_id", "type": "string"},  # 输入的OTU id
             {"name": "size", "type": "int", "default": "min"},
             {"name": "update_info", "type": "string"},
-            {"name": "output_otu_id", "type": "string"},  # 结果的otu id
-            {"name": "level", "type": "int"}
+            {"name": "output_otu_id", "type": "string"}  # 结果的otu id
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())
