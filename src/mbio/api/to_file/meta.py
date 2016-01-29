@@ -142,13 +142,14 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     """
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
+    print data
     if not isinstance(data, dict):
         try:
             table_dict = json.loads(data)
         except Exception:
             raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
     if not isinstance(table_dict, dict):
-        raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+        raise Exception("生成group表失败，传入的table_dict不是一个字典或者是字典对应的字符串".format(option_name))
     with open(file_path, "wb") as f:
         for k in table_dict:
             for sp in table_dict[k]:

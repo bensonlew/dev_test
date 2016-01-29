@@ -46,7 +46,7 @@ class TwoSampleWorkflow(Workflow):
                 "fisher_sample1": self.option("sample1"),
                 "fisher_sample2": self.option("sample2"),
                 "fisher_correction": self.option("correction"),
-                "test": self.option("test")
+                "test": self.option("test"),
                 "fisher_type": self.option("type")
             }
         self.two_sample.set_options(options)
@@ -55,7 +55,7 @@ class TwoSampleWorkflow(Workflow):
 
     def set_db(self):
         api_two_sample = self.api.stat_test
-        two_sample_path = self.out_dir + '/' + self.option("test") + '_result.xls'
+        two_sample_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         if not os.path.isfile(two_sample_path):
             raise Exception("找不到报告文件:{}".format(two_sample_path))
         api_two_sample.add_species_difference_check_detail(two_sample_path, self.option("two_sample_id"))
