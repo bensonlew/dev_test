@@ -16,7 +16,7 @@ class TwoGroupWorkflow(Workflow):
         super(TwoGroupWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
-            {"name": "group_file", "type": "infile", "format": "meat.otu.group_table"},
+            {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "type", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "test", "type": "string"},
@@ -28,7 +28,7 @@ class TwoGroupWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.two_group = self.add_tool("meta.statistical.metastat")
+        self.two_group = self.add_tool("statistical.metastat")
 
     def run_two_group(self):
         if self.option("test") == "student":

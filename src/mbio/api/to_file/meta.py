@@ -12,6 +12,7 @@ client = Config().mongo_client
 db = client["sanger"]
 
 
+
 def export_otu_table(data, option_name, dir_path, bind_obj=None):
     file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
@@ -150,7 +151,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     """
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
-    print data
+    bind_obj.logger.info(data)
     if not isinstance(data, dict):
         try:
             table_dict = json.loads(data)

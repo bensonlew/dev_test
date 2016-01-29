@@ -26,7 +26,7 @@ class TwoSampleWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.two_sample = self.add_tool("meta.statistical.metastat")
+        self.two_sample = self.add_tool("statistical.metastat")
 
     def run_two_sample(self):
         if self.option("test") == "chi":
