@@ -9,6 +9,7 @@ from types import StringTypes
 
 
 class Meta(Base):
+
     def __init__(self, bind_object):
         super(Meta, self).__init__(bind_object)
         self._db_name = "sanger"
@@ -25,12 +26,14 @@ class Meta(Base):
             else:
                 raise Exception("from_out_table必须为ObjectId对象或其对应的字符串!")
         if major:
+            if task_id is None:
+                task_id = self.bind_object.sheet.id
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
                 "name": name if name else "otu_taxon_origin",
                 "from_id": from_out_table,
-                #"level": level,
+                # "level": level,
                 "status": "end",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -39,6 +42,8 @@ class Meta(Base):
             collection = self.db["sg_otu"]
             otu_id = collection.insert_one(insert_data).inserted_id
         else:
+            # if task_id is None:
+            #     raise Exception("major为False时需提供task_id!")
             if otu_id is None:
                 raise Exception("major为False时需提供otu_id!")
         data_list = []
