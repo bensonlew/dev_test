@@ -108,8 +108,8 @@ qv <- qvalue(as.numeric(result[,colnum+1]),lambda = 0.5)
 qvalue <- qv$qvalue
 result <- cbind(result,qvalue)
 result_order <- result[order(result[,colnum+1]),]
-write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F)
-write.table(postlist,"post_result",sep="\t",col.names=T,row.names=T)
+write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)
+write.table(postlist,"post_result",sep="\t",col.names=T,row.names=T,quote = F)
 
 
     
