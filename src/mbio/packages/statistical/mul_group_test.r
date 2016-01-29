@@ -7,7 +7,7 @@ otu_data <- otu_data[,-1]
 colnames(otu_data) <- samp
 
 group <- read.table("${groupfile}",sep="\t")
-gsamp=group[-1,1]
+gsamp=group[,1]
 otu_data <- otu_data[,which(samp %in% gsamp)]
 otu_data <- otu_data[apply(otu_data,1,function(x)any(x>0)),]
 

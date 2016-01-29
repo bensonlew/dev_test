@@ -30,7 +30,7 @@ class Meta(Base):
                 "task_id": task_id,
                 "name": name if name else "otu_taxon_origin",
                 "from_id": from_out_table,
-                # "level": level,
+                #"level": level,
                 "status": "end",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

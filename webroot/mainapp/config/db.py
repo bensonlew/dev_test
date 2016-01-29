@@ -4,42 +4,53 @@ import web
 import os
 import ConfigParser
 from pymongo import MongoClient
+from biocluster.core.singleton import singleton
 
 
-CONF_FILE = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../src/biocluster/main.conf"))
+@singleton
+class Config(object):
+    def __init__(self):
+        self.CONF_FILE = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../src/biocluster/main.conf"))
+        self.rcf = ConfigParser.RawConfigParser()
+        self.rcf.read(self.CONF_FILE)
+        self._db = None
+        self._mongo_client = None
 
-rcf = ConfigParser.RawConfigParser()
-rcf.read(CONF_FILE)
+    def get_db(self):
+        if not self._db:
+            dbtype = self.rcf.get("DB", "dbtype")
+            host = self.rcf.get("DB", "host")
+            user = self.rcf.get("DB", "user")
+            passwd = self.rcf.get("DB", "passwd")
+            dbname = self.rcf.get("DB", "db")
+            port = self.rcf.get("DB", "port")
+            self._db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
+        return self._db
+
+    def get_mongo_client(self):
+        if not self._mongo_client:
+            uri = Config().rcf.get("MONGO", "uri")
+            self._mongo_client = MongoClient(uri)
+        return self._mongo_client
 
 
 def get_db():
-
-    DB_TYPE = rcf.get("DB", "dbtype")
-    DB_HOST = rcf.get("DB", "host")
-    DB_USER = rcf.get("DB", "user")
-    DB_PASSWD = rcf.get("DB", "passwd")
-    DB_NAME = rcf.get("DB", "db")
-    DB_PORT = rcf.get("DB", "port")
-
-    if DB_TYPE == "mysql":
-        return web.database(dbn=DB_TYPE, host=DB_HOST, db=DB_NAME, user=DB_USER, passwd=DB_PASSWD, port=int(DB_PORT))
+    return Config().get_db()
 
 DB = get_db()
 
 
 def get_use_api_clients():
-    return rcf.options("API")
+    return Config().rcf.options("API")
 
 
 def get_api_type(client):
-    if rcf.has_option("API", client):
-        return rcf.get("API", client)
+    if Config().rcf.has_option("API", client):
+        return Config().rcf.get("API", client)
     else:
         return None
 
 
 def get_mongo_client():
-    uri = rcf.get("MONGO", "uri")
-    return MongoClient(uri)
-a = rcf.get("MONGO", "uri")
-MongoClient(a)
+    return Config().get_mongo_client()
+

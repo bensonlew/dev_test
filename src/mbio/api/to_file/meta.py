@@ -4,18 +4,16 @@ import os
 import re
 import copy
 import json
-from collections import defaultdict
-from pymongo import MongoClient
 from biocluster.config import Config
 from bson.objectid import ObjectId
 
 
-client = MongoClient(Config().MONGO_URI)
+client = Config().mongo_client
 db = client["sanger"]
 
 
 def export_otu_table(data, option_name, dir_path, bind_obj=None):
-    file_path = os.path.join(dir_path, "%s_input.otu.xls" % option_name)
+    file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     collection = db['sg_otu_specimen']
     results = collection.find({"otu_id": ObjectId(data)})
@@ -41,7 +39,7 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
     """
     按等级获取OTU表
     """
-    file_path = os.path.join(dir_path, "%s_input.otu.xls" % option_name)
+    file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     bind_obj.logger.debug("samples1")
     collection = db['sg_otu_specimen']
@@ -87,8 +85,6 @@ def _create_classify_name(col, tmp):
     last_classify = ""
     for i in range(1, tmp):
         if LEVEL[i] not in col:
-            print LEVEL[i]
-            print last_classify
             if last_classify == "":
                 tmp = col[LEVEL[i - 1]]
                 last_classify = re.split('__', tmp)[1]
@@ -111,30 +107,41 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
     group_name_list = list()
     group_name = bind_obj.sheet.option("category_name")
     group_name_list = re.split(',', group_name)
+    group_schema = group_table.find_one({"_id": ObjectId(data)})
+    c_name = group_schema["category_names"]
+    # 当group表里的那条记录有"otu_id"字段时, 去sg_otu_specimen表里由id去找样本名
+    # 当group表里的那条记录有"task_id"字段时, 去sg_specimen表里由id去找样本名
+    if "otu_id" in group_schema:
+        sample_table = db['sg_otu_specimen']
+    elif "task_id" in group_schema:
+        sample_table = db['sg_specimen']
+    index_list = _get_index_list(group_name_list, c_name)
+    sample_id = dict()
+    sample_name = dict()
+    for i in index_list:
+        for k in group_schema['specimen_names'][i]:
+            # k 样品ID
+            sample_id[k] = c_name[i]
+    for k in sample_id:
+        result = sample_table.find_one({"_id": ObjectId(k)})
+        if not result:
+            raise Exception("无法根据传入的group_id:{}找到相应的样本名".format(data))
+        sample_name[result['specimen_name']] = sample_id[k]
     with open(file_path, "wb") as f:
-        group_schema = group_table.find_one({"_id": ObjectId(data)})
-        c_name = group_schema["category_names"]
-        length = len(c_name)
-        index_list = list()
-        for i in range(length):
-            for g_name in group_name_list:
-                if g_name == c_name[i]:
-                    index_list.append(i)
-                    break
-        sample_id = defaultdict(list)
-        sample_name = defaultdict(list)
-        for i in index_list:
-            sample_id[c_name[i]] = group_schema['specimen_names'][i].keys()
-        for k in sample_id:
-            value = sample_id[k]
-            for v in value:
-                result = sample_table.find_one({"_id": ObjectId(v)})
-                if not result:
-                    raise Exception("无法根据传入的group_id:{}找到相应的样本名".format(data))
-                sample_name[k].append(result['specimen_name'])
         for k in sample_name:
             for i in range(len(sample_name[k])):
-                f.write("{}\t{}\n".format(k, sample_name[k][i]))
+                f.write("{}\t{}\n".format(sample_name[k], k))
+
+
+def _get_index_list(group_name_list, c_name):
+    length = len(c_name)
+    index_list = list()
+    for i in range(length):
+        for g_name in group_name_list:
+            if g_name == c_name[i]:
+                index_list.append(i)
+                break
+    return index_list
 
 
 def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):

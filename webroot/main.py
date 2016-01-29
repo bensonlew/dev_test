@@ -30,7 +30,8 @@ urls = (
     "/meta/pan_core", "PanCore",
     "/meta/beta/distance_calc", "DistanceCalc",
     "/meta/beta/hcluster", "Hcluster",
-    "/meta/otu_subsample", "Subsample"
+    "/meta/otu_subsample", "Subsample",
+    "/meta/two_group", "TwoGroup"
 )
 
 
