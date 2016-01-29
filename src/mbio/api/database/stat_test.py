@@ -4,7 +4,6 @@ from biocluster.api.database.base import Base, report_check
 import re
 from bson.objectid import ObjectId
 from types import StringTypes
-import datetime
 from bson.son import SON
 
 
@@ -23,8 +22,6 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            if not re.match(r'\t',l):
-                raise Exception("文件%s格式不正确，请选择正确的差异性比较统计结果表格文件" % file_path)
             group = re.findall(r'mean\W', l)
             group_list = []
             for n in group:
@@ -38,9 +35,9 @@ class StatTest(Base):
                 i = 1
                 for name in group_list:
                     data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", line_data[length-1]),("pvalue", line_data[length-2])]                    
-                    data.append("category_name", name)
-                    data.append("mean", line_data[i])
-                    data.append("sd", line_data[i+1])
+                    data.append(("category_name", name))
+                    data.append(("mean", line_data[i]))
+                    data.append(("sd", line_data[i+1]))
                     i += 1
                     data_son = SON(data)
                     data_list.append(data_son)
@@ -62,8 +59,6 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            if not re.match(r'\t',l):
-                raise Exception("文件%s格式不正确，请选择正确的差异性比较统计结果表格文件" % file_path)
             sample = re.findall(r'propotion\W', l)
             sample_list = []
             for n in sample:
@@ -73,10 +68,10 @@ class StatTest(Base):
                 if not line:
                     break
                 line_data = line.split("\t")
-                data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", line_data[5]),("pvalue", line_data[4]),("specimen_name", sample_list[0]),("propotion", line_data[2])]
+                data = [("species_check_id", table_id), ("species_name", line_data[0]),("qvalue", line_data[5]),("pvalue", line_data[4]),("specimen_name", sample_list[0]),("propotion", line_data[2])]
                 data_son = SON(data)
                 data_list.append(data_son)
-                data1 = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", line_data[5]),("pvalue", line_data[4]),("specimen_name", sample_list[1]),("propotion", line_data[3])]
+                data1 = [("species_check_id", table_id), ("species_name", line_data[0]),("qvalue", line_data[5]),("pvalue", line_data[4]),("specimen_name", sample_list[1]),("propotion", line_data[3])]
                 data_son1 = SON(data1)
                 data_list.append(data_son1)
         try:
@@ -97,8 +92,6 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            if not re.match(r'\t',l):
-                raise Exception("文件%s格式不正确，请选择正确的差异性比较统计结果表格文件" % file_path)
             group = r.findall(r'min\W', l)
             group_list = []
             for n in group:
@@ -111,12 +104,12 @@ class StatTest(Base):
                 i = 1
                 for name in group_list:
                     data = [("species_check_id", table_id),("species_name", line_data[0])]
-                    data.append("category_name", name)
-                    data.append("min", line_data[i])
-                    data.append("q1", line_data[i+1])
-                    data.append("median", line_data[i+1])
-                    data.append("q3", line_data[i+1])
-                    data.append("max", line_data[i+1])
+                    data.append(("category_name", name))
+                    data.append(("min", line_data[i]))
+                    data.append(("q1", line_data[i+1]))
+                    data.append(("median", line_data[i+1]))
+                    data.append(("q3", line_data[i+1]))
+                    data.append(("max", line_data[i+1]))
                     i += 1
                     data_son = SON(data)
                     data_list.append(data_son)

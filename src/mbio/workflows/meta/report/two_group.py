@@ -16,7 +16,7 @@ class TwoGroupWorkflow(Workflow):
         super(TwoGroupWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
-            {"name": "group_file", "type": "infile", "format": "meat.otu.group_table"},
+            {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "type", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "test", "type": "string"},
@@ -28,7 +28,7 @@ class TwoGroupWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.two_group = self.add_tool("meta.statistical.metastat")
+        self.two_group = self.add_tool("statistical.metastat")
 
     def run_two_group(self):
         if self.option("test") == "student":
@@ -64,6 +64,7 @@ class TwoGroupWorkflow(Workflow):
             }
         self.two_group.set_options(options)
         self.on_rely(self.two_group, self.set_db)
+        self.output_dir = self.two_group.output_dir
         self.two_group.run()
 
     def set_db(self):
@@ -72,7 +73,7 @@ class TwoGroupWorkflow(Workflow):
         """
         api_two_group = self.api.stat_test
         stat_path = self.output_dir + '/' + self.option("test") + '_result.xls'
-        boxfile_path = self.output_dir + '/' + self.option("test") + 'boxfile.xls'
+        boxfile_path = self.output_dir + '/' + self.option("test") + '_boxfile.xls'
         if not os.path.isfile(stat_path):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):
