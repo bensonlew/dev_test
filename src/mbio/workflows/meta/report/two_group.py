@@ -79,7 +79,7 @@ class TwoGroupWorkflow(Workflow):
         if not os.path.isfile(boxfile_path):
             raise Exception("找不到报告文件:{}".format(boxfile_path))
         api_two_group.add_species_difference_check_detail(stat_path, self.option("two_group_id"))
-        api_two_group.add_species_difference_check_detail(stat_path, self.option("two_group_id"))
+        api_two_group.add_species_difference_check_boxplot(boxfile_path, self.option("two_group_id"))
         self.end()
 
     def run(self):

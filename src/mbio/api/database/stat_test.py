@@ -22,7 +22,7 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            group = re.findall(r'mean\W', l)
+            group = re.findall(r'mean\W.', l)
             group_list = []
             for n in group:
                 group_list.append(n.split("mean(")[-1])
@@ -38,7 +38,7 @@ class StatTest(Base):
                     data.append(("category_name", name))
                     data.append(("mean", line_data[i]))
                     data.append(("sd", line_data[i+1]))
-                    i += 1
+                    i += 2
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
@@ -59,7 +59,7 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            sample = re.findall(r'propotion\W', l)
+            sample = re.findall(r'propotion\W.', l)
             sample_list = []
             for n in sample:
                 sample_list.append(n.split("propotion(")[-1])
@@ -92,7 +92,7 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            group = r.findall(r'min\W', l)
+            group = re.findall(r'min\W.', l)
             group_list = []
             for n in group:
                 group_list.append(n.split("min(")[-1])
@@ -103,21 +103,23 @@ class StatTest(Base):
                 line_data = line.split("\t")
                 i = 1
                 for name in group_list:
-                    data = [("species_check_id", table_id),("species_name", line_data[0])]
+                    data = [("species_check_id", table_id), ("species_name", line_data[0])]
                     data.append(("category_name", name))
                     data.append(("min", line_data[i]))
                     data.append(("q1", line_data[i+1]))
-                    data.append(("median", line_data[i+1]))
-                    data.append(("q3", line_data[i+1]))
-                    data.append(("max", line_data[i+1]))
-                    i += 1
+                    data.append(("median", line_data[i+2]))
+                    data.append(("q3", line_data[i+3]))
+                    data.append(("max", line_data[i+4]))
+                    i += 5
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
-            collection = self.db["sg_species_difference_check_boxfile"]
+            collection = self.db["sg_species_difference_check_boxplot"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
+        return data_list
+
 
