@@ -64,6 +64,7 @@ class TwoGroupWorkflow(Workflow):
             }
         self.two_group.set_options(options)
         self.on_rely(self.two_group, self.set_db)
+        self.output_dir = self.two_group.output_dir
         self.two_group.run()
 
     def set_db(self):
@@ -72,7 +73,7 @@ class TwoGroupWorkflow(Workflow):
         """
         api_two_group = self.api.stat_test
         stat_path = self.output_dir + '/' + self.option("test") + '_result.xls'
-        boxfile_path = self.output_dir + '/' + self.option("test") + 'boxfile.xls'
+        boxfile_path = self.output_dir + '/' + self.option("test") + '_boxfile.xls'
         if not os.path.isfile(stat_path):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):

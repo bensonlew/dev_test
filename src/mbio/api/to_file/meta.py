@@ -162,7 +162,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     with open(file_path, "wb") as f:
         for k in table_dict:
             for sp in table_dict[k]:
-                f.write("{}\t{}\n".format(k, sp))
+                f.write("{}\t{}\n".format(sp, k))
     return file_path
 
 

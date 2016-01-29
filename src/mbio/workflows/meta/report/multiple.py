@@ -28,6 +28,7 @@ class MultipleWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
+        self.output_dir = self.multiple.output_dir
         self.multiple = self.add_tool("statistical.metastat")
 
     def run_multiple(self):

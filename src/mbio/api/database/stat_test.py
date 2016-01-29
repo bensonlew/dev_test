@@ -22,8 +22,6 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            if not re.match(r'\t',l):
-                raise Exception("文件%s格式不正确，请选择正确的差异性比较统计结果表格文件" % file_path)
             group = re.findall(r'mean\W', l)
             group_list = []
             for n in group:
@@ -61,8 +59,6 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            if not re.match(r'\t',l):
-                raise Exception("文件%s格式不正确，请选择正确的差异性比较统计结果表格文件" % file_path)
             sample = re.findall(r'propotion\W', l)
             sample_list = []
             for n in sample:
@@ -96,8 +92,6 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            if not re.match(r'\t',l):
-                raise Exception("文件%s格式不正确，请选择正确的差异性比较统计结果表格文件" % file_path)
             group = r.findall(r'min\W', l)
             group_list = []
             for n in group:

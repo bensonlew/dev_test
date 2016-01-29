@@ -50,6 +50,7 @@ class TwoSampleWorkflow(Workflow):
                 "fisher_type": self.option("type")
             }
         self.two_sample.set_options(options)
+        self.output_dir = self.two_sample.output_dir
         self.on_rely(self.two_sample, self.set_db)
         self.two_sample.run()
 
