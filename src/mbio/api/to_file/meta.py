@@ -6,6 +6,7 @@ import copy
 import json
 from biocluster.config import Config
 from bson.objectid import ObjectId
+from collections import defaultdict
 
 
 client = Config().mongo_client
@@ -86,13 +87,12 @@ def _create_classify_name(col, tmp):
     for i in range(1, tmp):
         if LEVEL[i] not in col:
             if last_classify == "":
-                tmp = col[LEVEL[i - 1]]
-                last_classify = re.split('__', tmp)[1]
-            my_str = LEVEL[i] + last_classify + "__unclasified"
+                last_classify = col[LEVEL[i - 1]]
+            my_str = LEVEL[i] + "Unclasified_" + last_classify
         else:
             my_str = col[LEVEL[i]]
         my_list.append(my_str)
-    new_classify_name = ";".join(my_list)
+    new_classify_name = "; ".join(my_list)
     return new_classify_name
 
 
@@ -127,10 +127,12 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
         if not result:
             raise Exception("无法根据传入的group_id:{}找到相应的样本名".format(data))
         sample_name[result['specimen_name']] = sample_id[k]
+    sample_number_check(sample_name)
+
     with open(file_path, "wb") as f:
         for k in sample_name:
-            for i in range(len(sample_name[k])):
-                f.write("{}\t{}\n".format(sample_name[k], k))
+            f.write("{}\t{}\n".format(k, sample_name[k]))
+    return file_path
 
 
 def _get_index_list(group_name_list, c_name):
@@ -142,6 +144,15 @@ def _get_index_list(group_name_list, c_name):
                 index_list.append(i)
                 break
     return index_list
+
+
+def sample_number_check(sample_name):
+    sample_count = defaultdict(int)
+    for k in sample_name:
+        sample_count[sample_name[k]] += 1
+    for k in sample_count:
+        if sample_count[k] < 3:
+            raise Exception("组{}里的样本数目小于三个，每个组里必须有三个以上的样本")
 
 
 def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
@@ -160,7 +171,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     with open(file_path, "wb") as f:
         for k in table_dict:
             for sp in table_dict[k]:
-                f.write("{}\t{}\n".format(k, sp))
+                f.write("{}\t{}\n".format(sp, k))
     return file_path
 
 
