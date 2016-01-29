@@ -8,6 +8,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
+from mbio.files.meta.otu.otu_table import OtuTableFile
 
 
 class OtuTaxonStatAgent(Agent):
@@ -100,6 +101,14 @@ class OtuTaxonStatTool(Tool):
                     name = re.split('\t', line)[0]
                     line = re.sub(r'\.0', '', line)
                     w.write(line + '\t' + otu_tax[name] + "\n")
+        taxon_otu_obj = OtuTableFile()
+        taxon_otu_obj.set_path(taxon_otu)
+        taxon_otu_obj.get_info()
+        new_taxon_otu = taxon_otu + ".new"
+        taxon_otu_obj.complete_taxonomy(taxon_otu, new_taxon_otu)
+        os.remove(taxon_otu)
+        shutil.copy2(new_taxon_otu, taxon_otu)
+        os.remove(new_taxon_otu)
 
         biom = os.path.join(self.work_dir, "output", "otu_taxon.biom")
         cmd = self._biom_path + " convert -i " + taxon_otu + " -o " + biom\
