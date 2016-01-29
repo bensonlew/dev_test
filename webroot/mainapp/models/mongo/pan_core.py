@@ -12,7 +12,7 @@ class PanCore(object):
         self.client = get_mongo_client()
         self.db = self.client["sanger"]
 
-    def create_pan_core_table(self, pan_core_type, params, group_id, from_otu_table=0, name=None):
+    def create_pan_core_table(self, pan_core_type, params, group_id, level_id, from_otu_table=0, name=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -35,6 +35,8 @@ class PanCore(object):
             "type": pan_core_type,
             "project_sn": project_sn,
             "task_id": task_id,
+            "level_id": level_id,
+            "otu_id": from_otu_table,
             "group_id": group_id,
             "status": "start",
             "desc": desc,

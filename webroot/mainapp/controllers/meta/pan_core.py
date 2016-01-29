@@ -28,9 +28,9 @@ class PanCore(object):
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_pan_table"
-            pan_id = P().create_pan_core_table(1, params, data.group_id, data.otu_id, name)
+            pan_id = P().create_pan_core_table(1, params, data.group_id, data.level_id, data.otu_id, name)
             name = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + "_core_table"
-            core_id = P().create_pan_core_table(2, params, data.group_id, data.otu_id, name)
+            core_id = P().create_pan_core_table(2, params, data.group_id, data.level_id, data.otu_id, name)
             update_info = {str(pan_id): "sg_otu_pan_core", str(core_id): "sg_otu_pan_core"}
             # 字典  id: 表名
             update_info = json.dumps(update_info)
