@@ -24,8 +24,8 @@ urls = (
     "/pipeline/running", "PipelineRunning",
     "/pipeline/queue", "PipelineQueue",
     "/pipeline/pause", "PipelinePause",
-    "/pipeline/stop_pause", "PipelineStopPause"
-    "/alpha/estimator", "Estimators"
+    "/pipeline/stop_pause", "PipelineStopPause",
+    "/alpha/estimator", "Estimators",
     "/pipeline/stop_pause", "PipelineStopPause",
     "/meta/pan_core", "PanCore",
     "/meta/beta/distance_calc", "DistanceCalc",
