@@ -26,7 +26,7 @@ class TwoSampleWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.two_sample = self.add_tool("meta.statistical.metastat")
+        self.two_sample = self.add_tool("statistical.metastat")
 
     def run_two_sample(self):
         if self.option("test") == "chi":
@@ -50,6 +50,7 @@ class TwoSampleWorkflow(Workflow):
                 "fisher_type": self.option("type")
             }
         self.two_sample.set_options(options)
+        self.output_dir = self.two_sample.output_dir
         self.on_rely(self.two_sample, self.set_db)
         self.two_sample.run()
 

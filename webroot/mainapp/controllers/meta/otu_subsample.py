@@ -7,7 +7,7 @@ from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
 from mainapp.config.db import get_mongo_client
 import random
-import time
+# import time
 import datetime
 
 
@@ -26,7 +26,7 @@ class Subsample(object):
                 'project_sn': input_otu_info['project_sn'],
                 'task_id': input_otu_info['task_id'],
                 'from_id': data.otu_id,
-                'name': input_otu_info['name'] + '_' + time.asctime(time.localtime(time.time())),
+                'name': "otu_taxon" + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
                 'params': json.dumps(data),
                 'status': 'start',
                 'desc': 'otu table after Subsample',
@@ -48,6 +48,7 @@ class Subsample(object):
                 "UPDATE_STATUS_API": "meta.update_status",
                 "options": {
                     "update_info": json.dumps({str(output_otu_id): "sg_otu"}),
+                    # "task_id": input_otu_info['task_id'],
                     "input_otu_id": data.otu_id,
                     "size": data.size if hasattr(data, "size") else 0,
                     # "level": data.level_id if hasattr(data, "level_id") else 9,
@@ -59,7 +60,7 @@ class Subsample(object):
                 "workflow_id": workflow_id,
                 "json": json.dumps(workflow_json),
                 "ip": web.ctx.ip
-               }
+            }
             workflow_module = Workflow()
             workflow_module.add_record(insert_mysql_data)
             # return json.dumps(json_obj)
@@ -70,7 +71,7 @@ class Subsample(object):
             return json.dumps(info)
 
     def get_new_id(self, task_id, otu_id):
-        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 100))
+        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(new_id)
         if len(workflow_data) > 0:
