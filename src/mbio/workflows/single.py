@@ -24,11 +24,3 @@ class SingleWorkflow(Workflow):
         task.run()
         self.output_dir = task.output_dir
         super(SingleWorkflow, self).run()
-
-
-
-
-
-
-
-

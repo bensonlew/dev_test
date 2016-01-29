@@ -133,7 +133,7 @@ class MetaBaseWorkflow(Workflow):
         self.tax.on("start", self.set_step, {'end': self.step.otucluster, 'start': self.step.taxassign})
         self.tax.run()
 
-    def run_stat(self, relyobj):
+    def run_stat(self):
         self.stat.set_options({
             "in_otu_table": self.option("otu_table"),
             "taxon_file": self.option("taxon_file")

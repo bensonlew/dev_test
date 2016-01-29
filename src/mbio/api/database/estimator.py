@@ -35,7 +35,7 @@ class Estimator(Base):
             if params is not None:
                 insert_data['params'] = params
             collection = self.db["sg_alpha_diversity"]
-            inserted_id = collection.insert_one(insert_data).inserted_id
+            est_id = collection.insert_one(insert_data).inserted_id
         else:
             if est_id is None:
                 raise Exception("major为False时需提供est_id!")
@@ -54,7 +54,7 @@ class Estimator(Base):
                 line_data = line.split("\t")
                 sample_name = line_data.pop(0)
                 # line_data.pop()
-                data = [("alpha_diversity_id", inserted_id), ("specimen_name", sample_name)]
+                data = [("alpha_diversity_id", est_id), ("specimen_name", sample_name)]
                 i = 0
                 for est in est_list:
                     data.append((est, float(line_data[i])))

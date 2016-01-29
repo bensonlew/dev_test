@@ -209,8 +209,8 @@ class Workflow(Basic):
         self._update(data)
         self.step.finish()
         self.step.update()
-        self.rpc_server.server.close()
         self.logger.info("运行结束!")
+        self.rpc_server.server.close()
 
     def exit(self, exitcode=1, data="", terminated=False):
         """
