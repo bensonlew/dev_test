@@ -24,13 +24,13 @@ def export_otu_table(data, option_name, dir_path, bind_obj=None):
     collection = db['sg_otu_detail']
     with open(file_path, "wb") as f:
         f.write("OTU ID\t%s\ttaxonomy\n" % "\t".join(samples))
-        for col in collection.find({"_id": ObjectId(data)}):
-            line = "%s" % col["otu"]
+        for col in collection.find({"otu_id": ObjectId(data)}):
+            line = "%s\t" % col["otu"]
             for s in samples:
-                line += "\t%s" % col[s]
+                line += "%s\t" % col[s]
             for cls in ["d__", "k__", "p__", "c__", "o__", "f__", "g__"]:
                 if cls in col.keys():
-                    line += "\t%s; " % col[cls]
+                    line += "%s; " % col[cls]
             f.write("%s\n" % line)
     return file_path
 
