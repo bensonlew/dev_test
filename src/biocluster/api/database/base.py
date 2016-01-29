@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 from biocluster.config import Config
-from pymongo import MongoClient
 import importlib
 import functools
 from biocluster.core.function import get_clsname_form_path
@@ -11,7 +10,7 @@ class Base(object):
     def __init__(self, bind_object):
         self._bind_object = bind_object
         self._config = Config()
-        self._client = MongoClient(self._config.MONGO_URI)
+        self._client = self._config.mongo_client
         self._db_name = "test"
         self._db = None
 

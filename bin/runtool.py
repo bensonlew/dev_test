@@ -7,7 +7,7 @@ import pickle
 from biocluster.agent import PickleConfig
 import os
 from biocluster.core.function import load_class_by_path, daemonize
-parser = argparse.ArgumentParser(description="run a workflow")
+parser = argparse.ArgumentParser(description="run a tool on remote server")
 parser.add_argument("-b", "--daemon", action="store_true", help="run in daemon background mode")
 parser.add_argument("-d", "--debug", action="store_true", help="run in debug mode,will not use network!")
 parser.add_argument("tool", type=str,

@@ -98,4 +98,3 @@ class OtuTableFile(File):
         except subprocess.CalledProcessError:
             raise Exception("otu2shared.pl 运行出错！")
         return True
-
