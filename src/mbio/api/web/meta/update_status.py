@@ -7,7 +7,6 @@ import json
 from bson.objectid import ObjectId
 from types import StringTypes
 import datetime
-from pymongo import MongoClient
 import urlparse
 
 
@@ -18,7 +17,7 @@ class UpdateStatus(Log):
         self._config = Config()
         self._task_id = self.data.task_id
         self.db = self._config.get_db()
-        self._mongo_client = MongoClient(self._config.MONGO_URI)
+        self._mongo_client = self._config.mongo_client
         self.mongodb = self._mongo_client["sanger"]
         self._sheetname = "update_info"
 
