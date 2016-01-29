@@ -47,7 +47,7 @@ class TwoGroup(object):
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
-                "option": {
+                "options": {
                     "update_info": update_info,
                     "otu_file": data.otu_id,
                     "level": data.level,
