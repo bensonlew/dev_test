@@ -50,7 +50,7 @@ class Subsample(object):
                     "update_info": json.dumps({str(output_otu_id): "sg_otu"}),
                     "input_otu_id": data.otu_id,
                     "size": data.size if hasattr(data, "size") else 0,
-                    "level": data.level_id if hasattr(data, "level_id") else 9,
+                    # "level": data.level_id if hasattr(data, "level_id") else 9,
                     "output_otu_id": str(output_otu_id)
                 }
             }
