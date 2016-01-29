@@ -27,8 +27,6 @@ class HclusterWorkflow(Workflow):
 
     def run(self):
         task = self.add_tool("meta.beta_diversity.hcluster")
-        if self.UPDATE_STATUS_API:
-            task.UPDATE_STATUS_API = self.UPDATE_STATUS_API
         options = {
             'linkage': self.option('method'),
             'dis_matrix': self.option('distance_matrix')
