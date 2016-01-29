@@ -14,6 +14,7 @@ import re
 import importlib
 import web
 # import subprocess
+from pymongo import MongoClient
 
 web.config.debug = False
 
@@ -83,6 +84,16 @@ class Config(object):
 
         # Mongo
         self.MONGO_URI = self.rcf.get("MONGO", "uri")
+        self._mongo_client = None
+
+        # mysql
+        self._db_client = None
+
+    @property
+    def mongo_client(self):
+        if not self._mongo_client:
+            self._mongo_client = MongoClient(self.MONGO_URI)
+        return self._mongo_client
 
     @property
     def LISTEN_IP(self):
@@ -172,9 +183,11 @@ class Config(object):
             return self.get_listen_port()
 
     def get_db(self):
-        if self.DB_TYPE == "mysql":
-            return web.database(dbn=self.DB_TYPE, host=self.DB_HOST, db=self.DB_NAME, user=self.DB_USER,
-                                passwd=self.DB_PASSWD, port=int(self.DB_PORT))
+        if not self._db_client:
+            if self.DB_TYPE == "mysql":
+                self._db_client = web.database(dbn=self.DB_TYPE, host=self.DB_HOST, db=self.DB_NAME, user=self.DB_USER,
+                                               passwd=self.DB_PASSWD, port=int(self.DB_PORT))
+        return self._db_client
 
     def get_netdata_config(self, type_name):
         type_list = re.split(r"\s*,\s*", self.rcf.get("NETDATA", "types"))

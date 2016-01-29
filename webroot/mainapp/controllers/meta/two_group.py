@@ -20,8 +20,9 @@ class TwoGroup(object):
             return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level'] = data.level
+        my_param['level_id'] = data.level
         my_param['group_detail'] = data.group_detail
+        my_param['group_id'] = data.group_id
         my_param['ci'] = data.ci
         my_param['correction'] = data.correction
         my_param['type'] = data.type
@@ -42,18 +43,18 @@ class TwoGroup(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table(group_file)"],
+                "to_file": ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table_by_detail(group_file)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
-                "option": {
+                "options": {
                     "otu_file": data.otu_id,
                     "update_info": update_info,
-                    "level": data.level,
+                    "level": int(data.level),
                     "test": data.test,
                     "group_file": data.group_detail,
                     "correction": data.correction,
-                    "ci": data.ci,
+                    "ci": float(data.ci),
                     "type": data.type,
                     "two_group_id": str(two_group_id)
                 }

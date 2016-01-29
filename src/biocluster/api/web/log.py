@@ -49,6 +49,10 @@ class LogManager(object):
                     else:
                         if self._running_task[tid].ready():
                             self._running_task[tid] = gevent.spawn(TaskLog(tid).update)
+                for key in self._running_task.keys():
+                    if key not in ids:
+                        if self._running_task[key].ready():
+                            del self._running_task[key]
             gevent.sleep(config.UPDATE_FREQUENCY)
 
     def update(self):

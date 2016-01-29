@@ -7,7 +7,7 @@ rownames(otu_data) <- otu_data[,1]
 otu_data <- otu_data[,-1]
 colnames(otu_data) <- samp
 group <- read.table("${groupfile}",sep="\t")
-group <- group[-1,]
+#group <- group[-1,]
 gsamp <- group[,1]
 g1 <- group[1,2]
 g2 <- group[which(!group[,2] %in% g1),2]
@@ -51,6 +51,6 @@ qv <- qvalue(as.numeric(result[,6]),lambda = 0.5)
 result <- cbind(result,qv$qvalue)
 colnames(result) <- c(" ",paste("mean(",g1,")",sep=''),paste("sd(",g1,")",sep=''),paste("mean(",g2,")",sep=''),paste("sd(",g2,")",sep=''),"p-value","q-value")
 result_order <- result[order(result[,6]),]  
-write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F)
+write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)
 colnames(box_result) <- c(" ",paste("min(",g1,")",sep=''),paste("Q1(",g1,")",sep=''),paste("Median(",g1,")",sep=''),paste("Q3(",g1,")",sep=''),paste("max(",g1,")",sep=''),paste("min(",g2,")",sep=''),paste("Q1(",g2,")",sep=''),paste("Median(",g2,")",sep=''),paste("Q3(",g2,")",sep=''),paste("max(",g2,")",sep=''))
-write.table(box_result,"${boxfile}",sep = '\t',col.names = T,row.names = F)
+write.table(box_result,"${boxfile}",sep = '\t',col.names = T,row.names = F,quote = F)

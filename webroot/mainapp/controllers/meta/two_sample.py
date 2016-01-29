@@ -10,7 +10,7 @@ from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.group_stat import GroupStat as G
 
 
-class TwoGroup(object):
+class TwoSample(object):
     @check_sig
     def POST(self):
         data = web.input()
@@ -20,7 +20,7 @@ class TwoGroup(object):
             return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level'] = data.level
+        my_param['level_id'] = data.level
         my_param['sample1'] = data.sample1
         my_param['sample2'] = data.sample2
         my_param['ci'] = data.ci
@@ -31,7 +31,7 @@ class TwoGroup(object):
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_two_sample_stat_table"
-            two_sample_id = G().create_species_difference_check(data.level, 'two_sample', params, data.otu_id, name)
+            two_sample_id = G().create_species_difference_check(level=data.level, check_type='two_sample', params=params, from_otu_table=data.otu_id, name=name)
             update_info = {str(two_sample_id): "sg_species_difference_check"}
             update_info = json.dumps(update_info)
 
@@ -47,7 +47,7 @@ class TwoGroup(object):
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
-                "option": {
+                "options": {
                     "update_info": update_info,
                     "otu_file": data.otu_id,
                     "level": data.level,

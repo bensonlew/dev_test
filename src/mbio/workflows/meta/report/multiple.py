@@ -16,7 +16,7 @@ class MultipleWorkflow(Workflow):
         super(MultipleWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
-            {"name": "group_file", "type": "infile", "format": "meat.otu.group_table"},
+            {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "type", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "test", "type": "string"},
@@ -28,7 +28,8 @@ class MultipleWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.multiple = self.add_tool("meta.statistical.metastat")
+        self.output_dir = self.multiple.output_dir
+        self.multiple = self.add_tool("statistical.metastat")
 
     def run_multiple(self):
         if self.option("test") == "anova":
@@ -63,7 +64,7 @@ class MultipleWorkflow(Workflow):
         if not os.path.isfile(boxfile_path):
             raise Exception("找不到报告文件:{}".format(boxfile_path))
         api_multiple.add_species_difference_check_detail(stat_path, self.option("multiple_id"))
-        api_multiple.add_species_difference_check_detail(stat_path, self.option("multiple_id"))
+        api_multiple.add_species_difference_check_boxplot(boxfile_path, self.option("multiple_id"))
         self.end()
 
     def run(self):

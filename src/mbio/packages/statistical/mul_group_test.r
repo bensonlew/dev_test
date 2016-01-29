@@ -7,7 +7,7 @@ otu_data <- otu_data[,-1]
 colnames(otu_data) <- samp
 
 group <- read.table("${groupfile}",sep="\t")
-gsamp=group[-1,1]
+gsamp=group[,1]
 otu_data <- otu_data[,which(samp %in% gsamp)]
 otu_data <- otu_data[apply(otu_data,1,function(x)any(x>0)),]
 
@@ -108,8 +108,8 @@ qv <- qvalue(as.numeric(result[,colnum+1]),lambda = 0.5)
 qvalue <- qv$qvalue
 result <- cbind(result,qvalue)
 result_order <- result[order(result[,colnum+1]),]
-write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F)
-write.table(postlist,"post_result",sep="\t",col.names=T,row.names=T)
+write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)
+write.table(postlist,"post_result",sep="\t",col.names=T,row.names=T,quote = F)
 
 
     
