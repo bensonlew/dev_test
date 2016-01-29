@@ -1,7 +1,7 @@
 #!/bin/env python
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from gevent import monkey; monkey.patch_socket()
+from gevent import monkey; monkey.patch_all()
 import argparse
 from biocluster.api.web.log import LogManager
 from biocluster.config import Config

@@ -4,17 +4,16 @@ import os
 import re
 import copy
 import json
-from pymongo import MongoClient
 from biocluster.config import Config
 from bson.objectid import ObjectId
 
 
-client = MongoClient(Config().MONGO_URI)
+client = Config().mongo_client
 db = client["sanger"]
 
 
 def export_otu_table(data, option_name, dir_path, bind_obj=None):
-    file_path = os.path.join(dir_path, "%s_input.otu.xls" % option_name)
+    file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     collection = db['sg_otu_specimen']
     results = collection.find({"otu_id": ObjectId(data)})
@@ -40,7 +39,7 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
     """
     按等级获取OTU表
     """
-    file_path = os.path.join(dir_path, "%s_input.otu.xls" % option_name)
+    file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     bind_obj.logger.debug("samples1")
     collection = db['sg_otu_specimen']
