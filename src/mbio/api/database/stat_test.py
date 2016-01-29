@@ -22,10 +22,7 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            group = re.findall(r'mean\W.', l)
-            group_list = []
-            for n in group:
-                group_list.append(n.split("mean(")[-1])
+            group_list = re.findall(r'mean\((.*?)\)', l)
             while True:
                 line = r.readline().strip('\n')
                 if not line:
@@ -59,19 +56,17 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            sample = re.findall(r'propotion\W.', l)
-            sample_list = []
-            for n in sample:
-                sample_list.append(n.split("propotion(")[-1])
+            s1 = re.search(r'propotion\((.*)\)\W+propotion\((.*)\)', l)
+            sample = s1.groups(0)
             while True:
                 line = r.readline().strip('\n')
                 if not line:
                     break
                 line_data = line.split("\t")
-                data = [("species_check_id", table_id), ("species_name", line_data[0]),("qvalue", line_data[5]),("pvalue", line_data[4]),("specimen_name", sample_list[0]),("propotion", line_data[2])]
+                data = [("species_check_id", table_id), ("species_name", line_data[0]),("qvalue", line_data[4]),("pvalue", line_data[3]),("specimen_name", sample[0]),("propotion", line_data[1])]
                 data_son = SON(data)
                 data_list.append(data_son)
-                data1 = [("species_check_id", table_id), ("species_name", line_data[0]),("qvalue", line_data[5]),("pvalue", line_data[4]),("specimen_name", sample_list[1]),("propotion", line_data[3])]
+                data1 = [("species_check_id", table_id), ("species_name", line_data[0]),("qvalue", line_data[4]),("pvalue", line_data[3]),("specimen_name", sample[1]),("propotion", line_data[2])]
                 data_son1 = SON(data1)
                 data_list.append(data_son1)
         try:
@@ -92,10 +87,7 @@ class StatTest(Base):
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
-            group = re.findall(r'min\W.', l)
-            group_list = []
-            for n in group:
-                group_list.append(n.split("min(")[-1])
+            group_list = re.findall(r'min\((.*?)\)', l)
             while True:
                 line = r.readline().strip('\n')
                 if not line:

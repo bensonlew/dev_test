@@ -26,8 +26,8 @@ for(i in 1:nrow(otu_data)){
     tt <- fisher.test(data,alternative = "${test_type}",conf.level = ${ci})
   }
   pvalue <- c(pvalue,tt$p.value)
-  pro1 <- c1 / sum(as.numeric(as.vector(otu_data$NEO_1)))
-  pro2 <- c3 / sum(as.numeric(as.vector(otu_data$NEFO_1)))
+  pro1 <- c1 / sum(as.numeric(as.vector(otu_data$"${sample1}")))
+  pro2 <- c3 / sum(as.numeric(as.vector(otu_data$"${sample2}")))
   result[i,] = c(rownames(otu_data)[i],pro1,pro2)
 }
 pvalue <- pvalue[-1]
