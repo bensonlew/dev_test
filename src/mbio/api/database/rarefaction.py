@@ -2,6 +2,7 @@
 # __author__ = 'qindanhua'
 from biocluster.api.database.base import Base, report_check
 import os
+import datetime
 from bson.objectid import ObjectId
 from types import StringTypes
 from mainapp.config.db import get_mongo_client
@@ -12,6 +13,8 @@ class Rarefaction(Base):
         super(Rarefaction, self).__init__(bind_object)
         self._db_name = "sanger"
         self.client = get_mongo_client()
+        self.category_x = None
+        self.category_y = None
 
     @report_check
     def add_rarefaction_detail(self, rare_id, file_path):
@@ -60,3 +63,26 @@ class Rarefaction(Base):
             self.bind_object.logger.error("导入rare_detail表格{}信息出错:{}".format(file_path, e))
         else:
             self.bind_object.logger.info("导入rare_detail表格{}成功".format(file_path))
+
+    @report_check
+    def add_rare_table(self, file_path, level, otu_id=None, task_id=None, name=None, params=None):
+        if level not in range(1, 10):
+            raise Exception("level参数%s为不在允许范围内!" % level)
+        if task_id is None:
+            task_id = self.bind_object.sheet.id
+        insert_data = {
+            "project_sn": self.bind_object.sheet.project_sn,
+            "task_id": task_id,
+            "otu_id": otu_id,
+            "name": name if name else "rarefaction_origin",
+            "level_id": level,
+            "status": "end",
+            "params": params,
+            "category_x": self.category_x,
+            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        if params is not None:
+            insert_data['params'] = params
+        collection = self.db["sg_alpha_rarefaction_curve"]
+        inserted_id = collection.insert_one(insert_data).inserted_id
+        self.add_rarefaction_detail(inserted_id, file_path)

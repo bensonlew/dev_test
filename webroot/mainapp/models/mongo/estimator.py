@@ -13,7 +13,7 @@ class Estimator(object):
         self.db = self.client["sanger"]
 
     def add_est_collection(self, level, params, from_otu_table=0, name=None):
-        if level not in range(1, 10):
+        if int(level) not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):

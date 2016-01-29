@@ -15,7 +15,7 @@ class EstimatorsWorkflow(Workflow):
         super(EstimatorsWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_table", "type": "infile", 'format': "meta.otu.otu_table"},  # 输入的OTU id
-            # {"name": "task_id", "type": "string"},
+            {"name": "otu_id", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "indices", "type": "string"},
             {"name": "level", "type": "int"},
@@ -26,17 +26,19 @@ class EstimatorsWorkflow(Workflow):
         self.estimators = self.add_tool('meta.alpha_diversity.estimators')
 
     def run(self):
-        super(EstimatorsWorkflow, self).run()
+        # super(EstimatorsWorkflow, self).run()
         if self.UPDATE_STATUS_API:
             self.estimators.UPDATE_STATUS_API = self.UPDATE_STATUS_API
-        self.estimators.set_options({
+        options = {
             'otu_table': self.option('otu_table'),
             'indices': self.option('indices')
-            })
+            }
         print(self.option('indices'))
+        self.estimators.set_options(options)
         self.estimators.on('end', self.set_db)
         self.estimators.run()
         self.output_dir = self.estimators.output_dir
+        super(EstimatorsWorkflow, self).run()
 
     def set_db(self):
         """

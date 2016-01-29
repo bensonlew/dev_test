@@ -16,9 +16,10 @@ class Estimators(object):
     """
     @check_sig
     def POST(self):
+        print('why')
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "otu_id") and hasattr(data, "name")):
+        if not hasattr(data, "otu_id"):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
         my_param = dict()
@@ -28,6 +29,7 @@ class Estimators(object):
         params = json.dumps(my_param)
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
+        print('hehe')
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_estimators"
             est_id = Estimator().add_est_collection(data.level, params, data.otu_id, name)
@@ -50,7 +52,7 @@ class Estimators(object):
                     "update_info": update_info,
                     "otu_id": data.otu_id,
                     "otu_table": data.otu_id,
-                    "task_id": otu_info["task_id"],
+                    # "task_id": otu_info["task_id"],
                     "indices": data.index_type,
                     "level": data.level,
                     "est_id": str(est_id)
@@ -71,7 +73,7 @@ class Estimators(object):
             return json.dumps(info)
 
     def get_new_id(self, task_id, otu_id):
-        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 100))
+        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(new_id)
         if len(workflow_data) > 0:
