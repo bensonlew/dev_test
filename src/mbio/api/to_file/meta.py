@@ -5,12 +5,11 @@ import re
 import copy
 import json
 from collections import defaultdict
-from pymongo import MongoClient
 from biocluster.config import Config
 from bson.objectid import ObjectId
 
 
-client = MongoClient(Config().MONGO_URI)
+client = Config().mongo_client
 db = client["sanger"]
 
 
