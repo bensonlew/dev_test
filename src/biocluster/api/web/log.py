@@ -13,6 +13,7 @@ import json
 import os
 from biocluster.core.function import get_clsname_form_path
 import importlib
+import traceback
 
 config = Config()
 db = config.get_db()
@@ -48,6 +49,10 @@ class LogManager(object):
                     else:
                         if self._running_task[tid].ready():
                             self._running_task[tid] = gevent.spawn(TaskLog(tid).update)
+                for key in self._running_task.keys():
+                    if key not in ids:
+                        if self._running_task[key].ready():
+                            del self._running_task[key]
             gevent.sleep(config.UPDATE_FREQUENCY)
 
     def update(self):
@@ -96,16 +101,22 @@ class TaskLog(object):
         for log_data in self._data:
             class_name = get_clsname_form_path(log_data.api, tp="")
             # main = sys.modules["mbio.api.web.%s" % log_data.api]
-            main = importlib.import_module("mbio.api.web.%s" % log_data.api.lower())
-            if hasattr(main, class_name):
-                api = getattr(main, class_name)
-                log = api(log_data)
-                log.update()
-                if log.failed:
-                    self.log("停止更新当前任务日志")
+            try:
+                main = importlib.import_module("mbio.api.web.%s" % log_data.api.lower())
+                if hasattr(main, class_name):
+                    api = getattr(main, class_name)
+                    log = api(log_data)
+                    log.update()
+                    if log.failed:
+                        self.log("task_id: %s  log_id: %s   停止更新当前任务日志" % (log_data.task_id, log_data.id))
+                        break
+                else:
+                    self.log("task_id: %s  log_id: %s 没有找到API模块:%s" % (log_data.task_id, log_data.id, class_name))
                     break
-            else:
-                self.log("没有找到API模块:%s" % class_name)
+            except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
+                self.log("task_id: %s  log_id: %s  导入API模块出错:%s" % (log_data.task_id, log_data.id, e))
                 break
         self._end = True
 

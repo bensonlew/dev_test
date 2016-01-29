@@ -27,7 +27,7 @@ class Estimator(Base):
                 "task_id": task_id,
                 "otu_id": otu_id,
                 "name": name if name else "estimators_origin",
-                "level_name": level,
+                "level_id": level,
                 "status": "end",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

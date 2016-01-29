@@ -15,9 +15,13 @@ class Newicktree(Base):
 
     @report_check
     def add_tree_file(self, file_path, major=False, level=None, task_id=None, table_id=None, table_type=None, tree_type=None, tree_id=None, name=None, params=None):
+        if table_type not in ('otu', 'dist', 'other'):
+            raise Exception("table_type参数必须为'otu', 'dist', 'other'")
+        if tree_type not in ('phylo', 'cluster'):
+            raise Exception("tree_type参数必须为'phylo', 'cluster'")
         if table_type == "otu":
             if level not in range(1, 10):
-                raise Exception("level参数%s为不在允许范围内!" % level)
+                raise Exception("table_type为'otu'时，level参数%s为不在允许范围内!" % level)
         if task_id is None:
             task_id = self.bind_object.sheet.id
         if major:
@@ -26,7 +30,7 @@ class Newicktree(Base):
                 "task_id": task_id,
                 "table_id": table_id,
                 "table_type": table_type,
-                "level": level,
+                "level_id": level,
                 "name": name if name else "tree_origin",
                 "tree_type": tree_type,
                 "status": "end",

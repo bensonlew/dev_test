@@ -16,12 +16,12 @@ class PanCore(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "otu_id") and hasattr(data, "level")):
+        if not (hasattr(data, "otu_id") and hasattr(data, "level_id")):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level'] = data.level
+        my_param['level_id'] = data.level_id
         my_param['group_id'] = data.group_id
         my_param['category_name'] = data.category_name
         params = json.dumps(my_param)
@@ -53,7 +53,7 @@ class PanCore(object):
                     "in_otu_table": data.otu_id,
                     "group_table": data.group_id,
                     "category_name": data.category_name,
-                    "level": data.level,
+                    "level": data.level_id,
                     "pan_id": str(pan_id),
                     "core_id": str(core_id)
                 }
@@ -65,7 +65,7 @@ class PanCore(object):
                            }
             workflow_module = Workflow()
             workflow_module.add_record(insert_data)
-            info = {"success": True, "info": "提交成功!"}
+            info = {"success": True, "info": "提交成功!正在生成pan otu表和core otu表..."}
             return json.dumps(info)
         else:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}

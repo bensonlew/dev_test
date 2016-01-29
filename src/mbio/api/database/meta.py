@@ -14,31 +14,23 @@ class Meta(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_otu_table(self, file_path, level, from_out_table=0, task_id=None, name=None, params=None):
-        if level not in range(1, 10):
-            raise Exception("level参数%s为不在允许范围内!" % level)
+    def add_otu_table(self, file_path, major=False, otu_id=None, from_out_table=0, task_id=None, name=None, params=None):
+        if task_id is None:
+            task_id = self.bind_object.sheet.id
+        # if level not in range(1, 10):
+        #     raise Exception("level参数%s为不在允许范围内!" % level)
         if from_out_table != 0 and not isinstance(from_out_table, ObjectId):
             if isinstance(from_out_table, StringTypes):
                 from_out_table = ObjectId(from_out_table)
             else:
                 raise Exception("from_out_table必须为ObjectId对象或其对应的字符串!")
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
-        data_list = []
-        otu_id = ""
-        with open(file_path, 'r') as f:
-            l = f.readline()
-            if not re.match(r"^OTU ID", l):
-                raise Exception("文件%s格式不正确，请选择正确的OTU表格文件" % file_path)
-            sample_list = l.split("\t")
-            sample_list.pop()
-            sample_list.pop(0)
+        if major:
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
                 "name": name if name else "otu_taxon_origin",
                 "from_id": from_out_table,
-                "level": level,
+                #"level": level,
                 "status": "end",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -46,13 +38,22 @@ class Meta(Base):
             }
             collection = self.db["sg_otu"]
             otu_id = collection.insert_one(insert_data).inserted_id
-
+        else:
+            if otu_id is None:
+                raise Exception("major为False时需提供otu_id!")
+        data_list = []
+        with open(file_path, 'r') as f:
+            l = f.readline()
+            if not re.match(r"^OTU ID", l):
+                raise Exception("文件%s格式不正确，请选择正确的OTU表格文件" % file_path)
+            sample_list = l.split("\t")
+            sample_list.pop()
+            sample_list.pop(0)
             sample_data = []
             for sample in sample_list:
                 sample_data.append({"otu_id": otu_id, "specimen_name": sample})
             collection = self.db["sg_otu_specimen"]
             collection.insert_many(sample_data)
-
             while True:
                 line = f.readline().strip('\n')
                 if not line:

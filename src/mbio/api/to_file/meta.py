@@ -3,18 +3,18 @@
 import os
 import re
 import copy
+import json
 from collections import defaultdict
-from pymongo import MongoClient
 from biocluster.config import Config
 from bson.objectid import ObjectId
 
 
-client = MongoClient(Config().MONGO_URI)
+client = Config().mongo_client
 db = client["sanger"]
 
 
 def export_otu_table(data, option_name, dir_path, bind_obj=None):
-    file_path = os.path.join(dir_path, "%s_input.otu.xls" % option_name)
+    file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     collection = db['sg_otu_specimen']
     results = collection.find({"otu_id": ObjectId(data)})
@@ -37,7 +37,10 @@ def export_otu_table(data, option_name, dir_path, bind_obj=None):
 
 
 def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
-    file_path = os.path.join(dir_path, "%s_input.otu.xls" % option_name)
+    """
+    按等级获取OTU表
+    """
+    file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     bind_obj.logger.debug("samples1")
     collection = db['sg_otu_specimen']
@@ -48,25 +51,11 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
     bind_obj.logger.debug("samples")
     bind_obj.logger.debug(samples)
     level = int(bind_obj.sheet.option("level"))
-    LEVEL = {
-        1: "d__", 2: "k__", 3: "p__", 4: "c__", 5: "o__",
-        6: "f__", 7: "g__", 8: "s__", 9: "otu"
-    }
     collection = db['sg_otu_detail']
     name_dic = dict()
     for col in collection.find({"otu_id": ObjectId(data)}):
-        new_classify_name = ""
         tmp = level + 1
-        my_list = list()
-        for i in range(1, tmp):
-            if LEVEL[i] not in col:
-                my_str = LEVEL[i] + "no_rank"
-            else:
-                my_str = col[LEVEL[i]]
-            if not my_str:
-                my_str = LEVEL[i] + "no_rank"
-            my_list.append(my_str)
-        new_classify_name = ";".join(my_list)
+        new_classify_name = _create_classify_name(col, tmp)
         if new_classify_name not in name_dic:
             name_dic[new_classify_name] = dict()
             for sp in samples:
@@ -85,7 +74,35 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
     return file_path
 
 
+def _create_classify_name(col, tmp):
+    """
+    在数据库读取OTU表的分类信息，形成OTU表的第一列
+    """
+    LEVEL = {
+        1: "d__", 2: "k__", 3: "p__", 4: "c__", 5: "o__",
+        6: "f__", 7: "g__", 8: "s__", 9: "otu"
+    }
+    my_list = list()
+    last_classify = ""
+    for i in range(1, tmp):
+        if LEVEL[i] not in col:
+            print LEVEL[i]
+            print last_classify
+            if last_classify == "":
+                tmp = col[LEVEL[i - 1]]
+                last_classify = re.split('__', tmp)[1]
+            my_str = LEVEL[i] + last_classify + "__unclasified"
+        else:
+            my_str = col[LEVEL[i]]
+        my_list.append(my_str)
+    new_classify_name = ";".join(my_list)
+    return new_classify_name
+
+
 def export_group_table(data, option_name, dir_path, bind_obj=None):
+    """
+    按group_id 和 组名获取group表
+    """
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
     group_table = db['sg_specimen_group']
@@ -117,6 +134,26 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
         for k in sample_name:
             for i in range(len(sample_name[k])):
                 f.write("{}\t{}\n".format(k, sample_name[k][i]))
+
+
+def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
+    """
+    按分组的详细信息获取group表
+    """
+    file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
+    bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
+    if not isinstance(data, dict):
+        try:
+            table_dict = json.loads(data)
+        except Exception:
+            raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+    if not isinstance(table_dict, dict):
+        raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+    with open(file_path, "wb") as f:
+        for k in table_dict:
+            for sp in table_dict[k]:
+                f.write("{}\t{}\n".format(k, sp))
+    return file_path
 
 
 def export_distance_matrix(data, option_name, dir_path, bind_obj=None):

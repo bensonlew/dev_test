@@ -26,7 +26,7 @@ class Distance(Base):
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
                 "otu_id": otu_id,
-                "level_name": level,
+                "level_id": level,
                 "name": name if name else "distance_origin",
                 "status": "end",
                 "params": params,
