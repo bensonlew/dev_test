@@ -64,6 +64,7 @@ class SubSampleTool(Tool):
         super(SubSampleTool, self).__init__(config)
         self.mothur_path = "meta/mothur.1.30"
         self.shared2otu_path = os.path.join(Config().SOFTWARE_DIR, "meta/scripts/shared2otu.pl")
+        self.otu_tax = dict()
 
     def sub_sample(self):
         """
@@ -73,6 +74,7 @@ class SubSampleTool(Tool):
             otu_table = os.path.basename(self.option("otu_table").get_table(self.option("level")))
         else:
             otu_table = os.path.basename(self.option("in_otu_table").prop["path"])
+        no_taxnomy_otu_table_path = os.path.join(self.work_dir, otu_table, + ".no_tax")
         shared_path = os.path.join(self.work_dir, otu_table + ".shared")
         mothur_dir = os.path.join(self.work_dir, "mothur")
         if not os.path.exists(mothur_dir):
@@ -119,6 +121,18 @@ class SubSampleTool(Tool):
             self.option("out_otu_table").set_path(sub_sampled_otu)
         except subprocess.CalledProcessError:
             raise Exception("shared2otu.pl 运行出错")
+
+    def del_taxnomy(self, otu_path, no_tax_path):
+        """
+        删除taxnomy列
+        """
+        with open(otu_path, 'rb') as r, open(no_tax_path, 'wb') as w:
+            line = r.next()
+            for line in r:
+                line = line.rstrip('\n')
+                line = re.split('\t', line)
+                self.otu_tax[line[0]] = line[-1]
+
 
     def run(self):
         """

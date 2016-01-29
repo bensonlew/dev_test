@@ -29,7 +29,7 @@ class UpdateStatus(Log):
             try:
                 my_table_id = json.loads(table_id)
             except Exception:
-                self.log("update_info:{}格式不正确".format(my_table_id))
+                self.log("update_info:{}格式不正确".format(table_id))
                 self._success = 0
                 self._failed = True
                 self._reject = 1
@@ -110,6 +110,7 @@ class UpdateStatus(Log):
                 "created_ts": create_time
             }
             collection.find_one_and_update({"_id": obj_id}, {'$set': data}, upsert=True)
+            self._mongo_client.close()
 
 
 def date_hook(json_dict):
