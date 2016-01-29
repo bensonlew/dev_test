@@ -27,7 +27,7 @@ class OtuSubsampleWorkflow(Workflow):
 
     def run(self):
         self.task.set_options({
-                "in_otu_table": export_otu_table(self.option("input_otu_id"), "otu_taxon.xls", self.task.work_dir, self),
+                "in_otu_table": export_otu_table(self.option("input_otu_id"), "otu_taxon", self.task.work_dir, self),
                 "size": self.option("size")
             })
         self.task.on('end', self.set_db)
