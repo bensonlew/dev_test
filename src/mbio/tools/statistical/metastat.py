@@ -31,7 +31,7 @@ class MetastatAgent(Agent):
             #{"name": "fisher_output", "type": "outfile", "format": "statistical.stat_table"},  # 费舍尔检验的输出结果
             {"name": "kru_H_input", "type": "infile", "format": "meta.otu.otu_table"},  # kruskal_wallis_H_test的输入文件
             {"name": "kru_H_group", "type": "infile", "format": "meta.otu.group_table"},  # kruskal_wallis_H_test的输入分组文件
-            {"name": "kru_H_type", "type": "st ring", "default": "two.side"},  #kruskal_wallis_H_test选择单双尾检验
+            {"name": "kru_H_type", "type": "string", "default": "two.side"},  #kruskal_wallis_H_test选择单双尾检验
             {"name": "kru_H_correction", "type": "string", "default": "none"},  # kruskal_wallis_H_test的多重检验校正
             #{"name": "kru_H_output", "type": "outfile", "format": "statistical.stat_table"},  # kruskal_wallis_H_test的输出结果
             {"name": "mann_input", "type": "infile", "format": "meta.otu.otu_table"},  # 秩和检验的输入文件

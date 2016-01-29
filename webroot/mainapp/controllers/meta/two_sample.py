@@ -20,7 +20,7 @@ class TwoGroup(object):
             return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level'] = data.level
+        my_param['level_id'] = data.level
         my_param['sample1'] = data.sample1
         my_param['sample2'] = data.sample2
         my_param['ci'] = data.ci

@@ -128,18 +128,3 @@ class StatTest(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
