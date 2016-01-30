@@ -5,6 +5,7 @@ from bson.objectid import ObjectId
 import datetime
 from types import StringTypes
 from mainapp.config.db import get_mongo_client
+import types
 
 
 class Estimator(object):
@@ -29,8 +30,8 @@ class Estimator(object):
                 "task_id": task_id,
                 "otu_id": from_otu_table,
                 "name": name if name else "estimators_origin",
-                "level_name": level,
-                # "status": "end",
+                "level_id": level,
+                "status": "end",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
@@ -55,10 +56,21 @@ class Estimator(object):
                 "otu_id": otu_id,
                 "name": name if name else "多样性指数T检验结果表",
                 "level_id": level_id,
-                # "status": "end",
+                "status": "end",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
         collection = self.db["sg_alpha_est_t_test"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
+
+    def get_est_table_info(self, est_id):
+        if isinstance(est_id, types.StringTypes):
+            est_id = ObjectId(est_id)
+        elif isinstance(est_id, ObjectId):
+            est_id = est_id
+        else:
+            raise Exception("输入est_id参数必须为字符串或者ObjectId类型!")
+        collection = self.db['sg_alpha_diversity_id']
+        result = collection.find_one({"_id": est_id})
+        return result

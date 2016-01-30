@@ -26,8 +26,8 @@ class EstTTestWorkflow(Workflow):
 
     def run(self):
         super(EstTTestWorkflow, self).run()
-        if self.UPDATE_STATUS_API:
-            self.est_t_test.UPDATE_STATUS_API = self.UPDATE_STATUS_API
+        # if self.UPDATE_STATUS_API:
+        #     self.est_t_test.UPDATE_STATUS_API = self.UPDATE_STATUS_API
         self.est_t_test.set_options({
             'student_input': self.option('otu_table'),
             'test': self.option('test_type'),

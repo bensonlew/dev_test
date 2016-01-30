@@ -27,8 +27,8 @@ class EstimatorsWorkflow(Workflow):
 
     def run(self):
         # super(EstimatorsWorkflow, self).run()
-        if self.UPDATE_STATUS_API:
-            self.estimators.UPDATE_STATUS_API = self.UPDATE_STATUS_API
+        # if self.UPDATE_STATUS_API:
+        #     self.estimators.UPDATE_STATUS_API = self.UPDATE_STATUS_API
         options = {
             'otu_table': self.option('otu_table'),
             'indices': self.option('indices')

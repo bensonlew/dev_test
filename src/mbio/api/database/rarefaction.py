@@ -13,8 +13,8 @@ class Rarefaction(Base):
         super(Rarefaction, self).__init__(bind_object)
         self._db_name = "sanger"
         self.client = get_mongo_client()
-        self.category_x = None
-        self.category_y = None
+        self.category_x = []
+        self.category_y = []
 
     @report_check
     def add_rarefaction_detail(self, rare_id, file_path):
@@ -25,6 +25,7 @@ class Rarefaction(Base):
                 raise Exception("pan_core_id必须为ObjectId对象或其对应的字符串!")
         rare_paths = os.listdir(file_path)
         rare_detail = []
+        category_x = []
         for rare_path in rare_paths:
             # print os.path.join(file_path,rare_path)
             files = os.listdir(rare_path)
@@ -42,6 +43,8 @@ class Rarefaction(Base):
                             break
                         line_data = line.split("\t")
                         # print line_data
+                        category_x.append(line_data[0])
+                        self.category_y.append(float(line_data[1]))
                         my_dic = dict()
                         my_dic["column"] = line_data[0]
                         my_dic["value"] = line_data[1]
@@ -56,6 +59,11 @@ class Rarefaction(Base):
                     }
                     print insert_data
                     rare_detail.append(insert_data)
+        for i in category_x:
+            if i == 'numsampled':
+                category_x.remove(i)
+            else:
+                self.category_x.append(int(i))
         try:
             collection = self.db['sg_alpha_rarefaction_curve_detail']
             collection.insert_many(rare_detail)
@@ -78,7 +86,7 @@ class Rarefaction(Base):
             "level_id": level,
             "status": "end",
             "params": params,
-            "category_x": self.category_x,
+            "category_x": max(self.category_x),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         if params is not None:

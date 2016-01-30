@@ -16,24 +16,27 @@ class EstTTest(object):
     """
     @check_sig
     def POST(self):
+        print(2)
         data = web.input()
+        print(1)
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "alpha_diversity_id") and hasattr(data, "name")):
+        if not hasattr(data, "alpha_diversity_id"):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
+        print(data.alpha_diversity_id)
         my_param = dict()
         my_param['alpha_diversity_id'] = data.alpha_diversity_id
         my_param['category_name'] = data.category_name
         params = json.dumps(my_param)
 
-        otu_info = Meta().get_otu_table_info(data.otu_id)
+        otu_info = Estimator().get_est_table_info(data.alpha_diversity_id)
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_est_t_test"
             est_t_test_id = Estimator().add_est_t_test_collection(params, data.alpha_diversity_id, name)
             update_info = {str(est_t_test_id): "sg_alpha_est_t_test", str(est_t_test_id): "sg_alpha_est_t_test"}
             update_info = json.dumps(update_info)
 
-            workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
+            workflow_id = self.get_new_id(otu_info["task_id"], data.alpha_diversity_id)
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,

@@ -16,7 +16,6 @@ class Estimators(object):
     """
     @check_sig
     def POST(self):
-        print('why')
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if not hasattr(data, "otu_id"):
@@ -24,15 +23,15 @@ class Estimators(object):
             return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level'] = data.level
+        my_param['level_id'] = data.level_id
         my_param['indices'] = data.index_type
         params = json.dumps(my_param)
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
-        print('hehe')
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_estimators"
-            est_id = Estimator().add_est_collection(data.level, params, data.otu_id, name)
+            est_id = Estimator().add_est_collection(data.level_id, params, data.otu_id, name)
+            print(est_id)
             update_info = {str(est_id): "sg_alpha_diversity"}
             update_info = json.dumps(update_info)
 
@@ -54,7 +53,7 @@ class Estimators(object):
                     "otu_table": data.otu_id,
                     # "task_id": otu_info["task_id"],
                     "indices": data.index_type,
-                    "level": data.level,
+                    "level": data.level_id,
                     "est_id": str(est_id)
                 }
             }
