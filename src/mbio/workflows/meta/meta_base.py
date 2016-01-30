@@ -133,7 +133,7 @@ class MetaBaseWorkflow(Workflow):
         self.tax.on("start", self.set_step, {'end': self.step.otucluster, 'start': self.step.taxassign})
         self.tax.run()
 
-    def run_stat(self, relyobj):
+    def run_stat(self):
         self.stat.set_options({
             "in_otu_table": self.option("otu_table"),
             "taxon_file": self.option("taxon_file")
@@ -236,9 +236,10 @@ class MetaBaseWorkflow(Workflow):
         # 设置OTU table文件
         api_otu = self.api.meta
         otu_path = self.output_dir+"/OtuTaxon_summary/otu_taxon.xls"
+        rep_path = self.output_dir+"Ote/otu_reps.fasta"
         if not os.path.isfile(otu_path):
             raise Exception("找不到报告文件:{}".format(otu_path))
-        otu_id = api_otu.add_otu_table(otu_path, major=True)
+        otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path)
         # 设置进化树文件
         api_tree = self.api.newicktree
         tree_path = self.phylo.option('phylo_tre').prop['path']

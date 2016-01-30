@@ -15,9 +15,9 @@ result <- matrix(nrow = nrow(otu_data),ncol = 3)
 pvalue <- 1
 for(i in 1:nrow(otu_data)){
   c1 <- as.numeric(as.vector(otu_data[i,1]))
-  c2 <- sum(as.numeric(as.vector(otu_data$NEO_1))) - c1
+  c2 <- sum(as.numeric(as.vector(otu_data$"${sample1}"))) - c1
   c3 <- as.numeric(as.vector(otu_data[i,2]))
-  c4 <- sum(as.numeric(as.vector(otu_data$NEFO_1))) - c3
+  c4 <- sum(as.numeric(as.vector(otu_data$"${sample2}"))) - c3
   data <- matrix(c(c1,c2,c3,c4),ncol = 2)
   test <- "${choose_test}"
   if (test == "chi_sq") {
@@ -26,8 +26,8 @@ for(i in 1:nrow(otu_data)){
     tt <- fisher.test(data,alternative = "${test_type}",conf.level = ${ci})
   }
   pvalue <- c(pvalue,tt$p.value)
-  pro1 <- c1 / sum(as.numeric(as.vector(otu_data$NEO_1)))
-  pro2 <- c3 / sum(as.numeric(as.vector(otu_data$NEFO_1)))
+  pro1 <- c1 / sum(as.numeric(as.vector(otu_data$"${sample1}")))
+  pro2 <- c3 / sum(as.numeric(as.vector(otu_data$"${sample2}")))
   result[i,] = c(rownames(otu_data)[i],pro1,pro2)
 }
 pvalue <- pvalue[-1]
@@ -37,5 +37,5 @@ qv <- qvalue(as.numeric(result[,4]),lambda = 0.5)
 result <- cbind(result,qv$qvalue)
 colnames(result) <- c(" ",paste("propotion(",s1,")",sep=''),paste("propotion(",s2,")",sep=''),"p-value","q-value")
 result_order <- result[order(result[,4]),]  
-write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F)
+write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)
     

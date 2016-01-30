@@ -6,6 +6,7 @@ import copy
 import json
 from biocluster.config import Config
 from bson.objectid import ObjectId
+from collections import defaultdict
 
 
 client = Config().mongo_client
@@ -24,13 +25,13 @@ def export_otu_table(data, option_name, dir_path, bind_obj=None):
     collection = db['sg_otu_detail']
     with open(file_path, "wb") as f:
         f.write("OTU ID\t%s\ttaxonomy\n" % "\t".join(samples))
-        for col in collection.find({"_id": ObjectId(data)}):
-            line = "%s" % col["otu"]
+        for col in collection.find({"otu_id": ObjectId(data)}):
+            line = "%s\t" % col["otu"]
             for s in samples:
-                line += "\t%s" % col[s]
+                line += "%s\t" % col[s]
             for cls in ["d__", "k__", "p__", "c__", "o__", "f__", "g__"]:
                 if cls in col.keys():
-                    line += "\t%s; " % col[cls]
+                    line += "%s; " % col[cls]
             f.write("%s\n" % line)
     return file_path
 
@@ -86,13 +87,12 @@ def _create_classify_name(col, tmp):
     for i in range(1, tmp):
         if LEVEL[i] not in col:
             if last_classify == "":
-                tmp = col[LEVEL[i - 1]]
-                last_classify = re.split('__', tmp)[1]
-            my_str = LEVEL[i] + last_classify + "__unclasified"
+                last_classify = col[LEVEL[i - 1]]
+            my_str = LEVEL[i] + "Unclasified_" + last_classify
         else:
             my_str = col[LEVEL[i]]
         my_list.append(my_str)
-    new_classify_name = ";".join(my_list)
+    new_classify_name = "; ".join(my_list)
     return new_classify_name
 
 
@@ -127,10 +127,12 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
         if not result:
             raise Exception("无法根据传入的group_id:{}找到相应的样本名".format(data))
         sample_name[result['specimen_name']] = sample_id[k]
+    sample_number_check(sample_name)
+
     with open(file_path, "wb") as f:
         for k in sample_name:
-            for i in range(len(sample_name[k])):
-                f.write("{}\t{}\n".format(sample_name[k], k))
+            f.write("{}\t{}\n".format(k, sample_name[k]))
+    return file_path
 
 
 def _get_index_list(group_name_list, c_name):
@@ -144,24 +146,32 @@ def _get_index_list(group_name_list, c_name):
     return index_list
 
 
+def sample_number_check(sample_name):
+    sample_count = defaultdict(int)
+    for k in sample_name:
+        sample_count[sample_name[k]] += 1
+    for k in sample_count:
+        if sample_count[k] < 3:
+            raise Exception("组{}里的样本数目小于三个，每个组里必须有三个以上的样本")
+
+
 def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     """
     按分组的详细信息获取group表
     """
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
-    print data
     if not isinstance(data, dict):
         try:
             table_dict = json.loads(data)
         except Exception:
             raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
     if not isinstance(table_dict, dict):
-        raise Exception("生成group表失败，传入的table_dict不是一个字典或者是字典对应的字符串".format(option_name))
+        raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
     with open(file_path, "wb") as f:
         for k in table_dict:
             for sp in table_dict[k]:
-                f.write("{}\t{}\n".format(k, sp))
+                f.write("{}\t{}\n".format(sp, k))
     return file_path
 
 

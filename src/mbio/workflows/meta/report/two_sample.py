@@ -26,7 +26,7 @@ class TwoSampleWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.two_sample = self.add_tool("meta.statistical.metastat")
+        self.two_sample = self.add_tool("statistical.metastat")
 
     def run_two_sample(self):
         if self.option("test") == "chi":
@@ -50,6 +50,7 @@ class TwoSampleWorkflow(Workflow):
                 "fisher_type": self.option("type")
             }
         self.two_sample.set_options(options)
+        self.output_dir = self.two_sample.output_dir
         self.on_rely(self.two_sample, self.set_db)
         self.two_sample.run()
 
@@ -58,7 +59,7 @@ class TwoSampleWorkflow(Workflow):
         two_sample_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         if not os.path.isfile(two_sample_path):
             raise Exception("找不到报告文件:{}".format(two_sample_path))
-        api_two_sample.add_species_difference_check_detail(two_sample_path, self.option("two_sample_id"))
+        api_two_sample.add_twosample_species_difference_check(two_sample_path, self.option("two_sample_id"))
         
         self.end()
 

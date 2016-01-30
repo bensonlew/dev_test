@@ -9,12 +9,13 @@ from types import StringTypes
 
 
 class Meta(Base):
+
     def __init__(self, bind_object):
         super(Meta, self).__init__(bind_object)
         self._db_name = "sanger"
 
     @report_check
-    def add_otu_table(self, file_path, major=False, otu_id=None, from_out_table=0, task_id=None, name=None, params=None):
+    def add_otu_table(self, file_path, major=False, otu_id=None, from_out_table=0, rep_path=None, task_id=None, name=None, params=None):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         # if level not in range(1, 10):
@@ -25,12 +26,14 @@ class Meta(Base):
             else:
                 raise Exception("from_out_table必须为ObjectId对象或其对应的字符串!")
         if major:
+            if task_id is None:
+                task_id = self.bind_object.sheet.id
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
                 "name": name if name else "otu_taxon_origin",
                 "from_id": from_out_table,
-                #"level": level,
+                # "level": level,
                 "status": "end",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -39,9 +42,29 @@ class Meta(Base):
             collection = self.db["sg_otu"]
             otu_id = collection.insert_one(insert_data).inserted_id
         else:
+            # if task_id is None:
+            #     raise Exception("major为False时需提供task_id!")
             if otu_id is None:
                 raise Exception("major为False时需提供otu_id!")
         data_list = []
+        # 读代表序列
+        if rep_path:
+            otu_reps = {}
+            with open(rep_path, 'r') as f:
+                seq_id = ""
+                seq = ''
+                while True:
+                    line = f.readline().strip('\n')
+                    if not line:
+                        otu_reps[seq_id] = seq
+                        break
+                    m = re.match(r">(\S+)\s", line)
+                    if m:
+                        otu_reps[seq_id] = seq
+                        seq_id = m.group()
+                        seq = ''
+                    else:
+                        seq = seq + line
         with open(file_path, 'r') as f:
             l = f.readline()
             if not re.match(r"^OTU ID", l):
@@ -62,6 +85,8 @@ class Meta(Base):
                 classify = line_data.pop()
                 classify_list = re.split(r"\s*;\s*", classify)
                 otu_list = [("task_id", task_id), ("otu_id", otu_id)]
+                if rep_path:
+                    otu_list.append(("otu_rep", otu_reps[line_data[0]]))
                 for cf in classify_list:
                     if cf != "":
                         otu_list.append((cf[0:3], cf))

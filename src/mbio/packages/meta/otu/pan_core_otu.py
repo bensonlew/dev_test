@@ -126,7 +126,7 @@ def pan_core(otutable, dowhat, groupfile='none'):
       out
     }
 
-    data = read.table("''' + otutable + '''",sep="\\t",head=T)
+    data = read.table("''' + otutable + '''",sep="\\t",check.names=F,head=T,comment.char="")
     rownames(data) <-data[,1]
     data <- data[,-1]
     gdata <-list()
@@ -135,13 +135,13 @@ def pan_core(otutable, dowhat, groupfile='none'):
     g = 1
     groups = "none"
     if (gfile !="none"){
-        map <- read.table(gfile,sep="\\t",head=T,check.names=F,comment.char="")
+        map <- read.table(gfile,sep="\\t",head=F,check.names=F,comment.char="")
         map <- as.matrix(map)
-        groups <- unique(map_pick[,2])
+        groups <- unique(map[,2])
         for(i in 1:length(groups))
         {
             samples <- as.vector(map[which(map[,2] %in% groups[i]),1])
-            data_pick <- data[,which(colnames(data_all) %in% samples)]
+            data_pick <- data[,which(colnames(data) %in% samples)]
             gdata[[i]] <- data_pick
         }
         g = length(groups)
@@ -150,13 +150,13 @@ def pan_core(otutable, dowhat, groupfile='none'):
     }
     richness_out<-matrix(nrow=g,ncol=ncol(data)+1)
     if (length(gdata) >0){
-        for (i in length(gdata)){
+        for (i in 1:length(gdata)){
             sp <- pan_core(t(gdata[[i]]), dowhat)
             groupname = "all"
             if (gfile !="none"){
               groupname = groups[i]
             }
-            richness_out[i,] <- c(groupname,sp$richness)
+            richness_out[i,1:(length(sp$richness)+1)] <- c(groupname,sp$richness)
             write.table(sp$perm,paste(groupname,".perm.txt",sep=""),sep="\\t",col.names=F,row.names=F)
         }
     }else{
