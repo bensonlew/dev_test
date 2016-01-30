@@ -14,22 +14,22 @@ class EstTTestWorkflow(Workflow):
         self._sheet = wsheet_object
         super(EstTTestWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name": "otu_table", "type": "infile", 'format': "meta.otu.otu_table"},  # 输入的OTU id
+            {"name": "est_table", "type": "infile", 'format': "meta.otu.otu_table"},  # 输入的OTU id
             {"name": "group_table", "type": "infile", 'format': "meta.otu.group_table"},
             {"name": "update_info", "type": "string"},
             {"name": "test_type", "type": "string"},
-            {"name": "est_t_test_id", "type": "string"}
+            # {"name": "est_t_test_id", "type": "string"}
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.est_t_test = self.add_tool('meta.statistical.metastat')
+        self.est_t_test = self.add_tool('statistical.metastat')
 
     def run(self):
         super(EstTTestWorkflow, self).run()
         # if self.UPDATE_STATUS_API:
         #     self.est_t_test.UPDATE_STATUS_API = self.UPDATE_STATUS_API
         self.est_t_test.set_options({
-            'student_input': self.option('otu_table'),
+            'student_input': self.option('est_table'),
             'test': self.option('test_type'),
             'student_group': self.option('group_table')
             })

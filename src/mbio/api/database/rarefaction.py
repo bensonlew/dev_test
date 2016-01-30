@@ -28,11 +28,13 @@ class Rarefaction(Base):
         category_x = []
         for rare_path in rare_paths:
             # print os.path.join(file_path,rare_path)
-            files = os.listdir(rare_path)
+            files = os.listdir(os.path.join(file_path, rare_path))
             # print files
             fs_path = []
             for f in files:
                 fs_path.append(os.path.join(file_path, rare_path, f))
+                # print(fs_path)
+                # self.bind_object.logger.error(fs_path)
             for fs in fs_path:
                 rarefaction = []
                 sample_name = fs.split('.')[1]
@@ -57,7 +59,7 @@ class Rarefaction(Base):
                         "specimen_name": sample_name,
                         "json_value": rarefaction
                     }
-                    print insert_data
+                    # print insert_data
                     rare_detail.append(insert_data)
         for i in category_x:
             if i == 'numsampled':
@@ -71,6 +73,7 @@ class Rarefaction(Base):
             self.bind_object.logger.error("导入rare_detail表格{}信息出错:{}".format(file_path, e))
         else:
             self.bind_object.logger.info("导入rare_detail表格{}成功".format(file_path))
+        return max(self.category_x)
 
     @report_check
     def add_rare_table(self, file_path, level, otu_id=None, task_id=None, name=None, params=None):
@@ -94,3 +97,4 @@ class Rarefaction(Base):
         collection = self.db["sg_alpha_rarefaction_curve"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         self.add_rarefaction_detail(inserted_id, file_path)
+
