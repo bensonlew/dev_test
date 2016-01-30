@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
-import os
+
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -31,7 +31,7 @@ class MetastatAgent(Agent):
             #{"name": "fisher_output", "type": "outfile", "format": "statistical.stat_table"},  # 费舍尔检验的输出结果
             {"name": "kru_H_input", "type": "infile", "format": "meta.otu.otu_table"},  # kruskal_wallis_H_test的输入文件
             {"name": "kru_H_group", "type": "infile", "format": "meta.otu.group_table"},  # kruskal_wallis_H_test的输入分组文件
-            {"name": "kru_H_type", "type": "string", "default": "two.side"},  #kruskal_wallis_H_test选择单双尾检验
+            # {"name": "kru_H_type", "type": "string", "default": "two.side"},  #kruskal_wallis_H_test选择单双尾检验
             {"name": "kru_H_correction", "type": "string", "default": "none"},  # kruskal_wallis_H_test的多重检验校正
             #{"name": "kru_H_output", "type": "outfile", "format": "statistical.stat_table"},  # kruskal_wallis_H_test的输出结果
             {"name": "mann_input", "type": "infile", "format": "meta.otu.otu_table"},  # 秩和检验的输入文件
@@ -110,8 +110,8 @@ class MetastatAgent(Agent):
                 if self.option("kru_H_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
                                                            "fdr", "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
-                if self.option("kru_H_type") not in ["two.side", "greater", "less"]:
-                    raise OptionError('所输入的类型不在范围值内')
+                # if self.option("kru_H_type") not in ["two.side", "greater", "less"]:
+                #     raise OptionError('所输入的类型不在范围值内')
             elif i == "anova":
                 if not self.option("anova_input").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
@@ -189,11 +189,11 @@ class MetastatTool(Tool):
         运行metastat.py
         :return:
         """
+
         def stats_update(self):
             self.step.stat_test.start()
             self.step.stat_test.finish()
             self.step.update()
-
 
         for t in self.option('test').split(','):
             # self.logger.info('运行metastat.py程序进行%s分析' % t)
@@ -202,40 +202,63 @@ class MetastatTool(Tool):
                 return_mess = two_sample_test(self.option('chi_input').prop['path'], self.work_dir + '/chi_result.xls',
                                               t, self.option('chi_sample1'), self.option('chi_sample2'),
                                               self.option('chi_correction'))
+                if return_mess == 0:
+                    self.logger.info('运行%s分析完成' % t.encode("utf-8"))
+                else:
+                    self.set_error('运行%s分析出错' % t.encode("utf-8"))
             elif t == "fisher":
                 return_mess = two_sample_test(self.option('fisher_input').prop['path'], self.work_dir +
                                               '/fisher_result.xls', t, self.option('fisher_sample1'),
                                               self.option('fisher_sample2'), str(1 - self.option('fisher_ci')),
                                               self.option('fisher_type'), self.option('fisher_correction'))
+                if return_mess == 0:
+                    self.logger.info('运行%s分析完成' % t.encode("utf-8"))
+                else:
+                    self.set_error('运行%s分析出错' % t.encode("utf-8"))
             elif t == "student":
                 return_mess = two_group_test(self.option('student_input').prop['path'],
                                              self.option('student_group').prop['path'], self.work_dir +
                                              '/student_result.xls', self.work_dir + '/student_boxfile.xls', t, str(1 - self.option('student_ci')),
                                              self.option('student_type'), self.option('student_correction'))
+                if return_mess == 0:
+                    self.logger.info('运行%s分析完成' % t.encode("utf-8"))
+                else:
+                    self.set_error('运行%s分析出错' % t.encode("utf-8"))
             elif t == "welch":
                 return_mess = two_group_test(self.option('welch_input').prop['path'],
                                              self.option('welch_group').prop['path'], self.work_dir +
                                              '/welch_result.xls', self.work_dir + '/welch_boxfile.xls', t, str(1 - self.option('welch_ci')),
                                              self.option('welch_type'), self.option('welch_correction'))
+                if return_mess == 0:
+                    self.logger.info('运行%s分析完成' % t.encode("utf-8"))
+                else:
+                    self.set_error('运行%s分析出错' % t.encode("utf-8"))
             elif t == "mann":
                 return_mess = two_group_test(self.option('mann_input').prop['path'],
                                              self.option('mann_group').prop['path'],
                                              self.work_dir + '/mann_result.xls', self.work_dir + '/mann_boxfile.xls', t, str(1 - self.option('mann_ci')),
                                              self.option('mann_type'), self.option('mann_correction'))
+                if return_mess == 0:
+                    self.logger.info('运行%s分析完成' % t.encode("utf-8"))
+                else:
+                    self.set_error('运行%s分析出错' % t.encode("utf-8"))
             elif t == "kru_H":
                 return_mess = mul_group_test(self.option('kru_H_input').prop['path'], self.work_dir +
-                                             '/kru_H_result.xls', self.work_dir + '/kru_H_post_result.xls',
-                                             self.option('kru_H_group').prop['path'], t, self.option('kru_H_type'),
-                                             self.option('kru_H_correction'))
+                                             '/kru_H_result.xls', self.work_dir + '/kru_H_boxfile.xls',
+                                             self.option('kru_H_group').prop['path'], t, self.option('kru_H_correction'))
+                if return_mess == 0:
+                    self.logger.info('运行%s分析完成' % t.encode("utf-8"))
+                else:
+                    self.set_error('运行%s分析出错' % t.encode("utf-8"))
             elif t == "anova":
                 return_mess = mul_group_test(self.option('anova_input').prop['path'], self.work_dir +
-                                             '/anova_result.xls', self.work_dir + '/anova_post_result.xls',
+                                             '/anova_result.xls', self.work_dir + '/anova_boxfile.xls',
                                              self.option('anova_group').prop['path'], t, self.option('anova_correction')
                                              )
-            if return_mess == 0:
-                self.logger.info('运行%s分析完成' % t.encode("utf-8"))
-            else:
-                self.set_error('运行%s分析出错' % t.encode("utf-8"))
+                if return_mess == 0:
+                    self.logger.info('运行%s分析完成' % t.encode("utf-8"))
+                else:
+                    self.set_error('运行%s分析出错' % t.encode("utf-8"))
 
     def set_output(self):
         """
@@ -266,11 +289,11 @@ class MetastatTool(Tool):
                 os.link(self.work_dir + '/mann_boxfile.xls', self.output_dir + '/mann_boxfile.xls')
             elif f == 'kru_H_result.xls':
                 os.link(self.work_dir + '/kru_H_result.xls', self.output_dir + '/kru_H_result.xls')
-            elif f == 'kru_H_post_result.xls':
-                os.link(self.work_dir + '/kru_H_post_result.xls', self.output_dir + '/kru_H_post_result.xls')
+            elif f == 'kru_H_boxfile.xls':
+                os.link(self.work_dir + '/kru_H_boxfile.xls', self.output_dir + '/kru_H_boxfile.xls')
             elif f == 'anova_result.xls':
                 os.link(self.work_dir + '/anova_result.xls', self.output_dir + '/anova_result.xls')
-            elif f == 'anova_post_result.xls':
-                os.link(self.work_dir + '/anova_post_result.xls', self.output_dir + '/anova_post_result.xls')
+            elif f == 'anova_boxfile.xls':
+                os.link(self.work_dir + '/anova_boxfile.xls', self.output_dir + '/anova_boxfile.xls')
         self.logger.info("设置结果目录成功")
 

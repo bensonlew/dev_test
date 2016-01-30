@@ -20,7 +20,7 @@ for(i in 1:nrow(otu_data)){
   c4 <- sum(as.numeric(as.vector(otu_data$"${sample2}"))) - c3
   data <- matrix(c(c1,c2,c3,c4),ncol = 2)
   test <- "${choose_test}"
-  if (test == "chi_sq") {
+  if (test == "chi") {
     tt <- chisq.test(data)
   }else{
     tt <- fisher.test(data,alternative = "${test_type}",conf.level = ${ci})

@@ -1,115 +1,115 @@
+#  last modified: 2016.01.25
+#  Author: qiuping
+#  This script is designes to identify differentially abundant features between multiple groups
+library(boot)
 library(qvalue)
-otu_data <- read.table("${inputfile}",sep = "\t")
-samp <- t(otu_data[1,-1])
-otu_data <- otu_data[-1,]
-rownames(otu_data) <- otu_data[,1]
-otu_data <- otu_data[,-1]
-colnames(otu_data) <- samp
+library(stats)
 
-group <- read.table("${groupfile}",sep="\t")
-gsamp=group[,1]
-otu_data <- otu_data[,which(samp %in% gsamp)]
-otu_data <- otu_data[apply(otu_data,1,function(x)any(x>0)),]
-
-da <- otu_data
-otu_data <-apply(da,2,function(x) as.numeric(x)/sum(as.numeric(x))) 
-rownames(otu_data)<-rownames(da)
-samp <- samp[which(samp %in% gsamp)]
-test_data <- t(otu_data)
-test_data <- as.data.frame(test_data)
-test_data$group <- "" 
-for(i in 1:nrow(test_data)){
-  test_data[i,ncol(test_data)] <- as.character(group[which(group[,1] %in% rownames(test_data)[i]),2])
-}
-test_data$group <- as.factor(test_data$group)
-colnum <- nlevels(test_data$group)
-colnum <- colnum*2 + 1
-result <- matrix(nrow = nrow(otu_data),ncol = colnum)
-result <- as.data.frame(result)
-pvalue <- 1
-postlist <- list()
-postdata <- data.frame()
-for(i in 1:(ncol(test_data)-1)){
-  colnames(test_data)[i] <- "otu"
-  test_data$otu <- as.numeric(as.vector(test_data$otu))
-  s <- split(test_data,test_data$group)
-  Me <- lapply(s,function(x)mean(x[,c("otu")]))
-  Sd <- lapply(s,function(x)sd(x[,c("otu")]))
-  result[i+1,1] <- rownames(otu_data)[i]
-  
-  group_name <- names(s)
-  com <- combn(group_name,2)
-  
-  test <- "${choose_test}"
-  if (test == "kru_H"){
-    tt <- kruskal.test(otu ~ group, data = test_data)
-    for(cl in 1:ncol(com)){
-      data1 <- s[[which(names(s) %in% com[,cl][1])]]
-      data2 <- s[[which(names(s) %in% com[,cl][2])]]
-      postdata[cl,1] <- paste(com[,cl][1],"-",com[,cl][2],sep = '')
-      o1 <- as.vector(as.numeric(data1[,i]))
-      o2 <- as.vector(as.numeric(data2[,i]))
-      
-      if(any(o1 != o2)){
-        pi <- i
-        pht <- wilcox.test(o1,o2,alternative = "${test_type}",exact = F,conf.level = 0.95, conf.int = TRUE)
-        postdata[cl,2] <- as.vector(pht$conf.int)[1]
-        postdata[cl,3] <- as.vector(pht$conf.int)[2]
-        postdata[cl,4] <- as.vector(pht$p.value)
-      }else{
-        postdata[cl,2] <- NA
-        postdata[cl,3] <- NA
-        postdata[cl,4] <- NA
+#  a function to summary the values for boxplot, including min,Q1,median,Q3,max
+boxplot_stat <- function(x){
+  colnum <- nlevels(x$group)*5
+  box_result <- matrix(nrow = ncol(x)-1,ncol = colnum)
+  box_result <- as.data.frame(box_result)
+  gname <- levels(x$group)
+  for(i in 1:(ncol(x)-1)){
+    cl = 1
+    for(n in gname){
+      sum <- as.numeric(summary(x[which(x$group %in% n),i]))[-4]
+      for(l in 1:length(sum)){
+        box_result[i,cl] <- sum[l]
+        cl = cl + 1
       }
     }
-    
-    
-    post_rowname <- t(postdata[,1])
-    postdata <- postdata[,-1]
-    rownames(postdata) <- post_rowname
-    colnames(postdata) <- c('lwr','upr','p.adj')
-    postdata$p.adj <- p.adjust(as.vector(as.numeric(postdata$p.adj)),method = "${mul_test}")
-    postlist$name <- postdata
-    names(postlist)[i] <- rownames(otu_data)[i]
-    
-    
-  }else{
-    tt <- oneway.test(otu ~ group, data = test_data)
-    av <- aov(otu ~ group, data = test_data)
-    pht <- TukeyHSD(av)
-    postlist$name <- pht$group[,-1]
-    names(postlist)[i] <- rownames(otu_data)[i]
-  }  
-  pvalue <- c(pvalue,tt$p.value)
-  n <- 2
-  for(len in 1:length(Me)){
-    result[i+1,n] <- Me[[len]]
-    result[i+1,n+1] <- Sd[[len]]
-    n <- n + 2
   }
-  
-  colnames(test_data)[i] <- rownames(otu_data)[i]
+  head <- "1"
+  for(n in gname){
+    cname <- c(paste('min(',n,')',sep = ''),paste('Q1(',n,')',sep = ''),paste('Median(',n,')',sep = ''),paste('Q3(',n,')',sep = ''),paste('max(',n,')',sep = ''))
+    head <- c(head,cname)
+  }
+  head <- head[-1]
+  rownames(box_result) <- colnames(x)[-length(x)]
+  colnames(box_result) <- head
+  return (box_result)
 }
-result[1,1] <- " "
-coln <- 2
-s_name = names(s)
-for(l in 1:(length(s_name))){
-  result[1,coln] <- paste("mean(",s_name[l],")",sep='')
-  result[1,coln+1] <- paste("sd(",s_name[l],")",sep='')
-  coln <- coln+2
+
+#  a function to summary mean and sd of every group, x is a data frame
+summary_stat <- function(x){
+  #  write the result to a data frame
+  colnum <- nlevels(x$group)*2
+  stat_result <- matrix(nrow = ncol(x),ncol = colnum)
+  stat_result <- as.data.frame(stat_result)
+  s <- split(x,x$group)
+  len <- ncol(s[[1]])-1
+  for(i in 1:len){
+    Me <- lapply(s,function(x)mean(as.numeric(as.vector(x[,i]))))
+    Sd <- lapply(s,function(x)sd(as.numeric(as.vector(x[,i]))))
+    n <- 1
+    for(l in 1:length(Me)){
+      stat_result[i+1,n] <- Me[[l]]
+      stat_result[i+1,n+1] <- Sd[[l]]
+      n <- n+2
+    }
+  }
+  #  make the head of stat_result 
+  coln <- 1
+  s_name <- names(s)
+  for(m in 1:(length(s_name))){
+    stat_result[1,coln] <- paste("mean(",s_name[m],")",sep='')
+    stat_result[1,coln+1] <- paste("sd(",s_name[m],")",sep='')
+    coln <- coln+2
+  }
+  rownames(stat_result) <- c(" ",colnames(s[[1]])[-length(colnames(s[[1]]))])
+  head <- stat_result[1,]
+  stat_result <- stat_result[-1,]
+  colnames(stat_result) <- head
+  return (stat_result)
 }
-head <- t(result[1,])
-result <- result[-1,]
-colnames(result) <- head
+
+#  deal with the input file, come into being a data frame of R
+data <- read.table('${inputfile}',sep = '\t',comment.char = '')
+samp <- t(data[1,-1])
+data <- data[-1,]
+rownames(data) <- data[,1]
+data <- data[,-1]
+colnames(data) <- samp
+
+group <- read.table('${groupfile}',sep = '\t',comment.char = '')
+gsamp <- group[-1,1]
+data <- data[,which(samp %in% gsamp)]
+data <- data[apply(data,1,function(x)any(x>0)),]
+da <- data
+data <- apply(da,2,function(x)as.numeric(x)/sum(as.numeric(x)))
+rownames(data) <- rownames(da)
+data <- t(data)
+data <- as.data.frame(data)
+samp <- samp[which(samp %in% gsamp)]
+data$group <- ""
+for(i in 1:nrow(data)){
+  data[i,ncol(data)] <- as.character(group[which(group[,1] %in% rownames(data)[i]),2])
+}
+data$group <- as.factor(data$group)
+
+#  to do kruskal wallis H test or one way anova test
+result <- summary_stat(data)
+test <- '${choose_test}'
+pvalue <- 1
+for(i in 1:(ncol(data)-1)){
+  if(test == 'kru_H'){
+    st <- kruskal.test(data[[i]]~data$group)
+  }else{
+    st <- oneway.test(data[[i]]~data$group)
+  }
+  pvalue <- c(pvalue,st$p.value)
+}
 pvalue <- pvalue[-1]
-pvalue <- p.adjust(as.numeric(pvalue),method = "BH")
+pvalue <- p.adjust(as.numeric(pvalue),method = '${mul_test}')
 result <- cbind(result,pvalue)
-qv <- qvalue(as.numeric(result[,colnum+1]),lambda = 0.5)
+qv <- qvalue(as.numeric(pvalue),lambda = 0.5)
 qvalue <- qv$qvalue
 result <- cbind(result,qvalue)
-result_order <- result[order(result[,colnum+1]),]
-write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)
-write.table(postlist,"post_result",sep="\t",col.names=T,row.names=T,quote = F)
+result_order <- result[order(result$pvalue),]
+write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=T)
 
+boxfile <- boxplot_stat(data)
+write.table(boxfile,"${boxfile}",sep="\t",col.names=T,row.names=T)
 
-    
