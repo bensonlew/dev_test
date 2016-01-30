@@ -5,6 +5,8 @@ from mainapp.libs.signature import check_sig
 from mainapp.controllers.pipeline import Pipeline, PipelineState,PipelineLog,PipelineStop,PipelineQueue,PipelineStopPause,PipelinePause
 from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.meta.two_group import TwoGroup
+from mainapp.controllers.meta.two_sample import TwoSample
+from mainapp.controllers.meta.multiple import Multiple
 from mainapp.controllers.filecheck import FileCheck,MultiFileCheck
 from mainapp.controllers.meta.estimators import Estimators
 from mainapp.controllers.meta.pan_core import PanCore
@@ -31,7 +33,9 @@ urls = (
     "/meta/beta/distance_calc", "DistanceCalc",
     "/meta/beta/hcluster", "Hcluster",
     "/meta/otu_subsample", "Subsample",
-    "/meta/two_group", "TwoGroup"
+    "/meta/two_group", "TwoGroup",
+    "/meta/two_sample", "TwoSample",
+    "/meta/multiple", "Multiple"
 )
 
 
