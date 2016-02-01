@@ -117,6 +117,15 @@ class TaskLog(object):
                 exstr = traceback.format_exc()
                 print exstr
                 self.log("task_id: %s  log_id: %s  导入API模块出错:%s" % (log_data.task_id, log_data.id, e))
+                data = {
+                    "failed_times": 1,
+                    "reject": 1
+                }
+                myvar = dict(id=log_data.id)
+                try:
+                    db.update("apilog", vars=myvar, where="id = $id", **data)
+                except Exception, e:
+                    self.log("数据库更新错误:%s" % e)
                 break
         self._end = True
 

@@ -59,7 +59,7 @@ class TwoSampleWorkflow(Workflow):
         two_sample_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         if not os.path.isfile(two_sample_path):
             raise Exception("找不到报告文件:{}".format(two_sample_path))
-        api_two_sample.add_species_difference_check_detail(two_sample_path, self.option("two_sample_id"))
+        api_two_sample.add_twosample_species_difference_check(two_sample_path, self.option("two_sample_id"))
         
         self.end()
 
