@@ -13,13 +13,13 @@ class TwoSampleWorkflow(Workflow):
         super(TwoSampleWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
-            {"name": "type", "type": "string"},
+            {"name": "type", "type": "string", "default": "two.side"},
             {"name": "update_info", "type": "string"},
             {"name": "test", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "two_sample_id", "type": "string"},
-            {"name": "correction", "type": "string"},
-            {"name": "ci", "type": "float"},
+            {"name": "correction", "type": "string", "default": "none"},
+            {"name": "ci", "type": "float", "default": 0.05},
             {"name": "sample1", "type": "string"},
             {"name": "sample2", "type": "string"}
 
