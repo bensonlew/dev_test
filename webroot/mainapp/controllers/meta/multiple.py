@@ -53,7 +53,8 @@ class Multiple(object):
                     "update_info": update_info,
                     "otu_file": data.otu_id,
                     "level": data.level_id,
-                    "group_file": data.group_detail,
+                    "group_file": data.group_id,
+                    "group_detail": data.group_detail,
                     "correction": data.correction,
                     "test": data.test,
                     "multiple_id": str(multiple_id)
