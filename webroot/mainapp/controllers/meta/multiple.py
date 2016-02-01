@@ -22,7 +22,7 @@ class Multiple(object):
             return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level_id'] = data.level
+        my_param['level_id'] = data.level_id
         my_param['group_detail'] = data.group_detail
         my_param['group_id'] = data.group_id
         my_param['correction'] = data.correction
@@ -31,7 +31,7 @@ class Multiple(object):
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_multiple_stat_table"
-            multiple_id = G().create_species_difference_check(data.level, 'multiple', params, data.group_id,
+            multiple_id = G().create_species_difference_check(data.level_id, 'multiple', params, data.group_id,
                                                               data.otu_id, name)
             update_info = {str(multiple_id): "sg_species_difference_check"}
             update_info = json.dumps(update_info)
@@ -46,11 +46,11 @@ class Multiple(object):
                 "to_file": ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table_by_detail(group_file)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.multiple",
+                "UPDATE_STATUS_API": "meta.update_status",
                 "options": {
                     "update_info": update_info,
                     "otu_file": data.otu_id,
-                    "level": data.level,
+                    "level": data.level_id,
                     "group_file": data.group_detail,
                     "correction": data.correction,
                     "test": data.test,

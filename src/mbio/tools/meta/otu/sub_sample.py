@@ -3,6 +3,7 @@
 import os
 import re
 import subprocess
+import shutil
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -65,6 +66,8 @@ class SubSampleTool(Tool):
         self.mothur_path = "meta/mothur.1.30"
         self.shared2otu_path = os.path.join(Config().SOFTWARE_DIR, "meta/scripts/shared2otu.pl")
         self.otu_tax = dict()
+        self.has_tax = False
+        self.basename = ""
 
     def sub_sample(self):
         """
@@ -72,25 +75,29 @@ class SubSampleTool(Tool):
         """
         if self.option("in_otu_table").format == "meta.otu.tax_summary_dir":
             otu_table = os.path.basename(self.option("otu_table").get_table(self.option("level")))
+            self.basename = otu_table
         else:
             otu_table = os.path.basename(self.option("in_otu_table").prop["path"])
-        no_taxnomy_otu_table_path = os.path.join(self.work_dir, otu_table, + ".no_tax")
+            self.basename = otu_table
+            self.option("in_otu_table").get_info()
+            if self.option("in_otu_table").prop["metadata"] == "taxonomy":
+                no_taxnomy_otu_table_path = os.path.join(self.work_dir, otu_table + ".no_tax")
+                tax_dic = self.option("in_otu_table").del_taxonomy(self.option("in_otu_table").prop['path'], no_taxnomy_otu_table_path)
+                self.has_tax = True
         shared_path = os.path.join(self.work_dir, otu_table + ".shared")
         mothur_dir = os.path.join(self.work_dir, "mothur")
         if not os.path.exists(mothur_dir):
             os.mkdir(mothur_dir)
         my_table = OtuTableFile()
-        basename = ""
         if self.option("in_otu_table").format == "meta.otu.tax_summary_dir":
             my_table.set_path(self.option("in_otu_table").get_table(self.option("level")))
-            my_table.get_info()
-            basename = my_table.prop['basename']
-            my_table.convert_to_shared(shared_path)
         else:
-            self.logger.debug(self.option("in_otu_table").format)
-            self.option("in_otu_table").get_info()
-            self.option("in_otu_table").convert_to_shared(shared_path)
-            basename = self.option("in_otu_table").prop['basename']
+            if self.has_tax is True:
+                my_table.set_path(no_taxnomy_otu_table_path)
+            else:
+                my_table.set_path(self.option("in_otu_table").prop['path'])
+        my_table.get_info()
+        my_table.convert_to_shared(shared_path)
         if self.option("size") == 0:
             cmd = self.mothur_path + " \"#set.dir(output=" + mothur_dir\
                 + ");sub.sample(shared=" + shared_path + ")\""
@@ -111,7 +118,7 @@ class SubSampleTool(Tool):
             if re.search(r'subsample', file_):
                 sub_sampled_shared = os.path.join(mothur_dir, file_)
                 break
-        match = re.search(r"(^.+)(\..+$)", basename)
+        match = re.search(r"(^.+)(\..+$)", self.basename)
         prefix = match.group(1)
         suffix = match.group(2)
         sub_sampled_otu = os.path.join(self.work_dir, "output", prefix + ".subsample" + suffix)
@@ -121,18 +128,15 @@ class SubSampleTool(Tool):
             self.option("out_otu_table").set_path(sub_sampled_otu)
         except subprocess.CalledProcessError:
             raise Exception("shared2otu.pl 运行出错")
-
-    def del_taxnomy(self, otu_path, no_tax_path):
-        """
-        删除taxnomy列
-        """
-        with open(otu_path, 'rb') as r, open(no_tax_path, 'wb') as w:
-            line = r.next()
-            for line in r:
-                line = line.rstrip('\n')
-                line = re.split('\t', line)
-                self.otu_tax[line[0]] = line[-1]
-
+        if self.has_tax is True:
+            sub_sampled_otu_obj = OtuTableFile()
+            sub_sampled_otu_obj.set_path(sub_sampled_otu)
+            sub_sampled_otu_obj.get_info()
+            tmp_name = sub_sampled_otu + ".tmp"
+            sub_sampled_otu_obj.add_taxonomy(tax_dic, sub_sampled_otu, tmp_name)
+            os.remove(sub_sampled_otu)
+            shutil.copy2(tmp_name, sub_sampled_otu)
+            os.remove(tmp_name)
 
     def run(self):
         """

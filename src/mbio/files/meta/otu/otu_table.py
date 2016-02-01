@@ -7,6 +7,7 @@ from biocluster.iofile import File
 import subprocess
 from biocluster.config import Config
 import os
+import re
 from biocluster.core.exceptions import FileError
 
 
@@ -59,10 +60,10 @@ class OtuTableFile(File):
             if colnum < 2:
                 form = False
             if form:
-                sample_num = colnum-1
-                if heads[colnum-1] == 'taxonomy':
+                sample_num = colnum - 1
+                if heads[colnum - 1] == 'taxonomy':
                     metadata = 'taxonomy'
-                    sample_num = colnum-2
+                    sample_num = colnum - 2
                 while 1:
                     line = f.readline().rstrip()
                     otu_num += 1
@@ -76,7 +77,7 @@ class OtuTableFile(File):
         """
         # biom convert -i otu_table.txt -o otu_table.biom.rev  --table-type "otu table  --to-hdf5"
         # biom convert -i otu_taxa_table.txt -o otu_table.biom.revtax  --table-type "otu table"  --to-hdf5 --process-obs-metadata taxonomy
-        cmd = self.biom_path+"biom convert -i " + self.prop['path'] + " -o " + biom_filepath + ' --table-type \"OTU table\" --to-hdf5'
+        cmd = self.biom_path + "biom convert -i " + self.prop['path'] + " -o " + biom_filepath + ' --table-type \"OTU table\" --to-hdf5'
         if self.prop['metadata'] == "taxonomy":
             cmd += " --process-obs-metadata taxonomy"
         try:
@@ -98,3 +99,103 @@ class OtuTableFile(File):
         except subprocess.CalledProcessError:
             raise Exception("otu2shared.pl 运行出错！")
         return True
+
+    def del_taxonomy(self, otu_path, no_tax_otu_path):
+        """
+        删除taxonomy列  并返回一个字典
+        """
+        tax_dic = dict()
+        with open(otu_path, 'rb') as r, open(no_tax_otu_path, 'wb') as w:
+            line = r.next()
+            line = line.rstrip('\n')
+            line = re.split('\t', line)
+            if line[-1] != "taxonomy":
+                raise Exception("文件最后一列不为taxonomy，不需要去除taxonomy列")
+            line.pop()
+            w.write("\t".join(line) + "\n")
+            for line in r:
+                line = line.rstrip('\n')
+                line = re.split('\t', line)
+                tax_dic[line[0]] = line[-1]
+                line.pop()
+                newline = "\t".join(line)
+                w.write(newline + "\n")
+        return tax_dic
+
+    def add_taxonomy(self, tax_dic, no_tax_otu_path, otu_path):
+        """
+        根据字典， 为一个otu表添加taxonomy列
+        """
+        if not isinstance(tax_dic, dict):
+            raise Exception("输入的tax_dic不是一个字典")
+        with open(no_tax_otu_path, 'rb') as r, open(otu_path, 'wb') as w:
+            line = r.next().rstrip('\n')
+            w.write(line + "\t" + "taxonomy\n")
+            line = re.split('\t', line)
+            if line[-1] == "taxonomy":
+                raise Exception("输入文件已经含有taxonomy列")
+            for line in r:
+                line = line.rstrip("\n")
+                w.write(line)
+                line = re.split("\t", line)
+                w.write("\t" + tax_dic[line[0]] + "\n")
+
+    def complete_taxonomy(self, otu_path, complete_path):
+        """
+        将一个OTU表的taxnomy列补全
+        """
+        with open(otu_path, 'rb') as r, open(complete_path, 'wb') as w:
+            line = r.next().rstrip('\n')
+            w.write(line + "\n")
+            line = re.split('\t', line)
+            if line[-1] != "taxonomy":
+                raise Exception("文件taxonomy信息缺失，请调用complete_taxonomy_by_dic方法补全taxonomy")
+            for line in r:
+                line = line.rstrip("\n")
+                line = re.split('\t', line)
+                tax = line.pop()
+                info = "\t".join(line)
+                new_tax = self._comp_tax(tax)
+                w.write(info + "\t" + new_tax + "\n")
+
+    def complete_taxonomy_by_dic(self, tax_dic, otu_path, complete_path):
+        """
+        根据字典, 添加taxnomy列并补全
+        """
+        if not isinstance(tax_dic, dict):
+            raise Exception("输入的tax_dic不是一个字典")
+        with open(otu_path, 'rb') as r, open(complete_path, 'wb') as w:
+            line = r.next().rstrip('\n')
+            w.write(line + "\t" + "taxonomy\n")
+            line = re.split('\t', line)
+            if line[-1] == "taxonomy":
+                raise Exception("输入文件已经含有taxonomy列, 请调用complete_taxonomy方法补全taxonomy")
+            for line in r:
+                line = line.rstrip("\n")
+                w.write(line)
+                line = re.split('\t', line)
+                tax = tax_dic[line[0]]
+                new_tax = self._comp_tax(tax)
+                w.write("\t" + new_tax + "\n")
+
+    @staticmethod
+    def _comp_tax(tax):
+        LEVEL = {
+            0: "d__", 1: "k__", 2: "p__", 3: "c__", 4: "o__",
+            5: "f__", 6: "g__", 7: "s__"
+        }
+        begin_index = 100
+        last_info = ""
+        tax = re.sub(r'\s', '', tax)
+        cla = re.split(';', tax)
+        for i in range(8):
+            if not re.search(LEVEL[i], tax):
+                begin_index = i  # 从那个级别开始，缺失信息
+                last_info = cla[i - 1]
+                break
+        if begin_index < 7:
+            for i in range(begin_index, 8):
+                my_str = LEVEL[i] + "Unclasified_" + last_info
+                cla.append(my_str)
+        new_tax = "; ".join(cla)
+        return new_tax

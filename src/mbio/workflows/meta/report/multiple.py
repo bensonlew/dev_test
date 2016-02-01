@@ -17,7 +17,7 @@ class MultipleWorkflow(Workflow):
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
             {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "type", "type": "string"},
+            # {"name": "type", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "test", "type": "string"},
             {"name": "level", "type": "int"},
@@ -28,8 +28,8 @@ class MultipleWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.output_dir = self.multiple.output_dir
         self.multiple = self.add_tool("statistical.metastat")
+        self.output_dir = self.multiple.output_dir
 
     def run_multiple(self):
         if self.option("test") == "anova":
@@ -44,7 +44,7 @@ class MultipleWorkflow(Workflow):
                 "kru_H_input": self.option("otu_file"),
                 "kru_H_group": self.option("group_file"),
                 "kru_H_correction": self.option("correction"),
-                "kru_H_type": self.option("type"),
+                # "kru_H_type": self.option("type"),
                 "test": self.option("test")
 
             }
@@ -58,7 +58,7 @@ class MultipleWorkflow(Workflow):
         """
         api_multiple = self.api.stat_test
         stat_path = self.output_dir + '/' + self.option("test") + '_result.xls'
-        boxfile_path = self.output_dir + '/' + self.option("test") + 'boxfile.xls'
+        boxfile_path = self.output_dir + '/' + self.option("test") + '_boxfile.xls'
         if not os.path.isfile(stat_path):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):
