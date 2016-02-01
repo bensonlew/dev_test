@@ -14,6 +14,7 @@ from mainapp.controllers.meta.otu_subsample import Subsample
 from mainapp.controllers.meta.two_sample import TwoSample
 from mainapp.controllers.meta.multiple import Multiple
 from mainapp.controllers.meta.est_t_test import EstTTest
+from mainapp.controllers.meta.rarefaction import Rarefaction
 
 # web.config.debug = False
 urls = (
@@ -37,7 +38,8 @@ urls = (
     "/meta/two_group", "TwoGroup",
     "/meta/two_sample", "TwoSample",
     "/meta/multiple", "Multiple",
-    "/meta/est_t_test", "EstTTest"
+    "/meta/est_t_test", "EstTTest",
+    "/meta/rarefaction", "Rarefaction"
 
 )
 

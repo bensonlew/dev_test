@@ -29,16 +29,16 @@ class Rarefaction(object):
         params = json.dumps(my_param)
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
-        print(otu_info["task_id"])
+        # print(otu_info["task_id"])
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_Rarefaction"
             rare_id = Estimator().add_rare_collection(data.level_id, params, data.otu_id, name)
-            print(rare_id)
+            # print(rare_id)
             update_info = {str(rare_id): "sg_alpha_rarefaction_curve"}
             update_info = json.dumps(update_info)
 
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
-            print(workflow_id)
+            # print(workflow_id)
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,

@@ -35,7 +35,7 @@ class RarefactionWorkflow(Workflow):
             'indices': self.option('indices'),
             'freq': self.option('freq')
             }
-        print(self.option('indices'))
+        # print(self.option('indices'))
         self.rarefaction.set_options(options)
         self.rarefaction.on('end', self.set_db)
         self.rarefaction.run()

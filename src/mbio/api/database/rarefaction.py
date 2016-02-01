@@ -75,7 +75,7 @@ class Rarefaction(Base):
             self.bind_object.logger.error("导入rare_detail表格{}信息出错:{}".format(file_path, e))
         else:
             self.bind_object.logger.info("导入rare_detail表格{}成功".format(file_path))
-        return max(self.category_x)
+        # return max(self.category_x)
 
     @report_check
     def add_rare_table(self, file_path, level, otu_id=None, task_id=None, name=None, params=None):
