@@ -18,7 +18,7 @@ class EstTTest(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not hasattr(data, "alpha_diversity_id"):
+        if not hasattr(data, "alpha_diversity_id") and hasattr(data, "category_name"):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
         # print(data.alpha_diversity_id)
