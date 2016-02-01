@@ -18,7 +18,7 @@ class EstTTest(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['alpha_diversity_id', 'category_name', 'group_id']
+        params_name = ['alpha_diversity_id', 'group_detail', 'group_id']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
@@ -29,7 +29,7 @@ class EstTTest(object):
         # print(data.alpha_diversity_id)
         my_param = dict()
         my_param['alpha_diversity_id'] = data.alpha_diversity_id
-        my_param['category_name'] = data.category_name
+        my_param['group_detail'] = data.group_detail
         my_param['group_id'] = data.group_id
         params = json.dumps(my_param)
         est_info = Estimator().get_est_table_info(data.alpha_diversity_id)
@@ -57,8 +57,8 @@ class EstTTest(object):
                 "options": {
                     "update_info": update_info,
                     "est_table": data.alpha_diversity_id,
-                    # "task_id": otu_info["task_id"],
-                    "group_table": data.category_name,
+                    "group_detail": data.group_detail,
+                    "group_table": data.group_id,
                     "test_type": 'student',
                     "est_t_test_id": str(est_t_test_id)
                 }

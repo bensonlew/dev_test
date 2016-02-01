@@ -18,7 +18,8 @@ class EstTTestWorkflow(Workflow):
             {"name": "group_table", "type": "infile", 'format': "meta.otu.group_table"},
             {"name": "update_info", "type": "string"},
             {"name": "test_type", "type": "string"},
-            {"name": "est_t_test_id", "type": "string"}
+            {"name": "est_t_test_id", "type": "string"},
+            {"name": "group_detail", "type": "string"}
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())
