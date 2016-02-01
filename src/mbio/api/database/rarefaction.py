@@ -67,6 +67,8 @@ class Rarefaction(Base):
             else:
                 self.category_x.append(int(i))
         try:
+            collection_first = self.db['sg_alpha_rarefaction_curve']
+            collection_first.update({"_id": ObjectId(rare_id)}, {"$set": {"category_x": max(self.category_x)}})
             collection = self.db['sg_alpha_rarefaction_curve_detail']
             collection.insert_many(rare_detail)
         except Exception as e:
@@ -89,7 +91,7 @@ class Rarefaction(Base):
             "level_id": level,
             "status": "end",
             "params": params,
-            "category_x": max(self.category_x),
+            # "category_x": max(self.category_x),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         if params is not None:
@@ -97,4 +99,3 @@ class Rarefaction(Base):
         collection = self.db["sg_alpha_rarefaction_curve"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         self.add_rarefaction_detail(inserted_id, file_path)
-
