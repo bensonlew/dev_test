@@ -4,6 +4,7 @@
 """距离矩阵层级聚类"""
 
 from biocluster.workflow import Workflow
+from bson import ObjectId
 import os
 
 
@@ -45,5 +46,5 @@ class HclusterWorkflow(Workflow):
         newick_fath = self.output_dir + "/hcluster.tre"
         if not os.path.isfile(newick_fath):
             raise Exception("找不到报告文件:{}".format(newick_fath))
-        api_newick.add_tree_file(newick_fath, self.option('newick_id'))
+        api_newick.add_tree_file(newick_fath, tree_id=ObjectId(self.option('newick_id')))
         self.end()

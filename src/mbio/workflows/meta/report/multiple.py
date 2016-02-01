@@ -18,6 +18,7 @@ class MultipleWorkflow(Workflow):
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
             {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
             # {"name": "type", "type": "string"},
+            {"name": "group_detail", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "test", "type": "string"},
             {"name": "level", "type": "int"},

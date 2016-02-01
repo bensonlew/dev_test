@@ -4,6 +4,7 @@
 """otu表的样本距离计算"""
 
 from biocluster.workflow import Workflow
+from bson import ObjectId
 import os
 
 
@@ -59,6 +60,6 @@ class DistanceCalcWorkflow(Workflow):
         matrix_path = self.output_dir + '/' + os.listdir(self.output_dir)[0]
         if not os.path.isfile(matrix_path):
             raise Exception("找不到报告文件:{}".format(matrix_path))
-        api_distance.add_dist_table(matrix_path, dist_id=self.option('matrix_id'), )
+        api_distance.add_dist_table(matrix_path, dist_id=ObjectId(self.option('matrix_id')), )
         self.logger.info('运行self.end')
         self.end()
