@@ -21,8 +21,8 @@ class MultipleWorkflow(Workflow):
             {"name": "update_info", "type": "string"},
             {"name": "test", "type": "string"},
             {"name": "level", "type": "int"},
-            {"name": "correction", "type": "string"},
-            {"name": "ci", "type": "float"},
+            {"name": "correction", "type": "string", "default": "none"},
+            {"name": "ci", "type": "float", "default": 0.05},
             {"name": "multiple_id", "type": "string"}
 
         ]

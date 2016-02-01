@@ -146,12 +146,13 @@ class LefseTool(Tool):
         """
         将结果文件链接至output
         """
+        os.system('sed -i "1i\\taxon\tmean\tgroup\tlda\tpvalue" %s' % (self.work_dir + '/lefse_LDA.xls'))
         for root, dirs, files in os.walk(self.output_dir):
             for names in files:
                 os.remove(os.path.join(root, names))
-        os.link(self.work_dir + '/lefse_LDA.cladogram.pdf', self.output_dir + '/lefse_LDA.cladogram.pdf')
+        os.link(self.work_dir + '/lefse_LDA.cladogram.png', self.output_dir + '/lefse_LDA.cladogram.png')
         # self.option('clado').set_path(self.output_dir+'/lefse_LDA.cladogram.pdf')
-        os.link(self.work_dir + '/lefse_LDA.pdf', self.output_dir + '/lefse_LDA.pdf')
+        os.link(self.work_dir + '/lefse_LDA.png', self.output_dir + '/lefse_LDA.png')
         # self.option('LDA').set_path(self.output_dir+'/lefse_LDA.pdf')
         os.link(self.work_dir + '/lefse_LDA.xls', self.output_dir + '/lefse_LDA.xls')
         # self.option('lefse_xls').set_path(self.output_dir+'/lefse_LDA.xls')

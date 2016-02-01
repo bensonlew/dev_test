@@ -17,12 +17,12 @@ class TwoGroupWorkflow(Workflow):
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
             {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "type", "type": "string"},
+            {"name": "type", "type": "string", "default": "two.side"},
             {"name": "update_info", "type": "string"},
             {"name": "test", "type": "string"},
             {"name": "level", "type": "int"},
-            {"name": "correction", "type": "string"},
-            {"name": "ci", "type": "float"},
+            {"name": "correction", "type": "string", "default": "none"},
+            {"name": "ci", "type": "float", "default": 0.05},
             {"name": "two_group_id", "type": "string"}
 
         ]
