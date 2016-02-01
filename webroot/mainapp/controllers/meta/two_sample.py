@@ -15,9 +15,11 @@ class TwoSample(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "otu_id")):
-            info = {"success": False, "info": "缺少参数!"}
-            return json.dumps(info)
+        params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction', 'type', 'test']
+        for names in params_name:
+            if not (hasattr(data, names)):
+                info = {"success": False, "info": "缺少参数!"}
+                return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
