@@ -53,7 +53,7 @@ class Hcluster(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": matrix_info["project_sn"],
-                "to_file": "meta.export_distance_matrix(distance_matrix)",
+                "to_file": "dist_matrix.export_distance_matrix(distance_matrix)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
