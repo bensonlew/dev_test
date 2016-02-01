@@ -31,6 +31,7 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
     indices = index_type.split(',')
     details = collection.find({"alpha_diversity_id": data})
     with open(est_path, "wb") as f:
+        # f.write('index_type')
         for index in indices:
             f.write('\t%s' % index)
         f.write('\n')

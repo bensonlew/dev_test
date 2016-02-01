@@ -54,7 +54,7 @@ class EstTTest(object):
                     # "task_id": otu_info["task_id"],
                     "group_table": data.category_name,
                     "test_type": 'student',
-                    # "est_t_test_id": str(est_t_test_id)
+                    "est_t_test_id": str(est_t_test_id)
                 }
             }
             insert_data = {"client": client,

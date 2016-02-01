@@ -18,7 +18,7 @@ class EstTTestWorkflow(Workflow):
             {"name": "group_table", "type": "infile", 'format': "meta.otu.group_table"},
             {"name": "update_info", "type": "string"},
             {"name": "test_type", "type": "string"},
-            # {"name": "est_t_test_id", "type": "string"}
+            {"name": "est_t_test_id", "type": "string"}
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -45,7 +45,8 @@ class EstTTestWorkflow(Workflow):
         """
         api_est_t_test = self.api.est_t_test
         est_t_path = self.output_dir+"/student_result.xls"
+        print(est_t_path)
         if not os.path.isfile(est_t_path):
             raise Exception("找不到报告文件:{}".format(est_t_path))
-        api_est_t_test.add_est_t_test_detail(est_t_path, self.option('est_id'))
+        api_est_t_test.add_est_t_test_detail(est_t_path, self.option('est_t_test_id'))
         self.end()
