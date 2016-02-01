@@ -6,7 +6,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.distance_matrix import Distance
 from mainapp.config.db import get_mongo_client
-# from bson.objectid import ObjectId
+from bson.objectid import ObjectId
 import random
 import datetime
 import time
@@ -26,16 +26,17 @@ class Hcluster(object):
         if hasattr(data, 'method'):
             method = data.method
         params_json = {
-            "otu_id": data.otu_id,
+            "specimen_distance_id": data.specimen_distance_id,
             "method": method
         }
         if matrix_info:
             insert_mongo_json = {
                 'task_id': matrix_info["task_id"],
-                'table_id': data.specimen_distance_id,
+                'table_id': ObjectId(data.specimen_distance_id),
                 'table_type': 'dist',
                 'name': 'hcluster_' + method + '_' + time.asctime(time.localtime(time.time())),
                 'tree_type': 'cluster',
+                'hcluster_method': method,
                 'params': json.dumps(params_json),
                 'status': 'start',
                 'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
