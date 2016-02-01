@@ -35,7 +35,7 @@ class RarefactionWorkflow(Workflow):
             'indices': self.option('indices'),
             'freq': self.option('freq')
             }
-        print(self.option('indices'))
+        # print(self.option('indices'))
         self.rarefaction.set_options(options)
         self.rarefaction.on('end', self.set_db)
         self.rarefaction.run()
@@ -49,6 +49,6 @@ class RarefactionWorkflow(Workflow):
         api_rarefaction = self.api.rarefaction
         rare_path = self.output_dir
         if os.path.isfile(rare_path):
-            raise Exception("找不到报告文件:{}".format(rare_path))
+            raise Exception("找不到报告文件夹:{}".format(rare_path))
         api_rarefaction.add_rarefaction_detail(self.option('rare_id'), rare_path)
         self.end()

@@ -31,7 +31,7 @@ class StatTest(Base):
                 length = len(line_data)
                 i = 1
                 for name in group_list:
-                    data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", line_data[length-1]),("pvalue", line_data[length-2])]                    
+                    data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", line_data[length-1]),("pvalue", line_data[length-2])]
                     data.append(("category_name", name))
                     data.append(("mean", line_data[i]))
                     data.append(("sd", line_data[i+1]))
@@ -63,10 +63,12 @@ class StatTest(Base):
                 if not line:
                     break
                 line_data = line.split("\t")
-                data = [("species_check_id", table_id), ("species_name", line_data[0]),("qvalue", line_data[4]),("pvalue", line_data[3]),("specimen_name", sample[0]),("propotion", line_data[1])]
+                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", line_data[4]),
+                        ("pvalue", line_data[3]), ("specimen_name", sample[0]), ("propotion", line_data[1])]
                 data_son = SON(data)
                 data_list.append(data_son)
-                data1 = [("species_check_id", table_id), ("species_name", line_data[0]),("qvalue", line_data[4]),("pvalue", line_data[3]),("specimen_name", sample[1]),("propotion", line_data[2])]
+                data1 = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", line_data[4]),
+                         ("pvalue", line_data[3]), ("specimen_name", sample[1]), ("propotion", line_data[2])]
                 data_son1 = SON(data1)
                 data_list.append(data_son1)
         try:
@@ -113,5 +115,40 @@ class StatTest(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
+
+    @report_check
+    def add_species_difference_lefse_detail(self, file_path, table_id):
+        if not isinstance(table_id, ObjectId):
+            if isinstance(table_id, StringTypes):
+                table_id = ObjectId(table_id)
+            else:
+                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
+        data_list = []
+        with open(file_path, 'rb') as r:
+            i = 0
+            for line in r:
+                if i == 0:
+                    i = 1
+                else:
+                    line = line.strip('\n')
+                    line_data = line.split('\t')
+                    data = [("species_lefse_id", table_id), ("species_name", line_data[0]),
+                            ("category_name", line_data[2]), ("median", line_data[1]), ("lda", line_data[3]),
+                            ("pvalue", line_data[4])]
+                    data_son = SON(data)
+                    data_list.append(data_son)
+        try:
+            collection = self.db["sg_species_difference_lefse_detail"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
+        else:
+            self.bind_object.logger.info("导入%s信息成功!" % file_path)
+        return data_list
+
+
+
+
+
 
 

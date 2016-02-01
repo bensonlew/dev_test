@@ -210,7 +210,7 @@ class WorkJob(object):
         return len(self.db.select("workflow", where=web.db.sqlwhere(where_dict)))
 
     def lock(self):
-        self.db.query("LOCK TABLE `workflow` WRITE, `apilog` WRITE, `tostop` WRITE, `pause` WRITE")
+        self.db.query("LOCK TABLE `workflow` WRITE, `apilog` WRITE")
 
     def get_from_database(self, workflow_id=None):
         if workflow_id:

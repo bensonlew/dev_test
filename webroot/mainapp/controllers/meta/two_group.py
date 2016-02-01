@@ -15,9 +15,11 @@ class TwoGroup(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "otu_id")):
-            info = {"success": False, "info": "缺少参数!"}
-            return json.dumps(info)
+        params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'ci', 'correction', 'type', 'test']
+        for names in params_name:
+            if not (hasattr(data, names)):
+                info = {"success": False, "info": "缺少参数!"}
+                return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
@@ -26,7 +28,7 @@ class TwoGroup(object):
         my_param['ci'] = data.ci
         my_param['correction'] = data.correction
         my_param['type'] = data.type
-        my_param['test'] = data.test  
+        my_param['test'] = data.test
         params = json.dumps(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
@@ -52,7 +54,8 @@ class TwoGroup(object):
                     "update_info": update_info,
                     "level": int(data.level_id),
                     "test": data.test,
-                    "group_file": data.group_detail,
+                    "group_file": data.group_id,
+                    "group_detail": data.group_detail,
                     "correction": data.correction,
                     "ci": float(data.ci),
                     "type": data.type,

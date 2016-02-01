@@ -13,6 +13,9 @@ from mainapp.controllers.meta.pan_core import PanCore
 from mainapp.controllers.meta.beta.distance_calc import DistanceCalc
 from mainapp.controllers.meta.beta.hcluster import Hcluster
 from mainapp.controllers.meta.otu_subsample import Subsample
+from mainapp.controllers.meta.est_t_test import EstTTest
+from mainapp.controllers.meta.rarefaction import Rarefaction
+
 
 # web.config.debug = False
 urls = (
@@ -35,7 +38,9 @@ urls = (
     "/meta/otu_subsample", "Subsample",
     "/meta/two_group", "TwoGroup",
     "/meta/two_sample", "TwoSample",
-    "/meta/multiple", "Multiple"
+    "/meta/multiple", "Multiple",
+    "/meta/rarefaction", "Rarefaction",
+    "/meta/est_t_test", "EstTTest"
 )
 
 
