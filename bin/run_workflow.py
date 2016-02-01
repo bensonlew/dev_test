@@ -68,6 +68,7 @@ def main():
                 print exstr
                 write_log("运行出错: %s" % e)
                 wj.unlock()
+                time.sleep(Config().SERVICE_LOOP)
                 continue
             if json_data:
                 # process = Process(target=wj.start, args=(json_data,))
@@ -209,7 +210,7 @@ class WorkJob(object):
         return len(self.db.select("workflow", where=web.db.sqlwhere(where_dict)))
 
     def lock(self):
-        self.db.query("LOCK TABLE `workflow` WRITE, `apilog` WRITE")
+        self.db.query("LOCK TABLE `workflow` WRITE, `apilog` WRITE, `tostop` WRITE, `pause` WRITE")
 
     def get_from_database(self, workflow_id=None):
         if workflow_id:
