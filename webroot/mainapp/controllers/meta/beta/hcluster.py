@@ -25,14 +25,18 @@ class Hcluster(object):
         method = 'average'
         if hasattr(data, 'method'):
             method = data.method
+        params_json = {
+            "otu_id": data.otu_id,
+            "method": method
+        }
         if matrix_info:
             insert_mongo_json = {
                 'task_id': matrix_info["task_id"],
                 'table_id': data.specimen_distance_id,
                 'table_type': 'dist',
                 'name': 'hcluster_' + method + '_' + time.asctime(time.localtime(time.time())),
-                'tree_Type': 'cluster',
-                'params': json.dumps(data),
+                'tree_type': 'cluster',
+                'params': json.dumps(params_json),
                 'status': 'start',
                 'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }

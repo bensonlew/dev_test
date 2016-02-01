@@ -31,6 +31,7 @@ class Workflow(Basic):
         self._id = wsheet.id
         self._sheet = wsheet
         self.config = Config()
+        self.last_update = datetime.datetime.now()
         self._work_dir = self.__work_dir()
         self._output_path = self._work_dir + "/output"
         if not os.path.exists(self._output_path):
@@ -269,6 +270,8 @@ class Workflow(Basic):
         :return:
         """
         while self.is_end is False:
+            if (datetime.datetime.now() - self.last_update).seconds > self.config.MAX_WAIT_TIME:
+                self.exit(data="超过 %s s没有任何运行更新，退出运行！" % self.config.MAX_WAIT_TIME)
             gevent.sleep(10)
             myvar = dict(id=self._id)
             try:

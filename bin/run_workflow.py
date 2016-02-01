@@ -68,6 +68,7 @@ def main():
                 print exstr
                 write_log("运行出错: %s" % e)
                 wj.unlock()
+                time.sleep(Config().SERVICE_LOOP)
                 continue
             if json_data:
                 # process = Process(target=wj.start, args=(json_data,))
