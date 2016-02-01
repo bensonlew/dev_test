@@ -2,10 +2,10 @@
 # __author__ = 'yuguo'
 from biocluster.api.database.base import Base, report_check
 import re
-# from bson.objectid import ObjectId
+from bson.objectid import ObjectId
 import datetime
 from bson.son import SON
-# from types import StringTypes
+from types import StringTypes
 
 
 class Estimator(Base):
@@ -19,6 +19,11 @@ class Estimator(Base):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if task_id is None:
             task_id = self.bind_object.sheet.id
+        if not isinstance(est_id, ObjectId):
+            if isinstance(est_id, StringTypes):
+                est_id = ObjectId(est_id)
+            else:
+                raise Exception("pan_core_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
         # insert major
         if major:

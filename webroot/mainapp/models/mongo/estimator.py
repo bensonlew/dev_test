@@ -39,7 +39,7 @@ class Estimator(object):
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 
-    def add_est_t_test_collection(self, params, from_est_id=0, name=None):
+    def add_est_t_test_collection(self, params, group_id, from_est_id=0, name=None):
         if isinstance(from_est_id, StringTypes):
             from_est_id = ObjectId(from_est_id)
         else:
@@ -56,6 +56,7 @@ class Estimator(object):
                 "otu_id": otu_id,
                 "name": name if name else "多样性指数T检验结果表",
                 "level_id": level_id,
+                "group_id": group_id,
                 "status": "end",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
