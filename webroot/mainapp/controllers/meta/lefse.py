@@ -15,9 +15,11 @@ class Lefse(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "otu_id")):
-            info = {"success": False, "info": "缺少参数!"}
-            return json.dumps(info)
+        params_name = ['otu_id', 'group_detail', 'group_id', 'lda_filter', 'strict']
+        for names in params_name:
+            if not (hasattr(data, names)):
+                info = {"success": False, "info": "缺少参数!"}
+                return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['group_detail'] = data.group_detail
