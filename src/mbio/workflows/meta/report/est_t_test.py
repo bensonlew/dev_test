@@ -25,25 +25,27 @@ class EstTTestWorkflow(Workflow):
         self.est_t_test = self.add_tool('statistical.metastat')
 
     def run(self):
-        super(EstTTestWorkflow, self).run()
+        # super(EstTTestWorkflow, self).run()
         # if self.UPDATE_STATUS_API:
         #     self.est_t_test.UPDATE_STATUS_API = self.UPDATE_STATUS_API
-        self.est_t_test.set_options({
+        options = {
             'student_input': self.option('est_table'),
             'test': self.option('test_type'),
             'student_group': self.option('group_table')
-            })
-        self.est_t_test.on('end', self.set_db)
+            }
+        self.est_t_test.set_options(options)
+        self.on_rely(self.est_t_test, self.set_db)
         self.est_t_test.run()
         self.output_dir = self.est_t_test.output_dir
+        super(EstTTestWorkflow, self).run()
 
     def set_db(self):
         """
         保存结果指数表到mongo数据库中
         """
-        api_est_t_test = self.api.stat_test
+        api_est_t_test = self.api.est_t_test
         est_t_path = self.output_dir+"/student_result.xls"
         if not os.path.isfile(est_t_path):
             raise Exception("找不到报告文件:{}".format(est_t_path))
-        api_est_t_test.add_twosample_species_difference_check(est_t_path, self.option('est_id'))
+        api_est_t_test.add_est_t_test_detail(est_t_path, self.option('est_id'))
         self.end()

@@ -28,28 +28,23 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
         index_type = params['indices']
         if params is None:
             index_type = "ace,chao,shannon,simpson,coverage"
-    # print(type(index_type))
-    # indices = bind_obj.sheet.option("index_type").split(',')
     indices = index_type.split(',')
-    print(type(indices))
+    details = collection.find({"alpha_diversity_id": data})
+    with open(est_path, "wb") as f:
+        for index in indices:
+            f.write('\t%s' % index)
+        f.write('\n')
+        for col in details:
+            line = '%s' % col['specimen_name']
+            for index in indices:
+                line += '\t%s' % col[index]
+                # bind_obj.logger.debug(line)
+            f.write('%s\n' % line)
     test = '''
     table <- read.table("'''+est_path+'''",sep = '\t')
     table <- t(table)
     write.table(table, "'''+file_path+'''",sep = '\t', row.names = F, col.names = F)'''
-    with open(est_path, "wb") as f, open(cmd_path, 'wb') as r:
-        for index in indices:
-            f.write('\t%s' % index)
-        f.write('\n')
-        for col in collection.find({"alpha_diversity_id": ObjectId(data)}):
-            line = '%s' % col['specimen_name']
-            print(line)
-            for index in indices:
-                print(index)
-                bind_obj.logger.debug(index)
-                line += '\t%s' % col[index]
-                print(line)
-                bind_obj.logger.debug(2)
-            f.write('%s\n' % line)
+    with open(cmd_path, 'wb') as r:
         r.write('%s' % test)
     os.system('/mnt/ilustre/users/sanger/app/R-3.2.2/bin/Rscript %s' % cmd_path)
     return file_path

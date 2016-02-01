@@ -72,7 +72,7 @@ class EstTTest(object):
             return json.dumps(info)
 
     def get_new_id(self, task_id, otu_id):
-        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 100))
+        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(new_id)
         if len(workflow_data) > 0:
