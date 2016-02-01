@@ -28,6 +28,11 @@ class DistanceCalc(object):
         if hasattr(data, 'distance_algorithm'):
             method = data.distance_algorithm
         otu_info = Meta().get_otu_table_info(data.otu_id)
+        params_json = {
+            "otu_id": data.otu_id,
+            "level_id": data.level_id,
+            "distance_algorithm": method
+        }
         if otu_info:
             insert_mongo_json = {
                 'project_sn': otu_info['project_sn'],
@@ -36,7 +41,7 @@ class DistanceCalc(object):
                 'level_id': otu_level,
                 'name': method + '_' + otu_info['name'] + '_' + time.asctime(time.localtime(time.time())),
                 'distance_algorithm': method,
-                'params': json.dumps(data),
+                'params': json.dumps(params_json),
                 'status': 'start',
                 'desc': '',
                 'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

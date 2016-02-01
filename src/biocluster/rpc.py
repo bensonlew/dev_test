@@ -5,6 +5,7 @@
 
 import zerorpc
 from .config import Config
+import datetime
 
 
 class Report(object):
@@ -27,6 +28,7 @@ class Report(object):
         if (not isinstance(msg, dict)) or ('id' not in msg.keys()):
             self.workflow.logger.error("Server接收到不符合规范的消息: 不是字典类型或没有key值'id'!")
         else:
+            self.workflow.last_update = datetime.datetime.now()
             tool.actor.receive(msg)
         return tool.get_callback_action()
 

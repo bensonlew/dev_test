@@ -28,11 +28,13 @@ class Rarefaction(Base):
         category_x = []
         for rare_path in rare_paths:
             # print os.path.join(file_path,rare_path)
-            files = os.listdir(rare_path)
+            files = os.listdir(os.path.join(file_path, rare_path))
             # print files
             fs_path = []
             for f in files:
                 fs_path.append(os.path.join(file_path, rare_path, f))
+                # print(fs_path)
+                # self.bind_object.logger.error(fs_path)
             for fs in fs_path:
                 rarefaction = []
                 sample_name = fs.split('.')[1]
@@ -57,7 +59,7 @@ class Rarefaction(Base):
                         "specimen_name": sample_name,
                         "json_value": rarefaction
                     }
-                    print insert_data
+                    # print insert_data
                     rare_detail.append(insert_data)
         for i in category_x:
             if i == 'numsampled':
@@ -65,12 +67,15 @@ class Rarefaction(Base):
             else:
                 self.category_x.append(int(i))
         try:
+            collection_first = self.db['sg_alpha_rarefaction_curve']
+            collection_first.update({"_id": ObjectId(rare_id)}, {"$set": {"category_x": max(self.category_x)}})
             collection = self.db['sg_alpha_rarefaction_curve_detail']
             collection.insert_many(rare_detail)
         except Exception as e:
             self.bind_object.logger.error("导入rare_detail表格{}信息出错:{}".format(file_path, e))
         else:
             self.bind_object.logger.info("导入rare_detail表格{}成功".format(file_path))
+        return max(self.category_x)
 
     @report_check
     def add_rare_table(self, file_path, level, otu_id=None, task_id=None, name=None, params=None):
@@ -86,7 +91,7 @@ class Rarefaction(Base):
             "level_id": level,
             "status": "end",
             "params": params,
-            "category_x": max(self.category_x),
+            # "category_x": max(self.category_x),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         if params is not None:
