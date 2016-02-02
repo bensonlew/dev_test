@@ -2,10 +2,10 @@
 # __author__ = 'yuguo'
 from biocluster.api.database.base import Base, report_check
 import re
-# from bson.objectid import ObjectId
+from bson.objectid import ObjectId
 import datetime
 from bson.son import SON
-# from types import StringTypes
+from types import StringTypes
 
 
 class Estimator(Base):
@@ -39,6 +39,11 @@ class Estimator(Base):
         else:
             if est_id is None:
                 raise Exception("major为False时需提供est_id!")
+            if not isinstance(est_id, ObjectId):
+                if isinstance(est_id, StringTypes):
+                    est_id = ObjectId(est_id)
+                else:
+                    raise Exception("est_id必须为ObjectId对象或其对应的字符串!")
         # insert detail
         with open(file_path, 'r') as f:
             l = f.readline().strip('\n')

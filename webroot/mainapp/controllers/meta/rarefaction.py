@@ -18,9 +18,14 @@ class Rarefaction(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not hasattr(data, "otu_id"):
-            info = {"success": False, "info": "缺少参数!"}
-            return json.dumps(info)
+        params_name = ['otu_id', 'level_id', 'index_type', 'freq']
+        for param in params_name:
+            if not hasattr(data, param):
+                info = {"success": False, "info": "缺少%s参数!" % param}
+                return json.dumps(info)
+        # if not (hasattr(data, "otu_id") and hasattr(data, "level_id") and hasattr(data, "index_type")):
+        #     info = {"success": False, "info": "缺少参数!"}
+        #     return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id

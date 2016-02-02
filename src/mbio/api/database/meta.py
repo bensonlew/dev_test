@@ -61,7 +61,7 @@ class Meta(Base):
                     m = re.match(r">(\S+)\s", line)
                     if m:
                         otu_reps[seq_id] = seq
-                        seq_id = m.group()
+                        seq_id = m.group(1)
                         seq = ''
                     else:
                         seq = seq + line
