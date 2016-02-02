@@ -253,7 +253,7 @@ class MetaBaseWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(est_path))
         api_est.add_est_table(est_path, major=True, level=9, otu_id=otu_id)
         api_rare = self.api.rarefaction
-        rare_path = self.output_dir+"/Alpha_diversity/rarefaction/"
+        rare_path = self.work_dir+"/AlphaDiversity/Rarefaction/output/"
         api_rare.add_rare_table(rare_path, level=9, otu_id=otu_id)
         # 设置beta多样性文件
         api_dist = self.api.distance
