@@ -17,18 +17,15 @@ class Rarefaction(Base):
         self.category_y = []
 
     @report_check
-    def add_rarefaction_detail(self, rare_id, file_path, task_id=None):
+    def add_rarefaction_detail(self, rare_id, file_path):
         if not isinstance(rare_id, ObjectId):
             if isinstance(rare_id, StringTypes):
                 rare_id = ObjectId(rare_id)
             else:
                 raise Exception("rarefaction_id必须为ObjectId对象或其对应的字符串!")
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
-        else:
-            col = self.db['sg_alpha_rarefaction_curve']
-            result = col.find_one({"_id": rare_id})
-            task_id = result['task_id']
+        collection_first = self.db['sg_alpha_rarefaction_curve']
+        result = collection_first.find_one({"_id": rare_id})
+        task_id = result['task_id']
         rare_paths = os.listdir(file_path)
         rare_detail = []
         category_x = []
@@ -75,7 +72,7 @@ class Rarefaction(Base):
         try:
             collection = self.db['sg_alpha_rarefaction_curve_detail']
             collection.insert_many(rare_detail)
-            collection_first = self.db['sg_alpha_rarefaction_curve']
+            # collection_first = self.db['sg_alpha_rarefaction_curve']
             collection_first.update({"_id": ObjectId(rare_id)},
                                     {"$set": {"category_x": max(self.category_x), "status": "end"}})
         except Exception as e:
@@ -105,4 +102,4 @@ class Rarefaction(Base):
             insert_data['params'] = params
         collection = self.db["sg_alpha_rarefaction_curve"]
         inserted_id = collection.insert_one(insert_data).inserted_id
-        self.add_rarefaction_detail(inserted_id, file_path, task_id)
+        self.add_rarefaction_detail(inserted_id, file_path)
