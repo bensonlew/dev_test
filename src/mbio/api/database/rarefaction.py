@@ -17,12 +17,14 @@ class Rarefaction(Base):
         self.category_y = []
 
     @report_check
-    def add_rarefaction_detail(self, rare_id, file_path):
+    def add_rarefaction_detail(self, rare_id, file_path, task_id=None):
         if not isinstance(rare_id, ObjectId):
             if isinstance(rare_id, StringTypes):
                 rare_id = ObjectId(rare_id)
             else:
                 raise Exception("rarefaction_id必须为ObjectId对象或其对应的字符串!")
+        if task_id is None:
+            task_id = self.bind_object.sheet.id
         rare_paths = os.listdir(file_path)
         rare_detail = []
         category_x = []
@@ -54,6 +56,7 @@ class Rarefaction(Base):
                     # print rarefaction
                     insert_data = {
                         "rarefaction_curve_id": rare_id,
+                        "task_id": task_id,
                         "index_type": rare_path,
                         "specimen_name": sample_name,
                         "json_value": rarefaction
