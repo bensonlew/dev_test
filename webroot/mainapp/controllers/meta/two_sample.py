@@ -15,7 +15,7 @@ class TwoSample(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-
+        self.check_options(data)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
@@ -91,9 +91,6 @@ class TwoSample(object):
         if int(data.level_id) not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
             info = {"success": False, "info": "level_id不在范围内"}
             return json.dumps(info)
-        if float(data.ci) > 1 or float(data.ci) < 0:
-            info = {"success": False, "info": "显著性水平不在范围内"}
-            return json.dumps(info)
         if data.correction not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"]:
             info = {"success": False, "info": "多重检验方法不在范围内"}
             return json.dumps(info)
@@ -103,6 +100,6 @@ class TwoSample(object):
         if float(data.ci) > 1 or float(data.ci) < 0:
             info = {"success": False, "info": "显著性水平不在范围内"}
             return json.dumps(info)
-        if data.type not in ["two.side", "greater", "less"]:
-            info = {"success": False, "info": "检验类型不在范围内"}
+        if data.test not in ["chi", "fisher"]:
+            info = {"success": False, "info": "所选的分析检验方法不在范围内"}
             return json.dumps(info)

@@ -97,9 +97,12 @@ class TwoGroup(object):
         if data.correction not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"]:
             info = {"success": False, "info": "多重检验方法不在范围内"}
             return json.dumps(info)
-        if float(data.type) not in ["two.side", "greater", "less"]:
+        if data.type not in ["two.side", "greater", "less"]:
             info = {"success": False, "info": "检验类型不在范围内"}
             return json.dumps(info)
         if float(data.ci) > 1 or float(data.ci) < 0:
             info = {"success": False, "info": "显著性水平不在范围内"}
+            return json.dumps(info)
+        if data.test not in ["chi", "fisher", "kru_H", "mann", "anova", "student", "welch"]:
+            info = {"success": False, "info": "所选的分析检验方法不在范围内"}
             return json.dumps(info)

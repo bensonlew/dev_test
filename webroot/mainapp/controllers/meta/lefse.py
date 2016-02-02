@@ -15,11 +15,7 @@ class Lefse(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'group_detail', 'group_id', 'lda_filter', 'strict']
-        for names in params_name:
-            if not (hasattr(data, names)):
-                info = {"success": False, "info": "缺少参数!"}
-                return json.dumps(info)
+        self.check_options(data)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['group_detail'] = data.group_detail
@@ -49,7 +45,8 @@ class Lefse(object):
                 "options": {
                     "otu_file": data.otu_id,
                     "update_info": update_info,
-                    "group_file": data.group_detail,
+                    "group_file": data.group_id,
+                    "group_detail": data.group_detail,
                     "strict": data.strict,
                     "lda_filter": data.lda_filter,
                     "lefse_id": str(lefse_id)
@@ -75,3 +72,19 @@ class Lefse(object):
         if len(workflow_data) > 0:
             return self.get_new_id(task_id, otu_id)
         return new_id
+
+    def check_options(self, data):
+        """
+        检查网页端传进来的参数是否正确
+        """
+        params_name = ['otu_id', 'group_detail', 'group_id', 'lda_filter', 'strict']
+        for names in params_name:
+            if not (hasattr(data, names)):
+                info = {"success": False, "info": "缺少参数!"}
+                return json.dumps(info)
+        if int(data.strict) not in [1, 0]:
+            info = {"success": False, "info": "严格性比较策略不在范围内"}
+            return json.dumps(info)
+        if float(data.lda_filter) > 4.0 or float(data.lda_filter) < -4.0:
+            info = {"success": False, "info": "LDA阈值不在范围内"}
+            return json.dumps(info)
