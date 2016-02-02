@@ -22,7 +22,7 @@ class Rarefaction(Base):
             if isinstance(rare_id, StringTypes):
                 rare_id = ObjectId(rare_id)
             else:
-                raise Exception("pan_core_id必须为ObjectId对象或其对应的字符串!")
+                raise Exception("rarefaction_id必须为ObjectId对象或其对应的字符串!")
         rare_paths = os.listdir(file_path)
         rare_detail = []
         category_x = []
@@ -33,7 +33,6 @@ class Rarefaction(Base):
             fs_path = []
             for f in files:
                 fs_path.append(os.path.join(file_path, rare_path, f))
-                # print(fs_path)
                 # self.bind_object.logger.error(fs_path)
             for fs in fs_path:
                 rarefaction = []
@@ -54,7 +53,7 @@ class Rarefaction(Base):
                     rarefaction.pop(0)
                     # print rarefaction
                     insert_data = {
-                        "rare_id": rare_id,
+                        "rarefaction_curve_id": rare_id,
                         "index_type": rare_path,
                         "specimen_name": sample_name,
                         "json_value": rarefaction
@@ -67,10 +66,11 @@ class Rarefaction(Base):
             else:
                 self.category_x.append(int(i))
         try:
-            collection_first = self.db['sg_alpha_rarefaction_curve']
-            collection_first.update({"_id": ObjectId(rare_id)}, {"$set": {"category_x": max(self.category_x)}})
             collection = self.db['sg_alpha_rarefaction_curve_detail']
             collection.insert_many(rare_detail)
+            collection_first = self.db['sg_alpha_rarefaction_curve']
+            collection_first.update({"_id": ObjectId(rare_id)},
+                                    {"$set": {"category_x": max(self.category_x), "status": "end"}})
         except Exception as e:
             self.bind_object.logger.error("导入rare_detail表格{}信息出错:{}".format(file_path, e))
         else:
@@ -89,7 +89,7 @@ class Rarefaction(Base):
             "otu_id": otu_id,
             "name": name if name else "rarefaction_origin",
             "level_id": level,
-            "status": "end",
+            "status": "start",
             "params": params,
             # "category_x": max(self.category_x),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
