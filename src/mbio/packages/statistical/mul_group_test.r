@@ -21,12 +21,12 @@ boxplot_stat <- function(x){
       }
     }
   }
-  head <- "1"
+  head <- " "
   for(n in gname){
     cname <- c(paste('min(',n,')',sep = ''),paste('Q1(',n,')',sep = ''),paste('Median(',n,')',sep = ''),paste('Q3(',n,')',sep = ''),paste('max(',n,')',sep = ''))
     head <- c(head,cname)
   }
-  head <- head[-1]
+  #head <- head[-1]
   rownames(box_result) <- colnames(x)[-length(x)]
   colnames(box_result) <- head
   return (box_result)
@@ -61,7 +61,7 @@ summary_stat <- function(x){
   rownames(stat_result) <- c(" ",colnames(s[[1]])[-length(colnames(s[[1]]))])
   head <- stat_result[1,]
   stat_result <- stat_result[-1,]
-  colnames(stat_result) <- head
+  colnames(stat_result) <- c(" ", head)
   return (stat_result)
 }
 

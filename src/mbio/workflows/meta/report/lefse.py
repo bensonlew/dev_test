@@ -17,6 +17,7 @@ class LefseWorkflow(Workflow):
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
             {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "group_detail", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "lda_filter", "type": "float", "default": 2.0},
             {"name": "strict", "type": "int", "default": 0},

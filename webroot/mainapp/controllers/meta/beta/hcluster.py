@@ -23,8 +23,8 @@ class Hcluster(object):
             return json.dumps(info)
         matrix_info = Distance().get_distance_matrix_info(data.specimen_distance_id)
         method = 'average'
-        if hasattr(data, 'method'):
-            method = data.method
+        if hasattr(data, 'hcluster_method'):
+            method = data.hcluster_method
         params_json = {
             "specimen_distance_id": data.specimen_distance_id,
             "method": method

@@ -3,9 +3,10 @@
 
 """otu表的样本距离计算"""
 
+import os
 from biocluster.workflow import Workflow
 from bson import ObjectId
-import os
+from mbio.packages.beta_diversity.filter_newick import *
 
 
 class DistanceCalcWorkflow(Workflow):
@@ -29,9 +30,10 @@ class DistanceCalcWorkflow(Workflow):
 
     def run(self):
         task = self.add_tool("meta.beta_diversity.distance_calc")
-        self.logger.info(self._sheet.option('otu_file'))
-        if 'unifrac' in self._sheet.option('method'):
-            newicktree = self.get_phylo_tree()
+        self.logger.info(self.option('otu_file'))
+        if 'unifrac' in self.option('method'):
+            newicktree = get_level_newicktree(self.option(otu_id), level=self.option(level),
+                                              tempdir=self.work_dir, return_file=True)
             options = {
                 'method': self._sheet.option('method'),
                 'otutable': self._sheet.option('otu_file'),

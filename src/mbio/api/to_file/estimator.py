@@ -21,15 +21,17 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
     collection = db['sg_alpha_diversity_detail']
     bind_obj.logger.debug(data)
     est_collection = db['sg_alpha_diversity']
-    results = est_collection.find({"_id": ObjectId(data)})
-    index_type = ""
-    for result in results:
+    result = est_collection.find_one({"_id": ObjectId(data)})
+    if not result:
+        raise Exception('没有找到对应多样性指数id对应的detail')
+    if not result['params']:
+        index_type = u"ace,chao,shannon,simpson,coverage"
+    else:
         params = json.loads(result["params"])
         index_type = params['indices']
-        if params is None:
-            index_type = "ace,chao,shannon,simpson,coverage"
     indices = index_type.split(',')
-    details = collection.find({"alpha_diversity_id": data})
+    bind_obj.logger.debug(indices)
+    details = collection.find({"alpha_diversity_id": ObjectId(data)})
     with open(est_path, "wb") as f:
         # f.write('index_type')
         for index in indices:
