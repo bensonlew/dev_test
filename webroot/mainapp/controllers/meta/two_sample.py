@@ -15,11 +15,7 @@ class TwoSample(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction', 'type', 'test']
-        for names in params_name:
-            if not (hasattr(data, names)):
-                info = {"success": False, "info": "缺少参数!"}
-                return json.dumps(info)
+
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
@@ -82,3 +78,31 @@ class TwoSample(object):
         if len(workflow_data) > 0:
             return self.get_new_id(task_id, otu_id)
         return new_id
+
+    def check_options(self, data):
+        """
+        检查网页端传进来的参数是否正确
+        """
+        params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction', 'type', 'test']
+        for names in params_name:
+            if not (hasattr(data, names)):
+                info = {"success": False, "info": "缺少参数!"}
+                return json.dumps(info)
+        if int(data.level_id) not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+            info = {"success": False, "info": "level_id不在范围内"}
+            return json.dumps(info)
+        if float(data.ci) > 1 or float(data.ci) < 0:
+            info = {"success": False, "info": "显著性水平不在范围内"}
+            return json.dumps(info)
+        if data.correction not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"]:
+            info = {"success": False, "info": "多重检验方法不在范围内"}
+            return json.dumps(info)
+        if data.type not in ["two.side", "greater", "less"]:
+            info = {"success": False, "info": "检验类型不在范围内"}
+            return json.dumps(info)
+        if float(data.ci) > 1 or float(data.ci) < 0:
+            info = {"success": False, "info": "显著性水平不在范围内"}
+            return json.dumps(info)
+        if data.type not in ["two.side", "greater", "less"]:
+            info = {"success": False, "info": "检验类型不在范围内"}
+            return json.dumps(info)

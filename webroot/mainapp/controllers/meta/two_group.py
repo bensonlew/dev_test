@@ -15,11 +15,7 @@ class TwoGroup(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'ci', 'correction', 'type', 'test']
-        for names in params_name:
-            if not (hasattr(data, names)):
-                info = {"success": False, "info": "缺少参数!"}
-                return json.dumps(info)
+        self.check_options(data)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
@@ -87,4 +83,23 @@ class TwoGroup(object):
         """
         检查网页端传进来的参数是否正确
         """
-        pass
+        params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'ci', 'correction', 'type', 'test']
+        for names in params_name:
+            if not (hasattr(data, names)):
+                info = {"success": False, "info": "缺少参数!"}
+                return json.dumps(info)
+        if int(data.level_id) not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+            info = {"success": False, "info": "level_id不在范围内"}
+            return json.dumps(info)
+        if float(data.ci) > 1 or float(data.ci) < 0:
+            info = {"success": False, "info": "显著性水平不在范围内"}
+            return json.dumps(info)
+        if data.correction not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"]:
+            info = {"success": False, "info": "多重检验方法不在范围内"}
+            return json.dumps(info)
+        if float(data.type) not in ["two.side", "greater", "less"]:
+            info = {"success": False, "info": "检验类型不在范围内"}
+            return json.dumps(info)
+        if float(data.ci) > 1 or float(data.ci) < 0:
+            info = {"success": False, "info": "显著性水平不在范围内"}
+            return json.dumps(info)
