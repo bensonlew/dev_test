@@ -49,8 +49,10 @@ class Venn(object):
                 "options": {
                     "update_info": update_info,
                     "in_otu_table": data.otu_id,
+                    "category_name": data.category_name,
                     "group_table": data.group_id,
                     "level": data.level_id,
+                    "otu_id": str(data.otu_id),
                     "venn_id": str(venn_id)
                 }
             }
@@ -67,10 +69,10 @@ class Venn(object):
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
 
-        def get_new_id(self, task_id, otu_id):
-            new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
-            workflow_module = Workflow()
-            workflow_data = workflow_module.get_by_workflow_id(new_id)
-            if len(workflow_data) > 0:
-                return self.get_new_id(task_id, otu_id)
-            return new_id
+    def get_new_id(self, task_id, otu_id):
+        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
+        workflow_module = Workflow()
+        workflow_data = workflow_module.get_by_workflow_id(new_id)
+        if len(workflow_data) > 0:
+            return self.get_new_id(task_id, otu_id)
+        return new_id
