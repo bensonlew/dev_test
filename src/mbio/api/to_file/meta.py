@@ -136,7 +136,10 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
         if not result:
             raise Exception("无法根据传入的group_id:{}在样本表{}里找到相应的样本名".format(data, sample_table_name))
         sample_name[result['specimen_name']] = sample_id[k]
-    sample_number_check(sample_name)
+
+    my_data = bind_obj.sheet.data
+    if "pan_id" in my_data['options']:
+        sample_number_check(sample_name)
 
     with open(file_path, "wb") as f:
         for k in sample_name:
@@ -214,7 +217,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     with open(file_path, "wb") as f:
         for k in table_dict:
             for sp_id in table_dict[k]:
-                sp = sample_table.fine_one({"_id": ObjectId(sp_id)})
+                sp = sample_table.find_one({"_id": ObjectId(sp_id)})
                 if not sp:
                     raise Exception("group_detal中的样本_id:{}在样本表{}中未找到".format(sp_id, sample_table_name))
                 else:

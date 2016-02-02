@@ -17,11 +17,12 @@ class VennWorkflow(Workflow):
             {"name": "update_info", "type": "string"},
             {"name": "category_name", "type": "string"},
             {"name": "level", "type": "int"},
+            {"name": "otu_id", "type": "string"},
             {"name": "venn_id", "type": "string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.venn = self.add_tool("meta.graph.venn_table")
+        self.venn = self.add_tool("graph.venn_table")
 
     def run_venn(self):
         options = {
@@ -35,8 +36,10 @@ class VennWorkflow(Workflow):
     def set_db(self):
         self.logger.info("正在往数据库里插入sg_otu_venn_detail表")
         api_venn = self.api.venn
-        venn_path = os.path.join(self.venn.work_dir, venn_table.xls)
+        venn_path = os.path.join(self.venn.work_dir, "venn_table.xls")
+        api_venn.add_venn_detail(venn_path, self.option("venn_id"), self.option("otu_id"), self.option("level"))
+        self.end()
 
-
-
-
+    def run(self):
+        self.run_venn()
+        super(VennWorkflow, self).run()
