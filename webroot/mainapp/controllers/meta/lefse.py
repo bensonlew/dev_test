@@ -10,56 +10,49 @@ from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.group_stat import GroupStat as G
 
 
-class TwoSample(object):
+class Lefse(object):
     @check_sig
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction', 'type', 'test']
+        params_name = ['otu_id', 'group_detail', 'group_id', 'lda_filter', 'strict']
         for names in params_name:
             if not (hasattr(data, names)):
                 info = {"success": False, "info": "缺少参数!"}
                 return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level_id'] = data.level_id
-        my_param['sample1'] = data.sample1
-        my_param['sample2'] = data.sample2
-        my_param['ci'] = data.ci
-        my_param['correction'] = data.correction
-        my_param['type'] = data.type
-        my_param['test'] = data.test  
+        my_param['group_detail'] = data.group_detail
+        my_param['group_id'] = data.group_id
+        my_param['lda_filter'] = data.lda_filter
+        my_param['strict'] = data.strict  
         params = json.dumps(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_two_sample_stat_table"
-            two_sample_id = G().create_species_difference_check(level=data.level_id, check_type='two_sample', params=params, from_otu_table=data.otu_id, name=name)
-            update_info = {str(two_sample_id): "sg_species_difference_check"}
+            name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_lefse_lda_table"
+            lefse_id = G().create_species_difference_lefse(params, data.group_id, data.otu_id, name)
+            update_info = {str(lefse_id): "sg_species_difference_lefse"}
             update_info = json.dumps(update_info)
 
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
-                "name": "meta.report.two_sample",
+                "name": "meta.report.lefse",
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": "meta.export_otu_table_by_level(otu_file)",
+                "to_file": ["meta.export_otu_table(otu_file)", "meta.export_group_table_by_detail(group_file)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
                 "options": {
-                    "update_info": update_info,
                     "otu_file": data.otu_id,
-                    "level": data.level_id,
-                    "test": data.test,
-                    "correction": data.correction,
-                    "ci": data.ci,
-                    "type": data.type,
-                    "sample1": data.sample1,
-                    "sample2": data.sample2,
-                    "two_sample_id": str(two_sample_id)
+                    "update_info": update_info,
+                    "group_file": data.group_detail,
+                    "strict": data.strict,
+                    "lda_filter": data.lda_filter,
+                    "lefse_id": str(lefse_id)
                 }
             }
             insert_data = {"client": client,

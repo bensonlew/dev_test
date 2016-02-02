@@ -48,8 +48,8 @@ class Meta(Base):
                 raise Exception("major为False时需提供otu_id!")
         data_list = []
         # 读代表序列
+        otu_reps = {}
         if rep_path:
-            otu_reps = {}
             with open(rep_path, 'r') as f:
                 seq_id = ""
                 seq = ''
@@ -61,7 +61,7 @@ class Meta(Base):
                     m = re.match(r">(\S+)\s", line)
                     if m:
                         otu_reps[seq_id] = seq
-                        seq_id = m.group()
+                        seq_id = m.group(1)
                         seq = ''
                     else:
                         seq = seq + line

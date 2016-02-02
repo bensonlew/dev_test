@@ -11,6 +11,11 @@ from mainapp.controllers.meta.pan_core import PanCore
 from mainapp.controllers.meta.beta.distance_calc import DistanceCalc
 from mainapp.controllers.meta.beta.hcluster import Hcluster
 from mainapp.controllers.meta.otu_subsample import Subsample
+from mainapp.controllers.meta.two_sample import TwoSample
+from mainapp.controllers.meta.multiple import Multiple
+from mainapp.controllers.meta.lefse import Lefse
+from mainapp.controllers.meta.est_t_test import EstTTest
+from mainapp.controllers.meta.rarefaction import Rarefaction
 
 # web.config.debug = False
 urls = (
@@ -24,14 +29,21 @@ urls = (
     "/pipeline/running", "PipelineRunning",
     "/pipeline/queue", "PipelineQueue",
     "/pipeline/pause", "PipelinePause",
-    "/pipeline/stop_pause", "PipelineStopPause"
-    "/alpha/estimator", "Estimators"
+    "/pipeline/stop_pause", "PipelineStopPause",
+    "/meta/estimators", "Estimators",
     "/pipeline/stop_pause", "PipelineStopPause",
     "/meta/pan_core", "PanCore",
     "/meta/beta/distance_calc", "DistanceCalc",
     "/meta/beta/hcluster", "Hcluster",
     "/meta/otu_subsample", "Subsample",
-    "/meta/two_group", "TwoGroup"
+    "/meta/two_group", "TwoGroup",
+    "/meta/two_sample", "TwoSample",
+    "/meta/multiple", "Multiple",
+    "/meta/lefse", "Lefse",
+    "/meta/est_t_test", "EstTTest",
+    "/meta/rarefaction", "Rarefaction"
+
+
 )
 
 

@@ -131,6 +131,7 @@ class LefseTool(Tool):
         self.set_environ(PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/bin:$PATH")
         self.set_environ(R_HOME="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/")
         self.set_environ(LD_LIBRARY_PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/lib:$LD_LIBRARY_PATH")
+        os.system('sed -i "sample\tlefse" %s' % self.option('lefse_group').prop['path'])
         plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + "plot-lefse.py -i tax_summary_a -g %s -o lefse_input.txt -L %s -s %s" % (self.option('lefse_group').prop['path'], self.option("lda_filter"), self.option("strict"))
         self.logger.info("开始运行plot_cmd")
         self.logger.info(plot_cmd)
@@ -146,12 +147,13 @@ class LefseTool(Tool):
         """
         将结果文件链接至output
         """
+        os.system('sed -i "1i\\taxon\tmean\tgroup\tlda\tpvalue" %s' % (self.work_dir + '/lefse_LDA.xls'))
         for root, dirs, files in os.walk(self.output_dir):
             for names in files:
                 os.remove(os.path.join(root, names))
-        os.link(self.work_dir + '/lefse_LDA.cladogram.pdf', self.output_dir + '/lefse_LDA.cladogram.pdf')
+        os.link(self.work_dir + '/lefse_LDA.cladogram.png', self.output_dir + '/lefse_LDA.cladogram.png')
         # self.option('clado').set_path(self.output_dir+'/lefse_LDA.cladogram.pdf')
-        os.link(self.work_dir + '/lefse_LDA.pdf', self.output_dir + '/lefse_LDA.pdf')
+        os.link(self.work_dir + '/lefse_LDA.png', self.output_dir + '/lefse_LDA.png')
         # self.option('LDA').set_path(self.output_dir+'/lefse_LDA.pdf')
         os.link(self.work_dir + '/lefse_LDA.xls', self.output_dir + '/lefse_LDA.xls')
         # self.option('lefse_xls').set_path(self.output_dir+'/lefse_LDA.xls')

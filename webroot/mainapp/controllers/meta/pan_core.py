@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'guoquan'
+# __author__ = 'xuting'
 import web
 import json
 import random
@@ -16,9 +16,11 @@ class PanCore(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "otu_id") and hasattr(data, "level_id")):
-            info = {"success": False, "info": "缺少参数!"}
-            return json.dumps(info)
+        param_list = ["group_id", "category_name", "otu_id", "level_id"]
+        for my_p in param_list:
+            if not hasattr(data, my_p):
+                info = {"success": False, "info": "缺少参数{}!".format(my_p)}
+                return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
