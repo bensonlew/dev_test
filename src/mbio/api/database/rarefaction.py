@@ -101,4 +101,4 @@ class Rarefaction(Base):
             insert_data['params'] = params
         collection = self.db["sg_alpha_rarefaction_curve"]
         inserted_id = collection.insert_one(insert_data).inserted_id
-        self.add_rarefaction_detail(inserted_id, file_path)
+        self.add_rarefaction_detail(inserted_id, file_path, task_id)
