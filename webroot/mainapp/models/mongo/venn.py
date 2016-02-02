@@ -7,12 +7,12 @@ from types import StringTypes
 from mainapp.config.db import get_mongo_client
 
 
-class PanCore(object):
+class Venn(object):
     def __init__(self):
         self.client = get_mongo_client()
         self.db = self.client["sanger"]
 
-    def create_pan_core_table(self, pan_core_type, params, group_id, level_id, from_otu_table=0, name=None):
+    def create_venn_table(self, params, group_id, level_id, from_otu_table=0, name=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -29,12 +29,8 @@ class PanCore(object):
             raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(str(from_otu_table)))
         project_sn = result['project_sn']
         task_id = result['task_id']
-        if pan_core_type == 1:
-            desc = "正在计算pan otu表格"
-        else:
-            desc = "正在计算core otu表格"
+        desc = "正在计算venn表格"
         insert_data = {
-            "type": pan_core_type,
             "project_sn": project_sn,
             "task_id": task_id,
             "level_id": level_id,
@@ -42,10 +38,10 @@ class PanCore(object):
             "group_id": group_id,
             "status": "start",
             "desc": desc,
-            "name": name if name else "pan_core表格",
+            "name": name if name else "venn表格",
             "params": params,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        collection = self.db["sg_otu_pan_core"]
+        collection = self.db["sg_otu_venn"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id

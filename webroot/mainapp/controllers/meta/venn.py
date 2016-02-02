@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
-import web
 import json
 import random
 import datetime
+import web
 from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
-from mainapp.models.mongo.pan_core import PanCore as P
+from mainapp.models.mongo.venn import Venn as V
 
 
-class PanCore(object):
+class Venn(object):
 
     @check_sig
     def POST(self):
@@ -29,35 +29,29 @@ class PanCore(object):
         params = json.dumps(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_pan_table"
-            pan_id = P().create_pan_core_table(1, params, data.group_id, data.level_id, data.otu_id, name)
-            name = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + "_core_table"
-            core_id = P().create_pan_core_table(2, params, data.group_id, data.level_id, data.otu_id, name)
-            update_info = {str(pan_id): "sg_otu_pan_core", str(core_id): "sg_otu_pan_core"}
-            # 字典  id: 表名
+            name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_venn_table"
+            venn_id = V().create_venn_table(params, data.group_id, data.level_id, data.otu_id, name)
+            update_info = {str(venn_id): "sg_otu_venn"}
             update_info = json.dumps(update_info)
 
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
-                "name": "meta.report.pan_core",  # src/mbio/meta/report/pan_core
+                "name": "meta.report.venn",
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
                 "to_file": ["meta.export_otu_table_by_level(in_otu_table)", "meta.export_group_table(group_table)"],
-                # src/mbio/api/to_file/meta 括号内的值与options里面的值对应
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status",  # src/mbio/api/web/update_status
+                "UPDATE_STATUS_API": "meta.update_status",
                 "options": {
                     "update_info": update_info,
                     "in_otu_table": data.otu_id,
                     "group_table": data.group_id,
-                    "category_name": data.category_name,
                     "level": data.level_id,
-                    "pan_id": str(pan_id),
-                    "core_id": str(core_id)
+                    "venn_id": str(venn_id)
                 }
             }
             insert_data = {"client": client,
@@ -67,16 +61,16 @@ class PanCore(object):
                            }
             workflow_module = Workflow()
             workflow_module.add_record(insert_data)
-            info = {"success": True, "info": "提交成功!正在生成pan otu表和core otu表..."}
+            info = {"success": True, "info": "提交成功!正在生成venn表..."}
             return json.dumps(info)
         else:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
 
-    def get_new_id(self, task_id, otu_id):
-        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
-        workflow_module = Workflow()
-        workflow_data = workflow_module.get_by_workflow_id(new_id)
-        if len(workflow_data) > 0:
-            return self.get_new_id(task_id, otu_id)
-        return new_id
+        def get_new_id(self, task_id, otu_id):
+            new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
+            workflow_module = Workflow()
+            workflow_data = workflow_module.get_by_workflow_id(new_id)
+            if len(workflow_data) > 0:
+                return self.get_new_id(task_id, otu_id)
+            return new_id

@@ -19,11 +19,6 @@ class Estimator(Base):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if task_id is None:
             task_id = self.bind_object.sheet.id
-        if not isinstance(est_id, ObjectId):
-            if isinstance(est_id, StringTypes):
-                est_id = ObjectId(est_id)
-            else:
-                raise Exception("pan_core_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
         # insert major
         if major:
@@ -44,6 +39,11 @@ class Estimator(Base):
         else:
             if est_id is None:
                 raise Exception("major为False时需提供est_id!")
+            if not isinstance(est_id, ObjectId):
+                if isinstance(est_id, StringTypes):
+                    est_id = ObjectId(est_id)
+                else:
+                    raise Exception("est_id必须为ObjectId对象或其对应的字符串!")
         # insert detail
         with open(file_path, 'r') as f:
             l = f.readline().strip('\n')
