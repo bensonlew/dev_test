@@ -21,5 +21,3 @@ class Meta(object):
         collection = self.db['sg_otu']
         result = collection.find_one({"_id": otu_id})
         return result
-
-

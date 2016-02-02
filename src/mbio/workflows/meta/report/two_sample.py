@@ -13,13 +13,13 @@ class TwoSampleWorkflow(Workflow):
         super(TwoSampleWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
-            {"name": "type", "type": "string"},
+            {"name": "type", "type": "string", "default": "two.side"},
             {"name": "update_info", "type": "string"},
             {"name": "test", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "two_sample_id", "type": "string"},
-            {"name": "correction", "type": "string"},
-            {"name": "ci", "type": "float"},
+            {"name": "correction", "type": "string", "default": "none"},
+            {"name": "ci", "type": "float", "default": 0.05},
             {"name": "sample1", "type": "string"},
             {"name": "sample2", "type": "string"}
 
@@ -59,7 +59,7 @@ class TwoSampleWorkflow(Workflow):
         two_sample_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         if not os.path.isfile(two_sample_path):
             raise Exception("找不到报告文件:{}".format(two_sample_path))
-        api_two_sample.add_species_difference_check_detail(two_sample_path, self.option("two_sample_id"))
+        api_two_sample.add_twosample_species_difference_check(two_sample_path, self.option("two_sample_id"))
         
         self.end()
 

@@ -236,9 +236,10 @@ class MetaBaseWorkflow(Workflow):
         # 设置OTU table文件
         api_otu = self.api.meta
         otu_path = self.output_dir+"/OtuTaxon_summary/otu_taxon.xls"
+        rep_path = self.output_dir+"/Otu/otu_reps.fasta"
         if not os.path.isfile(otu_path):
             raise Exception("找不到报告文件:{}".format(otu_path))
-        otu_id = api_otu.add_otu_table(otu_path, major=True)
+        otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path)
         # 设置进化树文件
         api_tree = self.api.newicktree
         tree_path = self.phylo.option('phylo_tre').prop['path']
@@ -251,6 +252,9 @@ class MetaBaseWorkflow(Workflow):
         if not os.path.isfile(est_path):
             raise Exception("找不到报告文件:{}".format(est_path))
         api_est.add_est_table(est_path, major=True, level=9, otu_id=otu_id)
+        api_rare = self.api.rarefaction
+        rare_path = self.output_dir+"/Alpha_diversity/rarefaction/"
+        api_rare.add_rare_table(rare_path, level=9, otu_id=otu_id)
         # 设置beta多样性文件
         api_dist = self.api.distance
         dist_path = self.beta.option('dis_matrix').prop['path']
