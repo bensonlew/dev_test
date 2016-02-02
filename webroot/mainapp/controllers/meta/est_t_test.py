@@ -23,10 +23,6 @@ class EstTTest(object):
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
                 return json.dumps(info)
-        # if not hasattr(data, "alpha_diversity_id") and hasattr(data, "category_name"):
-        #     info = {"success": False, "info": "缺少参数!"}
-        #     return json.dumps(info)
-        # print(data.alpha_diversity_id)
         my_param = dict()
         my_param['alpha_diversity_id'] = data.alpha_diversity_id
         my_param['group_detail'] = data.group_detail
@@ -37,12 +33,12 @@ class EstTTest(object):
         if est_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_est_t_test"
             est_t_test_id = Estimator().add_est_t_test_collection(params, data.group_id, data.alpha_diversity_id, name)
-            print(est_t_test_id)
+            # print(est_t_test_id)
             update_info = {str(est_t_test_id): "sg_alpha_est_t_test", str(est_t_test_id): "sg_alpha_est_t_test"}
             update_info = json.dumps(update_info)
 
             workflow_id = self.get_new_id(est_info["task_id"], data.alpha_diversity_id)
-            print(workflow_id)
+            # print(workflow_id)
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,

@@ -25,6 +25,10 @@ class Rarefaction(Base):
                 raise Exception("rarefaction_id必须为ObjectId对象或其对应的字符串!")
         if task_id is None:
             task_id = self.bind_object.sheet.id
+        else:
+            col = self.db['sg_alpha_rarefaction_curve']
+            result = col.find_one({"_id": rare_id})
+            task_id = result['task_id']
         rare_paths = os.listdir(file_path)
         rare_detail = []
         category_x = []
