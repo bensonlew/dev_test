@@ -190,10 +190,10 @@ class OtuTableFile(File):
         cla = re.split(';', tax)
         for i in range(8):
             if not re.search(LEVEL[i], tax):
-                begin_index = i  # 从那个级别开始，缺失信息
+                begin_index = i  # 从哪个级别开始，缺失信息
                 last_info = cla[i - 1]
                 break
-        if begin_index < 7:
+        if begin_index < 8:
             for i in range(begin_index, 8):
                 my_str = LEVEL[i] + "Unclasified_" + last_info
                 cla.append(my_str)
