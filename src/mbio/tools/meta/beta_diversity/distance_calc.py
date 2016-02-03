@@ -81,12 +81,16 @@ class DistanceCalcAgent(Agent):
                 raise OptionError('选择unifrac算法时必须提供newicktree进化树文件')
             else:
                 self.option('newicktree').get_info()
-                if len(self.option('newicktree').prop['sample']) != len(otulist) - 1:
+                if len(self.option('newicktree').prop['sample']) < len(otulist) - 1:
                     raise OptionError('进化树中的类群数量:%s与OTU表中的数量:%s不一致' % (len(self.option('newicktree').prop['sample']),
                                                                        len(otulist) - 1))
-                for sample in self.option('newicktree').prop['sample']:
-                    if sample not in otulist:
-                        raise OptionError('进化树文件中的类群名称:%s与OTU表不对应' % sample)
+                tree_sample = self.option('newicktree').prop['sample']
+                for sample in otulist[1:]:
+                    if sample not in tree_sample:
+                        raise OptionError('OTU表名称:%s与进化树文件中的类群不对应' % sample)
+                # for sample in self.option('newicktree').prop['sample']:
+                #     if sample not in otulist:
+                #         raise OptionError('进化树文件中的类群名称:%s与OTU表不对应' % sample)
 
     def set_resource(self):
         """

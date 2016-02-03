@@ -29,8 +29,8 @@ class DistanceCalc(object):
             method = data.distance_algorithm
         otu_info = Meta().get_otu_table_info(data.otu_id)
         params_json = {
-            "otu_id": ObjectId(data.otu_id),
-            "level_id": data.level_id,
+            "otu_id": data.otu_id,
+            "level_id": otu_level,
             "distance_algorithm": method
         }
         if otu_info:

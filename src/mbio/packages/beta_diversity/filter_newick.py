@@ -31,7 +31,7 @@ class otu(object):
         if self.__dict.has_key(name):
             return self.__dict[name]
         else:
-            raise Exception('错误的属性名称！')
+            raise Exception('错误的属性名称：可能是OTU表detail中缺失数据！')
 
     @property
     def dict_value(self):
@@ -47,7 +47,7 @@ class otu(object):
         while i <= level:
             name_list.append(getattr(self, self.num_to_level(i)))
             i += 1
-        name = ';'.join(name_list)
+        name = '; '.join(name_list)
         return name
 
     def count_samples(self, samples):
@@ -199,11 +199,13 @@ def get_otu_phylo_newick(otu_id, connecter=None, database='sanger',
             return False, '找到id对应数据，但是table或者tree类型不正确'
 
 
-def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False):
+def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, bind_obj=None):
     tempdir = tempdir.rstrip('/') + '/'
     temptre = tempdir + 'temp_newick.tre'
     filter_tre = tempdir + 'temp_filter_newick.tre'
     origin_id = get_origin_otu(otu_id)
+    if bind_obj:
+        bind_obj.logger.info('origin_id:' + str(origin_id))
     if origin_id[0]:
         level_newick = get_otu_phylo_newick(origin_id[1])
         if level_newick[0]:
@@ -212,6 +214,8 @@ def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False):
             raise Exception('原始OTU表找不到对应进化树文件')
     else:
         raise Exception('OTU表没有找到对应的原始表')
+    if bind_obj:
+        bind_obj.logger.info('origin_newick:' + str(level_newick))
     if isinstance(level, types.IntType):
         if level == 9:
             return level_newick[1]
@@ -232,19 +236,26 @@ def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False):
                     i.name = level_otu[0][i.name]
                 Phylo.write(phylo_newick, filter_tre, 'newick')
                 phylo_newick = Phylo.read(filter_tre, 'newick')
+                format_phylo_newick = phylo_newick.format('newick')
+                # format_phylo_newick = format_phylo_newick.replace('\'', '')
                 if return_file:
-                    Phylo.write(phylo_newick, filter_tre, 'newick')
+                    tempfile = open(filter_tre, 'w')
+                    tempfile.write(format_phylo_newick)
+                    # Phylo.write(phylo_newick, filter_tre, 'newick')
                     return filter_tre
                 else:
-                    newickline = phylo_newick.format('newick')
-                    return newickline
+                    return format_phylo_newick
             except IOError, e:
                 raise Exception('进化树依据水平过滤出错,info:%s' % e)
             finally:
+                if return_file:
+                    pass
+                else:
+                    if os.path.exists(filter_tre):
+                        os.remove(filter_tre)
                 if os.path.exists(temptre):
                     os.remove(temptre)
-                if os.path.exists(filter_tre):
-                    os.remove(filter_tre)
+
         else:
             raise Exception('错误的分类水平大小(1-9):%s' % level)
     else:
