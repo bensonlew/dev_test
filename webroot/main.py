@@ -17,6 +17,7 @@ from mainapp.controllers.meta.multiple import Multiple
 from mainapp.controllers.meta.lefse import Lefse
 from mainapp.controllers.meta.est_t_test import EstTTest
 from mainapp.controllers.meta.rarefaction import Rarefaction
+from mainapp.controllers.meta.beta.multi_analysis import MultiAnalysis
 
 # web.config.debug = False
 urls = (
@@ -43,7 +44,8 @@ urls = (
     "/meta/multiple", "Multiple",
     "/meta/lefse", "Lefse",
     "/meta/est_t_test", "EstTTest",
-    "/meta/rarefaction", "Rarefaction"
+    "/meta/rarefaction", "Rarefaction",
+    "/meta/beta/multi_analysis", "MultiAnalysis"
 
 
 )
