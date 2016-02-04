@@ -34,7 +34,7 @@ class NewickTreeFile(File):
         if not lines:
             raise FileError('树文件为空')
         tree = lines[0].rstrip()
-        raw_samp = re.findall(r'([(,]([\.\;\'\"0-9a-zA-Z_-]+?):[0-9])', tree)
+        raw_samp = re.findall(r'([(,]([\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', tree)
         samp = [i[1] for i in raw_samp]
         return samp
 
@@ -67,8 +67,3 @@ class NewickTreeFile(File):
             else:
                 raise FileError('文件结尾不是分号‘;’')
         return True
-a = NewickTreeFile()
-a.set_path(r'D:\PythonTest\temp_filter_newick.tre')
-# a.set_path(r"C:\Users\sheng.he.MAJORBIO\Desktop\testfile\phylo2.tre")
-a.check()
-print a.prop

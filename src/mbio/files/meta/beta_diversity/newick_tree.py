@@ -34,7 +34,7 @@ class NewickTreeFile(File):
         if not lines:
             raise FileError('树文件为空')
         tree = lines[0].rstrip()
-        raw_samp = re.findall(r'([(,]([\.0-9a-zA-Z_-]+):[0-9])', tree)
+        raw_samp = re.findall(r'([(,]([\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', tree)
         samp = [i[1] for i in raw_samp]
         return samp
 
@@ -62,7 +62,7 @@ class NewickTreeFile(File):
                 pass
             else:
                 raise FileError('程序只接受带有分支距离的树文件，或者文件中距离表示错误')
-            if tree[-1] == ';' and tree[-2] == ')':
+            if tree[-1] == ';':
                 pass
             else:
                 raise FileError('文件结尾不是分号‘;’')

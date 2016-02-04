@@ -27,7 +27,7 @@ class EstTTest(object):
         my_param['alpha_diversity_id'] = data.alpha_diversity_id
         my_param['group_detail'] = data.group_detail
         my_param['group_id'] = data.group_id
-        params = json.dumps(my_param)
+        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         est_info = Estimator().get_est_table_info(data.alpha_diversity_id)
         # print(est_info)
         if est_info:
@@ -46,7 +46,7 @@ class EstTTest(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": est_info["project_sn"],
-                "to_file": ["estimator.export_est_table(est_table)",  "meta.export_group_table_by_detail(group_table)"],
+                "to_file": ["estimator.export_est_table(est_table)", "meta.export_group_table_by_detail(group_table)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
