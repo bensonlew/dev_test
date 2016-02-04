@@ -76,6 +76,10 @@ class VennTableTool(Tool):
         otu_table = self.option("otu_table").prop['path']
         if self.option("otu_table").format is "meta.otu.tax_summary_dir":
             otu_table = self.option("otu_table").get_table(self.option("level"))
+        num_lines = sum(1 for line in open(otu_table))
+        if num_lines < 11:
+            self.set_error("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
+            raise Exception("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
         venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table,
                                                                       self.option("group_table").prop['path'])
         os.system(venn_cmd)
@@ -89,6 +93,7 @@ class VennTableTool(Tool):
             self.logger.info("运行venn_table完成")
         else:
             self.set_error("运行venn_table运行出错!")
+            raise Exception("运行venn_table运行出错，请检查输入的otu表和group表是否正确")
         self.set_output()
 
     def set_output(self):
@@ -98,7 +103,7 @@ class VennTableTool(Tool):
         self.logger.info("set out put")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        os.link(self.work_dir+'/venn_table.xls', self.output_dir+'/venn_table.xls')
+        os.link(self.work_dir + '/venn_table.xls', self.output_dir + '/venn_table.xls')
         # self.option('venn_table.xls').set_path(self.output_dir+'/venn_table.xls')
         self.logger.info("done")
 

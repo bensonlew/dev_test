@@ -3,6 +3,8 @@
 
 from biocluster.api.database.base import Base, report_check
 import re
+import json
+from collections import defaultdict
 import datetime
 from bson.objectid import ObjectId
 from types import StringTypes
@@ -22,21 +24,73 @@ class Venn(Base):
                 venn_id = ObjectId(venn_id)
             else:
                 raise Exception("venn_id必须为ObjectId对象或其对应的字符串!")
+        venn_json = self.get_venn_json(venn_path)
         with open(venn_path, 'rb') as r:
+            count = 0
             for line in r:
                 line = line.strip('\n')
                 line = re.split("\t", line)
                 new_otu_id = self.add_sg_otu(otu_id)
                 self.add_sg_otu_detail(line[2], otu_id, new_otu_id)
+                tmp_name = re.split(',', line[2])
+                name_list = list()
+                for cla_info in tmp_name:
+                    cla_info = re.split('; ', cla_info)
+                    my_name = cla_info[-1]
+                    name_list.append(my_name)
+                display_name = ",".join(name_list)
                 collection = self.db['sg_otu_venn_detail']
                 insert_data = {
                     'otu_venn_id': venn_id,
                     'otu_id': new_otu_id,
                     'category_name': line[0],
                     'species_name': line[2],
-                    'species_count': int(line[1])
+                    'species_name_display': display_name,
+                    'species_count': int(line[1]),
+                    'venn_json': json.dumps(venn_json[count])
                 }
                 collection.insert_one(insert_data)
+                count += 1
+
+    def get_venn_json(self, venn_path):
+        num = defaultdict(int)
+        with open(venn_path, 'rb') as r:
+            for line in r:
+                line = line.strip('\n')
+                line = re.split("\t", line)
+                if re.search("only", line[0]):
+                    name = re.split('\s+', line[0])
+                    num[name[0]] += int(line[1])
+                if re.search('&', line[0]):
+                    line[0] = re.sub('\s+', '', line[0])
+                    name = re.split('&', line[0])
+                    for my_n in name:
+                        num[my_n] += int(line[1])
+        venn_json = list()
+        with open(venn_path, 'rb') as r:
+            for line in r:
+                line = line.strip('\n')
+                strline = line
+                line = re.split("\t", line)
+                tmp_label = line[0]
+                tmp_list = list()
+                if re.search("only", line[0]):
+                    name = re.split('\s+', line[0])[0]
+                    sets = {"sets": [name]}
+                    size = {"size": num[name]}
+                    label = {"label": tmp_label}
+                    tmp_list = [sets, size, label]
+                elif re.search("&", line[0]):
+                    line[0] = re.sub('\s+', '', line[0])
+                    name = re.split('&', line[0])
+                    sets = {'sets': name}
+                    size = {"size": line[1]}
+                    label = {"label": tmp_label}
+                    tmp_list = [sets, size, label]
+                else:
+                    raise Exception("Venn 表格中行{}无法解析".format(strline))
+                venn_json.append(tmp_list)
+        return venn_json
 
     def add_sg_otu_detail(self, info, from_otu_id, new_otu_id):
         """
@@ -84,6 +138,10 @@ class Venn(Base):
         """
         #  因为现在阶段otu_detail表还存在一些问题，分类等级还不齐全，所以还需要补全
         last_classify = ""
+        for i in range(1, 10):
+            if LEVEL[i] in result:
+                if re.search("uncultured", result[LEVEL[i]]) or re.search("Incertae_Sedis", result[LEVEL[i]]):
+                    result[LEVEL[i]] = result[LEVEL[i]] + "_" + result[LEVEL[i - 1]]
         for i in range(1, level):
             if LEVEL[i] not in result:
                 if last_classify == "":
