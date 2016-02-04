@@ -26,7 +26,7 @@ class Venn(object):
         my_param['level_id'] = data.level_id
         my_param['group_id'] = data.group_id
         my_param['category_name'] = data.category_name
-        params = json.dumps(my_param)
+        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_venn_table"

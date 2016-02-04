@@ -24,8 +24,8 @@ class Multiple(object):
         my_param['group_detail'] = data.group_detail
         my_param['group_id'] = data.group_id
         my_param['correction'] = data.correction
-        my_param['test'] = data.test  
-        params = json.dumps(my_param)
+        my_param['test'] = data.test
+        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_multiple_stat_table"
@@ -95,4 +95,3 @@ class Multiple(object):
         if data.test not in ["kru_H", "anova"]:
             info = {"success": False, "info": "所选的分析检验方法不在范围内"}
             return json.dumps(info)
-

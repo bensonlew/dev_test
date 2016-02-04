@@ -27,7 +27,7 @@ class Subsample(object):
                 'task_id': input_otu_info['task_id'],
                 'from_id': data.otu_id,
                 'name': "otu_taxon" + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
-                'params': json.dumps(data),
+                'params': json.dumps(data, sort_keys=True, separators=(',', ':')),
                 'status': 'start',
                 'desc': 'otu table after Subsample',
                 'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
