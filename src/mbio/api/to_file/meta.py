@@ -88,6 +88,10 @@ def _create_classify_name(col, tmp):
     }
     my_list = list()
     last_classify = ""
+    for i in range(1, 10):
+        if LEVEL[i] in col:
+            if re.search("uncultured", col[LEVEL[i]]) or re.search("Incertae_Sedis", col[LEVEL[i]]):
+                col[LEVEL[i]] = col[LEVEL[i]] + "_" + col[LEVEL[i - 1]]
     for i in range(1, tmp):
         if LEVEL[i] not in col:
             if last_classify == "":

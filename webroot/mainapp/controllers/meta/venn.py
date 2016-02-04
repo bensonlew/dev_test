@@ -4,10 +4,12 @@ import json
 import random
 import datetime
 import web
+import re
 from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.venn import Venn as V
+from mainapp.libs.param_pack import param_pack
 
 
 class Venn(object):
@@ -25,11 +27,14 @@ class Venn(object):
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
         my_param['group_id'] = data.group_id
-        my_param['category_name'] = data.category_name
-        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
+        c_name = re.split(',', data.category_name)
+        c_name.sort()
+        new_cname = ','.join(c_name)
+        my_param['category_name'] = new_cname
+        params = param_pack(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_venn_table"
+            name = "venn_table_" + datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
             venn_id = V().create_venn_table(params, data.group_id, data.level_id, data.otu_id, name)
             update_info = {str(venn_id): "sg_otu_venn"}
             update_info = json.dumps(update_info)
