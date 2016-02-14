@@ -21,8 +21,8 @@ class Lefse(object):
         my_param['group_detail'] = data.group_detail
         my_param['group_id'] = data.group_id
         my_param['lda_filter'] = data.lda_filter
-        my_param['strict'] = data.strict  
-        params = json.dumps(my_param)
+        my_param['strict'] = data.strict
+        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_lefse_lda_table"

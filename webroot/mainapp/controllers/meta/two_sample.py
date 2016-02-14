@@ -24,8 +24,8 @@ class TwoSample(object):
         my_param['ci'] = data.ci
         my_param['correction'] = data.correction
         my_param['type'] = data.type
-        my_param['test'] = data.test  
-        params = json.dumps(my_param)
+        my_param['test'] = data.test
+        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_two_sample_stat_table"

@@ -28,7 +28,7 @@ class Rarefaction(object):
         my_param['level_id'] = data.level_id
         my_param['indices'] = data.index_type
         my_param['freq'] = data.freq
-        params = json.dumps(my_param)
+        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
         # print(otu_info["task_id"])
