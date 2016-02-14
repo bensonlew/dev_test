@@ -23,13 +23,14 @@ class Estimators(object):
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
                 return json.dumps(info)
-        # if not (hasattr(data, "otu_id") and hasattr(data, "level_id") and hasattr(data, "index_type")):
-        #     info = {"success": False, "info": "缺少参数!"}
-        #     return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
-        my_param['indices'] = data.index_type
+        # my_param['indices'] = data.index_type
+        sort_index = data.index_type.split(',')
+        sort_index.sort()
+        sort_index = ','.join(sort_index)
+        my_param['indices'] = sort_index
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
