@@ -20,7 +20,6 @@ class TwoGroup(object):
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
-        print data.group_detail
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
         my_param['ci'] = data.ci
