@@ -8,6 +8,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.group_stat import GroupStat as G
+from mainapp.libs.param_pack import group_detail_sort
 
 
 class TwoGroup(object):
@@ -19,7 +20,7 @@ class TwoGroup(object):
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
-        my_param['group_detail'] = data.group_detail
+        my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
         my_param['ci'] = data.ci
         my_param['correction'] = data.correction
