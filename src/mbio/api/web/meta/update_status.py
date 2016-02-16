@@ -100,6 +100,7 @@ class UpdateStatus(Log):
                     obj_id = ObjectId(obj_id)
                 else:
                     raise Exception("{}的值必须为ObjectId对象或其对应的字符串!".format(self._sheetname))
+            create_time = str(create_time)
             if status == "finish":
                 status = "end"
                 desc = ""
