@@ -30,7 +30,7 @@ class Estimator(object):
                 "task_id": task_id,
                 "otu_id": from_otu_table,
                 "name": name if name else "estimators_origin",
-                "level_id": level,
+                "level_id": int(level),
                 "status": "start",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -55,7 +55,7 @@ class Estimator(object):
                 "task_id": task_id,
                 "otu_id": otu_id,
                 "name": name if name else "多样性指数T检验结果表",
-                "level_id": level_id,
+                "level_id": int(level_id),
                 "group_id": group_id,
                 "status": "start",
                 "params": params,
@@ -93,7 +93,7 @@ class Estimator(object):
                 "task_id": task_id,
                 "otu_id": from_otu_table,
                 "name": name if name else "rarefaction_origin",
-                "level_id": level,
+                "level_id": int(level),
                 "status": "start",
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

@@ -215,7 +215,7 @@ def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, bind_
     else:
         raise Exception('OTU表没有找到对应的原始表')
     if bind_obj:
-        bind_obj.logger.info('origin_newick:' + str(level_newick))
+        bind_obj.logger.info('origin_newick:' + str(level_newick)[:200])
     if isinstance(level, types.IntType):
         if level == 9:
             return level_newick[1]

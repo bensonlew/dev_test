@@ -31,7 +31,7 @@ class DistanceCalcWorkflow(Workflow):
 
     def run(self):
         task = self.add_tool("meta.beta_diversity.distance_calc")
-        self.logger.info(self.option('otu_file'))
+        self.logger.info(self.option('otu_file').path)
         # temp_otu_file = self.option('otu_file').path + '.temp'
         # with open(self.option('otu_file').path, 'r') as ff, open(temp_otu_file, 'w') as ww:
         #     for line in ff:
@@ -51,7 +51,6 @@ class DistanceCalcWorkflow(Workflow):
                     match_newname.count = match_newname.count + 1
                 else:
                     match_newname.count = 1
-                print match_newname.count
                 return 'OTU' + str(match_newname.count)
             newline = re.sub(r'\'.+?\'', match_newname, newicktree)
             temp_tree_file = self.work_dir + '/temp.tree'

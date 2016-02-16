@@ -14,6 +14,10 @@ class Estimators(object):
     """
 
     """
+    ESTIMATORS = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron',
+                  'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs',
+                  'qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow']
+
     @check_sig
     def POST(self):
         data = web.input()
@@ -23,13 +27,20 @@ class Estimators(object):
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
                 return json.dumps(info)
-        # if not (hasattr(data, "otu_id") and hasattr(data, "level_id") and hasattr(data, "index_type")):
-        #     info = {"success": False, "info": "缺少参数!"}
-        #     return json.dumps(info)
+        for index in data.index_type.split(','):
+            if index not in self.ESTIMATORS:
+                info = {"success": False, "info": "指数类型不正确{}".format(index)}
+                return json.dumps(info)
+        if int(data.level_id) not in range(1, 10):
+            raise Exception("level参数%s为不在允许范围内!" % data.level_id)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
-        my_param['indices'] = data.index_type
+        # my_param['indices'] = data.index_type
+        sort_index = data.index_type.split(',')
+        sort_index.sort()
+        sort_index = ','.join(sort_index)
+        my_param['indices'] = sort_index
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
