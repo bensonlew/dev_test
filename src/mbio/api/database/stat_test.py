@@ -5,6 +5,8 @@ import re
 from bson.objectid import ObjectId
 from types import StringTypes
 from bson.son import SON
+import gridfs
+import pymongo
 
 
 class StatTest(Base):
@@ -31,7 +33,7 @@ class StatTest(Base):
                 length = len(line_data)
                 i = 1
                 for name in group_list:
-                    data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", line_data[length-1]),("pvalue", line_data[length-2])]
+                    data = [("species_check_id", table_id),("species_name", line_data[0]),("corrected_pvalue", line_data[length-1]),("pvalue", line_data[length-2])]
                     data.append(("category_name", name))
                     data.append(("mean", line_data[i]))
                     data.append(("sd", line_data[i+1]))
@@ -63,11 +65,11 @@ class StatTest(Base):
                 if not line:
                     break
                 line_data = line.split("\t")
-                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", line_data[4]),
+                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("corrected_pvalue", line_data[4]),
                         ("pvalue", line_data[3]), ("specimen_name", sample[0]), ("propotion", line_data[1])]
                 data_son = SON(data)
                 data_list.append(data_son)
-                data1 = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", line_data[4]),
+                data1 = [("species_check_id", table_id), ("species_name", line_data[0]), ("corrected_pvalue", line_data[4]),
                          ("pvalue", line_data[3]), ("specimen_name", sample[1]), ("propotion", line_data[2])]
                 data_son1 = SON(data1)
                 data_list.append(data_son1)
@@ -146,7 +148,18 @@ class StatTest(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
 
-
+    @report_check
+    def update_species_difference_lefse(self, lda_png_path, lda_cladogram_path, table_id):
+        collection = self.db["sg_species_difference_lefse"]
+        fs = gridfs.GridFS(self.db)
+        ldaid = fs.put(open(lda_png_path, 'r'))
+        cladogramid = fs.put(open(lda_cladogram_path, 'r'))
+        try:
+            collection.update({"_id": ObjectId(table_id)}, {"$set": {"lda_png_id": ldaid, "lda_cladogram_id": cladogramid}})
+        except Exception, e:
+            self.bind_object.logger.error("导入%s和%s信息出错:%s" % (lda_png_path, lda_cladogram_path, e))
+        else:
+            self.bind_object.logger.info("导入%s和%s信息成功!" % (lda_png_path, lda_cladogram_path))
 
 
 

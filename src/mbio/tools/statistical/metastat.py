@@ -172,7 +172,6 @@ class MetastatAgent(Agent):
 class MetastatTool(Tool):
     def __init__(self, config):
         super(MetastatTool, self).__init__(config)
-        self.logger.debug("bb")
         self._version = "v1.0.1"
         self.package_path = 'packages/metastat.py'
 
@@ -198,7 +197,6 @@ class MetastatTool(Tool):
             self.step.update()
 
         for t in self.option('test').split(','):
-            # self.logger.info('运行metastat.py程序进行%s分析' % t)
             self.logger.info(t)
             if t == "chi":
                 two_sample_test(self.option('chi_input').prop['path'], self.work_dir + '/chi_result.xls',
@@ -208,10 +206,8 @@ class MetastatTool(Tool):
                 try:
                     subprocess.check_output(cmd, shell=True)
                     self.logger.info("chi_test运行完成")
-                    return True
                 except subprocess.CalledProcessError:
                     self.logger.info("chi_test运行出错")
-                    return False
             elif t == "fisher":
                 two_sample_test(self.option('fisher_input').prop['path'], self.work_dir +
                                               '/fisher_result.xls', t, self.option('fisher_sample1'),
@@ -221,10 +217,8 @@ class MetastatTool(Tool):
                 try:
                     subprocess.check_output(cmd, shell=True)
                     self.logger.info("fisher_test运行完成")
-                    return True
                 except subprocess.CalledProcessError:
                     self.logger.info("fisher_test运行出错")
-                    return False
             elif t == "student":
                 two_group_test(self.option('student_input').prop['path'],
                                              self.option('student_group').prop['path'], self.work_dir +
@@ -234,10 +228,8 @@ class MetastatTool(Tool):
                 try:
                     subprocess.check_output(cmd, shell=True)
                     self.logger.info("student_test运行完成")
-                    return True
                 except subprocess.CalledProcessError:
                     self.logger.info("student_test运行出错")
-                    return False
             elif t == "welch":
                 two_group_test(self.option('welch_input').prop['path'],
                                              self.option('welch_group').prop['path'], self.work_dir +
@@ -247,10 +239,8 @@ class MetastatTool(Tool):
                 try:
                     subprocess.check_output(cmd, shell=True)
                     self.logger.info("welch_test运行完成")
-                    return True
                 except subprocess.CalledProcessError:
                     self.logger.info("welch_test运行出错")
-                    return False
             elif t == "mann":
                 two_group_test(self.option('mann_input').prop['path'],
                                              self.option('mann_group').prop['path'],
@@ -260,10 +250,8 @@ class MetastatTool(Tool):
                 try:
                     subprocess.check_output(cmd, shell=True)
                     self.logger.info("mann_test运行完成")
-                    return True
                 except subprocess.CalledProcessError:
                     self.logger.info("mann_test运行出错")
-                    return False
             elif t == "kru_H":
                 mul_group_test(self.option('kru_H_input').prop['path'], self.work_dir +
                                              '/kru_H_result.xls', self.work_dir + '/kru_H_boxfile.xls',
@@ -272,10 +260,8 @@ class MetastatTool(Tool):
                 try:
                     subprocess.check_output(cmd, shell=True)
                     self.logger.info("kru_H_test运行完成")
-                    return True
                 except subprocess.CalledProcessError:
                     self.logger.info("kru_H_test运行出错")
-                    return False
             elif t == "anova":
                 mul_group_test(self.option('anova_input').prop['path'], self.work_dir +
                                              '/anova_result.xls', self.work_dir + '/anova_boxfile.xls',
@@ -285,10 +271,9 @@ class MetastatTool(Tool):
                 try:
                     subprocess.check_output(cmd, shell=True)
                     self.logger.info("anova_test运行完成")
-                    return True
                 except subprocess.CalledProcessError:
                     self.logger.info("anova_test运行出错")
-                    return False
+
 
     def set_output(self):
         """
@@ -298,32 +283,58 @@ class MetastatTool(Tool):
         for root, dirs, files in os.walk(self.output_dir):
             for names in files:
                 os.remove(os.path.join(root, names))
-        files = os.listdir(self.work_dir)
         self.logger.info("设置结果目录")
-        for f in files:
-            if f == 'chi_result.xls':
-                os.link(self.work_dir + '/chi_result.xls', self.output_dir + '/chi_result.xls')
-            elif f == 'fisher_result.xls':
-                os.link(self.work_dir + '/fisher_result.xls', self.output_dir + '/fisher_result.xls')
-            elif f == 'student_result.xls':
-                os.link(self.work_dir + '/student_result.xls', self.output_dir + '/student_result.xls')
-            elif f == 'student_boxfile.xls':
-                os.link(self.work_dir + '/student_boxfile.xls', self.output_dir + '/student_boxfile.xls')
-            elif f == 'welch_result.xls':
-                os.link(self.work_dir + '/welch_result.xls', self.output_dir + '/welch_result.xls')
-            elif f == 'welch_boxfile.xls':
-                os.link(self.work_dir + '/welch_boxfile.xls', self.output_dir + '/welch_boxfile.xls')
-            elif f == 'mann_result.xls':
-                os.link(self.work_dir + '/mann_result.xls', self.output_dir + '/mann_result.xls')
-            elif f == 'mann_boxfile.xls':
-                os.link(self.work_dir + '/mann_boxfile.xls', self.output_dir + '/mann_boxfile.xls')
-            elif f == 'kru_H_result.xls':
-                os.link(self.work_dir + '/kru_H_result.xls', self.output_dir + '/kru_H_result.xls')
-            elif f == 'kru_H_boxfile.xls':
-                os.link(self.work_dir + '/kru_H_boxfile.xls', self.output_dir + '/kru_H_boxfile.xls')
-            elif f == 'anova_result.xls':
-                os.link(self.work_dir + '/anova_result.xls', self.output_dir + '/anova_result.xls')
-            elif f == 'anova_boxfile.xls':
-                os.link(self.work_dir + '/anova_boxfile.xls', self.output_dir + '/anova_boxfile.xls')
-        self.logger.info("设置结果目录成功")
+        for t in self.option('test').split(','):
+            if t == 'chi':
+                try:
+                    os.link(self.work_dir + '/chi_result.xls', self.output_dir + '/chi_result.xls')
+                    self.logger.info("设置chi分析的结果目录成功")
+                except:
+                    self.logger.info("设置chi分析结果目录失败")
+            elif t == 'fisher':
+                try:
+                    os.link(self.work_dir + '/fisher_result.xls', self.output_dir + '/fisher_result.xls')
+                    self.logger.info("设置fisher分析的结果目录成功")
+                except:
+                    self.logger.info("设置fisher分析结果目录失败")
+            elif t == 'student':
+                try:
+                    os.link(self.work_dir + '/student_result.xls', self.output_dir + '/student_result.xls')
+                    os.link(self.work_dir + '/student_boxfile.xls', self.output_dir + '/student_boxfile.xls')
+                    self.logger.info("设置chi分析的结果目录成功")
+                except:
+                    self.logger.info("设置fisher分析结果目录失败")
+            elif t == 'welch':
+                try:
+                    os.link(self.work_dir + '/welch_result.xls', self.output_dir + '/welch_result.xls')
+                    os.link(self.work_dir + '/welch_boxfile.xls', self.output_dir + '/welch_boxfile.xls')
+                    self.logger.info("设置welch分析的结果目录成功")
+                except:
+                    self.logger.info("设置welch分析结果目录失败")
+            elif t == 'mann':
+                try:
+                    os.link(self.work_dir + '/mann_result.xls', self.output_dir + '/mann_result.xls')
+                    os.link(self.work_dir + '/mann_boxfile.xls', self.output_dir + '/mann_boxfile.xls')
+                    self.logger.info("设置mann分析的结果目录成功")
+                except:
+                    self.logger.info("设置mann分析结果目录失败")
+            elif t == 'anova':
+                try:
+                    os.system('sed -i "1s/\(^.\)/ \t\1/" %s' % (self.work_dir + '/anova_result.xls'))
+                    os.system('sed -i "1s/\(^.\)/ \t\1/" %s' % (self.work_dir + '/anova_boxfile.xls'))
+                    os.link(self.work_dir + '/anova_result.xls', self.output_dir + '/anova_result.xls')
+                    os.link(self.work_dir + '/anova_boxfile.xls', self.output_dir + '/anova_boxfile.xls')
+                    self.logger.info("设置anova分析的结果目录成功")
+                except:
+                    self.logger.info("设置anova分析结果目录失败")
+            elif t == 'kru_H':
+                try:
+                    os.system('sed -i "1s/\(^.\)/ \t\1/" %s' % (self.work_dir + '/kru_H_result.xls'))
+                    os.system('sed -i "1s/\(^.\)/ \t\1/" %s' % (self.work_dir + '/kru_H_boxfile.xls'))
+                    os.link(self.work_dir + '/kru_H_result.xls', self.output_dir + '/kru_H_result.xls')
+                    os.link(self.work_dir + '/kru_H_boxfile.xls', self.output_dir + '/kru_H_boxfile.xls')
+                    self.logger.info("设置kru_H分析的结果目录成功")
+                except:
+                    self.logger.info("设置kru_H分析结果目录失败")
+
 

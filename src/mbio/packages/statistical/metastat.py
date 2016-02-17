@@ -21,9 +21,8 @@ def two_group_test(inputfile, groupfile, outputfile, boxfile, choose_test, ci=0.
     """
     f = Template(filename='/mnt/ilustre/users/sanger/biocluster/src/mbio/packages/statistical/two_group_test.r')
     two_test = f.render(inputfile=inputfile, outputfile=outputfile, boxfile=boxfile, groupfile=groupfile, choose_test=choose_test, test_type=test_type, mul_test=mul_test, ci=ci)
-    rfile = open("run_%s_test.r" % choose_test, 'w')
-    rfile.write("%s" % two_test)
-    rfile.close()
+    wiht open("run_%s_test.r" % choose_test, 'w') as rfile:
+        rfile.write("%s" % two_test)   
 
 
 def two_sample_test(inputfile,outputfile,choose_test, sample1, sample2, ci=0.95, test_type="two.side", mul_test="none"):
@@ -41,9 +40,8 @@ def two_sample_test(inputfile,outputfile,choose_test, sample1, sample2, ci=0.95,
     """
     f = Template(filename='/mnt/ilustre/users/sanger/biocluster/src/mbio/packages/statistical/two_sample_test.r')
     two_test = f.render(inputfile=inputfile, outputfile=outputfile, choose_test=choose_test, sample1=sample1, sample2=sample2, ci=ci, test_type=test_type, mul_test=mul_test)
-    rfile = open("run_%s_test.r" % choose_test, 'w')
-    rfile.write('%s' % two_test)
-    rfile.close()
+    with open("run_%s_test.r" % choose_test, 'w') as rfile:
+        rfile.write('%s' % two_test)
 
 
 
@@ -58,18 +56,8 @@ def mul_group_test(inputfile, outputfile, boxfile, groupfile, choose_test, mul_t
     """
     f = Template(filename='/mnt/ilustre/users/sanger/biocluster/src/mbio/packages/statistical/mul_group_test.r')
     mul_test = f.render(inputfile=inputfile, outputfile=outputfile, boxfile=boxfile, groupfile=groupfile, choose_test=choose_test, mul_test=mul_test)
-    rfile = open("run_%s_test.r" % choose_test, 'w')
-    rfile.write("%s" % mul_test)
-    rfile.close()
-    # post = open('post_result', 'r')
-    # pfile = open('%s' % post_result, 'w')
-    # i = 0
-    # for line in post:
-    #     if i == 0:
-    #         pfile.write('\t%s' % line)
-    #         i = 1
-    #     else:
-    #         pfile.write('%s' % line)
+    with open("run_%s_test.r" % choose_test, 'w') as rfile:
+        rfile.write("%s" % mul_test)
 
 
 
