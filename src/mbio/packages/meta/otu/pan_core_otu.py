@@ -157,13 +157,13 @@ def pan_core(otutable, dowhat, groupfile='none'):
               groupname = groups[i]
             }
             richness_out[i,1:(length(sp$richness)+1)] <- c(groupname,sp$richness)
-            write.table(sp$perm,paste(groupname,".perm.txt",sep=""),sep="\\t",col.names=F,row.names=F)
+            write.table(sp$perm,paste(groupname,".perm.txt",sep=""),sep="\\t",col.names=F,row.names=F,quote=F)
         }
     }else{
         stop("no proper data to run.")
     }
     colnames(richness_out) <- c("group",seq(1,ncol(data)))
-    write.table(richness_out,paste(dowhat,".richness.xls",sep=""),sep="\\t",col.names=T,row.names=F)
+    write.table(richness_out,paste(dowhat,".richness.xls",sep=""),sep="\\t",col.names=T,row.names=F,quote=F)
     '''
     output = os.getcwd()
     output = os.path.join(output, dowhat + ".r")

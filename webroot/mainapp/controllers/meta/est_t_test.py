@@ -6,7 +6,7 @@ import random
 import datetime
 from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
-# from mainapp.models.mongo.meta import Meta
+from mainapp.libs.param_pack import group_detail_sort
 from mainapp.models.mongo.estimator import Estimator
 
 
@@ -25,7 +25,7 @@ class EstTTest(object):
                 return json.dumps(info)
         my_param = dict()
         my_param['alpha_diversity_id'] = data.alpha_diversity_id
-        my_param['group_detail'] = data.group_detail
+        my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         est_info = Estimator().get_est_table_info(data.alpha_diversity_id)
