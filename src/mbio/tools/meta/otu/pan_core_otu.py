@@ -75,6 +75,13 @@ class PanCoreOtuTool(Tool):
             otu_path = self.option("in_otu_table").get_table(self.option("level"))
         else:
             otu_path = self.option("in_otu_table").prop['path']
+
+        # 检测otu表行数
+        num_lines = sum(1 for line in open(otu_path))
+        if num_lines < 11:
+            self.set_error("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
+            raise Exception("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
+
         if self.option("group_table").is_set:
             group_table = self.option("group_table").prop['path']
             pan_otu = pan_core(otu_path, "pan", group_table)
