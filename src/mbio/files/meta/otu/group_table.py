@@ -68,8 +68,6 @@ class GroupTableFile(File):
             self.get_info()
             if self.prop['sample_number'] == 0:
                 raise FileError('应该至少包含一个样本')
-            if self.prop['group_number'] == 0:
-                raise FileError('应该至少包含一个分组')
 
     def sub_group(self, target_path, header):
         """

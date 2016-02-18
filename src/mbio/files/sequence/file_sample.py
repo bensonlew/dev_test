@@ -51,7 +51,7 @@ class FileSampleFile(File):
             if self.prop["sample_number"] == 0:
                 raise FileError('应该至少包含一个样本')
             if self.col != 2:
-                raise FileError('这个文件的列数为2')
+                raise FileError('这个文件的列数应该为2')
             if self.repeat_name:
                 raise FileError('文件名不能重复！')
             return True

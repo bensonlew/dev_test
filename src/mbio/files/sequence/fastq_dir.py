@@ -30,6 +30,7 @@ class FastqDirFile(Directory):
         self.has_work_dir = False
         self.work_dir = ""
         self.has_list_file = False
+        self.samples - list()
 
     def get_info(self):
         """
@@ -39,6 +40,7 @@ class FastqDirFile(Directory):
             self.set_property("fastq_number", self.get_fastq_number())
             self.set_property("fastq_basename", self.fastqs)
             self.set_property("has_list_file", self.has_list_file)
+            self.set_property("samples", self.samples)
         else:
             raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
 
@@ -64,6 +66,7 @@ class FastqDirFile(Directory):
             filesample = FileSampleFile()
             filesample.set_path(list_txt)
             filesample.get_info()
+            self.samples = filesample.prop["sample_names"]
             for filename in filesample.prop["file_names"]:
                 my_fastq = FastqFile()
                 fq_path = os.path.join(self.prop['path'], filename)
