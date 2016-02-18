@@ -41,8 +41,8 @@ class MetaBaseWorkflow(Workflow):
             # {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
-            {"name": "envtable", "type": "infile", "format": "meta.env_table"},
-            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
+            {"name": "envtable", "type": "infile", "format": "meta.env_table"}
+            # {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
