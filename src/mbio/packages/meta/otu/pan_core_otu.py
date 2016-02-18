@@ -135,7 +135,7 @@ def pan_core(otutable, dowhat, groupfile='none'):
     g = 1
     groups = "none"
     if (gfile !="none"){
-        map <- read.table(gfile,sep="\\t",head=F,check.names=F,comment.char="")
+        map <- read.table(gfile,sep="\\t",head=F,check.names=F)
         map <- as.matrix(map)
         groups <- unique(map[,2])
         for(i in 1:length(groups))
