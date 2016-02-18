@@ -1,13 +1,11 @@
-
-library(qvalue)
-otu_data <- read.table("${inputfile}",sep = "\t")
+otu_data <- read.table("${inputfile}",sep = "\t",comment.char = '')
 samp <- t(otu_data[1,-1])
 otu_data <- otu_data[-1,]
 rownames(otu_data) <- otu_data[,1]
 otu_data <- otu_data[,-1]
 colnames(otu_data) <- samp
-group <- read.table("${groupfile}",sep="\t")
-#group <- group[-1,]
+#read groupfile to make the dataframe for test
+group <- read.table("${groupfile}",sep="\t",comment.char = '')
 gsamp <- group[,1]
 g1 <- group[1,2]
 g2 <- group[which(!group[,2] %in% g1),2]
@@ -16,9 +14,12 @@ gsamp1=group[which(group[,2] %in% g1),1]
 gsamp2=group[which(group[,2] %in% g2),1]
 otu_data <- otu_data[,which(samp %in% gsamp)]
 otu_data <- otu_data[apply(otu_data,1,function(x)any(x>0)),]
-da <- otu_data
-otu_data <-apply(da,2,function(x) as.numeric(x)/sum(as.numeric(x))) 
-rownames(otu_data)<-rownames(da)
+lendata <- nrow(otu_data)
+if(lendata > 1){
+  da <- otu_data
+  otu_data <-apply(da,2,function(x) as.numeric(x)/sum(as.numeric(x))) 
+  rownames(otu_data)<-rownames(da)
+}
 samp <- samp[which(samp %in% gsamp)]
 result <- matrix(nrow = nrow(otu_data),ncol = 5)
 box_result <- matrix(nrow = nrow(otu_data),ncol = 11)
@@ -45,12 +46,16 @@ for(i in 1:nrow(otu_data)){
   box_result[i,] = c(rownames(otu_data)[i],sum1[1],sum1[2],sum1[3],sum1[4],sum1[5],sum2[1],sum2[2],sum2[3],sum2[4],sum2[5])
 }
 pvalue <- pvalue[-1]
-pvalue <- p.adjust(as.numeric(pvalue),method = "${mul_test}")
+pvalue <- p.adjust(as.numeric(pvalue),method = "none")
 result <- cbind(result,pvalue)
-qv <- qvalue(as.numeric(result[,6]),lambda = 0.5)
-result <- cbind(result,qv$qvalue)
-colnames(result) <- c(" ",paste("mean(",g1,")",sep=''),paste("sd(",g1,")",sep=''),paste("mean(",g2,")",sep=''),paste("sd(",g2,")",sep=''),"p-value","q-value")
-result_order <- result[order(result[,6]),]  
+qv <- p.adjust(as.numeric(pvalue),method = "${mul_test}")
+result <- cbind(result,qv)
+colnames(result) <- c(" ",paste("mean(",g1,")",sep=''),paste("sd(",g1,")",sep=''),paste("mean(",g2,")",sep=''),paste("sd(",g2,")",sep=''),"p-value","corrected p-value")
+result_order <- result[order(result[,6]),] 
+if(lendata == 1){
+  a <- data.frame(result_order)
+  result_order <- t(a)
+} 
 write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)
 colnames(box_result) <- c(" ",paste("min(",g1,")",sep=''),paste("Q1(",g1,")",sep=''),paste("Median(",g1,")",sep=''),paste("Q3(",g1,")",sep=''),paste("max(",g1,")",sep=''),paste("min(",g2,")",sep=''),paste("Q1(",g2,")",sep=''),paste("Median(",g2,")",sep=''),paste("Q3(",g2,")",sep=''),paste("max(",g2,")",sep=''))
 write.table(box_result,"${boxfile}",sep = '\t',col.names = T,row.names = F,quote = F)

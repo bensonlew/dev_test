@@ -33,7 +33,7 @@ class GroupStat(object):
                 "project_sn": project_sn,
                 "task_id": task_id,
                 "name": name if name else "组间差异统计表格",
-                "level_id": level,
+                "level_id": int(level),
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
              }
@@ -45,7 +45,7 @@ class GroupStat(object):
                 "otu_id": from_otu_table,
                 "group_id": group_id,
                 "name": name if name else "组间差异统计表格",
-                "level_id": level,
+                "level_id": int(level),
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }

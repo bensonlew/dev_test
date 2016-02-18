@@ -191,12 +191,17 @@ class OtuTableFile(File):
         #  处理uncultured和Incertae_Sedis
         i = 0
         for my_cla in cla:
-            i += 1
             if re.search("uncultured", cla[i]) or re.search("Incertae_Sedis", cla[i]):
-                cla[i] = cla[i] + "_" + cla[i - 1]
+                if i == 0:
+                    raise Exception("在域水平上的分类为uncultured或Incertae_Sedis")
+                else:
+                    cla[i] = cla[i] + "_" + cla[i - 1]
+            i += 1
         for i in range(8):
             if not re.search(LEVEL[i], tax):
                 begin_index = i  # 从哪个级别开始，缺失信息
+                if i == 0:
+                    raise Exception("在域水平缺失信息")
                 last_info = cla[i - 1]
                 break
         if begin_index < 8:

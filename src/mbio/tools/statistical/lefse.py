@@ -132,7 +132,15 @@ class LefseTool(Tool):
         self.set_environ(R_HOME="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/")
         self.set_environ(LD_LIBRARY_PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/lib:$LD_LIBRARY_PATH")
         # os.system('cp %s %s/group_file' % (self.option('lefse_group').prop['path'], self.work_dir))
-        os.system('sed "1i sample\tlefse" -i %s' % self.option('lefse_group').prop['path'])
+        with open(self.option('lefse_group').prop['path'], 'r') as r:
+            line = r.readline()
+            groupnum = len(line.split()) - 1
+            if groupnum == 1:
+                os.system('sed "1i sample\tlefse" -i %s' % self.option('lefse_group').prop['path'])
+            elif groupnum == 2:
+                os.system('sed "1i sample\tlefse\tgroup" -i %s' % self.option('lefse_group').prop['path'])
+            else:
+                self.logger.info("分组文件不符合要求")
         plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + "plot-lefse.py -i tax_summary_a -g %s -o lefse_input.txt -L %s -s %s" % (self.option('lefse_group').prop['path'], self.option("lda_filter"), self.option("strict"))
         self.logger.info("开始运行plot_cmd")
         self.logger.info(plot_cmd)

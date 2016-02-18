@@ -39,7 +39,7 @@ class Lefse(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": ["meta.export_otu_table(otu_file)", "meta.export_group_table_by_detail(group_file)"],
+                "to_file": ["meta.export_otu_table(otu_file)", "meta.export_cascading_table_by_detail(group_file)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
