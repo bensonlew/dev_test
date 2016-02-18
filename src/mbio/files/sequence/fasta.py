@@ -6,6 +6,7 @@ import subprocess
 from biocluster.config import Config
 import os
 from biocluster.core.exceptions import FileError
+from Bio import SeqIO
 
 
 class FastaFile(File):
@@ -77,6 +78,15 @@ class FastaFile(File):
             return fformat, seq_type, seq_number, bases, longest, shortest
         except subprocess.CalledProcessError:
             raise Exception("seqstat 运行出错！")
+
+    def get_all_seq_name(self):
+        seq_name = list()
+        for seq in SeqIO.parse(self.prop["path"], "fasta"):
+            if seq.id not in seq_name:
+                seq_name.append(seq.id)
+            else:
+                raise Exception("序列名{}在文件中重复".format(seq.id))
+        return seq_name
 
     # def filter(self, smin=0, smax=0):
     #     """
