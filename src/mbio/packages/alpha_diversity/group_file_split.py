@@ -37,5 +37,3 @@ def group_file_spilt(group_file, output_dir):
             shutil.move('two_group_file{}'.format(n), output_dir)
             n += 1
     return output_dir
-
-# group_file_spilt('map.txt', 'C:\Users\danhua.qin\Desktop\pythonscript\split_group\output')
