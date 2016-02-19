@@ -5,15 +5,16 @@ from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 
 
-class FileCheckAgent(Agent):
+class FileMetabaseAgent(Agent):
     """
     version 1.0
     author: xuting
     last_modify: 2016.02.17
     用于在workflow开始之前对所输入的文件进行详细的内容检测
     """
+
     def __init__(self, parent):
-        super(FileCheckAgent, self).__init__(parent)
+        super(FileMetabaseAgent, self).__init__(parent)
         options = [
             {"name": "in_fastq", "type": "infile", 'format': "sequence.fastq, sequence.fastq_dir"},
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},
@@ -59,9 +60,9 @@ class FileCheckAgent(Agent):
         self._memory = ''
 
 
-class FileCheckTool(Tool):
+class FileMetabaseTool(Tool):
     def __init__(self, config):
-        super(FileCheckTool, self).__init__(config)
+        super(FileMetabaseTool, self).__init__(config)
         self.samples = list()
 
     def check_fastq(self):
@@ -105,7 +106,7 @@ class FileCheckTool(Tool):
             self.logger.info("未检测到env文件， 跳过...")
 
     def run(self):
-        super(FileCheckTool, self).run()
+        super(FileMetabaseTool, self).run()
         self.check_fastq()
         self.check_group()
         self.check_ref()

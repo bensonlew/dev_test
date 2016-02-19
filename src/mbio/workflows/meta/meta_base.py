@@ -41,11 +41,12 @@ class MetaBaseWorkflow(Workflow):
             # {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
-            {"name": "envtable", "type": "infile", "format": "meta.env_table"},
-            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
+            {"name": "env_table", "type": "infile", "format": "meta.env_table"},
+            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
+        self.filecheck = self.add_tool("meta.file_metabase")
         self.qc = self.add_module("meta.qc.miseq_qc")
         self.otu = self.add_tool("meta.otu.usearch_otu")
         self.phylo = self.add_tool("phylo.phylo_tree")
@@ -77,27 +78,29 @@ class MetaBaseWorkflow(Workflow):
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
         return True
 
-    def run_qc(self):
-        # if self.option('multi_fastq').is_set:
-        #     self.qc.set_options({
-        #         'multi_fastq': self.option('multi_fastq')
-        #     })
-        # if self.option('single_fastq').is_set:
-        #     self.qc.set_options({
-        #         'single_fastq': self.option('single_fastq')
-        #     })
+    def run_filecheck(self):
+        self.filecheck.set_options({
+            "in_fastq": self.option("in_fastq")
+            })
+        if self.option("database") == "custom_mode":
+            self.filecheck.set_options({
+                "ref_fasta": self.option("ref_fasta"),
+                "ref_taxon": self.option("ref_taxon"),
+            })
+        if self.option('env_table').is_set:
+            self.filecheck.set_options({
+                'env_table': self.option('env_table')
+                })
+        if self.option('group_table').is_set:
+            self.filecheck.set_options({
+                'group_table': self.option('group_table')
+                })
+        self.filecheck.run()
 
+    def run_qc(self):
         self.qc.set_options({
                 "in_fastq": self.option("in_fastq")
             })
-        # if self.option("fastq").format is 'sequence.fastq_dir':
-        #     self.qc.set_options({
-        #         "filename_sample": self.option("filename_sample")
-        #         })
-        # if self.option("fastq").format is 'sequence.fastq':
-        #     self.qc.set_options({
-        #         "seqname_sample": self.option("seqname_sample")
-        #         })
         self.qc.on("start", self.set_step, {'start': self.step.qcstat})
         self.qc.on("end", self.set_output, "qc")
         self.qc.run()
@@ -168,14 +171,14 @@ class MetaBaseWorkflow(Workflow):
         #     self.beta.set_options({
         #         'phy_newick': self.option('phy_newick')
         #         })
-        # if self.option('envtable').is_set:
-        #     self.beta.set_options({
-        #         'envtable': self.option('envtable')
-        #         })
-        # if self.option('group').is_set:
-        #     self.beta.set_options({
-        #         'group': self.option('group')
-        #         })
+        if self.option('env_table').is_set:
+            self.beta.set_options({
+                'env_table': self.option('env_table')
+                })
+        if self.option('group_table').is_set:
+            self.beta.set_options({
+                'group_table': self.option('group_table')
+                })
         self.beta.on("end", self.set_output, "beta")
         self.beta.on("start", self.set_step, {'start': self.step.betadiv})
         self.beta.on("end", self.set_step, {'end': self.step.betadiv})
@@ -270,7 +273,8 @@ class MetaBaseWorkflow(Workflow):
         self.end()
 
     def run(self):
-        self.run_qc()
+        self.run_filecheck()
+        self.on_rely(self.filecheck, self.run_qc)
         self.on_rely(self.qc, self.run_otu)
         self.on_rely(self.otu, self.run_taxon)
         self.on_rely(self.otu, self.run_phylotree)
