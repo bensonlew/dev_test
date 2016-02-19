@@ -30,7 +30,7 @@ class FastqDirFile(Directory):
         self.has_work_dir = False
         self.work_dir = ""
         self.has_list_file = False
-        self.samples - list()
+        self.samples = list()
 
     def get_info(self):
         """

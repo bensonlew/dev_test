@@ -50,7 +50,7 @@ class SeqTaxonFile(File):
                 line = f.readline().rstrip()
                 if not line:
                     break
-                taxline = re.split(r'\s', line)[1]
+                taxline = re.split(r'\t', line)[1]
                 taxs = re.split(r';\s*', taxline)
                 for t in taxs:
                     if re.match(r'[dkpcofgs]\_\_\S+', t):
