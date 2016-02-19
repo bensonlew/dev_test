@@ -5,7 +5,8 @@ rownames(otu_data) <- otu_data[,1]
 otu_data <- otu_data[,-1]
 colnames(otu_data) <- samp
 #read groupfile to make the dataframe for test
-group <- read.table("${groupfile}",sep="\t",comment.char = '')
+group <- read.table("${groupfile}",sep="\t")
+#group <- group[-1,]
 gsamp <- group[,1]
 g1 <- group[1,2]
 g2 <- group[which(!group[,2] %in% g1),2]

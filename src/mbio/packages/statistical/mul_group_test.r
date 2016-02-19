@@ -72,7 +72,7 @@ rownames(data) <- data[,1]
 data <- data[,-1]
 colnames(data) <- samp
 
-group <- read.table('${groupfile}',sep = '\t',comment.char = '')
+group <- read.table('${groupfile}',sep = '\t')
 gsamp <- group[,1]
 data <- data[,which(samp %in% gsamp)]
 data <- data[apply(data,1,function(x)any(x>0)),]
