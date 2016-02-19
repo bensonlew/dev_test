@@ -9,10 +9,10 @@ class FileCheckAgent(Agent):
     """
     version 1.0
     author: xuting
-    last_modify: 2015.02.17
+    last_modify: 2016.02.17
     用于在workflow开始之前对所输入的文件进行详细的内容检测
     """
-    def __inin__(self, parent):
+    def __init__(self, parent):
         super(FileCheckAgent, self).__init__(parent)
         options = [
             {"name": "in_fastq", "type": "infile", 'format': "sequence.fastq, sequence.fastq_dir"},
@@ -76,16 +76,17 @@ class FileCheckTool(Tool):
     def check_group(self):
         if self.option("group_table"):
             self.logger.info("正在检测group文件")
+            self.option("group_table").get_info()
             gp_sample = self.option("group_table").prop["sample"]
             for gp in gp_sample:
                 if gp not in self.samples:
                     raise Exception("group表出错, 样本{}在fastq文件中未出现".format(gp))
         else:
-            self.logger("未检测到group文件， 跳过...")
+            self.logger.info("未检测到group文件， 跳过...")
 
     def check_ref(self):
         if self.option("ref_fasta").is_set:
-            self.logger.info()
+            self.logger.info("开始校验ref_fasta和ref_taxon文件")
             fasta_name = self.option("ref_fasta").get_all_seq_name()
             taxon_name = self.option("ref_taxon").get_all_name()
             for f_name in fasta_name:
@@ -93,9 +94,15 @@ class FileCheckTool(Tool):
                     raise Exception("序列名{}在taxon文件里未出现")
             if len(fasta_name) != len(taxon_name):
                 raise Exception("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
+        else:
+            self.logger.info("未检测到ref_fasta和ref_taxon文件， 跳过...")
 
     def check_env(self):
-        self.option("env_table").check()
+        if self.option("env_table").is_set:
+            self.logger.info("开始校验env文件")
+            self.option("env_table").check()
+        else:
+            self.logger.info("未检测到env文件， 跳过...")
 
     def run(self):
         super(FileCheckTool, self).run()

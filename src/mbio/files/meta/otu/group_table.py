@@ -29,7 +29,7 @@ class GroupTableFile(File):
         row = 0
         self.format_check()
         with open(self.prop['path'], 'r') as f:
-            sample = dict()
+            sample = list()
             line = f.readline().rstrip("\r\n")
             line = re.split("\t", line)
             header = list()
@@ -40,8 +40,8 @@ class GroupTableFile(File):
                 line = line.rstrip("\r\n")
                 line = re.split("\t", line)
                 row += 1
-                if line[0] not in sample.keys():
-                    sample[line[0]] = 1
+                if line[0] not in sample:
+                    sample.append(line[0])
             return (sample, header)
 
     def format_check(self):
