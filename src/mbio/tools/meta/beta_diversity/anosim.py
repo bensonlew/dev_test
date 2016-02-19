@@ -21,8 +21,8 @@ class AnosimAgent(Agent):
         options = [
             {"name": "dis_matrix", "type": "infile",
              "format": "meta.beta_diversity.distance_matrix"},
-            {"name": "group", "type": "infile",
-             "format": "meta.otu.group_table"},
+            {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "grouplabs", "type": "string", "default": ""},
             {"name": "permutations", "type": "int", "default": 999}
         ]
         self.add_option(options)
@@ -53,9 +53,14 @@ class AnosimAgent(Agent):
             raise OptionError('必须提供分组信息文件')
         else:
             self.option('group').get_info()
+            if self.option('grouplabs'):
+                if self.option('grouplabs') not in self.option('group').prop['group_scheme']:
+                    raise OptionError('选定的分组方案名:%s在分组文件中不存在' % self.option('grouplabs'))
+            else:
+                self.option('grouplabs', self.option('group').prop['group_scheme'][0])
             if len(samplelist) != len(self.option('group').prop['sample']):
                 raise OptionError('分组文件中样本数量：%s与距离矩阵中的样本数量：%s不一致' % (len(self.option('group').prop['sample']),
-                    len(samplelist)))
+                                  len(samplelist)))
             for sample in self.option('group').prop['sample']:
                 if sample not in samplelist:
                     raise OptionError('分组文件的样本(%s)在otu表的样本中不存在' % sample)
@@ -84,32 +89,19 @@ class AnosimTool(Tool):
         super(AnosimTool, self).run()
         self.run_compare_categories()
 
-    def add_name(self):
-        """
-        给一个分组文件添加表头
-        """
-        groupfile = open(self.option('group').prop['path'], 'r')
-        new = open(os.path.join(self.work_dir, 'temp.gup'), 'w')
-        new.write('#ID\tgroup\n')
-        for i in groupfile:
-            new.write(i)
-        groupfile.close()
-        new.close()
-
     def run_compare_categories(self):
         """
         运行qiime:compare_categories
         """
         cmd = self.cmd_path
-        self.add_name()
-        cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c "group" -n %d' % (
-            os.path.join(self.work_dir, 'temp.gup'),
-            self.option('dis_matrix').prop['path'],
-            self.work_dir, self.option('permutations'))
-        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c "group" -n %d' % (
-            os.path.join(self.work_dir, 'temp.gup'),
-            self.option('dis_matrix').prop['path'],
-            self.work_dir, self.option('permutations'))
+        cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c %s -n %d' % (self.option('group').path,
+                                                                         self.option('dis_matrix').prop['path'],
+                                                                         self.work_dir, self.option('grouplabs'),
+                                                                         self.option('permutations'))
+        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c %s -n %d' % (self.option('group').path,
+                                                                         self.option('dis_matrix').prop['path'],
+                                                                         self.work_dir, self.option('grouplabs'),
+                                                                         self.option('permutations'))
         self.logger.info('运行qiime:compare_categories.py,计算adonis&anosim程序')
         dist_anosim_command = self.add_command('anosim', cmd1)
         dist_anosim_command.run()
@@ -144,11 +136,11 @@ class AnosimTool(Tool):
     def format(self):
         """
         将‘adonis_results.txt’和‘anosim_results.txt’两个文件的内容
-        整理写入到表格‘format_results.txt’中
+        整理写入到表格‘format_results.xls’中
         """
         an = open(os.path.join(self.output_dir, 'anosim_results.txt'))
         ad = open(os.path.join(self.output_dir, 'adonis_results.txt'))
-        new = open(os.path.join(self.output_dir, 'format_results.txt'), 'w')
+        new = open(os.path.join(self.output_dir, 'format_results.xls'), 'w')
         an_line = an.readlines()
         ad_r = ''
         ad_p = ''

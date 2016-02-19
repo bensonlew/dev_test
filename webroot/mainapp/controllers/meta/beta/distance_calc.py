@@ -34,7 +34,7 @@ class DistanceCalc(object):
             return json.dumps(info)
         params_json = {
             'otu_id': data.otu_id,
-            'level_id': data.level_id,
+            'level_id': int(data.level_id),
             'distance_algorithm': data.distance_algorithm
         }
         if otu_info:
@@ -42,7 +42,7 @@ class DistanceCalc(object):
                 'project_sn': otu_info['project_sn'],
                 'task_id': otu_info['task_id'],
                 'otu_id': ObjectId(data.otu_id),
-                'level_id': data.level_id,
+                'level_id': int(data.level_id),
                 'name': (data.distance_algorithm + '_' + otu_info['name'] +
                          '_' + time.asctime(time.localtime(time.time()))),
                 'distance_algorithm': data.distance_algorithm,
@@ -71,7 +71,7 @@ class DistanceCalc(object):
                     'update_info': update_info,
                     'otu_file': data.otu_id,
                     'otu_id': data.otu_id,
-                    'level': data.level_id,
+                    'level': int(data.level_id),
                     'method': data.distance_algorithm,
                     'matrix_id': str(distance_matrix_id)
                 }
