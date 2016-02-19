@@ -27,14 +27,17 @@ class FastqFile(File):
         self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/fastq_to_fasta")
         self.is_convert = False
         self.has_sample_info = False
+        self.samples = list()
+        self.is_gz = False
 
     @property
-    def is_gz(self):
+    def is_gzip(self):
         """
         依据文件后缀名检测是是gz个是压缩文件
         """
-        filename = self.prop['path']
-        if re.search(r'\.gz$', filename):
+        if re.search('\.tar\.gz$', self.prop['path']):
+            raise FileError("不支持tar.gz格式文件")
+        if re.search('\.gz$', self.prop['path']) or re.search('\.gzip$', self.prop['path']):
             return True
         else:
             return False
@@ -81,22 +84,20 @@ class FastqFile(File):
         检测文件是否满足要求,发生错误时应该触发FileError异常
         :return: bool
         """
-        if re.search(r'\.gz$', self.prop['path']):
-            try:
-                with gzip.open(self.prop['path'], 'rb') as f:
-                    line1 = f.next()
-                    line = f.next()
-                    line = f.next()
-                    line = f.next()
-                    line5 = f.next()
-                    if not (re.search(r'^@', line1) and re.search(r'^@', line5)):
-                        raise FileError("非压缩后的fastq格式文件")
-                    myline1 = re.split('_', line1)
-                    myline2 = re.split('_', line5)
-                    if len(myline1) > 1 and len(myline2) > 1:
-                        self.has_sample_info = True
-            except Exception:
-                raise FileError("非压缩后的fastq格式文件")
+        self.is_gz = self.is_gzip
+        if self.is_gz:
+            with gzip.open(self.prop['path'], 'rb') as f:
+                line1 = f.next()
+                line = f.next()
+                line = f.next()
+                line = f.next()
+                line5 = f.next()
+                if not (re.search(r'^@', line1) and re.search(r'^@', line5)):
+                    raise FileError("非压缩后的fastq格式文件")
+                myline1 = re.split('_', line1)
+                myline2 = re.split('_', line5)
+                if len(myline1) > 1 and len(myline2) > 1:
+                    self.has_sample_info = True
         else:
             with open(self.prop['path'], 'r') as r:
                 line = r.next()
@@ -113,6 +114,53 @@ class FastqFile(File):
                 if len(myline1) > 1 and len(myline2) > 1:
                     self.has_sample_info = True
         return True
+
+    def check_content(self):
+        """
+        遍历一个fastq文件，查看是否符合fastq的规范， 并获得所有的样本名
+        可能需要较长的时间
+        """
+        if self.is_gz:
+            with gzip.open(self.prop['path'], 'rb') as f:
+                count = 2
+                for line in f:
+                    count = count + 4
+                    line = line.rstrip("\r\n")
+                    if not re.search(r'^@', line):
+                        raise Exception("未检测到@，非压缩后的fastq格式文件")
+                    line = re.sub("^@", "", line)
+                    line = re.split('_', line)
+                    line.pop(-1)
+                    sp_name = "_".join(line)
+                    if sp_name not in self.samples:
+                        self.samples.append(sp_name)
+                    line2 = f.next()
+                    f.next()
+                    line4 = f.next()
+                    if len(line2) != len(line4):
+                        raise Exception("第{}行碱基的长度与它的质量文件的长度不相等".format(str(count)))
+            self.set_property("samples", self.samples)
+        else:
+            with open(self.prop['path'], 'rb') as f:
+                count = 2
+                for line in f:
+                    count = count + 4
+                    line = line.rstrip("\r\n")
+                    if not re.search(r'^@', line):
+                        raise Exception("未检测到@，非fastq格式文件")
+                    line = re.sub("^@", "", line)
+                    line = re.split('_', line)
+                    line.pop(-1)
+                    sp_name = "_".join(line)
+                    if sp_name not in self.samples:
+                        self.samples.append(sp_name)
+                    line2 = f.next()
+                    f.next()
+                    line4 = f.next()
+                    if len(line2) != len(line4):
+                        raise Exception("第{}行碱基的长度与它的质量文件的长度不相等".format(str(count)))
+            self.set_property("samples", self.samples)
+        return self.samples
 
     def _prepare(self, work_path):
         """

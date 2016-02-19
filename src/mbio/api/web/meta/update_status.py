@@ -84,6 +84,7 @@ class UpdateStatus(Log):
                 json_str = data.json
                 json_obj = json.loads(json_str)
                 return json_obj["options"][self._sheetname]
+                # 返回mysql的workflow表的json这一列的option字段下的update_api字段下的值
             else:
                 self.log("没有找到对应的任务:%s" % self._task_id)
         except Exception, e:
@@ -91,6 +92,7 @@ class UpdateStatus(Log):
         return False
 
     def update_log(self, id_value, status, desc, create_time):
+        # id_value  {表id:表名, 表id: 表名,...}
         for k in id_value:
             obj_id = k
             dbname = id_value[k]
@@ -100,6 +102,7 @@ class UpdateStatus(Log):
                     obj_id = ObjectId(obj_id)
                 else:
                     raise Exception("{}的值必须为ObjectId对象或其对应的字符串!".format(self._sheetname))
+            create_time = str(create_time)
             if status == "finish":
                 status = "end"
                 desc = ""
@@ -109,6 +112,24 @@ class UpdateStatus(Log):
                 "created_ts": create_time
             }
             collection.find_one_and_update({"_id": obj_id}, {'$set': data}, upsert=True)
+
+            # 新建或更新sg_status表
+            collection = self.mongodb['sg_status']
+            if status == "start":
+                insert_data = {
+                    "table_id": obj_id,
+                    "type_name": dbname,
+                    "status": "start",
+                    "is_new": "new",
+                    "desc": desc
+                }
+                collection.insert_one(insert_data)
+            else:
+                insert_data = {
+                    "status": status,
+                    "desc": desc
+                }
+                collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
             self._mongo_client.close()
 
 

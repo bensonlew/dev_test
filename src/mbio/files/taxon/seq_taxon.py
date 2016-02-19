@@ -50,7 +50,7 @@ class SeqTaxonFile(File):
                 line = f.readline().rstrip()
                 if not line:
                     break
-                taxline = re.split(r'\s', line)[1]
+                taxline = re.split(r'\t', line)[1]
                 taxs = re.split(r';\s*', taxline)
                 for t in taxs:
                     if re.match(r'[dkpcofgs]\_\_\S+', t):
@@ -62,3 +62,14 @@ class SeqTaxonFile(File):
                 if not line:
                     break
         return (form, seq_num)
+
+    def get_all_name(self):
+        my_name = list()
+        with open(self.prop["path"], 'rb') as r:
+            for line in r:
+                line = re.split('\t', line)
+                if line[0] not in my_name:
+                    my_name.append(line[0])
+                else:
+                    raise Exception("名称{}在ref_taxon表里重复".format(line[0]))
+        return my_name

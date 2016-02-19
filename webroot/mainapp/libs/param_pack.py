@@ -13,3 +13,17 @@ def param_pack(param):
     params = re.sub(':\s+', ':', params)
     params = re.sub(',\s+', ',', params)
     return params
+
+
+def group_detail_sort(detail):
+    table_list = json.loads(detail)
+    result_list = []
+    for table_dict in table_list:
+        if not isinstance(table_dict, dict):
+            raise Exception("传入的table_dict不是一个字典")
+        for keys in table_dict.keys():
+            table_dict[keys] = sorted(table_dict[keys])
+        sort_key = dict(OrderedDict(sorted(table_dict.items(), key=lambda t: t[0])))
+        result_list.append(sort_key)
+    result_list = json.dumps(result_list)
+    return result_list

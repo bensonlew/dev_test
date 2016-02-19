@@ -2,7 +2,6 @@
 #  Author: qiuping
 #  This script is designes to identify differentially abundant features between multiple groups
 library(boot)
-library(qvalue)
 library(stats)
 
 #  a function to summary the values for boxplot, including min,Q1,median,Q3,max
@@ -26,7 +25,7 @@ boxplot_stat <- function(x){
     cname <- c(paste('min(',n,')',sep = ''),paste('Q1(',n,')',sep = ''),paste('Median(',n,')',sep = ''),paste('Q3(',n,')',sep = ''),paste('max(',n,')',sep = ''))
     head <- c(head,cname)
   }
-  #head <- head[-1]
+  head <- head[-1]
   rownames(box_result) <- colnames(x)[-length(x)]
   colnames(box_result) <- head
   return (box_result)
@@ -58,10 +57,10 @@ summary_stat <- function(x){
     stat_result[1,coln+1] <- paste("sd(",s_name[m],")",sep='')
     coln <- coln+2
   }
-  rownames(stat_result) <- c(" ",colnames(s[[1]])[-length(colnames(s[[1]]))])
   head <- stat_result[1,]
   stat_result <- stat_result[-1,]
-  colnames(stat_result) <- c(" ", head)
+  colnames(stat_result) <- head
+  rownames(stat_result) <- colnames(s[[1]])[-length(colnames(s[[1]]))]
   return (stat_result)
 }
 
@@ -74,12 +73,15 @@ data <- data[,-1]
 colnames(data) <- samp
 
 group <- read.table('${groupfile}',sep = '\t',comment.char = '')
-gsamp <- group[-1,1]
+gsamp <- group[,1]
 data <- data[,which(samp %in% gsamp)]
 data <- data[apply(data,1,function(x)any(x>0)),]
-da <- data
-data <- apply(da,2,function(x)as.numeric(x)/sum(as.numeric(x)))
-rownames(data) <- rownames(da)
+lendata <- nrow(data)
+if(lendata > 1){
+  da <- data
+  data <- apply(da,2,function(x)as.numeric(x)/sum(as.numeric(x)))
+  rownames(data) <- rownames(da)  
+}
 data <- t(data)
 data <- as.data.frame(data)
 samp <- samp[which(samp %in% gsamp)]
@@ -102,14 +104,12 @@ for(i in 1:(ncol(data)-1)){
   pvalue <- c(pvalue,st$p.value)
 }
 pvalue <- pvalue[-1]
-pvalue <- p.adjust(as.numeric(pvalue),method = '${mul_test}')
+pvalue <- p.adjust(as.numeric(pvalue),method = 'none')
 result <- cbind(result,pvalue)
-qv <- qvalue(as.numeric(pvalue),lambda = 0.5)
-qvalue <- qv$qvalue
+qvalue <- p.adjust(as.numeric(pvalue),method = '${mul_test}')
 result <- cbind(result,qvalue)
 result_order <- result[order(result$pvalue),]
 write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=T)
-
 boxfile <- boxplot_stat(data)
 write.table(boxfile,"${boxfile}",sep="\t",col.names=T,row.names=T)
 
