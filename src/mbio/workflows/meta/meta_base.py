@@ -46,7 +46,7 @@ class MetaBaseWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.filecheck = self.add_tool("meta.file_metabase")
+        self.filecheck = self.add_tool("meta.filecheck.file_metabase")
         self.qc = self.add_module("meta.qc.miseq_qc")
         self.otu = self.add_tool("meta.otu.usearch_otu")
         self.phylo = self.add_tool("phylo.phylo_tree")
