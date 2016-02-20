@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
-# import os
 from mbio.api.to_file.meta import *
+from mbio.packages.alpha_diversity.group_file_split import group_file_spilt
 
 
 class EstTTestWorkflow(Workflow):
@@ -23,31 +23,49 @@ class EstTTestWorkflow(Workflow):
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.est_t_test = self.add_tool('statistical.metastat')
+        # self.est_t_test = self.add_tool('statistical.metastat')
+        self.tools = {}
+        self.run_times = 0
+        self.tools_num = 0
+        self.group_file_dir = self.work_dir + '/two_group_output'
+
+    def metastat_run(self, group_file, file_name):
+        options = {
+                'student_input': self.option('est_table'),
+                'test': self.option('test_type'),
+                'student_group': group_file
+                }
+        self.tools[file_name].set_options(options)
+        # self.on_rely(self.tools[file_name], self.set_db, str(self.run_times))
+        self.tools[file_name].on('end', self.set_db, str(self.run_times))
+        self.tools[file_name].run()
 
     def run(self):
-        # super(EstTTestWorkflow, self).run()
-        # if self.UPDATE_STATUS_API:
-        #     self.est_t_test.UPDATE_STATUS_API = self.UPDATE_STATUS_API
-        options = {
-            'student_input': self.option('est_table'),
-            'test': self.option('test_type'),
-            'student_group': self.option('group_table')
-            }
-        self.est_t_test.set_options(options)
-        self.on_rely(self.est_t_test, self.set_db)
-        self.est_t_test.run()
-        self.output_dir = self.est_t_test.output_dir
+        file_path = group_file_spilt(self.option('group_table').prop['path'], self.group_file_dir)
+        files = os.listdir(file_path)
+        self.tools_num = len(files)
+        for f in files:
+            self.run_times += 1
+            print(self.run_times)
+            self.tools[f] = self.add_tool('statistical.metastat')
+            # print(self.tools.values())
+            group_file = os.path.join(file_path, f)
+            print(group_file)
+            self.metastat_run(group_file, f)
         super(EstTTestWorkflow, self).run()
 
-    def set_db(self):
+    def set_db(self, event):
         """
         保存结果指数表到mongo数据库中
         """
+        obj = event['bind_object']
         api_est_t_test = self.api.est_t_test
-        est_t_path = self.output_dir+"/student_result.xls"
-        print(est_t_path)
+        est_t_path = obj.output_dir+"/student_result.xls"
+        self.logger.info(est_t_path)
+        # print(est_t_path)
         if not os.path.isfile(est_t_path):
             raise Exception("找不到报告文件:{}".format(est_t_path))
         api_est_t_test.add_est_t_test_detail(est_t_path, self.option('est_t_test_id'))
-        self.end()
+        # os.rename(est_t_path, self.output_dir+'/student_result{}.xls'.format(random.randint(1, 100)))
+        if event['data'] == str(self.tools_num):
+            self.end()

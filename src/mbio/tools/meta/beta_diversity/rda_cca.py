@@ -20,7 +20,8 @@ class RdaCcaAgent(Agent):
         options = [
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "level", "type": "string", "default": "otu"},
-            {"name": "envtable", "type": "infile", "format": "meta.env_table"}
+            {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "envlabs", "type": "string", "default": ""}
         ]
         self.add_option(options)
         self.step.add_steps('RDA_CCA')
@@ -45,6 +46,17 @@ class RdaCcaAgent(Agent):
         else:
             return self.option('otutable').prop['path']
 
+    def get_new_env(self):
+        """
+        根据envlabs生成新的envtable
+        """
+        if self.option('envlabs'):
+            new_path = self.work_dir + '/temp_env_table.xls'
+            self.option('envtable').sub_group(new_path, self.option('envlabs').split(','))
+            self.option('envtable').set_path(new_path)
+        else:
+            self.option('envlabs', ','.join(open(self.option('envlabs'), 'r').readline().strip().split('\t')[1:]))
+
     def check_options(self):
         """
         重写参数检查
@@ -55,10 +67,21 @@ class RdaCcaAgent(Agent):
         if not self.option('envtable').is_set:
             raise OptionError('必须提供环境因子表')
         else:
+            self.get_new_env()
+            # with open(self.option('envtable').path, 'r') as f:
+            #     lines = f.readlines()
+            #     for line in lines[1:]:
+            #         values = line.strip().split('\t')[1:]
+            #         for i in values:
+            #             try:
+            #                 float(i)
+            #             except ValueError:
+            #                 raise OptionError('计算的环境因子必须是数量型,不可为分类型:%s' % i)
+            pass
             self.option('envtable').get_info()
             if len(self.option('envtable').prop['sample']) != len(samplelist):
                 raise OptionError('OTU表中的样本数量:%s与环境因子表中的样本数量:%s不一致' % (len(samplelist),
-                    len(self.option('envtable').prop['sample'])))
+                                  len(self.option('envtable').prop['sample'])))
             for sample in self.option('envtable').prop['sample']:
                 if sample not in samplelist:
                     raise OptionError('环境因子中存在，OTU表中的未知样本:%s' % sample)
@@ -122,8 +145,10 @@ class RdaCcaTool(Tool):
         tablepath = self.formattable
         self.logger.info(tablepath)
         cmd = self.cmd_path
-        cmd += ' -type rdacca -community %s -environment %s -outdir %s' % (
-            tablepath, self.option('envtable').prop['path'], self.work_dir)
+        self.logger.info(' + '.join(self.option('envlabs').split(',')))
+        cmd += ' -type rdacca -community %s -environment %s -outdir %s -env_labs %s' % (
+               tablepath, self.option('envtable').prop['path'],
+               self.work_dir, '+'.join(self.option('envlabs').split(',')))
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info('生成 cmd.r 文件成功')
@@ -138,11 +163,12 @@ class RdaCcaTool(Tool):
             self.logger.info('Rda/Cca计算失败')
             self.set_error('R程序计算Rda/Cca失败')
         allfiles = self.get_filesname()
-        for i in [1, 2, 3, 4]:
-            newname = '_'.join(os.path.basename(allfiles[i]).split('_')[-2:])
-            self.linkfile(allfiles[i], newname)
+        for i in [1, 2, 3, 4, 5]:
+            if allfiles[i]:
+                newname = '_'.join(os.path.basename(allfiles[i]).split('_')[-2:])
+                self.linkfile(self.work_dir + '/rda/' + allfiles[i], newname)
         newname = os.path.basename(allfiles[0]).split('_')[-1]
-        self.linkfile(allfiles[0], newname)
+        self.linkfile(self.work_dir + '/rda/' + allfiles[0], newname)
         self.logger.info('运行ordination.pl程序计算rda/cca完成')
         self.end()
 
@@ -162,14 +188,15 @@ class RdaCcaTool(Tool):
         """
         获取并检查文件夹下的文件是否存在
 
-        :return rda_imp,rda_spe,rda_dca,rda_site,rda_env: 返回各个文件
+        :return rda_imp,rda_spe,rda_dca,rda_site,rda_biplot: 返回各个文件
         """
         filelist = os.listdir(self.work_dir + '/rda')
         rda_imp = None
         rda_spe = None
         rda_dca = None
         rda_site = None
-        rda_env = None
+        rda_biplot = None
+        rda_centroids = None
         for name in filelist:
             if '_importance.xls' in name:
                 rda_imp = name
@@ -179,13 +206,11 @@ class RdaCcaTool(Tool):
                 rda_spe = name
             elif '_dca.txt' in name:
                 rda_dca = name
-            elif '_environment.xls' in name:
-                rda_env = name
-        if rda_imp and rda_site and rda_spe and rda_dca and rda_env:
-            return [self.work_dir + '/rda/' + rda_dca,
-                    self.work_dir + '/rda/' + rda_imp,
-                    self.work_dir + '/rda/' + rda_spe,
-                    self.work_dir + '/rda/' + rda_site,
-                    self.work_dir + '/rda/' + rda_env]
+            elif '_biplot.xls' in name:
+                rda_biplot = name
+            elif '_centroids' in name:
+                rda_centroids = name
+        if rda_imp and rda_site and rda_spe and rda_dca and (rda_biplot or rda_centroids):
+            return [rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids]
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')

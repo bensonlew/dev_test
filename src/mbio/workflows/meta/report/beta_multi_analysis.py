@@ -56,12 +56,10 @@ class BetaMultiAnalysisWorkflow(Workflow):
                     all_find[n] = m.strip('\'')
                 all_find = dict((i[1], i[0]) for i in enumerate(all_find))
                 # for test
-                myfile = open(self.work_dir + '/newicktree.test', 'w')
-                myfile.writelines([i + '\n' for i in all_find.iterkeys()])
-                myfile.close()
+                # myfile = open(self.work_dir + '/newicktree.test', 'w')
+                # myfile.writelines([i + '\n' for i in all_find.iterkeys()])
+                # myfile.close()
                 # test ending
-
-                self.logger.info(str(all_find))
                 self.logger.info(len(all_find.values()))
 
                 def match_newname(matchname):
@@ -86,7 +84,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
                 new_all.append(all_lines[0])
                 for line in all_lines[1:]:
                     name = line.split('\t')
-                    if all_find.has_key(name[0]):
+                    if name[0] in all_find:
                         name[0] = 'OTU' + str(all_find[name[0]] + 1)
                     new_all.append('\t'.join(name))
                 otu_file_temp = open(temp_otu_file, 'w')
@@ -104,10 +102,11 @@ class BetaMultiAnalysisWorkflow(Workflow):
         """
         保存结果距离矩阵表到mongo数据库中
         """
-        # api_distance = self.api.distance
-        # matrix_path = self.output_dir + '/' + os.listdir(self.output_dir)[0]
-        # if not os.path.isfile(matrix_path):
-        #     raise Exception("找不到报告文件:{}".format(matrix_path))
-        # api_distance.add_dist_table(matrix_path, dist_id=ObjectId(self.option('matrix_id')), )
+        api_multi = self.api.beta_multi_analysis
+        dir_path = self.output_dir
+        if not os.path.isdir(dir_path):
+            raise Exception("找不到报告文件夹:{}".format(dir_path))
+        api_multi.add_beta_multi_analysis_result(dir_path, self.option('analysis_type'),
+                                                 ObjectId(self.option('multi_analysis_id')))
         self.logger.info('运行self.end')
         self.end()

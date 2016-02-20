@@ -20,8 +20,8 @@ class PcaAgent(Agent):
         options = [
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "level", "type": "string", "default": "otu"},
-            {"name": "envtable", "type": "infile",
-             "format": "meta.env_table"}
+            {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "envlabs", "type": "string", "default": ""}
         ]
         self.add_option(options)
         self.step.add_steps('PCAanalysis')
@@ -46,6 +46,17 @@ class PcaAgent(Agent):
         else:
             return self.option('otutable').prop['path']
 
+    def get_new_env(self):
+        """
+        根据envlabs生成新的envtable
+        """
+        if self.option('envlabs'):
+            new_path = self.work_dir + '/temp_env_table.xls'
+            self.option('envtable').sub_group(new_path, self.option('envlabs').split(','))
+            self.option('envtable').set_path(new_path)
+        else:
+            pass
+
     def check_options(self):
         """
         重写参数检查
@@ -54,10 +65,11 @@ class PcaAgent(Agent):
             raise OptionError('必须提供otu表')
         samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
         if self.option('envtable').is_set:
+            self.get_new_env()
             self.option('envtable').get_info()
             if len(self.option('envtable').prop['sample']) != len(samplelist):
                 raise OptionError('OTU表中的样本数量:%s与环境因子表中的样本数量:%s不一致' % (len(samplelist),
-                    len(self.option('envtable').prop['sample'])))
+                                  len(self.option('envtable').prop['sample'])))
             for sample in self.option('envtable').prop['sample']:
                 if sample not in samplelist:
                     raise OptionError('环境因子中存在，OTU表中的未知样本%s' % sample)

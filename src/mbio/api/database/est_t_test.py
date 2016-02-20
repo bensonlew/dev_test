@@ -13,6 +13,16 @@ class EstTTest(Base):
         self._db_name = "sanger"
 
     @report_check
+    def get_another_name(self, name, group_list):
+        another = ''
+        for n in group_list:
+            if n == name:
+                pass
+            else:
+                another = n
+        return another
+
+    @report_check
     def add_est_t_test_detail(self, file_path, table_id):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
@@ -33,6 +43,7 @@ class EstTTest(Base):
                 for name in group_list:
                     data = [("alpha_diversity_id", table_id), ("index_type", line_data[0]), ("qvalue", line_data[length-1]), ("pvalue", line_data[length-2])]
                     data.append(("category_name", name))
+                    data.append(("compare_name", self.get_another_name(name, group_list)))
                     data.append(("mean", line_data[i]))
                     data.append(("sd", line_data[i+1]))
                     i += 2

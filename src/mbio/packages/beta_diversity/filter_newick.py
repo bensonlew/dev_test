@@ -28,7 +28,7 @@ class otu(object):
                 raise Exception('初始化参数不正确！info:%s' % e)
 
     def __getattr__(self, name):
-        if self.__dict.has_key(name):
+        if name in self.__dict:
             return self.__dict[name]
         else:
             raise Exception('错误的属性名称：可能是OTU表detail中缺失数据！')
@@ -83,7 +83,7 @@ class otu_table(object):
         self.otus = self._get_all_otus()
 
     def __getattr__(self, name):
-        if self.__dict.has_key(name):
+        if name in self.__dict:
             return self.__dict[name]
         else:
             raise Exception('错误的属性名称！')

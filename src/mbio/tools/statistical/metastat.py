@@ -320,8 +320,8 @@ class MetastatTool(Tool):
                     self.logger.info("设置mann分析结果目录失败")
             elif t == 'anova':
                 try:
-                    os.system('sed -i "1s/\(^.\)/ \t\1/" %s' % (self.work_dir + '/anova_result.xls'))
-                    os.system('sed -i "1s/\(^.\)/ \t\1/" %s' % (self.work_dir + '/anova_boxfile.xls'))
+                    # os.system('sed -i "1s/\(^.\)/\t\1/" %s' % (self.work_dir + '/anova_result.xls'))
+                    # os.system('sed -i "1s/\(^.\)/\t\1/" %s' % (self.work_dir + '/anova_boxfile.xls'))
                     os.link(self.work_dir + '/anova_result.xls', self.output_dir + '/anova_result.xls')
                     os.link(self.work_dir + '/anova_boxfile.xls', self.output_dir + '/anova_boxfile.xls')
                     self.logger.info("设置anova分析的结果目录成功")
@@ -329,8 +329,8 @@ class MetastatTool(Tool):
                     self.logger.info("设置anova分析结果目录失败")
             elif t == 'kru_H':
                 try:
-                    os.system('sed -i "1s/\(^.\)/ \t\1/" %s' % (self.work_dir + '/kru_H_result.xls'))
-                    os.system('sed -i "1s/\(^.\)/ \t\1/" %s' % (self.work_dir + '/kru_H_boxfile.xls'))
+                    # os.system('sed -i "1s/\(^.\)/\t\1/" %s' % (self.work_dir + '/kru_H_result.xls'))
+                    # os.system('sed -i "1s/\(^.\)/\t\1/" %s' % (self.work_dir + '/kru_H_boxfile.xls'))
                     os.link(self.work_dir + '/kru_H_result.xls', self.output_dir + '/kru_H_result.xls')
                     os.link(self.work_dir + '/kru_H_boxfile.xls', self.output_dir + '/kru_H_boxfile.xls')
                     self.logger.info("设置kru_H分析的结果目录成功")

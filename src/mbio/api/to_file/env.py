@@ -26,10 +26,10 @@ def export_env_table(data, option_name, dir_path, bind_obj=None):
         raise Exception('环境因子id没有找到对应的detail数据')
     bind_obj.logger.info('ALL ENVS:' + ' '.join(all_envs))
     with open(file_path, 'wb') as f:
-        f.write('\t' + '\t'.join(all_envs))
+        f.write('\t' + '\t'.join(all_envs) + '\n')
         for one in results:
             line_list = [one['specimen_name']]
             for env in all_envs:
-                line_list.append(one[env])
+                line_list.append(str(one[env]))
             f.write('\t'.join(line_list) + '\n')
     return file_path

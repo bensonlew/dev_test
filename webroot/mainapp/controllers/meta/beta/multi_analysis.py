@@ -32,7 +32,7 @@ class MultiAnalysis(object):
             if otu_info:
                 params_json = {
                     'otu_id': data.otu_id,
-                    'level_id': data.level_id,
+                    'level_id': int(data.level_id),
                     'analysis_type': data.analysis_type,
                 }
                 env_id = ''
@@ -76,12 +76,11 @@ class MultiAnalysis(object):
                     else:
                         info = {'success': False, 'info': 'rda_cca分析缺少参数:env_id!'}
                         return json.dumps(info)
-                print params_json
                 insert_mongo_json = {
                     'project_sn': otu_info['project_sn'],
                     'task_id': otu_info['task_id'],
                     'otu_id': object_otu_id,
-                    'level_id': data.level_id,
+                    'level_id': int(data.level_id),
                     'name': (data.analysis_type + '_' + otu_info['name'] +
                              '_' + time.asctime(time.localtime(time.time()))),
                     'table_type': data.analysis_type,
@@ -92,7 +91,6 @@ class MultiAnalysis(object):
                     'desc': '',
                     'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
-                print insert_mongo_json
                 collection = get_mongo_client()['sanger']['sg_beta_multi_analysis']
                 multi_analysis_id = collection.insert_one(insert_mongo_json).inserted_id
                 update_info = {str(multi_analysis_id): 'sg_beta_multi_analysis'}
@@ -114,7 +112,7 @@ class MultiAnalysis(object):
                         'update_info': update_info,
                         'otu_file': data.otu_id,
                         'otu_id': data.otu_id,
-                        'level': data.level_id,
+                        'level': int(data.level_id),
                         'dist_method': dist_method,
                         'multi_analysis_id': str(multi_analysis_id)
                     }
@@ -122,6 +120,7 @@ class MultiAnalysis(object):
                 if data.analysis_type == 'dbrda':
                     json_data['to_file'].append('meta.export_group_table_by_detail(group_file)')
                     json_data['options']['group_file'] = data.group_id
+                    json_data['options']['group_detail'] = data.group_detail
                 elif env_id:
                     json_data['to_file'].append('env.export_env_table(env_file)')
                     json_data['options']['env_file'] = data.env_id
@@ -132,7 +131,6 @@ class MultiAnalysis(object):
                                }
                 workflow_module = Workflow()
                 workflow_module.add_record(insert_data)
-                print insert_data
                 info = {'success': True, 'info': '提交成功!', '_id': str(multi_analysis_id)}
                 return json.dumps(info)
             else:

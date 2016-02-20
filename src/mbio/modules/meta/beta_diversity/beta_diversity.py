@@ -12,17 +12,21 @@ class BetaDiversityModule(Module):
         super(BetaDiversityModule, self).__init__(work_id)
         self.step.add_steps('ChooseAnalysis', 'MultipleAnalysis')
         options = [
-            {"name": "analysis", "type": "string",
-                "default": "anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
+            {"name": "analysis", "type": "string", "default": "anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
+            {"name": "dbrda_method", "type": "string", "default": "bray_curtis"},
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "level", "type": "string", "default": "otu"},
-            {"name": "phy_newick", "type": "infile",
-             "format": "meta.beta_diversity.newick_tree"},
+            {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
-            {"name": "envtable", "type": "infile", "format": "meta.env_table"},
+            {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "envlabs", "type": "string", "default": ""},
+            {"name": "pca_envlabs", "type": "string", "default": ""},
+            {"name": "dbrda_envlabs", "type": "string", "default": ""},
+            {"name": "rda_envlabs", "type": "string", "default": ""},
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "grouplabs", "type": "string", "default": ""},
             {"name": "dis_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "dis_newicktree", "type": "outfile", "format": "meta.beta_diversity.newick_tree"}
         ]
@@ -41,18 +45,22 @@ class BetaDiversityModule(Module):
             return self.option('otutable').prop['path']
 
     def check_options(self):
+        if ('anosim' or 'pca' or 'pcoa' or 'nmds' or 'rda_cca' or 'dbrda' or 'hcluster') in self.option('analysis'):
+            pass
+        else:
+            raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))
         if self.option('permutations') < 0 or self.option('permutations') > 10000:
             raise OptionError('参数permutations：%s 不在范围内(0-10000)' %
                               self.option('permutations'))
         samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
         if self.option('linkage') not in ['average', 'single', 'complete']:
             raise OptionError('错误的层级聚类方式：%s' % self.option('linkage'))
-        if 'rda_cca' in self.option('analysis') and not self.option('envtable').is_set:
+        if ('rda_cca' or 'dbrda') in self.option('analysis') and not self.option('envtable').is_set:
             raise OptionError('计算RDA/CCA需要环境因子表')
-        if ('anosim' or 'rda_cca' or 'dbrda') in self.option('analysis') and not self.option('group').is_set:
+        if 'anosim' in self.option('analysis') and not self.option('group').is_set:
             raise OptionError('分析需要相关分组文件')
         else:
-            if ('anosim' or 'rda_cca' or 'dbrda') in self.option('analysis'):
+            if 'anosim' in self.option('analysis'):
                 self.option('group').get_info()
                 for sample in self.option('group').prop['sample']:
                     if sample not in samplelist:
@@ -88,6 +96,7 @@ class BetaDiversityModule(Module):
         self.tools['anosim'].set_options({
             'dis_matrix': output_file_obj,
             'group': self.option('group'),
+            'grouplabs': self.option('grouplabs'),
             'permutations': self.option('permutations')
         })
         self.tools['anosim'].on('end', self.set_output, 'anosim')
@@ -97,6 +106,7 @@ class BetaDiversityModule(Module):
         output_file_obj = rely_obj.rely[0].option('dis_matrix')
         self.tools['box'].set_options({
             'dis_matrix': output_file_obj,
+            'grouplabs': self.option('grouplabs'),
             'group': self.option('group')
         })
         self.tools['box'].on('end', self.set_output, 'box')
@@ -118,31 +128,36 @@ class BetaDiversityModule(Module):
         self.tools['nmds'].on('end', self.set_output, 'nmds')
         self.tools['nmds'].run()
 
-    def dbrda_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
-        self.tools['dbrda'].set_options({
-            'dis_matrix': output_file_obj,
-            'group': self.option('group')
-        })
+    def dbrda_run(self):
+        dbrda_options = {'otutable': self.gettable(), 'envtable': self.option('envtable'),
+                         'method': self.option('dbrda_method')}
+        if self.option('envlabs'):
+            dbrda_options['envlabs'] = self.option('envlabs')
+        else:
+            dbrda_options['envlabs'] = self.option('dbrda_envlabs')
+        self.tools['dbrda'].set_options(dbrda_options)
         self.tools['dbrda'].on('end', self.set_output, 'dbrda')
         self.tools['dbrda'].run()
 
     def rda_run(self):
-        self.tools['rda'].set_options({
-            'otutable': self.gettable(),
-            'envtable': self.option('envtable')
-        })
+        rda_options = {'otutable': self.gettable(), 'envtable': self.option('envtable')}
+        if self.option('envlabs'):
+            rda_options['envlabs'] = self.option('envlabs')
+        else:
+            rda_options['envlabs'] = self.option('rda_envlabs')
+        self.tools['rda'].set_options(rda_options)
         self.tools['rda'].on('end', self.set_output, 'rda')
         self.tools['rda'].run()
 
     def pca_run(self):
+        pca_options = {'otutable': self.gettable()}
         if self.option('envtable').is_set:
-            self.tools['pca'].set_options({
-                'otutable': self.gettable(),
-                'envtable': self.option('envtable')})
-        else:
-            self.tools['pca'].set_options({
-                'otutable': self.gettable()})
+            pca_options['envtable'] = self.option('envtable')
+            if self.option('envlabs'):
+                pca_options['envlabs'] = self.option('envlabs')
+            else:
+                pca_options['envlabs'] = self.option('pca_envlabs')
+        self.tools['pca'].set_options(pca_options)
         self.tools['pca'].on('end', self.set_output, 'pca')
         self.tools['pca'].run()
 
@@ -206,9 +221,9 @@ class BetaDiversityModule(Module):
         if 'nmds' in self.option('analysis'):
             self.tools['nmds'] = self.add_tool('meta.beta_diversity.nmds')
             self.on_rely(self.matrix, self.nmds_run)
-        if 'dbrda' in self.option('analysis'):
-            self.tools['dbrda'] = self.add_tool('meta.beta_diversity.dbrda')
-            self.on_rely(self.matrix, self.dbrda_run)
+        # if 'dbrda' in self.option('analysis'):
+        #     self.tools['dbrda'] = self.add_tool('meta.beta_diversity.dbrda')
+        #     self.on_rely(self.matrix, self.dbrda_run)
         if 'hcluster' in self.option('analysis'):
             self.tools['hcluster'] = self.add_tool(
                 'meta.beta_diversity.hcluster')
@@ -218,6 +233,9 @@ class BetaDiversityModule(Module):
         if 'pca' in self.option('analysis'):
             self.tools['pca'] = self.add_tool('meta.beta_diversity.pca')
             self.pca_run()
+        if 'dbrda' in self.option('analysis'):
+            self.tools['dbrda'] = self.add_tool('meta.beta_diversity.dbrda')
+            self.dbrda_run()
         if 'rda_cca' in self.option('analysis'):
             self.tools['rda'] = self.add_tool('meta.beta_diversity.rda_cca')
             self.rda_run()

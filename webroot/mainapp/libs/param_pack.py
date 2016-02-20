@@ -15,10 +15,10 @@ def param_pack(param):
     return params
 
 
-def group_detail_sort(detail):
+def sub_group_detail_sort(detail):
     table_list = json.loads(detail)
     result_list = []
-    for table_dict in table_list:
+    for table_dict in table_dict:
         if not isinstance(table_dict, dict):
             raise Exception("传入的table_dict不是一个字典")
         for keys in table_dict.keys():
@@ -27,3 +27,15 @@ def group_detail_sort(detail):
         result_list.append(sort_key)
     result_list = json.dumps(result_list)
     return result_list
+
+
+def group_detail_sort(detail):
+    table_dict = json.loads(detail)
+    if not isinstance(table_dict, dict):
+        raise Exception("传入的table_dict不是一个字典")
+    for keys in table_dict.keys():
+        table_dict[keys] = sorted(table_dict[keys])
+    sort_key = dict(OrderedDict(sorted(table_dict.items(), key=lambda t: t[0])))
+    table_dict = sort_key
+    table_dict = json.dumps(table_dict)
+    return table_dict
