@@ -128,6 +128,18 @@ class Sample(Base):
         else:
             self.bind_object.logger.info("导入步%s的步长序列长度统计成功" % step_length)
 
+    def get_spname_spid(self):
+        if not self.sample_table_ids:
+            raise Exception("样本id列表为空，请先调用add_samples_info产生sg_speciem的id")
+        collection = self.db["sg_specimen"]
+        spname_spid = dict()
+        for id_ in self.sample_table_ids:
+            result = collection.find_one({"_id", id_})
+            if not result:
+                raise Exception("意外错误，无法找到样本id")
+            spname_spid[result["specimen_name"]] = id_
+        return spname_spid
+
     def _find_specimen_id(self, results):
         specimen_id = ""
         for result in results:

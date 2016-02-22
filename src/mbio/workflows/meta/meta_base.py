@@ -57,6 +57,7 @@ class MetaBaseWorkflow(Workflow):
         self.alpha = self.add_module("meta.alpha_diversity.alpha_diversity")
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
         self.step.add_steps("qcstat", "otucluster", "taxassign", "alphadiv", "betadiv")
+        self.spname_spid = dict()
 
     def check_options(self):
         """
@@ -81,7 +82,7 @@ class MetaBaseWorkflow(Workflow):
     def run_filecheck(self):
         self.filecheck.set_options({
             "in_fastq": self.option("in_fastq")
-            })
+        })
         if self.option("database") == "custom_mode":
             self.filecheck.set_options({
                 "ref_fasta": self.option("ref_fasta"),
@@ -90,17 +91,17 @@ class MetaBaseWorkflow(Workflow):
         if self.option('envtable').is_set:
             self.filecheck.set_options({
                 'envtable': self.option('envtable')
-                })
+            })
         if self.option('group_table').is_set:
             self.filecheck.set_options({
                 'group_table': self.option('group')
-                })
+            })
         self.filecheck.run()
 
     def run_qc(self):
         self.qc.set_options({
-                "in_fastq": self.option("in_fastq")
-            })
+            "in_fastq": self.option("in_fastq")
+        })
         self.qc.on("start", self.set_step, {'start': self.step.qcstat})
         self.qc.on("end", self.set_output, "qc")
         self.qc.run()
@@ -109,15 +110,15 @@ class MetaBaseWorkflow(Workflow):
         self.otu.set_options({
             "fasta": self.option("otu_fasta"),
             "identity": self.option("identity")
-            })
+        })
         self.otu.on("end", self.set_output, "otu")
         self.otu.on("start", self.set_step, {'start': self.step.otucluster})
         self.otu.run()
 
     def run_phylotree(self):
         self.phylo.set_options({
-            "fasta_file": self.otu.output_dir+"/otu_reps.fasta"
-            })
+            "fasta_file": self.otu.output_dir + "/otu_reps.fasta"
+        })
         self.phylo.run()
 
     def run_taxon(self, relyobj):
@@ -126,7 +127,7 @@ class MetaBaseWorkflow(Workflow):
             "revcomp": self.option("revcomp"),
             "confidence": self.option("confidence"),
             "database": self.option("database")}
-            )
+        )
         if self.option("database") == "custom_mode":
             self.tax.set_options({
                 "ref_fasta": self.option("ref_fasta"),
@@ -140,7 +141,7 @@ class MetaBaseWorkflow(Workflow):
         self.stat.set_options({
             "in_otu_table": self.option("otu_table"),
             "taxon_file": self.option("taxon_file")
-            })
+        })
         self.stat.on("end", self.set_output, "stat")
         self.stat.on("end", self.set_step, {'end': self.step.taxassign})
         self.stat.run()
@@ -152,7 +153,7 @@ class MetaBaseWorkflow(Workflow):
             'estimate_indices': self.option('estimate_indices'),
             'rarefy_indices': self.option('rarefy_indices'),
             'rarefy_freq': self.option('rarefy_freq')
-            })
+        })
         self.alpha.on("end", self.set_output, "alpha")
         self.alpha.on("start", self.set_step, {'start': self.step.alphadiv})
         self.alpha.on("end", self.set_step, {'end': self.step.alphadiv})
@@ -166,7 +167,7 @@ class MetaBaseWorkflow(Workflow):
             "level": self.option('beta_level'),
             'permutations': self.option('permutations'),
             'phy_newick': self.phylo.option('phylo_tre').prop['path']
-            })
+        })
         # if self.option('phy_newick').is_set:
         #     self.beta.set_options({
         #         'phy_newick': self.option('phy_newick')
@@ -174,11 +175,11 @@ class MetaBaseWorkflow(Workflow):
         if self.option('envtable').is_set:
             self.beta.set_options({
                 'envtable': self.option('envtable')
-                })
+            })
         if self.option('group_table').is_set:
             self.beta.set_options({
                 'group': self.option('group')
-                })
+            })
         self.beta.on("end", self.set_output, "beta")
         self.beta.on("start", self.set_step, {'start': self.step.betadiv})
         self.beta.on("end", self.set_step, {'end': self.step.betadiv})
@@ -195,54 +196,55 @@ class MetaBaseWorkflow(Workflow):
         obj = event["bind_object"]
         if event['data'] is "qc":
             self.option("otu_fasta", obj.option("otu_fasta"))
-            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/QC_stat")
+            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/QC_stat")
         if event['data'] is "otu":
             self.option("otu_table", obj.option("otu_table"))
             self.option("otu_rep", obj.option("otu_rep"))
             self.option("otu_biom", obj.option("otu_biom"))
-            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Otu")
+            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Otu")
         if event['data'] is "tax":
             self.option("taxon_file", obj.option("taxon_file"))
-            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Tax_assign")
+            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Tax_assign")
         if event['data'] is "stat":
             # self.option("otu_taxon_biom", obj.option("otu_taxon_biom"))
             # self.option("otu_taxon_table", obj.option("otu_taxon_table"))
             self.option("otu_taxon_dir", obj.option("otu_taxon_dir"))
-            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/OtuTaxon_summary")
+            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/OtuTaxon_summary")
         if event['data'] is "alpha":
-            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Alpha_diversity")
+            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Alpha_diversity")
         if event['data'] is "beta":
-            os.system('cp -r '+obj.output_dir+' '+self.output_dir+"/Beta_diversity")
+            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Beta_diversity")
 
     def set_db(self):
         # 设置报告文件到数据库
         # 设置QC报告文件
         api_samples = self.api.sample
-        sample_info_path = self.qc.output_dir+"/samples_info/samples_info.txt"
+        sample_info_path = self.qc.output_dir + "/samples_info/samples_info.txt"
         if not os.path.isfile(sample_info_path):
             raise Exception("找不到报告文件:{}".format(sample_info_path))
         api_samples.add_samples_info(sample_info_path)
+        self.spname_spid = api_samples.get_spname_spid()
         base_info_path = ""
-        with open(self.qc.output_dir+"/samples_info/samples_info.txt") as f:
+        with open(self.qc.output_dir + "/samples_info/samples_info.txt") as f:
             f.readline()
             for line in f:
                 s = line.split('\t')[0]
-                base_info_path = self.qc.output_dir+"/base_info/{}.fastq.fastxstat.txt".format(s)
+                base_info_path = self.qc.output_dir + "/base_info/{}.fastq.fastxstat.txt".format(s)
                 if not os.path.isfile(base_info_path):
                     raise Exception("找不到报告文件:{}".format(base_info_path))
                 api_samples.add_base_info(s, base_info_path)
         for step in (20, 50, 100, 200):
-            reads_len_info_path = self.qc.output_dir+"/reads_len_info/step_{}.reads_len_info.txt".format(str(step))
+            reads_len_info_path = self.qc.output_dir + "/reads_len_info/step_{}.reads_len_info.txt".format(str(step))
             if not os.path.isfile(reads_len_info_path):
                 raise Exception("找不到报告文件:{}".format(base_info_path))
             api_samples.add_reads_len_info(step, reads_len_info_path)
         # 设置OTU table文件
         api_otu = self.api.meta
-        otu_path = self.output_dir+"/OtuTaxon_summary/otu_taxon.xls"
-        rep_path = self.output_dir+"/Otu/otu_reps.fasta"
+        otu_path = self.output_dir + "/OtuTaxon_summary/otu_taxon.xls"
+        rep_path = self.output_dir + "/Otu/otu_reps.fasta"
         if not os.path.isfile(otu_path):
             raise Exception("找不到报告文件:{}".format(otu_path))
-        otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path)
+        otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid)
         # 设置进化树文件
         api_tree = self.api.newicktree
         tree_path = self.phylo.option('phylo_tre').prop['path']
@@ -251,12 +253,12 @@ class MetaBaseWorkflow(Workflow):
         api_tree.add_tree_file(tree_path, major=True, level=9, table_id=otu_id, table_type='otu', tree_type='phylo')
         # 设置alpha多样性文件
         api_est = self.api.estimator
-        est_path = self.output_dir+"/Alpha_diversity/estimators.xls"
+        est_path = self.output_dir + "/Alpha_diversity/estimators.xls"
         if not os.path.isfile(est_path):
             raise Exception("找不到报告文件:{}".format(est_path))
         api_est.add_est_table(est_path, major=True, level=9, otu_id=otu_id)
         api_rare = self.api.rarefaction
-        rare_path = self.work_dir+"/AlphaDiversity/Rarefaction/output/"
+        rare_path = self.work_dir + "/AlphaDiversity/Rarefaction/output/"
         api_rare.add_rare_table(rare_path, level=9, otu_id=otu_id)
         # 设置beta多样性文件
         api_dist = self.api.distance
@@ -266,10 +268,13 @@ class MetaBaseWorkflow(Workflow):
         dist_id = api_dist.add_dist_table(dist_path, level=9, otu_id=otu_id, major=True)
         # 设置hcluster树文件
         api_hcluster = self.api.newicktree
-        hcluster_path = self.beta.output_dir+"/Hcluster/hcluster.tre"
+        hcluster_path = self.beta.output_dir + "/Hcluster/hcluster.tre"
         if not os.path.isfile(hcluster_path):
             raise Exception("找不到报告文件:{}".format(hcluster_path))
         api_hcluster.add_tree_file(hcluster_path, major=True, table_id=dist_id, table_type='dist', tree_type='cluster')
+        if self.option('group').is_set:
+            api_group = self.api.group
+            api_group.add_ini_group_table(self.option('group').prop["path"], self.spname_spid)
         self.end()
 
     def run(self):

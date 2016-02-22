@@ -14,23 +14,16 @@ class Group(Base):
         self.info_dict = dict()
 
     @report_check
-    def add_ini_group_table(self, file_path, table_type, task_id=None, name=None):
-        if table_type == "group":
-            self.collection = self.db['sg_specimen_group']
-            if not name:
-                name = "initial_group_table"
-        if table_type == "env":
-            self.collection = self.db['sg_env']
-            if not name:
-                name = "initial_env_table"
+    def add_ini_group_table(self, file_path, spname_spid, task_id=None):
+        self.collection = self.db['sg_specimen_group']
         if task_id is None:
             task_id = self.bind_object.sheet.id
 
-        (self.info_dict, self.scheme) = self._get_table_info(file_path)
+        (self.info_dict, self.scheme) = self._get_table_info(file_path, spname_spid)
         for s in self.scheme:
-            self._insert_one_table(s, name, task_id, file_path, table_type)
+            self._insert_one_table(s, task_id, file_path)
 
-    def _insert_one_table(self, s, name, task_id, file_path, table_type):
+    def _insert_one_table(self, s, task_id, file_path):
         category_names = list()
         specimen_names = list()
         for k in self.info_dict:
@@ -47,20 +40,19 @@ class Group(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             # "project_sn": "test_project_sn",
             "task_id": task_id,
-            "name": name,
             "group_name": s,
             "category_names": category_names,
-            "specimen_names": specimen_names
+            "specimen_infos": specimen_names
         }
         try:
             self.collection.insert_one(insert_date)
         except Exception as e:
-                self.bind_object.logger.error("导入{}表格{}失败：{}".format(table_type, file_path, e))
+                self.bind_object.logger.error("导入{}表格{}失败：{}".format(file_path, e))
         else:
-            self.bind_object.logger.info("导入{}表格{}成功".format(table_type, file_path))
+            self.bind_object.logger.info("导入{}表格{}成功".format(file_path))
 
-    def _get_table_info(self, file_path):
-        info_dic = defaultdict(list)  # info_dict[(分组方案名, 组名)] = [样本1,  样本2,...]
+    def _get_table_info(self, file_path, spname_spid):
+        info_dic = defaultdict(list)  # info_dict[(分组方案名, 组名)] = [样本1_id,  样本2_id,...]
         scheme = list()  # 分组方案
         index_gpname = dict()
         with open(file_path, 'rb') as r:
@@ -73,7 +65,9 @@ class Group(Base):
                 line = line.rstrip("\r\n")
                 line = re.split('\t', line)
                 for i in range(1, len(line)):
-                    info_dic[(index_gpname[i], line[i])].append(line[0])
+                    if line[0] not in spname_spid:
+                        raise Exception("意外错误,样本名{}在以导入的样本当中未找到".format(line[0]))
+                    info_dic[(index_gpname[i], line[i])].append(str(spname_spid(line[0])))
         return (info_dic, scheme)
 
 if __name__ == "__main__":
