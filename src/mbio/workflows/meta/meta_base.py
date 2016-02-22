@@ -42,7 +42,7 @@ class MetaBaseWorkflow(Workflow):
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
             {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"}
+            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -93,7 +93,7 @@ class MetaBaseWorkflow(Workflow):
                 })
         if self.option('group_table').is_set:
             self.filecheck.set_options({
-                'group_table': self.option('group_table')
+                'group_table': self.option('group')
                 })
         self.filecheck.run()
 
