@@ -41,7 +41,7 @@ class MetaBaseWorkflow(Workflow):
             # {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
-            {"name": "env_table", "type": "infile", "format": "meta.env_table"},
+            {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"}
         ]
         self.add_option(options)
@@ -87,9 +87,9 @@ class MetaBaseWorkflow(Workflow):
                 "ref_fasta": self.option("ref_fasta"),
                 "ref_taxon": self.option("ref_taxon"),
             })
-        if self.option('env_table').is_set:
+        if self.option('envtable').is_set:
             self.filecheck.set_options({
-                'env_table': self.option('env_table')
+                'envtable': self.option('envtable')
                 })
         if self.option('group_table').is_set:
             self.filecheck.set_options({
@@ -171,13 +171,13 @@ class MetaBaseWorkflow(Workflow):
         #     self.beta.set_options({
         #         'phy_newick': self.option('phy_newick')
         #         })
-        if self.option('env_table').is_set:
+        if self.option('envtable').is_set:
             self.beta.set_options({
-                'env_table': self.option('env_table')
+                'envtable': self.option('envtable')
                 })
         if self.option('group_table').is_set:
             self.beta.set_options({
-                'group_table': self.option('group_table')
+                'group': self.option('group')
                 })
         self.beta.on("end", self.set_output, "beta")
         self.beta.on("start", self.set_step, {'start': self.step.betadiv})
