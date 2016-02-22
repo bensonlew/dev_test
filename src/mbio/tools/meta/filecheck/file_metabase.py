@@ -18,7 +18,7 @@ class FileMetabaseAgent(Agent):
         options = [
             {"name": "in_fastq", "type": "infile", 'format': "sequence.fastq, sequence.fastq_dir"},
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "env_table", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
             {'name': 'ref_fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 参考fasta序列
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'}  # 参考taxon文件
         ]
@@ -75,7 +75,7 @@ class FileMetabaseTool(Tool):
             self.samples = self.option('in_fastq').prop["samples"]
 
     def check_group(self):
-        if self.option("group_table"):
+        if self.option("group_table").is_set:
             self.logger.info("正在检测group文件")
             self.option("group_table").get_info()
             gp_sample = self.option("group_table").prop["sample"]
@@ -99,9 +99,9 @@ class FileMetabaseTool(Tool):
             self.logger.info("未检测到ref_fasta和ref_taxon文件， 跳过...")
 
     def check_env(self):
-        if self.option("env_table").is_set:
+        if self.option("envtable").is_set:
             self.logger.info("开始校验env文件")
-            self.option("env_table").check()
+            self.option("envtable").check()
         else:
             self.logger.info("未检测到env文件， 跳过...")
 

@@ -18,7 +18,7 @@ def param_pack(param):
 def sub_group_detail_sort(detail):
     table_list = json.loads(detail)
     result_list = []
-    for table_dict in table_list:
+    for table_dict in table_dict:
         if not isinstance(table_dict, dict):
             raise Exception("传入的table_dict不是一个字典")
         for keys in table_dict.keys():
