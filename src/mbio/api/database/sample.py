@@ -30,7 +30,8 @@ class Sample(Base):
                     "base_number": line_data[2],
                     "average_length": line_data[3],
                     "min_length": line_data[4],
-                    "max_length": line_data[5]
+                    "max_length": line_data[5],
+                    "is_initial": 1
                 }
                 data_list.append(data)
         try:
