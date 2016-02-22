@@ -6,9 +6,9 @@ import re
 from collections import defaultdict
 
 
-class GroupEnv(Base):
-    def __init__(self, bind_object):
-        super(GroupEnv, self).__init__(bind_object)
+class Group(Base):
+    def __init__(self, bind_object=None):
+        super(Group, self).__init__(bind_object)
         self._db_name = "sanger"
         self.scheme = list()
         self.info_dict = dict()
@@ -28,7 +28,7 @@ class GroupEnv(Base):
 
         (self.info_dict, self.scheme) = self._get_table_info(file_path)
         for s in self.scheme:
-            self._insert_one_table(s, self.info_dict, name, task_id, file_path, table_type)
+            self._insert_one_table(s, name, task_id, file_path, table_type)
 
     def _insert_one_table(self, s, name, task_id, file_path, table_type):
         category_names = list()
@@ -45,6 +45,7 @@ class GroupEnv(Base):
                     specimen_names.append(tmp_dic)
         insert_date = {
             "project_sn": self.bind_object.sheet.project_sn,
+            # "project_sn": "test_project_sn",
             "task_id": task_id,
             "name": name,
             "group_name": s,
@@ -74,3 +75,8 @@ class GroupEnv(Base):
                 for i in range(1, len(line)):
                     info_dic[(index_gpname[i], line[i])].append(line[0])
         return (info_dic, scheme)
+
+if __name__ == "__main__":
+    gp = Group()
+    file_path = "test_group.txt"
+    gp.add_ini_group_table(file_path, "group", "test", "test_group")
