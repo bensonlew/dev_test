@@ -180,7 +180,7 @@ class MetaBaseWorkflow(Workflow):
             opts.update({
                 'group': self.option('group')
             })
-        if self.option('anosim_grouplabs').is_set:
+        if 'anosim' in self.option('beta_analysis'):
             opts.update({
                 'grouplabs': self.option('anosim_grouplabs')
             })
