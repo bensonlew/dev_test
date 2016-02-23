@@ -92,7 +92,7 @@ class MetaBaseWorkflow(Workflow):
             self.filecheck.set_options({
                 'envtable': self.option('envtable')
             })
-        if self.option('group_table').is_set:
+        if self.option('group').is_set:
             self.filecheck.set_options({
                 'group_table': self.option('group')
             })
