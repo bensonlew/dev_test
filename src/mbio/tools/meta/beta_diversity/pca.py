@@ -156,8 +156,12 @@ class PcaTool(Tool):
         self.linkfile(self.work_dir + '/pca/' + allfiles[1], 'pca_rotation.xls')
         self.linkfile(self.work_dir + '/pca/' + allfiles[2], 'pca_sites.xls')
         if self.option('envtable').is_set:
-            self.linkfile(self.work_dir + '/pca/' + allfiles[3], 'pca_envfit_score.xls')
-            self.linkfile(self.work_dir + '/pca/' + allfiles[4], 'pca_envfit.xls')
+            if allfiles[3]:
+                self.linkfile(self.work_dir + '/pca/' + allfiles[3], 'pca_envfit_factor_scores.xls')
+                self.linkfile(self.work_dir + '/pca/' + allfiles[4], 'pca_envfit_factor.xls')
+            if allfiles[5]:
+                self.linkfile(self.work_dir + '/pca/' + allfiles[5], 'pca_envfit_vector_scores.xls')
+                self.linkfile(self.work_dir + '/pca/' + allfiles[6], 'pca_envfit_vector.xls')
         self.end()
 
     def linkfile(self, oldfile, newname):
@@ -177,16 +181,18 @@ class PcaTool(Tool):
         获取并检查文件夹下的文件是否存在
 
         :return pca_importance_file, pca_rotation_file,
-        pca_sites_file, env_set, pca_envfit_score_file,
-        pca_envfit_file: 返回各个文件，以及是否存在环境因子，
-        存在则返回环境因子结果
+                pca_sites_file, pca_factor_score_file, pca_factor_file,
+                pca_vector_score_file, pca_vector_file: 返回各个文件，以及是否存在环境因子，
+                存在则返回环境因子结果
         """
         filelist = os.listdir(self.work_dir + '/pca')
         pca_importance_file = None
         pca_rotation_file = None
         pca_sites_file = None
-        pca_envfit_score_file = None
-        pca_envfit_file = None
+        pca_factor_score_file = None
+        pca_factor_file = None
+        pca_vector_score_file = None
+        pca_vector_file = None
         for name in filelist:
             if 'pca_importance.xls' in name:
                 pca_importance_file = name
@@ -194,18 +200,34 @@ class PcaTool(Tool):
                 pca_sites_file = name
             elif 'pca_rotation.xls' in name:
                 pca_rotation_file = name
-            elif 'pca_envfit_score.xls' in name:
-                pca_envfit_score_file = name
-            elif 'pca_envfit.xls' in name:
-                pca_envfit_file = name
+            elif 'pca_envfit_factor_scores.xls' in name:
+                pca_factor_score_file = name
+            elif 'pca_envfit_factor.xls' in name:
+                pca_factor_file = name
+            elif 'pca_envfit_vector_scores.xls' in name:
+                pca_vector_score_file = name
+            elif 'pca_envfit_vector.xls' in name:
+                pca_vector_file = name
         if pca_importance_file and pca_rotation_file and pca_sites_file:
             if self.option('envtable').is_set:
-                if pca_envfit_score_file and pca_envfit_file:
-                    return [pca_importance_file, pca_rotation_file,
-                            pca_sites_file, pca_envfit_score_file,
-                            pca_envfit_file]
+                if pca_factor_score_file:
+                    if not pca_factor_file:
+                        self.set_error('未知原因，环境因子相关结果丢失或者未生成,factor文件不存在')
                 else:
-                    self.set_error('未知原因，环境因子相关结果丢失或者未生成')
+                    if pca_factor_file:
+                        self.set_error('未知原因，环境因子相关结果丢失或者未生成,factor_scores文件不存在')
+                if pca_vector_score_file:
+                    if not pca_vector_file:
+                        self.set_error('未知原因，环境因子相关结果丢失或者未生成,vector文件不存在')
+                else:
+                    if pca_vector_file:
+                        self.set_error('未知原因，环境因子相关结果丢失或者未生成,vector_scores文件不存在')
+                    elif not pca_factor_score_file:
+                        self.set_error('未知原因，环境因子相关结果全部丢失或者未生成')
+                return [pca_importance_file, pca_rotation_file,
+                        pca_sites_file, pca_factor_score_file, pca_factor_file,
+                        pca_vector_score_file, pca_vector_file]
+
             else:
                 return [pca_importance_file, pca_rotation_file, pca_sites_file]
         else:

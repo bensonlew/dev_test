@@ -36,7 +36,7 @@ class MultiAnalysis(object):
                     'analysis_type': data.analysis_type,
                 }
                 env_id = ''
-                group_id = ''
+                env_labs = ''
                 dist_method = ''
                 if data.analysis_type == 'pca':
                     if hasattr(data, 'env_id'):
@@ -44,6 +44,12 @@ class MultiAnalysis(object):
                         env_id = self.check_objectid(data.env_id)
                         if not env_id:
                             info = {'success': False, 'info': 'env_id格式:%s不正确，无法转换为ObjectId格式！' % data.env_id}
+                            return json.dumps(info)
+                        if hasattr(data, 'env_labs'):
+                            params_json['env_labs'] = data.env_labs
+                            env_labs = data.env_labs
+                        else:
+                            info = {'success': False, 'info': '没有选择任何环境因子列'}
                             return json.dumps(info)
                 elif data.analysis_type == 'pcoa' or data.analysis_type == 'nmds':
                     if not hasattr(data, 'distance_algorithm'):
@@ -57,14 +63,20 @@ class MultiAnalysis(object):
                         return json.dumps(info)
                     params_json['distance_algorithm'] = data.distance_algorithm
                     dist_method = data.distance_algorithm
-                    if hasattr(data, 'group_id'):
-                        params_json['group_id'] = data.group_id
-                        group_id = self.check_objectid(data.group_id)
-                        if not group_id:
-                            info = {'success': False, 'info': 'group_id格式:%s不正确，无法转换为ObjectId格式！' % data.group_id}
+                    if hasattr(data, 'env_id'):
+                        params_json['env_id'] = data.env_id
+                        env_id = self.check_objectid(data.env_id)
+                        if not env_id:
+                            info = {'success': False, 'info': 'group_id格式:%s不正确，无法转换为ObjectId格式！' % data.env_id}
+                            return json.dumps(info)
+                        if hasattr(data, 'env_labs'):
+                            params_json['env_labs'] = data.env_labs
+                            env_labs = data.env_labs
+                        else:
+                            info = {'success': False, 'info': '没有选择任何环境因子列'}
                             return json.dumps(info)
                     else:
-                        info = {'success': False, 'info': 'dbrda分析缺少参数:group_id!'}
+                        info = {'success': False, 'info': 'dbrda分析缺少参数:env_id!'}
                         return json.dumps(info)
                 elif data.analysis_type == 'rda_cca':
                     if hasattr(data, 'env_id'):
@@ -73,9 +85,18 @@ class MultiAnalysis(object):
                         if not env_id:
                             info = {'success': False, 'info': 'env_id格式:%s不正确，无法转换为ObjectId格式！' % data.env_id}
                             return json.dumps(info)
+                        if hasattr(data, 'env_labs'):
+                            params_json['env_labs'] = data.env_labs
+                            env_labs = data.env_labs
+                        else:
+                            info = {'success': False, 'info': '没有选择任何环境因子列'}
+                            return json.dumps(info)
                     else:
                         info = {'success': False, 'info': 'rda_cca分析缺少参数:env_id!'}
                         return json.dumps(info)
+                else:
+                    info = {'success': False, 'info': '不正确的分析方法:%s' % data.analysis_type}
+                    return json.dumps(info)
                 insert_mongo_json = {
                     'project_sn': otu_info['project_sn'],
                     'task_id': otu_info['task_id'],
@@ -85,7 +106,6 @@ class MultiAnalysis(object):
                              '_' + time.asctime(time.localtime(time.time()))),
                     'table_type': data.analysis_type,
                     'env_id': env_id,
-                    'group_id': group_id,  # 需要再确定
                     'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
                     'status': 'start',
                     'desc': '',
@@ -114,14 +134,11 @@ class MultiAnalysis(object):
                         'otu_id': data.otu_id,
                         'level': int(data.level_id),
                         'dist_method': dist_method,
+                        'env_labs': env_labs,
                         'multi_analysis_id': str(multi_analysis_id)
                     }
                 }
-                if data.analysis_type == 'dbrda':
-                    json_data['to_file'].append('meta.export_group_table_by_detail(group_file)')
-                    json_data['options']['group_file'] = data.group_id
-                    json_data['options']['group_detail'] = data.group_detail
-                elif env_id:
+                if env_id:
                     json_data['to_file'].append('env.export_env_table(env_file)')
                     json_data['options']['env_file'] = data.env_id
                 insert_data = {'client': client,
