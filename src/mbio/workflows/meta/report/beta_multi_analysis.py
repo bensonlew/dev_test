@@ -26,7 +26,8 @@ class BetaMultiAnalysisWorkflow(Workflow):
             {"name": "level", "type": "int"},
             {"name": "multi_analysis_id", "type": "string"},
             {"name": "env_file", "type": "infile", "format": "meta.env_table"},
-            {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "env_labs", "type": "string", "default": ""}
+            # {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
             # {"name": "matrix_out", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
         ]
         self.add_option(options)
@@ -37,17 +38,17 @@ class BetaMultiAnalysisWorkflow(Workflow):
         self.logger.info(self.option('otu_file').path)
         options = {
             'analysis': self.option('analysis_type'),
-            'dis_method': self.option('dist_method'),
+            # 'dis_method': self.option('dist_method'),
             'otutable': self.option('otu_file')
 
         }
         if self.option('env_file').is_set:
+            options['envlabs'] = self.option('env_labs')
             options['envtable'] = self.option('env_file').path
-        elif self.option('group_file').is_set:
-            options['group'] = self.option('group_file').path
         else:
             pass
-        if self.option('analysis_type') in ['pcoa', 'nmds', 'dbrda']:
+        if self.option('analysis_type') in ['pcoa', 'nmds']:
+            options['dis_method'] = self.option('dist_method')
             if 'unifrac' in self.option('dist_method'):
                 newicktree = get_level_newicktree(self.option('otu_id'), level=self.option('level'),
                                                   tempdir=self.work_dir, return_file=False, bind_obj=self)
@@ -92,6 +93,8 @@ class BetaMultiAnalysisWorkflow(Workflow):
                 otu_file_temp.close()
                 options['otutable'] = temp_otu_file
                 options['phy_newick'] = temp_tree_file
+        elif self.option('analysis_type') == 'dbrda':
+            options['dbrda_method'] = self.option('dist_method')
         task.set_options(options)
         task.on('end', self.set_db)
         task.run()

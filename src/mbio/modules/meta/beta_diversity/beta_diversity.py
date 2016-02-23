@@ -12,7 +12,7 @@ class BetaDiversityModule(Module):
         super(BetaDiversityModule, self).__init__(work_id)
         self.step.add_steps('ChooseAnalysis', 'MultipleAnalysis')
         options = [
-            {"name": "analysis", "type": "string", "default": "anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
+            {"name": "analysis", "type": "string", "default": "distance,anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
             {"name": "dbrda_method", "type": "string", "default": "bray_curtis"},
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
@@ -45,7 +45,7 @@ class BetaDiversityModule(Module):
             return self.option('otutable').prop['path']
 
     def check_options(self):
-        if ('anosim' or 'pca' or 'pcoa' or 'nmds' or 'rda_cca' or 'dbrda' or 'hcluster') in self.option('analysis'):
+        if 'distance' or 'anosim' or 'pca' or 'pcoa' or 'nmds' or 'rda_cca' or 'dbrda' or 'hcluster' in self.option('analysis'):
             pass
         else:
             raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))
@@ -228,7 +228,7 @@ class BetaDiversityModule(Module):
             self.tools['hcluster'] = self.add_tool(
                 'meta.beta_diversity.hcluster')
             self.on_rely(self.matrix, self.hcluster_run)
-        if self.tools or 'distance_matrix' in self.option('analysis'):
+        if self.tools or 'distance' in self.option('analysis'):
             self.matrix_run()
         if 'pca' in self.option('analysis'):
             self.tools['pca'] = self.add_tool('meta.beta_diversity.pca')

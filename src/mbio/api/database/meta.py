@@ -15,7 +15,7 @@ class Meta(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_otu_table(self, file_path, major=False, otu_id=None, from_out_table=0, rep_path=None, task_id=None, name=None, params=None):
+    def add_otu_table(self, file_path, major=False, otu_id=None, from_out_table=0, rep_path=None, task_id=None, name=None, params=None, spname_spid=None):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         # if level not in range(1, 10):
@@ -74,7 +74,7 @@ class Meta(Base):
             sample_list.pop(0)
             sample_data = []
             for sample in sample_list:
-                sample_data.append({"otu_id": otu_id, "specimen_name": sample})
+                sample_data.append({"otu_id": otu_id, "specimen_id": spname_spid[sample]})
             collection = self.db["sg_otu_specimen"]
             collection.insert_many(sample_data)
             while True:
