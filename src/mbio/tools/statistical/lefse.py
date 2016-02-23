@@ -19,11 +19,9 @@ class LefseAgent(Agent):
         options = [
             {"name": "lefse_input", "type": "infile", "format": "meta.otu.otu_table"},  # 输入文件，biom格式的otu表
             {"name": "lefse_group", "type": "infile", "format": "meta.otu.group_table"},  # 输入分组文件
-            # {"name": "LDA", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出的结果,包括lefse分析的lda图
-            # {"name": "clado", "type": "outfile", "format": "statistical.lefse_pdf"},  # 输出结果,结果为lefse分析的clado图
-            # {"name": "lefse_xls", "type": "outfile", "format": "statistical.lda_table"},  # 输出结果
             {"name": "lda_filter", "type": "float", "default": 2.0},
-            {"name": "strict", "type": "int", "default": 0}
+            {"name": "strict", "type": "int", "default": 0},
+            {"name": "lefse_gname", "type": "string", "default": "None"}
         ]
         self.add_option(options)
         self.step.add_steps("run_biom", "tacxon_stat", "plot_lefse")
@@ -39,8 +37,13 @@ class LefseAgent(Agent):
             raise OptionError("必须提供分组信息文件")
         if self.option("strict") not in [0, 1]:
             raise OptionError("所设严格性超出范围值")
-        if self.option("lda_filter") > 4.0 and self.option("lda_filter") < -4.0:
+        if self.option("lda_filter") > 4.0 or self.option("lda_filter") < -4.0:
             raise OptionError("所设阈值超出范围值")
+        if self.option("lefse_gname") != 'None':
+            for i in self.option('lefse_gname').split(','):
+                gnum = self.option('lefse_group').group_num(i)
+                if gnum < 2:
+                    raise OptionError("lefse分析分组类别必须大于2")
         return True
 
     def set_resource(self):
@@ -90,7 +93,8 @@ class LefseTool(Tool):
     def run_biom(self):
         self.add_state("biom_start", data="开始生成biom格式文件")
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR+"/gcc/5.1.0/lib64:$LD_LIBRARY_PATH")
-        biom_cmd = self.biom_path + "biom convert -i %s -o otu_taxa_table.biom --table-type \"OTU table\" --process-obs-metadata taxonomy  --to-hdf5" % self.option('lefse_input').prop["path"]
+        biom_cmd = self.biom_path + "biom convert -i %s -o otu_taxa_table.biom --table-type \"OTU table\" --process" \
+                                    "-obs-metadata taxonomy  --to-hdf5" % self.option('lefse_input').prop["path"]
         self.logger.info("开始运行biom_cmd")
         biom_command = self.add_command("biom_cmd", biom_cmd).run()
         self.wait(biom_command)
@@ -114,7 +118,8 @@ class LefseTool(Tool):
 
     def run_sum_tax(self):
         cmd = "for ((i=1;i<=7;i+=1)){\n\
-            /mnt/ilustre/users/sanger/app/meta/scripts/sum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt -o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
+            /mnt/ilustre/users/sanger/app/meta/scripts/sum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
+              "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
             mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
         }"
         try:
@@ -131,17 +136,16 @@ class LefseTool(Tool):
         self.set_environ(PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/bin:$PATH")
         self.set_environ(R_HOME="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/")
         self.set_environ(LD_LIBRARY_PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/lib:$LD_LIBRARY_PATH")
-        # os.system('cp %s %s/group_file' % (self.option('lefse_group').prop['path'], self.work_dir))
-        # with open(self.option('lefse_group').prop['path'], 'r') as r:
-        #     line = r.readline()
-        #     groupnum = len(line.split()) - 1
-        #     if groupnum == 1:
-        #         os.system('sed "1i sample\tlefse" -i %s' % self.option('lefse_group').prop['path'])
-        #     elif groupnum == 2:
-        #         os.system('sed "1i sample\tlefse\tgroup" -i %s' % self.option('lefse_group').prop['path'])
-        #     else:
-        #         self.logger.info("分组文件不符合要求")
-        plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + "plot-lefse.py -i tax_summary_a -g %s -o lefse_input.txt -L %s -s %s" % (self.option('lefse_group').prop['path'], self.option("lda_filter"), self.option("strict"))
+        if self.option('lefse_gname') == 'None':
+            plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
+                       "plot-lefse.py -i tax_summary_a -g %s -o lefse_input.txt -L %s -s %s" % \
+                       (self.option('lefse_group').prop['path'], self.option("lda_filter"), self.option("strict"))
+        else:
+            glist = self.option('lefse_gname').split(',')
+            self.option('lefse_group').sub_group('./lefse_group', glist)
+            plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
+                       "plot-lefse.py -i tax_summary_a -g ./lefse_group -o lefse_input.txt -L %s -s %s" % \
+                       (self.option("lda_filter"), self.option("strict"))
         self.logger.info("开始运行plot_cmd")
         self.logger.info(plot_cmd)
         plot_command = self.add_command("plot_cmd", plot_cmd).run()
