@@ -45,7 +45,7 @@ class BetaDiversityModule(Module):
             return self.option('otutable').prop['path']
 
     def check_options(self):
-        if ('anosim' or 'pca' or 'pcoa' or 'nmds' or 'rda_cca' or 'dbrda' or 'hcluster') in self.option('analysis'):
+        if 'anosim' or 'pca' or 'pcoa' or 'nmds' or 'rda_cca' or 'dbrda' or 'hcluster' in self.option('analysis'):
             pass
         else:
             raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))

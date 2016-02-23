@@ -39,9 +39,20 @@ class BetaMultiAnalysis(Base):
                     if table_type == 'specimen':
                         main_collection.update_one({'_id': update_id},
                                                    {'$set': {'detail_column': ','.join(columns)}}, upsert=False)
-                    else:
+                    elif table_type == 'factor':
                         main_collection.update_one({'_id': update_id},
-                                                   {'$set': {'other_column': ','.join(columns)}}, upsert=False)
+                                                   {'$set': {'factor_column': ','.join(columns)}}, upsert=False)
+                    elif table_type == 'vector':
+                        main_collection.update_one({'_id': update_id},
+                                                   {'$set': {'vector_column': ','.join(columns)}}, upsert=False)
+                    elif table_type == 'species':
+                        main_collection.update_one({'_id': update_id},
+                                                   {'$set': {'species_column': ','.join(columns)}}, upsert=False)
+                    elif table_type == 'rotation':
+                        main_collection.update_one({'_id': update_id},
+                                                   {'$set': {'rotation_column': ','.join(columns)}}, upsert=False)
+                    else:
+                        pass
 
         def insert_text_detail(file_path, data_type, main_id,
                                coll_name='sg_beta_multi_analysis_json_detail', db=self.db):
@@ -62,13 +73,20 @@ class BetaMultiAnalysis(Base):
                 rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation.xls'
                 importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
-                insert_text_detail(rotation_path, 'rotation', main_id=main_id)
+                insert_table_detail(rotation_path, 'species', update_id=main_id)
                 insert_text_detail(importance_path, 'importance', main_id=main_id)
                 if result['env_id']:
-                    env_path = dir_path.rstrip('/') + '/Pca/pca_envfit_score.xls'
-                    env_pr_path = dir_path.rstrip('/') + '/Pca/pca_envfit.xls'
-                    insert_table_detail(env_path, 'env', update_id=main_id)
-                    insert_text_detail(env_pr_path, 'envfit', main_id=main_id)
+                    filelist = os.listdir(dir_path.rstrip('/') + '/Pca')
+                    if 'pca_envfit_factor_scores.xls' in filelist:
+                        env_fac_path = dir_path.rstrip('/') + '/Pca/pca_envfit_factor_scores.xls'
+                        env_fac_pr_path = dir_path.rstrip('/') + '/Pca/pca_envfit_factor.xls'
+                        insert_table_detail(env_fac_path, 'factor', update_id=main_id)
+                        insert_text_detail(env_fac_pr_path, 'env_factor', main_id=main_id)
+                    if 'pca_envfit_vector_scores.xls' in filelist:
+                        env_vec_path = dir_path.rstrip('/') + '/Pca/pca_envfit_vector_scores.xls'
+                        env_vec_pr_path = dir_path.rstrip('/') + '/Pca/pca_envfit_vector.xls'
+                        insert_table_detail(env_vec_path, 'vector', update_id=main_id)
+                        insert_text_detail(env_vec_pr_path, 'env_vector', main_id=main_id)
                 else:
                     pass
             elif analysis == 'pcoa':
@@ -76,16 +94,23 @@ class BetaMultiAnalysis(Base):
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
                 rotation_path = dir_path.rstrip('/') + '/Pcoa/pcoa_rotation.xls'
                 importance_path = dir_path.rstrip('/') + '/Pcoa/pcoa_importance.xls'
-                insert_text_detail(rotation_path, 'rotation', main_id=main_id)
+                insert_table_detail(rotation_path, 'rotation', update_id=main_id)
                 insert_text_detail(importance_path, 'importance', main_id=main_id)
             elif analysis == 'nmds':
                 site_path = dir_path.rstrip('/') + '/Nmds/nmds_sites.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
             elif analysis == 'dbrda':
                 site_path = dir_path.rstrip('/') + '/Dbrda/db_rda_sites.xls'
-                factor_path = dir_path.rstrip('/') + '/Dbrda/db_rda_factor.xls'
+                species_path = dir_path.rstrip('/') + '/Dbrda/db_rda_species.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
-                insert_table_detail(factor_path, 'factor', update_id=main_id)
+                insert_table_detail(species_path, 'species', update_id=main_id)
+                filelist = os.listdir(dir_path.rstrip('/') + '/Dbrda')
+                if 'db_rda_centroids.xls' in filelist:
+                    env_fac_path = dir_path.rstrip('/') + '/Dbrda/db_rda_centroids.xls'
+                    insert_table_detail(env_fac_path, 'factor', update_id=main_id)
+                if 'db_rda_biplot.xls' in filelist:
+                    env_vec_path = dir_path.rstrip('/') + '/Dbrda/db_rda_biplot.xls'
+                    insert_table_detail(env_vec_path, 'vector', update_id=main_id)
             elif analysis == 'rda_cca':
                 if 'rda' in os.listdir(dir_path.rstrip('/') + '/Rda/')[1]:
                     rda_cca = 'rda'
@@ -94,13 +119,18 @@ class BetaMultiAnalysis(Base):
                 site_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_sites.xls'
                 species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_species.xls'
                 importance_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_importance.xls'
-                environment_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_environment.xls'
                 dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.txt'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
                 insert_table_detail(species_path, 'species', update_id=main_id)
-                insert_table_detail(environment_path, 'env', update_id=main_id)
                 insert_text_detail(importance_path, 'importance', main_id=main_id)
                 insert_text_detail(dca_path, 'dca', main_id=main_id)
+                filelist = os.listdir(dir_path.rstrip('/') + '/Rda')
+                if (rda_cca + '_centroids.xls') in filelist:
+                    env_fac_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_centroids.xls'
+                    insert_table_detail(env_fac_path, 'factor', update_id=main_id)
+                if (rda_cca + '_biplot.xls') in filelist:
+                    env_vec_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_biplot.xls'
+                    insert_table_detail(env_vec_path, 'vector', update_id=main_id)
             else:
                 raise Exception('提供的analysis：%s不存在' % analysis)
         else:
