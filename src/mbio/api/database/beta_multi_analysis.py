@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shenghe'
 import os
+import json
+import datetime
 from biocluster.api.database.base import Base, report_check
 # from bson.objectid import ObjectId
 # import re
@@ -15,7 +17,8 @@ class BetaMultiAnalysis(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_beta_multi_analysis_result(self, dir_path, analysis, main_id):
+    def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None,
+                                       task_id=None, otu_id=None, name=None, params=None, level=None):
         def insert_table_detail(file_path, table_type, update_id,
                                 coll_name='sg_beta_multi_analysis_detail',
                                 main_coll='sg_beta_multi_analysis',
@@ -65,7 +68,27 @@ class BetaMultiAnalysis(Base):
                     'json_value': data
                 }
                 collection.insert_one(insert_data)
+        if level and level not in range(1, 10):
+            raise Exception("level参数%s为不在允许范围内!" % level)
+        if task_id is None:
+            task_id = self.bind_object.sheet.id
         _main_collection = self.db['sg_beta_multi_analysis']
+        if main:
+            insert_mongo_json = {
+                'project_sn': self.bind_object.sheet.project_sn,
+                'task_id': task_id,
+                'otu_id': otu_id,
+                'level_id': int(level),
+                'name': analysis + '_' + name if name else 'origin',
+                'table_type': analysis,
+                'env_id': env_id,
+                'params': json.dumps(params, sort_keys=True, separators=(',', ':')),
+                'status': 'end',
+                'desc': '',
+                'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            multi_analysis_id = _main_collection.insert_one(insert_mongo_json).inserted_id
+            main_id = multi_analysis_id
         result = _main_collection.find_one({'_id': main_id})
         if result:
             if analysis == 'pca':
