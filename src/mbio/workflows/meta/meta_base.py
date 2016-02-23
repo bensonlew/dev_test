@@ -42,7 +42,8 @@ class MetaBaseWorkflow(Workflow):
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "linkage", "type": "string", "default": "average"},
             {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "group", "type": "infile", "format": "meta.otu.group_table"}
+            {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "anosim_grouplabs", "type": 'string'}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -58,7 +59,8 @@ class MetaBaseWorkflow(Workflow):
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
         self.step.add_steps("qcstat", "otucluster", "taxassign", "alphadiv", "betadiv")
         self.spname_spid = dict()
-        self.otu_id = ''
+        self.otu_id = None
+        self.env_id = None
 
     def check_options(self):
         """
@@ -96,13 +98,13 @@ class MetaBaseWorkflow(Workflow):
                 'group_table': self.option('group')
             })
         self.filecheck.set_options(opts)
+        self.filecheck.on("start", self.set_step, {'start': self.step.qcstat})
         self.filecheck.run()
 
     def run_qc(self):
         self.qc.set_options({
             "in_fastq": self.option("in_fastq")
         })
-        self.qc.on("start", self.set_step, {'start': self.step.qcstat})
         self.qc.on("end", self.set_output, "qc")
         self.qc.run()
 
@@ -112,7 +114,7 @@ class MetaBaseWorkflow(Workflow):
             "identity": self.option("identity")
         })
         self.otu.on("end", self.set_output, "otu")
-        self.otu.on("start", self.set_step, {'start': self.step.otucluster})
+        self.otu.on("start", self.set_step, {'end': self.step.qcstat, 'start': self.step.otucluster})
         self.otu.run()
 
     def run_phylotree(self):
@@ -163,7 +165,7 @@ class MetaBaseWorkflow(Workflow):
 
     def run_beta(self):
         opts = {
-            'analysis': self.option('beta_analysis'),
+            'analysis': 'distance,' + self.option('beta_analysis'),
             'dis_method': self.option('dis_method'),
             'otutable': self.option('otu_taxon_dir'),
             "level": self.option('beta_level'),
@@ -177,6 +179,10 @@ class MetaBaseWorkflow(Workflow):
         if self.option('group').is_set:
             opts.update({
                 'group': self.option('group')
+            })
+        if self.option('anosim_grouplabs').is_set:
+            opts.update({
+                'grouplabs': self.option('anosim_grouplabs')
             })
         self.beta.set_options(opts)
         self.beta.on("end", self.set_output, "beta")
@@ -220,6 +226,9 @@ class MetaBaseWorkflow(Workflow):
             if self.option('group').is_set:
                 api_group = self.api.group
                 api_group.add_ini_group_table(self.option('group').prop["path"], self.spname_spid)
+            if self.option('envtable').is_set:
+                api_env = self.api.env
+                self.env_id = api_env.add_env_table(self.option('envtable').prop["path"], self.spname_spid)
         # 设置OTU table文件
         if event['data'] == "otu":
             self.option("otu_table", obj.option("otu_table"))
@@ -272,8 +281,10 @@ class MetaBaseWorkflow(Workflow):
                 if not os.path.isfile(hcluster_path):
                     raise Exception("找不到报告文件:{}".format(hcluster_path))
                 api_hcluster.add_tree_file(hcluster_path, major=True, table_id=dist_id, table_type='dist', tree_type='cluster')
-            # api_betam = self.api.beta_multi_analysis
-            # beta_id = api_betam.add_beta_multi_analysis_result(dir_path = self.beta.output_dir, self.option('beta_analysis'), main_id)
+            for ana in self.option('beta_analysis'):
+                if ana in ['pca', 'pcoa', 'nmds', 'dbrda', 'rda_cca']:
+                    api_betam = self.api.beta_multi_analysis
+                    api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana, main=True, env_id=self.env_id, otu_id=self.otu_id)
 
     def run(self):
         self.run_filecheck()
