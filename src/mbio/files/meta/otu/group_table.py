@@ -101,6 +101,31 @@ class GroupTableFile(File):
                 new_line = "\t".join(sub_line)
                 w.write(new_line + "\n")
 
+    def group_num(self, name):
+        """
+        传入分组方案name,判断该分组方案下分组类别的数量
+        :param name: 某一分组方案的名字,string
+        :return group:该分组方案下分组类别的数量
+        """
+        with open(self.prop['path'], 'r') as f:
+            head = f.readline().split()
+            site = 0
+            for i in head:
+                if i == name:
+                    site = head.index(i)
+            gnames = []
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+                gnames.append(line.split()[site])
+            gnum = {}
+            for n in gnames:
+                gnum[n] = gnames.count(n)
+            group = len(gnum)
+            return group
+
+
 if __name__ == "__main__":
     g = GroupTableFile()
     g.set_path("example.group")
