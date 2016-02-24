@@ -55,7 +55,7 @@ class RdaCcaAgent(Agent):
             self.option('envtable').sub_group(new_path, self.option('envlabs').split(','))
             self.option('envtable').set_path(new_path)
         else:
-            self.option('envlabs', ','.join(open(self.option('envlabs'), 'r').readline().strip().split('\t')[1:]))
+            self.option('envlabs', ','.join(open(self.option('envtable').path, 'r').readline().strip().split('\t')[1:]))
 
     def check_options(self):
         """

@@ -107,7 +107,7 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
                 if not self.option("kru_H_group").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的分组文件')
-                if not self.option("kru_H_gname").is_set:
+                if not self.option("kru_H_gname"):
                     raise OptionError("kru_H_gname参数为必须参数，请设置")
                 if self.option("kru_H_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
                                                            "fdr", "none"]:
@@ -122,7 +122,7 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
                 if not self.option("anova_group").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的分组文件')
-                if not self.option("anova_gname").is_set:
+                if not self.option("anova_gname"):
                     raise OptionError("anova_gname参数为必须参数，请设置")
                 if self.option("anova_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
                                                            "fdr", "none"]:
@@ -142,7 +142,7 @@ class MetastatAgent(Agent):
                     raise OptionError('所输入的显著水平不在范围值内')
                 if self.option("mann_type") not in ["two.side", "greater", "less"]:
                     raise OptionError('所输入的类型不在范围值内')
-                if not self.option("mann_gname").is_set:
+                if not self.option("mann_gname"):
                     raise OptionError("mann_gname参数为必须参数，请设置")
                 gnum = self.option('mann_group').group_num(self.option('mann_gname'))
                 if gnum != 2:
@@ -159,7 +159,7 @@ class MetastatAgent(Agent):
                     raise OptionError('所输入的显著水平不在范围值内')
                 if self.option("student_type") not in ["two.side", "greater", "less"]:
                     raise OptionError('所输入的类型不在范围值内')
-                if not self.option("student_gname").is_set:
+                if not self.option("student_gname"):
                     raise OptionError("student_gname参数为必须参数，请设置")
                 gnum = self.option('student_group').group_num(self.option('student_gname'))
                 if gnum != 2:
@@ -176,7 +176,7 @@ class MetastatAgent(Agent):
                     raise OptionError('所输入的显著水平不在范围值内')
                 if self.option("welch_type") not in ["two.side", "greater", "less"]:
                     raise OptionError('所输入的类型不在范围值内')
-                if not self.option("welch_gname").is_set:
+                if not self.option("welch_gname"):
                     raise OptionError("welch_gname参数为必须参数，请设置")
                 gnum = self.option('welch_group').group_num(self.option('welch_gname'))
                 if gnum != 2:

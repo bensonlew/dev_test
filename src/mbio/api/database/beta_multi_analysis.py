@@ -18,7 +18,7 @@ class BetaMultiAnalysis(Base):
 
     @report_check
     def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None,
-                                       task_id=None, otu_id=None, name=None, params=None, level=None):
+                                       task_id=None, otu_id=None, name=None, params=None, level=9):
         def insert_table_detail(file_path, table_type, update_id,
                                 coll_name='sg_beta_multi_analysis_detail',
                                 main_coll='sg_beta_multi_analysis',

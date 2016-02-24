@@ -21,7 +21,7 @@ class LefseAgent(Agent):
             {"name": "lefse_group", "type": "infile", "format": "meta.otu.group_table"},  # 输入分组文件
             {"name": "lda_filter", "type": "float", "default": 2.0},
             {"name": "strict", "type": "int", "default": 0},
-            {"name": "lefse_gname", "type": "string"}
+            {"name": "lefse_gname", "type": "string", "default": "None"}
         ]
         self.add_option(options)
         self.step.add_steps("run_biom", "tacxon_stat", "plot_lefse")
@@ -39,12 +39,11 @@ class LefseAgent(Agent):
             raise OptionError("所设严格性超出范围值")
         if self.option("lda_filter") > 4.0 or self.option("lda_filter") < -4.0:
             raise OptionError("所设阈值超出范围值")
-        if not self.option("lefse_gname").is_set:
-            raise OptionError("lefse_gname为必须参数，请设置")
-        for i in self.option('lefse_gname').split(','):
-            gnum = self.option('lefse_group').group_num(i)
-            if gnum < 2:
-                raise OptionError("lefse分析分组类别必须大于2")
+        if self.option("lefse_gname") != 'None':
+            for i in self.option('lefse_gname').split(','):
+                gnum = self.option('lefse_group').group_num(i)
+                if gnum < 2:
+                    raise OptionError("lefse分析分组类别必须大于2")
         return True
 
     def set_resource(self):
@@ -137,11 +136,16 @@ class LefseTool(Tool):
         self.set_environ(PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/bin:$PATH")
         self.set_environ(R_HOME="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/")
         self.set_environ(LD_LIBRARY_PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/lib:$LD_LIBRARY_PATH")
-        glist = self.option('lefse_gname').split(',')
-        self.option('lefse_group').sub_group('./lefse_group', glist)
-        plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
-                   "plot-lefse.py -i tax_summary_a -g ./lefse_group -o lefse_input.txt -L %s -s %s" % \
-                   (self.option("lda_filter"), self.option("strict"))
+        if self.option('lefse_gname') == 'None':
+            plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
+                       "plot-lefse.py -i tax_summary_a -g %s -o lefse_input.txt -L %s -s %s" % \
+                       (self.option('lefse_group').prop['path'], self.option("lda_filter"), self.option("strict"))
+        else:
+            glist = self.option('lefse_gname').split(',')
+            self.option('lefse_group').sub_group('./lefse_group', glist)
+            plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
+                       "plot-lefse.py -i tax_summary_a -g ./lefse_group -o lefse_input.txt -L %s -s %s" % \
+                       (self.option("lda_filter"), self.option("strict"))
         self.logger.info("开始运行plot_cmd")
         self.logger.info(plot_cmd)
         plot_command = self.add_command("plot_cmd", plot_cmd).run()

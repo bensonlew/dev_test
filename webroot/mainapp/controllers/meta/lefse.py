@@ -51,8 +51,7 @@ class Lefse(object):
                     "group_detail": data.group_detail,
                     "strict": data.strict,
                     "lda_filter": data.lda_filter,
-                    "lefse_id": str(lefse_id),
-                    "group_name": G().get_group_name(data.group_id)
+                    "lefse_id": str(lefse_id)
                 }
             }
             insert_data = {"client": client,
