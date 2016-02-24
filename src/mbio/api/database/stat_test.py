@@ -15,7 +15,7 @@ class StatTest(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_species_difference_check_detail(self, file_path, level, check_type, params, table_id=None, group_id=None, from_otu_table=None, name=None, major=False):
+    def add_species_difference_check_detail(self, file_path, level=None, check_type=None, params=None, table_id=None, group_id=None, from_otu_table=None, name=None, major=False):
         if major:
             table_id = self.create_species_difference_check(level, check_type, params, group_id,  from_otu_table, name)
         else:
@@ -54,7 +54,7 @@ class StatTest(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
     
     @report_check
-    def add_twosample_species_difference_check(self, file_path, level, check_type, params, table_id=None, group_id=None, from_otu_table=None, name=None, major=False):
+    def add_twosample_species_difference_check(self, file_path, level=None, check_type=None, params=None, table_id=None, group_id=None, from_otu_table=None, name=None, major=False):
         if major:
             table_id = self.create_species_difference_check(level, check_type, params, group_id,  from_otu_table, name)
         else:
@@ -129,7 +129,7 @@ class StatTest(Base):
         return data_list
 
     @report_check
-    def add_species_difference_lefse_detail(self, file_path, params, group_id=None,  from_otu_table=None, name=None, table_id=None, major=False):
+    def add_species_difference_lefse_detail(self, file_path, params=None, group_id=None,  from_otu_table=None, name=None, table_id=None, major=False):
         if major:
             table_id = self.create_species_difference_lefse(params, group_id, from_otu_table, name)
         else:

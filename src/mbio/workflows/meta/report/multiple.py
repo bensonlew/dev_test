@@ -66,7 +66,7 @@ class MultipleWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):
             raise Exception("找不到报告文件:{}".format(boxfile_path))
-        api_multiple.add_species_difference_check_detail(stat_path, self.option("multiple_id"))
+        api_multiple.add_species_difference_check_detail(file_path=stat_path, table_id=self.option("multiple_id"))
         api_multiple.add_species_difference_check_boxplot(boxfile_path, self.option("multiple_id"))
         self.end()
 
