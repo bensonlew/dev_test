@@ -19,7 +19,8 @@ class EstTTestWorkflow(Workflow):
             {"name": "update_info", "type": "string"},
             {"name": "test_type", "type": "string"},
             {"name": "est_t_test_id", "type": "string"},
-            {"name": "group_detail", "type": "string"}
+            {"name": "group_detail", "type": "string"},
+            {"name": "group_name", "type": "string"}
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -33,7 +34,8 @@ class EstTTestWorkflow(Workflow):
         options = {
                 'student_input': self.option('est_table'),
                 'test': self.option('test_type'),
-                'student_group': group_file
+                'student_group': group_file,
+                'student_gname': self.option('group_name')
                 }
         self.tools[file_name].set_options(options)
         # self.on_rely(self.tools[file_name], self.set_db, str(self.run_times))
