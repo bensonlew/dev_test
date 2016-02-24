@@ -24,7 +24,8 @@ class MultipleWorkflow(Workflow):
             {"name": "level", "type": "int"},
             {"name": "correction", "type": "string", "default": "none"},
             {"name": "ci", "type": "float", "default": 0.05},
-            {"name": "multiple_id", "type": "string"}
+            {"name": "multiple_id", "type": "string"},
+            {"name": "group_name", "type": "string"}
 
         ]
         self.add_option(options)
@@ -38,7 +39,8 @@ class MultipleWorkflow(Workflow):
                 "anova_input": self.option("otu_file"),
                 "anova_group": self.option("group_file"),
                 "anova_correction": self.option("correction"),
-                "test": self.option("test")
+                "test": self.option("test"),
+                "anova_gname": self.option("group_name")
             }
         else:
             options = {
@@ -46,8 +48,8 @@ class MultipleWorkflow(Workflow):
                 "kru_H_group": self.option("group_file"),
                 "kru_H_correction": self.option("correction"),
                 # "kru_H_type": self.option("type"),
-                "test": self.option("test")
-
+                "test": self.option("test"),
+                "kru_H_gname": self.option("group_name")
             }
         self.multiple.set_options(options)
         self.on_rely(self.multiple, self.set_db)
@@ -64,7 +66,7 @@ class MultipleWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):
             raise Exception("找不到报告文件:{}".format(boxfile_path))
-        api_multiple.add_species_difference_check_detail(stat_path, self.option("multiple_id"))
+        api_multiple.add_species_difference_check_detail(file_path=stat_path, table_id=self.option("multiple_id"))
         api_multiple.add_species_difference_check_boxplot(boxfile_path, self.option("multiple_id"))
         self.end()
 

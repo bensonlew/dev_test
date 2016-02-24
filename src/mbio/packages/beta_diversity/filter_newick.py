@@ -98,11 +98,16 @@ class otu_table(object):
 
     def _get_samples_name(self):
         collection = self.__mongodb['sanger']['sg_otu_specimen']
+        specimen_collection = self.__mongodb['sanger']['sg_specimen']
         results = collection.find({'otu_id': self._id})
         samples = []
         if results:
             for i in results:
-                samples.append(i['specimen_name'])
+                specimen = specimen_collection.find_one({'_id': i['specimen_id']})
+                if specimen:
+                    samples.append(specimen['specimen_name'])
+                else:
+                    raise Exception('sg_otu_specimen中的specimen_id无法在sg_specimen中找到数据')
             return samples
         else:
             raise Exception('OTU表没有样本信息')

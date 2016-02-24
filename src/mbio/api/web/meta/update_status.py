@@ -121,13 +121,15 @@ class UpdateStatus(Log):
                     "type_name": dbname,
                     "status": "start",
                     "is_new": "new",
-                    "desc": desc
+                    "desc": desc,
+                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
                 collection.insert_one(insert_data)
             else:
                 insert_data = {
                     "status": status,
-                    "desc": desc
+                    "desc": desc,
+                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
                 collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
             self._mongo_client.close()
