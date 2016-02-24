@@ -82,3 +82,19 @@ class GroupStat(object):
         collection = self.db["sg_species_difference_lefse"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
+
+    def get_group_name(self, group_id):
+        """
+        根据分组方案id获取分组方案名字
+        :param group_id: 分组方案id
+        :return: 分组方案名字
+        """
+        if not isinstance(group_id, ObjectId):
+            if isinstance(group_id, StringTypes):
+                group_id = ObjectId(group_id)
+            else:
+                raise Exception("group_detail必须为ObjectId对象或其对应的字符串!")
+        collection = self.db['sg_specimen_group']
+        result = collection.find_one({'_id': group_id})
+        gname = result['group_name']
+        return gname

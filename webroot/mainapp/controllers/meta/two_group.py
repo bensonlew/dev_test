@@ -56,6 +56,7 @@ class TwoGroup(object):
                     "correction": data.correction,
                     "ci": float(data.ci),
                     "type": data.type,
+                    "group_name": G().get_group_name(data.group_id),
                     "two_group_id": str(two_group_id)
                 }
             }

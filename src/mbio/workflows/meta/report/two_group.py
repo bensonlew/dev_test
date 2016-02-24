@@ -24,7 +24,8 @@ class TwoGroupWorkflow(Workflow):
             {"name": "level", "type": "int"},
             {"name": "correction", "type": "string", "default": "none"},
             {"name": "ci", "type": "float", "default": 0.05},
-            {"name": "two_group_id", "type": "string"}
+            {"name": "two_group_id", "type": "string"},
+            {"name": "group_name", "type": "string"}
 
         ]
         self.add_option(options)
@@ -39,9 +40,8 @@ class TwoGroupWorkflow(Workflow):
                 "student_ci": self.option("ci"),
                 "student_correction": self.option("correction"),
                 "student_type": self.option("type"),
-                "test": self.option("test")
-
-
+                "test": self.option("test"),
+                "student_gname": self.option("group_name")
             }
         elif self.option("test") == "mann":
             options = {
@@ -50,8 +50,8 @@ class TwoGroupWorkflow(Workflow):
                 "mann_group": self.option("group_file"),
                 "mann_correction": self.option("correction"),
                 "mann_type": self.option("type"),
-                "test": self.option("test")
-
+                "test": self.option("test"),
+                "mann_gname": self.option("group_name")
             }
         else:
             options = {
@@ -60,8 +60,8 @@ class TwoGroupWorkflow(Workflow):
                 "welch_group": self.option("group_file"),
                 "welch_correction": self.option("correction"),
                 "welch_type": self.option("type"),
-                "test": self.option("test")
-
+                "test": self.option("test"),
+                "welch_gname": self.option("group_name")
             }
         self.two_group.set_options(options)
         self.on_rely(self.two_group, self.set_db)

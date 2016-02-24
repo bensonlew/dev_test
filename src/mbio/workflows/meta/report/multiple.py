@@ -24,7 +24,8 @@ class MultipleWorkflow(Workflow):
             {"name": "level", "type": "int"},
             {"name": "correction", "type": "string", "default": "none"},
             {"name": "ci", "type": "float", "default": 0.05},
-            {"name": "multiple_id", "type": "string"}
+            {"name": "multiple_id", "type": "string"},
+            {"name": "group_name", "type": "string"}
 
         ]
         self.add_option(options)
@@ -38,7 +39,8 @@ class MultipleWorkflow(Workflow):
                 "anova_input": self.option("otu_file"),
                 "anova_group": self.option("group_file"),
                 "anova_correction": self.option("correction"),
-                "test": self.option("test")
+                "test": self.option("test"),
+                "anova_gname": self.option("group_name")
             }
         else:
             options = {
@@ -46,8 +48,8 @@ class MultipleWorkflow(Workflow):
                 "kru_H_group": self.option("group_file"),
                 "kru_H_correction": self.option("correction"),
                 # "kru_H_type": self.option("type"),
-                "test": self.option("test")
-
+                "test": self.option("test"),
+                "kru_H_gname": self.option("group_name")
             }
         self.multiple.set_options(options)
         self.on_rely(self.multiple, self.set_db)

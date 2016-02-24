@@ -177,12 +177,12 @@ class StatTest(Base):
             self.bind_object.logger.info("导入%s和%s信息成功!" % (lda_png_path, lda_cladogram_path))
 
     def create_species_difference_check(self, level, check_type, params, group_id=None,  from_otu_table=None, name=None):
-        if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
+        if from_otu_table is not None and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
             else:
                 raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
-        if group_id != 0 and not isinstance(group_id, ObjectId):
+        if group_id is not None and not isinstance(group_id, ObjectId):
             if isinstance(group_id, StringTypes):
                 group_id = ObjectId(group_id)
             else:
@@ -218,12 +218,12 @@ class StatTest(Base):
         return inserted_id
 
     def create_species_difference_lefse(self, params, group_id=None,  from_otu_table=None, name=None):
-        if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
+        if from_otu_table is not None and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
             else:
                 raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
-        if group_id != 0 and not isinstance(group_id, ObjectId):
+        if group_id is not None and not isinstance(group_id, ObjectId):
             if isinstance(group_id, StringTypes):
                 group_id = ObjectId(group_id)
             else:

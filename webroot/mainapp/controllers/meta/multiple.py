@@ -54,6 +54,7 @@ class Multiple(object):
                     "group_detail": data.group_detail,
                     "correction": data.correction,
                     "test": data.test,
+                    "group_name": G().get_group_name(data.group_id),
                     "multiple_id": str(multiple_id)
                 }
             }
