@@ -191,9 +191,9 @@ class OtuTableFile(File):
         #  处理uncultured和Incertae_Sedis
         i = 0
         for my_cla in cla:
-            if re.search("uncultured", cla[i]) or re.search("Incertae_Sedis", cla[i]):
+            if re.search("uncultured", cla[i]) or re.search("Incertae_Sedis", cla[i]) or re.search("norank", cla[i]):
                 if i == 0:
-                    raise Exception("在域水平上的分类为uncultured或Incertae_Sedis")
+                    raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或是norank")
                 else:
                     cla[i] = cla[i] + "_" + cla[i - 1]
             i += 1

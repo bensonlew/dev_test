@@ -73,7 +73,9 @@ class Sample(Base):
                     "q1": line_data[6],
                     "q3": line_data[8],
                     "median": line_data[7],
-                    "average": line_data[5]
+                    "average": line_data[5],
+                    "lw": line_data[10],
+                    "rw": line_data[11]
                 }
                 data_list.append(data)
         try:
@@ -134,7 +136,7 @@ class Sample(Base):
         collection = self.db["sg_specimen"]
         spname_spid = dict()
         for id_ in self.sample_table_ids:
-            result = collection.find_one({"_id", id_})
+            result = collection.find_one({"_id": id_})
             if not result:
                 raise Exception("意外错误，无法找到样本id")
             spname_spid[result["specimen_name"]] = id_
