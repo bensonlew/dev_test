@@ -6,7 +6,7 @@ from bson.objectid import ObjectId
 from types import StringTypes
 from bson.son import SON
 import gridfs
-import pymongo
+import datetime
 
 
 class StatTest(Base):
@@ -15,12 +15,17 @@ class StatTest(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_species_difference_check_detail(self, file_path, table_id):
-        if not isinstance(table_id, ObjectId):
-            if isinstance(table_id, StringTypes):
-                table_id = ObjectId(table_id)
-            else:
-                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
+    def add_species_difference_check_detail(self, file_path, level, check_type, params, table_id=None, group_id=None, from_otu_table=None, name=None, major=False):
+        if major:
+            table_id = self.create_species_difference_check(level, check_type, params, group_id,  from_otu_table, name)
+        else:
+            if table_id is None:
+                raise Exception("major为False时需提供table_id!")
+            if not isinstance(table_id, ObjectId):
+                if isinstance(table_id, StringTypes):
+                    table_id = ObjectId(table_id)
+                else:
+                    raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
@@ -49,12 +54,17 @@ class StatTest(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
     
     @report_check
-    def add_twosample_species_difference_check(self, file_path, table_id):
-        if not isinstance(table_id, ObjectId):
-            if isinstance(table_id, StringTypes):
-                table_id = ObjectId(table_id)
-            else:
-                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
+    def add_twosample_species_difference_check(self, file_path, level, check_type, params, table_id=None, group_id=None, from_otu_table=None, name=None, major=False):
+        if major:
+            table_id = self.create_species_difference_check(level, check_type, params, group_id,  from_otu_table, name)
+        else:
+            if table_id is None:
+                raise Exception("major为False时需提供table_id!")
+            if not isinstance(table_id, ObjectId):
+                if isinstance(table_id, StringTypes):
+                    table_id = ObjectId(table_id)
+                else:
+                    raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
         with open(file_path, 'rb') as r:
             l = r.readline().strip('\n')
@@ -119,12 +129,17 @@ class StatTest(Base):
         return data_list
 
     @report_check
-    def add_species_difference_lefse_detail(self, file_path, table_id):
-        if not isinstance(table_id, ObjectId):
-            if isinstance(table_id, StringTypes):
-                table_id = ObjectId(table_id)
-            else:
-                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
+    def add_species_difference_lefse_detail(self, file_path, params, group_id=None,  from_otu_table=None, name=None, table_id=None, major=False):
+        if major:
+            table_id = self.create_species_difference_lefse(params, group_id, from_otu_table, name)
+        else:
+            if table_id is None:
+                raise Exception("major为False时需提供table_id!")
+            if not isinstance(table_id, ObjectId):
+                if isinstance(table_id, StringTypes):
+                    table_id = ObjectId(table_id)
+                else:
+                    raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
         with open(file_path, 'rb') as r:
             i = 0
@@ -161,7 +176,76 @@ class StatTest(Base):
         else:
             self.bind_object.logger.info("导入%s和%s信息成功!" % (lda_png_path, lda_cladogram_path))
 
+    def create_species_difference_check(self, level, check_type, params, group_id=None,  from_otu_table=None, name=None):
+        if from_otu_table is not None and not isinstance(from_otu_table, ObjectId):
+            if isinstance(from_otu_table, StringTypes):
+                from_otu_table = ObjectId(from_otu_table)
+            else:
+                raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
+        if group_id is not None and not isinstance(group_id, ObjectId):
+            if isinstance(group_id, StringTypes):
+                group_id = ObjectId(group_id)
+            else:
+                raise Exception("group_detail必须为ObjectId对象或其对应的字符串!")
+        collection = self.db["sg_otu"]
+        result = collection.find_one({"_id": from_otu_table})
+        project_sn = result['project_sn']
+        task_id = result['task_id']
+        if check_type == 'tow_sample':
+             insert_data = {
+                "type": check_type,
+                "project_sn": project_sn,
+                "task_id": task_id,
+                "name": name if name else "组间差异统计表格",
+                "level_id": int(level),
+                "params": params,
+                "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+             }
+        else:
+            insert_data = {
+                "type": check_type,
+                "project_sn": project_sn,
+                "task_id": task_id,
+                "otu_id": from_otu_table,
+                "group_id": group_id,
+                "name": name if name else "组间差异统计表格",
+                "level_id": int(level),
+                "params": params,
+                "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        collection = self.db["sg_species_difference_check"]
+        inserted_id = collection.insert_one(insert_data).inserted_id
+        return inserted_id
 
+    def create_species_difference_lefse(self, params, group_id=None,  from_otu_table=None, name=None):
+        if from_otu_table is not None and not isinstance(from_otu_table, ObjectId):
+            if isinstance(from_otu_table, StringTypes):
+                from_otu_table = ObjectId(from_otu_table)
+            else:
+                raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
+        if group_id is not None and not isinstance(group_id, ObjectId):
+            if isinstance(group_id, StringTypes):
+                group_id = ObjectId(group_id)
+            else:
+                raise Exception("group_detail必须为ObjectId对象或其对应的字符串!")
+        collection = self.db["sg_otu"]
+        result = collection.find_one({"_id": from_otu_table})
+        project_sn = result['project_sn']
+        task_id = result['task_id']
+        insert_data = {
+            "project_sn": project_sn,
+            "task_id": task_id,
+            "otu_id": from_otu_table,
+            "group_id": group_id,
+            "name": name if name else "lefse分析LDA值表",
+            "params": params,
+            "lda_cladogram_id": "",
+            "lda_png_id": "",
+            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        collection = self.db["sg_species_difference_lefse"]
+        inserted_id = collection.insert_one(insert_data).inserted_id
+        return inserted_id
 
 
 

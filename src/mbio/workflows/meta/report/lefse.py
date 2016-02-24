@@ -22,7 +22,6 @@ class LefseWorkflow(Workflow):
             {"name": "lda_filter", "type": "float", "default": 2.0},
             {"name": "strict", "type": "int", "default": 0},
             {"name": "lefse_id", "type": "string"}
-
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
