@@ -140,7 +140,7 @@ class Venn(Base):
         last_classify = ""
         for i in range(1, 10):
             if LEVEL[i] in result:
-                if re.search("uncultured", result[LEVEL[i]]) or re.search("Incertae_Sedis", result[LEVEL[i]]) or re.search("norank", result[LEVEL[i]]):
+                if re.search("uncultured$", result[LEVEL[i]]) or re.search("Incertae_Sedis$", result[LEVEL[i]]) or re.search("norank$", result[LEVEL[i]]):
                     result[LEVEL[i]] = result[LEVEL[i]] + "_" + result[LEVEL[i - 1]]
         for i in range(1, level):
             if LEVEL[i] not in result:
