@@ -2,7 +2,6 @@
 # __author__ = 'xuting'
 
 import simplejson as json
-import re
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
@@ -18,8 +17,8 @@ class MiseqSplitFile(File):
         self.seq_config = ["index_missmatch", "ignore_missing_bcl", "base_mask"]
         self.p_props = ["sample_name", "index", "sample_id", "mj_sn",
                         "cus_sample_name", "lane", "project", "has_child", "program"]
-        self.c_props = ["sample_name", "sample_id", "mj_sn", "config"]  # "cus_sample_name"暂时缺失
-        self.c_config = ["index", "primer", "index_miss", "primer_miss", "filter_min"]
+        self.c_props = ["sample_name", "sample_id", "mj_sn", "config", "primer", "index"]  # "cus_sample_name"暂时缺失
+        self.c_config = ["index_miss", "primer_miss", "filter_min"]
 
     def get_info(self):
         """
@@ -168,13 +167,14 @@ class MiseqSplitFile(File):
         检测同属于一个父样本的子样本的index是否重复
         """
         for p_id in self.prop['parent_ids']:
-            c_ids = self.find_child_ids(p_id)
+            try:
+                c_ids = self.find_child_ids(p_id)
+            except ValueError:
+                c_ids = []
             c_index = list()
             for c_id in c_ids:
-                print c_id
                 my_index = self.child_sample(c_id, "index")
                 if my_index in c_index:
-                    print "c_id:" + c_id
                     raise FileError("属于同一个父样本的子样本中的index重复")
                 else:
                     c_index.append(my_index)
@@ -192,20 +192,11 @@ class MiseqSplitFile(File):
                 raise FileError("Json文件中子样本config属性 %s 缺失！" % c)
         return True
 
-    def check_config(self):
-        for c in self.c_props:
-            for c_sample in self.prop["child_sample"]:
-                line = re.split('_', c_sample['config']["primer"])
-                if len(line) != 2:
-                    raise FileError("Json文件中子样本primer属性值错误")
-        return True
-
     def check(self):
         """
         检测文件是否满足要求,发生错误时应该触发FileError异常
         """
         if super(MiseqSplitFile, self).check():
             self.get_info()
-            if self.ckeck_prop() and self.check_config() and\
-               self.check_child_repeat() and self.check_parent_repeat():
+            if self.ckeck_prop() and self.check_child_repeat() and self.check_parent_repeat():
                 return True

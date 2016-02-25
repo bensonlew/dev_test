@@ -180,7 +180,7 @@ class MetaBaseWorkflow(Workflow):
             opts.update({
                 'group': self.option('group')
             })
-        if 'anosim' in self.option('beta_analysis'):
+        if 'anosim' in self.option('beta_analysis').split(','):
             opts.update({
                 'grouplabs': self.option('anosim_grouplabs')
             })
@@ -274,14 +274,14 @@ class MetaBaseWorkflow(Workflow):
             if not os.path.isfile(dist_path):
                 raise Exception("找不到报告文件:{}".format(dist_path))
             dist_id = api_dist.add_dist_table(dist_path, level=9, otu_id=self.otu_id, major=True)
-            if 'hcluster' in self.option('beta_analysis'):
+            if 'hcluster' in self.option('beta_analysis').split(','):
                 # 设置hcluster树文件
                 api_hcluster = self.api.newicktree
                 hcluster_path = self.beta.output_dir + "/Hcluster/hcluster.tre"
                 if not os.path.isfile(hcluster_path):
                     raise Exception("找不到报告文件:{}".format(hcluster_path))
                 api_hcluster.add_tree_file(hcluster_path, major=True, table_id=dist_id, table_type='dist', tree_type='cluster')
-            for ana in self.option('beta_analysis'):
+            for ana in self.option('beta_analysis').split(','):
                 if ana in ['pca', 'pcoa', 'nmds', 'dbrda', 'rda_cca']:
                     api_betam = self.api.beta_multi_analysis
                     api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana, main=True, env_id=self.env_id, otu_id=self.otu_id)

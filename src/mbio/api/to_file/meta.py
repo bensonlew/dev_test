@@ -101,7 +101,7 @@ def _create_classify_name(col, tmp):
     last_classify = ""
     for i in range(1, 10):
         if LEVEL[i] in col:
-            if re.search("uncultured", col[LEVEL[i]]) or re.search("Incertae_Sedis", col[LEVEL[i]]) or re.search("norank", col[LEVEL[i]]):
+            if re.search("uncultured$", col[LEVEL[i]]) or re.search("Incertae_Sedis$", col[LEVEL[i]]) or re.search("norank$", col[LEVEL[i]]):
                 if i == 0:
                     raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或是norank")
                 else:
