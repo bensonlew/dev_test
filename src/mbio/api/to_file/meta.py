@@ -18,10 +18,14 @@ def export_otu_table(data, option_name, dir_path, bind_obj=None):
     file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     collection = db['sg_otu_specimen']
+    my_collection = db['sg_specimen']
     results = collection.find({"otu_id": ObjectId(data)})
     samples = []
     for result in results:
-        samples.append(result["specimen_name"])
+        id_result = my_collection.find_one({"_id": result["specimen_id"]})
+        if not id_result:
+            raise Exception("意外错误，样本id:{}在sg_specimen中未找到！")
+        samples.append(id_result["specimen_name"])
     # samples = result["specimen_names"]
     collection = db['sg_otu_detail']
     with open(file_path, "wb") as f:
@@ -50,7 +54,14 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
         raise Exception("otu_id: {}在sg_otu_specimen表中未找到！".format(data))
     samples = list()
     for result in results:
-        samples.append(result['specimen_name'])
+        if "specimen_id" not in result:
+            raise Exception("otu_id:{}错误，请使用新导入的OTU表的id".format(data))
+        sp_id = result['specimen_id']
+        my_collection = db['sg_specimen']
+        my_result = my_collection.find_one({"_id": sp_id})
+        if not my_result:
+            raise Exception("意外错误，样本id:{}在sg_specimen表里未找到".format(sp_id))
+        samples.append(my_result["specimen_name"])
     level = int(bind_obj.sheet.option("level"))
     collection = db['sg_otu_detail']
     name_dic = dict()
@@ -90,8 +101,11 @@ def _create_classify_name(col, tmp):
     last_classify = ""
     for i in range(1, 10):
         if LEVEL[i] in col:
-            if re.search("uncultured", col[LEVEL[i]]) or re.search("Incertae_Sedis", col[LEVEL[i]]):
-                col[LEVEL[i]] = col[LEVEL[i]] + "_" + col[LEVEL[i - 1]]
+            if re.search("uncultured$", col[LEVEL[i]]) or re.search("Incertae_Sedis$", col[LEVEL[i]]) or re.search("norank$", col[LEVEL[i]]):
+                if i == 0:
+                    raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或是norank")
+                else:
+                    col[LEVEL[i]] = col[LEVEL[i]] + "_" + col[LEVEL[i - 1]]
     for i in range(1, tmp):
         if LEVEL[i] not in col:
             if last_classify == "":
@@ -130,7 +144,7 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
     with open(file_path, "wb") as f:
         f.write("#sample\t" + group_schema["group_name"] + "\n")
 
-    sample_table_name = _get_sample_table(group_schema)
+    sample_table_name = 'sg_specimen'
     sample_table = db[sample_table_name]
     index_list = _get_index_list(group_name_list, c_name)
     sample_id = list()  # [[id名,组名], [id名, 组名]，...]
@@ -153,16 +167,6 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
         for pair in sample_name:
             f.write("{}\t{}\n".format(pair[0], pair[1]))
     return file_path
-
-
-def _get_sample_table(group_schema):
-    # 当group表里的那条记录有"otu_id"字段时, 去sg_otu_specimen表里由id去找样本名
-    # 当group表里的那条记录有"task_id"字段时, 去sg_specimen表里由id去找样本名
-    if "otu_id" in group_schema:
-        sample_table_name = "sg_otu_specimen"
-    elif "task_id" in group_schema:
-        sample_table_name = 'sg_specimen'
-    return sample_table_name
 
 
 def _get_objectid(data):
@@ -221,7 +225,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     with open(file_path, "wb") as f:
         f.write("#sample\t" + group_schema["group_name"] + "\n")
 
-    sample_table_name = _get_sample_table(group_schema)
+    sample_table_name = 'sg_specimen'
     sample_table = db[sample_table_name]
 
     with open(file_path, "ab") as f:
@@ -260,7 +264,7 @@ def export_cascading_table_by_detail(data, option_name, dir_path, bind_obj=None)
     with open(file_path, "wb") as f:
         f.write("#sample\t" + group_schema["group_name"])
 
-    sample_table_name = _get_sample_table(group_schema)
+    sample_table_name = 'sg_specimen'
     sample_table = db[sample_table_name]
     _write_cascading_table(table_list, sample_table, file_path, sample_table_name)
     return file_path
