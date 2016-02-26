@@ -34,7 +34,7 @@ def group_file_spilt(group_file, output_dir):
                 for one in two:
                     if detail[1] == one:
                         line = '{}\t{}'.format(detail[0], one)
-                        print(line)
+                        # print(line)
                         rf.write('{}\n'.format(line))
         shutil.move('two_group_file{}'.format(n), output_dir)
         n += 1

@@ -31,9 +31,11 @@ class Rarefaction(object):
                 info = {"success": False, "info": "指数类型不正确{}".format(index)}
                 return json.dumps(info)
         if int(data.level_id) not in range(1, 10):
-            raise Exception("level参数%s为不在允许范围内!" % data.level_id)
+            info = {"success": False, "info": "level{}不在规定范围内{}".format(data.level_id)}
+            return json.dumps(info)
         if not type(data.freq) is int:
-            raise Exception("随机取样数%s为整型!" % data.level_freq)
+            info = {"success": False, "info": "随机取样数%s为整型!" % data.level_freq}
+            return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
