@@ -21,9 +21,9 @@ class Group(Base):
 
         (self.info_dict, self.scheme) = self._get_table_info(file_path, spname_spid)
         for s in self.scheme:
-            self._insert_one_table(s, task_id, file_path)
+            self._insert_one_table(s, task_id, file_path, spname_spid)
 
-    def _insert_one_table(self, s, task_id, file_path):
+    def _insert_one_table(self, s, task_id, file_path, spname_spid):
         category_names = list()
         specimen_names = list()
         for k in self.info_dict:
@@ -34,7 +34,7 @@ class Group(Base):
                 if k[0] == s and k[1] == category_names[i]:
                     tmp_dic = dict()
                     for sp in self.info_dict[k]:
-                        tmp_dic[sp] = sp
+                        tmp_dic[str(spname_spid[sp])] = sp
                     specimen_names.append(tmp_dic)
         insert_date = {
             "project_sn": self.bind_object.sheet.project_sn,
@@ -42,17 +42,17 @@ class Group(Base):
             "task_id": task_id,
             "group_name": s,
             "category_names": category_names,
-            "specimen_infos": specimen_names
+            "specimen_names": specimen_names
         }
         try:
             self.collection.insert_one(insert_date)
         except Exception as e:
-                self.bind_object.logger.error("导入{}表格{}失败：{}".format(file_path, e))
+                self.bind_object.logger.error("导入sg_specimen_group表格{}失败：{}".format(file_path, e))
         else:
-            self.bind_object.logger.info("导入{}表格{}成功".format(file_path))
+            self.bind_object.logger.info("导入sg_specimen_group表格{}成功".format(file_path))
 
     def _get_table_info(self, file_path, spname_spid):
-        info_dic = defaultdict(list)  # info_dict[(分组方案名, 组名)] = [样本1_id,  样本2_id,...]
+        info_dic = defaultdict(list)  # info_dict[(分组方案名, 组名)] = [样本名1,  样本名2,...]
         scheme = list()  # 分组方案
         index_gpname = dict()
         with open(file_path, 'rb') as r:
@@ -67,7 +67,7 @@ class Group(Base):
                 for i in range(1, len(line)):
                     if line[0] not in spname_spid:
                         raise Exception("意外错误,样本名{}在以导入的样本当中未找到".format(line[0]))
-                    info_dic[(index_gpname[i], line[i])].append(str(spname_spid(line[0])))
+                    info_dic[(index_gpname[i], line[i])].append(str(line[0]))
         return (info_dic, scheme)
 
 if __name__ == "__main__":

@@ -54,7 +54,7 @@ class LefseWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(lda_png_path))
         if not os.path.isfile(lda_cladogram_path):
             raise Exception("找不到报告文件:{}".format(lda_cladogram_path))
-        api_lefse.add_species_difference_lefse_detail(lefse_path, self.option("lefse_id"))
+        api_lefse.add_species_difference_lefse_detail(file_path=lefse_path, table_id=self.option("lefse_id"))
         api_lefse.update_species_difference_lefse(lda_png_path, lda_cladogram_path, self.option("lefse_id"))
         self.end()
 
