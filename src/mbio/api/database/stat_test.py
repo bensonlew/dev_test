@@ -38,7 +38,7 @@ class StatTest(Base):
                 length = len(line_data)
                 i = 1
                 for name in group_list:
-                    data = [("species_check_id", table_id),("species_name", line_data[0]),("corrected_pvalue", line_data[length-1]),("pvalue", line_data[length-2])]
+                    data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", line_data[length-1]),("pvalue", line_data[length-2])]
                     data.append(("category_name", name))
                     data.append(("mean", line_data[i]))
                     data.append(("sd", line_data[i+1]))
@@ -54,7 +54,7 @@ class StatTest(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
     
     @report_check
-    def add_twosample_species_difference_check(self, file_path, level=None, check_type=None, params=None, table_id=None, group_id=None, from_otu_table=None, name=None, major=False):
+    def add_twosample_species_difference_check_detail(self, file_path, level=None, check_type=None, params=None, table_id=None, group_id=None, from_otu_table=None, name=None, major=False):
         if major:
             table_id = self.create_species_difference_check(level, check_type, params, group_id,  from_otu_table, name)
         else:
@@ -75,11 +75,11 @@ class StatTest(Base):
                 if not line:
                     break
                 line_data = line.split("\t")
-                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("corrected_pvalue", line_data[4]),
+                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", line_data[4]),
                         ("pvalue", line_data[3]), ("specimen_name", sample[0]), ("propotion", line_data[1])]
                 data_son = SON(data)
                 data_list.append(data_son)
-                data1 = [("species_check_id", table_id), ("species_name", line_data[0]), ("corrected_pvalue", line_data[4]),
+                data1 = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", line_data[4]),
                          ("pvalue", line_data[3]), ("specimen_name", sample[1]), ("propotion", line_data[2])]
                 data_son1 = SON(data1)
                 data_list.append(data_son1)
@@ -121,6 +121,66 @@ class StatTest(Base):
                     data_list.append(data_son)
         try:
             collection = self.db["sg_species_difference_check_boxplot"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
+        else:
+            self.bind_object.logger.info("导入%s信息成功!" % file_path)
+        return data_list
+
+    @report_check
+    def add_species_difference_check_ci_plot(self, file_path, table_id):
+        if not isinstance(table_id, ObjectId):
+            if isinstance(table_id, StringTypes):
+                table_id = ObjectId(table_id)
+            else:
+                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
+        data_list = []
+        with open(file_path, 'rb') as r:
+            l = r.readline()
+            while True:
+                line = r.readline().strip('\n')
+                if not line:
+                    break
+                line_data = line.split("\t")
+                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("effectsize", line_data[1]),
+                        ("lower_ci", line_data[2]), ("upper_ci", line_data[3])]
+                data_son = SON(data)
+                data_list.append(data_son)
+        try:
+            collection = self.db["sg_species_difference_check_ci_plot"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
+        else:
+            self.bind_object.logger.info("导入%s信息成功!" % file_path)
+        return data_list
+
+    @report_check
+    def add_mulgroup_species_difference_check_ci_plot(self, file_path, table_id):
+        if not isinstance(table_id, ObjectId):
+            if isinstance(table_id, StringTypes):
+                table_id = ObjectId(table_id)
+            else:
+                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
+        groups = file_path.split('/')
+        filename = groups[len(groups) - 1].split('_')
+        compare_group = filename[len(filename) - 1]
+        data_list = []
+        with open(file_path, 'rb') as r:
+            l = r.readline()
+            while True:
+                line = r.readline().strip('\n')
+                if not line:
+                    break
+                line_data = line.split("\t")
+                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("effectsize", line_data[1]),
+                        ("lower_ci", line_data[2]), ("upper_ci", line_data[3]), ("post_hoc_pvalue", line_data[4]),
+                        ("compare_category", compare_group)]
+                data_son = SON(data)
+                data_list.append(data_son)
+        try:
+            collection = self.db["sg_species_difference_check_ci_plot"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
@@ -246,6 +306,7 @@ class StatTest(Base):
         collection = self.db["sg_species_difference_lefse"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
+
 
 
 

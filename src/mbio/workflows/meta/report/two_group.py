@@ -25,8 +25,8 @@ class TwoGroupWorkflow(Workflow):
             {"name": "correction", "type": "string", "default": "none"},
             {"name": "ci", "type": "float", "default": 0.05},
             {"name": "two_group_id", "type": "string"},
-            {"name": "group_name", "type": "string"}
-
+            {"name": "group_name", "type": "string"},
+            {"name": "coverage", "type": "float"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -41,7 +41,8 @@ class TwoGroupWorkflow(Workflow):
                 "student_correction": self.option("correction"),
                 "student_type": self.option("type"),
                 "test": self.option("test"),
-                "student_gname": self.option("group_name")
+                "student_gname": self.option("group_name"),
+                "student_coverage": self.option("coverage")
             }
         elif self.option("test") == "mann":
             options = {
@@ -51,7 +52,8 @@ class TwoGroupWorkflow(Workflow):
                 "mann_correction": self.option("correction"),
                 "mann_type": self.option("type"),
                 "test": self.option("test"),
-                "mann_gname": self.option("group_name")
+                "mann_gname": self.option("group_name"),
+                "mann_coverage": self.option("coverage")
             }
         else:
             options = {
@@ -61,7 +63,8 @@ class TwoGroupWorkflow(Workflow):
                 "welch_correction": self.option("correction"),
                 "welch_type": self.option("type"),
                 "test": self.option("test"),
-                "welch_gname": self.option("group_name")
+                "welch_gname": self.option("group_name"),
+                "welch_coverage": self.option("coverage")
             }
         self.two_group.set_options(options)
         self.on_rely(self.two_group, self.set_db)
@@ -75,12 +78,14 @@ class TwoGroupWorkflow(Workflow):
         api_two_group = self.api.stat_test
         stat_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         boxfile_path = self.output_dir + '/' + self.option("test") + '_boxfile.xls'
+        ci_path = self.output_dir + '/' + self.option("test") + '_CI.xls'
         if not os.path.isfile(stat_path):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):
             raise Exception("找不到报告文件:{}".format(boxfile_path))
         api_two_group.add_species_difference_check_detail(file_path=stat_path, table_id=self.option("two_group_id"))
         api_two_group.add_species_difference_check_boxplot(boxfile_path, self.option("two_group_id"))
+        api_two_group.add_species_difference_check_ci_plot(file_path=ci_path, table_id=self.option("two_group_id"))
         self.end()
 
     def run(self):

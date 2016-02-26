@@ -26,6 +26,7 @@ class TwoGroup(object):
         my_param['correction'] = data.correction
         my_param['type'] = data.type
         my_param['test'] = data.test
+        my_param['coverage'] = data.coverage
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
@@ -57,7 +58,8 @@ class TwoGroup(object):
                     "ci": float(data.ci),
                     "type": data.type,
                     "group_name": G().get_group_name(data.group_id),
-                    "two_group_id": str(two_group_id)
+                    "two_group_id": str(two_group_id),
+                    "coverage": data.coverage
                 }
             }
             insert_data = {"client": client,
@@ -85,7 +87,7 @@ class TwoGroup(object):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'ci', 'correction', 'type', 'test']
+        params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'ci', 'correction', 'type', 'test', 'coverage']
         for names in params_name:
             if not (hasattr(data, names)):
                 info = {"success": False, "info": "缺少参数!"}
@@ -107,4 +109,7 @@ class TwoGroup(object):
             return json.dumps(info)
         if data.test not in ["chi", "fisher", "kru_H", "mann", "anova", "student", "welch"]:
             info = {"success": False, "info": "所选的分析检验方法不在范围内"}
+            return json.dumps(info)
+        if data.coverage not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+            info = {"success": False, "info": '置信区间的置信度coverage不在范围值内'}
             return json.dumps(info)

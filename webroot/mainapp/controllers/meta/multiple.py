@@ -26,6 +26,8 @@ class Multiple(object):
         my_param['group_id'] = data.group_id
         my_param['correction'] = data.correction
         my_param['test'] = data.test
+        my_param['methor'] = data.methor
+        my_param['coverage'] = data.coverage
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
@@ -55,7 +57,9 @@ class Multiple(object):
                     "correction": data.correction,
                     "test": data.test,
                     "group_name": G().get_group_name(data.group_id),
-                    "multiple_id": str(multiple_id)
+                    "multiple_id": str(multiple_id),
+                    "methor": data.methor,
+                    "coverage": data.coverage
                 }
             }
             insert_data = {"client": client,
@@ -83,7 +87,7 @@ class Multiple(object):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'correction', 'test']
+        params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'correction', 'test', 'methor', 'coverage']
         for names in params_name:
             if not (hasattr(data, names)):
                 info = {"success": False, "info": "缺少参数!"}
@@ -96,4 +100,10 @@ class Multiple(object):
             return json.dumps(info)
         if data.test not in ["kru_H", "anova"]:
             info = {"success": False, "info": "所选的分析检验方法不在范围内"}
+            return json.dumps(info)
+        if data.coverage not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+            info = {"success": False, "info": '置信区间的置信度coverage不在范围值内'}
+            return json.dumps(info)
+        if data.methor not in ["scheffe", "welchuncorrected", "tukeyramer", "gameshowell"]:
+            info = {"success": False, "info": '置信区间的方法methor不在范围值内'}
             return json.dumps(info)
