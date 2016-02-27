@@ -54,18 +54,55 @@ class Venn(Base):
 
     def get_venn_json(self, venn_path):
         num = defaultdict(int)
+        only = dict()
+        gp = list()
+        with open(self.bind_object.option("group_table").prop['path'], "rb") as r:
+            r.next()
+            for line in r:
+                line = re.split('\t', line)
+                if line[1] not in gp:
+                    gp.append(line[1])
+        gp_len = len(gp)
+        sum_len = defaultdict(int)
+        single_len = dict()
+        # sum_len{分组的数目} : 该数目之下的和  例如该方案下有四个分组a,b,c,d 那么sum_len[3] 就应该是 abc， abd, bcd， acd 数目之和。
+        # singel_len[(所包含的分组)]
         with open(venn_path, 'rb') as r:
             for line in r:
-                line = line.strip('\n')
+                line = line.strip('\r\n')
                 line = re.split("\t", line)
                 if re.search("only", line[0]):
                     name = re.split('\s+', line[0])
-                    num[name[0]] += int(line[1])
+                    only[name[0]] = int(line[1])
                 if re.search('&', line[0]):
                     line[0] = re.sub('\s+', '', line[0])
                     name = re.split('&', line[0])
-                    for my_n in name:
-                        num[my_n] += int(line[1])
+                    single_len[tuple(name)] = int(line[1])
+                    sum_len[len(name)] += int(line[1])
+                    num[tuple(name)] += int(line[1])
+        for my_only in only:
+            num[my_only] = only[my_only]
+            for i in range(2, gp_len + 1):
+                num[my_only] += ((-1) ** i) * sum_len[i]
+                for s_len in single_len:
+                    if len(s_len) == i and my_only not in s_len:
+                        num[my_only] = num[my_only] + ((-1) ** (i + 1) * single_len[s_len])
+
+        # 为了Venn图美观，除了单个的大小保持原样之外，其他的都进行缩小
+        avg = 0
+        c = 0
+        for name in num:
+            if len(name) == 1:
+                avg += num[name]
+                c += 1
+        avg = avg / c
+
+        for name in num:
+            if len(name) == 2:
+                num[name] = avg / 3
+            if len(name) == 3 or len(name) == 4:
+                num[name] = avg / 4
+
         venn_json = list()
         with open(venn_path, 'rb') as r:
             for line in r:
@@ -76,17 +113,23 @@ class Venn(Base):
                 tmp_list = list()
                 if re.search("only", line[0]):
                     name = re.split('\s+', line[0])[0]
+                    """
                     sets = {"sets": [name]}
                     size = {"size": num[name]}
                     label = {"label": tmp_label}
                     tmp_list = [sets, size, label]
+                    """
+                    tmp_list = {"sets": [name], "size": num[name], "label": tmp_label}
                 elif re.search("&", line[0]):
                     line[0] = re.sub('\s+', '', line[0])
                     name = re.split('&', line[0])
+                    """
                     sets = {'sets': name}
-                    size = {"size": line[1]}
+                    size = {"size": num[tuple(name)]}
                     label = {"label": tmp_label}
                     tmp_list = [sets, size, label]
+                    """
+                    tmp_list = {"sets": [name], "size": num[tuple(name)], "label": tmp_label}
                 else:
                     raise Exception("Venn 表格中行{}无法解析".format(strline))
                 venn_json.append(tmp_list)
