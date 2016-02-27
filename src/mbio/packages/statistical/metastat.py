@@ -21,7 +21,7 @@ def two_group_test(inputfile, groupfile, outputfile, boxfile, choose_test, ci=0.
     """
     f = Template(filename='/mnt/ilustre/users/sanger/biocluster/src/mbio/packages/statistical/two_group_test.r')
     two_test = f.render(inputfile=inputfile, outputfile=outputfile, boxfile=boxfile, groupfile=groupfile, choose_test=choose_test, test_type=test_type, mul_test=mul_test, ci=ci)
-    wiht open("run_%s_test.r" % choose_test, 'w') as rfile:
+    with open("run_%s_test.r" % choose_test, 'w') as rfile:
         rfile.write("%s" % two_test)   
 
 
@@ -44,7 +44,6 @@ def two_sample_test(inputfile,outputfile,choose_test, sample1, sample2, ci=0.95,
         rfile.write('%s' % two_test)
 
 
-
 def mul_group_test(inputfile, outputfile, boxfile, groupfile, choose_test, mul_test="none"):
     """
     生成并运行R脚本，进行多组样本的差异性分析，包括克鲁斯卡尔-Wallis秩和检验、anova分析
@@ -58,7 +57,6 @@ def mul_group_test(inputfile, outputfile, boxfile, groupfile, choose_test, mul_t
     mul_test = f.render(inputfile=inputfile, outputfile=outputfile, boxfile=boxfile, groupfile=groupfile, choose_test=choose_test, mul_test=mul_test)
     with open("run_%s_test.r" % choose_test, 'w') as rfile:
         rfile.write("%s" % mul_test)
-
 
 
         

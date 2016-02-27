@@ -5,8 +5,12 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.packages.statistical.metastat import *
+from mbio.packages.statistical.twogroup_CI import *
+from mbio.packages.statistical.twosample_CI import *
+from mbio.packages.statistical.mul_posthoc import *
 import subprocess
 import os
+import re
 
 
 class MetastatAgent(Agent):
@@ -56,7 +60,18 @@ class MetastatAgent(Agent):
             {"name": "welch_gname", "type": "string"}, #welch检验分组方案选择
             {"name": "mann_gname", "type": "string"},  #wilcox秩和检验分组方案选择
             {"name": "kru_H_gname", "type": "string"}, #kru检验分组方案选择
-            {"name": "anova_gname", "type": "string"} #单因素方差分析分组方案选择
+            {"name": "anova_gname", "type": "string"}, #单因素方差分析分组方案选择
+            {"name": "kru_H_coverage", "type": "float", "default": 0.95}, #计算置信区间所选择的置信度
+            {"name": "anova_coverage", "type": "float", "default": 0.95},
+            {"name": "student_coverage", "type": "float", "default": 0.95},
+            {"name": "welch_coverage", "type": "float", "default": 0.95},
+            {"name": "mann_coverage", "type": "float", "default": 0.95},
+            {"name": "chi_coverage", "type": "float", "default": 0.95},
+            {"name": "fisher_coverage", "type": "float", "default": 0.95},
+            {"name": "kru_H_methor", "type": "string", "default": 'tukeyramer'}, #post-hoc检验的方法
+            {"name": "anova_methor", "type": "string", "default": 'tukeyramer'}, #post-hoc检验的方法
+            {"name": "chi_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'}, #两样本计算置信区间的方法
+            {"name": "fisher_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'} #两样本计算置信区间的方法
         ]
         self.add_option(options)
         self.step.add_steps("stat_test")
@@ -89,7 +104,12 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置卡方检验要比较的样品名')
                 if self.option("chi_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr",
                                                          "none"]:
-                    raise OptionError('该多重检验校正的方法不被支持')
+                    raise OptionError('chi检验的多重检验校正的方法不被支持')
+                if self.option("chi_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+                    raise OptionError('chi检验的置信区间的置信度不在范围值内')
+                if self.option("chi_methor") not in ["DiffBetweenPropAsymptoticCC", "DiffBetweenPropAsymptotic",
+                                                     "NewcombeWilson"]:
+                    raise OptionError('chi检验的计算置信区间的方法不在范围值内')
             elif i == "fisher":
                 if not self.option("fisher_input").is_set:
                     raise OptionError('必须设置费舍尔检验输入的otutable文件')
@@ -102,6 +122,11 @@ class MetastatAgent(Agent):
                     raise OptionError('所输入的显著水平不在范围值内')
                 if self.option("fisher_type") not in ["two.side", "greater", "less"]:
                     raise OptionError('所输入的类型不在范围值内')
+                if self.option("fisher_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+                    raise OptionError('fisher检验的置信区间的置信度不在范围值内')
+                if self.option("fisher_methor") not in ["DiffBetweenPropAsymptoticCC", "DiffBetweenPropAsymptotic",
+                                                        "NewcombeWilson"]:
+                    raise OptionError('fisher检验的计算置信区间的方法不在范围值内')
             elif i == "kru_H":
                 if not self.option("kru_H_input").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
@@ -117,6 +142,10 @@ class MetastatAgent(Agent):
                 gnum = self.option('kru_H_group').group_num(self.option('kru_H_gname'))
                 if gnum < 3:
                     raise OptionError("kru检验的分组方案的分组类别必须大于等于3")
+                if self.option("kru_H_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+                    raise OptionError('kru_H检验的posthoc的置信度不在范围值内')
+                if self.option("kru_H_methor") not in ["scheffe", "welchuncorrected", "tukeyramer", "gameshowell"]:
+                    raise OptionError('kru_H检验的posthoc检验方法不在范围值内')
             elif i == "anova":
                 if not self.option("anova_input").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
@@ -130,6 +159,10 @@ class MetastatAgent(Agent):
                 gnum = self.option('anova_group').group_num(self.option('anova_gname'))
                 if gnum < 3:
                     raise OptionError("anova检验的分组方案的分组类别必须大于等于3")
+                if self.option("anova_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+                    raise OptionError('anova检验的posthoc的置信度不在范围值内')
+                if self.option("anova_methor") not in ["scheffe", "welchuncorrected", "tukeyramer", "gameshowell"]:
+                    raise OptionError('anova检验的posthoc检验方法不在范围值内')
             elif i == "mann":
                 if not self.option("mann_input").is_set:
                     raise OptionError('必须设置wilcox秩和检验输入的otutable文件')
@@ -147,6 +180,8 @@ class MetastatAgent(Agent):
                 gnum = self.option('mann_group').group_num(self.option('mann_gname'))
                 if gnum != 2:
                     raise OptionError("mann检验的分组方案的分组类别必须等于2")
+                if self.option("mann_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+                    raise OptionError('mann检验的置信区间的置信度不在范围值内')
             elif i == "student":
                 if not self.option("student_input").is_set:
                     raise OptionError('必须设置student_T检验输入的otutable文件')
@@ -164,6 +199,8 @@ class MetastatAgent(Agent):
                 gnum = self.option('student_group').group_num(self.option('student_gname'))
                 if gnum != 2:
                     raise OptionError("student检验的分组方案的分组类别必须等于2")
+                if self.option("student_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+                    raise OptionError('student检验的置信区间的置信度不在范围值内')
             elif i == "welch":
                 if not self.option("welch_input").is_set:
                     raise OptionError('必须设置welch_T检验输入的otutable文件')
@@ -181,6 +218,8 @@ class MetastatAgent(Agent):
                 gnum = self.option('welch_group').group_num(self.option('welch_gname'))
                 if gnum != 2:
                     raise OptionError("mann检验的分组方案的分组类别必须等于2")
+                if self.option("welch_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+                    raise OptionError('welch检验的置信区间的置信度不在范围值内')
         return True
 
     def set_resource(self):
@@ -218,94 +257,144 @@ class MetastatTool(Tool):
             self.step.stat_test.start()
             self.step.stat_test.finish()
             self.step.update()
-
         for t in self.option('test').split(','):
             self.logger.info(t)
             if t == "chi":
-                two_sample_test(self.option('chi_input').prop['path'], self.work_dir + '/chi_result.xls', t,
-                                self.option('chi_sample1'), self.option('chi_sample2'), self.option('chi_correction'))
-                cmd = "%s/R-3.2.2/bin/Rscript run_chi_test.r" % Config().SOFTWARE_DIR
-                try:
-                    subprocess.check_output(cmd, shell=True)
-                    self.logger.info("chi_test运行完成")
-                except subprocess.CalledProcessError:
-                    self.logger.info("chi_test运行出错")
+                self.run_chi()
             elif t == "fisher":
-                two_sample_test(self.option('fisher_input').prop['path'], self.work_dir + '/fisher_result.xls', t,
-                                self.option('fisher_sample1'), self.option('fisher_sample2'),
-                                str(1 - self.option('fisher_ci')), self.option('fisher_type'),
-                                self.option('fisher_correction'))
-                cmd = "%s/R-3.2.2/bin/Rscript run_fisher_test.r" % Config().SOFTWARE_DIR
-                try:
-                    subprocess.check_output(cmd, shell=True)
-                    self.logger.info("fisher_test运行完成")
-                except subprocess.CalledProcessError:
-                    self.logger.info("fisher_test运行出错")
+                self.run_fisher()
             elif t == "student":
-                glist = [self.option('student_gname')]
-                self.option('student_group').sub_group('./student_group', glist)
-                two_group_test(self.option('student_input').prop['path'], './student_group',
-                               self.work_dir + '/student_result.xls', self.work_dir + '/student_boxfile.xls', t,
-                               str(1 - self.option('student_ci')), self.option('student_type'),
-                               self.option('student_correction'))
-                cmd = "%s/R-3.2.2/bin/Rscript run_student_test.r" % Config().SOFTWARE_DIR
-                try:
-                    subprocess.check_output(cmd, shell=True)
-                    self.logger.info("student_test运行完成")
-                except subprocess.CalledProcessError:
-                    self.logger.info("student_test运行出错")
+                self.run_student()
             elif t == "welch":
-                glist = [self.option('welch_gname')]
-                self.option('welch_group').sub_group('./welch_group', glist)
-                two_group_test(self.option('welch_input').prop['path'], './welch_group',
-                               self.work_dir + '/welch_result.xls', self.work_dir + '/welch_boxfile.xls', t,
-                               str(1 - self.option('welch_ci')), self.option('welch_type'),
-                               self.option('welch_correction'))
-                cmd = "%s/R-3.2.2/bin/Rscript run_welch_test.r" % Config().SOFTWARE_DIR
-                try:
-                    subprocess.check_output(cmd, shell=True)
-                    self.logger.info("welch_test运行完成")
-                except subprocess.CalledProcessError:
-                    self.logger.info("welch_test运行出错")
+                self.run_welch()
             elif t == "mann":
-                glist = [self.option('mann_gname')]
-                self.option('mann_group').sub_group('./mann_group', glist)
-                two_group_test(self.option('mann_input').prop['path'], './mann_group',
-                               self.work_dir + '/mann_result.xls', self.work_dir + '/mann_boxfile.xls', t,
-                               str(1 - self.option('mann_ci')), self.option('mann_type'),
-                               self.option('mann_correction'))
-                cmd = "%s/R-3.2.2/bin/Rscript run_mann_test.r" % Config().SOFTWARE_DIR
-                try:
-                    subprocess.check_output(cmd, shell=True)
-                    self.logger.info("mann_test运行完成")
-                except subprocess.CalledProcessError:
-                    self.logger.info("mann_test运行出错")
+                self.run_mann()
             elif t == "kru_H":
-                glist = [self.option('kru_H_gname')]
-                self.option('kru_H_group').sub_group('./kru_H_group', glist)
-                mul_group_test(self.option('kru_H_input').prop['path'], self.work_dir + '/kru_H_result.xls',
-                               self.work_dir + '/kru_H_boxfile.xls', './kru_H_group', t,
-                               self.option('kru_H_correction'))
-                cmd = "%s/R-3.2.2/bin/Rscript run_kru_H_test.r" % Config().SOFTWARE_DIR
-                try:
-                    subprocess.check_output(cmd, shell=True)
-                    self.logger.info("kru_H_test运行完成")
-                except subprocess.CalledProcessError:
-                    self.logger.info("kru_H_test运行出错")
+                self.run_kru_H()
             elif t == "anova":
-                glist = [self.option('anova_gname')]
-                self.option('anova_group').sub_group('./anova_group', glist)
-                mul_group_test(self.option('anova_input').prop['path'], self.work_dir + '/anova_result.xls',
-                               self.work_dir + '/anova_boxfile.xls', './anova_group', t,
-                               self.option('anova_correction'))
-                cmd = "%s/R-3.2.2/bin/Rscript run_anova_test.r" % Config().SOFTWARE_DIR
-                try:
-                    subprocess.check_output(cmd, shell=True)
-                    self.logger.info("anova_test运行完成")
-                except subprocess.CalledProcessError:
-                    self.logger.info("anova_test运行出错")
-
-
+                self.run_anova()
+    
+    def run_chi(self):
+        two_sample_test(self.option('chi_input').prop['path'], self.work_dir + '/chi_result.xls', "chi",
+                            self.option('chi_sample1'), self.option('chi_sample2'), self.option('chi_correction'))
+        cmd = "%s/R-3.2.2/bin/Rscript run_chi_test.r" % Config().SOFTWARE_DIR
+        try:
+            subprocess.check_output(cmd, shell=True)
+            self.twosample_ci(self.option("chi_methor"), self.option("chi_input").prop['path'],
+                              self.option('chi_sample1'), self.option('chi_sample2'), self.option('chi_coverage'),
+                              self.work_dir + '/chi_CI.xls')
+            self.logger.info("chi_test运行完成")
+        except subprocess.CalledProcessError:
+            self.logger.info("chi_test运行出错")
+    
+    def run_fisher(self):
+        two_sample_test(self.option('fisher_input').prop['path'], self.work_dir + '/fisher_result.xls', "fisher",
+                            self.option('fisher_sample1'), self.option('fisher_sample2'),
+                            str(1 - self.option('fisher_ci')), self.option('fisher_type'),
+                            self.option('fisher_correction'))
+        cmd = "%s/R-3.2.2/bin/Rscript run_fisher_test.r" % Config().SOFTWARE_DIR
+        try:
+            subprocess.check_output(cmd, shell=True)
+            self.twosample_ci(self.option("fisher_methor"), self.option("fisher_input").prop['path'],
+                              self.option('fisher_sample1'), self.option('fisher_sample2'),
+                              self.option('fisher_coverage'), self.work_dir + '/fisher_CI.xls')
+            self.logger.info("fisher_test运行完成")
+        except subprocess.CalledProcessError:
+            self.logger.info("fisher_test运行出错")
+    
+    def twosample_ci(self, methor, otufile, sample1, sample2, coverage, outfile):
+        if methor == "DiffBetweenPropAsymptoticCC":
+            DiffBetweenPropAsymptoticCC(otufile, sample1, sample2, coverage, outfile)
+        if methor == "DiffBetweenPropAsymptotic":
+            DiffBetweenPropAsymptotic(otufile, sample1, sample2, coverage, outfile)
+        if methor == "NewcombeWilson":
+            NewcombeWilson(otufile, sample1, sample2, coverage, outfile)
+    
+    def run_student(self): 
+        glist = [self.option('student_gname')]
+        self.option('student_group').sub_group('./student_group', glist)
+        two_group_test(self.option('student_input').prop['path'], './student_group',
+                       self.work_dir + '/student_result.xls', self.work_dir + '/student_boxfile.xls', "stdent",
+                       str(1 - self.option('student_ci')), self.option('student_type'),
+                       self.option('student_correction'))
+        cmd = "%s/R-3.2.2/bin/Rscript run_student_test.r" % Config().SOFTWARE_DIR
+        try:
+            subprocess.check_output(cmd, shell=True)
+            student(self.work_dir + '/student_result.xls', './student_group', self.option('student_coverage'))
+            self.logger.info("student_test运行完成")
+        except subprocess.CalledProcessError:
+            self.logger.info("student_test运行出错")
+        
+    def run_welch(self):
+        glist = [self.option('welch_gname')]
+        self.option('welch_group').sub_group('./welch_group', glist)
+        two_group_test(self.option('welch_input').prop['path'], './welch_group',
+                       self.work_dir + '/welch_result.xls', self.work_dir + '/welch_boxfile.xls', "welch",
+                       str(1 - self.option('welch_ci')), self.option('welch_type'),
+                       self.option('welch_correction'))
+        cmd = "%s/R-3.2.2/bin/Rscript run_welch_test.r" % Config().SOFTWARE_DIR
+        try:
+            subprocess.check_output(cmd, shell=True)
+            welch(self.work_dir + '/welch_result.xls', './welch_group', self.option('welch_coverage'))
+            self.logger.info("welch_test运行完成")
+        except subprocess.CalledProcessError:
+            self.logger.info("welch_test运行出错")
+    
+    def run_mann(self):
+        glist = [self.option('mann_gname')]
+        self.option('mann_group').sub_group('./mann_group', glist)
+        two_group_test(self.option('mann_input').prop['path'], './mann_group',
+                       self.work_dir + '/mann_result.xls', self.work_dir + '/mann_boxfile.xls', "mann",
+                       str(1 - self.option('mann_ci')), self.option('mann_type'),
+                       self.option('mann_correction'))
+        cmd = "%s/R-3.2.2/bin/Rscript run_mann_test.r" % Config().SOFTWARE_DIR
+        try:
+            subprocess.check_output(cmd, shell=True)
+            # student(self.work_dir + '/mann_result.xls', './mann_group', self.option('mann_coverage'))
+            self.logger.info("mann_test运行完成")
+        except subprocess.CalledProcessError:
+            self.logger.info("mann_test运行出错")
+    
+    def run_kru_H(self):
+        glist = [self.option('kru_H_gname')]
+        self.option('kru_H_group').sub_group('./kru_H_group', glist)
+        mul_group_test(self.option('kru_H_input').prop['path'], self.work_dir + '/kru_H_result.xls',
+                       self.work_dir + '/kru_H_boxfile.xls', './kru_H_group', "kru_H",
+                       self.option('kru_H_correction'))
+        cmd = "%s/R-3.2.2/bin/Rscript run_kru_H_test.r" % Config().SOFTWARE_DIR
+        try:
+            subprocess.check_output(cmd, shell=True)
+            self.posthoc(self.option("kru_H_methor"), self.work_dir + '/kru_H_result.xls', './kru_H_group',
+                         self.option("kru_H_coverage"), './kru_H')
+            self.logger.info("kru_H_test运行完成")
+        except subprocess.CalledProcessError:
+            self.logger.info("kru_H_test运行出错")
+    
+    def run_anova(self):
+        glist = [self.option('anova_gname')]
+        self.option('anova_group').sub_group('./anova_group', glist)
+        mul_group_test(self.option('anova_input').prop['path'], self.work_dir + '/anova_result.xls',
+                       self.work_dir + '/anova_boxfile.xls', './anova_group', "anova",
+                       self.option('anova_correction'))
+        cmd = "%s/R-3.2.2/bin/Rscript run_anova_test.r" % Config().SOFTWARE_DIR
+        try:
+            subprocess.check_output(cmd, shell=True)
+            self.posthoc(self.option("anova_methor"), self.work_dir + '/anova_result.xls', './anova_group',
+                         self.option("anova_coverage"), './anova')
+            self.logger.info("anova_test运行完成")
+        except subprocess.CalledProcessError:
+            self.logger.info("anova_test运行出错")
+    
+    def posthoc(self, methor, statfile, groupfile, coverage, outfile):
+        if methor == 'tukeyramer':
+            tukeyramer(statfile, groupfile, coverage, outfile)
+        if methor == 'gameshowell':
+            gameshowell(statfile, groupfile, coverage, outfile)
+        if methor == 'welchuncorrected':
+            welchuncorrected(statfile, groupfile, coverage, outfile)
+        if methor == 'scheffe':
+            scheffe(statfile, groupfile, coverage, outfile)
+    
     def set_output(self):
         """
         将结果文件link到output文件夹下面
@@ -319,12 +408,14 @@ class MetastatTool(Tool):
             if t == 'chi':
                 try:
                     os.link(self.work_dir + '/chi_result.xls', self.output_dir + '/chi_result.xls')
+                    os.link(self.work_dir + '/chi_CI.xls', self.output_dir + '/chi_CI.xls')
                     self.logger.info("设置chi分析的结果目录成功")
                 except:
                     self.logger.info("设置chi分析结果目录失败")
             elif t == 'fisher':
                 try:
                     os.link(self.work_dir + '/fisher_result.xls', self.output_dir + '/fisher_result.xls')
+                    os.link(self.work_dir + '/fisher_CI.xls', self.output_dir + '/fisher_CI.xls')
                     self.logger.info("设置fisher分析的结果目录成功")
                 except:
                     self.logger.info("设置fisher分析结果目录失败")
@@ -332,6 +423,7 @@ class MetastatTool(Tool):
                 try:
                     os.link(self.work_dir + '/student_result.xls', self.output_dir + '/student_result.xls')
                     os.link(self.work_dir + '/student_boxfile.xls', self.output_dir + '/student_boxfile.xls')
+                    os.link(self.work_dir + '/student_CI.xls', self.output_dir + '/student_CI.xls')
                     self.logger.info("设置chi分析的结果目录成功")
                 except:
                     self.logger.info("设置fisher分析结果目录失败")
@@ -339,6 +431,7 @@ class MetastatTool(Tool):
                 try:
                     os.link(self.work_dir + '/welch_result.xls', self.output_dir + '/welch_result.xls')
                     os.link(self.work_dir + '/welch_boxfile.xls', self.output_dir + '/welch_boxfile.xls')
+                    os.link(self.work_dir + '/welch_CI.xls', self.output_dir + '/welch_CI.xls')
                     self.logger.info("设置welch分析的结果目录成功")
                 except:
                     self.logger.info("设置welch分析结果目录失败")
@@ -346,6 +439,7 @@ class MetastatTool(Tool):
                 try:
                     os.link(self.work_dir + '/mann_result.xls', self.output_dir + '/mann_result.xls')
                     os.link(self.work_dir + '/mann_boxfile.xls', self.output_dir + '/mann_boxfile.xls')
+                    # os.link(self.work_dir + '/chi_CI.xls', self.output_dir + '/chi_CI.xls')
                     self.logger.info("设置mann分析的结果目录成功")
                 except:
                     self.logger.info("设置mann分析结果目录失败")
@@ -355,6 +449,10 @@ class MetastatTool(Tool):
                     # os.system('sed -i "1s/\(^.\)/\t\1/" %s' % (self.work_dir + '/anova_boxfile.xls'))
                     os.link(self.work_dir + '/anova_result.xls', self.output_dir + '/anova_result.xls')
                     os.link(self.work_dir + '/anova_boxfile.xls', self.output_dir + '/anova_boxfile.xls')
+                    for r, d, f in os.walk(self.work_dir):
+                        for i in f:
+                            if re.match(r'^anova_%s' % self.option("anova_methor"), i):
+                                os.link(self.work_dir + '/' + i, self.output_dir + '/' + i)
                     self.logger.info("设置anova分析的结果目录成功")
                 except:
                     self.logger.info("设置anova分析结果目录失败")
@@ -364,6 +462,10 @@ class MetastatTool(Tool):
                     # os.system('sed -i "1s/\(^.\)/\t\1/" %s' % (self.work_dir + '/kru_H_boxfile.xls'))
                     os.link(self.work_dir + '/kru_H_result.xls', self.output_dir + '/kru_H_result.xls')
                     os.link(self.work_dir + '/kru_H_boxfile.xls', self.output_dir + '/kru_H_boxfile.xls')
+                    for r, d, f in os.walk(self.work_dir):
+                        for i in f:
+                            if re.match(r'^kru_H_%s' % self.option("kru_H_methor"), i):
+                                os.link(self.work_dir + '/' + i, self.output_dir + '/' + i)
                     self.logger.info("设置kru_H分析的结果目录成功")
                 except:
                     self.logger.info("设置kru_H分析结果目录失败")

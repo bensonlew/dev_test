@@ -30,10 +30,14 @@ for(i in 1:nrow(otu_data)){
   o2 <- as.numeric(as.vector(unlist(otu_data[i,which(samp %in% gsamp2)])))
   sum1 <- as.numeric(summary(o1))[-4]
   sum2 <- as.numeric(summary(o2))[-4]
-  me1 <- mean(o1)
-  me2 <- mean(o2)
-  sd1 <- sd(o1)
-  sd2 <- sd(o2)
+  for(l in 1:length(sum1)){
+    sum1[l] <- signif(sum1[l],4)
+    sum2[l] <- signif(sum2[l],4)
+  }
+  me1 <- signif(mean(o1)*100,4)
+  me2 <- signif(mean(o2)*100,4)
+  sd1 <- signif(sd(o1)*100,4)
+  sd2 <- signif(sd(o2)*100,4)
   test <- "${choose_test}"
   if(test == "student"){
     tt <- t.test(o1,o2,var.equal = TRUE,alternative = "${test_type}",conf.level = ${ci})
@@ -48,10 +52,14 @@ for(i in 1:nrow(otu_data)){
 }
 pvalue <- pvalue[-1]
 pvalue <- p.adjust(as.numeric(pvalue),method = "none")
-result <- cbind(result,pvalue)
 qv <- p.adjust(as.numeric(pvalue),method = "${mul_test}")
+for(i in 1:length(pvalue)){
+  pvalue[i] <- signif(pvalue[i],4)
+  qv[i] <- signif(qv[i],4)
+}
+result <- cbind(result,pvalue)
 result <- cbind(result,qv)
-colnames(result) <- c(" ",paste("mean(",g1,")",sep=''),paste("sd(",g1,")",sep=''),paste("mean(",g2,")",sep=''),paste("sd(",g2,")",sep=''),"p-value","corrected p-value")
+colnames(result) <- c(" ",paste("mean(",g1,")",sep=''),paste("sd(",g1,")",sep=''),paste("mean(",g2,")",sep=''),paste("sd(",g2,")",sep=''),"pvalue","corrected_pvalue")
 result_order <- result[order(result[,6]),] 
 if(lendata == 1){
   a <- data.frame(result_order)
