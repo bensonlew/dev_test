@@ -21,8 +21,9 @@ class TwoSampleWorkflow(Workflow):
             {"name": "correction", "type": "string", "default": "none"},
             {"name": "ci", "type": "float", "default": 0.05},
             {"name": "sample1", "type": "string"},
-            {"name": "sample2", "type": "string"}
-
+            {"name": "sample2", "type": "string"},
+            {"name": "methor", "type": "string"},
+            {"name": "coverage", "type": "float"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -35,9 +36,9 @@ class TwoSampleWorkflow(Workflow):
                 "chi_sample1": self.option("sample1"),
                 "chi_sample2": self.option("sample2"),
                 "chi_correction": self.option("correction"),
-                "test": self.option("test")
-
-
+                "test": self.option("test"),
+                "chi_methor": self.option("methor"),
+                "chi_coverage": self.option("coverage")
             }
         else:
             options = {
@@ -47,7 +48,9 @@ class TwoSampleWorkflow(Workflow):
                 "fisher_sample2": self.option("sample2"),
                 "fisher_correction": self.option("correction"),
                 "test": self.option("test"),
-                "fisher_type": self.option("type")
+                "fisher_type": self.option("type"),
+                "fisher_methor": self.option("methor"),
+                "fisher_coverage": self.option("coverage")
             }
         self.two_sample.set_options(options)
         self.output_dir = self.two_sample.output_dir
@@ -57,9 +60,12 @@ class TwoSampleWorkflow(Workflow):
     def set_db(self):
         api_two_sample = self.api.stat_test
         two_sample_path = self.output_dir + '/' + self.option("test") + '_result.xls'
+        ci_path = self.output_dir + '/' + self.option("test") + '_CI.xls'
         if not os.path.isfile(two_sample_path):
             raise Exception("找不到报告文件:{}".format(two_sample_path))
-        api_two_sample.add_twosample_species_difference_check(file_path=two_sample_path, table_id=self.option("two_sample_id"))
+        api_two_sample.add_twosample_species_difference_check_detail(file_path=two_sample_path,
+                                                                     table_id=self.option("two_sample_id"))
+        api_two_sample.add_species_difference_check_ci_plot(file_path=ci_path, table_id=self.option("two_sample_id"))
         self.end()
 
     def run(self):

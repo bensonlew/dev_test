@@ -15,6 +15,7 @@ boxplot_stat <- function(x){
     for(n in gname){
       sum <- as.numeric(summary(x[which(x$group %in% n),i]))[-4]
       for(l in 1:length(sum)){
+        sum[l] <- signif(sum[l],4)
         box_result[i,cl] <- sum[l]
         cl = cl + 1
       }
@@ -44,8 +45,8 @@ summary_stat <- function(x){
     Sd <- lapply(s,function(x)sd(as.numeric(as.vector(x[,i]))))
     n <- 1
     for(l in 1:length(Me)){
-      stat_result[i+1,n] <- Me[[l]]
-      stat_result[i+1,n+1] <- Sd[[l]]
+      stat_result[i+1,n] <- signif(Me[[l]]*100,4)
+      stat_result[i+1,n+1] <- signif(Sd[[l]]*100,4)
       n <- n+2
     }
   }
@@ -105,11 +106,15 @@ for(i in 1:(ncol(data)-1)){
 }
 pvalue <- pvalue[-1]
 pvalue <- p.adjust(as.numeric(pvalue),method = 'none')
-result <- cbind(result,pvalue)
 qvalue <- p.adjust(as.numeric(pvalue),method = '${mul_test}')
+for(i in 1:length(pvalue)){
+  pvalue[i] <- signif(pvalue[i],4)
+  qvalue[i] <- signif(qvalue[i],4)
+}
+result <- cbind(result,pvalue)
 result <- cbind(result,qvalue)
 result_order <- result[order(result$pvalue),]
-write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=T)
+write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=T,quote = F)
 boxfile <- boxplot_stat(data)
-write.table(boxfile,"${boxfile}",sep="\t",col.names=T,row.names=T)
+write.table(boxfile,"${boxfile}",sep="\t",col.names=T,row.names=T,quote = F)
 

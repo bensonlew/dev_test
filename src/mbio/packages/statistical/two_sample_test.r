@@ -14,9 +14,9 @@ otu_data <- otu_data[apply(otu_data,1,function(x)any(x>0)),]
 result <- matrix(nrow = nrow(otu_data),ncol = 3)
 pvalue <- 1
 for(i in 1:nrow(otu_data)){
-  c1 <- as.numeric(as.vector(otu_data[i,1]))
+  c1 <- as.numeric(as.vector(otu_data$"${sample1}")[i])
   c2 <- sum(as.numeric(as.vector(otu_data$"${sample1}"))) - c1
-  c3 <- as.numeric(as.vector(otu_data[i,2]))
+  c3 <- as.numeric(as.vector(otu_data$"${sample2}")[i])
   c4 <- sum(as.numeric(as.vector(otu_data$"${sample2}"))) - c3
   data <- matrix(c(c1,c2,c3,c4),ncol = 2)
   test <- "${choose_test}"
@@ -28,14 +28,18 @@ for(i in 1:nrow(otu_data)){
   pvalue <- c(pvalue,tt$p.value)
   pro1 <- c1 / sum(as.numeric(as.vector(otu_data$"${sample1}")))
   pro2 <- c3 / sum(as.numeric(as.vector(otu_data$"${sample2}")))
-  result[i,] = c(rownames(otu_data)[i],pro1,pro2)
+  result[i,] = c(rownames(otu_data)[i],signif(pro1*100,4),signif(pro2*100,4))
 }
 pvalue <- pvalue[-1]
-pvalue <- p.adjust(as.numeric(pvalue),method = "${mul_test}")
+pvalue <- p.adjust(as.numeric(pvalue),method = "none")
+qvalue <- p.adjust(as.numeric(pvalue),method = "${mul_test}")
+for(i in 1:length(pvalue)){
+  pvalue[i] <- signif(pvalue[i],4)
+  qvalue[i] <- signif(qvalue[i],4)
+}
 result <- cbind(result,pvalue)
-qv <- qvalue(as.numeric(result[,4]),lambda = 0.5)  
-result <- cbind(result,qv$qvalue)
-colnames(result) <- c(" ",paste("propotion(",s1,")",sep=''),paste("propotion(",s2,")",sep=''),"p-value","q-value")
+result <- cbind(result,qvalue)
+colnames(result) <- c(" ",paste("propotion(",s1,")",sep=''),paste("propotion(",s2,")",sep=''),"pvalue","corrected_pvalue")
 result_order <- result[order(result[,4]),]  
 write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)
     

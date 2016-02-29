@@ -5,6 +5,7 @@
 
 from biocluster.workflow import Workflow
 import os
+import re
 
 
 class MultipleWorkflow(Workflow):
@@ -25,7 +26,9 @@ class MultipleWorkflow(Workflow):
             {"name": "correction", "type": "string", "default": "none"},
             {"name": "ci", "type": "float", "default": 0.05},
             {"name": "multiple_id", "type": "string"},
-            {"name": "group_name", "type": "string"}
+            {"name": "group_name", "type": "string"},
+            {"name": "methor", "type": "string"},
+            {"name": "coverage", "type": "float"}
 
         ]
         self.add_option(options)
@@ -40,7 +43,9 @@ class MultipleWorkflow(Workflow):
                 "anova_group": self.option("group_file"),
                 "anova_correction": self.option("correction"),
                 "test": self.option("test"),
-                "anova_gname": self.option("group_name")
+                "anova_gname": self.option("group_name"),
+                "anova_methor": self.option("methor"),
+                "anova_coverage": self.option("coverage")
             }
         else:
             options = {
@@ -49,7 +54,9 @@ class MultipleWorkflow(Workflow):
                 "kru_H_correction": self.option("correction"),
                 # "kru_H_type": self.option("type"),
                 "test": self.option("test"),
-                "kru_H_gname": self.option("group_name")
+                "kru_H_gname": self.option("group_name"),
+                "kru_H_methor": self.option("methor"),
+                "kru_H_coverage": self.option("coverage")
             }
         self.multiple.set_options(options)
         self.on_rely(self.multiple, self.set_db)
@@ -66,6 +73,14 @@ class MultipleWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):
             raise Exception("找不到报告文件:{}".format(boxfile_path))
+        for r, d, f in os.walk(self.output_dir):
+            for i in f:
+                if re.match(r'%s' % self.option("methor"), i):
+                    ci_path = r + '/' + i
+                    if not os.path.isfile(ci_path):
+                        raise Exception("找不到报告文件:{}".format(ci_path))
+                    api_multiple.add_mulgroup_species_difference_check_ci_plot(file_path=ci_path,
+                                                                               table_id=self.option("multiple_id"))
         api_multiple.add_species_difference_check_detail(file_path=stat_path, table_id=self.option("multiple_id"))
         api_multiple.add_species_difference_check_boxplot(boxfile_path, self.option("multiple_id"))
         self.end()
