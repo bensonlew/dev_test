@@ -8,6 +8,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.models.mongo.estimator import Estimator
+from mainapp.models.mongo.group_stat import GroupStat
 
 
 class EstTTest(object):
@@ -23,6 +24,12 @@ class EstTTest(object):
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
                 return json.dumps(info)
+        table_dict = json.loads(data.group_detail)
+        if not isinstance(table_dict, dict):
+            raise Exception("传入的table_dict不是一个字典")
+        if len(table_dict) < 2:
+            info = {"success": False, "info": "请选择至少两组及以上的分组"}
+            return json.dumps(info)
         my_param = dict()
         my_param['alpha_diversity_id'] = data.alpha_diversity_id
         my_param['group_detail'] = group_detail_sort(data.group_detail)
@@ -56,7 +63,8 @@ class EstTTest(object):
                     "group_detail": data.group_detail,
                     "group_table": data.group_id,
                     "test_type": 'student',
-                    "est_t_test_id": str(est_t_test_id)
+                    "est_t_test_id": str(est_t_test_id),
+                    "group_name": GroupStat().get_group_name(data.group_id)
                 }
             }
             insert_data = {"client": client,

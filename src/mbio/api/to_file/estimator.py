@@ -23,7 +23,7 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
     est_collection = db['sg_alpha_diversity']
     result = est_collection.find_one({"_id": ObjectId(data)})
     if not result:
-        raise Exception('没有找到对应多样性指数id对应的detail')
+        raise Exception('没有找到多样性指数id对应的表，请检查传入的id是否正确')
     if not result['params']:
         index_type = u"ace,chao,shannon,simpson,coverage"
     else:
@@ -32,6 +32,8 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
     indices = index_type.split(',')
     bind_obj.logger.debug(indices)
     details = collection.find({"alpha_diversity_id": ObjectId(data)})
+    if not details:
+        raise Exception('没有找到相应detail信息')
     with open(est_path, "wb") as f:
         # f.write('index_type')
         for index in indices:
