@@ -314,7 +314,7 @@ class MetastatTool(Tool):
         glist = [self.option('student_gname')]
         self.option('student_group').sub_group('./student_group', glist)
         two_group_test(self.option('student_input').prop['path'], './student_group',
-                       self.work_dir + '/student_result.xls', self.work_dir + '/student_boxfile.xls', "stdent",
+                       self.work_dir + '/student_result.xls', self.work_dir + '/student_boxfile.xls', "student",
                        str(1 - self.option('student_ci')), self.option('student_type'),
                        self.option('student_correction'))
         cmd = "%s/R-3.2.2/bin/Rscript run_student_test.r" % Config().SOFTWARE_DIR
@@ -424,9 +424,9 @@ class MetastatTool(Tool):
                     os.link(self.work_dir + '/student_result.xls', self.output_dir + '/student_result.xls')
                     os.link(self.work_dir + '/student_boxfile.xls', self.output_dir + '/student_boxfile.xls')
                     os.link(self.work_dir + '/student_CI.xls', self.output_dir + '/student_CI.xls')
-                    self.logger.info("设置chi分析的结果目录成功")
+                    self.logger.info("设置student分析的结果目录成功")
                 except:
-                    self.logger.info("设置fisher分析结果目录失败")
+                    self.logger.info("设置student分析结果目录失败")
             elif t == 'welch':
                 try:
                     os.link(self.work_dir + '/welch_result.xls', self.output_dir + '/welch_result.xls')
@@ -449,10 +449,12 @@ class MetastatTool(Tool):
                     # os.system('sed -i "1s/\(^.\)/\t\1/" %s' % (self.work_dir + '/anova_boxfile.xls'))
                     os.link(self.work_dir + '/anova_result.xls', self.output_dir + '/anova_result.xls')
                     os.link(self.work_dir + '/anova_boxfile.xls', self.output_dir + '/anova_boxfile.xls')
-                    for r, d, f in os.walk(self.work_dir):
-                        for i in f:
-                            if re.match(r'^anova_%s' % self.option("anova_methor"), i):
-                                os.link(self.work_dir + '/' + i, self.output_dir + '/' + i)
+                    for r, d, f in os.walk(self.work_dir, topdown=False):
+                        filelist = f
+                        self.logger.info(filelist)
+                    for i in filelist:
+                        if re.match(r'^anova_%s' % self.option("anova_methor"), i):
+                            os.link(self.work_dir + '/' + i, self.output_dir + '/' + i)
                     self.logger.info("设置anova分析的结果目录成功")
                 except:
                     self.logger.info("设置anova分析结果目录失败")
@@ -462,10 +464,13 @@ class MetastatTool(Tool):
                     # os.system('sed -i "1s/\(^.\)/\t\1/" %s' % (self.work_dir + '/kru_H_boxfile.xls'))
                     os.link(self.work_dir + '/kru_H_result.xls', self.output_dir + '/kru_H_result.xls')
                     os.link(self.work_dir + '/kru_H_boxfile.xls', self.output_dir + '/kru_H_boxfile.xls')
-                    for r, d, f in os.walk(self.work_dir):
-                        for i in f:
-                            if re.match(r'^kru_H_%s' % self.option("kru_H_methor"), i):
-                                os.link(self.work_dir + '/' + i, self.output_dir + '/' + i)
+                    for r, d, f in os.walk(self.work_dir, topdown=False):
+                        filelist = f
+                    for i in filelist:
+                        if re.match(r'^kru_H_%s' % self.option("kru_H_methor"), i):
+                            os.link(self.work_dir + '/' + i, self.output_dir + '/' + i)
+                        else:
+                            self.logger.info('kru_H分析的post-hoc检验出错')
                     self.logger.info("设置kru_H分析的结果目录成功")
                 except:
                     self.logger.info("设置kru_H分析结果目录失败")

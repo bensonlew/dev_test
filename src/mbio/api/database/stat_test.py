@@ -176,7 +176,7 @@ class StatTest(Base):
                 line_data = line.split("\t")
                 data = [("species_check_id", table_id), ("species_name", line_data[0]), ("effectsize", line_data[1]),
                         ("lower_ci", line_data[2]), ("upper_ci", line_data[3]), ("post_hoc_pvalue", line_data[4]),
-                        ("compare_category", compare_group)]
+                        ("compare_category", compare_group.strip('.xls'))]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:

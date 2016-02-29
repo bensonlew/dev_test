@@ -1,5 +1,3 @@
-
-library(qvalue)
 otu_data <- read.table("${inputfile}",sep = "\t",comment.char = '')
 samp <- t(otu_data[1,-1])
 otu_data <- otu_data[-1,]

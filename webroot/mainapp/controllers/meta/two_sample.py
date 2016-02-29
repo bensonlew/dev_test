@@ -60,7 +60,7 @@ class TwoSample(object):
                     "sample2": data.sample2,
                     "two_sample_id": str(two_sample_id),
                     "methor": data.methor,
-                    "coverage": data.coverage
+                    "coverage": float(data.coverage)
                 }
             }
             insert_data = {"client": client,

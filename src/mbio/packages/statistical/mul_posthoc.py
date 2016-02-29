@@ -29,7 +29,7 @@ def group_detail(groupfile):
 def stat_info(statfile, groupfile):
     (N, dfN, dfD, group_num_dict) = group_detail(groupfile)
     with open(statfile, 'r') as s:
-        shead = s.readline().split()
+        shead = s.readline().strip('\n').split()
         mean_dict = {}
         sd_dict = {}
         taxon_list = []
@@ -38,7 +38,7 @@ def stat_info(statfile, groupfile):
             sd_dict[gname] = []
         while True:
             sline = s.readline()
-            sline_list = sline.split()
+            sline_list = sline.strip('\n').split('\t')
             if not sline:
                 break
             taxon_list.append(sline_list[0])
@@ -78,7 +78,7 @@ def scheffe(statfile, groupfile, coverage, outfile):
                 confInter = math.sqrt(cv*invSampleSize)*withinGroupStdDev
                 lowerCI = es - confInter
                 upperCI = es + confInter
-                w.write('%s\t%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % es, '%0.4g' % lowerCI, '%0.4g' % upperCI, pValue))
+                w.write('%s\t%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % es, '%0.4g' % lowerCI, '%0.4g' % upperCI, '%0.4g' % pValue))
 
 
 def welchuncorrected(statfile, groupfile, coverage, outfile):
@@ -120,7 +120,7 @@ def welchuncorrected(statfile, groupfile, coverage, outfile):
                         pValue = 0.5                       
                     lowerCI = dp
                     upperCI = dp 
-                w.write('%s\t%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % dp, '%0.4g' % lowerCI, '%0.4g' % upperCI, pValue))
+                w.write('%s\t%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % dp, '%0.4g' % lowerCI, '%0.4g' % upperCI, '%0.4g' % pValue))
 
 
 def tukeyramer(statfile, groupfile, coverage, outfile, preferences=None):
