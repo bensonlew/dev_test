@@ -26,7 +26,8 @@ class EstTTest(object):
                 return json.dumps(info)
         table_dict = json.loads(data.group_detail)
         if not isinstance(table_dict, dict):
-            raise Exception("传入的table_dict不是一个字典")
+            info = {"success": False, "info": "传入的group_detail不是字典"}
+            return json.dumps(info)
         if len(table_dict) < 2:
             info = {"success": False, "info": "请选择至少两组及以上的分组"}
             return json.dumps(info)
