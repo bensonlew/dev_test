@@ -129,7 +129,7 @@ class Venn(Base):
                     label = {"label": tmp_label}
                     tmp_list = [sets, size, label]
                     """
-                    tmp_list = {"sets": [name], "size": num[tuple(name)], "label": tmp_label}
+                    tmp_list = {"sets": name, "size": num[tuple(name)], "label": tmp_label}
                 else:
                     raise Exception("Venn 表格中行{}无法解析".format(strline))
                 venn_json.append(tmp_list)
