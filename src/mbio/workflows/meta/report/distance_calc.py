@@ -67,6 +67,8 @@ class DistanceCalcWorkflow(Workflow):
             new_all.append(all_lines[0])
             for line in all_lines[1:]:
                 name = line.split('\t')
+                if name[0] not in all_find:
+                    raise Exception('OTU表中存在不是直接通过组合原始表分类名称的OTU名：%s' % name[0])
                 name[0] = 'OTU' + str(all_find[name[0]] + 1)
                 new_all.append('\t'.join(name))
             otu_file_temp = open(temp_otu_file, 'w')

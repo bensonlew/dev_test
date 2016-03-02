@@ -8,6 +8,7 @@ from mainapp.models.mongo.meta import Meta
 from mainapp.config.db import get_mongo_client
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
+from mainapp.libs.param_pack import group_detail_sort
 # import bson.errors.InvalidId
 import random
 import datetime
@@ -38,6 +39,7 @@ class MultiAnalysis(object):
                 env_id = ''
                 env_labs = ''
                 dist_method = ''
+                group_id = ''
                 if data.analysis_type == 'pca':
                     if hasattr(data, 'env_id'):
                         params_json['env_id'] = data.env_id
@@ -94,6 +96,35 @@ class MultiAnalysis(object):
                     else:
                         info = {'success': False, 'info': 'rda_cca分析缺少参数:env_id!'}
                         return json.dumps(info)
+                elif data.analysis_type == 'plsda':
+                    if hasattr(data, 'group_id'):
+                        params_json['group_id'] = data.group_id
+                        group_id = self.check_objectid(data.group_id)
+                        if not group_id:
+                            info = {'success': False, 'info': 'group_id格式:%s不正确，无法转换为ObjectId格式！' % data.group_id}
+                            return json.dumps(info)
+                        if hasattr(data, 'group_detail'):
+                            try:
+                                group = json.loads(data.group_detail)
+                            except ValueError:
+                                info = {'success': False, 'info': 'group_detail格式不正确!:%s' % data.group_detail}
+                                return json.dumps(info)
+                            params_json['group_detail'] = group_detail_sort(data.group_detail)
+                            if len(group) < 2:
+                                info = {'success': False, 'info': '不可只选择一个分组'}
+                                return json.dumps(info)
+                            samples = reduce(lambda x, y: x + y, group.values())
+                            if len(samples) == len(set(samples)):
+                                pass
+                            else:
+                                info = {'success': False, 'info': '不同分组存在相同的样本id'}
+                                return json.dumps(info)
+                        else:
+                            info = {'success': False, 'info': '没有group_detail数据'}
+                            return json.dumps(info)
+                    else:
+                        info = {'success': False, 'info': 'plsda分析缺少参数:group_id!'}
+                        return json.dumps(info)
                 else:
                     info = {'success': False, 'info': '不正确的分析方法:%s' % data.analysis_type}
                     return json.dumps(info)
@@ -141,6 +172,10 @@ class MultiAnalysis(object):
                 if env_id:
                     json_data['to_file'].append('env.export_env_table(env_file)')
                     json_data['options']['env_file'] = data.env_id
+                elif group_id:
+                    json_data['to_file'].append('meta.export_group_table_by_detail(group_file)')
+                    json_data['options']['group_file'] = data.group_id
+                    json_data['options']['group_detail'] = data.group_detail
                 insert_data = {'client': client,
                                'workflow_id': workflow_id,
                                'json': json.dumps(json_data, sort_keys=True, separators=(',', ':')),

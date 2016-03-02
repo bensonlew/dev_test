@@ -3,6 +3,7 @@
 import os
 import json
 import datetime
+import re
 from biocluster.api.database.base import Base, report_check
 # from bson.objectid import ObjectId
 # import re
@@ -17,45 +18,50 @@ class BetaMultiAnalysis(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None,
-                                       task_id=None, otu_id=None, name=None, params=None, level=9):
+    def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None,
+                                       task_id=None, otu_id=None, name=None, params=None, level=9, remove=None):
         def insert_table_detail(file_path, table_type, update_id,
                                 coll_name='sg_beta_multi_analysis_detail',
                                 main_coll='sg_beta_multi_analysis',
-                                update_column=True, db=self.db):
+                                update_column=True, db=self.db, fileter_biplot=None, remove_key_blank=False):
             collection = db[coll_name]
             with open(file_path, 'rb') as f:
                 all_lines = f.readlines()
                 columns = all_lines[0].rstrip().split('\t')[1:]
+                if remove_key_blank:
+                    columns = [i.replace(' ', '') for i in columns]
                 for line in all_lines[1:]:
                     values = line.rstrip().split('\t')
+                    self.bind_object.logger.info(str(fileter_biplot))
+                    if fileter_biplot:
+                        if not isinstance(fileter_biplot, list):
+                            raise Exception('需要删除的匹配列必须为列表')
+                        flag = 0
+                        for i in fileter_biplot:
+                            if re.match(r'^{}'.format(i), values[0]):
+                                self.bind_object.logger.info(values[0])
+                                flag = 1
+                        if flag:
+                            continue
+                    else:
+                        pass
                     insert_data = {
                         'multi_analysis_id': update_id,
                         'type': table_type,
                         'name': values[0]
                     }
+                    self.bind_object.logger.info(str(insert_data))
                     values_dict = dict(zip(columns, values[1:]))
                     insert_data = dict(insert_data, **values_dict)
                     collection.insert_one(insert_data)
                 if update_column:
                     main_collection = db[main_coll]
-                    if table_type == 'specimen':
+                    default_column = {'specimen': 'detail_column', 'factor': 'factor_column', 'vector': 'vector_column',
+                                      'species': 'species_column', 'rotation': 'rotation_column'}
+                    if table_type in default_column:
                         main_collection.update_one({'_id': update_id},
-                                                   {'$set': {'detail_column': ','.join(columns)}}, upsert=False)
-                    elif table_type == 'factor':
-                        main_collection.update_one({'_id': update_id},
-                                                   {'$set': {'factor_column': ','.join(columns)}}, upsert=False)
-                    elif table_type == 'vector':
-                        main_collection.update_one({'_id': update_id},
-                                                   {'$set': {'vector_column': ','.join(columns)}}, upsert=False)
-                    elif table_type == 'species':
-                        main_collection.update_one({'_id': update_id},
-                                                   {'$set': {'species_column': ','.join(columns)}}, upsert=False)
-                    elif table_type == 'rotation':
-                        main_collection.update_one({'_id': update_id},
-                                                   {'$set': {'rotation_column': ','.join(columns)}}, upsert=False)
-                    else:
-                        pass
+                                                   {'$set': {default_column[table_type]: ','.join(columns)}},
+                                                   upsert=False)
 
         def insert_text_detail(file_path, data_type, main_id,
                                coll_name='sg_beta_multi_analysis_json_detail', db=self.db):
@@ -82,6 +88,7 @@ class BetaMultiAnalysis(Base):
                 'name': analysis + '_' + name if name else 'origin',
                 'table_type': analysis,
                 'env_id': env_id,
+                'group_id': group_id,
                 'params': json.dumps(params, sort_keys=True, separators=(',', ':')),
                 'status': 'end',
                 'desc': '',
@@ -89,6 +96,9 @@ class BetaMultiAnalysis(Base):
             }
             multi_analysis_id = _main_collection.insert_one(insert_mongo_json).inserted_id
             main_id = multi_analysis_id
+        else:
+            if not main_id:
+                raise Exception('不写入主表时，需要提供主表ID')
         result = _main_collection.find_one({'_id': main_id})
         if result:
             if analysis == 'pca':
@@ -96,7 +106,7 @@ class BetaMultiAnalysis(Base):
                 rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation.xls'
                 importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
-                insert_table_detail(rotation_path, 'species', update_id=main_id)
+                insert_text_detail(rotation_path, 'rotation', main_id=main_id)
                 insert_text_detail(importance_path, 'importance', main_id=main_id)
                 if result['env_id']:
                     filelist = os.listdir(dir_path.rstrip('/') + '/Pca')
@@ -117,7 +127,7 @@ class BetaMultiAnalysis(Base):
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
                 rotation_path = dir_path.rstrip('/') + '/Pcoa/pcoa_rotation.xls'
                 importance_path = dir_path.rstrip('/') + '/Pcoa/pcoa_importance.xls'
-                insert_table_detail(rotation_path, 'rotation', update_id=main_id)
+                insert_text_detail(rotation_path, 'rotation', main_id=main_id)
                 insert_text_detail(importance_path, 'importance', main_id=main_id)
             elif analysis == 'nmds':
                 site_path = dir_path.rstrip('/') + '/Nmds/nmds_sites.xls'
@@ -126,7 +136,8 @@ class BetaMultiAnalysis(Base):
                 site_path = dir_path.rstrip('/') + '/Dbrda/db_rda_sites.xls'
                 species_path = dir_path.rstrip('/') + '/Dbrda/db_rda_species.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
-                insert_table_detail(species_path, 'species', update_id=main_id)
+                if os.path.exists(species_path):
+                    insert_table_detail(species_path, 'species', update_id=main_id)
                 filelist = os.listdir(dir_path.rstrip('/') + '/Dbrda')
                 if 'db_rda_centroids.xls' in filelist:
                     env_fac_path = dir_path.rstrip('/') + '/Dbrda/db_rda_centroids.xls'
@@ -142,7 +153,7 @@ class BetaMultiAnalysis(Base):
                 site_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_sites.xls'
                 species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_species.xls'
                 importance_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_importance.xls'
-                dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.txt'
+                dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
                 insert_table_detail(species_path, 'species', update_id=main_id)
                 insert_text_detail(importance_path, 'importance', main_id=main_id)
@@ -153,7 +164,14 @@ class BetaMultiAnalysis(Base):
                     insert_table_detail(env_fac_path, 'factor', update_id=main_id)
                 if (rda_cca + '_biplot.xls') in filelist:
                     env_vec_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_biplot.xls'
-                    insert_table_detail(env_vec_path, 'vector', update_id=main_id)
+                    insert_table_detail(env_vec_path, 'vector', update_id=main_id, fileter_biplot=remove)
+            elif analysis == 'plsda':
+                site_path = dir_path.rstrip('/') + '/Plsda/plsda_sites.xls'
+                rotation_path = dir_path.rstrip('/') + '/Plsda/plsda_rotation.xls'
+                importance_path = dir_path.rstrip('/') + '/Plsda/plsda_importance.xls'
+                insert_table_detail(site_path, 'specimen', update_id=main_id, remove_key_blank=True)
+                insert_text_detail(rotation_path, 'rotation', main_id=main_id)
+                insert_text_detail(importance_path, 'importance', main_id=main_id)
             else:
                 raise Exception('提供的analysis：%s不存在' % analysis)
         else:
