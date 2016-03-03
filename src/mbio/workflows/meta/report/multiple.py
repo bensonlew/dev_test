@@ -75,7 +75,7 @@ class MultipleWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(boxfile_path))
         for r, d, f in os.walk(self.output_dir):
             for i in f:
-                if re.match(r'%s' % self.option("methor"), i):
+                if self.option("methor") in i:
                     ci_path = r + '/' + i
                     if not os.path.isfile(ci_path):
                         raise Exception("找不到报告文件:{}".format(ci_path))

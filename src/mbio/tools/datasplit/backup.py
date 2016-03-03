@@ -157,6 +157,8 @@ class BackupTool(Tool):
                 self.logger.info("gzip完成")
             else:
                 self.set_error("gzip发生错误")
+                self.logger.error("gzip发生错误")
+                raise Exception("gzip发生错误")
 
     def gz_child(self):
         """

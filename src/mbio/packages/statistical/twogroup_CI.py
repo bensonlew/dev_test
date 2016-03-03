@@ -21,7 +21,7 @@ def group_detail(groupfile):
 def stat_info(statfile, groupfile):
     group_num_dict = group_detail(groupfile)
     with open(statfile, 'r') as s:
-        shead = s.readline().split()
+        shead = s.readline().strip('\n').split('\t')
         mean_dict = {}
         sd_dict = {}
         taxon_list = []
@@ -30,7 +30,7 @@ def stat_info(statfile, groupfile):
             sd_dict[gname] = []
         while True:
             sline = s.readline()
-            sline_list = sline.split()
+            sline_list = sline.strip('\n').split('\t')
             if not sline:
                 break
             taxon_list.append(sline_list[0])

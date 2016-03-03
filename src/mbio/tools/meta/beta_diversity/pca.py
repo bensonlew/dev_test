@@ -3,6 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
+import types
 import subprocess
 from biocluster.core.exceptions import OptionError
 
@@ -54,6 +55,7 @@ class PcaAgent(Agent):
             new_path = self.work_dir + '/temp_env_table.xls'
             self.option('envtable').sub_group(new_path, self.option('envlabs').split(','))
             self.option('envtable').set_path(new_path)
+            self.option('envtable').get_info()
         else:
             pass
 
@@ -63,10 +65,24 @@ class PcaAgent(Agent):
         """
         if not self.option('otutable').is_set:
             raise OptionError('必须提供otu表')
+        if self.option('otutable').prop['sample_num'] < 2:
+            raise OptionError('otu表的样本数目少于2，不可进行beta多元分析')
+        if self.option('envtable').is_set:
+            if self.option('envtable').prop['sample_number'] < 2:
+                raise OptionError('环境因子表的样本数目少于2，不可进行beta多元分析')
+            filter_otu = self.filter_otu_sample(self.option('otutable').path,
+                                                self.option('envtable').prop['sample'],
+                                                os.path.join(self.work_dir + '/temp_filter.otutable'))
+            if filter_otu == self.option('otutable').path:
+                pass
+                print 'AAAAAAAAAAAAAAAAAA'
+            else:
+                print filter_otu
+                self.option('otutable').set_path(filter_otu)
+                self.option('otutable').get_info()
         samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
         if self.option('envtable').is_set:
             self.get_new_env()
-            self.option('envtable').get_info()
             if len(self.option('envtable').prop['sample']) != len(samplelist):
                 raise OptionError('OTU表中的样本数量:%s与环境因子表中的样本数量:%s不一致' % (len(samplelist),
                                   len(self.option('envtable').prop['sample'])))
@@ -78,6 +94,27 @@ class PcaAgent(Agent):
             raise OptionError('提供的数据表信息少于3行')
         table.close()
         return True
+
+    def filter_otu_sample(self, otu_path, filter_samples, newfile):
+        if not isinstance(filter_samples, types.ListType):
+            raise Exception('过滤otu表样本的样本名称应为列表')
+        try:
+            with open(otu_path, 'rb') as f, open(newfile, 'wb') as w:
+                one_line = f.readline()
+                all_samples = one_line.rstrip().split('\t')[1:]
+                if not ((set(all_samples) & set(filter_samples)) == set(filter_samples)):
+                    raise Exception('提供的过滤样本存在otu表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
+                if len(all_samples) == len(filter_samples):
+                    return otu_path
+                samples_index = [all_samples.index(i) + 1 for i in filter_samples]
+                w.write('#OTU\t' + '\t'.join(filter_samples) + '\n')
+                for line in f:
+                    all_values = line.rstrip().split('\t')
+                    new_values = [all_values[0]] + [all_values[i] for i in samples_index]
+                    w.write('\t'.join(new_values) + '\n')
+                return newfile
+        except IOError:
+            raise Exception('无法打开OTU相关文件或者文件不存在')
 
     def set_resource(self):
         """
@@ -105,7 +142,7 @@ class PcaTool(Tool):
         tablepath = self.gettable()
         alllines = open(tablepath).readlines()
         if alllines[0][0] == '#':
-            newtable = open(os.path.join(self.work_dir, 'temp.table'),'w')
+            newtable = open(os.path.join(self.work_dir, 'temp.table'), 'w')
             newtable.write(alllines[0].lstrip('#'))
             for line in alllines[1:]:
                 newtable.write(line)

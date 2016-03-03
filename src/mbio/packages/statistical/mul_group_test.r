@@ -13,7 +13,7 @@ boxplot_stat <- function(x){
   for(i in 1:(ncol(x)-1)){
     cl = 1
     for(n in gname){
-      sum <- as.numeric(summary(x[which(x$group %in% n),i]))[-4]
+      sum <- as.numeric(summary(as.numeric(as.vector(x[which(x$group %in% n),i]))))[-4]
       for(l in 1:length(sum)){
         sum[l] <- signif(sum[l],4)
         box_result[i,cl] <- sum[l]

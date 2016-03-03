@@ -34,19 +34,20 @@ def otu_info(otufile, sample1, sample2):
             line = o.readline()
             if not line:
                 break
-            taxon_list.append(line.split()[0])
+            taxon_list.append(line.split('\t')[0])
             for sam in head:
                 if sam == sample1:
                     index_1 = head.index(sam)
-                    totalSeq1 += float((line.split()[index_1]).strip('\"'))
-                    s1_list.append(float((line.split()[index_1]).strip('\"')))
+                    totalSeq1 += float((line.strip('\n').split('\t')[index_1]).strip('\"'))
+                    s1_list.append(float((line.strip('\n').split('\t')[index_1]).strip('\"')))
                 if sam == sample2:
                     index_2 = head.index(sam)
-                    totalSeq2 += float((line.split()[index_2]).strip('\"'))
-                    s2_list.append(float((line.split()[index_2]).strip('\"')))
+                    totalSeq2 += float((line.strip('\n').split('\t')[index_2]).strip('\"'))
+                    s2_list.append(float((line.strip('\n').split('\t')[index_2]).strip('\"')))
         return taxon_list, s1_list, s2_list, totalSeq1, totalSeq2
 
-
+# (taxon_list, s1_list, s2_list, totalSeq1, totalSeq2) = otu_info('C:\Users\ping.qiu.MAJORBIO\Desktop\otu_file.xls', 'sample2', 'sample3')
+# print taxon_list,s1_list,s2_list,totalSeq1,totalSeq2
 def DiffBetweenPropAsymptoticCC(otufile, sample1, sample2, coverage, outfile):
     (taxon_list, s1_list, s2_list, totalSeq1, totalSeq2) = otu_info(otufile, sample1, sample2)
     with open(outfile, 'w') as w:

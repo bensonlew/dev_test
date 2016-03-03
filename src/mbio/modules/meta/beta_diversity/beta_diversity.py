@@ -12,9 +12,10 @@ class BetaDiversityModule(Module):
         super(BetaDiversityModule, self).__init__(work_id)
         self.step.add_steps('ChooseAnalysis', 'MultipleAnalysis')
         options = [
-            {"name": "analysis", "type": "string", "default": "distance,anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster"},
+            {"name": "analysis", "type": "string",
+             "default": "distance,anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster,plsda"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
-            {"name": "dbrda_method", "type": "string", "default": "bray_curtis"},
+            {"name": "dbrda_method", "type": "string", "default": ""},
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "level", "type": "string", "default": "otu"},
             {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
@@ -27,6 +28,8 @@ class BetaDiversityModule(Module):
             {"name": "rda_envlabs", "type": "string", "default": ""},
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "grouplabs", "type": "string", "default": ""},
+            {"name": "anosim_grouplabs", "type": "string", "default": ""},
+            {"name": "plsda_grouplabs", "type": "string", "default": ""},
             {"name": "dis_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "dis_newicktree", "type": "outfile", "format": "meta.beta_diversity.newick_tree"}
         ]
@@ -34,37 +37,35 @@ class BetaDiversityModule(Module):
         self.matrix = self.add_tool('meta.beta_diversity.distance_calc')
         self.tools = {}
 
-    def gettable(self):
+    def set_otu_table(self):
         """
-        根据level返回进行计算的otu表
+        根据level返回进行计算的otu表,并设定参数
         :return:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
-            return self.option('otutable').get_table(self.option('level'))
+            otu_table = self.option('otutable').get_table(self.option('level'))
+            self.option('otutable').set_path(otu_table)
+            self.option('otutable').get_info()
+            return otu_table
         else:
             return self.option('otutable').prop['path']
 
     def check_options(self):
-        if 'distance' or 'anosim' or 'pca' or 'pcoa' or 'nmds' or 'rda_cca' or 'dbrda' or 'hcluster' in self.option('analysis'):
+        if 'distance' or 'anosim' or 'pca' or 'pcoa' or 'nmds' or 'rda_cca' or 'dbrda' or 'hcluster' or 'plsda' in self.option('analysis'):
             pass
         else:
             raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))
+        self.set_otu_table()
         if self.option('permutations') < 0 or self.option('permutations') > 10000:
             raise OptionError('参数permutations：%s 不在范围内(0-10000)' %
                               self.option('permutations'))
-        samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
+        # samplelist = open(self.option('otutable').path).readline().strip().split('\t')[1:]
         if self.option('linkage') not in ['average', 'single', 'complete']:
             raise OptionError('错误的层级聚类方式：%s' % self.option('linkage'))
         if ('rda_cca' or 'dbrda') in self.option('analysis') and not self.option('envtable').is_set:
-            raise OptionError('计算RDA/CCA需要环境因子表')
-        if 'anosim' in self.option('analysis') and not self.option('group').is_set:
-            raise OptionError('分析需要相关分组文件')
-        else:
-            if 'anosim' in self.option('analysis'):
-                self.option('group').get_info()
-                for sample in self.option('group').prop['sample']:
-                    if sample not in samplelist:
-                        raise OptionError('分组文件的样本(%s)在otu表的样本中不存在' % sample)
+            raise OptionError('计算RDA/CCA和dbRDA需要环境因子表')
+        if ('anosim' or 'plsda') in self.option('analysis') and not self.option('group').is_set:
+            raise OptionError('anosim分析和plsda分析需要相关分组文件')
         return True
 
     def matrix_run(self):
@@ -74,11 +75,11 @@ class BetaDiversityModule(Module):
         """
         if self.option('phy_newick').is_set:
             self.matrix.set_options({'method': self.option('dis_method'),
-                                     'otutable': self.gettable(),
+                                     'otutable': self.option('otutable').path,
                                      'newicktree': self.option('phy_newick')})
         else:
             self.matrix.set_options({'method': self.option('dis_method'),
-                                     'otutable': self.gettable()})
+                                     'otutable': self.option('otutable').path})
         self.matrix.on('end', self.set_output, 'distance')
         self.matrix.run()
 
@@ -96,7 +97,7 @@ class BetaDiversityModule(Module):
         self.tools['anosim'].set_options({
             'dis_matrix': output_file_obj,
             'group': self.option('group'),
-            'grouplabs': self.option('grouplabs'),
+            'grouplabs': self.option('grouplabs') if self.option('grouplabs') else self.option('anosim_grouplabs'),
             'permutations': self.option('permutations')
         })
         self.tools['anosim'].on('end', self.set_output, 'anosim')
@@ -106,7 +107,7 @@ class BetaDiversityModule(Module):
         output_file_obj = rely_obj.rely[0].option('dis_matrix')
         self.tools['box'].set_options({
             'dis_matrix': output_file_obj,
-            'grouplabs': self.option('grouplabs'),
+            'grouplabs': self.option('grouplabs') if self.option('grouplabs') else self.option('anosim_grouplabs'),
             'group': self.option('group')
         })
         self.tools['box'].on('end', self.set_output, 'box')
@@ -128,9 +129,13 @@ class BetaDiversityModule(Module):
         self.tools['nmds'].on('end', self.set_output, 'nmds')
         self.tools['nmds'].run()
 
-    def dbrda_run(self):
-        dbrda_options = {'otutable': self.gettable(), 'envtable': self.option('envtable'),
-                         'method': self.option('dbrda_method')}
+    def dbrda_run(self, rely_obj=None):
+        if rely_obj:
+            output_file_obj = rely_obj.rely[0].option('dis_matrix')
+            dbrda_options = {'dis_matrix': output_file_obj, 'envtable': self.option('envtable')}
+        else:
+            dbrda_options = {'otutable': self.option('otutable').path, 'envtable': self.option('envtable'),
+                             'method': self.option('dbrda_method')}
         if self.option('envlabs'):
             dbrda_options['envlabs'] = self.option('envlabs')
         else:
@@ -140,7 +145,7 @@ class BetaDiversityModule(Module):
         self.tools['dbrda'].run()
 
     def rda_run(self):
-        rda_options = {'otutable': self.gettable(), 'envtable': self.option('envtable')}
+        rda_options = {'otutable': self.option('otutable').path, 'envtable': self.option('envtable')}
         if self.option('envlabs'):
             rda_options['envlabs'] = self.option('envlabs')
         else:
@@ -150,7 +155,7 @@ class BetaDiversityModule(Module):
         self.tools['rda'].run()
 
     def pca_run(self):
-        pca_options = {'otutable': self.gettable()}
+        pca_options = {'otutable': self.option('otutable').path}
         if self.option('envtable').is_set:
             pca_options['envtable'] = self.option('envtable')
             if self.option('envlabs'):
@@ -160,6 +165,16 @@ class BetaDiversityModule(Module):
         self.tools['pca'].set_options(pca_options)
         self.tools['pca'].on('end', self.set_output, 'pca')
         self.tools['pca'].run()
+
+    def plsda_run(self):
+        plsda_options = {'otutable': self.option('otutable'), 'group': self.option('group')}
+        if self.option('grouplabs'):
+            plsda_options['grouplabs'] = self.option('grouplabs')
+        else:
+            plsda_options['grouplabs'] = self.option('plsda_grouplabs')
+        self.tools['plsda'].set_options(plsda_options)
+        self.tools['plsda'].on('end', self.set_output, 'plsda')
+        self.tools['plsda'].run()
 
     def set_output(self, event):
         obj = event['bind_object']
@@ -183,6 +198,8 @@ class BetaDiversityModule(Module):
             self.linkdir(obj.output_dir, 'Pcoa')
         elif event['data'] == 'nmds':
             self.linkdir(obj.output_dir, 'Nmds')
+        elif event['data'] == 'plsda':
+            self.linkdir(obj.output_dir, 'Plsda')
         else:
             pass
 
@@ -228,14 +245,20 @@ class BetaDiversityModule(Module):
             self.tools['hcluster'] = self.add_tool(
                 'meta.beta_diversity.hcluster')
             self.on_rely(self.matrix, self.hcluster_run)
-        if self.tools or 'distance' in self.option('analysis'):
+        if 'dbrda' in self.option('analysis'):
+            self.tools['dbrda'] = self.add_tool('meta.beta_diversity.dbrda')
+            if self.option('dbrda_method'):
+                self.dbrda_run()
+            else:
+                self.on_rely(self.matrix, self.dbrda_run)
+        if 'pcoa' or 'distance' or 'anosim' or 'nmds' in self.option('analysis'):
             self.matrix_run()
         if 'pca' in self.option('analysis'):
             self.tools['pca'] = self.add_tool('meta.beta_diversity.pca')
             self.pca_run()
-        if 'dbrda' in self.option('analysis'):
-            self.tools['dbrda'] = self.add_tool('meta.beta_diversity.dbrda')
-            self.dbrda_run()
+        if 'plsda' in self.option('analysis'):
+            self.tools['plsda'] = self.add_tool('meta.beta_diversity.plsda')
+            self.plsda_run()
         if 'rda_cca' in self.option('analysis'):
             self.tools['rda'] = self.add_tool('meta.beta_diversity.rda_cca')
             self.rda_run()
@@ -243,8 +266,9 @@ class BetaDiversityModule(Module):
         self.step.MultipleAnalysis.start()
         self.step.update()
         self.on_rely(self.tools.values(), self.stepend)
-        self.on_rely(self.tools.values(), self.end)
+        # self.on_rely(self.tools.values(), self.end)
 
     def stepend(self):
         self.step.MultipleAnalysis.finish()
         self.step.update()
+        self.end()

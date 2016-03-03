@@ -101,11 +101,14 @@ class otu_table(object):
         specimen_collection = self.__mongodb['sanger']['sg_specimen']
         results = collection.find({'otu_id': self._id})
         samples = []
-        if results:
+        if results.count():
             for i in results:
                 specimen = specimen_collection.find_one({'_id': i['specimen_id']})
                 if specimen:
-                    samples.append(specimen['specimen_name'])
+                    try:
+                        samples.append(specimen['specimen_name'])
+                    except KeyError:
+                        raise Exception('样本collection中不存在specimen_name字段：%s' % specimen)
                 else:
                     raise Exception('sg_otu_specimen中的specimen_id无法在sg_specimen中找到数据')
             return samples
@@ -116,7 +119,7 @@ class otu_table(object):
         collection = self.__mongodb['sanger']['sg_otu_detail']
         results = collection.find({'otu_id': self._id})
         otus = []
-        if results:
+        if results.count():
             for i in results:
                 otus.append(otu(i))
             return otus
