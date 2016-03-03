@@ -7,6 +7,7 @@ import errno
 from biocluster.tool import Tool
 from biocluster.agent import Agent
 from biocluster.core.exceptions import OptionError
+from mbio.packages.datasplit.miseq_split import code2index
 
 
 class Bcl2fastqAgent(Agent):
@@ -66,6 +67,7 @@ class Bcl2fastqTool(Tool):
                 lane = self.option('sample_info').parent_sample(p_id, "lane")
                 name = self.option('sample_info').parent_sample(p_id, "mj_sn")
                 index = self.option('sample_info').parent_sample(p_id, "index")
+                index = code2index("index", "bcl2fastq")[0]
                 project = self.option('sample_info').parent_sample(p_id, "project")
                 line = lane + "," + name + "," + index + "," + project + "\n"
                 w.write(line)

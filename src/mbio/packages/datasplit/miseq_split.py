@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 # __version__ = 'v1.0'
-# __last_modified__ = '20151222'
-import os
+# __last_modified__ = '20160303'
 import re
-from biocluster.config import Config
+import MySQLdb
 
 
 def reverse_complement(string):
@@ -36,24 +35,23 @@ def reverse_complement(string):
     return newstring
 
 
-def code2index(code):
+def code2index(code, type_):
     """
     根据一个index的代码，获取具体的index序列
     """
-    flag = 1
-    database = os.path.join(Config().SOFTWARE_DIR, "datasplit/barcode.list")
-    with open(database, 'r') as r:
-        for line in r:
-            line = line.rstrip('\n')
-            line = re.split('\t', line)
-            if line[0] == code:
-                varbase = line[1]
-                left_index = line[2]
-                right_index = line[3]
-                flag = 0
-                break
-    if flag:
+    db = MySQLdb.connect("172.16.3.61", "sanger", "11111111", "mjanalysis")
+    cursor = db.cursor()
+    sql = "SELECT * FROM sg_index_info WHERE label=\"{}\" AND type=\"{}\"".format(code, type_)
+    try:
+        cursor.execute(sql)
+        results = cursor.fetchall()
+    except:
+        raise Exception("无法从index数据库中获得信息")
+    if len(results) == 0:
         raise ValueError("未找到该index代码")
+    left_index = results[0][3]
+    right_index = results[0][4]
+    varbase = results[0][2]
     if len(varbase) == 1:
         f_varbase = varbase
         r_varbase = varbase
@@ -67,20 +65,22 @@ def code2primer(code):
     """
     根据一个primer的代码，获取具体的primer
     """
-    database = os.path.join(Config().SOFTWARE_DIR, "datasplit/primer.list")
+    db = MySQLdb.connect("172.16.3.61", "sanger", "11111111", "mjanalysis")
+    cursor = db.cursor()
     code = re.split('_', code)
-    f_primer = ""
-    r_primer = ""
-    with open(database, 'r') as r:
-        for line in r:
-            line = line.rstrip('\n')
-            line = re.split('\t', line)
-            if line[0] == code[0]:
-                f_primer = line[1]
-            if line[0] == code[1]:
-                r_primer = line[1]
-    if f_primer == "" or r_primer == "":
-        raise ValueError("未找到该primer代码")
+    for my_code in code:
+        sql = "SELECT * FROM sg_primer_info WHERE label=\"{}\"".format(my_code)
+        try:
+            cursor.execute(sql)
+            results = cursor.fetchall()
+        except:
+            raise Exception("无法从index数据库中获得信息")
+        if len(results) == 0:
+            raise ValueError("未找到该index代码")
+        if re.search("F$", my_code):
+            f_primer = results[0][2]
+        if re.search("R$", my_code):
+            r_primer = results[0][2]
     return (f_primer, r_primer)
 
 
@@ -108,4 +108,8 @@ if __name__ == "__main__":
     real_str = "GTGCCAGCCGCCGCGG"
     list_str = "GTGCCAGCMGCCGCGG"
     test = str_check(real_str, list_str)
+    test2 = code2index("NB67", "miseq")
+    test3 = code2primer("1737F_2043R")
     print test
+    print test2
+    print test3
