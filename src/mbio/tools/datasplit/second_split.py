@@ -77,7 +77,7 @@ class SecondSplitTool(Tool):
         """
         for c_id in self.option('sample_info').prop["child_ids"]:
             index_code = self.option('sample_info').child_sample(c_id, "index")
-            (self.f_index[c_id], self.r_index[c_id], self.f_varbase[c_id], self.r_varbase[c_id]) = code2index(index_code)
+            (self.f_index[c_id], self.r_index[c_id], self.f_varbase[c_id], self.r_varbase[c_id]) = code2index(index_code, "miseq")
             primer_code = self.option('sample_info').child_sample(c_id, "primer")
             (self.f_primer[c_id], self.r_primer[c_id]) = code2primer(primer_code)
             self.f_chomp_length[c_id] = len(self.f_index[c_id]) +\
