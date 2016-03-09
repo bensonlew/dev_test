@@ -106,7 +106,7 @@ class BetaMultiAnalysis(Base):
                 rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation.xls'
                 importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
-                insert_text_detail(rotation_path, 'rotation', main_id=main_id)
+                insert_table_detail(rotation_path, 'species', update_id=main_id)
                 insert_text_detail(importance_path, 'importance', main_id=main_id)
                 if result['env_id']:
                     filelist = os.listdir(dir_path.rstrip('/') + '/Pca')

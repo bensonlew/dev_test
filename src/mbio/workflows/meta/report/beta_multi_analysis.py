@@ -6,6 +6,7 @@
 import os
 import re
 import numpy as np
+import types
 from biocluster.workflow import Workflow
 from mbio.packages.beta_diversity.filter_newick import *
 from bson import ObjectId
@@ -112,9 +113,10 @@ class BetaMultiAnalysisWorkflow(Workflow):
         dir_path = self.output_dir
         cond, cons = [], []
         if not self.option('group_file').is_set:
-            cond, cons = self.classify_env(self.option('env_file').path)
-            self.logger.info(cond)
-            self.logger.info(cons)
+            if self.option('env_file').is_set:
+                cond, cons = self.classify_env(self.option('env_file').path)
+                self.logger.info(cond)
+                self.logger.info(cons)
         if not os.path.isdir(dir_path):
             raise Exception("找不到报告文件夹:{}".format(dir_path))
         api_multi.add_beta_multi_analysis_result(dir_path, self.option('analysis_type'),
@@ -127,8 +129,11 @@ class BetaMultiAnalysisWorkflow(Workflow):
         """
         获取环境因子中哪些是条件（条件约束）型因子，哪些是数量（线性约束）型的因子
         """
-        if not os.path.exists(env_file):
-            raise Exception('环境因子文件不存在')
+        if isinstance(env_file, types.StringType) or isinstance(env_file, types.UnicodeType):
+            if not os.path.exists(env_file):
+                raise Exception('环境因子文件不存在')
+        else:
+            raise Exception('提供的环境因子文件名不是一个字符串')
         frame = np.loadtxt(env_file, dtype=str, comments='')
         len_env = len(frame[0])
         # len_rec = len(frame)
