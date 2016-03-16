@@ -68,8 +68,8 @@ class MetastatAgent(Agent):
             {"name": "mann_coverage", "type": "float", "default": 0.95},
             {"name": "chi_coverage", "type": "float", "default": 0.95},
             {"name": "fisher_coverage", "type": "float", "default": 0.95},
-            {"name": "kru_H_methor", "type": "string", "default": 'tukeyramer'}, #post-hoc检验的方法
-            {"name": "anova_methor", "type": "string", "default": 'tukeyramer'}, #post-hoc检验的方法
+            {"name": "kru_H_methor", "type": "string", "default": 'tukeykramer'}, #post-hoc检验的方法
+            {"name": "anova_methor", "type": "string", "default": 'tukeykramer'}, #post-hoc检验的方法
             {"name": "chi_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'}, #两样本计算置信区间的方法
             {"name": "fisher_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'} #两样本计算置信区间的方法
         ]
@@ -144,7 +144,7 @@ class MetastatAgent(Agent):
                     raise OptionError("kru检验的分组方案的分组类别必须大于等于3")
                 if self.option("kru_H_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
                     raise OptionError('kru_H检验的posthoc的置信度不在范围值内')
-                if self.option("kru_H_methor") not in ["scheffe", "welchuncorrected", "tukeyramer", "gameshowell"]:
+                if self.option("kru_H_methor") not in ["scheffe", "welchuncorrected", "tukeykramer", "gameshowell"]:
                     raise OptionError('kru_H检验的posthoc检验方法不在范围值内')
             elif i == "anova":
                 if not self.option("anova_input").is_set:
@@ -161,7 +161,7 @@ class MetastatAgent(Agent):
                     raise OptionError("anova检验的分组方案的分组类别必须大于等于3")
                 if self.option("anova_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
                     raise OptionError('anova检验的posthoc的置信度不在范围值内')
-                if self.option("anova_methor") not in ["scheffe", "welchuncorrected", "tukeyramer", "gameshowell"]:
+                if self.option("anova_methor") not in ["scheffe", "welchuncorrected", "tukeykramer", "gameshowell"]:
                     raise OptionError('anova检验的posthoc检验方法不在范围值内')
             elif i == "mann":
                 if not self.option("mann_input").is_set:
@@ -280,7 +280,7 @@ class MetastatTool(Tool):
         cmd = "%s/R-3.2.2/bin/Rscript run_chi_test.r" % Config().SOFTWARE_DIR
         try:
             subprocess.check_output(cmd, shell=True)
-            self.twosample_ci(self.option("chi_methor"), self.option("chi_input").prop['path'],
+            self.twosample_ci(self.option("chi_methor"), self.option("chi_input").prop['path'], self.work_dir + '/chi_result.xls',
                               self.option('chi_sample1'), self.option('chi_sample2'), self.option('chi_coverage'),
                               self.work_dir + '/chi_CI.xls')
             self.logger.info("chi_test运行完成")
@@ -295,20 +295,20 @@ class MetastatTool(Tool):
         cmd = "%s/R-3.2.2/bin/Rscript run_fisher_test.r" % Config().SOFTWARE_DIR
         try:
             subprocess.check_output(cmd, shell=True)
-            self.twosample_ci(self.option("fisher_methor"), self.option("fisher_input").prop['path'],
+            self.twosample_ci(self.option("fisher_methor"), self.option("fisher_input").prop['path'], self.work_dir + '/fisher_result.xls',
                               self.option('fisher_sample1'), self.option('fisher_sample2'),
                               self.option('fisher_coverage'), self.work_dir + '/fisher_CI.xls')
             self.logger.info("fisher_test运行完成")
         except subprocess.CalledProcessError:
             self.logger.info("fisher_test运行出错")
     
-    def twosample_ci(self, methor, otufile, sample1, sample2, coverage, outfile):
+    def twosample_ci(self, methor, otufile, statfile, sample1, sample2, coverage, outfile):
         if methor == "DiffBetweenPropAsymptoticCC":
-            DiffBetweenPropAsymptoticCC(otufile, sample1, sample2, coverage, outfile)
+            DiffBetweenPropAsymptoticCC(otufile, statfile, sample1, sample2, coverage, outfile)
         if methor == "DiffBetweenPropAsymptotic":
-            DiffBetweenPropAsymptotic(otufile, sample1, sample2, coverage, outfile)
+            DiffBetweenPropAsymptotic(otufile, statfile, sample1, sample2, coverage, outfile)
         if methor == "NewcombeWilson":
-            NewcombeWilson(otufile, sample1, sample2, coverage, outfile)
+            NewcombeWilson(otufile, statfile, sample1, sample2, coverage, outfile)
     
     def run_student(self): 
         glist = [self.option('student_gname')]
@@ -386,8 +386,8 @@ class MetastatTool(Tool):
             self.logger.info("anova_test运行出错")
     
     def posthoc(self, methor, statfile, groupfile, coverage, outfile):
-        if methor == 'tukeyramer':
-            tukeyramer(statfile, groupfile, coverage, outfile)
+        if methor == 'tukeykramer':
+            tukeykramer(statfile, groupfile, coverage, outfile)
         if methor == 'gameshowell':
             gameshowell(statfile, groupfile, coverage, outfile)
         if methor == 'welchuncorrected':

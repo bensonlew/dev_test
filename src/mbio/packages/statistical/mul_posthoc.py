@@ -30,6 +30,7 @@ def stat_info(statfile, groupfile):
     (N, dfN, dfD, group_num_dict) = group_detail(groupfile)
     with open(statfile, 'r') as s:
         shead = s.readline().strip('\n').split()
+        # print shead
         mean_dict = {}
         sd_dict = {}
         taxon_list = []
@@ -47,9 +48,13 @@ def stat_info(statfile, groupfile):
                 for foo in shead:
                     if gmean in foo:
                         index_site = shead.index(foo)
+                        # print index_site
                         mean_dict[gname].append(float(sline_list[index_site + 1].strip('\"')))
                         sd_dict[gname].append(float(sline_list[index_site + 2].strip('\"')))
+        # print mean_dict, sd_dict, taxon_list
         return mean_dict, sd_dict, taxon_list
+stat_info("C:\\Users\\ping.qiu.MAJORBIO\\Desktop\\anova_result.xls", "C:\\Users\\ping.qiu.MAJORBIO\\Desktop\\anova_group")
+
 
 
 def scheffe(statfile, groupfile, coverage, outfile):
@@ -123,7 +128,7 @@ def welchuncorrected(statfile, groupfile, coverage, outfile):
                 w.write('%s\t%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % dp, '%0.4g' % lowerCI, '%0.4g' % upperCI, '%0.4g' % pValue))
 
 
-def tukeyramer(statfile, groupfile, coverage, outfile, preferences=None):
+def tukeykramer(statfile, groupfile, coverage, outfile, preferences=None):
     qtable = QTable(preferences)
     (mean_dict, sd_dict, taxon_list) = stat_info(statfile, groupfile)
     (N, dfN, dfD, group_num_dict) = group_detail(groupfile)
@@ -137,7 +142,7 @@ def tukeyramer(statfile, groupfile, coverage, outfile, preferences=None):
     two_hoc = list(itertools.combinations(group_num_dict.keys(), 2))
     for one in two_hoc:
         groups = '-'.join(list(one))
-        with open(outfile + '_tukeyramer_%s.xls' % groups, 'w') as w:
+        with open(outfile + '_tukeykramer_%s.xls' % groups, 'w') as w:
             w.write('\tEffectSize\tlowerCI\tupperCI\tpvalue\n')
             for i in range(len(taxon_list)):
                 # calculate within group variance
@@ -225,4 +230,3 @@ def gameshowell(statfile, groupfile, coverage, outfile, preferences = None):
                 lowerCI = es - confInter
                 upperCI = es + confInter
                 w.write('%s\t%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % es, '%0.4g' % lowerCI, '%0.4g' % upperCI, pValue))
-

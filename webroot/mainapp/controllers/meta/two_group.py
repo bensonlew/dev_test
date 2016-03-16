@@ -16,7 +16,10 @@ class TwoGroup(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        self.check_options(data)
+        return_result = self.check_options(data)
+        if return_result:
+            info = {"success": False, "info": '+'.join(return_result)}
+            return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
@@ -30,7 +33,7 @@ class TwoGroup(object):
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_two_group_stat_table"
+            name = "twogroup_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) 
             two_group_id = G().create_species_difference_check(data.level_id, 'two_group', params, data.group_id, data.otu_id, name)
             update_info = {str(two_group_id): "sg_species_difference_check"}
             update_info = json.dumps(update_info)
@@ -88,28 +91,22 @@ class TwoGroup(object):
         检查网页端传进来的参数是否正确
         """
         params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'ci', 'correction', 'type', 'test', 'coverage']
+        success = []
         for names in params_name:
             if not (hasattr(data, names)):
-                info = {"success": False, "info": "缺少参数!"}
-                return json.dumps(info)
+                success.append("缺少参数!")
         if int(data.level_id) not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
-            info = {"success": False, "info": "level_id不在范围内"}
-            return json.dumps(info)
+            success.append("level_id不在范围内")
         if float(data.ci) > 1 or float(data.ci) < 0:
-            info = {"success": False, "info": "显著性水平不在范围内"}
-            return json.dumps(info)
+            success.append("显著性水平不在范围内")
         if data.correction not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"]:
-            info = {"success": False, "info": "多重检验方法不在范围内"}
-            return json.dumps(info)
+            success.append("多重检验方法不在范围内")
         if data.type not in ["two.side", "greater", "less"]:
-            info = {"success": False, "info": "检验类型不在范围内"}
-            return json.dumps(info)
+            success.append("检验类型不在范围内")
         if float(data.ci) > 1 or float(data.ci) < 0:
-            info = {"success": False, "info": "显著性水平不在范围内"}
-            return json.dumps(info)
+            success.append("显著性水平不在范围内")
         if data.test not in ["chi", "fisher", "kru_H", "mann", "anova", "student", "welch"]:
-            info = {"success": False, "info": "所选的分析检验方法不在范围内"}
-            return json.dumps(info)
-        if data.coverage not in [0.90, 0.95, 0.98, 0.99, 0.999]:
-            info = {"success": False, "info": '置信区间的置信度coverage不在范围值内'}
-            return json.dumps(info)
+            success.append("所选的分析检验方法不在范围内")
+        if float(data.coverage) not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+            success.append('置信区间的置信度coverage不在范围值内')
+        return success

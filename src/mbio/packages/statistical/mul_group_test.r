@@ -113,7 +113,16 @@ for(i in 1:length(pvalue)){
 }
 result <- cbind(result,pvalue)
 result <- cbind(result,qvalue)
-result_order <- result[order(result$pvalue),]
+g_num <- length(colnames(result))/2-1
+order <- 0
+n <- 0
+i <- 1
+while(n < g_num){
+  order <- order + as.numeric(result[,i])
+  i <- i + 2
+  n <- n + 1 
+}
+result_order <- result[order(-order),]
 write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=T,quote = F)
 boxfile <- boxplot_stat(data)
 write.table(boxfile,"${boxfile}",sep="\t",col.names=T,row.names=T,quote = F)
