@@ -60,7 +60,7 @@ for(i in 1:length(pvalue)){
 result <- cbind(result,pvalue)
 result <- cbind(result,qv)
 colnames(result) <- c(" ",paste("mean(",g1,")",sep=''),paste("sd(",g1,")",sep=''),paste("mean(",g2,")",sep=''),paste("sd(",g2,")",sep=''),"pvalue","corrected_pvalue")
-result_order <- result[order(result[,6]),] 
+result_order <- result[order(-(as.numeric(result[,2])+as.numeric(result[,4]))),] 
 if(lendata == 1){
   a <- data.frame(result_order)
   result_order <- t(a)

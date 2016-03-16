@@ -18,7 +18,10 @@ class Multiple(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        self.check_options(data)
+        return_result = self.check_options(data)
+        if return_result:
+            info = {"success": False, "info": '+'.join(return_result)}
+            return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
@@ -31,7 +34,7 @@ class Multiple(object):
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_multiple_stat_table"
+            name = "multiplegroup_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             multiple_id = G().create_species_difference_check(data.level_id, 'multiple', params, data.group_id,
                                                               data.otu_id, name)
             update_info = {str(multiple_id): "sg_species_difference_check"}
@@ -88,22 +91,18 @@ class Multiple(object):
         检查网页端传进来的参数是否正确
         """
         params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'correction', 'test', 'methor', 'coverage']
+        success = []
         for names in params_name:
             if not (hasattr(data, names)):
-                info = {"success": False, "info": "缺少参数!"}
-                return json.dumps(info)
+                success.append("缺少参数!")
         if int(data.level_id) not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
-            info = {"success": False, "info": "level_id不在范围内"}
-            return json.dumps(info)
+            success.append("level_id不在范围内")
         if data.correction not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"]:
-            info = {"success": False, "info": "多重检验方法不在范围内"}
-            return json.dumps(info)
+            success.append("多重检验方法不在范围内")
         if data.test not in ["kru_H", "anova"]:
-            info = {"success": False, "info": "所选的分析检验方法不在范围内"}
-            return json.dumps(info)
-        if data.coverage not in [0.90, 0.95, 0.98, 0.99, 0.999]:
-            info = {"success": False, "info": '置信区间的置信度coverage不在范围值内'}
-            return json.dumps(info)
-        if data.methor not in ["scheffe", "welchuncorrected", "tukeyramer", "gameshowell"]:
-            info = {"success": False, "info": '置信区间的方法methor不在范围值内'}
-            return json.dumps(info)
+            success.append("所选的分析检验方法不在范围内")
+        if float(data.coverage) not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+            success.append('置信区间的置信度coverage不在范围值内')
+        if data.methor not in ["scheffe", "welchuncorrected", "tukeykramer", "gameshowell"]:
+            success.append('置信区间的方法methor不在范围值内')
+        return success

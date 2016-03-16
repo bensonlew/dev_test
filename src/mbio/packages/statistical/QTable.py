@@ -19,7 +19,7 @@ class QTable:
          'tukeyQ_10.txt']
         self.qTables = {}
         for i in xrange(0, len(tables)):
-            dataPath = '/mnt/ilustre/users/sanger/biocluster/src/mbio/packages/statistical/data/%s' % (tables[i])
+            dataPath = 'D:\work\git20151203\sanger_bioinfo\src\mbio\packages\statistical\data\%s' % (tables[i])
             fin = open(dataPath, 'U')
             data = fin.readlines()
             fin.close()

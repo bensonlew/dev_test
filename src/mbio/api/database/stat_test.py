@@ -38,10 +38,10 @@ class StatTest(Base):
                 length = len(line_data)
                 i = 1
                 for name in group_list:
-                    data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", line_data[length-1]),("pvalue", line_data[length-2])]
+                    data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", float(line_data[length-1])),("pvalue", float(line_data[length-2]))]
                     data.append(("category_name", name))
-                    data.append(("mean", line_data[i]))
-                    data.append(("sd", line_data[i+1]))
+                    data.append(("mean", float(line_data[i])))
+                    data.append(("sd", float(line_data[i+1])))
                     i += 2
                     data_son = SON(data)
                     data_list.append(data_son)
@@ -75,12 +75,12 @@ class StatTest(Base):
                 if not line:
                     break
                 line_data = line.split("\t")
-                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", line_data[4]),
-                        ("pvalue", line_data[3]), ("specimen_name", sample[0]), ("propotion", line_data[1])]
+                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", float(line_data[4])),
+                        ("pvalue", float(line_data[3])), ("specimen_name", sample[0]), ("propotion", float(line_data[1]))]
                 data_son = SON(data)
                 data_list.append(data_son)
-                data1 = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", line_data[4]),
-                         ("pvalue", line_data[3]), ("specimen_name", sample[1]), ("propotion", line_data[2])]
+                data1 = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", float(line_data[4])),
+                         ("pvalue", float(line_data[3])), ("specimen_name", sample[1]), ("propotion", float(line_data[2]))]
                 data_son1 = SON(data1)
                 data_list.append(data_son1)
         try:
@@ -111,11 +111,11 @@ class StatTest(Base):
                 for name in group_list:
                     data = [("species_check_id", table_id), ("species_name", line_data[0])]
                     data.append(("category_name", name))
-                    data.append(("min", line_data[i]))
-                    data.append(("q1", line_data[i+1]))
-                    data.append(("median", line_data[i+2]))
-                    data.append(("q3", line_data[i+3]))
-                    data.append(("max", line_data[i+4]))
+                    data.append(("min", float(line_data[i])))
+                    data.append(("q1", float(line_data[i+1])))
+                    data.append(("median", float(line_data[i+2])))
+                    data.append(("q3", float(line_data[i+3])))
+                    data.append(("max", float(line_data[i+4])))
                     i += 5
                     data_son = SON(data)
                     data_list.append(data_son)
@@ -143,8 +143,8 @@ class StatTest(Base):
                 if not line:
                     break
                 line_data = line.split("\t")
-                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("effectsize", line_data[1]),
-                        ("lower_ci", line_data[2]), ("upper_ci", line_data[3])]
+                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("effectsize", float(line_data[1])),
+                        float(("lower_ci", line_data[2])), float(("upper_ci", line_data[3]))]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
@@ -174,9 +174,9 @@ class StatTest(Base):
                 if not line:
                     break
                 line_data = line.split("\t")
-                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("effectsize", line_data[1]),
-                        ("lower_ci", line_data[2]), ("upper_ci", line_data[3]), ("post_hoc_pvalue", line_data[4]),
-                        ("compare_category", compare_group.strip('.xls'))]
+                data = [("species_check_id", table_id), ("species_name", line_data[0]), float(("effectsize", line_data[1])),
+                        float(("lower_ci", line_data[2])), float(("upper_ci", line_data[3])), float(("post_hoc_pvalue", line_data[4])),
+                        ("compare_category", compare_group.replace('.xls',''))]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
@@ -210,7 +210,7 @@ class StatTest(Base):
                     line = line.strip('\n')
                     line_data = line.split('\t')
                     data = [("species_lefse_id", table_id), ("species_name", line_data[0]),
-                            ("category_name", line_data[2]), ("median", line_data[1]), ("lda", line_data[3]),
+                            ("category_name", line_data[2]), ("median", float(line_data[1])), ("lda", line_data[3]),
                             ("pvalue", line_data[4])]
                     data_son = SON(data)
                     data_list.append(data_son)
@@ -307,7 +307,17 @@ class StatTest(Base):
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 
-
+    @report_check
+    def update_species_difference_check(self, errorbar_path, table_id):
+        collection = self.db["sg_species_difference_check"]
+        fs = gridfs.GridFS(self.db)
+        errorbar_id = fs.put(open(errorbar_path, 'r'))
+        try:
+            collection.update({"_id": ObjectId(table_id)}, {"$set": {"errorbar_png": errorbar_id}})
+        except Exception, e:
+            self.bind_object.logger.error("导入%s信息出错:%s" % (errorbar_path, e))
+        else:
+            self.bind_object.logger.info("导入%s信息成功!" % (errorbar_path))
 
 
 

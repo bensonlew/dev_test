@@ -4,6 +4,7 @@
 """组间差异性两组比较检验分析"""
 
 from biocluster.workflow import Workflow
+from mbio.packages.statistical.twogroup_errorbar import *
 import os
 
 
@@ -79,13 +80,21 @@ class TwoGroupWorkflow(Workflow):
         stat_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         boxfile_path = self.output_dir + '/' + self.option("test") + '_boxfile.xls'
         ci_path = self.output_dir + '/' + self.option("test") + '_CI.xls'
+        errorbar_path = self.output_dir + '/' + 'errorbar.png'
+        #plot error bar
+        errorbar(stat_path, self.option("group_file").prop['path'], ci_path, errorbar_path)
         if not os.path.isfile(stat_path):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):
             raise Exception("找不到报告文件:{}".format(boxfile_path))
+        if not os.path.isfile(errorbar_path):
+            raise Exception("找不到报告文件:{}".format(errorbar_path))
+        if not os.path.isfile(ci_path):
+            raise Exception("找不到报告文件:{}".format(ci_path))
         api_two_group.add_species_difference_check_detail(file_path=stat_path, table_id=self.option("two_group_id"))
         api_two_group.add_species_difference_check_boxplot(boxfile_path, self.option("two_group_id"))
         api_two_group.add_species_difference_check_ci_plot(file_path=ci_path, table_id=self.option("two_group_id"))
+        api_two_group.update_species_difference_check(errorbar_path, self.option("two_group_id"))
         self.end()
 
     def run(self):

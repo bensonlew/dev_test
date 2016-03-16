@@ -48,12 +48,19 @@ def otu_info(otufile, sample1, sample2):
 
 # (taxon_list, s1_list, s2_list, totalSeq1, totalSeq2) = otu_info('C:\Users\ping.qiu.MAJORBIO\Desktop\otu_file.xls', 'sample2', 'sample3')
 # print taxon_list,s1_list,s2_list,totalSeq1,totalSeq2
-def DiffBetweenPropAsymptoticCC(otufile, sample1, sample2, coverage, outfile):
+def DiffBetweenPropAsymptoticCC(otufile, statfile, sample1, sample2, coverage, outfile):
     (taxon_list, s1_list, s2_list, totalSeq1, totalSeq2) = otu_info(otufile, sample1, sample2)
-    with open(outfile, 'w') as w:
+    with open(outfile, 'w') as w, open(statfile, 'r') as s:
+        head = s.readline().strip().split('\t')
+        stat_taxon = []
+        while True:
+            line = s.readline()
+            if not line:
+                break
+            stat_taxon.append(line.split('\t')[0])
         w.write('\teffectsize\tlowerCI\tupperCI\n')
-        length = len(taxon_list)
-        for i in range(length):
+        for name in stat_taxon:
+            i = taxon_list.index(name)
             taxon = taxon_list[i]
             R1 = s1_list[i] / totalSeq1
             R2 = s2_list[i] / totalSeq2
@@ -67,13 +74,19 @@ def DiffBetweenPropAsymptoticCC(otufile, sample1, sample2, coverage, outfile):
             upperCI *= 100
             w.write('%s\t%s\t%s\t%s\n' % (taxon, '%0.4g' % diff, '%0.4g' % lowerCI, '%0.4g' % upperCI))
 
-
-def DiffBetweenPropAsymptotic(otufile, sample1, sample2, coverage, outfile):
+def DiffBetweenPropAsymptotic(otufile, statfile, sample1, sample2, coverage, outfile):
     (taxon_list, s1_list, s2_list, totalSeq1, totalSeq2) = otu_info(otufile, sample1, sample2)
-    with open(outfile, 'w') as w:
+    with open(outfile, 'w') as w, open(statfile, 'r') as s:
+        head = s.readline().strip().split('\t')
+        stat_taxon = []
+        while True:
+            line = s.readline()
+            if not line:
+                break
+            stat_taxon.append(line.split('\t')[0])
         w.write('\teffectsize\tlowerCI\tupperCI\n')
-        length = len(taxon_list)
-        for i in range(length):
+        for name in stat_taxon:
+            i = taxon_list.index(name)
             taxon = taxon_list[i]
             R1 = s1_list[i] / totalSeq1
             R2 = s2_list[i] / totalSeq2
@@ -120,13 +133,20 @@ def NewcombeWilsonFindRoots(seq, totalSeq, z):
     return roots
 
 
-def NewcombeWilson(otufile, sample1, sample2, coverage, outfile):
+def NewcombeWilson(otufile, statfile, sample1, sample2, coverage, outfile):
     (taxon_list, s1_list, s2_list, totalSeq1, totalSeq2) = otu_info(otufile, sample1, sample2)
-    with open(outfile, 'w') as w:
+    with open(outfile, 'w') as w, open(statfile, 'r') as s:
+        head = s.readline().strip().split('\t')
+        stat_taxon = []
+        while True:
+            line = s.readline()
+            if not line:
+                break
+            stat_taxon.append(line.split('\t')[0])
         w.write('\teffectsize\tlowerCI\tupperCI\n')
-        length = len(taxon_list)
         z = zScore(coverage)
-        for i in range(length):
+        for name in stat_taxon:
+            i = taxon_list.index(name)
             taxon = taxon_list[i]
             roots1 = NewcombeWilsonFindRoots(s1_list[i], totalSeq1, z)
             roots2 = NewcombeWilsonFindRoots(s2_list[i], totalSeq2, z)
