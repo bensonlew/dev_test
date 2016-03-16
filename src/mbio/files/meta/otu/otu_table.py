@@ -210,3 +210,52 @@ class OtuTableFile(File):
                 cla.append(my_str)
         new_tax = "; ".join(cla)
         return new_tax
+
+    def sub_otu_sample(self, samples, path):
+        """
+        从一张otu表里删除几个样本， 在删除这些样本之后，有些OTU的数目会变成0, 删除这些OTU
+        """
+        colnum_list = list()
+        otu_dict = dict()
+        new_head = list()
+        if not isinstance(samples, list):
+            raise Exception("samples参数必须是列表")
+        with open(self.prop['path'], 'rb') as r:
+            head = r.next().strip("\r\n")
+            head = re.split('\t', head)
+            for i in range(1, len(head)):
+                if head[i] in samples:
+                    colnum_list.append(i)
+                    new_head.append(head[i])
+            for line in r:
+                line = line.strip('\r\n')
+                line = re.split('\t', line)
+                otu_dict[line[0]] = list()
+                sum_ = 0
+                for i in colnum_list:
+                    otu_dict[line[0]].append(line[i])
+                for num in otu_dict[line[0]]:
+                    sum_ += int(num)
+                if sum_ == 0:
+                    del otu_dict[line[0]]
+        with open(path, 'wb') as w:
+            w.write("OTU ID\t")
+            w.write("\t".join(new_head) + "\n")
+            for otu in otu_dict:
+                w.write(otu + "\t")
+                w.write("\t".join(otu_dict[otu]) + "\n")
+
+    def transposition(self, path):
+        """
+        转置一个otu表
+        """
+        file_ = list()
+        with open(self.prop['path'], 'rb') as r:
+            linelist = [l.strip('\r\n') for l in r.readlines()]
+        for row in linelist:
+            row = re.split("\t", row)
+            file_.append(row)
+        zip_line = zip(*file_)
+        with open(path, 'wb') as w:
+            for my_l in zip_line:
+                w.write("\t".join(my_l) + "\n")
