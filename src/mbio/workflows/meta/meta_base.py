@@ -249,7 +249,19 @@ class MetaBaseWorkflow(Workflow):
             rep_path = self.output_dir + "/Otu/otu_reps.fasta"
             if not os.path.isfile(otu_path):
                 raise Exception("找不到报告文件:{}".format(otu_path))
-            self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid)
+            params = {
+                "otu_id": self.otu_id,
+                "identity": self.option("identity"),
+                "revcomp": self.option("revcomp"),
+                "confidence": self.option("confidence"),
+                "database": self.option("database")
+            }
+            if self.option("database") == "custom_mode":
+                params.update({
+                    "ref_fasta": self.option("ref_fasta"),
+                    "ref_taxon": self.option("ref_taxon")
+                })
+            self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
             api_tree = self.api.newicktree
             tree_path = self.phylo.option('phylo_tre').prop['path']
             if not os.path.isfile(tree_path):
@@ -262,10 +274,23 @@ class MetaBaseWorkflow(Workflow):
             est_path = self.output_dir + "/Alpha_diversity/estimators.xls"
             if not os.path.isfile(est_path):
                 raise Exception("找不到报告文件:{}".format(est_path))
-            api_est.add_est_table(est_path, major=True, level=9, otu_id=self.otu_id)
+            indice = self.option("estimate_indices").split(',').sort()
+            params = {
+                "otu_id": self.otu_id,
+                "level_id": 9,
+                "indices": ','.join(indice)
+            }
+            api_est.add_est_table(est_path, major=True, level=9, otu_id=self.otu_id, params=params)
             api_rare = self.api.rarefaction
             rare_path = self.work_dir + "/AlphaDiversity/Rarefaction/output/"
-            api_rare.add_rare_table(rare_path, level=9, otu_id=self.otu_id)
+            indice = self.option("rarefy_indices").split(',').sort()
+            params = {
+                "otu_id": self.otu_id,
+                "level_id": 9,
+                "indices": ','.join(indice),
+                'freq': self.option('rarefy_freq')
+            }
+            api_rare.add_rare_table(rare_path, level=9, otu_id=self.otu_id, params=params)
         if event['data'] == "beta":
             os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Beta_diversity")
             # 设置beta多样性文件
@@ -273,18 +298,32 @@ class MetaBaseWorkflow(Workflow):
             dist_path = self.beta.option('dis_matrix').prop['path']
             if not os.path.isfile(dist_path):
                 raise Exception("找不到报告文件:{}".format(dist_path))
-            dist_id = api_dist.add_dist_table(dist_path, level=9, otu_id=self.otu_id, major=True)
+            params = {
+                'otu_id': self.otu_id,
+                'level_id': 9,
+                'distance_algorithm': self.option('dis_method'),
+            }
+            dist_id = api_dist.add_dist_table(dist_path, level=9, otu_id=self.otu_id, major=True, params=params)
             if 'hcluster' in self.option('beta_analysis').split(','):
                 # 设置hcluster树文件
                 api_hcluster = self.api.newicktree
                 hcluster_path = self.beta.output_dir + "/Hcluster/hcluster.tre"
                 if not os.path.isfile(hcluster_path):
                     raise Exception("找不到报告文件:{}".format(hcluster_path))
-                api_hcluster.add_tree_file(hcluster_path, major=True, table_id=dist_id, table_type='dist', tree_type='cluster')
+                params = {
+                    'specimen_distance_id': dist_id,
+                    'hcluster_method': self.option('linkage')
+                }
+                api_hcluster.add_tree_file(hcluster_path, major=True, table_id=dist_id, table_type='dist', tree_type='cluster', params=params)
             for ana in self.option('beta_analysis').split(','):
                 if ana in ['pca', 'pcoa', 'nmds', 'dbrda', 'rda_cca']:
                     api_betam = self.api.beta_multi_analysis
-                    api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana, main=True, env_id=self.env_id, otu_id=self.otu_id)
+                    params = {
+                        'otu_id': self.otu_id,
+                        'level_id': 9,
+                        'analysis_type': self.option('beta_analysis'),
+                    }
+                    api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana, main=True, env_id=self.env_id, otu_id=self.otu_id, params=params)
 
     def run(self):
         self.run_filecheck()
