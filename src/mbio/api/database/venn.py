@@ -37,7 +37,7 @@ class Venn(Base):
             for line in r:
                 line = line.strip('\n')
                 line = re.split("\t", line)
-                new_otu_id = self.add_sg_otu(otu_id)
+                new_otu_id = self.add_sg_otu(otu_id, line[0])
                 self.new_otu_id.append(new_otu_id)
                 self.add_sg_otu_detail(line[2], otu_id, new_otu_id, line[0])
                 tmp_name = re.split(',', line[2])
@@ -98,7 +98,7 @@ class Venn(Base):
                     if len(s_len) == i and my_only[0] not in s_len:
                         num[my_only] = num[my_only] + ((-1) ** (i + 1) * single_len[s_len])
 
-        # 为了Venn图美观，除了单个的大小保持原样之外，其他的都进行缩小
+        # 为了Venn图美观，平均化单个的大小， 对其他部分的大小进行缩小
         avg = 0
         c = 0
         # print num
@@ -109,10 +109,8 @@ class Venn(Base):
         avg = avg / c
 
         for name in num:
-            if len(name) == 2:
-                num[name] = avg / 3
-            if len(name) == 3 or len(name) == 4:
-                num[name] = avg / 4
+            for i in range(1, len(num) + 1):
+                num[name] == avg / i
 
         venn_json = list()
         with open(venn_path, 'rb') as r:
@@ -220,14 +218,18 @@ class Venn(Base):
         collection = self.db['sg_otu_detail']
         collection.insert_many(data_list)
 
-    def add_sg_otu(self, otu_id):
+    def add_sg_otu(self, otu_id, name):
         if not isinstance(otu_id, ObjectId):
             otu_id = ObjectId(otu_id)
+        if re.search(r'only', name):
+            name = re.sub(' ', "_", name)
+        if re.search(r'&', name):
+            name = re.sub(' ', '', name)
         insert_data = {
             "project_sn": self.project_sn,
             "task_id": self.task_id,
             "from_id": otu_id,
-            "name": "venn_otu_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": "venn_otu_" + name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "status": "end",
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }

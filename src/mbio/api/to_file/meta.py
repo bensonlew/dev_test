@@ -131,6 +131,10 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
     """
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
+    if data == "all":
+        with open(file_path, "wb") as f:
+            f.write("#sample\t" + "##empty_group##" + "\n")
+        return file_path
     group_table = db['sg_specimen_group']
     group_name_list = list()
     group_name = bind_obj.sheet.option("category_name")

@@ -9,6 +9,7 @@ from mainapp.controllers.filecheck import FileCheck,MultiFileCheck
 from mainapp.controllers.meta.estimators import Estimators
 from mainapp.controllers.meta.pan_core import PanCore
 from mainapp.controllers.meta.venn import Venn
+from mainapp.controllers.meta.heat_cluster import HeatCluster
 from mainapp.controllers.meta.beta.distance_calc import DistanceCalc
 from mainapp.controllers.meta.beta.hcluster import Hcluster
 from mainapp.controllers.meta.otu_subsample import Subsample
@@ -36,6 +37,7 @@ urls = (
     "/pipeline/stop_pause", "PipelineStopPause",
     "/meta/pan_core", "PanCore",
     "/meta/venn", "Venn",
+    "/meta/heat_cluster", "HeatCluster",
     "/meta/beta/distance_calc", "DistanceCalc",
     "/meta/beta/hcluster", "Hcluster",
     "/meta/otu_subsample", "Subsample",
