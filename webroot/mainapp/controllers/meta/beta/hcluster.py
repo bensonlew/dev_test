@@ -81,7 +81,7 @@ class Hcluster(object):
             info = {'success': True, 'info': '提交成功!', '_id': str(newicktree_id)}
             return json.dumps(info)
         else:
-            info = {'success': False, 'info': 'OTU不存在，请确认参数是否正确！!'}
+            info = {'success': False, 'info': '距离矩阵不存在，请确认参数是否正确！!'}
             return json.dumps(info)
 
     def get_new_id(self, task_id, distance_id):

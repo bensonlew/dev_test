@@ -20,7 +20,8 @@ class DistanceBoxAgent(Agent):
             {"name": "dis_matrix", "type": "infile",
                 "format": "meta.beta_diversity.distance_matrix"},
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "grouplabs", "type": "string", "default": ""}
+            {"name": "grouplabs", "type": "string", "default": ""},
+            {"name": "permutations", "type": "int", "default": 999},
         ]
         self.add_option(options)
         self.step.add_steps('distancebox')
@@ -40,6 +41,10 @@ class DistanceBoxAgent(Agent):
         重写参数检查
         """
         samplelist = []
+        if 10000 >= self.option('permutations') >= 10:
+            pass
+        else:
+            raise OptionError('随机置换次数:%s不再正常范围内[10, 10000]' % self.option('permutations'))
         if not self.option('dis_matrix').is_set:
             raise OptionError('必须提供距离矩阵文件')
         else:
@@ -102,20 +107,60 @@ class DistanceBoxTool(Tool):
         运行qiime:make_distance_boxplots.py
         """
         cmd = self.cmd_path
-        cmd += ' -m %s -d %s -o %s -f %s --save_raw_data' % (self.option('group').path,
-                                                             self.option('dis_matrix').prop['path'],
-                                                             self.work_dir,
-                                                             self.option('grouplabs'))
+        cmd += ' -m %s -d %s -o %s -f %s --save_raw_data -n %s' % (self.option('group').path,
+                                                                   self.option('dis_matrix').prop['path'],
+                                                                   self.work_dir,
+                                                                   self.option('grouplabs'),
+                                                                   self.option('permutations'))
         self.logger.info('运行qiime:make_distance_boxplots.py程序')
         box_command = self.add_command('box', cmd)
         box_command.run()
         self.wait(box_command)
         if box_command.return_code == 0:
             self.logger.info('运行qiime/make_distance_boxplots.py完成')
-            self.linkfile(self.work_dir + '/' + self.option('grouplabs') + '_Distances.txt',
+            self.format_boxdata(self.work_dir + '/' + self.option('grouplabs') + '_Distances.txt',
+                                self.work_dir + '/' + self.option('grouplabs') + '_Distances_format.txt')
+            self.linkfile(self.work_dir + '/' + self.option('grouplabs') + '_Distances_format.txt',
                           'Distances.txt')
             self.linkfile(self.work_dir + '/' + self.option('grouplabs') + '_Stats.txt',
                           'Stats.txt')
             self.end()
         else:
             self.set_error('运行qiime/make_distance_boxplots.py出错')
+
+    def format_boxdata(self, boxdata, outfile):
+        """
+        """
+        datalist = []
+        with open(boxdata, 'rb') as f, open(outfile, 'wb') as w:
+            for line in f:
+                templist = line.rstrip().split('\t')
+                values = []
+                for i in templist[1:]:
+                    try:
+                        values.append(float(i))
+                    except ValueError:
+                        self.set_error('qiime计算箱线数据结果值存在异常，数据：%s应该为数字' % i)
+                datalist.append([templist[0]] + self.calculate_boxdata(values))
+            w.write('#Group\tmax\tmin\tq3\tq1\tmedian\tfliers\tmean\tstd\n')
+            for box in datalist:
+                print box, type(box)
+                w.write('\t'.join(box) + '\n')
+
+
+    def calculate_boxdata(self, datalist):
+        """
+        """
+        import pandas as pd
+        import numpy as np
+        data = pd.DataFrame({'name': datalist})
+        result = data.boxplot(return_type='dict')
+        medians = result['medians'][0].get_data()[1][0]
+        max_v = result['whiskers'][1].get_data()[1][1]
+        min_v = result['whiskers'][0].get_data()[1][1]
+        q3_v = result['whiskers'][1].get_data()[1][0]
+        q1_v = result['whiskers'][0].get_data()[1][0]
+        fliers = ','.join([str(i) for i in list(result['fliers'][0].get_data()[1])])
+        means_v = np.mean(datalist, axis=0)
+        std_v = np.std(datalist, axis=0)
+        return [str(max_v), str(min_v), str(q3_v), str(q1_v), str(medians), fliers, str(means_v), str(std_v)]

@@ -23,7 +23,7 @@ def export_env_table(data, option_name, dir_path, bind_obj=None):
     collection = db['sg_env_detail']
     specimen_collection = db['sg_specimen']
     results = collection.find({'env_id': ObjectId(data)})
-    if not results:
+    if results.count() == 0:
         raise Exception('环境因子id没有找到对应的detail数据')
     bind_obj.logger.info('ALL ENVS:' + ' '.join(all_envs))
     with open(file_path, 'wb') as f:

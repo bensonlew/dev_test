@@ -5,6 +5,8 @@
 
 import os
 import re
+import numpy as np
+import types
 from biocluster.workflow import Workflow
 from mbio.packages.beta_diversity.filter_newick import *
 from bson import ObjectId
@@ -25,9 +27,10 @@ class BetaMultiAnalysisWorkflow(Workflow):
             {"name": "otu_id", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "multi_analysis_id", "type": "string"},
-            {"name": "env_file", "type": "infile", "format": "meta.env_table"},
-            {"name": "env_labs", "type": "string", "default": ""}
-            # {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "env_file", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "env_labs", "type": "string", "default": ""},
+            {"name": "group_detail", "type": "string", "default": ""}
             # {"name": "matrix_out", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
         ]
         self.add_option(options)
@@ -44,10 +47,13 @@ class BetaMultiAnalysisWorkflow(Workflow):
         }
         if self.option('env_file').is_set:
             options['envlabs'] = self.option('env_labs')
-            options['envtable'] = self.option('env_file').path
+            options['envtable'] = self.option('env_file')
         else:
             pass
-        if self.option('analysis_type') in ['pcoa', 'nmds']:
+        if self.option('group_file').is_set:
+            options['group'] = self.option('group_file')
+            options['grouplabs'] = self.option('group_file').prop['group_scheme'][0]
+        if self.option('analysis_type') in ['pcoa', 'nmds', 'dbrda']:
             options['dis_method'] = self.option('dist_method')
             if 'unifrac' in self.option('dist_method'):
                 newicktree = get_level_newicktree(self.option('otu_id'), level=self.option('level'),
@@ -93,8 +99,6 @@ class BetaMultiAnalysisWorkflow(Workflow):
                 otu_file_temp.close()
                 options['otutable'] = temp_otu_file
                 options['phy_newick'] = temp_tree_file
-        elif self.option('analysis_type') == 'dbrda':
-            options['dbrda_method'] = self.option('dist_method')
         task.set_options(options)
         task.on('end', self.set_db)
         task.run()
@@ -107,9 +111,42 @@ class BetaMultiAnalysisWorkflow(Workflow):
         """
         api_multi = self.api.beta_multi_analysis
         dir_path = self.output_dir
+        cond, cons = [], []
+        if not self.option('group_file').is_set:
+            if self.option('env_file').is_set:
+                cond, cons = self.classify_env(self.option('env_file').path)
+                self.logger.info(cond)
+                self.logger.info(cons)
         if not os.path.isdir(dir_path):
             raise Exception("找不到报告文件夹:{}".format(dir_path))
         api_multi.add_beta_multi_analysis_result(dir_path, self.option('analysis_type'),
-                                                 ObjectId(self.option('multi_analysis_id')))
+                                                 ObjectId(self.option('multi_analysis_id')),
+                                                 remove=cond)
         self.logger.info('运行self.end')
         self.end()
+
+    def classify_env(self, env_file):
+        """
+        获取环境因子中哪些是条件（条件约束）型因子，哪些是数量（线性约束）型的因子
+        """
+        if isinstance(env_file, types.StringType) or isinstance(env_file, types.UnicodeType):
+            if not os.path.exists(env_file):
+                raise Exception('环境因子文件不存在')
+        else:
+            raise Exception('提供的环境因子文件名不是一个字符串')
+        frame = np.loadtxt(env_file, dtype=str, comments='')
+        len_env = len(frame[0])
+        # len_rec = len(frame)
+        cond = []  # 记录不全是数字的因子
+        cons = []  # 记录全是数字的因子
+        for n in xrange(len_env - 1):
+            env_values = frame[:, n + 1]
+            for value in env_values[1:]:
+                try:
+                    float(value)
+                except ValueError:
+                    cond.append(env_values[0])
+                    break
+            else:
+                cons.append(env_values[0])
+        return cond, cons  # 前者不全是数字分组， 后者是全部都是数字的分组

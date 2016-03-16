@@ -3,22 +3,29 @@
 
 from biocluster.api.database.base import Base, report_check
 import re
+import os
 import json
 from collections import defaultdict
 import datetime
 from bson.objectid import ObjectId
 from types import StringTypes
+from mbio.packages.meta.otu.export_otu import export_otu_table_by_level
 
 
 class Venn(Base):
     def __init__(self, bind_object):
         super(Venn, self).__init__(bind_object)
         self._db_name = "sanger"
+        self.new_otu_id = list()
 
     @report_check
     def add_venn_detail(self, venn_path, venn_id, otu_id, level):
+        sub_otu_dir = os.path.join(self.bind_object.work_dir, "sub_otu")
+        os.mkdir(sub_otu_dir)
         self._find_info(otu_id)
         self.level = level
+        self.all_otu = os.path.join(sub_otu_dir, "all.otu")
+        export_otu_table_by_level(otu_id, 9, self.all_otu)
         if not isinstance(venn_id, ObjectId):
             if isinstance(venn_id, StringTypes):
                 venn_id = ObjectId(venn_id)
@@ -31,7 +38,8 @@ class Venn(Base):
                 line = line.strip('\n')
                 line = re.split("\t", line)
                 new_otu_id = self.add_sg_otu(otu_id)
-                self.add_sg_otu_detail(line[2], otu_id, new_otu_id)
+                self.new_otu_id.append(new_otu_id)
+                self.add_sg_otu_detail(line[2], otu_id, new_otu_id, line[0])
                 tmp_name = re.split(',', line[2])
                 name_list = list()
                 for cla_info in tmp_name:
@@ -73,24 +81,27 @@ class Venn(Base):
                 line = re.split("\t", line)
                 if re.search("only", line[0]):
                     name = re.split('\s+', line[0])
-                    only[name[0]] = int(line[1])
+                    only[(name[0],)] = int(line[1])
                 if re.search('&', line[0]):
                     line[0] = re.sub('\s+', '', line[0])
                     name = re.split('&', line[0])
                     single_len[tuple(name)] = int(line[1])
                     sum_len[len(name)] += int(line[1])
                     num[tuple(name)] += int(line[1])
+        # print num
+        # print only
         for my_only in only:
             num[my_only] = only[my_only]
             for i in range(2, gp_len + 1):
                 num[my_only] += ((-1) ** i) * sum_len[i]
                 for s_len in single_len:
-                    if len(s_len) == i and my_only not in s_len:
+                    if len(s_len) == i and my_only[0] not in s_len:
                         num[my_only] = num[my_only] + ((-1) ** (i + 1) * single_len[s_len])
 
         # 为了Venn图美观，除了单个的大小保持原样之外，其他的都进行缩小
         avg = 0
         c = 0
+        # print num
         for name in num:
             if len(name) == 1:
                 avg += num[name]
@@ -119,7 +130,7 @@ class Venn(Base):
                     label = {"label": tmp_label}
                     tmp_list = [sets, size, label]
                     """
-                    tmp_list = {"sets": [name], "size": num[name], "label": tmp_label}
+                    tmp_list = {"sets": [name], "size": num[(name,)], "label": tmp_label}
                 elif re.search("&", line[0]):
                     line[0] = re.sub('\s+', '', line[0])
                     name = re.split('&', line[0])
@@ -129,82 +140,85 @@ class Venn(Base):
                     label = {"label": tmp_label}
                     tmp_list = [sets, size, label]
                     """
-                    tmp_list = {"sets": [name], "size": num[tuple(name)], "label": tmp_label}
+                    tmp_list = {"sets": name, "size": num[tuple(name)], "label": tmp_label}
                 else:
                     raise Exception("Venn 表格中行{}无法解析".format(strline))
                 venn_json.append(tmp_list)
         return venn_json
 
-    def add_sg_otu_detail(self, info, from_otu_id, new_otu_id):
+    def add_sg_otu_detail(self, info, from_otu_id, new_otu_id, title):
         """
-        对sg_otu_detail表里的记录进行筛选，当它符合venn_table里的结果时，将这条记录复制，并更改其otu_id(想到与对原otu表进行筛选， 形成一张新的otu表)
+        对otu表进行筛选，当它符合venn_table里的结果时，将他输出到sub_otu_path中，形成一张otu子表，读取子表
+        删除值全部为0的列，形成no_zero_path中的otu表，最后将这张表导入数据库中(sg_otu_detail, sg_speciem)
         """
+        title = re.sub(r'\s', '', title)
+        sub_otu_dir = os.path.join(self.bind_object.work_dir, "sub_otu")
+        sub_otu_path = os.path.join(sub_otu_dir, title + ".sub")
+        no_zero_path = os.path.join(sub_otu_dir, title + ".no_zero")
         selected_clas = re.split(',', info)
+        o_otu_path = self.all_otu
+        sample_num = defaultdict(int)
+        level = self.bind_object.option("level")
+        with open(o_otu_path, 'rb') as r, open(sub_otu_path, 'wb') as w:
+            head = r.next()
+            w.write(head)
+            head = head.strip('\n\r')
+            head = re.split('\t', head)
+            for line in r:
+                line = line.strip('\r\n')
+                line = re.split('\t', line)
+                full_classify = re.split("; ", line[0])
+                venn_classsify = full_classify[0:level]
+                str_ = "; ".join(venn_classsify)
+                if str_ in selected_clas:
+                    new_line = "\t".join(line)
+                    w.write(new_line + "\n")
+                    for i in range(1, len(line)):
+                        sample_num[i] += int(line[i])
+        # print sample_num
+        new_head = self.del_zero_column(sub_otu_path, no_zero_path, sample_num, head)
+        self.table_to_sg_otu_detail(no_zero_path, new_otu_id)
+        self.add_sg_otu_specimen(from_otu_id, new_otu_id, new_head)
+
+    def del_zero_column(self, sub_otu_path, no_zero_path, sample_num, head):
+        index_list = list()
+        new_head = list()  # 也就是样本名的列表（除去了head[0]和为0的列head）
+        for i in sample_num:
+            if sample_num[i]:
+                index_list.append(i)
+                new_head.append(head[i])
+        with open(sub_otu_path, 'rb') as r, open(no_zero_path, 'wb') as w:
+            w.write("OTU ID\t" + "\t".join(new_head) + "\n")
+            line = r.next()
+            for line in r:
+                line = line.strip('\n\r')
+                line = re.split('\t', line)
+                w.write(line[0] + '\t')
+                tmp_line = list()
+                for i in index_list:
+                    tmp_line.append(line[i])
+                w.write('\t'.join(tmp_line) + "\n")
+        return new_head
+
+    def table_to_sg_otu_detail(self, no_zero_path, new_otu_id):
+        data_list = list()
+        with open(no_zero_path, 'rb') as r:
+            line = r.next().strip('\r\n')
+            head = re.split('\t', line)
+            for line in r:
+                insert_data = dict()
+                line = line.strip('\r\n')
+                line = re.split('\t', line)
+                classify_list = re.split(r"\s*;\s*", line[0])
+                for c in classify_list:
+                    insert_data[c[0:3]] = c
+                insert_data["otu_id"] = new_otu_id
+                insert_data["task_id"] = self.task_id
+                for i in range(1, len(line)):
+                    insert_data[head[i]] = line[i]
+                data_list.append(insert_data)
         collection = self.db['sg_otu_detail']
-        if not isinstance(from_otu_id, ObjectId):
-            if isinstance(from_otu_id, StringTypes):
-                try:
-                    from_otu_id = ObjectId(from_otu_id)
-                except:
-                    raise Exception("传入的otu_id:{}必须为ObjectId对象或其对应的字符串!".format(from_otu_id))
-            else:
-                raise Exception("传入的otu_id:{}必须为ObjectId对象或其对应的字符串!".format(from_otu_id))
-        results = collection.find({'otu_id': from_otu_id})
-        if not results.count():
-            raise Exception("传入的otu_id:{}在sg_otu_detail表里未找到具体记录".format(from_otu_id))
-        for result in results:
-            new_id = self._check_id(result, selected_clas)
-            if new_id:
-                result['task_id'] = self.task_id
-                result['otu_id'] = new_otu_id
-                del result['_id']
-                collection.insert_one(result)
-
-    def _check_id(self, result, selected_clas):
-        """
-        检查sg_otu_detail表里的一条记录，当他符合venn_table的第三列的时候，返回这条记录的id
-        """
-        LEVEL = {
-            1: "d__", 2: "k__", 3: "p__", 4: "c__", 5: "o__",
-            6: "f__", 7: "g__", 8: "s__", 9: "otu"
-        }
-        level = self.level + 1
-        classify = list()
-        """
-        for i in range(1, 10):
-            if LEVEL[i] not in result:
-                raise Exception("sg_otu_detail表中，记录{}的字段{}缺失".format(result["_id"], LEVEL[i]))
-        """
-        """
-        for i in range(1, level):
-            classify.append(result[LEVEL[i]])
-        """
-        #  因为现在阶段otu_detail表还存在一些问题，分类等级还不齐全，所以还需要补全
-        last_classify = ""
-        for i in range(1, 10):
-            if LEVEL[i] in result:
-                if re.search("uncultured$", result[LEVEL[i]]) or re.search("Incertae_Sedis$", result[LEVEL[i]]) or re.search("norank$", result[LEVEL[i]]):
-                    result[LEVEL[i]] = result[LEVEL[i]] + "_" + result[LEVEL[i - 1]]
-        for i in range(1, level):
-            if LEVEL[i] not in result:
-                if last_classify == "":
-                    last_classify = result[LEVEL[i - 1]]
-                my_str = LEVEL[i] + "Unclasified_" + last_classify
-            else:
-                if not result[LEVEL[i]]:
-                    if LEVEL[i] == "otu":
-                        my_str = "otu__" + "Unclasified_" + last_classify
-                    else:
-                        my_str = LEVEL[i] + "Unclasified_" + last_classify
-                else:
-                    my_str = result[LEVEL[i]]
-            classify.append(my_str)
-
-        my_classify = "; ".join(classify)
-        if my_classify in selected_clas:
-            return result['_id']
-        else:
-            return None
+        collection.insert_many(data_list)
 
     def add_sg_otu(self, otu_id):
         if not isinstance(otu_id, ObjectId):
@@ -230,3 +244,31 @@ class Venn(Base):
             raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(str(otu_id)))
         self.project_sn = result['project_sn']
         self.task_id = result['task_id']
+
+    def add_sg_otu_specimen(self, otu_id, new_otu_id, samples):
+        """
+        添加sg_otu_specimen记录
+        """
+        matched_sample_id = list()
+        data_list = list()
+        collection = self.db['sg_otu_specimen']
+        if not isinstance(otu_id, ObjectId):
+            otu_id = ObjectId(otu_id)
+        results = collection.find({"otu_id": otu_id})
+        for result in results:
+            my_collection = self.db["sg_specimen"]
+            try:
+                my_result = my_collection.find_one({"_id": result['specimen_id']})
+            except:
+                raise Exception("样本id:{}在sg_specimen表里未找到对应的记录".format(result['specimen_id']))
+            if my_result["specimen_name"] in samples:
+                matched_sample_id.append(result['specimen_id'])
+        # print samples
+        for m_id in matched_sample_id:
+            insert_data = {
+                "otu_id": new_otu_id,
+                "specimen_id": m_id
+            }
+            data_list.append(insert_data)
+        # print data_list
+        collection.insert_many(data_list)

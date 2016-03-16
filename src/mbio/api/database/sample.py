@@ -47,7 +47,7 @@ class Sample(Base):
     def add_base_info(self, sample_name, file_path):
         collection = self.db["sg_specimen"]
         results = collection.find({"specimen_name": sample_name})
-        if results:
+        if results.count():
             specimen_id = self._find_specimen_id(results)
             if not specimen_id:
                 raise Exception("没有找到对应的样品%s信息，请先导入样品信息表!" % sample_name)
@@ -103,7 +103,7 @@ class Sample(Base):
                 line_data = line.split("\t")
                 collection = self.db["sg_specimen"]
                 results = collection.find({"specimen_name": line_data[0]})
-                if results:
+                if results.count():
                     specimen_id = self._find_specimen_id(results)
                     if not specimen_id:
                         raise Exception("没有找到对应的样品%s信息，请先导入样品信息表!" % line_data[0])

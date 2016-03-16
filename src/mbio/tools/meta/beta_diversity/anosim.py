@@ -49,6 +49,10 @@ class AnosimAgent(Agent):
         else:
             self.option('dis_matrix').get_info()
             samplelist = self.option('dis_matrix').prop['samp_list']
+        if 10000 >= self.option('permutations') >= 10:
+            pass
+        else:
+            raise OptionError('随机置换次数:%s不再正常范围内[10, 10000]' % self.option('permutations'))
         if not self.option('group').is_set:
             raise OptionError('必须提供分组信息文件')
         else:
@@ -153,7 +157,7 @@ class AnosimTool(Tool):
         an_r = an_line[4].strip().split('\t')[1]
         an_p = an_line[5].strip().split('\t')[1]
         permu = an_line[6].strip().split('\t')[1]
-        new.write('method\tstatisic\tp-value\tnumber of permutation\n')
+        new.write('method\tstatistic\tp-value\tnumber of permutation\n')
         new.write('anosim\t%s\t%s\t%s\n' % (an_r, an_p, permu))
         new.write('adonis\t%s\t%s\t%s\n' % (ad_r, ad_p, permu))
         new.close()

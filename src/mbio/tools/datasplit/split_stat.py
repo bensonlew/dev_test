@@ -2,6 +2,7 @@
 # __author__ = 'xuting'
 
 """在备份完成之后，统计一次拆分和二次拆分的结果，生成json"""
+from __future__ import division
 import os
 import re
 import json
@@ -85,7 +86,7 @@ class SplitStatTool(Tool):
         json_path = os.path.join(self.work_dir, 'output', "stat.json")
         self.json_str = json.dumps(stat_json)
         with open(json_path, 'w') as w:
-            json.dump(stat_json, w)
+            json.dump(stat_json, w, indent=4)
 
     def get_child_sample_info(self, c_id):
         """
@@ -113,6 +114,7 @@ class SplitStatTool(Tool):
                                   self.option('sample_info').parent_sample(p_id, "project"),
                                   "child")
         fastq1["file_path"] = os.path.join(child_path, c_info["mj_sn"] + "_" + primer + ".fastq.gz")
+        fastq1['size'] = self._get_size(fastq1["file_path"])
         c_info["stat"] = c_stat
         c_info["fastq_info"] = {"fastq1": fastq1}
         return c_info
@@ -176,6 +178,7 @@ class SplitStatTool(Tool):
         my_q30 = min(q20, q30)
         fastq['q20'] = my_q20
         fastq['q30'] = my_q30
+        fastq['size'] = self._get_size(fastq["file_path"])
         return fastq
 
     def get_p_stat(self, p_id):
@@ -207,6 +210,23 @@ class SplitStatTool(Tool):
         p_stat["primer_missmatch_reads"] = int(primer_missmatch_reads)
         p_stat["valid_reads"] = self.p_valid_read[p_id]
         return p_stat
+
+    def _get_size(self, file_path):
+        """
+        统计一个文件的大小
+        """
+        size = int(os.stat(file_path).st_size)
+        """
+        level = {
+            1: "B", 2: "KB", 3: "MB", 4: "GB", 5: "TB", 6: "PB"
+        }
+        i = 1
+        while(i < 6 and size > 1000):
+            size = size / 1000
+            i += 1
+        read_size = "{:.2f} {}".format(size, level[i])
+        """
+        return str(size)
 
     def run(self):
         super(SplitStatTool, self).run()
