@@ -4,6 +4,7 @@ from biocluster.api.database.base import Base, report_check
 # import re
 # from bson.objectid import ObjectId
 import datetime
+import json
 # from bson.son import SON
 # from types import StringTypes
 
@@ -34,7 +35,7 @@ class Newicktree(Base):
                 "name": name if name else "tree_origin",
                 "tree_type": tree_type,
                 "status": "end",
-                # "params": params,
+                "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             try:

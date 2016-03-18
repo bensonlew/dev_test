@@ -2,6 +2,7 @@
 # __author__ = 'guoquan'
 from biocluster.api.database.base import Base, report_check
 import re
+import json
 
 
 class Sample(Base):

@@ -17,7 +17,6 @@ def group_detail(groupfile):
             group_num[gname] = gnames.count(gname)
         return group_num
 
-
 def stat_info(statfile, groupfile):
     group_num_dict = group_detail(groupfile)
     with open(statfile, 'r') as s:
@@ -39,10 +38,9 @@ def stat_info(statfile, groupfile):
                 for foo in shead:
                     if gmean in foo:
                         index_site = shead.index(foo)
-                        mean_dict[gname].append(float(sline_list[index_site + 1].strip('\"')))
-                        sd_dict[gname].append(float(sline_list[index_site + 2].strip('\"')))
+                        mean_dict[gname].append(float(sline_list[index_site].strip('\"')))
+                        sd_dict[gname].append(float(sline_list[index_site + 1].strip('\"')))
         return mean_dict, sd_dict, taxon_list
-
 
 def student(statfile, groupfile, coverage):
     """
@@ -59,7 +57,6 @@ def student(statfile, groupfile, coverage):
             meanG1 = mean_dict[group_names[0]][i]
             meanG2 = mean_dict[group_names[1]][i]
             dp = meanG1 - meanG2
-
             varG1 = (sd_dict[group_names[0]][i])**2
             varG2 = (sd_dict[group_names[1]][i])**2
             n1 = group_num_dict[group_names[0]]
@@ -70,11 +67,10 @@ def student(statfile, groupfile, coverage):
             pooledVar = ((n1 - 1)*varG1 + (n2 - 1)*varG2) / (n1 + n2 - 2)
             sqrtPooledVar = math.sqrt(pooledVar)
             denom = sqrtPooledVar * math.sqrt(1.0/n1 + 1.0/n2)
-            tCritical = t.isf(0.5 * (1.0-coverage), dof) # 0.5 factor accounts from symmetric nature of distribution
+            tCritical = t.isf(0.5 * (1.0-coverage), dof)  # 0.5 factor accounts from symmetric nature of distribution
             lowerCI = dp - tCritical*denom
             upperCI = dp + tCritical*denom
-            w.write('%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % (dp*100), '%0.4g' % (lowerCI*100), '%0.4g' % (upperCI*100)))
-
+            w.write('%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % (dp), '%0.4g' % (lowerCI), '%0.4g' % (upperCI)))
 
 def welch(statfile, groupfile, coverage):
     (mean_dict, sd_dict, taxon_list) = stat_info(statfile, groupfile)
@@ -102,5 +98,5 @@ def welch(statfile, groupfile, coverage):
             tCritical = t.isf(0.5 * (1.0-coverage), dof) # 0.5 factor accounts from symmetric nature of distribution
             lowerCI = dp - tCritical*sqrtUnpooledVar
             upperCI = dp + tCritical*sqrtUnpooledVar
-            w.write('%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % (dp*100), '%0.4g' % (lowerCI*100), '%0.4g' % (upperCI*100)))
+            w.write('%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % (dp), '%0.4g' % (lowerCI), '%0.4g' % (upperCI)))
 
