@@ -522,7 +522,8 @@ class Basic(EventObject):
                     "path": "%s/%s" % (os.path.basename(i.full_path), i.relpath),
                     "type": i.file_type,
                     "format": i.format,
-                    "description": i.description
+                    "description": i.description,
+                    "size": i.size
                 }
                 up_file_list.append(data)
         return up_file_list
@@ -920,3 +921,10 @@ class ResultFile(object):
         self.relpath = os.path.relpath(full_path, base_path)
         self.format = ""
         self.description = ""
+
+    @property
+    def size(self):
+        if self.file_type == "file":
+            return os.path.getsize(self.full_path)
+        else:
+            return ""
