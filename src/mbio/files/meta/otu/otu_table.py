@@ -184,31 +184,32 @@ class OtuTableFile(File):
             0: "d__", 1: "k__", 2: "p__", 3: "c__", 4: "o__",
             5: "f__", 6: "g__", 7: "s__"
         }
-        begin_index = 100
         last_info = ""
         tax = re.sub(r'\s', '', tax)
         cla = re.split(';', tax)
+        new_cla = list()
         #  处理uncultured和Incertae_Sedis
-        i = 0
-        for my_cla in cla:
-            if re.search("uncultured$", cla[i]) or re.search("Incertae_Sedis$", cla[i]) or re.search("norank$", cla[i]):
-                if i == 0:
-                    raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或是norank")
-                else:
-                    cla[i] = cla[i] + "_" + cla[i - 1]
-            i += 1
-        for i in range(8):
+        if re.search("uncultured$", cla[0]) or re.search("Incertae_Sedis$", cla[0]) or re.search("norank$", cla[0]) or re.search("unidentified$", cla[0]) or not re.search("d__", cla[0]):
+            raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或norank或unidentified或是分类水平缺失")
+        # 先对输入的名字进行遍历， 当在某一水平上空着的时候， 补全
+        # 例如在g水平空着的时候，补全成g__unidentified
+        for i in range(0, 8):
             if not re.search(LEVEL[i], tax):
-                begin_index = i  # 从哪个级别开始，缺失信息
-                if i == 0:
-                    raise Exception("在域水平缺失信息")
-                last_info = cla[i - 1]
-                break
-        if begin_index < 8:
-            for i in range(begin_index, 8):
-                my_str = LEVEL[i] + "Unclasified_" + last_info
-                cla.append(my_str)
-        new_tax = "; ".join(cla)
+                str_ = LEVEL[i] + "Unclassified"
+                new_cla.append(str_)
+            else:
+                new_cla.append(cla[i])
+
+        # 对uncultured，Incertae_Sedis，norank，unidentified进行补全
+        i = 0
+        for my_cla in new_cla:
+            if re.search("uncultured$", new_cla[i]) or re.search("Incertae_Sedis$", new_cla[i]) or re.search("norank$", new_cla[i]) or re.search("unidentified$", new_cla[i]) or re.search("Unclassified$", new_cla[i]):
+                new_cla[i] = new_cla[i] + "_" + last_info
+            else:
+                last_info = new_cla[i]
+            i += 1
+
+        new_tax = "; ".join(new_cla)
         return new_tax
 
     def sub_otu_sample(self, samples, path):
