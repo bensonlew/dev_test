@@ -74,7 +74,7 @@ class TwoSampleWorkflow(Workflow):
         api_two_sample.add_twosample_species_difference_check_detail(file_path=two_sample_path,
                                                                      table_id=self.option("two_sample_id"))
         api_two_sample.add_species_difference_check_ci_plot(file_path=ci_path, table_id=self.option("two_sample_id"))
-        api_two_sample.update_species_difference_check(errorbar_path, self.option("two_sample_id"))
+        api_two_sample.update_species_difference_check(errorbar_path, self.option("two_sample_id"), two_sample_path, ci_path, 'twosample')
         self.end()
 
     def run(self):
