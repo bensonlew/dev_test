@@ -26,7 +26,8 @@ class EstTTest(object):
                 return json.dumps(info)
         table_dict = json.loads(data.group_detail)
         if not isinstance(table_dict, dict):
-            raise Exception("传入的table_dict不是一个字典")
+            info = {"success": False, "info": "传入的group_detail不是字典"}
+            return json.dumps(info)
         if len(table_dict) < 2:
             info = {"success": False, "info": "请选择至少两组及以上的分组"}
             return json.dumps(info)
@@ -38,7 +39,7 @@ class EstTTest(object):
         est_info = Estimator().get_est_table_info(data.alpha_diversity_id)
         # print(est_info)
         if est_info:
-            name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")) + "_est_t_test"
+            name = "est_t_test_" + str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
             est_t_test_id = Estimator().add_est_t_test_collection(params, data.group_id, data.alpha_diversity_id, name)
             # print(est_t_test_id)
             update_info = {str(est_t_test_id): "sg_alpha_est_t_test", str(est_t_test_id): "sg_alpha_est_t_test"}

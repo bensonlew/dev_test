@@ -44,7 +44,7 @@ class DistanceCalc(object):
                 'otu_id': ObjectId(data.otu_id),
                 'level_id': int(data.level_id),
                 'name': (data.distance_algorithm + '_' + otu_info['name'] +
-                         '_' + time.asctime(time.localtime(time.time()))),
+                         '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
                 'distance_algorithm': data.distance_algorithm,
                 'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
                 'status': 'start',

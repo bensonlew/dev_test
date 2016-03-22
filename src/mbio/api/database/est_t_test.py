@@ -41,7 +41,7 @@ class EstTTest(Base):
                 length = len(line_data)
                 i = 1
                 for name in group_list:
-                    data = [("alpha_diversity_id", table_id), ("index_type", line_data[0]), ("qvalue", line_data[length-1]), ("pvalue", line_data[length-2])]
+                    data = [("alpha_est_t_test_id", table_id), ("index_type", line_data[0]), ("qvalue", line_data[length-1]), ("pvalue", line_data[length-2])]
                     data.append(("category_name", name))
                     data.append(("compare_name", self.get_another_name(name, group_list)))
                     data.append(("mean", line_data[i]))

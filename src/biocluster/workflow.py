@@ -14,7 +14,7 @@ from .module import Module
 import datetime
 import gevent
 import time
-from biocluster.api.file.remote import RemoteFileManager
+# from biocluster.api.file.remote import RemoteFileManager
 from biocluster.api.database.base import ApiManager
 import re
 import importlib
@@ -26,27 +26,46 @@ class Workflow(Basic):
     工作流程基类
     """
 
-    def __init__(self, wsheet):
-        super(Workflow, self).__init__()
+    def __init__(self, wsheet, **kwargs):
+        if "debug" in kwargs.keys():
+            self.debug = kwargs["debug"]
+        else:
+            self.debug = False
+        super(Workflow, self).__init__(**kwargs)
         self._id = wsheet.id
         self._sheet = wsheet
-        self.config = Config()
+
         self.last_update = datetime.datetime.now()
-        self._work_dir = self.__work_dir()
-        self._output_path = self._work_dir + "/output"
-        if not os.path.exists(self._output_path):
-            os.makedirs(self._output_path)
-        self._logger = Wlog(self).get_logger("")
-        self.rpc_server = RPC(self)
-        self.db = self.config.get_db()
+        if "parent" in kwargs.keys():
+            self._parent = kwargs["parent"]
+        else:
+            self._parent = None
+
         self.pause = False
         self._pause_time = None
         self.USE_DB = False
         self.IMPORT_REPORT_DATA = False
         self.__json_config()
-        self.__check_to_file_option()
+
+        if self._parent is None:
+            self.config = Config()
+            self.db = self.config.get_db()
+            self._work_dir = self.__work_dir()
+            self._output_path = self._work_dir + "/output"
+            if not self.debug:
+                if not os.path.exists(self._work_dir):
+                    os.makedirs(self._work_dir)
+                if not os.path.exists(self._output_path):
+                    os.makedirs(self._output_path)
+                self.__check_to_file_option()
+                self.step_start()
+            self._logger = Wlog(self).get_logger("")
+            self.rpc_server = RPC(self)
+        else:
+            self.config = self._parent.config
+            self.db = self.config.get_db()
+
         self.api = ApiManager(self)
-        self.api_start()
 
     def __json_config(self):
         if self.sheet.USE_DB is True:
@@ -56,7 +75,7 @@ class Workflow(Basic):
         if self.sheet.IMPORT_REPORT_DATA is True:
             self.IMPORT_REPORT_DATA = True
 
-    def api_start(self):
+    def step_start(self):
         """
         流程开始api更新
         :return:
@@ -75,8 +94,6 @@ class Workflow(Basic):
         work_dir = self.config.WORK_DIR
         timestr = str(time.strftime('%Y%m%d', time.localtime(time.time())))
         work_dir = work_dir + "/" + timestr + "/" + self.name + "_" + self._id
-        if not os.path.exists(work_dir):
-            os.makedirs(work_dir)
         return work_dir
 
     def __check_to_file_option(self):
@@ -169,17 +186,19 @@ class Workflow(Basic):
         :return:
         """
         super(Workflow, self).run()
-        data = {
-            "last_update": datetime.datetime.now(),
-            "pid": os.getpid(),
-            "workdir": self.work_dir
-        }
-        self._update(data)
-        if self.USE_DB:
-            gevent.spawn(self.__update_service)
-            gevent.spawn(self.__check_tostop)
-            gevent.spawn(self.__check_pause)
-        self.rpc_server.run()
+        if self._parent is None:
+            data = {
+                "last_update": datetime.datetime.now(),
+                "pid": os.getpid(),
+                "workdir": self.work_dir,
+                "waiting": 0
+            }
+            self._update(data)
+            if self.USE_DB:
+                gevent.spawn(self.__update_service)
+                gevent.spawn(self.__check_tostop)
+                gevent.spawn(self.__check_pause)
+            self.rpc_server.run()
 
     def end(self):
         """
@@ -188,30 +207,41 @@ class Workflow(Basic):
         :return:
         """
         super(Workflow, self).end()
-        if self._sheet.output:
-            remote_file = RemoteFileManager(self._sheet.output)
-            if remote_file.type != "local":
-                self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
-                umask = os.umask(0)
-                remote_file.upload(os.path.join(self.output_dir))
-                for root, subdirs, files in os.walk("c:\\test"):
-                    for filepath in files:
-                        os.chmod(os.path.join(root, filepath), 0o777)
-                    for sub in subdirs:
-                        os.chmod(os.path.join(root, sub), 0o666)
-                os.umask(umask)
-                self.logger.info("结果上传完成!")
-        data = {
-            "is_end": 1,
-            "end_time": datetime.datetime.now(),
-            "workdir": self.work_dir,
-            "output": self.output_dir
-        }
-        self._update(data)
-        self.step.finish()
-        self.step.update()
-        self.logger.info("运行结束!")
-        self.rpc_server.server.close()
+        if self._parent is None:
+            # self._upload_result()
+            data = {
+                "is_end": 1,
+                "end_time": datetime.datetime.now(),
+                "workdir": self.work_dir,
+                "output": self.output_dir
+            }
+            self._update(data)
+            self.step.finish()
+            self.step.update()
+            self.logger.info("运行结束!")
+            self.rpc_server.server.close()
+        else:
+            self.logger.info("运行结束!")
+
+    # def _upload_result(self):
+    #     """
+    #     上传结果文件到远程路径
+    #
+    #     :return:
+    #     """
+    #     if self._sheet.output:
+    #         remote_file = RemoteFileManager(self._sheet.output)
+    #         if remote_file.type != "local":
+    #             self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
+    #             umask = os.umask(0)
+    #             remote_file.upload(os.path.join(self.output_dir))
+    #             for root, subdirs, files in os.walk("c:\\test"):
+    #                 for filepath in files:
+    #                     os.chmod(os.path.join(root, filepath), 0o777)
+    #                 for sub in subdirs:
+    #                     os.chmod(os.path.join(root, sub), 0o666)
+    #             os.umask(umask)
+    #             self.logger.info("结果上传完成!")
 
     def exit(self, exitcode=1, data="", terminated=False):
         """

@@ -134,7 +134,7 @@ class MultiAnalysis(object):
                     'otu_id': object_otu_id,
                     'level_id': int(data.level_id),
                     'name': (data.analysis_type + '_' + otu_info['name'] +
-                             '_' + time.asctime(time.localtime(time.time()))),
+                             '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
                     'table_type': data.analysis_type,
                     'env_id': env_id,
                     'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),

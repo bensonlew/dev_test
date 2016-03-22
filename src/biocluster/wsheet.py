@@ -78,7 +78,7 @@ class Sheet(object):
     def data(self):
         return self._data
 
-    def option(self, name, component=None):
+    def option(self, name):
         """
         获取参数值
 
@@ -86,12 +86,9 @@ class Sheet(object):
         :param component:
         """
 
-        if self.type == "link":
-            if component not in self._data['components'].keys():
-                raise Exception("列表中没有components:%s" % component)
-            data = self._data['components'][component]['options']
-        else:
-            data = self._data['options']
+        if self.type == "pipeline":
+            raise Exception("pipeline类型没有参数")
+        data = self._data['options']
         if name not in data.keys():
             raise Exception("没有参数%s" % name)
         return data[name]
@@ -109,17 +106,17 @@ class Sheet(object):
         else:
             self._data['options'][name] = value
 
-    def options(self, component=None):
+    def options(self):
         """
         获取所有Option
 
         :param component:
         :return: dict name/value
         """
-        if self.type == "link":
-            if component not in self._data['components'].keys():
-                raise Exception("列表中没有components:%s" % component)
-            data = self._data['components'][component]['options']
+        if self.type == "pipeline":
+           raise Exception("pipeline类型没有参数")
         else:
             data = self._data['options']
-        return data
+            return data
+
+

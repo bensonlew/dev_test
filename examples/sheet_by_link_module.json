@@ -1,8 +1,9 @@
 {
   "id":"28282871",
-  "type" : "link", // link模式，可省略
+  "type" : "link",
   "components":{
       "quality1":{
+
             "type" : "tool",
             "name" : "seq.quality",
             "options":{

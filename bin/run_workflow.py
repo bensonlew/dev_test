@@ -60,7 +60,6 @@ def main():
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())
             time.sleep(Config().SERVICE_LOOP)
-
             try:
                 json_data = check_run(wj)
             except Exception, e:
@@ -73,21 +72,28 @@ def main():
             if json_data:
                 # process = Process(target=wj.start, args=(json_data,))
                 process = Worker(wj, json_data)
-                process_array.append(process)
-                process.start()
-                write_log("Running workflow %s,the process id %s ..." % (json_data["id"], process.pid))
-                while len(process_array) >= Config().SERVICE_PROCESSES:
-                    write_log("Running workflow %s, reach the max limit,waiting ..." % json_data["id"])
+                try:
+                    process.start()
+                except Exception, e:
+                    # exstr = traceback.format_exc()
+                    # print exstr
+                    write_log("流程%s运行出错: %s" % (json_data["id"], e))
+                    process.wj.update_error(json_data["id"], json_data, datetime.datetime.now())
+                else:
+                    process_array.append(process)
+                    write_log("Running workflow %s,the process id %s ..." % (json_data["id"], process.pid))
+                    while len(process_array) >= Config().SERVICE_PROCESSES:
+                        write_log("Running workflow %s, reach the max limit,waiting ..." % json_data["id"])
 
-                    for p in process_array:
-                        if not p.is_alive():
-                            exitcode = p.exitcode
-                            if exitcode != 0:
-                                write_log("流程%s运行出错: 程序运行异常" % p.json_data["id"])
-                                p.wj.update_error(p.json_data["id"], p.json_data, p.start_time)
-                            p.join()
-                            process_array.remove(p)
-                    time.sleep(1)
+                        for p in process_array:
+                            if not p.is_alive():
+                                exitcode = p.exitcode
+                                if exitcode != 0:
+                                    write_log("流程%s运行出错: 程序运行异常" % p.json_data["id"])
+                                    p.wj.update_error(p.json_data["id"], p.json_data, p.start_time)
+                                p.join()
+                                process_array.remove(p)
+                        time.sleep(1)
             for p in process_array:
                 if not p.is_alive():
                     exitcode = p.exitcode
@@ -227,7 +233,7 @@ class WorkJob(object):
     def check_time_out(self):
         results = self.db.query("select * from workflow where has_run = 1 and is_end=0 and is_error=0 and"
                                 " (TIMESTAMPDIFF(SECOND,last_update,now()) > 200 or"
-                                " (last_update is Null and TIMESTAMPDIFF(SECOND,run_time,now()) > 300))")
+                                " (last_update is Null and TIMESTAMPDIFF(SECOND,run_time,now())> 300) and waiting = 0)")
         if len(results) > 0:
             for r in results:
                 myvar = dict(id=r.workflow_id)
@@ -281,6 +287,7 @@ class WorkJob(object):
 
     def start(self, json_data):
         self.json_data = json_data
+        self.db.update("workflow", vars={"id": self.workflow_id}, where="workflow_id = $id", waiting=1)
         if self.client:
             max_limit = self.get_client_limit()
             if max_limit > 0:

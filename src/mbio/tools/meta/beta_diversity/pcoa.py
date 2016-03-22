@@ -87,9 +87,8 @@ class PcoaTool(Tool):
             self.logger.info('pcoa计算失败')
             self.set_error('R程序计算pcoa失败')
         allfile = self.get_filesname()
-        self.linkfile(allfile[0], 'pcoa_importance.xls')
+        self.linkfile(allfile[0], 'pcoa_eigenvalues.xls')
         self.linkfile(allfile[1], 'pcoa_sites.xls')
-        self.linkfile(allfile[2], 'pcoa_rotation.xls')
         self.logger.info('运行ordination.pl程序计算pcoa完成')
         self.end()
 
@@ -109,22 +108,17 @@ class PcoaTool(Tool):
         """
         获取并检查文件夹下的文件是否存在
 
-        :return pca_importance_file,pca_rotation_file,pca_sites_file: 返回各个文件
+        :return pcoa_sites_file,pcoa_eigenvalues_file: 返回各个文件
         """
         filelist = os.listdir(self.work_dir + '/pcoa')
-        pcoa_importance_file = None
-        pcoa_rotation_file = None
+        pcoa_eigenvalues_file = None
         pcoa_sites_file = None
         for name in filelist:
-            if 'pcoa_importance.xls' in name:
-                pcoa_importance_file = name
+            if 'pcoa_eigenvalues.xls' in name:
+                pcoa_eigenvalues_file = name
             elif 'pcoa_sites.xls' in name:
                 pcoa_sites_file = name
-            elif 'pcoa_rotation.xls' in name:
-                pcoa_rotation_file = name
-        if pcoa_importance_file and pcoa_rotation_file and pcoa_sites_file:
-            return [self.work_dir + '/pcoa/' + pcoa_importance_file,
-                    self.work_dir + '/pcoa/' + pcoa_rotation_file,
-                    self.work_dir + '/pcoa/' + pcoa_sites_file]
+        if pcoa_eigenvalues_file and pcoa_sites_file:
+            return [self.work_dir + '/pcoa/' + pcoa_eigenvalues_file, self.work_dir + '/pcoa/' + pcoa_sites_file]
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')

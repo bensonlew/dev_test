@@ -43,12 +43,13 @@ class BetaDiversityModule(Module):
         :return:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
-            otu_table = self.option('otutable').get_table(self.option('level'))
-            self.option('otutable').set_path(otu_table)
-            self.option('otutable').get_info()
-            return otu_table
+            self.otu_table = self.option('otutable').get_table(self.option('level'))
+            # self.option('otutable').set_path(otu_table)
+            # self.option('otutable').get_info()
+            return self.otu_table
         else:
-            return self.option('otutable').prop['path']
+            self.otu_table = self.option('otutable').prop['path']
+            return self.otu_table
 
     def check_options(self):
         if 'distance' or 'anosim' or 'pca' or 'pcoa' or 'nmds' or 'rda_cca' or 'dbrda' or 'hcluster' or 'plsda' in self.option('analysis'):
@@ -59,7 +60,6 @@ class BetaDiversityModule(Module):
         if self.option('permutations') < 0 or self.option('permutations') > 10000:
             raise OptionError('参数permutations：%s 不在范围内(0-10000)' %
                               self.option('permutations'))
-        # samplelist = open(self.option('otutable').path).readline().strip().split('\t')[1:]
         if self.option('linkage') not in ['average', 'single', 'complete']:
             raise OptionError('错误的层级聚类方式：%s' % self.option('linkage'))
         if ('rda_cca' or 'dbrda') in self.option('analysis') and not self.option('envtable').is_set:
@@ -75,11 +75,11 @@ class BetaDiversityModule(Module):
         """
         if self.option('phy_newick').is_set:
             self.matrix.set_options({'method': self.option('dis_method'),
-                                     'otutable': self.option('otutable').path,
+                                     'otutable': self.otu_table,
                                      'newicktree': self.option('phy_newick')})
         else:
             self.matrix.set_options({'method': self.option('dis_method'),
-                                     'otutable': self.option('otutable').path})
+                                     'otutable': self.otu_table})
         self.matrix.on('end', self.set_output, 'distance')
         self.matrix.run()
 
@@ -134,7 +134,7 @@ class BetaDiversityModule(Module):
             output_file_obj = rely_obj.rely[0].option('dis_matrix')
             dbrda_options = {'dis_matrix': output_file_obj, 'envtable': self.option('envtable')}
         else:
-            dbrda_options = {'otutable': self.option('otutable').path, 'envtable': self.option('envtable'),
+            dbrda_options = {'otutable': self.otu_table, 'envtable': self.option('envtable'),
                              'method': self.option('dbrda_method')}
         if self.option('envlabs'):
             dbrda_options['envlabs'] = self.option('envlabs')
@@ -145,7 +145,7 @@ class BetaDiversityModule(Module):
         self.tools['dbrda'].run()
 
     def rda_run(self):
-        rda_options = {'otutable': self.option('otutable').path, 'envtable': self.option('envtable')}
+        rda_options = {'otutable': self.otu_table, 'envtable': self.option('envtable')}
         if self.option('envlabs'):
             rda_options['envlabs'] = self.option('envlabs')
         else:
@@ -155,7 +155,7 @@ class BetaDiversityModule(Module):
         self.tools['rda'].run()
 
     def pca_run(self):
-        pca_options = {'otutable': self.option('otutable').path}
+        pca_options = {'otutable': self.otu_table}
         if self.option('envtable').is_set:
             pca_options['envtable'] = self.option('envtable')
             if self.option('envlabs'):
