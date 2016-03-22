@@ -103,6 +103,28 @@ class FileBase(object):
             raise Exception("请先调用set_path方法设置文件路径!")
         return True
 
+    def link(self, link_path=None):
+        """
+        为当前文件对象创建软连接
+
+        :param link_path:  生成链接的目标文件夹或希望生成的链接文件路径  所在文件夹必须已经存在
+        :return: string 生成的链接路径
+        """
+        if "path" in self.prop.keys() and os.path.exists(self.prop['path']):
+            source_path = os.path.abspath(self.prop['path'])
+            file_name = os.path.basename(source_path)
+            if link_path:
+                if os.path.isdir(link_path):   # 指定目标为文件夹
+                    target_path = os.path.join(link_path, file_name)
+                    os.symlink(source_path, target_path)
+                    return target_path
+                else:    # 指定目标为文件
+                    os.symlink(source_path, link_path)
+                    return link_path
+            else:   # 未指定目标 默认链接到当前目录下
+                os.symlink(source_path, file_name)
+                return os.path.join(os.getcwd(), file_name)
+
 
 class File(FileBase):
     """
@@ -151,28 +173,6 @@ class File(FileBase):
         """
         size = os.path.getsize(self.prop['path'])
         return size
-
-    def link(self, link_path=None):
-        """
-        为当前文件对象创建软连接
-
-        :param link_path:  生成链接的目标文件夹或希望生成的链接文件路径  所在文件夹必须已经存在
-        :return: string 生成的链接路径
-        """
-        if "path" in self.prop.keys() and os.path.isfile(self.prop['path']):
-            source_path = os.path.abspath(self.prop['path'])
-            file_name = os.path.basename(source_path)
-            if link_path:
-                if os.path.isdir(link_path):   # 指定目标为文件夹
-                    target_path = os.path.join(link_path, file_name)
-                    os.symlink(source_path, target_path)
-                    return target_path
-                else:    # 指定目标为文件
-                    os.symlink(source_path, link_path)
-                    return link_path
-            else:   # 未指定目标 默认链接到当前目录下
-                os.symlink(source_path, file_name)
-                return os.path.join(os.getcwd(), file_name)
 
 
 class Directory(FileBase):

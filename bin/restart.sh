@@ -10,4 +10,8 @@ PID_FILE=`echo ../run/$HOSTNAME.api.pid`
 kill -9 `cat $PID_FILE`
 rm $PID_FILE
 ./api_update.py -m server
+PID_FILE=`echo ../run/$HOSTNAME.upload.pid`
+kill -9 `cat $PID_FILE`
+rm $PID_FILE
+./upload_result.py
 su -l root -c "service httpd restart"

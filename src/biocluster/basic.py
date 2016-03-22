@@ -79,28 +79,46 @@ class Basic(EventObject):
     基础抽象类，定义了 :py:class:`biocluster.workflow.Workflow` , :py:class:`biocluster.module.Module` ,
     :py:class:`biocluster.agent.Agent` 的公共方法和属性
     """
-    def __init__(self, parent=None):
+    def __init__(self, *args, **kwargs):
         super(Basic, self).__init__()
+        if "parent" in kwargs.keys():
+            parent = kwargs["parent"]
+        elif len(args) > 0:
+            parent = args[0]
+        else:
+            parent = None
         self._parent = parent
         self._rely = []
         self._children = []
         self._name = self.__get_min_name()
+        self.sem = BoundedSemaphore(1)
+        self._logger = None
         self._full_name = self.__get_full_name()
         self._id = self.__name_identifier()
-        self.__init_events()
-        self._logger = None
-        if parent:
-            ids = self._id.split(".")
-            self._work_dir = parent.work_dir + "/" + ids.pop(-1)
-            if not os.path.exists(self._work_dir):
-                os.makedirs(self._work_dir)
+        ids = self._id.split(".")
+        if self._parent and isinstance(self._parent, Basic):
+            self._work_dir = self._parent.work_dir + "/" + ids.pop(-1)
             self._output_path = self._work_dir + "/output"
-            if not os.path.exists(self._output_path):
-                os.makedirs(self._output_path)
+            self.debug = self.get_workflow().debug
+            if not self.debug:
+                self.create_work_dir()
+        self.__init_events()
         self._options = {}
-        self.sem = BoundedSemaphore(1)
         self.UPDATE_STATUS_API = None
         self._main_step = StepMain(self)
+        self.stage_id = None    # pipeline模式时设置stage id值
+        self._upload_dir_obj = []  # 需要上传的文件夹对象
+
+    def create_work_dir(self):
+        """
+        建立工作目录
+
+        :return:
+        """
+        if not os.path.exists(self._work_dir):
+            os.makedirs(self._work_dir)
+        if not os.path.exists(self._output_path):
+            os.makedirs(self._output_path)
 
     @property
     def step(self):
@@ -301,7 +319,7 @@ class Basic(EventObject):
         """
         identifier = self._name
         count = 0
-        if self._parent:
+        if self._parent and isinstance(self._parent, Basic):
             with self._parent.sem:
                 for c in self._parent.children:
                     if c.name == self.name:
@@ -355,14 +373,14 @@ class Basic(EventObject):
     def __event_end(self):
         """
         """
-        if self._parent:
+        if self._parent is not None and isinstance(self._parent, Basic):
             self._parent.fire('childend', self)
 
     def __event_error(self):
         """
         当出现错误事件时(error)时的处理方式
         """
-        if self._parent:
+        if self._parent is not None and isinstance(self._parent, Basic):
             self._parent.fire('childerror', self)
 
     def __check_relys(self):
@@ -462,7 +480,52 @@ class Basic(EventObject):
             obj = self.parent
         if obj.parent:
             obj = obj.parent
+        if obj.parent:
+            obj = obj.parent
         return obj
+
+    def add_upload_dir(self, dir_path):
+        """
+        添加需要上传的目录
+
+        :param dir_path: 相对或绝对路径
+        :return: UploadDir对象
+        """
+        for i in self._upload_dir_obj:
+            if os.path.basename(i) == os.path.basename(dir_path):
+                raise Exception("添加的结果文件夹%s名称不能重复!" % dir_path)
+        up = UploadDir(self)
+        up.path = dir_path
+        self._upload_dir_obj.append(up)
+        return up
+
+    @property
+    def upload_dir(self):
+        """
+        获取需要上传的文件夹路径
+        :return:  list
+        """
+        dir_list = []
+        for dir_obj in self._upload_dir_obj:
+            dir_list.append(dir_obj.path)
+        return dir_list
+
+    def get_upload_files(self):
+        """
+        获取所有上传文件信息
+        :return: 数组
+        """
+        up_file_list = []
+        for obj in self._upload_dir_obj:
+            for i in obj.file_list:
+                data = {
+                    "path": "%s/%s" % (os.path.basename(i.full_path), i.relpath),
+                    "type": i.file_type,
+                    "format": i.format,
+                    "description": i.description
+                }
+                up_file_list.append(data)
+        return up_file_list
 
 
 class Step(object):
@@ -650,7 +713,7 @@ class StepMain(Step):
         if self.has_change:
             json_obj = {"stage": {
                         "task_id": workflow.sheet.id,
-                        "stage_id": workflow.sheet.stage_id,
+                        "stage_id": self.bind_obj.stage_id if self.bind_obj.stage_id else workflow.sheet.stage_id,
                         "created_ts": datetime.datetime.now(),
                         "error": "%s" % self._error_info,
                         "status": self.stats,
@@ -666,6 +729,51 @@ class StepMain(Step):
                 "api": self.api_type,
                 "data": urllib.urlencode(post_data)
             }
+
+            if len(self.bind_obj.upload_dir) > 0:
+                if self.bind_obj is workflow:  # 普通模式的workflow 或 pipeline
+                    if self.bind_obj.sheet.type == "workflow" and self.bind_obj.sheet.output:
+                        up_data = {
+                            "source": self.bind_obj.upload_dir,
+                            "target": self.bind_obj.sheet.output
+                        }
+                        data["upload"] = json.dumps(up_data)
+                        data["has_upload"] = 1
+                        data["uploaded"] = 0
+                        post_data["upload_files"] = {
+                            "target": self.bind_obj.sheet.output,
+                            "files": self.bind_obj.get_upload_files()
+                        }
+                        data["data"] = urllib.urlencode(post_data)
+                else:
+                    if workflow.sheet.type in ["tool", "module"] and workflow.sheet.output:
+                        up_data = {
+                            "source": self.bind_obj.upload_dir,
+                            "target": workflow.sheet.output
+                        }
+                        data["upload"] = json.dumps(up_data)
+                        data["has_upload"] = 1
+                        data["uploaded"] = 0
+                        post_data["upload_files"] = {
+                            "target": workflow.sheet.output,
+                            "files": self.bind_obj.get_upload_files()
+                        }
+                        data["data"] = urllib.urlencode(post_data)
+                    elif self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
+                        target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
+                        up_data = {
+                            "source": self.bind_obj.upload_dir,
+                            "target": target_path
+                        }
+                        data["upload"] = json.dumps(up_data)
+                        data["has_upload"] = 1
+                        data["uploaded"] = 0
+                        post_data["upload_files"] = {
+                            "target": target_path,
+                            "files": self.bind_obj.get_upload_files()
+                        }
+                        data["data"] = urllib.urlencode(post_data)
+
             try:
                 workflow.db.insert("apilog", **data)
                 self.clean_change()
@@ -706,3 +814,109 @@ class StepMain(Step):
                 self._api_data = {}
             except Exception, e:
                 self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
+
+
+class UploadDir(object):
+    """
+    需要远程上传的结果信息文件格式和信息
+    """
+    def __init__(self, parent):
+        self._dir_path = ""
+        self._file_list = []
+        self._parent = parent
+        self._regexp_rules = []
+        self._relpath_rules = []
+
+    @property
+    def path(self):
+        return self._dir_path
+
+    @path.setter
+    def path(self, dir_path):
+        """
+        设置需要上传的文件夹路径，将上传所有子文件和文件夹
+        :param dir_path:
+        :return:
+        """
+
+        if not os.path.isdir(dir_path):
+            raise Exception("%s路径不是有效的文件夹路径" % dir_path)
+        else:
+            self._dir_path = os.path.abspath(dir_path)
+            if not os.listdir(dir_path):
+                self._parent.logger.warning("文件夹%s为空，请确认是否已经拷贝？" % dir_path)
+            for i in os.walk(dir_path):
+                self._file_list.append(ResultFile(i[0], dir_path, "dir"))
+                for file_name in i[2]:
+                    self._file_list.append(ResultFile(os.path.join(i[0], file_name), dir_path, "file"))
+
+    def add_regexp_rules(self, match_rules):
+        """
+        根据相对路径添加正则匹配规则
+
+        :param match_rules: 必须为一个二维数组, 每个子数组含有3个字符串元素，第一个元素为正则表达式，
+        第二个元素为格式path, 第三个元素为文件或文件夹说明
+        :return:
+        """
+        if not isinstance(match_rules, list):
+            raise Exception("匹配规则必须为数组!")
+        for rule in match_rules:
+            self._regexp_rules.append(rule)
+
+    def add_relpath_rules(self, match_rules):
+        """
+        添加路径匹配，使用相对于当前文件夹的相对路径匹配，当前文件夹使用“.”，匹配
+
+        :param match_rules:必须为一个二维数组, 每个子数组含有3个字符串元素，第一个元素为相对路径，
+        第二个元素为格式path, 第三个元素为文件或文件夹说明
+        :return:
+        """
+        for rule in match_rules:
+            self._relpath_rules.append(rule)
+
+    def match(self):
+        """
+        根据添加的regexp_rules和relpath_rules匹配所有文件和文件夹，如果regexp_rules和relpath_rules有冲突，
+        则relpath_rules生效，正则有冲突，后添加的规则生效
+
+        :return:
+        """
+        for r_rule in self._regexp_rules:
+            pattern = re.compile(r_rule[0])
+            for sub_file in self._file_list:
+                match = pattern.match(sub_file.relpath)
+                if match:
+                    sub_file.format = r_rule[1]
+                    sub_file.description = r_rule[2]
+        for r_rule in self._relpath_rules:
+            for sub_file in self._file_list:
+                if os.path.relpath(sub_file.relpath, r_rule[1]) == ".":
+                    sub_file.format = r_rule[1]
+                    sub_file.description = r_rule[2]
+
+        for sub_file in self._file_list:
+            if sub_file.file_type == "file" and sub_file.format == "":
+                self._parent.logger.warning("文件%s没有设置格式，确认此文件真的无法确认格式？" % sub_file.full_path)
+        return self
+
+    @property
+    def file_list(self):
+        """
+        文件对象列表
+
+        :return: 数组，数组元素为ResultFile对象
+        """
+        self.match()
+        return self._file_list
+
+
+class ResultFile(object):
+    """
+    保持单个结果文件的信息
+    """
+    def __init__(self, full_path, base_path, file_type="file"):
+        self.file_type = file_type
+        self.full_path = full_path
+        self.relpath = os.path.relpath(full_path, base_path)
+        self.format = ""
+        self.description = ""

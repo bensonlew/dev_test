@@ -1,0 +1,35 @@
+{
+  "id":"28282871",
+  "type" : "pipeline",
+  "client": "client01",
+  "USE_DB": true,
+  "project_sn": "10000240",
+  "IMPORT_REPORT_DATA": true,
+  "UPDATE_STATUS_API": "meta.update_status",
+  "components":[
+    {
+      "type": "workflow",
+      "stage_id": 1,
+      "name": "meta.report.hcluster",
+      "options": {
+          "input1": "56ceb8af0e6da9d7bf8b8106",
+          "distance_matrix": "/mnt/ilustre/users/sanger/workspace/20160303/Hcluster_sanger_341_8106_5107/distance_matrix_input.matrix.xls",
+          "newick_id": "56d7a6700e6da9cfdc2dc645",
+          "method": "complete",
+          "update_info": "{\"56d7a6700e6da9cfdc2dc645\": \"sg_newick_tree\"}"
+      }
+
+    },{
+      "type": "module",
+      "stage_id": 2,
+      "name": "meta.report.hcluster",
+      "options": {
+          "test1": {"from": 1,"option": "output1"  },
+          "test2": "/mnt/ilustre/users/sanger/workspace/20160303/Hcluster_sanger_341_8106_5107/distance_matrix_input.matrix.xls",
+          "test3": "56d7a6700e6da9cfdc2dc645",
+          "test4": "complete",
+          "test5": "{\"56d7a6700e6da9cfdc2dc645\": \"sg_newick_tree\"}"
+      }
+    }
+  ]
+}

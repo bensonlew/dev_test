@@ -8,3 +8,6 @@ rm $PID_FILE
 PID_FILE=`echo ../run/$HOSTNAME.api.pid`
 kill -9 `cat $PID_FILE`
 rm $PID_FILE
+PID_FILE=`echo ../run/$HOSTNAME.upload.pid`
+kill -9 `cat $PID_FILE`
+rm $PID_FILE
