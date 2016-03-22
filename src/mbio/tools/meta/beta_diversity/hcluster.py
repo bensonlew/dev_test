@@ -3,6 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
+import re
 import subprocess
 from biocluster.core.exceptions import OptionError
 
@@ -77,6 +78,7 @@ class HclusterTool(Tool):
         """
         运行plot-hcluster_tree.pl
         """
+        self.newname_dict = self.change_sample_name(quotes=True)  # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         cmd = self.cmd_path
         cmd += ' -i %s -o %s -m %s' % (
             self.option('dis_matrix').prop['path'], self.work_dir, self.option('linkage'))
@@ -99,11 +101,86 @@ class HclusterTool(Tool):
             os.path.basename(self.option('dis_matrix').prop[
                 'path']) + '_' + self.option('linkage') + '.tre'
         linkfile = self.output_dir + '/hcluster.tre'
-        self.logger.info(filename)
+        self.re_recover_name(self.newname_dict, filename, filename + '.temp')
+        self.logger.info(filename + '.temp')
         self.logger.info(linkfile)
         if os.path.exists(linkfile):
             os.remove(linkfile)
-        os.link(filename, linkfile)
+        os.link(filename + '.temp', linkfile)
         self.option('newicktree').set_path(linkfile)
         self.logger.info(self.option('newicktree').prop)
         self.end()
+
+    def change_sample_name(self, quotes=True):
+        """
+        修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
+        """
+        old_matrix = open(self.option('dis_matrix').path, 'rb')
+        name_dict = {}
+        new_path = os.path.splitext(self.option('dis_matrix').path)[0] + '.temp'
+        new_matrix = open(new_path, 'wb')
+        frist_line = old_matrix.readline().rstrip().split('\t')[1:]
+        if quotes:
+            name_dict = {('\"' + name + '\"'): ('name' + str(frist_line.index(name))) for name in frist_line}
+        else:
+            name_dict = {name: ('name' + str(frist_line.index(name))) for name in frist_line}
+        new_matrix.write('\t' + '\t'.join(name_dict.itervalues()) + '\n')
+        for line in old_matrix:
+            line_split = line.split('\t')
+            if quotes:
+                line_split[0] = name_dict['\"' + line_split[0] + '\"']
+            else:
+                line_split[0] = name_dict[line_split[0]]
+            new_matrix.write('\t'.join(line_split))
+        old_matrix.close()
+        new_matrix.close()
+        self.option('dis_matrix').set_path(new_path)
+        self.option('dis_matrix').get_info()
+        return name_dict
+
+    def recover_name(self, namedict, treefile, newfile):
+        """
+        复原树文件中的名称
+        """
+        from Bio import Phylo
+        from Bio.Phylo.NewickIO import NewickError
+        if not isinstance(namedict, dict):
+            raise Exception('复原树的枝名称需要旧名称和当前名称的字典')
+        namedict = {item[1]: item[0] for item in namedict.iteritems()}
+        if not isinstance(treefile, (str, unicode)):
+            raise Exception('树文件的路径不是字符串')
+        if not isinstance(newfile, (str, unicode)):
+            raise Exception('新的树文件的路径不是字符串')
+        try:
+            tree = Phylo.read(treefile, 'newick')
+        except IOError:
+            raise Exception('复原树文件时找不到树文件：%s' % treefile)
+        except NewickError:
+            raise Exception('树文件无法用newick格式解析：%s' % treefile)
+        terminals = tree.get_terminals()
+        for terminal in terminals:
+            if terminal.name not in namedict:
+                raise Exception('树的枝名称：%s在旧名称和新名称字典中不存在' % terminal.name)
+            terminal.name = namedict[terminal.name]
+        Phylo.write(tree, newfile, 'newick')
+        return True
+
+    def re_recover_name(self, namedict, treefile, newfile):
+        """
+        用正则的方式替换复原树文件中的名称
+        """
+        if not isinstance(namedict, dict):
+            raise Exception('复原树的枝名称需要旧名称和当前名称的字典')
+        namedict = {item[1]: item[0] for item in namedict.iteritems()}
+        if not isinstance(treefile, (str, unicode)):
+            raise Exception('树文件的路径不是字符串')
+        if not isinstance(newfile, (str, unicode)):
+            raise Exception('新的树文件的路径不是字符串')
+        try:
+            with open(treefile, 'rb') as f, open(newfile, 'wb') as w:
+                tree = f.readline()
+                for item in namedict.iteritems():
+                    tree = re.sub(item[0] + ':', item[1] + ':', tree)
+                w.write(tree)
+        except IOError, e:
+                raise Exception('聚类树文件无法找到或者无法打开：%s' % e)
