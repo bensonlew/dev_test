@@ -171,7 +171,7 @@ class Venn(Base):
                 if str_ in selected_clas:
                     new_line = "\t".join(line)
                     w.write(new_line + "\n")
-                    for i in range(1, len(line)):
+                    for i in range(1, len(line) + 1):
                         sample_num[i] += int(line[i])
         # print sample_num
         new_head = self.del_zero_column(sub_otu_path, no_zero_path, sample_num, head)
@@ -212,7 +212,7 @@ class Venn(Base):
                     insert_data[c[0:3]] = c
                 insert_data["otu_id"] = new_otu_id
                 insert_data["task_id"] = self.task_id
-                for i in range(1, len(line)):
+                for i in range(1, len(line) + 1):
                     insert_data[head[i]] = line[i]
                 data_list.append(insert_data)
         collection = self.db['sg_otu_detail']
@@ -243,7 +243,7 @@ class Venn(Base):
         collection = self.db['sg_otu']
         result = collection.find_one({'_id': otu_id})
         if not result:
-            raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(str(otu_id)))
+            raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(otu_id))
         self.project_sn = result['project_sn']
         self.task_id = result['task_id']
 

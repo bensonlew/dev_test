@@ -37,6 +37,7 @@ def export_otu_table(data, option_name, dir_path, bind_obj=None):
             for cls in ["d__", "k__", "p__", "c__", "o__", "f__", "g__"]:
                 if cls in col.keys():
                     line += "%s; " % col[cls]
+            line += col["s__"]
             f.write("%s\n" % line)
     return file_path
 
@@ -97,30 +98,29 @@ def _create_classify_name(col, tmp):
         1: "d__", 2: "k__", 3: "p__", 4: "c__", 5: "o__",
         6: "f__", 7: "g__", 8: "s__", 9: "otu"
     }
-    my_list = list()
     last_classify = ""
-    for i in range(1, 10):
-        if LEVEL[i] in col:
-            if re.search("uncultured$", col[LEVEL[i]]) or re.search("Incertae_Sedis$", col[LEVEL[i]]) or re.search("norank$", col[LEVEL[i]]):
-                if i == 0:
-                    raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或是norank")
-                else:
-                    col[LEVEL[i]] = col[LEVEL[i]] + "_" + col[LEVEL[i - 1]]
+    new_cla = list()
+    if "d__" not in col:
+        raise Exception("在域水平上分类学缺失")
+    if re.search("uncultured$", col["d__"]) or re.search("Incertae_Sedis$", col["d__"]) or re.search("norank$", col["d__"]) or re.search("unidentified$", col["d__"]):
+        raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或norank或是unidentified")
+    # 先对输入的名字进行遍历， 当在某一水平(输入的level之前)上空着的时候， 补全
+    # 例如在g水平空着的时候，补全成g__unidentified
     for i in range(1, tmp):
-        if LEVEL[i] not in col:
-            if last_classify == "":
-                last_classify = col[LEVEL[i - 1]]
-            my_str = LEVEL[i] + "Unclasified_" + last_classify
+        if LEVEL[i] in col:
+            new_cla.append(col[LEVEL[i]])
         else:
-            if not col[LEVEL[i]]:
-                if LEVEL[i] == "otu":
-                    my_str = "otu__" + "Unclasified_" + last_classify
-                else:
-                    my_str = LEVEL[i] + "Unclasified_" + last_classify
-            else:
-                my_str = col[LEVEL[i]]
-        my_list.append(my_str)
-    new_classify_name = "; ".join(my_list)
+            str_ = LEVEL[i] + "Unclassified"
+            new_cla.append(str_)
+
+    # 对uncultured，Incertae_Sedis，norank，unidentified进行补全
+    for i in range(tmp - 1):
+        if re.search("uncultured$", new_cla[i]) or re.search("Incertae_Sedis$", new_cla[i]) or re.search("norank$", new_cla[i]) or re.search("unidentified$", new_cla[i]) or re.search("Unclassified$", new_cla[i]):
+            new_cla[i] = new_cla[i] + "_" + last_classify
+        else:
+            last_classify = new_cla[i]
+
+    new_classify_name = "; ".join(new_cla)
     return new_classify_name
 
 

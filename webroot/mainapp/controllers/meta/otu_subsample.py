@@ -9,6 +9,7 @@ from mainapp.config.db import get_mongo_client
 import random
 # import time
 import datetime
+from mainapp.libs.param_pack import param_pack
 
 
 class Subsample(object):
@@ -21,13 +22,18 @@ class Subsample(object):
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
         input_otu_info = Meta().get_otu_table_info(data.otu_id)
+        my_param = dict()
+        my_param["otu_id"] = data.otu_id
+        if hasattr(data, "size"):
+            my_param["size"] = data.size
+        params = param_pack(my_param)
         if input_otu_info:
             output_otu_json = {
                 'project_sn': input_otu_info['project_sn'],
                 'task_id': input_otu_info['task_id'],
                 'from_id': data.otu_id,
-                'name': "otu_taxon" + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
-                'params': json.dumps(data, sort_keys=True, separators=(',', ':')),
+                'name': "otu_subsample" + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+                'params': params,
                 'status': 'start',
                 'desc': 'otu table after Subsample',
                 'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

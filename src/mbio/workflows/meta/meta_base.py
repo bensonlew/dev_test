@@ -250,17 +250,12 @@ class MetaBaseWorkflow(Workflow):
             if not os.path.isfile(otu_path):
                 raise Exception("找不到报告文件:{}".format(otu_path))
             params = {
-                "otu_id": self.otu_id,
+                "otu_id": str(self.otu_id),
                 "identity": self.option("identity"),
                 "revcomp": self.option("revcomp"),
                 "confidence": self.option("confidence"),
                 "database": self.option("database")
             }
-            if self.option("database") == "custom_mode":
-                params.update({
-                    "ref_fasta": self.option("ref_fasta"),
-                    "ref_taxon": self.option("ref_taxon")
-                })
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
             api_tree = self.api.newicktree
             tree_path = self.phylo.option('phylo_tre').prop['path']
@@ -274,18 +269,18 @@ class MetaBaseWorkflow(Workflow):
             est_path = self.output_dir + "/Alpha_diversity/estimators.xls"
             if not os.path.isfile(est_path):
                 raise Exception("找不到报告文件:{}".format(est_path))
-            indice = self.option("estimate_indices").split(',').sort()
+            indice = sorted(self.option("estimate_indices").split(','))
             params = {
-                "otu_id": self.otu_id,
+                "otu_id": str(self.otu_id),
                 "level_id": 9,
                 "indices": ','.join(indice)
             }
             api_est.add_est_table(est_path, major=True, level=9, otu_id=self.otu_id, params=params)
             api_rare = self.api.rarefaction
             rare_path = self.work_dir + "/AlphaDiversity/Rarefaction/output/"
-            indice = self.option("rarefy_indices").split(',').sort()
+            indice = sorted(self.option("rarefy_indices").split(','))
             params = {
-                "otu_id": self.otu_id,
+                "otu_id": str(self.otu_id),
                 "level_id": 9,
                 "indices": ','.join(indice),
                 'freq': self.option('rarefy_freq')
@@ -299,7 +294,7 @@ class MetaBaseWorkflow(Workflow):
             if not os.path.isfile(dist_path):
                 raise Exception("找不到报告文件:{}".format(dist_path))
             params = {
-                'otu_id': self.otu_id,
+                'otu_id': str(self.otu_id),
                 'level_id': 9,
                 'distance_algorithm': self.option('dis_method'),
             }
@@ -311,7 +306,7 @@ class MetaBaseWorkflow(Workflow):
                 if not os.path.isfile(hcluster_path):
                     raise Exception("找不到报告文件:{}".format(hcluster_path))
                 params = {
-                    'specimen_distance_id': dist_id,
+                    'specimen_distance_id': str(dist_id),
                     'hcluster_method': self.option('linkage')
                 }
                 api_hcluster.add_tree_file(hcluster_path, major=True, table_id=dist_id, table_type='dist', tree_type='cluster', params=params)
@@ -319,7 +314,7 @@ class MetaBaseWorkflow(Workflow):
                 if ana in ['pca', 'pcoa', 'nmds', 'dbrda', 'rda_cca']:
                     api_betam = self.api.beta_multi_analysis
                     params = {
-                        'otu_id': self.otu_id,
+                        'otu_id': str(self.otu_id),
                         'level_id': 9,
                         'analysis_type': self.option('beta_analysis'),
                     }
