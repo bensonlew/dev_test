@@ -3,6 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
+import re
 from biocluster.core.exceptions import OptionError
 
 
@@ -122,8 +123,9 @@ class DistanceBoxTool(Tool):
                                 self.work_dir + '/' + self.option('grouplabs') + '_Distances_format.txt')
             self.linkfile(self.work_dir + '/' + self.option('grouplabs') + '_Distances_format.txt',
                           'Distances.txt')
-            self.linkfile(self.work_dir + '/' + self.option('grouplabs') + '_Stats.txt',
-                          'Stats.txt')
+            self.format_stats(self.work_dir + '/' + self.option('grouplabs') + '_Stats.txt',
+                              self.work_dir + '/' + self.option('grouplabs') + '_Stats_format.txt')
+            self.linkfile(self.work_dir + '/' + self.option('grouplabs') + '_Stats_format.txt', 'Stats.txt')
             self.end()
         else:
             self.set_error('运行qiime/make_distance_boxplots.py出错')
@@ -147,6 +149,24 @@ class DistanceBoxTool(Tool):
                 print box, type(box)
                 w.write('\t'.join(box) + '\n')
 
+    def format_stats(self, statfile, outfile):
+        """
+        去除Stats.txt文件中的名称的空格为下划线“_”
+        """
+        try:
+            with open(statfile, 'rb') as f, open(outfile, 'wb') as w:
+                for line in f:
+                    if line[0] == '#':
+                        continue
+                    elif re.match('Group 1\tGroup 2\t', line):
+                        w.write(line)
+                    else:
+                        split_line = line.split('\t')
+                        split_line[0] = split_line[0].replace(' ', '_')
+                        split_line[1] = split_line[1].replace(' ', '_')
+                        w.write('\t'.join(split_line))
+        except IOError:
+            raise Exception('格式化Stats文件无法打开，或者写入文件无法成')
 
     def calculate_boxdata(self, datalist):
         """

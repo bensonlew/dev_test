@@ -40,7 +40,7 @@ class EstTTestWorkflow(Workflow):
                 }
         self.tools[file_name].set_options(options)
         # self.on_rely(self.tools[file_name], self.set_db, str(self.run_times))
-        self.tools[file_name].on('end', self.set_db, str(self.run_times))
+        self.tools[file_name].on('end', self.set_db)
         self.tools[file_name].run()
 
     def run(self):
@@ -49,8 +49,6 @@ class EstTTestWorkflow(Workflow):
         self.tools_num = len(files)
         print(self.tools_num)
         for f in files:
-            self.run_times += 1
-            print(self.run_times)
             self.tools[f] = self.add_tool('statistical.metastat')
             # print(self.tools.values())
             group_file = os.path.join(file_path, f)
@@ -62,6 +60,8 @@ class EstTTestWorkflow(Workflow):
         """
         保存结果指数表到mongo数据库中
         """
+        self.run_times += 1
+        self.logger.info(self.run_times)
         obj = event['bind_object']
         api_est_t_test = self.api.est_t_test
         est_t_path = obj.output_dir+"/student_result.xls"
@@ -70,6 +70,5 @@ class EstTTestWorkflow(Workflow):
         if not os.path.isfile(est_t_path):
             raise Exception("找不到报告文件:{}".format(est_t_path))
         api_est_t_test.add_est_t_test_detail(est_t_path, self.option('est_t_test_id'))
-        # os.rename(est_t_path, self.output_dir+'/student_result{}.xls'.format(random.randint(1, 100)))
-        if event['data'] == str(self.tools_num):
+        if self.run_times == self.tools_num:
             self.end()

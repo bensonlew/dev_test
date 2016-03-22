@@ -32,14 +32,12 @@ class BetaMultiAnalysis(Base):
                     columns = [i.replace(' ', '') for i in columns]
                 for line in all_lines[1:]:
                     values = line.rstrip().split('\t')
-                    self.bind_object.logger.info(str(fileter_biplot))
                     if fileter_biplot:
                         if not isinstance(fileter_biplot, list):
                             raise Exception('需要删除的匹配列必须为列表')
                         flag = 0
                         for i in fileter_biplot:
                             if re.match(r'^{}'.format(i), values[0]):
-                                self.bind_object.logger.info(values[0])
                                 flag = 1
                         if flag:
                             continue
@@ -50,18 +48,22 @@ class BetaMultiAnalysis(Base):
                         'type': table_type,
                         'name': values[0]
                     }
-                    self.bind_object.logger.info(str(insert_data))
                     values_dict = dict(zip(columns, values[1:]))
                     insert_data = dict(insert_data, **values_dict)
                     collection.insert_one(insert_data)
                 if update_column:
                     main_collection = db[main_coll]
+                    # default_column = {'specimen': 'detail_column', 'factor': 'factor_column',
+                    #                   'vector': 'vector_column',
+                    #                   'species': 'species_column', 'rotation': 'rotation_column'}
                     default_column = {'specimen': 'detail_column', 'factor': 'factor_column', 'vector': 'vector_column',
-                                      'species': 'species_column', 'rotation': 'rotation_column'}
+                                      'species': 'species_column'}
                     if table_type in default_column:
                         main_collection.update_one({'_id': update_id},
                                                    {'$set': {default_column[table_type]: ','.join(columns)}},
                                                    upsert=False)
+                    else:
+                        raise Exception('错误的表格类型：%s不能在主表中插入相应表头' % table_type)
 
         def insert_text_detail(file_path, data_type, main_id,
                                coll_name='sg_beta_multi_analysis_json_detail', db=self.db):
@@ -106,7 +108,7 @@ class BetaMultiAnalysis(Base):
                 rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation.xls'
                 importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
-                insert_table_detail(rotation_path, 'species', update_id=main_id)
+                insert_text_detail(rotation_path, 'rotation', main_id=main_id)
                 insert_text_detail(importance_path, 'importance', main_id=main_id)
                 if result['env_id']:
                     filelist = os.listdir(dir_path.rstrip('/') + '/Pca')
@@ -125,19 +127,19 @@ class BetaMultiAnalysis(Base):
             elif analysis == 'pcoa':
                 site_path = dir_path.rstrip('/') + '/Pcoa/pcoa_sites.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
-                rotation_path = dir_path.rstrip('/') + '/Pcoa/pcoa_rotation.xls'
-                importance_path = dir_path.rstrip('/') + '/Pcoa/pcoa_importance.xls'
-                insert_text_detail(rotation_path, 'rotation', main_id=main_id)
-                insert_text_detail(importance_path, 'importance', main_id=main_id)
+                # rotation_path = dir_path.rstrip('/') + '/Pcoa/pcoa_rotation.xls'
+                importance_path = dir_path.rstrip('/') + '/Pcoa/pcoa_eigenvalues.xls'
+                # insert_text_detail(rotation_path, 'rotation', main_id=main_id)
+                insert_text_detail(importance_path, 'eigenvalues', main_id=main_id)
             elif analysis == 'nmds':
                 site_path = dir_path.rstrip('/') + '/Nmds/nmds_sites.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
             elif analysis == 'dbrda':
                 site_path = dir_path.rstrip('/') + '/Dbrda/db_rda_sites.xls'
-                species_path = dir_path.rstrip('/') + '/Dbrda/db_rda_species.xls'
+                # species_path = dir_path.rstrip('/') + '/Dbrda/db_rda_species.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
-                if os.path.exists(species_path):
-                    insert_table_detail(species_path, 'species', update_id=main_id)
+                # if os.path.exists(species_path):
+                #     insert_table_detail(species_path, 'species', update_id=main_id)
                 filelist = os.listdir(dir_path.rstrip('/') + '/Dbrda')
                 if 'db_rda_centroids.xls' in filelist:
                     env_fac_path = dir_path.rstrip('/') + '/Dbrda/db_rda_centroids.xls'

@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shenghe'
 from biocluster.iofile import File
-# import re
-# import subprocess
-# from biocluster.config import Config
 import os
 import copy
 from biocluster.core.exceptions import FileError
@@ -70,26 +67,6 @@ class DistanceMatrixFile(File):
             method = 'unknown_method'
         return method
 
-    def get_value(self, row=0, column=0, SN=True):
-        """
-        依据row和column返回特定值或者名称
-        SN(sequence number顺序号)说明row和column为行号和列号数字
-
-        :param row:  行名或行号
-        :param column:  列名或列号
-        :param SN:  row和column为顺序号
-        :return value:  返回特定值
-        """
-        tempfile = open(self.prop['path'])
-        lines = tempfile.readlines()
-        lines = [line.strip('\n') for line in lines]
-        if not SN:
-            row = lines[0].split('\t').index(row)  # 没有设置检查，可能row不存在
-            column = lines[0].split('\t').index(column)
-        value = lines[row].split('\t')[column]
-        tempfile.close()
-        return value
-
     def check(self):
         """
         检测文件是否满足要求，发生错误时应该触发FileError异常
@@ -97,10 +74,24 @@ class DistanceMatrixFile(File):
         if super(DistanceMatrixFile, self).check():
             # 父类check方法检查文件路径是否设置，文件是否存在，文件是否为空
             self.get_info()
-            for n in range(self.prop['samp_numb'] + 1):
-                for m in range(self.prop['samp_numb'] + 1):
-                    if self.get_value(n, m) != self.get_value(m, n):
-                        raise FileError('距离矩阵格式不正确')
+            dist_dict = dict()
+            with open(self.path, 'r') as f:
+                head = f.readline().rstrip().split('\t')
+                head_len = len(head)
+                head = head[1:]
+                for line in f:
+                    all_nums = line.rstrip().split('\t')
+                    if len(all_nums) == head_len:
+                        pass
+                    else:
+                        raise FileError('矩阵每行数据量格式不正确')
+                    values = dict(zip(head, all_nums[1:]))
+                    dist_dict[all_nums[0]] = values
+                for samp1 in head:
+                    for samp2 in head:
+                        # print dist_dict[samp2][samp1], dist_dict[samp1][samp2]
+                        if dist_dict[samp1][samp2] != dist_dict[samp2][samp1]:
+                            raise FileError('矩阵数据不对称')
             if len(self.prop['samp_list']) != len(set(self.prop['samp_list'])):
                 raise FileError('存在重复的样本名')
             return True
@@ -138,9 +129,20 @@ class DistanceMatrixFile(File):
         :param samp_list:  样品名列表
         :param path:  新文件路径
         """
-        newfile = open(path, 'w')
-        samp_list.insert(0, '')
-        for m in samp_list:
-            line = '\t'.join([self.get_value(m, n, SN=False)
-                              for n in samp_list]) + '\n'
-            newfile.write(line)
+        dist_dict = dict()
+        head = list()
+        with open(self.path, 'r') as f:
+            head = f.readline().rstrip().split('\t')
+            head = head[1:]
+            for line in f:
+                all_nums = line.rstrip().split('\t')
+                values = dict(zip(head, all_nums[1:]))
+                dist_dict[all_nums[0]] = values
+        newfile = open(path, 'wb')
+        newfile.write('\t' + '\t'.join(samp_list) + '\n')
+        for samp in samp_list:
+            line_list = [samp]
+            for samp_col in samp_list:
+                line_list.append(dist_dict[samp][samp_col])
+            newfile.write('\t'.join(line_list) + '\n')
+        newfile.close()
