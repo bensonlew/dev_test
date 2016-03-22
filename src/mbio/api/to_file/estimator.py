@@ -32,7 +32,7 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
     indices = index_type.split(',')
     bind_obj.logger.debug(indices)
     details = collection.find({"alpha_diversity_id": ObjectId(data)})
-    if not details:
+    if not details.count():
         raise Exception('没有找到相应detail信息')
     with open(est_path, "wb") as f:
         # f.write('index_type')

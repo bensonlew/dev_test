@@ -26,7 +26,7 @@ class RarefactionAgent(Agent):
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入文件
             {"name": "indices", "type": "string", "default": "sobs,shannon"},  # 指数类型
             {"name": "freq", "type": "int", "default": 100},  # 取样频数
-            {"name": "level", "type": "string", "default": "otu"},  # level水平
+            {"name": "level", "type": "string", "default": "otu"}  # level水平
             # {"name": "rarefaction", "type": "outfile", "format": "meta.alpha_diversity.rarefaction_dir"}  # 输出结果
         ]
         self.add_option(options)

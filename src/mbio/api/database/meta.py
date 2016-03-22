@@ -6,6 +6,7 @@ from bson.objectid import ObjectId
 import datetime
 from bson.son import SON
 from types import StringTypes
+import json
 
 
 class Meta(Base):
@@ -35,7 +36,7 @@ class Meta(Base):
                 "from_id": from_out_table,
                 # "level": level,
                 "status": "end",
-                "params": params,
+                "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             }

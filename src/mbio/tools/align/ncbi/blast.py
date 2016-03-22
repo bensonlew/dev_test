@@ -48,6 +48,16 @@ class BlastAgent(Agent):
         self._cpu = 10
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        result_dir.add_regexp_rules([
+            [r".*\.xml", "align.blast.blastxml", "Blast比对结果，XML格式"]
+        ])
+        super(BlastAgent, self).end()
+
 
 class BlastTool(Tool):
     def __init__(self, config):  # 注意 初始化Tool子类时是需要带参数的

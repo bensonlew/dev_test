@@ -81,6 +81,7 @@ class Config(object):
         self.UPDATE_MAX_RETRY = int(self.rcf.get("API_UPDATE", "max_retry"))
         self.UPDATE_RETRY_INTERVAL = int(self.rcf.get("API_UPDATE", "retry_interval"))
         self.UPDATE_LOG = self.rcf.get("API_UPDATE", "log")
+        self.UPLOAD_LOG = self.rcf.get("API_UPDATE", "upload_log")
 
         # Mongo
         self.MONGO_URI = self.rcf.get("MONGO", "uri")

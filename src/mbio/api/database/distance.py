@@ -2,7 +2,7 @@
 # __author__ = 'yuguo'
 from biocluster.api.database.base import Base, report_check
 import re
-# from bson.objectid import ObjectId
+import json
 import datetime
 from bson.son import SON
 # from types import StringTypes
@@ -29,7 +29,7 @@ class Distance(Base):
                 "level_id": level,
                 "name": name if name else "distance_origin",
                 "status": "end",
-                "params": params,
+                "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             collection = self.db["sg_beta_specimen_distance"]

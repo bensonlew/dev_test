@@ -40,7 +40,7 @@ class Hcluster(object):
                 'task_id': matrix_info['task_id'],
                 'table_id': object_matrix_id,
                 'table_type': 'dist',
-                'name': 'hcluster_' + data.hcluster_method + '_' + time.asctime(time.localtime(time.time())),
+                'name': 'hcluster_' + data.hcluster_method + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
                 'tree_type': 'cluster',
                 'hcluster_method': data.hcluster_method,
                 'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),

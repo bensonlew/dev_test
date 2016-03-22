@@ -2,6 +2,7 @@
 # __author__ = 'shenghe'
 from biocluster.iofile import File
 import re
+# from Bio import Phylo
 # import subprocess
 # from biocluster.config import Config
 # import os
@@ -21,7 +22,7 @@ class NewickTreeFile(File):
         """
         super(NewickTreeFile, self).get_info()
         newickinfo = self.get_newick_info()
-        self.set_property('sample', newickinfo)
+        self.set_property('sample', newickinfo[:: -1])
         self.set_property('count', len(newickinfo))
 
     def get_newick_info(self):
@@ -67,3 +68,12 @@ class NewickTreeFile(File):
             else:
                 raise FileError('文件结尾不是分号‘;’')
         return True
+
+    # def terminals_rank(self):
+    #     """
+    #     获取树的枝叶排序列表
+    #     """
+    #     self.check()
+    #     tree = Phylo.read(self.path, 'newick')
+    #     terminals = [i.name for i in tree.get_terminals()]
+    #     return terminals[:: -1]

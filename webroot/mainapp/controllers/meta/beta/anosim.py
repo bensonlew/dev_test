@@ -47,7 +47,7 @@ class Anosim(object):
             info = {'success': False, 'info': '不同分组存在相同的样本id'}
             return json.dumps(info)
         if len(samples) <= len(group):
-            info = {'success': False, 'info': '不可各个组只含有一个样本samples:%s,group:%s' % (samples, group)}
+            info = {'success': False, 'info': '不可每个组都只含有一个样本'}
             return json.dumps(info)
         object_otu_id = self.check_objectid(data.otu_id)
         if object_otu_id:
@@ -71,7 +71,7 @@ class Anosim(object):
                 'otu_id': ObjectId(data.otu_id),
                 'level_id': int(data.level_id),
                 'name': ('anosim_group_' + otu_info['name'] +
-                         '_' + time.asctime(time.localtime(time.time()))),
+                         '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
                 'group_id': data.group_id,
                 'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
                 'status': 'start',
