@@ -73,6 +73,7 @@ class Option(object):
                 self._value = opt['default']
             else:
                 self.bind_obj.logger.debug("参数%s没有默认值，请确认确实不需要默认值？" % self._name)
+                self._value = None
 
         if opt['type'] not in {"int", "float", "string", "bool", "infile", "outfile"}:
             raise OptionError("参数属性不在规范范围内type：{}".format(self._type))

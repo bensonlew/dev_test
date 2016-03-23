@@ -2,7 +2,6 @@
 # __author__ = 'guoquan'
 from biocluster.api.database.base import Base, report_check
 import re
-import json
 
 
 class Sample(Base):
@@ -57,7 +56,8 @@ class Sample(Base):
         data_list = []
         with open(file_path, 'r') as f:
             l = f.readline()
-            if not re.match(r"column\tcount\tmin\tmax\tsum\tmean\tQ1\tmed\tQ3\tIQR\tlW\trW\tA_Count\tC_Count\tG_Count\tT_Count\tN_Count\tMax_count", l):
+            if not re.match(r"column\tcount\tmin\tmax\tsum\tmean\tQ1\tmed\tQ3\tIQR\tlW\trW\t"
+                            r"A_Count\tC_Count\tG_Count\tT_Count\tN_Count\tMax_count", l):
                 raise Exception("文件%s格式不正确，请选择正确的碱基统计文件" % file_path)
             while True:
                 line = f.readline().strip('\n')
