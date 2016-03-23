@@ -24,10 +24,15 @@ class PanCoreWorkflow(Workflow):
         self.pan_core = self.add_tool("meta.otu.pan_core_otu")
 
     def run_pan_core(self):
-        options = {
-            "in_otu_table": self.option("in_otu_table"),
-            "group_table": self.option("group_table")
-        }
+        if self.option("group_table").prop["is_empty"]:
+            options = {
+                "in_otu_table": self.option("in_otu_table")
+            }
+        else:
+            options = {
+                "in_otu_table": self.option("in_otu_table"),
+                "group_table": self.option("group_table")
+            }
         self.pan_core.set_options(options)
         self.pan_core.on('end', self.set_db)
         self.pan_core.run()
