@@ -76,7 +76,7 @@ class RarefactionAgent(Agent):
                 result_dir.add_regexp_rules([
                     [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
                 ])
-                self.logger.info("{}指数的simpleID的稀释性曲线表".format(i))
+                # self.logger.info("{}指数的simpleID的稀释性曲线表".format(i))
             else:
                 result_dir.add_relpath_rules([
                     ["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)]
