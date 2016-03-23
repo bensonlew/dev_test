@@ -95,6 +95,29 @@ class AlphaDiversityModule(Module):
         # self.option('estimators').set_path(self.output_dir+'/estimators')
         # self.option('rarefaction').set_path(self.output_dir+'/rarefaction')
         self.logger.info('done')
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["./estimators.xls", "xls", "alpha多样性指数表"]
+        ])
+        for i in self.option("rarefy_indices").split(","):
+            self.logger.info(i)
+            if i == "sobs":
+                result_dir.add_relpath_rules([
+                    ["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)]
+                ])
+                result_dir.add_regexp_rules([
+                    [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                ])
+                self.logger.info("{}指数的simpleID的稀释性曲线表".format(i))
+            else:
+                result_dir.add_relpath_rules([
+                    ["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)]
+                ])
+                result_dir.add_regexp_rules([
+                    [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                ])
+        print self.get_upload_files()
         self.end()
 
     def run(self):

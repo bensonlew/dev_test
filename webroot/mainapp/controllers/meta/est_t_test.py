@@ -39,7 +39,7 @@ class EstTTest(object):
         est_info = Estimator().get_est_table_info(data.alpha_diversity_id)
         # print(est_info)
         if est_info:
-            name = "est_t_test_" + str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+            name = "est_t_test_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             est_t_test_id = Estimator().add_est_t_test_collection(params, data.group_id, data.alpha_diversity_id, name)
             # print(est_t_test_id)
             update_info = {str(est_t_test_id): "sg_alpha_est_t_test", str(est_t_test_id): "sg_alpha_est_t_test"}
