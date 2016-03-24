@@ -518,11 +518,16 @@ class Basic(EventObject):
         up_file_list = []
         for obj in self._upload_dir_obj:
             for i in obj.file_list:
+                if i.relpath == ".":
+                    path = os.path.basename(i.base_path)
+                else:
+                    path = "%s/%s" % (os.path.basename(i.base_path), i.relpath)
                 data = {
-                    "path": "%s/%s" % (os.path.basename(i.full_path), i.relpath),
+                    "path": path,
                     "type": i.file_type,
                     "format": i.format,
-                    "description": i.description
+                    "description": i.description,
+                    "size": i.size
                 }
                 up_file_list.append(data)
         return up_file_list
@@ -845,10 +850,6 @@ class UploadDir(object):
             self._dir_path = os.path.abspath(dir_path)
             if not os.listdir(dir_path):
                 self._parent.logger.warning("文件夹%s为空，请确认是否已经拷贝？" % dir_path)
-            for i in os.walk(dir_path):
-                self._file_list.append(ResultFile(i[0], dir_path, "dir"))
-                for file_name in i[2]:
-                    self._file_list.append(ResultFile(os.path.join(i[0], file_name), dir_path, "file"))
 
     def add_regexp_rules(self, match_rules):
         """
@@ -871,6 +872,8 @@ class UploadDir(object):
         第二个元素为格式path, 第三个元素为文件或文件夹说明
         :return:
         """
+        if not isinstance(match_rules, list):
+            raise Exception("匹配规则必须为数组!")
         for rule in match_rules:
             self._relpath_rules.append(rule)
 
@@ -881,18 +884,25 @@ class UploadDir(object):
 
         :return:
         """
+        for i in os.walk(self._dir_path):
+            self._file_list.append(ResultFile(i[0], self._dir_path, "dir"))
+            for file_name in i[2]:
+                self._file_list.append(ResultFile(os.path.join(i[0], file_name), self._dir_path, "file"))
         for r_rule in self._regexp_rules:
+            # print r_rule
             pattern = re.compile(r_rule[0])
             for sub_file in self._file_list:
                 match = pattern.match(sub_file.relpath)
+                # print r_rule[0], sub_file.relpath, match
                 if match:
                     sub_file.format = r_rule[1]
                     sub_file.description = r_rule[2]
         for r_rule in self._relpath_rules:
             for sub_file in self._file_list:
-                if os.path.relpath(sub_file.relpath, r_rule[1]) == ".":
-                    sub_file.format = r_rule[1]
-                    sub_file.description = r_rule[2]
+                # print sub_file.relpath, r_rule[1]
+                if os.path.relpath(sub_file.relpath, r_rule[0]) == ".":
+                        sub_file.format = r_rule[1]
+                        sub_file.description = r_rule[2]
 
         for sub_file in self._file_list:
             if sub_file.file_type == "file" and sub_file.format == "":
@@ -917,6 +927,14 @@ class ResultFile(object):
     def __init__(self, full_path, base_path, file_type="file"):
         self.file_type = file_type
         self.full_path = full_path
+        self.base_path = base_path
         self.relpath = os.path.relpath(full_path, base_path)
         self.format = ""
         self.description = ""
+
+    @property
+    def size(self):
+        if self.file_type == "file":
+            return os.path.getsize(self.full_path)
+        else:
+            return ""

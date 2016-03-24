@@ -80,7 +80,7 @@ class MultipleWorkflow(Workflow):
                     if not os.path.isfile(ci_path):
                         raise Exception("找不到报告文件:{}".format(ci_path))
                     api_multiple.add_mulgroup_species_difference_check_ci_plot(file_path=ci_path,
-                                                                               table_id=self.option("multiple_id"))
+                                                                               table_id=self.option("multiple_id"), methor = self.option("methor"))
         api_multiple.add_species_difference_check_detail(file_path=stat_path, table_id=self.option("multiple_id"))
         api_multiple.add_species_difference_check_boxplot(boxfile_path, self.option("multiple_id"))
         self.end()
