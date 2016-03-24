@@ -53,7 +53,7 @@ def stat_info(statfile, groupfile):
                         sd_dict[gname].append(float(sline_list[index_site + 2].strip('\"')))
         # print mean_dict, sd_dict, taxon_list
         return mean_dict, sd_dict, taxon_list
-stat_info("C:\\Users\\ping.qiu.MAJORBIO\\Desktop\\anova_result.xls", "C:\\Users\\ping.qiu.MAJORBIO\\Desktop\\anova_group")
+# stat_info("C:\\Users\\ping.qiu.MAJORBIO\\Desktop\\anova_result.xls", "C:\\Users\\ping.qiu.MAJORBIO\\Desktop\\anova_group")
 
 
 

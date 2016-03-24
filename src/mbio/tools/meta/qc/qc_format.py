@@ -5,6 +5,7 @@ import traceback
 import os
 import subprocess
 import re
+import gzip
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -96,9 +97,43 @@ class QcFormatTool(Tool):
         """
         无对应文件，拆分fastq
         """
+        self.option('in_fastq').get_info()
+        if self.option('in_fastq').prop["is_gz"]:
+            self._open_gzip()
+        else:
+            self._open_file()
+
+    def _open_file(self):
         warninglog = False
         count = 0
         with open(self.option('in_fastq').prop['path'], 'r') as f:
+            for line in f:
+                count += 1
+                line = line.rstrip('\n')
+                name = re.split('\s+', line)[0]
+                name = re.sub(r'@', '', name)
+                line = re.split(r'_', name)
+                if len(line) > 2:
+                    warninglog = True
+                head = line[-1]
+                line.pop(-1)
+                filename = "_".join(line)
+                filename = os.path.join(self.fastq_dir, filename + ".fastq")
+                with open(filename, 'a') as a:
+                    a.write("@" + head + "\n")
+                    for i in range(1, 4):
+                        line = f.next()
+                        a.write(line)
+                if count % 10000 == 0:
+                    self.logger.info("正在输出第" + str(count) + "条序列")
+        if warninglog:
+            self.logger.warning("fastq文件里包含有两个以上的下划线，程序将取最后一个下划线之前的所有内容作为样本名！")
+        self.logger.info("fastq 文件拆分完毕 ")
+
+    def _open_gzip(self):
+        warninglog = False
+        count = 0
+        with gzip.open(self.option('in_fastq').prop['path'], 'r') as f:
             for line in f:
                 count += 1
                 line = line.rstrip('\n')

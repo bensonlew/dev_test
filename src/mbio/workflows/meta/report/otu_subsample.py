@@ -43,9 +43,9 @@ class OtuSubsampleWorkflow(Workflow):
             os.system('cp ' + self.task.output_dir + '/otu_taxon.subsample.xls ' + self.output_dir)
         except:
             raise Exception("复制结果文件到output_dir出错！")
-        api_otu = self.api.meta
+        api_otu = self.api.sub_sample
         otu_path = self.task.output_dir + "/otu_taxon.subsample.xls"
         if not os.path.isfile(otu_path):
             raise Exception("找不到报告文件:{}".format(otu_path))
-        api_otu.add_otu_table(otu_path, self.option("output_otu_id"))
+        api_otu.add_sg_otu_detail(otu_path, self.option("input_otu_id"), self.option("output_otu_id"))
         self.end()

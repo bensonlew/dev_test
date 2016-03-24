@@ -38,7 +38,10 @@ class StatTest(Base):
                 length = len(line_data)
                 i = 1
                 for name in group_list:
-                    data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", float(line_data[length-1])),("pvalue", float(line_data[length-2]))]
+                    if line_data[length-1] == 'NA' or line_data[length-2] == 'NA':
+                        data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", line_data[length-1]),("pvalue", line_data[length-2])]
+                    else:
+                        data = [("species_check_id", table_id),("species_name", line_data[0]),("qvalue", float(line_data[length-1])),("pvalue", float(line_data[length-2]))]
                     data.append(("category_name", name))
                     data.append(("mean", float(line_data[i])))
                     data.append(("sd", float(line_data[i+1])))
@@ -75,12 +78,18 @@ class StatTest(Base):
                 if not line:
                     break
                 line_data = line.split("\t")
-                data = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", float(line_data[4])),
-                        ("pvalue", float(line_data[3])), ("specimen_name", sample[0]), ("propotion", float(line_data[1]))]
+                if line_data[3] == 'NA' or line_data[4] == 'NA':
+                    data = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", line_data[4]),
+                            ("pvalue", line_data[3]), ("specimen_name", sample[0]), ("propotion", float(line_data[1]))]
+                    data1 = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", line_data[4]),
+                            ("pvalue", line_data[3]), ("specimen_name", sample[1]), ("propotion", float(line_data[2]))]
+                else:
+                    data = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", float(line_data[4])),
+                            ("pvalue", float(line_data[3])), ("specimen_name", sample[0]), ("propotion", float(line_data[1]))]
+                    data1 = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", float(line_data[4])),
+                            ("pvalue", float(line_data[3])), ("specimen_name", sample[1]), ("propotion", float(line_data[2]))]
                 data_son = SON(data)
                 data_list.append(data_son)
-                data1 = [("species_check_id", table_id), ("species_name", line_data[0]), ("qvalue", float(line_data[4])),
-                         ("pvalue", float(line_data[3])), ("specimen_name", sample[1]), ("propotion", float(line_data[2]))]
                 data_son1 = SON(data1)
                 data_list.append(data_son1)
         try:
@@ -144,7 +153,7 @@ class StatTest(Base):
                     break
                 line_data = line.split("\t")
                 data = [("species_check_id", table_id), ("species_name", line_data[0]), ("effectsize", float(line_data[1])),
-                        float(("lower_ci", line_data[2])), float(("upper_ci", line_data[3]))]
+                        ("lower_ci", float(line_data[2])), ("upper_ci", float(line_data[3]))]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
@@ -157,7 +166,7 @@ class StatTest(Base):
         return data_list
 
     @report_check
-    def add_mulgroup_species_difference_check_ci_plot(self, file_path, table_id):
+    def add_mulgroup_species_difference_check_ci_plot(self, file_path, table_id, methor):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
                 table_id = ObjectId(table_id)
@@ -174,9 +183,14 @@ class StatTest(Base):
                 if not line:
                     break
                 line_data = line.split("\t")
-                data = [("species_check_id", table_id), ("species_name", line_data[0]), float(("effectsize", line_data[1])),
-                        float(("lower_ci", line_data[2])), float(("upper_ci", line_data[3])), float(("post_hoc_pvalue", line_data[4])),
-                        ("compare_category", compare_group.replace('.xls',''))]
+                if methor == 'tukeykramer' or methor == 'gameshowell':
+                    data = [("species_check_id", table_id), ("species_name", line_data[0]), ("effectsize", float(line_data[1])),
+                            ("lower_ci", float(line_data[2])), ("upper_ci", float(line_data[3])), ("post_hoc_pvalue", line_data[4]),
+                            ("compare_category", compare_group.replace('.xls',''))]
+                else:
+                    data = [("species_check_id", table_id), ("species_name", line_data[0]), ("effectsize", float(line_data[1])),
+                            ("lower_ci", float(line_data[2])), ("upper_ci", float(line_data[3])), ("post_hoc_pvalue", float(line_data[4])),
+                            ("compare_category", compare_group.replace('.xls',''))]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
@@ -308,7 +322,7 @@ class StatTest(Base):
         return inserted_id
 
     @report_check
-    def update_species_difference_check(self, errorbar_path, table_id):
+    def update_species_difference_check(self, errorbar_path, table_id, statfile, cifile, test):
         collection = self.db["sg_species_difference_check"]
         fs = gridfs.GridFS(self.db)
         errorbar_id = fs.put(open(errorbar_path, 'r'))
@@ -318,6 +332,41 @@ class StatTest(Base):
             self.bind_object.logger.error("导入%s信息出错:%s" % (errorbar_path, e))
         else:
             self.bind_object.logger.info("导入%s信息成功!" % (errorbar_path))
+        
+        # to plot ci error bar
+        with open(statfile,'rb') as s, open(cifile, 'rb') as c:
+            sinfo = s.readlines()
+            meanlist = []
+            lowci = []
+            length = len(sinfo)
+            if test == 'twogroup':
+                for i in range(1,length):
+                    line = sinfo[i].strip('\n').split('\t')
+                    meanlist.append(float(line[1]))
+                    meanlist.append(float(line[3]))
+            else:
+                for i in range(1,length):
+                    line = sinfo[i].strip('\n').split('\t')
+                    meanlist.append(float(line[1]))
+                    meanlist.append(float(line[2]))
+            max_mean = max(meanlist)
+            cinfo = c.readlines()
+            ci = []
+            len_ci = len(cinfo)
+            for i in range(1,len_ci):
+                line_ci = cinfo[i].strip('\n').split('\t')
+                ci.append(float(line_ci[3])-float(line_ci[2]))
+                lowci.append(float(line_ci[2]))
+            max_ci = max(ci)
+            min_low = min(lowci)
+            if max_ci <= max_mean:
+                n = 1
+            else:
+                n = round(max_ci / max_mean)
+            l = round(abs(min_low/n) + max_mean + 3)
+            collection.update({"_id": ObjectId(table_id)}, {"$set": {"n": n, "l": l}})       
+
+            
 
 
 

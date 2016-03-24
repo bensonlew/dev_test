@@ -21,6 +21,7 @@ class GroupTableFile(File):
         self.set_property("sample_number", len(info[0]))
         self.set_property("sample", info[0])
         self.set_property("group_scheme", info[1])
+        self.set_property("is_empty", info[2])
 
     def get_file_info(self):
         """
@@ -28,10 +29,15 @@ class GroupTableFile(File):
         """
         row = 0
         self.format_check()
+        is_empty = False
         with open(self.prop['path'], 'r') as f:
             sample = list()
             line = f.readline().rstrip("\r\n")
             line = re.split("\t", line)
+            if line[1] == "##empty_group##":
+                is_empty = True
+            else:
+                is_empty = False
             header = list()
             len_ = len(line)
             for i in range(1, len_):
@@ -42,7 +48,7 @@ class GroupTableFile(File):
                 row += 1
                 if line[0] not in sample:
                     sample.append(line[0])
-            return (sample, header)
+            return (sample, header, is_empty)
 
     def format_check(self):
         with open(self.prop['path'], 'r') as f:
@@ -66,8 +72,9 @@ class GroupTableFile(File):
     def check(self):
         if super(GroupTableFile, self).check():
             self.get_info()
-            if self.prop['sample_number'] == 0:
-                raise FileError('应该至少包含一个样本')
+            if not self.prop['is_empty']:
+                if self.prop['sample_number'] == 0:
+                    raise FileError('应该至少包含一个样本')
 
     def sub_group(self, target_path, header):
         """
