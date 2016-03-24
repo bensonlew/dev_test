@@ -62,6 +62,31 @@ class RarefactionAgent(Agent):
         self._cpu = 11
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        for i in self.option("indices").split(","):
+            self.logger.info(i)
+            if i == "sobs":
+                result_dir.add_relpath_rules([
+                    ["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)]
+                ])
+                result_dir.add_regexp_rules([
+                    [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                ])
+                # self.logger.info("{}指数的simpleID的稀释性曲线表".format(i))
+            else:
+                result_dir.add_relpath_rules([
+                    ["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)]
+                ])
+                result_dir.add_regexp_rules([
+                    [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                ])
+        print self.get_upload_files()
+        super(RarefactionAgent, self).end()
+
 
 class RarefactionTool(Tool):
     """

@@ -2,7 +2,6 @@
 # __author__ = 'guoquan'
 from biocluster.api.database.base import Base, report_check
 import re
-import json
 
 
 class Sample(Base):
@@ -27,11 +26,11 @@ class Sample(Base):
                     "project_sn": self.bind_object.sheet.project_sn,
                     "task_id": self.bind_object.sheet.id,
                     "specimen_name": line_data[0],
-                    "read_number": line_data[1],
-                    "base_number": line_data[2],
-                    "average_length": line_data[3],
-                    "min_length": line_data[4],
-                    "max_length": line_data[5],
+                    "read_number": int(line_data[1]),
+                    "base_number": int(line_data[2]),
+                    "average_length": int(line_data[3]),
+                    "min_length": int(line_data[4]),
+                    "max_length": int(line_data[5]),
                     "is_initial": 1
                 }
                 data_list.append(data)
@@ -57,7 +56,8 @@ class Sample(Base):
         data_list = []
         with open(file_path, 'r') as f:
             l = f.readline()
-            if not re.match(r"column\tcount\tmin\tmax\tsum\tmean\tQ1\tmed\tQ3\tIQR\tlW\trW\tA_Count\tC_Count\tG_Count\tT_Count\tN_Count\tMax_count", l):
+            if not re.match(r"column\tcount\tmin\tmax\tsum\tmean\tQ1\tmed\tQ3\tIQR\tlW\trW\t"
+                            r"A_Count\tC_Count\tG_Count\tT_Count\tN_Count\tMax_count", l):
                 raise Exception("文件%s格式不正确，请选择正确的碱基统计文件" % file_path)
             while True:
                 line = f.readline().strip('\n')
@@ -68,15 +68,15 @@ class Sample(Base):
                     "project_sn": self.bind_object.sheet.project_sn,
                     "task_id": self.bind_object.sheet.id,
                     "specimen_id": specimen_id,
-                    "column": line_data[0],
-                    "min": line_data[2],
-                    "max": line_data[3],
-                    "q1": line_data[6],
-                    "q3": line_data[8],
-                    "median": line_data[7],
-                    "average": line_data[5],
-                    "lw": line_data[10],
-                    "rw": line_data[11]
+                    "column": int(line_data[0]),
+                    "min": int(line_data[2]),
+                    "max": int(line_data[3]),
+                    "q1": int(line_data[6]),
+                    "q3": int(line_data[8]),
+                    "median": int(line_data[7]),
+                    "average": round(float(line_data[5]), 2),
+                    "lw": int(line_data[10]),
+                    "rw": int(line_data[11])
                 }
                 data_list.append(data)
         try:
@@ -114,7 +114,7 @@ class Sample(Base):
                 i = 0
                 for step in length_list:
                     i += 1
-                    step_data[step] = line_data[i]
+                    step_data[step] = int(line_data[i])
                 data = {
                     "project_sn": self.bind_object.sheet.project_sn,
                     "task_id": self.bind_object.sheet.id,

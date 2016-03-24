@@ -129,6 +129,7 @@ class FastqFile(File):
                     if not re.search(r'^@', line):
                         raise Exception("未检测到@，非压缩后的fastq格式文件")
                     line = re.sub("^@", "", line)
+                    line = re.split('\s+', line)[0]
                     line = re.split('_', line)
                     line.pop(-1)
                     sp_name = "_".join(line)
@@ -149,6 +150,7 @@ class FastqFile(File):
                     if not re.search(r'^@', line):
                         raise Exception("未检测到@，非fastq格式文件")
                     line = re.sub("^@", "", line)
+                    line = re.split('\s+', line)[0]
                     line = re.split('_', line)
                     line.pop(-1)
                     sp_name = "_".join(line)
