@@ -72,10 +72,9 @@ class PcaAgent(Agent):
                 raise OptionError('环境因子表的样本数目少于2，不可进行beta多元分析')
             filter_otu = self.filter_otu_sample(self.option('otutable').path,
                                                 self.option('envtable').prop['sample'],
-                                                os.path.join(self.work_dir + '/temp_filter.otutable'))
+                                                os.path.join(self.work_dir + 'temp_filter.otutable'))
             if filter_otu == self.option('otutable').path:
                 pass
-                print 'AAAAAAAAAAAAAAAAAA'
             else:
                 print filter_otu
                 self.option('otutable').set_path(filter_otu)
