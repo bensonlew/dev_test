@@ -49,8 +49,21 @@ class OtuTaxonStatAgent(Agent):
         self.option("in_otu_table").get_info()
         if self.option("in_otu_table").prop['metadata'] == "taxonomy":
             raise OptionError("otu表不应该有taxonomy信息")
-
         return True
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [r".", "", "结果输出目录"],
+            [r"./otu_taxon.biom", "meta.otu.biom", "OTU表的biom格式的文件"],
+            [r"./otu_taxon.xls", "meta.otu.otu_table", "OTU表"],
+            [r"./tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"]
+        ])
+        result_dir.add_regexp_rules([
+            ["tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
+            ["tax_summary_a/.+\.xls$", "meta.otu.biom", "OTU表, 没有完整的分类学信息"],
+            ["tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "OTU表, 带有完整的分类学信息"]
+        ])
 
     def set_resource(self):
         """

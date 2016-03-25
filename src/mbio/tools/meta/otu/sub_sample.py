@@ -59,6 +59,16 @@ class SubSampleAgent(Agent):
         self._cpu = 1
         self._memory = ""
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        result_dir.add_regexp_rules([
+            ['\.subsample\.', 'meta.otu.otu_table', "抽平后的otu表格"]
+        ])
+        super(SubSampleAgent, self).end()
+
 
 class SubSampleTool(Tool):
     def __init__(self, config):

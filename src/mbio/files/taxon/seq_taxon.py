@@ -6,6 +6,7 @@
 from biocluster.iofile import File
 import re
 from biocluster.core.exceptions import FileError
+from collections import defaultdict
 
 
 class SeqTaxonFile(File):
@@ -64,12 +65,16 @@ class SeqTaxonFile(File):
         return (form, seq_num)
 
     def get_all_name(self):
-        my_name = list()
+        my_name = defaultdict(int)
         with open(self.prop["path"], 'rb') as r:
             for line in r:
                 line = re.split('\t', line)
-                if line[0] not in my_name:
-                    my_name.append(line[0])
-                else:
-                    raise Exception("名称{}在ref_taxon表里重复".format(line[0]))
+                my_name[line[0]] += 1
+        dup_list = list()
+        for k in my_name.iterkeys():
+            if my_name[k] > 1:
+                dup_list.append(k)
+        if len(dup_list) > 0:
+            str_ = "; ".join(dup_list)
+            raise Exception("序列名:{}在输入的tax文件里面重复".format(str_))
         return my_name
