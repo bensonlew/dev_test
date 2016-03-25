@@ -153,3 +153,18 @@ class MiseqQcModule(Module):
         super(MiseqQcModule, self).run()
         self.qc_format_run()
         self.on_rely([self.base_info, self.samples_info, self.reads_len_info], self.end)
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [r".", "", "结果输出目录"],
+            [r'./base_info', "", "样品碱基信息统计目录"],
+            ["./reads_len_info", "", "样本长度分布信息文件夹"],
+            ["./samples_info", "", "样本信息结果目录"],
+            ["samples_info.txt", "", "样本信息统计文件"]
+        ])
+        result_dir.add_regexp_rules([
+            ["\./base_info/.+\.fastxstat\.txt", "fastxstat", "碱基质量统计文件"],
+            ["\.reads_len_info\.txt", "reads_len_info", "样本长度分布信息文件"]
+        ])
+        super(MiseqQcModule, self).end()

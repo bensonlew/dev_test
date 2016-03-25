@@ -57,6 +57,14 @@ class QiimeAssignAgent(Agent):
             if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea', 'silva119/18s_eukaryota', 'unite7.0/its_fungi', 'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS', 'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [r".", "", "结果输出目录"],
+            [r"./seqs_tax_assignments.txt", "xls", "OTU的分类学信息"]
+        ])
+        super(QiimeAssignAgent, self).end()
+
     def set_resource(self):
         """
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory

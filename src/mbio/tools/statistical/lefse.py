@@ -86,6 +86,7 @@ class LefseAgent(Agent):
             ["./lefse_LDA.png", "png", "lefse分析LDA图片"],
             ["./lefse_LDA.xls", "xls", "lefse分析lda数据表"]
         ])
+        print self.get_upload_files()
         super(LefseAgent, self).end()
 
 
@@ -119,7 +120,7 @@ class LefseTool(Tool):
 
     def run_script(self):
         self.add_state("sum_taxa_start", data="开始生成每一水平的物种统计文件")
-        script_cmd = self.script_path + "summarize_taxa.py -i otu_taxa_table.biom -o tax_summary_a -L 1,2,3,4,5,6,7 -a"
+        script_cmd = self.script_path + "summarize_taxa.py -i otu_taxa_table.biom -o tax_summary_a -L 1,2,3,4,5,6,7,8 -a"
         print script_cmd
         self.logger.info("开始运行script_cmd")
         script_command = self.add_command("script_cmd", script_cmd).run()
@@ -130,7 +131,7 @@ class LefseTool(Tool):
             self.set_error("script_cmd运行出错!")
 
     def run_sum_tax(self):
-        cmd = "for ((i=1;i<=7;i+=1)){\n\
+        cmd = "for ((i=1;i<=8;i+=1)){\n\
             /mnt/ilustre/users/sanger/app/meta/scripts/sum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
               "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
             mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
@@ -162,7 +163,7 @@ class LefseTool(Tool):
         if plot_command.return_code == 0:
             self.logger.info("format_input_cmd运行完成")
         else:
-            self.set_error("plot_cmd运行出错!")
+            self.set_error("format_input_cmd运行出错!")
         
     def run_lefse(self):
         cmd = 'Python/bin/python /mnt/ilustre/users/sanger/app/meta/lefse/run_lefse.py lefse_format.txt lefse_LDA.xls ' \

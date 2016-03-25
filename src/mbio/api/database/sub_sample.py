@@ -12,6 +12,7 @@ class SubSample(Base):
         super(SubSample, self).__init__(bind_object)
         self._db_name = "sanger"
         self.name_id = dict()  # otu表中样本名和id对照的字典
+        self.otu_rep = dict()  # otu名, otu代表序列的对照
 
     def _get_name_id(self, from_otu_id):
         collection = self.db['sg_otu_specimen']
@@ -36,6 +37,17 @@ class SubSample(Base):
         self.project_sn = result['project_sn']
         self.task_id = result['task_id']
 
+    def _prepare_otu_rep(self, from_otu_id):
+        """
+        实际运行的时候发现对每一行(即每一个otu)都去数据库里查询一次，并获取otu_rep的时候，效率非常低，需要很长的时间， 因此，需要对mongo做一次查询， 将属于一个otu_id的otu_rep全部去读出来， 放到内存当中， 以提高效率
+        """
+        self.bind_object.logger.info("开始依据otu_id: {}查询所有的代表序列".format(from_otu_id))
+        collection = self.db["sg_otu_detail"]
+        results = collection.find({"otu_id": from_otu_id})
+        for result in results:
+            self.otu_rep[result['otu']] = result["otu_rep"]
+        self.bind_object.logger.info("代表序列查询完毕")
+
     @report_check
     def add_sg_otu_detail(self, file_path, from_otu_id, new_otu_id):
         if not isinstance(from_otu_id, ObjectId):
@@ -51,6 +63,8 @@ class SubSample(Base):
         self._get_name_id(from_otu_id)
         self._get_task_info(new_otu_id)
         # 导入sg_otu_detail表
+        self.bind_object.logger.info("开始导入sg_otu_detail表")
+        self._prepare_otu_rep(from_otu_id)
         insert_data = list()
         with open(file_path, 'rb') as r:
             head = r.next().strip('\r\n')
@@ -58,10 +72,7 @@ class SubSample(Base):
             new_head = head[1:-1]
             for line in r:
                 line = line.rstrip("\r\n")
-                query_dict = dict()  # 构建查询字典，用于获取otu_rep(代表序列)
                 line = re.split('\t', line)
-                query_dict["otu"] = line[0]
-                query_dict["otu_id"] = from_otu_id
                 sample_num = line[1:-1]
                 classify_list = re.split(r"\s*;\s*", line[-1])
                 otu_detail = dict()
@@ -72,14 +83,11 @@ class SubSample(Base):
                         otu_detail[cf[0:3]] = cf
                 for i in range(0, len(sample_num)):
                     otu_detail[new_head[i]] = sample_num[i]
-                collection = self.db['sg_otu_detail']
-                result = collection.find_one(query_dict)
-                if not result:
-                    raise Exception("未知错误，出入的otu_id: {}和otu: {}在sg_otu_detail表中未找到".format(from_otu_id, line[0]))
-                otu_detail['otu_rep'] = result["otu_rep"]
+                if line[0] not in self.otu_rep:
+                    raise Exception("意外错误，otu_id: {}和otu: {}在sg_otu_detail表里未找到".format(from_otu_id, line[0]))
+                otu_detail['otu_rep'] = self.otu_rep[line[0]]
                 otu_detail['task_id'] = self.task_id
                 insert_data.append(otu_detail)
-        self.bind_object.logger.debug(insert_data)
         try:
             collection = self.db['sg_otu_detail']
             collection.insert_many(insert_data)
@@ -88,6 +96,7 @@ class SubSample(Base):
         else:
             self.bind_object.logger.info("导入sg_otu_detail表格成功")
         # 导入sg_otu_specimen表
+        self.bind_object.logger.info("开始导入sg_otu_specimen表")
         insert_data = list()
         for sp in new_head:
             my_data = dict()

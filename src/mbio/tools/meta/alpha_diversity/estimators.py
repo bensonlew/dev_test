@@ -60,6 +60,15 @@ class EstimatorsAgent(Agent):
         self._cpu = 11
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["./estimators.xls", "xls", "alpha多样性指数表"]
+        ])
+        print self.get_upload_files()
+        super(EstimatorsAgent, self).end()
+
 
 class EstimatorsTool(Tool):
     """

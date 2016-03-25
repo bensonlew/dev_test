@@ -50,7 +50,7 @@ class Rarefaction(object):
         otu_info = Meta().get_otu_table_info(data.otu_id)
         # print(otu_info["task_id"])
         if otu_info:
-            name = "Rarefaction_" + str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+            name = "Rarefaction_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             rare_id = Estimator().add_rare_collection(data.level_id, params, data.otu_id, name)
             # print(rare_id)
             update_info = {str(rare_id): "sg_alpha_rarefaction_curve"}
