@@ -46,6 +46,17 @@ class ReadsLenInfoAgent(Agent):
             raise OptionError("参数fasta_path不能都为空")
         return True
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["./reads_len_info", "", "样本长度分布信息文件夹"]
+        ])
+        result_dir.add_regexp_rules([
+            ["\.reads_len_info\.txt", "reads_len_info", "样本长度分布信息文件"]
+        ])
+        super(ReadsLenInfoAgent, self).end()
+
     def set_resource(self):
         """
         设置所需资源

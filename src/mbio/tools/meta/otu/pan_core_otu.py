@@ -51,6 +51,14 @@ class PanCoreOtuAgent(Agent):
             raise OptionError("请选择正确的分类水平")
         return True
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [r".", "", "结果输出目录"],
+            [r"pan.richness.xls", "xls", "pan表格"],
+            [r"core.richness.xls", "xls", "core表格"]
+        ])
+
     def set_resource(self):
         """
         设置所需资源

@@ -53,6 +53,20 @@ class QcFormatAgent(Agent):
             if not self.option('in_fastq').prop['has_sample_info']:
                 raise OptionError("fastq文件中必须在序列名中带有样本名称(以下划线分隔)")
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["./fastq_dir", "sequence.fastq_dir", "样本所对应的fastq目录文件夹"],
+            ["./converted_fastas", "sequence.fasta_dir", "从fastq转换而来的fasta目录文件夹"],
+            ["./cat_meta.fasta", "sequence.fasta", "所有样本的fasta合并到一起的fasta文件"]
+        ])
+        result_dir.add_regexp_rules([
+            ['\./fastq_dir/.+\.fastq$', "sequence.fastq", "样本对应的fastq文件"],
+            ['\./converted_fastas/.+\.fasta$', "sequence.fasta", "由fastq转化而来的fasta文件"]
+        ])
+        super(QcFormatAgent, self).end()
+
     def set_resource(self):
         """
         设置所需资源
@@ -99,17 +113,51 @@ class QcFormatTool(Tool):
         """
         self.option('in_fastq').get_info()
         if self.option('in_fastq').prop["is_gz"]:
-            self._open_gzip()
+            seq_name2file_name = self._open_gzip()
         else:
-            self._open_file()
-
-    def _open_file(self):
-        warninglog = False
+            seq_name2file_name = self._open_file()
+        handler = dict()
+        self.logger.debug("正在准备文件...")
+        all_file = list(set(seq_name2file_name.values()))
+        """
+        for v in seq_name2file_name.itervalues():
+            c += 1
+            handler[v] = open(v, 'wb')
+            if c % 10000 == 0:
+                self.logger.debug("正在遍历第{}个key".format(c))
+        self.logger.debug(handler.iteritems())
+        """
+        self.logger.debug(all_file)
+        for l in all_file:
+            handler[l] = open(l, 'wb')
         count = 0
         with open(self.option('in_fastq').prop['path'], 'r') as f:
             for line in f:
                 count += 1
-                line = line.rstrip('\n')
+                line = line.rstrip('\r\n')
+                name = re.split('\s+', line)[0]
+                name = re.sub(r'@', '', name)
+                line = re.split(r'_', name)
+                head = line[-1]
+                handler[seq_name2file_name[head]].write("@" + head + "\n")
+                for i in range(1, 4):
+                    line = f.next()
+                    handler[seq_name2file_name[head]].write(line)
+                if count % 10000 == 0:
+                    self.logger.info("正在输出第" + str(count) + "条序列")
+        for v in seq_name2file_name.itervalues():
+            handler[v].close()
+        self.logger.info("fastq 文件拆分完毕 ")
+
+    def _open_file(self):
+        warninglog = False
+        count = 0
+        seq_name2file_name = dict()  # 记录序列名应该被输出到哪一个文件里面去
+        self.logger.info("正在遍历输入的fastq文件")
+        with open(self.option('in_fastq').prop['path'], 'r') as f:
+            for line in f:
+                count += 1
+                line = line.rstrip('\r\n')
                 name = re.split('\s+', line)[0]
                 name = re.sub(r'@', '', name)
                 line = re.split(r'_', name)
@@ -119,6 +167,13 @@ class QcFormatTool(Tool):
                 line.pop(-1)
                 filename = "_".join(line)
                 filename = os.path.join(self.fastq_dir, filename + ".fastq")
+                seq_name2file_name[head] = filename
+                f.next()
+                f.next()
+                f.next()
+                if count % 10000 == 0:
+                    self.logger.info("正在遍历第" + str(count) + "条序列")
+                """
                 with open(filename, 'a') as a:
                     a.write("@" + head + "\n")
                     for i in range(1, 4):
@@ -126,17 +181,21 @@ class QcFormatTool(Tool):
                         a.write(line)
                 if count % 10000 == 0:
                     self.logger.info("正在输出第" + str(count) + "条序列")
+        self.logger.info("fastq 文件拆分完毕 ")
+                """
         if warninglog:
             self.logger.warning("fastq文件里包含有两个以上的下划线，程序将取最后一个下划线之前的所有内容作为样本名！")
-        self.logger.info("fastq 文件拆分完毕 ")
+        return seq_name2file_name
 
     def _open_gzip(self):
         warninglog = False
         count = 0
+        self.logger.info("正在遍历输入的fastq文件")
+        seq_name2file_name = dict()  # 记录序列名应该被输出到哪一个文件里面去
         with gzip.open(self.option('in_fastq').prop['path'], 'r') as f:
             for line in f:
                 count += 1
-                line = line.rstrip('\n')
+                line = line.rstrip('\r\n')
                 name = re.split('\s+', line)[0]
                 name = re.sub(r'@', '', name)
                 line = re.split(r'_', name)
@@ -146,6 +205,13 @@ class QcFormatTool(Tool):
                 line.pop(-1)
                 filename = "_".join(line)
                 filename = os.path.join(self.fastq_dir, filename + ".fastq")
+                seq_name2file_name[head] = filename
+                f.next()
+                f.next()
+                f.next()
+                if count % 10000 == 0:
+                    self.logger.info("正在遍历第" + str(count) + "条序列")
+                """
                 with open(filename, 'a') as a:
                     a.write("@" + head + "\n")
                     for i in range(1, 4):
@@ -153,9 +219,11 @@ class QcFormatTool(Tool):
                         a.write(line)
                 if count % 10000 == 0:
                     self.logger.info("正在输出第" + str(count) + "条序列")
+        self.logger.info("fastq 文件拆分完毕 ")
+        """
         if warninglog:
             self.logger.warning("fastq文件里包含有两个以上的下划线，程序将取最后一个下划线之前的所有内容作为样本名！")
-        self.logger.info("fastq 文件拆分完毕 ")
+        return seq_name2file_name
 
     def get_fastq_dir(self):
         """

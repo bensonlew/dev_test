@@ -231,6 +231,7 @@ class Venn(Base):
             "from_id": otu_id,
             "name": "venn_otu_" + name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "status": "end",
+            "show": 0,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         collection = self.db['sg_otu']
