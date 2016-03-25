@@ -336,19 +336,30 @@ class MetaBaseWorkflow(Workflow):
         repaths = [
             [".", "", "多样性结果文件目录"],
             ["QC_stat", "", "样本数据统计文件目录"],
-            ["QC_stat/samples_info/samples_info.txt", "txt", ""],
+            ["QC_stat/samples_info/samples_info.txt", "xls", "样本信息统计文件"],
             ["QC_stat/base_info", "", "单个样本碱基质量统计目录"],
             ["QC_stat/reads_len_info", "", "序列长度分布统计文件目录"],
             ["Otu", "", "OTU聚类结果文件目录"],
             ["Tax_assign", "", "物种分类文件目录"],
+            ["Tax_assign/seqs_tax_assignments.txt", "xls", "OTU物种分类综合统计文件"],
             ["OtuTaxon_summary", "", "OTU物种分类综合统计目录"],
+            ["OtuTaxon_summary/otu_taxon.biom", "meta.otu.biom", "OTU表的biom格式的文件"],
+            ["OtuTaxon_summary/otu_taxon.xls", "meta.otu.otu_table", "OTU表"],
+            ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"]
             ["Alpha_diversity", "", "Alpha diversity文件目录"],
             ["Alpha_diversity/estimators.xls", "xls", "Alpha多样性指数表"],
-            ["Beta_diversity", "", "Beta diversity文件目录"]
-                               ]
+            ["Beta_diversity", "", "Beta diversity文件目录"],
+            ["Otu/otu_reps.fasta", "sequence.fasta", "代表序列"],
+            ["Otu/otu_seqids.txt", "xls", "OTU代表序列对应表"],
+            ["Otu/otu_table.biom", 'meta.otu.biom', "OTU表对应的Biom文件"],
+            ["Otu/otu_table.xls", "meta.otu.otu_table", "OTU表"]
+        ]
         regexps = [
-            [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
-            [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
+            ["QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "xls", "单个样本碱基质量统计文件"],
+            ["QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "xls", "序列长度分布统计文件"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "OTU表, 没有完整的分类学信息"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "OTU表, 带有完整的分类学信息"]
         ]
         for i in self.option("rarefy_indices").split(","):
             if i == "sobs":

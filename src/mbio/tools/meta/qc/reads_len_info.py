@@ -50,10 +50,10 @@ class ReadsLenInfoAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            ["./reads_len_info", "", "样本长度分布信息文件夹"]
+            ["reads_len_info", "", "样本长度分布信息文件夹"]
         ])
         result_dir.add_regexp_rules([
-            ["\.reads_len_info\.txt", "reads_len_info", "样本长度分布信息文件"]
+            ["\.reads_len_info\.txt$", "xls", "样本长度分布信息文件"]
         ])
         super(ReadsLenInfoAgent, self).end()
 

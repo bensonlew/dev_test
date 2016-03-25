@@ -48,11 +48,11 @@ class BaseInfoAgent(Agent):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [r'./base_info', "", "样品碱基信息统计目录"],
+            [r'base_info', "", "样品碱基信息统计目录"],
             [r".", "", "结果输出目录"]
         ])
         result_dir.add_regexp_rules([
-            ["\./base_info/.+\.fastxstat\.txt", "fastxstat", "碱基质量统计文件"]
+            ["\./base_info/.+\.fastxstat\.txt$", "xls", "碱基质量统计文件"]
         ])
         super(BaseInfoAgent, self).end()
 

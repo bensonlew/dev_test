@@ -161,10 +161,10 @@ class MiseqQcModule(Module):
             [r'./base_info', "", "样品碱基信息统计目录"],
             ["./reads_len_info", "", "样本长度分布信息文件夹"],
             ["./samples_info", "", "样本信息结果目录"],
-            ["samples_info.txt", "", "样本信息统计文件"]
+            ["samples_info.txt", "xls", "样本信息统计文件"]
         ])
         result_dir.add_regexp_rules([
-            ["\./base_info/.+\.fastxstat\.txt", "fastxstat", "碱基质量统计文件"],
-            ["\.reads_len_info\.txt", "reads_len_info", "样本长度分布信息文件"]
+            ["\./base_info/.+\.fastxstat\.txt$", "xls", "碱基质量统计文件"],
+            ["\.reads_len_info\.txt$", "xls", "样本长度分布信息文件"]
         ])
         super(MiseqQcModule, self).end()

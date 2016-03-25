@@ -60,8 +60,8 @@ class QiimeAssignAgent(Agent):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"],
-            [r"./seqs_tax_assignments.txt", "xls", "OTU的分类学信息"]
+            [".", "", "结果输出目录"],
+            ["seqs_tax_assignments.txt", "xls", "OTU的分类学信息"]
         ])
         super(QiimeAssignAgent, self).end()
 
