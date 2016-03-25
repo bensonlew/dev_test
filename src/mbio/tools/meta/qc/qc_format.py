@@ -57,9 +57,9 @@ class QcFormatAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            ["./fastq_dir", "sequence.fastq_dir", "样本所对应的fastq目录文件夹"],
-            ["./converted_fastas", "sequence.fasta_dir", "从fastq转换而来的fasta目录文件夹"],
-            ["./cat_meta.fasta", "sequence.fasta", "所有样本的fasta合并到一起的fasta文件"]
+            ["fastq_dir", "sequence.fastq_dir", "样本所对应的fastq目录文件夹"],
+            ["converted_fastas", "sequence.fasta_dir", "从fastq转换而来的fasta目录文件夹"],
+            ["cat_meta.fasta", "sequence.fasta", "所有样本的fasta合并到一起的fasta文件"]
         ])
         result_dir.add_regexp_rules([
             ['\./fastq_dir/.+\.fastq$', "sequence.fastq", "样本对应的fastq文件"],

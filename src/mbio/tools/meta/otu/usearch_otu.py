@@ -54,10 +54,10 @@ class UsearchOtuAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            ["./otu_reps.fasta", "sequence.fasta", "代表序列"],
-            ["./otu_seqids.txt", "xls", "OTU代表序列对应表"],
-            ["./otu_table.biom", 'meta.otu.biom', "OTU表对应的Biom文件"],
-            ["./otu_table.xls", "meta.otu.otu_table", "OTU表"]
+            ["otu_reps.fasta", "sequence.fasta", "代表序列"],
+            ["otu_seqids.txt", "xls", "OTU代表序列对应表"],
+            ["otu_table.biom", 'meta.otu.biom', "OTU表对应的Biom文件"],
+            ["otu_table.xls", "meta.otu.otu_table", "OTU表"]
         ])
         super(UsearchOtuAgent, self).end()
 

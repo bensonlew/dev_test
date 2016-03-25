@@ -44,8 +44,8 @@ class SamplesInfoAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            ["./samples_info", "", "样本信息结果目录"],
-            ["samples_info.txt", "", "样本信息统计文件"]
+            ["samples_info", "", "样本信息结果目录"],
+            ["samples_info/samples_info.txt", "xls", "样本信息统计文件"]
         ])
         super(SamplesInfoAgent, self).end()
 
