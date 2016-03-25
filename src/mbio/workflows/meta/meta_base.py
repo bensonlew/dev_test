@@ -331,3 +331,38 @@ class MetaBaseWorkflow(Workflow):
         self.on_rely(self.stat, self.run_beta)
         self.on_rely([self.alpha, self.beta], self.end)
         super(MetaBaseWorkflow, self).run()
+
+    def send_files(self):
+        repaths = [
+            [".", "", "多样性结果文件目录"],
+            ["QC_stat", "", "样本数据统计文件目录"],
+            ["QC_stat/samples_info/samples_info.txt", "txt", ""],
+            ["QC_stat/base_info", "", "单个样本碱基质量统计目录"],
+            ["QC_stat/reads_len_info", "", "序列长度分布统计文件目录"],
+            ["Otu", "", "OTU聚类结果文件目录"],
+            ["Tax_assign", "", "物种分类文件目录"],
+            ["OtuTaxon_summary", "", "OTU物种分类综合统计目录"],
+            ["Alpha_diversity", "", "Alpha diversity文件目录"],
+            ["Alpha_diversity/estimators.xls", "xls", "Alpha多样性指数表"],
+            ["Beta_diversity", "", "Beta diversity文件目录"]
+                               ]
+        regexps = [
+            [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
+            [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
+        ]
+        for i in self.option("rarefy_indices").split(","):
+            if i == "sobs":
+                repaths.append(["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)])
+                regexps.append([r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)])
+            else:
+                repaths.append(["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)])
+                regexps.append(
+                    [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)])
+        sdir = self.add_upload_dir(self.output_dir)
+        sdir.add_relpath_rules(repaths)
+        sdir.add_regexp_rules(regexps)
+        print self.get_upload_files()
+
+    def end(self):
+        self.send_files()
+        super(MetaBaseWorkflow, self).end()

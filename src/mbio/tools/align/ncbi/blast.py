@@ -13,6 +13,7 @@ class BlastAgent(Agent):
     author: guoquan  作者
     last_modify: 2015.9.21  最后修改日期
     """
+
     def __init__(self, parent):
         super(BlastAgent, self).__init__(parent)
         options = [
@@ -155,7 +156,3 @@ class BlastTool(Tool):
         else:
             db_name = self.option("database")
             self.run_blast(db_name)
-
-
-
-
