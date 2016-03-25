@@ -12,7 +12,7 @@ class DistanceBoxAgent(Agent):
     qiime
     version 1.0
     author shenghe
-    last_modified:2015.11.19
+    last_modified:2016.3.24
     """
 
     def __init__(self, parent):
@@ -59,13 +59,13 @@ class DistanceBoxAgent(Agent):
                 if self.option('grouplabs') not in self.option('group').prop['group_scheme']:
                     raise OptionError('选定的分组方案名:%s在分组文件中不存在' % self.option('grouplabs'))
             else:
-                self.option('grouplabs', self.option('group').prop['group_scheme'][0])
-            if len(samplelist) != len(self.option('group').prop['sample']):
-                raise OptionError('分组文件中样本数量:%s与距离矩阵中的样本数量:%s不一致' % (len(self.option('group').prop['sample']),
+                pass
+            if len(samplelist) < len(self.option('group').prop['sample']):
+                raise OptionError('分组文件中样本数量:%s多于距离矩阵中的样本数量:%s' % (len(self.option('group').prop['sample']),
                                   len(samplelist)))
             for sample in self.option('group').prop['sample']:
                 if sample not in samplelist:
-                    raise OptionError('分组文件的样本(%s)在otu表的样本中不存在' % sample)
+                    raise OptionError('分组文件的样本(%s)在距离矩阵的样本中不存在' % sample)
         return True
 
     def set_resource(self):
@@ -75,14 +75,32 @@ class DistanceBoxAgent(Agent):
         self._cpu = 2
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "距离统计和统计检验分析结果目录"],
+            ["./Stats.xls", "xls", "分组统计检验结果"],
+            ["./Distances.xls", "xls", "组内组间距离值统计结果"]
+        ])
+        print self.get_upload_files()
+        super(DistanceBoxAgent, self).end()
+
 
 class DistanceBoxTool(Tool):
     def __init__(self, config):
         super(DistanceBoxTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
         self.cmd_path = 'Python/bin/make_distance_boxplots.py'
-        # self.set_environ(LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
-        # 设置运行环境变量
+        self.grouplab = self.option('grouplabs') if self.option('grouplabs') else self.option('group').prop['group_scheme'][0]
+        self.dis_matrix = self.get_matrix()
+
+    def get_matrix(self):
+        if len(self.option('dis_matrix').prop['samp_list']) == len(self.option('group').prop['sample']):
+            return self.option('dis_matrix').path
+        else:
+            self.option('dis_matrix').create_new(self.option('group').prop['sample'],
+                                                 os.path.join(self.work_dir, 'dis_matrix_filter.temp'))
+            return os.path.join(self.work_dir, 'dis_matrix_filter.temp')
 
     def run(self):
         """
@@ -109,9 +127,9 @@ class DistanceBoxTool(Tool):
         """
         cmd = self.cmd_path
         cmd += ' -m %s -d %s -o %s -f %s --save_raw_data -n %s' % (self.option('group').path,
-                                                                   self.option('dis_matrix').prop['path'],
+                                                                   self.dis_matrix,
                                                                    self.work_dir,
-                                                                   self.option('grouplabs'),
+                                                                   self.grouplab,
                                                                    self.option('permutations'))
         self.logger.info('运行qiime:make_distance_boxplots.py程序')
         box_command = self.add_command('box', cmd)
@@ -119,13 +137,13 @@ class DistanceBoxTool(Tool):
         self.wait(box_command)
         if box_command.return_code == 0:
             self.logger.info('运行qiime/make_distance_boxplots.py完成')
-            self.format_boxdata(self.work_dir + '/' + self.option('grouplabs') + '_Distances.txt',
-                                self.work_dir + '/' + self.option('grouplabs') + '_Distances_format.txt')
-            self.linkfile(self.work_dir + '/' + self.option('grouplabs') + '_Distances_format.txt',
-                          'Distances.txt')
-            self.format_stats(self.work_dir + '/' + self.option('grouplabs') + '_Stats.txt',
-                              self.work_dir + '/' + self.option('grouplabs') + '_Stats_format.txt')
-            self.linkfile(self.work_dir + '/' + self.option('grouplabs') + '_Stats_format.txt', 'Stats.txt')
+            self.format_boxdata(self.work_dir + '/' + self.grouplab + '_Distances.txt',
+                                self.work_dir + '/' + self.grouplab + '_Distances_format.txt')
+            self.linkfile(self.work_dir + '/' + self.grouplab + '_Distances_format.txt',
+                          'Distances.xls')
+            self.format_stats(self.work_dir + '/' + self.grouplab + '_Stats.txt',
+                              self.work_dir + '/' + self.grouplab + '_Stats_format.txt')
+            self.linkfile(self.work_dir + '/' + self.grouplab + '_Stats_format.txt', 'Stats.xls')
             self.end()
         else:
             self.set_error('运行qiime/make_distance_boxplots.py出错')

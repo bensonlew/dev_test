@@ -109,8 +109,8 @@ class Anosim(Base):
         result = _main_collection.find_one({'_id': main_id})
         if result:
             anosim_path = dir_path.rstrip('/') + '/Anosim/format_results.xls'
-            box_path = dir_path.rstrip('/') + '/Box/Distances.txt'
-            stats_path = dir_path.rstrip('/') + '/Box/Stats.txt'
+            box_path = dir_path.rstrip('/') + '/Box/Distances.xls'
+            stats_path = dir_path.rstrip('/') + '/Box/Stats.xls'
             insert_table_detail(anosim_path, 'anosim', update_id=main_id, update_column=False,
                                 columns=['statisic', 'pvalue', 'permutation_number'])
             insert_table_detail(box_path, 'box', update_id=main_id, update_column=False)

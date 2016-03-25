@@ -13,7 +13,7 @@ class RdaCcaAgent(Agent):
     脚本ordination.pl
     version v1.0
     author: shenghe
-    last_modified:2015.11.18
+    last_modified:2016.3.24
     """
 
     def __init__(self, parent):
@@ -47,18 +47,6 @@ class RdaCcaAgent(Agent):
         else:
             return self.option('otutable').prop['path']
 
-    def get_new_env(self):
-        """
-        根据envlabs生成新的envtable
-        """
-        if self.option('envlabs'):
-            new_path = self.work_dir + '/temp_env_table.xls'
-            self.option('envtable').sub_group(new_path, self.option('envlabs').split(','))
-            self.option('envtable').set_path(new_path)
-            self.option('envtable').get_info()
-        else:
-            self.option('envlabs', ','.join(open(self.option('envtable').path, 'r').readline().strip().split('\t')[1:]))
-
     def check_options(self):
         """
         重写参数检查
@@ -68,32 +56,88 @@ class RdaCcaAgent(Agent):
         if self.option('otutable').prop['sample_num'] < 2:
             raise OptionError('otu表的样本数目少于2，不可进行beta多元分析')
         if self.option('envtable').is_set:
+            self.option('envtable').get_info()
+            if self.option('envlabs'):
+                labs = self.option('envlabs').split(',')
+                for lab in labs:
+                    if lab not in self.option('envtable').prop['group_scheme']:
+                        raise OptionError('提供的envlabs中有不在环境因子表中存在的因子：%s' % lab)
+            else:
+                pass
             if self.option('envtable').prop['sample_number'] < 2:
                 raise OptionError('环境因子表的样本数目少于2，不可进行beta多元分析')
-            filter_otu = self.filter_otu_sample(self.option('otutable').path,
-                                                self.option('envtable').prop['sample'],
-                                                os.path.join(self.work_dir + '/temp_filter.otutable'))
-            if filter_otu == self.option('otutable').path:
-                pass
-            else:
-                self.option('otutable').set_path(filter_otu)
-                self.option('otutable').get_info()
-        samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
-        if not self.option('envtable').is_set:
-            raise OptionError('必须提供环境因子表')
         else:
-            self.get_new_env()
-            if len(self.option('envtable').prop['sample']) != len(samplelist):
-                raise OptionError('OTU表中的样本数量:%s与环境因子表中的样本数量:%s不一致' % (len(samplelist),
-                                  len(self.option('envtable').prop['sample'])))
-            for sample in self.option('envtable').prop['sample']:
-                if sample not in samplelist:
-                    raise OptionError('环境因子中存在，OTU表中的未知样本:%s' % sample)
+            raise OptionError('必须提供环境因子表')
+        samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
+        if len(self.option('envtable').prop['sample']) > len(samplelist):
+            raise OptionError('OTU表中的样本数量:%s小于环境因子表中的样本数量:%s' % (len(samplelist),
+                              len(self.option('envtable').prop['sample'])))
+        for sample in self.option('envtable').prop['sample']:
+            if sample not in samplelist:
+                raise OptionError('环境因子中存在，OTU表中的未知样本:%s' % sample)
         table = open(self.gettable())
         if len(table.readlines()) < 4:
             raise OptionError('提供的数据表信息少于3行')
         table.close()
         return True
+
+    def set_resource(self):
+        """
+        设置所需资源
+        """
+        self._cpu = 2
+        self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "rda_cca分析结果目录"]
+        ])
+        result_dir.add_regexp_rules([
+            [r'.*_importance\.xls', 'xls', '主成分解释度表'],
+            [r'.*_sites\.xls', 'xls', '样本坐标表'],
+            [r'.*_species\.xls', 'xls', '物种坐标表'],
+            [r'.*dca\.xls', 'xls', 'DCA分析结果'],
+            [r'.*_biplot\.xls', 'xls', '数量型环境因子坐标表'],
+            [r'.*_centroids\.xls', 'xls', '哑变量环境因子坐标表']
+        ])
+        print self.get_upload_files()
+        super(RdaCcaAgent, self).end()
+
+
+class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filter_otu_sample函数生成的表头没有'#'
+    def __init__(self, config):
+        super(RdaCcaTool, self).__init__(config)
+        self._version = '1.0.1'  # ordination.pl脚本中指定的版本
+        self.cmd_path = os.path.join(
+            self.config.SOFTWARE_DIR, 'meta/scripts/beta_diversity/ordination.pl')
+        self.env_table = self.get_new_env()
+        self.otu_table = self.get_otu_table()
+        self.env_labs = open(self.env_table, 'r').readline().strip().split('\t')[1:]
+
+    def get_new_env(self):
+        """
+        根据envlabs生成新的envtable
+        """
+        if self.option('envlabs'):
+            new_path = self.work_dir + '/temp_env_table.xls'
+            self.option('envtable').sub_group(new_path, self.option('envlabs').split(','))
+            return new_path
+        else:
+            return self.option('envtable').path
+
+    def get_otu_table(self):
+        """
+        根据level返回进行计算的otu表路径
+        :return:
+        """
+        if self.option('otutable').format == "meta.otu.tax_summary_dir":
+            otu_path = self.option('otutable').get_table(self.option('level'))
+        else:
+            otu_path = self.option('otutable').prop['path']
+        # otu表对象没有样本列表属性
+        return self.filter_otu_sample(otu_path, self.option('envtable').prop['sample'],
+                                      os.path.join(self.work_dir + 'temp_filter.otutable'))
 
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):
@@ -107,7 +151,7 @@ class RdaCcaAgent(Agent):
                 if len(all_samples) == len(filter_samples):
                     return otu_path
                 samples_index = [all_samples.index(i) + 1 for i in filter_samples]
-                w.write('#OTU\t' + '\t'.join(filter_samples) + '\n')
+                w.write('OTU\t' + '\t'.join(filter_samples) + '\n')
                 for line in f:
                     all_values = line.rstrip().split('\t')
                     new_values = [all_values[0]] + [all_values[i] for i in samples_index]
@@ -116,20 +160,6 @@ class RdaCcaAgent(Agent):
         except IOError:
             raise Exception('无法打开OTU相关文件或者文件不存在')
 
-    def set_resource(self):
-        """
-        设置所需资源
-        """
-        self._cpu = 2
-        self._memory = ''
-
-
-class RdaCcaTool(Tool):
-    def __init__(self, config):
-        super(RdaCcaTool, self).__init__(config)
-        self._version = '1.0.1'  # ordination.pl脚本中指定的版本
-        self.cmd_path = os.path.join(
-            self.config.SOFTWARE_DIR, 'meta/scripts/beta_diversity/ordination.pl')
 
     def run(self):
         """
@@ -139,41 +169,27 @@ class RdaCcaTool(Tool):
         self.logger.info("RUN")
         self.run_ordination()
 
-    @property
-    def formattable(self):
-        tablepath = self.gettable()
+    def formattable(self, tablepath):
         alllines = open(tablepath).readlines()
         if alllines[0][0] == '#':
-            newtable = open(os.path.join(self.work_dir, 'temp.table'), 'w')
+            newtable = open(os.path.join(self.work_dir, 'temp_format.table'), 'w')
             newtable.write(alllines[0].lstrip('#'))
-            for line in alllines[1:]:
-                newtable.write(line)
+            newtable.writelines(alllines[1:])
             newtable.close()
-            return os.path.join(self.work_dir, 'temp.table')
+            return os.path.join(self.work_dir, 'temp_format.table')
         else:
             return tablepath
-
-    def gettable(self):
-        """
-        根据level返回进行计算的otu表
-        :return:
-        """
-        if self.option('otutable').format == "meta.otu.tax_summary_dir":
-            return self.option('otutable').get_table(self.option('level'))
-        else:
-            return self.option('otutable').prop['path']
 
     def run_ordination(self):
         """
         运行ordination.pl
         """
-        tablepath = self.formattable
+        tablepath = self.formattable(self.otu_table)
         self.logger.info(tablepath)
         cmd = self.cmd_path
-        self.logger.info(' + '.join(self.option('envlabs').split(',')))
         cmd += ' -type rdacca -community %s -environment %s -outdir %s -env_labs %s' % (
                tablepath, self.option('envtable').prop['path'],
-               self.work_dir, '+'.join(self.option('envlabs').split(',')))
+               self.work_dir, '+'.join(self.env_labs))
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info('生成 cmd.r 文件成功')
@@ -229,11 +245,11 @@ class RdaCcaTool(Tool):
                 rda_site = name
             elif '_species.xls' in name:
                 rda_spe = name
-            elif '_dca.xls' in name:
+            elif 'dca.xls' in name:
                 rda_dca = name
             elif '_biplot.xls' in name:
                 rda_biplot = name
-            elif '_centroids' in name:
+            elif '_centroids.xls' in name:
                 rda_centroids = name
         if rda_imp and rda_site and rda_spe and rda_dca and (rda_biplot or rda_centroids):
             self.logger.info(str([rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids]))
