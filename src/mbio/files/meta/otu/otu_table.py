@@ -189,7 +189,8 @@ class OtuTableFile(File):
         cla = re.split(';', tax)
         new_cla = list()
         #  处理uncultured和Incertae_Sedis
-        if re.search("uncultured$", cla[0]) or re.search("Incertae_Sedis$", cla[0]) or re.search("norank$", cla[0]) or re.search("unidentified$", cla[0]) or not re.search("d__", cla[0]):
+        # if re.search("uncultured$", cla[0], flags=re.I) or re.search("Incertae_Sedis$", cla[0], flags=re.I) or re.search("norank$", cla[0], flags=re.I) or re.search("unidentified$", cla[0], flags=re.I) or re.search("Unclassified$", cla[0], flags=re.I):
+        if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)$", cla[0], flags=re.I):
             raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或norank或unidentified或是分类水平缺失")
         # 先对输入的名字进行遍历， 当在某一水平上空着的时候， 补全
         # 例如在g水平空着的时候，补全成g__unidentified
@@ -203,7 +204,8 @@ class OtuTableFile(File):
         # 对uncultured，Incertae_Sedis，norank，unidentified进行补全
         i = 0
         for my_cla in new_cla:
-            if re.search("uncultured$", new_cla[i]) or re.search("Incertae_Sedis$", new_cla[i]) or re.search("norank$", new_cla[i]) or re.search("unidentified$", new_cla[i]) or re.search("Unclassified$", new_cla[i]):
+            # if re.search("uncultured$", new_cla[i], flags=re.I) or re.search("Incertae_Sedis$", new_cla[i], flags=re.I) or re.search("norank$", new_cla[i], flags=re.I) or re.search("unidentified$", new_cla[i], flags=re.I) or re.search("Unclassified$", new_cla[i], flags=re.I):
+            if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)$", new_cla[i], flags=re.I):
                 new_cla[i] = new_cla[i] + "_" + last_info
             else:
                 last_info = new_cla[i]

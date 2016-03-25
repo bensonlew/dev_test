@@ -102,7 +102,8 @@ def _create_classify_name(col, tmp):
     new_cla = list()
     if "d__" not in col:
         raise Exception("在域水平上分类学缺失")
-    if re.search("uncultured$", col["d__"]) or re.search("Incertae_Sedis$", col["d__"]) or re.search("norank$", col["d__"]) or re.search("unidentified$", col["d__"]):
+    # if re.search("uncultured$", col["d__"]) or re.search("Incertae_Sedis$", col["d__"]) or re.search("norank$", col["d__"]) or re.search("unidentified$", col["d__"]):
+    if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)$", col["d__"], flags=re.I):
         raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或norank或是unidentified")
     # 先对输入的名字进行遍历， 当在某一水平(输入的level之前)上空着的时候， 补全
     # 例如在g水平空着的时候，补全成g__unidentified
@@ -115,7 +116,8 @@ def _create_classify_name(col, tmp):
 
     # 对uncultured，Incertae_Sedis，norank，unidentified进行补全
     for i in range(tmp - 1):
-        if re.search("uncultured$", new_cla[i]) or re.search("Incertae_Sedis$", new_cla[i]) or re.search("norank$", new_cla[i]) or re.search("unidentified$", new_cla[i]) or re.search("Unclassified$", new_cla[i]):
+        # if re.search("uncultured$", new_cla[i]) or re.search("Incertae_Sedis$", new_cla[i]) or re.search("norank$", new_cla[i]) or re.search("unidentified$", new_cla[i]) or re.search("Unclassified$", new_cla[i]):
+        if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)$", new_cla[i], flags=re.I):
             new_cla[i] = new_cla[i] + "_" + last_classify
         else:
             last_classify = new_cla[i]
