@@ -67,8 +67,8 @@ class LogManager(object):
             group.join()
 
     def get_task_ids(self):
-        sql = "SELECT DISTINCT task_id from apilog where (success=0 and reject=0 and has_upload=0) " \
-              "or (success=0 and reject=0 and has_upload=1 and uploaded=1)"
+        sql = "SELECT DISTINCT task_id from apilog where api <> 'test' and success=0 and reject=0 and" \
+              "(has_upload=0  or (has_upload=1 and uploaded=1))"
         if self.api:
             sql += " and api=%s" % self.api
         results = db.query(sql)

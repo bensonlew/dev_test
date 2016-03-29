@@ -15,6 +15,8 @@ import datetime
 from .core.function import CJsonEncoder
 import json
 import urllib
+from biocluster.api.database.base import ApiManager
+from .wsheet import Sheet
 
 
 class Rely(object):
@@ -105,9 +107,13 @@ class Basic(EventObject):
         self.__init_events()
         self._options = {}
         self.UPDATE_STATUS_API = None
+        self.IMPORT_REPORT_DATA = False
+        self.IMPORT_REPORT_AFTER_END = True
         self._main_step = StepMain(self)
         self.stage_id = None    # pipeline模式时设置stage id值
         self._upload_dir_obj = []  # 需要上传的文件夹对象
+        self.api = ApiManager(self)
+        self._sheet = None
 
     def create_work_dir(self):
         """
@@ -119,6 +125,16 @@ class Basic(EventObject):
             os.makedirs(self._work_dir)
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
+
+    @property
+    def sheet(self):
+        return self._sheet
+
+    @sheet.setter
+    def sheet(self, value):
+        if not isinstance(value, Sheet):
+            raise Exception("sheet值必须为Sheet对象!")
+        self._sheet = value
 
     @property
     def step(self):
@@ -715,6 +731,8 @@ class StepMain(Step):
             return
 
         workflow = self.bind_obj.get_workflow()
+        if not workflow.USE_DB:
+            return
         if self.has_change:
             json_obj = {"stage": {
                         "task_id": workflow.sheet.id,
@@ -734,50 +752,58 @@ class StepMain(Step):
                 "api": self.api_type,
                 "data": urllib.urlencode(post_data)
             }
+            if self.stats == "finish":
+                up_data = {}
 
-            if len(self.bind_obj.upload_dir) > 0:
-                if self.bind_obj is workflow:  # 普通模式的workflow 或 pipeline
-                    if self.bind_obj.sheet.type == "workflow" and self.bind_obj.sheet.output:
-                        up_data = {
-                            "source": self.bind_obj.upload_dir,
-                            "target": self.bind_obj.sheet.output
-                        }
-                        data["upload"] = json.dumps(up_data)
-                        data["has_upload"] = 1
-                        data["uploaded"] = 0
-                        post_data["upload_files"] = {
-                            "target": self.bind_obj.sheet.output,
-                            "files": self.bind_obj.get_upload_files()
-                        }
-                        data["data"] = urllib.urlencode(post_data)
-                else:
-                    if workflow.sheet.type in ["tool", "module"] and workflow.sheet.output:
-                        up_data = {
-                            "source": self.bind_obj.upload_dir,
-                            "target": workflow.sheet.output
-                        }
-                        data["upload"] = json.dumps(up_data)
-                        data["has_upload"] = 1
-                        data["uploaded"] = 0
-                        post_data["upload_files"] = {
-                            "target": workflow.sheet.output,
-                            "files": self.bind_obj.get_upload_files()
-                        }
-                        data["data"] = urllib.urlencode(post_data)
-                    elif self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
-                        target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
-                        up_data = {
-                            "source": self.bind_obj.upload_dir,
-                            "target": target_path
-                        }
-                        data["upload"] = json.dumps(up_data)
-                        data["has_upload"] = 1
-                        data["uploaded"] = 0
-                        post_data["upload_files"] = {
-                            "target": target_path,
-                            "files": self.bind_obj.get_upload_files()
-                        }
-                        data["data"] = urllib.urlencode(post_data)
+                if self.bind_obj.IMPORT_REPORT_DATA is True and self.bind_obj.IMPORT_REPORT_AFTER_END is True:
+                    api_call_list = self.bind_obj.api.get_call_records_list()
+                    if api_call_list:
+                        up_data["call"] = api_call_list
+
+                if len(self.bind_obj.upload_dir) > 0:
+                    if self.bind_obj is workflow:  # 普通模式的workflow 或 pipeline
+                        if self.bind_obj.sheet.type == "workflow" and self.bind_obj.sheet.output:
+                            up_data["source"] = self.bind_obj.upload_dir
+                            up_data["target"] = self.bind_obj.sheet.output
+                            # data["upload"] = json.dumps(up_data)
+                            # data["has_upload"] = 1
+                            # data["uploaded"] = 0
+                            post_data["upload_files"] = {
+                                "target": self.bind_obj.sheet.output,
+                                "files": self.bind_obj.get_upload_files()
+                            }
+                            data["data"] = urllib.urlencode(post_data)
+                    else:
+                        if workflow.sheet.type in ["tool", "module"] and workflow.sheet.output:
+                            up_data["source"] = self.bind_obj.upload_dir
+                            up_data["target"] = workflow.sheet.output
+                            post_data["upload_files"] = {
+                                "target": workflow.sheet.output,
+                                "files": self.bind_obj.get_upload_files()
+                            }
+                            data["data"] = urllib.urlencode(post_data)
+                        elif self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
+                            target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
+                            up_data["source"] = self.bind_obj.upload_dir
+                            up_data["target"] = target_path
+                            post_data["upload_files"] = {
+                                "target": target_path,
+                                "files": self.bind_obj.get_upload_files()
+                            }
+                            data["data"] = urllib.urlencode(post_data)
+                if up_data:
+                    up_data["bind"] = {
+                            "name": self.bind_obj.name,
+                            "id": self.bind_obj.id,
+                            "workdir": self.bind_obj.work_dir,
+                            "fullname": self.bind_obj.fullname,
+                            "output": self.bind_obj.output_dir
+                    }
+                    if self.bind_obj.sheet:
+                        up_data["bind"]["sheet"] = self.bind_obj.sheet.data
+                    data["upload"] = json.dumps(up_data)
+                    data["has_upload"] = 1
+                    data["uploaded"] = 0
 
             try:
                 workflow.db.insert("apilog", **data)

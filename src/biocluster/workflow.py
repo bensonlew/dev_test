@@ -15,10 +15,10 @@ import datetime
 import gevent
 import time
 # from biocluster.api.file.remote import RemoteFileManager
-from biocluster.api.database.base import ApiManager
 import re
 import importlib
 import types
+import traceback
 
 
 class Workflow(Basic):
@@ -32,8 +32,7 @@ class Workflow(Basic):
         else:
             self.debug = False
         super(Workflow, self).__init__(**kwargs)
-        self._id = wsheet.id
-        self._sheet = wsheet
+        self.sheet = wsheet
 
         self.last_update = datetime.datetime.now()
         if "parent" in kwargs.keys():
@@ -44,10 +43,10 @@ class Workflow(Basic):
         self.pause = False
         self._pause_time = None
         self.USE_DB = False
-        self.IMPORT_REPORT_DATA = False
         self.__json_config()
 
         if self._parent is None:
+            self._id = wsheet.id
             self.config = Config()
             self.db = self.config.get_db()
             self._work_dir = self.__work_dir()
@@ -65,8 +64,6 @@ class Workflow(Basic):
             self.config = self._parent.config
             self.db = self.config.get_db()
 
-        self.api = ApiManager(self)
-
     def __json_config(self):
         if self.sheet.USE_DB is True:
             self.USE_DB = True
@@ -74,6 +71,8 @@ class Workflow(Basic):
             self.UPDATE_STATUS_API = self.sheet.UPDATE_STATUS_API
         if self.sheet.IMPORT_REPORT_DATA is True:
             self.IMPORT_REPORT_DATA = True
+        if self.sheet.IMPORT_REPORT_AFTER_END is False:
+            self.IMPORT_REPORT_AFTER_END = False
 
     def step_start(self):
         """
@@ -82,10 +81,6 @@ class Workflow(Basic):
         """
         self.step.start()
         self.step.update()
-
-    @property
-    def sheet(self):
-        return self._sheet
 
     def __work_dir(self):
         """
@@ -280,6 +275,8 @@ class Workflow(Basic):
                 self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
                               vars={'id': self._id})
             except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
                 self.logger.debug("数据库更新异常: %s" % e)
 
     def _update(self, data):
@@ -307,6 +304,9 @@ class Workflow(Basic):
             try:
                 results = self.db.query("SELECT * FROM tostop "
                                         "WHERE workflow_id=$id and done  = 0", vars={'id': self._id})
+                if isinstance(results, long) or isinstance(results, int):
+                    gevent.sleep(10)
+                    continue
                 if len(results) > 0:
                     data = results[0]
                     update_data = {
@@ -316,6 +316,8 @@ class Workflow(Basic):
                     self.db.update("tostop", vars=myvar, where="workflow_id = $id", **update_data)
                     self.exit(data="接收到终止运行指令,%s" % data.reson, terminated=True)
             except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
                 self.logger.info("查询数据库异常: %s" % e)
             gevent.sleep(10)
 
@@ -331,6 +333,9 @@ class Workflow(Basic):
             try:
                 results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and "
                                         "has_continue  = 0 and timeout = 0", vars={'id': self._id})
+                if isinstance(results, long) or isinstance(results, int):
+                    gevent.sleep(10)
+                    continue
                 if len(results) > 0:
                     data = results[0]
                     if data.has_pause == 0:
@@ -374,5 +379,7 @@ class Workflow(Basic):
                                 self.step.update()
                                 self.logger.info("检测到恢复运行指令，恢复所有模块运行!")
             except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
                 self.logger.info("查询数据库异常: %s" % e)
             gevent.sleep(15)
