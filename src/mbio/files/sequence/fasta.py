@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 from biocluster.iofile import File
+from collections import defaultdict
 import re
 import subprocess
 from biocluster.config import Config
@@ -80,12 +81,16 @@ class FastaFile(File):
             raise Exception("seqstat 运行出错！")
 
     def get_all_seq_name(self):
-        seq_name = list()
+        seq_name = defaultdict(int)
         for seq in SeqIO.parse(self.prop["path"], "fasta"):
-            if seq.id not in seq_name:
-                seq_name.append(seq.id)
-            else:
-                raise Exception("序列名{}在文件中重复".format(seq.id))
+            seq_name[seq.id] += 1
+        dup_list = list()
+        for k in seq_name.iterkeys():
+            if seq_name[k] > 1:
+                dup_list.append(k)
+            if len(dup_list) > 0:
+                str_ = "; ".join(dup_list)
+                raise Exception("序列名:{}在输入的fasta文件里面重复".format(str_))
         return seq_name
 
     # def filter(self, smin=0, smax=0):

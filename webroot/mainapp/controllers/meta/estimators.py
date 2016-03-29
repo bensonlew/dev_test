@@ -46,7 +46,7 @@ class Estimators(object):
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "estimators_" + str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+            name = "estimators_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             est_id = Estimator().add_est_collection(data.level_id, params, data.otu_id, name)
             print(est_id)
             update_info = {str(est_id): "sg_alpha_diversity"}

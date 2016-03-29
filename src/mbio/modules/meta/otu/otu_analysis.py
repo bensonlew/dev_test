@@ -51,9 +51,34 @@ class OtuAnalysisModule(Module):
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
             if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea',
-                                               'silva119/18s_eukaryota', 'unite6.0/its_fungi', 'fgr/amoA', 'fgr/nosZ',
+                                               'silva119/18s_eukaryota', 'unite7.0/its_fungi', 'fgr/amoA', 'fgr/nosZ',
                                                'fgr/nirK', 'fgr/nirS', 'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [r".", "", "结果输出目录"],
+            [r"./SubSample", "", "抽平结果目录"],
+            [r"./OtuTaxonStat", "", "OTU统计文件夹"],
+            [r"./QiimeAssign", "", "QiimeAssign文件夹"],
+            [r"./UsearchOtu", "", "UsearchOtu文件夹"],
+            [r"./QiimeAssign/seqs_tax_assignments.txt", "xls", "OTU的分类学信息"],
+            [r"./OtuTaxonStat/otu_taxon.biom", "meta.otu.biom", "OTU表的biom格式的文件"],
+            [r"./OtuTaxonStat/otu_taxon.xls", "meta.otu.otu_table", "OTU表"],
+            [r"./OtuTaxonStat/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"]
+            ["./UsearchOtu/otu_reps.fasta", "sequence.fasta", "代表序列"],
+            ["./UsearchOtu/otu_seqids.txt", "xls", "OTU代表序列对应表"],
+            ["./UsearchOtu/otu_table.biom", 'meta.otu.biom', "OTU表对应的Biom文件"],
+            ["./UsearchOtu/otu_table.xls", "meta.otu.otu_table", "OTU表"]
+        ])
+        result_dir.add_regexp_rules([
+            ["SubSample/.+subsample", 'meta.otu.otu_table', "抽平后的otu表格"],
+            ["tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
+            ["tax_summary_a/.+\.xls$", "meta.otu.biom", "OTU表, 没有完整的分类学信息"],
+            ["tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "OTU表, 带有完整的分类学信息"]
+        ])
+        super(OtuAnalysisModule, self).end()
 
     def usearch_run(self):
         """

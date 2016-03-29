@@ -13,7 +13,7 @@ class HclusterAgent(Agent):
     脚本plot-hcluster_tree.pl
     version v1.0
     author: shenghe
-    last_modified:2015.11.17
+    last_modified:2016.3.24
     """
 
     def __init__(self, parent):
@@ -55,6 +55,15 @@ class HclusterAgent(Agent):
         """
         self._cpu = 1
         self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "层次聚类结果目录"],
+            ["./hcluster.tre", "tre", "层次聚类树"]
+        ])
+        print self.get_upload_files()
+        super(HclusterAgent, self).end()
 
 
 class HclusterTool(Tool):

@@ -272,3 +272,57 @@ class BetaDiversityModule(Module):
         self.step.MultipleAnalysis.finish()
         self.step.update()
         self.end()
+
+    def end(self):
+        repaths = [
+            [".", "", "Beta_diversity分析结果文件目录"],
+            ["Anosim", "", "anosim&adonis结果输出目录"],
+            ["Anosim/anosim_results.txt", "txt", "anosim分析结果"],
+            ["Anosim/adonis_results.txt", "txt", "adonis分析结果"],
+            ["Anosim/format_results.xls", "xls", "anosim&adonis整理结果表"],
+            ["Dbrda", "", "db_rda分析结果目录"],
+            ["Dbrda/db_rda_sites.xls", "xls", "db_rda样本坐标表"],
+            ["Dbrda/db_rda_species.xls", "xls", "db_rda物种坐标表"],
+            ["Dbrda/db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
+            ["Dbrda/db_rda_biplot.xls", "xls", "db_rda数量型环境因子坐标表"],
+            ["Box", "", "距离统计和统计检验分析结果目录"],
+            ["Box/Stats.xls", "xls", "分组统计检验结果"],
+            ["Box/Distances.xls", "xls", "组内组间距离值统计结果"],
+            ["Distance", "", "距离矩阵计算结果输出目录"],
+            ["Hcluster", "", "层次聚类结果目录"],
+            ["Hcluster/hcluster.tre", "tre", "层次聚类树"],
+            ["Nmds", "", "NMDS分析结果输出目录"],
+            ["Nmds/nmds_sites.xls", "xls", "样本坐标表"],
+            ["Pca", "", "PCA分析结果输出目录"],
+            ["Pca/pca_importance.xls", "xls", "主成分解释度表"],
+            ["Pca/pca_rotation.xls", "xls", "物种主成分贡献度表"],
+            ["Pca/pca_sites.xls", "xls", "样本坐标表"],
+            ["Pca/pca_envfit_factor_scores.xls", "xls", "哑变量环境因子表"],
+            ["Pca/pca_envfit_factor.xls", "xls", "哑变量环境因子坐标表"],
+            ["Pca/pca_envfit_vector_scores.xls", "xls", "数量型环境因子表"],
+            ["Pca/pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
+            ["Pcoa", "", "pcoa分析结果目录"],
+            ["Pcoa/pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
+            ["Pcoa/pcoa_sites.xls", "xls", "样本坐标表"],
+            ["Plsda", "", "plsda分析结果目录"],
+            ["Plsda/plsda_sites.xls", "xls", "样本坐标表"],
+            ["Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
+            ["Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
+            ["Rda", "", "rda_cca分析结果目录"],
+        ]
+        regexps = [
+            [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
+            [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
+            [r'Distance/%s.*\.xls' % self.option('dis_method'), 'xls', '样本距离矩阵文件'],
+            [r'Rda/.*_importance\.xls', 'xls', '主成分解释度表'],
+            [r'Rda/.*_sites\.xls', 'xls', '样本坐标表'],
+            [r'Rda/.*_species\.xls', 'xls', '物种坐标表'],
+            [r'Rda/.*dca\.xls', 'xls', 'DCA分析结果'],
+            [r'Rda/.*_biplot\.xls', 'xls', '数量型环境因子坐标表'],
+            [r'Rda/.*_centroids\.xls', 'xls', '哑变量环境因子坐标表'],
+        ]
+        sdir = self.add_upload_dir(self.output_dir)
+        sdir.add_relpath_rules(repaths)
+        sdir.add_regexp_rules(regexps)
+        print self.get_upload_files()
+        super(BetaDiversityModule, self).end()

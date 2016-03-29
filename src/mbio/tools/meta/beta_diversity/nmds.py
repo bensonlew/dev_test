@@ -12,7 +12,7 @@ class NmdsAgent(Agent):
     脚本ordination.pl
     version v1.0
     author: shenghe
-    last_modified:2015.11.18
+    last_modified:2016.3.24
     """
 
     def __init__(self, parent):
@@ -47,6 +47,15 @@ class NmdsAgent(Agent):
         """
         self._cpu = 2
         self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "NMDS分析结果输出目录"],
+            ["./nmds_sites.xls", "xls", "样本坐标表"],
+        ])
+        print self.get_upload_files()
+        super(NmdsAgent, self).end()
 
 
 class NmdsTool(Tool):
@@ -98,4 +107,3 @@ class NmdsTool(Tool):
         os.link(self.work_dir + '/nmds' + '/' + filename, linksites)
         self.logger.info('运行ordination.pl程序计算nmds完成')
         self.end()
-
