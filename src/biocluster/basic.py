@@ -108,7 +108,7 @@ class Basic(EventObject):
         self._options = {}
         self.UPDATE_STATUS_API = None
         self.IMPORT_REPORT_DATA = False
-        self.IMPORT_REPORT_AFTER_END = True
+        self.IMPORT_REPORT_AFTER_END = False
         self._main_step = StepMain(self)
         self.stage_id = None    # pipeline模式时设置stage id值
         self._upload_dir_obj = []  # 需要上传的文件夹对象

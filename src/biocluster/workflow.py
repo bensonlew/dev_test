@@ -71,8 +71,8 @@ class Workflow(Basic):
             self.UPDATE_STATUS_API = self.sheet.UPDATE_STATUS_API
         if self.sheet.IMPORT_REPORT_DATA is True:
             self.IMPORT_REPORT_DATA = True
-        if self.sheet.IMPORT_REPORT_AFTER_END is False:
-            self.IMPORT_REPORT_AFTER_END = False
+        if self.sheet.IMPORT_REPORT_AFTER_END is True:
+            self.IMPORT_REPORT_AFTER_END = True
 
     def step_start(self):
         """
