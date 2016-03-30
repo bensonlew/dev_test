@@ -15,8 +15,8 @@ import atexit
 import traceback
 import web
 from biocluster.core.function import CJsonEncoder
-import urllib
-import subprocess
+# import urllib
+# import subprocess
 
 parser = argparse.ArgumentParser(description="run a workflow")
 group = parser.add_mutually_exclusive_group()
@@ -383,7 +383,7 @@ class WorkJob(object):
             data = {
                 "task_id": json_data["id"],
                 "api": json_data["UPDATE_STATUS_API"],
-                "data": urllib.urlencode(post_data)
+                "data": json.dumps(post_data)
             }
             self.db.insert("apilog", **data)
 

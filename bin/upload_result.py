@@ -16,9 +16,9 @@ import atexit
 from biocluster.wsheet import Sheet
 from biocluster.api.database.base import ApiManager
 from biocluster.logger import Wlog
-import urlparse
+# import urlparse
 from biocluster.core.function import CJsonEncoder
-import urllib
+# import urllib
 import argparse
 
 parser = argparse.ArgumentParser(description="upload file or import data")
@@ -123,7 +123,7 @@ class UploadManager(object):
 
     def get_upload_tasks(self):
         sql = "SELECT id,task_id,api,`data`,upload,has_upload,uploaded from apilog where" \
-              "api<>'test' and success=0 and reject=0 and has_upload=1 and uploaded=0"
+              " api<>'test' and success=0 and reject=0 and has_upload=1 and uploaded=0"
         results = self.db.query(sql)
         if isinstance(results, long) or isinstance(results, int):
             return None
@@ -286,9 +286,8 @@ class UploadProcess(Process):
             self.new_failed_statu(error)
 
     def load_statu_data(self):
-        url_data = urlparse.parse_qs(self._record.data)
-        statu = url_data["content"][0]
-        return json.loads(statu, object_hook=date_hook)
+        url_data = json.loads(self._record.data)
+        return url_data["content"]
 
     def new_failed_statu(self, error):
         if "stage" in self._statu_data.keys():
@@ -307,18 +306,9 @@ class UploadProcess(Process):
             data = {
                 "task_id": self._record.task_id,
                 "api": self._record.api,
-                "data": urllib.urlencode(post_data)
+                "data": json.dumps(post_data)
             }
             self.db.insert("apilog", **data)
-
-
-def date_hook(json_dict):
-    for (key, value) in json_dict.items():
-        try:
-            json_dict[key] = datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-        except:
-            pass
-    return json_dict
 
 
 def main():
