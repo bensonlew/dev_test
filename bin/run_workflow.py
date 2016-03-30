@@ -239,8 +239,8 @@ class WorkJob(object):
 
     def check_time_out(self):
         results = self.db.query("select * from workflow where has_run = 1 and is_end=0 and is_error=0 and"
-                                " (TIMESTAMPDIFF(SECOND,last_update,now()) > 200 or"
-                                " (last_update is Null and TIMESTAMPDIFF(SECOND,run_time,now())> 300) and waiting = 0)")
+                                " (TIMESTAMPDIFF(SECOND,last_update,now()) > 3600 or"
+                                " (last_update is Null and TIMESTAMPDIFF(SECOND,run_time,now())> 3600) and waiting = 0)")
         if isinstance(results, long) or isinstance(results, int):
             return None
         if len(results) > 0:

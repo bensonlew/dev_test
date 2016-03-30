@@ -23,8 +23,8 @@ import argparse
 
 parser = argparse.ArgumentParser(description="upload file or import data")
 group = parser.add_mutually_exclusive_group()
-group.add_argument("-s", "--service",  help="service mode")
-group.add_argument("-i", "--api_log_id", help="upload data for the give api log id")
+group.add_argument("-s", "--service", action="store_true",  help="service mode")
+group.add_argument("-i", "--api_log_id",  help="upload data for the give api log id")
 
 args = parser.parse_args()
 
@@ -57,13 +57,13 @@ class UploadManager(object):
             self._db = Config().get_db()
         return self._db
 
-    def upload(self, id):
-        record = self.get_upload_task(id)
+    def upload(self, lid):
+        record = self.get_upload_task(lid)
         if record:
             process = UploadProcess(record, debug=True)
             process.start()
         else:
-            print "记录%s不存在或者不能上传" % id
+            print "记录%s不存在或者不能上传" % lid
 
     def wacth_as_service(self):
         timestr = ""
@@ -81,6 +81,7 @@ class UploadManager(object):
             tasks = self.get_upload_tasks()
             if tasks:
                 for record in tasks:
+                    self.log("开始处理logid %s上传任务" % record.id)
                     if record.id not in self._running.keys():
                         try:
                             process = UploadProcess(record)
@@ -88,7 +89,7 @@ class UploadManager(object):
                         except Exception, e:
                             exstr = traceback.format_exc()
                             print exstr
-                            self.log("运行上传任务出错: %s" % e)
+                            self.log("运行logid %s上传任务出错: %s" % (record.id, e))
                         else:
                             self._running[record.id] = process
 
@@ -99,6 +100,11 @@ class UploadManager(object):
                     if exitcode != 0:
                         self.log("上传任务%s出现异常" % p.id)
                     p.join()
+                    self.log("处理logid %s结束" % p.id)
+                    if p.file_error:
+                        self.log("logid %s,上传文件错误: %s" % (p.id, p.file_error))
+                    if p.report_error:
+                        self.log("logid %s,导入数据错误: %s" % (p.id, p.report_error))
                     del self._running[key]
             gevent.sleep(Config().UPDATE_FREQUENCY)
 
@@ -116,9 +122,8 @@ class UploadManager(object):
         return log_path
 
     def get_upload_tasks(self):
-        sql = "SELECT id,task_id,api,`data`,run_time,upload,has_upload,uploaded from apilog where" \
-              " success=0 and reject=0 and has_upload=1 and uploaded=0)"
-
+        sql = "SELECT id,task_id,api,`data`,upload,has_upload,uploaded from apilog where" \
+              "api<>'test' and success=0 and reject=0 and has_upload=1 and uploaded=0"
         results = self.db.query(sql)
         if isinstance(results, long) or isinstance(results, int):
             return None
@@ -128,8 +133,8 @@ class UploadManager(object):
             return None
 
     def get_upload_task(self, id):
-        sql = "SELECT id,task_id,api,`data`,run_time,upload,has_upload,uploaded from apilog where" \
-              " success=0 and reject=0 and has_upload=1 and uploaded=0 and id=%s) % id"
+        sql = "SELECT id,task_id,api,`data`,upload,has_upload,uploaded from apilog where" \
+              " success=0 and reject=0 and has_upload=1 and uploaded=0 and id=%s" % id
 
         results = self.db.query(sql)
         if isinstance(results, long) or isinstance(results, int):
@@ -181,7 +186,8 @@ class ReportUploader(object):
 
     def api_replay(self):
         api_manager = ApiManager(self._bind_object, play_mod=True, debug=self._debug)
-        api_manager.load_call_records_list(self._record.upload["call"])
+        up_data = json.loads(self._record.upload)
+        api_manager.load_call_records_list(up_data["call"])
         api_manager.play()
 
 
@@ -203,8 +209,8 @@ class Uploader(object):
     def upload(self):
         up_data = json.loads(self._record.upload)
         remote_file = RemoteFileManager(up_data["target"])
-        for sub_dir in up_data["files"]:
-            self._bind_object.logger.info("开始上传%s到%s" % (sub_dir, remote_file))
+        for sub_dir in up_data["source"]:
+            self._bind_object.logger.info("开始上传%s到%s" % (sub_dir, up_data["target"]))
             if remote_file.type != "local":
                 umask = os.umask(0)
                 remote_file.upload(sub_dir)
@@ -214,12 +220,13 @@ class Uploader(object):
                 #     for sub in subdirs:
                 #         os.chmod(os.path.join(root, sub), 0o666)
                 os.umask(umask)
-            self._bind_object.logger.info("上传%s到%s完成" % (sub_dir, remote_file))
+            self._bind_object.logger.info("上传%s到%s完成" % (sub_dir, up_data["target"]))
 
 
 class UploadProcess(Process):
     def __init__(self, record, debug=False):
         super(UploadProcess, self).__init__()
+        self.id = record.id
         self._record = record
         self._bind_object = BindObject(record)
         self._debug = debug
@@ -227,6 +234,7 @@ class UploadProcess(Process):
         self.file_error = None
         self._db = None
         self._statu_data = self.load_statu_data()
+        self.up_data = json.loads(self._record.upload)
 
     @property
     def db(self):
@@ -250,24 +258,25 @@ class UploadProcess(Process):
                 se = file(log, 'a+', 0)
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())
+        if "target" in self.up_data.keys() and "source" in self.up_data.keys():
+            try:
+                file_uploader = Uploader(self._record, self._bind_object)
+                file_uploader.upload()
+            except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
+                self._bind_object.logger.error("上传文件出错: %s" % e)
+                self.file_error = "上传文件出错: %s" % e
 
-        try:
-            file_uploader = Uploader(self._record, self._bind_object)
-            file_uploader.upload()
-        except Exception, e:
-            exstr = traceback.format_exc()
-            print exstr
-            self._bind_object.logger.error("上传文件出错: %s" % e)
-            self.file_error = "上传文件出错: %s" % e
-
-        try:
-            report = ReportUploader(self._record, self._bind_object, debug=self._debug)
-            report.api_replay()
-        except Exception, e:
-            exstr = traceback.format_exc()
-            print exstr
-            self._bind_object.logger.error("导入数据库出错: %s" % e)
-            self.report_error = "导入数据库出错: %s" % e
+        if "call" in self.up_data.keys():
+            try:
+                report = ReportUploader(self._record, self._bind_object, debug=self._debug)
+                report.api_replay()
+            except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
+                self._bind_object.logger.error("导入数据库出错: %s" % e)
+                self.report_error = "导入数据库出错: %s" % e
 
         if self.report_error is None and self.file_error is None:
             self.db.update("apilog", vars={"id": self._record.id}, where="id = $id", uploaded=1)
@@ -313,6 +322,9 @@ def date_hook(json_dict):
 
 
 def main():
+    if not (args.service or args.api_log_id):
+        parser.print_help()
+        sys.exit(1)
     um = UploadManager()
     if args.service:
         pid_file = Config().SERVICE_PID
@@ -323,8 +335,7 @@ def main():
         writepid()
         um.wacth_as_service()
     if args.api_log_id:
-        um.upload()
-
+        um.upload(args.api_log_id)
 
 if __name__ == "__main__":
     main()
