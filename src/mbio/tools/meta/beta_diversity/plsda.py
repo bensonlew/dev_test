@@ -123,7 +123,7 @@ class PlsdaTool(Tool):
             otu_path = self.option('otutable').prop['path']
         # otu表对象没有样本列表属性
         return self.filter_otu_sample(otu_path, self.option('group').prop['sample'],
-                                      os.path.join(self.work_dir + 'temp_filter.otutable'))
+                                      os.path.join(self.work_dir, 'temp_filter.otutable'))
 
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):

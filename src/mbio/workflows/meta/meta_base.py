@@ -125,9 +125,9 @@ class MetaBaseWorkflow(Workflow):
         self.phylo.run()
         # self.phylo.on("end", self.set_output, "phylo")
 
-    def run_taxon(self, relyobj):
+    def run_taxon(self):
         opts = {
-            "fasta": relyobj.rely[0].option("otu_rep"),
+            "fasta": self.otu.option("otu_rep"),
             "revcomp": self.option("revcomp"),
             "confidence": self.option("confidence"),
             "database": self.option("database")}
@@ -341,25 +341,34 @@ class MetaBaseWorkflow(Workflow):
                 }
                 api_hcluster.add_tree_file(hcluster_path, major=True, table_id=dist_id, table_type='dist', tree_type='cluster', params=params)
             for ana in self.option('beta_analysis').split(','):
-                if ana in ['pca', 'pcoa', 'nmds', 'dbrda', 'rda_cca']:
+                # if ana in ['pca', 'pcoa', 'nmds', 'dbrda', 'rda_cca']:
+                if ana in ['pca', 'pcoa', 'nmds', 'dbrda', 'rda_cca', 'plsda']:
                     api_betam = self.api.beta_multi_analysis
                     params = {
                         'otu_id': str(self.otu_id),
                         'level_id': 9,
-                        'analysis_type': self.option('beta_analysis'),
+                        # 'analysis_type': self.option('beta_analysis'),
+                        'analysis_type': ana,
                     }
                     api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana, main=True, env_id=self.env_id, otu_id=self.otu_id, params=params)
-                self.logger.info('set output beta %s!!!' % ana)
+                # self.logger.info('set output beta %s!!!' % ana)
+                    self.logger.info('set output beta %s!!!' % ana)
 
     def run(self):
+        self.filecheck.on('end', self.run_qc)
         self.run_filecheck()
-        self.on_rely(self.filecheck, self.run_qc)
-        self.on_rely(self.qc, self.run_otu)
-        self.on_rely(self.otu, self.run_taxon)
-        self.on_rely(self.otu, self.run_phylotree)
+        # self.on_rely(self.filecheck, self.run_qc)
+        self.qc.on('end', self.run_otu)
+        # self.on_rely(self.qc, self.run_otu)
+        self.otu.on('end', self.run_taxon)
+        # self.on_rely(self.otu, self.run_taxon)
+        self.otu.on('end', self.run_phylotree)
+        # self.on_rely(self.otu, self.run_phylotree)
         self.on_rely([self.tax, self.phylo], self.run_stat)
-        self.on_rely(self.stat, self.run_alpha)
-        self.on_rely(self.stat, self.run_beta)
+        self.stat.on('end', self.run_alpha)
+        # self.on_rely(self.stat, self.run_alpha)
+        self.stat.on('end', self.run_beta)
+        # self.on_rely(self.stat, self.run_beta)
         self.on_rely([self.alpha, self.beta], self.end)
         super(MetaBaseWorkflow, self).run()
 

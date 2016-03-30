@@ -83,19 +83,17 @@ class BetaDiversityModule(Module):
         self.matrix.on('end', self.set_output, 'distance')
         self.matrix.run()
 
-    def hcluster_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
+    def hcluster_run(self):
         self.tools['hcluster'].set_options({
-            'dis_matrix': output_file_obj,
+            'dis_matrix': self.matrix.option('dis_matrix'),
             'linkage': self.option('linkage')
         })
         self.tools['hcluster'].on('end', self.set_output, 'hcluster')
         self.tools['hcluster'].run()
 
-    def anosim_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
+    def anosim_run(self):
         self.tools['anosim'].set_options({
-            'dis_matrix': output_file_obj,
+            'dis_matrix': self.matrix.option('dis_matrix'),
             'group': self.option('group'),
             'grouplabs': self.option('grouplabs') if self.option('grouplabs') else self.option('anosim_grouplabs'),
             'permutations': self.option('permutations')
@@ -104,9 +102,8 @@ class BetaDiversityModule(Module):
         self.tools['anosim'].run()
 
     def box_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
         self.tools['box'].set_options({
-            'dis_matrix': output_file_obj,
+            'dis_matrix': self.matrix.option('dis_matrix'),
             'grouplabs': self.option('grouplabs') if self.option('grouplabs') else self.option('anosim_grouplabs'),
             'group': self.option('group')
         })
@@ -114,25 +111,22 @@ class BetaDiversityModule(Module):
         self.tools['box'].run()
 
     def pcoa_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
         self.tools['pcoa'].set_options({
-            'dis_matrix': output_file_obj
+            'dis_matrix': self.matrix.option('dis_matrix')
         })
         self.tools['pcoa'].on('end', self.set_output, 'pcoa')
         self.tools['pcoa'].run()
 
     def nmds_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
         self.tools['nmds'].set_options({
-            'dis_matrix': output_file_obj
+            'dis_matrix': self.matrix.option('dis_matrix')
         })
         self.tools['nmds'].on('end', self.set_output, 'nmds')
         self.tools['nmds'].run()
 
-    def dbrda_run(self, rely_obj=None):
-        if rely_obj:
-            output_file_obj = rely_obj.rely[0].option('dis_matrix')
-            dbrda_options = {'dis_matrix': output_file_obj, 'envtable': self.option('envtable')}
+    def dbrda_run(self):
+        if not self.option('dbrda_method'):
+            dbrda_options = {'dis_matrix': self.matrix.option('dis_matrix'), 'envtable': self.option('envtable')}
         else:
             dbrda_options = {'otutable': self.otu_table, 'envtable': self.option('envtable'),
                              'method': self.option('dbrda_method')}
@@ -223,36 +217,42 @@ class BetaDiversityModule(Module):
             os.link(oldfiles[i], newfiles[i])
 
     def run(self):
-        # super(BetaDiversityModule, self).run()
+        super(BetaDiversityModule, self).run()
         self.step.ChooseAnalysis.start()
         self.step.update()
         if 'anosim' in self.option('analysis'):
             self.tools['anosim'] = self.add_tool('meta.beta_diversity.anosim')
-            self.on_rely(self.matrix, self.anosim_run)
+            # self.on_rely(self.matrix, self.anosim_run)
+            self.matrix.on('end', self.anosim_run)
             self.tools['box'] = self.add_tool(
                 'meta.beta_diversity.distance_box')
-            self.on_rely(self.matrix, self.box_run)
+            # self.on_rely(self.matrix, self.box_run)
+            self.matrix.on('end', self.box_run)
         if 'pcoa' in self.option('analysis'):
             self.tools['pcoa'] = self.add_tool('meta.beta_diversity.pcoa')
-            self.on_rely(self.matrix, self.pcoa_run)
+            # self.on_rely(self.matrix, self.pcoa_run)
+            self.matrix.on('end', self.pcoa_run)
         if 'nmds' in self.option('analysis'):
             self.tools['nmds'] = self.add_tool('meta.beta_diversity.nmds')
-            self.on_rely(self.matrix, self.nmds_run)
-        # if 'dbrda' in self.option('analysis'):
-        #     self.tools['dbrda'] = self.add_tool('meta.beta_diversity.dbrda')
-        #     self.on_rely(self.matrix, self.dbrda_run)
+            # self.on_rely(self.matrix, self.nmds_run)
+            self.matrix.on('end', self.nmds_run)
         if 'hcluster' in self.option('analysis'):
             self.tools['hcluster'] = self.add_tool(
                 'meta.beta_diversity.hcluster')
-            self.on_rely(self.matrix, self.hcluster_run)
+            # self.on_rely(self.matrix, self.hcluster_run)
+            self.matrix.on('end', self.hcluster_run)
         if 'dbrda' in self.option('analysis'):
             self.tools['dbrda'] = self.add_tool('meta.beta_diversity.dbrda')
             if self.option('dbrda_method'):
                 self.dbrda_run()
             else:
-                self.on_rely(self.matrix, self.dbrda_run)
+                # self.on_rely(self.matrix, self.dbrda_run)
+                self.matrix.on('end', self.dbrda_run)
         if 'pcoa' or 'distance' or 'anosim' or 'nmds' in self.option('analysis'):
             self.matrix_run()
+        elif 'dbrda' in self.option('analysis'):
+            if not self.option('dbrda_method'):
+                self.matrix_run()
         if 'pca' in self.option('analysis'):
             self.tools['pca'] = self.add_tool('meta.beta_diversity.pca')
             self.pca_run()
@@ -267,7 +267,6 @@ class BetaDiversityModule(Module):
         self.step.update()
         self.on_rely(self.tools.values(), self.stepend)
         # self.on_rely(self.tools.values(), self.end)
-        super(BetaDiversityModule, self).run()
 
 
     def stepend(self):

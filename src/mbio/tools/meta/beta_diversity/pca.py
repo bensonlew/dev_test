@@ -126,7 +126,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         # otu表对象没有样本列表属性
         if self.option('envtable').is_set:
             return self.filter_otu_sample(otu_path, self.option('envtable').prop['sample'],
-                                          os.path.join(self.work_dir + 'temp_filter.otutable'))
+                                          os.path.join(self.work_dir, 'temp_filter.otutable'))
         else:
             return otu_path
 
@@ -190,8 +190,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         cmd += ' -type pca -community %s -outdir %s' % (
             real_otu_path, self.work_dir)
         if self.option('envtable').is_set:
-            cmd += ' -pca_env T -environment %s' % self.option('envtable').prop[
-                'path']
+            cmd += ' -pca_env T -environment %s' % self.env_table
         self.logger.info('运行ordination.pl程序计算pca')
 
         try:
