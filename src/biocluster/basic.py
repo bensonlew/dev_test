@@ -14,7 +14,7 @@ import gevent
 import datetime
 from .core.function import CJsonEncoder
 import json
-import urllib
+# import urllib
 from biocluster.api.database.base import ApiManager
 from .wsheet import Sheet
 import random
@@ -412,9 +412,10 @@ class Basic(EventObject):
         if self._rely:
             for rl in self._rely:
                 if rl.satisfy:
-                    if not self.events[rl.name].is_start:
-                        self.events[rl.name].stop()
-                        self.events[rl.name].restart()
+                    event_name = "%s_%s" % (self.id.lower(), rl.name)
+                    if not self.events[event_name].is_start:
+                        self.events[event_name].stop()
+                        self.events[event_name].restart()
                     self.fire(rl.name, rl)
 
     def __event_childend(self, child):
@@ -765,7 +766,7 @@ class StepMain(Step):
             data = {
                 "task_id": workflow.sheet.id,
                 "api": self.api_type,
-                "data": urllib.urlencode(post_data)
+                "data": json.dumps(post_data)
             }
             if self.stats == "finish":
                 up_data = {}
@@ -787,7 +788,8 @@ class StepMain(Step):
                                 "target": self.bind_obj.sheet.output,
                                 "files": self.bind_obj.get_upload_files()
                             }
-                            data["data"] = urllib.urlencode(post_data)
+                            # data["data"] = urllib.urlencode(post_data)
+                            data["data"] = json.dumps(post_data)
                     else:
                         if workflow.sheet.type in ["tool", "module"] and workflow.sheet.output:
                             up_data["source"] = self.bind_obj.upload_dir
@@ -796,7 +798,7 @@ class StepMain(Step):
                                 "target": workflow.sheet.output,
                                 "files": self.bind_obj.get_upload_files()
                             }
-                            data["data"] = urllib.urlencode(post_data)
+                            data["data"] = json.dumps(post_data)
                         elif self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
                             target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
                             up_data["source"] = self.bind_obj.upload_dir
@@ -805,7 +807,7 @@ class StepMain(Step):
                                 "target": target_path,
                                 "files": self.bind_obj.get_upload_files()
                             }
-                            data["data"] = urllib.urlencode(post_data)
+                            data["data"] = json.dumps(post_data)
                 if up_data:
                     up_data["bind"] = {
                             "name": self.bind_obj.name,
@@ -846,14 +848,14 @@ class StepMain(Step):
                 "steps": array
             }}
             post_data = {
-                "content": json.dumps(json_obj)
+                "content": json_obj
             }
             for k, v in self._api_data.items():
                 post_data[k] = v
             data = {
                 "task_id": workflow.sheet.id,
                 "api": self.api_type,
-                "data": urllib.urlencode(post_data)
+                "data": json.dumps(post_data)
             }
             try:
                 workflow.db.insert("apilog", **data)
