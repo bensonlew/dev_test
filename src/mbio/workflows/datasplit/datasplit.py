@@ -53,7 +53,7 @@ class DatasplitWorkflow(Workflow):
         self.bcl2fastq.set_options({
             "sample_info": self.option('sample_info')
         })
-        self.on_rely(self.bcl2fastq, self.run_fastx)
+        self.bcl2fastq.on("end", self.run_fastx)
         self.bcl2fastq.run()
 
     def run_fastx(self):
@@ -62,7 +62,7 @@ class DatasplitWorkflow(Workflow):
             "sample_info": self.option('sample_info'),
             "data_path": os.path.join(self.bcl2fastq.work_dir, "soft_output")
         })
-        self.on_rely(self.fastx, self.run_second_split)
+        self.fastx.on("end", self.run_second_split)
         self.fastx.run()
 
     def run_second_split(self):
@@ -71,7 +71,7 @@ class DatasplitWorkflow(Workflow):
             "sample_info": self.option('sample_info'),
             "unzip_path": os.path.join(self.fastx.work_dir, "unzip")
         })
-        self.on_rely(self.second_split, self.run_backup)
+        self.second_split.on("end", self.run_backup)
         self.second_split.run()
 
     def run_backup(self):
@@ -83,7 +83,7 @@ class DatasplitWorkflow(Workflow):
             "child_path": os.path.join(self.second_split.work_dir, "child_seq"),
             "report_path": os.path.join(self.bcl2fastq.work_dir, "soft_output", "Reports")
         })
-        self.on_rely(self.backup, self.run_split_stat)
+        self.backup.on("end", self.run_split_stat)
         self.backup.run()
 
     def run_split_stat(self):
@@ -106,5 +106,5 @@ class DatasplitWorkflow(Workflow):
 
     def run(self):
         self.run_bcl2fastq()
-        self.on_rely(self.split_stat, self.split_end)
+        self.split_stat("end", self.split_end)
         super(DatasplitWorkflow, self).run()
