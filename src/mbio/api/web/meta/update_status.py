@@ -7,7 +7,6 @@ import json
 from bson.objectid import ObjectId
 from types import StringTypes
 import datetime
-import urlparse
 
 
 class UpdateStatus(Log):
@@ -43,7 +42,7 @@ class UpdateStatus(Log):
                     gevent.sleep(config.UPDATE_RETRY_INTERVAL)
                 self._try_times += 1
                 if my_table_id:
-                    url_data = urlparse.parse_qs(self.data.data)
+                    url_data = json.loads(self.data.data)
                     statu = url_data["content"][0]
                     json_data = json.loads(statu, object_hook=date_hook)
                     if "stage" in json_data.keys():
@@ -118,6 +117,8 @@ class UpdateStatus(Log):
             if status == "start":
                 insert_data = {
                     "table_id": obj_id,
+                    "table_name": id_value[obj_id],
+                    "task_id": self._task_id,
                     "type_name": dbname,
                     "status": "start",
                     "is_new": "new",

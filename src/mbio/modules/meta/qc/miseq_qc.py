@@ -45,9 +45,9 @@ class MiseqQcModule(Module):
             'in_fastq': self.option('in_fastq')
         }
         self.qc_format.set_options(myopt)
-        self.on_rely(self.qc_format, self.base_info_run)
-        self.on_rely(self.qc_format, self.samples_info_run)
-        self.on_rely(self.qc_format, self.reads_len_info_run)
+        self.qc_format.on("end", self.base_info_run)
+        self.qc_format.on("end", self.samples_info_run)
+        self.qc_format.on("end", self.reads_len_info_run)
         self.logger.info("开始对输入的fastq序列按样本进行格式化")
         self.qc_format.on('end', self.set_fasta)
         self.qc_format.run()
