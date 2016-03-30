@@ -564,6 +564,19 @@ class Basic(EventObject):
                 up_file_list.append(data)
         return up_file_list
 
+    def clone_upload_dir_from(self, obj):
+        """
+        克隆目的对象的UploadDir对象列表
+
+        :param obj: Module, Agent, Workflow
+        :return:
+        """
+        if not isinstance(obj, Basic):
+            raise Exception("obj对象类型不正确!!")
+        if self._upload_dir_obj:
+            raise Exception("已添加上传路径，不能克隆!!")
+        self._upload_dir_obj = obj._upload_dir_obj
+
 
 class Step(object):
     """
