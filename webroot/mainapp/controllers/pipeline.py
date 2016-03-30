@@ -26,8 +26,8 @@ class Pipeline(object):
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == "client01":
             json_obj = self.sanger_submit()
-            if json_obj['type'] == "workflow":
-                json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
+            json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
+            json_obj["IMPORT_REPORT_AFTER_END"] = True
         else:
             json_obj = self.json_submit()
         json_obj["USE_DB"] = True   # 使用数据库
@@ -75,6 +75,8 @@ class Pipeline(object):
                 file_path += child_of_root.text
         first_stage = root.find("stage")
         json_obj['stage_id'] = first_stage.find("id").text
+        if not json_obj['stage_id']:
+            json_obj['stage_id'] = 0
         json_obj['type'] = first_stage.find("type").text
         json_obj['name'] = first_stage.find("name").text
         json_obj['output'] = "%s/%s/%s/%s" % (file_path, json_obj['project_sn'],

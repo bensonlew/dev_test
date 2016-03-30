@@ -14,9 +14,10 @@ import gevent
 import datetime
 from .core.function import CJsonEncoder
 import json
-import urllib
+# import urllib
 from biocluster.api.database.base import ApiManager
 from .wsheet import Sheet
+import random
 
 
 class Rely(object):
@@ -29,9 +30,14 @@ class Rely(object):
     def __init__(self, *rely):
         with Rely.sem:
             Rely.count += 1
-            self._name = "reply" + str(Rely.count)
+            self._name = "reply%s_%s" % (Rely.count, random.randint(100, 1000))
             self._relys = []
-            self.add_rely(*rely)
+            for r in rely:
+                if not isinstance(r, Basic):
+                    raise Exception("依赖对象不正确!")
+                else:
+                    self._relys.append(r)
+            # self.add_rely(*rely)
 
     @property
     def name(self):
@@ -47,17 +53,17 @@ class Rely(object):
         """
         return self._relys
 
-    def add_rely(self, *rely):
-        """
-        添加依赖对象，对象必须为BasicObject或其子类的实例
-
-        :param rely: 一个获多个对象,必须为 Agent Module 的子类
-        """
-        for r in rely:
-            if not isinstance(r, Basic):
-                raise Exception("依赖对象不正确!")
-            else:
-                self._relys.append(r)
+    # def add_rely(self, *rely):
+    #     """
+    #     添加依赖对象，对象必须为BasicObject或其子类的实例
+    #
+    #     :param rely: 一个获多个对象,必须为 Agent Module 的子类
+    #     """
+    #     for r in rely:
+    #         if not isinstance(r, Basic):
+    #             raise Exception("依赖对象不正确!")
+    #         else:
+    #             self._relys.append(r)
 
     @property
     def satisfy(self):
@@ -340,7 +346,7 @@ class Basic(EventObject):
                 for c in self._parent.children:
                     if c.name == self.name:
                         count += 1
-                identifier = self._parent.id + "." + identifier
+                identifier = "%s.%s" % (self._parent.id, identifier)
         if count > 0:
             identifier += str(count)
         return identifier
@@ -406,6 +412,10 @@ class Basic(EventObject):
         if self._rely:
             for rl in self._rely:
                 if rl.satisfy:
+                    event_name = "%s_%s" % (self.id.lower(), rl.name)
+                    if not self.events[event_name].is_start:
+                        self.events[event_name].stop()
+                        self.events[event_name].restart()
                     self.fire(rl.name, rl)
 
     def __event_childend(self, child):
@@ -453,21 +463,27 @@ class Basic(EventObject):
         """
 
         if not isinstance(rely, list):
-            rely_list = [rely]
-        else:
-            rely_list = rely
+            raise Exception("rely参数必须为list数组!")
+        if len(rely) < 2:
+            raise Exception("rely数组必须至少有2个元素!")
+        rely_list = rely
+        rely_list.sort()
         for r in rely_list:
             if not isinstance(r, Basic):
                 raise Exception("rely参数必须为Basic或其子类的实例对象!")
             if r not in self._children:
                 raise Exception("rely模块必须为本对象的子模块!")
+        for r in self._rely:
+            if r == rely_list:
+                raise Exception("rely对象列表重复添加!")
         with self.sem:
             rl = Rely(*rely_list)
             self._rely.append(rl)
-            self.add_event(rl.name)
-            self.on(rl.name, func, data)
+            event_name = "%s_%s" % (self.id.lower(), rl.name)
+            self.add_event(event_name)
+            self.on(event_name, func, data)
             if self.is_start:
-                self.events[rl.name].start()
+                self.events[event_name].start()
             # print rely_list, rl, rl.name, self.events[rl.name]
 
     def run(self):
@@ -750,7 +766,7 @@ class StepMain(Step):
             data = {
                 "task_id": workflow.sheet.id,
                 "api": self.api_type,
-                "data": urllib.urlencode(post_data)
+                "data": json.dumps(post_data)
             }
             if self.stats == "finish":
                 up_data = {}
@@ -772,7 +788,8 @@ class StepMain(Step):
                                 "target": self.bind_obj.sheet.output,
                                 "files": self.bind_obj.get_upload_files()
                             }
-                            data["data"] = urllib.urlencode(post_data)
+                            # data["data"] = urllib.urlencode(post_data)
+                            data["data"] = json.dumps(post_data)
                     else:
                         if workflow.sheet.type in ["tool", "module"] and workflow.sheet.output:
                             up_data["source"] = self.bind_obj.upload_dir
@@ -781,7 +798,7 @@ class StepMain(Step):
                                 "target": workflow.sheet.output,
                                 "files": self.bind_obj.get_upload_files()
                             }
-                            data["data"] = urllib.urlencode(post_data)
+                            data["data"] = json.dumps(post_data)
                         elif self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
                             target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
                             up_data["source"] = self.bind_obj.upload_dir
@@ -790,7 +807,7 @@ class StepMain(Step):
                                 "target": target_path,
                                 "files": self.bind_obj.get_upload_files()
                             }
-                            data["data"] = urllib.urlencode(post_data)
+                            data["data"] = json.dumps(post_data)
                 if up_data:
                     up_data["bind"] = {
                             "name": self.bind_obj.name,
@@ -831,14 +848,14 @@ class StepMain(Step):
                 "steps": array
             }}
             post_data = {
-                "content": json.dumps(json_obj)
+                "content": json_obj
             }
             for k, v in self._api_data.items():
                 post_data[k] = v
             data = {
                 "task_id": workflow.sheet.id,
                 "api": self.api_type,
-                "data": urllib.urlencode(post_data)
+                "data": json.dumps(post_data)
             }
             try:
                 workflow.db.insert("apilog", **data)

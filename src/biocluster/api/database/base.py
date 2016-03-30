@@ -5,6 +5,7 @@ import importlib
 import functools
 from biocluster.core.function import get_clsname_form_path
 import re
+from types import StringTypes
 
 
 class Base(object):
@@ -26,6 +27,18 @@ class Base(object):
             self._db = self._client[self._db_name]
         return self._db
 
+    @property
+    def path(self):
+        class_name = str(type(self))
+        m = re.match(r"<class\s\'(.*)\'>", class_name)
+        class_name = m.group(1)
+        paths = class_name.split(".")
+        paths.pop()
+        paths.pop(0)
+        paths.pop(0)
+        paths.pop(0)
+        return ".".join(paths)
+
 
 class ApiManager(object):
     """
@@ -40,12 +53,12 @@ class ApiManager(object):
 
     def __getattr__(self, name):
         if name not in self._api_dict.keys():
-            self._api_dict[name] = self.get_api(name)
+            self._api_dict[name] = self._get_api(name)
         return self._api_dict[name]
 
     def api(self, name):
         if name not in self._api_dict.keys():
-            self._api_dict[name] = self.get_api(name)
+            self._api_dict[name] = self._get_api(name)
         return self._api_dict[name]
 
     @property
@@ -56,7 +69,7 @@ class ApiManager(object):
     def play_mode(self):
         return self._play_mode
 
-    def get_api(self, name):
+    def _get_api(self, name):
         """
         获取api对象
 
@@ -90,9 +103,9 @@ class ApiManager(object):
     def play(self):
         i = 0
         for cr in self._call_record:
-            if self.api_manager.debug:
+            if self.debug:
                 print "running #%s\t%s.%s(%s,%s) ..."\
-                      % (i, cr.api_name, cr.func_name, ",".join(cr.args),
+                      % (i, cr.api_name, cr.func_name, ",".join(["%s" % a for a in cr.args]),
                          ",".join(["%s=%s" % (key, value) for key, value in cr.kwargs.items()]))
             cr.run()
             i += 1
@@ -115,18 +128,21 @@ class CallRecord(object):
         return self._return_value
 
     def run(self):
-        p = re.compile(r"^\$\d+\$$")
+        p = re.compile(r"^\$(\d+)\$$")
         index = 0
         for key in self.args:
-            match = p.match(key)
-            if match:
-                call_index = int(match.group(1))
-                self.args[index] = self.api_manager.call_record[call_index].return_value
+            if isinstance(key, StringTypes):
+                match = p.match(key)
+                if match:
+                    call_index = int(match.group(1))
+                    self.args[index] = self.api_manager.call_record[call_index].return_value
+            index += 1
         for k, v in self.kwargs.items():
-            match = p.match(v)
-            if match:
-                call_index = int(match.group(1))
-                self.kwargs[k] = self.api_manager.call_record[call_index].return_value
+            if isinstance(v, StringTypes):
+                match = p.match(v)
+                if match:
+                    call_index = int(match.group(1))
+                    self.kwargs[k] = self.api_manager.call_record[call_index].return_value
         api = self.api_manager.api(self.api_name)
         func = getattr(api, self.func_name)
         self._return_value = func(*self.args, **self.kwargs)
@@ -152,7 +168,7 @@ def report_check(f):
             if args[0].bind_object.IMPORT_REPORT_AFTER_END is True:
                 list_args = list(args)
                 api_obj = list_args.pop(0)
-                index = args[0].manager.add_call_record(api_obj.__class__.__name__, f.__name__, list_args, kwargs)
+                index = args[0].manager.add_call_record(api_obj.path, f.__name__, list_args, kwargs)
                 return "$%s$" % index
             else:
                 return f(*args, **kwargs)

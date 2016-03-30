@@ -10,4 +10,4 @@ class SplitData(Log):
         # self._client = "client01"
         # self._key = "1ZYw71APsQ"
         self._url = "http://172.16.3.16/sequen/split_result"
-        self._post_data = "%s" % self.data.data
+        self._post_data = "%s" % self.post_data

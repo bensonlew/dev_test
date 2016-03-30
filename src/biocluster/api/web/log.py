@@ -14,6 +14,7 @@ import os
 from biocluster.core.function import get_clsname_form_path
 import importlib
 import traceback
+import urllib
 
 config = Config()
 db = config.get_db()
@@ -253,4 +254,7 @@ class Log(object):
         except Exception, e:
             self.log("数据库更新错误:%s" % e)
 
-
+    @property
+    def post_data(self):
+        data = json.loads(self.data.data)
+        return urllib.urlencode(data)

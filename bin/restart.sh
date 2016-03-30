@@ -13,5 +13,5 @@ rm $PID_FILE
 PID_FILE=`echo ../run/$HOSTNAME.upload.pid`
 kill -9 `cat $PID_FILE`
 rm $PID_FILE
-./upload_result.py
+./upload_result.py -s
 su -l root -c "service httpd restart"

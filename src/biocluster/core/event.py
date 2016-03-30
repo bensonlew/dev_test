@@ -306,10 +306,10 @@ class EventObject(object):
         :param name: string 事件名
         :return: bool
         """
-        if not isinstance(name, types.StringType):
+        if not isinstance(name, types.StringTypes):
             raise Exception("事件名称必须为字符串")
         elif not name.islower():
-            raise Exception("事件名称必须都会小写字母！")
+            raise Exception("事件名称必须都是小写字母！")
         else:
             return True
 

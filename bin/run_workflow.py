@@ -15,8 +15,8 @@ import atexit
 import traceback
 import web
 from biocluster.core.function import CJsonEncoder
-import urllib
-import subprocess
+# import urllib
+# import subprocess
 
 parser = argparse.ArgumentParser(description="run a workflow")
 group = parser.add_mutually_exclusive_group()
@@ -239,8 +239,8 @@ class WorkJob(object):
 
     def check_time_out(self):
         results = self.db.query("select * from workflow where has_run = 1 and is_end=0 and is_error=0 and"
-                                " (TIMESTAMPDIFF(SECOND,last_update,now()) > 200 or"
-                                " (last_update is Null and TIMESTAMPDIFF(SECOND,run_time,now())> 300) and waiting = 0)")
+                                " (TIMESTAMPDIFF(SECOND,last_update,now()) > 3600 or"
+                                " (last_update is Null and TIMESTAMPDIFF(SECOND,run_time,now())> 3600) and waiting = 0)")
         if isinstance(results, long) or isinstance(results, int):
             return None
         if len(results) > 0:
@@ -383,7 +383,7 @@ class WorkJob(object):
             data = {
                 "task_id": json_data["id"],
                 "api": json_data["UPDATE_STATUS_API"],
-                "data": urllib.urlencode(post_data)
+                "data": json.dumps(post_data)
             }
             self.db.insert("apilog", **data)
 

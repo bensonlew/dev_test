@@ -21,8 +21,8 @@ class SingleWorkflow(Workflow):
             task.UPDATE_STATUS_API = self.UPDATE_STATUS_API
         if self.IMPORT_REPORT_DATA is True:
             task.IMPORT_REPORT_DATA = True
-        if self.IMPORT_REPORT_AFTER_END is False:
-            task.IMPORT_REPORT_AFTER_END = False
+        if self.IMPORT_REPORT_AFTER_END is True:
+            task.IMPORT_REPORT_AFTER_END = True
         task.sheet = self._sheet
         task.set_options(self._sheet.options())
         task.on('end', self.end)
