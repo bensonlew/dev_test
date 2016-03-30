@@ -12,6 +12,7 @@ class Sample(Base):
 
     @report_check
     def add_samples_info(self, file_path):
+        self.bind_object.logger.info("add_samples_info start")
         data_list = []
         with open(file_path, 'r') as f:
             l = f.readline()

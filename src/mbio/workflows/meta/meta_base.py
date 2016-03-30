@@ -6,6 +6,7 @@
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
+import shutil
 
 
 class MetaBaseWorkflow(Workflow):
@@ -30,8 +31,8 @@ class MetaBaseWorkflow(Workflow):
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
             {'name': 'taxon_file', 'type': 'outfile', 'format': 'taxon.seq_taxon'},  # 输出序列的分类信息文件
             {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'},  # 输出的otu_taxon_dir文件夹
-            {"name": "estimate_indices", "type": "string", "default": "ace-chao-shannon-simpson-coverage"},
-            {"name": "rarefy_indices", "type": "string", "default": "sobs-shannon"},  # 指数类型
+            {"name": "estimate_indices", "type": "string", "default": "ace,chao,shannon,simpson,coverage"},
+            {"name": "rarefy_indices", "type": "string", "default": "sobs,shannon"},  # 指数类型
             {"name": "rarefy_freq", "type": "int", "default": 100},
             {"name": "alpha_level", "type": "string", "default": "otu"},  # level水平
             {"name": "beta_analysis", "type": "string",
@@ -197,12 +198,33 @@ class MetaBaseWorkflow(Workflow):
             event['data']['end'].finish()
         self.step.update()
 
+    def move2outputdir(self, olddir, newname, mode='link'):  # add by shenghe 20160329
+        """
+        移动一个目录下的所有文件/文件夹到workflow输出文件夹下，如果文件夹名已存在，文件夹会被完整删除。
+        """
+        if not os.path.isdir(olddir):
+            raise Exception('需要移动到output目录的文件夹不存在。')
+        newdir = os.path.join(self.output_dir, newname)
+        if os.path.exists(newdir):
+            if os.path.islink(newdir):
+                os.remove(newdir)
+            else:
+                shutil.rmtree(newdir)  # 不可以删除一个链接
+        if mode == 'link':
+            # os.symlink(os.path.abspath(olddir), newdir)  # 原始路径需要时绝对路径
+            shutil.copytree(olddir, newdir, symlinks=True)
+        elif mode == 'copy':
+            shutil.copytree(olddir, newdir)
+        else:
+            raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
+
     def set_output(self, event):
         obj = event["bind_object"]
         # 设置QC报告文件
         if event['data'] == "qc":
             self.option("otu_fasta", obj.option("otu_fasta"))
-            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/QC_stat")
+            self.move2outputdir(obj.output_dir, self.output_dir + "/QC_stat")  # 代替cp
+            # os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/QC_stat")
             api_samples = self.api.sample
             sample_info_path = self.qc.output_dir + "/samples_info/samples_info.txt"
             if not os.path.isfile(sample_info_path):
@@ -234,16 +256,19 @@ class MetaBaseWorkflow(Workflow):
             self.option("otu_table", obj.option("otu_table"))
             self.option("otu_rep", obj.option("otu_rep"))
             self.option("otu_biom", obj.option("otu_biom"))
-            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Otu")
+            self.move2outputdir(obj.output_dir, self.output_dir + "/Otu")  # 代替cp
+            # os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Otu")
             # 设置进化树文件
         if event['data'] == "tax":
             self.option("taxon_file", obj.option("taxon_file"))
-            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Tax_assign")
+            self.move2outputdir(obj.output_dir, self.output_dir + "/Tax_assign")  # 代替cp
+            # os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Tax_assign")
         if event['data'] == "stat":
             # self.option("otu_taxon_biom", obj.option("otu_taxon_biom"))
             # self.option("otu_taxon_table", obj.option("otu_taxon_table"))
             self.option("otu_taxon_dir", obj.option("otu_taxon_dir"))
-            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/OtuTaxon_summary")
+            self.move2outputdir(obj.output_dir, self.output_dir + "/OtuTaxon_summary")  # 代替cp
+            # os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/OtuTaxon_summary")
             api_otu = self.api.meta
             otu_path = self.output_dir + "/OtuTaxon_summary/otu_taxon.xls"
             rep_path = self.output_dir + "/Otu/otu_reps.fasta"
@@ -261,9 +286,13 @@ class MetaBaseWorkflow(Workflow):
             tree_path = self.phylo.option('phylo_tre').prop['path']
             if not os.path.isfile(tree_path):
                 raise Exception("找不到报告文件:{}".format(tree_path))
+            if os.path.exists(self.output_dir + '/Otu/otu_phylo.tre'):
+                os.remove(self.output_dir + '/Otu/otu_phylo.tre')
+            os.link(tree_path, self.output_dir + '/Otu/otu_phylo.tre')
             api_tree.add_tree_file(tree_path, major=True, level=9, table_id=self.otu_id, table_type='otu', tree_type='phylo')
         if event['data'] == "alpha":
-            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Alpha_diversity")
+            self.move2outputdir(obj.output_dir, self.output_dir + "/Alpha_diversity")  # 代替cp
+            # os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Alpha_diversity")
             # 设置alpha多样性文件
             api_est = self.api.estimator
             est_path = self.output_dir + "/Alpha_diversity/estimators.xls"
@@ -287,7 +316,8 @@ class MetaBaseWorkflow(Workflow):
             }
             api_rare.add_rare_table(rare_path, level=9, otu_id=self.otu_id, params=params)
         if event['data'] == "beta":
-            os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Beta_diversity")
+            self.move2outputdir(obj.output_dir, self.output_dir + "/Beta_diversity", mode='copy')  # 代替cp
+            # os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Beta_diversity")
             # 设置beta多样性文件
             api_dist = self.api.distance
             dist_path = self.beta.option('dis_matrix').prop['path']
@@ -319,6 +349,7 @@ class MetaBaseWorkflow(Workflow):
                         'analysis_type': self.option('beta_analysis'),
                     }
                     api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana, main=True, env_id=self.env_id, otu_id=self.otu_id, params=params)
+                self.logger.info('set output beta %s!!!' % ana)
 
     def run(self):
         self.run_filecheck()
@@ -345,10 +376,10 @@ class MetaBaseWorkflow(Workflow):
             ["OtuTaxon_summary", "", "OTU物种分类综合统计目录"],
             ["OtuTaxon_summary/otu_taxon.biom", "meta.otu.biom", "OTU表的biom格式的文件"],
             ["OtuTaxon_summary/otu_taxon.xls", "meta.otu.otu_table", "OTU表"],
-            ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"]
+            ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"],
             ["Alpha_diversity", "", "Alpha diversity文件目录"],
             ["Alpha_diversity/estimators.xls", "xls", "Alpha多样性指数表"],
-            ["Beta_diversity", "", "Beta diversity文件目录"]
+            ["Beta_diversity", "", "Beta diversity文件目录"],
             ["Beta_diversity/Anosim", "", "anosim&adonis结果输出目录"],
             ["Beta_diversity/Anosim/anosim_results.txt", "txt", "anosim分析结果"],
             ["Beta_diversity/Anosim/adonis_results.txt", "txt", "adonis分析结果"],
@@ -363,7 +394,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Box/Distances.xls", "xls", "组内组间距离值统计结果"],
             ["Beta_diversity/Distance", "", "距离矩阵计算结果输出目录"],
             ["Beta_diversity/Hcluster", "", "层次聚类结果目录"],
-            ["Beta_diversity/Hcluster/hcluster.tre", "tre", "层次聚类树"],
+            ["Beta_diversity/Hcluster/hcluster.tre", "graph.newick_tree", "层次聚类树"],
             ["Beta_diversity/Nmds", "", "NMDS分析结果输出目录"],
             ["Beta_diversity/Nmds/nmds_sites.xls", "xls", "样本坐标表"],
             ["Beta_diversity/Pca", "", "PCA分析结果输出目录"],
@@ -377,6 +408,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Pcoa", "", "pcoa分析结果目录"],
             ["Beta_diversity/Pcoa/pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
             ["Beta_diversity/Pcoa/pcoa_sites.xls", "xls", "样本坐标表"],
+            ['Beta_diversity/Rda/dca.xls', 'xls', 'DCA分析结果'],
             ["Beta_diversity/Plsda", "", "plsda分析结果目录"],
             ["Beta_diversity/Plsda/plsda_sites.xls", "xls", "样本坐标表"],
             ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
@@ -386,18 +418,17 @@ class MetaBaseWorkflow(Workflow):
         regexps = [
             [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
             [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
-            [r'Beta_diversity/Distance/%s.*\.xls' % self.option('dis_method'), 'xls', '样本距离矩阵文件'],
-            [r'Beta_diversity/Rda/.*_importance\.xls', 'xls', '主成分解释度表'],
-            [r'Beta_diversity/Rda/.*_sites\.xls', 'xls', '样本坐标表'],
-            [r'Beta_diversity/Rda/.*_species\.xls', 'xls', '物种坐标表'],
-            [r'Beta_diversity/Rda/.*dca\.xls', 'xls', 'DCA分析结果'],
-            [r'Beta_diversity/Rda/.*_biplot\.xls', 'xls', '数量型环境因子坐标表'],
-            [r'Beta_diversity/Rda/.*_centroids\.xls', 'xls', '哑变量环境因子坐标表'],
-            ["Beta_diversity", "", "Beta diversity文件目录"],
+            [r'Beta_diversity/Distance/%s.*\.xls$' % self.option('dis_method'), 'meta.beta_diversity.distance_matrix', '样本距离矩阵文件'],
+            [r'Beta_diversity/Rda/.+_importance\.xls$', 'xls', '主成分解释度表'],
+            [r'Beta_diversity/Rda/.+_sites\.xls$', 'xls', '样本坐标表'],
+            [r'Beta_diversity/Rda/.+_species\.xls$', 'xls', '物种坐标表'],
+            [r'Beta_diversity/Rda/.+_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
+            [r'Beta_diversity/Rda/.+_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
             ["Otu/otu_reps.fasta", "sequence.fasta", "代表序列"],
             ["Otu/otu_seqids.txt", "xls", "OTU代表序列对应表"],
             ["Otu/otu_table.biom", 'meta.otu.biom', "OTU表对应的Biom文件"],
-            ["Otu/otu_table.xls", "meta.otu.otu_table", "OTU表"]
+            ["Otu/otu_table.xls", "meta.otu.otu_table", "OTU表"],
+            ["Otu/otu_phylo.tre", "graph.newick_tree", "OTU表"],
             ["QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "xls", "单个样本碱基质量统计文件"],
             ["QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "xls", "序列长度分布统计文件"],
             ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
@@ -415,7 +446,8 @@ class MetaBaseWorkflow(Workflow):
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
-        print self.get_upload_files()
+        for i in self.get_upload_files():
+            self.logger.info('upload file:{}'.format(str(i)))
 
     def end(self):
         self.send_files()

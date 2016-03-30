@@ -51,7 +51,7 @@ class DbrdaAgent(Agent):
         :return:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
-            new_otu = OtuTableFile
+            new_otu = OtuTableFile()
             new_otu.set_path(self.option('otutable').get_table(self.option('level')))
             new_otu.get_info()
             return new_otu

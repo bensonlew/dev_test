@@ -223,7 +223,7 @@ class BetaDiversityModule(Module):
             os.link(oldfiles[i], newfiles[i])
 
     def run(self):
-        super(BetaDiversityModule, self).run()
+        # super(BetaDiversityModule, self).run()
         self.step.ChooseAnalysis.start()
         self.step.update()
         if 'anosim' in self.option('analysis'):
@@ -267,6 +267,8 @@ class BetaDiversityModule(Module):
         self.step.update()
         self.on_rely(self.tools.values(), self.stepend)
         # self.on_rely(self.tools.values(), self.end)
+        super(BetaDiversityModule, self).run()
+
 
     def stepend(self):
         self.step.MultipleAnalysis.finish()
@@ -309,20 +311,18 @@ class BetaDiversityModule(Module):
             ["Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
             ["Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
             ["Rda", "", "rda_cca分析结果目录"],
+            [r'Rda/dca.xls', 'xls', 'DCA分析结果'],
         ]
         regexps = [
-            [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
-            [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
-            [r'Distance/%s.*\.xls' % self.option('dis_method'), 'xls', '样本距离矩阵文件'],
-            [r'Rda/.*_importance\.xls', 'xls', '主成分解释度表'],
-            [r'Rda/.*_sites\.xls', 'xls', '样本坐标表'],
-            [r'Rda/.*_species\.xls', 'xls', '物种坐标表'],
-            [r'Rda/.*dca\.xls', 'xls', 'DCA分析结果'],
-            [r'Rda/.*_biplot\.xls', 'xls', '数量型环境因子坐标表'],
-            [r'Rda/.*_centroids\.xls', 'xls', '哑变量环境因子坐标表'],
+            [r'Distance/%s.*\.xls$' % self.option('dis_method'), 'xls', '样本距离矩阵文件'],
+            [r'Rda/.*_importance\.xls$', 'xls', '主成分解释度表'],
+            [r'Rda/.*_sites\.xls$', 'xls', '样本坐标表'],
+            [r'Rda/.*_species\.xls$', 'xls', '物种坐标表'],
+            [r'Rda/.*_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
+            [r'Rda/.*_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
         ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
-        print self.get_upload_files()
+        self.logger.info('end over')
         super(BetaDiversityModule, self).end()

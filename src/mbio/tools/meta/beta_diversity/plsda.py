@@ -5,6 +5,7 @@ from biocluster.tool import Tool
 # import os
 import types
 from biocluster.core.exceptions import OptionError
+from mbio.files.meta.otu.otu_table import OtuTableFile
 from mbio.packages.beta_diversity.plsda_r import *
 
 
@@ -36,6 +37,18 @@ class PlsdaAgent(Agent):
         self.step.plsda.finish()
         self.step.update()
 
+    def gettable(self):
+        """
+        根据level返回进行计算的otu表对象，否则直接返回参数otutable对象
+        :return:
+        """
+        if self.option('otutable').format == "meta.otu.tax_summary_dir":
+            new_otu = OtuTableFile()
+            new_otu.set_path(self.option('otutable').get_table(self.option('level')))
+            return new_otu
+        else:
+            return self.option('otutable')
+
     def check_options(self):
         """
         重写参数检查
@@ -53,17 +66,18 @@ class PlsdaAgent(Agent):
                 # self.option('grouplabs', self.option('group').prop['group_scheme'][0])
             if not self.option('otutable').is_set:
                 raise OptionError('没有提供otu表')
-            self.option('otutable').get_info()
-            if self.option('otutable').prop['sample_num'] < 2:
+            real_otu = self.gettable()
+            real_otu.get_info()
+            if real_otu.prop['sample_num'] < 2:
                 raise OptionError('otu表的样本数目少于2，不可进行beta多元分析')
-            otu_samplelist = open(self.option('otutable').path).readline().strip().split('\t')[1:]
+            otu_samplelist = open(real_otu.path).readline().strip().split('\t')[1:]
             group_collection = set(self.option('group').prop['sample'])
             collection = group_collection & set(otu_samplelist)
             if group_collection == collection:
                 pass
             else:
                 raise OptionError('group文件中存在otu表中不存在的样本')
-            table = open(self.option('otutable').path)
+            table = open(real_otu.path)
             if len(table.readlines()) < 4:
                 raise OptionError('提供的otu表数据表信息少于3行')
             table.close()
