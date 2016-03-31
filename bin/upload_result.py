@@ -207,20 +207,15 @@ class Uploader(object):
         return self._db
 
     def upload(self):
-        up_data = json.loads(self._record.upload)
-        remote_file = RemoteFileManager(up_data["target"])
-        for sub_dir in up_data["source"]:
-            self._bind_object.logger.info("开始上传%s到%s" % (sub_dir, up_data["target"]))
+        up_data = json.loads(self._record.upload)["upload_dir"]
+        for up_dir in up_data:
+            remote_file = RemoteFileManager(up_dir["target"])
+            self._bind_object.logger.info("开始上传%s到%s" % (up_dir["source"], up_dir["target"]))
             if remote_file.type != "local":
                 umask = os.umask(0)
-                remote_file.upload(sub_dir)
-                # for root, subdirs, files in os.walk("c:\\test"):
-                #     for filepath in files:
-                #         os.chmod(os.path.join(root, filepath), 0o777)
-                #     for sub in subdirs:
-                #         os.chmod(os.path.join(root, sub), 0o666)
+                remote_file.upload(up_dir["source"])
                 os.umask(umask)
-            self._bind_object.logger.info("上传%s到%s完成" % (sub_dir, up_data["target"]))
+            self._bind_object.logger.info("上传%s到%s完成" % (up_dir["source"], up_dir["target"]))
 
 
 class UploadProcess(Process):

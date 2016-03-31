@@ -461,7 +461,9 @@ class Basic(EventObject):
         :param func:  当 rely参数中的所有对象均完成(is_end is True)时，触发此函数
         :param data:  需要传递的参数
         """
-
+        if isinstance(rely, Basic):
+            rely.on("end", func, data)
+            return
         if not isinstance(rely, list):
             raise Exception("rely参数必须为list数组!")
         if len(rely) < 2:
@@ -475,7 +477,9 @@ class Basic(EventObject):
                 raise Exception("rely模块必须为本对象的子模块!")
         for r in self._rely:
             if r == rely_list:
-                raise Exception("rely对象列表重复添加!")
+                event_name = "%s_%s" % (self.id.lower(), r.name)
+                self.on(event_name, func, data)
+                return
         with self.sem:
             rl = Rely(*rely_list)
             self._rely.append(rl)
@@ -523,11 +527,18 @@ class Basic(EventObject):
         :param dir_path: 相对或绝对路径
         :return: UploadDir对象
         """
+        if not os.path.isdir(dir_path):
+            raise Exception("上传路径%s必须目录" % dir_path)
+        rel_path = os.path.relpath(dir_path, self.work_dir)
+        m = re.match(r"^\.", rel_path)
+        if m:
+            raise Exception("只能添加当前工作目录的子目录: %s" % dir_path)
         for i in self._upload_dir_obj:
-            if os.path.basename(i) == os.path.basename(dir_path):
-                raise Exception("添加的结果文件夹%s名称不能重复!" % dir_path)
+            if i.upload_path == rel_path:
+                raise Exception("不能重复添加目录%s!" % dir_path)
         up = UploadDir(self)
         up.path = dir_path
+        up.upload_path = rel_path
         self._upload_dir_obj.append(up)
         return up
 
@@ -537,10 +548,10 @@ class Basic(EventObject):
         获取需要上传的文件夹路径
         :return:  list
         """
-        dir_list = []
-        for dir_obj in self._upload_dir_obj:
-            dir_list.append(dir_obj.path)
-        return dir_list
+        # dir_list = []
+        # for dir_obj in self._upload_dir_obj:
+        #     dir_list.append(dir_obj.path)
+        return self._upload_dir_obj
 
     def get_upload_files(self):
         """
@@ -549,19 +560,11 @@ class Basic(EventObject):
         """
         up_file_list = []
         for obj in self._upload_dir_obj:
-            for i in obj.file_list:
-                if i.relpath == ".":
-                    path = os.path.basename(i.base_path)
-                else:
-                    path = "%s/%s" % (os.path.basename(i.base_path), i.relpath)
-                data = {
-                    "path": path,
-                    "type": i.file_type,
-                    "format": i.format,
-                    "description": i.description,
-                    "size": i.size
-                }
-                up_file_list.append(data)
+            up_data = {
+                "dir": obj.upload_path,
+                "files": obj.file_list
+            }
+            up_file_list.append(up_data)
         return up_file_list
 
     def clone_upload_dir_from(self, obj):
@@ -792,34 +795,59 @@ class StepMain(Step):
                 if len(self.bind_obj.upload_dir) > 0:
                     if self.bind_obj is workflow:  # 普通模式的workflow 或 pipeline
                         if self.bind_obj.sheet.type == "workflow" and self.bind_obj.sheet.output:
-                            up_data["source"] = self.bind_obj.upload_dir
-                            up_data["target"] = self.bind_obj.sheet.output
+                            up_data["upload_dir"] = []
+                            post_data["upload_files"] = []
+                            for up in self.bind_obj.upload_dir:
+                                target_dir = os.path.join(self.bind_obj.sheet.output, os.path.dirname(up.upload_path))
+                                up_data["upload_dir"].append({
+                                    "source": up.path,
+                                    "target": target_dir
+                                })
+                                post_data["upload_files"].append({
+                                    "target": os.path.join(self.bind_obj.sheet.output, up.upload_path),
+                                    "files": up.file_list
+                                })
+
                             # data["upload"] = json.dumps(up_data)
                             # data["has_upload"] = 1
                             # data["uploaded"] = 0
-                            post_data["upload_files"] = {
-                                "target": self.bind_obj.sheet.output,
-                                "files": self.bind_obj.get_upload_files()
-                            }
+                            # post_data["upload_files"] = {
+                            #     "target": self.bind_obj.sheet.output,
+                            #     "files": self.bind_obj.get_upload_files()
+                            # }
                             # data["data"] = urllib.urlencode(post_data)
                             data["data"] = json.dumps(post_data)
                     else:
                         if workflow.sheet.type in ["tool", "module"] and workflow.sheet.output:
-                            up_data["source"] = self.bind_obj.upload_dir
-                            up_data["target"] = workflow.sheet.output
-                            post_data["upload_files"] = {
-                                "target": workflow.sheet.output,
-                                "files": self.bind_obj.get_upload_files()
-                            }
+                            up_data["upload_dir"] = []
+                            post_data["upload_files"] = []
+                            for up in self.bind_obj.upload_dir:
+                                target_dir = os.path.join(workflow.sheet.output, os.path.dirname(up.upload_path))
+                                up_data["upload_dir"].append({
+                                    "source": up.path,
+                                    "target": target_dir
+                                })
+                                post_data["upload_files"].append({
+                                    "target": os.path.join(workflow.sheet.output, up.upload_path),
+                                    "files": up.file_list
+                                })
+
                             data["data"] = json.dumps(post_data)
                         elif self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
+                            up_data["upload_dir"] = []
+                            post_data["upload_files"] = []
                             target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
-                            up_data["source"] = self.bind_obj.upload_dir
-                            up_data["target"] = target_path
-                            post_data["upload_files"] = {
-                                "target": target_path,
-                                "files": self.bind_obj.get_upload_files()
-                            }
+                            for up in self.bind_obj.upload_dir:
+                                target_dir = os.path.join(target_path, os.path.dirname(up.upload_path))
+                                up_data["upload_dir"].append({
+                                    "source": up.path,
+                                    "target": target_dir
+                                })
+                                post_data["upload_files"].append({
+                                    "target": os.path.join(target_path, up.upload_path),
+                                    "files": up.file_list
+                                })
+
                             data["data"] = json.dumps(post_data)
                 if up_data:
                     up_data["bind"] = {
@@ -887,6 +915,7 @@ class UploadDir(object):
         self._parent = parent
         self._regexp_rules = []
         self._relpath_rules = []
+        self.upload_path = ""
 
     @property
     def path(self):
@@ -909,7 +938,7 @@ class UploadDir(object):
 
     def add_regexp_rules(self, match_rules):
         """
-        根据相对路径添加正则匹配规则
+        使用相对于当前添加的上传文件夹的相对路径添加正则匹配规则
 
         :param match_rules: 必须为一个二维数组, 每个子数组含有3个字符串元素，第一个元素为正则表达式，
         第二个元素为格式path, 第三个元素为文件或文件夹说明
@@ -922,7 +951,7 @@ class UploadDir(object):
 
     def add_relpath_rules(self, match_rules):
         """
-        添加路径匹配，使用相对于当前文件夹的相对路径匹配，当前文件夹使用“.”，匹配
+        添加路径匹配，使用相对于当前添加的上传文件夹的相对路径匹配，当前文件夹使用“.”，匹配
 
         :param match_rules:必须为一个二维数组, 每个子数组含有3个字符串元素，第一个元素为相对路径，
         第二个元素为格式path, 第三个元素为文件或文件夹说明
@@ -973,7 +1002,16 @@ class UploadDir(object):
         :return: 数组，数组元素为ResultFile对象
         """
         self.match()
-        return self._file_list
+        data = []
+        for i in self._file_list:
+            data.append({
+                "path": i.relpath,
+                "type": i.file_type,
+                "format": i.format,
+                "description": i.description,
+                "size": i.size
+            })
+        return data
 
 
 class ResultFile(object):
