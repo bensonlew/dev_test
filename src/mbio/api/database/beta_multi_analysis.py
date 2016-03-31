@@ -124,6 +124,7 @@ class BetaMultiAnalysis(Base):
                         insert_text_detail(env_vec_pr_path, 'env_vector', main_id=main_id)
                 else:
                     pass
+                self.bind_object.logger.info('beta_diversity:PCA分析结果导入数据库完成.')
             elif analysis == 'pcoa':
                 site_path = dir_path.rstrip('/') + '/Pcoa/pcoa_sites.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
@@ -131,9 +132,11 @@ class BetaMultiAnalysis(Base):
                 importance_path = dir_path.rstrip('/') + '/Pcoa/pcoa_eigenvalues.xls'
                 # insert_text_detail(rotation_path, 'rotation', main_id=main_id)
                 insert_text_detail(importance_path, 'eigenvalues', main_id=main_id)
+                self.bind_object.logger.info('beta_diversity:PCoA分析结果导入数据库完成.')
             elif analysis == 'nmds':
                 site_path = dir_path.rstrip('/') + '/Nmds/nmds_sites.xls'
                 insert_table_detail(site_path, 'specimen', update_id=main_id)
+                self.bind_object.logger.info('beta_diversity:NMDS分析结果导入数据库完成.')
             elif analysis == 'dbrda':
                 site_path = dir_path.rstrip('/') + '/Dbrda/db_rda_sites.xls'
                 # species_path = dir_path.rstrip('/') + '/Dbrda/db_rda_species.xls'
@@ -147,6 +150,7 @@ class BetaMultiAnalysis(Base):
                 if 'db_rda_biplot.xls' in filelist:
                     env_vec_path = dir_path.rstrip('/') + '/Dbrda/db_rda_biplot.xls'
                     insert_table_detail(env_vec_path, 'vector', update_id=main_id)
+                self.bind_object.logger.info('beta_diversity:db_RDA分析结果导入数据库完成.')
             elif analysis == 'rda_cca':
                 if 'rda' in os.listdir(dir_path.rstrip('/') + '/Rda/')[1]:
                     rda_cca = 'rda'
@@ -167,6 +171,7 @@ class BetaMultiAnalysis(Base):
                 if (rda_cca + '_biplot.xls') in filelist:
                     env_vec_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_biplot.xls'
                     insert_table_detail(env_vec_path, 'vector', update_id=main_id, fileter_biplot=remove)
+                self.bind_object.logger.info('beta_diversity:RDA/CCA分析结果导入数据库完成.')
             elif analysis == 'plsda':
                 site_path = dir_path.rstrip('/') + '/Plsda/plsda_sites.xls'
                 rotation_path = dir_path.rstrip('/') + '/Plsda/plsda_rotation.xls'
@@ -176,5 +181,6 @@ class BetaMultiAnalysis(Base):
                 insert_text_detail(importance_path, 'importance', main_id=main_id)
             else:
                 raise Exception('提供的analysis：%s不存在' % analysis)
+                self.bind_object.logger.info('beta_diversity:PLSDA分析结果导入数据库完成.')
         else:
             raise Exception('提供的_id：%s在sg_beta_multi_analysis中无法找到表' % str(main_id))

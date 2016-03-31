@@ -51,9 +51,34 @@ class OtuAnalysisModule(Module):
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
             if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea',
-                                               'silva119/18s_eukaryota', 'unite6.0/its_fungi', 'fgr/amoA', 'fgr/nosZ',
+                                               'silva119/18s_eukaryota', 'unite7.0/its_fungi', 'fgr/amoA', 'fgr/nosZ',
                                                'fgr/nirK', 'fgr/nirS', 'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [r".", "", "结果输出目录"],
+            [r"./SubSample", "", "抽平结果目录"],
+            [r"./OtuTaxonStat", "", "OTU统计文件夹"],
+            [r"./QiimeAssign", "", "QiimeAssign文件夹"],
+            [r"./UsearchOtu", "", "UsearchOtu文件夹"],
+            [r"./QiimeAssign/seqs_tax_assignments.txt", "xls", "OTU的分类学信息"],
+            [r"./OtuTaxonStat/otu_taxon.biom", "meta.otu.biom", "OTU表的biom格式的文件"],
+            [r"./OtuTaxonStat/otu_taxon.xls", "meta.otu.otu_table", "OTU表"],
+            [r"./OtuTaxonStat/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"]
+            ["./UsearchOtu/otu_reps.fasta", "sequence.fasta", "代表序列"],
+            ["./UsearchOtu/otu_seqids.txt", "xls", "OTU代表序列对应表"],
+            ["./UsearchOtu/otu_table.biom", 'meta.otu.biom', "OTU表对应的Biom文件"],
+            ["./UsearchOtu/otu_table.xls", "meta.otu.otu_table", "OTU表"]
+        ])
+        result_dir.add_regexp_rules([
+            ["SubSample/.+subsample", 'meta.otu.otu_table', "抽平后的otu表格"],
+            ["tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
+            ["tax_summary_a/.+\.xls$", "meta.otu.biom", "OTU表, 没有完整的分类学信息"],
+            ["tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "OTU表, 带有完整的分类学信息"]
+        ])
+        super(OtuAnalysisModule, self).end()
 
     def usearch_run(self):
         """
@@ -66,10 +91,10 @@ class OtuAnalysisModule(Module):
             'identity': self.option('confidence')
         }
         self.usearch.set_options(myopt)
-        self.on_rely(self.usearch, self.qiimeassign_run)
+        self.usearch.on("end", self.qiimeassign_run)
         self.usearch.run()
 
-    def qiimeassign_run(self, relyobj):
+    def qiimeassign_run(self):
         """
         运行Qiime Assign,获取OTU的分类信息
         """
@@ -79,7 +104,7 @@ class OtuAnalysisModule(Module):
         myopt = dict()
         if self.option('database') == "custom_mode":
             myopt = {
-                'fasta': relyobj.rely[0].option('otu_rep'),
+                'fasta': self.usearch.option('otu_rep'),
                 'revcomp': self.option('revcomp'),
                 'confidence': self.option('confidence'),
                 'database': self.option('database'),
@@ -88,32 +113,32 @@ class OtuAnalysisModule(Module):
             }
         else:
             myopt = {
-                'fasta': relyobj.rely[0].option('otu_rep'),
+                'fasta': self.usearch.option('otu_rep'),
                 'revcomp': self.option('revcomp'),
                 'confidence': self.option('confidence'),
                 'database': self.option('database')
             }
         self.qiimeassign.set_options(myopt)
         if self.option('subsample'):
-            self.on_rely(self.usearch, self.subsample_run)
+            self.usearch.on("end", self.subsample_run)
         else:
             self.on_rely([self.usearch, self.qiimeassign], self.otutaxonstat_run)
         self.qiimeassign.run()
 
-    def subsample_run(self, relyobj):
+    def subsample_run(self):
         """
         运行mothur的subsample，进行抽平
         """
         myopt = dict()
         myopt = {
-            'in_otu_table': relyobj.rely[0].option('otu_table')
+            'in_otu_table': self.usearch.option('otu_table')
         }
         self.subsample.set_options(myopt)
         self.on_rely([self.qiimeassign, self.subsample], self.otutaxonstat_run)
         self.subsample.on('end', self.set_subsample)
         self.subsample.run()
 
-    def otutaxonstat_run(self, relyobj):
+    def otutaxonstat_run(self):
         """
         进行分类学统计，产生不同分类水平上OTU统计表
         """
@@ -123,13 +148,13 @@ class OtuAnalysisModule(Module):
         myopt = dict()
         if self.option('subsample'):
             myopt = {
-                'in_otu_table': relyobj.rely[1].option('out_otu_table'),
-                'taxon_file': relyobj.rely[0].option('taxon_file')
+                'in_otu_table': self.subsample.option('out_otu_table'),
+                'taxon_file': self.qiimeassign.option('taxon_file')
             }
         else:
             myopt = {
-                'in_otu_table': relyobj.rely[0].option('otu_table'),
-                'taxon_file': relyobj.rely[1].option('taxon_file')
+                'in_otu_table': self.usearch.option('otu_table'),
+                'taxon_file': self.qiimeassign.option('taxon_file')
             }
         self.otutaxonstat.set_options(myopt)
         self.otutaxonstat.on('end', self.set_output)
@@ -175,4 +200,4 @@ class OtuAnalysisModule(Module):
     def run(self):
         super(OtuAnalysisModule, self).run()
         self.usearch_run()
-        self.on_rely(self.otutaxonstat, self.end)
+        self.otutaxonstat.on("on", self.end)

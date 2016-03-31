@@ -4,7 +4,6 @@
 """组间差异两样品比较检验分析"""
 
 from biocluster.workflow import Workflow
-from mbio.packages.statistical.twosample_bar import *
 import os
 
 
@@ -55,28 +54,36 @@ class TwoSampleWorkflow(Workflow):
             }
         self.two_sample.set_options(options)
         self.output_dir = self.two_sample.output_dir
-        self.on_rely(self.two_sample, self.set_db)
+        self.two_sample.on("end", self.set_db)
         self.two_sample.run()
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        result_dir.add_regexp_rules([
+            [r".*_result\.xls", "xls", "物种组间差异显著性比较结果表，包括均值，标准差，p值"],
+            [r".*_CI\.xls", "xls", "组间差异显著性比较两组，两样本比较的置信区间值以及效果量"]
+            ])
+        super(TwoSampleWorkflow, self).end()
 
     def set_db(self):
         api_two_sample = self.api.stat_test
         two_sample_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         ci_path = self.output_dir + '/' + self.option("test") + '_CI.xls'
-        errorbar_path = self.output_dir + '/' + 'errorbar.png'
-        #plot error bar
-        extended_error_bar(two_sample_path, self.option("sample1"), self.option("sample2"), ci_path, errorbar_path)
         if not os.path.isfile(two_sample_path):
             raise Exception("找不到报告文件:{}".format(two_sample_path))
         if not os.path.isfile(ci_path):
             raise Exception("找不到报告文件:{}".format(ci_path))
-        if not os.path.isfile(errorbar_path):
-            raise Exception("找不到报告文件:{}".format(errorbar_path))
         api_two_sample.add_twosample_species_difference_check_detail(file_path=two_sample_path,
                                                                      table_id=self.option("two_sample_id"))
         api_two_sample.add_species_difference_check_ci_plot(file_path=ci_path, table_id=self.option("two_sample_id"))
-        api_two_sample.update_species_difference_check(errorbar_path, self.option("two_sample_id"), two_sample_path, ci_path, 'twosample')
+        api_two_sample.update_species_difference_check(self.option("two_sample_id"),
+                                                       two_sample_path, ci_path, 'twosample')
         self.end()
 
     def run(self):
         self.run_two_sample()
+        self.set_db()
         super(TwoSampleWorkflow, self).run()

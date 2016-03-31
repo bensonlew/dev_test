@@ -4,7 +4,6 @@
 """组间差异性两组比较检验分析"""
 
 from biocluster.workflow import Workflow
-from mbio.packages.statistical.twogroup_errorbar import *
 import os
 
 
@@ -68,9 +67,21 @@ class TwoGroupWorkflow(Workflow):
                 "welch_coverage": self.option("coverage")
             }
         self.two_group.set_options(options)
-        self.on_rely(self.two_group, self.set_db)
+        self.two_group.on("end", self.set_db)
         self.output_dir = self.two_group.output_dir
         self.two_group.run()
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        result_dir.add_regexp_rules([
+            [r".*_result\.xls", "xls", "物种组间差异显著性比较结果表，包括均值，标准差，p值"],
+            [r".*_CI\.xls", "xls", "组间差异显著性比较两组，两样本比较的置信区间值以及效果量"],
+            [r".*_boxfile\.xls", "xls", "组间差异显著性比较用于画箱线图的数据，包含四分位值"]
+            ])
+        super(TwoGroupWorkflow, self).end()
 
     def set_db(self):
         """
@@ -80,21 +91,16 @@ class TwoGroupWorkflow(Workflow):
         stat_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         boxfile_path = self.output_dir + '/' + self.option("test") + '_boxfile.xls'
         ci_path = self.output_dir + '/' + self.option("test") + '_CI.xls'
-        errorbar_path = self.output_dir + '/' + 'errorbar.png'
-        #plot error bar
-        errorbar(stat_path, self.option("group_file").prop['path'], ci_path, errorbar_path)
         if not os.path.isfile(stat_path):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):
             raise Exception("找不到报告文件:{}".format(boxfile_path))
-        if not os.path.isfile(errorbar_path):
-            raise Exception("找不到报告文件:{}".format(errorbar_path))
         if not os.path.isfile(ci_path):
             raise Exception("找不到报告文件:{}".format(ci_path))
         api_two_group.add_species_difference_check_detail(file_path=stat_path, table_id=self.option("two_group_id"))
         api_two_group.add_species_difference_check_boxplot(boxfile_path, self.option("two_group_id"))
         api_two_group.add_species_difference_check_ci_plot(file_path=ci_path, table_id=self.option("two_group_id"))
-        api_two_group.update_species_difference_check(errorbar_path, self.option("two_group_id"), stat_path, ci_path, 'twogroup')
+        api_two_group.update_species_difference_check(self.option("two_group_id"), stat_path, ci_path, 'twogroup')
         self.end()
 
     def run(self):

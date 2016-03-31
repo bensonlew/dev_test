@@ -13,7 +13,7 @@ class HclusterAgent(Agent):
     脚本plot-hcluster_tree.pl
     version v1.0
     author: shenghe
-    last_modified:2015.11.17
+    last_modified:2016.3.24
     """
 
     def __init__(self, parent):
@@ -56,6 +56,15 @@ class HclusterAgent(Agent):
         self._cpu = 1
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "层次聚类结果目录"],
+            ["./hcluster.tre", "tre", "层次聚类树"]
+        ])
+        print self.get_upload_files()
+        super(HclusterAgent, self).end()
+
 
 class HclusterTool(Tool):
 
@@ -78,10 +87,11 @@ class HclusterTool(Tool):
         """
         运行plot-hcluster_tree.pl
         """
-        self.newname_dict = self.change_sample_name(quotes=True)  # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
+        real_dis_matrix = self.work_dir + '/distance_matrix.temp'
+        self.newname_dict = self.change_sample_name(quotes=True, new_path=self.work_dir + '/distance_matrix.temp')  # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         cmd = self.cmd_path
         cmd += ' -i %s -o %s -m %s' % (
-            self.option('dis_matrix').prop['path'], self.work_dir, self.option('linkage'))
+            real_dis_matrix, self.work_dir, self.option('linkage'))
         self.logger.info('运行plot-hcluster_tree.pl程序计算Hcluster')
         self.logger.info(cmd)
         try:
@@ -98,8 +108,7 @@ class HclusterTool(Tool):
             self.logger.info('生成树文件失败')
             self.set_error('无法生成树文件')
         filename = self.work_dir + '/hcluster_tree_' + \
-            os.path.basename(self.option('dis_matrix').prop[
-                'path']) + '_' + self.option('linkage') + '.tre'
+            os.path.basename(real_dis_matrix) + '_' + self.option('linkage') + '.tre'
         linkfile = self.output_dir + '/hcluster.tre'
         self.re_recover_name(self.newname_dict, filename, filename + '.temp')
         self.logger.info(filename + '.temp')
@@ -111,13 +120,14 @@ class HclusterTool(Tool):
         self.logger.info(self.option('newicktree').prop)
         self.end()
 
-    def change_sample_name(self, quotes=True):
+    def change_sample_name(self, quotes=True, new_path=None):
         """
         修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         """
+        if not new_path:
+            new_path = self.work_dir + '/distance_matrix.temp'
         old_matrix = open(self.option('dis_matrix').path, 'rb')
         name_dict = {}
-        new_path = os.path.splitext(self.option('dis_matrix').path)[0] + '.temp'
         new_matrix = open(new_path, 'wb')
         frist_line = old_matrix.readline().rstrip().split('\t')[1:]
         if quotes:
@@ -134,8 +144,6 @@ class HclusterTool(Tool):
             new_matrix.write('\t'.join(line_split))
         old_matrix.close()
         new_matrix.close()
-        self.option('dis_matrix').set_path(new_path)
-        self.option('dis_matrix').get_info()
         return name_dict
 
     def recover_name(self, namedict, treefile, newfile):

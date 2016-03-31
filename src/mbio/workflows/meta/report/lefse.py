@@ -36,9 +36,19 @@ class LefseWorkflow(Workflow):
         }
     
         self.lefse.set_options(options)
-        self.on_rely(self.lefse, self.set_db)
+        self.lefse.on("end", self.set_db)
         self.output_dir = self.lefse.output_dir
         self.lefse.run()
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "lefse分析结果输出目录"],
+            ["./lefse_LDA.cladogram.png", "png", "lefse分析cladogram结果图片"],
+            ["./lefse_LDA.png", "png", "lefse分析LDA图片"],
+            ["./lefse_LDA.xls", "xls", "lefse分析lda数据表"]
+        ])
+        super(LefseWorkflow, self).end()
 
     def set_db(self):
         """

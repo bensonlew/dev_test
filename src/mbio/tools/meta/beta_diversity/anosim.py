@@ -13,7 +13,7 @@ class AnosimAgent(Agent):
     qiime
     version v1.0
     author: shenghe
-    last_modified:2015.11.19
+    last_modified:2016.3.24
     """
 
     def __init__(self, parent):
@@ -61,9 +61,9 @@ class AnosimAgent(Agent):
                 if self.option('grouplabs') not in self.option('group').prop['group_scheme']:
                     raise OptionError('选定的分组方案名:%s在分组文件中不存在' % self.option('grouplabs'))
             else:
-                self.option('grouplabs', self.option('group').prop['group_scheme'][0])
-            if len(samplelist) != len(self.option('group').prop['sample']):
-                raise OptionError('分组文件中样本数量：%s与距离矩阵中的样本数量：%s不一致' % (len(self.option('group').prop['sample']),
+                pass  # 如果grouplabs为空，应该不做处理，等到tool中才处理，避免修改参数
+            if len(samplelist) < len(self.option('group').prop['sample']):
+                raise OptionError('分组文件中样本数量：%s多于距离矩阵中的样本数量：%s' % (len(self.option('group').prop['sample']),
                                   len(samplelist)))
             for sample in self.option('group').prop['sample']:
                 if sample not in samplelist:
@@ -77,6 +77,17 @@ class AnosimAgent(Agent):
         self._cpu = 2
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "anosim&adonis结果输出目录"],
+            ["./anosim_results.txt", "txt", "anosim分析结果"],
+            ["./adonis_results.txt", "txt", "adonis分析结果"],
+            ["./format_results.xls", "xls", "anosim&adonis整理结果表"],
+        ])
+        print self.get_upload_files()
+        super(AnosimAgent, self).end()
+
 
 class AnosimTool(Tool):
 
@@ -84,7 +95,16 @@ class AnosimTool(Tool):
         super(AnosimTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
         self.cmd_path = 'Python/bin/compare_categories.py'
-        # self.set_environ(LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
+        self.grouplab = self.option('grouplabs') if self.option('grouplabs') else self.option('group').prop['group_scheme'][0]
+        self.dis_matrix = self.get_matrix()
+
+    def get_matrix(self):
+        if len(self.option('dis_matrix').prop['samp_list']) == len(self.option('group').prop['sample']):
+            return self.option('dis_matrix').path
+        else:
+            self.option('dis_matrix').create_new(self.option('group').prop['sample'],
+                                                 os.path.join(self.work_dir, 'dis_matrix_filter.temp'))
+            return os.path.join(self.work_dir, 'dis_matrix_filter.temp')
 
     def run(self):
         """
@@ -99,12 +119,12 @@ class AnosimTool(Tool):
         """
         cmd = self.cmd_path
         cmd1 = cmd + ' --method anosim -m %s -i %s -o %s -c %s -n %d' % (self.option('group').path,
-                                                                         self.option('dis_matrix').prop['path'],
-                                                                         self.work_dir, self.option('grouplabs'),
+                                                                         self.dis_matrix,
+                                                                         self.work_dir, self.grouplab,
                                                                          self.option('permutations'))
         cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c %s -n %d' % (self.option('group').path,
-                                                                         self.option('dis_matrix').prop['path'],
-                                                                         self.work_dir, self.option('grouplabs'),
+                                                                         self.dis_matrix,
+                                                                         self.work_dir, self.grouplab,
                                                                          self.option('permutations'))
         self.logger.info('运行qiime:compare_categories.py,计算adonis&anosim程序')
         dist_anosim_command = self.add_command('anosim', cmd1)

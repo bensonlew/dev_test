@@ -15,8 +15,8 @@ import atexit
 import traceback
 import web
 from biocluster.core.function import CJsonEncoder
-import urllib
-import subprocess
+# import urllib
+# import subprocess
 
 parser = argparse.ArgumentParser(description="run a workflow")
 group = parser.add_mutually_exclusive_group()
@@ -75,8 +75,8 @@ def main():
                 try:
                     process.start()
                 except Exception, e:
-                    # exstr = traceback.format_exc()
-                    # print exstr
+                    exstr = traceback.format_exc()
+                    print exstr
                     write_log("流程%s运行出错: %s" % (json_data["id"], e))
                     process.wj.update_error(json_data["id"], json_data, datetime.datetime.now())
                 else:
@@ -205,6 +205,8 @@ class WorkJob(object):
     def get_client_limit(self):
         if self.client:
             clients = self.db.query("SELECT * FROM clientkey where client=$client", vars={'client': self.client})
+            if isinstance(clients, long) or isinstance(clients, int):
+                return 0
             if len(clients) > 0:
                 client = clients[0]
                 if client.max_workflow != "" and client.max_workflow is not None:
@@ -213,7 +215,10 @@ class WorkJob(object):
 
     def get_running_workflow(self):
         where_dict = dict(client=self.client, has_run=1, is_end=0, is_error=0)
-        return len(self.db.select("workflow", where=web.db.sqlwhere(where_dict)))
+        results = self.db.select("workflow", where=web.db.sqlwhere(where_dict))
+        if isinstance(results, long) or isinstance(results, int):
+            return results
+        return len(results)
 
     def lock(self):
         self.db.query("LOCK TABLE `workflow` WRITE, `apilog` WRITE")
@@ -224,6 +229,8 @@ class WorkJob(object):
                                     vars={'workflow_id': workflow_id})
         else:
             results = self.db.query("SELECT * FROM workflow WHERE has_run = 0 order by id desc limit 0,1")
+        if isinstance(results, long) or isinstance(results, int):
+            return None
         if len(results) > 0:
             data = results[0]
             self.workflow_id = data.workflow_id
@@ -232,8 +239,10 @@ class WorkJob(object):
 
     def check_time_out(self):
         results = self.db.query("select * from workflow where has_run = 1 and is_end=0 and is_error=0 and"
-                                " (TIMESTAMPDIFF(SECOND,last_update,now()) > 200 or"
-                                " (last_update is Null and TIMESTAMPDIFF(SECOND,run_time,now())> 300) and waiting = 0)")
+                                " (TIMESTAMPDIFF(SECOND,last_update,now()) > 3600 or"
+                                " (last_update is Null and TIMESTAMPDIFF(SECOND,run_time,now())> 3600) and waiting = 0)")
+        if isinstance(results, long) or isinstance(results, int):
+            return None
         if len(results) > 0:
             for r in results:
                 myvar = dict(id=r.workflow_id)
@@ -257,6 +266,8 @@ class WorkJob(object):
     def insert_workflow(self, data):
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$workflow_id",
                                 vars={'workflow_id': data["id"]})
+        if isinstance(results, long) or isinstance(results, int):
+            return None
         if len(results) < 1:
             return self.db.insert("workflow", workflow_id=data["id"], json=json.dumps(data))
         else:
@@ -344,6 +355,9 @@ class WorkJob(object):
         self.lock()
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id and is_end=0 and is_error=0",
                                 vars=myvar)
+        if isinstance(results, long) or isinstance(results, int):
+            self.unlock()
+            return None
         if len(results) > 0:
             error = "程序无警告异常中断"
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error=error)
@@ -369,7 +383,7 @@ class WorkJob(object):
             data = {
                 "task_id": json_data["id"],
                 "api": json_data["UPDATE_STATUS_API"],
-                "data": urllib.urlencode(post_data)
+                "data": json.dumps(post_data)
             }
             self.db.insert("apilog", **data)
 

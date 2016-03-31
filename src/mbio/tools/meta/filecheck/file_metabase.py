@@ -69,10 +69,13 @@ class FileMetabaseTool(Tool):
         self.logger.info("正在检测fastq文件")
         self.option('in_fastq').get_info()
         if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
+            self.logger.info("输入的fastq为文件夹格式")
             self.samples = self.option('in_fastq').prop["samples"]
         if self.get_option_object('in_fastq').format == 'sequence.fastq':
+            self.logger.info("输入的fastq文件为单文件格式")
             self.option("in_fastq").check_content()
             self.samples = self.option('in_fastq').prop["samples"]
+        self.logger.info("fastq文件检测完毕,文件中所包含的样本为: {}".format(self.samples))
 
     def check_group(self):
         if self.option("group_table").is_set:
@@ -84,12 +87,15 @@ class FileMetabaseTool(Tool):
                     raise Exception("group表出错, 样本{}在fastq文件中未出现".format(gp))
         else:
             self.logger.info("未检测到group文件， 跳过...")
+        self.logger.info("group文件检测完毕")
 
     def check_ref(self):
         if self.option("ref_fasta").is_set:
             self.logger.info("开始校验ref_fasta和ref_taxon文件")
             fasta_name = self.option("ref_fasta").get_all_seq_name()
+            self.logger.info("已获取fatsa文件的所有的序列名，等待taxon中的序列名")
             taxon_name = self.option("ref_taxon").get_all_name()
+            self.logger.info("已获取tax文件的所有的序列名，开始校对...")
             for f_name in fasta_name:
                 if f_name not in taxon_name:
                     raise Exception("序列名{}在taxon文件里未出现")
@@ -97,6 +103,7 @@ class FileMetabaseTool(Tool):
                 raise Exception("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
         else:
             self.logger.info("未检测到ref_fasta和ref_taxon文件， 跳过...")
+        self.logger.info("ref和tax文件检测完毕")
 
     def check_env(self):
         if self.option("envtable").is_set:
@@ -104,6 +111,7 @@ class FileMetabaseTool(Tool):
             self.option("envtable").check()
         else:
             self.logger.info("未检测到env文件， 跳过...")
+        self.logger.info("env文件检测完毕")
 
     def run(self):
         super(FileMetabaseTool, self).run()

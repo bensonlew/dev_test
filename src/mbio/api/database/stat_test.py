@@ -322,16 +322,16 @@ class StatTest(Base):
         return inserted_id
 
     @report_check
-    def update_species_difference_check(self, errorbar_path, table_id, statfile, cifile, test):
+    def update_species_difference_check(self, table_id, statfile, cifile, test):
         collection = self.db["sg_species_difference_check"]
-        fs = gridfs.GridFS(self.db)
-        errorbar_id = fs.put(open(errorbar_path, 'r'))
-        try:
-            collection.update({"_id": ObjectId(table_id)}, {"$set": {"errorbar_png": errorbar_id}})
-        except Exception, e:
-            self.bind_object.logger.error("导入%s信息出错:%s" % (errorbar_path, e))
-        else:
-            self.bind_object.logger.info("导入%s信息成功!" % (errorbar_path))
+        # fs = gridfs.GridFS(self.db)
+        # errorbar_id = fs.put(open(errorbar_path, 'r'))
+        # try:
+        #     collection.update({"_id": ObjectId(table_id)}, {"$set": {"errorbar_png": errorbar_id}})
+        # except Exception, e:
+        #     self.bind_object.logger.error("导入%s信息出错:%s" % (errorbar_path, e))
+        # else:
+        #     self.bind_object.logger.info("导入%s信息成功!" % (errorbar_path))
         
         # to plot ci error bar
         with open(statfile,'rb') as s, open(cifile, 'rb') as c:

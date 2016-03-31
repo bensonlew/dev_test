@@ -47,5 +47,6 @@ class OtuSubsampleWorkflow(Workflow):
         otu_path = self.task.output_dir + "/otu_taxon.subsample.xls"
         if not os.path.isfile(otu_path):
             raise Exception("找不到报告文件:{}".format(otu_path))
+        self.logger.info("开始讲信息导入sg_otu_detail表和sg_otu_specimen表中")
         api_otu.add_sg_otu_detail(otu_path, self.option("input_otu_id"), self.option("output_otu_id"))
         self.end()
