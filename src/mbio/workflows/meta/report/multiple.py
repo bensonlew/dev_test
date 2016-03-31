@@ -5,7 +5,6 @@
 
 from biocluster.workflow import Workflow
 import os
-import re
 
 
 class MultipleWorkflow(Workflow):
@@ -28,6 +27,7 @@ class MultipleWorkflow(Workflow):
             {"name": "multiple_id", "type": "string"},
             {"name": "group_name", "type": "string"},
             {"name": "methor", "type": "string"},
+            {"name": "output", "type": "string"},
             {"name": "coverage", "type": "float"}
 
         ]
@@ -59,8 +59,21 @@ class MultipleWorkflow(Workflow):
                 "kru_H_coverage": self.option("coverage")
             }
         self.multiple.set_options(options)
-        self.on_rely(self.multiple, self.set_db)
+        self.multiple.on("end", self.set_db)
         self.multiple.run()
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        result_dir.add_regexp_rules([
+            [r".*_result\.xls", "xls", "物种组间差异显著性比较结果表，包括均值，标准差，p值"],
+            [r".*_CI\.xls", "xls", "组间差异显著性比较两组，两样本比较的置信区间值以及效果量"],
+            [r".*(-).*", "xls", "组间差异显著性比较多组比较的posthoc检验比较的结果，包含置信区间，效果量，p值"],
+            [r".*_boxfile\.xls", "xls", "组间差异显著性比较用于画箱线图的数据，包含四分位值"]
+            ])
+        super(MultipleWorkflow, self).end()
 
     def set_db(self):
         """
@@ -80,7 +93,8 @@ class MultipleWorkflow(Workflow):
                     if not os.path.isfile(ci_path):
                         raise Exception("找不到报告文件:{}".format(ci_path))
                     api_multiple.add_mulgroup_species_difference_check_ci_plot(file_path=ci_path,
-                                                                               table_id=self.option("multiple_id"), methor = self.option("methor"))
+                                                                               table_id=self.option("multiple_id"),
+                                                                               methor=self.option("methor"))
         api_multiple.add_species_difference_check_detail(file_path=stat_path, table_id=self.option("multiple_id"))
         api_multiple.add_species_difference_check_boxplot(boxfile_path, self.option("multiple_id"))
         self.end()

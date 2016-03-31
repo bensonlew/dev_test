@@ -50,6 +50,9 @@ class TwoGroup(object):
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
+                "IMPORT_REPORT_AFTER_END": True,
+                "output": "sanger:rerewrweset/%s/%s/report_results/statistical/" %
+                          (otu_info["project_sn"], otu_info["task_id"]),
                 "options": {
                     "otu_file": data.otu_id,
                     "update_info": update_info,
