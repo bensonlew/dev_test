@@ -83,19 +83,17 @@ class BetaDiversityModule(Module):
         self.matrix.on('end', self.set_output, 'distance')
         self.matrix.run()
 
-    def hcluster_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
+    def hcluster_run(self):
         self.tools['hcluster'].set_options({
-            'dis_matrix': output_file_obj,
+            'dis_matrix': self.matrix.option('dis_matrix'),
             'linkage': self.option('linkage')
         })
         self.tools['hcluster'].on('end', self.set_output, 'hcluster')
         self.tools['hcluster'].run()
 
-    def anosim_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
+    def anosim_run(self):
         self.tools['anosim'].set_options({
-            'dis_matrix': output_file_obj,
+            'dis_matrix': self.matrix.option('dis_matrix'),
             'group': self.option('group'),
             'grouplabs': self.option('grouplabs') if self.option('grouplabs') else self.option('anosim_grouplabs'),
             'permutations': self.option('permutations')
@@ -104,9 +102,8 @@ class BetaDiversityModule(Module):
         self.tools['anosim'].run()
 
     def box_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
         self.tools['box'].set_options({
-            'dis_matrix': output_file_obj,
+            'dis_matrix': self.matrix.option('dis_matrix'),
             'grouplabs': self.option('grouplabs') if self.option('grouplabs') else self.option('anosim_grouplabs'),
             'group': self.option('group')
         })
@@ -114,25 +111,22 @@ class BetaDiversityModule(Module):
         self.tools['box'].run()
 
     def pcoa_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
         self.tools['pcoa'].set_options({
-            'dis_matrix': output_file_obj
+            'dis_matrix': self.matrix.option('dis_matrix')
         })
         self.tools['pcoa'].on('end', self.set_output, 'pcoa')
         self.tools['pcoa'].run()
 
     def nmds_run(self, rely_obj):
-        output_file_obj = rely_obj.rely[0].option('dis_matrix')
         self.tools['nmds'].set_options({
-            'dis_matrix': output_file_obj
+            'dis_matrix': self.matrix.option('dis_matrix')
         })
         self.tools['nmds'].on('end', self.set_output, 'nmds')
         self.tools['nmds'].run()
 
-    def dbrda_run(self, rely_obj=None):
-        if rely_obj:
-            output_file_obj = rely_obj.rely[0].option('dis_matrix')
-            dbrda_options = {'dis_matrix': output_file_obj, 'envtable': self.option('envtable')}
+    def dbrda_run(self):
+        if not self.option('dbrda_method'):
+            dbrda_options = {'dis_matrix': self.matrix.option('dis_matrix'), 'envtable': self.option('envtable')}
         else:
             dbrda_options = {'otutable': self.otu_table, 'envtable': self.option('envtable'),
                              'method': self.option('dbrda_method')}
@@ -228,31 +222,37 @@ class BetaDiversityModule(Module):
         self.step.update()
         if 'anosim' in self.option('analysis'):
             self.tools['anosim'] = self.add_tool('meta.beta_diversity.anosim')
-            self.on_rely(self.matrix, self.anosim_run)
+            # self.on_rely(self.matrix, self.anosim_run)
+            self.matrix.on('end', self.anosim_run)
             self.tools['box'] = self.add_tool(
                 'meta.beta_diversity.distance_box')
-            self.on_rely(self.matrix, self.box_run)
+            # self.on_rely(self.matrix, self.box_run)
+            self.matrix.on('end', self.box_run)
         if 'pcoa' in self.option('analysis'):
             self.tools['pcoa'] = self.add_tool('meta.beta_diversity.pcoa')
-            self.on_rely(self.matrix, self.pcoa_run)
+            # self.on_rely(self.matrix, self.pcoa_run)
+            self.matrix.on('end', self.pcoa_run)
         if 'nmds' in self.option('analysis'):
             self.tools['nmds'] = self.add_tool('meta.beta_diversity.nmds')
-            self.on_rely(self.matrix, self.nmds_run)
-        # if 'dbrda' in self.option('analysis'):
-        #     self.tools['dbrda'] = self.add_tool('meta.beta_diversity.dbrda')
-        #     self.on_rely(self.matrix, self.dbrda_run)
+            # self.on_rely(self.matrix, self.nmds_run)
+            self.matrix.on('end', self.nmds_run)
         if 'hcluster' in self.option('analysis'):
             self.tools['hcluster'] = self.add_tool(
                 'meta.beta_diversity.hcluster')
-            self.on_rely(self.matrix, self.hcluster_run)
+            # self.on_rely(self.matrix, self.hcluster_run)
+            self.matrix.on('end', self.hcluster_run)
         if 'dbrda' in self.option('analysis'):
             self.tools['dbrda'] = self.add_tool('meta.beta_diversity.dbrda')
             if self.option('dbrda_method'):
                 self.dbrda_run()
             else:
-                self.on_rely(self.matrix, self.dbrda_run)
+                # self.on_rely(self.matrix, self.dbrda_run)
+                self.matrix.on('end', self.dbrda_run)
         if 'pcoa' or 'distance' or 'anosim' or 'nmds' in self.option('analysis'):
             self.matrix_run()
+        elif 'dbrda' in self.option('analysis'):
+            if not self.option('dbrda_method'):
+                self.matrix_run()
         if 'pca' in self.option('analysis'):
             self.tools['pca'] = self.add_tool('meta.beta_diversity.pca')
             self.pca_run()
@@ -268,7 +268,60 @@ class BetaDiversityModule(Module):
         self.on_rely(self.tools.values(), self.stepend)
         # self.on_rely(self.tools.values(), self.end)
 
+
     def stepend(self):
         self.step.MultipleAnalysis.finish()
         self.step.update()
         self.end()
+
+    def end(self):
+        repaths = [
+            [".", "", "Beta_diversity分析结果文件目录"],
+            ["Anosim", "", "anosim&adonis结果输出目录"],
+            ["Anosim/anosim_results.txt", "txt", "anosim分析结果"],
+            ["Anosim/adonis_results.txt", "txt", "adonis分析结果"],
+            ["Anosim/format_results.xls", "xls", "anosim&adonis整理结果表"],
+            ["Dbrda", "", "db_rda分析结果目录"],
+            ["Dbrda/db_rda_sites.xls", "xls", "db_rda样本坐标表"],
+            ["Dbrda/db_rda_species.xls", "xls", "db_rda物种坐标表"],
+            ["Dbrda/db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
+            ["Dbrda/db_rda_biplot.xls", "xls", "db_rda数量型环境因子坐标表"],
+            ["Box", "", "距离统计和统计检验分析结果目录"],
+            ["Box/Stats.xls", "xls", "分组统计检验结果"],
+            ["Box/Distances.xls", "xls", "组内组间距离值统计结果"],
+            ["Distance", "", "距离矩阵计算结果输出目录"],
+            ["Hcluster", "", "层次聚类结果目录"],
+            ["Hcluster/hcluster.tre", "tre", "层次聚类树"],
+            ["Nmds", "", "NMDS分析结果输出目录"],
+            ["Nmds/nmds_sites.xls", "xls", "样本坐标表"],
+            ["Pca", "", "PCA分析结果输出目录"],
+            ["Pca/pca_importance.xls", "xls", "主成分解释度表"],
+            ["Pca/pca_rotation.xls", "xls", "物种主成分贡献度表"],
+            ["Pca/pca_sites.xls", "xls", "样本坐标表"],
+            ["Pca/pca_envfit_factor_scores.xls", "xls", "哑变量环境因子表"],
+            ["Pca/pca_envfit_factor.xls", "xls", "哑变量环境因子坐标表"],
+            ["Pca/pca_envfit_vector_scores.xls", "xls", "数量型环境因子表"],
+            ["Pca/pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
+            ["Pcoa", "", "pcoa分析结果目录"],
+            ["Pcoa/pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
+            ["Pcoa/pcoa_sites.xls", "xls", "样本坐标表"],
+            ["Plsda", "", "plsda分析结果目录"],
+            ["Plsda/plsda_sites.xls", "xls", "样本坐标表"],
+            ["Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
+            ["Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
+            ["Rda", "", "rda_cca分析结果目录"],
+            [r'Rda/dca.xls', 'xls', 'DCA分析结果'],
+        ]
+        regexps = [
+            [r'Distance/%s.*\.xls$' % self.option('dis_method'), 'xls', '样本距离矩阵文件'],
+            [r'Rda/.*_importance\.xls$', 'xls', '主成分解释度表'],
+            [r'Rda/.*_sites\.xls$', 'xls', '样本坐标表'],
+            [r'Rda/.*_species\.xls$', 'xls', '物种坐标表'],
+            [r'Rda/.*_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
+            [r'Rda/.*_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
+        ]
+        sdir = self.add_upload_dir(self.output_dir)
+        sdir.add_relpath_rules(repaths)
+        sdir.add_regexp_rules(regexps)
+        self.logger.info('end over')
+        super(BetaDiversityModule, self).end()

@@ -12,7 +12,7 @@ class PcoaAgent(Agent):
     脚本ordination.pl
     version v1.0
     author: shenghe
-    last_modified:2015.11.18
+    last_modified:2016.3.24
     """
 
     def __init__(self, parent):
@@ -47,6 +47,16 @@ class PcoaAgent(Agent):
         """
         self._cpu = 2
         self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "pcoa分析结果目录"],
+            ["./pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
+            ["./pcoa_sites.xls", "xls", "样本坐标表"],
+        ])
+        print self.get_upload_files()
+        super(PcoaAgent, self).end()
 
 
 class PcoaTool(Tool):

@@ -14,6 +14,7 @@ import os
 from biocluster.core.function import get_clsname_form_path
 import importlib
 import traceback
+import urllib
 
 config = Config()
 db = config.get_db()
@@ -67,8 +68,8 @@ class LogManager(object):
             group.join()
 
     def get_task_ids(self):
-        sql = "SELECT DISTINCT task_id from apilog where (success=0 and reject=0 and has_upload=0) " \
-              "or (success=0 and reject=0 and has_upload=1 and uploaded=1)"
+        sql = "SELECT DISTINCT task_id from apilog where api <> 'test' and success=0 and reject=0 and" \
+              "(has_upload=0  or (has_upload=1 and uploaded=1))"
         if self.api:
             sql += " and api=%s" % self.api
         results = db.query(sql)
@@ -253,4 +254,7 @@ class Log(object):
         except Exception, e:
             self.log("数据库更新错误:%s" % e)
 
-
+    @property
+    def post_data(self):
+        data = json.loads(self.data.data)
+        return urllib.urlencode(data)

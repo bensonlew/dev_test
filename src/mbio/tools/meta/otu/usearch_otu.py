@@ -50,6 +50,17 @@ class UsearchOtuAgent(Agent):
             raise OptionError("identity值必须在0-1范围内.")
         return True
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["otu_reps.fasta", "sequence.fasta", "代表序列"],
+            ["otu_seqids.txt", "xls", "OTU代表序列对应表"],
+            ["otu_table.biom", 'meta.otu.biom', "OTU表对应的Biom文件"],
+            ["otu_table.xls", "meta.otu.otu_table", "OTU表"]
+        ])
+        super(UsearchOtuAgent, self).end()
+
     def set_resource(self):
         """
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory

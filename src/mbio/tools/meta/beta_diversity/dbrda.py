@@ -5,6 +5,7 @@ from biocluster.tool import Tool
 # import os
 import types
 from biocluster.core.exceptions import OptionError
+from mbio.files.meta.otu.otu_table import OtuTableFile
 from mbio.packages.beta_diversity.dbrda_r import *
 
 
@@ -13,7 +14,7 @@ class DbrdaAgent(Agent):
     dbrda_r.py
     version v1.0
     author: shenghe
-    last_modified:2015.11.17
+    last_modified:2016.03.24
     """
     # METHOD = ["manhattan", "euclidean", "canberra", "bray", "kulczynski", "jaccard", "gower", "morisita", "horn",
     #           "mountford", "raup", "binomial", "chao"]
@@ -29,7 +30,7 @@ class DbrdaAgent(Agent):
             {"name": "level", "type": "string", "default": "otu"},
             {"name": "dis_matrix", "type": "infile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "envlabs", "type": "string", "default": ""}
+            {"name": "envlabs", "type": "string", "default": ""}  # 用逗号分隔的环境因子名称
         ]
         self.add_option(options)
         self.step.add_steps('dbRDA')
@@ -46,46 +47,38 @@ class DbrdaAgent(Agent):
 
     def gettable(self):
         """
-        根据level返回进行计算的otu表
+        根据level返回进行计算的otu表对象，否则直接返回参数otutable对象
         :return:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
-            return self.option('otutable').get_table(self.option('level'))
+            new_otu = OtuTableFile()
+            new_otu.set_path(self.option('otutable').get_table(self.option('level')))
+            new_otu.get_info()
+            return new_otu
         else:
-            return self.option('otutable').prop['path']
-
-    def get_new_env(self):
-        """
-        根据envlabs生成新的envtable
-        """
-        if self.option('envlabs'):
-            new_path = self.work_dir + '/temp_env_table.xls'
-            self.option('envtable').sub_group(new_path, self.option('envlabs').split(','))
-            self.option('envtable').set_path(new_path)
-            self.option('envtable').get_info()
-        else:
-            pass
+            return self.option('otutable')
 
     def check_options(self):
         """
         重写参数检查
         """
         if self.option('envtable').is_set:
+            self.option('envtable').get_info()
+            if self.option('envlabs'):
+                labs = self.option('envlabs').split(',')
+                for lab in labs:
+                    if lab not in self.option('envtable').prop['group_scheme']:
+                        raise OptionError('提供的envlabs中有不在环境因子表中存在的因子：%s' % lab)
+            else:
+                pass
             if self.option('envtable').prop['sample_number'] < 2:
                 raise OptionError('环境因子表的样本数目少于2，不可进行beta多元分析')
-            self.get_new_env()
             if self.option('dis_matrix').is_set:
                 self.option('dis_matrix').get_info()
                 env_collection = set(self.option('envtable').prop['sample'])
                 collection = set(self.option('dis_matrix').prop['samp_list']) & env_collection
-                if collection == env_collection:
-                    if len(self.option('dis_matrix').prop['samp_list']) == len(collection):
-                        pass
-                    else:
-                        filter_matrix = self.option('dis_matrix').choose(sample_list=self.option('envtable').prop['sample'],
-                                                                         path=self.work_dir + '/dis_matrix.temp.filter.xls')
-                        self.option('dis_matrix', filter_matrix)
-                        self.option('dis_matrix').get_info()
+                if collection == env_collection:  # 检查环境因子的样本是否是OTU表中样本的子集
+                    pass
                 else:
                     raise OptionError('环境因子中存在距离矩阵中没有的样本')
             else:
@@ -94,22 +87,17 @@ class DbrdaAgent(Agent):
                 self.option('method', DbrdaAgent.METHOD_DICT[self.option('method')])
                 if not self.option('otutable').is_set:
                     raise OptionError('没有提供距离矩阵的情况下，必须提供otu表')
-                if self.option('otutable').prop['sample_num'] < 2:
+                self.real_otu = self.gettable()
+                if self.real_otu.prop['sample_num'] < 2:
                     raise OptionError('otu表的样本数目少于2，不可进行beta多元分析')
-                filter_otu = self.filter_otu_sample(self.option('otutable').path,
-                                                    self.option('envtable').prop['sample'],
-                                                    os.path.join(self.work_dir + '/temp_filter.otutable'))
-                if not filter_otu == self.option('otutable').path:
-                    self.option('otutable').set_path(filter_otu)
-                    self.option('otutable').get_info()
-                samplelist = open(self.option('otutable').path).readline().strip().split('\t')[1:]
-                if len(self.option('envtable').prop['sample']) != len(samplelist):
-                    raise OptionError('OTU表中的样本数量:%s与环境因子表中的样本数量:%s不一致' % (len(samplelist),
+                samplelist = open(self.real_otu.path).readline().strip().split('\t')[1:]
+                if len(self.option('envtable').prop['sample']) > len(samplelist):
+                    raise OptionError('OTU表中的样本数量:%s少于环境因子表中的样本数量:%s' % (len(samplelist),
                                       len(self.option('envtable').prop['sample'])))
                 for sample in self.option('envtable').prop['sample']:
                     if sample not in samplelist:
                         raise OptionError('环境因子中存在，OTU表中的未知样本%s' % sample)
-                table = open(self.option('otutable').path)
+                table = open(self.real_otu.path)
                 if len(table.readlines()) < 4:
                     raise OptionError('提供的数据表信息少于3行')
                 table.close()
@@ -117,6 +105,70 @@ class DbrdaAgent(Agent):
         else:
             raise OptionError('没有提供环境因子表')
         return True
+
+    def set_resource(self):
+        """
+        设置所需资源
+        """
+        self._cpu = 2
+        self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "db_rda分析结果目录"],
+            ["./db_rda_sites.xls", "xls", "db_rda样本坐标表"],
+            ["./db_rda_species.xls", "xls", "db_rda物种坐标表"],
+            ["./db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
+            ["./db_rda_biplot.xls", "xls", "db_rda数量型环境因子坐标表"],
+        ])
+        print self.get_upload_files()
+        super(DbrdaAgent, self).end()
+
+
+class DbrdaTool(Tool):
+    def __init__(self, config):
+        super(DbrdaTool, self).__init__(config)
+        self._version = '1.0'
+        # 模块脚本路径，并不使用
+        self.cmd_path = 'mbio/packages/beta_diversity/dbrda_r.py'
+        self.env_table = self.get_new_env()
+        if not self.option('dis_matrix').is_set:
+            self.otu_table = self.get_otu_table()
+        else:
+            self.dis_matrix = self.get_matrix()
+
+    def get_matrix(self):
+        if len(self.option('dis_matrix').prop['samp_list']) == len(self.option('envtable').prop['sample']):
+            return self.option('dis_matrix').path
+        else:
+            self.option('dis_matrix').create_new(self.option('envtable').prop['sample'],
+                                                 os.path.join(self.work_dir, 'dis_matrix_filter.temp'))
+            return os.path.join(self.work_dir, 'dis_matrix_filter.temp')
+
+    def get_new_env(self):
+        """
+        根据envlabs生成新的envtable
+        """
+        if self.option('envlabs'):
+            new_path = self.work_dir + '/temp_env_table.xls'
+            self.option('envtable').sub_group(new_path, self.option('envlabs').split(','))
+            return new_path
+        else:
+            return self.option('envtable').path
+
+    def get_otu_table(self):
+        """
+        根据level返回进行计算的otu表路径
+        :return:
+        """
+        if self.option('otutable').format == "meta.otu.tax_summary_dir":
+            otu_path = self.option('otutable').get_table(self.option('level'))
+        else:
+            otu_path = self.option('otutable').prop['path']
+        # otu表对象没有样本列表属性
+        return self.filter_otu_sample(otu_path, self.option('envtable').prop['sample'],
+                                      os.path.join(self.work_dir + 'temp_filter.otutable'))
 
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):
@@ -138,31 +190,6 @@ class DbrdaAgent(Agent):
                 return newfile
         except IOError:
             raise Exception('无法打开OTU相关文件或者文件不存在')
-
-    def set_resource(self):
-        """
-        设置所需资源
-        """
-        self._cpu = 2
-        self._memory = ''
-
-
-class DbrdaTool(Tool):
-    def __init__(self, config):
-        super(DbrdaTool, self).__init__(config)
-        self._version = '1.0'
-        self.cmd_path = 'mbio/packages/beta_diversity/dbrda_r.py'
-        # 模块脚本路径，并不使用
-
-    def gettable(self):
-        """
-        根据level返回进行计算的otu表
-        :return:
-        """
-        if self.option('otutable').format == "meta.otu.tax_summary_dir":
-            return self.option('otutable').get_table(self.option('level'))
-        else:
-            return self.option('otutable').prop['path']
 
     def run(self):
         """
@@ -189,10 +216,10 @@ class DbrdaTool(Tool):
         """
         self.logger.info('运行dbrda_r.py程序计算Dbrda')
         if self.option('dis_matrix').is_set:
-            return_mess = db_rda_dist(dis_matrix=self.option('dis_matrix').path, env=self.option('envtable').path,
+            return_mess = db_rda_dist(dis_matrix=self.dis_matrix, env=self.env_table,
                                       output_dir=self.work_dir)
         else:
-            return_mess = db_rda_new(self.gettable(), self.option('envtable').path, self.work_dir,
+            return_mess = db_rda_new(self.otu_table, self.env_table, self.work_dir,
                                      self.option('method'))
         self.logger.info('运行dbrda_r.py程序计算Dbrda成功')
         if return_mess == 0:

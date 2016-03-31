@@ -276,6 +276,7 @@ class Agent(Basic):
         self._end_run_time = datetime.datetime.now()
         secends = (self._end_run_time - self._start_run_time).seconds
         self.logger.info("任务运行结束，运行时间:%ss" % secends)
+        self.job.set_end()
         self.end()
 
     def error_callback(self, data):

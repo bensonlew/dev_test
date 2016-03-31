@@ -31,15 +31,15 @@ class Venn(Base):
                 venn_id = ObjectId(venn_id)
             else:
                 raise Exception("venn_id必须为ObjectId对象或其对应的字符串!")
-        venn_json = self.get_venn_json(venn_path)
+        venn_json = self._get_venn_json(venn_path)
         with open(venn_path, 'rb') as r:
             count = 0
             for line in r:
                 line = line.strip('\n')
                 line = re.split("\t", line)
-                new_otu_id = self.add_sg_otu(otu_id, line[0])
+                new_otu_id = self._add_sg_otu(otu_id, line[0])
                 self.new_otu_id.append(new_otu_id)
-                self.add_sg_otu_detail(line[2], otu_id, new_otu_id, line[0])
+                self._add_sg_otu_detail(line[2], otu_id, new_otu_id, line[0])
                 tmp_name = re.split(',', line[2])
                 name_list = list()
                 for cla_info in tmp_name:
@@ -60,7 +60,7 @@ class Venn(Base):
                 collection.insert_one(insert_data)
                 count += 1
 
-    def get_venn_json(self, venn_path):
+    def _get_venn_json(self, venn_path):
         num = defaultdict(int)
         only = dict()
         gp = list()
@@ -109,9 +109,9 @@ class Venn(Base):
         avg = avg / c
 
         for name in num:
-            for i in range(1, len(num) + 1):
-                num[name] == avg / i
+            num[name] = avg / len(name)
 
+        # print num
         venn_json = list()
         with open(venn_path, 'rb') as r:
             for line in r:
@@ -144,7 +144,7 @@ class Venn(Base):
                 venn_json.append(tmp_list)
         return venn_json
 
-    def add_sg_otu_detail(self, info, from_otu_id, new_otu_id, title):
+    def _add_sg_otu_detail(self, info, from_otu_id, new_otu_id, title):
         """
         对otu表进行筛选，当它符合venn_table里的结果时，将他输出到sub_otu_path中，形成一张otu子表，读取子表
         删除值全部为0的列，形成no_zero_path中的otu表，最后将这张表导入数据库中(sg_otu_detail, sg_speciem)
@@ -171,14 +171,14 @@ class Venn(Base):
                 if str_ in selected_clas:
                     new_line = "\t".join(line)
                     w.write(new_line + "\n")
-                    for i in range(1, len(line) + 1):
+                    for i in range(1, len(line)):
                         sample_num[i] += int(line[i])
         # print sample_num
-        new_head = self.del_zero_column(sub_otu_path, no_zero_path, sample_num, head)
-        self.table_to_sg_otu_detail(no_zero_path, new_otu_id)
-        self.add_sg_otu_specimen(from_otu_id, new_otu_id, new_head)
+        new_head = self._del_zero_column(sub_otu_path, no_zero_path, sample_num, head)
+        self._table_to_sg_otu_detail(no_zero_path, new_otu_id)
+        self._add_sg_otu_specimen(from_otu_id, new_otu_id, new_head)
 
-    def del_zero_column(self, sub_otu_path, no_zero_path, sample_num, head):
+    def _del_zero_column(self, sub_otu_path, no_zero_path, sample_num, head):
         index_list = list()
         new_head = list()  # 也就是样本名的列表（除去了head[0]和为0的列head）
         for i in sample_num:
@@ -198,7 +198,7 @@ class Venn(Base):
                 w.write('\t'.join(tmp_line) + "\n")
         return new_head
 
-    def table_to_sg_otu_detail(self, no_zero_path, new_otu_id):
+    def _table_to_sg_otu_detail(self, no_zero_path, new_otu_id):
         data_list = list()
         with open(no_zero_path, 'rb') as r:
             line = r.next().strip('\r\n')
@@ -212,13 +212,13 @@ class Venn(Base):
                     insert_data[c[0:3]] = c
                 insert_data["otu_id"] = new_otu_id
                 insert_data["task_id"] = self.task_id
-                for i in range(1, len(line) + 1):
+                for i in range(1, len(line)):
                     insert_data[head[i]] = line[i]
                 data_list.append(insert_data)
         collection = self.db['sg_otu_detail']
         collection.insert_many(data_list)
 
-    def add_sg_otu(self, otu_id, name):
+    def _add_sg_otu(self, otu_id, name):
         if not isinstance(otu_id, ObjectId):
             otu_id = ObjectId(otu_id)
         if re.search(r'only', name):
@@ -231,6 +231,7 @@ class Venn(Base):
             "from_id": otu_id,
             "name": "venn_otu_" + name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "status": "end",
+            "show": 0,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         collection = self.db['sg_otu']
@@ -247,7 +248,7 @@ class Venn(Base):
         self.project_sn = result['project_sn']
         self.task_id = result['task_id']
 
-    def add_sg_otu_specimen(self, otu_id, new_otu_id, samples):
+    def _add_sg_otu_specimen(self, otu_id, new_otu_id, samples):
         """
         添加sg_otu_specimen记录
         """

@@ -14,7 +14,7 @@ class Sanger(Log):
         self._client = "client01"
         self._key = "1ZYw71APsQ"
         self._url = "http://192.168.10.161/api/add_task_log"
-        self._post_data = "%s&%s" % (self.get_sig(), self.data.data)
+        self._post_data = "%s&%s" % (self.get_sig(), self.post_data)
 
     def get_sig(self):
         nonce = str(random.randint(1000, 10000))

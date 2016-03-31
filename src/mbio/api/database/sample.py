@@ -12,6 +12,7 @@ class Sample(Base):
 
     @report_check
     def add_samples_info(self, file_path):
+        self.bind_object.logger.info("add_samples_info start")
         data_list = []
         with open(file_path, 'r') as f:
             l = f.readline()
@@ -131,6 +132,7 @@ class Sample(Base):
         else:
             self.bind_object.logger.info("导入步%s的步长序列长度统计成功" % step_length)
 
+    @report_check
     def get_spname_spid(self):
         if not self.sample_table_ids:
             raise Exception("样本id列表为空，请先调用add_samples_info产生sg_speciem的id")
