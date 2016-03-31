@@ -253,7 +253,7 @@ class UploadProcess(Process):
                 se = file(log, 'a+', 0)
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())
-        if "target" in self.up_data.keys() and "source" in self.up_data.keys():
+        if "upload_dir" in self.up_data.keys():
             try:
                 file_uploader = Uploader(self._record, self._bind_object)
                 file_uploader.upload()
