@@ -43,7 +43,7 @@ class UpdateStatus(Log):
                 self._try_times += 1
                 if my_table_id:
                     url_data = json.loads(self.data.data)
-                    statu = url_data["content"][0]
+                    statu = url_data["content"]
                     json_data = json.loads(statu, object_hook=date_hook)
                     if "stage" in json_data.keys():
                         status = json_data["stage"]["status"]
@@ -115,9 +115,11 @@ class UpdateStatus(Log):
             # 新建或更新sg_status表
             collection = self.mongodb['sg_status']
             if status == "start":
+                tmp_col = self.mongodb[dbname]
+                tb_name = tmp_col.find_one({"_id": obj_id})["name"]
                 insert_data = {
                     "table_id": obj_id,
-                    "table_name": id_value[obj_id],
+                    "table_name": tb_name,
                     "task_id": self._task_id,
                     "type_name": dbname,
                     "status": "start",
