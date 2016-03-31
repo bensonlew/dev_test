@@ -27,16 +27,19 @@ class GroupStat(object):
         result = collection.find_one({"_id": from_otu_table})
         project_sn = result['project_sn']
         task_id = result['task_id']
+        desc = "正在进行组间差异性检验"
         if check_type == 'tow_sample':
-             insert_data = {
+            insert_data = {
                 "type": check_type,
                 "project_sn": project_sn,
                 "task_id": task_id,
                 "name": name if name else "组间差异统计表格",
                 "level_id": int(level),
                 "params": params,
+                "desc": desc,
+                "status": "start",
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-             }
+            }
         else:    
             insert_data = {
                 "type": check_type,
@@ -47,6 +50,8 @@ class GroupStat(object):
                 "name": name if name else "组间差异统计表格",
                 "level_id": int(level),
                 "params": params,
+                "desc": desc,
+                "status": "start",
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
         collection = self.db["sg_species_difference_check"]
@@ -68,6 +73,7 @@ class GroupStat(object):
         result = collection.find_one({"_id": from_otu_table})
         project_sn = result['project_sn']
         task_id = result['task_id']
+        desc = "正在进行lefse分析"
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,
@@ -77,6 +83,8 @@ class GroupStat(object):
             "params": params,
             "lda_cladogram_id": "",
             "lda_png_id": "",
+            "desc": desc,
+            "status": "start",
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         collection = self.db["sg_species_difference_lefse"]

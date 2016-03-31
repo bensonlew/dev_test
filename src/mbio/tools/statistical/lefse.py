@@ -86,7 +86,6 @@ class LefseAgent(Agent):
             ["./lefse_LDA.png", "png", "lefse分析LDA图片"],
             ["./lefse_LDA.xls", "xls", "lefse分析lda数据表"]
         ])
-        print self.get_upload_files()
         super(LefseAgent, self).end()
 
 
@@ -120,8 +119,8 @@ class LefseTool(Tool):
 
     def run_script(self):
         self.add_state("sum_taxa_start", data="开始生成每一水平的物种统计文件")
-        script_cmd = self.script_path + "summarize_taxa.py -i otu_taxa_table.biom -o tax_summary_a -L 1,2,3,4,5,6,7,8 -a"
-        print script_cmd
+        script_cmd = self.script_path + "summarize_taxa.py -i otu_taxa_table.biom " \
+                                        "-o tax_summary_a -L 1,2,3,4,5,6,7,8 -a"
         self.logger.info("开始运行script_cmd")
         script_command = self.add_command("script_cmd", script_cmd).run()
         self.wait(script_command)
@@ -209,11 +208,8 @@ class LefseTool(Tool):
             for names in files:
                 os.remove(os.path.join(root, names))
         os.link(self.work_dir + '/lefse_LDA.cladogram.png', self.output_dir + '/lefse_LDA.cladogram.png')
-        # self.option('clado').set_path(self.output_dir+'/lefse_LDA.cladogram.pdf')
         os.link(self.work_dir + '/lefse_LDA.png', self.output_dir + '/lefse_LDA.png')
-        # self.option('LDA').set_path(self.output_dir+'/lefse_LDA.pdf')
         os.link(self.work_dir + '/lefse_LDA.xls', self.output_dir + '/lefse_LDA.xls')
-        # self.option('lefse_xls').set_path(self.output_dir+'/lefse_LDA.xls')
 
     def run(self):
         super(LefseTool, self).run()

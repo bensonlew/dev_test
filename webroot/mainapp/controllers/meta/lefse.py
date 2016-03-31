@@ -31,7 +31,6 @@ class Lefse(object):
             lefse_id = G().create_species_difference_lefse(params, data.group_id, data.otu_id, name)
             update_info = {str(lefse_id): "sg_species_difference_lefse"}
             update_info = json.dumps(update_info)
-
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
                 "id": workflow_id,
@@ -44,6 +43,9 @@ class Lefse(object):
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
+                "IMPORT_REPORT_AFTER_END": True,
+                "output": "sanger:rerewrweset/%s/%s/report_results/lefse/%s" %
+                          (otu_info["project_sn"], otu_info["task_id"], name),
                 "options": {
                     "otu_file": data.otu_id,
                     "update_info": update_info,
