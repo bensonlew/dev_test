@@ -47,7 +47,7 @@ class EstTTestWorkflow(Workflow):
         file_path = group_file_spilt(self.option('group_table').prop['path'], self.group_file_dir)
         files = os.listdir(file_path)
         self.tools_num = len(files)
-        print(self.tools_num)
+        # print(self.tools_num)
         for f in files:
             self.tools[f] = self.add_tool('statistical.metastat')
             # print(self.tools.values())
@@ -65,10 +65,15 @@ class EstTTestWorkflow(Workflow):
         obj = event['bind_object']
         api_est_t_test = self.api.est_t_test
         est_t_path = obj.output_dir+"/student_result.xls"
-        self.logger.info(est_t_path)
+        self.logger.info(obj.output_dir)
         # print(est_t_path)
         if not os.path.isfile(est_t_path):
             raise Exception("找不到报告文件:{}".format(est_t_path))
+        result_dir = self.add_upload_dir(obj.output_dir + '/')
+        result_dir.add_relpath_rules([
+            # [".", "", "结果输出目录"],
+            ["./student_result.xls", "xls", "alpha多样性指数T检验结果表"]
+        ])
         api_est_t_test.add_est_t_test_detail(est_t_path, self.option('est_t_test_id'))
         if self.run_times == self.tools_num:
             self.end()
