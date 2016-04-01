@@ -38,7 +38,9 @@ class Venn(object):
             venn_id = V().create_venn_table(params, data.group_id, data.level_id, data.otu_id, name)
             update_info = {str(venn_id): "sg_otu_venn"}
             update_info = json.dumps(update_info)
-
+            suff_path = name
+            pre_path = "sanger:rerewrweset/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
+            output_dir = pre_path + suff_path
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
                 "id": workflow_id,
@@ -51,6 +53,7 @@ class Venn(object):
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
+                "output": output_dir,
                 "options": {
                     "update_info": update_info,
                     "in_otu_table": data.otu_id,
