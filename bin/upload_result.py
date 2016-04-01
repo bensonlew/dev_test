@@ -81,8 +81,8 @@ class UploadManager(object):
             tasks = self.get_upload_tasks()
             if tasks:
                 for record in tasks:
-                    self.log("开始处理logid %s上传任务" % record.id)
                     if record.id not in self._running.keys():
+                        self.log("开始处理logid %s上传任务" % record.id)
                         try:
                             process = UploadProcess(record)
                             process.start()

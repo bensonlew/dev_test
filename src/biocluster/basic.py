@@ -416,7 +416,7 @@ class Basic(EventObject):
                     if not self.events[event_name].is_start:
                         self.events[event_name].stop()
                         self.events[event_name].restart()
-                    self.fire(rl.name, rl)
+                    self.fire(event_name, rl)
 
     def __event_childend(self, child):
         """
