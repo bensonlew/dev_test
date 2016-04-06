@@ -38,6 +38,9 @@ class Subsample(object):
                 'desc': 'otu table after Subsample',
                 'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
+            suff_path = "otu_subsample" + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            pre_path = "sanger:rerewrweset/" + str(input_otu_info["project_sn"]) + "/" + str(input_otu_info['task_id']) + "/report_results/"
+            output_dir = pre_path + suff_path
             collection = get_mongo_client()['sanger']['sg_otu']
             output_otu_id = collection.insert_one(output_otu_json).inserted_id
             workflow_id = self.get_new_id(input_otu_info["task_id"], data.otu_id)
@@ -52,6 +55,7 @@ class Subsample(object):
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
+                "output": output_dir,
                 "options": {
                     "update_info": json.dumps({str(output_otu_id): "sg_otu"}),
                     # "task_id": input_otu_info['task_id'],

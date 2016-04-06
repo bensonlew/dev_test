@@ -50,3 +50,13 @@ class OtuSubsampleWorkflow(Workflow):
         self.logger.info("开始讲信息导入sg_otu_detail表和sg_otu_specimen表中")
         api_otu.add_sg_otu_detail(otu_path, self.option("input_otu_id"), self.option("output_otu_id"))
         self.end()
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        result_dir.add_regexp_rules([
+            ['\.subsample\.', 'meta.otu.otu_table', "抽平后的otu表格"]
+        ])
+        super(OtuSubsampleWorkflow, self).end()

@@ -3,6 +3,8 @@
 
 """pan_core OTU计算"""
 
+import shutil
+import os
 from biocluster.workflow import Workflow
 
 
@@ -38,6 +40,11 @@ class PanCoreWorkflow(Workflow):
         self.pan_core.run()
 
     def set_db(self):
+        sour = os.path.join(self.pan_core.work_dir, "output/core.richness.xls")
+        dest = self.work_dir
+        shutil.copy2(sour, dest)
+        sour = os.path.join(self.pan_core.work_dir, "output/pan.richness.xls")
+        shutil.copy2(sour, dest)
         self.logger.info("正在写入mongo数据库")
         api_pan_core = self.api.pan_core
         pan_path = self.pan_core.option("pan_otu_table").prop['path']
@@ -49,3 +56,12 @@ class PanCoreWorkflow(Workflow):
     def run(self):
         self.run_pan_core()
         super(PanCoreWorkflow, self).run()
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["core.richness.xls", "xls", "core 表格"],
+            ["pan.richness.xls", "xls", "pan 表格"]
+        ])
+        super(PanCoreWorkflow, self).end()
