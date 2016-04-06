@@ -41,6 +41,9 @@ class PanCore(object):
             update_info = {str(pan_id): "sg_otu_pan_core", str(core_id): "sg_otu_pan_core"}
             # 字典  id: 表名
             update_info = json.dumps(update_info)
+            pre_path = "sanger:rerewrweset/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
+            suff_path = "pan_core_" + str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+            output_dir = pre_path + suff_path
 
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
@@ -55,6 +58,7 @@ class PanCore(object):
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",  # src/mbio/api/web/update_status
+                "output": output_dir,
                 "options": {
                     "update_info": update_info,
                     "in_otu_table": data.otu_id,

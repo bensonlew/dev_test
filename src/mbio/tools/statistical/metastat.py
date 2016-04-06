@@ -70,7 +70,9 @@ class MetastatAgent(Agent):
             {"name": "kru_H_methor", "type": "string", "default": 'tukeykramer'},  # post-hoc检验的方法
             {"name": "anova_methor", "type": "string", "default": 'tukeykramer'},  # post-hoc检验的方法
             {"name": "chi_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'},  # 两样本计算置信区间的方法
-            {"name": "fisher_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'}  # 两样本计算置信区间的方法
+            {"name": "fisher_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'},  # 两样本计算置信区间的方法
+            {"name": "est_group", "type": "infile", "format": "meta.otu.tax_summary_dir"},
+            {"name":"est_input", "type": "infile", "format": "meta.otu.otu_table"}
             ]
         self.add_option(options)
         self.step.add_steps("stat_test")
@@ -94,7 +96,7 @@ class MetastatAgent(Agent):
             self.logger.info(self.option('test'))
             raise OptionError("必须设置输入的检验名称")
         for i in self.option('test').split(','):
-            if i not in ["chi", "fisher", "kru_H", "mann", "anova", "student", "welch"]:
+            if i not in ["chi", "fisher", "kru_H", "mann", "anova", "student", "welch", "estimator"]:
                 raise OptionError("所输入的检验名称不对")
             elif i == "chi":
                 if not self.option("chi_input").is_set:
@@ -219,6 +221,11 @@ class MetastatAgent(Agent):
                     raise OptionError("mann检验的分组方案的分组类别必须等于2")
                 if self.option("welch_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
                     raise OptionError('welch检验的置信区间的置信度不在范围值内')
+            elif i == "estimator":
+                if not self.option("est_input").is_set:
+                    raise OptionError('必须设置est_T检验输入的多样性指数文件')
+                if not self.option("est_group").is_set:
+                    raise OptionError('必须设置est_T检验输入的分组文件夹')
         return True
 
     def set_resource(self):
@@ -238,7 +245,8 @@ class MetastatAgent(Agent):
             [r".*_result\.xls", "xls", "物种组间差异显著性比较结果表，包括均值，标准差，p值"],
             [r".*_CI\.xls", "xls", "组间差异显著性比较两组，两样本比较的置信区间值以及效果量"],
             [r".*(-).*", "xls", "组间差异显著性比较多组比较的posthoc检验比较的结果，包含置信区间，效果量，p值"],
-            [r".*_boxfile\.xls", "xls", "组间差异显著性比较用于画箱线图的数据，包含四分位值"]
+            [r".*_boxfile\.xls", "xls", "组间差异显著性比较用于画箱线图的数据，包含四分位值"],
+            [r"^est_result", "xls", "多样性指数T检验结果分析表，包括均值，标准差，p值，q值"]
             ])
         super(MetastatAgent, self).end()
 
@@ -280,6 +288,23 @@ class MetastatTool(Tool):
                 self.run_kru()
             elif test == "anova":
                 self.run_anova()
+            elif test == "estimator":
+                self.run_est()
+    
+    def run_est(self):
+        gfilelist = os.listdir(self.option("est_group"))
+        i = 1 
+        for group in gfilelist:
+            est_ttest(self.option('est_input'), self.work_dir + '/est_result%s.xls' % i, group)
+            i += 1
+            cmd = "R-3.2.2/bin/Rscript run_est_ttest.r"
+            self.logger.info("开始运行卡方检验")
+            command = self.add_command("chi_cmd", cmd).run()
+            self.wait(command)
+            if command.return_code == 0:
+                self.logger.info("est_ttest运行完成")
+            else:
+                self.set_error("est_ttest运行出错!")
     
     def run_chi(self):
         two_sample_test(self.option('chi_input').prop['path'], self.work_dir + '/chi_result.xls', "chi",
@@ -504,4 +529,17 @@ class MetastatTool(Tool):
                     self.logger.info("设置kru_H分析的结果目录成功")
                 except:
                     self.logger.info("设置kru_H分析结果目录失败")
+            elif t == 'estimator':
+                try:
+                    for r, d, f in os.walk(self.work_dir, topdown=False):
+                        filelist = f
+                    for i in filelist:
+                        if re.match(r'^est_result'), i):
+                            os.link(self.work_dir + '/' + i, self.output_dir + '/' + i)
+                        else:
+                            self.logger.info('est分析出错')
+                    self.logger.info("设置est分析的结果目录成功")
+                except:
+                    self.logger.info("设置est分析结果目录失败")
+
 

@@ -39,3 +39,28 @@ def group_detail_sort(detail):
     table_dict = sort_key
     table_dict = json.dumps(table_dict, sort_keys=True, separators=(',', ':'))
     return table_dict
+
+
+def get_lefse_catecory_name(detail):
+    table_list = json.loads(detail)
+    for table_dict in table_list:
+        if not isinstance(table_dict, dict):
+            raise Exception("传入的table_dict不是一个字典")
+    if len(table_list) == 1:
+        groupname = table_list[0].keys()
+        groupname.sort()
+        category = ','.join(groupname)
+        second_category = ''
+        return category, second_category
+    else:
+        groupname = table_list[0].keys()
+        groupname.sort()
+        category = ','.join(groupname)
+        second_groupname = eval(table_list[1]).keys()
+        second_groupname.sort()
+        second_category = ','.join(second_groupname)
+        return category, second_category
+
+
+
+

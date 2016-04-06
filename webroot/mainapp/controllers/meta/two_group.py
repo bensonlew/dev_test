@@ -20,6 +20,8 @@ class TwoGroup(object):
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
+        groupname = eval(data.group_detail).keys()
+        groupname.sort()
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
@@ -30,6 +32,7 @@ class TwoGroup(object):
         my_param['type'] = data.type
         my_param['test'] = data.test
         my_param['coverage'] = data.coverage
+        my_param['category_name'] = ','.join(groupname)
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:

@@ -8,7 +8,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.group_stat import GroupStat as G
-from mainapp.libs.param_pack import sub_group_detail_sort
+from mainapp.libs.param_pack import *
 
 
 class Lefse(object):
@@ -17,6 +17,7 @@ class Lefse(object):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         self.check_options(data)
+        category, second_category = get_lefse_catecory_name(data.group_detail)
         my_param = dict()
         print data.group_detail
         my_param['otu_id'] = data.otu_id
@@ -24,6 +25,8 @@ class Lefse(object):
         my_param['group_id'] = data.group_id
         my_param['lda_filter'] = data.lda_filter
         my_param['strict'] = data.strict
+        my_param['category_name'] = category
+        my_param['second_category_name'] = second_category
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:

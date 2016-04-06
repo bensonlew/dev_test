@@ -4,6 +4,7 @@
 """Venn表计算"""
 
 import os
+import shutil
 from biocluster.workflow import Workflow
 
 
@@ -34,6 +35,9 @@ class VennWorkflow(Workflow):
         self.venn.run()
 
     def set_db(self):
+        sour = os.path.join(self.venn.work_dir, "output/venn_table.xls")
+        dest = self.work_dir
+        shutil.copy2(sour, dest)
         self.logger.info("正在往数据库里插入sg_otu_venn_detail表")
         api_venn = self.api.venn
         venn_path = os.path.join(self.venn.work_dir, "venn_table.xls")
@@ -43,3 +47,11 @@ class VennWorkflow(Workflow):
     def run(self):
         self.run_venn()
         super(VennWorkflow, self).run()
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["venn_table.xls", "xls", "Venn表格"]
+        ])
+        super(VennWorkflow, self).end()
