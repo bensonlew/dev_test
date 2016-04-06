@@ -47,7 +47,7 @@ class EstimatorsWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(est_path))
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
+            # [".", "", "结果输出目录"],
             ["./estimators.xls", "xls", "alpha多样性指数表"]
         ])
         api_estimators.add_est_table(est_path, self.option('level'), est_id=self.option('est_id'))

@@ -93,7 +93,7 @@ class Estimator(object):
         result = collection.find_one({"_id": from_otu_table})
         project_sn = result['project_sn']
         task_id = result['task_id']
-        desc = "正在进行T检验计算..."
+        desc = "正在计算..."
         insert_data = {
                 "project_sn": project_sn,
                 "task_id": task_id,

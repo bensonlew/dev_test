@@ -71,8 +71,8 @@ class MetastatAgent(Agent):
             {"name": "anova_methor", "type": "string", "default": 'tukeykramer'},  # post-hoc检验的方法
             {"name": "chi_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'},  # 两样本计算置信区间的方法
             {"name": "fisher_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'},  # 两样本计算置信区间的方法
-            {"name": "est_group", "type": "infile", "format": "meta.otu.tax_summary_dir"},
-            {"name":"est_input", "type": "infile", "format": "meta.otu.otu_table"}
+            {"name": "est_group", "type": "infile", "format": "meta.alpha_diversity.group_file_dir"},
+            {"name": "est_input", "type": "infile", "format": "meta.otu.otu_table"}
             ]
         self.add_option(options)
         self.step.add_steps("stat_test")
@@ -292,20 +292,23 @@ class MetastatTool(Tool):
                 self.run_est()
     
     def run_est(self):
-        gfilelist = os.listdir(self.option("est_group"))
+        print(self.option("est_group").prop['path'])
+        gfilelist = os.listdir(self.option("est_group").prop['path'])
+        self.logger.info(gfilelist)
         i = 1 
         for group in gfilelist:
-            est_ttest(self.option('est_input'), self.work_dir + '/est_result%s.xls' % i, group)
-            i += 1
+            est_ttest(self.option('est_input').prop['path'], self.work_dir + '/est_result%s.xls' % i,
+                      os.path.join(self.option("est_group").prop['path'], group))
             cmd = "R-3.2.2/bin/Rscript run_est_ttest.r"
             self.logger.info("开始运行卡方检验")
-            command = self.add_command("chi_cmd", cmd).run()
+            command = self.add_command("est_cmd{}".format(i), cmd).run()
+            i += 1
             self.wait(command)
             if command.return_code == 0:
                 self.logger.info("est_ttest运行完成")
             else:
                 self.set_error("est_ttest运行出错!")
-    
+
     def run_chi(self):
         two_sample_test(self.option('chi_input').prop['path'], self.work_dir + '/chi_result.xls', "chi",
                         self.option('chi_sample1'), self.option('chi_sample2'), self.option('chi_correction'))
@@ -534,10 +537,8 @@ class MetastatTool(Tool):
                     for r, d, f in os.walk(self.work_dir, topdown=False):
                         filelist = f
                     for i in filelist:
-                        if re.match(r'^est_result'), i):
+                        if re.match(r'^est_result', i):
                             os.link(self.work_dir + '/' + i, self.output_dir + '/' + i)
-                        else:
-                            self.logger.info('est分析出错')
                     self.logger.info("设置est分析的结果目录成功")
                 except:
                     self.logger.info("设置est分析结果目录失败")
