@@ -66,7 +66,7 @@ class EstimatorsAgent(Agent):
             [".", "", "结果输出目录"],
             ["./estimators.xls", "xls", "alpha多样性指数表"]
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(EstimatorsAgent, self).end()
 
 
@@ -108,7 +108,7 @@ class EstimatorsTool(Tool):
         运行mothur软件生成各样本指数表
         """
         cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % self.indices
-        print cmd
+        # print cmd
         self.logger.info("开始运行mothur")
         command = self.add_command("mothur", cmd)
         command.run()

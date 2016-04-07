@@ -8,7 +8,6 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.models.mongo.estimator import Estimator
-from mainapp.models.mongo.group_stat import GroupStat
 
 
 class EstTTest(object):
@@ -58,14 +57,16 @@ class EstTTest(object):
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
+                "IMPORT_REPORT_AFTER_END": False,
+                "output": "sanger:rerewrweset/{}/{}/report_results/Alpha_diversity/est_t_test".format(
+                    est_info["project_sn"], est_info["task_id"]),
                 "options": {
                     "update_info": update_info,
                     "est_table": data.alpha_diversity_id,
                     "group_detail": data.group_detail,
                     "group_table": data.group_id,
-                    "test_type": 'student',
-                    "est_t_test_id": str(est_t_test_id),
-                    "group_name": GroupStat().get_group_name(data.group_id)
+                    # "test_type": 'student',
+                    "est_t_test_id": str(est_t_test_id)
                 }
             }
             insert_data = {"client": client,

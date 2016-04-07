@@ -59,5 +59,18 @@ def mul_group_test(inputfile, outputfile, boxfile, groupfile, choose_test, mul_t
         rfile.write("%s" % mul_test)
 
 
+def est_ttest(inpufile, outputfile, groupfile):
+    """
+    生成并运行R脚本，进行alpha指数T检验分析
+    :param inputfile: 输入的某一水平的多样性指数表
+    :param groupfile: 输入分组文件
+    :param outputfile: 输出的结果文件
+    """
+    f = Template(filename='/mnt/ilustre/users/sanger/biocluster/src/mbio/packages/statistical/aplha_ttest.r')
+    mul_test = f.render(inputfile=inputfile, outputfile=outputfile, groupfile=groupfile)
+    with open("run_est_ttest.r", 'w') as rfile:
+        rfile.write("%s" % mul_test)
+
+
         
 

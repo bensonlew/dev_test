@@ -26,14 +26,11 @@ class EstimatorsWorkflow(Workflow):
         self.estimators = self.add_tool('meta.alpha_diversity.estimators')
 
     def run(self):
-        # super(EstimatorsWorkflow, self).run()
-        # if self.UPDATE_STATUS_API:
-        #     self.estimators.UPDATE_STATUS_API = self.UPDATE_STATUS_API
         options = {
             'otu_table': self.option('otu_table'),
             'indices': self.option('indices')
             }
-        print(self.option('indices'))
+        # print(self.option('indices'))
         self.estimators.set_options(options)
         self.estimators.on('end', self.set_db)
         self.estimators.run()
@@ -48,5 +45,10 @@ class EstimatorsWorkflow(Workflow):
         est_path = self.output_dir+"/estimators.xls"
         if not os.path.isfile(est_path):
             raise Exception("找不到报告文件:{}".format(est_path))
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            # [".", "", "结果输出目录"],
+            ["./estimators.xls", "xls", "alpha多样性指数表"]
+        ])
         api_estimators.add_est_table(est_path, self.option('level'), est_id=self.option('est_id'))
         self.end()
