@@ -774,7 +774,7 @@ class StepMain(Step):
                         "status": self.stats,
                         "run_time": self.spend_time}}
             post_data = {
-                "content": json.dumps(json_obj, cls=CJsonEncoder)
+                "content": json_obj
             }
             for k, v in self._api_data.items():
                 post_data[k] = v
@@ -782,7 +782,7 @@ class StepMain(Step):
             data = {
                 "task_id": workflow.sheet.id,
                 "api": self.api_type,
-                "data": json.dumps(post_data)
+                "data": json.dumps(post_data, cls=CJsonEncoder)
             }
             if self.stats == "finish":
                 up_data = {}
@@ -796,17 +796,18 @@ class StepMain(Step):
                     if self.bind_obj is workflow:  # 普通模式的workflow 或 pipeline
                         if self.bind_obj.sheet.type == "workflow" and self.bind_obj.sheet.output:
                             up_data["upload_dir"] = []
-                            post_data["upload_files"] = []
+                            files = []
                             for up in self.bind_obj.upload_dir:
                                 target_dir = os.path.join(self.bind_obj.sheet.output, os.path.dirname(up.upload_path))
                                 up_data["upload_dir"].append({
                                     "source": up.path,
                                     "target": target_dir
                                 })
-                                post_data["upload_files"].append({
+                                files.append({
                                     "target": os.path.join(self.bind_obj.sheet.output, up.upload_path),
                                     "files": up.file_list
                                 })
+                                post_data["upload_files"] = files
 
                             # data["upload"] = json.dumps(up_data)
                             # data["has_upload"] = 1
@@ -816,26 +817,27 @@ class StepMain(Step):
                             #     "files": self.bind_obj.get_upload_files()
                             # }
                             # data["data"] = urllib.urlencode(post_data)
-                            data["data"] = json.dumps(post_data)
+                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
                     else:
                         if workflow.sheet.type in ["tool", "module"] and workflow.sheet.output:
                             up_data["upload_dir"] = []
-                            post_data["upload_files"] = []
+                            files = []
                             for up in self.bind_obj.upload_dir:
                                 target_dir = os.path.join(workflow.sheet.output, os.path.dirname(up.upload_path))
                                 up_data["upload_dir"].append({
                                     "source": up.path,
                                     "target": target_dir
                                 })
-                                post_data["upload_files"].append({
+                                files.append({
                                     "target": os.path.join(workflow.sheet.output, up.upload_path),
                                     "files": up.file_list
                                 })
+                                post_data["upload_files"] = files
 
-                            data["data"] = json.dumps(post_data)
+                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
                         elif self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
                             up_data["upload_dir"] = []
-                            post_data["upload_files"] = []
+                            files = []
                             target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
                             for up in self.bind_obj.upload_dir:
                                 target_dir = os.path.join(target_path, os.path.dirname(up.upload_path))
@@ -843,12 +845,13 @@ class StepMain(Step):
                                     "source": up.path,
                                     "target": target_dir
                                 })
-                                post_data["upload_files"].append({
+                                files.append({
                                     "target": os.path.join(target_path, up.upload_path),
                                     "files": up.file_list
                                 })
+                                post_data["upload_files"] = files
 
-                            data["data"] = json.dumps(post_data)
+                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
                 if up_data:
                     up_data["bind"] = {
                             "name": self.bind_obj.name,
@@ -896,7 +899,7 @@ class StepMain(Step):
             data = {
                 "task_id": workflow.sheet.id,
                 "api": self.api_type,
-                "data": json.dumps(post_data)
+                "data": json.dumps(post_data, cls=CJsonEncoder)
             }
             try:
                 workflow.db.insert("apilog", **data)
