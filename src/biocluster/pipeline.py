@@ -15,8 +15,7 @@
 #     def run(self):
 #
 #     def end(self):
-#
-#     def _upload_result(self):
+
 #
 #
 #
