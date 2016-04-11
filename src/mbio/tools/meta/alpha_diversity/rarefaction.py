@@ -84,7 +84,7 @@ class RarefactionAgent(Agent):
                 result_dir.add_regexp_rules([
                     [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
                 ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(RarefactionAgent, self).end()
 
 

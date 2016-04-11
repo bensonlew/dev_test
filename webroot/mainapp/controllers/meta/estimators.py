@@ -64,11 +64,13 @@ class Estimators(object):
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
+                "IMPORT_REPORT_AFTER_END": False,
+                "output": "sanger:rerewrweset/{}/{}/report_results/Alpha_diversity/estimators".format(
+                    otu_info["project_sn"], otu_info["task_id"]),
                 "options": {
                     "update_info": update_info,
                     "otu_id": data.otu_id,
                     "otu_table": data.otu_id,
-                    # "task_id": otu_info["task_id"],
                     "indices": data.index_type,
                     "level": data.level_id,
                     "est_id": str(est_id)

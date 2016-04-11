@@ -25,6 +25,7 @@ class Estimator(object):
         result = collection.find_one({"_id": from_otu_table})
         project_sn = result['project_sn']
         task_id = result['task_id']
+        desc = "正在计算指数值..."
         insert_data = {
                 "project_sn": project_sn,
                 "task_id": task_id,
@@ -32,6 +33,7 @@ class Estimator(object):
                 "name": name if name else "estimators_origin",
                 "level_id": int(level),
                 "status": "start",
+                "desc": desc,
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
@@ -50,6 +52,7 @@ class Estimator(object):
         task_id = result['task_id']
         otu_id = result['otu_id']
         level_id = result['level_id']
+        desc = "正在进行T检验计算..."
         insert_data = {
                 "project_sn": project_sn,
                 "task_id": task_id,
@@ -59,6 +62,7 @@ class Estimator(object):
                 "level_id": int(level_id),
                 "group_id": group_id,
                 "status": "start",
+                "desc": desc,
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
@@ -89,6 +93,7 @@ class Estimator(object):
         result = collection.find_one({"_id": from_otu_table})
         project_sn = result['project_sn']
         task_id = result['task_id']
+        desc = "正在计算..."
         insert_data = {
                 "project_sn": project_sn,
                 "task_id": task_id,
@@ -96,6 +101,7 @@ class Estimator(object):
                 "name": name if name else "rarefaction_origin",
                 "level_id": int(level),
                 "status": "start",
+                "desc": desc,
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }

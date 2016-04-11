@@ -119,7 +119,7 @@ class EventHandler(object):
         :return: self
         """
         if self.is_start:
-            raise Exception("事件已经启动监听，绑定事件处理函数应该在启动事件前进行!" % self.name)
+            raise Exception("%s事件已经启动监听，绑定事件处理函数应该在启动事件前进行!" % self.name)
         else:
             waiter = self.__bind(func, bindobject, data)
             self._func.append(waiter)

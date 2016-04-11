@@ -69,6 +69,9 @@ class Rarefaction(object):
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
+                "IMPORT_REPORT_AFTER_END": True,
+                "output": "sanger:rerewrweset/{}/{}/report_results/Alpha_diversity/rarefaction".format(
+                    otu_info["project_sn"], otu_info["task_id"]),
                 "options": {
                     "update_info": update_info,
                     "otu_id": data.otu_id,

@@ -58,10 +58,15 @@ class AlphaDiversityModule(Module):
         # self.on_rely(estimators, self.rarefaction_run)
         self.step.estimators.start()
         self.estimators.run()
-        self.on_rely(self.estimators, self.finish_update)
+        # self.on_rely(self.estimators, self.finish_update)
+        self.estimators.on("end", self.finish_update)
 
     def finish_update(self):
         self.step.estimators.finish()
+        self.step.update()
+
+    def rare_finish_update(self):
+        self.step.rarefaction.finish()
         self.step.update()
 
     def rarefaction_run(self):
@@ -74,7 +79,8 @@ class AlphaDiversityModule(Module):
         # self.rarefaction.on('end', self.set_output)
         self.step.rarefaction.start()
         self.rarefaction.run()
-        self.on_rely(self.rarefaction, self.finish_update)
+        # self.on_rely(self.rarefaction, self.finish_update)
+        self.rarefaction.on("end", self.rare_finish_update)
 
     def set_output(self):
         self.logger.info('set output')

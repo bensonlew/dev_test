@@ -50,5 +50,26 @@ class RarefactionWorkflow(Workflow):
         rare_path = self.output_dir
         if os.path.isfile(rare_path):
             raise Exception("找不到报告文件夹:{}".format(rare_path))
+        result_dir = self.add_upload_dir(self.output_dir)
+        # result_dir.add_relpath_rules([
+        #     [".", "", "结果输出目录"]
+        # ])
+        for i in self.option("indices").split(","):
+            self.logger.info(i)
+            if i == "sobs":
+                result_dir.add_relpath_rules([
+                    ["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)]
+                ])
+                result_dir.add_regexp_rules([
+                    [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                ])
+                # self.logger.info("{}指数的simpleID的稀释性曲线表".format(i))
+            else:
+                result_dir.add_relpath_rules([
+                    ["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)]
+                ])
+                result_dir.add_regexp_rules([
+                    [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                ])
         api_rarefaction.add_rarefaction_detail(self.option('rare_id'), rare_path)
         self.end()
