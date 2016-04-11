@@ -292,10 +292,10 @@ class MetastatTool(Tool):
                 self.run_est()
     
     def run_est(self):
-        gfilelist = os.listdir(self.option("est_group"))
+        gfilelist = os.listdir(self.option("est_group").prop['path'])
         i = 1 
         for group in gfilelist:
-            est_ttest(self.option('est_input'), self.work_dir + '/est_result%s.xls' % i, group)
+            est_ttest(self.option('est_input').prop['path'], self.work_dir + '/est_result%s.xls' % i, group)
             i += 1
             cmd = "R-3.2.2/bin/Rscript run_est_ttest.r"
             self.logger.info("开始运行卡方检验")
@@ -534,7 +534,7 @@ class MetastatTool(Tool):
                     for r, d, f in os.walk(self.work_dir, topdown=False):
                         filelist = f
                     for i in filelist:
-                        if re.match(r'^est_result'), i):
+                        if re.match(r'^est_result', i):
                             os.link(self.work_dir + '/' + i, self.output_dir + '/' + i)
                         else:
                             self.logger.info('est分析出错')

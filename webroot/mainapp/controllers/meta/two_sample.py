@@ -30,6 +30,7 @@ class TwoSample(object):
         my_param['test'] = data.test
         my_param['methor'] = data.methor
         my_param['coverage'] = data.coverage
+        my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
@@ -95,7 +96,7 @@ class TwoSample(object):
         检查网页端传进来的参数是否正确
         """
         params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction',
-                       'type', 'test', 'methor', 'coverage']
+                       'type', 'test', 'methor', 'coverage', 'submit_location']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
