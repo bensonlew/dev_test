@@ -18,7 +18,7 @@ class Venn(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        param_list = ["group_id", "category_name", "otu_id", "level_id"]
+        param_list = ["group_id", "category_name", "otu_id", "level_id", "submit_location"]
         for my_p in param_list:
             if not hasattr(data, my_p):
                 info = {"success": False, "info": "缺少参数{}!".format(my_p)}
@@ -27,6 +27,7 @@ class Venn(object):
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
         my_param['group_id'] = data.group_id
+        my_param["submit_location"] = data.submit_location
         c_name = re.split(',', data.category_name)
         c_name.sort()
         new_cname = ','.join(c_name)

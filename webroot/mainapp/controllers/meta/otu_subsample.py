@@ -24,6 +24,7 @@ class Subsample(object):
         input_otu_info = Meta().get_otu_table_info(data.otu_id)
         my_param = dict()
         my_param["otu_id"] = data.otu_id
+        my_param["submit_location"] = data.submit_location
         if hasattr(data, "size"):
             my_param["size"] = data.size
         params = param_pack(my_param)

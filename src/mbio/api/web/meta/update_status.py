@@ -2,11 +2,18 @@
 # __author__ = 'guoquan'
 from biocluster.api.web.log import Log, config
 import gevent
+import urllib2
+import random
+import time
+import hashlib
+import urllib
 from biocluster.config import Config
 import json
 from bson.objectid import ObjectId
 from types import StringTypes
 import datetime
+import re
+import os
 
 
 class UpdateStatus(Log):
@@ -14,6 +21,9 @@ class UpdateStatus(Log):
     def __init__(self, data):
         super(UpdateStatus, self).__init__(data)
         self._config = Config()
+        self._client = "client01"
+        self._key = "1ZYw71APsQ"
+        self._url = "http://192.168.10.161/api/add_task_log"
         self._task_id = self.data.task_id
         self.db = self._config.get_db()
         self._mongo_client = self._config.mongo_client
@@ -44,7 +54,8 @@ class UpdateStatus(Log):
                 if my_table_id:
                     url_data = json.loads(self.data.data)
                     statu = url_data["content"]
-                    json_data = json.loads(statu, object_hook=date_hook)
+                    # json_data = json.loads(statu, object_hook=date_hook)
+                    json_data = statu
                     if "stage" in json_data.keys():
                         status = json_data["stage"]["status"]
                         desc = json_data["stage"]["error"]
@@ -92,6 +103,7 @@ class UpdateStatus(Log):
 
     def update_log(self, id_value, status, desc, create_time):
         # id_value  {表id:表名, 表id: 表名,...}
+        print "update_log"
         for k in id_value:
             obj_id = k
             dbname = id_value[k]
@@ -117,10 +129,14 @@ class UpdateStatus(Log):
             if status == "start":
                 tmp_col = self.mongodb[dbname]
                 tb_name = tmp_col.find_one({"_id": obj_id})["name"]
+                tmp_task_id = list()
+                tmp_task_id = re.split("_", self._task_id)
+                tmp_task_id.pop()
+                tmp_task_id.pop()
                 insert_data = {
                     "table_id": obj_id,
                     "table_name": tb_name,
-                    "task_id": self._task_id,
+                    "task_id": "_".join(tmp_task_id),
                     "type_name": dbname,
                     "status": "start",
                     "is_new": "new",
@@ -128,6 +144,29 @@ class UpdateStatus(Log):
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
                 collection.insert_one(insert_data)
+            elif status == "end":
+                print "end"
+                tmp_col = self.mongodb[dbname]
+                my_params = tmp_col.find_one({"_id": obj_id})["params"]
+                my_dict = json.loads(my_params)
+                if "submit_location" in my_dict:
+                    insert_data = {
+                        "status": status,
+                        "desc": desc,
+                        "params": my_params,
+                        "submit_location": my_dict["submit_location"],
+                        "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                else:
+                    insert_data = {
+                        "status": status,
+                        "desc": desc,
+                        "params": my_params,
+                        "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    }
+
+                collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
+                self.post_data_to_web()
             else:
                 insert_data = {
                     "status": status,
@@ -136,6 +175,90 @@ class UpdateStatus(Log):
                 }
                 collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
             self._mongo_client.close()
+
+    @property
+    def post_data(self):
+        """
+        重写post_data
+        从api_log里面读取data字段
+        """
+        data = json.loads(self.data.data)
+        return data
+
+    def _re_org_post(self, post_data):
+        my_content = post_data["content"]
+        my_stage = my_content["stage"]
+        my_upload_files = post_data["upload_files"]
+        target = my_upload_files[0]["target"]
+        files = my_upload_files[0]["files"]
+        new_files = list()
+        for my_file in files:
+            if my_file["type"] == "file":
+                tmp_dict = dict()
+                tmp_dict["path"] = os.path.join(target, my_file["path"])
+                tmp_dict["size"] = my_file["size"]
+                tmp_dict["description"] = my_file["description"]
+                tmp_dict["format"] = my_file["format"]
+                new_files.append(tmp_dict)
+        my_stage["files"] = new_files
+        new_content = dict()
+        new_content["stage"] = my_stage
+        my_data = dict()
+        my_data["content"] = json.dumps(new_content)
+        print my_data
+        return urllib.urlencode(my_data)
+
+    def post_data_to_web(self):
+        my_post_data = self._re_org_post(self.post_data)
+        self._post_data = "%s&%s" % (self.get_sig(), my_post_data)
+        try:
+            response = self.send()
+            code = response.getcode()
+            response_text = response.read()
+            print("Return page:\n%s" % response_text)
+        except urllib2.HTTPError as e:
+            self._success = 0
+            self._response_code = e.code
+            self.log("提交失败：%s" % e)
+        except Exception as e:
+            self._success = 0
+            self.log("提交失败: %s" % e)
+        else:
+            try:
+                response_json = json.loads(response_text)
+            except Exception as e:
+                self._response_code = code
+                self._response = response_text
+                self._success = 0
+                self.log("提交失败: 返回数据类型不正确 %s" % e)
+            else:
+                self._response_code = code
+                self._response = response_text
+                if response_json["success"] == "true" \
+                        or response_json["success"] is True or response_json["success"] == 1:
+                    self._success = 1
+                    self.log("提交成功")
+                else:
+                    self._success = 0
+                    self._reject = 1
+                    self._failed = True
+                    self.log("提交被拒绝，终止提交:%s" % response_json["message"])
+
+    def get_sig(self):
+        nonce = str(random.randint(1000, 10000))
+        timestamp = str(int(time.time()))
+        x_list = [self._key, timestamp, nonce]
+        x_list.sort()
+        sha1 = hashlib.sha1()
+        map(sha1.update, x_list)
+        sig = sha1.hexdigest()
+        signature = {
+            "client": self._client,
+            "nonce": nonce,
+            "timestamp": timestamp,
+            "signature": sig
+        }
+        return urllib.urlencode(signature)
 
 
 def date_hook(json_dict):

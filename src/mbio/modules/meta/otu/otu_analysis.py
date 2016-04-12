@@ -200,4 +200,4 @@ class OtuAnalysisModule(Module):
     def run(self):
         super(OtuAnalysisModule, self).run()
         self.usearch_run()
-        self.otutaxonstat.on("on", self.end)
+        self.otutaxonstat.on("end", self.end)
