@@ -20,7 +20,7 @@ class Hcluster(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, 'client') else web.ctx.env.get('HTTP_CLIENT')
-        default_argu = ['specimen_distance_id', 'hcluster_method']
+        default_argu = ['specimen_distance_id', 'hcluster_method', 'submit_location']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -33,7 +33,8 @@ class Hcluster(object):
             return json.dumps(info)
         params_json = {
             'specimen_distance_id': data.specimen_distance_id,
-            'hcluster_method': data.hcluster_method
+            'hcluster_method': data.hcluster_method,
+            'submit_location': data.submit_location
         }
         if matrix_info:
             insert_mongo_json = {
@@ -63,6 +64,10 @@ class Hcluster(object):
                 'USE_DB': True,
                 'IMPORT_REPORT_DATA': True,
                 'UPDATE_STATUS_API': 'meta.update_status',
+                # 'UPDATE_STATUS_API': 'test',
+                'output': ("sanger:rerewrweset/" + str(matrix_info["project_sn"]) + "/" +
+                           str(matrix_info['task_id']) + "/report_results/" + 'hcluster_' +
+                           str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))),
                 'options': {
                     'update_info': update_info,
                     'distance_matrix': data.specimen_distance_id,

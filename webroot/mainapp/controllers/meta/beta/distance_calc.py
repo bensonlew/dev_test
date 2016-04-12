@@ -21,7 +21,7 @@ class DistanceCalc(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, 'client') else web.ctx.env.get('HTTP_CLIENT')
-        default_argu = ['otu_id', 'level_id', 'distance_algorithm']
+        default_argu = ['otu_id', 'level_id', 'distance_algorithm', 'submit_location']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -35,7 +35,8 @@ class DistanceCalc(object):
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
-            'distance_algorithm': data.distance_algorithm
+            'distance_algorithm': data.distance_algorithm,
+            'submit_location': data.submit_location
         }
         if otu_info:
             insert_mongo_json = {
@@ -66,6 +67,10 @@ class DistanceCalc(object):
                 'to_file': 'meta.export_otu_table_by_level(otu_file)',
                 'USE_DB': True,
                 'IMPORT_REPORT_DATA': True,
+                # 'UPDATE_STATUS_API': 'test',
+                'output': ("sanger:rerewrweset/" + str(otu_info["project_sn"]) + "/" +
+                           str(otu_info['task_id']) + "/report_results/" + 'distance_calc_' +
+                           str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))),
                 'UPDATE_STATUS_API': 'meta.update_status',
                 'options': {
                     'update_info': update_info,

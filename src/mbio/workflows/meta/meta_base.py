@@ -111,7 +111,7 @@ class MetaBaseWorkflow(Workflow):
 
     def run_otu(self):
         self.otu.set_options({
-            "fasta": self.option("otu_fasta"),
+            "fasta": self.qc.option("otu_fasta"),
             "identity": self.option("identity")
         })
         self.otu.on("end", self.set_output, "otu")
@@ -144,8 +144,8 @@ class MetaBaseWorkflow(Workflow):
 
     def run_stat(self):
         self.stat.set_options({
-            "in_otu_table": self.option("otu_table"),
-            "taxon_file": self.option("taxon_file")
+            "in_otu_table": self.otu.option("otu_table"),
+            "taxon_file": self.tax.option("taxon_file")
         })
         self.stat.on("end", self.set_output, "stat")
         self.stat.on("end", self.set_step, {'end': self.step.taxassign})
@@ -153,7 +153,7 @@ class MetaBaseWorkflow(Workflow):
 
     def run_alpha(self):
         self.alpha.set_options({
-            'otu_table': self.option('otu_taxon_dir'),
+            'otu_table': self.stat.option('otu_taxon_dir'),
             "level": self.option('alpha_level'),
             'estimate_indices': self.option('estimate_indices'),
             'rarefy_indices': self.option('rarefy_indices'),
@@ -168,7 +168,7 @@ class MetaBaseWorkflow(Workflow):
         opts = {
             'analysis': 'distance,' + self.option('beta_analysis'),
             'dis_method': self.option('dis_method'),
-            'otutable': self.option('otu_taxon_dir'),
+            'otutable': self.stat.option('otu_taxon_dir'),
             "level": self.option('beta_level'),
             'permutations': self.option('permutations'),
             'phy_newick': self.phylo.option('phylo_tre').prop['path']
@@ -352,23 +352,17 @@ class MetaBaseWorkflow(Workflow):
                     }
                     api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana, main=True, env_id=self.env_id, otu_id=self.otu_id, params=params)
                 # self.logger.info('set output beta %s!!!' % ana)
-                    self.logger.info('set output beta %s!!!' % ana)
+                    self.logger.info('set output beta %s over.' % ana)
 
     def run(self):
         self.filecheck.on('end', self.run_qc)
         self.run_filecheck()
-        # self.on_rely(self.filecheck, self.run_qc)
         self.qc.on('end', self.run_otu)
-        # self.on_rely(self.qc, self.run_otu)
         self.otu.on('end', self.run_taxon)
-        # self.on_rely(self.otu, self.run_taxon)
         self.otu.on('end', self.run_phylotree)
-        # self.on_rely(self.otu, self.run_phylotree)
         self.on_rely([self.tax, self.phylo], self.run_stat)
         self.stat.on('end', self.run_alpha)
-        # self.on_rely(self.stat, self.run_alpha)
         self.stat.on('end', self.run_beta)
-        # self.on_rely(self.stat, self.run_beta)
         self.on_rely([self.alpha, self.beta], self.end)
         super(MetaBaseWorkflow, self).run()
 

@@ -22,7 +22,7 @@ class MultiAnalysis(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, 'client') else web.ctx.env.get('HTTP_CLIENT')
-        default_argu = ['analysis_type', 'otu_id', 'level_id']
+        default_argu = ['analysis_type', 'otu_id', 'level_id', 'submit_location']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -35,6 +35,7 @@ class MultiAnalysis(object):
                     'otu_id': data.otu_id,
                     'level_id': int(data.level_id),
                     'analysis_type': data.analysis_type,
+                    'submit_location': data.submit_location
                 }
                 env_id = ''
                 env_labs = ''
@@ -158,6 +159,10 @@ class MultiAnalysis(object):
                     'USE_DB': True,
                     'IMPORT_REPORT_DATA': True,
                     'UPDATE_STATUS_API': 'meta.update_status',
+                    # 'UPDATE_STATUS_API': 'test',
+                    'output': ("sanger:rerewrweset/" + str(otu_info["project_sn"]) + "/" +
+                               str(otu_info['task_id']) + "/report_results/" + '%s_' % data.analysis_type +
+                               str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))),
                     'options': {
                         'analysis_type': data.analysis_type,
                         'update_info': update_info,
