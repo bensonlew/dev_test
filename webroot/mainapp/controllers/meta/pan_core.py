@@ -18,7 +18,7 @@ class PanCore(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        param_list = ["group_id", "category_name", "otu_id", "level_id"]
+        param_list = ["group_id", "category_name", "otu_id", "level_id", "submit_location"]
         for my_p in param_list:
             if not hasattr(data, my_p):
                 info = {"success": False, "info": "缺少参数{}!".format(my_p)}
@@ -31,6 +31,7 @@ class PanCore(object):
         c_name.sort()
         new_cname = ','.join(c_name)
         my_param['category_name'] = new_cname
+        my_param["submit_location"] = data.submit_location
         params = param_pack(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:

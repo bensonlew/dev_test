@@ -104,7 +104,7 @@ class MiseqQcModule(Module):
         """
         self.logger.info("设置fasta的文件路径")
         cat_fasta = os.path.join(self.qc_format.work_dir, "output/cat_meta.fasta")
-        new_fasta = os.path.join(self.work_dir, "cat_meta.fasta")
+        new_fasta = os.path.join(self.work_dir, "cat_meta.fasta")  # 因为fasta文件很大， 且涉及到尾款结算等问题，该fasta暂时不放到output中
         if os.path.exists(new_fasta):
             os.remove(new_fasta)
         os.link(cat_fasta, new_fasta)
@@ -112,47 +112,50 @@ class MiseqQcModule(Module):
 
     def mv_base_info(self):
         """
-        移动base_info文件夹到output
+        更新base_info step状态
         """
+        self.step.base_info_stat.finish()
+        self.step.update()
+
+    def mv_reads_len(self):
+        """
+        更新reads_len_info step状态
+        """
+        self.step.seq_len_stat.finish()
+        self.step.update()
+
+    def mv_samples_info(self):
+        """
+        更新sample_info step状态
+        """
+        self.step.sample_info_stat.finish()
+        self.step.update()
+
+    def mv_output(self):
         output = os.path.join(self.work_dir, "output/base_info")
         if os.path.exists(output):
             shutil.rmtree(output)
         self.logger.info("开始移动baseinfo文件夹")
         base_info_dir = os.path.join(self.base_info.work_dir, "output/base_info")
         shutil.copytree(base_info_dir, output)
-        self.step.base_info_stat.finish()
-        self.step.update()
-
-    def mv_reads_len(self):
-        """
-        移动长度统计文件到output
-        """
         output = os.path.join(self.work_dir, "output/reads_len_info")
         if os.path.exists(output):
             shutil.rmtree(output)
         self.logger.info("开始移动长度分布统计文件夹")
         reads_len_info = os.path.join(self.reads_len_info.work_dir, "output/reads_len_info")
         shutil.copytree(reads_len_info, output)
-        self.step.seq_len_stat.finish()
-        self.step.update()
-
-    def mv_samples_info(self):
-        """
-        移动样品统计文件到output
-        """
         output = os.path.join(self.work_dir, "output/samples_info")
         if os.path.exists(output):
             shutil.rmtree(output)
         self.logger.info("开始移动样品统计文件")
         samples_info_dir = os.path.join(self.samples_info.work_dir, "output/samples_info")
         shutil.copytree(samples_info_dir, output)
-        self.step.sample_info_stat.finish()
-        self.step.update()
+        self.end()
 
     def run(self):
         super(MiseqQcModule, self).run()
         self.qc_format_run()
-        self.on_rely([self.base_info, self.samples_info, self.reads_len_info], self.end)
+        self.on_rely([self.base_info, self.samples_info, self.reads_len_info], self.mv_output)
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
