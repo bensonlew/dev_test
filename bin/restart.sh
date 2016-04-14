@@ -3,15 +3,36 @@
 # __author__ = 'guoquan'
 cd ~/biocluster/bin/
 PID_FILE=`echo ../run/$HOSTNAME.pid`
-kill -s SIGTERM `cat $PID_FILE`
+if [ -f $PID_FILE ]
+then
+    kill `cat $PID_FILE`
+fi
 #rm $PID_FILE
-./run_workflow.py -b -s
+
 PID_FILE=`echo ../run/$HOSTNAME.api.pid`
-kill -s SIGTERM `cat $PID_FILE`
+if [ -f $PID_FILE ]
+then
+    kill `cat $PID_FILE`
+fi
 #rm $PID_FILE
-./api_update.py -m server
+
 PID_FILE=`echo ../run/$HOSTNAME.upload.pid`
-kill -s SIGTERM `cat $PID_FILE`
+if [ -f $PID_FILE ]
+then
+    kill `cat $PID_FILE`
+fi
 #rm $PID_FILE
-./upload_result.py -s
+
+while true
+do
+    if [ "`ls -A ../run/`" = "" ]; then
+        ./run_workflow.py -b -s
+        ./api_update.py -m server
+        ./upload_result.py -s
+        break
+    else
+        sleep 1
+    fi
+done
+
 su -l root -c "service httpd restart"

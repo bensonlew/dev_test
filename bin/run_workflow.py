@@ -11,7 +11,7 @@ from biocluster.core.function import load_class_by_path, daemonize, hostname
 from biocluster.wsheet import Sheet
 from biocluster.config import Config
 from multiprocessing import Process
-import atexit
+import signal
 import traceback
 import web
 from biocluster.core.function import CJsonEncoder
@@ -128,7 +128,7 @@ def check_run(wj):
     return json_data
 
 
-def delpid():
+def delpid(signum, frame):
     pid_file = Config().SERVICE_PID
     pid_file = pid_file.replace('$HOSTNAME', hostname)
     os.remove(pid_file)
@@ -143,7 +143,7 @@ def writepid():
         os.mkdir(os.path.dirname(pid_file))
     with open(pid_file, 'w+') as f:
         f.write('%s\n' % pid)
-    atexit.register(delpid)
+    signal.signal(signal.SIGTERM, delpid)
 
 
 def getlogpath():

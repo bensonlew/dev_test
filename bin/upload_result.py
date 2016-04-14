@@ -12,7 +12,7 @@ import json
 import traceback
 import gevent
 from biocluster.core.function import hostname, daemonize
-import atexit
+import signal
 from biocluster.wsheet import Sheet
 from biocluster.api.database.base import ApiManager
 from biocluster.logger import Wlog
@@ -29,7 +29,7 @@ group.add_argument("-i", "--api_log_id",  help="upload data for the give api log
 args = parser.parse_args()
 
 
-def delpid():
+def delpid(signum, frame):
     pid_file = Config().SERVICE_PID
     pid_file = pid_file.replace('$HOSTNAME', hostname + ".upload")
     os.remove(pid_file)
@@ -44,7 +44,7 @@ def writepid():
         os.mkdir(os.path.dirname(pid_file))
     with open(pid_file, 'w+') as f:
         f.write('%s\n' % pid)
-    atexit.register(delpid)
+    signal.signal(signal.SIGTERM, delpid)
 
 
 class UploadManager(object):
