@@ -33,6 +33,7 @@ def delpid():
     pid_file = Config().SERVICE_PID
     pid_file = pid_file.replace('$HOSTNAME', hostname + ".upload")
     os.remove(pid_file)
+    print("%s\t用户终止监控，终止进程,  pid: %s " % (datetime.datetime.now(), os.getpid()))
 
 
 def writepid():
@@ -76,7 +77,7 @@ class UploadManager(object):
                 se = file(log, 'a+', 0)
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())
-                self.log("开始监控需要上传的文件")
+                self.log("开始监控需要上传的文件, pid: %s" % os.getpid())
 
             tasks = self.get_upload_tasks()
             if tasks:

@@ -8,6 +8,7 @@ from biocluster.config import Config
 import os
 from biocluster.core.function import hostname, daemonize
 import atexit
+import datetime
 
 parser = argparse.ArgumentParser(description="update date to remote api")
 parser.add_argument("-m", "--mode", choices=["server", "retry"], default="retry", help="run mode")
@@ -20,6 +21,7 @@ def delpid():
     pid_file = Config().SERVICE_PID
     pid_file = pid_file.replace('$HOSTNAME', hostname + ".api")
     os.remove(pid_file)
+    print("%s\t用户终止监控，终止进程,  pid: %s " % (datetime.datetime.now(), os.getpid()))
 
 
 def writepid():
