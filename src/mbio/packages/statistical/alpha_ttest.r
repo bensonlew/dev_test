@@ -4,6 +4,7 @@ otu_data <- otu_data[-1,]
 rownames(otu_data) <- otu_data[,1]
 otu_data <- otu_data[,-1]
 colnames(otu_data) <- samp
+lendata <- nrow(otu_data)
 #read groupfile to make the dataframe for test
 group <- read.table("${groupfile}",sep="\t")
 #group <- group[-1,]

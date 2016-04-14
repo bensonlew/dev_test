@@ -56,7 +56,7 @@ def get_lefse_catecory_name(detail):
         groupname = table_list[0].keys()
         groupname.sort()
         category = ','.join(groupname)
-        second_groupname = eval(table_list[1]).keys()
+        second_groupname = table_list[1].keys()
         second_groupname.sort()
         second_category = ','.join(second_groupname)
         return category, second_category

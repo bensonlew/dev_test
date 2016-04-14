@@ -88,7 +88,7 @@ class HclusterTool(Tool):
         运行plot-hcluster_tree.pl
         """
         real_dis_matrix = self.work_dir + '/distance_matrix.temp'
-        self.newname_dict = self.change_sample_name(quotes=True, new_path=self.work_dir + '/distance_matrix.temp')  # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
+        self.newname_dict = self.change_sample_name(quotes=False, new_path=self.work_dir + '/distance_matrix.temp')  # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         cmd = self.cmd_path
         cmd += ' -i %s -o %s -m %s' % (
             real_dis_matrix, self.work_dir, self.option('linkage'))
@@ -120,7 +120,7 @@ class HclusterTool(Tool):
         self.logger.info(self.option('newicktree').prop)
         self.end()
 
-    def change_sample_name(self, quotes=True, new_path=None):
+    def change_sample_name(self, quotes=False, new_path=None):
         """
         修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         """

@@ -222,50 +222,59 @@ class BetaDiversityModule(Module):
         self.step.update()
         if 'anosim' in self.option('analysis'):
             self.tools['anosim'] = self.add_tool('meta.beta_diversity.anosim')
-            # self.on_rely(self.matrix, self.anosim_run)
             self.matrix.on('end', self.anosim_run)
             self.tools['box'] = self.add_tool(
                 'meta.beta_diversity.distance_box')
-            # self.on_rely(self.matrix, self.box_run)
             self.matrix.on('end', self.box_run)
         if 'pcoa' in self.option('analysis'):
             self.tools['pcoa'] = self.add_tool('meta.beta_diversity.pcoa')
-            # self.on_rely(self.matrix, self.pcoa_run)
             self.matrix.on('end', self.pcoa_run)
         if 'nmds' in self.option('analysis'):
             self.tools['nmds'] = self.add_tool('meta.beta_diversity.nmds')
-            # self.on_rely(self.matrix, self.nmds_run)
             self.matrix.on('end', self.nmds_run)
         if 'hcluster' in self.option('analysis'):
             self.tools['hcluster'] = self.add_tool(
                 'meta.beta_diversity.hcluster')
-            # self.on_rely(self.matrix, self.hcluster_run)
             self.matrix.on('end', self.hcluster_run)
         if 'dbrda' in self.option('analysis'):
             self.tools['dbrda'] = self.add_tool('meta.beta_diversity.dbrda')
             if self.option('dbrda_method'):
-                self.dbrda_run()
+                pass
             else:
-                # self.on_rely(self.matrix, self.dbrda_run)
                 self.matrix.on('end', self.dbrda_run)
-        if 'pcoa' or 'distance' or 'anosim' or 'nmds' in self.option('analysis'):
-            self.matrix_run()
-        elif 'dbrda' in self.option('analysis'):
-            if not self.option('dbrda_method'):
-                self.matrix_run()
         if 'pca' in self.option('analysis'):
             self.tools['pca'] = self.add_tool('meta.beta_diversity.pca')
-            self.pca_run()
         if 'plsda' in self.option('analysis'):
             self.tools['plsda'] = self.add_tool('meta.beta_diversity.plsda')
-            self.plsda_run()
         if 'rda_cca' in self.option('analysis'):
             self.tools['rda'] = self.add_tool('meta.beta_diversity.rda_cca')
-            self.rda_run()
         self.step.ChooseAnalysis.finish()
         self.step.MultipleAnalysis.start()
         self.step.update()
-        self.on_rely(self.tools.values(), self.stepend)
+        if self.tools:
+            if len(self.tools) == 1:
+                self.tools.values()[0].on('end', self.stepend)
+            else:
+                self.on_rely(self.tools.values(), self.stepend)
+            if 'pcoa' or 'distance' or 'anosim' or 'nmds' in self.option('analysis'):
+                self.matrix_run()
+            if 'dbrda' in self.option('analysis'):
+                if self.option('dbrda_method'):
+                    self.dbrda_run()
+                else:
+                    if 'pcoa' or 'distance' or 'anosim' or 'nmds' in self.option('analysis'):
+                        pass
+                    else:
+                        self.matrix_run()
+            if 'pca' in self.option('analysis'):
+                self.pca_run()
+            if 'plsda' in self.option('analysis'):
+                self.plsda_run()
+            if 'rda_cca' in self.option('analysis'):
+                self.rda_run()
+        else:
+            self.matrix_run()
+
         # self.on_rely(self.tools.values(), self.end)
 
 
@@ -323,5 +332,4 @@ class BetaDiversityModule(Module):
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
-        self.logger.info('end over')
         super(BetaDiversityModule, self).end()

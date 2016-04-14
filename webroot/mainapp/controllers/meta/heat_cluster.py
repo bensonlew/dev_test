@@ -17,7 +17,7 @@ class HeatCluster(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        param_list = ["samples", "otu_id", "level_id", "linkage"]
+        param_list = ["samples", "otu_id", "level_id", "linkage", "submit_location"]
         for my_p in param_list:
             if not hasattr(data, my_p):
                 info = {"success": False, "info": "缺少参数{}!".format(my_p)}
@@ -29,6 +29,7 @@ class HeatCluster(object):
         my_sp = re.split(',', data.samples)
         my_sp.sort()
         my_param['samples'] = ",".join(my_sp)
+        my_param["submit_location"] = data.submit_location
         params = param_pack(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:

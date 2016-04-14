@@ -33,6 +33,7 @@ class TwoGroup(object):
         my_param['test'] = data.test
         my_param['coverage'] = data.coverage
         my_param['category_name'] = ','.join(groupname)
+        my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
@@ -96,7 +97,7 @@ class TwoGroup(object):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'ci', 'correction', 'type', 'test', 'coverage']
+        params_name = ['otu_id', 'level_id', 'group_detail', 'group_id', 'ci', 'correction', 'type', 'test', 'coverage', 'submit_location']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):

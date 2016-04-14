@@ -21,7 +21,7 @@ class Anosim(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, 'client') else web.ctx.env.get('HTTP_CLIENT')
-        default_argu = ['otu_id', 'level_id', 'distance_algorithm', 'permutations', 'group_id', 'group_detail']
+        default_argu = ['otu_id', 'level_id', 'distance_algorithm', 'permutations', 'group_id', 'group_detail', 'submit_location']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -61,7 +61,8 @@ class Anosim(object):
             'distance_algorithm': data.distance_algorithm,
             'permutations': data.permutations,
             'group_id': data.group_id,
-            'group_detail': group_detail_sort(data.group_detail)
+            'group_detail': group_detail_sort(data.group_detail),
+            'submit_location': data.submit_location
         }
 
         if otu_info:
@@ -95,6 +96,10 @@ class Anosim(object):
                 'USE_DB': True,
                 'IMPORT_REPORT_DATA': True,
                 'UPDATE_STATUS_API': 'meta.update_status',
+                # 'UPDATE_STATUS_API': 'test',
+                'output': ("sanger:rerewrweset/" + str(otu_info["project_sn"]) + "/" +
+                           str(otu_info['task_id']) + "/report_results/" + 'anosim_' +
+                           str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))),
                 'options': {
                     'update_info': update_info,
                     'otu_file': data.otu_id,

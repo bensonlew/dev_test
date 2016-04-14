@@ -150,7 +150,7 @@ class otu_table(object):
 
 def get_origin_otu(otu_id, connecter=None, database='sanger', collection='sg_otu'):
     """
-    waitting
+    从一个OTU ID找到这个OTU的原始OTU ID
     """
     if not connecter:
         connecter = get_mongo_client()
@@ -185,7 +185,8 @@ def get_origin_otu(otu_id, connecter=None, database='sanger', collection='sg_otu
 def get_otu_phylo_newick(otu_id, connecter=None, database='sanger',
                          collection='sg_newick_tree', table_type='otu', tree_type='phylo'):
     """
-    waitting
+    根据原始表的OTU ID找到其对应的进化树文件
+    返回一个两个元素的元组,第一个bool代表找到或者没找到，第二个是错误信息或者结果进化树字符串
     """
     if not connecter:
         connecter = get_mongo_client()

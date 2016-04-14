@@ -48,3 +48,11 @@ class HclusterWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(newick_fath))
         api_newick.add_tree_file(newick_fath, tree_id=ObjectId(self.option('newick_id')))
         self.end()
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "层次聚类结果目录"],
+            ["./hcluster.tre", "tre", "层次聚类树"]
+        ])
+        super(HclusterWorkflow, self).end()

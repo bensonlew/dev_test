@@ -292,7 +292,6 @@ class MetastatTool(Tool):
                 self.run_est()
     
     def run_est(self):
-        print(self.option("est_group").prop['path'])
         gfilelist = os.listdir(self.option("est_group").prop['path'])
         self.logger.info(gfilelist)
         i = 1 
@@ -300,7 +299,7 @@ class MetastatTool(Tool):
             est_ttest(self.option('est_input').prop['path'], self.work_dir + '/est_result%s.xls' % i,
                       os.path.join(self.option("est_group").prop['path'], group))
             cmd = "R-3.2.2/bin/Rscript run_est_ttest.r"
-            self.logger.info("开始运行卡方检验")
+            self.logger.info("开始运行est_T检验")
             command = self.add_command("est_cmd{}".format(i), cmd).run()
             i += 1
             self.wait(command)
