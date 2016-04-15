@@ -4,22 +4,20 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
+from mbio.packages.denovo_rna.qc.fastq_stat import fastq_stat
 
 
-class FastxClipperAgent(Agent):
+class DrawFastqInfoAgent(Agent):
     """
-    seqprep:用于对SE序列做去接头的工具
+    seqprep:用于做fastq序列质量统计的工具
     version 1.0
     author: qindanhua
     """
 
     def __init__(self, parent):
-        super(FastxClipperAgent, self).__init__(parent)
+        super(DrawFastqInfoAgent, self).__init__(parent)
         options = [
-            {"name": "fastq_s", "type": "infile", "format": "sequence.fastq"},  # 输入文件SE序列
-            {"name": "clip_s", "type": "outfile", "format": "sequence.fastq"},  # SE输出结果
-            {"name": "length", "type": "int", "default": 5},
-            {"name": "adapter", "type": "string", "default": 'CCTTAAGG'}
+            {"name": "fastq", "type": "infile", "format": "sequence.fastq"}  # 输入文件fastq序列
         ]
         self.add_option(options)
         self.step.add_steps('fastx_clipper')
@@ -38,7 +36,7 @@ class FastxClipperAgent(Agent):
         """
         检测参数是否正确
         """
-        if not self.option("fastq_s").is_set:
+        if not self.option("fastq").is_set:
             raise OptionError("请选择SE序列文件")
 
     def set_resource(self):
@@ -49,28 +47,28 @@ class FastxClipperAgent(Agent):
         self._memory = ''
 
 
-class FastxClipperTool(Tool):
+class DrawFastqInfoTool(Tool):
     """
     version 1.0
     """
     def __init__(self, config):
-        super(FastxClipperTool, self).__init__(config)
+        super(DrawFastqInfoTool, self).__init__(config)
         self.fastxtoolkit_path = 'fastxtoolkit/bin/'
 
-    def fastxclipper(self):
-        fq_s_path = self.option("fastq_s").prop['path']
-        cmd = self.fastxtoolkit_path + 'fastx_clipper -i {} -a {} -l {} -o clip_s.fastq'.\
-            format(fq_s_path, self.option('adapter'), self.option('length'))
+    def fastx_quality_stats(self):
+        fq_s_path = self.option("fastq").prop['path']
+        cmd = self.fastxtoolkit_path + 'fastx_quality_stats -i {} -o {}'.format(fq_s_path, 'qual.stat')
         self.logger.info(cmd)
-        self.logger.info("开始运行fastx_clipper")
-        command = self.add_command("fastx_clipper", cmd)
+        self.logger.info("开始运行fastx_quality_stats")
+        command = self.add_command("fastx_quality_stats", cmd)
         command.run()
         self.wait(command)
         if command.return_code == 0:
-            self.logger.info("运行fastx_clipper完成")
+            self.logger.info("运行fastx_quality_stats完成")
+            fastq_stat('qual.stat')
             self.set_output()
         else:
-            self.set_error("运行fastx_clipper运行出错!")
+            self.set_error("运行fastx_quality_statsr运行出错!")
             return False
 
     def set_output(self):
@@ -80,14 +78,15 @@ class FastxClipperTool(Tool):
         self.logger.info("set output")
         os.system('rm -rf '+self.output_dir)
         os.system('mkdir '+self.output_dir)
-        os.link(self.work_dir+'/clip_s.fastq', self.output_dir+'/clip_s.fastq')
-        self.option('clip_s').set_path(self.output_dir+'/clip_s.fastq')
-        self.logger.info("done")
+        os.link(self.work_dir+'/qual.stat', self.output_dir+'/qual.stat')
+        os.link(self.work_dir+'/qual.stat.base', self.output_dir+'/qual.stat.base')
+        os.link(self.work_dir+'/qual.stat.err', self.output_dir+'/qual.stat.err')
+        os.link(self.work_dir+'/qual.stat.qaul', self.output_dir+'/qual.stat.qaul')
 
     def run(self):
         """
         运行
         """
-        super(FastxClipperTool, self).run()
-        self.fastxclipper()
+        super(DrawFastqInfoTool, self).run()
+        self.fastx_quality_stats()
         self.end()
