@@ -34,6 +34,7 @@ def delpid(signum, frame):
     pid_file = pid_file.replace('$HOSTNAME', hostname + ".upload")
     os.remove(pid_file)
     print("%s\t用户终止监控，终止进程,  pid: %s " % (datetime.datetime.now(), os.getpid()))
+    sys.exit(1)
 
 
 def writepid():

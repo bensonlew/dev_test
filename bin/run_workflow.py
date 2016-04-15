@@ -15,6 +15,7 @@ import signal
 import traceback
 import web
 from biocluster.core.function import CJsonEncoder
+
 # import urllib
 # import subprocess
 
@@ -133,6 +134,7 @@ def delpid(signum, frame):
     pid_file = pid_file.replace('$HOSTNAME', hostname)
     os.remove(pid_file)
     write_log("stop running service by user,  pid: %s " % os.getpid())
+    sys.exit(1)
 
 
 def writepid():
