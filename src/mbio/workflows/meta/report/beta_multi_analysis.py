@@ -52,7 +52,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
             pass
         if self.option('group_file').is_set:
             options['group'] = self.option('group_file')
-            options['grouplabs'] = self.option('group_file').prop['group_scheme'][0]
+            options['grouplab'] = self.option('group_file').prop['group_scheme'][0]
         if self.option('analysis_type') in ['pcoa', 'nmds', 'dbrda']:
             options['dis_method'] = self.option('dist_method')
             if 'unifrac' in self.option('dist_method'):  # sanger_bioinfo/src/mbio/workflows/meta/report/distance_calc.py中的解释

@@ -22,7 +22,7 @@ class PlsdaAgent(Agent):
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "level", "type": "string", "default": "otu"},
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "grouplabs", "type": "string", "default": ""}
+            {"name": "grouplab", "type": "string", "default": ""}
         ]
         self.add_option(options)
         self.step.add_steps('plsda')
@@ -57,13 +57,12 @@ class PlsdaAgent(Agent):
             self.option('group').get_info()
             if self.option('group').prop['sample_number'] < 2:
                 raise OptionError('分组文件的样本数目少于2，不可进行beta多元分析')
-            if self.option('grouplabs'):
-                if self.option('grouplabs') not in self.option('group').prop['group_scheme']:
+            if self.option('grouplab'):
+                if self.option('grouplab') not in self.option('group').prop['group_scheme']:
                     raise OptionError('提供的分组方案名:%s不在分组文件:%s中'
-                                      % (self.option('grouplabs'), self.option('group').prop['group_scheme']))
+                                      % (self.option('grouplab'), self.option('group').prop['group_scheme']))
             else:
                 pass
-                # self.option('grouplabs', self.option('group').prop['group_scheme'][0])
             if not self.option('otutable').is_set:
                 raise OptionError('没有提供otu表')
             real_otu = self.gettable()
@@ -109,7 +108,7 @@ class PlsdaTool(Tool):
         super(PlsdaTool, self).__init__(config)
         self._version = '1.0'
         self.cmd_path = 'mbio/packages/beta_diversity/plsda_r.py'
-        self.grouplab = self.option('grouplabs') if self.option('grouplabs') else self.option('group').prop['group_scheme'][0]
+        self.grouplab = self.option('grouplab') if self.option('grouplab') else self.option('group').prop['group_scheme'][0]
         self.otu_table = self.get_otu_table()
 
     def get_otu_table(self):

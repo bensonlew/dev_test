@@ -5,7 +5,8 @@ import re
 import json
 import datetime
 from bson.son import SON
-# from types import StringTypes
+from types import StringTypes
+from bson.objectid import ObjectId
 
 
 class Distance(Base):
@@ -20,6 +21,9 @@ class Distance(Base):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         data_list = []
+        if not isinstance(otu_id, ObjectId) and not None:
+            otu_id = ObjectId(otu_id)
+        params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
         # insert major
         if major:
             insert_data = {
@@ -37,6 +41,9 @@ class Distance(Base):
         else:
             if dist_id is None:
                 raise Exception("major为False时需提供dist_id!")
+            else:
+                if not isinstance(dist_id, ObjectId):
+                    dist_id = ObjectId(dist_id)
         # insert detail
         with open(file_path, 'r') as f:
             l = f.readline().strip('\n')

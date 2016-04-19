@@ -37,10 +37,10 @@ class MultiAnalysis(object):
                     'analysis_type': data.analysis_type,
                     'submit_location': data.submit_location
                 }
-                env_id = ''
+                env_id = None
                 env_labs = ''
                 dist_method = ''
-                group_id = ''
+                group_id = None
                 if data.analysis_type == 'pca':
                     if hasattr(data, 'env_id'):
                         params_json['env_id'] = data.env_id

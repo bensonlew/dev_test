@@ -27,9 +27,9 @@ class BetaDiversityModule(Module):
             {"name": "dbrda_envlabs", "type": "string", "default": ""},
             {"name": "rda_envlabs", "type": "string", "default": ""},
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "grouplabs", "type": "string", "default": ""},
-            {"name": "anosim_grouplabs", "type": "string", "default": ""},
-            {"name": "plsda_grouplabs", "type": "string", "default": ""},
+            {"name": "grouplab", "type": "string", "default": ""},
+            {"name": "anosim_grouplab", "type": "string", "default": ""},
+            {"name": "plsda_grouplab", "type": "string", "default": ""},
             {"name": "dis_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "dis_newicktree", "type": "outfile", "format": "meta.beta_diversity.newick_tree"}
         ]
@@ -95,7 +95,7 @@ class BetaDiversityModule(Module):
         self.tools['anosim'].set_options({
             'dis_matrix': self.matrix.option('dis_matrix'),
             'group': self.option('group'),
-            'grouplabs': self.option('grouplabs') if self.option('grouplabs') else self.option('anosim_grouplabs'),
+            'grouplab': self.option('grouplab') if self.option('grouplab') else self.option('anosim_grouplab'),
             'permutations': self.option('permutations')
         })
         self.tools['anosim'].on('end', self.set_output, 'anosim')
@@ -104,7 +104,7 @@ class BetaDiversityModule(Module):
     def box_run(self, rely_obj):
         self.tools['box'].set_options({
             'dis_matrix': self.matrix.option('dis_matrix'),
-            'grouplabs': self.option('grouplabs') if self.option('grouplabs') else self.option('anosim_grouplabs'),
+            'grouplab': self.option('grouplab') if self.option('grouplab') else self.option('anosim_grouplab'),
             'group': self.option('group')
         })
         self.tools['box'].on('end', self.set_output, 'box')
@@ -162,10 +162,10 @@ class BetaDiversityModule(Module):
 
     def plsda_run(self):
         plsda_options = {'otutable': self.option('otutable'), 'group': self.option('group')}
-        if self.option('grouplabs'):
-            plsda_options['grouplabs'] = self.option('grouplabs')
+        if self.option('grouplab'):
+            plsda_options['grouplab'] = self.option('grouplab')
         else:
-            plsda_options['grouplabs'] = self.option('plsda_grouplabs')
+            plsda_options['grouplab'] = self.option('plsda_grouplab')
         self.tools['plsda'].set_options(plsda_options)
         self.tools['plsda'].on('end', self.set_output, 'plsda')
         self.tools['plsda'].run()

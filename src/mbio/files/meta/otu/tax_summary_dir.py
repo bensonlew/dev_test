@@ -64,7 +64,7 @@ class TaxSummaryDirFile(Directory):
                 pattern = r"otu_taxon_" + level + r"\.xls"
                 if re.search(pattern, file_, re.IGNORECASE):
                     return os.path.join(self.prop['path'], file_)
-        raise ValueError("未找到文件，输入的level为:{}，正确的level应该为['Domain', 'Kingdom', 'Phylum', 'Order', 'Family', 'Genus', 'Species', 'otu']中的一个".format(level))
+        raise ValueError("未找到文件，输入的level为:{}，正确的level应该为['Domain', 'Kingdom', 'Phylum', 'Order', 'Family', 'Genus','Class' , 'Species', 'otu']中的一个".format(level))
 
     def get_biom(self, level):
         """
