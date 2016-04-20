@@ -9,7 +9,7 @@ from mbio.packages.denovo_rna.qc.fastq_stat import fastq_stat
 
 class DrawFastqInfoAgent(Agent):
     """
-    seqprep:用于做fastq序列质量统计的工具
+    DrawFastqInfo:用于做fastq序列质量统计的工具
     version 1.0
     author: qindanhua
     """
@@ -37,7 +37,7 @@ class DrawFastqInfoAgent(Agent):
         检测参数是否正确
         """
         if not self.option("fastq").is_set:
-            raise OptionError("请选择SE序列文件")
+            raise OptionError("请选择序列文件")
 
     def set_resource(self):
         """
@@ -68,7 +68,7 @@ class DrawFastqInfoTool(Tool):
             fastq_stat('qual.stat')
             self.set_output()
         else:
-            self.set_error("运行fastx_quality_statsr运行出错!")
+            self.set_error("运行fastx_quality_stat运行出错!")
             return False
 
     def set_output(self):

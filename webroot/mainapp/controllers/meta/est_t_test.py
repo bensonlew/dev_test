@@ -62,8 +62,8 @@ class EstTTest(object):
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
                 "IMPORT_REPORT_AFTER_END": False,
-                "output": "sanger:rerewrweset/{}/{}/report_results/Alpha_diversity/est_t_test".format(
-                    est_info["project_sn"], est_info["task_id"]),
+                "output": "sanger:rerewrweset/files/{}/{}/{}/report_results/Alpha_diversity/{}".format(
+                    data.member_id, data.otu_info["project_sn"], est_info["task_id"], name),
                 "options": {
                     "update_info": update_info,
                     "est_table": data.alpha_diversity_id,
