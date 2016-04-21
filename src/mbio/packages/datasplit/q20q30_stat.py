@@ -53,7 +53,7 @@ with open(infile, 'rb') as r:
         if count % 10000 == 0:
             print "processing seq " + str(count)
         length = len(line)
-        for i in range(length):
+        for i in xrange(length):
             value = ord(line[i])
             total_base += 1
             if value - phred >= 20:

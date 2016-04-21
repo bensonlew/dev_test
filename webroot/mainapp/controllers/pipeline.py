@@ -9,10 +9,14 @@ from mainapp.models.workflow import Workflow
 import os
 from mainapp.libs.jsonencode import CJsonEncoder
 import xml.etree.ElementTree as ET
-from mainapp.config.db import get_use_api_clients, get_api_type
+from mainapp.config.db import get_use_api_clients, get_api_type, get_mongo_client
+import datetime
 
 
 class Pipeline(object):
+    def __init__(self):
+        self.client = get_mongo_client()
+        self.db = self.client["sanger"]
 
     def GET(self):
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../views/'))
@@ -55,6 +59,14 @@ class Pipeline(object):
             workflow_module.add_record(insert_data)
             # return json.dumps(json_obj)
             info = {"success": True, "info": "添加队列成功!"}
+            task_info = {
+                "task_id": json_obj["id"],
+                "member_id": json_obj["member_id"],
+                "project_sn": json_obj['project_sn'],
+                "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            collection = self.db["sg_task"]
+            collection.insert_one(task_info)
             return json.dumps(info)
 
     @staticmethod
@@ -65,6 +77,8 @@ class Pipeline(object):
         json_obj = {}
         file_path = "sanger:"
         for child_of_root in root:
+            if child_of_root.tag == "member_id":
+                json_obj["member_id"] = child_of_root.text
             if child_of_root.tag == "project_sn":
                 json_obj['project_sn'] = child_of_root.text
             if child_of_root.tag == "name":
@@ -79,8 +93,8 @@ class Pipeline(object):
             json_obj['stage_id'] = 0
         json_obj['type'] = first_stage.find("type").text
         json_obj['name'] = first_stage.find("name").text
-        json_obj['output'] = "%s/%s/%s/%s" % (file_path, json_obj['project_sn'],
-                                              json_obj['id'], json_obj['stage_id'])
+        json_obj['output'] = "%s/%s/%s/%s/%s" % (file_path, json_obj["member_id"], json_obj['project_sn'],
+                                                 json_obj['id'], json_obj['stage_id'])
         option = first_stage.find("parameters")
         json_obj['options'] = {}
         for opt in option:

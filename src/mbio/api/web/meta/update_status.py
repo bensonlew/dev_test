@@ -23,7 +23,7 @@ class UpdateStatus(Log):
         self._config = Config()
         self._client = "client01"
         self._key = "1ZYw71APsQ"
-        self._url = "http://192.168.10.161/api/add_task_log"
+        self._url = "http://192.168.10.161/api/add_file"
         self._task_id = self.data.task_id
         self.db = self._config.get_db()
         self._mongo_client = self._config.mongo_client
@@ -200,9 +200,14 @@ class UpdateStatus(Log):
                 tmp_dict["description"] = my_file["description"]
                 tmp_dict["format"] = my_file["format"]
                 new_files.append(tmp_dict)
-        my_stage["files"] = new_files
+        # my_stage["files"] = new_files
         new_content = dict()
-        new_content["stage"] = my_stage
+        new_content["files"] = new_files
+        my_id = my_stage["task_id"]
+        my_id = re.split('_', my_id)
+        my_id.pop(-1)
+        my_id.pop(-1)
+        new_content["task_id"] = "_".join(my_id)
         my_data = dict()
         my_data["content"] = json.dumps(new_content)
         print my_data
@@ -219,10 +224,12 @@ class UpdateStatus(Log):
         except urllib2.HTTPError as e:
             self._success = 0
             self._response_code = e.code
-            self.log("提交失败：%s" % e)
+            self._reject = 1
+            raise Exception("提交失败：%s" % e)
         except Exception as e:
             self._success = 0
-            self.log("提交失败: %s" % e)
+            self._reject = 1
+            raise Exception("提交失败: %s" % e)
         else:
             try:
                 response_json = json.loads(response_text)
@@ -230,19 +237,19 @@ class UpdateStatus(Log):
                 self._response_code = code
                 self._response = response_text
                 self._success = 0
-                self.log("提交失败: 返回数据类型不正确 %s" % e)
+                self._reject = 1
+                raise Exception("提交失败: 返回数据类型不正确 %s" % e)
             else:
                 self._response_code = code
                 self._response = response_text
                 if response_json["success"] == "true" \
                         or response_json["success"] is True or response_json["success"] == 1:
                     self._success = 1
-                    self.log("提交成功")
                 else:
                     self._success = 0
                     self._reject = 1
                     self._failed = True
-                    self.log("提交被拒绝，终止提交:%s" % response_json["message"])
+                    raise Exception("提交被拒绝，终止提交:%s" % response_json["message"])
 
     def get_sig(self):
         nonce = str(random.randint(1000, 10000))

@@ -21,3 +21,8 @@ class Meta(object):
         collection = self.db['sg_otu']
         result = collection.find_one({"_id": otu_id})
         return result
+
+    def get_task_info(self, task_id):
+        collection = self.db['sg_task']
+        result = collection.find_one({"task_id": task_id})
+        return result

@@ -6,7 +6,7 @@ import os
 import re
 import errno
 import gzip
-import threading
+import multiprocessing
 from biocluster.config import Config
 from biocluster.tool import Tool
 from biocluster.agent import Agent
@@ -58,18 +58,18 @@ class FastxTool(Tool):
         self.fastqs = list()
         self.fastx = list()
 
-    def find_parent_sn(self, filename):
+    def find_parent_sample_id(self, filename):
         """
-        用一个文件名查找一个样本的mj_sn
+        用一个文件名查找一个样本的id
         :param filename: 文件名
         """
         for p in self.option('sample_info').prop["parent_sample"]:
-            mj_sn = re.sub(r'-', r'_', p["mj_sn"])
-            if re.search(mj_sn, filename):
-                return p["mj_sn"]
-            if re.search(p["mj_sn"], filename):
-                return p["mj_sn"]
-        raise Exception("没有找到对应的样本")
+            sample_id = re.sub(r'-', r'_', p["sample_id"])
+            if re.search(sample_id, filename):
+                return p["sample_id"]
+            if re.search(p["sample_id"], filename):
+                return p["sample_id"]
+        raise Exception("没有找到对应的样本: {}".format(filename))
 
     def make_ess_dir(self):
         """
@@ -92,22 +92,24 @@ class FastxTool(Tool):
         解压和重命名bcl2fastq的结果，供后续的fastxtoolkit使用
         """
         threads = list()
-        for project in self.option('sample_info').prop["projects"]:
-            fq_dir = os.path.join(self.option('data_path'), project)
+        self.logger.debug(self.option('sample_info').prop["library_type"])
+        print "\n"
+        for library_type in self.option('sample_info').prop["library_type"]:
+            fq_dir = os.path.join(self.option('data_path'), library_type)
             fq_list = os.listdir(fq_dir)
             for fq in fq_list:
-                mj_sn = self.find_parent_sn(fq)
+                sample_id = self.find_parent_sample_id(fq)
                 if re.search(r'.+_R1_001.+', fq):
-                    unzip_name = mj_sn + "_r1.fastq"
+                    unzip_name = sample_id + "_r1.fastq"
                 elif re.search(r'.+_R2_001.+', fq):
-                    unzip_name = mj_sn + "_r2.fastq"
+                    unzip_name = sample_id + "_r2.fastq"
                 else:
                     raise Exception("错误的文件名")
                 fq = os.path.join(fq_dir, fq)
                 self.logger.debug("开始解压文件" + fq)
                 unzip_name = os.path.join(self.work_dir, "unzip", unzip_name)
                 self.fastqs.append(unzip_name)
-                t = threading.Thread(target=self.unzip_file, args=(fq, unzip_name))
+                t = multiprocessing.Process(target=self.unzip_file, args=(fq, unzip_name))
                 threads.append(t)
         for t in threads:
             t.start()
