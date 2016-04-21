@@ -82,7 +82,7 @@ class BackupTool(Tool):
         为这块板子创建备份目录
         """
         dir_list = list()
-        for pro in self.option('sample_info').prop["projects"]:
+        for pro in self.option('sample_info').prop["library_type"]:
             name = os.path.join(self.seq_id, pro)
             name1 = os.path.join(name, "parent", "fastx")
             name2 = os.path.join(name, "child")
@@ -103,18 +103,20 @@ class BackupTool(Tool):
         """
         self.logger.info("复制fastx统计文件")
         for p_id in self.option('sample_info').prop["parent_ids"]:
-            mj_sn = self.option('sample_info').parent_sample(p_id, "mj_sn")
+            sample_id = self.option('sample_info').parent_sample(p_id, "sample_id")
             file_list = list()
-            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r1.fastq.fastxstat"))
-            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r1.fastq.fastxstat.box.png"))
-            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r1.fastq.fastxstat.nucl.png"))
-            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r1.fastq.q20q30"))
-            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r2.fastq.fastxstat"))
-            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r2.fastq.fastxstat.box.png"))
-            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r2.fastq.fastxstat.nucl.png"))
-            file_list.append(os.path.join(self.option('fastx_path'), mj_sn + "_r2.fastq.q20q30"))
-            dst = os.path.join(self.seq_id, self.option('sample_info').parent_sample(p_id, "project"),
-                               "parent", "fastx")
+            file_list.append(os.path.join(self.option('fastx_path'), sample_id + "_r1.fastq.fastxstat"))
+            file_list.append(os.path.join(self.option('fastx_path'), sample_id + "_r1.fastq.fastxstat.box.png"))
+            file_list.append(os.path.join(self.option('fastx_path'), sample_id + "_r1.fastq.fastxstat.nucl.png"))
+            file_list.append(os.path.join(self.option('fastx_path'), sample_id + "_r1.fastq.q20q30"))
+            file_list.append(os.path.join(self.option('fastx_path'), sample_id + "_r2.fastq.fastxstat"))
+            file_list.append(os.path.join(self.option('fastx_path'), sample_id + "_r2.fastq.fastxstat.box.png"))
+            file_list.append(os.path.join(self.option('fastx_path'), sample_id + "_r2.fastq.fastxstat.nucl.png"))
+            file_list.append(os.path.join(self.option('fastx_path'), sample_id + "_r2.fastq.q20q30"))
+            library_type = self.option('sample_info').parent_sample(p_id, "library_type")
+            if library_type is None:
+                library_type = "undefine"
+            dst = os.path.join(self.seq_id, library_type, "parent", "fastx")
             for file_name in file_list:
                 shutil.copy2(file_name, dst)
 
@@ -136,16 +138,17 @@ class BackupTool(Tool):
         i = 0
         self.logger.info("开始压缩父样本")
         for p_id in self.option('sample_info').prop["parent_ids"]:
-            mj_sn = self.option('sample_info').parent_sample(p_id, "mj_sn")
-            file_name_r1 = mj_sn + "_r1.fastq"
-            file_name_r2 = mj_sn + "_r2.fastq"
+            sample_id = self.option('sample_info').parent_sample(p_id, "sample_id")
+            file_name_r1 = sample_id + "_r1.fastq"
+            file_name_r2 = sample_id + "_r2.fastq"
             for name in os.listdir(self.option('parent_path')):
                 if file_name_r1 == name or file_name_r2 == name:
                     i += 1
                     sourcefile = os.path.join(self.option('parent_path'), name)
-                    target_file = os.path.join(self.seq_id,
-                                               self.option('sample_info').parent_sample(p_id, "project"),
-                                               "parent", name + '.gz')
+                    library_type = self.option('sample_info').parent_sample(p_id, "library_type")
+                    if library_type is None:
+                        library_type = "undefine"
+                    target_file = os.path.join(self.seq_id, library_type, "parent", name + '.gz')
                     cmd = (self.gzip_path + " -c -f " + sourcefile + " > " + target_file)
                     command = subprocess.Popen(cmd, shell=True)
                     cmd_list.append(command)
@@ -171,16 +174,17 @@ class BackupTool(Tool):
             if self.option('sample_info').parent_sample(p_id, "has_child"):
                 child_ids = self.option('sample_info').find_child_ids(p_id)
                 for c_id in child_ids:
-                    mj_sn = self.option('sample_info').child_sample(c_id, "mj_sn")
+                    sample_id = self.option('sample_info').child_sample(c_id, "sample_id")
                     primer = self.option('sample_info').child_sample(c_id, "primer")
-                    file_name = mj_sn + "_" + primer + ".fastq"
+                    file_name = sample_id + "_" + primer + ".fastq"
                     for name in os.listdir(self.option('child_path')):
                         if name == file_name:
                             i += 1
                             sourcefile = os.path.join(self.option('child_path'), name)
-                            target_file = os.path.join(self.seq_id,
-                                                       self.option('sample_info').parent_sample(p_id, "project"),
-                                                       "child", name + '.gz')
+                            library_type = self.option('sample_info').parent_sample(p_id, "library_type")
+                            if library_type is None:
+                                library_type = "undefine"
+                            target_file = os.path.join(self.seq_id, library_type, "child", name + '.gz')
                             cmd = (self.gzip_path + " -c -f " + sourcefile + " > " + target_file)
                             command = subprocess.Popen(cmd, shell=True)
                             cmd_list.append(command)

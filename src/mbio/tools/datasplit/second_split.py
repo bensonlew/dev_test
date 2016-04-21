@@ -77,7 +77,7 @@ class SecondSplitTool(Tool):
         """
         for c_id in self.option('sample_info').prop["child_ids"]:
             index_code = self.option('sample_info').child_sample(c_id, "index")
-            (self.f_index[c_id], self.r_index[c_id], self.f_varbase[c_id], self.r_varbase[c_id]) = code2index(index_code, "miseq")
+            (self.f_index[c_id], self.r_index[c_id], self.f_varbase[c_id], self.r_varbase[c_id]) = code2index(index_code)
             primer_code = self.option('sample_info').child_sample(c_id, "primer")
             (self.f_primer[c_id], self.r_primer[c_id]) = code2primer(primer_code)
             self.f_chomp_length[c_id] = len(self.f_index[c_id]) +\
@@ -112,11 +112,11 @@ class SecondSplitTool(Tool):
         for p in self.option('sample_info').prop["parent_sample"]:
             if p["has_child"]:
                 i += 1
-                file_r1 = os.path.join(self.option('unzip_path'), p['mj_sn'] + "_r1.fastq")
-                file_r2 = os.path.join(self.option('unzip_path'), p['mj_sn'] + "_r2.fastq")
+                file_r1 = os.path.join(self.option('unzip_path'), p['sample_id'] + "_r1.fastq")
+                file_r2 = os.path.join(self.option('unzip_path'), p['sample_id'] + "_r2.fastq")
                 pearstr = (self.pear_path + "  -p 1.0 -j 16 -f " + file_r1 + " -r " + file_r2 + " -o " +
-                           merge_dir + "/pear_" + p['mj_sn'] + "> " +
-                           merge_dir + "/" + p['mj_sn'] + ".pear.log")
+                           merge_dir + "/pear_" + p['sample_id'] + "> " +
+                           merge_dir + "/" + p['sample_id'] + ".pear.log")
                 command = subprocess.Popen(pearstr, shell=True)
                 cmd_list.append(command)
         for mycmd in cmd_list:
@@ -136,7 +136,7 @@ class SecondSplitTool(Tool):
         stat_dir = os.path.join(self.work_dir, "stat")
         for p in self.option('sample_info').prop["parent_sample"]:
             if p["has_child"]:
-                file_name = os.path.join(merge_dir, p['mj_sn'] + ".pear.log")
+                file_name = os.path.join(merge_dir, p['sample_id'] + ".pear.log")
                 stat_name = os.path.join(stat_dir, "pear.stat")
                 with open(file_name, 'r') as r:
                     with open(stat_name, 'a') as a:
@@ -147,7 +147,7 @@ class SecondSplitTool(Tool):
                                 rate = re.search(r'\((.+)\)', line).group(1)
                                 a.write(p['sample_id'] + "\t" + total_reads + "\t" + rate + "\n")
             else:
-                file_name = os.path.join(self.option('unzip_path'), p['mj_sn'] + "_r1.fastq")
+                file_name = os.path.join(self.option('unzip_path'), p['sample_id'] + "_r1.fastq")
                 num_lines = sum(1 for line in open(file_name))
                 total_reads = num_lines / 4
                 stat_name = os.path.join(stat_dir, "pear.stat")
@@ -186,8 +186,10 @@ class SecondSplitTool(Tool):
         :param p_id: 父样本的id号
         """
         c = 0
-        mj_sn = self.option('sample_info').parent_sample(p_id, "mj_sn")
-        sourcefile = os.path.join(self.work_dir, "merge", "pear_" + mj_sn + ".assembled.fastq")
+        fastq_dict = defaultdict(str)
+        c = 0
+        sample_id = self.option('sample_info').parent_sample(p_id, "sample_id")
+        sourcefile = os.path.join(self.work_dir, "merge", "pear_" + sample_id + ".assembled.fastq")
         with open(sourcefile, 'r') as r:
             self.logger.info("process sequence: 1")
             for line in r:
@@ -206,15 +208,20 @@ class SecondSplitTool(Tool):
                 if f_level == 4:  # 当f_level==4时，表示这条序列已经正确匹配，应该进行长度校验后，确定是否输出
                     name = self._length_check(c_id, ori_seq)
                     if name != "":
-                        self._write_match_file(name, head, ori_seq, direction, ori_quality,
-                                               c_id)
+                        str_ = "{}\n{}\n{}{}\n".format(head, ori_seq[self.f_chomp_length[c_id]:-self.r_chomp_length[c_id]], direction, ori_quality[self.f_chomp_length[c_id]:-self.r_chomp_length[c_id]])
+                        fastq_dict[name] += str_
+                        fastq_dict = self._write_match_file(fastq_dict, c)
+                        c += 1
                 else:  # 当一条序列不能正确匹配的时候，将这条序列翻转，再进行一次匹配
                     (r_level, c_id) = self._try_match(rev_ori_seq, p_id)
                     if r_level == 4:
                         name = self._length_check(c_id, rev_ori_seq)
                         if name != "":
-                            self._write_match_file(name, head, rev_ori_seq, direction, rev_ori_quality,
-                                                   c_id)
+                            str_ = "{}\n{}\n{}{}\n".format(head, rev_ori_seq[self.f_chomp_length[c_id]:-self.r_chomp_length[c_id]], direction, rev_ori_quality[self.f_chomp_length[c_id]:-self.r_chomp_length[c_id]])
+                            fastq_dict[name] += str_
+                            fastq_dict = self._write_match_file(fastq_dict, c)
+                            c += 1
+                            # self._write_match_file(name, head, rev_ori_seq, direction, rev_ori_quality, c_id)
                     else:
                         if f_level < r_level:
                             f_level = r_level
@@ -224,18 +231,32 @@ class SecondSplitTool(Tool):
                             self.p_chimera_index[p_id] += 1
                         elif f_level == 3:
                             self.primer_miss[p_id] += 1
+        for name in fastq_dict:
+            with open(name, 'ab') as a:
+                a.write(fastq_dict[name])
         self.my_stat(p_id)
 
     def logger_process(self, count, p_id):
         if count % 10000 == 0:
             self.logger.info("process sequence " + p_id + " : " + " " + str(count))
 
+    def _write_match_file(self, fq_dict, count):
+        # 每满10000条序列的时候输出一次
+        if count % 10000 == 0:
+            for name in fq_dict:
+                with open(name, 'ab') as a:
+                    a.write(fq_dict[name])
+            fq_dict = defaultdict(str)
+        return fq_dict
+
+    """
     def _write_match_file(self, name, head, seq, direction, quality, c_id):
         with open(name, 'a') as a:
             a.write(head + "\n")
             a.write(seq[self.f_chomp_length[c_id]:-self.r_chomp_length[c_id]] + "\n")
             a.write(direction)
             a.write(quality[self.f_chomp_length[c_id]:-self.r_chomp_length[c_id]] + "\n")
+    """
 
     def _length_check(self, c_id, seq):
         """
@@ -248,7 +269,7 @@ class SecondSplitTool(Tool):
             self.short_child[c_id] += 1
         else:
             name = os.path.join(self.work_dir, "child_seq",
-                                self.option('sample_info').child_sample(c_id, 'mj_sn') + "_" +
+                                self.option('sample_info').child_sample(c_id, 'sample_id') + "_" +
                                 self.option('sample_info').child_sample(c_id, 'primer') + ".fastq")
             self.child_num[c_id] += 1
         return name

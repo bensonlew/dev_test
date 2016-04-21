@@ -35,7 +35,7 @@ class Bcl2fastqAgent(Agent):
         """
         设置所需要的资源
         """
-        self._cpu = 1
+        self._cpu = 5
         self._memory = ''
 
 
@@ -65,10 +65,12 @@ class Bcl2fastqTool(Tool):
             w.write(head)
             for p_id in self.option('sample_info').prop["parent_ids"]:
                 lane = self.option('sample_info').parent_sample(p_id, "lane")
-                name = self.option('sample_info').parent_sample(p_id, "mj_sn")
+                name = self.option('sample_info').parent_sample(p_id, "sample_id")
                 index = self.option('sample_info').parent_sample(p_id, "index")
-                index = code2index("index", "bcl2fastq")[0]
-                project = self.option('sample_info').parent_sample(p_id, "project")
+                index = code2index(index)[0]
+                project = self.option('sample_info').parent_sample(p_id, "library_type")
+                if project is None:
+                    project = "undefine"
                 line = lane + "," + name + "," + index + "," + project + "\n"
                 w.write(line)
             w.close()

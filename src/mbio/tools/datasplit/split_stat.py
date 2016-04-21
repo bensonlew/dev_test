@@ -35,8 +35,8 @@ class SplitStatAgent(Agent):
             raise OptionError("参数sample_info不能为空")
         if not self.option("time").is_set:
             raise OptionError("参数time不能为空")
-        if not self.option('pearlog'):
-            raise OptionError("参数pearlog不能为空")
+        if not self.option('fastx_path'):
+            raise OptionError("参数fastx_path不能为空")
         if not self.option('stat_dir'):
             raise OptionError("参数stat_dir不能为空")
         return True
@@ -93,7 +93,7 @@ class SplitStatTool(Tool):
         获取一个子样本的信息
         """
         c_info = dict()
-        c_info["mj_sn"] = self.option('sample_info').child_sample(c_id, "mj_sn")
+        # c_info["mj_sn"] = self.option('sample_info').child_sample(c_id, "mj_sn")
         primer = self.option('sample_info').child_sample(c_id, "primer")
         c_info["sample_id"] = c_id
         child_stat_file = os.path.join(self.option('stat_dir'), "c_stat.stat")
@@ -110,10 +110,11 @@ class SplitStatTool(Tool):
                     self.p_shrot_read[p_id] += c_stat["short_reads"]
                     self.p_valid_read[p_id] += c_stat["valid_reads"]
         fastq1 = dict()
-        child_path = os.path.join(self.seq_id,
-                                  self.option('sample_info').parent_sample(p_id, "project"),
-                                  "child")
-        fastq1["file_path"] = os.path.join(child_path, c_info["mj_sn"] + "_" + primer + ".fastq.gz")
+        library_type = self.option('sample_info').parent_sample(p_id, "library_type")
+        if library_type is None:
+            library_type = "undefine"
+        child_path = os.path.join(self.seq_id, library_type, "child")
+        fastq1["file_path"] = os.path.join(child_path, c_info["sample_id"] + "_" + primer + ".fastq.gz")
         fastq1['size'] = self._get_size(fastq1["file_path"])
         c_info["stat"] = c_stat
         c_info["fastq_info"] = {"fastq1": fastq1}
@@ -124,7 +125,7 @@ class SplitStatTool(Tool):
         获取一个父样本的拆分信息
         """
         p_info = dict()
-        p_info["mj_sn"] = self.option('sample_info').parent_sample(p_id, "mj_sn")
+        # p_info["mj_sn"] = self.option('sample_info').parent_sample(p_id, "mj_sn")
         p_info["sample_id"] = p_id
         p_stat = dict()
         if self.option('sample_info').parent_sample(p_id, "has_child"):
@@ -147,26 +148,27 @@ class SplitStatTool(Tool):
             p_stat["valid_reads"] = p_stat["total_reads"]
         fastq1 = dict()
         fastq2 = dict()
-        parent_path = os.path.join(self.seq_id,
-                                   self.option('sample_info').parent_sample(p_id, "project"),
-                                   "parent")
-        fastq1 = self.get_parent_fastq_info(parent_path, p_info["mj_sn"], "r1")
-        fastq2 = self.get_parent_fastq_info(parent_path, p_info["mj_sn"], "r2")
+        library_type = self.option('sample_info').parent_sample(p_id, "library_type")
+        if library_type is None:
+            library_type = "undefine"
+        parent_path = os.path.join(self.seq_id, library_type, "parent")
+        fastq1 = self.get_parent_fastq_info(parent_path, p_info["sample_id"], "r1")
+        fastq2 = self.get_parent_fastq_info(parent_path, p_info["sample_id"], "r2")
         p_info['stat'] = p_stat
         p_info["fastq_info"] = {"fastq1": fastq1, "fastq2": fastq2}
         return p_info
 
-    def get_parent_fastq_info(self, parent_path, mj_sn, suffix):
+    def get_parent_fastq_info(self, parent_path, sample_id, suffix):
         fastq = dict()
-        fastq["file_path"] = os.path.join(parent_path, mj_sn + "_" + suffix + ".fastq.gz")
+        fastq["file_path"] = os.path.join(parent_path, sample_id + "_" + suffix + ".fastq.gz")
         fastq["quilty_table"] = os.path.join(parent_path, "fastx",
-                                             mj_sn + "_" + suffix + ".fastq.fastxstat")
+                                             sample_id + "_" + suffix + ".fastq.fastxstat")
         fastq["boxplot_png"] = os.path.join(parent_path, "fastx",
-                                            mj_sn + "_" + suffix + ".fastq.fastxstat.box.png")
+                                            sample_id + "_" + suffix + ".fastq.fastxstat.box.png")
         fastq["nucl_png"] = os.path.join(parent_path, "fastx",
-                                         mj_sn + "_" + suffix + ".fastq.fastxstat.nucl.png")
+                                         sample_id + "_" + suffix + ".fastq.fastxstat.nucl.png")
         q20q30 = os.path.join(parent_path, "fastx",
-                              mj_sn + "_" + suffix + ".fastq.q20q30")
+                              sample_id + "_" + suffix + ".fastq.q20q30")
         with open(q20q30, 'r') as r:
             line = r.readline().rstrip('\n')
             line = re.split('\t', line)
