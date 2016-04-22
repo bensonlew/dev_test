@@ -6,6 +6,7 @@ import datetime
 from types import StringTypes
 from mainapp.config.db import get_mongo_client
 import types
+import json
 
 
 class Estimator(object):
@@ -108,3 +109,14 @@ class Estimator(object):
         collection = self.db["sg_alpha_rarefaction_curve"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
+
+    def get_est_params(self, est_id):
+        est_info = self.get_est_table_info(est_id)
+        otu_id = est_info['otu_id']
+        # if est_info["params"] is dict:
+        #     params = est_info["params"]
+        # else:
+        #     params = json.loads(est_info["params"])
+        # indices = params['indices']
+        # level_id = params['level_id']
+        return [otu_id]

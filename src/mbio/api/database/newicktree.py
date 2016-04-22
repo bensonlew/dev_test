@@ -2,7 +2,7 @@
 # __author__ = 'yuguo'
 from biocluster.api.database.base import Base, report_check
 # import re
-# from bson.objectid import ObjectId
+from bson.objectid import ObjectId
 import datetime
 import json
 # from bson.son import SON
@@ -26,6 +26,10 @@ class Newicktree(Base):
                     raise Exception("table_type为'otu'时，level参数%s为不在允许范围内!" % level)
             if task_id is None:
                 task_id = self.bind_object.sheet.id
+            if not isinstance(table_id, ObjectId) and not None:
+                table_id = ObjectId(table_id)
+            if table_type == 'dist':
+                params['specimen_distance_id'] = str(table_id)    # specimen_distance_id在再metabase中不可用
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
@@ -58,3 +62,4 @@ class Newicktree(Base):
                 self.bind_object.logger.error("导入newick tree%s信息出错:%s" % (file_path, e))
             else:
                 self.bind_object.logger.info("导入newick tree%s信息成功!" % file_path)
+        return tree_id

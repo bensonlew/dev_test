@@ -22,7 +22,7 @@ class AnosimAgent(Agent):
             {"name": "dis_matrix", "type": "infile",
              "format": "meta.beta_diversity.distance_matrix"},
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "grouplabs", "type": "string", "default": ""},
+            {"name": "grouplab", "type": "string", "default": ""},
             {"name": "permutations", "type": "int", "default": 999}
         ]
         self.add_option(options)
@@ -57,9 +57,9 @@ class AnosimAgent(Agent):
             raise OptionError('必须提供分组信息文件')
         else:
             self.option('group').get_info()
-            if self.option('grouplabs'):
-                if self.option('grouplabs') not in self.option('group').prop['group_scheme']:
-                    raise OptionError('选定的分组方案名:%s在分组文件中不存在' % self.option('grouplabs'))
+            if self.option('grouplab'):
+                if self.option('grouplab') not in self.option('group').prop['group_scheme']:
+                    raise OptionError('选定的分组方案名:%s在分组文件中不存在' % self.option('grouplab'))
             else:
                 pass  # 如果grouplabs为空，应该不做处理，等到tool中才处理，避免修改参数
             if len(samplelist) < len(self.option('group').prop['sample']):
@@ -95,7 +95,7 @@ class AnosimTool(Tool):
         super(AnosimTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
         self.cmd_path = 'Python/bin/compare_categories.py'
-        self.grouplab = self.option('grouplabs') if self.option('grouplabs') else self.option('group').prop['group_scheme'][0]
+        self.grouplab = self.option('grouplab') if self.option('grouplab') else self.option('group').prop['group_scheme'][0]
         self.dis_matrix = self.get_matrix()
 
     def get_matrix(self):

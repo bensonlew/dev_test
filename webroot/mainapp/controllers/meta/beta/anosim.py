@@ -21,14 +21,13 @@ class Anosim(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, 'client') else web.ctx.env.get('HTTP_CLIENT')
-        default_argu = ['otu_id', 'level_id', 'distance_algorithm', 'permutations', 'group_id', 'group_detail']
+        default_argu = ['otu_id', 'level_id', 'distance_algorithm', 'permutations', 'group_id', 'group_detail', 'submit_location']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
                 return json.dumps(info)
         try:
             group = json.loads(data.group_detail)
-            print data.group_detail
         except ValueError:
             info = {'success': False, 'info': 'group_detail格式不正确!:%s' % data.group_detail}
             return json.dumps(info)
@@ -50,10 +49,16 @@ class Anosim(object):
             info = {'success': False, 'info': '不可每个组都只含有一个样本'}
             return json.dumps(info)
         object_otu_id = self.check_objectid(data.otu_id)
+        object_group_id = self.check_objectid(data.group_id)
         if object_otu_id:
             otu_info = Meta().get_otu_table_info(data.otu_id)
         else:
             info = {'success': False, 'info': 'otu_id格式不正确!'}
+            return json.dumps(info)
+        if object_group_id:
+            pass
+        else:
+            info = {'success': False, 'info': 'group_id格式不正确!'}
             return json.dumps(info)
         params_json = {
             'otu_id': data.otu_id,
@@ -61,7 +66,8 @@ class Anosim(object):
             'distance_algorithm': data.distance_algorithm,
             'permutations': data.permutations,
             'group_id': data.group_id,
-            'group_detail': group_detail_sort(data.group_detail)
+            'group_detail': group_detail_sort(data.group_detail),
+            'submit_location': data.submit_location
         }
 
         if otu_info:
@@ -72,7 +78,7 @@ class Anosim(object):
                 'level_id': int(data.level_id),
                 'name': ('anosim_group_' + otu_info['name'] +
                          '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
-                'group_id': data.group_id,
+                'group_id': object_group_id,
                 'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
                 'status': 'start',
                 'desc': '',
@@ -95,6 +101,10 @@ class Anosim(object):
                 'USE_DB': True,
                 'IMPORT_REPORT_DATA': True,
                 'UPDATE_STATUS_API': 'meta.update_status',
+                # 'UPDATE_STATUS_API': 'test',
+                'output': ("sanger:rerewrweset/" + str(otu_info["project_sn"]) + "/" +
+                           str(otu_info['task_id']) + "/report_results/" + 'anosim_' +
+                           str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))),
                 'options': {
                     'update_info': update_info,
                     'otu_file': data.otu_id,

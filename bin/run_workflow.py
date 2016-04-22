@@ -11,10 +11,11 @@ from biocluster.core.function import load_class_by_path, daemonize, hostname
 from biocluster.wsheet import Sheet
 from biocluster.config import Config
 from multiprocessing import Process
-import atexit
+import signal
 import traceback
 import web
 from biocluster.core.function import CJsonEncoder
+
 # import urllib
 # import subprocess
 
@@ -47,7 +48,7 @@ def main():
             log = getlogpath()
             daemonize(stderr=log, stdout=log)
             date_run = time.strftime('%Y%m%d', time.localtime(time.time()))
-        write_log("start running in service mode ...")
+        write_log("start running in service mode， pid: %s  ..." % os.getpid())
         writepid()
         process_array = []
         wj = WorkJob()
@@ -128,10 +129,12 @@ def check_run(wj):
     return json_data
 
 
-def delpid():
+def delpid(signum, frame):
     pid_file = Config().SERVICE_PID
     pid_file = pid_file.replace('$HOSTNAME', hostname)
     os.remove(pid_file)
+    write_log("stop running service by user,  pid: %s " % os.getpid())
+    sys.exit(1)
 
 
 def writepid():
@@ -142,7 +145,7 @@ def writepid():
         os.mkdir(os.path.dirname(pid_file))
     with open(pid_file, 'w+') as f:
         f.write('%s\n' % pid)
-    atexit.register(delpid)
+    signal.signal(signal.SIGTERM, delpid)
 
 
 def getlogpath():

@@ -12,13 +12,13 @@ class DistanceMatrixFile(File):
     """
     METHOD = ['abund_jaccard', 'binary_chisq', 'binary_chord',
               'binary_euclidean', 'binary_hamming', 'binary_jaccard',
-              'inary_lennon', 'binary_ochiai', 'binary_otu_gain',
+              'inary_lennon', 'binary_ochiai',
               'binary_pearson', 'binary_sorensen_dice',
               'bray_curtis', 'bray_curtis_faith', 'bray_curtis_magurran',
               'canberra', 'chisq', 'chord', 'euclidean', 'gower',
               'hellinger', 'kulczynski', 'manhattan', 'morisita_horn',
               'pearson', 'soergel', 'spearman_approx', 'specprof',
-              'unifrac', 'unifrac_g', 'unifrac_g_full_tree',
+              'unifrac',
               'unweighted_unifrac', 'unweighted_unifrac_full_tree',
               'weighted_normalized_unifrac', 'weighted_unifrac']
     # 现有的矩阵计算类型
@@ -146,3 +146,16 @@ class DistanceMatrixFile(File):
                 line_list.append(dist_dict[samp][samp_col])
             newfile.write('\t'.join(line_list) + '\n')
         newfile.close()
+
+# dir_ = 'C:\\Users\\sheng.he.MAJORBIO\\Desktop\\dis_temp'
+# import os
+# print len(os.listdir(dir_))
+# for i in os.listdir(dir_):
+#     dis_file = dir_ + '\\' + i
+#     a = DistanceMatrixFile()
+#     a.set_path(dis_file)
+#     a.get_info()
+#     try:
+#         a.check()
+#     except:
+#         print dis_file

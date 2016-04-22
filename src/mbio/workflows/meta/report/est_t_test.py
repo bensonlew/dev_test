@@ -28,7 +28,7 @@ class EstTTestWorkflow(Workflow):
 
     def run(self):
         file_path = group_file_spilt(self.option('group_table').prop['path'], self.group_file_dir)
-        print(file_path)
+        # print(file_path)
         options = {
                 'est_input': self.option('est_table'),
                 'test': 'estimator',

@@ -18,7 +18,7 @@ class Venn(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        param_list = ["group_id", "category_name", "otu_id", "level_id"]
+        param_list = ["group_id", "category_name", "otu_id", "level_id", "submit_location"]
         for my_p in param_list:
             if not hasattr(data, my_p):
                 info = {"success": False, "info": "缺少参数{}!".format(my_p)}
@@ -27,6 +27,7 @@ class Venn(object):
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
         my_param['group_id'] = data.group_id
+        my_param["submit_location"] = data.submit_location
         c_name = re.split(',', data.category_name)
         c_name.sort()
         new_cname = ','.join(c_name)
@@ -34,12 +35,19 @@ class Venn(object):
         params = param_pack(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "venn_table_" + datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+            name = "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             venn_id = V().create_venn_table(params, data.group_id, data.level_id, data.otu_id, name)
             update_info = {str(venn_id): "sg_otu_venn"}
             update_info = json.dumps(update_info)
+
+            task_info = Meta().get_task_info(otu_info["task_id"])
+            if task_info:
+                member_id = task_info["member_id"]
+            else:
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+                return json.dumps(info)
             suff_path = name
-            pre_path = "sanger:rerewrweset/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
+            pre_path = "sanger:rerewrweset/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
             output_dir = pre_path + suff_path
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {

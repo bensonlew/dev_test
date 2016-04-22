@@ -7,7 +7,9 @@ from biocluster.api.web.log import LogManager
 from biocluster.config import Config
 import os
 from biocluster.core.function import hostname, daemonize
-import atexit
+import signal
+import datetime
+import sys
 
 parser = argparse.ArgumentParser(description="update date to remote api")
 parser.add_argument("-m", "--mode", choices=["server", "retry"], default="retry", help="run mode")
@@ -16,10 +18,12 @@ parser.add_argument("-a", "--api", help="only for retry mode, the api type to re
 args = parser.parse_args()
 
 
-def delpid():
+def delpid(signum, frame):
     pid_file = Config().SERVICE_PID
     pid_file = pid_file.replace('$HOSTNAME', hostname + ".api")
     os.remove(pid_file)
+    print("%s\t用户终止监控，终止进程,  pid: %s " % (datetime.datetime.now(), os.getpid()))
+    sys.exit(1)
 
 
 def writepid():
@@ -30,7 +34,7 @@ def writepid():
         os.mkdir(os.path.dirname(pid_file))
     with open(pid_file, 'w+') as f:
         f.write('%s\n' % pid)
-    atexit.register(delpid)
+    signal.signal(signal.SIGTERM, delpid)
 
 
 def main():

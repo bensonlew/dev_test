@@ -18,7 +18,7 @@ class EstTTest(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['alpha_diversity_id', 'group_detail', 'group_id']
+        params_name = ['alpha_diversity_id', 'group_detail', 'group_id', 'submit_location']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
@@ -34,9 +34,13 @@ class EstTTest(object):
         my_param['alpha_diversity_id'] = data.alpha_diversity_id
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
+        my_param['submit_location'] = data.submit_location
+        est_params = Estimator().get_est_params(data.alpha_diversity_id)
+        my_param['otu_id'] = str(est_params[0])
+        # print(my_param)
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        est_info = Estimator().get_est_table_info(data.alpha_diversity_id)
         # print(est_info)
+        est_info = Estimator().get_est_table_info(data.alpha_diversity_id)
         if est_info:
             name = "est_t_test_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             est_t_test_id = Estimator().add_est_t_test_collection(params, data.group_id, data.alpha_diversity_id, name)
@@ -58,8 +62,8 @@ class EstTTest(object):
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
                 "IMPORT_REPORT_AFTER_END": False,
-                "output": "sanger:rerewrweset/{}/{}/report_results/Alpha_diversity/est_t_test".format(
-                    est_info["project_sn"], est_info["task_id"]),
+                "output": "sanger:rerewrweset/files/{}/{}/{}/report_results/Alpha_diversity/{}".format(
+                    data.member_id, data.otu_info["project_sn"], est_info["task_id"], name),
                 "options": {
                     "update_info": update_info,
                     "est_table": data.alpha_diversity_id,

@@ -88,6 +88,9 @@ class Rarefaction(Base):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if task_id is None:
             task_id = self.bind_object.sheet.id
+        if not isinstance(otu_id, ObjectId) and not None:
+            otu_id = ObjectId(otu_id)
+        params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": task_id,
@@ -99,8 +102,9 @@ class Rarefaction(Base):
             # "category_x": max(self.category_x),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        if params is not None:
-            insert_data['params'] = json.dumps(params, sort_keys=True, separators=(',', ':'))
+        # if params is not None:
+            # insert_data['params'] = json.dumps(params, sort_keys=True, separators=(',', ':'))
         collection = self.db["sg_alpha_rarefaction_curve"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         self.add_rarefaction_detail(inserted_id, file_path)
+        return inserted_id

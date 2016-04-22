@@ -5,11 +5,11 @@ import json
 import datetime
 import re
 from biocluster.api.database.base import Base, report_check
-# from bson.objectid import ObjectId
+from bson.objectid import ObjectId
+from types import StringTypes
 # import re
 # import datetime
 # from bson.son import SON
-# from types import StringTypes
 
 
 class BetaMultiAnalysis(Base):
@@ -80,8 +80,17 @@ class BetaMultiAnalysis(Base):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if task_id is None:
             task_id = self.bind_object.sheet.id
+        if not isinstance(env_id, ObjectId) and not None:
+            env_id = ObjectId(env_id)
+        if not isinstance(group_id, ObjectId) and not None:
+            group_id = ObjectId(group_id)
+        if not isinstance(otu_id, ObjectId) and not None:
+            otu_id = ObjectId(otu_id)
         _main_collection = self.db['sg_beta_multi_analysis']
         if main:
+            if env_id:
+                params['env_id'] = str(env_id)    # env_id在再metabase中不可用
+            params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
             insert_mongo_json = {
                 'project_sn': self.bind_object.sheet.project_sn,
                 'task_id': task_id,
@@ -101,6 +110,8 @@ class BetaMultiAnalysis(Base):
         else:
             if not main_id:
                 raise Exception('不写入主表时，需要提供主表ID')
+            if not isinstance(main_id, ObjectId):
+                main_id = ObjectId(main_id)
         result = _main_collection.find_one({'_id': main_id})
         if result:
             if analysis == 'pca':
@@ -184,3 +195,4 @@ class BetaMultiAnalysis(Base):
                 self.bind_object.logger.info('beta_diversity:PLSDA分析结果导入数据库完成.')
         else:
             raise Exception('提供的_id：%s在sg_beta_multi_analysis中无法找到表' % str(main_id))
+        return main_id

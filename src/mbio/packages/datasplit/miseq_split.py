@@ -35,20 +35,20 @@ def reverse_complement(string):
     return newstring
 
 
-def code2index(code, type_):
+def code2index(code):
     """
     根据一个index的代码，获取具体的index序列
     """
-    db = MySQLdb.connect("172.16.3.61", "sanger", "11111111", "mjanalysis")
+    db = MySQLdb.connect("192.168.10.51", "mydb", "mydb", "mjanalysis")
     cursor = db.cursor()
-    sql = "SELECT * FROM sg_index_info WHERE label=\"{}\" AND type=\"{}\"".format(code, type_)
+    sql = "SELECT * FROM sg_index_info WHERE label=\"{}\"".format(code)
     try:
         cursor.execute(sql)
         results = cursor.fetchall()
     except:
         raise Exception("无法从index数据库中获得信息")
     if len(results) == 0:
-        raise ValueError("未找到该index代码")
+        raise ValueError("未找到该index代码: {}".format(code))
     left_index = results[0][3]
     right_index = results[0][4]
     varbase = results[0][2]
@@ -65,7 +65,7 @@ def code2primer(code):
     """
     根据一个primer的代码，获取具体的primer
     """
-    db = MySQLdb.connect("172.16.3.61", "sanger", "11111111", "mjanalysis")
+    db = MySQLdb.connect("192.168.10.51", "mydb", "mydb", "mjanalysis")
     cursor = db.cursor()
     code = re.split('_', code)
     for my_code in code:
@@ -74,9 +74,9 @@ def code2primer(code):
             cursor.execute(sql)
             results = cursor.fetchall()
         except:
-            raise Exception("无法从index数据库中获得信息")
+            raise Exception("无法从primer数据库中获得信息")
         if len(results) == 0:
-            raise ValueError("未找到该index代码")
+            raise ValueError("未找到该primer代码")
         if re.search("F$", my_code):
             f_primer = results[0][2]
         if re.search("R$", my_code):

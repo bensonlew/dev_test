@@ -5,7 +5,7 @@ import json
 import datetime
 import re
 from biocluster.api.database.base import Base, report_check
-# from bson.objectid import ObjectId
+from bson.objectid import ObjectId
 # import re
 # import datetime
 # from bson.son import SON
@@ -87,6 +87,10 @@ class Anosim(Base):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         _main_collection = self.db['sg_beta_multi_anosim']
+        if not isinstance(group_id, ObjectId) and not None:
+            group_id = ObjectId(group_id)
+        if not isinstance(otu_id, ObjectId) and not None:
+            otu_id = ObjectId(otu_id)
         if main:
             insert_mongo_json = {
                 'project_sn': self.bind_object.sheet.project_sn,
@@ -106,13 +110,15 @@ class Anosim(Base):
         else:
             if not main_id:
                 raise Exception('不写入主表时，需要提供主表ID')
+            if not isinstance(main_id, ObjectId):
+                main_id = ObjectId(main_id)
         result = _main_collection.find_one({'_id': main_id})
         if result:
             anosim_path = dir_path.rstrip('/') + '/Anosim/format_results.xls'
             box_path = dir_path.rstrip('/') + '/Box/Distances.xls'
             stats_path = dir_path.rstrip('/') + '/Box/Stats.xls'
             insert_table_detail(anosim_path, 'anosim', update_id=main_id, update_column=False,
-                                columns=['statisic', 'pvalue', 'permutation_number'])
+                                columns=['statistic', 'pvalue', 'permutation_number'])
             insert_table_detail(box_path, 'box', update_id=main_id, update_column=False)
             insert_table_detail(stats_path, 'stats', update_id=main_id, comment='#', stats=True,
                                 update_column=False, columns=['group2', 't_statistic',

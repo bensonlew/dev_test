@@ -17,6 +17,8 @@ from mainapp.controllers.meta.beta.hcluster import Hcluster
 from mainapp.controllers.meta.otu_subsample import Subsample
 from mainapp.controllers.meta.est_t_test import EstTTest
 from mainapp.controllers.meta.rarefaction import Rarefaction
+from mainapp.controllers.meta.beta.multi_analysis import MultiAnalysis
+from mainapp.controllers.meta.beta.anosim import Anosim
 
 
 # web.config.debug = False
@@ -44,7 +46,9 @@ urls = (
     "/meta/two_sample", "TwoSample",
     "/meta/multiple", "Multiple",
     "/meta/rarefaction", "Rarefaction",
-    "/meta/est_t_test", "EstTTest"
+    "/meta/est_t_test", "EstTTest",
+    "/meta/beta/multi_analysis", "MultiAnalysis",
+    "/meta/beta/anosim", "Anosim"
 )
 
 

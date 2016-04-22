@@ -22,7 +22,7 @@ class Estimators(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'index_type']
+        params_name = ['otu_id', 'level_id', 'index_type', 'submit_location']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
@@ -42,6 +42,7 @@ class Estimators(object):
         sort_index.sort()
         sort_index = ','.join(sort_index)
         my_param['indices'] = sort_index
+        my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
@@ -65,8 +66,8 @@ class Estimators(object):
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
                 "IMPORT_REPORT_AFTER_END": False,
-                "output": "sanger:rerewrweset/{}/{}/report_results/Alpha_diversity/estimators".format(
-                    otu_info["project_sn"], otu_info["task_id"]),
+                "output": "sanger:rerewrweset/files/{}/{}/{}/report_results/Alpha_diversity/{}".format(
+                    data.member_id, data.otu_info["project_sn"], otu_info["task_id"], name),
                 "options": {
                     "update_info": update_info,
                     "otu_id": data.otu_id,

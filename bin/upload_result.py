@@ -12,7 +12,7 @@ import json
 import traceback
 import gevent
 from biocluster.core.function import hostname, daemonize
-import atexit
+import signal
 from biocluster.wsheet import Sheet
 from biocluster.api.database.base import ApiManager
 from biocluster.logger import Wlog
@@ -29,10 +29,12 @@ group.add_argument("-i", "--api_log_id",  help="upload data for the give api log
 args = parser.parse_args()
 
 
-def delpid():
+def delpid(signum, frame):
     pid_file = Config().SERVICE_PID
     pid_file = pid_file.replace('$HOSTNAME', hostname + ".upload")
     os.remove(pid_file)
+    print("%s\t用户终止监控，终止进程,  pid: %s " % (datetime.datetime.now(), os.getpid()))
+    sys.exit(1)
 
 
 def writepid():
@@ -43,7 +45,7 @@ def writepid():
         os.mkdir(os.path.dirname(pid_file))
     with open(pid_file, 'w+') as f:
         f.write('%s\n' % pid)
-    atexit.register(delpid)
+    signal.signal(signal.SIGTERM, delpid)
 
 
 class UploadManager(object):
@@ -76,7 +78,7 @@ class UploadManager(object):
                 se = file(log, 'a+', 0)
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())
-                self.log("开始监控需要上传的文件")
+                self.log("开始监控需要上传的文件, pid: %s" % os.getpid())
 
             tasks = self.get_upload_tasks()
             if tasks:

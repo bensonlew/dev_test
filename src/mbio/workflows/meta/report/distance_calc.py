@@ -32,53 +32,74 @@ class DistanceCalcWorkflow(Workflow):
     def run(self):
         task = self.add_tool("meta.beta_diversity.distance_calc")
         self.logger.info(self.option('otu_file').path)
-        # temp_otu_file = self.option('otu_file').path + '.temp'
-        # with open(self.option('otu_file').path, 'r') as ff, open(temp_otu_file, 'w') as ww:
-        #     for line in ff:
-        #         linesplit = line.split('\t')
-        #         linesplit[0] = '\'' + linesplit[0] + '\''
-        #         ww.write('\t'.join(linesplit))
         if 'unifrac' in self.option('method'):
-            newicktree = get_level_newicktree(self.option('otu_id'), level=self.option('level'),
-                                              tempdir=self.work_dir, return_file=False, bind_obj=self)
-            all_find = re.findall(r'\'.+?\'', newicktree)
-            for n, m in enumerate(all_find):
-                all_find[n] = m.strip('\'')
-            all_find = dict((i[1], i[0]) for i in enumerate(all_find))
+            # 查找OTU表对应的进化树
+            if self.option('level') != 9:
+                newicktree = get_level_newicktree(self.option('otu_id'), level=self.option('level'),
+                                                  tempdir=self.work_dir, return_file=False, bind_obj=self)
+                all_find = re.findall(r'\'.+?\'', newicktree)  # 找到所有带引号的进化树中复杂的名称
+                for n, m in enumerate(all_find):
+                    all_find[n] = m.strip('\'')
+                all_find = dict((i[1], i[0]) for i in enumerate(all_find))  # 用名称做键，找到的位置数字做值
 
-            def match_newname(matchname):
-                if hasattr(match_newname, 'count'):
-                    match_newname.count = match_newname.count + 1
-                else:
-                    match_newname.count = 1
-                return 'OTU' + str(match_newname.count)
-            newline = re.sub(r'\'.+?\'', match_newname, newicktree)
-            temp_tree_file = self.work_dir + '/temp.tree'
-            tempfile = open(temp_tree_file, 'w')
-            tempfile.write(newline)
-            tempfile.close()
-            self.logger.info('get_newick:' + temp_tree_file)
-            otu_table = self.option('otu_file').path
-            temp_otu_file = self.option('otu_file').path + '.temp'
-            all_lines = open(otu_table, 'r').readlines()
-            if len(all_lines) < 3:
-                raise Exception('分类水平：%s,otu表数据少于2行：%s' % (self.option('level'), len(all_lines)))
-            new_all = []
-            new_all.append(all_lines[0])
-            for line in all_lines[1:]:
-                name = line.split('\t')
-                if name[0] not in all_find:
-                    raise Exception('OTU表中存在不是直接通过组合原始表分类名称的OTU名：%s' % name[0])
-                name[0] = 'OTU' + str(all_find[name[0]] + 1)
-                new_all.append('\t'.join(name))
-            otu_file_temp = open(temp_otu_file, 'w')
-            otu_file_temp.writelines(new_all)
-            otu_file_temp.close()
-            options = {
-                'method': self._sheet.option('method'),
-                'otutable': temp_otu_file,
-                'newicktree': temp_tree_file
-            }
+                def match_newname(matchname):
+                    '随着自身被调用，自身的属性count随调用次数增加，返回OTU加次数，用于重命名进化树复杂的名称'
+                    if hasattr(match_newname, 'count'):
+                        match_newname.count = match_newname.count + 1
+                    else:
+                        match_newname.count = 1
+                    return 'OTU' + str(match_newname.count)  # 后面替换OTU中名称用同样的命名规则
+                newline = re.sub(r'\'.+?\'', match_newname, newicktree)  # 替换树种的复杂名称用 OTU 加数字代替 , 选哟注意的是这里的sub查找与findall查到方式是一致的
+                temp_tree_file = self.work_dir + '/temp.tree'
+                tempfile = open(temp_tree_file, 'w')
+                tempfile.write(newline)
+                tempfile.close()
+                self.logger.info('get_newick:' + temp_tree_file)
+                otu_table = self.option('otu_file').path
+                temp_otu_file = self.option('otu_file').path + '.temp'
+                all_lines = open(otu_table, 'r').readlines()
+                if len(all_lines) < 3:
+                    raise Exception('分类水平：%s,otu表数据少于2行：%s' % (self.option('level'), len(all_lines)))
+                new_all = []
+                new_all.append(all_lines[0])
+                for line in all_lines[1:]:  # 遍历OTU表，将OTU表的复杂OTU名称改为之前find到的复杂名称对应的字典
+                    name = line.split('\t')
+                    if name[0] not in all_find:
+                        raise Exception('OTU表中存在不是直接通过组合原始表分类名称的OTU名：%s' % name[0])
+                    name[0] = 'OTU' + str(all_find[name[0]] + 1)
+                    new_all.append('\t'.join(name))
+                otu_file_temp = open(temp_otu_file, 'w')
+                otu_file_temp.writelines(new_all)
+                otu_file_temp.close()
+                options = {
+                    'method': self._sheet.option('method'),
+                    'otutable': temp_otu_file,
+                    'newicktree': temp_tree_file
+                }
+            else:
+                newicktree = get_level_newicktree(self.option('otu_id'), level=self.option('level'),
+                                                  tempdir=self.work_dir, return_file=False, bind_obj=self)
+                temp_tree_file = self.work_dir + '/temp.tree'
+                tempfile = open(temp_tree_file, 'w')
+                tempfile.write(newicktree)
+                tempfile.close()
+                otu_table = self.option('otu_file').path
+                temp_otu_file = self.option('otu_file').path + '.temp'
+                all_lines = open(otu_table, 'r').readlines()
+                new_all = []
+                new_all.append(all_lines[0])
+                for line in all_lines[1:]:  # OTU表中有复杂的名称OTU名称，包含进化物种类型，进化树种只有OTU名称
+                    name = line.split('\t')
+                    name[0] = name[0].split(';')[-1].strip()
+                    new_all.append('\t'.join(name))
+                otu_file_temp = open(temp_otu_file, 'w')
+                otu_file_temp.writelines(new_all)
+                otu_file_temp.close()
+                options = {
+                    'method': self._sheet.option('method'),
+                    'otutable': temp_otu_file,
+                    'newicktree': temp_tree_file
+                }
         else:
             options = {
                 'method': self.option('method'),
@@ -105,3 +126,11 @@ class DistanceCalcWorkflow(Workflow):
         api_distance.add_dist_table(matrix_path, dist_id=ObjectId(self.option('matrix_id')), )
         self.logger.info('运行self.end')
         self.end()
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "距离矩阵计算结果输出目录"],
+            ["./%s" % os.listdir(self.output_dir)[0], "xls", "样本距离矩阵文件"],
+        ])
+        super(DistanceCalcWorkflow, self).end()

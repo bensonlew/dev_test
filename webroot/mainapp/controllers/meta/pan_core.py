@@ -18,7 +18,7 @@ class PanCore(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        param_list = ["group_id", "category_name", "otu_id", "level_id"]
+        param_list = ["group_id", "category_name", "otu_id", "level_id", "submit_location"]
         for my_p in param_list:
             if not hasattr(data, my_p):
                 info = {"success": False, "info": "缺少参数{}!".format(my_p)}
@@ -31,18 +31,25 @@ class PanCore(object):
         c_name.sort()
         new_cname = ','.join(c_name)
         my_param['category_name'] = new_cname
+        my_param["submit_location"] = data.submit_location
         params = param_pack(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "pan_table_" + str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+            name = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             pan_id = P().create_pan_core_table(1, params, data.group_id, data.level_id, data.otu_id, name)
-            name = "core_table" + datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+            name = "core_table" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             core_id = P().create_pan_core_table(2, params, data.group_id, data.level_id, data.otu_id, name)
             update_info = {str(pan_id): "sg_otu_pan_core", str(core_id): "sg_otu_pan_core"}
             # 字典  id: 表名
             update_info = json.dumps(update_info)
-            pre_path = "sanger:rerewrweset/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
-            suff_path = "pan_core_" + str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))
+            task_info = Meta().get_task_info(otu_info["task_id"])
+            if task_info:
+                member_id = task_info["member_id"]
+            else:
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+                return json.dumps(info)
+            pre_path = "sanger:rerewrweset/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
+            suff_path = "pan_core_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             output_dir = pre_path + suff_path
 
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)

@@ -12,17 +12,17 @@ class DistanceCalcAgent(Agent):
     qiime
     version 1.0
     author shenghe
-    last_modified:2016.3.24
+    last_modified:2016.4.8
     """
     METHOD = ['abund_jaccard', 'binary_chisq', 'binary_chord',
               'binary_euclidean', 'binary_hamming', 'binary_jaccard',
-              'binary_lennon', 'binary_ochiai', 'binary_otu_gain',
+              'binary_lennon', 'binary_ochiai',
               'binary_pearson', 'binary_sorensen_dice',
               'bray_curtis', 'bray_curtis_faith', 'bray_curtis_magurran',
               'canberra', 'chisq', 'chord', 'euclidean', 'gower',
               'hellinger', 'kulczynski', 'manhattan', 'morisita_horn',
               'pearson', 'soergel', 'spearman_approx', 'specprof',
-              'unifrac', 'unifrac_g', 'unifrac_g_full_tree',
+              'unifrac',
               'unweighted_unifrac', 'unweighted_unifrac_full_tree',
               'weighted_normalized_unifrac', 'weighted_unifrac']
     UNIFRACMETHOD = METHOD[-7:]
@@ -72,6 +72,8 @@ class DistanceCalcAgent(Agent):
             raise OptionError('必须提供输入文件')
         else:
             otulist = [line.split('\t')[0] for line in open(self.gettable().prop['path'])][1:]  # 获取所有OTU/物种名
+        if self.option('method') in ['binary_otu_gain', 'unifrac_g', 'unifrac_g_full_tree']:
+            raise OptionError('算法:%s已经被移除！请使用其他算法！移除时间:2016/4/8 原因: 算法生成不对称矩阵,不利于后续分析 ' % self.option('method'))
         if self.option('method') not in DistanceCalcAgent.METHOD:
             raise OptionError('错误或者不支持的距离矩阵计算方法')
         if self.option('method') in DistanceCalcAgent.UNIFRACMETHOD:
@@ -103,7 +105,7 @@ class DistanceCalcAgent(Agent):
         result_dir.add_regexp_rules([
             [r'%s.*\.xls' % self.option('method'), 'xls', '样本距离矩阵文件']
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(DistanceCalcAgent, self).end()
 
 

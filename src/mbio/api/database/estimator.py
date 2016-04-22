@@ -21,6 +21,9 @@ class Estimator(Base):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         data_list = []
+        if not isinstance(otu_id, ObjectId) and not None:
+            otu_id = ObjectId(otu_id)
+        params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
         # insert major
         if major:
             insert_data = {
@@ -33,8 +36,8 @@ class Estimator(Base):
                 "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
-            if params is not None:
-                insert_data['params'] = params
+            # if params is not None:
+            #     insert_data['params'] = params
             collection = self.db["sg_alpha_diversity"]
             est_id = collection.insert_one(insert_data).inserted_id
         else:
@@ -74,3 +77,4 @@ class Estimator(Base):
             self.bind_object.logger.error("导入estimator%s信息出错:%s" % (file_path, e))
         else:
             self.bind_object.logger.info("导入estimator%s信息成功!" % file_path)
+        return est_id

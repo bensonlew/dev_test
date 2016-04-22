@@ -15,9 +15,8 @@ class MiseqSplitFile(File):
         self.seq_prop = ["sequcing_id", "sequcing_sn", "program", "file_path",
                          "config", "parent_sample", "child_sample"]
         self.seq_config = ["index_missmatch", "ignore_missing_bcl", "base_mask"]
-        self.p_props = ["sample_name", "index", "sample_id", "mj_sn",
-                        "cus_sample_name", "lane", "project", "has_child", "program"]
-        self.c_props = ["sample_name", "sample_id", "mj_sn", "config", "primer", "index"]  # "cus_sample_name"暂时缺失
+        self.p_props = ["library_type", "index", "lane", "has_child", "library_name", "sole_content", "sample_id"]
+        self.c_props = ["index", "lane", "library_name", "sole_content", "sample_id", "primer"]  # "cus_sample_name"暂时缺失
         self.c_config = ["index_miss", "primer_miss", "filter_min"]
 
     def get_info(self):
@@ -28,7 +27,7 @@ class MiseqSplitFile(File):
         "child_sample": dict 全部的子样本信息
         "parent_ids"：list 全部的父样本id
         "child_ids"：list 全部的子样本is
-        "projects"： list 全部的project，涉及到bcl2fastq的拆分结果的目录结构
+        "library_type"： list 全部的library_type，涉及到bcl2fastq的拆分结果的目录结构
         """
         super(MiseqSplitFile, self).get_info()
         self.jobj = self.dump_json()
@@ -47,17 +46,23 @@ class MiseqSplitFile(File):
         self.set_property("parent_sample", self.jobj["parent_sample"])
         self.set_property("child_sample", self.jobj["child_sample"])
         p_id_list = list()
-        project_list = list()
+        library_type = list()  # 也就是父样本的rary_type类型
         for p in self.prop["parent_sample"]:
             p_id_list.append(p["sample_id"])
-            project_list.append(p["project"])
+            library_type.append(p["library_type"])
         c_id_list = list()
         for c in self.prop["child_sample"]:
             c_id_list.append(c["sample_id"])
-        project_list = list(set(project_list))
+        library_type = list(set(library_type))
+        my_library_type = list()
+        for l in library_type:
+            if l is None:
+                my_library_type.append("undefine")
+            else:
+                my_library_type.append(l)
         self.set_property("parent_ids", p_id_list)
         self.set_property("child_ids", c_id_list)
-        self.set_property("projects", project_list)
+        self.set_property("library_type", my_library_type)
 
     def dump_json(self):
         """
@@ -116,7 +121,8 @@ class MiseqSplitFile(File):
         if not self.parent_sample(sample_id, "has_child"):
             raise ValueError("父样本 %s 不存在子样本" % sample_id)
         for c_id in self.prop["child_ids"]:
-            if self.child_sample(c_id, "sample_name") == self.parent_sample(sample_id, "sample_name"):
+            if (self.child_sample(c_id, "library_name") == self.parent_sample(sample_id, "library_name")) and \
+                    (self.child_sample(c_id, "lane") == self.parent_sample(sample_id, "lane")):
                 id_list.append(self.child_sample(c_id, "sample_id"))
         return id_list
 
@@ -124,15 +130,16 @@ class MiseqSplitFile(File):
         """
         根据子样本的sample_id, 查找他的父样本的id
         """
-        sample_name = self.child_sample(c_id, 'sample_name')
+        library_name = self.child_sample(c_id, "library_name")
+        lane = self.child_sample(c_id, "lane")
         for p in self.prop["parent_sample"]:
-            if p["sample_name"] == sample_name:
+            if p["library_name"] == library_name and p["lane"] == lane:
                 return p['sample_id']
 
     def has_child_sample(self, sample_id):
         """
         检查一块下机版中是否含有某样本名的子样本
-        :param name: 子样本名称
+        :param sample_id: 子样本id
         """
         for c_sample in self.prop["child_sample"]:
             if c_sample["sample_id"] == sample_id:

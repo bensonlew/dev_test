@@ -24,6 +24,7 @@ class Subsample(object):
         input_otu_info = Meta().get_otu_table_info(data.otu_id)
         my_param = dict()
         my_param["otu_id"] = data.otu_id
+        my_param["submit_location"] = data.submit_location
         if hasattr(data, "size"):
             my_param["size"] = data.size
         params = param_pack(my_param)
@@ -38,8 +39,14 @@ class Subsample(object):
                 'desc': 'otu table after Subsample',
                 'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
+            task_info = Meta().get_task_info(input_otu_info["task_id"])
+            if task_info:
+                member_id = task_info["member_id"]
+            else:
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(input_otu_info["task_id"])}
+                return json.dumps(info)
             suff_path = "otu_subsample" + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            pre_path = "sanger:rerewrweset/" + str(input_otu_info["project_sn"]) + "/" + str(input_otu_info['task_id']) + "/report_results/"
+            pre_path = "sanger:rerewrweset/" + str(member_id) + "/" + str(input_otu_info["project_sn"]) + "/" + str(input_otu_info['task_id']) + "/report_results/"
             output_dir = pre_path + suff_path
             collection = get_mongo_client()['sanger']['sg_otu']
             output_otu_id = collection.insert_one(output_otu_json).inserted_id
