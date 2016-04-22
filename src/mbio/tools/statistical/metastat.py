@@ -87,6 +87,11 @@ class MetastatAgent(Agent):
         self.step.stat_test.finish()
         self.step.update()
 
+    def check_sample(self, group_sample, otu_sample):
+            for name in group_sample:
+                if name not in otu_sample:
+                    raise OptionError('分组样本不在otu表所拥有的样本内，请检查分组方案')
+
     def check_options(self):
         """
         检查参数设置
@@ -111,6 +116,9 @@ class MetastatAgent(Agent):
                 if self.option("chi_methor") not in ["DiffBetweenPropAsymptoticCC", "DiffBetweenPropAsymptotic",
                                                      "NewcombeWilson"]:
                     raise OptionError('chi检验的计算置信区间的方法不在范围值内')
+                otu_sample = self.option('chi_input').get_sample_info()
+                if self.option('chi_sample1') not in otu_sample or self.option('chi_sample2') not in otu_sample:
+                    raise OptionError('输入的样本不在otu表所拥有的样本内，请检查chi检验样本名')
             elif i == "fisher":
                 if not self.option("fisher_input").is_set:
                     raise OptionError('必须设置费舍尔检验输入的otutable文件')
@@ -128,6 +136,9 @@ class MetastatAgent(Agent):
                 if self.option("fisher_methor") not in ["DiffBetweenPropAsymptoticCC", "DiffBetweenPropAsymptotic",
                                                         "NewcombeWilson"]:
                     raise OptionError('fisher检验的计算置信区间的方法不在范围值内')
+                otu_sample = self.option('fisher_input').get_sample_info()
+                if self.option('fisher_sample1') not in otu_sample or self.option('fisher_sample2') not in otu_sample:
+                    raise OptionError('输入的样本不在otu表所拥有的样本内，请检查fisher检验样本名')
             elif i == "kru_H":
                 if not self.option("kru_H_input").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
@@ -147,6 +158,10 @@ class MetastatAgent(Agent):
                     raise OptionError('kru_H检验的posthoc的置信度不在范围值内')
                 if self.option("kru_H_methor") not in ["scheffe", "welchuncorrected", "tukeykramer", "gameshowell"]:
                     raise OptionError('kru_H检验的posthoc检验方法不在范围值内')
+                otu_sample = self.option('kru_H_input').get_sample_info()
+                self.logger.info(otu_sample)
+                group_sample, header, is_empty = self.option('kru_H_group').get_file_info()
+                self.check_sample(group_sample, otu_sample)
             elif i == "anova":
                 if not self.option("anova_input").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
@@ -164,6 +179,10 @@ class MetastatAgent(Agent):
                     raise OptionError('anova检验的posthoc的置信度不在范围值内')
                 if self.option("anova_methor") not in ["scheffe", "welchuncorrected", "tukeykramer", "gameshowell"]:
                     raise OptionError('anova检验的posthoc检验方法不在范围值内')
+                otu_sample = self.option('anova_input').get_sample_info()
+                self.logger.info(otu_sample)
+                group_sample, header, is_empty = self.option('anova_group').get_file_info()
+                self.check_sample(group_sample, otu_sample)
             elif i == "mann":
                 if not self.option("mann_input").is_set:
                     raise OptionError('必须设置wilcox秩和检验输入的otutable文件')
@@ -183,6 +202,10 @@ class MetastatAgent(Agent):
                     raise OptionError("mann检验的分组方案的分组类别必须等于2")
                 if self.option("mann_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
                     raise OptionError('mann检验的置信区间的置信度不在范围值内')
+                otu_sample = self.option('mann_input').get_sample_info()
+                self.logger.info(otu_sample)
+                group_sample, header, is_empty = self.option('mann_group').get_file_info()
+                self.check_sample(group_sample, otu_sample)
             elif i == "student":
                 if not self.option("student_input").is_set:
                     raise OptionError('必须设置student_T检验输入的otutable文件')
@@ -202,6 +225,10 @@ class MetastatAgent(Agent):
                     raise OptionError("student检验的分组方案的分组类别必须等于2")
                 if self.option("student_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
                     raise OptionError('student检验的置信区间的置信度不在范围值内')
+                otu_sample = self.option('student_input').get_sample_info()
+                self.logger.info(otu_sample)
+                group_sample, header, is_empty = self.option('student_group').get_file_info()
+                self.check_sample(group_sample, otu_sample)
             elif i == "welch":
                 if not self.option("welch_input").is_set:
                     raise OptionError('必须设置welch_T检验输入的otutable文件')
@@ -221,11 +248,19 @@ class MetastatAgent(Agent):
                     raise OptionError("mann检验的分组方案的分组类别必须等于2")
                 if self.option("welch_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
                     raise OptionError('welch检验的置信区间的置信度不在范围值内')
+                otu_sample = self.option('welch_input').get_sample_info()
+                self.logger.info(otu_sample)
+                group_sample, header, is_empty = self.option('welch_group').get_file_info()
+                self.check_sample(group_sample, otu_sample)
             elif i == "estimator":
                 if not self.option("est_input").is_set:
                     raise OptionError('必须设置est_T检验输入的多样性指数文件')
                 if not self.option("est_group").is_set:
                     raise OptionError('必须设置est_T检验输入的分组文件夹')
+                # otu_sample = self.option('est_input').get_sample_info()
+                # self.logger.info(otu_sample)
+                # group_sample = self.option('est_group').get_file_info()
+                # self.check_sample(group_sample, otu_sample)
         return True
 
     def set_resource(self):
@@ -414,14 +449,14 @@ class MetastatTool(Tool):
                        self.option('kru_H_correction'))
         cmd = "R-3.2.2/bin/Rscript run_kru_H_test.r"
         self.logger.info("开始运行kru_H检验")
-        command = self.add_command("kru_H_cmd", cmd).run()
+        command = self.add_command("kru_cmd", cmd).run()
         self.wait(command)
         if command.return_code == 0:
-            self.logger.info("kru_H_cmd运行完成，开始运行post-hoc检验")
+            self.logger.info("kru_cmd运行完成，开始运行post-hoc检验")
             self.posthoc(self.option("kru_H_methor"), self.work_dir + '/kru_H_result.xls', './kru_H_group',
                          self.option("kru_H_coverage"), './kru_H')
         else:
-            self.set_error("kru_H_cmd运行出错!")
+            self.set_error("kru_cmd运行出错!")
         self.logger.info("kru_H_test运行完成")
 
     def run_anova(self):

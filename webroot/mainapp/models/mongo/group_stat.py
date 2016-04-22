@@ -106,3 +106,26 @@ class GroupStat(object):
         result = collection.find_one({'_id': group_id})
         gname = result['group_name']
         return gname
+
+    def get_otu_sample_name(self, otu_id):
+        """
+        获取otu表样本名字
+        """
+        if isinstance(otu_id, StringTypes):
+            otu_id = ObjectId(otu_id)
+        elif isinstance(otu_id, ObjectId):
+            otu_id = otu_id
+        else:
+            raise Exception("输入otu_id参数必须为字符串或者ObjectId类型!")
+        # collection_1 = self.db['sg_otu']
+        # result = collection_1.find_one({"_id": otu_id})
+        # _id = result["otu_id"]
+        collection_2 = self.db['sg_otu_specimen']
+        result_2 = collection_2.find({"otu_id": otu_id})
+        collection_3 = self.db['sg_specimen']
+        sample_name = []
+        for i in result_2:
+            specimen_id = ObjectId(i['specimen_id'])
+            result_3 = collection_3.find_one({"_id": specimen_id})
+            sample_name.append(result_3["specimen_name"])
+        return sample_name

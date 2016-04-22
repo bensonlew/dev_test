@@ -37,6 +37,12 @@ class TwoSample(object):
             name = "twosample_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             two_sample_id = G().create_species_difference_check(level=data.level_id, check_type='two_sample',
                                                                 params=params, from_otu_table=data.otu_id, name=name)
+            task_info = Meta().get_task_info(otu_info["task_id"])
+            if task_info:
+                member_id = task_info["member_id"]
+            else:
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+                return json.dumps(info)
             update_info = {str(two_sample_id): "sg_species_difference_check"}
             update_info = json.dumps(update_info)
 
@@ -53,8 +59,8 @@ class TwoSample(object):
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
                 "IMPORT_REPORT_AFTER_END": True,
-                "output": "sanger:rerewrweset/%s/%s/report_results/statistical/" %
-                          (otu_info["project_sn"], otu_info["task_id"]),
+                "output": "sanger:rerewrweset/files/%s/%s/%s/report_results/%s/" %
+                          (str(member_id), otu_info["project_sn"], otu_info["task_id"], name),
                 "options": {
                     "update_info": update_info,
                     "otu_file": data.otu_id,
@@ -112,7 +118,13 @@ class TwoSample(object):
         if data.test not in ["chi", "fisher"]:
             success.append("所选的分析检验方法不在范围内")
         if float(data.coverage) not in [0.90, 0.95, 0.98, 0.99, 0.999]:
-            success.append('chi检验的置信区间的置信度不在范围值内')
+            success.append('置信区间的置信度不在范围值内')
         if data.methor not in ["DiffBetweenPropAsymptoticCC", "DiffBetweenPropAsymptotic", "NewcombeWilson"]:
-            success.append('chi检验的计算置信区间的方法不在范围值内')
+            success.append('计算置信区间的方法不在范围值内')
+        sample_name = G().get_otu_sample_name(data.otu_id)
+        if data.sample1 not in sample_name or data.sample2 not in sample_name:
+            success.append('所输入的样本名不在otu表里，请检查样本名')
         return success
+
+    
+

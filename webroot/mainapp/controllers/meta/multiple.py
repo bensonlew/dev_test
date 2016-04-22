@@ -41,6 +41,12 @@ class Multiple(object):
             name = "multiplegroup_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             multiple_id = G().create_species_difference_check(data.level_id, 'multiple', params, data.group_id,
                                                               data.otu_id, name)
+            task_info = Meta().get_task_info(otu_info["task_id"])
+            if task_info:
+                member_id = task_info["member_id"]
+            else:
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+                return json.dumps(info)
             update_info = {str(multiple_id): "sg_species_difference_check"}
             update_info = json.dumps(update_info)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
@@ -57,8 +63,8 @@ class Multiple(object):
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
                 "IMPORT_REPORT_AFTER_END": True,
-                "output": "sanger:rerewrweset/%s/%s/report_results/statistical/" %
-                          (otu_info["project_sn"], otu_info["task_id"]),
+                "output": "sanger:rerewrweset/files/%s/%s/%s/report_results/%s/" %
+                          (str(member_id), otu_info["project_sn"], otu_info["task_id"], name),
                 "options": {
                     "update_info": update_info,
                     "otu_file": data.otu_id,

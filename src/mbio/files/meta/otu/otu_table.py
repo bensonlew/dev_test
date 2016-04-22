@@ -262,3 +262,13 @@ class OtuTableFile(File):
         with open(path, 'wb') as w:
             for my_l in zip_line:
                 w.write("\t".join(my_l) + "\n")
+
+    def get_sample_info(self):
+        """
+        获取otu表中样本信息，返回样本列表
+        """
+        with open(self.prop['path'], 'r') as f:
+            sample = f.readline().strip('\n').split('\t')
+            del sample[0]
+        return sample
+

@@ -27,11 +27,18 @@ class Lefse(object):
         my_param['strict'] = data.strict
         my_param['category_name'] = category
         my_param['second_category_name'] = second_category
+        my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = "lefse_lda_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             lefse_id = G().create_species_difference_lefse(params, data.group_id, data.otu_id, name)
+            task_info = Meta().get_task_info(otu_info["task_id"])
+            if task_info:
+                member_id = task_info["member_id"]
+            else:
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+                return json.dumps(info)
             update_info = {str(lefse_id): "sg_species_difference_lefse"}
             update_info = json.dumps(update_info)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
@@ -47,8 +54,8 @@ class Lefse(object):
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
                 "IMPORT_REPORT_AFTER_END": True,
-                "output": "sanger:rerewrweset/%s/%s/report_results/lefse/%s" %
-                          (otu_info["project_sn"], otu_info["task_id"], name),
+                "output": "sanger:rerewrweset/files/%s/%s/%s/report_results/%s/" %
+                          (str(member_id), otu_info["project_sn"], otu_info["task_id"], name),
                 "options": {
                     "otu_file": data.otu_id,
                     "update_info": update_info,
@@ -84,7 +91,7 @@ class Lefse(object):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'group_detail', 'group_id', 'lda_filter', 'strict']
+        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict']
         for names in params_name:
             if not (hasattr(data, names)):
                 info = {"success": False, "info": "缺少参数!"}

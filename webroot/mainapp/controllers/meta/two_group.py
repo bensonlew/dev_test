@@ -41,7 +41,12 @@ class TwoGroup(object):
             two_group_id = G().create_species_difference_check(data.level_id, 'two_group', params, data.group_id, data.otu_id, name)
             update_info = {str(two_group_id): "sg_species_difference_check"}
             update_info = json.dumps(update_info)
-
+            task_info = Meta().get_task_info(otu_info["task_id"])
+            if task_info:
+                member_id = task_info["member_id"]
+            else:
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+                return json.dumps(info)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
                 "id": workflow_id,
@@ -55,8 +60,8 @@ class TwoGroup(object):
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
                 "IMPORT_REPORT_AFTER_END": True,
-                "output": "sanger:rerewrweset/%s/%s/report_results/statistical/" %
-                          (otu_info["project_sn"], otu_info["task_id"]),
+                "output": "sanger:rerewrweset/files/%s/%s/%s/report_results/%s/" %
+                          (str(member_id), otu_info["project_sn"], otu_info["task_id"], name),
                 "options": {
                     "otu_file": data.otu_id,
                     "update_info": update_info,

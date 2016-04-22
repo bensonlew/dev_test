@@ -163,7 +163,7 @@ def tukeykramer(statfile, groupfile, coverage, outfile, preferences=None):
                 elif qs > cv01:
                     pValue = '< 0.01'
                 elif qs > cv02:
-                    pValue = '< 0.02'
+                    pValue = '< 0.05'   # < 0.02
                 elif qs > cv05:
                     pValue = '< 0.05'
                 elif qs > cv1:
@@ -218,7 +218,7 @@ def gameshowell(statfile, groupfile, coverage, outfile, preferences = None):
                 elif qs > cv01:
                     pValue = '< 0.01'
                 elif qs > cv02:
-                    pValue = '< 0.02'
+                    pValue = '< 0.05'  # < 0.02
                 elif qs > cv05:
                     pValue = '< 0.05'
                 elif qs > cv1:
