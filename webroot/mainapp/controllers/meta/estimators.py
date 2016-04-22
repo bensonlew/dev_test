@@ -46,6 +46,14 @@ class Estimators(object):
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
+        task_info = Meta().get_task_info(otu_info["task_id"])
+        if task_info:
+            member_id = task_info["member_id"]
+        else:
+            info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+            return json.dumps(info)
+        pre_path = "sanger:rerewrweset/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
+                   str(otu_info['task_id']) + "/report_results/"
         if otu_info:
             name = "estimators_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             est_id = Estimator().add_est_collection(data.level_id, params, data.otu_id, name)
@@ -66,8 +74,7 @@ class Estimators(object):
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": "meta.update_status",
                 "IMPORT_REPORT_AFTER_END": False,
-                "output": "sanger:rerewrweset/files/{}/{}/{}/report_results/Alpha_diversity/{}".format(
-                    data.member_id, data.otu_info["project_sn"], otu_info["task_id"], name),
+                "output": pre_path + name,
                 "options": {
                     "update_info": update_info,
                     "otu_id": data.otu_id,

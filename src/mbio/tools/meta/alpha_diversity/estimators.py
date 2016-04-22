@@ -6,6 +6,7 @@ import os
 from biocluster.core.exceptions import OptionError
 import subprocess
 import re
+from mbio.packages.alpha_diversity.estimator_size import est_size
 
 
 class EstimatorsAgent(Agent):
@@ -79,6 +80,7 @@ class EstimatorsTool(Tool):
         self.cmd_path = 'meta/alpha_diversity/'
         self.scripts_path = 'meta/scripts/'
         self.indices = '-'.join(self.option('indices').split(','))
+        self.special_est = ['boneh', 'efron', 'shen', 'solow']
 
     def shared(self):
         """
@@ -108,7 +110,12 @@ class EstimatorsTool(Tool):
         运行mothur软件生成各样本指数表
         """
         cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % self.indices
-        # print cmd
+        for index in self.indices.split('-'):
+            if index in self.special_est:
+                size = est_size(self.option("otu_table").prop['path'])
+                cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s,size=%s)"' % \
+                      (self.indices, size)
+        self.logger.info(cmd)
         self.logger.info("开始运行mothur")
         command = self.add_command("mothur", cmd)
         command.run()

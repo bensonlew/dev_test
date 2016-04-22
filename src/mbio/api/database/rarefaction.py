@@ -88,9 +88,10 @@ class Rarefaction(Base):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if task_id is None:
             task_id = self.bind_object.sheet.id
-        if not isinstance(otu_id, ObjectId) and not None:
-            otu_id = ObjectId(otu_id)
-        params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+        if otu_id:
+            if not isinstance(otu_id, ObjectId):
+                otu_id = ObjectId(otu_id)
+            params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": task_id,

@@ -21,9 +21,10 @@ class Estimator(Base):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         data_list = []
-        if not isinstance(otu_id, ObjectId) and not None:
-            otu_id = ObjectId(otu_id)
-        params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+        if otu_id:
+            if not isinstance(otu_id, ObjectId):
+                otu_id = ObjectId(otu_id)
+            params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
         # insert major
         if major:
             insert_data = {
@@ -50,6 +51,7 @@ class Estimator(Base):
                     raise Exception("est_id必须为ObjectId对象或其对应的字符串!")
         # insert detail
         with open(file_path, 'r') as f:
+            # self.bind_object.logger.info(file_path)
             l = f.readline().strip('\n')
             if not re.match(r"^sample", l):
                 raise Exception("文件%s格式不正确，请选择正确的estimator表格文件" % file_path)
@@ -66,6 +68,7 @@ class Estimator(Base):
                 data = [("alpha_diversity_id", est_id), ("specimen_name", sample_name)]
                 i = 0
                 for est in est_list:
+                    # self.bind_object.logger.info(str(line_data))
                     data.append((est, float(line_data[i])))
                     i += 1
                 data_son = SON(data)
