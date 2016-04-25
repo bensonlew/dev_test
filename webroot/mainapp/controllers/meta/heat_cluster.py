@@ -17,7 +17,7 @@ class HeatCluster(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        param_list = ["samples", "otu_id", "level_id", "linkage", "submit_location"]
+        param_list = ["specimen_ids", "otu_id", "level_id", "linkage", "submit_location", "group_id"]
         for my_p in param_list:
             if not hasattr(data, my_p):
                 info = {"success": False, "info": "缺少参数{}!".format(my_p)}
@@ -26,15 +26,17 @@ class HeatCluster(object):
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = data.level_id
         my_param['linkage'] = data.linkage
-        my_sp = re.split(',', data.samples)
+        my_sp = re.split(',', data.specimen_ids)
         my_sp.sort()
-        my_param['samples'] = ",".join(my_sp)
+        my_param['specimen_ids'] = ",".join(my_sp)
         my_param["submit_location"] = data.submit_location
+        my_param["group_id"] = data.group_id
         params = param_pack(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = "heat_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             newick_id = H().create_newick_table(params, data.linkage, data.otu_id, name)
+            sample_name = H().sample_id_to_name(data.specimen_ids)
             update_info = {str(newick_id): "sg_newick_tree"}
             update_info = json.dumps(update_info)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
@@ -52,7 +54,7 @@ class HeatCluster(object):
                 "options": {
                     "update_info": update_info,
                     "in_otu_table": data.otu_id,
-                    "samples": data.samples,
+                    "samples": sample_name,
                     "linkage": data.linkage,
                     "level": data.level_id,
                     "newick_id": str(newick_id)

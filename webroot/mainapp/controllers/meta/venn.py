@@ -47,7 +47,7 @@ class Venn(object):
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
             suff_path = name
-            pre_path = "sanger:rerewrweset/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
+            pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
             output_dir = pre_path + suff_path
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
