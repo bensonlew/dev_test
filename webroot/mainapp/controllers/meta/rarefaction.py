@@ -55,7 +55,7 @@ class Rarefaction(object):
         else:
             info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
             return json.dumps(info)
-        pre_path = "sanger:rerewrweset/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
+        pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
                    str(otu_info['task_id']) + "/report_results/"
         if otu_info:
             name = "Rarefaction_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
