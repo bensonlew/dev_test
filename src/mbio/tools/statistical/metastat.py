@@ -561,8 +561,6 @@ class MetastatTool(Tool):
                     for i in filelist:
                         if re.match(r'^kru_H_%s' % self.option("kru_H_methor"), i):
                             os.link(self.work_dir + '/' + i, self.output_dir + '/' + i)
-                        else:
-                            self.logger.info('kru_H分析的post-hoc检验出错')
                     self.logger.info("设置kru_H分析的结果目录成功")
                 except:
                     self.logger.info("设置kru_H分析结果目录失败")

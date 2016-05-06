@@ -38,15 +38,15 @@ class TwoGroup(object):
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
             name = "twogroup_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) 
-            two_group_id = G().create_species_difference_check(data.level_id, 'two_group', params, data.group_id, data.otu_id, name)
-            update_info = {str(two_group_id): "sg_species_difference_check"}
-            update_info = json.dumps(update_info)
             task_info = Meta().get_task_info(otu_info["task_id"])
             if task_info:
                 member_id = task_info["member_id"]
             else:
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
+            two_group_id = G().create_species_difference_check(data.level_id, 'two_group', params, data.group_id, data.otu_id, name)
+            update_info = {str(two_group_id): "sg_species_difference_check"}
+            update_info = json.dumps(update_info)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
                 "id": workflow_id,
