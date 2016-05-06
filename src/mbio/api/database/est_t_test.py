@@ -44,8 +44,8 @@ class EstTTest(Base):
                     data = [("alpha_est_t_test_id", table_id), ("index_type", line_data[0]), ("qvalue", line_data[length-1]), ("pvalue", line_data[length-2])]
                     data.append(("category_name", name))
                     data.append(("compare_name", self.get_another_name(name, group_list)))
-                    data.append(("mean", line_data[i]))
-                    data.append(("sd", line_data[i+1]))
+                    data.append(("mean", str('%0.5g' % float(line_data[i]))))
+                    data.append(("sd", str('%0.5g' % float(line_data[i+1]))))
                     i += 2
                     data_son = SON(data)
                     data_list.append(data_son)

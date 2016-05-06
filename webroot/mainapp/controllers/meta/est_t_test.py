@@ -41,7 +41,7 @@ class EstTTest(object):
         # print(my_param)
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         # print(est_info)
-        otu_info = Meta().get_otu_table_info(data.otu_id)
+        otu_info = Meta().get_otu_table_info(est_params[0])
         if otu_info:
             task_info = Meta().get_task_info(otu_info["task_id"])
             if task_info:
