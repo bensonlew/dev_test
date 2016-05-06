@@ -93,8 +93,8 @@ class Pipeline(object):
             json_obj['stage_id'] = 0
         json_obj['type'] = first_stage.find("type").text
         json_obj['name'] = first_stage.find("name").text
-        json_obj['output'] = "%s/%s/%s/%s/%s" % (file_path, json_obj["member_id"], json_obj['project_sn'],
-                                                 json_obj['id'], json_obj['stage_id'])
+        json_obj['output'] = "%s/files/%s/%s/%s/%s" % (file_path, json_obj["member_id"], json_obj['project_sn'],
+                                                       json_obj['id'], json_obj['stage_id'])
         option = first_stage.find("parameters")
         json_obj['options'] = {}
         for opt in option:

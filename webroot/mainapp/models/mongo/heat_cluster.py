@@ -5,6 +5,7 @@ from bson.objectid import ObjectId
 import datetime
 from types import StringTypes
 from mainapp.config.db import get_mongo_client
+import re
 
 
 class HeatCluster(object):
@@ -40,3 +41,22 @@ class HeatCluster(object):
         collection = self.db['sg_newick_tree']
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
+
+    def sample_id_to_name(self, sample_ids):
+        my_ids = re.split(",", sample_ids)
+        collection = self.db["sg_specimen"]
+        my_sample_names = list()
+        for id_ in my_ids:
+            if id_ == "":
+                raise Exception("存在空的sample_id")
+            if not isinstance(id_, ObjectId):
+                if isinstance(id_, StringTypes):
+                    id_ = ObjectId(id_)
+                else:
+                    raise Exception("group_id必须为ObjectId对象或其对应的字符串!")
+            result = collection.find_one({"_id": id_})
+            if not result:
+                raise Exception("无法根据传入的_id:{}在sg_speciem表里找到相应的记录".format(str(id_)))
+            my_sample_names.append(result["specimen_name"])
+        my_sample = ",".join(my_sample_names)
+        return my_sample
