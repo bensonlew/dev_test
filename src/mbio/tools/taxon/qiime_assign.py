@@ -116,9 +116,10 @@ class QiimeAssignTool(Tool):
         self.wait(assign)
         if assign.return_code == 0:
             self.logger.info("assign运行完成")
-            os.system('rm -rf '+self.output_dir)
-            os.system('mkdir '+self.output_dir)
-            os.link(self.work_dir+'/seqs_tax_assignments.txt', self.output_dir+'/seqs_tax_assignments.txt')
+            subprocess.check_output("cat " + self.work_dir + "/seqs_tax_assignments.txt|sed  's/Unclassified/d__Unclassified/' > " + self.work_dir + "/seqs_tax_assignments.fix.txt", shell=True)
+            os.system('rm -rf '+ self.output_dir)
+            os.system('mkdir '+ self.output_dir)
+            os.link(self.work_dir + '/seqs_tax_assignments.fix.txt', self.output_dir+'/seqs_tax_assignments.txt')
             self.option('taxon_file').set_path(self.output_dir+'/seqs_tax_assignments.txt')
         else:
             self.set_error("assign运行出错!")

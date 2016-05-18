@@ -21,9 +21,10 @@ class Distance(Base):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         data_list = []
-        if not isinstance(otu_id, ObjectId) and not None:
-            otu_id = ObjectId(otu_id)
-        params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+        if otu_id:
+            if not isinstance(otu_id, ObjectId):
+                otu_id = ObjectId(otu_id)
+            params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
         # insert major
         if major:
             insert_data = {

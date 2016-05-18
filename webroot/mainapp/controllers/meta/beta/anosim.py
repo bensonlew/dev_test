@@ -26,6 +26,7 @@ class Anosim(object):
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
                 return json.dumps(info)
+
         try:
             group = json.loads(data.group_detail)
         except ValueError:
@@ -71,6 +72,12 @@ class Anosim(object):
         }
 
         if otu_info:
+            task_info = Meta().get_task_info(otu_info["task_id"])
+            if task_info:
+                member_id = task_info["member_id"]
+            else:
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+                return json.dumps(info)
             insert_mongo_json = {
                 'project_sn': otu_info['project_sn'],
                 'task_id': otu_info['task_id'],
@@ -102,9 +109,9 @@ class Anosim(object):
                 'IMPORT_REPORT_DATA': True,
                 'UPDATE_STATUS_API': 'meta.update_status',
                 # 'UPDATE_STATUS_API': 'test',
-                'output': ("sanger:rerewrweset/" + str(otu_info["project_sn"]) + "/" +
+                'output': ("sanger:rerewrweset/files/" + str(member_id) + '/' +str(otu_info["project_sn"]) + "/" +
                            str(otu_info['task_id']) + "/report_results/" + 'anosim_' +
-                           str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))),
+                           str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))),
                 'options': {
                     'update_info': update_info,
                     'otu_file': data.otu_id,
