@@ -207,7 +207,12 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         for i in [1, 2, 3, 4, 5]:
             if allfiles[i]:
                 newname = '_'.join(os.path.basename(allfiles[i]).split('_')[-2:])
-                self.linkfile(self.work_dir + '/rda/' + allfiles[i], newname)
+                if i == 4:
+                    self._magnify_vector(self.work_dir + '/rda/' + allfiles[4], self.work_dir + '/rda/' + allfiles[3],
+                                         self.work_dir + '/rda/' + 'magnify_' + newname)
+                    self.linkfile(self.work_dir + '/rda/' + 'magnify_' + newname, newname)
+                else:
+                    self.linkfile(self.work_dir + '/rda/' + allfiles[i], newname)
         newname = os.path.basename(allfiles[0]).split('_')[-1]
         self.linkfile(self.work_dir + '/rda/' + allfiles[0], newname)
         self.logger.info('运行ordination.pl程序计算rda/cca完成')
@@ -224,6 +229,37 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         if os.path.exists(newpath):
             os.remove(newpath)
         os.link(oldfile, newpath)
+
+    def _magnify_vector(self, vector_file, sites_file, new_vector):
+        """
+        放大环境因子向量的箭头
+        """
+        def get_range(path):
+            with open(path) as sites:
+                sites.readline()
+                pc1 = []
+                pc2 = []
+                for line in sites:
+                    split_line = line.rstrip().split('\t')
+                    if len(split_line) < 3:
+                        self.set_error('未知原因，坐标文件少于3列')
+                    pc1.append(abs(float(split_line[1])))
+                    pc2.append(abs(float(split_line[2])))
+                # range_pc = min([max(pc1), max(pc2)])
+            return max(pc1), max(pc2)
+        range_vector_pc1, range_vector_pc2 = get_range(vector_file)
+        range_sites_pc1, range_sites_pc2 = get_range(sites_file)
+        magnify_1 = range_sites_pc1 / range_vector_pc1
+        magnify_2 = range_sites_pc2 / range_vector_pc2
+        magnify = magnify_1 if magnify_1 < magnify_2 else magnify_2
+        with open(new_vector, 'w') as new, open(vector_file) as vector:
+            new.write(vector.readline())
+            for line in vector:
+                line_split = line.rstrip().split('\t')
+                for i in range(len(line_split) - 1):
+                    index = i + 1
+                    line_split[index] = str(float(line_split[index]) * magnify)
+                new.write('\t'.join(line_split) + '\n')
 
     def get_filesname(self):
         """

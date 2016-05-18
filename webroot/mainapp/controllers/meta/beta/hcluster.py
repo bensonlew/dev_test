@@ -6,6 +6,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.distance_matrix import Distance
 from mainapp.config.db import get_mongo_client
+from mainapp.models.mongo.meta import Meta
 from bson.errors import InvalidId
 from bson.objectid import ObjectId
 import random
