@@ -121,4 +121,7 @@ class TwoGroup(object):
             success.append("所选的分析检验方法不在范围内")
         if float(data.coverage) not in [0.90, 0.95, 0.98, 0.99, 0.999]:
             success.append('置信区间的置信度coverage不在范围值内')
+        table_dict = json.loads(data.group_detail)
+        if not isinstance(table_dict, dict):
+            success.append("传入的table_dict不是一个字典")
         return success

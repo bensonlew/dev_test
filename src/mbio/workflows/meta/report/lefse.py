@@ -21,6 +21,7 @@ class LefseWorkflow(Workflow):
             {"name": "update_info", "type": "string"},
             {"name": "lda_filter", "type": "float", "default": 2.0},
             {"name": "strict", "type": "int", "default": 0},
+            {"name": "group_name", "type": "string"},
             {"name": "lefse_id", "type": "string"}
         ]
         self.add_option(options)
@@ -32,7 +33,8 @@ class LefseWorkflow(Workflow):
             "lefse_input": self.option("otu_file"),
             "lefse_group": self.option("group_file"),
             "lda_filter": self.option("lda_filter"),
-            "strict": self.option("strict")
+            "strict": self.option("strict"),
+            "lefse_gname": self.option("group_name")
         }
     
         self.lefse.set_options(options)

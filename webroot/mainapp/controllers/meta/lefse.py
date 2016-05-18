@@ -16,7 +16,10 @@ class Lefse(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        self.check_options(data)
+        return_result = self.check_options(data)
+        if return_result:
+            info = {"success": False, "info": '+'.join(return_result)}
+            return json.dumps(info)
         category, second_category = get_lefse_catecory_name(data.group_detail)
         my_param = dict()
         print data.group_detail
@@ -33,6 +36,7 @@ class Lefse(object):
         if otu_info:
             name = "lefse_lda_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_info = Meta().get_task_info(otu_info["task_id"])
+            print task_info
             if task_info:
                 member_id = task_info["member_id"]
             else:
@@ -61,6 +65,7 @@ class Lefse(object):
                     "update_info": update_info,
                     "group_file": data.group_id,
                     "group_detail": data.group_detail,
+                    "group_name": G().get_group_name(data.group_id),
                     "strict": data.strict,
                     "lda_filter": data.lda_filter,
                     "lefse_id": str(lefse_id)
@@ -92,13 +97,16 @@ class Lefse(object):
         检查网页端传进来的参数是否正确
         """
         params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict']
+        success = []
         for names in params_name:
             if not (hasattr(data, names)):
-                info = {"success": False, "info": "缺少参数!"}
-                return json.dumps(info)
+                success.append("缺少参数!")
         if int(data.strict) not in [1, 0]:
-            info = {"success": False, "info": "严格性比较策略不在范围内"}
+            success.append("严格性比较策略不在范围内")
             return json.dumps(info)
         if float(data.lda_filter) > 4.0 or float(data.lda_filter) < -4.0:
-            info = {"success": False, "info": "LDA阈值不在范围内"}
-            return json.dumps(info)
+            success.append("LDA阈值不在范围内")
+        table_dict = json.loads(data.group_detail)
+        if not isinstance(table_dict, list):
+            success.append("传入的table_dict不是一个列表")
+        return success

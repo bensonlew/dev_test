@@ -5,6 +5,7 @@ from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 import os
 import subprocess
+import re
 
 
 class LefseAgent(Agent):
@@ -21,7 +22,7 @@ class LefseAgent(Agent):
             {"name": "lefse_group", "type": "infile", "format": "meta.otu.group_table"},  # 输入分组文件
             {"name": "lda_filter", "type": "float", "default": 2.0},
             {"name": "strict", "type": "int", "default": 0},
-            {"name": "lefse_gname", "type": "string", "default": "None"}
+            {"name": "lefse_gname", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("run_biom", "tacxon_stat", "plot_lefse")
@@ -35,15 +36,18 @@ class LefseAgent(Agent):
             raise OptionError("必须设置输入的otutable文件.")
         if not self.option("lefse_group").is_set:
             raise OptionError("必须提供分组信息文件")
+        if not self.option("lefse_gname"):
+            raise OptionError("必须设置lefse分组方案名称")
         if self.option("strict") not in [0, 1]:
             raise OptionError("所设严格性超出范围值")
         if self.option("lda_filter") > 4.0 or self.option("lda_filter") < -4.0:
             raise OptionError("所设阈值超出范围值")
-        if self.option("lefse_gname") != 'None':
-            for i in self.option('lefse_gname').split(','):
-                gnum = self.option('lefse_group').group_num(i)
-                if gnum < 2:
-                    raise OptionError("lefse分析分组类别必须大于2")
+        for i in self.option('lefse_gname').split(','):
+            if len(self.option('lefse_gname').split(',')) >= 3:
+                raise OptionError("lefse分析不支持大于2个的分组方案")
+            gnum = self.option('lefse_group').group_num(i)
+            if gnum < 2:
+                raise OptionError("lefse分析分组类别必须大于2")
         return True
 
     def set_resource(self):
@@ -147,15 +151,15 @@ class LefseTool(Tool):
     def format_input(self):
         self.add_state("lefse_start", data="开始进行lefse分析")
         
-        if self.option('lefse_gname') == 'None':
-            plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
-                       "lefse-input.py -i tax_summary_a -g %s -o lefse_input.txt" % \
-                       self.option('lefse_group').prop['path']
-        else:
-            glist = self.option('lefse_gname').split(',')
-            self.option('lefse_group').sub_group('./lefse_group', glist)
-            plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
-                       "lefse-input.py -i tax_summary_a -g ./lefse_group -o lefse_input.txt" 
+        # if self.option('lefse_gname') == 'None':
+        #     plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
+        #                "lefse-input.py -i tax_summary_a -g %s -o lefse_input.txt" % \
+        #                self.option('lefse_group').prop['path']
+        # else:
+        glist = self.option('lefse_gname').split(',')
+        self.option('lefse_group').sub_group('./lefse_group', glist)
+        plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
+                   "lefse-input.py -i tax_summary_a -g ./lefse_group -o lefse_input.txt" 
         self.logger.info("开始运行format_input_cmd")
         plot_command = self.add_command("format_input_cmd", plot_cmd).run()
         self.wait(plot_command)
@@ -176,9 +180,14 @@ class LefseTool(Tool):
         else:
             self.logger.info("run_lefse_cmd运行出错")
 
+    def run_lefse_cmd_check(self, command, line):
+        if re.search(r"Error\sin\slda\Wdefault", line):
+            command.kill()
+            self.set_error("该分组方案的分组类别所含样本量小于3，lda分析出错")
+
     def plot_res(self):
         cmd = 'Python/bin/python /mnt/ilustre/users/sanger/app/meta/lefse/plot_res.py lefse_LDA.xls lefse_LDA.png' \
-              ' --dpi 300 --format png --width 15'
+              ' --dpi 300 --format png --width 20'
         self.logger.info("开始运行plot_res_cmd")
         command = self.add_command("plot_res_cmd", cmd).run()
         self.wait(command)
