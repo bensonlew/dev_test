@@ -36,7 +36,7 @@ class VennWorkflow(Workflow):
 
     def set_db(self):
         sour = os.path.join(self.venn.work_dir, "output/venn_table.xls")
-        dest = self.work_dir
+        dest = os.path.join(self.work_dir, "output")
         shutil.copy2(sour, dest)
         self.logger.info("正在往数据库里插入sg_otu_venn_detail表")
         api_venn = self.api.venn
