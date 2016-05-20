@@ -26,7 +26,7 @@ class Newicktree(Base):
                     raise Exception("table_type为'otu'时，level参数%s为不在允许范围内!" % level)
             if task_id is None:
                 task_id = self.bind_object.sheet.id
-            if not isinstance(table_id, ObjectId) and not None:
+            if not isinstance(table_id, ObjectId) and table_id is not None:
                 table_id = ObjectId(table_id)
             if table_type == 'dist':
                 params['specimen_distance_id'] = str(table_id)    # specimen_distance_id在再metabase中不可用

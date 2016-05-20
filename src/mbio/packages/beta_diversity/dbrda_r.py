@@ -79,7 +79,7 @@ def db_rda_dist(dis_matrix, env, output_dir):
     """
     create_r(dis_matrix, env, output_dir)
     script = output_dir + '/temp_r_dist.R'
-    run_r_script(script)
+    run_r_script(script, delscript=False)
     return 0
 
 
@@ -88,5 +88,5 @@ def db_rda_new(otu_file, env_file, output_dir, distance_algorithm='bray'):
     """
     create_r_new(otu_file, env_file, output_dir, distance_algorithm)
     script = output_dir + '/temp_r.R'
-    run_r_script(script)
+    run_r_script(script, delscript=False)
     return 0

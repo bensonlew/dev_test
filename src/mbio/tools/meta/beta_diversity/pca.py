@@ -216,7 +216,9 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
                 self.linkfile(self.work_dir + '/pca/' + allfiles[3], 'pca_envfit_factor_scores.xls')
                 self.linkfile(self.work_dir + '/pca/' + allfiles[4], 'pca_envfit_factor.xls')
             if allfiles[5]:
-                self.linkfile(self.work_dir + '/pca/' + allfiles[5], 'pca_envfit_vector_scores.xls')
+                self._magnify_vector(self.work_dir + '/pca/' + allfiles[5], self.work_dir + '/pca/' + allfiles[2],
+                                     self.work_dir + '/pca/' + 'pca_envfit_vector_scores_magnify.xls')
+                self.linkfile(self.work_dir + '/pca/' + 'pca_envfit_vector_scores_magnify.xls', 'pca_envfit_vector_scores.xls')
                 self.linkfile(self.work_dir + '/pca/' + allfiles[6], 'pca_envfit_vector.xls')
         self.end()
 
@@ -231,6 +233,37 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         if os.path.exists(newpath):
             os.remove(newpath)
         os.link(oldfile, newpath)
+
+    def _magnify_vector(self, vector_file, sites_file, new_vector):
+        """
+        放大环境因子向量的箭头
+        """
+        def get_range(path):
+            with open(path) as sites:
+                sites.readline()
+                pc1 = []
+                pc2 = []
+                for line in sites:
+                    split_line = line.rstrip().split('\t')
+                    if len(split_line) < 3:
+                        self.set_error('未知原因，坐标文件少于3列')
+                    pc1.append(abs(float(split_line[1])))
+                    pc2.append(abs(float(split_line[2])))
+                # range_pc = min([max(pc1), max(pc2)])
+            return max(pc1), max(pc2)
+        range_vector_pc1, range_vector_pc2 = get_range(vector_file)
+        range_sites_pc1, range_sites_pc2 = get_range(sites_file)
+        magnify_1 = range_sites_pc1 / range_vector_pc1
+        magnify_2 = range_sites_pc2 / range_vector_pc2
+        magnify = magnify_1 if magnify_1 < magnify_2 else magnify_2
+        with open(new_vector, 'w') as new, open(vector_file) as vector:
+            new.write(vector.readline())
+            for line in vector:
+                line_split = line.rstrip().split('\t')
+                for i in range(len(line_split) - 1):
+                    index = i + 1
+                    line_split[index] = str(float(line_split[index]) * magnify)
+                new.write('\t'.join(line_split) + '\n')
 
     def get_filesname(self):
         """

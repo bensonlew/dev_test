@@ -31,6 +31,12 @@ class MultiAnalysis(object):
         if object_otu_id:
             otu_info = Meta().get_otu_table_info(object_otu_id)
             if otu_info:
+                task_info = Meta().get_task_info(otu_info["task_id"])
+                if task_info:
+                    member_id = task_info["member_id"]
+                else:
+                    info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+                    return json.dumps(info)
                 params_json = {
                     'otu_id': data.otu_id,
                     'level_id': int(data.level_id),
@@ -160,9 +166,9 @@ class MultiAnalysis(object):
                     'IMPORT_REPORT_DATA': True,
                     'UPDATE_STATUS_API': 'meta.update_status',
                     # 'UPDATE_STATUS_API': 'test',
-                    'output': ("sanger:rerewrweset/" + str(otu_info["project_sn"]) + "/" +
+                    'output': ("sanger:rerewrweset/files/" + str(member_id) + '/' + str(otu_info["project_sn"]) + "/" +
                                str(otu_info['task_id']) + "/report_results/" + '%s_' % data.analysis_type +
-                               str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))),
+                               str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))),
                     'options': {
                         'analysis_type': data.analysis_type,
                         'update_info': update_info,
