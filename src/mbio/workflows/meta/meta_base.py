@@ -78,7 +78,7 @@ class MetaBaseWorkflow(Workflow):
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
-            if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea',
+            if self.option("database") not in ['silva119/16s', 'silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/18s_eukaryota', 'unite7.0/its_fungi', 'fgr/amoA', 'fgr/nosZ',
                                                'fgr/nirK', 'fgr/nirS', 'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
@@ -399,9 +399,9 @@ class MetaBaseWorkflow(Workflow):
             ["QC_stat/reads_len_info", "", "序列长度分布统计文件目录"],
             ["Otu", "", "OTU聚类结果文件目录"],
             ["Tax_assign", "", "物种分类文件目录"],
-            ["Tax_assign/seqs_tax_assignments.txt", "xls", "OTU物种分类综合统计文件"],
+            ["Tax_assign/seqs_tax_assignments.txt", "taxon.seq_taxon", "序列物种分类文件"],
             ["OtuTaxon_summary", "", "OTU物种分类综合统计目录"],
-            ["OtuTaxon_summary/otu_taxon.biom", "meta.otu.biom", "OTU表的biom格式的文件"],
+            ["OtuTaxon_summary/otu_taxon.biom", "meta.otu.biom", "OTU表的biom格式文件"],
             ["OtuTaxon_summary/otu_taxon.xls", "meta.otu.otu_table", "OTU表"],
             ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"],
             ["Alpha_diversity", "", "Alpha diversity文件目录"],

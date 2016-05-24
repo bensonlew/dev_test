@@ -41,7 +41,7 @@ class PanCoreWorkflow(Workflow):
 
     def set_db(self):
         sour = os.path.join(self.pan_core.work_dir, "output/core.richness.xls")
-        dest = self.work_dir
+        dest = os.path.join(self.work_dir, "output")
         shutil.copy2(sour, dest)
         sour = os.path.join(self.pan_core.work_dir, "output/pan.richness.xls")
         shutil.copy2(sour, dest)

@@ -35,20 +35,22 @@ class Venn(object):
         params = param_pack(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            venn_id = V().create_venn_table(params, data.group_id, data.level_id, data.otu_id, name)
-            update_info = {str(venn_id): "sg_otu_venn"}
-            update_info = json.dumps(update_info)
-
             task_info = Meta().get_task_info(otu_info["task_id"])
             if task_info:
                 member_id = task_info["member_id"]
             else:
+                print "reject"
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
+            name = "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             suff_path = name
             pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
             output_dir = pre_path + suff_path
+
+            venn_id = V().create_venn_table(params, data.group_id, data.level_id, data.otu_id, name)
+            update_info = {str(venn_id): "sg_otu_venn"}
+            update_info = json.dumps(update_info)
+
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
                 "id": workflow_id,

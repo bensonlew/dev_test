@@ -59,14 +59,20 @@ class Pipeline(object):
             workflow_module.add_record(insert_data)
             # return json.dumps(json_obj)
             info = {"success": True, "info": "添加队列成功!"}
-            task_info = {
-                "task_id": json_obj["id"],
-                "member_id": json_obj["member_id"],
-                "project_sn": json_obj['project_sn'],
-                "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            collection = self.db["sg_task"]
-            collection.insert_one(task_info)
+            if json_obj["client"] == "client01":
+                task_info = {
+                    "task_id": json_obj["id"],
+                    "member_id": json_obj["member_id"],
+                    "project_sn": json_obj['project_sn'],
+                    "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                collection = self.db["sg_task"]
+                collection.insert_one(task_info)
+            elif json_obj["client"] == "client02":
+                task_info = {
+                    "task_id": json_obj["id"],
+                    "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
             return json.dumps(info)
 
     @staticmethod
@@ -326,7 +332,8 @@ class PipelinePause(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "id") and hasattr(data, "reason")) or data.id.strip() == "":
+        # if not (hasattr(data, "id") and hasattr(data, "reason")) or data.id.strip() == "":
+        if not hasattr(data, "id") or data.id.strip() == "":
             info = {"success": False, "info": "缺少参数!"}
             return json.dumps(info)
         workflow_module = Workflow()
@@ -342,8 +349,8 @@ class PipelinePause(object):
                     return json.dumps(info)
                 else:
                     insert_data = {"client": client,
-                                   "ip": web.ctx.ip,
-                                   "reason": data.reason
+                                   "ip": web.ctx.ip
+                                   # "reason": data.reason
                                    }
                     if workflow_module.set_pause(data.id, insert_data):
                         info = {"success": True, "info": "操作成功！"}

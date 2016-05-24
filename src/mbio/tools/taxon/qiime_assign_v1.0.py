@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'shenghe'
-# update_info:拆解了qiime的分类过程，分离库训练和序列分类，使用了重新包装的脚本，脚本直接放在了贝叶斯分类器rdp_classifier_2.11中文件位置固定.
-# 或者在环境变量中添加RDP_JAR_PATH环境变量，指向classifier.jar
+# __author__ = 'yuguo'
 
 """RDP taxon 物种分类工具"""
 
@@ -15,9 +13,7 @@ import subprocess
 class QiimeAssignAgent(Agent):
     """
     Qiime taxon_assign.py
-    version v1.1
-    author shenghe
-    last_modified:2016.5.24
+    version v1.0
     """
     def __init__(self, parent=None):
         """
@@ -58,10 +54,7 @@ class QiimeAssignAgent(Agent):
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
-            if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea',
-                                               'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
-                                               'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
-                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
+            if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea', 'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi', 'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS', 'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
 
     def end(self):
@@ -77,7 +70,7 @@ class QiimeAssignAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 50
+        self._cpu = 10
         self._memory = '50000M'
 
 
@@ -87,63 +80,49 @@ class QiimeAssignTool(Tool):
     """
     def __init__(self, config):
         super(QiimeAssignTool, self).__init__(config)
-        self.train_taxon = os.path.join(self.config.SOFTWARE_DIR, "meta/rdp_classifier_2.11/train_taxon_by_RDP.py")
-        self.RDP_classifier = os.path.join(self.config.SOFTWARE_DIR, "meta/rdp_classifier_2.11/RDP_classifier.py")
+        self.qiime_path = "Python/bin/"
 
     def run_prepare(self):
         if self.option('revcomp'):
             self.logger.info("revcomp 输入的fasta文件")
             try:
-                cmd = self.config.SOFTWARE_DIR + "/seqs/revcomp " + self.option('fasta').prop['path'] + " > seqs.fasta"
-                subprocess.check_output(cmd, shell=True)
-                self.logger.info("revcomp 输入的fasta文件 完成")
+                subprocess.check_output(self.config.SOFTWARE_DIR+"/seqs/revcomp "+self.option('fasta').prop['path']+" > seqs.fasta", shell=True)
+                self.logger.info("OK")
                 return True
             except subprocess.CalledProcessError:
                 self.logger.info("revcomp 出错")
                 return False
         else:
             self.logger.info("链接输入文件到工作目录")
-            if os.path.exists(self.work_dir + '/seqs.fasta'):
-                os.remove(self.work_dir + '/seqs.fasta')
-            os.link(self.option('fasta').prop['path'], self.work_dir + "/seqs.fasta")
-            self.logger.info("链接输入文件到工作目录 完成")
+            if os.path.exists(self.work_dir+'/seqs.fasta'):
+                os.remove(self.work_dir+'/seqs.fasta')
+            os.link(self.option('fasta').prop['path'], self.work_dir+"/seqs.fasta")
+            self.logger.info("OK")
             return True
 
     def run_assign(self):
+        ref_fas = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.fasta'
+        ref_tax = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.tax'
         if self.option('database') == "custom_mode":
             ref_fas = self.option('ref_fasta').prop['path']
             ref_tax = self.option('ref_taxon').prop['path']
-            cmd = '/Python/bin/python ' + self.train_taxon + ' -t ' + ref_tax + ' -s ' + ref_fas +\
-                  ' -o ' + self.work_dir + '/RDP_trained'
-            trainer = self.add_command('train', cmd)
-            self.logger.info('开始对自定义分类库文件进行RDP训练')
-            trainer.run()
-            self.wait(trainer)
-            if trainer.return_code == 0:
-                self.logger.info('训练程序正确完成')
-                prop_file = self.work_dir + '/RDP_trained/Classifier.properties'
-            else:
-                self.set_error('trainer运行出错')
+        # export RDP_JAR_PATH=$HOME/app/rdp_classifier_2.2/rdp_classifier-2.2.jar"
+        self.set_environ(RDP_JAR_PATH=self.config.SOFTWARE_DIR+"/meta/rdp_classifier_2.2/rdp_classifier-2.2.jar")
+        cmd = self.qiime_path+"assign_taxonomy.py  -m rdp -i seqs.fasta -c "+str(self.option('confidence'))+"  -r "+ref_fas+" -t "+ref_tax+" -o .  --rdp_max_memory 50000"
+        self.logger.info(u"生成命令: "+cmd)
+        assign = self.add_command("assign", cmd)
+        self.logger.info("开始运行assign")
+        assign.run()
+        self.wait(assign)
+        if assign.return_code == 0:
+            self.logger.info("assign运行完成")
+            subprocess.check_output("cat " + self.work_dir + "/seqs_tax_assignments.txt|sed  's/Unclassified/d__Unclassified/' > " + self.work_dir + "/seqs_tax_assignments.fix.txt", shell=True)
+            os.system('rm -rf '+ self.output_dir)
+            os.system('mkdir '+ self.output_dir)
+            os.link(self.work_dir + '/seqs_tax_assignments.fix.txt', self.output_dir+'/seqs_tax_assignments.txt')
+            self.option('taxon_file').set_path(self.output_dir+'/seqs_tax_assignments.txt')
         else:
-            prop_dir = 'RDP_trained_' + '_'.join(self.option('database').split('/'))
-            prop_file = os.path.join(self.config.SOFTWARE_DIR, 'meta/taxon_db/train_RDP_taxon',
-                                     prop_dir, 'Classifier.properties')
-        cmd = '/Python/bin/python ' + self.RDP_classifier + ' -p ' + prop_file + ' -q seqs.fasta' + ' -o '\
-              + self.work_dir + '/seqs_taxon' + ' -c ' + str(self.option('confidence'))
-        classifier = self.add_command('classifiy', cmd)
-        self.logger.info('开始进行序列分类')
-        classifier.run()
-        self.wait(classifier)
-        if classifier.return_code == 0:
-            self.logger.info('分类程序正确完成')
-            filename = self.work_dir + '/seqs_taxon/format_classified_with_confidence.txt'
-            linkfile = self.output_dir + '/seqs_tax_assignments.txt'
-            if os.path.exists(linkfile):
-                os.remove(linkfile)
-            os.link(filename, linkfile)
-            self.option('taxon_file', linkfile)
-        else:
-            self.set_error("classifier运行出错")
+            self.set_error("assign运行出错!")
 
     def run(self):
         super(QiimeAssignTool, self).run()

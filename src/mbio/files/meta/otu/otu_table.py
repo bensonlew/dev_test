@@ -184,16 +184,15 @@ class OtuTableFile(File):
             0: "d__", 1: "k__", 2: "p__", 3: "c__", 4: "o__",
             5: "f__", 6: "g__", 7: "s__"
         }
-        last_info = ""
         tax = re.sub(r'\s', '', tax)
         cla = re.split(';', tax)
         new_cla = list()
         #  处理uncultured和Incertae_Sedis
-        # if re.search("uncultured$", cla[0], flags=re.I) or re.search("Incertae_Sedis$", cla[0], flags=re.I) or re.search("norank$", cla[0], flags=re.I) or re.search("unidentified$", cla[0], flags=re.I) or re.search("Unclassified$", cla[0], flags=re.I):
         if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)$", cla[0], flags=re.I):
-            raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或norank或unidentified或是分类水平缺失")
+            pass
+            # raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或norank或unidentified或是分类水平缺失")
         # 先对输入的名字进行遍历， 当在某一水平上空着的时候， 补全
-        # 例如在g水平空着的时候，补全成g__unidentified
+        # 例如在g水平空着的时候，补全成g__Unclassified
         for i in range(0, 8):
             if not re.search(LEVEL[i], tax):
                 str_ = LEVEL[i] + "Unclassified"
@@ -202,16 +201,60 @@ class OtuTableFile(File):
                 new_cla.append(cla[i])
 
         # 对uncultured，Incertae_Sedis，norank，unidentified进行补全
+        """
         i = 0
+        ori_cla = new_cla[:]
         for my_cla in new_cla:
-            # if re.search("uncultured$", new_cla[i], flags=re.I) or re.search("Incertae_Sedis$", new_cla[i], flags=re.I) or re.search("norank$", new_cla[i], flags=re.I) or re.search("unidentified$", new_cla[i], flags=re.I) or re.search("Unclassified$", new_cla[i], flags=re.I):
+            currentCla = re.split("__", new_cla[i])
+            if i > 0:
+                lastCla = re.split("__", ori_cla[i - 1])
             if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)$", new_cla[i], flags=re.I):
+                if lastCla == currentCla:
+                    new_cla[i] = new_cla[i] + "_" + last_classify_info
+                    last_info = new_cla[i]
+                else:
+                    new_cla[i] = new_cla[i] + "_" + last_info
+
                 new_cla[i] = new_cla[i] + "_" + last_info
             else:
-                last_info = new_cla[i]
+                last_classify_info = new_cla[i]
             i += 1
 
         new_tax = "; ".join(new_cla)
+        """
+
+        # 先构建数据claList, 结构如下
+        # [[(分类级别, 值)], [(分类级别, 值)], [(分类级别, 值)], ...]
+        # 然后当这个分类级别的值为( uncultured|Incertae_Sedis|norank|unidentified|Unclassified) 之一的时候
+        # 进行补全, 补全规则如下:
+        # 当 当前分类级别值与上一分类级别值(初始值)相同时，跳过， 寻找再上一级别的分类级别值，直至两者不同，
+        # 然后将这一分类级别extend进当前分类级别 例:[(分类级别(初始), 值),(分类级别(extend), 值)]
+        # extend的分类级别可能会有多个
+        # 最后将claList 还原成字符串
+        claList = list()
+        for i in range(0, 8):
+            tmp = re.split('__', new_cla[i])
+            claList.append([(tmp[0], tmp[1])])
+        for i in range(1, 8):
+            cla = claList[i][0][1]
+            if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)", cla, flags=re.I):
+                j = i - 1
+                while (j >= 0):
+                    last_cla = claList[j][0][1]
+                    if last_cla != cla:
+                        claList[i].extend(claList[j])
+                        j = j - 1
+                        break
+                    j = j - 1
+        tax_list = list()
+        for i in range(0, 8):
+            tmp_tax = list()
+            for j in range(0, len(claList[i])):
+                my_tax = "{}__{}".format(claList[i][j][0], claList[i][j][1])
+                tmp_tax.append(my_tax)
+            tax_list.append("_".join(tmp_tax))
+
+        new_tax = "; ".join(tax_list)
         return new_tax
 
     def sub_otu_sample(self, samples, path):
@@ -271,4 +314,3 @@ class OtuTableFile(File):
             sample = f.readline().strip('\n').split('\t')
             del sample[0]
         return sample
-
