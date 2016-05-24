@@ -40,9 +40,11 @@ class FileMetabaseAgent(Agent):
             raise OptionError("必须输入in_fastq参数")
         self.option('in_fastq').get_info()
         if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
+            self.logger.info("检测到输入为文件夹")
             if not self.option('in_fastq').prop['has_list_file']:
                 raise OptionError('fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
         if self.get_option_object('in_fastq').format == 'sequence.fastq':
+            self.logger.info("检测到输入为文件")
             if not self.option('in_fastq').prop['has_sample_info']:
                 raise OptionError("fastq文件中必须在序列名中带有样本名称(以下划线分隔)")
         if self.option("ref_fasta").is_set:

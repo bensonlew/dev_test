@@ -27,8 +27,11 @@ class Pipeline(object):
     @check_format
     def POST(self):
         data = web.input()
+        print data
+        print "flag_data"
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if client == "client01":
+        if client == "client01" or client == "client03":
+            print "flag_sanger_submit"
             json_obj = self.sanger_submit()
             json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
             json_obj["IMPORT_REPORT_AFTER_END"] = True
@@ -40,7 +43,7 @@ class Pipeline(object):
             if api:
                 json_obj["UPDATE_STATUS_API"] = api
         json_obj['client'] = client
-        print json_obj
+        print "flag1"
         if "type" not in json_obj.keys() or "id" not in json_obj.keys():
             info = {"success": False, "info": "Json内容不正确!!"}
             return json.dumps(info)
@@ -48,9 +51,11 @@ class Pipeline(object):
         workflow_data = workflow_module.get_by_workflow_id(json_obj['id'])
         if len(workflow_data) > 0:
             # print workflow_data[0]
-            info = {"success": False, "info": "流程ID重复!"}
+            print "flag2"
+            info = {"success": False, "info": "pipeline流程ID重复!"}
             return json.dumps(info)
         else:
+            print "flag3"
             insert_data = {"client": client,
                            "workflow_id": json_obj['id'],
                            "json": json.dumps(json_obj),
@@ -65,8 +70,9 @@ class Pipeline(object):
                 "project_sn": json_obj['project_sn'],
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
-            collection = self.db["sg_task"]
-            collection.insert_one(task_info)
+            if client == "client01" or client == "client03":
+                collection = self.db["sg_task"]
+                collection.insert_one(task_info)
             return json.dumps(info)
 
     @staticmethod
@@ -75,7 +81,12 @@ class Pipeline(object):
         xml_data = "".join(data.content)
         root = ET.fromstring(xml_data)
         json_obj = {}
-        file_path = "sanger:"
+        if hasattr(data, "client"):
+            client = data.client
+        if client == "client01":
+            file_path = "sanger:"
+        elif client == "client03":
+            file_path = "tsanger:"
         for child_of_root in root:
             if child_of_root.tag == "member_id":
                 json_obj["member_id"] = child_of_root.text
@@ -140,7 +151,7 @@ class PipelineState(object):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if not hasattr(data, "id") or data.id.strip() == "":
-            info = {"success": False, "info": "缺少参数!"}
+            info = {"success": False, "info": "查看状态需要参数: id!"}
             return json.dumps(info)
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(data.id)
@@ -216,7 +227,7 @@ class PipelineLog(object):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if not hasattr(data, "id") or data.id.strip() == "":
-            info = {"success": False, "info": "缺少参数!"}
+            info = {"success": False, "info": "查看日志需要参数: id!"}
             return json.dumps(info)
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(data.id)
@@ -248,8 +259,8 @@ class PipelineStop(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "id") and hasattr(data, "reason")) or data.id.strip() == "":
-            info = {"success": False, "info": "缺少参数!"}
+        if not hasattr(data, "id") or data.id.strip() == "":
+            info = {"success": False, "info": "停止任务需要参数: id!"}
             return json.dumps(info)
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(data.id)
@@ -274,7 +285,7 @@ class PipelineStop(object):
                 info = {"success": False, "info": "没有权限查看！"}
                 return json.dumps(info)
         else:
-            info = {"success": False, "info": "流程ID不存在！"}
+            info = {"success": False, "info": "stop: 流程ID不存在！"}
             return json.dumps(info)
 
 
@@ -325,9 +336,10 @@ class PipelinePause(object):
     @check_sig
     def POST(self):
         data = web.input()
+        print data
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if not (hasattr(data, "id") and hasattr(data, "reason")) or data.id.strip() == "":
-            info = {"success": False, "info": "缺少参数!"}
+        if not hasattr(data, "id") or data.id.strip() == "":
+            info = {"success": False, "info": "暂停任务需要参数: id!"}
             return json.dumps(info)
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(data.id)
@@ -355,7 +367,7 @@ class PipelinePause(object):
                 info = {"success": False, "info": "没有权限查看！"}
                 return json.dumps(info)
         else:
-            info = {"success": False, "info": "流程ID不存在！"}
+            info = {"success": False, "info": "pause: 流程ID不存在！"}
             return json.dumps(info)
 
 
@@ -367,9 +379,10 @@ class PipelineStopPause(object):
     @check_sig
     def GET(self):
         data = web.input()
+        print data
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if not hasattr(data, "id") or data.id.strip() == "":
-            info = {"success": False, "info": "缺少参数!"}
+            info = {"success": False, "info": "重新开始暂停任务需要参数 id!"}
             return json.dumps(info)
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(data.id)
@@ -377,7 +390,7 @@ class PipelineStopPause(object):
             record = workflow_data[0]
             if client == record.client:
                 if record.has_run == 1 and (record.is_end or record.is_error):
-                    info = {"success": False, "info": "流程已经结束！"}
+                    info = {"success": False, "info": "stopPause:流程已经结束！"}
                     return json.dumps(info)
                 elif record.paused != 1:
                     info = {"success": False, "info": "流程未暂停,不能退出暂停！"}
@@ -393,5 +406,5 @@ class PipelineStopPause(object):
                 info = {"success": False, "info": "没有权限查看！"}
                 return json.dumps(info)
         else:
-            info = {"success": False, "info": "流程ID不存在！"}
+            info = {"success": False, "info": "StopPause: 流程ID:{}不存在！".format(data.id)}
             return json.dumps(info)
