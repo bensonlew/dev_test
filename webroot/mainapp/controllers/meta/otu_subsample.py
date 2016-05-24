@@ -27,13 +27,17 @@ class Subsample(object):
         my_param["submit_location"] = data.submit_location
         if hasattr(data, "size"):
             my_param["size"] = data.size
+            my_size = data.size
+        else:
+            my_size = "Default"
         params = param_pack(my_param)
+
         if input_otu_info:
             output_otu_json = {
                 'project_sn': input_otu_info['project_sn'],
                 'task_id': input_otu_info['task_id'],
                 'from_id': data.otu_id,
-                'name': "otu_subsample" + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+                'name': "subsample" + my_size + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
                 'params': params,
                 'status': 'start',
                 'desc': 'otu table after Subsample',

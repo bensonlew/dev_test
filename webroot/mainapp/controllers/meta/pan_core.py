@@ -35,13 +35,6 @@ class PanCore(object):
         params = param_pack(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            pan_id = P().create_pan_core_table(1, params, data.group_id, data.level_id, data.otu_id, name)
-            name = "core_table" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            core_id = P().create_pan_core_table(2, params, data.group_id, data.level_id, data.otu_id, name)
-            update_info = {str(pan_id): "sg_otu_pan_core", str(core_id): "sg_otu_pan_core"}
-            # 字典  id: 表名
-            update_info = json.dumps(update_info)
             task_info = Meta().get_task_info(otu_info["task_id"])
             if task_info:
                 member_id = task_info["member_id"]
@@ -51,6 +44,14 @@ class PanCore(object):
             pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
             suff_path = "pan_core_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             output_dir = pre_path + suff_path
+
+            name = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            pan_id = P().create_pan_core_table(1, params, data.group_id, data.level_id, data.otu_id, name)
+            name = "core_table" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            core_id = P().create_pan_core_table(2, params, data.group_id, data.level_id, data.otu_id, name)
+            update_info = {str(pan_id): "sg_otu_pan_core", str(core_id): "sg_otu_pan_core"}
+            # 字典  id: 表名
+            update_info = json.dumps(update_info)
 
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {

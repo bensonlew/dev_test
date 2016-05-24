@@ -14,10 +14,11 @@ class MiseqSplitFile(File):
         super(MiseqSplitFile, self).__init__()
         self.seq_prop = ["sequcing_id", "sequcing_sn", "program", "file_path",
                          "config", "parent_sample", "child_sample"]
-        self.seq_config = ["index_missmatch", "ignore_missing_bcl", "base_mask"]
-        self.p_props = ["library_type", "index", "lane", "has_child", "library_name", "sole_content", "sample_id"]
-        self.c_props = ["index", "lane", "library_name", "sole_content", "sample_id", "primer"]  # "cus_sample_name"暂时缺失
-        self.c_config = ["index_miss", "primer_miss", "filter_min"]
+        self.seq_config = ["index_missmatch", "ignore_missing_bcl"]
+        self.p_props = ["library_type", "index", "index2", "sample_name", "insert_len", "lane", "has_child", "library_name", "sole_content", "sample_id"]
+        self.c_props = ["index", "lane", "library_name", "sample_name", "sole_content", "sample_id", "primer"]  # "cus_sample_name"暂时缺失
+        self.p_config = ["chomp_len", "leading", "trailing", "slidingWindow_windowSize", "slidingWindow_requiredQuality", "minLen"]
+        self.c_config = ["primer_miss", "filter_min"]
 
     def get_info(self):
         """
@@ -42,7 +43,6 @@ class MiseqSplitFile(File):
         self.set_property("file_path", self.jobj['file_path'])
         self.set_property("index_missmatch", int(self.jobj["config"]["index_missmatch"]))
         self.set_property("ignore_missing_bcl", self.jobj["config"]['ignore_missing_bcl'])
-        self.set_property("base_mask", self.jobj["config"]["base_mask"])
         self.set_property("parent_sample", self.jobj["parent_sample"])
         self.set_property("child_sample", self.jobj["child_sample"])
         p_id_list = list()
@@ -86,11 +86,16 @@ class MiseqSplitFile(File):
             raise ValueError("不存在父样本！")
         if not self.has_parent_sample(sample_id):
             raise ValueError("不存在父样本 %s" % sample_id)
-        if prop not in self.p_props:
+        if (prop not in self.p_props) and (prop not in self.p_config):
             raise ValueError("父样本不存在属性值 %s" % prop)
         for p_sample in self.prop["parent_sample"]:
             if p_sample["sample_id"] == sample_id:
-                return p_sample[prop]
+                if prop in self.p_props:
+                    return p_sample[prop]
+                elif prop in self.p_config:
+                    return p_sample["config"][prop]
+                else:
+                    return ValueError("未知错误")
 
     def child_sample(self, sample_id, prop):
         """

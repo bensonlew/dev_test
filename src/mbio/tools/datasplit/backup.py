@@ -15,7 +15,8 @@ from biocluster.core.exceptions import OptionError
 
 class BackupAgent(Agent):
     """
-    数据备份
+    数据备份， 进行备份的内容有：
+    父样本(文库), 子样本(样本),rawValid, fastx的统计结果， bcl2fastq的Reports
     """
     def __init__(self, parent=None):
         super(BackupAgent, self).__init__(parent)
@@ -25,15 +26,12 @@ class BackupAgent(Agent):
             {'name': "parent_path", 'type': "string"},  # 解压后父样本的路径
             {'name': "fastx_path", 'type': "string"},  # fastx模块的fastx路径
             {'name': "report_path", 'type': "string"},  # bcl2fastq的Report的路径
-            {'name': "child_path", 'type': "string", "default": ""},   # 解压后子样本的路径
+            {'name': "extract_path", 'type': "string", "default": ""},   # extract_seq模块的结果路径，包含了子样本(样本)和rawValid
             {'name': "time", 'type': "outfile", 'format': 'datasplit.backup_time'}  # 输出文件, 记录了备份时用到的year和month
         ]
         self.add_option(options)
 
     def check_option(self):
-        """
-        参数检测
-        """
         if not self.option("parent_path"):
             raise OptionError("参数parent_path不能为空")
         if not self.option("fastx_path"):
@@ -48,7 +46,7 @@ class BackupAgent(Agent):
         """
         设置所需要的资源
         """
-        self._cpu = 3
+        self._cpu = 32
         self._memory = ''
 
 
@@ -75,7 +73,7 @@ class BackupTool(Tool):
         with open(name, 'w') as w:
             w.write("year\t" + str(year) + "\n")
             w.write("month\t" + str(month) + "\n")
-        self.option("time").set_path(name)
+            self.option("time").set_path(name)
 
     def make_ess_dir(self):
         """
@@ -84,10 +82,13 @@ class BackupTool(Tool):
         dir_list = list()
         for pro in self.option('sample_info').prop["library_type"]:
             name = os.path.join(self.seq_id, pro)
-            name1 = os.path.join(name, "parent", "fastx")
-            name2 = os.path.join(name, "child")
+            name1 = os.path.join(name, "Library", "fastx")
+            name2 = os.path.join(name, "child_sample")
             dir_list.append(name1)
-            dir_list.append(name2)
+            for p_id in self.option('sample_info').prop["parent_ids"]:
+                name3 = os.path.join(name2, "library_" + p_id, "final")
+                name4 = os.path.join(name2, "library_" + p_id, "rawValid")
+                dir_list.extend([name3, name4])
         for name in dir_list:
             try:
                 os.makedirs(name)
@@ -116,7 +117,7 @@ class BackupTool(Tool):
             library_type = self.option('sample_info').parent_sample(p_id, "library_type")
             if library_type is None:
                 library_type = "undefine"
-            dst = os.path.join(self.seq_id, library_type, "parent", "fastx")
+            dst = os.path.join(self.seq_id, library_type, "Library", "fastx")
             for file_name in file_list:
                 shutil.copy2(file_name, dst)
 
@@ -135,20 +136,17 @@ class BackupTool(Tool):
         将父样本压缩至备份路径
         """
         cmd_list = list()
-        i = 0
-        self.logger.info("开始压缩父样本")
+        self.logger.info("准备开始压缩文库")
         for p_id in self.option('sample_info').prop["parent_ids"]:
-            sample_id = self.option('sample_info').parent_sample(p_id, "sample_id")
-            file_name_r1 = sample_id + "_r1.fastq"
-            file_name_r2 = sample_id + "_r2.fastq"
+            file_name_r1 = p_id + "_r1.fastq"
+            file_name_r2 = p_id + "_r2.fastq"
             for name in os.listdir(self.option('parent_path')):
                 if file_name_r1 == name or file_name_r2 == name:
-                    i += 1
                     sourcefile = os.path.join(self.option('parent_path'), name)
                     library_type = self.option('sample_info').parent_sample(p_id, "library_type")
                     if library_type is None:
                         library_type = "undefine"
-                    target_file = os.path.join(self.seq_id, library_type, "parent", name + '.gz')
+                    target_file = os.path.join(self.seq_id, library_type, "Library", name + '.gz')
                     cmd = (self.gzip_path + " -c -f " + sourcefile + " > " + target_file)
                     command = subprocess.Popen(cmd, shell=True)
                     cmd_list.append(command)
@@ -168,26 +166,34 @@ class BackupTool(Tool):
         将子样本压缩至备份文件
         """
         cmd_list = list()
-        i = 0
         self.logger.info("开始压缩子样本")
-        for p_id in self.option('sample_info').prop["parent_ids"]:
+        for p_id in self.option('sample_info').prop['parent_ids']:
+            c_ids = list()
             if self.option('sample_info').parent_sample(p_id, "has_child"):
-                child_ids = self.option('sample_info').find_child_ids(p_id)
-                for c_id in child_ids:
-                    sample_id = self.option('sample_info').child_sample(c_id, "sample_id")
-                    primer = self.option('sample_info').child_sample(c_id, "primer")
-                    file_name = sample_id + "_" + primer + ".fastq"
-                    for name in os.listdir(self.option('child_path')):
-                        if name == file_name:
-                            i += 1
-                            sourcefile = os.path.join(self.option('child_path'), name)
-                            library_type = self.option('sample_info').parent_sample(p_id, "library_type")
-                            if library_type is None:
-                                library_type = "undefine"
-                            target_file = os.path.join(self.seq_id, library_type, "child", name + '.gz')
-                            cmd = (self.gzip_path + " -c -f " + sourcefile + " > " + target_file)
-                            command = subprocess.Popen(cmd, shell=True)
-                            cmd_list.append(command)
+                c_ids = self.option('sample_info').find_child_ids(p_id)
+            for c_id in c_ids:
+                sourceFinal = os.path.join(self.option('extract_path'), "library_" + p_id,
+                                           "final", c_id + ".final.fastq")
+                sourceRawValid1 = os.path.join(self.option('extract_path'), "library_" + p_id,
+                                               "rawValid", c_id + ".rawValid_r1.fastq")
+                sourceRawValid2 = os.path.join(self.option('extract_path'), "library_" + p_id,
+                                               "rawValid", c_id + ".rawValid_r2.fastq")
+                library_type = self.option('sample_info').parent_sample(p_id, "library_type")
+                if library_type is None:
+                    library_type = "undefine"
+                target_file1 = os.path.join(self.seq_id, library_type, 'child_sample',
+                                            "library_" + p_id, "final", c_id + ".final.fastq.gz")
+                target_file2 = os.path.join(self.seq_id, library_type, 'child_sample',
+                                            "library_" + p_id, "rawValid", c_id + ".rawValid_r1.fastq.gz")
+                target_file3 = os.path.join(self.seq_id, library_type, 'child_sample',
+                                            "library_" + p_id, "rawValid", c_id + ".rawValid_r2.fastq.gz")
+                cmd1 = (self.gzip_path + " -c -f " + sourceFinal + " > " + target_file1)
+                cmd2 = (self.gzip_path + " -c -f " + sourceRawValid1 + " > " + target_file2)
+                cmd3 = (self.gzip_path + " -c -f " + sourceRawValid2 + " > " + target_file3)
+                command1 = subprocess.Popen(cmd1, shell=True)
+                command2 = subprocess.Popen(cmd2, shell=True)
+                command3 = subprocess.Popen(cmd3, shell=True)
+                cmd_list.extend([command1, command2, command3])
         for mycmd in cmd_list:
             self.logger.info("开始压缩子样本")
             mycmd.communicate()
@@ -196,6 +202,7 @@ class BackupTool(Tool):
                 self.logger.info("gzip完成")
             else:
                 self.set_error("gzip发生错误")
+                raise Exception("gzip发生错误")
 
     def run(self):
         super(BackupTool, self).run()
@@ -203,6 +210,6 @@ class BackupTool(Tool):
         self.cp_report()
         self.cp_fastx()
         self.gz_parent()
-        if self.option('child_path'):
+        if self.option('extract_path'):
             self.gz_child()
         self.end()

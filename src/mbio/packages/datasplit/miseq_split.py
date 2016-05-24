@@ -35,6 +35,25 @@ def reverse_complement(string):
     return newstring
 
 
+def find_seq_len(sequencing_id):
+    """
+    根据一个测序版的id，获取测序长度， 用来生成base_mask
+    """
+    sequencing_id = int(sequencing_id)
+    db = MySQLdb.connect("192.168.10.51", "mydb", "mydb", "mjanalysis")
+    cursor = db.cursor()
+    sql = "SELECT * FROM sg_sequencing WHERE sequencing_id =\"{}\"".format(sequencing_id)
+    try:
+        cursor.execute(sql)
+        results = cursor.fetchall()
+    except:
+        raise Exception("无法从测序板表sg_sequencing中获得信息")
+    if len(results) == 0:
+        raise ValueError("测序版id错误, 找不到id为{}的测序板".format(sequencing_id))
+    sqMethod = results[0][11]
+    return sqMethod
+
+
 def code2index(code):
     """
     根据一个index的代码，获取具体的index序列
@@ -58,6 +77,11 @@ def code2index(code):
     elif len(varbase) == 2:
         f_varbase = varbase[0]
         r_varbase = varbase[1]
+    try:
+        f_varbase = int(f_varbase)
+        r_varbase = int(r_varbase)
+    except:
+        pass
     return (left_index, right_index, f_varbase, r_varbase)
 
 
