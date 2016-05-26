@@ -36,7 +36,7 @@ class Estimators(object):
             return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level_id'] = data.level_id
+        my_param['level_id'] = int(data.level_id)
         # my_param['indices'] = data.index_type
         sort_index = data.index_type.split(',')
         sort_index.sort()

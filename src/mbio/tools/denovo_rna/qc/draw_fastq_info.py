@@ -81,7 +81,7 @@ class DrawFastqInfoTool(Tool):
         os.link(self.work_dir+'/qual.stat', self.output_dir+'/qual.stat')
         os.link(self.work_dir+'/qual.stat.base', self.output_dir+'/qual.stat.base')
         os.link(self.work_dir+'/qual.stat.err', self.output_dir+'/qual.stat.err')
-        os.link(self.work_dir+'/qual.stat.qaul', self.output_dir+'/qual.stat.qaul')
+        os.link(self.work_dir+'/qual.stat.qual', self.output_dir+'/qual.stat.qual')
 
     def run(self):
         """

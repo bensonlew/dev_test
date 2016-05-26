@@ -81,18 +81,19 @@ class EstimatorsTool(Tool):
         self.scripts_path = 'meta/scripts/'
         self.indices = '-'.join(self.option('indices').split(','))
         self.special_est = ['boneh', 'efron', 'shen', 'solow']
+        self.otu_table = ''
 
     def shared(self):
         """
         执行生成shared文件的perl脚本命令
         """
-        otu_table = self.option("otu_table").prop['path']
+        self.otu_table = self.option("otu_table").prop['path']
         if self.option("otu_table").format == "meta.otu.tax_summary_dir":
-            otu_table = self.option("otu_table").get_table(self.option("level"))
+            self.otu_table = self.option("otu_table").get_table(self.option("level"))
         self.logger.info("otutable format:{}".format(self.option("otu_table").format))
-        self.logger.info("转化otu_table({})为shared文件({})".format(otu_table, "otu.shared"))
+        self.logger.info("转化otu_table({})为shared文件({})".format(self.otu_table, "otu.shared"))
         try:
-            subprocess.check_output(self.config.SOFTWARE_DIR+"/meta/scripts/otu2shared.pl "+" -i "+otu_table +
+            subprocess.check_output(self.config.SOFTWARE_DIR+"/meta/scripts/otu2shared.pl "+" -i "+self.otu_table +
                                     " -l 0.97 -o " + self.option("level")+".shared", shell=True)
             self.logger.info("OK")
             return True
@@ -109,12 +110,13 @@ class EstimatorsTool(Tool):
         """
         运行mothur软件生成各样本指数表
         """
-        cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s)"' % self.indices
+        cmd = '/meta/mothur.1.30 "#summary.single(shared=%s.shared,groupmode=f,calc=%s)"' % (self.option('level'),
+                                                                                             self.indices)
         for index in self.indices.split('-'):
             if index in self.special_est:
-                size = est_size(self.option("otu_table").prop['path'])
-                cmd = '/meta/mothur.1.30 "#summary.single(shared=otu.shared,groupmode=f,calc=%s,size=%s)"' % \
-                      (self.indices, size)
+                size = est_size(self.otu_table)
+                cmd = '/meta/mothur.1.30 "#summary.single(shared=%s.shared,groupmode=f,calc=%s,size=%s)"' % \
+                      (self.option('level'), self.indices, size)
         self.logger.info(cmd)
         self.logger.info("开始运行mothur")
         command = self.add_command("mothur", cmd)

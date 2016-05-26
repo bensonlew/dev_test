@@ -15,7 +15,7 @@ class Rarefaction(object):
 
     """
     ESTIMATORS = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon',
-                  'nseqs', 'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
+                  'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
 
     @check_sig
     def POST(self):
@@ -38,7 +38,7 @@ class Rarefaction(object):
         #     return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level_id'] = data.level_id
+        my_param['level_id'] = int(data.level_id)
         # my_param['indices'] = data.index_type
         my_param['freq'] = data.freq
         sort_index = data.index_type.split(',')
