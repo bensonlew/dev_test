@@ -14,7 +14,7 @@ import subprocess
 
 class QiimeAssignAgent(Agent):
     """
-    Qiime taxon_assign.py
+    classifier.jar: 2.11
     version v1.1
     author shenghe
     last_modified:2016.5.24
@@ -32,7 +32,7 @@ class QiimeAssignAgent(Agent):
             {'name': 'ref_fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 参考fasta序列
             {'name': 'ref_taxon', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 参考taxon文件
             {'name': 'taxon_file', 'type': 'outfile', 'format': 'taxon.seq_taxon'}  # 输出序列的分类信息文件
-        ]
+            ]
         self.add_option(options)
         self.step.add_steps('qiime_assign')
         self.on('start', self.step_start)
@@ -69,7 +69,7 @@ class QiimeAssignAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
             ["seqs_tax_assignments.txt", "xls", "OTU的分类学信息"]
-        ])
+            ])
         super(QiimeAssignAgent, self).end()
 
     def set_resource(self):
@@ -78,7 +78,19 @@ class QiimeAssignAgent(Agent):
         :return:
         """
         self._cpu = 50
-        self._memory = '50000M'
+        if self.option('database') == 'custom_mode':
+            fasta_size = self.option('ref_fasta').get_size() / 1024.00 / 1024.00 / 1024.00  # 单位为G
+            if fasta_size > 1.5:
+                raise OptionError('提供的库fasta序列过大{}G，暂不支持'.format(fasta_size))
+            self._memory = str(QiimeAssignAgent.max_memory_func(fasta_size)) + 'G'
+        else:
+            self._memory = '10G'
+        self.logger.info('Memory:{}  CPU:{}'.format(self._memory, self._cpu))
+
+    @staticmethod
+    def max_memory_func(memory):
+        """根据提供的fasta大小（单位G）来设定需要的内存大小（单位G）"""
+        return int(round(60 * memory)) + 10
 
 
 class QiimeAssignTool(Tool):
@@ -113,8 +125,10 @@ class QiimeAssignTool(Tool):
         if self.option('database') == "custom_mode":
             ref_fas = self.option('ref_fasta').prop['path']
             ref_tax = self.option('ref_taxon').prop['path']
+            fasta_size = os.path.getsize(ref_fas) / 1024.00 / 1024.00 / 1024.00
+            max_memory = QiimeAssignTool.max_memory_func(fasta_size)
             cmd = '/Python/bin/python ' + self.train_taxon + ' -t ' + ref_tax + ' -s ' + ref_fas +\
-                  ' -o ' + self.work_dir + '/RDP_trained'
+                  ' -o ' + self.work_dir + '/RDP_trained' + ' -m ' + str(max_memory)
             trainer = self.add_command('train', cmd)
             self.logger.info('开始对自定义分类库文件进行RDP训练')
             trainer.run()
@@ -124,12 +138,15 @@ class QiimeAssignTool(Tool):
                 prop_file = self.work_dir + '/RDP_trained/Classifier.properties'
             else:
                 self.set_error('trainer运行出错')
+            if max_memory > 60:
+                max_memory = 24  # 当训练的库文件增加，classifier适当增加，经验设定给后续classifier使用
         else:
+            max_memory = 12  # 给classifier使用
             prop_dir = 'RDP_trained_' + '_'.join(self.option('database').split('/'))
             prop_file = os.path.join(self.config.SOFTWARE_DIR, 'meta/taxon_db/train_RDP_taxon',
                                      prop_dir, 'Classifier.properties')
         cmd = '/Python/bin/python ' + self.RDP_classifier + ' -p ' + prop_file + ' -q seqs.fasta' + ' -o '\
-              + self.work_dir + '/seqs_taxon' + ' -c ' + str(self.option('confidence'))
+              + self.work_dir + '/seqs_taxon' + ' -c ' + str(self.option('confidence')) + ' -m ' + str(max_memory)
         classifier = self.add_command('classifiy', cmd)
         self.logger.info('开始进行序列分类')
         classifier.run()
@@ -152,3 +169,8 @@ class QiimeAssignTool(Tool):
             self.end()
         else:
             self.set_error("run_prepare运行出错!")
+
+    @staticmethod
+    def max_memory_func(memory):
+        """根据提供的fasta大小（单位G）来设定需要的内存大小（单位G）"""
+        return int(round(60 * memory)) + 10
