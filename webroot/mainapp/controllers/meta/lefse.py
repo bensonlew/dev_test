@@ -15,20 +15,19 @@ class Lefse(object):
     @check_sig
     def POST(self):
         data = web.input()
-        print data
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         return_result = self.check_options(data)
+        print G().get_group_name(data.group_id)
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
         category, second_category = get_lefse_catecory_name(data.group_detail)
         my_param = dict()
-        print data.group_detail
         my_param['otu_id'] = data.otu_id
         my_param['group_detail'] = sub_group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
         my_param['lda_filter'] = float(data.lda_filter)
-        my_param['strict'] = data.strict
+        my_param['strict'] = int(data.strict)
         my_param['category_name'] = category
         my_param['second_category_name'] = second_category
         my_param['submit_location'] = data.submit_location
@@ -37,7 +36,6 @@ class Lefse(object):
         if otu_info:
             name = "lefse_lda_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_info = Meta().get_task_info(otu_info["task_id"])
-            print task_info
             if task_info:
                 member_id = task_info["member_id"]
             else:

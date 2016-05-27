@@ -21,15 +21,15 @@ class TwoSample(object):
             return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level_id'] = data.level_id
+        my_param['level_id'] = int(data.level_id)
         my_param['sample1'] = data.sample1
         my_param['sample2'] = data.sample2
-        my_param['ci'] = data.ci
+        my_param['ci'] = float(data.ci)
         my_param['correction'] = data.correction
         my_param['type'] = data.type
         my_param['test'] = data.test
         my_param['methor'] = data.methor
-        my_param['coverage'] = data.coverage
+        my_param['coverage'] = float(data.coverage)
         my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
@@ -124,5 +124,3 @@ class TwoSample(object):
         if data.sample1 not in sample_name or data.sample2 not in sample_name:
             success.append('所输入的样本名不在otu表里，请检查样本名')
         return success
-
-    

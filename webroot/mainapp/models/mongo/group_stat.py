@@ -40,7 +40,7 @@ class GroupStat(object):
                 "status": "start",
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
-        else:    
+        else:
             insert_data = {
                 "type": check_type,
                 "project_sn": project_sn,
@@ -105,6 +105,9 @@ class GroupStat(object):
         collection = self.db['sg_specimen_group']
         result = collection.find_one({'_id': group_id})
         gname = result['group_name']
+        second_gname = result['second_category_names']
+        if second_gname != '':
+            gname = gname + ',' + second_gname
         return gname
 
     def get_otu_sample_name(self, otu_id):

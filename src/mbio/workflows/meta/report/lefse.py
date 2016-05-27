@@ -27,6 +27,7 @@ class LefseWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.lefse = self.add_tool("statistical.lefse")
+        self.logger.info(self.option("group_name"))
 
     def run_lefse(self):
         options = {
@@ -36,7 +37,7 @@ class LefseWorkflow(Workflow):
             "strict": self.option("strict"),
             "lefse_gname": self.option("group_name")
         }
-    
+
         self.lefse.set_options(options)
         self.lefse.on("end", self.set_db)
         self.output_dir = self.lefse.output_dir
