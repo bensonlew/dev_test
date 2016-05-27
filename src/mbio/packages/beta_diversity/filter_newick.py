@@ -279,5 +279,5 @@ def _get_remove_otus(small_otus, total_otus):
     return remove_otus
 
 
-otu_id = '573573177f8b9abb538b4569'
-get_level_newicktree(otu_id=otu_id, level=9, tempdir='./', return_file=True)
+# otu_id = '573573177f8b9abb538b4569'
+# get_level_newicktree(otu_id=otu_id, level=9, tempdir='./', return_file=True)

@@ -120,4 +120,7 @@ class Multiple(object):
             success.append('置信区间的置信度coverage不在范围值内')
         if data.methor not in ["scheffe", "welchuncorrected", "tukeykramer", "gameshowell"]:
             success.append('置信区间的方法methor不在范围值内')
+        table_dict = json.loads(data.group_detail)
+        if not isinstance(table_dict, dict):
+            success.append("传入的table_dict不是一个字典")
         return success

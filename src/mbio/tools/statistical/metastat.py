@@ -88,9 +88,28 @@ class MetastatAgent(Agent):
         self.step.update()
 
     def check_sample(self, group_sample, otu_sample):
-            for name in group_sample:
-                if name not in otu_sample:
-                    raise OptionError('分组样本不在otu表所拥有的样本内，请检查分组方案')
+        for name in group_sample:
+            if name not in otu_sample:
+                raise OptionError('分组样本不在otu表所拥有的样本内，请检查分组方案')
+
+    def check_group(self, groupfile):
+        with open(groupfile, 'rb') as g:
+            info = g.readlines()
+            sample = []
+            group_dict = {}
+            group_num = {}
+            for line in info[1:]:
+                sample.append(line.strip('\n').split('\t')[0])
+                line = line.split()
+                group_dict[line[0]] = line[1]
+            gnames = group_dict.values()
+            for gname in gnames:
+                group_num[gname] = gnames.count(gname)
+            sam_num = group_num.values()
+            if 1 in sam_num:
+                raise OptionError('一个分组类别下面至少有两个样本，请重新分组')
+            if len(sample) != len(set(sample)):
+                raise OptionError('不同的分组类别下有相同的样本，此分析不支持该分组方案，请重新分组')
 
     def check_options(self):
         """
@@ -162,6 +181,7 @@ class MetastatAgent(Agent):
                 self.logger.info(otu_sample)
                 group_sample, header, is_empty = self.option('kru_H_group').get_file_info()
                 self.check_sample(group_sample, otu_sample)
+                self.check_group(self.option('kru_H_group').prop['path'])
             elif i == "anova":
                 if not self.option("anova_input").is_set:
                     raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
@@ -183,6 +203,7 @@ class MetastatAgent(Agent):
                 self.logger.info(otu_sample)
                 group_sample, header, is_empty = self.option('anova_group').get_file_info()
                 self.check_sample(group_sample, otu_sample)
+                self.check_group(self.option('anova_group').prop['path'])
             elif i == "mann":
                 if not self.option("mann_input").is_set:
                     raise OptionError('必须设置wilcox秩和检验输入的otutable文件')
@@ -206,6 +227,7 @@ class MetastatAgent(Agent):
                 self.logger.info(otu_sample)
                 group_sample, header, is_empty = self.option('mann_group').get_file_info()
                 self.check_sample(group_sample, otu_sample)
+                self.check_group(self.option('mann_group').prop['path'])
             elif i == "student":
                 if not self.option("student_input").is_set:
                     raise OptionError('必须设置student_T检验输入的otutable文件')
@@ -229,6 +251,7 @@ class MetastatAgent(Agent):
                 self.logger.info(otu_sample)
                 group_sample, header, is_empty = self.option('student_group').get_file_info()
                 self.check_sample(group_sample, otu_sample)
+                self.check_group(self.option('student_group').prop['path'])
             elif i == "welch":
                 if not self.option("welch_input").is_set:
                     raise OptionError('必须设置welch_T检验输入的otutable文件')
@@ -252,6 +275,7 @@ class MetastatAgent(Agent):
                 self.logger.info(otu_sample)
                 group_sample, header, is_empty = self.option('welch_group').get_file_info()
                 self.check_sample(group_sample, otu_sample)
+                self.check_group(self.option('welch_group').prop['path'])
             elif i == "estimator":
                 if not self.option("est_input").is_set:
                     raise OptionError('必须设置est_T检验输入的多样性指数文件')

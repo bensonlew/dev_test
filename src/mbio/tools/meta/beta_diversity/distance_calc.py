@@ -12,7 +12,7 @@ class DistanceCalcAgent(Agent):
     qiime
     version 1.0
     author shenghe
-    last_modified:2016.4.8
+    last_modified:2016.5.24
     """
     METHOD = ['abund_jaccard', 'binary_chisq', 'binary_chord',
               'binary_euclidean', 'binary_hamming', 'binary_jaccard',
