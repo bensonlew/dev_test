@@ -39,12 +39,6 @@ class DistanceCalc(object):
             'submit_location': data.submit_location
         }
         if otu_info:
-            task_info = Meta().get_task_info(otu_info["task_id"])
-            if task_info:
-                member_id = task_info["member_id"]
-            else:
-                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
-                return json.dumps(info)
             insert_mongo_json = {
                 'project_sn': otu_info['project_sn'],
                 'task_id': otu_info['task_id'],

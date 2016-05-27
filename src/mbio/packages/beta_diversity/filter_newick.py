@@ -76,7 +76,7 @@ class otu_table(object):
         else:
             try:
                 self.__dict = json.loads(table_content)
-            except ValueError as e:
+            except ValueError, e:
                 raise Exception('初始化参数不正确！info:%s' % e)
         self.__mongodb = get_mongo_client()
         self._samples = self._get_samples_name()

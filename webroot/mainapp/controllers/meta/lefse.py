@@ -15,6 +15,7 @@ class Lefse(object):
     @check_sig
     def POST(self):
         data = web.input()
+        print data
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         self.check_options(data)
         category, second_category = get_lefse_catecory_name(data.group_detail)
@@ -23,7 +24,7 @@ class Lefse(object):
         my_param['otu_id'] = data.otu_id
         my_param['group_detail'] = sub_group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
-        my_param['lda_filter'] = data.lda_filter
+        my_param['lda_filter'] = float(data.lda_filter)
         my_param['strict'] = data.strict
         my_param['category_name'] = category
         my_param['second_category_name'] = second_category
@@ -42,6 +43,7 @@ class Lefse(object):
             update_info = {str(lefse_id): "sg_species_difference_lefse"}
             update_info = json.dumps(update_info)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], 'lefse_lda')
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
@@ -52,10 +54,9 @@ class Lefse(object):
                 "to_file": ["meta.export_otu_table(otu_file)", "meta.export_cascading_table_by_detail(group_file)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status",
+                "UPDATE_STATUS_API": update_api,
                 "IMPORT_REPORT_AFTER_END": True,
-                "output": "sanger:rerewrweset/files/%s/%s/%s/report_results/%s/" %
-                          (str(member_id), otu_info["project_sn"], otu_info["task_id"], name),
+                "output": output_dir,
                 "options": {
                     "otu_file": data.otu_id,
                     "update_info": update_info,
