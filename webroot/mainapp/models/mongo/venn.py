@@ -29,7 +29,7 @@ class Venn(object):
             raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(str(from_otu_table)))
         project_sn = result['project_sn']
         task_id = result['task_id']
-        desc = "正在计算venn表格"
+        desc = "正在计算venn表格..."
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,

@@ -131,12 +131,16 @@ class UsearchOtuTool(Tool):
         os.system('mkdir '+self.output_dir)
         os.link(self.work_dir+'/otu_table.xls', self.output_dir+'/otu_table.xls')
         self.option('otu_table').set_path(self.output_dir+'/otu_table.xls')
+        self.option('otu_table').check()
         os.link(self.work_dir+'/otu_reps.fasta', self.output_dir+'/otu_reps.fasta')
         self.option('otu_rep').set_path(self.output_dir+'/otu_reps.fasta')
+        self.option('otu_rep').check()
         os.link(self.work_dir+'/otu_seqids.txt', self.output_dir+'/otu_seqids.txt')
         self.option('otu_seqids').set_path(self.output_dir+'/otu_seqids.txt')
+        self.option('otu_seqids').check()
         os.link(self.work_dir+'/otu_table.biom', self.output_dir+'/otu_table.biom')
         self.option('otu_biom').set_path(self.output_dir+'/otu_table.biom')
+        self.option('otu_biom').check()
         self.logger.info("OK,all things done.")
 
     def run(self):

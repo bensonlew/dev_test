@@ -9,7 +9,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.venn import Venn as V
-from mainapp.libs.param_pack import param_pack
+from mainapp.libs.param_pack import param_pack, GetUploadInfo
 
 
 class Venn(object):
@@ -35,20 +35,23 @@ class Venn(object):
         params = param_pack(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            venn_id = V().create_venn_table(params, data.group_id, data.level_id, data.otu_id, name)
-            update_info = {str(venn_id): "sg_otu_venn"}
-            update_info = json.dumps(update_info)
-
             task_info = Meta().get_task_info(otu_info["task_id"])
             if task_info:
                 member_id = task_info["member_id"]
             else:
+                print "reject"
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
-            suff_path = name
-            pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
-            output_dir = pre_path + suff_path
+            name = "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            # suff_path = name
+            # pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
+            # output_dir = pre_path + suff_path
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], "venn_table")
+
+            venn_id = V().create_venn_table(params, data.group_id, data.level_id, data.otu_id, name)
+            update_info = {str(venn_id): "sg_otu_venn"}
+            update_info = json.dumps(update_info)
+
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
                 "id": workflow_id,
@@ -60,7 +63,7 @@ class Venn(object):
                 "to_file": ["meta.export_otu_table_by_level(in_otu_table)", "meta.export_group_table(group_table)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status",
+                "UPDATE_STATUS_API": update_api,
                 "output": output_dir,
                 "options": {
                     "update_info": update_info,

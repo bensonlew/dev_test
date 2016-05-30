@@ -43,7 +43,8 @@ class Pipeline(object):
             if api:
                 json_obj["UPDATE_STATUS_API"] = api
         json_obj['client'] = client
-        print "flag1"
+        if "error" in json_obj:
+            info = {"success": False, "info": json_obj["error"]}
         if "type" not in json_obj.keys() or "id" not in json_obj.keys():
             info = {"success": False, "info": "Json内容不正确!!"}
             return json.dumps(info)
@@ -107,12 +108,21 @@ class Pipeline(object):
         json_obj['output'] = "%s/files/%s/%s/%s/%s" % (file_path, json_obj["member_id"], json_obj['project_sn'],
                                                        json_obj['id'], json_obj['stage_id'])
         option = first_stage.find("parameters")
+        print json_obj
         json_obj['options'] = {}
         for opt in option:
             if 'type' in opt.attrib.keys():
                 if opt.attrib['type'] == "sanger":
                     if "format" in opt.attrib.keys():
-                        json_obj['options'][opt.tag] = "%s||%s/%s" % (opt.attrib["format"], file_path, opt.text)
+                        if "fileList" not in opt.attrib:
+                            json_obj['error'] = "tag{}里不包含fileList".format(opt.tag)
+                            return json_obj
+                        fileList = opt.attrib['fileList']
+                        tmp_list = [None, "none", "None", "null", 'Null', '[]']
+                        if fileList in tmp_list:
+                            json_obj['options'][opt.tag] = "%s||%s/%s" % (opt.attrib["format"], file_path, opt.text)
+                        else:
+                            json_obj['options'][opt.tag] = "{}||{}/{};;{}".format(opt.attrib["format"], file_path, opt.text, fileList)
                     else:
                         json_obj['options'][opt.tag] = "%s/%s" % (file_path, opt.text)
                 else:
@@ -354,8 +364,8 @@ class PipelinePause(object):
                     return json.dumps(info)
                 else:
                     insert_data = {"client": client,
-                                   "ip": web.ctx.ip,
-                                   "reason": data.reason
+                                   "ip": web.ctx.ip
+                                   # "reason": data.reason
                                    }
                     if workflow_module.set_pause(data.id, insert_data):
                         info = {"success": True, "info": "操作成功！"}

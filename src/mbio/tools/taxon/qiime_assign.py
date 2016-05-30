@@ -86,7 +86,7 @@ class QiimeAssignTool(Tool):
         if self.option('revcomp'):
             self.logger.info("revcomp 输入的fasta文件")
             try:
-                subprocess.check_output(self.config.SOFTWARE_DIR+"/seqs/revcomp "+self.option('fasta').prop['path']+" > seqs.fasta", shell=True)
+                subprocess.check_output(self.config.SOFTWARE_DIR + "/seqs/revcomp " + self.option('fasta').prop['path'] + " > seqs.fasta", shell=True)
                 self.logger.info("OK")
                 return True
             except subprocess.CalledProcessError:
@@ -94,32 +94,34 @@ class QiimeAssignTool(Tool):
                 return False
         else:
             self.logger.info("链接输入文件到工作目录")
-            if os.path.exists(self.work_dir+'/seqs.fasta'):
-                os.remove(self.work_dir+'/seqs.fasta')
-            os.link(self.option('fasta').prop['path'], self.work_dir+"/seqs.fasta")
+            if os.path.exists(self.work_dir + '/seqs.fasta'):
+                os.remove(self.work_dir + '/seqs.fasta')
+            os.link(self.option('fasta').prop['path'], self.work_dir + "/seqs.fasta")
             self.logger.info("OK")
             return True
 
     def run_assign(self):
-        ref_fas = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.fasta'
-        ref_tax = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.tax'
+        ref_fas = self.config.SOFTWARE_DIR + "/meta/taxon_db/" + self.option('database') + '.fasta'
+        ref_tax = self.config.SOFTWARE_DIR + "/meta/taxon_db/" + self.option('database') + '.tax'
         if self.option('database') == "custom_mode":
             ref_fas = self.option('ref_fasta').prop['path']
             ref_tax = self.option('ref_taxon').prop['path']
         # export RDP_JAR_PATH=$HOME/app/rdp_classifier_2.2/rdp_classifier-2.2.jar"
-        self.set_environ(RDP_JAR_PATH=self.config.SOFTWARE_DIR+"/meta/rdp_classifier_2.2/rdp_classifier-2.2.jar")
-        cmd = self.qiime_path+"assign_taxonomy.py  -m rdp -i seqs.fasta -c "+str(self.option('confidence'))+"  -r "+ref_fas+" -t "+ref_tax+" -o .  --rdp_max_memory 50000"
-        self.logger.info(u"生成命令: "+cmd)
+        self.set_environ(RDP_JAR_PATH=self.config.SOFTWARE_DIR + "/meta/rdp_classifier_2.2/rdp_classifier-2.2.jar")
+        cmd = self.qiime_path + "assign_taxonomy.py  -m rdp -i seqs.fasta -c " + str(self.option('confidence')) + "  -r " + ref_fas + " -t " + ref_tax + " -o .  --rdp_max_memory 50000"
+        self.logger.info(u"生成命令: " + cmd)
         assign = self.add_command("assign", cmd)
         self.logger.info("开始运行assign")
         assign.run()
         self.wait(assign)
         if assign.return_code == 0:
             self.logger.info("assign运行完成")
-            os.system('rm -rf '+self.output_dir)
-            os.system('mkdir '+self.output_dir)
-            os.link(self.work_dir+'/seqs_tax_assignments.txt', self.output_dir+'/seqs_tax_assignments.txt')
-            self.option('taxon_file').set_path(self.output_dir+'/seqs_tax_assignments.txt')
+            subprocess.check_output("cat " + self.work_dir + "/seqs_tax_assignments.txt|sed  's/Unclassified/d__Unclassified/' > " + self.work_dir + "/seqs_tax_assignments.fix.txt", shell=True)
+            os.system('rm -rf ' + self.output_dir)
+            os.system('mkdir ' + self.output_dir)
+            os.link(self.work_dir + '/seqs_tax_assignments.fix.txt', self.output_dir + '/seqs_tax_assignments.txt')
+            self.option('taxon_file').set_path(self.output_dir + '/seqs_tax_assignments.txt')
+            self.option('taxon_file').check()
         else:
             self.set_error("assign运行出错!")
 

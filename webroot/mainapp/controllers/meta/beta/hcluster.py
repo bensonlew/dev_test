@@ -6,6 +6,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.distance_matrix import Distance
 from mainapp.config.db import get_mongo_client
+from mainapp.models.mongo.meta import Meta
 from bson.errors import InvalidId
 from bson.objectid import ObjectId
 import random
@@ -37,6 +38,12 @@ class Hcluster(object):
             'submit_location': data.submit_location
         }
         if matrix_info:
+            task_info = Meta().get_task_info(matrix_info["task_id"])
+            if task_info:
+                member_id = task_info["member_id"]
+            else:
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(matrix_info["task_id"])}
+                return json.dumps(info)
             insert_mongo_json = {
                 'task_id': matrix_info['task_id'],
                 'table_id': object_matrix_id,
@@ -65,9 +72,9 @@ class Hcluster(object):
                 'IMPORT_REPORT_DATA': True,
                 'UPDATE_STATUS_API': 'meta.update_status',
                 # 'UPDATE_STATUS_API': 'test',
-                'output': ("sanger:rerewrweset/" + str(matrix_info["project_sn"]) + "/" +
+                'output': ("sanger:rerewrweset/files/" + str(member_id) + '/' + str(matrix_info["project_sn"]) + "/" +
                            str(matrix_info['task_id']) + "/report_results/" + 'hcluster_' +
-                           str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))),
+                           str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))),
                 'options': {
                     'update_info': update_info,
                     'distance_matrix': data.specimen_distance_id,

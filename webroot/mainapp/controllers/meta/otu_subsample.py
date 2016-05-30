@@ -9,7 +9,7 @@ from mainapp.config.db import get_mongo_client
 import random
 # import time
 import datetime
-from mainapp.libs.param_pack import param_pack
+from mainapp.libs.param_pack import param_pack, GetUploadInfo
 
 
 class Subsample(object):
@@ -27,13 +27,17 @@ class Subsample(object):
         my_param["submit_location"] = data.submit_location
         if hasattr(data, "size"):
             my_param["size"] = data.size
+            my_size = data.size
+        else:
+            my_size = "Default"
         params = param_pack(my_param)
+
         if input_otu_info:
             output_otu_json = {
                 'project_sn': input_otu_info['project_sn'],
                 'task_id': input_otu_info['task_id'],
                 'from_id': data.otu_id,
-                'name': "otu_subsample" + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+                'name': "subsample" + my_size + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
                 'params': params,
                 'status': 'start',
                 'desc': 'otu table after Subsample',
@@ -45,9 +49,10 @@ class Subsample(object):
             else:
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(input_otu_info["task_id"])}
                 return json.dumps(info)
-            suff_path = "otu_subsample" + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(input_otu_info["project_sn"]) + "/" + str(input_otu_info['task_id']) + "/report_results/"
-            output_dir = pre_path + suff_path
+            # suff_path = "otu_subsample" + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            # pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(input_otu_info["project_sn"]) + "/" + str(input_otu_info['task_id']) + "/report_results/"
+            # output_dir = pre_path + suff_path
+            (output_dir, update_api) = GetUploadInfo(client, member_id, input_otu_info['project_sn'], input_otu_info['task_id'], "subsample" + my_size)
             collection = get_mongo_client()['sanger']['sg_otu']
             output_otu_id = collection.insert_one(output_otu_json).inserted_id
             workflow_id = self.get_new_id(input_otu_info["task_id"], data.otu_id)
@@ -61,7 +66,7 @@ class Subsample(object):
                 # "to_file": "meta.export_otu_table(otu_file)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status",
+                "UPDATE_STATUS_API": update_api,
                 "output": output_dir,
                 "options": {
                     "update_info": json.dumps({str(output_otu_id): "sg_otu"}),

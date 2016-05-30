@@ -9,7 +9,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.pan_core import PanCore as P
-from mainapp.libs.param_pack import param_pack
+from mainapp.libs.param_pack import param_pack, GetUploadInfo
 
 
 class PanCore(object):
@@ -35,6 +35,16 @@ class PanCore(object):
         params = param_pack(my_param)
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
+            task_info = Meta().get_task_info(otu_info["task_id"])
+            if task_info:
+                member_id = task_info["member_id"]
+            else:
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+                return json.dumps(info)
+            # pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
+            # suff_path = "pan_core_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            # output_dir = pre_path + suff_path
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], "pan_core")
             name = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             pan_id = P().create_pan_core_table(1, params, data.group_id, data.level_id, data.otu_id, name)
             name = "core_table" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -42,15 +52,6 @@ class PanCore(object):
             update_info = {str(pan_id): "sg_otu_pan_core", str(core_id): "sg_otu_pan_core"}
             # 字典  id: 表名
             update_info = json.dumps(update_info)
-            task_info = Meta().get_task_info(otu_info["task_id"])
-            if task_info:
-                member_id = task_info["member_id"]
-            else:
-                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
-                return json.dumps(info)
-            pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + str(otu_info['task_id']) + "/report_results/"
-            suff_path = "pan_core_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            output_dir = pre_path + suff_path
 
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             json_data = {
@@ -64,7 +65,7 @@ class PanCore(object):
                 # src/mbio/api/to_file/meta 括号内的值与options里面的值对应
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status",  # src/mbio/api/web/update_status
+                "UPDATE_STATUS_API": update_api,  # src/mbio/api/web/update_status
                 "output": output_dir,
                 "options": {
                     "update_info": update_info,

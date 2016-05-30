@@ -321,7 +321,7 @@ class Basic(EventObject):
         if class_name in base:
             raise Exception("抽象类%s不允许实例化!" % class_name)
         for b in base:
-            if re.search((b+"$"), class_name):
+            if re.search((b + "$"), class_name):
                 # return re.sub((b + "$"), '', class_name).lower()
                 return re.sub((b + "$"), '', class_name)
         return class_name
@@ -453,7 +453,7 @@ class Basic(EventObject):
                 if not option.value.is_set:
                     self.logger.debug("输出参数%s没有设置输出文件路径,你确定此处不需要设置?" % option.name)
 
-    def on_rely(self, rely, func,  data=None):
+    def on_rely(self, rely, func, data=None):
         """
         添加自定义依赖事件，当所有依赖对象完成时次事件被触发。
 
@@ -693,7 +693,7 @@ class StepMain(Step):
         :return:
         """
         if name == "content":
-            raise Exception("名称不能为content！" )
+            raise Exception("名称不能为content！")
         if name in self._api_data.keys():
             raise Exception("名称%s已经存在，不能重复添加！" % name)
         self._api_data[name] = str(value)
@@ -854,11 +854,11 @@ class StepMain(Step):
                             data["data"] = json.dumps(post_data, cls=CJsonEncoder)
                 if up_data:
                     up_data["bind"] = {
-                            "name": self.bind_obj.name,
-                            "id": self.bind_obj.id,
-                            "workdir": self.bind_obj.work_dir,
-                            "fullname": self.bind_obj.fullname,
-                            "output": self.bind_obj.output_dir
+                        "name": self.bind_obj.name,
+                        "id": self.bind_obj.id,
+                        "workdir": self.bind_obj.work_dir,
+                        "fullname": self.bind_obj.fullname,
+                        "output": self.bind_obj.output_dir
                     }
                     if self.bind_obj.sheet:
                         up_data["bind"]["sheet"] = self.bind_obj.sheet.data
@@ -1006,14 +1006,17 @@ class UploadDir(object):
         """
         self.match()
         data = []
+        pathList = list()
         for i in self._file_list:
-            data.append({
-                "path": i.relpath,
-                "type": i.file_type,
-                "format": i.format,
-                "description": i.description,
-                "size": i.size
-            })
+            if i.relpath not in pathList:
+                data.append({
+                    "path": i.relpath,
+                    "type": i.file_type,
+                    "format": i.format,
+                    "description": i.description,
+                    "size": i.size
+                })
+                pathList.append(i.relpath)
         return data
 
 

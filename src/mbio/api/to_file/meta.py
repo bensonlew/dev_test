@@ -71,7 +71,7 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
         raise Exception("otu_id: {}在sg_otu_detail表中未找到！".format(data))
     for col in results:
         tmp = level + 1
-        new_classify_name = _create_classify_name(col, tmp)
+        new_classify_name = _create_classify_name(col, tmp, bind_obj)
         if new_classify_name not in name_dic:
             name_dic[new_classify_name] = dict()
             for sp in samples:
@@ -90,21 +90,32 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
     return file_path
 
 
-def _create_classify_name(col, tmp):
-    """
-    在数据库读取OTU表的分类信息，形成OTU表的第一列
-    """
+def _create_classify_name(col, tmp, bind_obj):
     LEVEL = {
         1: "d__", 2: "k__", 3: "p__", 4: "c__", 5: "o__",
         6: "f__", 7: "g__", 8: "s__", 9: "otu"
     }
-    last_classify = ""
+    for i in range(1, 10):
+        if LEVEL[i] not in col:
+            raise Exception("Mongo数据库中的taxonomy信息不完整")
+    new_col = list()
+    for i in range(1, tmp):
+        new_col.append(col[LEVEL[i]])
+    return "; ".join(new_col)
+
+"""
+def _create_classify_name(col, tmp, bind_obj):
+    LEVEL = {
+        1: "d__", 2: "k__", 3: "p__", 4: "c__", 5: "o__",
+        6: "f__", 7: "g__", 8: "s__", 9: "otu"
+    }
     new_cla = list()
     if "d__" not in col:
         raise Exception("在域水平上分类学缺失")
     # if re.search("uncultured$", col["d__"]) or re.search("Incertae_Sedis$", col["d__"]) or re.search("norank$", col["d__"]) or re.search("unidentified$", col["d__"]):
     if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)$", col["d__"], flags=re.I):
-        raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或norank或是unidentified")
+        pass
+        # raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或norank或是unidentified")
     # 先对输入的名字进行遍历， 当在某一水平(输入的level之前)上空着的时候， 补全
     # 例如在g水平空着的时候，补全成g__unidentified
     for i in range(1, tmp):
@@ -115,15 +126,36 @@ def _create_classify_name(col, tmp):
             new_cla.append(str_)
 
     # 对uncultured，Incertae_Sedis，norank，unidentified进行补全
+    claList = list()
     for i in range(tmp - 1):
-        # if re.search("uncultured$", new_cla[i]) or re.search("Incertae_Sedis$", new_cla[i]) or re.search("norank$", new_cla[i]) or re.search("unidentified$", new_cla[i]) or re.search("Unclassified$", new_cla[i]):
-        if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)$", new_cla[i], flags=re.I):
-            new_cla[i] = new_cla[i] + "_" + last_classify
+        my_tmp = re.split('__', new_cla[i])
+        if len(my_tmp) > 1:
+            claList.append([(my_tmp[0], my_tmp[1])])
         else:
-            last_classify = new_cla[i]
+            claList.append(["", my_tmp[0]])
+    bind_obj.logger.info(claList)
+    for i in range(1, tmp - 1):
+        cla = claList[i][0][1]
+        if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)", cla, flags=re.I):
+            j = i - 1
+            while (j >= 1):
+                last_cla = claList[j][0][1]
+                if last_cla != cla:
+                    claList[i].extend(claList[j])
+                    j = j - 1
+                    break
+                j = j - 1
+    tax_list = list()
+    for i in range(0, tmp - 1):
+        tmp_tax = list()
+        for j in range(0, len(claList[i])):
+            my_tax = "{}__{}".format(claList[i][j][0], claList[i][j][1])
+            tmp_tax.append(my_tax)
+        tax_list.append("_".join(tmp_tax))
 
-    new_classify_name = "; ".join(new_cla)
+    new_classify_name = "; ".join(tax_list)
     return new_classify_name
+"""
 
 
 def export_group_table(data, option_name, dir_path, bind_obj=None):

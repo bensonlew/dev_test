@@ -14,7 +14,7 @@ def check_format(f):
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == "client01" or client == "client03":
             if not hasattr(data, "content"):
-                info = {"success": False, "info": "缺少参数content！"}
+                info = {"success": False, "info": "缺少参数: content！"}
                 return json.dumps(info)
             xml_data = "".join(data.content)
             try:
@@ -38,7 +38,7 @@ def check_format(f):
                 return f(obj)
         else:
             if (not hasattr(data, "json")) or len(data.json) < 1:
-                info = {"success": False, "info": "缺少参数json！"}
+                info = {"success": False, "info": "缺少参数: json！"}
                 return json.dumps(info)
             try:
                 json.loads(data.json)

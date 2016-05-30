@@ -216,7 +216,8 @@ class Venn(Base):
                     insert_data[head[i]] = line[i]
                 data_list.append(insert_data)
         collection = self.db['sg_otu_detail']
-        collection.insert_many(data_list)
+        if len(data_list) > 0:
+            collection.insert_many(data_list)
 
     def _add_sg_otu(self, otu_id, name):
         if not isinstance(otu_id, ObjectId):
@@ -274,4 +275,5 @@ class Venn(Base):
             }
             data_list.append(insert_data)
         # print data_list
-        collection.insert_many(data_list)
+        if len(data_list) > 0:
+            collection.insert_many(data_list)

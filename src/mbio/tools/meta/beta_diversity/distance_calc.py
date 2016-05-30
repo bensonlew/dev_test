@@ -25,7 +25,7 @@ class DistanceCalcAgent(Agent):
               'unifrac',
               'unweighted_unifrac', 'unweighted_unifrac_full_tree',
               'weighted_normalized_unifrac', 'weighted_unifrac']
-    UNIFRACMETHOD = METHOD[-7:]
+    UNIFRACMETHOD = METHOD[-5:]
 
     def __init__(self, parent):
         super(DistanceCalcAgent, self).__init__(parent)
@@ -161,7 +161,8 @@ class DistanceCalcTool(Tool):
             if os.path.exists(linkfile):
                 os.remove(linkfile)
             os.link(filename, linkfile)
-            self.option('dis_matrix').set_path(linkfile)
+            # self.option('dis_matrix').set_path(linkfile)
+            self.option('dis_matrix', linkfile)
             self.end()
         else:
             self.set_error('运行qiime:beta_diversity.py出错')

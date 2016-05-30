@@ -87,9 +87,9 @@ class Anosim(Base):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         _main_collection = self.db['sg_beta_multi_anosim']
-        if not isinstance(group_id, ObjectId) and not None:
+        if not isinstance(group_id, ObjectId) and group_id is not None:
             group_id = ObjectId(group_id)
-        if not isinstance(otu_id, ObjectId) and not None:
+        if not isinstance(otu_id, ObjectId) and otu_id is not None:
             otu_id = ObjectId(otu_id)
         if main:
             insert_mongo_json = {

@@ -7,6 +7,7 @@ from types import StringTypes
 from bson.son import SON
 import gridfs
 import datetime
+import os
 
 
 class StatTest(Base):
@@ -239,16 +240,20 @@ class StatTest(Base):
 
     @report_check
     def update_species_difference_lefse(self, lda_png_path, lda_cladogram_path, table_id):
-        collection = self.db["sg_species_difference_lefse"]
-        fs = gridfs.GridFS(self.db)
-        ldaid = fs.put(open(lda_png_path, 'r'))
-        cladogramid = fs.put(open(lda_cladogram_path, 'r'))
-        try:
-            collection.update({"_id": ObjectId(table_id)}, {"$set": {"lda_png_id": ldaid, "lda_cladogram_id": cladogramid}})
-        except Exception, e:
-            self.bind_object.logger.error("导入%s和%s信息出错:%s" % (lda_png_path, lda_cladogram_path, e))
+        size = os.path.getsize(lda_png_path)
+        if size == 0:
+            pass
         else:
-            self.bind_object.logger.info("导入%s和%s信息成功!" % (lda_png_path, lda_cladogram_path))
+            collection = self.db["sg_species_difference_lefse"]
+            fs = gridfs.GridFS(self.db)
+            ldaid = fs.put(open(lda_png_path, 'r'))
+            cladogramid = fs.put(open(lda_cladogram_path, 'r'))
+            try:
+                collection.update({"_id": ObjectId(table_id)}, {"$set": {"lda_png_id": ldaid, "lda_cladogram_id": cladogramid}})
+            except Exception, e:
+                self.bind_object.logger.error("导入%s和%s信息出错:%s" % (lda_png_path, lda_cladogram_path, e))
+            else:
+                self.bind_object.logger.info("导入%s和%s信息成功!" % (lda_png_path, lda_cladogram_path))
 
     def create_species_difference_check(self, level, check_type, params, group_id=None,  from_otu_table=None, name=None):
         if from_otu_table is not None and not isinstance(from_otu_table, ObjectId):
@@ -365,8 +370,4 @@ class StatTest(Base):
                 n = round(max_ci / max_mean)
             l = round(abs(min_low/n) + max_mean + 3)
             collection.update({"_id": ObjectId(table_id)}, {"$set": {"n": n, "l": l}})       
-
-            
-
-
 
