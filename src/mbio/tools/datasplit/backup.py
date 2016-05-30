@@ -74,6 +74,7 @@ class BackupTool(Tool):
             w.write("year\t" + str(year) + "\n")
             w.write("month\t" + str(month) + "\n")
             self.option("time").set_path(name)
+            self.option("time").check()
 
     def make_ess_dir(self):
         """

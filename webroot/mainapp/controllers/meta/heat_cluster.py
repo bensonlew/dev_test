@@ -40,6 +40,10 @@ class HeatCluster(object):
             update_info = {str(newick_id): "sg_newick_tree"}
             update_info = json.dumps(update_info)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
+            if client == "client01":
+                update_api = "meta.update_status"
+            else:
+                update_api = "meta.tupdate_status"
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
@@ -50,7 +54,7 @@ class HeatCluster(object):
                 "to_file": ["meta.export_otu_table_by_level(in_otu_table)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status",
+                "UPDATE_STATUS_API": update_api,
                 "options": {
                     "update_info": update_info,
                     "in_otu_table": data.otu_id,

@@ -138,6 +138,7 @@ class SubSampleTool(Tool):
             self.option("out_otu_table").set_path(sub_sampled_otu)
         except subprocess.CalledProcessError:
             raise Exception("shared2otu.pl 运行出错")
+        self.option("out_otu_table").check()
         if self.has_tax is True:
             sub_sampled_otu_obj = OtuTableFile()
             sub_sampled_otu_obj.set_path(sub_sampled_otu)

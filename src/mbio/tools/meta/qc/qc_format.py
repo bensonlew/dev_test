@@ -267,7 +267,9 @@ class QcFormatTool(Tool):
         self.logger.info("set output begin")
         self.option('otu_fasta').set_path(self.fasta)
         self.option('renamed_fastq_dir').set_path(self.fastq_dir)
+        self.option('renamed_fastq_dir').check()
         self.option('fasta_dir').set_path(self.fasta_dir)
+        self.option('fasta_dir').check()
 
     def run(self):
         """

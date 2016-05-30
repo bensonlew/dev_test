@@ -89,8 +89,10 @@ class MultiFileCheck(object):
     @check_sig
     def POST(self):
         data = web.input()
+        print data
+        print "checkflag_data"
         if not hasattr(data, "content"):
-                msg = {"success": False, "info": "缺少参数！"}
+                msg = {"success": False, "info": "缺少参数content！"}
                 return json.dumps(msg)
         try:
             json_obj = json.loads(data.content)
@@ -98,14 +100,16 @@ class MultiFileCheck(object):
             info = {"success": False, "info": "content必须为Json格式!"}
             return json.dumps(info)
         else:
+            print "checkflag_2"
             for i in ["module", "type", "files"]:
                 if i not in json_obj.keys():
-                    info = {"success": False, "info": "缺少参数%s" % i}
+                    info = {"success": False, "info": "缺少参数:%s" % i}
                     return json.dumps(info)
+            print "checkflag_3"
             if not isinstance(json_obj["files"], list) or len(json_obj["files"]) == 0:
                 info = {"success": False, "info": "必须至少有一个检测文件!"}
                 return json.dumps(info)
-            message = {"success": True, "files":[]}
+            message = {"success": True, "files": []}
             for f in json_obj["files"]:
                 d = TestData()
                 d .module = json_obj["module"]
@@ -113,11 +117,13 @@ class MultiFileCheck(object):
                 d .format = f["format"]
                 d .path = f["path"]
                 result = json.loads(self.checker.check(d))
+                print "checkflag_result"
+                print result
                 if result["success"]:
-                     x = {
+                    x = {
                         "name": f["name"],
                         "pass": True
-                     }
+                    }
                 else:
                     x = {
                         "name": f["name"],
