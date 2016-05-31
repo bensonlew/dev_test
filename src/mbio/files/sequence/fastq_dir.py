@@ -61,6 +61,9 @@ class FastqDirFile(Directory):
         :return:文件数目
         """
         list_txt = os.path.join(self.prop['path'], "list.txt")
+        # test = os.path.join("/mnt/ilustre/users/sanger/test_xuting/otu/file_check/aaa.txt")
+        # with open(test, "ab") as a:
+        #     a.write(list_txt + "\n")
         if os.path.exists(list_txt):
             self.has_list_file = True
             filesample = FileSampleFile()

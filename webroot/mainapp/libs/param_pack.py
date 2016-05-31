@@ -2,6 +2,7 @@
 # __author__ = 'xuting'
 import re
 import json
+import datetime
 from collections import OrderedDict
 
 
@@ -62,5 +63,15 @@ def get_lefse_catecory_name(detail):
         return category, second_category
 
 
-
-
+def GetUploadInfo(client, member_id, project_sn, task_id, name):
+    if client == "client01":
+        head = "sanger:"
+        update_api = "meta.update_status"
+    elif client == "client03":
+        head = "tsanger:"
+        update_api = "meta.tupdate_status"
+    else:
+        raise Exception("未知用户:{}".format(client))
+    strTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    fullPath = "{}/rerewrweset/files/{}/{}/{}/report_results/{}_{}".format(head, member_id, project_sn, task_id, name, strTime)
+    return (fullPath, update_api)

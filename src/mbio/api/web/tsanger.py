@@ -9,13 +9,13 @@ import os
 import json
 
 
-class Sanger(Log):
+class Tsanger(Log):
 
     def __init__(self, data):
-        super(Sanger, self).__init__(data)
-        self._client = "client01"
-        self._key = "1ZYw71APsQ"
-        self._url = "http://192.168.10.161/api/add_task_log"
+        super(Tsanger, self).__init__(data)
+        self._client = "client03"
+        self._key = "hM4uZcGs9d"
+        self._url = "http://www.tsanger.com/api/add_task_log"
         parsered_data = self.parse_data(self.post_data)
         self._post_data = "%s&%s" % (self.get_sig(), parsered_data)
 
@@ -37,6 +37,10 @@ class Sanger(Log):
 
     def parse_data(self, post_data):
         my_content = post_data["content"]
+        try:
+            my_content = json.loads(my_content)
+        except Exception:
+            pass
         if "stage" in my_content:
             my_stage = my_content["stage"]
             if my_stage["status"] == "finish":

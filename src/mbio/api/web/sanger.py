@@ -37,6 +37,10 @@ class Sanger(Log):
 
     def parse_data(self, post_data):
         my_content = post_data["content"]
+        try:
+            my_content = json.loads(my_content)
+        except Exception:
+            pass
         if "stage" in my_content:
             my_stage = my_content["stage"]
             if my_stage["status"] == "finish":
