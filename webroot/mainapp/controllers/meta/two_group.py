@@ -24,20 +24,20 @@ class TwoGroup(object):
         groupname.sort()
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level_id'] = data.level_id
+        my_param['level_id'] = int(data.level_id)
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
-        my_param['ci'] = data.ci
+        my_param['ci'] = float(data.ci)
         my_param['correction'] = data.correction
         my_param['type'] = data.type
         my_param['test'] = data.test
-        my_param['coverage'] = data.coverage
+        my_param['coverage'] = float(data.coverage)
         my_param['category_name'] = ','.join(groupname)
         my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "twogroup_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) 
+            name = "twogroup_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_info = Meta().get_task_info(otu_info["task_id"])
             if task_info:
                 member_id = task_info["member_id"]

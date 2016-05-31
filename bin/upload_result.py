@@ -79,14 +79,8 @@ class UploadManager(object):
                 os.dup2(so.fileno(), sys.stdout.fileno())
                 os.dup2(se.fileno(), sys.stderr.fileno())
                 self.log("开始监控需要上传的文件, pid: %s" % os.getpid())
-            try:
-                tasks = self.get_upload_tasks()
-            except Exception, e:
-                exstr = traceback.format_exc()
-                print exstr
-                self.log("查询上传任务出错: %s" % e)
-                self._db = Config().get_db()
-                tasks = self.get_upload_tasks()
+
+            tasks = self.get_upload_tasks()
             if tasks:
                 for record in tasks:
                     if record.id not in self._running.keys():
