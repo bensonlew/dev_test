@@ -8,6 +8,7 @@ from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.estimator import Estimator
 import random
 import datetime
+from mainapp.libs.param_pack import GetUploadInfo
 
 
 class Estimators(object):
@@ -54,8 +55,10 @@ class Estimators(object):
             else:
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
-            pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
-                       str(otu_info['task_id']) + "/report_results/"
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info["project_sn"],
+                                                     otu_info['task_id'], "estimators")
+            # pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
+            #            str(otu_info['task_id']) + "/report_results/"
             name = "estimators_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             est_id = Estimator().add_est_collection(data.level_id, params, data.otu_id, name)
             print(est_id)
@@ -73,9 +76,9 @@ class Estimators(object):
                 "to_file": "meta.export_otu_table_by_level(otu_table)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status",
+                "UPDATE_STATUS_API": update_api,
                 "IMPORT_REPORT_AFTER_END": False,
-                "output": pre_path + name,
+                "output": output_dir,
                 "options": {
                     "update_info": update_info,
                     "otu_id": data.otu_id,

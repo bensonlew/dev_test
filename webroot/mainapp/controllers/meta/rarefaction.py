@@ -8,6 +8,7 @@ from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.estimator import Estimator
 import random
 import datetime
+from mainapp.libs.param_pack import GetUploadInfo
 
 
 class Rarefaction(object):
@@ -33,9 +34,6 @@ class Rarefaction(object):
         if int(data.level_id) not in range(1, 10):
             info = {"success": False, "info": "level{}不在规定范围内{}".format(data.level_id)}
             return json.dumps(info)
-        # if not type(data.freq) is int:
-        #     info = {"success": False, "info": "随机取样数%s为整型!" % data.freq}
-        #     return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = int(data.level_id)
@@ -65,6 +63,8 @@ class Rarefaction(object):
             update_info = {str(rare_id): "sg_alpha_rarefaction_curve"}
             update_info = json.dumps(update_info)
 
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info["project_sn"],
+                                                     otu_info['task_id'], "rarefaction")
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             # print(workflow_id)
             json_data = {
@@ -77,9 +77,9 @@ class Rarefaction(object):
                 "to_file": "meta.export_otu_table_by_level(otu_table)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status",
+                "UPDATE_STATUS_API": update_api,
                 "IMPORT_REPORT_AFTER_END": True,
-                "output": pre_path + name,
+                "output": output_dir,
                 "options": {
                     "update_info": update_info,
                     "otu_id": data.otu_id,
