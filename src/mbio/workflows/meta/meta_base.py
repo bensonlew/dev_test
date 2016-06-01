@@ -57,7 +57,7 @@ class MetaBaseWorkflow(Workflow):
         self.stat = self.add_tool("meta.otu.otu_taxon_stat")
         self.alpha = self.add_module("meta.alpha_diversity.alpha_diversity")
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
-        self.step.add_steps("qcstat", "otucluster", "phylotree", "taxassign", "alphadiv", "betadiv")
+        self.step.add_steps("qcstat", "otucluster", "taxassign", "alphadiv", "betadiv")
         self.spname_spid = dict()
         self.otu_id = None
         self.env_id = None
@@ -117,14 +117,15 @@ class MetaBaseWorkflow(Workflow):
         })
         self.otu.on("end", self.set_output, "otu")
         self.otu.on("start", self.set_step, {'end': self.step.qcstat, 'start': self.step.otucluster})
+        # self.otu.on("end", self.set_step, {'end':self.step.otucluster})
         self.otu.run()
 
     def run_phylotree(self):
         self.phylo.set_options({
             "fasta_file": self.otu.output_dir + "/otu_reps.fasta"
         })
-        self.phylo.on("start", self.set_step, {'end':self.step.otucluster, 'start':self.step.phylotree})
-        self.phylo.on("end", self.set_step, {'end':self.step.phylotree})
+        # self.phylo.on("start", self.set_step, {'end':self.step.otucluster, 'start':self.step.phylotree})
+        self.phylo.on("end", self.set_step, {'end':self.step.otucluster})
         self.phylo.run()
 
     def run_taxon(self):
@@ -142,6 +143,7 @@ class MetaBaseWorkflow(Workflow):
         self.tax.set_options(opts)
         self.tax.on("end", self.set_output, "tax")
         self.tax.on("start", self.set_step, {'start': self.step.taxassign})
+        self.tax.on("end", self.set_step, {'end': self.step.taxassign})
         self.tax.run()
 
     def run_stat(self):
@@ -150,7 +152,7 @@ class MetaBaseWorkflow(Workflow):
             "taxon_file": self.tax.option("taxon_file")
         })
         self.stat.on("end", self.set_output, "stat")
-        self.stat.on("end", self.set_step, {'end': self.step.taxassign})
+        # self.stat.on("end", self.set_step, {'end': self.step.taxassign})
         self.stat.run()
 
     def run_alpha(self):
