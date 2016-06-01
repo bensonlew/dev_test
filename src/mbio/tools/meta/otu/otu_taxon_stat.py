@@ -61,8 +61,8 @@ class OtuTaxonStatAgent(Agent):
         ])
         result_dir.add_regexp_rules([
             ["tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
-            ["tax_summary_a/.+\.xls$", "meta.otu.biom", "OTU表, 没有完整的分类学信息"],
-            ["tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "OTU表, 带有完整的分类学信息"]
+            ["tax_summary_a/.+\.xls$", "meta.otu.biom", "单一水平物种分类统计表"],
+            ["tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多水平物种分类统计"]
         ])
 
     def set_resource(self):
