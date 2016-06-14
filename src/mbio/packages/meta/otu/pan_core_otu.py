@@ -10,10 +10,13 @@ def pan_core(otutable, dowhat, groupfile='none'):
     """
     计算pan或core OTU
     """
+    output = os.path.dirname(otutable)
     if dowhat not in ("pan", "core"):
         raise Exception(u"dowhat 只能是core或pan!")
         sys.exit()
-    cmd = '''
+    cmd = "setwd('" + output + "')"
+    cmd += '''
+
     library(vegan)
     pan_core <- function (comm, dowhat = "pan" , method = "random", permutations = 100, conditioned = TRUE, gamma = "jack1", w = NULL, subset, ...)
     {
@@ -165,11 +168,9 @@ def pan_core(otutable, dowhat, groupfile='none'):
     colnames(richness_out) <- c("group",seq(1,ncol(data)))
     write.table(richness_out,paste(dowhat,".richness.xls",sep=""),sep="\\t",col.names=T,row.names=F,quote=F)
     '''
-    output = os.getcwd()
     output = os.path.join(output, dowhat + ".r")
-    cmdfile = open(dowhat + ".r", 'w')
-    cmdfile.write(cmd)
-    cmdfile.close()
+    with open(output, "wb") as w:
+        w.write(cmd)
     return output
     # os.system("Rscript tmp.r")
 

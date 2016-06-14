@@ -137,9 +137,9 @@ class QcFormatTool(Tool):
                 line = line.rstrip('\r\n')
                 name = re.split('\s+', line)[0]
                 name = re.sub(r'@', '', name)
+                head = name
                 line = re.split(r'_', name)
-                head = line[-1]
-                handler[seq_name2file_name[head]].write("@" + head + "\n")
+                handler[seq_name2file_name[head]].write("@" + line[-1] + "\n")
                 for i in range(1, 4):
                     line = f.next()
                     handler[seq_name2file_name[head]].write(line)
@@ -160,10 +160,10 @@ class QcFormatTool(Tool):
                 line = line.rstrip('\r\n')
                 name = re.split('\s+', line)[0]
                 name = re.sub(r'@', '', name)
+                head = name
                 line = re.split(r'_', name)
                 if len(line) > 2:
                     warninglog = True
-                head = line[-1]
                 line.pop(-1)
                 filename = "_".join(line)
                 filename = os.path.join(self.fastq_dir, filename + ".fastq")
