@@ -23,6 +23,7 @@ class Basic(object):
     def __init__(self):
         self.db = Config().get_db()
         self._id = ""
+        self.data = None
         self._name = self.__get_min_name()
         self._instantModule = None
         self._work_dir = ""
@@ -42,6 +43,7 @@ class Basic(object):
 
     def POST(self):
         data = web.input()
+        self.data = data
         self._client = data.client
         if hasattr(data, "taskId"):
             otuId = None
@@ -67,6 +69,7 @@ class Basic(object):
         self._output_dir = self._work_dir + "/" + "output"
         self.create_work_dir()
         self.logger = Wlog(self).get_logger(self.name + "(" + self.id + ")")
+        self.addStartRecord()
 
     def GetNewId(self, taskId, otuId=None):
         if otuId:
@@ -324,15 +327,12 @@ class Basic(object):
         content = dict()
         content["dirs"] = list()
         content["files"] = list()
-        myFileList = list()
         for obj in self._uploadDirObj:
-            for d in obj.fileList:
-                myFileList.append(d)
-        for myDict in myFileList:
-            if myDict["type"] == "dir":
-                content["dirs"].append(myDict)
-            elif myDict["type"] == "file":
-                content["files"].append(myDict)
+            (f, d) = obj.fileListForReturn()
+            for myf in f:
+                content["files"].append(myf)
+            for myd in d:
+                content["dirs"].append(myd)
         info = dict()
         info["success"] = True
         info["content"] = content
@@ -438,6 +438,30 @@ class UploadDir(object):
                 "size": i.size
             })
         return data
+
+    def fileListForReturn(self):
+        if self._bindObject._uploadTarget == "":
+            raise Exception("文件还未上传， 无法获取返回json格式")
+        files = list()
+        dirs = list()
+        for l in self.fileList:
+            if l["type"] == "file":
+                files.append({
+                    "path": os.path.join(self._bindObject._uploadTarget, os.path.basename(self._dirPath), l["path"]),
+                    "format": l["format"],
+                    "description": l["description"],
+                    "size": l["size"]
+                })
+            elif l["type"] == "dir":
+                tmpPath = os.path.join(self._bindObject._uploadTarget, os.path.basename(self._dirPath), l["path"])
+                tmpPath = re.sub("\.$", "", tmpPath)
+                dirs.append({
+                    "path": tmpPath,
+                    "format": l["format"],
+                    "description": l["description"],
+                    "size": l["size"]
+                })
+        return (files, dirs)
 
 
 class ResultFile(object):

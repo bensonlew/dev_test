@@ -14,14 +14,12 @@ from mbio.files.meta.otu.group_table import GroupTableFile
 class PanCore(Basic):
     def __init__(self):
         super(PanCore, self).__init__()
-        self.data = None
 
     @check_sig
     @instantCheck
     def POST(self):
         super(PanCore, self).POST()
         data = web.input()
-        self.data = data
         options = {
             "otuPath": os.path.join(self.work_dir, "otuTable.xls"),
             "groupPath": os.path.join(self.work_dir, "groupTable.xls"),
@@ -35,7 +33,6 @@ class PanCore(Basic):
         if num_lines < 11:
             info = {"success": False, "info": "Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！"}
             return info
-        self.addStartRecord()
         self.importInstant("meta")
         self.run()
         return self.returnInfo
