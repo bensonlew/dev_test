@@ -23,8 +23,8 @@ import argparse
 
 parser = argparse.ArgumentParser(description="upload file or import data")
 group = parser.add_mutually_exclusive_group()
-group.add_argument("-s", "--service", action="store_true",  help="service mode")
-group.add_argument("-i", "--api_log_id",  help="upload data for the give api log id")
+group.add_argument("-s", "--service", action="store_true", help="service mode")
+group.add_argument("-i", "--api_log_id", help="upload data for the give api log id")
 
 args = parser.parse_args()
 
@@ -86,22 +86,25 @@ class UploadManager(object):
                     if record.id not in self._running.keys():
                         self.log("开始处理logid %s上传任务" % record.id)
                         try:
+                            self.log(record.task_id + ":")
                             process = UploadProcess(record)
                             process.start()
                         except Exception, e:
                             exstr = traceback.format_exc()
                             print exstr
+                            self.log(exstr)
                             self.log("运行logid %s上传任务出错: %s" % (record.id, e))
                         else:
                             self._running[record.id] = process
 
             for key in self._running.keys():
                 p = self._running[key]
+                p.join()
+                time.sleep(1)
                 if not p.is_alive():
                     exitcode = p.exitcode
                     if exitcode != 0:
                         self.log("上传任务%s出现异常" % p.id)
-                    p.join()
                     self.log("处理logid %s结束" % p.id)
                     if p.file_error:
                         self.log("logid %s,上传文件错误: %s" % (p.id, p.file_error))
@@ -263,6 +266,7 @@ class UploadProcess(Process):
                 exstr = traceback.format_exc()
                 print exstr
                 self._bind_object.logger.error("上传文件出错: %s" % e)
+                self._bind_object.logger.error(exstr)
                 self.file_error = "上传文件出错: %s" % e
 
         if "call" in self.up_data.keys():

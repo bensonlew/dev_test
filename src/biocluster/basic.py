@@ -818,6 +818,22 @@ class StepMain(Step):
                             # }
                             # data["data"] = urllib.urlencode(post_data)
                             data["data"] = json.dumps(post_data, cls=CJsonEncoder)
+                        elif self.bind_obj.sheet.type in ["tool", "module"] and workflow.sheet.output:
+                            up_data["upload_dir"] = []
+                            files = []
+                            for up in self.bind_obj.upload_dir:
+                                target_dir = os.path.join(workflow.sheet.output, os.path.dirname(up.upload_path))
+                                up_data["upload_dir"].append({
+                                    "source": up.path,
+                                    "target": target_dir
+                                })
+                                files.append({
+                                    "target": os.path.join(workflow.sheet.output, up.upload_path),
+                                    "files": up.file_list
+                                })
+                                post_data["upload_files"] = files
+
+                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
                     else:
                         if workflow.sheet.type in ["tool", "module"] and workflow.sheet.output:
                             up_data["upload_dir"] = []

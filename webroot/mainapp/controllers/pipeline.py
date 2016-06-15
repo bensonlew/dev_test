@@ -28,7 +28,6 @@ class Pipeline(object):
     def POST(self):
         data = web.input()
         print data
-        print "flag_data"
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == "client01" or client == "client03":
             print "flag_sanger_submit"
@@ -52,11 +51,9 @@ class Pipeline(object):
         workflow_data = workflow_module.get_by_workflow_id(json_obj['id'])
         if len(workflow_data) > 0:
             # print workflow_data[0]
-            print "flag2"
             info = {"success": False, "info": "pipeline流程ID重复!"}
             return json.dumps(info)
         else:
-            print "flag3"
             insert_data = {"client": client,
                            "workflow_id": json_obj['id'],
                            "json": json.dumps(json_obj),
@@ -65,13 +62,13 @@ class Pipeline(object):
             workflow_module.add_record(insert_data)
             # return json.dumps(json_obj)
             info = {"success": True, "info": "添加队列成功!"}
-            task_info = {
-                "task_id": json_obj["id"],
-                "member_id": json_obj["member_id"],
-                "project_sn": json_obj['project_sn'],
-                "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
             if client == "client01" or client == "client03":
+                task_info = {
+                    "task_id": json_obj["id"],
+                    "member_id": json_obj["member_id"],
+                    "project_sn": json_obj['project_sn'],
+                    "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
                 collection = self.db["sg_task"]
                 collection.insert_one(task_info)
             return json.dumps(info)
