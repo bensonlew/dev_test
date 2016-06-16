@@ -73,5 +73,5 @@ def GetUploadInfo(client, member_id, project_sn, task_id, name):
     else:
         raise Exception("未知用户:{}".format(client))
     strTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    fullPath = "{}/rerewrweset/files/{}/{}/{}/report_results/{}_{}".format(head, member_id, project_sn, task_id, name, strTime)
+    fullPath = "{}rerewrweset/files/{}/{}/{}/report_results/{}_{}".format(head, member_id, project_sn, task_id, name, strTime)
     return (fullPath, update_api)

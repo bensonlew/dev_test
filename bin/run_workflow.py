@@ -323,17 +323,26 @@ class WorkJob(object):
         else:
             path = "single"
         workflow = None
+        write_log("flag1")
         try:
+            write_log("flag2")
             wf = load_class_by_path(path, "Workflow")
+            write_log("flag3")
             wsheet = Sheet(data=json_data)
+            write_log("flag4")
+            write_log(path)
             workflow = wf(wsheet)
             file_path = os.path.join(workflow.work_dir, "data.json")
+            write_log("flag5")
             with open(file_path, "w") as f:
+                write_log("flag6")
+                write_log(file_path)
                 json.dump(json_data, f, indent=4)
             workflow.run()
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
+            write_log(exstr)
             if workflow:
                 workflow.step.failed("运行异常:%s" % e)
                 workflow.step.update()

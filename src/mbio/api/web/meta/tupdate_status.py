@@ -192,6 +192,7 @@ class TupdateStatus(Log):
         target = my_upload_files[0]["target"]
         files = my_upload_files[0]["files"]
         new_files = list()
+        new_dirs = list()
         for my_file in files:
             if my_file["type"] == "file":
                 tmp_dict = dict()
@@ -200,9 +201,18 @@ class TupdateStatus(Log):
                 tmp_dict["description"] = my_file["description"]
                 tmp_dict["format"] = my_file["format"]
                 new_files.append(tmp_dict)
+            elif my_file["type"] == "dir":
+                tmp_dict = dict()
+                tmpPath = re.sub("\.$", "", my_file["path"])
+                tmp_dict["path"] = os.path.join(target, tmpPath)
+                tmp_dict["size"] = my_file["size"]
+                tmp_dict["description"] = my_file["description"]
+                tmp_dict["format"] = my_file["format"]
+                new_dirs.append(tmp_dict)
         # my_stage["files"] = new_files
         new_content = dict()
         new_content["files"] = new_files
+        new_content["dirs"] = new_dirs
         my_id = my_stage["task_id"]
         my_id = re.split('_', my_id)
         my_id.pop(-1)

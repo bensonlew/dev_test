@@ -33,6 +33,9 @@ class Config(object):
             self._mongo_client = MongoClient(uri)
         return self._mongo_client
 
+    def get_work_dir(self):
+        return self.rcf.get("Basic", "work_dir")
+
 
 def get_db():
     return Config().get_db()
@@ -53,4 +56,3 @@ def get_api_type(client):
 
 def get_mongo_client():
     return Config().get_mongo_client()
-

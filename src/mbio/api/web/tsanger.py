@@ -7,6 +7,7 @@ import urllib
 import time
 import os
 import json
+import re
 
 
 class Tsanger(Log):
@@ -48,6 +49,7 @@ class Tsanger(Log):
                 target = my_upload_files[0]["target"]
                 files = my_upload_files[0]["files"]
                 new_files = list()
+                new_dirs = list()
                 for my_file in files:
                     if my_file["type"] == "file":
                         tmp_dict = dict()
@@ -56,7 +58,16 @@ class Tsanger(Log):
                         tmp_dict["description"] = my_file["description"]
                         tmp_dict["format"] = my_file["format"]
                         new_files.append(tmp_dict)
+                    elif my_file["type"] == "dir":
+                        tmp_dict = dict()
+                        tmpPath = re.sub("\.$", "", my_file["path"])
+                        tmp_dict["path"] = os.path.join(target, tmpPath)
+                        tmp_dict["size"] = my_file["size"]
+                        tmp_dict["description"] = my_file["description"]
+                        tmp_dict["format"] = my_file["format"]
+                        new_dirs.append(tmp_dict)
                 my_stage["files"] = new_files
+                my_stage["dirs"] = new_dirs
                 new_content = dict()
                 new_content["stage"] = my_stage
                 my_data = dict()
