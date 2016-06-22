@@ -59,6 +59,7 @@ def xml2table(xml_fp, table_out, header=None):
                     for i in header:
                         line.append(one_hsp[i])
                     w.write('\t'.join(line) + '\n')
+    return table_out
 
 if __name__ == '__main__':  # for test
     xml2table('C:\\Users\\sheng.he.MAJORBIO\\Desktop\\annotation\\annotation\\NR\\transcript.fa_vs_nr.xml',

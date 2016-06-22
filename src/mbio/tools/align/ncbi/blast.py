@@ -34,8 +34,8 @@ class BlastAgent(Agent):
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
             {"name": "num_threads", "type": "int", "default": 10},  # cpu数
             {"name": "num_alignment", "type": "int", "default": 500},  # 序列比对最大输出条数，默认500
-            {"name": "outxml", "type": "outfile", "format": "align.blast_table"},  # 输出格式为6时输出
-            {"name": "outtable", "type": "outfile", "format": "align.blast_xml"},  # 输出格式为5时输出
+            {"name": "outxml", "type": "outfile", "format": "align.blast.blast_xml"},  # 输出格式为6时输出
+            {"name": "outtable", "type": "outfile", "format": "align.blast.blast_table"},  # 输出格式为5时输出
             # 当输出格式为非5，6时，只产生文件不作为outfile
             ]
         self.add_option(options)
@@ -66,13 +66,14 @@ class BlastAgent(Agent):
             self.option('reference_type', self._database_type[self.option("database").lower()])
         if not 15 > self.option('outfmt') > -1:
             raise OptionError('outfmt遵循blast+输出规则，必须为0-14之间：{}'.format(self.option('outfmt')))
-        if not 1 > self.option('outfmt') >= 0:
+        if not 1 > self.option('evalue') >= 0:
             raise OptionError('E-value值设定必须为[0-1)之间：{}'.format(self.option('evalue')))
         if not 0 < self.option('num_alignment') < 1001:
             raise OptionError('序列比对保留数必须设置在1-1000之间:{}'.format(self.option('num_alignment')))
         if self.option('blast') not in self._blast_type[self.option('query_type')][self.option('reference_type')]:
             raise OptionError(
-                '程序不试用于提供的查询序列和库的类型，请仔细检查，核酸比对核酸库只能使用blastn或者tblastn，核酸比对蛋白库只能使用blastp， 蛋白比对蛋白库只能使用blastp')
+                '程序不试用于提供的查询序列和库的类型，请仔细检查，核酸比对核酸库只能使用blastn或者tblastn，\
+                 核酸比对蛋白库只能使用blastp， 蛋白比对蛋白库只能使用blastp, 或者没有提供blast参数')
         return True
 
     def set_resource(self):
@@ -82,15 +83,16 @@ class BlastAgent(Agent):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "结果输出目录"],
             ])
         result_dir.add_regexp_rules([
             [r".+_vs_.+\.xml", "xml", "blast比对输出结果，xml格式"],
             [r".+_vs_.+\.xls", "xls", "blast比对输出结果，表格(制表符分隔)格式"],
-            [r".+_vs_.+\.txt", "txt", "blast比对输出结果，非xml和表格(制表符分隔)格式"]
-            [r".+_vs_.+\.txt_\d+\.xml", "xml", "Blast比对输出多xml结果，输出格式为14的单个比对结果文件,主结果文件在txt文件中"]
-            [r".+_vs_.+\.txt_\d+\.json", "json", "Blast比输出对多json结果，输出格式为13的单个比对结果文件,主结果文件在txt文件中"]
+            [r".+_vs_.+\.txt", "txt", "blast比对输出结果，非xml和表格(制表符分隔)格式"],
+            [r".+_vs_.+\.txt_\d+\.xml", "xml", "Blast比对输出多xml结果，输出格式为14的单个比对结果文件,主结果文件在txt文件中"],
+            [r".+_vs_.+\.txt_\d+\.json", "json", "Blast比输出对多json结果，输出格式为13的单个比对结果文件,主结果文件在txt文件中"],
             ])
+        # print self.get_upload_files()
         super(BlastAgent, self).end()
 
 
@@ -98,7 +100,8 @@ class BlastTool(Tool):
     def __init__(self, config):
         super(BlastTool, self).__init__(config)
         self._version = "2.3.0"
-        self.db_path = os.path.join(self.config.SOFTWARE_DIR, "align/ncbi/db/")
+        # self.db_path = os.path.join(self.config.SOFTWARE_DIR, "align/ncbi/db/")
+        self.db_path = '/mnt/ilustre/app/rna/database/blast/db'  # for test
         self.cmd_path = "ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
 
     def run_makedb_and_blast(self):
@@ -113,7 +116,7 @@ class BlastTool(Tool):
         cmd += " -dbtype %s -in %s -parse_seqids -out %s " % (self.option('reference_type'),
                                                               self.option("reference").prop['path'],
                                                               os.path.join(self.db_path, db_name))
-        self.logger.info("开始运行makeblastdb")
+        self.logger.info("开始运行makeblastdb，生成结果库文件放在工作目录的customer_blastdb下")
         makedb_obj = self.add_command("makeblastdb", cmd).run()
         self.wait(makedb_obj)
         if makedb_obj.return_code == 0:
@@ -137,8 +140,9 @@ class BlastTool(Tool):
         if self.option('outfmt') == 5:
             outputfile += '.xml'
         elif self.option('outfmt') == 6:
-            outputfile += '.xls'
-            outfmt = 5
+            # outputfile += '.xls'
+            outputfile += '.xml'
+            outfmt = 5  # 为了保证table格式输出表头完全一致，输出为6时，选用5xml为输出结果，后面再通过统一的xml2table转换
         else:
             outputfile += '.txt'
         cmd += " -query %s -db %s -out %s -evalue %s -outfmt %s -max_hsps 10 -num_threads %s -max_target_seqs %s" % (
@@ -150,9 +154,16 @@ class BlastTool(Tool):
         self.wait()
         if blast_command.return_code == 0:
             self.logger.info("运行blast完成")
-            from mbio.packages.align.blast.xml2table import xml2table
-            xml2table(outputfile, outputfile[:-3] + '.xls')
-            os.remove(outputfile)
+            if self.option('outfmt') == 6:
+                self.logger.info('程序输出结果为6(xml)，实际需要结果为5(xml)，开始调用程序xml2table转换')
+                from mbio.packages.align.blast.xml2table import xml2table
+                xml2table(outputfile, outputfile[:-3] + 'xls')
+                os.remove(outputfile)
+                self.logger.info('程序table格式转换完成，旧xml文件已移除')
+                self.option('outtable', outputfile[:-3] + 'xls')
+            elif self.option('outfmt') == 5:
+                self.logger.info(outputfile)
+                self.option('outxml', outputfile)
             self.end()
         else:
             self.set_error("blast运行出错!")
@@ -163,7 +174,7 @@ class BlastTool(Tool):
         :return:
         """
         super(BlastTool, self).run()
-        if self.option("customer_mode"):
+        if self.option("database") == 'customer_mode':
             self.run_makedb_and_blast()
         else:
             self.run_blast(self.option("database"))
