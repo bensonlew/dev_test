@@ -23,7 +23,7 @@ def create_gi2taxid(name, db, dbfile):
                            stdin=subprocess.PIPE,
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
-    out, err = pop.communicate('.separator \"\\t\" \"\\n\"\n.import {} {}\n.q\n'.format(dbfile, name))
+    out, err = pop.communicate('.separator \\t\n.import {} {}\n.q\n'.format(dbfile, name))
     pop.wait()
     if 'Error' in out or err:
         raise Exception(err)
