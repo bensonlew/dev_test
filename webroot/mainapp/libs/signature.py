@@ -68,6 +68,7 @@ def check_sig(f):
             return f(obj)
         else:
             # raise web.unauthorized
+            print "身份验证未通过!"
             info = {"success": False, "info": "身份验证未通过!"}
             return json.dumps(info)
     return wrapper

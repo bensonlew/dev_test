@@ -25,6 +25,7 @@ class PanCoreMongo(Base):
         new_cname = ','.join(c_name)
         params['category_name'] = new_cname
         params["submit_location"] = data.submit_location
+        params["taskType"] = data.taskType
         params = self.SortDict(params)
         return params
 

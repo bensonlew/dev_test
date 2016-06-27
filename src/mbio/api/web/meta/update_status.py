@@ -103,7 +103,6 @@ class UpdateStatus(Log):
 
     def update_log(self, id_value, status, desc, create_time):
         # id_value  {表id:表名, 表id: 表名,...}
-        print "update_log"
         for k in id_value:
             obj_id = k
             dbname = id_value[k]
@@ -145,7 +144,6 @@ class UpdateStatus(Log):
                 }
                 collection.insert_one(insert_data)
             elif status == "end":
-                print "end"
                 tmp_col = self.mongodb[dbname]
                 my_params = tmp_col.find_one({"_id": obj_id})["params"]
                 my_dict = json.loads(my_params)

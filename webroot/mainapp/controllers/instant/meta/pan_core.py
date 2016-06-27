@@ -3,22 +3,20 @@
 import web
 import os
 import datetime
-from mainapp.controllers.core.basic import Basic
-from mainapp.libs.signature import check_sig
-from mainapp.libs.input_check import instantCheck
-from mbio.packages.instant.to_files.export_file import export_otu_table_by_level, export_group_table
+from mainapp.controllers.project.meta_controller import MetaController
+from mbio.instant.to_files.export_file import export_otu_table_by_level, export_group_table
 from mbio.files.meta.otu.otu_table import OtuTableFile
 from mbio.files.meta.otu.group_table import GroupTableFile
 
 
-class PanCore(Basic):
+class PanCore(MetaController):
     def __init__(self):
         super(PanCore, self).__init__()
 
-    @check_sig
-    @instantCheck
     def POST(self):
-        super(PanCore, self).POST()
+        myReturn = super(PanCore, self).POST()
+        if myReturn:
+            return myReturn
         data = web.input()
         options = {
             "otuPath": os.path.join(self.work_dir, "otuTable.xls"),
@@ -55,6 +53,8 @@ class PanCore(Basic):
         corePath = os.path.join(self.work_dir, "output", "core.richness.xls")
         apiPanCore.AddPanCoreDetail(panPath, panId)
         apiPanCore.AddPanCoreDetail(corePath, coreId)
+        self.appendSgStatus(apiPanCore, panId, "sg_otu_pan_core", "")
+        self.appendSgStatus(apiPanCore, coreId, "sg_otu_pan_core", "")
         self.logger.info("Mongo数据库导入完成")
 
     def end(self):
