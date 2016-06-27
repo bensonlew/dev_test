@@ -3,6 +3,7 @@
 import re
 import importlib
 import json
+import datetime
 from collections import OrderedDict
 from biocluster.config import Config
 
@@ -35,6 +36,24 @@ class Base(object):
         params = re.sub(',\s+', ',', params)
         return params
 
+    def addSgStatus(self, objId, dbName, desc=None):
+        collection = self.db[dbName]
+        tableName = collection.find_one({"_id": objId})["name"]
+        collection = self.db["sg_status"]
+        insertData = {
+            "table_id": objId,
+            "table_name": tableName,
+            "task_id": self.bind_object.taskId,
+            "type_name": dbName,
+            "status": "end",
+            "is_new": "new",
+            "desc": desc,
+            "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "params": self._params,
+            "submit_location": self.bind_object.data.submit_location
+        }
+        collection.insert_one(insertData)
+
 
 class ApiManager(object):
     """
@@ -66,7 +85,6 @@ class ApiManager(object):
         l.append("Mongo")
         l = [el.capitalize() for el in l]
         className = "".join(l)
-        print moduleName
         imp = importlib.import_module(moduleName)
         obj = getattr(imp, className)(self._bind_object)
         return obj

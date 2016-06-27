@@ -14,14 +14,15 @@ import json
 from biocluster.logger import Wlog
 from biocluster.config import Config as mainConfig
 from mainapp.models.instant_task import InstantTask
-from mainapp.models.mongo.public.meta.meta import Meta
 from mainapp.config.db import Config
 from mainapp.models.mongo.core.base import ApiManager
+from mainapp.models.mongo.core.base import Base
 
 
 class Basic(object):
     def __init__(self):
         self.db = Config().get_db()
+        self._mainTableId = ""
         self._id = ""
         self.data = None
         self._name = self.__get_min_name()
@@ -33,36 +34,21 @@ class Basic(object):
         self._client = ""
         self._output_dir = ""
         self._uploadTarget = ""
+        self._returnTarget = ""  # uploadTarget是具体的路径，returnTarget则是将部分的路径用sanger:或者tsanger:代替
         self.logger = None
         self._options = dict()
         self._uploadDirObj = list()
         self.api = ApiManager(self)
         self._hasUploaded = False
+        self._sgStatus = list()
         info = {"success": False, "info": "程序非正常结束"}
         self.returnInfo = json.dumps(info)
 
     def POST(self):
-        data = web.input()
-        self.data = data
-        self._client = data.client
-        if hasattr(data, "taskId"):
-            otuId = None
-            taskId = data.taskId
-            self._taskId = taskId
-        else:
-            if hasattr(data, "otu_id"):
-                otuId = data.otu_id
-                otu_info = Meta().get_otu_table_info(data.otu_id)
-                taskId = otu_info["task_id"]
-                self._taskId = taskId
-                self._projectSn = otu_info["project_sn"]
-                task_info = Meta().get_task_info(otu_info["task_id"])
-                self._memberId = task_info["member_id"]
-
-        if data.taskType == "projectTask":
-            self._id = data.taskId
-        elif data.taskType == "reportTask":
-            self._id = self.GetNewId(taskId, otuId)
+        if self._taskId == "" or self._memberId == "" or self._projectSn == "":
+            str_ = "taskId为{}, memberId为{}， prohectSn为{}, 其中有一个数值是空的， 请确认是否直接继承了Basic， 或者是用于检验的装饰器存在问题".format(self._taskId, self._memberId, self._projectSn)
+            raise Exception(str_)
+        self._id = self.GetNewId(self._taskId, self._mainTableId)
         self._work_dir = Config().get_work_dir()
         timestr = str(time.strftime('%Y%m%d', time.localtime(time.time())))
         self._work_dir = self._work_dir + "/" + timestr + "/" + self.name + "_" + self._id
@@ -196,13 +182,13 @@ class Basic(object):
 
     def importInstant(self, project):
         """
-        从mbio.package中动态导入instant包
+        从mbio.instant中动态导入相关的instant包
         """
         myModule = inspect.stack()[1][0]
         fileName = inspect.getmodule(myModule).__name__
         moduleName = fileName
         moduleName = re.split("\.", moduleName).pop()
-        moduleName = "mbio.packages.instant." + project + "." + moduleName
+        moduleName = "mbio.instant." + project + "." + moduleName
         name = re.split("\.", moduleName).pop()
         l = name.split("_")
         l.append("instant")
@@ -238,6 +224,7 @@ class Basic(object):
         """
         生成上传目标的文件路径
         上传文件到目标路径
+        :params name: 需要在isanger上生成文件夹是所用的名称，例如在pan_core的controller里，name的值就是pan_core
         """
         if self._hasUploaded:
             raise Exception("文件已经上传！")
@@ -317,16 +304,34 @@ class Basic(object):
         pathPre = pathConfig[typeName + "_path"]
         strTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self._uploadTarget = "rerewrweset/files/{}/{}/{}/report_results/{}_{}".format(memberId, projectSn, self.taskId, name, strTime)
+        self._returnTarget = typeName + ":" + self._uploadTarget
         self._uploadTarget = os.path.join(pathPre, self._uploadTarget)
 
     @property
     def upload_dir(self):
         return self._uploadDirObj
 
+    def appendSgStatus(self, api, tableId, tableName, desc):
+        """
+        添加一个往sg_status表里添加记录的一个api, 这个api是mainappp.models.core.base.Base的子类， 具有一个addSgStatus的方法
+        :params api: 具体的mongo操作api
+        :params tableId: collection一条记录的id
+        :params tableName: collection的名称， 比如sg_otu_pan_core
+        :params desc: collection一条记录的描述
+        """
+        if isinstance(api, Base):
+            self._sgStatus.append((api, tableId, tableName, desc))
+        else:
+            raise Exception("{}不是mainappp.models.core.base.Base的子类".format(api))
+
     def end(self):
         content = dict()
         content["dirs"] = list()
         content["files"] = list()
+        content["ids"] = list()
+        for status in self._sgStatus:
+            idDict = {status[2]: str(status[1])}
+            content["ids"].append(idDict)
         for obj in self._uploadDirObj:
             (f, d) = obj.fileListForReturn()
             for myf in f:
@@ -337,6 +342,8 @@ class Basic(object):
         info["success"] = True
         info["content"] = content
         self.returnInfo = json.dumps(info)
+        for status in self._sgStatus:
+            status[0].addSgStatus(status[1], status[2], status[3])
         self.addEndRecord()
 
 
@@ -447,13 +454,13 @@ class UploadDir(object):
         for l in self.fileList:
             if l["type"] == "file":
                 files.append({
-                    "path": os.path.join(self._bindObject._uploadTarget, os.path.basename(self._dirPath), l["path"]),
+                    "path": os.path.join(self._bindObject._returnTarget, os.path.basename(self._dirPath), l["path"]),
                     "format": l["format"],
                     "description": l["description"],
                     "size": l["size"]
                 })
             elif l["type"] == "dir":
-                tmpPath = os.path.join(self._bindObject._uploadTarget, os.path.basename(self._dirPath), l["path"])
+                tmpPath = os.path.join(self._bindObject._returnTarget, os.path.basename(self._dirPath), l["path"])
                 tmpPath = re.sub("\.$", "", tmpPath)
                 dirs.append({
                     "path": tmpPath,
