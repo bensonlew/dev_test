@@ -157,10 +157,37 @@ class AnosimTool(Tool):
             os.remove(newpath)
         os.link(oldfile, newpath)
 
+    # def format(self):
+    #     """
+    #     将‘adonis_results.txt’和‘anosim_results.txt’两个文件的内容
+    #     整理写入到表格‘format_results.xls’中
+    #     """
+    #     an = open(os.path.join(self.output_dir, 'anosim_results.txt'))
+    #     ad = open(os.path.join(self.output_dir, 'adonis_results.txt'))
+    #     new = open(os.path.join(self.output_dir, 'format_results.xls'), 'w')
+    #     an_line = an.readlines()
+    #     ad_r = ''
+    #     ad_p = ''
+    #     for line in ad:
+    #         self.logger.info(line)
+    #         if re.match(r'qiime\.data\$map\[\[opts\$category\]\]', line):
+    #             self.logger.info(line + '--MATCH')
+    #             ad_r = line.split()[5]
+    #             ad_p = line.split()[6]
+    #     an_r = an_line[4].strip().split('\t')[1]
+    #     an_p = an_line[5].strip().split('\t')[1]
+    #     permu = an_line[6].strip().split('\t')[1]
+    #     new.write('method\tstatistic\tp-value\tnumber of permutation\n')
+    #     new.write('anosim\t%s\t%s\t%s\n' % (an_r, an_p, permu))
+    #     new.write('adonis\t%s\t%s\t%s\n' % (ad_r, ad_p, permu))
+    #     new.close()
+    #     ad.close()
+    #     an.close()
+
+
     def format(self):
         """
-        将‘adonis_results.txt’和‘anosim_results.txt’两个文件的内容
-        整理写入到表格‘format_results.xls’中
+        功能同上面注释掉的部分，此函数用于暂时消除一个结果文件的bug，PR列被自动换行的情况
         """
         an = open(os.path.join(self.output_dir, 'anosim_results.txt'))
         ad = open(os.path.join(self.output_dir, 'adonis_results.txt'))
@@ -169,11 +196,22 @@ class AnosimTool(Tool):
         ad_r = ''
         ad_p = ''
         for line in ad:
-            self.logger.info(line)
             if re.match(r'qiime\.data\$map\[\[opts\$category\]\]', line):
-                self.logger.info(line + '--MATCH')
-                ad_r = line.split()[5]
-                ad_p = line.split()[6]
+                line_sp = line.split()
+                if len(line_sp) == 8 or 7:
+                    ad_r = line_sp[5]
+                    ad_p = line_sp[6]
+                elif len(line_sp) == 6:
+                    ad_r = line_sp[5]
+                elif len(line_sp) == 3:
+                    ad_p = line_sp[1]
+                elif len(line_sp) == 2:
+                    pass
+                else:
+                    self.logger.info(line)
+                    self.set_error('adonis结果文件异常')
+        if not ad_r or not ad_p:
+            self.set_error('adonis结果文件异常')
         an_r = an_line[4].strip().split('\t')[1]
         an_p = an_line[5].strip().split('\t')[1]
         permu = an_line[6].strip().split('\t')[1]
