@@ -27,8 +27,8 @@ class PanCoreInstant(object):
             panOtu = pan_core(self.options["otuPath"], "pan")
             coreOtu = pan_core(self.options["otuPath"], "core")
         else:
-            panOtu = pan_core(self.options["otuPath"], "pan", self.option['groupPath'])
-            coreOtu = pan_core(self.options["otuPath"], "core", self.option['groupPath'])
+            panOtu = pan_core(self.options["otuPath"], "pan", self.options['groupPath'])
+            coreOtu = pan_core(self.options["otuPath"], "core", self.options['groupPath'])
         print panOtu
         self.logger.info("R脚本生成完毕")
         self.logger.info("开始运行R,生成表格文件")

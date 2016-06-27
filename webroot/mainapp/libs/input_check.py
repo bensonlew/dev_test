@@ -51,31 +51,36 @@ def check_format(f):
     return wrapper
 
 
-def instantCheck(f):
+def MetaCheck(f):
     @functools.wraps(f)
     def wrapper(obj):
         data = web.input()
         print "收到请求, 请求的内容为："
         print data
         if not hasattr(data, "taskType"):
+            print "缺少参数taskType"
             info = {"success": False, "info": "缺少参数taskType!"}
             return json.dumps(info)
-        if not (hasattr(data, "taskId") or hasattr(data, "otu_id")):
-            info = {"success": False, "info": "参数taskId和otu_id必须有一个!"}
+        if not hasattr(data, "otu_id"):
+            print "缺少otu_id!"
+            info = {"success": False, "info": "缺少otu_id!"}
             return json.dumps(info)
         if data.taskType not in ["projectTask", "reportTask"]:
+            print "参数taskType的值必须为projectTask或者是reportTask!"
             info = {"success": False, "info": "参数taskType的值必须为projectTask或者是reportTask!"}
             return json.dumps(info)
-        if hasattr(data, "otu_id"):
-            otu_info = Meta().get_otu_table_info(data.otu_id)
-            if not otu_info:
-                info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
+        otu_info = Meta().get_otu_table_info(data.otu_id)
+        if not otu_info:
+            print "OTU不存在，请确认参数是否正确！!"
+            info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
+            return json.dumps(info)
+        else:
+            task_info = Meta().get_task_info(otu_info["task_id"])
+            if not task_info:
+                print "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])
+                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
-            else:
-                task_info = Meta().get_task_info(otu_info["task_id"])
-                if not task_info:
-                    info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
-                    return json.dumps(info)
+        print "MetaCheck完成"
         return f(obj)
 
     return wrapper
