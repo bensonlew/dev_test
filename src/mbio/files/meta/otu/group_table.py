@@ -132,7 +132,37 @@ class GroupTableFile(File):
             group = len(gnum)
             return group
 
+    def get_edger_group(self, name, edger_path):
+        """
+        将分组文件转换成edger分组文件的格式
+        """
+        self.sub_group('./group_file', name)
+        with open('group_file', 'rb') as r, open(edger_path, 'wb') as w:
+            lines = r.readlines()
+            for line in line[1:]:
+                info = line.strip('\n').split('\t')
+                w.write('%s\t%s\n' % (info[1], info[0]))
 
+    def get_group_name(self, name):
+        """
+        传入分组方案name,获取该分组方案下分组类别的列表
+        :param name: 某一分组方案的名字,string
+        :return gnames:该分组方案下分组类别的列表
+        """
+        with open(self.prop['path'], 'r') as f:
+            head = f.readline().split()
+            site = 0
+            for i in head:
+                if i == name:
+                    site = head.index(i)
+            gnames = []
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+                gnames.append(line.split()[site])
+            return list(set(gnames))
+            
 if __name__ == "__main__":
     g = GroupTableFile()
     g.set_path("example.group")
