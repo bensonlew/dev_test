@@ -110,21 +110,6 @@ class DistanceCalcAgent(Agent):
         # print self.get_upload_files()
         super(DistanceCalcAgent, self).end()
 
-    def run(self):
-        super(Agent, self).run()
-        # config_file = self.save_config()
-        # self.job = self._job_manager.add_job(self)
-        path = os.path.join(self.work_dir, self.name + "_class.pk")
-        with open(path, "r") as f:
-            config = pickle.load(f)
-            config.DEBUG = True  # runtool设置了这个值
-        self._start_run_time = datetime.datetime.now()
-        self.tool = DistanceCalcTool(config)
-        mythread = threading.Thread(target=self.tool.run)
-        mythread.start()
-        mythread.join()
-        self.finish_callback(job=False)
-
 
 class DistanceCalcTool(Tool):
 
@@ -183,7 +168,9 @@ class DistanceCalcTool(Tool):
             # os.link(filename, linkfile)
             # self.option('dis_matrix', linkfile)
             import time
-            time.sleep(3)
+            for i in range(10):
+                print 'tool runing'
+                time.sleep(1)
             self.end()
         else:
             self.set_error('运行qiime:beta_diversity.py出错')

@@ -44,11 +44,12 @@ class Workflow(Basic):
         self._pause_time = None
         self.USE_DB = False
         self.__json_config()
+        self.noRPC_signal = None  # 即时计算的结束信号
         if hasattr(self, 'rpc'):
-            pass
+            if not self.rpc:
+                self.noRPC_signal = gevent.event.Event()
         else:
             self.rpc = True
-
         if self._parent is None:
             self._id = wsheet.id
             self.config = Config()
@@ -200,6 +201,9 @@ class Workflow(Basic):
                 gevent.spawn(self.__check_pause)
             if self.rpc:
                 self.rpc_server.run()
+            else:
+                self.noRPC_signal.wait()
+
 
     def end(self):
         """
@@ -222,6 +226,8 @@ class Workflow(Basic):
             self.logger.info("运行结束!")
             if self.rpc:
                 self.rpc_server.server.close()
+            else:
+                self.noRPC_signal.set()
         else:
             self.logger.info("运行结束!")
 
@@ -269,6 +275,8 @@ class Workflow(Basic):
         self.logger.info("程序退出: %s " % data)
         if self.rpc:
             self.rpc_server.server.close()
+        else:
+            self.noRPC_signal.set()
         sys.exit(exitcode)
 
     def __update_service(self):

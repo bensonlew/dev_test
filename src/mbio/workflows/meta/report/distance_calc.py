@@ -32,7 +32,6 @@ class DistanceCalcWorkflow(Workflow):
 
     def run(self):
         self.task = self.add_tool("meta.beta_diversity.distance_calc")
-        super(DistanceCalcWorkflow, self).run()
         self.logger.info(self.option('otu_file').path)
         if 'unifrac' in self.option('method'):
             # 查找OTU表对应的进化树
@@ -108,15 +107,10 @@ class DistanceCalcWorkflow(Workflow):
                 'otutable': self.option('otu_file')
             }
         self.task.set_options(options)
-        print self.task.events
-        print self.task.events['end']._func
         self.task.on('end', self.set_db)
-        print self.events
-        self.output_dir = self.task.output_dir
-        print self.task.events['end']._func
         self.task.run()
-        print 'taskrun go'
-        # self.task.fire('end')
+        self.output_dir = self.task.output_dir
+        super(DistanceCalcWorkflow, self).run()
 
     def get_phylo_tree(self):
         tree_path = ''
@@ -126,7 +120,6 @@ class DistanceCalcWorkflow(Workflow):
         """
         保存结果距离矩阵表到mongo数据库中
         """
-        print 'SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSset db'
         api_distance = self.api.distance
         matrix_path = self.output_dir + '/' + os.listdir(self.output_dir)[0]
         if not os.path.isfile(matrix_path):
