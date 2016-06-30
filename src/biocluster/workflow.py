@@ -44,6 +44,10 @@ class Workflow(Basic):
         self._pause_time = None
         self.USE_DB = False
         self.__json_config()
+        if hasattr(self, 'rpc'):
+            pass
+        else:
+            self.rpc = True
 
         if self._parent is None:
             self._id = wsheet.id
@@ -59,7 +63,8 @@ class Workflow(Basic):
                 self.__check_to_file_option()
                 self.step_start()
             self._logger = Wlog(self).get_logger("")
-            self.rpc_server = RPC(self)
+            if self.rpc:
+                self.rpc_server = RPC(self)
         else:
             self.config = self._parent.config
             self.db = self.config.get_db()
@@ -193,7 +198,8 @@ class Workflow(Basic):
                 gevent.spawn(self.__update_service)
                 gevent.spawn(self.__check_tostop)
                 gevent.spawn(self.__check_pause)
-            self.rpc_server.run()
+            if self.rpc:
+                self.rpc_server.run()
 
     def end(self):
         """
@@ -214,7 +220,8 @@ class Workflow(Basic):
             self.step.finish()
             self.step.update()
             self.logger.info("运行结束!")
-            self.rpc_server.server.close()
+            if self.rpc:
+                self.rpc_server.server.close()
         else:
             self.logger.info("运行结束!")
 
@@ -260,7 +267,8 @@ class Workflow(Basic):
             self.step.failed(data)
         self.step.update()
         self.logger.info("程序退出: %s " % data)
-        self.rpc_server.server.close()
+        if self.rpc:
+            self.rpc_server.server.close()
         sys.exit(exitcode)
 
     def __update_service(self):

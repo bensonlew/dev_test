@@ -74,7 +74,10 @@ class Agent(Basic):
         self.add_event('runstart')       # 远端开始运行
         self.on("runstart", self._event_runstart)
         self.on("error", self._agent_event_error)
-        self.endpoint = self.get_workflow().rpc_server.endpoint
+        if self.get_workflow().rpc:
+            self.endpoint = self.get_workflow().rpc_server.endpoint
+        else:
+            self.endpoint = ''
         self.job = None
         self._run_mode = "Auto"      # 运行模式 Auto表示由 main.conf中的 platform参数决定
         self._job_manager = JobManager()
@@ -265,7 +268,7 @@ class Agent(Basic):
         self._callback_action = self._default_callback_action
         return action
 
-    def finish_callback(self):
+    def finish_callback(self, job=True):
         """
         收到远程发送回的 :py:class:`biocluster.core.actor.State` end状态时的处理函数，设置当前Agent状态为结束
 
@@ -276,7 +279,8 @@ class Agent(Basic):
         self._end_run_time = datetime.datetime.now()
         secends = (self._end_run_time - self._start_run_time).seconds
         self.logger.info("任务运行结束，运行时间:%ss" % secends)
-        self.job.set_end()
+        if job:
+            self.job.set_end()
         self.end()
 
     def error_callback(self, data):

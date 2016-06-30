@@ -5,9 +5,9 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 from mbio.files.meta.otu.otu_table import OtuTableFile
-import pickle
 import datetime
-import threading
+import pickle
+
 
 class DistanceCalcAgent(Agent):
     """
@@ -29,8 +29,9 @@ class DistanceCalcAgent(Agent):
               'weighted_normalized_unifrac', 'weighted_unifrac']
     UNIFRACMETHOD = METHOD[-5:]
 
+    # def __init__(self):
     def __init__(self, parent):
-        super(DistanceCalcAgent, self).__init__(parent)
+        super(DistanceCalcAgent, self).__init__()
         options = [
             {"name": "method", "type": "string", "default": "bray_curtis"},
             {"name": "otutable", "type": "infile",
@@ -107,23 +108,34 @@ class DistanceCalcAgent(Agent):
         result_dir.add_regexp_rules([
             [r'%s.*\.xls' % self.option('method'), 'xls', '样本距离矩阵文件']
         ])
-        # print self.get_upload_files()
+        print self.get_upload_files()
         super(DistanceCalcAgent, self).end()
 
     def run(self):
         super(Agent, self).run()
-        # config_file = self.save_config()
+        config_file = self.save_config()
         # self.job = self._job_manager.add_job(self)
-        path = os.path.join(self.work_dir, self.name + "_class.pk")
-        with open(path, "r") as f:
+        with open(config_file, "r") as f:
             config = pickle.load(f)
             config.DEBUG = True  # runtool设置了这个值
         self._start_run_time = datetime.datetime.now()
-        self.tool = DistanceCalcTool(config)
-        mythread = threading.Thread(target=self.tool.run)
-        mythread.start()
-        mythread.join()
-        self.finish_callback(job=False)
+        tool = DistanceCalcTool(config)
+        tool.run()
+        self.finish_callback()
+
+    def finish_callback(self):
+        """
+        收到远程发送回的 :py:class:`biocluster.core.actor.State` end状态时的处理函数，设置当前Agent状态为结束
+
+        :return:
+        """
+        self.load_output()
+        self._status = "E"
+        self._end_run_time = datetime.datetime.now()
+        secends = (self._end_run_time - self._start_run_time).seconds
+        self.logger.info("任务运行结束，运行时间:%ss" % secends)
+        # self.job.set_end()
+        self.end()
 
 
 class DistanceCalcTool(Tool):
@@ -135,8 +147,7 @@ class DistanceCalcTool(Tool):
         # 设置运行环境变量
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
         self.real_otu = self.gettable()  # 获取真实的OTU表路劲
-        # self.biom = self.biom_otu_table()  # 传入otu表需要转化为biom格式
-        self.biom = self.work_dir + '/temp.biom'
+        self.biom = self.biom_otu_table()  # 传入otu表需要转化为biom格式
 
     def run(self):
         """
@@ -167,11 +178,9 @@ class DistanceCalcTool(Tool):
         self.logger.info('运行qiime:beta_diversity.py程序')
         self.logger.info(cmd)
         dist_matrix_command = self.add_command('distance_matrix', cmd)
-        print 'HERE'
-        # dist_matrix_command.run()
-        # self.wait()
-        # if dist_matrix_command.return_code == 0:
-        if True:
+        dist_matrix_command.run()
+        self.wait()
+        if dist_matrix_command.return_code == 0:
             self.logger.info('运行qiime:beta_diversity.py完成')
             filename = self.work_dir + '/' + \
                 self.option('method') + '_temp.txt'
@@ -180,10 +189,9 @@ class DistanceCalcTool(Tool):
                 self.option('method') + '_' + basename + '.xls'
             if os.path.exists(linkfile):
                 os.remove(linkfile)
-            # os.link(filename, linkfile)
-            # self.option('dis_matrix', linkfile)
-            import time
-            time.sleep(3)
+            os.link(filename, linkfile)
+            # self.option('dis_matrix').set_path(linkfile)
+            self.option('dis_matrix', linkfile)
             self.end()
         else:
             self.set_error('运行qiime:beta_diversity.py出错')
@@ -204,3 +212,6 @@ class DistanceCalcTool(Tool):
             os.remove(biom_path)
         newtable.convert_to_biom(biom_path)
         return biom_path
+
+if __name__ == '__main__':
+    agent = DistanceCalcAgent()
