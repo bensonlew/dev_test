@@ -17,6 +17,7 @@ from mainapp.models.instant_task import InstantTask
 from mainapp.config.db import Config
 from mainapp.models.mongo.core.base import ApiManager
 from mainapp.models.mongo.core.base import Base
+from biocluster.api.database.base import Base as OriginBase
 
 
 class Basic(object):
@@ -43,6 +44,7 @@ class Basic(object):
         self._sgStatus = list()
         info = {"success": False, "info": "程序非正常结束"}
         self.returnInfo = json.dumps(info)
+        self.IMPORT_REPORT_AFTER_END = False
 
     def POST(self):
         if self._taskId == "" or self._memberId == "" or self._projectSn == "":
@@ -96,7 +98,10 @@ class Basic(object):
         iTask.UpdateRecord(self.id, updateData)
 
     def run(self):
-        self._instantModule.run()
+        if self._instantModule:
+            self._instantModule.run()
+        elif self._workflow:
+            self._workflow.run()
 
     @property
     def id(self):
@@ -156,6 +161,20 @@ class Basic(object):
         else:
             self._options = optionDict
 
+    @property
+    def option(self):
+        """
+        这里存在一个疏漏， 将options写成了option，但是为了与原来已经写好的兼容， 保留了options
+        """
+        return self._options
+
+    @option.setter
+    def option(self, optionDict):
+        if not isinstance(optionDict, dict):
+            raise Exception("optionDict 不是一个字典")
+        else:
+            self._options = optionDict
+
     def setOptions(self, optionDict):
         if not isinstance(optionDict, dict):
             raise Exception("optionDict 不是一个字典")
@@ -197,6 +216,28 @@ class Basic(object):
         imp = importlib.import_module(moduleName)
         self._instantModule = getattr(imp, className)(self)
         return self._instantModule
+
+    def importWorkflow(self, name):
+        from biocluster.wsheet import Sheet
+        myJson = dict()
+        myJson["id"] = self._id
+        myJson["type"] = "workflow"
+        myJson["project_sn"] = self.projectSn
+        myJson["client"] = self._client
+        myJson["USE_DB"] = False
+        myJson["IMPORT_REPORT_DATA"] = False
+        myJson["options"] = self.options
+        with open(os.path.join(self.work_dir, "data.json"), "wb") as w:
+            w.write(json.dumps(myJson, indent=4))
+        className = re.split("\.", name).pop()
+        l = className.split("_")
+        l.append("Workflow")
+        l = [el.capitalize() for el in l]
+        className = "".join(l)
+        imp = importlib.import_module(name)
+        wsheet = Sheet(os.path.join(self.work_dir, "data.json"))
+        self._workflow = getattr(imp, className)(wsheet)
+        return self._workflow
 
     def add_upload_dir(self, dirPath):
         """
@@ -319,10 +360,10 @@ class Basic(object):
         :params tableName: collection的名称， 比如sg_otu_pan_core
         :params desc: collection一条记录的描述
         """
-        if isinstance(api, Base):
+        if isinstance(api, Base) or isinstance(api, OriginBase):
             self._sgStatus.append((api, tableId, tableName, desc))
         else:
-            raise Exception("{}不是mainappp.models.core.base.Base的子类".format(api))
+            raise Exception("{}不是mainappp.models.core.base.Base或者biocluster.api.database.base.Base的子类".format(api))
 
     def end(self):
         content = dict()

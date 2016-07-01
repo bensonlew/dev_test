@@ -47,9 +47,7 @@ class HeatClusterWorkflow(Workflow):
         }
         self.logger.debug("cluster")
         self.hcluster.set_options(options)
-        self.logger.debug("1")
         self.hcluster.on('end', self.set_db)
-        self.logger.debug("2")
         self.hcluster.run()
 
     def set_db(self):

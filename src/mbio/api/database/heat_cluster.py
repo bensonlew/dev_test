@@ -21,7 +21,6 @@ class HeatCluster(Base):
         with open(path, 'rb') as r:
             line = r.readline().strip('\r\n')
             samples = self.bind_object.hcluster.option("newicktree").prop['sample']
-        self.bind_object.logger.debug(len(samples))
         insert_data = {
             "value": line,
             "samples": samples
@@ -29,7 +28,7 @@ class HeatCluster(Base):
         collection = self.db['sg_newick_tree']
         try:
             collection.find_one_and_update({"_id": newick_id}, {"$set": insert_data})
-        except Exception, e:
+        except Exception as e:
             self.bind_object.logger.error("导入newick tree%s信息出错:%s" % (path, e))
         else:
             self.bind_object.logger.info("导入newick tree%s信息成功!" % path)

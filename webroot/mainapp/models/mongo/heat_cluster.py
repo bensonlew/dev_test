@@ -53,7 +53,7 @@ class HeatCluster(object):
                 if isinstance(id_, StringTypes):
                     id_ = ObjectId(id_)
                 else:
-                    raise Exception("group_id必须为ObjectId对象或其对应的字符串!")
+                    raise Exception("样本id必须为ObjectId对象或其对应的字符串!")
             result = collection.find_one({"_id": id_})
             if not result:
                 raise Exception("无法根据传入的_id:{}在sg_speciem表里找到相应的记录".format(str(id_)))

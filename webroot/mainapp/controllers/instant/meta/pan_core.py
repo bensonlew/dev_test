@@ -27,7 +27,7 @@ class PanCore(MetaController):
         }
         self.setOptions(options)
         self.create_files()
-        num_lines = sum(1 for line in open(self.options["otuPath"]))
+        num_lines = sum(1 for line in open(self.option["otuPath"]))
         if num_lines < 11:
             info = {"success": False, "info": "Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！"}
             return info
@@ -71,15 +71,15 @@ class PanCore(MetaController):
         """
         生成文件
         """
-        otuPath = export_otu_table_by_level(self.options["otuId"], self.options["otuPath"], self.options["level"])
+        otuPath = export_otu_table_by_level(self.option["otuId"], self.option["otuPath"], self.option["level"])
         otuFile = OtuTableFile()
         otuFile.set_path(otuPath)
         otuFile.get_info()
         otuFile.check()
-        groupPath = export_group_table(self.options["groupId"], self.data.category_name, self.options["groupPath"])
+        groupPath = export_group_table(self.option["groupId"], self.data.category_name, self.option["groupPath"])
         groupFile = GroupTableFile()
         groupFile.set_path(groupPath)
         groupFile.get_info()
         groupFile.check()
         if groupFile.prop["is_empty"]:
-            self.options["groupPath"] = ""
+            self.option["groupPath"] = ""
