@@ -168,7 +168,7 @@ class DistanceCalcTool(Tool):
             # os.link(filename, linkfile)
             # self.option('dis_matrix', linkfile)
             import time
-            for i in range(10):
+            for i in range(5):
                 print 'tool runing'
                 time.sleep(1)
             self.end()

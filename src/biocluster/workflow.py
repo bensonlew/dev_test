@@ -14,7 +14,7 @@ from .module import Module
 import datetime
 import gevent
 import time
-# from biocluster.api.file.remote import RemoteFileManager
+from biocluster.api.file.remote import RemoteFileManager
 import re
 import importlib
 import types
@@ -39,17 +39,16 @@ class Workflow(Basic):
             self._parent = kwargs["parent"]
         else:
             self._parent = None
-
-        self.pause = False
-        self._pause_time = None
-        self.USE_DB = False
-        self.__json_config()
         self.noRPC_signal = None  # 即时计算的结束信号
         if hasattr(self, 'rpc'):
             if not self.rpc:
                 self.noRPC_signal = gevent.event.Event()
-        else:
-            self.rpc = True
+            else:
+                self.rpc = True
+        self.pause = False
+        self._pause_time = None
+        self.USE_DB = False
+        self.__json_config()
         if self._parent is None:
             self._id = wsheet.id
             self.config = Config()
@@ -71,9 +70,9 @@ class Workflow(Basic):
             self.db = self.config.get_db()
 
     def __json_config(self):
-        if self.sheet.USE_DB is True:
+        if self.sheet.USE_DB is True and self.rpc:
             self.USE_DB = True
-        if self.sheet.UPDATE_STATUS_API is not None:
+        if self.sheet.UPDATE_STATUS_API is not None and self.rpc:
             self.UPDATE_STATUS_API = self.sheet.UPDATE_STATUS_API
         if self.sheet.IMPORT_REPORT_DATA is True:
             self.IMPORT_REPORT_DATA = True
@@ -227,29 +226,30 @@ class Workflow(Basic):
             if self.rpc:
                 self.rpc_server.server.close()
             else:
+                self._upload_result()
                 self.noRPC_signal.set()
         else:
             self.logger.info("运行结束!")
 
-    # def _upload_result(self):
-    #     """
-    #     上传结果文件到远程路径
-    #
-    #     :return:
-    #     """
-    #     if self._sheet.output:
-    #         remote_file = RemoteFileManager(self._sheet.output)
-    #         if remote_file.type != "local":
-    #             self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
-    #             umask = os.umask(0)
-    #             remote_file.upload(os.path.join(self.output_dir))
-    #             for root, subdirs, files in os.walk("c:\\test"):
-    #                 for filepath in files:
-    #                     os.chmod(os.path.join(root, filepath), 0o777)
-    #                 for sub in subdirs:
-    #                     os.chmod(os.path.join(root, sub), 0o666)
-    #             os.umask(umask)
-    #             self.logger.info("结果上传完成!")
+    def _upload_result(self):
+        """
+        上传结果文件到远程路径
+
+        :return:
+        """
+        if self._sheet.output:
+            remote_file = RemoteFileManager(self._sheet.output)
+            if remote_file.type != "local":
+                self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
+                umask = os.umask(0)
+                remote_file.upload(self.output_dir)
+                # for root, subdirs, files in os.walk("c:\\test"):
+                #     for filepath in files:
+                #         os.chmod(os.path.join(root, filepath), 0o777)
+                #     for sub in subdirs:
+                #         os.chmod(os.path.join(root, sub), 0o666)
+                os.umask(umask)
+                self.logger.info("结果上传完成!")
 
     def exit(self, exitcode=1, data="", terminated=False):
         """

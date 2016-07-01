@@ -121,16 +121,16 @@ class DistanceCalcWorkflow(Workflow):
         保存结果距离矩阵表到mongo数据库中
         """
         api_distance = self.api.distance
-        matrix_path = self.output_dir + '/' + os.listdir(self.output_dir)[0]
-        if not os.path.isfile(matrix_path):
-            raise Exception("找不到报告文件:{}".format(matrix_path))
-        params_json = {
-            'otu_id': self.option('otu_id'),
-            'level_id': self.option('level'),
-            'distance_algorithm': self.option('method')
-            }
-        matrix_id = api_distance.add_dist_table(matrix_path, major=True, level=self.option('level'), otu_id=self.option('otu_id'), params=params_json)
-        print matrix_id
+        # matrix_path = self.output_dir + '/' + os.listdir(self.output_dir)[0]
+        # if not os.path.isfile(matrix_path):
+        #     raise Exception("找不到报告文件:{}".format(matrix_path))
+        # params_json = {
+        #     'otu_id': self.option('otu_id'),
+        #     'level_id': self.option('level'),
+        #     'distance_algorithm': self.option('method')
+        #     }
+        # matrix_id = api_distance.add_dist_table(matrix_path, major=True, level=self.option('level'), otu_id=self.option('otu_id'), params=params_json)
+        # print matrix_id
         self.logger.info('运行self.end')
         self.end()
 
@@ -138,7 +138,7 @@ class DistanceCalcWorkflow(Workflow):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "距离矩阵计算结果输出目录"],
-            ["./%s" % os.listdir(self.output_dir)[0], "xls", "样本距离矩阵文件"],
+            # ["./%s" % os.listdir(self.output_dir)[0], "xls", "样本距离矩阵文件"],
         ])
         print self.get_upload_files()
         super(DistanceCalcWorkflow, self).end()
