@@ -23,7 +23,7 @@ class MetaBaseWorkflow(Workflow):
             {'name': 'otu_rep', 'type': 'outfile', 'format': 'sequence.fasta'},  # 输出结果otu代表序列
             # {'name': 'otu_seqids', 'type': 'outfile', 'format': 'meta.otu.otu_seqids'},  # 输出结果otu中包含序列列表
             {'name': 'otu_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 输出结果biom格式otu表
-            {'name': 'revcomp', 'type': 'bool'},  # 序列是否翻转
+            {'name': 'revcomp', 'type': 'bool', 'default': False},  # 序列是否翻转
             {'name': 'confidence', 'type': 'float', 'default': 0.7},  # 置信度值
             # {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
             {'name': 'database', 'type': 'string'},  # 数据库选择
@@ -117,14 +117,16 @@ class MetaBaseWorkflow(Workflow):
         })
         self.otu.on("end", self.set_output, "otu")
         self.otu.on("start", self.set_step, {'end': self.step.qcstat, 'start': self.step.otucluster})
+        # self.otu.on("end", self.set_step, {'end':self.step.otucluster})
         self.otu.run()
 
     def run_phylotree(self):
         self.phylo.set_options({
             "fasta_file": self.otu.output_dir + "/otu_reps.fasta"
         })
+        # self.phylo.on("start", self.set_step, {'end':self.step.otucluster, 'start':self.step.phylotree})
+        self.phylo.on("end", self.set_step, {'end':self.step.otucluster})
         self.phylo.run()
-        # self.phylo.on("end", self.set_output, "phylo")
 
     def run_taxon(self):
         opts = {
@@ -140,7 +142,8 @@ class MetaBaseWorkflow(Workflow):
             })
         self.tax.set_options(opts)
         self.tax.on("end", self.set_output, "tax")
-        self.tax.on("start", self.set_step, {'end': self.step.otucluster, 'start': self.step.taxassign})
+        self.tax.on("start", self.set_step, {'start': self.step.taxassign})
+        self.tax.on("end", self.set_step, {'end': self.step.taxassign})
         self.tax.run()
 
     def run_stat(self):
@@ -149,7 +152,7 @@ class MetaBaseWorkflow(Workflow):
             "taxon_file": self.tax.option("taxon_file")
         })
         self.stat.on("end", self.set_output, "stat")
-        self.stat.on("end", self.set_step, {'end': self.step.taxassign})
+        # self.stat.on("end", self.set_step, {'end': self.step.taxassign})
         self.stat.run()
 
     def run_alpha(self):
@@ -394,15 +397,15 @@ class MetaBaseWorkflow(Workflow):
         repaths = [
             [".", "", "多样性结果文件目录"],
             ["QC_stat", "", "样本数据统计文件目录"],
-            ["QC_stat/samples_info/samples_info.txt", "xls", "样本信息统计文件"],
+            ["QC_stat/samples_info/samples_info.txt", "txt", "样本信息统计文件"],
             ["QC_stat/base_info", "", "单个样本碱基质量统计目录"],
             ["QC_stat/reads_len_info", "", "序列长度分布统计文件目录"],
             ["Otu", "", "OTU聚类结果文件目录"],
-            ["Tax_assign", "", "物种分类文件目录"],
-            ["Tax_assign/seqs_tax_assignments.txt", "taxon.seq_taxon", "序列物种分类文件"],
+            ["Tax_assign", "", "OTU对应物种分类文件目录"],
+            ["Tax_assign/seqs_tax_assignments.txt", "taxon.seq_taxon", "OTU序列物种分类文件"],
             ["OtuTaxon_summary", "", "OTU物种分类综合统计目录"],
-            ["OtuTaxon_summary/otu_taxon.biom", "meta.otu.biom", "OTU表的biom格式文件"],
-            ["OtuTaxon_summary/otu_taxon.xls", "meta.otu.otu_table", "OTU表"],
+            ["OtuTaxon_summary/otu_taxon.biom", "meta.otu.biom", "OTU的biom格式文件"],
+            ["OtuTaxon_summary/otu_taxon.xls", "meta.otu.otu_table", "OTU物种分类统计表"],
             ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"],
             ["Alpha_diversity", "", "Alpha diversity文件目录"],
             ["Alpha_diversity/estimators.xls", "xls", "Alpha多样性指数表"],
@@ -410,7 +413,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Anosim", "", "anosim&adonis结果输出目录"],
             ["Beta_diversity/Anosim/anosim_results.txt", "txt", "anosim分析结果"],
             ["Beta_diversity/Anosim/adonis_results.txt", "txt", "adonis分析结果"],
-            ["Beta_diversity/Anosim/format_results.xls", "xls", "anosim&adonis整理结果表"],
+            ["Beta_diversity/Anosim/format_results.xls", "xls", "anosim&adonis综合统计表"],
             ["Beta_diversity/Dbrda", "", "db_rda分析结果目录"],
             ["Beta_diversity/Dbrda/db_rda_sites.xls", "xls", "db_rda样本坐标表"],
             ["Beta_diversity/Dbrda/db_rda_species.xls", "xls", "db_rda物种坐标表"],
@@ -423,11 +426,11 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Hcluster", "", "层次聚类结果目录"],
             ["Beta_diversity/Hcluster/hcluster.tre", "graph.newick_tree", "层次聚类树"],
             ["Beta_diversity/Nmds", "", "NMDS分析结果输出目录"],
-            ["Beta_diversity/Nmds/nmds_sites.xls", "xls", "样本坐标表"],
+            ["Beta_diversity/Nmds/nmds_sites.xls", "xls", "样本各维度坐标"],
             ["Beta_diversity/Pca", "", "PCA分析结果输出目录"],
             ["Beta_diversity/Pca/pca_importance.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Pca/pca_rotation.xls", "xls", "物种主成分贡献度表"],
-            ["Beta_diversity/Pca/pca_sites.xls", "xls", "样本坐标表"],
+            ["Beta_diversity/Pca/pca_sites.xls", "xls", "样本各成分轴坐标"],
             ["Beta_diversity/Pca/pca_envfit_factor_scores.xls", "xls", "哑变量环境因子表"],
             ["Beta_diversity/Pca/pca_envfit_factor.xls", "xls", "哑变量环境因子坐标表"],
             ["Beta_diversity/Pca/pca_envfit_vector_scores.xls", "xls", "数量型环境因子表"],
@@ -446,21 +449,21 @@ class MetaBaseWorkflow(Workflow):
             [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
             [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
             [r'Beta_diversity/Distance/%s.*\.xls$' % self.option('dis_method'), 'meta.beta_diversity.distance_matrix', '样本距离矩阵文件'],
-            [r'Beta_diversity/Rda/.+_importance\.xls$', 'xls', '主成分解释度表'],
+            [r'Beta_diversity/Rda/.+_importance\.xls$', 'xls', '主成分变化解释度表'],
             [r'Beta_diversity/Rda/.+_sites\.xls$', 'xls', '样本坐标表'],
             [r'Beta_diversity/Rda/.+_species\.xls$', 'xls', '物种坐标表'],
             [r'Beta_diversity/Rda/.+_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
             [r'Beta_diversity/Rda/.+_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
-            ["Otu/otu_reps.fasta", "sequence.fasta", "代表序列"],
-            ["Otu/otu_seqids.txt", "xls", "OTU代表序列对应表"],
+            ["Otu/otu_reps.fasta", "sequence.fasta", "OTU代表序列"],
+            ["Otu/otu_seqids.txt", "txt", "OTU代表序列名称列表"],
             ["Otu/otu_table.biom", 'meta.otu.biom', "OTU表对应的Biom文件"],
-            ["Otu/otu_table.xls", "meta.otu.otu_table", "OTU表"],
-            ["Otu/otu_phylo.tre", "graph.newick_tree", "OTU表"],
-            ["QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "xls", "单个样本碱基质量统计文件"],
-            ["QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "xls", "序列长度分布统计文件"],
+            ["Otu/otu_table.xls", "meta.otu.otu_table", "OTU统计表"],
+            ["Otu/otu_phylo.tre", "graph.newick_tree", "OTU代表序列进化树"],
+            ["QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "txt", "单个样本碱基质量统计文件"],
+            ["QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "txt", "序列长度分布统计文件"],
             ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
-            ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "OTU表, 没有完整的分类学信息"],
-            ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "OTU表, 带有完整的分类学信息"]
+            ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "单级物种分类统计表"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
         ]
         for i in self.option("rarefy_indices").split(","):
             if i == "sobs":

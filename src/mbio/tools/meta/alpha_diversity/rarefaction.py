@@ -18,7 +18,7 @@ class RarefactionAgent(Agent):
     last_modify: 2015.12.10 by yuguo
     """
     ESTIMATORS = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon',
-                  'nseqs', 'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
+                  'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
 
     def __init__(self, parent):
         super(RarefactionAgent, self).__init__(parent)
@@ -129,8 +129,8 @@ class RarefactionTool(Tool):
         """
         执行命令运行mothur程序，生成rarefaction结果文件
         """
-        cmd = '/meta/mothur.1.30 "#rarefaction.single(shared=otu.shared,calc=%s,groupmode=f,' \
-              'freq=%s,processors=10)"' % (self.indices, self.option('freq'))
+        cmd = '/meta/mothur.1.30 "#rarefaction.single(shared=%s.shared,calc=%s,groupmode=f,' \
+              'freq=%s,processors=10)"' % (self.option("level"), self.indices, self.option('freq'))
         # print cmd
         self.logger.info("开始运行mothur")
         mothur_command = self.add_command("mothur", cmd)
@@ -153,7 +153,7 @@ class RarefactionTool(Tool):
             for names in dirs:
                 shutil.rmtree(os.path.join(self.output_dir, names))
         for estimators in self.indices.split('-'):
-            if estimators == "sobs":
+            if estimators in ["sobs", "default"]:
                 os.system('mkdir rarefaction|find -name "{}*rarefaction.xls"|xargs mv -t rarefaction'
                           .format(self.option("level")))
                 os.system('cp -r rarefaction %s' % self.output_dir)

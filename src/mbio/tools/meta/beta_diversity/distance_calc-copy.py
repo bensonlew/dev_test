@@ -5,9 +5,7 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 from mbio.files.meta.otu.otu_table import OtuTableFile
-import pickle
-import datetime
-import threading
+
 
 class DistanceCalcAgent(Agent):
     """
@@ -120,8 +118,7 @@ class DistanceCalcTool(Tool):
         # 设置运行环境变量
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
         self.real_otu = self.gettable()  # 获取真实的OTU表路劲
-        # self.biom = self.biom_otu_table()  # 传入otu表需要转化为biom格式
-        self.biom = self.work_dir + '/temp.biom'
+        self.biom = self.biom_otu_table()  # 传入otu表需要转化为biom格式
 
     def run(self):
         """
@@ -152,11 +149,9 @@ class DistanceCalcTool(Tool):
         self.logger.info('运行qiime:beta_diversity.py程序')
         self.logger.info(cmd)
         dist_matrix_command = self.add_command('distance_matrix', cmd)
-        print 'HERE'
-        # dist_matrix_command.run()
-        # self.wait()
-        # if dist_matrix_command.return_code == 0:
-        if True:
+        dist_matrix_command.run()
+        self.wait()
+        if dist_matrix_command.return_code == 0:
             self.logger.info('运行qiime:beta_diversity.py完成')
             filename = self.work_dir + '/' + \
                 self.option('method') + '_temp.txt'
@@ -165,12 +160,9 @@ class DistanceCalcTool(Tool):
                 self.option('method') + '_' + basename + '.xls'
             if os.path.exists(linkfile):
                 os.remove(linkfile)
-            # os.link(filename, linkfile)
-            # self.option('dis_matrix', linkfile)
-            import time
-            for i in range(5):
-                print 'tool runing'
-                time.sleep(1)
+            os.link(filename, linkfile)
+            # self.option('dis_matrix').set_path(linkfile)
+            self.option('dis_matrix', linkfile)
             self.end()
         else:
             self.set_error('运行qiime:beta_diversity.py出错')

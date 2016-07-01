@@ -13,10 +13,6 @@ import datetime
 # import time
 import types
 from bson.errors import InvalidId
-from biocluster.wsheet import Sheet
-# from biocluster import workflow
-from mbio.workflows.single import SingleWorkflow
-from mbio.workflows.meta.report.distance_calc import DistanceCalcWorkflow
 
 
 class DistanceCalc(object):
@@ -91,16 +87,13 @@ class DistanceCalc(object):
                     'matrix_id': str(distance_matrix_id)
                     }
                 }
-            # insert_data = {'client': client,
-            #                'workflow_id': workflow_id,
-            #                'json': json.dumps(json_data, sort_keys=True, separators=(',', ':')),
-            #                'ip': web.ctx.ip
-            #                }
-            # workflow_module = Workflow()
-            # workflow_module.add_record(insert_data)
-            mySheet = Sheet(data=json_data)
-            myWorkflow = SingleWorkflow(mySheet)
-            myWorkflow.run()
+            insert_data = {'client': client,
+                           'workflow_id': workflow_id,
+                           'json': json.dumps(json_data, sort_keys=True, separators=(',', ':')),
+                           'ip': web.ctx.ip
+                           }
+            workflow_module = Workflow()
+            workflow_module.add_record(insert_data)
             info = {'success': True, 'info': '提交成功!', '_id': str(distance_matrix_id)}
             return json.dumps(info)
         else:

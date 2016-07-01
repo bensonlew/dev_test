@@ -110,6 +110,37 @@ class DistanceCalcAgent(Agent):
         # print self.get_upload_files()
         super(DistanceCalcAgent, self).end()
 
+    def run(self):
+        super(Agent, self).run()
+        config_file = self.save_config()
+        # self.job = self._job_manager.add_job(self)
+        with open(config_file, "r") as f:
+            config = pickle.load(f)
+            config.DEBUG = True  # runtool设置了这个值
+        self._start_run_time = datetime.datetime.now()
+        self.tool = DistanceCalcTool(config)
+        mythread = threading.Thread(target=self.run_tool)
+        mythread.start()
+        # self.finish_callback()
+
+    def run_tool(self):
+        self.tool.run()
+        self.finish_callback()
+
+    def finish_callback(self):
+        """
+        收到远程发送回的 :py:class:`biocluster.core.actor.State` end状态时的处理函数，设置当前Agent状态为结束
+
+        :return:
+        """
+        self.load_output()
+        self._status = "E"
+        self._end_run_time = datetime.datetime.now()
+        secends = (self._end_run_time - self._start_run_time).seconds
+        self.logger.info("任务运行结束，运行时间:%ss" % secends)
+        # self.job.set_end()
+        self.end()
+
 
 class DistanceCalcTool(Tool):
 
@@ -168,9 +199,7 @@ class DistanceCalcTool(Tool):
             # os.link(filename, linkfile)
             # self.option('dis_matrix', linkfile)
             import time
-            for i in range(5):
-                print 'tool runing'
-                time.sleep(1)
+            time.sleep(3)
             self.end()
         else:
             self.set_error('运行qiime:beta_diversity.py出错')

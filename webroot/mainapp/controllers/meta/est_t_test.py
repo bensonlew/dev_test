@@ -6,7 +6,7 @@ import random
 import datetime
 from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
-from mainapp.libs.param_pack import group_detail_sort
+from mainapp.libs.param_pack import group_detail_sort, GetUploadInfo
 from mainapp.models.mongo.estimator import Estimator
 from mainapp.models.mongo.meta import Meta
 
@@ -49,8 +49,8 @@ class EstTTest(object):
             else:
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
-            pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
-                       str(otu_info['task_id']) + "/report_results/"
+            # pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
+            #            str(otu_info['task_id']) + "/report_results/"
         else:
             info = {"success": False, "info": "指数表对应的OTU表不存在，无法找到member_id，请确认参数是否正确！!"}
             return json.dumps(info)
@@ -61,7 +61,8 @@ class EstTTest(object):
             # print(est_t_test_id)
             update_info = {str(est_t_test_id): "sg_alpha_est_t_test", str(est_t_test_id): "sg_alpha_est_t_test"}
             update_info = json.dumps(update_info)
-
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info["project_sn"],
+                                                     otu_info['task_id'], "est_t_test")
             workflow_id = self.get_new_id(est_info["task_id"], data.alpha_diversity_id)
             # print(workflow_id)
             json_data = {
@@ -74,9 +75,9 @@ class EstTTest(object):
                 "to_file": ["estimator.export_est_table(est_table)", "meta.export_group_table_by_detail(group_table)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": "meta.update_status",
+                "UPDATE_STATUS_API": update_api,
                 "IMPORT_REPORT_AFTER_END": False,
-                "output":  pre_path + name,
+                "output":  output_dir,
                 "options": {
                     "update_info": update_info,
                     "est_table": data.alpha_diversity_id,

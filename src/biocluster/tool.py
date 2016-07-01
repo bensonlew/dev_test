@@ -46,6 +46,7 @@ class Tool(object):
         :return:
         """
         super(Tool, self).__init__()
+        self._agent = None  # 即时计算时，保存agent对象，用于直接触发Agent的相关方法
         self.config = config
         self._name = ""
         self._full_name = ""
@@ -342,6 +343,8 @@ class Tool(object):
         self.add_state('finish')
         self.logger.info("程序运行完成")
         self.exit_signal = True
+        if self._agent:  # 即时计算用于触发agent结束函数
+            self._agent.finish_callback()
 
     def exit(self, status=1):
         """
@@ -394,6 +397,8 @@ class Tool(object):
         self.logger.info("运行出错:%s" % error_data )
         self._end = True
         self.exit_signal = True
+        if self._agent:  # 即时计算用于触发agent的错误函数
+            self._agent.error_callback('运行出错:{}'.format(error_data))
 
     @staticmethod
     def set_environ(**kwargs):

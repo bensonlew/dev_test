@@ -12,14 +12,15 @@ class PhyloTreeAgent(Agent):
     phylo_tree:生成OTU代表序列的树文件
     version 1.0  
     author: qindanhua  
-    last_modify: 2015.11.10
+    last_modify: 2016.05.31
     """
 
     def __init__(self, parent):
         super(PhyloTreeAgent, self).__init__(parent)
         options = [
             {"name": "fasta_file", "type": "infile", "format": "sequence.fasta"},  # 输入文件
-            {"name": "phylo_tre", "type": "outfile", "format": "meta.beta_diversity.newick_tree"}  # 输出结果
+            {"name": "phylo_tre", "type": "outfile", "format": "meta.beta_diversity.newick_tree"},  # 输出结果
+            {"name": "method", "type": "string", "default": "mafft"}  # 比对方法
         ]
         self.add_option(options)
         self.step.add_steps('phylo_tree')
@@ -38,6 +39,8 @@ class PhyloTreeAgent(Agent):
         """
         if not self.option("fasta_file").is_set:
             raise OptionError("请传入fasta序列文件")
+        if self.option("method") not in ["mafft", "clustalw2"]:
+            raise OptionError("请选择正确的比对方法")
 
     def set_resource(self):
         """
@@ -45,6 +48,15 @@ class PhyloTreeAgent(Agent):
         """
         self._cpu = 10
         self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["./phylo.tre", "tre", "进化树树文件"]
+        ])
+        print self.get_upload_files()
+        super(PhyloTreeAgent, self).end()
 
 
 class PhyloTreeTool(Tool):
@@ -58,23 +70,27 @@ class PhyloTreeTool(Tool):
         self.clustalw2_path = '/align/'
         self.FastTree_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
 
-    def clustalw(self):
+    def align(self):
         """
-        执行clustalw2命令,生成中间文件phylo.clustalw.align
+        比对，根据method参数，选择不同的比对软件进行比对，结果文件为phylo.align
         """
-        self.add_state('phylo_tree_start', data='开始运行程序生成树文件')
-        cmd = self.clustalw2_path + "clustalw2 -ALIGN -INFILE=%s -OUTFILE=phylo.clustalw.align  -OUTPUT=FASTA" % \
+        if self.option("method") in ["mafft"]:
+            cmd = "Python/bin/python {}mafft.py -i {} -o phylo.align".\
+                format(self.FastTree_path, self.option('fasta_file').prop['path'])
+        else:
+            cmd = self.clustalw2_path + "clustalw2 -ALIGN -INFILE=%s -OUTFILE=phylo.align  -OUTPUT=FASTA" % \
                                     self.option('fasta_file').prop['path']
         print cmd
+        self.add_state('phylo_tree_start', data='开始运行程序生成树文件')
         # os.system(cmd)
-        self.logger.info("开始运行clustalw2")
-        clustalw_command = self.add_command("clustalw2", cmd)
-        clustalw_command.run()
+        self.logger.info("开始运行{}软件，进行比对".format(self.option("method")))
+        command = self.add_command("{}".format(self.option("method")), cmd)
+        command.run()
         self.wait()
-        if clustalw_command.return_code == 0:
-            self.logger.info("运行clustal2完成！")
+        if command.return_code == 0:
+            self.logger.info("完成比对！")
         else:
-            self.set_error("运行clastal2出错！")
+            self.set_error("运行出错！")
         # self.add_state('clustalw_end', data='done')
 
     def fasttree(self):
@@ -82,7 +98,7 @@ class PhyloTreeTool(Tool):
         执行fasttree脚本，生成结果文件
         """
         # self.add_state('fasttree_start', data='开始运行fasttree命令，生成树文件')
-        cmd = 'Python/bin/python %sfasttree.py -i %s' % (self.FastTree_path, 'phylo.clustalw.align')
+        cmd = 'Python/bin/python %sfasttree.py -i %s' % (self.FastTree_path, 'phylo.align')
         print cmd
         self.logger.info("开始运行fasttree")
         fasttree_command = self.add_command("fasttree", cmd)
@@ -111,8 +127,6 @@ class PhyloTreeTool(Tool):
         运行
         """
         super(PhyloTreeTool, self).run()
-        self.clustalw()
+        self.align()
         self.fasttree()
         self.end()
-        # self.fasttree()
-        # self.set_output()

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'guoquan'
+# __author__ = 'shenghe'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
@@ -8,95 +8,101 @@ from biocluster.core.exceptions import OptionError
 
 class BlastAgent(Agent):
     """
-    ncbi blast+   请详细编写使用说明
-    version 1.0  你的程序版本
-    author: guoquan  作者
-    last_modify: 2015.9.21  最后修改日期
+    ncbi blast+ 2.3.0  注意：在outfmt为6时不按照ncbi格式生成table，而是按照特殊的表头类型，参见packages.align.blast.xml2table
+    version 1.0
+    author: shenghe
+    last_modify: 2016.6.15
     """
 
     def __init__(self, parent):
         super(BlastAgent, self).__init__(parent)
+        self._fasta_type = {'Protein': 'prot', 'DNA': 'nucl'}
+        self._blast_type = {'nucl': {'nucl': ['blastn', 'tblastn'],
+                                     'prot': ['blastx']},
+                            'prot': {'nucl': [],
+                                     'prot': ['blastp']}}
+        self._database_type = {'nt': 'nucl', 'nr': 'prot', 'kegg': 'prot', 'swissprot': 'prot', 'string': 'prot'}
         options = [
-            {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
             {"name": "query", "type": "infile", "format": "sequence.fasta"},  # 输入文件
-            {"name": "database", "type": "string", "default": "nr"},  # 比对数据库 nt nr string GO swissprot uniprot KEGG
+            {"name": "query_type", "type": "string"},  # 输入的查询序列的格式，为nucl或者prot
+            {"name": "database", "type": "string", "default": "nr"},
+            # 比对数据库 nt nr string swissprot kegg customer_mode
+            {"name": "outfmt", "type": "int", "default": 5},  # 输出格式，数字遵从blast+
+            {"name": "blast", "type": "string"},  # 设定blast程序有blastn，blastx，blastp，tblastn，此处需要严格警告使用者必须选择正确的比对程序
             {"name": "reference", "type": "infile", "format": "sequence.fasta"},  # 参考序列  选择customer时启用
+            {"name": "reference_type", "type": "string"},  # 参考序列(库)的类型  为nucl或者prot
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
             {"name": "num_threads", "type": "int", "default": 10},  # cpu数
-            {"name": "output", "type": "outfile", "format": "sequence.fasta"}  # cpu数
-        ]
+            {"name": "num_alignment", "type": "int", "default": 500},  # 序列比对最大输出条数，默认500
+            {"name": "outxml", "type": "outfile", "format": "align.blast.blast_xml"},  # 输出格式为6时输出
+            {"name": "outtable", "type": "outfile", "format": "align.blast.blast_table"},  # 输出格式为5时输出
+            # 当输出格式为非5，6时，只产生文件不作为outfile
+            ]
         self.add_option(options)
 
     def check_options(self):
-        """
-        重写参数检测函数
-        :return:
-        """
         if not self.option("query").is_set:
             raise OptionError("必须设置参数query")
-        if self.option("customer_mode") is True and not self.option("reference").is_set:
-            raise OptionError("使用自定义数据库模式时必须设置reference")
-        if self.option("database") not in ["nt", "nr", "string"]:
+        if self.option('query_type') not in ['nucl', 'prot']:
+            raise OptionError('query_type查询序列的类型为nucl(核酸)或者prot(蛋白):{}'.format(self.option('query_type')))
+        else:
+            if self._fasta_type[self.option('query').prop['seq_type']] != self.option('query_type'):
+                raise OptionError(
+                    '文件检查发现查询序列为:{}, 而说明的文件类型为:{}'.format(
+                        self._fasta_type[self.option('query').prop['seq_type'], self.option('query_type')]))
+        if self.option("database") == 'customer_mode':
+            if not self.option("reference").is_set:
+                raise OptionError("使用自定义数据库模式时必须设置reference")
+            if self.option('reference_type') not in ['nucl', 'prot']:
+                raise OptionError('reference_type参考序列的类型为nucl(核酸)或者prot(蛋白):{}'.format(self.option('query_type')))
+            else:
+                if self._fasta_type[self.option('reference').prop['seq_type']] != self.option('reference_type'):
+                    raise OptionError(
+                        '文件检查发现参考序列为:{}, 而说明的文件类型为:{}'.format(
+                            self._fasta_type[self.option('reference').prop['seq_type'], self.option('reference_type')]))
+        elif self.option("database").lower() not in ["nt", "nr", "string", 'kegg', 'swissprot']:
             raise OptionError("数据库%s不被支持" % self.option("database"))
+        else:
+            self.option('reference_type', self._database_type[self.option("database").lower()])
+        if not 15 > self.option('outfmt') > -1:
+            raise OptionError('outfmt遵循blast+输出规则，必须为0-14之间：{}'.format(self.option('outfmt')))
+        if not 1 > self.option('evalue') >= 0:
+            raise OptionError('E-value值设定必须为[0-1)之间：{}'.format(self.option('evalue')))
+        if not 0 < self.option('num_alignment') < 1001:
+            raise OptionError('序列比对保留数必须设置在1-1000之间:{}'.format(self.option('num_alignment')))
+        if self.option('blast') not in self._blast_type[self.option('query_type')][self.option('reference_type')]:
+            raise OptionError(
+                '程序不试用于提供的查询序列和库的类型，请仔细检查，核酸比对核酸库只能使用blastn或者tblastn，\
+                 核酸比对蛋白库只能使用blastp， 蛋白比对蛋白库只能使用blastp, 或者没有提供blast参数')
         return True
 
     def set_resource(self):
-        """
-        设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
-        可以在其中编写复杂逻辑，比如通过判断输入文件大小来动态给出所需资源，使其尽量匹配实际情况
-        :return:
-        """
         self._cpu = 10
         self._memory = ''
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
-        ])
+            [".", "", "结果输出目录"],
+            ])
         result_dir.add_regexp_rules([
-            [r".*\.xml", "align.blast.blastxml", "Blast比对结果，XML格式"]
-        ])
+            [r".+_vs_.+\.xml", "xml", "blast比对输出结果，xml格式"],
+            [r".+_vs_.+\.xls", "xls", "blast比对输出结果，表格(制表符分隔)格式"],
+            [r".+_vs_.+\.txt", "txt", "blast比对输出结果，非xml和表格(制表符分隔)格式"],
+            [r".+_vs_.+\.txt_\d+\.xml", "xml", "Blast比对输出多xml结果，输出格式为14的单个比对结果文件,主结果文件在txt文件中"],
+            [r".+_vs_.+\.txt_\d+\.json", "json", "Blast比输出对多json结果，输出格式为13的单个比对结果文件,主结果文件在txt文件中"],
+            ])
+        # print self.get_upload_files()
         super(BlastAgent, self).end()
 
 
 class BlastTool(Tool):
-    def __init__(self, config):  # 注意 初始化Tool子类时是需要带参数的
-        super(BlastTool, self).__init__(config)  # 调用父类初始化
-        self._version = "2.2.31"  # 定义程序版本
-        self.db_path = os.path.join(self.config.SOFTWARE_DIR, "align/ncbi/db/")
-        self.cmd_path = "align/ncbi/blast-2.2.31+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
-        self.relation = {
-            "blastn": ["DNA", "DNA"],
-            "blastp": ["Protein", "Protein"],
-            "blastx": ["DNA", "Protein"],
-            "tblastn": ["Protein", "DNA"]
-        }
-        self.db_type = {
-            "nt": "DNA",
-            "nr": "Protein",
-            "strings": "Protein",
-            "go": "Protein",
-            "swissprot": "Protein",
-            "uniprot": "Protein",
-            "kegg": "Protein"
-        }
-
-    def get_blast_type(self):
-        """
-        根据输入文件及数据库类型获取blast类型名
-
-        :return: string blastn/ blastp/ blastx
-        """
-        input_type = self.option("query").prop['seq_type']
-        if self.option("customer_mode"):
-            blast_db_type = self.option("reference").prop['seq_type']
-        else:
-            blast_db_type = self.db_type[self.option("database").lower()]
-        for key, value in self.relation.items():
-            if input_type == value[0] and blast_db_type == value[1]:
-                return key
-        raise Exception("不支持此类型的序列比对: input:%s  reference: %s" % (input_type, blast_db_type))
+    def __init__(self, config):
+        super(BlastTool, self).__init__(config)
+        self._version = "2.3.0"
+        # self.db_path = os.path.join(self.config.SOFTWARE_DIR, "align/ncbi/db/")
+        self.db_path = '/mnt/ilustre/app/rna/database/blast/db'  # for test
+        self.cmd_path = "ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
 
     def run_makedb_and_blast(self):
         """
@@ -104,11 +110,13 @@ class BlastTool(Tool):
 
         :return:
         """
-        db_name = os.path.basename(self.option("reference").prop['path'])
+        db_name = os.path.splitext(os.path.basename(self.option("reference").prop['path']))[0]
         cmd = os.path.join(self.cmd_path, "makeblastdb")
-        seq_type = "nucl" if self.option("reference").prop['seq_type'] == "DNA" else "prot"
-        cmd += " -dbtype %s -in %s -parse_seqids -title %s -out %s " % (seq_type, self.option("reference").prop['path'], db_name, db_name)
-        self.logger.info("开始运行makeblastdb")
+        self.db_path = os.path.join(self.work_dir, 'customer_blastdb')
+        cmd += " -dbtype %s -in %s -parse_seqids -out %s " % (self.option('reference_type'),
+                                                              self.option("reference").prop['path'],
+                                                              os.path.join(self.db_path, db_name))
+        self.logger.info("开始运行makeblastdb，生成结果库文件放在工作目录的customer_blastdb下")
         makedb_obj = self.add_command("makeblastdb", cmd).run()
         self.wait(makedb_obj)
         if makedb_obj.return_code == 0:
@@ -124,26 +132,41 @@ class BlastTool(Tool):
         :param db_name: blastdb名称
         :return:
         """
-
-        cmd = os.path.join(self.cmd_path, self.get_blast_type())
-        outputfile = os.path.join(self.output_dir, os.path.basename(self.option("query").prop['path']) + "_vs_"
-                                  + db_name + ".xml")
-        cmd += " -query %s -db %s -out %s -evalue %s -outfmt 5 -max_hsps 10 -max_target_seqs 10 -num_threads %s" % (
-            self.option("query").prop['path'], db_name, outputfile, self.option("evalue"), self.option("num_threads"))
-        self.logger.info("开始运行blast")  # 尽量多给出提示，便于调试和阅读程序进度
-        blast_command = self.add_command("blast", cmd)   # 添加命令对象
-        if self.option("customer_mode"):
-            self.db_path = os.getcwd()
-        self.set_environ(BLASTDB=self.db_path)   # 设置运行命令所需的环境变量，对整个Tool运行时生效,每个Tool应该设置环境变量保证自身的运行
-        blast_command.run()   # 开始运行命令
-        self.wait()  # 等待命令结束
-        if blast_command.return_code == 0:  # 判断命令是否正常完成，需要根据命令实际情况编写 也可编写_check函数
-            self.logger.info("运行blast完成")
-            self.end()        # 设置Tool为正常完成状态，并将状态发送远程Agent
+        db = os.path.join(self.db_path, db_name)
+        query_name = os.path.splitext(os.path.basename(self.option("query").prop['path']))[0]
+        cmd = os.path.join(self.cmd_path, self.option('blast'))
+        outputfile = os.path.join(self.output_dir, query_name + "_vs_" + db_name)
+        outfmt = self.option('outfmt')
+        if self.option('outfmt') == 5:
+            outputfile += '.xml'
+        elif self.option('outfmt') == 6:
+            # outputfile += '.xls'
+            outputfile += '.xml'
+            outfmt = 5  # 为了保证table格式输出表头完全一致，输出为6时，选用5xml为输出结果，后面再通过统一的xml2table转换
         else:
-            self.set_error("blast运行出错!")  # 设置Tool为异常错误状态，并将状态发送远程Agent
-            # 也可获取错误类型，根据情况调整参数后重新运行命令，使命令正确完成
-            # 或者发送自定义State状态给远程Agent 由Module或Workflow中定义运行逻辑
+            outputfile += '.txt'
+        cmd += " -query %s -db %s -out %s -evalue %s -outfmt %s -max_hsps 10 -num_threads %s -max_target_seqs %s" % (
+            self.option("query").prop['path'], db, outputfile,
+            self.option("evalue"), outfmt, self.option("num_threads"), self.option('num_alignment'))
+        self.logger.info("开始运行blast")
+        blast_command = self.add_command("blast", cmd)
+        blast_command.run()
+        self.wait()
+        if blast_command.return_code == 0:
+            self.logger.info("运行blast完成")
+            if self.option('outfmt') == 6:
+                self.logger.info('程序输出结果为6(xml)，实际需要结果为5(xml)，开始调用程序xml2table转换')
+                from mbio.packages.align.blast.xml2table import xml2table
+                xml2table(outputfile, outputfile[:-3] + 'xls')
+                os.remove(outputfile)
+                self.logger.info('程序table格式转换完成，旧xml文件已移除')
+                self.option('outtable', outputfile[:-3] + 'xls')
+            elif self.option('outfmt') == 5:
+                self.logger.info(outputfile)
+                self.option('outxml', outputfile)
+            self.end()
+        else:
+            self.set_error("blast运行出错!")
 
     def run(self):
         """
@@ -151,8 +174,7 @@ class BlastTool(Tool):
         :return:
         """
         super(BlastTool, self).run()
-        if self.option("customer_mode"):
+        if self.option("database") == 'customer_mode':
             self.run_makedb_and_blast()
         else:
-            db_name = self.option("database")
-            self.run_blast(db_name)
+            self.run_blast(self.option("database"))
