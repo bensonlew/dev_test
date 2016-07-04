@@ -225,7 +225,7 @@ class Agent(Basic):
         self._run_time = datetime.datetime.now()
         super(Agent, self).run()
         configfile = self.save_config()
-        if self.parent.rpc:
+        if self.get_workflow().rpc:
             self.save_class_path()
             self.job = self._job_manager.add_job(self)
             self._status = "Q"
@@ -233,6 +233,7 @@ class Agent(Basic):
         else:
             self.fire('runstart')  # 即时运算直接触发runstart
             self._status = "R"
+            os.chdir(self.work_dir)
             self.tool = self._tool_object(configfile)
             gevent.spawn(self.tool.run)
 
@@ -302,7 +303,7 @@ class Agent(Basic):
         self._end_run_time = datetime.datetime.now()
         secends = (self._end_run_time - self._start_run_time).seconds
         self.logger.info("任务运行结束，运行时间:%ss" % secends)
-        if self.parent.rpc:
+        if self.get_workflow().rpc:
             self.job.set_end()
         self.end()
 
@@ -359,7 +360,7 @@ class Agent(Basic):
         """
         self._start_run_time = datetime.datetime.now()
         secends = (self._start_run_time - self._run_time).seconds
-        if self.parent.rpc:
+        if self.get_workflow().rpc:
             self.logger.info("远程任务开始运行，任务ID:%s,远程主机:%s,:排队时间%ss" % (self.job.id, data, secends))
         else:
             self.logger.info("即时运算开始时间:{}".format(self._start_run_time))

@@ -31,7 +31,7 @@ class Basic(object):
         self.task_name = ''  # 需要调用的workflow或者module或者tool的路径(目前只支持workflow)，如: meta.report.distance_calc
         self.task_type = ''  # 调用的类型workflow或者module或者tool
         self._task_object = None  # 用于存储调用的task对象
-        self.to_file = ''  # 使用to_file模块，同原有写法
+        self.to_file = []  # 使用to_file模块，同原有写法
         self.USE_DB = False  # 是否使用数据库， 不一定生效，与运行的workflow是否设置使用rpc有关
         self._sheet = None  # 存放Sheet对象
         self._mongo_ids = []  # 存放worflow返回的写入mongo表的信息，每条信息为一个字典，含有collection_name,id,desc三个字段

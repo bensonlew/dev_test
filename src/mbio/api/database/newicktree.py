@@ -29,7 +29,8 @@ class Newicktree(Base):
             if not isinstance(table_id, ObjectId) and table_id is not None:
                 table_id = ObjectId(table_id)
             if table_type == 'dist':
-                params['specimen_distance_id'] = str(table_id)    # specimen_distance_id在再metabase中不可用
+                if isinstance(params, dict):
+                    params['specimen_distance_id'] = str(table_id)    # specimen_distance_id在再metabase中不可用
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
