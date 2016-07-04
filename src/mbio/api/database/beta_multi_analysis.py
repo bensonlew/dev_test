@@ -96,7 +96,7 @@ class BetaMultiAnalysis(Base):
                 'task_id': task_id,
                 'otu_id': otu_id,
                 'level_id': int(level),
-                'name': analysis + '_' + name if name else 'origin',
+                'name': analysis + '_' + name if name else analysis + 'origin',
                 'table_type': analysis,
                 'env_id': env_id,
                 'group_id': group_id,
