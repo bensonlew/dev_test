@@ -57,7 +57,8 @@ class PairFastqToFastaTool(Tool):
     def __init__(self, config):
         super(PairFastqToFastaTool, self).__init__(config)
         self._version = "v1"
-        self.cmd = "Python/bin/"
+        self.cmd = "program/Anaconda2/bin/"
+        self.script = self.config.SOFTWARE_DIR + "/bioinfo/seq/scripts/"
 
     def run(self):
         """
@@ -73,8 +74,8 @@ class PairFastqToFastaTool(Tool):
         运行pair_fastq_to_fasta.py程序，将成对fastq文件转换成fasta文件
         """
         self.logger.info("开始运行pair_fastq_to_fasta命令")
-        cmd = self.cmd + "python /mnt/ilustre/users/sanger/app/meta/scripts/pair_fastq_to_fasta.py -f %s -r %s -o fasta -n %s -m " \
-                         "%s" % (self.option('fastq_input1').prop['path'], self.option('fastq_input2').prop['path'],
+        cmd = self.cmd + "python %spair_fastq_to_fasta.py -f %s -r %s -o fasta -n %s -m " \
+                         "%s" % (self.script, self.option('fastq_input1').prop['path'], self.option('fastq_input2').prop['path'],
                                  self.option('fq1_to_fasta_id'), self.option('fq2_to_fasta_id'))
         self.logger.info(cmd)
         pair_command = self.add_command("pair_fastq_to_fasta_cmd", cmd).run()

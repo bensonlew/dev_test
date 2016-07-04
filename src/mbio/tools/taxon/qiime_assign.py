@@ -99,14 +99,14 @@ class QiimeAssignTool(Tool):
     """
     def __init__(self, config):
         super(QiimeAssignTool, self).__init__(config)
-        self.train_taxon = os.path.join(self.config.SOFTWARE_DIR, "meta/rdp_classifier_2.11/train_taxon_by_RDP.py")
-        self.RDP_classifier = os.path.join(self.config.SOFTWARE_DIR, "meta/rdp_classifier_2.11/RDP_classifier.py")
+        self.train_taxon = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/taxon/rdp_classifier_2.11/train_taxon_by_RDP.py")
+        self.RDP_classifier = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/taxon/rdp_classifier_2.11/RDP_classifier.py")
 
     def run_prepare(self):
         if self.option('revcomp'):
             self.logger.info("revcomp 输入的fasta文件")
             try:
-                cmd = self.config.SOFTWARE_DIR + "/seqs/revcomp " + self.option('fasta').prop['path'] + " > seqs.fasta"
+                cmd = self.config.SOFTWARE_DIR + "/bioinfo/seq/fastx_toolkit_0.0.14/revcomp " + self.option('fasta').prop['path'] + " > seqs.fasta"
                 subprocess.check_output(cmd, shell=True)
                 self.logger.info("revcomp 输入的fasta文件 完成")
                 return True
@@ -127,7 +127,7 @@ class QiimeAssignTool(Tool):
             ref_tax = self.option('ref_taxon').prop['path']
             fasta_size = os.path.getsize(ref_fas) / 1024.00 / 1024.00 / 1024.00
             max_memory = QiimeAssignTool.max_memory_func(fasta_size)
-            cmd = '/Python/bin/python ' + self.train_taxon + ' -t ' + ref_tax + ' -s ' + ref_fas +\
+            cmd = '/program/Anaconda2/bin/python ' + self.train_taxon + ' -t ' + ref_tax + ' -s ' + ref_fas +\
                   ' -o ' + self.work_dir + '/RDP_trained' + ' -m ' + str(max_memory)
             trainer = self.add_command('train', cmd)
             self.logger.info('开始对自定义分类库文件进行RDP训练')
@@ -145,7 +145,7 @@ class QiimeAssignTool(Tool):
             prop_dir = 'RDP_trained_' + '_'.join(self.option('database').split('/'))
             prop_file = os.path.join(self.config.SOFTWARE_DIR, 'meta/taxon_db/train_RDP_taxon',
                                      prop_dir, 'Classifier.properties')
-        cmd = '/Python/bin/python ' + self.RDP_classifier + ' -p ' + prop_file + ' -q seqs.fasta' + ' -o '\
+        cmd = '/program/Anaconda2//bin/python ' + self.RDP_classifier + ' -p ' + prop_file + ' -q seqs.fasta' + ' -o '\
               + self.work_dir + '/seqs_taxon' + ' -c ' + str(self.option('confidence')) + ' -m ' + str(max_memory)
         classifier = self.add_command('classifiy', cmd)
         self.logger.info('开始进行序列分类')

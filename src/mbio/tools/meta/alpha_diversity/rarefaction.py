@@ -108,7 +108,7 @@ class RarefactionTool(Tool):
             otu_table = self.option("otu_table").get_table(self.option("level"))
         self.logger.info("转化otu_table({})为shared文件({})".format(otu_table, "otu.shared"))
         try:
-            subprocess.check_output(self.config.SOFTWARE_DIR+"/meta/scripts/otu2shared.pl "+" -i " +
+            subprocess.check_output(self.config.SOFTWARE_DIR+"/bioinfo/meta/scripts/otu2shared.pl "+" -i " +
                                     otu_table+" -l 0.97 -o "+self.option("level")+".shared", shell=True)
             self.logger.info("OK")
             return True
@@ -129,7 +129,7 @@ class RarefactionTool(Tool):
         """
         执行命令运行mothur程序，生成rarefaction结果文件
         """
-        cmd = '/meta/mothur.1.30 "#rarefaction.single(shared=%s.shared,calc=%s,groupmode=f,' \
+        cmd = '/bioinfo/meta/mothur-1.30 "#rarefaction.single(shared=%s.shared,calc=%s,groupmode=f,' \
               'freq=%s,processors=10)"' % (self.option("level"), self.indices, self.option('freq'))
         # print cmd
         self.logger.info("开始运行mothur")

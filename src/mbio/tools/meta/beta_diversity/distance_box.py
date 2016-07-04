@@ -90,7 +90,7 @@ class DistanceBoxTool(Tool):
     def __init__(self, config):
         super(DistanceBoxTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
-        self.cmd_path = 'Python/bin/make_distance_boxplots.py'
+        self.cmd_path = 'program/Anaconda2/bin/make_distance_boxplots.py'
         self.grouplab = self.option('grouplab') if self.option('grouplab') else self.option('group').prop['group_scheme'][0]
         self.dis_matrix = self.get_matrix()
 

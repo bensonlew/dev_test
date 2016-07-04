@@ -82,10 +82,10 @@ class OtuTaxonStatTool(Tool):
     def __init__(self, config):
         super(OtuTaxonStatTool, self).__init__(config)
         self._version = 1.0
-        self._biom_path = "Python/bin/biom"
-        self._make_otu_table_path = "Python/bin/make_otu_table.py"
-        self._summarize_taxa_path = "Python/bin/summarize_taxa.py"
-        self._sum_tax_path = os.path.join(Config().SOFTWARE_DIR, "meta/scripts/sum_tax.fix.pl")
+        self._biom_path = "program/Anaconda2/bin/biom"
+        self._make_otu_table_path = "program/Anaconda2/bin/make_otu_table.py"
+        self._summarize_taxa_path = "program/Anaconda2/bin/summarize_taxa.py"
+        self._sum_tax_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/taxon/scripts/sum_tax.fix.pl")
         self.otu_taxon_dir = os.path.join(self.work_dir, "output", "tax_summary_a")
 
     def get_biom_otu(self):

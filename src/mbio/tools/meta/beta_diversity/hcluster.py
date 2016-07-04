@@ -72,7 +72,7 @@ class HclusterTool(Tool):
         super(HclusterTool, self).__init__(config)
         self._version = 'v2.1-20140214'  # plot-hcluster_tree.pl版本
         self.cmd_path = os.path.join(
-            self.config.SOFTWARE_DIR, 'meta/scripts/beta_diversity/plot-hcluster_tree.pl')
+            self.config.SOFTWARE_DIR, 'bioinfo/statistical     /scripts/plot-hcluster_tree.pl')
 
     def run(self):
         """
@@ -102,7 +102,7 @@ class HclusterTool(Tool):
             self.set_error('无法生成 hc.cmd.r 文件')
         try:
             subprocess.check_output(self.config.SOFTWARE_DIR +
-                                    '/R-3.2.2/bin/R --restore --no-save < %s/hc.cmd.r' % self.work_dir, shell=True)
+                                    '/program/R-3.3.1/bin/R --restore --no-save < %s/hc.cmd.r' % self.work_dir, shell=True)
             self.logger.info('生成树文件成功')
         except subprocess.CalledProcessError:
             self.logger.info('生成树文件失败')

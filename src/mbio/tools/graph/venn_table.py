@@ -63,9 +63,9 @@ class VennTableTool(Tool):
     """
     def __init__(self, config):
         super(VennTableTool, self).__init__(config)
-        self.R_path = 'R-3.2.2/bin/'
-        self.venn_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
-        self.python_path = '/mnt/ilustre/users/sanger/app/Python/bin/'
+        self.R_path = '/program/R-3.3.1/bin/'
+        self.venn_path = self.config.SOFTWARE_DIR + '/bioinfo/plot/scripts/'
+        self.python_path = self.config.SOFTWARE_DIR + '/program/Anaconda2/bin/'
         print self.R_path
         self._version = 1.0
 

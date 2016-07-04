@@ -24,11 +24,11 @@ class FastqStatAgent(Agent):
         self.step.add_steps('fastxtoolkit')
         self.on('start', self.step_start)
         self.on('end', self.step_end)
-    
+
     def step_start(self):
         self.step.fastxtoolkit.start()
         self.step.update()
-    
+
     def step_end(self):
         self.step.fastxtoolkit.finish()
         self.step.update()
@@ -55,7 +55,7 @@ class FastqStatTool(Tool):
 
     def __init__(self, config):
         super(FastqStatTool, self).__init__(config)
-        self.fastxtoolkit_path = '/fastxtoolkit/'
+        self.fastxtoolkit_path = 'bioinfo/seq/fastxtoolkit/'
 
     def fastxtoolkit(self):
         """
