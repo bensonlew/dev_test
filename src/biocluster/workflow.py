@@ -31,6 +31,9 @@ class Workflow(Basic):
             self.debug = kwargs["debug"]
         else:
             self.debug = False
+        if hasattr(wsheet, 'USE_RPC'):
+            self.rpc = wsheet.USE_RPC
+        print wsheet.USE_RPC
         super(Workflow, self).__init__(**kwargs)
         self.sheet = wsheet
 
@@ -43,8 +46,10 @@ class Workflow(Basic):
         if hasattr(self, 'rpc'):
             if not self.rpc:
                 self.noRPC_signal = gevent.event.Event()
-            else:
-                self.rpc = True
+                self._return_mongo_ids = []
+                # 在非rpc模式下，需要返回写入mongo库的主表ids，用于更新sg_status表，值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
+        else:
+            self.rpc = True
         self.pause = False
         self._pause_time = None
         self.USE_DB = False
@@ -203,6 +208,16 @@ class Workflow(Basic):
             else:
                 self.noRPC_signal.wait()
 
+    @property
+    def return_mongo_ids(self):
+        return self._return_mongo_ids
+
+    def add_return_mongo_id(self, collection_name, table_id, desc=''):
+        return_dict = dict()
+        return_dict['id'] = table_id
+        return_dict['collection_name'] = collection_name
+        return_dict['desc'] = desc
+        self._return_mongo_ids.append(return_dict)
 
     def end(self):
         """
@@ -385,8 +400,8 @@ class Workflow(Basic):
                                 self.pause = False
                                 self._pause_time = None
                                 update_data = {
-                                        "continue_time": datetime.datetime.now(),
-                                        "has_continue": 1
+                                    "continue_time": datetime.datetime.now(),
+                                    "has_continue": 1
                                 }
                                 self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
                                 self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
