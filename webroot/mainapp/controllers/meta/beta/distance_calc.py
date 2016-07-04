@@ -2,7 +2,6 @@
 # __author__ = 'shenghe'
 import web
 import json
-from mainapp.libs.signature import check_sig
 from mainapp.controllers.project.meta_controller import MetaController
 
 

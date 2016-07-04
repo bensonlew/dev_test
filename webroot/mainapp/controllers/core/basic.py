@@ -17,18 +17,17 @@ from mbio.api.database.meta_update_status import MetaUpdateStatus  # 暂时使�
 class Basic(object):
     def __init__(self):
         self.db = Config().get_db()
-        self._mainTableId = ""
-        self._id = ""
+        self._mainTableId = ""  # 核心表在mongo的id，如otu表的id
+        self._id = ""  # 新的ID
         self.data = None  # web数据
         self._name = self.__get_min_name()  # 实例类名称
         self._taskId = ""
         self._projectSn = ""
         self._client = ""
         self._uploadTarget = ""  # 文件上传路径
-        self.logger = None
+        self.logger = None  # 必须在run开始后，logger为workflow的logger
         self._options = dict()
         self._uploadDirObj = list()
-        self._sgStatus = list()
         self.task_name = ''  # 需要调用的workflow或者module或者tool的路径(目前只支持workflow)，如: meta.report.distance_calc
         self.task_type = ''  # 调用的类型workflow或者module或者tool
         self._task_object = None  # 用于存储调用的task对象
@@ -94,6 +93,7 @@ class Basic(object):
         """
         self.create_sheet()
         self.get_task_object()
+        self.logger = self._task_object.logger
         self._task_object.run()
         self._mongo_ids = self._task_object.return_mongo_ids
         self.update_api = MetaUpdateStatus(self._task_object)

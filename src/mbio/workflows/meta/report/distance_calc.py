@@ -129,7 +129,11 @@ class DistanceCalcWorkflow(Workflow):
             'level_id': self.option('level'),
             'distance_algorithm': self.option('method')
             }
-        matrix_id = api_distance.add_dist_table(matrix_path, major=True, level=self.option('level'), otu_id=self.option('otu_id'), params=params_json)
+        matrix_id = api_distance.add_dist_table(matrix_path,
+                                                major=True,
+                                                level=self.option('level'),
+                                                otu_id=self.option('otu_id'),
+                                                params=params_json)
         self.add_return_mongo_id('sg_beta_specimen_distance', matrix_id)
         self.logger.info(str(matrix_id))
         self.logger.info('运行self.end')
