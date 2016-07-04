@@ -10,6 +10,7 @@ class SingleWorkflow(Workflow):
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
         self.task = ""
+        self.rpc = False
         super(SingleWorkflow, self).__init__(wsheet_object)
 
     def run(self):
@@ -18,6 +19,7 @@ class SingleWorkflow(Workflow):
             task = self.add_module(self._sheet.name)
         if self._sheet.type == "tool":
             task = self.add_tool(self._sheet.name)
+        super(SingleWorkflow, self).run()
         self.task = task
         if self.UPDATE_STATUS_API:
             task.UPDATE_STATUS_API = self.UPDATE_STATUS_API
@@ -30,7 +32,6 @@ class SingleWorkflow(Workflow):
         task.on('end', self.end)
         task.run()
         self.output_dir = task.output_dir
-        super(SingleWorkflow, self).run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.task.output_dir)

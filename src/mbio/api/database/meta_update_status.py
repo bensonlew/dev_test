@@ -21,12 +21,13 @@ class MetaUpdateStatus(Base):
             task_id = self.bind_object.sheet.id
         else:
             if params is not None:
-                raise Exception('提供的参数params必须为字典')
+                if not isinstance(params, dict):
+                    raise Exception('提供的参数params必须为字典')
         if isinstance(table_id, StringTypes):
             try:
                 table_id = ObjectId(table_id)
-            except InvalidId:
-                raise Exception('参数table_id不是mongo表ID类型')
+            except Exception as e:
+                raise Exception('参数table_id不是mongo表ID类型:{}'.format(e))
         elif isinstance(table_id, ObjectId):
             pass
         else:
@@ -62,6 +63,10 @@ class MetaUpdateStatus(Base):
             'params': json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, DictType) else params,
             "submit_location": submit_location,
             "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
+            }
         insert_data = SON(insert_data)
         return_id = collection.insert_one(insert_data).inserted_id
+        if return_id:
+            return return_id
+        else:
+            raise Exception('插入sg_status表出错')

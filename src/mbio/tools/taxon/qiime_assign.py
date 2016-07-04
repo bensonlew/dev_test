@@ -25,7 +25,7 @@ class QiimeAssignAgent(Agent):
         super(QiimeAssignAgent, self).__init__(parent)
         options = [
             {'name': 'fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 输入fasta文件
-            {'name': 'revcomp', 'type': 'bool'},  # 序列是否翻转
+            {'name': 'revcomp', 'type': 'bool', 'default': False},  # 序列是否翻转
             {'name': 'confidence', 'type': 'float', 'default': 0.7},  # 置信度值
             # {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
             {'name': 'database', 'type': 'string'},  # 数据库选择

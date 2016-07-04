@@ -14,7 +14,7 @@ class OtuAnalysisModule(Module):
         options = [
             {'name': 'fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 输入fasta文件，序列名称格式为'sampleID_seqID'.
             {'name': 'identity', 'type': 'float', 'default': 0.97},  # 相似性值，范围0-1.
-            {'name': 'revcomp', 'type': 'bool'},  # 序列是否翻转
+            {'name': 'revcomp', 'type': 'bool', 'default': False},  # 序列是否翻转
             {'name': 'confidence', 'type': 'float', 'default': 0.7},  # 置信度值
             {'name': 'database', 'type': 'string'},  # 数据库选择
             {'name': 'ref_fasta', 'type': 'infile', 'format': 'sequence.fasta'},  # 参考fasta序列
