@@ -10,7 +10,7 @@ from biocluster.config import Config
 from mbio.packages.meta.otu.pan_core_otu import pan_core
 
 
-class PanCoreOtuAgent(Agent):
+class PanCoreOtuTestAgent(Agent):
     """
     version 1.0
     author: xuting
@@ -19,7 +19,7 @@ class PanCoreOtuAgent(Agent):
     需要R软件包
     """
     def __init__(self, parent):
-        super(PanCoreOtuAgent, self).__init__(parent)
+        super(PanCoreOtuTestAgent, self).__init__(parent)
         options = [
             {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入的OTU文件
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表格
@@ -58,7 +58,7 @@ class PanCoreOtuAgent(Agent):
             [r"pan.richness.xls", "xls", "pan表格"],
             [r"core.richness.xls", "xls", "core表格"]
         ])
-        super(PanCoreOtuAgent, self).end()
+        super(PanCoreOtuTestAgent, self).end()
 
     def set_resource(self):
         """
@@ -68,10 +68,10 @@ class PanCoreOtuAgent(Agent):
         self._memory = ''
 
 
-class PanCoreOtuTool(Tool):
+class PanCoreOtuTestTool(Tool):
     def __init__(self, config):
-        super(PanCoreOtuTool, self).__init__(config)
-        self.R_path = os.path.join(Config().SOFTWARE_DIR, "R-3.2.2/bin/R")
+        super(PanCoreOtuTestTool, self).__init__(config)
+        self.R_path = "/usr/bin/R"
         self._version = 1.0
 
     def _create_pan_core(self):
@@ -103,14 +103,15 @@ class PanCoreOtuTool(Tool):
         try:
             pan_cmd = self.R_path + " --restore --no-save < " + pan_otu
             core_cmd = self.R_path + " --restore --no-save < " + core_otu
+            print pan_cmd
             subprocess.check_call(pan_cmd, shell=True)
             subprocess.check_call(core_cmd, shell=True)
             self.logger.info("表格生成完毕")
         except subprocess.CalledProcessError:
             self.logger.info("表格生成失败")
             raise Exception("运行R出错")
-        tmp_pan = os.path.join(os.path.dirname(self.option("in_otu_table").prop["path"]), "pan.richness.xls")
-        tmp_core = os.path.join(os.path.dirname(self.option("in_otu_table").prop["path"]), "core.richness.xls")
+        tmp_pan = os.path.join(self.work_dir, "../pan.richness.xls")
+        tmp_core = os.path.join(self.work_dir, "../core.richness.xls")
         pan_dir = os.path.join(self.work_dir, "output", "pan.richness.xls")
         core_dir = os.path.join(self.work_dir, "output", "core.richness.xls")
         if os.path.exists(pan_dir):
@@ -126,7 +127,7 @@ class PanCoreOtuTool(Tool):
         """
         运行
         """
-        super(PanCoreOtuTool, self).run()
+        super(PanCoreOtuTestTool, self).run()
         self._create_pan_core()
         self.logger.info("程序完成，即将退出")
         self.end()

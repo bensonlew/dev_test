@@ -5,6 +5,7 @@ import importlib
 import functools
 from biocluster.core.function import get_clsname_form_path
 import re
+import datetime
 from types import StringTypes
 
 
@@ -38,6 +39,24 @@ class Base(object):
         paths.pop(0)
         paths.pop(0)
         return ".".join(paths)
+
+    def addSgStatus(self, objId, dbName, desc=None):
+        collection = self.db[dbName]
+        tableName = collection.find_one({"_id": objId})["name"]
+        collection = self.db["sg_status"]
+        insertData = {
+            "table_id": objId,
+            "table_name": tableName,
+            "task_id": self.bind_object.taskId,
+            "type_name": dbName,
+            "status": "end",
+            "is_new": "new",
+            "desc": desc,
+            "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "params": self._params,
+            "submit_location": self.bind_object.data.submit_location
+        }
+        collection.insert_one(insertData)
 
 
 class ApiManager(object):

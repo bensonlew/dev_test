@@ -29,6 +29,7 @@ class Basic(object):
         self._options = dict()
         self._uploadDirObj = list()
         self.task_name = ''  # 需要调用的workflow或者module或者tool的路径(目前只支持workflow)，如: meta.report.distance_calc
+        self.params = ""  # 在controller里面设定，这个值会在后续中写到mongo的主表当中去
         self.task_type = ''  # 调用的类型workflow或者module或者tool
         self._task_object = None  # 用于存储调用的task对象
         self.to_file = []  # 使用to_file模块，同原有写法
@@ -38,6 +39,7 @@ class Basic(object):
         self.update_api = None  # 存放更新sg_status的方法
         info = {"success": False, "info": "程序非正常结束(默认错误返回信息)"}
         self.returnInfo = json.dumps(info)
+        self.IMPORT_REPORT_AFTER_END = False
 
     def POST(self):
         if self._taskId == "" or self._memberId == "" or self._projectSn == "":
@@ -62,10 +64,12 @@ class Basic(object):
             'project_sn': self.projectSn,
             'USE_DB': self.USE_DB,
             'IMPORT_REPORT_DATA': True,
+            'USE_RPC': False,
+            'params': self.params,
             'options': self.options  # 需要配置
-            }
+        }
         if self.to_file:  # 可以配置
-                sheet_data['to_file'] = self.to_file,
+                sheet_data['to_file'] = self.to_file
         if not self.uploadTarget:
             self._uploadTarget = self._createUploadTarget()
         self._sheet = Sheet(data=sheet_data)
@@ -140,7 +144,7 @@ class Basic(object):
             # "ip": web.ctx.ip,
             "addTime": datetime.datetime.now(),
             # "workdir": self._task_object.workdir
-            }
+        }
         iTask = InstantTask()
         iTask.AddRecord(insertData)
 
@@ -250,14 +254,14 @@ class Basic(object):
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                        })
+                    })
                 elif one['type'] == 'dir':
                     return_dirs.append({
                         "path": one["path"],
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                        })
+                    })
                 else:
                     raise Exception('错误的文件类型')
         return return_files, return_dirs
