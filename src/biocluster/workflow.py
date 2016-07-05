@@ -111,6 +111,7 @@ class Workflow(Basic):
             else:
                 to_files = data
             for opt in to_files:
+                self.logger.info(opt)
                 m = re.match(r"([_\w\.]+)\((.*)\)", opt)
                 if m:
                     func_path = m.group(1)

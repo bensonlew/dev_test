@@ -16,9 +16,9 @@ class StatTest(Base):
         self._db_name = "sanger"
 
     @report_check
-    def add_species_difference_check_detail(self, file_path, level=None, check_type=None, params=None, table_id=None, group_id=None, from_otu_table=None, name=None, major=False):
+    def add_species_difference_check_detail(self, file_path, level=None, check_type=None, params=None, table_id=None, group_id=None, from_otu_table=None, major=False):
         if major:
-            table_id = self.create_species_difference_check(level, check_type, params, group_id,  from_otu_table, name)
+            table_id = self.create_species_difference_check(level, check_type, params, group_id,  from_otu_table)
         else:
             if table_id is None:
                 raise Exception("major为False时需提供table_id!")
@@ -56,11 +56,12 @@ class StatTest(Base):
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
-    
+        return table_id
+
     @report_check
-    def add_twosample_species_difference_check_detail(self, file_path, level=None, check_type=None, params=None, table_id=None, group_id=None, from_otu_table=None, name=None, major=False):
+    def add_twosample_species_difference_check_detail(self, file_path, level=None, check_type=None, params=None, table_id=None, group_id=None, from_otu_table=None, major=False):
         if major:
-            table_id = self.create_species_difference_check(level, check_type, params, group_id,  from_otu_table, name)
+            table_id = self.create_species_difference_check(level, check_type, params, group_id,  from_otu_table)
         else:
             if table_id is None:
                 raise Exception("major为False时需提供table_id!")
@@ -100,6 +101,7 @@ class StatTest(Base):
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
+        return table_id
 
     @report_check
     def add_species_difference_check_boxplot(self, file_path, table_id):
@@ -204,9 +206,9 @@ class StatTest(Base):
         return data_list
 
     @report_check
-    def add_species_difference_lefse_detail(self, file_path, params=None, group_id=None,  from_otu_table=None, name=None, table_id=None, major=False):
+    def add_species_difference_lefse_detail(self, file_path, params=None, group_id=None, from_otu_table=None, table_id=None, major=False):
         if major:
-            table_id = self.create_species_difference_lefse(params, group_id, from_otu_table, name)
+            table_id = self.create_species_difference_lefse(params, group_id, from_otu_table)
         else:
             if table_id is None:
                 raise Exception("major为False时需提供table_id!")
@@ -236,7 +238,7 @@ class StatTest(Base):
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
-        return data_list
+        return data_list, table_id
 
     @report_check
     def update_species_difference_lefse(self, lda_png_path, lda_cladogram_path, table_id):
@@ -255,7 +257,7 @@ class StatTest(Base):
             else:
                 self.bind_object.logger.info("导入%s和%s信息成功!" % (lda_png_path, lda_cladogram_path))
 
-    def create_species_difference_check(self, level, check_type, params, group_id=None,  from_otu_table=None, name=None):
+    def create_species_difference_check(self, level, check_type, params, group_id=None,  from_otu_table=None):
         if from_otu_table is not None and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -275,7 +277,7 @@ class StatTest(Base):
                 "type": check_type,
                 "project_sn": project_sn,
                 "task_id": task_id,
-                "name": name if name else "组间差异统计表格",
+                "name": "difference_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
                 "level_id": int(level),
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -287,7 +289,7 @@ class StatTest(Base):
                 "task_id": task_id,
                 "otu_id": from_otu_table,
                 "group_id": group_id,
-                "name": name if name else "组间差异统计表格",
+                "name": "difference_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
                 "level_id": int(level),
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -296,7 +298,7 @@ class StatTest(Base):
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 
-    def create_species_difference_lefse(self, params, group_id=None,  from_otu_table=None, name=None):
+    def create_species_difference_lefse(self, params, group_id=None,  from_otu_table=None):
         if from_otu_table is not None and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -316,7 +318,7 @@ class StatTest(Base):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "lefse分析LDA值表",
+            "name": "lefse_lda_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             "params": params,
             "lda_cladogram_id": "",
             "lda_png_id": "",
@@ -337,7 +339,7 @@ class StatTest(Base):
         #     self.bind_object.logger.error("导入%s信息出错:%s" % (errorbar_path, e))
         # else:
         #     self.bind_object.logger.info("导入%s信息成功!" % (errorbar_path))
-        
+
         # to plot ci error bar
         with open(statfile,'rb') as s, open(cifile, 'rb') as c:
             sinfo = s.readlines()
@@ -369,5 +371,4 @@ class StatTest(Base):
             else:
                 n = round(max_ci / max_mean)
             l = round(abs(min_low/n) + max_mean + 3)
-            collection.update({"_id": ObjectId(table_id)}, {"$set": {"n": n, "l": l}})       
-
+            collection.update({"_id": ObjectId(table_id)}, {"$set": {"n": n, "l": l}})
