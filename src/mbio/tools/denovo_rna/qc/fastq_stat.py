@@ -17,7 +17,7 @@ class FastqStatAgent(Agent):
     def __init__(self, parent):
         super(FastqStatAgent, self).__init__(parent)
         options = [
-            {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"},  # fastq文件夹
+            {"name": "fastq", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"}
         ]
         self.add_option(options)
@@ -63,6 +63,7 @@ class FastqStatTool(Tool):
     def __init__(self, config):
         super(FastqStatTool, self).__init__(config)
         self.FastqStat_path = "/mnt/ilustre/users/sanger/app/rna/scripts/fastqstat.jar"
+        self.fastq_name = self.option("fastq").prop["path"].split("/")[-1]
 
     def fastq_stat(self):
         self.get_list_file()
@@ -80,31 +81,35 @@ class FastqStatTool(Tool):
             return False
 
     def get_list_file(self):
-        sample_file = {}
-        fq_dir = self.option("fastq_dir").prop["path"]
-        list_info = os.path.join(fq_dir, "list.txt")
-        with open(list_info, "rb") as l, open("fq_list_for_FastqStat", "wb") as w:
-            for line in l:
-                line = line.strip().split()
-                if line[1] not in sample_file:
-                    sample_file[line[1]] = [line[0]]
-                else:
-                    sample_file[line[1]].append(line[0])
-            self.logger.info(sample_file)
-            for i in sample_file:
-                # print os.path.join(fq_dir, sample_file[i][0])
-                if len(sample_file[i]) == 2:
-                    w.write("{}\t{}\t{}\n".format(i, os.path.join(fq_dir, sample_file[i][0]), os.path.join(fq_dir, sample_file[i][1])))
-                elif len(sample_file[i]) == 1:
-                    w.write("{}\t{}\n".format(i, os.path.join(fq_dir, sample_file[i][0])))
+        if self.option("fastq").format == "sequence.fastq":
+            with open("fq_list_for_FastqStat", "wb") as w:
+                w.write("{}\t{}".format(self.fastq_name, self.option("fastq").prop["path"]))
+        elif self.option("fastq").format == "sequence.fastq_dir":
+            sample_file = {}
+            fq_dir = self.option("fastq").prop["path"]
+            list_info = os.path.join(fq_dir, "list.txt")
+            with open(list_info, "rb") as l, open("fq_list_for_FastqStat", "wb") as w:
+                for line in l:
+                    line = line.strip().split()
+                    if line[1] not in sample_file:
+                        sample_file[line[1]] = [line[0]]
+                    else:
+                        sample_file[line[1]].append(line[0])
+                self.logger.info(sample_file)
+                for i in sample_file:
+                    # print os.path.join(fq_dir, sample_file[i][0])
+                    if len(sample_file[i]) == 2:
+                        w.write("{}\t{}\t{}\n".format(i, os.path.join(fq_dir, sample_file[i][0]), os.path.join(fq_dir, sample_file[i][1])))
+                    elif len(sample_file[i]) == 1:
+                        w.write("{}\t{}\n".format(i, os.path.join(fq_dir, sample_file[i][0])))
 
     def set_output(self):
         self.logger.info("set output")
         os.system('rm -rf '+self.output_dir)
         os.system('mkdir '+self.output_dir)
-        os.link(self.work_dir+'/fastqstat.o', self.output_dir+'/fastq_stat.xls')
-        os.system("sed -i '1d' ./output/fastq_stat.xls")
-        os.system("sed -i '$d' ./output/fastq_stat.xls")
+        os.link(self.work_dir+'/fastqstat.o', self.output_dir+'/{}_fastq_stat.xls'.format(self.fastq_name))
+        os.system("sed -i '1d' {}".format(self.output_dir+'/{}_fastq_stat.xls'.format(self.fastq_name)))
+        os.system("sed -i '$d' {}".format(self.output_dir+'/{}_fastq_stat.xls'.format(self.fastq_name)))
         self.logger.info("done")
         self.end()
 
@@ -114,4 +119,4 @@ class FastqStatTool(Tool):
         """
         super(FastqStatTool, self).run()
         self.fastq_stat()
-        self.set_output()
+        # self.set_output()

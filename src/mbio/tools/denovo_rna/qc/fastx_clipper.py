@@ -20,6 +20,7 @@ class FastxClipperAgent(Agent):
             {"name": "fastq_s", "type": "infile", "format": "sequence.fastq"},  # 输入文件SE序列
             {"name": "clip_s", "type": "outfile", "format": "sequence.fastq"},  # SE去接头输出结果
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
+            {"name": "fastq_s_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # fastq文件夹
             {"name": "length", "type": "int", "default": 30},
             {"name": "adapter", "type": "string", "default": 'AGATCGGAAGAGCACACGTC'}
         ]
@@ -93,7 +94,7 @@ class FastxClipperTool(Tool):
         return commands
 
     def write_list(self):
-        fq_list = os.path.join(self.option("fastq_dir"), "list.txt")
+        fq_list = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
         output_list = os.path.join(self.output_dir, "list.txt")
         output_files = os.listdir(self.output_dir)
         with open(fq_list, "rb") as f, open(output_list, "wb") as w:
@@ -103,8 +104,8 @@ class FastxClipperTool(Tool):
                 for f in output_files:
                     if line[0] in f:
                         write_line = "{}\t{}\n".format(f, line[1])
-            self.logger.info(write_line)
-            w.write(write_line)
+                self.logger.info(write_line)
+                w.write(write_line)
 
     def set_output(self):
         """
@@ -132,9 +133,9 @@ class FastxClipperTool(Tool):
             self.wait()
             for cmd in commands:
                 if cmd.return_code == 0:
-                    self.logger.info("运行fastx_clipper完成")
+                    self.logger.info("运行{}完成".format(cmd.name))
                 else:
-                    self.set_error("运行fastx_clipper运行出错!")
+                    self.set_error("运行{}运行出错!".format(cmd.name))
                     return False
             self.set_output()
             self.write_list()

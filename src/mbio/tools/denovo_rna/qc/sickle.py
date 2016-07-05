@@ -54,12 +54,14 @@ class SickleAgent(Agent):
             raise OptionError("请传入fastq序列文件或者文件夹")
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError("请说明序列类型，PE or SE?")
-        if self.option('fq_type') in ["PE"] and not self.option("fastq_r").is_set:
-            raise OptionError("请传入PE右端序列文件")
-        if self.option('fq_type') in ["PE"] and not self.option("fastq_l").is_set:
-            raise OptionError("请传入PE左端序列文件")
-        if self.option('fq_type') in ["SE"] and not self.option("fastq_s").is_set:
-            raise OptionError("请传入SE序列文件")
+        if not self.option("fastq_dir").is_set and self.option('fq_type') in ["PE"]:
+            if not self.option("fastq_r").is_set:
+                raise OptionError("请传入PE右端序列文件")
+            if not self.option("fastq_l").is_set:
+                raise OptionError("请传入PE左端序列文件")
+        if not self.option("fastq_dir").is_set:
+            if self.option('fq_type') in ["SE"] and not self.option("fastq_s").is_set:
+                raise OptionError("请传入SE序列文件")
 
     def set_resource(self):
         """
@@ -119,10 +121,10 @@ class SickleTool(Tool):
                            '{}_sickle_un'.format(sample), self.option('qual_type'), self.option('quality'),
                            self.option('length'), self.truncate_n)
                 self.logger.info(cmd)
-                self.logger.info("开始运行sickle_{}".format(sample))
-                command = self.add_command("sickle_{}".format(sample), cmd)
+                self.logger.info("开始运行sickle_{}".format(sample.lower()))
+                command = self.add_command("sickle_{}".format(sample.lower()), cmd)
                 command.run()
-                commands.append(cmd)
+                commands.append(command)
         elif self.option("fq_type") in ["SE"]:
             for sample in samples:
                 fq_s_path = os.path.join(fq_dir, samples[sample])
@@ -131,7 +133,7 @@ class SickleTool(Tool):
                            self.option('quality'), self.option('length'), self.truncate_n)
                 self.logger.info(cmd)
                 self.logger.info("开始运行sickle")
-                command = self.add_command("sickle_{}".format(sample), cmd)
+                command = self.add_command("sickle_{}".format(sample.lower()), cmd)
                 command.run()
         return commands
 
@@ -186,10 +188,11 @@ class SickleTool(Tool):
             self.wait()
             for cmd in commands:
                 if cmd.return_code == 0:
-                    self.logger.info("运行sickle完成")
+                    self.logger.info("运行{}完成".format(cmd.name))
                 else:
-                    self.set_error("运行sickle运行出错!")
+                    self.set_error("运行{}运行出错!".format(cmd.name))
                     return False
         else:
             self.sickle()
+        self.set_output()
         self.end()

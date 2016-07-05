@@ -101,11 +101,11 @@ class SeqPrepTool(Tool):
                 format(fq_l_path, fq_r_path, '{}_seqprep_l.gz'.format(sample), '{}_seqprep_r.gz'.format(sample),
                        self.option('quality'), self.option('length'), self.option("adapter_a"), self.option("adapter_b"))
             self.logger.info(cmd)
-            self.logger.info("开始运行seqprep")
+            self.logger.info("开始运行seqprep_{}".format(sample.lower()))
             command = self.add_command("seqprep_{}".format(sample.lower()), cmd)
             command.run()
             commands.append(command)
-            self.logger.info(commands)
+            # self.logger.info(commands)
         return commands
 
     def get_list(self):
@@ -120,7 +120,7 @@ class SeqPrepTool(Tool):
             for line in l:
                 line = line.strip().split()
                 if len(line) == 3:
-                    write_line = "{}\t{}\t{}\n".format(line[1] + "_seqprep_" + line[2], line[1], line[2])
+                    write_line = "{}\t{}\t{}\n".format(line[1] + "_seqprep_" + line[2] + ".gz", line[1], line[2])
                     w.write(write_line)
                     if line[1] not in sample:
                         sample[line[1]] = {line[2]: line[0]}
@@ -159,9 +159,9 @@ class SeqPrepTool(Tool):
             for cmd in commands:
                 self.logger.info(cmd)
                 if cmd.return_code == 0:
-                    self.logger.info("运行{}完成".format(cmd))
+                    self.logger.info("运行{}完成".format(cmd.name))
                 else:
-                    self.set_error("运行{}运行出错!".format(cmd))
+                    self.set_error("运行{}运行出错!".format(cmd.name))
                     return False
             self.set_output()
         else:

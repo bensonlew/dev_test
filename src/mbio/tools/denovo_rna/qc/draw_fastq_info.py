@@ -70,7 +70,7 @@ class DrawFastqInfoTool(Tool):
         fastq_name = fastq_name.lower()
         cmd = self.fastxtoolkit_path + 'fastx_quality_stats -i {} -o {}'.format(fastq, outfile)
         self.logger.info(cmd)
-        self.logger.info("开始运行fastx_quality_stats")
+        self.logger.info("开始运行{}_quality_stats".format(fastq_name))
         command = self.add_command("{}_quality_stats".format(fastq_name), cmd)
         command.run()
         return command
@@ -83,8 +83,9 @@ class DrawFastqInfoTool(Tool):
                 pass
             else:
                 file_path = os.path.join(file_dir, f)
-                command = self.fastq_quality_stats(file_path, f + "_qual_stat")
+                command = self.fastq_quality_stats(file_path, f.lower() + "_qual_stat")
                 commands.append(command)
+                # commands[f + "_qual_stat"] = command
         return commands
 
     def set_output(self):
@@ -94,9 +95,9 @@ class DrawFastqInfoTool(Tool):
         self.logger.info("set output")
         file_path = glob.glob(r"*qual_stat*")
         print(file_path)
-        for f in file_path:
-            fastq_qual_stat(f)
-        file_path = glob.glob(r"*qual_stat*")
+        # for f in file_path:
+        #     fastq_qual_stat(f)
+        # file_path = glob.glob(r"*qual_stat*")
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)
             if os.path.exists(output_dir):
@@ -128,11 +129,15 @@ class DrawFastqInfoTool(Tool):
             commands = self.multi_fastq_quality_stats()
             self.wait()
             for cmd in commands:
-                self.logger.info(cmd)
+                # self.logger.info(cmd.name)
                 if cmd.return_code == 0:
-                    self.logger.info("运行{}完成")
+                    # self.logger.info("运行完成")
+                    self.logger.info("运行{}完成".format(cmd.name))
+                    self.logger.info(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
+                    fastq_qual_stat(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
                 else:
-                    self.set_error("运行{}运行出错!")
+                    # self.logger.info("运行出错")
+                    self.set_error("运行{}出错!".format(cmd.name))
                     return False
         self.set_output()
         self.end()

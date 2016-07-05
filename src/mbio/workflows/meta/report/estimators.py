@@ -12,14 +12,16 @@ class EstimatorsWorkflow(Workflow):
 
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
+        self.rpc = False
         super(EstimatorsWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name": "otu_table", "type": "infile", 'format': "meta.otu.otu_table"},  # 输入的OTU id
+            {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},  # 输入的OTU id
             {"name": "otu_id", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "indices", "type": "string"},
             {"name": "level", "type": "int"},
-            {"name": "est_id", "type": "string"}
+            {"name": "est_id", "type": "string"},
+            {"name": "submit_location", "type": "string"}
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -27,7 +29,7 @@ class EstimatorsWorkflow(Workflow):
 
     def run(self):
         options = {
-            'otu_table': self.option('otu_table'),
+            'otu_table': self.option('otu_file'),
             'indices': self.option('indices')
             }
         # print(self.option('indices'))
@@ -45,10 +47,25 @@ class EstimatorsWorkflow(Workflow):
         est_path = self.output_dir+"/estimators.xls"
         if not os.path.isfile(est_path):
             raise Exception("找不到报告文件:{}".format(est_path))
+        sort_index = self.option('indices').split(',')
+        sort_index.sort()
+        sort_index = ','.join(sort_index)
+        params_json = {
+            'otu_id': self.option('otu_id'),
+            'level_id': self.option('level'),
+            'indices': sort_index,
+            "submit_location":self.option("submit_location")
+            }
+        est_id = api_estimators.add_est_table(est_path, major=True, level=self.option('level'),
+                                              otu_id=self.option('otu_id'), params=params_json)
+        self.add_return_mongo_id('sg_alpha_diversity', est_id)
+        self.end()
+
+    def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             # [".", "", "结果输出目录"],
             ["./estimators.xls", "xls", "alpha多样性指数表"]
         ])
-        api_estimators.add_est_table(est_path, self.option('level'), est_id=self.option('est_id'))
-        self.end()
+        # print self.get_upload_files()
+        super(EstimatorsWorkflow, self).end()
