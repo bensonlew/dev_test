@@ -17,6 +17,7 @@ def group_detail(groupfile):
             group_num[gname] = gnames.count(gname)
         return group_num
 
+
 def stat_info(statfile, groupfile):
     group_num_dict = group_detail(groupfile)
     with open(statfile, 'r') as s:
@@ -41,6 +42,7 @@ def stat_info(statfile, groupfile):
                         mean_dict[gname].append(float(sline_list[index_site].strip('\"')))
                         sd_dict[gname].append(float(sline_list[index_site + 1].strip('\"')))
         return mean_dict, sd_dict, taxon_list
+
 
 def student(statfile, groupfile, coverage):
     """
@@ -71,6 +73,7 @@ def student(statfile, groupfile, coverage):
             lowerCI = dp - tCritical*denom
             upperCI = dp + tCritical*denom
             w.write('%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % (dp), '%0.4g' % (lowerCI), '%0.4g' % (upperCI)))
+
 
 def welch(statfile, groupfile, coverage):
     (mean_dict, sd_dict, taxon_list) = stat_info(statfile, groupfile)

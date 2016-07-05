@@ -10,7 +10,7 @@ from biocluster.config import Config
 class PanCoreInstant(object):
     def __init__(self, bindObject):
         self.logger = bindObject.logger
-        self.options = bindObject.options
+        self.option = bindObject.option
         self.work_dir = bindObject.work_dir
         self.R_path = os.path.join(Config().SOFTWARE_DIR, "R-3.2.2/bin/R")
         self._version = 1.0
@@ -23,12 +23,12 @@ class PanCoreInstant(object):
         用脚本pan_core_otu.py,生成pan_otu表格
         """
         self.logger.info("开始生成R脚本")
-        if self.options["groupPath"] == "":
-            panOtu = pan_core(self.options["otuPath"], "pan")
-            coreOtu = pan_core(self.options["otuPath"], "core")
+        if self.option["groupPath"] == "":
+            panOtu = pan_core(self.option["otuPath"], "pan")
+            coreOtu = pan_core(self.option["otuPath"], "core")
         else:
-            panOtu = pan_core(self.options["otuPath"], "pan", self.options['groupPath'])
-            coreOtu = pan_core(self.options["otuPath"], "core", self.options['groupPath'])
+            panOtu = pan_core(self.option["otuPath"], "pan", self.option['groupPath'])
+            coreOtu = pan_core(self.option["otuPath"], "core", self.option['groupPath'])
         print panOtu
         self.logger.info("R脚本生成完毕")
         self.logger.info("开始运行R,生成表格文件")

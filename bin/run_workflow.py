@@ -29,8 +29,8 @@ group.add_argument("-r", "--rerun_id", help="input a workflow id in database and
 # parser.add_argument("-c", "--record", choices=["Y", "N"], default="Y", help="record run logs in database")
 parser.add_argument("-b", "--daemon", action="store_true", help="run a workflow in daemon background mode")
 logfile = os.getcwd() + "/log.txt"
-parser.add_argument("-l", "--log", default=logfile,  help="write a log file,lose efficacy when use service mode,"
-                                                          "in service mode,use the config in main.conf file!")
+parser.add_argument("-l", "--log", default=logfile, help="write a log file,lose efficacy when use service mode,"
+                    "in service mode,use the config in main.conf file!")
 args = parser.parse_args()
 
 
@@ -323,19 +323,13 @@ class WorkJob(object):
         else:
             path = "single"
         workflow = None
-        write_log("flag1")
         try:
-            write_log("flag2")
             wf = load_class_by_path(path, "Workflow")
-            write_log("flag3")
             wsheet = Sheet(data=json_data)
-            write_log("flag4")
             write_log(path)
             workflow = wf(wsheet)
             file_path = os.path.join(workflow.work_dir, "data.json")
-            write_log("flag5")
             with open(file_path, "w") as f:
-                write_log("flag6")
                 write_log(file_path)
                 json.dump(json_data, f, indent=4)
             workflow.run()
@@ -401,4 +395,3 @@ class WorkJob(object):
 
 if __name__ == "__main__":
     main()
-

@@ -33,6 +33,7 @@ class GroupStat(object):
                 "type": check_type,
                 "project_sn": project_sn,
                 "task_id": task_id,
+                "otu_id": from_otu_table,
                 "name": name if name else "组间差异统计表格",
                 "level_id": int(level),
                 "params": params,

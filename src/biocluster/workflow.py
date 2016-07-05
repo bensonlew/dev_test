@@ -31,6 +31,9 @@ class Workflow(Basic):
             self.debug = kwargs["debug"]
         else:
             self.debug = False
+        if hasattr(wsheet, 'USE_RPC'):
+            self.rpc = wsheet.USE_RPC
+        print wsheet.USE_RPC
         super(Workflow, self).__init__(**kwargs)
         self.sheet = wsheet
 
@@ -111,6 +114,7 @@ class Workflow(Basic):
             else:
                 to_files = data
             for opt in to_files:
+                self.logger.info(opt)
                 m = re.match(r"([_\w\.]+)\((.*)\)", opt)
                 if m:
                     func_path = m.group(1)
@@ -397,8 +401,8 @@ class Workflow(Basic):
                                 self.pause = False
                                 self._pause_time = None
                                 update_data = {
-                                        "continue_time": datetime.datetime.now(),
-                                        "has_continue": 1
+                                    "continue_time": datetime.datetime.now(),
+                                    "has_continue": 1
                                 }
                                 self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
                                 self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",

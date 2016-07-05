@@ -1,85 +1,41 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import web
-import os
-import datetime
+import json
+import re
 from mainapp.controllers.project.meta_controller import MetaController
-from mbio.instant.to_files.export_file import export_otu_table_by_level, export_group_table
-from mbio.files.meta.otu.otu_table import OtuTableFile
-from mbio.files.meta.otu.group_table import GroupTableFile
+from mainapp.libs.param_pack import param_pack
 
 
 class PanCore(MetaController):
-    def __init__(self):
-        super(PanCore, self).__init__()
-
     def POST(self):
-        myReturn = super(PanCore, self).POST()
-        if myReturn:
-            return myReturn
+        return_info = super(PanCore, self).POST()
+        if return_info:
+            return return_info
         data = web.input()
-        options = {
-            "otuPath": os.path.join(self.work_dir, "otuTable.xls"),
-            "groupPath": os.path.join(self.work_dir, "groupTable.xls"),
-            "level": data.level_id,
-            "groupId": data.group_id,
-            "otuId": data.otu_id
+        postArgs = ['group_id', 'level_id', 'submit_location']
+        for arg in postArgs:
+            if not hasattr(data, arg):
+                info = {'success': False, 'info': '%s参数缺少!' % arg}
+                return json.dumps(info)
+        self.task_name = 'meta.report.pan_core'
+        self.options = {
+            "in_otu_table": data.otu_id,
+            "group_table": data.group_id,
+            "category_name": data.category_name,
+            "level": int(data.level_id)
         }
-        self.setOptions(options)
-        self.create_files()
-        num_lines = sum(1 for line in open(self.options["otuPath"]))
-        if num_lines < 11:
-            info = {"success": False, "info": "Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！"}
-            return info
-        self.importInstant("meta")
+        self.to_file = ["meta.export_otu_table_by_level(in_otu_table)", "meta.export_group_table(group_table)"]
+        my_param = dict()
+        my_param['otu_id'] = data.otu_id
+        my_param['level_id'] = data.level_id
+        my_param['group_id'] = data.group_id
+        c_name = re.split(',', data.category_name)
+        c_name.sort()
+        new_cname = ','.join(c_name)
+        my_param['category_name'] = new_cname
+        my_param["submit_location"] = data.submit_location
+        my_param["taskType"] = "reportTask"
+        self.params = param_pack(my_param)
         self.run()
         return self.returnInfo
-
-    def run(self):
-        super(PanCore, self).run()
-        self.addMongo()
-        self.end()
-
-    def addMongo(self):
-        """
-        调入相关的mongo表，包括基本表和detail表
-        """
-        apiPanCore = self.api.api("meta.pan_core")
-        name1 = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        name2 = "core_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        panId = apiPanCore.CreatePanCoreTable(1, name1)
-        coreId = apiPanCore.CreatePanCoreTable(2, name2)
-        panPath = os.path.join(self.work_dir, "output", "pan.richness.xls")
-        corePath = os.path.join(self.work_dir, "output", "core.richness.xls")
-        apiPanCore.AddPanCoreDetail(panPath, panId)
-        apiPanCore.AddPanCoreDetail(corePath, coreId)
-        self.appendSgStatus(apiPanCore, panId, "sg_otu_pan_core", "")
-        self.appendSgStatus(apiPanCore, coreId, "sg_otu_pan_core", "")
-        self.logger.info("Mongo数据库导入完成")
-
-    def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-            ["core.richness.xls", "xls", "core 表格"],
-            ["pan.richness.xls", "xls", "pan 表格"]
-        ])
-        self.uploadFiles("pan_core")
-        super(PanCore, self).end()
-
-    def create_files(self):
-        """
-        生成文件
-        """
-        otuPath = export_otu_table_by_level(self.options["otuId"], self.options["otuPath"], self.options["level"])
-        otuFile = OtuTableFile()
-        otuFile.set_path(otuPath)
-        otuFile.get_info()
-        otuFile.check()
-        groupPath = export_group_table(self.options["groupId"], self.data.category_name, self.options["groupPath"])
-        groupFile = GroupTableFile()
-        groupFile.set_path(groupPath)
-        groupFile.get_info()
-        groupFile.check()
-        if groupFile.prop["is_empty"]:
-            self.options["groupPath"] = ""
