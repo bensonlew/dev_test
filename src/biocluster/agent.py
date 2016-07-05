@@ -12,8 +12,9 @@ from .scheduling.job import JobManager
 from .core.function import get_classpath_by_object, load_class_by_path
 import datetime
 import types
-import threading
 import gevent
+from .logger import Wlog
+import logging
 
 
 class PickleConfig(object):
@@ -247,10 +248,20 @@ class Agent(Basic):
         real_agent_path = real_agent_path.split('.')
         real_agent_path.pop(0)
         real_agent_path.pop(0)
-        tool = load_class_by_path('.'.join(real_agent_path), tp="Tool")(config)
-        tool._agent = self
-        return tool
+        self._tool = load_class_by_path('.'.join(real_agent_path), tp="Tool")(config)
+        self._tool._agent = self
+        self._add_instant_tool_logger()
+        return self._tool
 
+    def _add_instant_tool_logger(self):
+        """添加即时模块tool的文件输出(因为tool在agent中直接实例化时logger对象为单例模式)"""
+        logger = Wlog(self)  # 获取此处的logger的设置
+        self._tool.logger.removeHandler(logger.file_handler)  # 去除原有的workflow初始化的logger
+        log_path = self.work_dir + '/' + 'log.txt'
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setLevel(logger.level)
+        file_handler.setFormatter(logger.formatter)
+        self._tool.logger.addHandler(file_handler)
 
     def rerun(self):
         """
