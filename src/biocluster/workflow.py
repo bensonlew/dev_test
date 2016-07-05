@@ -14,7 +14,7 @@ from .module import Module
 import datetime
 import gevent
 import time
-# from biocluster.api.file.remote import RemoteFileManager
+from biocluster.api.file.remote import RemoteFileManager
 import re
 import importlib
 import types
@@ -31,20 +31,26 @@ class Workflow(Basic):
             self.debug = kwargs["debug"]
         else:
             self.debug = False
+        if hasattr(wsheet, 'USE_RPC'):
+            self.rpc = wsheet.USE_RPC
+        self.noRPC_signal = None  # 即时计算的结束信号
+        if self.rpc is not None and not self.rpc:
+            self.noRPC_signal = gevent.event.Event()
+            self._return_mongo_ids = []
+            # 在非rpc模式下，需要返回写入mongo库的主表ids，用于更新sg_status表，值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
+        else:
+            self.rpc = True
         super(Workflow, self).__init__(**kwargs)
         self.sheet = wsheet
-
         self.last_update = datetime.datetime.now()
         if "parent" in kwargs.keys():
             self._parent = kwargs["parent"]
         else:
             self._parent = None
-
         self.pause = False
         self._pause_time = None
         self.USE_DB = False
         self.__json_config()
-
         if self._parent is None:
             self._id = wsheet.id
             self.config = Config()
@@ -59,15 +65,16 @@ class Workflow(Basic):
                 self.__check_to_file_option()
                 self.step_start()
             self._logger = Wlog(self).get_logger("")
-            self.rpc_server = RPC(self)
+            if self.rpc:
+                self.rpc_server = RPC(self)
         else:
             self.config = self._parent.config
             self.db = self.config.get_db()
 
     def __json_config(self):
-        if self.sheet.USE_DB is True:
+        if self.sheet.USE_DB is True and self.rpc:
             self.USE_DB = True
-        if self.sheet.UPDATE_STATUS_API is not None:
+        if self.sheet.UPDATE_STATUS_API is not None and self.rpc:
             self.UPDATE_STATUS_API = self.sheet.UPDATE_STATUS_API
         if self.sheet.IMPORT_REPORT_DATA is True:
             self.IMPORT_REPORT_DATA = True
@@ -104,6 +111,7 @@ class Workflow(Basic):
             else:
                 to_files = data
             for opt in to_files:
+                self.logger.info(opt)
                 m = re.match(r"([_\w\.]+)\((.*)\)", opt)
                 if m:
                     func_path = m.group(1)
@@ -193,7 +201,21 @@ class Workflow(Basic):
                 gevent.spawn(self.__update_service)
                 gevent.spawn(self.__check_tostop)
                 gevent.spawn(self.__check_pause)
-            self.rpc_server.run()
+            if self.rpc:
+                self.rpc_server.run()
+            else:
+                self.noRPC_signal.wait()
+
+    @property
+    def return_mongo_ids(self):
+        return self._return_mongo_ids
+
+    def add_return_mongo_id(self, collection_name, table_id, desc=''):
+        return_dict = dict()
+        return_dict['id'] = table_id
+        return_dict['collection_name'] = collection_name
+        return_dict['desc'] = desc
+        self._return_mongo_ids.append(return_dict)
 
     def end(self):
         """
@@ -214,29 +236,33 @@ class Workflow(Basic):
             self.step.finish()
             self.step.update()
             self.logger.info("运行结束!")
-            self.rpc_server.server.close()
+            if self.rpc:
+                self.rpc_server.server.close()
+            else:
+                self._upload_result()
+                self.noRPC_signal.set()
         else:
             self.logger.info("运行结束!")
 
-    # def _upload_result(self):
-    #     """
-    #     上传结果文件到远程路径
-    #
-    #     :return:
-    #     """
-    #     if self._sheet.output:
-    #         remote_file = RemoteFileManager(self._sheet.output)
-    #         if remote_file.type != "local":
-    #             self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
-    #             umask = os.umask(0)
-    #             remote_file.upload(os.path.join(self.output_dir))
-    #             for root, subdirs, files in os.walk("c:\\test"):
-    #                 for filepath in files:
-    #                     os.chmod(os.path.join(root, filepath), 0o777)
-    #                 for sub in subdirs:
-    #                     os.chmod(os.path.join(root, sub), 0o666)
-    #             os.umask(umask)
-    #             self.logger.info("结果上传完成!")
+    def _upload_result(self):
+        """
+        上传结果文件到远程路径
+
+        :return:
+        """
+        if self._sheet.output:
+            remote_file = RemoteFileManager(self._sheet.output)
+            if remote_file.type != "local":
+                self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
+                umask = os.umask(0)
+                remote_file.upload(self.output_dir)
+                # for root, subdirs, files in os.walk("c:\\test"):
+                #     for filepath in files:
+                #         os.chmod(os.path.join(root, filepath), 0o777)
+                #     for sub in subdirs:
+                #         os.chmod(os.path.join(root, sub), 0o666)
+                os.umask(umask)
+                self.logger.info("结果上传完成!")
 
     def exit(self, exitcode=1, data="", terminated=False):
         """
@@ -260,7 +286,10 @@ class Workflow(Basic):
             self.step.failed(data)
         self.step.update()
         self.logger.info("程序退出: %s " % data)
-        self.rpc_server.server.close()
+        if self.rpc:
+            self.rpc_server.server.close()
+        else:
+            self.noRPC_signal.set()
         sys.exit(exitcode)
 
     def __update_service(self):
@@ -369,8 +398,8 @@ class Workflow(Basic):
                                 self.pause = False
                                 self._pause_time = None
                                 update_data = {
-                                        "continue_time": datetime.datetime.now(),
-                                        "has_continue": 1
+                                    "continue_time": datetime.datetime.now(),
+                                    "has_continue": 1
                                 }
                                 self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
                                 self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",

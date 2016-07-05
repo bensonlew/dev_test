@@ -7,6 +7,7 @@ from biocluster.core.exceptions import OptionError
 import subprocess
 import re
 from mbio.packages.alpha_diversity.estimator_size import est_size
+from mbio.packages.alpha_diversity.make_estimators_table import make_estimators_table
 
 
 class EstimatorsAgent(Agent):

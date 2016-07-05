@@ -58,6 +58,7 @@ class PanCoreOtuAgent(Agent):
             [r"pan.richness.xls", "xls", "pan表格"],
             [r"core.richness.xls", "xls", "core表格"]
         ])
+        super(PanCoreOtuAgent, self).end()
 
     def set_resource(self):
         """
@@ -108,8 +109,8 @@ class PanCoreOtuTool(Tool):
         except subprocess.CalledProcessError:
             self.logger.info("表格生成失败")
             raise Exception("运行R出错")
-        tmp_pan = os.path.join(self.work_dir, "pan.richness.xls")
-        tmp_core = os.path.join(self.work_dir, "core.richness.xls")
+        tmp_pan = os.path.join(os.path.dirname(self.option("in_otu_table").prop["path"]), "pan.richness.xls")
+        tmp_core = os.path.join(os.path.dirname(self.option("in_otu_table").prop["path"]), "core.richness.xls")
         pan_dir = os.path.join(self.work_dir, "output", "pan.richness.xls")
         core_dir = os.path.join(self.work_dir, "output", "core.richness.xls")
         if os.path.exists(pan_dir):

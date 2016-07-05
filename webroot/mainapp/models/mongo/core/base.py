@@ -63,28 +63,44 @@ class ApiManager(object):
         self._bind_object = bind_object
         self._api_dict = dict()
 
-    def __getattr__(self, name):
+    def __getattr__(self, name, position="webroot"):
         if name not in self._api_dict.keys():
-            self._api_dict[name] = self._get_api(name)
+            self._api_dict[name] = self._get_api(name, position)
         return self._api_dict[name]
 
-    def api(self, name):
+    def api(self, name, position="webroot"):
         if name not in self._api_dict.keys():
-            self._api_dict[name] = self._get_api(name)
+            self._api_dict[name] = self._get_api(name, position)
         return self._api_dict[name]
 
-    def _get_api(self, name):
+    def _get_api(self, name, position):
         """
+        当position值为webroot的时候
         用名字获取api对象, 名字应该从mainapp/models/mongo/instant 下一级开始， 比如名字为
         meta.pan_core, 则模块的路径为mainapp/models/mongo/instant/meta/pan_core, 类名为PanCoreMongo
+        当position值为mbio的时候
+        用名字获取api对象, 名字应该从mbio/api/database 下一级开始， 比如名字为
+        meta.pan_core, 则模块的路径为mbio/api/database/pan_core, 类名为PanCore
         """
-        moduleName = "mainapp.models.mongo.instant." + name
-        name = re.split("\.", name)
-        className = name.pop(-1)
-        l = className.split("_")
-        l.append("Mongo")
-        l = [el.capitalize() for el in l]
-        className = "".join(l)
-        imp = importlib.import_module(moduleName)
-        obj = getattr(imp, className)(self._bind_object)
-        return obj
+        if position == "webroot":
+            moduleName = "mainapp.models.mongo.instant." + name
+            name = re.split("\.", name)
+            className = name.pop(-1)
+            l = className.split("_")
+            l.append("Mongo")
+            l = [el.capitalize() for el in l]
+            className = "".join(l)
+            imp = importlib.import_module(moduleName)
+            obj = getattr(imp, className)(self._bind_object)
+            return obj
+        elif position == "mbio":
+            moduleName = "mbio.api.database.{}".format(name)
+            name = re.split("\.", name)[-1]
+            l = l = className.split("_")
+            l = [el.capitalize() for el in l]
+            className = "".join(l)
+            imp = importlib.import_module(name)
+            obj = getattr(imp, className)(self._bind_object)
+            return obj
+        else:
+            raise Exception("position的值应该为webroot或者mbio中的一个")

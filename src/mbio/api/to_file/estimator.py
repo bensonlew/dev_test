@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
 import os
-# import numpy as np
-# from collections import defaultdict
 from pymongo import MongoClient
 from biocluster.config import Config
 from bson.objectid import ObjectId

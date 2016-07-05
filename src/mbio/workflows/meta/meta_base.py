@@ -23,7 +23,7 @@ class MetaBaseWorkflow(Workflow):
             {'name': 'otu_rep', 'type': 'outfile', 'format': 'sequence.fasta'},  # 输出结果otu代表序列
             # {'name': 'otu_seqids', 'type': 'outfile', 'format': 'meta.otu.otu_seqids'},  # 输出结果otu中包含序列列表
             {'name': 'otu_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 输出结果biom格式otu表
-            {'name': 'revcomp', 'type': 'bool'},  # 序列是否翻转
+            {'name': 'revcomp', 'type': 'bool', 'default': False},  # 序列是否翻转
             {'name': 'confidence', 'type': 'float', 'default': 0.7},  # 置信度值
             # {"name": "customer_mode", "type": "bool", "default": False},  # customer 自定义数据库
             {'name': 'database', 'type': 'string'},  # 数据库选择

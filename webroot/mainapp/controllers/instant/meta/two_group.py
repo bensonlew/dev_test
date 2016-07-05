@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
 import web
-import os
-import datetime
+import json
 from mainapp.controllers.project.meta_controller import MetaController
-from mbio.instant.to_files.export_file import export_otu_table_by_level, export_group_table
-from mbio.files.meta.otu.otu_table import OtuTableFile
-from mbio.files.meta.otu.group_table import GroupTableFile
+from mainapp.models.mongo.group_stat import GroupStat as G
+from mainapp.libs.param_pack import group_detail_sort
 
 
 class TwoGroup(MetaController):
@@ -14,37 +12,46 @@ class TwoGroup(MetaController):
         super(TwoGroup, self).__init__()
 
     def POST(self):
-        myReturn = super(TwoGroup, self).POST()
-        if myReturn:
-            return myReturn
+        return_info = super(TwoGroup, self).POST()  # 初始化出错才会返回
+        if return_info:
+            return return_info
         data = web.input()
-        options = {
-            "otu_file": data.otu_id,
-            "level": int(data.level_id),
-            "test": data.test,
-            "group_file": data.group_id,
-            "group_detail": data.group_detail,
-            "correction": data.correction,
-            "ci": float(data.ci),
-            "type": data.type,
-            "group_name": G().get_group_name(data.group_id),
-            "two_group_id": str(two_group_id),
-            "coverage": data.coverage
-        }
-        self.setOptions(options)
-        self.create_files()
-        success = self.check_options(data)
-        if success:
-            info = {"success": False, "info": '+'.join(success)}
+        return_result = self.check_options(data)
+        if return_result:
+            info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
-        self.importInstant("meta")
+        self.task_name = 'meta.report.two_group'
+        self.task_type = 'workflow'  # 可以不配置
+        groupname = eval(data.group_detail).keys()
+        groupname.sort()
+        my_param = dict()
+        my_param['otu_id'] = data.otu_id
+        my_param['level_id'] = int(data.level_id)
+        my_param['group_detail'] = group_detail_sort(data.group_detail)
+        my_param['group_id'] = data.group_id
+        my_param['ci'] = float(data.ci)
+        my_param['correction'] = data.correction
+        my_param['type'] = data.type
+        my_param['test'] = data.test
+        my_param['coverage'] = float(data.coverage)
+        my_param['category_name'] = ','.join(groupname)
+        my_param['submit_location'] = data.submit_location
+        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
+        self.options = {"otu_file": data.otu_id,
+                        "params": params,
+                        "level": int(data.level_id),
+                        "test": data.test,
+                        "group_file": data.group_id,
+                        "correction": data.correction,
+                        "ci": float(data.ci),
+                        "type": data.type,
+                        "group_name": G().get_group_name(data.group_id),
+                        "coverage": data.coverage,
+                        "group_detail": data.group_detail
+                        }
+        self.to_file = ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table_by_detail(group_file)"]
         self.run()
         return self.returnInfo
-
-    def run(self):
-        super(TwoGroup, self).run()
-        self.addMongo()
-        self.end()
 
     def check_options(self, data):
         """
@@ -73,47 +80,3 @@ class TwoGroup(MetaController):
         if not isinstance(table_dict, dict):
             success.append("传入的table_dict不是一个字典")
         return success
-
-    def addMongo(self):
-        """
-        调入相关的mongo表，包括基本表和detail表
-        """
-        apiTwoGroup = self.api.api("meta.pan_core")
-        name1 = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        name2 = "core_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        panId = apiTwoGroup.CreateTwoGroupTable(1, name1)
-        coreId = apiTwoGroup.CreateTwoGroupTable(2, name2)
-        panPath = os.path.join(self.work_dir, "output", "pan.richness.xls")
-        corePath = os.path.join(self.work_dir, "output", "core.richness.xls")
-        apiTwoGroup.AddTwoGroupDetail(panPath, panId)
-        apiTwoGroup.AddTwoGroupDetail(corePath, coreId)
-        self.appendSgStatus(apiTwoGroup, panId, "sg_otu_pan_core", "")
-        self.appendSgStatus(apiTwoGroup, coreId, "sg_otu_pan_core", "")
-        self.logger.info("Mongo数据库导入完成")
-
-    def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-            ["core.richness.xls", "xls", "core 表格"],
-            ["pan.richness.xls", "xls", "pan 表格"]
-        ])
-        self.uploadFiles("pan_core")
-        super(TwoGroup, self).end()
-
-    def create_files(self):
-        """
-        生成文件
-        """
-        otuPath = export_otu_table_by_level(self.options["otuId"], self.options["otuPath"], self.options["level"])
-        otuFile = OtuTableFile()
-        otuFile.set_path(otuPath)
-        otuFile.get_info()
-        otuFile.check()
-        groupPath = export_group_table(self.options["groupId"], self.data.category_name, self.options["groupPath"])
-        groupFile = GroupTableFile()
-        groupFile.set_path(groupPath)
-        groupFile.get_info()
-        groupFile.check()
-        if groupFile.prop["is_empty"]:
-            self.options["groupPath"] = ""

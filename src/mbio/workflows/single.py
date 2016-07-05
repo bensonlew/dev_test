@@ -42,5 +42,4 @@ class SingleWorkflow(Workflow):
         ])
         self.logger.debug(self.task._upload_dir_obj)
         self.logger.debug(self._upload_dir_obj)
-        self.logger.debug("aaaa")
         super(SingleWorkflow, self).end()
