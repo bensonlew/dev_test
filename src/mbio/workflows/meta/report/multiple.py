@@ -13,6 +13,7 @@ class MultipleWorkflow(Workflow):
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
+        self.rpc = False
         super(MultipleWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
@@ -23,11 +24,9 @@ class MultipleWorkflow(Workflow):
             {"name": "test", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "correction", "type": "string", "default": "none"},
-            {"name": "ci", "type": "float", "default": 0.05},
-            {"name": "multiple_id", "type": "string"},
+            {"name": "params", "type": "string"},
             {"name": "group_name", "type": "string"},
             {"name": "methor", "type": "string"},
-            {"name": "output", "type": "string"},
             {"name": "coverage", "type": "float"}
 
         ]
@@ -82,6 +81,8 @@ class MultipleWorkflow(Workflow):
         api_multiple = self.api.stat_test
         stat_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         boxfile_path = self.output_dir + '/' + self.option("test") + '_boxfile.xls'
+        params = eval(self.option("params"))
+        main_id = api_multiple.add_species_difference_check_detail(file_path=stat_path, table_id=None, level=self.option("level"), check_type=self.option("test"), params=self.option("params"), group_id=params["group_id"], from_otu_table=params["otu_id"], major=True)
         if not os.path.isfile(stat_path):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):
@@ -93,10 +94,10 @@ class MultipleWorkflow(Workflow):
                     if not os.path.isfile(ci_path):
                         raise Exception("找不到报告文件:{}".format(ci_path))
                     api_multiple.add_mulgroup_species_difference_check_ci_plot(file_path=ci_path,
-                                                                               table_id=self.option("multiple_id"),
+                                                                               table_id=main_id,
                                                                                methor=self.option("methor"))
-        api_multiple.add_species_difference_check_detail(file_path=stat_path, table_id=self.option("multiple_id"))
-        api_multiple.add_species_difference_check_boxplot(boxfile_path, self.option("multiple_id"))
+        api_multiple.add_species_difference_check_boxplot(boxfile_path, main_id)
+        self.add_return_mongo_id('sg_species_difference_check', main_id)
         self.end()
 
     def run(self):
