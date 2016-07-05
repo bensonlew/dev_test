@@ -10,7 +10,6 @@ class SingleWorkflow(Workflow):
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
         self.task = ""
-        self.rpc = False
         super(SingleWorkflow, self).__init__(wsheet_object)
 
     def run(self):
@@ -43,5 +42,4 @@ class SingleWorkflow(Workflow):
         ])
         self.logger.debug(self.task._upload_dir_obj)
         self.logger.debug(self._upload_dir_obj)
-        self.logger.debug("aaaa")
         super(SingleWorkflow, self).end()

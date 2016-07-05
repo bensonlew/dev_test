@@ -246,22 +246,25 @@ class Basic(object):
         """将workflow的文件上传对象的文件列表取出，用于返回前端"""
         return_files = []
         return_dirs = []
+
+        def create_path(path):
+            return self.uploadTarget + '/' + path.lstrip('.')
         for i in self.upload_dirs:
             for one in i.file_list:
                 if one['type'] == 'file':
                     return_files.append({
-                        "path": one["path"],
+                        "path": create_path(one["path"]),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                    })
+                        })
                 elif one['type'] == 'dir':
                     return_dirs.append({
-                        "path": one["path"],
+                        "path": create_path(one["path"]),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                    })
+                        })
                 else:
                     raise Exception('错误的文件类型')
         return return_files, return_dirs
