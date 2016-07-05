@@ -3,6 +3,7 @@
 
 from biocluster.api.database.base import Base, report_check
 import re
+import datetime
 from bson.objectid import ObjectId
 from types import StringTypes
 
@@ -12,7 +13,33 @@ class SubSample(Base):
         super(SubSample, self).__init__(bind_object)
         self._db_name = "sanger"
         self.name_id = dict()  # otu表中样本名和id对照的字典
-        self.otu_rep = dict()  # otu名, otu代表序列的对照
+        self.otu_rep = dict()  # o
+
+    def add_sg_otu(self, params, my_size, from_otu_table=0, name=None):
+        if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
+            if isinstance(from_otu_table, StringTypes):
+                from_otu_table = ObjectId(from_otu_table)
+            else:
+                raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
+        collection = self.db["sg_otu"]
+        result = collection.find_one({"_id": from_otu_table})
+        if not result:
+            raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(str(from_otu_table)))
+        project_sn = result['project_sn']
+        task_id = result['task_id']
+        insert_data = {
+            "project_sn": project_sn,
+            'task_id': task_id,
+            'from_id': str(from_otu_table),
+            'name': "subsample" + str(my_size) + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "params": params,
+            'status': 'end',
+            'desc': 'otu table after Subsample',
+            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        collection = self.db["sg_otu"]
+        inserted_id = collection.insert_one(insert_data).inserted_id
+        return inserted_id
 
     def _get_name_id(self, from_otu_id):
         collection = self.db['sg_otu_specimen']
