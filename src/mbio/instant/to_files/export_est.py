@@ -11,15 +11,14 @@ client = MongoClient(Config().MONGO_URI)
 db = client["sanger"]
 
 
-def export_est_table(data, option_name, dir_path, bind_obj=None):
-    est_path = os.path.join(dir_path, "%s_input.estimators.xls" % option_name)
-    file_path = os.path.join(dir_path, "%s_input.est_for_t.xls" % option_name)
-    cmd_path = os.path.join(dir_path, "cmd.r")
-    bind_obj.logger.debug("正在导出参数%s的多样性指数表格为文件，路径:%s" % (option_name, file_path))
+def export_est_table(est_id, target_path):
+    est_path = os.path.join(target_path, "estimators.xls")
+    file_path = os.path.join(target_path, "estimators_for_t.xls")
+    cmd_path = os.path.join(target_path, "cmd.r")
+    print("正在导出多样性指数表格为文件，路径:%s" % file_path)
     collection = db['sg_alpha_diversity_detail']
-    bind_obj.logger.debug(data)
     est_collection = db['sg_alpha_diversity']
-    result = est_collection.find_one({"_id": ObjectId(data)})
+    result = est_collection.find_one({"_id": ObjectId(est_id)})
     if not result:
         raise Exception('没有找到多样性指数id对应的表，请检查传入的id是否正确')
     print(type(result['params']))
@@ -32,8 +31,7 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
         params = json.loads(result["params"])
         index_type = params['indices']
     indices = index_type.split(',')
-    bind_obj.logger.debug(indices)
-    details = collection.find({"alpha_diversity_id": ObjectId(data)})
+    details = collection.find({"alpha_diversity_id": ObjectId(est_id)})
     if not details.count():
         raise Exception('没有找到相应detail信息')
     with open(est_path, "wb") as f:
@@ -55,3 +53,4 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
         r.write('%s' % test)
     os.system('/mnt/ilustre/users/sanger/app/R-3.2.2/bin/Rscript %s' % cmd_path)
     return file_path
+

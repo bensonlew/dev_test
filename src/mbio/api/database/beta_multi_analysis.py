@@ -82,15 +82,28 @@ class BetaMultiAnalysis(Base):
             task_id = self.bind_object.sheet.id
         if not isinstance(env_id, ObjectId) and env_id is not None:
             env_id = ObjectId(env_id)
+        else:
+            if 'env_id' in self.bind_object.sheet.data['options']:
+                env_id = ObjectId(self.bind_object.option('env_id'))
         if not isinstance(group_id, ObjectId) and group_id is not None:
             group_id = ObjectId(group_id)
+        else:
+            if 'group_id' in self.bind_object.sheet.data['options']:
+                group_id = ObjectId(self.bind_object.option('group_id'))
         if not isinstance(otu_id, ObjectId) and otu_id is not None:
             otu_id = ObjectId(otu_id)
+        else:
+            otu_id = self.bind_object.option('otu_id')
         _main_collection = self.db['sg_beta_multi_analysis']
         if main:
+            if not isinstance(params, dict):
+                params_dict = json.loads(params)
+            else:
+                params_dict = params
             if env_id:
-                params['env_id'] = str(env_id)    # env_id在再metabase中不可用
-            params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+                if isinstance(params, dict):
+                    params_dict['env_id'] = str(env_id)    # env_id在再metabase中不可用
+            params_dict['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
             insert_mongo_json = {
                 'project_sn': self.bind_object.sheet.project_sn,
                 'task_id': task_id,
@@ -100,7 +113,8 @@ class BetaMultiAnalysis(Base):
                 'table_type': analysis,
                 'env_id': env_id,
                 'group_id': group_id,
-                'params': json.dumps(params, sort_keys=True, separators=(',', ':')),
+                'params': (json.dumps(params_dict, sort_keys=True, separators=(',', ':'))
+                           if isinstance(params, dict) else params),
                 'status': 'end',
                 'desc': '',
                 'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')

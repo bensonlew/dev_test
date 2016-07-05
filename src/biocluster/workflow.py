@@ -33,23 +33,20 @@ class Workflow(Basic):
             self.debug = False
         if hasattr(wsheet, 'USE_RPC'):
             self.rpc = wsheet.USE_RPC
-        print wsheet.USE_RPC
+        self.noRPC_signal = None  # 即时计算的结束信号
+        if self.rpc is not None and not self.rpc:
+            self.noRPC_signal = gevent.event.Event()
+            self._return_mongo_ids = []
+            # 在非rpc模式下，需要返回写入mongo库的主表ids，用于更新sg_status表，值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
+        else:
+            self.rpc = True
         super(Workflow, self).__init__(**kwargs)
         self.sheet = wsheet
-
         self.last_update = datetime.datetime.now()
         if "parent" in kwargs.keys():
             self._parent = kwargs["parent"]
         else:
             self._parent = None
-        self.noRPC_signal = None  # 即时计算的结束信号
-        if hasattr(self, 'rpc'):
-            if not self.rpc:
-                self.noRPC_signal = gevent.event.Event()
-                self._return_mongo_ids = []
-                # 在非rpc模式下，需要返回写入mongo库的主表ids，用于更新sg_status表，值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
-        else:
-            self.rpc = True
         self.pause = False
         self._pause_time = None
         self.USE_DB = False
@@ -114,6 +111,7 @@ class Workflow(Basic):
             else:
                 to_files = data
             for opt in to_files:
+                self.logger.info(opt)
                 m = re.match(r"([_\w\.]+)\((.*)\)", opt)
                 if m:
                     func_path = m.group(1)

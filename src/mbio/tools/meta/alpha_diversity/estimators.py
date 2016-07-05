@@ -7,6 +7,7 @@ from biocluster.core.exceptions import OptionError
 import subprocess
 import re
 from mbio.packages.alpha_diversity.estimator_size import est_size
+from mbio.packages.alpha_diversity.make_estimators_table import make_estimators_table
 
 
 class EstimatorsAgent(Agent):
@@ -94,7 +95,7 @@ class EstimatorsTool(Tool):
         self.logger.info("转化otu_table({})为shared文件({})".format(self.otu_table, "otu.shared"))
         try:
             subprocess.check_output(self.config.SOFTWARE_DIR+"/meta/scripts/otu2shared.pl "+" -i "+self.otu_table +
-                                    " -l 0.97 -o " + self.option("level")+".shared", shell=True)
+                                    " -l 0.97 -o " + os.path.join(self.work_dir, self.option("level")+".shared"), shell=True)
             self.logger.info("OK")
             return True
         except subprocess.CalledProcessError:
@@ -110,13 +111,13 @@ class EstimatorsTool(Tool):
         """
         运行mothur软件生成各样本指数表
         """
-        cmd = '/meta/mothur.1.30 "#summary.single(shared=%s.shared,groupmode=f,calc=%s)"' % (self.option('level'),
-                                                                                             self.indices)
+        cmd = '/meta/mothur.1.30 "#set.dir(output="%s");summary.single(shared=%s.shared,groupmode=f,calc=%s)"' % \
+              (self.work_dir, self.option('level'), self.indices)
         for index in self.indices.split('-'):
             if index in self.special_est:
                 size = est_size(self.otu_table)
-                cmd = '/meta/mothur.1.30 "#summary.single(shared=%s.shared,groupmode=f,calc=%s,size=%s)"' % \
-                      (self.option('level'), self.indices, size)
+                cmd = '/meta/mothur.1.30 "#set.dir(output="%s");summary.single(shared=%s.shared,groupmode=f,' \
+                      'calc=%s,size=%s)"' % (self.work_dir, self.option('level'), self.indices, size)
         self.logger.info(cmd)
         self.logger.info("开始运行mothur")
         command = self.add_command("mothur", cmd)
@@ -124,16 +125,21 @@ class EstimatorsTool(Tool):
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("运行mothur完成")
-            try:
-                subprocess.check_output("python "+self.config.SOFTWARE_DIR+"/meta/scripts/make_estimate_table.py ",
-                                        shell=True)
-                self.logger.info("OK")
-                self.set_output()
-                return True
-            except subprocess.CalledProcessError:
-                self.logger.info("生成estimate文件出错!")
-                self.set_error("生成estimate文件出错!")
-                return False
+            self.logger.info("生成多样性指数表")
+            make_estimators_table(self.work_dir)
+            self.logger.info("生成多样性指数表完成")
+            self.set_output()
+            return True
+            # try:
+            #     subprocess.check_output("python "+self.config.SOFTWARE_DIR+"/meta/scripts/make_estimate_table.py ",
+            #                             shell=True)
+            #     self.logger.info("OK")
+            #     self.set_output()
+            #     return True
+            # except subprocess.CalledProcessError:
+            #     self.logger.info("生成estimate文件出错!")
+            #     self.set_error("生成estimate文件出错!")
+            #     return False
         else:
             self.set_error("运行mothur运行出错!")
             return False

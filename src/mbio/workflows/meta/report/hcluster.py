@@ -14,6 +14,7 @@ class HclusterWorkflow(Workflow):
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
+        self.rpc = False
         super(HclusterWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "distance_matrix", "type": "infile", "format": "meta.beta_diversity.distance_matrix"},
@@ -21,8 +22,8 @@ class HclusterWorkflow(Workflow):
             {"name": "update_info", "type": "string"},
             {"name": "distance_id", "type": "string"},
             {"name": "newick_id", "type": "string"},
-            # {"name": "matrix_out", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
-        ]
+            {"name": "submit_location", "type": "string"},
+            ]
         self.add_option(options)
         self.set_options(self._sheet.options())
 
@@ -31,7 +32,7 @@ class HclusterWorkflow(Workflow):
         options = {
             'linkage': self.option('method'),
             'dis_matrix': self.option('distance_matrix')
-        }
+            }
         task.set_options(options)
         task.on('end', self.set_db)
         task.run()
@@ -46,7 +47,14 @@ class HclusterWorkflow(Workflow):
         newick_fath = self.output_dir + "/hcluster.tre"
         if not os.path.isfile(newick_fath):
             raise Exception("找不到报告文件:{}".format(newick_fath))
-        api_newick.add_tree_file(newick_fath, tree_id=ObjectId(self.option('newick_id')))
+        params = {
+            'specimen_distance_id': self.option('distance_id'),
+            'hcluster_method': self.option('method'),
+            'submit_location': self.option('submit_location')
+            }
+        api_newick.add_tree_file(newick_fath, major=True, table_id=self.option('distance_id'),
+                                 table_type='dist', tree_type='cluster', name='hcluset' + self.option('method'),
+                                 params=params)
         self.end()
 
     def end(self):
@@ -54,5 +62,5 @@ class HclusterWorkflow(Workflow):
         result_dir.add_relpath_rules([
             [".", "", "层次聚类结果目录"],
             ["./hcluster.tre", "tre", "层次聚类树"]
-        ])
+            ])
         super(HclusterWorkflow, self).end()

@@ -5,6 +5,7 @@ import re
 from bson.objectid import ObjectId
 from types import StringTypes
 from bson.son import SON
+import datetime
 
 
 class EstTTest(Base):
@@ -56,3 +57,33 @@ class EstTTest(Base):
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
+
+    @report_check
+    def add_est_t_test_collection(self, params, group_id, from_est_id=0, name=None):
+        if isinstance(from_est_id, StringTypes):
+            from_est_id = ObjectId(from_est_id)
+        else:
+            raise Exception("est_id必须为ObjectId对象或其对应的字符串!")
+        collection = self.db["sg_alpha_diversity"]
+        result = collection.find_one({"_id": from_est_id})
+        project_sn = result['project_sn']
+        task_id = result['task_id']
+        otu_id = result['otu_id']
+        level_id = result['level_id']
+        desc = ""
+        insert_data = {
+                "project_sn": project_sn,
+                "task_id": task_id,
+                "otu_id": otu_id,
+                "alpha_diversity_id": from_est_id,
+                "name": name if name else "多样性指数T检验结果表",
+                "level_id": int(level_id),
+                "group_id": group_id,
+                "status": "end",
+                "desc": desc,
+                "params": params,
+                "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        collection = self.db["sg_alpha_est_t_test"]
+        inserted_id = collection.insert_one(insert_data).inserted_id
+        return inserted_id

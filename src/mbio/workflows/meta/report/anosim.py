@@ -17,6 +17,7 @@ class AnosimWorkflow(Workflow):
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
+        self.rpc = False
         super(AnosimWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", "format": "meta.otu.otu_table"},
@@ -30,7 +31,8 @@ class AnosimWorkflow(Workflow):
             {"name": "group_detail", "type": "string"},
             {"name": "permutations", "type": "int", "default": 999},
             {"name": "samples", "type": "string", 'default': ''},
-        ]
+            {"name": "params", "type": "string", "default": ''},
+            ]
         self.add_option(options)
         self.set_options(self._sheet.options())
 
@@ -105,7 +107,7 @@ class AnosimWorkflow(Workflow):
                     'dis_method': self.option('method'),
                     'otutable': temp_otu_file,
                     'phy_newick': temp_tree_file
-                }
+                    }
                 options['otutable'] = self.filter_otu_sample(options['otutable'],
                                                              self._get_samplenames(self.option('group_file').path),
                                                              options['otutable'] + '.temp')
@@ -113,7 +115,7 @@ class AnosimWorkflow(Workflow):
             options = {
                 'dis_method': self.option('method'),
                 'otutable': self.option('otu_file')
-            }
+                }
             options['otutable'] = self.filter_otu_sample(options['otutable'].path,
                                                          self._get_samplenames(self.option('group_file').path),
                                                          options['otutable'].path + '.temp')
@@ -134,7 +136,8 @@ class AnosimWorkflow(Workflow):
         # matrix_path = self.output_dir + '/' + os.listdir(self.output_dir)[0]
         if not (os.path.isdir(self.output_dir + '/Anosim') and os.path.isdir(self.output_dir + '/Box')):
             raise Exception("找不到报告文件夹:{}".format(self.output_dir))
-        api_anosim.add_beta_anosim_result(self.output_dir, main_id=ObjectId(self.option('anosim_id')), )
+        main_id = api_anosim.add_beta_anosim_result(self.output_dir, main=True)
+        self.add_return_mongo_id('sg_beta_multi_anosim', main_id)
         self.logger.info('运行self.end')
         self.end()
 
@@ -179,10 +182,10 @@ class AnosimWorkflow(Workflow):
             ["Box/Stats.xls", "xls", "分组统计检验结果"],
             ["Box/Distances.xls", "xls", "组内组间距离值统计结果"],
             ["Distance", "", "距离矩阵计算结果输出目录"]
-        ]
+            ]
         regexps = [
             [r'Distance/%s.*\.xls$' % self.option('method'), 'xls', '样本距离矩阵文件']
-        ]
+            ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)

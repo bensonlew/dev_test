@@ -14,7 +14,6 @@ class DistanceCalc(MetaController):
         if return_info:
             return return_info
         data = web.input()
-        # data = self.data  # for test
         default_argu = ['otu_id', 'level_id', 'distance_algorithm', 'submit_location']  # 可以不要otu_id
         for argu in default_argu:
             if not hasattr(data, argu):
@@ -30,19 +29,3 @@ class DistanceCalc(MetaController):
         self.to_file = 'meta.export_otu_table_by_level(otu_file)'
         self.run()
         return self.returnInfo
-
-# if __name__ == '__main__':
-#     a = DistanceCalc()
-#
-#
-#     class data_class_test(object):
-#         def __init__(self):
-#             self.otu_id = '56ce51860e6da9cf6bd716f3'
-#             self.level_id = 8
-#             self.distance_algorithm = 'unifrac'
-#             self.submit_location = 'submit_location'
-#             self.client = 'client01'
-#
-#     data = data_class_test()
-#     a.data = data
-#     a.POST()

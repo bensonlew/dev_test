@@ -32,7 +32,7 @@ class Basic(object):
         self.params = ""  # 在controller里面设定，这个值会在后续中写到mongo的主表当中去
         self.task_type = ''  # 调用的类型workflow或者module或者tool
         self._task_object = None  # 用于存储调用的task对象
-        self.to_file = ''  # 使用to_file模块，同原有写法
+        self.to_file = []  # 使用to_file模块，同原有写法
         self.USE_DB = False  # 是否使用数据库， 不一定生效，与运行的workflow是否设置使用rpc有关
         self._sheet = None  # 存放Sheet对象
         self._mongo_ids = []  # 存放worflow返回的写入mongo表的信息，每条信息为一个字典，含有collection_name,id,desc三个字段
@@ -246,22 +246,25 @@ class Basic(object):
         """将workflow的文件上传对象的文件列表取出，用于返回前端"""
         return_files = []
         return_dirs = []
+
+        def create_path(path):
+            return self.uploadTarget + '/' + path.lstrip('.')
         for i in self.upload_dirs:
             for one in i.file_list:
                 if one['type'] == 'file':
                     return_files.append({
-                        "path": one["path"],
+                        "path": create_path(one["path"]),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                    })
+                        })
                 elif one['type'] == 'dir':
                     return_dirs.append({
-                        "path": one["path"],
+                        "path": create_path(one["path"]),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                    })
+                        })
                 else:
                     raise Exception('错误的文件类型')
         return return_files, return_dirs
