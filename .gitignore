@@ -11,4 +11,6 @@ dist/
 .pydevproject
 __pycache__/
 doc/
-.swp
+*.swp
+main.conf
+config.py
