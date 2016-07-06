@@ -10,8 +10,8 @@ from biocluster.core.exceptions import OptionError
 class PhyloTreeAgent(Agent):
     """
     phylo_tree:生成OTU代表序列的树文件
-    version 1.0  
-    author: qindanhua  
+    version 1.0
+    author: qindanhua
     last_modify: 2016.05.31
     """
 
@@ -66,17 +66,17 @@ class PhyloTreeTool(Tool):
 
     def __init__(self, config):
         super(PhyloTreeTool, self).__init__(config)
-        self.cmd_path = 'meta/otu/'
-        self.clustalw2_path = '/align/'
-        self.FastTree_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
-
+        self.clustalw2_path = 'bioinfo/align/'
+        self.python_path = '/program/Python/bin/'
+        self.mafft_path = self.config.SOFTWARE_DIR+'/bioinfo/align/scripts/'
+        self.FastTree_path =self.config.SOFTWARE_DIR+ '/bioinfo/phylogenetic/scripts/'
     def align(self):
         """
         比对，根据method参数，选择不同的比对软件进行比对，结果文件为phylo.align
         """
         if self.option("method") in ["mafft"]:
-            cmd = "Python/bin/python {}mafft.py -i {} -o phylo.align".\
-                format(self.FastTree_path, self.option('fasta_file').prop['path'])
+            cmd = self.python_path + "python {}mafft.py -i {} -o phylo.align".\
+                format(self.mafft_path, self.option('fasta_file').prop['path'])
         else:
             cmd = self.clustalw2_path + "clustalw2 -ALIGN -INFILE=%s -OUTFILE=phylo.align  -OUTPUT=FASTA" % \
                                     self.option('fasta_file').prop['path']
@@ -98,7 +98,7 @@ class PhyloTreeTool(Tool):
         执行fasttree脚本，生成结果文件
         """
         # self.add_state('fasttree_start', data='开始运行fasttree命令，生成树文件')
-        cmd = 'Python/bin/python %sfasttree.py -i %s' % (self.FastTree_path, 'phylo.align')
+        cmd = self.python_path + '/python %sfasttree.py -i %s' % (self.FastTree_path, 'phylo.align')
         print cmd
         self.logger.info("开始运行fasttree")
         fasttree_command = self.add_command("fasttree", cmd)

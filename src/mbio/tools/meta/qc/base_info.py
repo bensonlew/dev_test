@@ -61,7 +61,7 @@ class BaseInfoTool(Tool):
     def __init__(self, config):
         super(BaseInfoTool, self).__init__(config)
         self._version = 1.0
-        self.fastx_stats_path = "fastxtoolkit/bin/fastx_quality_stats"
+        self.fastx_stats_path = "bioinfo/seq/fastxtoolkit/bin/fastx_quality_stats"
 
     def _run_fastx(self):
         work_path = os.path.join(self.work_dir, "output")
