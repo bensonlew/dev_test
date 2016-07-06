@@ -52,7 +52,7 @@ class FastqToFastaTool(Tool):
     def __init__(self, config):
         super(FastqToFastaTool, self).__init__(config)
         self._version = "v1"
-        self.cmd = "program/Anaconda2/bin/"
+        self.cmd = "/program/Python/bin/"
         self.script = self.config.SOFTWARE_DIR + "/bioinfo/seq/scripts/"
 
     def run(self):

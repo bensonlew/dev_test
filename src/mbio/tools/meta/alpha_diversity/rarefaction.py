@@ -95,8 +95,8 @@ class RarefactionTool(Tool):
 
     def __init__(self, config):
         super(RarefactionTool, self).__init__(config)
-        self.cmd_path = '/meta/alpha_diversity/'
-        self.shared_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
+        self.cmd_path = '/bioinfo/meta/alpha_diversity/'
+        self.shared_path = self.config.SOFTWARE_DIR+'/bioinfo/meta/scripts/'
         self.indices = '-'.join(self.option('indices').split(','))
 
     def shared(self):

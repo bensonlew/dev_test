@@ -67,9 +67,9 @@ class PhyloTreeTool(Tool):
     def __init__(self, config):
         super(PhyloTreeTool, self).__init__(config)
         self.clustalw2_path = 'bioinfo/align/'
-        self.python_path = 'program/Anaconda2/bin/'
-        self.mafft_path = '/mnt/ilustre/users/sanger/app/bioinfo/align/scripts/'
-        self.FastTree_path = '/mnt/ilustre/users/sanger/app/bioinfo/phylogenetic/scripts/'
+        self.python_path = '/program/Python/bin/'
+        self.mafft_path = self.config.SOFTWARE_DIR+'/bioinfo/align/scripts/'
+        self.FastTree_path =self.config.SOFTWARE_DIR+ '/bioinfo/phylogenetic/scripts/'
     def align(self):
         """
         比对，根据method参数，选择不同的比对软件进行比对，结果文件为phylo.align
@@ -98,7 +98,7 @@ class PhyloTreeTool(Tool):
         执行fasttree脚本，生成结果文件
         """
         # self.add_state('fasttree_start', data='开始运行fasttree命令，生成树文件')
-        cmd = 'Python/bin/python %sfasttree.py -i %s' % (self.FastTree_path, 'phylo.align')
+        cmd = self.python_path + '/python %sfasttree.py -i %s' % (self.FastTree_path, 'phylo.align')
         print cmd
         self.logger.info("开始运行fasttree")
         fasttree_command = self.add_command("fasttree", cmd)

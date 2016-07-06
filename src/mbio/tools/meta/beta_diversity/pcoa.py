@@ -90,8 +90,7 @@ class PcoaTool(Tool):
             self.logger.info('生成 cmd.r 文件失败')
             self.set_error('无法生成 cmd.r 文件')
         try:
-            subprocess.check_output(self.config.SOFTWARE_DIR +
-                                    '/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
+            subprocess.check_output(self.config.SOFTWARE_DIR +'/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
             self.logger.info('pcoa计算成功')
         except subprocess.CalledProcessError:
             self.logger.info('pcoa计算失败')

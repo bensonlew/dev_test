@@ -110,7 +110,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         super(PcaTool, self).__init__(config)
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
         self.cmd_path = os.path.join(
-            self.config.SOFTWARE_DIR, 'bioinfo/statistical     /scripts/ordination.pl')
+            self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/ordination.pl')
         self.env_table = self.get_new_env()
         self.otu_table = self.get_otu_table()
 

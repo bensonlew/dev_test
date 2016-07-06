@@ -64,7 +64,7 @@ class NmdsTool(Tool):
         super(NmdsTool, self).__init__(config)
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
         self.cmd_path = os.path.join(
-            self.config.SOFTWARE_DIR, 'bioinfo/statistical     /scripts/ordination.pl')
+            self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/ordination.pl')
 
     def run(self):
         """

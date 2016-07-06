@@ -55,15 +55,15 @@ class FastaStatTool(Tool):
 
     def __init__(self, config):
         super(FastaStatTool, self).__init__(config)
-        self.seqstat_path = '/mnt/ilustre/users/sanger/app/bioinfo/seq/scripts/'
-        self.python_path = 'program/Anaconda2/bin/'
+        self.seqstat_path = 'bioinfo/seq/scripts/'
+        # self.python_path = '/program/Python/bin/'
 
     def seqstat(self):
         """
         运行seqstat工具，统计fasta文件的序列长度等信息
         :return:
         """
-        cmd = self.python_path + 'python %sseqstat.py -i %s' % (self.seqstat_path, self.option('fasta').prop['path'])
+        cmd = self.seqstat_path + ' -i %s' % (self.seqstat_path, self.option('fasta').prop['path'])
         self.logger.info('开始统计fasta文件信息')
         print self.config.SOFTWARE_DIR + cmd
         try:

@@ -57,7 +57,7 @@ class PairFastqToFastaTool(Tool):
     def __init__(self, config):
         super(PairFastqToFastaTool, self).__init__(config)
         self._version = "v1"
-        self.cmd = "program/Anaconda2/bin/"
+        self.cmd = "/program/Python/bin/"
         self.script = self.config.SOFTWARE_DIR + "/bioinfo/seq/scripts/"
 
     def run(self):

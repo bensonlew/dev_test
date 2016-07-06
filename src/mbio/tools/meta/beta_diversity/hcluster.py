@@ -72,7 +72,7 @@ class HclusterTool(Tool):
         super(HclusterTool, self).__init__(config)
         self._version = 'v2.1-20140214'  # plot-hcluster_tree.pl版本
         self.cmd_path = os.path.join(
-            self.config.SOFTWARE_DIR, 'bioinfo/statistical     /scripts/plot-hcluster_tree.pl')
+            self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/plot-hcluster_tree.pl')
 
     def run(self):
         """

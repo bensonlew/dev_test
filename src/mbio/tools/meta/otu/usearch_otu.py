@@ -81,7 +81,7 @@ class UsearchOtuTool(Tool):
         self._version = "v7.0"
         self.usearch_path = "bioinfo/meta/usearch.v7.0/"
         self.script_path = "bioinfo/meta/scripts/"
-        self.qiime_path = "program/Anaconda2/bin/"
+        self.qiime_path = "program/Python/bin/"
 
     def cmd1(self):
         cmd = self.usearch_path+"uparse -derep_prefix meta.fasta -output meta_derepprefix.fasta -sizeout"

@@ -100,8 +100,8 @@ class LefseTool(Tool):
     def __init__(self, config):
         super(LefseTool, self).__init__(config)
         self._version = '1.0.1'
-        self.biom_path = "program/Anaconda2/bin/"
-        self.python_path = "program/Anaconda2/bin/"
+        self.biom_path = "/program/Python/bin/"
+        self.python_path = "/program/Python/bin/python"
         self.sum_taxa_path = "/bioinfo/taxon/scripts/"
         self.plot_lefse_path = "/bioinfo/statistical/lefse-20150707/"
         self._path = self.config.SOFTWARE_DIR + "/R-3.2.2/bin:$PATH"
