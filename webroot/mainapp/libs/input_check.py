@@ -64,8 +64,10 @@ def MetaCheck(f):
         if not hasattr(data, "otu_id"):
             if not hasattr(data, 'specimen_distance_id'):
                 print "缺少otu_id或者specimen_distance_id(聚类独有)!"
-                info = {"success": False, "info": "缺少otu_id!"}
+                info = {"success": False, "info": "缺少otu_id或者在聚类分析中缺少距离矩阵specimen_distance_id!"}
                 return json.dumps(info)
+            else:
+                
         if data.taskType not in ["projectTask", "reportTask"]:
             print "参数taskType的值必须为projectTask或者是reportTask!"
             info = {"success": False, "info": "参数taskType的值必须为projectTask或者是reportTask!"}
