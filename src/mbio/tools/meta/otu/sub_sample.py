@@ -73,7 +73,7 @@ class SubSampleAgent(Agent):
 class SubSampleTool(Tool):
     def __init__(self, config):
         super(SubSampleTool, self).__init__(config)
-        self.mothur_path = "/bioinfo/meta/mothur.1.30"
+        self.mothur_path = "bioinfo/meta/mothur-1.30/mothur.1.30"
         self.shared2otu_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/meta/scripts/shared2otu.pl")
         self.otu_tax = dict()
         self.has_tax = False

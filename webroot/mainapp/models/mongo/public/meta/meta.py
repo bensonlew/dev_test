@@ -28,7 +28,7 @@ class Meta(object):
         result = collection.find_one({"task_id": task_id})
         return result
 
-    def sampleIdToNname(self, sampleIds):
+    def sampleIdToName(self, sampleIds):
         """
         将一个用逗号隔开的样本ID的集合转换成样本名，返回一个用逗号隔开的样本名的集合
         """

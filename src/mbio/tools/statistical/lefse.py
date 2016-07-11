@@ -103,6 +103,7 @@ class LefseTool(Tool):
         self.biom_path = "/program/Python/bin/"
         self.python_path = "/program/Python/bin/python"
         self.sum_taxa_path = "/program/Python/bin/"
+        self.script_path = "/bioinfo/taxon/scripts/"
         self.plot_lefse_path = "/bioinfo/statistical/lefse/"
         self._path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin:$PATH"
         self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
@@ -125,7 +126,7 @@ class LefseTool(Tool):
 
     def run_script(self):
         self.add_state("sum_taxa_start", data="开始生成每一水平的物种统计文件")
-        script_cmd = self.sum_taxa_path + "summarize_taxa.py -i otu_taxa_table.biom " \
+        script_cmd = self.script_path + "summarize_taxa.py -i otu_taxa_table.biom " \
                                         "-o tax_summary_a -L 1,2,3,4,5,6,7,8 -a"
         self.logger.info("开始运行script_cmd")
         script_command = self.add_command("script_cmd", script_cmd).run()
@@ -141,15 +142,14 @@ class LefseTool(Tool):
             %ssum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
               "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
             mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
-        }" % (self.config.SOFTWARE_DIR + self.sum_taxa_path)
+        }" % (self.config.SOFTWARE_DIR + self.script_path)
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info("run_sum_tax运行完成")
             self.add_state("sum_taxa_finish", data="生成每一水平的物种统计文件完成")
-            return True
         except subprocess.CalledProcessError:
             self.logger.info("run_sum_tax运行出错")
-            return False
+            raise Exception("run_sum_tax运行出错")
 
     def format_input(self):
         self.add_state("lefse_start", data="开始进行lefse分析")
@@ -170,6 +170,18 @@ class LefseTool(Tool):
             self.logger.info("format_input_cmd运行完成")
         else:
             self.set_error("format_input_cmd运行出错!")
+    def run_format(self):
+        if len(self.option('lefse_gname').split(',')) == 1:
+            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -u 2 -o 1000000'
+        elif len(self.option('lefse_gname').split(',')) == 2:
+            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -s 2 -u 3 -o 1000000'
+        self.logger.info("开始运行format_cmd")
+        format_command = self.add_command("format_cmd", format_cmd).run()
+        self.wait(format_command)
+        if format_command.return_code == 0:
+            self.logger.info("format_cmd运行完成")
+        else:
+            self.set_error("format_cmd运行出错!")
 
     def run_lefse(self):
         cmd = self.python_path + ' %srun_lefse.py lefse_format.txt lefse_LDA.xls ' \
@@ -189,7 +201,7 @@ class LefseTool(Tool):
             self.set_error("该分组方案的分组类别所含样本量小于3，lda分析出错")
 
     def plot_res(self):
-        cmd = self.python_path + 'python %splot_res.py lefse_LDA.xls lefse_LDA.png' \
+        cmd = self.python_path + ' %splot_res.py lefse_LDA.xls lefse_LDA.png' \
               ' --dpi 300 --format png --width 20' % (self.config.SOFTWARE_DIR + self.plot_lefse_path)
         self.logger.info("开始运行plot_res_cmd")
         command = self.add_command("plot_res_cmd", cmd).run()
@@ -200,7 +212,7 @@ class LefseTool(Tool):
             self.logger.info("plot_res_cmd运行出错")
 
     def plot_cladogram(self):
-        cmd = '%spython %splot_cladogram.py lefse_LDA.xls ' \
+        cmd = '%s %splot_cladogram.py lefse_LDA.xls ' \
               'lefse_LDA.cladogram.png' ' --format png' % (self.python_path ,self.config.SOFTWARE_DIR + self.plot_lefse_path)
         self.logger.info("开始运行plot_cladogram_cmd")
         command = self.add_command("plot_cladogram_cmd", cmd).run()
@@ -229,6 +241,7 @@ class LefseTool(Tool):
         self.run_script()
         self.run_sum_tax()
         self.format_input()
+        self.run_format()
         self.run_lefse()
         self.plot_res()
         self.plot_cladogram()
