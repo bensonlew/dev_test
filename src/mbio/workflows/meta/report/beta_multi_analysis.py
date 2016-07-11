@@ -10,6 +10,7 @@ import types
 from biocluster.workflow import Workflow
 from mbio.packages.beta_diversity.filter_newick import *
 from bson import ObjectId
+import json
 
 
 class BetaMultiAnalysisWorkflow(Workflow):
@@ -34,6 +35,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
             {"name": "group_detail", "type": "string", "default": ""},
             {"name": "group_id", "type": "string", "default": ""},
             {"name": "env_id", "type": "string", "default": ""},
+            {"name": "params", "type": "string", "default": ""},
             # {"name": "matrix_out", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
         ]
         self.add_option(options)
@@ -137,9 +139,11 @@ class BetaMultiAnalysisWorkflow(Workflow):
                 self.logger.info(cons)
         if not os.path.isdir(dir_path):
             raise Exception("找不到报告文件夹:{}".format(dir_path))
+        print self.option('params')
+        print json.loads(self.option('params'))
         main_id = api_multi.add_beta_multi_analysis_result(dir_path, self.option('analysis_type'),
                                                            main=True,
-                                                           remove=cond)
+                                                           remove=cond, params=json.loads(self.option('params')))
         self.add_return_mongo_id('sg_beta_multi_analysis', main_id)
         self.logger.info('运行self.end')
         self.end()

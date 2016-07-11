@@ -138,6 +138,7 @@ class AnosimWorkflow(Workflow):
             raise Exception("找不到报告文件夹:{}".format(self.output_dir))
         main_id = api_anosim.add_beta_anosim_result(self.output_dir, main=True)
         self.add_return_mongo_id('sg_beta_multi_anosim', main_id)
+        self.logger.info(str(main_id))
         self.logger.info('运行self.end')
         self.end()
 
