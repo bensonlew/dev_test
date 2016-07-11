@@ -19,8 +19,8 @@ class OtuTableFile(File):
         """
         """
         super(OtuTableFile, self).__init__()
-        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "Python/bin/")
-        self.otu2shared_path = os.path.join(Config().SOFTWARE_DIR, "meta/scripts/otu2shared.pl")
+        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "program/Python/bin/")
+        self.otu2shared_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/meta/scripts/otu2shared.pl")
 
     def get_info(self):
         """
@@ -77,7 +77,7 @@ class OtuTableFile(File):
         """
         # biom convert -i otu_table.txt -o otu_table.biom.rev  --table-type "otu table  --to-hdf5"
         # biom convert -i otu_taxa_table.txt -o otu_table.biom.revtax  --table-type "otu table"  --to-hdf5 --process-obs-metadata taxonomy
-        cmd = self.biom_path + "biom convert -i " + self.prop['path'] + " -o " + biom_filepath + ' --table-type \"OTU table\" --to-hdf5'
+        cmd = "biom convert -i " + self.prop['path'] + " -o " + biom_filepath + ' --table-type \"OTU table\" --to-hdf5'
         if self.prop['metadata'] == "taxonomy":
             cmd += " --process-obs-metadata taxonomy"
         try:

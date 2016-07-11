@@ -25,17 +25,19 @@ class SLURM(Job):
         file_path = os.path.join(self.agent.work_dir, self.agent.name + ".sbatch")
         script = os.path.abspath(os.path.dirname(__file__) + "/../../../bin/runtool.py")
         cpu, mem = self.agent.get_resource()
+        if int(cpu) > 32:
+            cpu = 32
         with open(file_path, "w") as f:
             f.write("#!/bin/bash\n")
             f.write("#SBATCH -n {}\n".format(cpu))
             f.write("#SBATCH -N 1\n")
-            f.write("#SBATCH -t 10-00:00")
-            f.write("#SBATCH -p SANGER")
-            f.write("#SBATCH --mem={}".format(mem))
-            f.write("#SBATCH -o hostname_%j.out")
-            f.write("#SBATCH -e hostname_%j.err ")
-            f.write("cd %s\n\n" % self.agent.work_dir)
-            f.write("%s %s\n" % (script, self.agent.name))
+            f.write("#SBATCH -t 10-00:00\n")
+            f.write("#SBATCH -p SANGER\n")
+            f.write("#SBATCH --mem={}\n".format(mem))
+            f.write("#SBATCH -o {}/{}_%j.out\n".format(self.agent.work_dir, self.agent.name))
+            f.write("#SBATCH -e {}/{}_%j.err\n".format(self.agent.work_dir, self.agent.name))
+            f.write("cd {}\n\n".format(self.agent.work_dir))
+            f.write("{} {} {}\n".format("python", script, self.agent.name))
 
         return file_path
 
@@ -47,7 +49,7 @@ class SLURM(Job):
         """
         pbs_file = self.create_file()
         cmd = "sbatch {}".format(pbs_file)
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         text = process.communicate()[0]
         if re.match(r'Maximum number', text):
             self.agent.logger.warn("到达最大任务书，30秒后尝试再次投递!")
@@ -72,7 +74,7 @@ class SLURM(Job):
 
         if self.check_state():
             cmd = "scancel {}".format(self.id)
-            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
             process.communicate()
 
     def check_state(self):
@@ -82,7 +84,7 @@ class SLURM(Job):
         :return: string 返回任务状态代码 如果任务不存在 则返回False
         """
         cmd = "scontrol show job {}".format(self.id)
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         text = process.communicate()[0]
         m = re.search(r"JobState = (\w+)", text)
         if m:

@@ -84,13 +84,13 @@ class QiimeAssignAgent(Agent):
                 raise OptionError('提供的库fasta序列过大{}G，暂不支持'.format(fasta_size))
             self._memory = str(QiimeAssignAgent.max_memory_func(fasta_size)) + 'G'
         else:
-            self._memory = '10G'
+            self._memory = '15G'
         self.logger.info('Memory:{}  CPU:{}'.format(self._memory, self._cpu))
 
     @staticmethod
     def max_memory_func(memory):
         """根据提供的fasta大小（单位G）来设定需要的内存大小（单位G）"""
-        return int(round(60 * memory)) + 10
+        return int(round(60 * memory)) + 15
 
 
 class QiimeAssignTool(Tool):
@@ -141,7 +141,7 @@ class QiimeAssignTool(Tool):
             if max_memory > 60:
                 max_memory = 24  # 当训练的库文件增加，classifier适当增加，经验设定给后续classifier使用
         else:
-            max_memory = 12  # 给classifier使用
+            max_memory = 10  # 给classifier使用
             prop_dir = 'RDP_trained_' + '_'.join(self.option('database').split('/'))
             prop_file = os.path.join(self.config.SOFTWARE_DIR, 'database/taxon_db/train_RDP_taxon',
                                      prop_dir, 'Classifier.properties')

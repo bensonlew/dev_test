@@ -22,7 +22,7 @@ class FastqDirFile(Directory):
         :param unzip_file: 带路径的fastq文件名的集合
         """
         super(FastqDirFile, self).__init__()
-        self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/fastq_to_fasta")
+        self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/seq/fastx_toolkit_0.0.14/fastq_to_fasta")
         self.fastqs = list()
         self.is_convert = False
         self.has_unziped = False

@@ -109,12 +109,12 @@ class EstimatorsTool(Tool):
         """
         运行mothur软件生成各样本指数表
         """
-        cmd = '/bioinfo/meta/mothur-1.30 "#summary.single(shared=%s.shared,groupmode=f,calc=%s)"' % (self.option('level'),
+        cmd = '/bioinfo/meta/mothur-1.30/mothur.1.30 "#summary.single(shared=%s.shared,groupmode=f,calc=%s)"' % (self.option('level'),
                                                                                              self.indices)
         for index in self.indices.split('-'):
             if index in self.special_est:
                 size = est_size(self.otu_table)
-                cmd = '/bioinfo/meta/mothur-1.30 "#summary.single(shared=%s.shared,groupmode=f,calc=%s,size=%s)"' % \
+                cmd = '/bioinfo/meta/mothur-1.30/mothur.1.30 "#summary.single(shared=%s.shared,groupmode=f,calc=%s,size=%s)"' % \
                       (self.option('level'), self.indices, size)
         self.logger.info(cmd)
         self.logger.info("开始运行mothur")

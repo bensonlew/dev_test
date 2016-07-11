@@ -64,6 +64,7 @@ class OtuTaxonStatAgent(Agent):
             ["tax_summary_a/.+\.xls$", "meta.otu.biom", "单一水平物种分类统计表"],
             ["tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多水平物种分类统计"]
         ])
+        super(OtuTaxonStatAgent, self).end()
 
     def set_resource(self):
         """
@@ -153,6 +154,8 @@ class OtuTaxonStatTool(Tool):
             self.logger.info("文件夹生成成功")
         else:
             self.logger.info("文件夹生成失败")
+            raise Exception("文件夹生成失败")
+
         list_ = os.listdir(tax_summary_a_dir)
         for my_otu_table in list_:
             if re.search(r"txt", my_otu_table):
@@ -161,10 +164,12 @@ class OtuTaxonStatTool(Tool):
                 otu_basename = re.sub(r'\.txt$', r'.xls', otu_basename)
                 otu_name = os.path.join(tax_summary_a_dir, otu_basename)
                 cmd = self._sum_tax_path + " -i " + my_otu_table + " -o " + otu_name
-            try:
-                subprocess.check_call(cmd, shell=True)
-            except subprocess.CalledProcessError:
-                self.set_error("运行sum_tax.pl出错")
+                self.logger.info(cmd)
+                try:
+                    subprocess.check_call(cmd, shell=True)
+                except subprocess.CalledProcessError:
+                    self.set_error("运行sum_tax.pl出错")
+                    raise Exception("运行sum_tax.pl出错")
         list_ = os.listdir(tax_summary_a_dir)
         for table in list_:
             if re.search(r"txt$", table):

@@ -79,7 +79,7 @@ class UsearchOtuTool(Tool):
 
         super(UsearchOtuTool, self).__init__(config)
         self._version = "v7.0"
-        self.usearch_path = "bioinfo/meta/usearch.v7.0/"
+        self.usearch_path = "bioinfo/meta/usearch-v7.0/"
         self.script_path = "bioinfo/meta/scripts/"
         self.qiime_path = "program/Python/bin/"
 
@@ -162,6 +162,6 @@ class UsearchOtuTool(Tool):
                 self.logger.info("运行cmd"+str(i)+"完成")
             else:
                 self.set_error("cmd"+str(i)+"运行出错!")
-                break
+                raise Exception("cmd{}运行出错".format(i))
         self.set_output()
         self.end()

@@ -102,11 +102,11 @@ class LefseTool(Tool):
         self._version = '1.0.1'
         self.biom_path = "/program/Python/bin/"
         self.python_path = "/program/Python/bin/python"
-        self.sum_taxa_path = "/bioinfo/taxon/scripts/"
-        self.plot_lefse_path = "/bioinfo/statistical/lefse-20150707/"
-        self._path = self.config.SOFTWARE_DIR + "/R-3.2.2/bin:$PATH"
-        self._r_home = self.config.SOFTWARE_DIR + "/R-3.2.2/lib64/R/"
-        self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "R-3.2.2/lib64/R/lib:$LD_LIBRARY_PATH"
+        self.sum_taxa_path = "/program/Python/bin/"
+        self.plot_lefse_path = "/bioinfo/statistical/lefse/"
+        self._path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin:$PATH"
+        self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
+        self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
         self.set_environ(PATH=self._path, R_HOME=self._r_home, LD_LIBRARY_PATH=self._LD_LIBRARY_PATH)
 
     def run_biom(self):
@@ -134,6 +134,7 @@ class LefseTool(Tool):
             self.logger.info("script_cmd运行完成")
         else:
             self.set_error("script_cmd运行出错!")
+            raise Exception("script_cmd运行出错!")
 
     def run_sum_tax(self):
         cmd = "for ((i=1;i<=8;i+=1)){\n\
@@ -160,7 +161,7 @@ class LefseTool(Tool):
         # else:
         glist = self.option('lefse_gname').split(',')
         self.option('lefse_group').sub_group('./lefse_group', glist)
-        plot_cmd = self.python_path + 'python ' + self.config.SOFTWARE_DIR + self.plot_lefse_path + \
+        plot_cmd = self.python_path + ' ' + self.config.SOFTWARE_DIR + self.plot_lefse_path + \
                    "lefse-input.py -i tax_summary_a -g ./lefse_group -o lefse_input.txt"
         self.logger.info("开始运行format_input_cmd")
         plot_command = self.add_command("format_input_cmd", plot_cmd).run()
@@ -171,7 +172,7 @@ class LefseTool(Tool):
             self.set_error("format_input_cmd运行出错!")
 
     def run_lefse(self):
-        cmd = self.python_path + 'python %srun_lefse.py lefse_format.txt lefse_LDA.xls ' \
+        cmd = self.python_path + ' %srun_lefse.py lefse_format.txt lefse_LDA.xls ' \
               '-l %s -y %s' % (self.config.SOFTWARE_DIR + self.plot_lefse_path, self.option("lda_filter"), self.option("strict"))
         self.logger.info("开始运行run_lefse_cmd")
         self.logger.info(cmd)

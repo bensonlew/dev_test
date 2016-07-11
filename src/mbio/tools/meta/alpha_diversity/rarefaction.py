@@ -129,7 +129,7 @@ class RarefactionTool(Tool):
         """
         执行命令运行mothur程序，生成rarefaction结果文件
         """
-        cmd = '/bioinfo/meta/mothur-1.30 "#rarefaction.single(shared=%s.shared,calc=%s,groupmode=f,' \
+        cmd = '/bioinfo/meta/mothur-1.30/mothur.1.30 "#rarefaction.single(shared=%s.shared,calc=%s,groupmode=f,' \
               'freq=%s,processors=10)"' % (self.option("level"), self.indices, self.option('freq'))
         # print cmd
         self.logger.info("开始运行mothur")
@@ -141,6 +141,7 @@ class RarefactionTool(Tool):
             self.set_output()
         else:
             self.set_error("运行mothur出错！")
+            raise Exception("运行mothur出错！")
 
     def set_output(self):
         """
