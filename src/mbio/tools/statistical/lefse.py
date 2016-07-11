@@ -77,7 +77,7 @@ class LefseAgent(Agent):
     def lefse_start_callback(self):
         self.step.plot_lefse.start()
         self.step.update()
-    
+
     def lefse_finish_callback(self):
         self.step.plot_lefse.finish()
         self.step.update()
@@ -143,14 +143,14 @@ class LefseTool(Tool):
             subprocess.check_output(cmd, shell=True)
             self.logger.info("run_sum_tax运行完成")
             self.add_state("sum_taxa_finish", data="生成每一水平的物种统计文件完成")
-            return True
         except subprocess.CalledProcessError:
             self.logger.info("run_sum_tax运行出错")
-            return False
+            raise Exception("run_sum_tax运行出错")
+
 
     def format_input(self):
         self.add_state("lefse_start", data="开始进行lefse分析")
-        
+
         # if self.option('lefse_gname') == 'None':
         #     plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
         #                "lefse-input.py -i tax_summary_a -g %s -o lefse_input.txt" % \
@@ -159,7 +159,7 @@ class LefseTool(Tool):
         glist = self.option('lefse_gname').split(',')
         self.option('lefse_group').sub_group('./lefse_group', glist)
         plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
-                   "lefse-input.py -i tax_summary_a -g ./lefse_group -o lefse_input.txt" 
+                   "lefse-input.py -i tax_summary_a -g ./lefse_group -o lefse_input.txt"
         self.logger.info("开始运行format_input_cmd")
         plot_command = self.add_command("format_input_cmd", plot_cmd).run()
         self.wait(plot_command)
@@ -167,7 +167,7 @@ class LefseTool(Tool):
             self.logger.info("format_input_cmd运行完成")
         else:
             self.set_error("format_input_cmd运行出错!")
-        
+
     def run_lefse(self):
         cmd = 'Python/bin/python /mnt/ilustre/users/sanger/app/meta/lefse/run_lefse.py lefse_format.txt lefse_LDA.xls ' \
               '-l %s -y %s' % (self.option("lda_filter"), self.option("strict"))
@@ -207,7 +207,7 @@ class LefseTool(Tool):
         else:
             self.logger.info("plot_cladogram_cmd运行出错")
         self.add_state("lefse_finish", data="lefse分析完成")
-    
+
     def set_lefse_output(self):
         """
         将结果文件链接至output
