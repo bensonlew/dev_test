@@ -44,11 +44,12 @@ class OtuSubsampleWorkflow(Workflow):
         except:
             raise Exception("复制结果文件到output_dir出错！")
         api_otu = self.api.sub_sample
+        output_otu_id = api_otu.add_sg_otu(self.sheet.params, self.option("size"), self.option("input_otu_id"))
         otu_path = self.task.output_dir + "/otu_taxon.subsample.xls"
         if not os.path.isfile(otu_path):
             raise Exception("找不到报告文件:{}".format(otu_path))
         self.logger.info("开始讲信息导入sg_otu_detail表和sg_otu_specimen表中")
-        api_otu.add_sg_otu_detail(otu_path, self.option("input_otu_id"), self.option("output_otu_id"))
+        api_otu.add_sg_otu_detail(otu_path, self.option("input_otu_id"), output_otu_id)
         self.end()
 
     def end(self):
@@ -59,4 +60,5 @@ class OtuSubsampleWorkflow(Workflow):
         result_dir.add_regexp_rules([
             ['\.subsample\.', 'meta.otu.otu_table', "抽平后的otu表格"]
         ])
+        print self.get_upload_files()
         super(OtuSubsampleWorkflow, self).end()

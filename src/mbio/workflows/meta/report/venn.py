@@ -4,6 +4,8 @@
 """Venn表计算"""
 
 import os
+import datetime
+import json
 import shutil
 from biocluster.workflow import Workflow
 
@@ -40,8 +42,11 @@ class VennWorkflow(Workflow):
         shutil.copy2(sour, dest)
         self.logger.info("正在往数据库里插入sg_otu_venn_detail表")
         api_venn = self.api.venn
+        myParams = json.loads(self.sheet.params)
+        name = "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        venn_id = api_venn.create_venn_table(self.sheet.params, myParams["group_id"], self.option("level"), self.option("otu_id"), name)
         venn_path = os.path.join(self.venn.work_dir, "venn_table.xls")
-        api_venn.add_venn_detail(venn_path, self.option("venn_id"), self.option("otu_id"), self.option("level"))
+        api_venn.add_venn_detail(venn_path, venn_id, self.option("otu_id"), self.option("level"))
         self.end()
 
     def run(self):

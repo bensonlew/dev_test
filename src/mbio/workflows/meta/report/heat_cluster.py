@@ -5,6 +5,8 @@
 
 import os
 import re
+import datetime
+import json
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 from mbio.files.meta.otu.otu_table import OtuTableFile
@@ -53,9 +55,12 @@ class HeatClusterWorkflow(Workflow):
     def set_db(self):
         self.logger.info("正在写入mongo数据库")
         api_heat_cluster = self.api.heat_cluster
+        myParams = json.loads(self.sheet.params)
+        name = "heat_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        newick_id = api_heat_cluster.create_newick_table(self.sheet.params, self.option("linkage"), myParams["otu_id"], name)
         self.hcluster.option("newicktree").get_info()
         tree_path = self.hcluster.option("newicktree").prop['path']
-        api_heat_cluster.update_newick(tree_path, self.option("newick_id"))
+        api_heat_cluster.update_newick(tree_path, newick_id)
         self.end()
 
     def run(self):
