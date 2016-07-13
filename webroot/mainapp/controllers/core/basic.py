@@ -72,7 +72,6 @@ class Basic(object):
                 sheet_data['to_file'] = self.to_file
         if not self.uploadTarget:
             self._uploadTarget = self._createUploadTarget()
-        sheet_data['output'] = self._uploadTarget
         self._sheet = Sheet(data=sheet_data)
         return self._sheet
 
