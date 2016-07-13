@@ -100,7 +100,7 @@ class TwoGroupWorkflow(Workflow):
         if not os.path.isfile(ci_path):
             raise Exception("找不到报告文件:{}".format(ci_path))
         params = eval(self.option("params"))
-        main_id = api_two_group.add_species_difference_check_detail(file_path=stat_path, table_id=None, level=self.option("level"), check_type=self.option("test"), params=self.option("params"), group_id=params["group_id"], from_otu_table=params["otu_id"], major=True)
+        main_id = api_two_group.add_species_difference_check_detail(file_path=stat_path, table_id=None, level=self.option("level"), check_type='two_group', params=self.option("params"), group_id=params["group_id"], from_otu_table=params["otu_id"], major=True)
         api_two_group.add_species_difference_check_boxplot(boxfile_path, main_id)
         api_two_group.add_species_difference_check_ci_plot(file_path=ci_path, table_id=main_id)
         api_two_group.update_species_difference_check(main_id, stat_path, ci_path, 'twogroup')

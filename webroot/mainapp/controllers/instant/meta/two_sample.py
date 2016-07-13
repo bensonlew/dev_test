@@ -19,6 +19,7 @@ class TwoSample(MetaController):
         return_result = self.check_options(data)
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
+            print json.dumps(info)
             return json.dumps(info)
         self.task_name = 'meta.report.two_sample'
         self.task_type = 'workflow'  # 可以不配置

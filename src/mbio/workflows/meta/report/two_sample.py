@@ -78,7 +78,7 @@ class TwoSampleWorkflow(Workflow):
         if not os.path.isfile(ci_path):
             raise Exception("找不到报告文件:{}".format(ci_path))
         main_id = api_two_sample.add_twosample_species_difference_check_detail(file_path=two_sample_path, table_id=None,
-        level=self.option("level"), check_type=self.option("test"), params=self.option("params"), group_id=None,
+        level=self.option("level"), check_type='two_sample', params=self.option("params"), group_id=None,
         from_otu_table=params["otu_id"], major=True)
         api_two_sample.add_species_difference_check_ci_plot(file_path=ci_path, table_id=main_id)
         api_two_sample.update_species_difference_check(main_id, two_sample_path, ci_path, 'twosample')

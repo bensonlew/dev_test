@@ -22,7 +22,7 @@ class TwoGroup(MetaController):
             return json.dumps(info)
         self.task_name = 'meta.report.two_group'
         self.task_type = 'workflow'  # 可以不配置
-        groupname = eval(data.group_detail).keys()
+        groupname = json.loads(data.group_detail).keys()
         groupname.sort()
         my_param = dict()
         my_param['otu_id'] = data.otu_id
@@ -51,6 +51,7 @@ class TwoGroup(MetaController):
                         }
         self.to_file = ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table_by_detail(group_file)"]
         self.run()
+        print "bbbbbbbbbb"
         return self.returnInfo
 
     def check_options(self, data):
