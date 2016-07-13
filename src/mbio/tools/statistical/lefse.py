@@ -170,6 +170,7 @@ class LefseTool(Tool):
             self.logger.info("format_input_cmd运行完成")
         else:
             self.set_error("format_input_cmd运行出错!")
+
     def run_format(self):
         if len(self.option('lefse_gname').split(',')) == 1:
             format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -u 2 -o 1000000'
