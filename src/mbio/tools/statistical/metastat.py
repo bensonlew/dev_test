@@ -298,7 +298,7 @@ class MetastatAgent(Agent):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]  
+            [".", "", "结果输出目录"]
         ])
         result_dir.add_regexp_rules([
             [r".*_result\.xls", "xls", "物种组间差异显著性比较结果表，包括均值，标准差，p值"],
@@ -349,15 +349,15 @@ class MetastatTool(Tool):
                 self.run_anova()
             elif test == "estimator":
                 self.run_est()
-    
+
     def run_est(self):
         gfilelist = os.listdir(self.option("est_group").prop['path'])
         self.logger.info(gfilelist)
-        i = 1 
+        i = 1
         for group in gfilelist:
             est_ttest(self.option('est_input').prop['path'], self.work_dir + '/est_result%s.xls' % i,
                       os.path.join(self.option("est_group").prop['path'], group))
-            cmd = "R-3.2.2/bin/Rscript run_est_ttest.r"
+            cmd = "program/R-3.3.1/bin/Rscript run_est_ttest.r"
             self.logger.info("开始运行est_T检验")
             command = self.add_command("est_cmd{}".format(i), cmd).run()
             i += 1
@@ -370,7 +370,7 @@ class MetastatTool(Tool):
     def run_chi(self):
         two_sample_test(self.option('chi_input').prop['path'], self.work_dir + '/chi_result.xls', "chi",
                         self.option('chi_sample1'), self.option('chi_sample2'), self.option('chi_correction'))
-        cmd = "R-3.2.2/bin/Rscript run_chi_test.r"
+        cmd = "program/R-3.3.1/bin/Rscript run_chi_test.r"
         self.logger.info("开始运行卡方检验")
         command = self.add_command("chi_cmd", cmd).run()
         self.wait(command)
@@ -388,7 +388,7 @@ class MetastatTool(Tool):
                         self.option('fisher_sample1'), self.option('fisher_sample2'),
                         str(1 - self.option('fisher_ci')), self.option('fisher_type'),
                         self.option('fisher_correction'))
-        cmd = "R-3.2.2/bin/Rscript run_fisher_test.r"
+        cmd = "program/R-3.3.1/bin/Rscript run_fisher_test.r"
         self.logger.info("开始运行fisher检验")
         command = self.add_command("fisher_cmd", cmd).run()
         self.wait(command)
@@ -409,15 +409,15 @@ class MetastatTool(Tool):
             DiffBetweenPropAsymptotic(otufile, statfile, sample1, sample2, coverage, outfile)
         if methor == "NewcombeWilson":
             NewcombeWilson(otufile, statfile, sample1, sample2, coverage, outfile)
-    
-    def run_student(self): 
+
+    def run_student(self):
         glist = [self.option('student_gname')]
         self.option('student_group').sub_group('./student_group', glist)
         two_group_test(self.option('student_input').prop['path'], './student_group',
                        self.work_dir + '/student_result.xls', self.work_dir + '/student_boxfile.xls', "student",
                        str(1 - self.option('student_ci')), self.option('student_type'),
                        self.option('student_correction'))
-        cmd = "R-3.2.2/bin/Rscript run_student_test.r"
+        cmd = "program/R-3.3.1/bin/Rscript run_student_test.r"
         self.logger.info("开始运行student_T检验")
         command = self.add_command("student_cmd", cmd).run()
         self.wait(command)
@@ -436,7 +436,7 @@ class MetastatTool(Tool):
                        str(1 - self.option('welch_ci')), self.option('welch_type'),
                        self.option('welch_correction'))
         self.logger.info(Config().SOFTWARE_DIR)
-        cmd = "R-3.2.2/bin/Rscript run_welch_test.r"
+        cmd = "program/R-3.3.1/bin/Rscript run_welch_test.r"
         self.logger.info("开始运行welch_T检验")
         command = self.add_command("welch_cmd", cmd).run()
         self.wait(command)
@@ -454,7 +454,7 @@ class MetastatTool(Tool):
                        self.work_dir + '/mann_result.xls', self.work_dir + '/mann_boxfile.xls', "mann",
                        str(1 - self.option('mann_ci')), self.option('mann_type'),
                        self.option('mann_correction'))
-        cmd = "R-3.2.2/bin/Rscript run_mann_test.r"
+        cmd = "program/R-3.3.1/bin/Rscript run_mann_test.r"
         self.logger.info("开始运行mann检验")
         command = self.add_command("mann_cmd", cmd).run()
         self.wait(command)
@@ -471,7 +471,7 @@ class MetastatTool(Tool):
         mul_group_test(self.option('kru_H_input').prop['path'], self.work_dir + '/kru_H_result.xls',
                        self.work_dir + '/kru_H_boxfile.xls', './kru_H_group', "kru_H",
                        self.option('kru_H_correction'))
-        cmd = "R-3.2.2/bin/Rscript run_kru_H_test.r"
+        cmd = "program/R-3.3.1/bin/Rscript run_kru_H_test.r"
         self.logger.info("开始运行kru_H检验")
         command = self.add_command("kru_cmd", cmd).run()
         self.wait(command)
@@ -489,7 +489,7 @@ class MetastatTool(Tool):
         mul_group_test(self.option('anova_input').prop['path'], self.work_dir + '/anova_result.xls',
                        self.work_dir + '/anova_boxfile.xls', './anova_group', "anova",
                        self.option('anova_correction'))
-        cmd = "R-3.2.2/bin/Rscript run_anova_test.r"
+        cmd = "program/R-3.3.1/bin/Rscript run_anova_test.r"
         self.logger.info("开始运行anova检验")
         command = self.add_command("anova_cmd", cmd).run()
         self.wait(command)
@@ -510,7 +510,7 @@ class MetastatTool(Tool):
             welchuncorrected(statfile, groupfile, coverage, outfile)
         if methor == 'scheffe':
             scheffe(statfile, groupfile, coverage, outfile)
-    
+
     def set_output(self):
         """
         将结果文件link到output文件夹下面
@@ -598,5 +598,3 @@ class MetastatTool(Tool):
                     self.logger.info("设置est分析的结果目录成功")
                 except:
                     self.logger.info("设置est分析结果目录失败")
-
-

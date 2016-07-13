@@ -18,7 +18,6 @@ from pymongo import MongoClient
 
 web.config.debug = False
 
-
 @singleton
 class Config(object):
     def __init__(self):
@@ -120,7 +119,7 @@ class Config(object):
                         return lip
             return '127.0.0.1'
         if platform.system() == 'Linux' or platform.system() == 'Darwin':
-            return getip("ib0")
+            return getip("eth1")
             # ipstr = '([0-9]{1,3}\.){3}[0-9]{1,3}'
             # ipconfig_process = subprocess.Popen("/sbin/ifconfig", stdout=subprocess.PIPE)
             # output = ipconfig_process.stdout.read()

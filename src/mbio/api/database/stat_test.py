@@ -280,6 +280,7 @@ class StatTest(Base):
                 "name": "difference_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
                 "level_id": int(level),
                 "params": params,
+                "status": "end",
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
              }
         else:
@@ -292,6 +293,7 @@ class StatTest(Base):
                 "name": "difference_stat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
                 "level_id": int(level),
                 "params": params,
+                "status": "end",
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
         collection = self.db["sg_species_difference_check"]
@@ -322,6 +324,7 @@ class StatTest(Base):
             "params": params,
             "lda_cladogram_id": "",
             "lda_png_id": "",
+            "status": "end",
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         collection = self.db["sg_species_difference_lefse"]

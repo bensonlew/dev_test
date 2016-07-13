@@ -65,7 +65,7 @@ class PcoaTool(Tool):
         super(PcoaTool, self).__init__(config)
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
         self.cmd_path = os.path.join(
-            self.config.SOFTWARE_DIR, 'meta/scripts/beta_diversity/ordination.pl')
+            self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/ordination.pl')
 
     def run(self):
         """
@@ -82,6 +82,7 @@ class PcoaTool(Tool):
         cmd += ' -type pcoa -dist %s -outdir %s' % (
             self.option('dis_matrix').prop['path'], self.work_dir)
         self.logger.info('运行ordination.pl程序计算pcoa')
+        self.logger.info(cmd)
 
         try:
             subprocess.check_output(cmd, shell=True)
@@ -90,8 +91,7 @@ class PcoaTool(Tool):
             self.logger.info('生成 cmd.r 文件失败')
             self.set_error('无法生成 cmd.r 文件')
         try:
-            subprocess.check_output(self.config.SOFTWARE_DIR +
-                                    '/R-3.2.2/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
+            subprocess.check_output(self.config.SOFTWARE_DIR +'/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
             self.logger.info('pcoa计算成功')
         except subprocess.CalledProcessError:
             self.logger.info('pcoa计算失败')

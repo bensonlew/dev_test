@@ -53,5 +53,7 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
     write.table(table, "'''+file_path+'''",sep = '\t', row.names = F, col.names = F)'''
     with open(cmd_path, 'wb') as r:
         r.write('%s' % test)
-    os.system('/mnt/ilustre/users/sanger/app/R-3.2.2/bin/Rscript %s' % cmd_path)
+    R_path = os.path.join(Config().SOFTWARE_DIR, "program/R-3.3.1/bin/Rscript")
+    cmd = "{} {}".format(R_path, cmd_path)
+    os.system(cmd)
     return file_path

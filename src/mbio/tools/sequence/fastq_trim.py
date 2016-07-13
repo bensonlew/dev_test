@@ -175,7 +175,7 @@ class FastqTrimTool(Tool):
         super(FastqTrimTool, self).__init__(config)
         self._version = '0.35'
         self.trimmomatic_path = ('sun_jdk1.8.0/bin/java -jar ' + self.config.SOFTWARE_DIR +
-                                 '/trim/Trimmomatic-0.35/trimmomatic-0.35.jar')
+                                 '/bioinfo/seq/trimmomatic-0.36.jar')
         # self.cutadapt_path = self.config.SOFTWARE_DIR + 'Python/bin/cutadapt'
         self.adapter = ''
 
