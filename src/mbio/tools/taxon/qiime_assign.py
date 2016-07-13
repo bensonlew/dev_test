@@ -84,13 +84,13 @@ class QiimeAssignAgent(Agent):
                 raise OptionError('提供的库fasta序列过大{}G，暂不支持'.format(fasta_size))
             self._memory = str(QiimeAssignAgent.max_memory_func(fasta_size)) + 'G'
         else:
-            self._memory = '10G'
+            self._memory = '15G'
         self.logger.info('Memory:{}  CPU:{}'.format(self._memory, self._cpu))
 
     @staticmethod
     def max_memory_func(memory):
         """根据提供的fasta大小（单位G）来设定需要的内存大小（单位G）"""
-        return int(round(60 * memory)) + 10
+        return int(round(60 * memory)) + 15
 
 
 class QiimeAssignTool(Tool):
@@ -99,14 +99,14 @@ class QiimeAssignTool(Tool):
     """
     def __init__(self, config):
         super(QiimeAssignTool, self).__init__(config)
-        self.train_taxon = os.path.join(self.config.SOFTWARE_DIR, "meta/rdp_classifier_2.11/train_taxon_by_RDP.py")
-        self.RDP_classifier = os.path.join(self.config.SOFTWARE_DIR, "meta/rdp_classifier_2.11/RDP_classifier.py")
+        self.train_taxon = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/taxon/rdp_classifier_2.11/train_taxon_by_RDP.py")
+        self.RDP_classifier = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/taxon/rdp_classifier_2.11/RDP_classifier.py")
 
     def run_prepare(self):
         if self.option('revcomp'):
             self.logger.info("revcomp 输入的fasta文件")
             try:
-                cmd = self.config.SOFTWARE_DIR + "/seqs/revcomp " + self.option('fasta').prop['path'] + " > seqs.fasta"
+                cmd = self.config.SOFTWARE_DIR + "/bioinfo/seq/fastx_toolkit_0.0.14/revcomp " + self.option('fasta').prop['path'] + " > seqs.fasta"
                 subprocess.check_output(cmd, shell=True)
                 self.logger.info("revcomp 输入的fasta文件 完成")
                 return True
@@ -127,7 +127,7 @@ class QiimeAssignTool(Tool):
             ref_tax = self.option('ref_taxon').prop['path']
             fasta_size = os.path.getsize(ref_fas) / 1024.00 / 1024.00 / 1024.00
             max_memory = QiimeAssignTool.max_memory_func(fasta_size)
-            cmd = '/Python/bin/python ' + self.train_taxon + ' -t ' + ref_tax + ' -s ' + ref_fas +\
+            cmd = '/program/Python/bin/python ' + self.train_taxon + ' -t ' + ref_tax + ' -s ' + ref_fas +\
                   ' -o ' + self.work_dir + '/RDP_trained' + ' -m ' + str(max_memory)
             trainer = self.add_command('train', cmd)
             self.logger.info('开始对自定义分类库文件进行RDP训练')
@@ -141,11 +141,11 @@ class QiimeAssignTool(Tool):
             if max_memory > 60:
                 max_memory = 24  # 当训练的库文件增加，classifier适当增加，经验设定给后续classifier使用
         else:
-            max_memory = 12  # 给classifier使用
+            max_memory = 10  # 给classifier使用
             prop_dir = 'RDP_trained_' + '_'.join(self.option('database').split('/'))
-            prop_file = os.path.join(self.config.SOFTWARE_DIR, 'meta/taxon_db/train_RDP_taxon',
+            prop_file = os.path.join(self.config.SOFTWARE_DIR, 'database/taxon_db/train_RDP_taxon',
                                      prop_dir, 'Classifier.properties')
-        cmd = '/Python/bin/python ' + self.RDP_classifier + ' -p ' + prop_file + ' -q seqs.fasta' + ' -o '\
+        cmd = '/program/Python/bin/python ' + self.RDP_classifier + ' -p ' + prop_file + ' -q seqs.fasta' + ' -o '\
               + self.work_dir + '/seqs_taxon' + ' -c ' + str(self.option('confidence')) + ' -m ' + str(max_memory)
         classifier = self.add_command('classifiy', cmd)
         self.logger.info('开始进行序列分类')

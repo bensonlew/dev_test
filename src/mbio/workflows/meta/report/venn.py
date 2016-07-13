@@ -47,6 +47,7 @@ class VennWorkflow(Workflow):
         venn_id = api_venn.create_venn_table(self.sheet.params, myParams["group_id"], self.option("level"), self.option("otu_id"), name)
         venn_path = os.path.join(self.venn.work_dir, "venn_table.xls")
         api_venn.add_venn_detail(venn_path, venn_id, self.option("otu_id"), self.option("level"))
+        self.add_return_mongo_id("sg_otu_venn", venn_id)
         self.end()
 
     def run(self):

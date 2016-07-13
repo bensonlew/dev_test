@@ -19,7 +19,7 @@ class BiomFile(File):
         """
         """
         super(BiomFile, self).__init__()
-        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "Python/bin/")
+        self.biom_path = os.path.join(Config().SOFTWARE_DIR, "program/Python/bin/")
 
     def get_info(self):
         """
@@ -53,7 +53,7 @@ class BiomFile(File):
         valid = False
         try:
             subpro = subprocess.check_output(self.biom_path+"biom  validate-table -i " + self.prop['path'], shell=True)
-            if subpro == "The input file is a valid BIOM-formatted file.":
+            if re.search("The input file is a valid BIOM-formatted file.", subpro):
                 valid = True
         except subprocess.CalledProcessError:
             pass
@@ -88,4 +88,3 @@ class BiomFile(File):
         except subprocess.CalledProcessError:
             raise Exception("biom convert 运行出错！")
         return True
-

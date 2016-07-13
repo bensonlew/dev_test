@@ -195,11 +195,12 @@ class Command(object):
 
         :return: self
         """
+        command = self.software_dir + "/" + self.cmd
+        self.tool.logger.info("命令内容为{}".format(command))
         if self._pid != "":
             raise OSError("命令已经运行，不能重复运行!")
         if "|" in self.cmd or ">" in self.cmd or "<" in self.cmd:
             raise Exception("不能使用管道符或重定向符!")
-        command = self.software_dir + "/" + self.cmd
         args = shlex.split(command)
         if not os.path.isfile(args[0]):
             self.tool.set_error("运行的命令文件不存在")

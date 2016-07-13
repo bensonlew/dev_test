@@ -61,7 +61,7 @@ class BaseInfoTool(Tool):
     def __init__(self, config):
         super(BaseInfoTool, self).__init__(config)
         self._version = 1.0
-        self.fastx_stats_path = "fastxtoolkit/bin/fastx_quality_stats"
+        self.fastx_stats_path = "bioinfo/seq/fastx_toolkit_0.0.14/fastx_quality_stats"
 
     def _run_fastx(self):
         work_path = os.path.join(self.work_dir, "output")
@@ -75,6 +75,7 @@ class BaseInfoTool(Tool):
             i += 1
             file_name = os.path.join(base_info_dir, os.path.basename(fastq) + ".fastxstat.txt")
             cmd = self.fastx_stats_path + " -i " + fastq + " -o " + file_name
+            self.logger.info(cmd)
             command = self.add_command("fastx_quality_stats" + str(i), cmd)
             cmd_list.append(command)
         for mycmd in cmd_list:

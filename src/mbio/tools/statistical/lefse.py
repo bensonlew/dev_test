@@ -183,6 +183,19 @@ class LefseTool(Tool):
         else:
             self.set_error("format_cmd运行出错!")
 
+    def run_format(self):
+        if len(self.option('lefse_gname').split(',')) == 1:
+            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -u 2 -o 1000000'
+        elif len(self.option('lefse_gname').split(',')) == 2:
+            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -s 2 -u 3 -o 1000000'
+        self.logger.info("开始运行format_cmd")
+        format_command = self.add_command("format_cmd", format_cmd).run()
+        self.wait(format_command)
+        if format_command.return_code == 0:
+            self.logger.info("format_cmd运行完成")
+        else:
+            self.set_error("format_cmd运行出错!")
+
     def run_lefse(self):
         cmd = self.python_path + ' %srun_lefse.py lefse_format.txt lefse_LDA.xls ' \
               '-l %s -y %s' % (self.config.SOFTWARE_DIR + self.plot_lefse_path, self.option("lda_filter"), self.option("strict"))

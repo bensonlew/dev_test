@@ -61,6 +61,7 @@ class HeatClusterWorkflow(Workflow):
         self.hcluster.option("newicktree").get_info()
         tree_path = self.hcluster.option("newicktree").prop['path']
         api_heat_cluster.update_newick(tree_path, newick_id)
+        self.add_return_mongo_id("sg_newick_tree", newick_id)
         self.end()
 
     def run(self):

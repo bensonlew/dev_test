@@ -52,7 +52,8 @@ class FastqToFastaTool(Tool):
     def __init__(self, config):
         super(FastqToFastaTool, self).__init__(config)
         self._version = "v1"
-        self.cmd = "Python/bin/"
+        self.cmd = "/program/Python/bin/"
+        self.script = self.config.SOFTWARE_DIR + "/bioinfo/seq/scripts/"
 
     def run(self):
         """
@@ -68,8 +69,8 @@ class FastqToFastaTool(Tool):
         运行fastq_to_fasta.py程序，将单个fastq文件转换成fasta文件
         """
         self.logger.info("开始运行pair_fastq_to_fasta命令")
-        cmd = self.cmd + "python /mnt/ilustre/users/sanger/app/meta/scripts/fastq_to_fasta.py -i %s -o fasta -n %s" % \
-                         (self.option('fastq_input').prop['path'], self.option('fasta_id'))
+        cmd = self.cmd + "python %sfastq_to_fasta.py -i %s -o fasta -n %s" % \
+                         (self.script, self.option('fastq_input').prop['path'], self.option('fasta_id'))
         self.logger.info(cmd)
         fasta_command = self.add_command("fastq_to_fasta_cmd", cmd).run()
         self.wait(fasta_command)

@@ -61,7 +61,7 @@ class PairFastqMergeTool(Tool):
     def __init__(self, config):
         super(PairFastqMergeTool, self).__init__(config)
         self._version = "v1"
-        self.pear_path = "pear/bin/"
+        self.pear_path = "bioinfo/seq/pear-0.9.8/bin/"
 
     def run(self):
         """

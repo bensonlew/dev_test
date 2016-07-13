@@ -28,6 +28,8 @@ class JobManager(object):
         mode = self.default_mode.lower()
         if agent.mode.lower() != "auto":
             mode = agent.mode.lower()
+        if self.default_mode == "LOCAL":
+            mode = "local"
         module = importlib.import_module("biocluster.scheduling.%s" % mode)
         job = getattr(module, mode.upper())(agent)
         filled = False
