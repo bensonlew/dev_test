@@ -133,10 +133,13 @@ class AnosimWorkflow(Workflow):
         保存结果表到mongo数据库中
         """
         api_anosim = self.api.anosim
+        collection = self.db["sg_otu"]
+        result = collection.find_one({"_id": ObjectId(self.option('otu_id'))})
+        task_id = result['task_id']
         # matrix_path = self.output_dir + '/' + os.listdir(self.output_dir)[0]
         if not (os.path.isdir(self.output_dir + '/Anosim') and os.path.isdir(self.output_dir + '/Box')):
             raise Exception("找不到报告文件夹:{}".format(self.output_dir))
-        main_id = api_anosim.add_beta_anosim_result(self.output_dir, main=True)
+        main_id = api_anosim.add_beta_anosim_result(self.output_dir, main=True, task_id=task_id)
         self.add_return_mongo_id('sg_beta_multi_anosim', main_id)
         self.logger.info(str(main_id))
         self.logger.info('运行self.end')

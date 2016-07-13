@@ -72,6 +72,7 @@ class Basic(object):
                 sheet_data['to_file'] = self.to_file
         if not self.uploadTarget:
             self._uploadTarget = self._createUploadTarget()
+        sheet_data['output'] = self._uploadTarget
         self._sheet = Sheet(data=sheet_data)
         return self._sheet
 
@@ -228,7 +229,8 @@ class Basic(object):
         if self.update_api:
             for one_insert in self.mongo_ids:
                 self.update_api.add_meta_status(table_id=one_insert['id'],
-                                                type_name=one_insert['collection_name'], desc=one_insert['desc'])
+                                                type_name=one_insert['collection_name'],
+                                                desc=one_insert['desc'], task_id=self.taskId)
 
     def end(self):
         self.update_sg_status()

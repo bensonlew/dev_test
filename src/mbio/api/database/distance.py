@@ -5,7 +5,7 @@ import re
 import json
 import datetime
 from bson.son import SON
-from types import StringTypes
+# from types import StringTypes
 from bson.objectid import ObjectId
 
 
@@ -18,8 +18,8 @@ class Distance(Base):
     def add_dist_table(self, file_path, major=False, level=None, dist_id=None, otu_id=None, task_id=None, name=None, params=None):
         if level and level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
+        # if task_id is None:
+        #     task_id = self.bind_object.sheet.id
         data_list = []
         if otu_id:
             if not isinstance(otu_id, ObjectId):
@@ -27,6 +27,11 @@ class Distance(Base):
             params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
         # insert major
         if major:
+            if not otu_id:
+                raise Exception('写主表时必须提供otu_id')
+            collection = self.db["sg_otu"]
+            result = collection.find_one({"_id": otu_id})
+            task_id = result['task_id']
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
@@ -36,7 +41,7 @@ class Distance(Base):
                 "status": "end",
                 "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
+                }
             collection = self.db["sg_beta_specimen_distance"]
             dist_id = collection.insert_one(insert_data).inserted_id
         else:
@@ -68,7 +73,7 @@ class Distance(Base):
         try:
             collection = self.db["sg_beta_specimen_distance_detail"]
             collection.insert_many(data_list)
-        except Exception, e:
+        except Exception as e:
             self.bind_object.logger.error("导入distance%s信息出错:%s" % (file_path, e))
         else:
             self.bind_object.logger.info("导入distance%s信息成功!" % file_path)

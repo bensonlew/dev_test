@@ -176,6 +176,7 @@ class DistanceCalcTool(Tool):
             # 如果提供的是otu分类文件夹，需要重新创建类，再使用类的convert_to_biom方法
             newtable = OtuTableFile()
             newtable.set_path(self.real_otu)
+            newtable.check()
         else:
             newtable = self.option('otutable')
         biom_path = os.path.join(self.work_dir, 'temp.biom')

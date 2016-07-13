@@ -1,5 +1,5 @@
-dis_matrix <- read.table("${dis_matrix}",comment.char = "",sep = "\t",row.names=1, header = TRUE)
-env_factor <- read.table("${env_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE)
+dis_matrix <- read.table("${dis_matrix}",comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
+env_factor <- read.table("${env_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
 centroids <- FALSE
 biplot <- FALSE
 for (i in env_factor) {

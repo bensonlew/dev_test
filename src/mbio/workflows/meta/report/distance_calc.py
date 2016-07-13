@@ -25,6 +25,7 @@ class DistanceCalcWorkflow(Workflow):
             {"name": "otu_id", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "matrix_id", "type": "string"},
+            {"name": "task_type", "type": "string"},
             # {"name": "matrix_out", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
         ]
         self.add_option(options)
@@ -127,7 +128,8 @@ class DistanceCalcWorkflow(Workflow):
         params_json = {
             'otu_id': self.option('otu_id'),
             'level_id': self.option('level'),
-            'distance_algorithm': self.option('method')
+            'distance_algorithm': self.option('method'),
+            'taskType': self.option('task_type')
             }
         matrix_id = api_distance.add_dist_table(matrix_path,
                                                 major=True,
