@@ -64,10 +64,11 @@ class FastqStatTool(Tool):
         super(FastqStatTool, self).__init__(config)
         self.FastqStat_path = "/mnt/ilustre/users/sanger/app/rna/scripts/fastqstat.jar"
         self.fastq_name = self.option("fastq").prop["path"].split("/")[-1]
+        self.java_path = "sun_jdk1.8.0/bin/"
 
     def fastq_stat(self):
         self.get_list_file()
-        cmd = "sun_jdk1.8.0/bin/java -jar {} -i {} -t {}".format(self.FastqStat_path, "fq_list_for_FastqStat", 10)
+        cmd = "{}java -jar {} -i {} -t {}".format(self.java_path, self.FastqStat_path, "fq_list_for_FastqStat", 10)
         self.logger.info(cmd)
         self.logger.info("开始运行FastqStat.jar")
         command = self.add_command("fastqstat", cmd)
