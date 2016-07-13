@@ -288,9 +288,10 @@ class Workflow(Basic):
         self.logger.info("程序退出: %s " % data)
         if self.rpc:
             self.rpc_server.server.close()
+            sys.exit(exitcode)
         else:
-            self.noRPC_signal.set()
-        sys.exit(exitcode)
+            # self.noRPC_signal.set()
+            raise Exception('即时运行程序出错')
 
     def __update_service(self):
         """
