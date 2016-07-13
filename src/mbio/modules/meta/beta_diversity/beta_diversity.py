@@ -105,7 +105,8 @@ class BetaDiversityModule(Module):
         self.tools['box'].set_options({
             'dis_matrix': self.matrix.option('dis_matrix'),
             'grouplab': self.option('grouplab') if self.option('grouplab') else self.option('anosim_grouplab'),
-            'group': self.option('group')
+            'group': self.option('group'),
+            'permutations': self.option('permutations')
         })
         self.tools['box'].on('end', self.set_output, 'box')
         self.tools['box'].run()

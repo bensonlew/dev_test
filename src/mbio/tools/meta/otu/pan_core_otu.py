@@ -71,7 +71,7 @@ class PanCoreOtuAgent(Agent):
 class PanCoreOtuTool(Tool):
     def __init__(self, config):
         super(PanCoreOtuTool, self).__init__(config)
-        self.R_path = os.path.join(Config().SOFTWARE_DIR, "R-3.2.2/bin/R")
+        self.R_path = os.path.join(Config().SOFTWARE_DIR, "program/R-3.3.1/bin/R")
         self._version = 1.0
 
     def _create_pan_core(self):

@@ -3,6 +3,7 @@
 from biocluster.workflow import Workflow
 # import os
 from mbio.api.to_file.meta import *
+import datetime
 
 
 class EstimatorsWorkflow(Workflow):
@@ -47,6 +48,7 @@ class EstimatorsWorkflow(Workflow):
         """
         api_estimators = self.api.estimator
         est_path = self.output_dir+"/estimators.xls"
+        name = "estimators" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         if not os.path.isfile(est_path):
             raise Exception("找不到报告文件:{}".format(est_path))
         sort_index = self.option('indices').split(',')
@@ -60,7 +62,7 @@ class EstimatorsWorkflow(Workflow):
             "taskType": self.option("taskType")
             }
         est_id = api_estimators.add_est_table(est_path, major=True, level=self.option('level'),
-                                              otu_id=self.option('otu_id'), params=params_json)
+                                              otu_id=self.option('otu_id'), params=params_json, name=name)
         self.add_return_mongo_id('sg_alpha_diversity', est_id)
         self.end()
 

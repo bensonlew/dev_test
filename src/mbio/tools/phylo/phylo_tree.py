@@ -4,14 +4,15 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
+import subprocess
 from biocluster.core.exceptions import OptionError
 
 
 class PhyloTreeAgent(Agent):
     """
     phylo_tree:生成OTU代表序列的树文件
-    version 1.0  
-    author: qindanhua  
+    version 1.0
+    author: qindanhua
     last_modify: 2016.05.31
     """
 
@@ -66,31 +67,33 @@ class PhyloTreeTool(Tool):
 
     def __init__(self, config):
         super(PhyloTreeTool, self).__init__(config)
-        self.cmd_path = 'meta/otu/'
-        self.clustalw2_path = '/align/'
-        self.FastTree_path = '/mnt/ilustre/users/sanger/app/meta/scripts/'
+        self.clustalw2_path = 'bioinfo/align/'
+        self.python_path = '/program/Python/bin/'
+        self.mafft_path = self.config.SOFTWARE_DIR+'/bioinfo/align/mafft-7.299-with-extensions/bin/'
+        self.FastTree_path = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/phylogenetic/fasttree2.1.9/FastTreeMP")
 
     def align(self):
         """
         比对，根据method参数，选择不同的比对软件进行比对，结果文件为phylo.align
         """
         if self.option("method") in ["mafft"]:
-            cmd = "Python/bin/python {}mafft.py -i {} -o phylo.align".\
-                format(self.FastTree_path, self.option('fasta_file').prop['path'])
+            cmd = "{}mafft {} > phylo.align".\
+                format(self.mafft_path, self.option('fasta_file').prop['path'])
         else:
             cmd = self.clustalw2_path + "clustalw2 -ALIGN -INFILE=%s -OUTFILE=phylo.align  -OUTPUT=FASTA" % \
                                     self.option('fasta_file').prop['path']
         print cmd
         self.add_state('phylo_tree_start', data='开始运行程序生成树文件')
         # os.system(cmd)
+        self.logger.info(cmd)
         self.logger.info("开始运行{}软件，进行比对".format(self.option("method")))
-        command = self.add_command("{}".format(self.option("method")), cmd)
-        command.run()
-        self.wait()
-        if command.return_code == 0:
+        command = subprocess.Popen(cmd, shell=True)
+        command.communicate()
+        if command.returncode == 0:
             self.logger.info("完成比对！")
         else:
             self.set_error("运行出错！")
+            raise Exception("比对处错")
         # self.add_state('clustalw_end', data='done')
 
     def fasttree(self):
@@ -98,13 +101,12 @@ class PhyloTreeTool(Tool):
         执行fasttree脚本，生成结果文件
         """
         # self.add_state('fasttree_start', data='开始运行fasttree命令，生成树文件')
-        cmd = 'Python/bin/python %sfasttree.py -i %s' % (self.FastTree_path, 'phylo.align')
-        print cmd
+        cmd = "{} -nt {} > {}".format(self.FastTree_path, os.path.join(self.work_dir, "phylo.align"), os.path.join(self.work_dir, "phylo.tre"))
+        self.logger.info(cmd)
         self.logger.info("开始运行fasttree")
-        fasttree_command = self.add_command("fasttree", cmd)
-        fasttree_command.run()
-        self.wait()
-        if fasttree_command.return_code == 0:
+        command = subprocess.Popen(cmd, shell=True)
+        command.communicate()
+        if command.returncode == 0:
             self.logger.info("运行fasttree完成！")
         else:
             self.set_error("运行fasttree出错！")

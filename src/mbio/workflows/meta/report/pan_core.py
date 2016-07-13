@@ -52,6 +52,7 @@ class PanCoreWorkflow(Workflow):
         name = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         myParams = json.loads(self.sheet.params)
         pan_id = api_pan_core.create_pan_core_table(1, self.sheet.params, myParams["group_id"], self.option("level"), myParams["otu_id"], name)
+        name = "core_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         core_id = api_pan_core.create_pan_core_table(2, self.sheet.params, myParams["group_id"], self.option("level"), myParams["otu_id"], name)
         pan_path = self.pan_core.option("pan_otu_table").prop['path']
         core_path = self.pan_core.option("core_otu_table").prop['path']

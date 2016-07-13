@@ -50,6 +50,7 @@ class OtuSubsampleWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(otu_path))
         self.logger.info("开始讲信息导入sg_otu_detail表和sg_otu_specimen表中")
         api_otu.add_sg_otu_detail(otu_path, self.option("input_otu_id"), output_otu_id)
+        self.add_return_mongo_id("sg_otu", output_otu_id)
         self.end()
 
     def end(self):

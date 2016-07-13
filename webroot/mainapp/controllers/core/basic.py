@@ -98,7 +98,13 @@ class Basic(object):
         self.create_sheet()
         self.get_task_object()
         self.logger = self._task_object.logger
-        self._task_object.run()
+        try:
+            self._task_object.run()
+        except Exception as e:
+            info = {"success": False, "info": "程序运行过程中发生错误，错误信息:{}".format(e)}
+            self.returnInfo = json.dumps(info)
+            self.logger.error(self.returnInfo)
+            return self.returnInfo
         self._mongo_ids = self._task_object.return_mongo_ids
         self.update_api = MetaUpdateStatus(self._task_object)
         self.update_api.manager = self._task_object.api

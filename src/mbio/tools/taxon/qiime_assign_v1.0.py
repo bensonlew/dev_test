@@ -80,13 +80,13 @@ class QiimeAssignTool(Tool):
     """
     def __init__(self, config):
         super(QiimeAssignTool, self).__init__(config)
-        self.qiime_path = "Python/bin/"
+        self.qiime_path = "program/Anaconda2/bin/"
 
     def run_prepare(self):
         if self.option('revcomp'):
             self.logger.info("revcomp 输入的fasta文件")
             try:
-                subprocess.check_output(self.config.SOFTWARE_DIR+"/seqs/revcomp "+self.option('fasta').prop['path']+" > seqs.fasta", shell=True)
+                subprocess.check_output(self.config.SOFTWARE_DIR+"/bioinfo/seq/fastx_toolkit_0.0.14/revcomp "+self.option('fasta').prop['path']+" > seqs.fasta", shell=True)
                 self.logger.info("OK")
                 return True
             except subprocess.CalledProcessError:
@@ -101,13 +101,13 @@ class QiimeAssignTool(Tool):
             return True
 
     def run_assign(self):
-        ref_fas = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.fasta'
-        ref_tax = self.config.SOFTWARE_DIR+"/meta/taxon_db/"+self.option('database')+'.tax'
+        ref_fas = self.config.SOFTWARE_DIR+"/database/taxon_db/"+self.option('database')+'.fasta'
+        ref_tax = self.config.SOFTWARE_DIR+"/database/taxon_db/"+self.option('database')+'.tax'
         if self.option('database') == "custom_mode":
             ref_fas = self.option('ref_fasta').prop['path']
             ref_tax = self.option('ref_taxon').prop['path']
         # export RDP_JAR_PATH=$HOME/app/rdp_classifier_2.2/rdp_classifier-2.2.jar"
-        self.set_environ(RDP_JAR_PATH=self.config.SOFTWARE_DIR+"/meta/rdp_classifier_2.2/rdp_classifier-2.2.jar")
+        self.set_environ(RDP_JAR_PATH=self.config.SOFTWARE_DIR+"/bioinfo/taxon/rdp_classifier_2.2/rdp_classifier-2.2.jar")
         cmd = self.qiime_path+"assign_taxonomy.py  -m rdp -i seqs.fasta -c "+str(self.option('confidence'))+"  -r "+ref_fas+" -t "+ref_tax+" -o .  --rdp_max_memory 50000"
         self.logger.info(u"生成命令: "+cmd)
         assign = self.add_command("assign", cmd)

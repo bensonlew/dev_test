@@ -35,6 +35,7 @@ class Multiple(MetaController):
         my_param['coverage'] = float(data.coverage)
         my_param['category_name'] = ','.join(groupname)
         my_param['submit_location'] = data.submit_location
+        my_param['taskType'] = 'reportTask'
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         self.options = {"otu_file": data.otu_id,
                         "params": params,

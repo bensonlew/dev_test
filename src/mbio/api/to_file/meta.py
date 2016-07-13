@@ -220,6 +220,9 @@ def _get_objectid(data):
 
 
 def _get_index_list(group_name_list, c_name):
+    """
+    获取specimen_names字段的index (key)
+    """
     length = len(c_name)
     index_list = list()
     for i in range(length):

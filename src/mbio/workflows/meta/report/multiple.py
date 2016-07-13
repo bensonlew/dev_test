@@ -82,7 +82,7 @@ class MultipleWorkflow(Workflow):
         stat_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         boxfile_path = self.output_dir + '/' + self.option("test") + '_boxfile.xls'
         params = eval(self.option("params"))
-        main_id = api_multiple.add_species_difference_check_detail(file_path=stat_path, table_id=None, level=self.option("level"), check_type=self.option("test"), params=self.option("params"), group_id=params["group_id"], from_otu_table=params["otu_id"], major=True)
+        main_id = api_multiple.add_species_difference_check_detail(file_path=stat_path, table_id=None, level=self.option("level"), check_type='multiple', params=self.option("params"), group_id=params["group_id"], from_otu_table=params["otu_id"], major=True)
         if not os.path.isfile(stat_path):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):

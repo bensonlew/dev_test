@@ -100,12 +100,15 @@ class LefseTool(Tool):
     def __init__(self, config):
         super(LefseTool, self).__init__(config)
         self._version = '1.0.1'
-        self.biom_path = "Python/bin/"
-        self.script_path = "meta/scripts/"
-        self.plot_lefse_path = "meta/lefse/"
-        self.set_environ(PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/bin:$PATH")
-        self.set_environ(R_HOME="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/")
-        self.set_environ(LD_LIBRARY_PATH="/mnt/ilustre/users/sanger/app/R-3.2.2/lib64/R/lib:$LD_LIBRARY_PATH")
+        self.biom_path = "/program/Python/bin/"
+        self.python_path = "/program/Python/bin/python"
+        self.sum_taxa_path = "/program/Python/bin/"
+        self.script_path = "/bioinfo/taxon/scripts/"
+        self.plot_lefse_path = "/bioinfo/statistical/lefse/"
+        self._path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin:$PATH"
+        self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
+        self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
+        self.set_environ(PATH=self._path, R_HOME=self._r_home, LD_LIBRARY_PATH=self._LD_LIBRARY_PATH)
 
     def run_biom(self):
         self.add_state("biom_start", data="开始生成biom格式文件")
@@ -132,13 +135,14 @@ class LefseTool(Tool):
             self.logger.info("script_cmd运行完成")
         else:
             self.set_error("script_cmd运行出错!")
+            raise Exception("script_cmd运行出错!")
 
     def run_sum_tax(self):
         cmd = "for ((i=1;i<=8;i+=1)){\n\
-            /mnt/ilustre/users/sanger/app/meta/scripts/sum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
+            %ssum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
               "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
             mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
-        }"
+        }" % (self.config.SOFTWARE_DIR + self.script_path)
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info("run_sum_tax运行完成")
@@ -146,7 +150,6 @@ class LefseTool(Tool):
         except subprocess.CalledProcessError:
             self.logger.info("run_sum_tax运行出错")
             raise Exception("run_sum_tax运行出错")
-
 
     def format_input(self):
         self.add_state("lefse_start", data="开始进行lefse分析")
@@ -158,7 +161,7 @@ class LefseTool(Tool):
         # else:
         glist = self.option('lefse_gname').split(',')
         self.option('lefse_group').sub_group('./lefse_group', glist)
-        plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
+        plot_cmd = self.python_path + ' ' + self.config.SOFTWARE_DIR + self.plot_lefse_path + \
                    "lefse-input.py -i tax_summary_a -g ./lefse_group -o lefse_input.txt"
         self.logger.info("开始运行format_input_cmd")
         plot_command = self.add_command("format_input_cmd", plot_cmd).run()
@@ -167,10 +170,35 @@ class LefseTool(Tool):
             self.logger.info("format_input_cmd运行完成")
         else:
             self.set_error("format_input_cmd运行出错!")
+    def run_format(self):
+        if len(self.option('lefse_gname').split(',')) == 1:
+            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -u 2 -o 1000000'
+        elif len(self.option('lefse_gname').split(',')) == 2:
+            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -s 2 -u 3 -o 1000000'
+        self.logger.info("开始运行format_cmd")
+        format_command = self.add_command("format_cmd", format_cmd).run()
+        self.wait(format_command)
+        if format_command.return_code == 0:
+            self.logger.info("format_cmd运行完成")
+        else:
+            self.set_error("format_cmd运行出错!")
+
+    def run_format(self):
+        if len(self.option('lefse_gname').split(',')) == 1:
+            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -u 2 -o 1000000'
+        elif len(self.option('lefse_gname').split(',')) == 2:
+            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -s 2 -u 3 -o 1000000'
+        self.logger.info("开始运行format_cmd")
+        format_command = self.add_command("format_cmd", format_cmd).run()
+        self.wait(format_command)
+        if format_command.return_code == 0:
+            self.logger.info("format_cmd运行完成")
+        else:
+            self.set_error("format_cmd运行出错!")
 
     def run_lefse(self):
-        cmd = 'Python/bin/python /mnt/ilustre/users/sanger/app/meta/lefse/run_lefse.py lefse_format.txt lefse_LDA.xls ' \
-              '-l %s -y %s' % (self.option("lda_filter"), self.option("strict"))
+        cmd = self.python_path + ' %srun_lefse.py lefse_format.txt lefse_LDA.xls ' \
+              '-l %s -y %s' % (self.config.SOFTWARE_DIR + self.plot_lefse_path, self.option("lda_filter"), self.option("strict"))
         self.logger.info("开始运行run_lefse_cmd")
         self.logger.info(cmd)
         command = self.add_command("run_lefse_cmd", cmd).run()
@@ -186,8 +214,8 @@ class LefseTool(Tool):
             self.set_error("该分组方案的分组类别所含样本量小于3，lda分析出错")
 
     def plot_res(self):
-        cmd = 'Python/bin/python /mnt/ilustre/users/sanger/app/meta/lefse/plot_res.py lefse_LDA.xls lefse_LDA.png' \
-              ' --dpi 300 --format png --width 20'
+        cmd = self.python_path + ' %splot_res.py lefse_LDA.xls lefse_LDA.png' \
+              ' --dpi 300 --format png --width 20' % (self.config.SOFTWARE_DIR + self.plot_lefse_path)
         self.logger.info("开始运行plot_res_cmd")
         command = self.add_command("plot_res_cmd", cmd).run()
         self.wait(command)
@@ -197,8 +225,8 @@ class LefseTool(Tool):
             self.logger.info("plot_res_cmd运行出错")
 
     def plot_cladogram(self):
-        cmd = 'Python/bin/python /mnt/ilustre/users/sanger/app/meta/lefse/plot_cladogram.py lefse_LDA.xls ' \
-              'lefse_LDA.cladogram.png' ' --format png'
+        cmd = '%s %splot_cladogram.py lefse_LDA.xls ' \
+              'lefse_LDA.cladogram.png' ' --format png' % (self.python_path ,self.config.SOFTWARE_DIR + self.plot_lefse_path)
         self.logger.info("开始运行plot_cladogram_cmd")
         command = self.add_command("plot_cladogram_cmd", cmd).run()
         self.wait(command)
@@ -226,6 +254,7 @@ class LefseTool(Tool):
         self.run_script()
         self.run_sum_tax()
         self.format_input()
+        self.run_format()
         self.run_lefse()
         self.plot_res()
         self.plot_cladogram()

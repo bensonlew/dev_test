@@ -108,7 +108,7 @@ class GroupStat(object):
         gname = result['group_name']
         second_gname = result['second_category_names']
         if second_gname != '':
-            gname = gname + ',' + second_gname
+            gname = gname + ',' + 'second_group'
         return gname
 
     def get_otu_sample_name(self, otu_id):
