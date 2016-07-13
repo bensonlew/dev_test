@@ -35,6 +35,7 @@ class TwoSample(MetaController):
         my_param['methor'] = data.methor
         my_param['coverage'] = float(data.coverage)
         my_param['submit_location'] = data.submit_location
+        my_param['taskType'] = 'reportTask'
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         self.options = {"otu_file": data.otu_id,
                         "level": data.level_id,
