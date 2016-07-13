@@ -13,3 +13,4 @@ __pycache__/
 doc/
 *.swp
 main.conf
+config.py
