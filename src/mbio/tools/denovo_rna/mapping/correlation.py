@@ -20,7 +20,7 @@ class CorrelationAgent(Agent):
         super(CorrelationAgent, self).__init__(parent)
         options = [
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # Fpkm矩阵表
-            {"name": "", "type": "outfile", "format": "denovo_rna.gene_structure.bed"}  # bed格式文件
+            # {"name": "", "type": "outfile", "format": "denovo_rna.gene_structure.bed"}  # bed格式文件
         ]
         self.add_option(options)
 
@@ -28,10 +28,8 @@ class CorrelationAgent(Agent):
         """
         检查参数
         """
-        if not self.option("bam").is_set:
+        if not self.option("fpkm").is_set:
             raise OptionError("请传入比对结果bam格式文件")
-        if not self.option("bed").is_set:
-            raise OptionError("请传入bed格式文件")
 
     def set_resource(self):
         """
@@ -79,6 +77,7 @@ class CorrelationTool(Tool):
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
         os.link(self.work_dir+"/"+"correlation_matrix.xls", self.output_dir+"/"+"correlation_matrix.xls")
+        self.logger.info("done")
         self.end()
 
     def run(self):

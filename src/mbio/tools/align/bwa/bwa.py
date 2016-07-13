@@ -186,6 +186,8 @@ class BwaTool(Tool):
 
     def set_ouput(self):
         self.logger.info("set out put")
+        for f in os.listdir(self.output_dir):
+            os.remove(os.path.join(self.output_dir, f))
         file_path = glob.glob(r"*.sam")
         print(file_path)
         for f in file_path:

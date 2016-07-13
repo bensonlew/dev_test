@@ -21,9 +21,11 @@ class EstimatorsWorkflow(Workflow):
             {"name": "indices", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "est_id", "type": "string"},
-            {"name": "submit_location", "type": "string"}
+            {"name": "submit_location", "type": "string"},
+            {"name": "taskType", "type": "string"}
             ]
         self.add_option(options)
+        # print(self._sheet.options())
         self.set_options(self._sheet.options())
         self.estimators = self.add_tool('meta.alpha_diversity.estimators')
 
@@ -54,7 +56,8 @@ class EstimatorsWorkflow(Workflow):
             'otu_id': self.option('otu_id'),
             'level_id': self.option('level'),
             'indices': sort_index,
-            "submit_location":self.option("submit_location")
+            "submit_location":self.option("submit_location"),
+            "taskType": self.option("taskType")
             }
         est_id = api_estimators.add_est_table(est_path, major=True, level=self.option('level'),
                                               otu_id=self.option('otu_id'), params=params_json)

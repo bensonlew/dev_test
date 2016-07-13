@@ -6,6 +6,7 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 import subprocess
+import shutil
 
 
 class SsrAgent(Agent):
@@ -14,7 +15,7 @@ class SsrAgent(Agent):
     primer3：引物设计软件
     version 1.0
     author: qindanhua
-    last_modify: 2016.07.11
+    last_modify: 2016.07.12
     """
 
     def __init__(self, parent):
@@ -50,11 +51,18 @@ class SsrTool(Tool):
         super(SsrTool, self).__init__(config)
         self.misa_path = "rna/misa/"
         self.primer3_path = "rna/primer3-2.3.6/"
+        self.script_path = "/mnt/ilustre/users/sanger/app/rna/primer3-2.3.6/"
         self.fasta_name = self.option("fasta").prop["path"].split("/")[-1]
-        self.ssr_position_path = "rna/scripts/misa.annot.pl"
+        self.perl_path = "Perl/bin/"
+        self.python_path = "Python/bin/"
 
     def misa(self):
-        cmd = "{}misa.pl {}".format(self.misa_path, self.option("fasta").prop["path"])
+        # self.logger.info(self.work_dir + "/" + self.fasta_name)
+        fasta_path = self.option("fasta").prop["path"]
+        shutil.copy(fasta_path, self.work_dir)
+        fasta_copy = self.work_dir + "/" + self.fasta_name
+        self.logger.info(fasta_copy)
+        cmd = "{}misa.pl {}".format(self.misa_path, fasta_copy)
         print(cmd)
         self.logger.info("开始运行misa")
         command = self.add_command("misa", cmd)
@@ -66,9 +74,9 @@ class SsrTool(Tool):
             self.set_error("运行misa过程出错")
 
     def primer(self):
-        cmd = "{}primer3_core < {} > {}".format(self.primer3_path, self.fasta_name + ".misa.p3in",
-                                                self.fasta_name + ".misa.p3in")
+        cmd = "{}python {}primer3_core.py -p {} -i {} -o {}".format(self.python_path, self.script_path, self.script_path, self.fasta_name + ".p3in", self.fasta_name + ".misa.p3out")
         print(cmd)
+        self.logger.info(cmd)
         self.logger.info("开始运行primer")
         command = self.add_command("primer", cmd)
         command.run()
@@ -81,28 +89,33 @@ class SsrTool(Tool):
     def primer_in(self):
         p3_in_cmd = "{}p3_in.pl {}".format(self.misa_path, self.fasta_name + ".misa")
         self.logger.info("转换misa结果为primer输入格式")
-        try:
-            subprocess.check_output(p3_in_cmd, shell=True)
-            self.logger.info("OK")
-            return True
-        except subprocess.CalledProcessError:
-            self.logger.info("转换文件过程出错")
-            return False
+        print(p3_in_cmd)
+        self.logger.info(p3_in_cmd)
+        command = self.add_command("p3_in", p3_in_cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("运行p3_in结束！")
+        else:
+            self.set_error("运行p3_in过程出错")
 
     def primer_out(self):
         p3_out_cmd = "{}p3_in.pl {}".format(self.misa_path, self.fasta_name + ".misa.p3out")
         self.logger.info("转换misa结果为primer输出格式")
-        try:
-            subprocess.check_output(p3_out_cmd, shell=True)
-            self.logger.info("OK")
-            return True
-        except subprocess.CalledProcessError:
-            self.logger.info("转换文件过程出错")
-            return False
+        self.logger.info(p3_out_cmd)
+        command = self.add_command("p3_out", p3_out_cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("运行p3_out结束！")
+        else:
+            self.set_error("运行p3_out过程出错")
 
     def ssr_position(self):
-        ssr_position_cmd = "{} -i {} -orf {}".format(self.fasta_name + ".misa", self.option("bed").prop["path"])
+        self.logger.info(self.config.self.config.SOFTWARE_DIR + self.misa_path)
+        ssr_position_cmd = "{}misa_anno.pl -i {} -orf {}".format(self.config.self.config.SOFTWARE_DIR + self.misa_path, self.fasta_name + ".misa", self.option("bed").prop["path"])
         self.logger.info("判断ssr位置")
+        self.logger.info(ssr_position_cmd)
         try:
             subprocess.check_output(ssr_position_cmd, shell=True)
             self.logger.info("OK")
@@ -116,6 +129,7 @@ class SsrTool(Tool):
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
         os.link(self.work_dir+'/' + self.fasta_name + ".misa", self.output_dir+'/' + self.fasta_name + ".misa")
+        self.end()
 
     def run(self):
         """
@@ -125,10 +139,12 @@ class SsrTool(Tool):
         if self.option("bed").is_set:
             self.misa()
             self.primer_in()
+            self.primer()
             self.primer_out()
             self.ssr_position()
         else:
             self.misa()
             self.primer_in()
             self.primer_out()
+        self.set_output()
 

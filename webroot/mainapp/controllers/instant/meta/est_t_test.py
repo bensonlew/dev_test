@@ -47,7 +47,8 @@ class EstTTest(MetaController):
                         "group_table": data.group_id,
                         'submit_location': data.submit_location,
                         "est_id": data.alpha_diversity_id,
-                        "group_id": data.group_id
+                        "group_id": data.group_id,
+                        "taskType": data.taskType
                         }
         self.to_file = ["estimator.export_est_table(est_table)", "meta.export_group_table_by_detail(group_table)"]
         self.run()

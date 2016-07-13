@@ -5,7 +5,6 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
-# import subprocess
 import glob
 
 
@@ -14,14 +13,14 @@ class QualityAssessmentAgent(Agent):
     Rseqc-2.3.6:RNA测序分析工具
     version 1.0
     author: qindanhua
-    last_modify: 2016.07.08
+    last_modify: 2016.07.13
     """
 
     def __init__(self, parent):
         super(QualityAssessmentAgent, self).__init__(parent)
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
-            {"name": "bam", "type": "infile", "format": "align.bwa.bam"},  # bam格式文件,排序过的
+            {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "quality", "type": "int", "default": 30}  # 质量值
         ]
         self.add_option(options)
@@ -52,45 +51,39 @@ class QualityAssessmentTool(Tool):
         super(QualityAssessmentTool, self).__init__(config)
         self.python_path = "Python/bin/"
 
-    def rpkm_saturation(self):
-        satur_cmd = "{}RPKM_saturation.py -i {} -r {} -o {}".format(self.python_path, self.option("bam").prop["path"],
-                                                                    self.option("bed").prop["path"], "rpkm")
+    def rpkm_saturation(self, bam, out_pre):
+        satur_cmd = "{}RPKM_saturation.py -i {} -r {} -o {} -q {}".format(self.python_path, bam, self.option("bed").prop["path"], out_pre, self.option("quality"))
         print(satur_cmd)
+        bam_name = bam.split("/")[-1]
         self.logger.info("开始运行RPKM_saturation.py脚本")
-        satur_command = self.add_command("satur", satur_cmd)
+        satur_command = self.add_command("{}_satur".format(bam_name.lower()), satur_cmd)
         satur_command.run()
         return satur_command
-        # if satur_command.return_code == 0:
-        #     self.logger.info("运行脚本结束！")
-        # else:
-        #     self.set_error("运行脚本过程出错")
 
-    def coverage(self):
-        coverage_cmd = "{}geneBody_coverage.py  -i {} -r {} -o {}".\
-            format(self.python_path, self.option("bam").prop["path"], self.option("bed").prop["path"], "coverage")
-        print(coverage_cmd)
-        self.logger.info("开始运行geneBody_coverage.py脚本")
-        coverage_command = self.add_command("coverage", coverage_cmd)
-        coverage_command.run()
-        return coverage_command
-        # self.wait()
-        # if coverage_command.return_code == 0:
-        #     self.logger.info("运行脚本结束！")
-        # else:
-        #     self.set_error("运行脚本过程出错")
+    def multi_satur(self, bam_dir, out_pre):
+        cmds = []
+        bams = glob.glob("{}/*".format(bam_dir))
+        for bam in bams:
+            cmd = self.rpkm_saturation(bam, out_pre)
+            cmds.append(cmd)
+        return cmds
 
-    def duplication(self):
-        dup_cmd = "{}read_duplication.py -i {} -o {}".format(self.python_path, self.option("bam").prop["path"], "dup")
+    def duplication(self, bam, out_pre):
+        dup_cmd = "{}read_duplication.py -i {} -o {} -q {}".format(self.python_path, bam, out_pre, self.option("quality"))
         print(dup_cmd)
+        bam_name = bam.split("/")[-1]
         self.logger.info("开始运行read_duplication.py脚本")
-        dup_command = self.add_command("dup", dup_cmd)
+        dup_command = self.add_command("{}_dup".format(bam_name), dup_cmd)
         dup_command.run()
         return dup_command
-        # self.wait()
-        # if dup_command.return_code == 0:
-        #     self.logger.info("运行脚本结束！")
-        # else:
-        #     self.set_error("运行脚本过程出错")
+
+    def multi_dup(self, bam_dir, out_pre):
+        cmds = []
+        bams = glob.glob("{}/*".format(bam_dir))
+        for bam in bams:
+            cmd = self.duplication(bam, out_pre)
+            cmds.append(cmd)
+        return cmds
 
     def set_output(self):
         self.logger.info("set out put")
@@ -108,21 +101,28 @@ class QualityAssessmentTool(Tool):
         运行
         """
         super(QualityAssessmentTool, self).run()
-        saturation = self.rpkm_saturation()
-        coverage = self.coverage()
-        duplication = self.duplication()
+        saturation = self.rpkm_saturation(self.option("bam"), "satur")
+        duplication = self.duplication(self.option("bam"), "dup")
         self.wait()
-        if saturation.return_code == 0:
-            self.logger.info("运行RPKM_saturation.py脚本结束！")
+        if self.option("bam").format == "align.bwa.bam":
+            if saturation.return_code == 0:
+                self.logger.info("运行RPKM_saturation.py脚本结束！")
+            else:
+                self.set_error("运行RPKM_saturation.py脚本过程出错")
+            if duplication.return_code == 0:
+                self.logger.info("运行read_duplication.py脚本结束！")
+            else:
+                self.set_error("运行read_duplication.py脚本过程出错")
         else:
-            self.set_error("运行RPKM_saturation.py脚本过程出错")
-        if coverage.return_code == 0:
-            self.logger.info("运行geneBody_coverage.py脚本结束！")
-        else:
-            self.set_error("运行geneBody_coverage.py脚本过程出错")
-        if duplication.return_code == 0:
-            self.logger.info("运行read_duplication.py脚本结束！")
-        else:
-            self.set_error("运行read_duplication.py脚本过程出错")
+            for cmd in saturation:
+                if cmd.return_code == 0:
+                    self.logger.info("运行{}结束!".format(cmd.name))
+                else:
+                    self.set_error("运行{}结束!".format(cmd.name))
+            for cmd in duplication:
+                if cmd.return_code == 0:
+                    self.logger.info("运行{}结束!".format(cmd.name))
+                else:
+                    self.set_error("运行{}结束!".format(cmd.name))
         self.set_output()
 

@@ -18,13 +18,21 @@ class Estimator(Base):
     def add_est_table(self, file_path, level, major=False, otu_id=None, est_id=None, task_id=None, name=None, params=None):
         if level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
+        # if task_id is None:
+        #     task_id = self.bind_object.sheet.id
         data_list = []
-        if otu_id:
-            if not isinstance(otu_id, ObjectId):
-                otu_id = ObjectId(otu_id)
-            params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+        if not otu_id:
+            raise Exception("需传入otu_id")
+        if not isinstance(otu_id, ObjectId):
+            otu_id = ObjectId(otu_id)
+        collection = self.db["sg_otu"]
+        result = collection.find_one({"_id": otu_id})
+        if task_id is None:
+            task_id = result['task_id']
+        # if otu_id:
+        #     if not isinstance(otu_id, ObjectId):
+        #         otu_id = ObjectId(otu_id)
+        params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
         # insert major
         if major:
             insert_data = {

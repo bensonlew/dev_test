@@ -36,7 +36,8 @@ class Estimators(MetaController):
                         "otu_id": data.otu_id,
                         "indices": data.index_type,
                         "level": data.level_id,
-                        "submit_location": data.submit_location
+                        "submit_location": data.submit_location,
+                        "taskType": data.taskType
                         }
         self.to_file = 'meta.export_otu_table_by_level(otu_file)'
         self.run()
