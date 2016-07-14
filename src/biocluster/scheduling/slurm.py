@@ -32,7 +32,12 @@ class SLURM(Job):
             f.write("#SBATCH -n {}\n".format(cpu))
             f.write("#SBATCH -N 1\n")
             f.write("#SBATCH -t 10-00:00\n")
-            f.write("#SBATCH -p SANGER\n")
+            if self.master_ip == "192.168.12.101":
+                f.write("#SBATCH -p SANGER\n")
+            elif self.master_ip == "192.168.12.102":
+                f.write("#SBATCH -p SANGERDEV\n")
+            else:
+                raise Exception("错误master_ip{}".format(self.master_ip))
             f.write("#SBATCH --mem={}\n".format(mem))
             f.write("#SBATCH -o {}/{}_%j.out\n".format(self.agent.work_dir, self.agent.name))
             f.write("#SBATCH -e {}/{}_%j.err\n".format(self.agent.work_dir, self.agent.name))
