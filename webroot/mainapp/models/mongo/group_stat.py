@@ -5,12 +5,13 @@ from bson.objectid import ObjectId
 import datetime
 from types import StringTypes
 from mainapp.config.db import get_mongo_client
+from biocluster.config import Config
 
 
 class GroupStat(object):
     def __init__(self):
         self.client = get_mongo_client()
-        self.db = self.client["sanger"]
+        self.db = self.client[Config().MONGODB]
 
     def create_species_difference_check(self, level, check_type, params, group_id=0,  from_otu_table=0, name=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):

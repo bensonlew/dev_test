@@ -8,12 +8,13 @@ from bson.son import SON
 import gridfs
 import datetime
 import os
+from biocluster.config import Config
 
 
 class StatTest(Base):
     def __init__(self, bind_object):
         super(StatTest, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
 
     @report_check
     def add_species_difference_check_detail(self, file_path, level=None, check_type=None, params=None, table_id=None, group_id=None, from_otu_table=None, major=False):

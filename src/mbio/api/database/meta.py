@@ -7,13 +7,14 @@ import datetime
 from bson.son import SON
 from types import StringTypes
 import json
+from biocluster.config import Config
 
 
 class Meta(Base):
 
     def __init__(self, bind_object):
         super(Meta, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
 
     @report_check
     def add_otu_table(self, file_path, major=False, otu_id=None, from_out_table=0, rep_path=None, task_id=None, name=None, params=None, spname_spid=None):

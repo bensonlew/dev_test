@@ -10,12 +10,13 @@ import datetime
 from bson.objectid import ObjectId
 from types import StringTypes
 from mbio.packages.meta.otu.export_otu import export_otu_table_by_level
+from biocluster.config import Config
 
 
 class Venn(Base):
     def __init__(self, bind_object):
         super(Venn, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
         self.new_otu_id = list()
 
     @report_check

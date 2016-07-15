@@ -7,12 +7,13 @@ from bson.objectid import ObjectId
 from types import StringTypes
 from mainapp.config.db import get_mongo_client
 import json
+from biocluster.config import Config
 
 
 class Rarefaction(Base):
     def __init__(self, bind_object):
         super(Rarefaction, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
         self.client = get_mongo_client()
         self.category_x = []
         self.category_y = []

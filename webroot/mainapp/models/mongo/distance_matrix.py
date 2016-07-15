@@ -3,12 +3,13 @@
 from mainapp.config.db import get_mongo_client
 from bson.objectid import ObjectId
 import types
+from biocluster.config import Config
 
 
 class Distance(object):
     def __init__(self):
         self.client = get_mongo_client()
-        self.db = self.client["sanger"]
+        self.db = self.client[Config().MONGODB]
 
     def get_distance_matrix_info(self, distance_id):
 

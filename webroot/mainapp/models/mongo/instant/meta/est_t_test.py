@@ -10,12 +10,13 @@ from bson.objectid import ObjectId
 from types import StringTypes
 from mainapp.models.mongo.core.base import Base
 from mainapp.libs.param_pack import group_detail_sort
+from biocluster.config import Config
 
 
 class EstTTestMongo(Base):
     def __init__(self, bind_object):
         super(EstTTestMongo, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
         self._params = self.PackParams()
 
     def PackParams(self):

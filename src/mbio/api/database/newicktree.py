@@ -5,6 +5,7 @@ from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
 import datetime
 import json
+from biocluster.config import Config
 # from bson.son import SON
 # from types import StringTypes
 
@@ -12,7 +13,7 @@ import json
 class Newicktree(Base):
     def __init__(self, bind_object):
         super(Newicktree, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
 
     @report_check
     def add_tree_file(self, file_path, major=False, level=None, task_id=None, table_id=None, table_type=None, tree_type=None, tree_id=None, name=None, params=None):

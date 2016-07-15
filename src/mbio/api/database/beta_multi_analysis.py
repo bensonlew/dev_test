@@ -7,6 +7,7 @@ import re
 from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
 from types import StringTypes
+from biocluster.config import Config
 # import re
 # import datetime
 # from bson.son import SON
@@ -15,7 +16,7 @@ from types import StringTypes
 class BetaMultiAnalysis(Base):
     def __init__(self, bind_object):
         super(BetaMultiAnalysis, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODM
 
     @report_check
     def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None,

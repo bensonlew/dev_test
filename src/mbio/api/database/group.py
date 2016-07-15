@@ -4,12 +4,13 @@
 from biocluster.api.database.base import Base, report_check
 import re
 from collections import defaultdict
+from biocluster.config import Config
 
 
 class Group(Base):
     def __init__(self, bind_object=None):
         super(Group, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
         self.scheme = list()
         self.info_dict = dict()
 
