@@ -16,7 +16,7 @@ from biocluster.config import Config
 class BetaMultiAnalysis(Base):
     def __init__(self, bind_object):
         super(BetaMultiAnalysis, self).__init__(bind_object)
-        self._db_name = Config().MONGODM
+        self._db_name = Config().MONGODB
 
     @report_check
     def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None,
