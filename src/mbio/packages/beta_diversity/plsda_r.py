@@ -41,7 +41,7 @@ def run_r_script(script, delscript=True):
         cmd = 'R CMD BATCH --vanilla --slave %s ' % (script)
         # os.system('R CMD BATCH --vanilla --slave %s ' % (script))
     elif platform.system() == 'Linux':
-        cmd = '%s/R-3.2.2/bin/Rscript %s' % (Config().SOFTWARE_DIR, script)
+        cmd = '%s/program/R-3.3.1/bin/Rscript %s' % (Config().SOFTWARE_DIR, script)
         # os.system('%s/R-3.2.2/bin/Rscript %s' % (Config().SOFTWARE_DIR, script))
     else:
         pass

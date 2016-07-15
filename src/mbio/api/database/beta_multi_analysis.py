@@ -93,7 +93,7 @@ class BetaMultiAnalysis(Base):
         if not isinstance(otu_id, ObjectId) and otu_id is not None:
             otu_id = ObjectId(otu_id)
         else:
-            otu_id = self.bind_object.option('otu_id')
+            otu_id = ObjectId(self.bind_object.option('otu_id'))
         _main_collection = self.db['sg_beta_multi_analysis']
         if main:
             if not isinstance(params, dict):
@@ -109,7 +109,7 @@ class BetaMultiAnalysis(Base):
                 'task_id': task_id,
                 'otu_id': otu_id,
                 'level_id': int(level),
-                'name': analysis + '_' + name if name else analysis + 'origin',
+                'name': name if name else analysis + 'origin',
                 'table_type': analysis,
                 'env_id': env_id,
                 'group_id': group_id,

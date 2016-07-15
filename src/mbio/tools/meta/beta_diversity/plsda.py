@@ -180,4 +180,5 @@ class PlsdaTool(Tool):
             self.logger.info('运行plsda_r.py程序计算PLSDA完成')
             self.end()
         else:
+            self.logger.info(return_mess)
             self.set_error('运行plsda_r.py程序计算PLSDA出错')

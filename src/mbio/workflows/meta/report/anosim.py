@@ -9,6 +9,7 @@ import types
 from biocluster.workflow import Workflow
 from bson import ObjectId
 from mbio.packages.beta_diversity.filter_newick import *
+import datetime
 
 
 class AnosimWorkflow(Workflow):
@@ -133,13 +134,15 @@ class AnosimWorkflow(Workflow):
         保存结果表到mongo数据库中
         """
         api_anosim = self.api.anosim
-        collection = self.db["sg_otu"]
+        collection = api_anosim.db["sg_otu"]
         result = collection.find_one({"_id": ObjectId(self.option('otu_id'))})
         task_id = result['task_id']
         # matrix_path = self.output_dir + '/' + os.listdir(self.output_dir)[0]
         if not (os.path.isdir(self.output_dir + '/Anosim') and os.path.isdir(self.output_dir + '/Box')):
             raise Exception("找不到报告文件夹:{}".format(self.output_dir))
-        main_id = api_anosim.add_beta_anosim_result(self.output_dir, main=True, task_id=task_id)
+        main_id = api_anosim.add_beta_anosim_result(self.output_dir, main=True, task_id=task_id,
+                                                    otu_id=self.option('otu_id'),
+                                                    name="anosim&adonis_{}".format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
         self.add_return_mongo_id('sg_beta_multi_anosim', main_id)
         self.logger.info(str(main_id))
         self.logger.info('运行self.end')

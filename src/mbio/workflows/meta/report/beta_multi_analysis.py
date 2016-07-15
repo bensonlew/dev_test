@@ -11,6 +11,7 @@ from biocluster.workflow import Workflow
 from mbio.packages.beta_diversity.filter_newick import *
 from bson import ObjectId
 import json
+import datetime
 
 
 class BetaMultiAnalysisWorkflow(Workflow):
@@ -130,7 +131,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
         保存结果距离矩阵表到mongo数据库中
         """
         api_multi = self.api.beta_multi_analysis
-        collection = self.db["sg_otu"]
+        collection = api_multi.db["sg_otu"]
         result = collection.find_one({"_id": ObjectId(self.option('otu_id'))})
         task_id = result['task_id']
         dir_path = self.output_dir
@@ -144,7 +145,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
             raise Exception("找不到报告文件夹:{}".format(dir_path))
 
         main_id = api_multi.add_beta_multi_analysis_result(dir_path, self.option('analysis_type'),
-                                                           main=True, task_id=task_id,
+                                                           main=True, task_id=task_id, name='{}_{}'.format(self.option('analysis_type'), datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
                                                            remove=cond, params=json.loads(self.option('params')),
                                                            )
         self.add_return_mongo_id('sg_beta_multi_analysis', main_id)

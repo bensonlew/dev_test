@@ -3,6 +3,7 @@
 
 """距离矩阵层级聚类"""
 
+import datetime
 from biocluster.workflow import Workflow
 from bson import ObjectId
 import os
@@ -59,7 +60,7 @@ class HclusterWorkflow(Workflow):
             }
         return_id = api_newick.add_tree_file(newick_fath, major=True, table_id=self.option('distance_id'),
                                              task_id=task_id, table_type='dist', tree_type='cluster',
-                                             name='hcluset' + self.option('method'), params=params)
+                                             name='hcluset_{}_{}'.format(self.option('method'), datetime.datetime.now().strftime("%Y%m%d_%H%M%S")), params=params)
         self.add_return_mongo_id('sg_newick_tree', return_id)
         self.end()
 
