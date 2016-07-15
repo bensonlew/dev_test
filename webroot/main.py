@@ -4,21 +4,21 @@ import web
 from mainapp.libs.signature import check_sig
 from mainapp.controllers.pipeline import Pipeline, PipelineState,PipelineLog,PipelineStop,PipelineQueue,PipelineStopPause,PipelinePause
 from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
-from mainapp.controllers.meta.two_group import TwoGroup
-from mainapp.controllers.meta.two_sample import TwoSample
-from mainapp.controllers.meta.multiple import Multiple
-from mainapp.controllers.filecheck import FileCheck,MultiFileCheck
-from mainapp.controllers.meta.estimators import Estimators
-from mainapp.controllers.meta.pan_core import PanCore
-from mainapp.controllers.meta.venn import Venn
-from mainapp.controllers.meta.heat_cluster import HeatCluster
-from mainapp.controllers.meta.beta.distance_calc import DistanceCalc
-from mainapp.controllers.meta.beta.hcluster import Hcluster
-from mainapp.controllers.meta.otu_subsample import Subsample
-from mainapp.controllers.meta.est_t_test import EstTTest
-from mainapp.controllers.meta.rarefaction import Rarefaction
-from mainapp.controllers.meta.beta.multi_analysis import MultiAnalysis
-from mainapp.controllers.meta.beta.anosim import Anosim
+from mainapp.controllers.instant.meta.two_group import TwoGroup
+from mainapp.controllers.instant.meta.estimators import Estimators
+from mainapp.controllers.instant.meta.pan_core import PanCore
+from mainapp.controllers.instant.meta.venn import Venn
+from mainapp.controllers.instant.meta.heat_cluster import HeatCluster
+from mainapp.controllers.instant.meta.beta.distance_calc import DistanceCalc
+from mainapp.controllers.instant.meta.beta.hcluster import Hcluster
+from mainapp.controllers.instant.meta.otu_subsample import OtuSubsample
+from mainapp.controllers.instant.meta.two_sample import TwoSample
+from mainapp.controllers.instant.meta.multiple import Multiple
+from mainapp.controllers.submit.meta.lefse import Lefse
+from mainapp.controllers.instant.meta.est_t_test import EstTTest
+from mainapp.controllers.submit.meta.rarefaction import Rarefaction
+from mainapp.controllers.instant.meta.beta.multi_analysis import MultiAnalysis
+from mainapp.controllers.instant.meta.beta.anosim import Anosim
 
 # web.config.debug = False
 urls = (
