@@ -6,12 +6,13 @@ from bson.objectid import ObjectId
 from types import StringTypes
 from bson.son import SON
 import datetime
+from biocluster.config import Config
 
 
 class EstTTest(Base):
     def __init__(self, bind_object):
         super(EstTTest, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
 
     @report_check
     def get_another_name(self, name, group_list):

@@ -4,12 +4,13 @@ from mainapp.config.db import get_mongo_client
 from bson.objectid import ObjectId
 import types
 import re
+from biocluster.config import Config
 
 
 class Meta(object):
     def __init__(self):
         self.client = get_mongo_client()
-        self.db = self.client["sanger"]
+        self.db = self.client[Config().MONGODB]
 
     def get_otu_table_info(self, otu_id):
 

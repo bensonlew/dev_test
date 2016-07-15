@@ -2,12 +2,13 @@
 # __author__ = 'guoquan'
 from biocluster.api.database.base import Base, report_check
 import re
+from biocluster.config import Config
 
 
 class Sample(Base):
     def __init__(self, bind_object):
         super(Sample, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
         self.sample_table_ids = list()
 
     @report_check

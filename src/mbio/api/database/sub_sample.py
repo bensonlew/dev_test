@@ -6,12 +6,13 @@ import re
 import datetime
 from bson.objectid import ObjectId
 from types import StringTypes
+from biocluster.config import Config
 
 
 class SubSample(Base):
     def __init__(self, bind_object):
         super(SubSample, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
         self.name_id = dict()  # otu表中样本名和id对照的字典
         self.otu_rep = dict()  # o
 

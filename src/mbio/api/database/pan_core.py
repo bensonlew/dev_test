@@ -6,12 +6,13 @@ import re
 import datetime
 from bson.objectid import ObjectId
 from types import StringTypes
+from biocluster.config import Config
 
 
 class PanCore(Base):
     def __init__(self, bind_object):
         super(PanCore, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
 
     @report_check
     def create_pan_core_table(self, pan_core_type, params, group_id, level_id, from_otu_table=0, name=None):

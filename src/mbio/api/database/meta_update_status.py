@@ -7,12 +7,13 @@ import datetime
 import json
 from bson.son import SON
 from types import DictType, StringTypes
+from biocluster.config import Config
 
 
 class MetaUpdateStatus(Base):
     def __init__(self, bind_object):
         super(MetaUpdateStatus, self).__init__(bind_object)
-        self._db_name = "sanger"
+        self._db_name = Config().MONGODB
 
     @report_check
     def add_meta_status(self, table_id=None, table_name=None, type_name=None, status='end', task_id=None, isnew='new', desc=None, submit_location=None, params=None):

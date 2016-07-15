@@ -7,12 +7,13 @@ from types import StringTypes
 from mainapp.config.db import get_mongo_client
 import types
 import json
+from biocluster.config import Config
 
 
 class Estimator(object):
     def __init__(self):
         self.client = get_mongo_client()
-        self.db = self.client["sanger"]
+        self.db = self.client[Config().MONGODB]
 
     def add_est_collection(self, level, params, from_otu_table=0, name=None):
         if int(level) not in range(1, 10):
