@@ -85,9 +85,9 @@ class RsemTool(Tool):
     def __init__(self, config):
         super(RsemTool, self).__init__(config)
         self._version = '1.0.1'
-        self.fpkm = "/rna/scripts/abundance_estimates_to_matrix.pl"
-        self.tpm = "/rna/trinityrnaseq-2.1.1/util/abundance_estimates_to_matrix.pl"
-        self.rsem = "/rna/trinityrnaseq-2.1.1/util/align_and_estimate_abundance.pl"
+        self.fpkm = "/bioinfo/seq/trinityrnaseq-2.1.1/util/fpkm/abundance_estimates_to_matrix.pl"
+        self.tpm = "/bioinfo/seq/trinityrnaseq-2.1.1/util/abundance_estimates_to_matrix.pl"
+        self.rsem = "/bioinfo/seq/trinityrnaseq-2.1.1/util/align_and_estimate_abundance.pl"
 
     def fq_bam(self, bamdir):
         bamfiles = os.listdir(bamdir)
@@ -118,9 +118,9 @@ class RsemTool(Tool):
             for cmd in comm_list:
                 if cmd.return_code == 0:
                     self.logger.info("%s运行完成" % cmd)
-
                 else:
                     self.set_error("%s运行出错!" % cmd)
+                    raise Exception("%s运行出错!" % cmd)
 
     def merge_rsem(self):
         files = os.listdir(self.work_dir)
@@ -145,13 +145,14 @@ class RsemTool(Tool):
             self.logger.info("运行merge_gene_cmd成功")
         else:
             self.logger.info("运行merge_gene_cmd出错")
+            raise Exception("运行merge_gene_cmd出错")
         tran_com = self.add_command("merge_tran_cmd", merge_tran_cmd).run()
         self.wait(tran_com)
         if tran_com.return_code == 0:
             self.logger.info("运行merge_tran_cmd成功")
         else:
             self.logger.info("运行merge_tran_cmd出错")
-
+            raise Exception("运行merge_tran_cmd出错")
     def set_output(self):
         """
         将结果文件link到output文件夹下面

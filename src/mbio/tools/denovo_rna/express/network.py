@@ -96,8 +96,8 @@ class NetworkTool(Tool):
     def __init__(self, config):
         super(NetworkTool, self).__init__(config)
         self._version = '1.0.1'
-        self.r_path = '/R-3.2.2/bin/Rscript'
-        self.script_path = '/mnt/ilustre/users/sanger/app/rna/scripts/'
+        self.r_path = '/program/R-3.3.1/bin/Rscript'
+        self.script_path = self.config.SOFTWARE_DIR +  '/bioinfo/rna/scripts/'
 
     def run_wgcna_one(self):
         one_cmd = self.r_path + " %sInModuleWGCNA-step01.r --args %s %s %s %s" % (self.script_path, self.option('diff_fpkm').prop['path'], 'wgcna_result', self.option('softpower'), self.option('dissimilarity'))
