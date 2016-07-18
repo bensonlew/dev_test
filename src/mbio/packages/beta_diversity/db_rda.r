@@ -1,7 +1,7 @@
-otu_table <- read.table("${otu_file}",comment.char = "",sep = "\t",row.names=1, header = TRUE)
+otu_table <- read.table("${otu_file}",comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
 otu_table <- t(otu_table)
 # fix(otu_table)
-env_factor <- read.table("${env_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE)
+env_factor <- read.table("${env_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
 # fix(env_factor)
 centroids <- FALSE
 biplot <- FALSE

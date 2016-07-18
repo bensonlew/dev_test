@@ -30,8 +30,9 @@ class MultiAnalysis(MetaController):
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
             'analysis_type': data.analysis_type,
-            'submit_location': data.submit_location
-        }
+            'submit_location': data.submit_location,
+            'taskType': data.taskType
+            }
         env_id = None
         env_labs = ''
         dist_method = ''

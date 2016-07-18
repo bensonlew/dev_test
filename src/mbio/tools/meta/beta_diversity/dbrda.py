@@ -221,7 +221,7 @@ class DbrdaTool(Tool):
         else:
             return_mess = db_rda_new(self.otu_table, self.env_table, self.work_dir,
                                      self.option('method'))
-        self.logger.info('运行dbrda_r.py程序计算Dbrda成功')
+        # self.logger.info('运行dbrda_r.py程序计算Dbrda成功')
         if return_mess == 0:
             self.linkfile(self.work_dir + '/db_rda_sites.xls', 'db_rda_sites.xls')
             if not self.option('dis_matrix').is_set:

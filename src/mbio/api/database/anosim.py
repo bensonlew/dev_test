@@ -88,7 +88,9 @@ class Anosim(Base):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         _main_collection = self.db['sg_beta_multi_anosim']
-        if not isinstance(group_id, ObjectId) and group_id is not None:
+        if isinstance(group_id, ObjectId):
+            pass
+        elif group_id is not None:
             group_id = ObjectId(group_id)
         else:
             group_id = ObjectId(self.bind_object.option('group_id'))
