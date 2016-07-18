@@ -12,4 +12,4 @@ dist/
 __pycache__/
 doc/
 *.swp
-main.conf
+*main.conf
