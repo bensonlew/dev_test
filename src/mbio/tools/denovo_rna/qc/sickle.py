@@ -25,6 +25,7 @@ class SickleAgent(Agent):
                 {"name": "sickle_un", "type": "outfile", "format": "sequence.fastq"},  # PE的未配对输出结果
                 {"name": "sickle_s", "type": "outfile", "format": "sequence.fastq"},  # SE输出结果
                 {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
+                {"name": "sickle_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # fastq文件夹
                 {"name": "quality", "type": "int", "default": 30},
                 {"name": "length", "type": "int", "default": 30},
                 {"name": "qual_type", "type": "string", "default": 'sanger'},
@@ -70,6 +71,14 @@ class SickleAgent(Agent):
         self._cpu = 11
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+            # ["./fastq_stat.xls", "xls", "fastq信息统计表"]
+        ])
+        super(SickleAgent, self).end()
+
 
 class SickleTool(Tool):
     """
@@ -77,7 +86,7 @@ class SickleTool(Tool):
     """
     def __init__(self, config):
         super(SickleTool, self).__init__(config)
-        self.sickle_path = 'rna/sickle-master/'
+        self.sickle_path = 'bioinfo/seq/sickle-1.33/'
         if self.option('truncate-n') is True:
             self.truncate_n = '-n'
         else:
@@ -167,15 +176,16 @@ class SickleTool(Tool):
         将结果文件链接至output
         """
         self.logger.info("set output")
+        for f in os.listdir(self.output_dir):
+            os.remove(os.path.join(self.output_dir, f))
         file_path = glob.glob(r"*_sickle_*")
         print(file_path)
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)
-            if os.path.exists(output_dir):
-                os.remove(output_dir)
-                os.link(os.path.join(self.work_dir, f), output_dir)
-            else:
-                os.link(os.path.join(self.work_dir, f), output_dir)
+            os.link(os.path.join(self.work_dir, f), output_dir)
+            # os.remove(os.path.join(self.work_dir, f))
+        if self.option("fastq_dir").is_set:
+            self.option("sickle_dir").set_path(self.output_dir)
         self.logger.info("done")
 
     def run(self):
