@@ -54,7 +54,8 @@ class Anosim(MetaController):
             'permutations': data.permutations,
             'group_id': data.group_id,
             'group_detail': group_detail_sort(data.group_detail),
-            'submit_location': data.submit_location
+            'submit_location': data.submit_location,
+            'taskType': data.taskType
             }
         self.options = {
             'otu_file': data.otu_id,

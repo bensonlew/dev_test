@@ -13,7 +13,6 @@ class BlastAgent(Agent):
     author: shenghe
     last_modify: 2016.6.15
     """
-
     def __init__(self, parent):
         super(BlastAgent, self).__init__(parent)
         self._fasta_type = {'Protein': 'prot', 'DNA': 'nucl'}
@@ -39,6 +38,17 @@ class BlastAgent(Agent):
             # 当输出格式为非5，6时，只产生文件不作为outfile
             ]
         self.add_option(options)
+        self.step.add_steps('blast')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.blast.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.blast.finish()
+        self.step.update()
 
     def check_options(self):
         if not self.option("query").is_set:
@@ -100,8 +110,8 @@ class BlastTool(Tool):
     def __init__(self, config):
         super(BlastTool, self).__init__(config)
         self._version = "2.3.0"
-        # self.db_path = os.path.join(self.config.SOFTWARE_DIR, "align/ncbi/db/")
-        self.db_path = '/mnt/ilustre/app/rna/database/blast/db'  # for test
+        self.db_path = os.path.join(self.config.SOFTWARE_DIR, "align/ncbi/db/")
+        # self.db_path = '/mnt/ilustre/app/rna/database/blast/db'  # for test
         self.cmd_path = "ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
 
     def run_makedb_and_blast(self):

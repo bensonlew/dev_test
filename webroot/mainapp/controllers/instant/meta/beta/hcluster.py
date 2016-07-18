@@ -2,16 +2,6 @@
 # __author__ = 'shenghe'
 import web
 import json
-from mainapp.libs.signature import check_sig
-from mainapp.models.workflow import Workflow
-from mainapp.models.mongo.distance_matrix import Distance
-from mainapp.config.db import get_mongo_client
-from mainapp.models.mongo.meta import Meta
-from bson.errors import InvalidId
-from bson.objectid import ObjectId
-import random
-import datetime
-import types
 from mainapp.controllers.project.meta_controller import MetaController
 
 
@@ -36,7 +26,8 @@ class Hcluster(MetaController):
             'distance_matrix': data.specimen_distance_id,
             'distance_id': data.specimen_distance_id,
             'method': data.hcluster_method,
-            'submit_location': data.submit_location
+            'submit_location': data.submit_location,
+            'task_type': data.taskType
             }
         self.to_file = 'dist_matrix.export_distance_matrix(distance_matrix)'
         self.run()

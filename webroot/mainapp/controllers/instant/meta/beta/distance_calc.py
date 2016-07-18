@@ -24,7 +24,8 @@ class DistanceCalc(MetaController):
         self.options = {'otu_file': data.otu_id,
                         'otu_id': data.otu_id,
                         'level': int(data.level_id),
-                        'method': data.distance_algorithm
+                        'method': data.distance_algorithm,
+                        'task_type': data.taskType
                         }
         self.to_file = 'meta.export_otu_table_by_level(otu_file)'
         self.run()

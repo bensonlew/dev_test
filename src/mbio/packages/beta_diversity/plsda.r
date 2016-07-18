@@ -1,7 +1,7 @@
 ##############loadings file#########################
-otu_table <- read.table("${otu_file}",comment.char = "",sep = "\t",row.names=1, header = TRUE)
+otu_table <- read.table("${otu_file}",comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
 otu_table <- t(otu_table)
-env_factor <- read.table("${env_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE)
+env_factor <- read.table("${env_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
 ##############format table##########################
 inter_samples <- sort(intersect(rownames(env_factor), rownames(otu_table)))
 env_temp <- env_factor[inter_samples, ]
