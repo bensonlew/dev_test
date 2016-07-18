@@ -10,6 +10,7 @@ import os
 import platform
 from mako.template import Template
 from biocluster.config import Config
+import subprocess
 
 
 def create_r(otu_file, group_file, output_dir, one_group):
@@ -36,22 +37,27 @@ def run_r_script(script, delscript=True):
     分平台运行R脚本，运行完成脚本会被删除
     :param script:R脚本路径（路径使用斜杠，不要使用反斜杠）
     """
-    print script
     if platform.system() == 'Windows':
-        os.system('R CMD BATCH --vanilla --slave %s ' % (script))
+        cmd = 'R CMD BATCH --vanilla --slave %s ' % (script)
+        # os.system('R CMD BATCH --vanilla --slave %s ' % (script))
     elif platform.system() == 'Linux':
-        os.system('%s/program/R-3.3.1/bin/Rscript %s' % (Config().SOFTWARE_DIR, script))
+        cmd = '%s/program/R-3.3.1/bin/Rscript %s' % (Config().SOFTWARE_DIR, script)
+        # os.system('%s/R-3.2.2/bin/Rscript %s' % (Config().SOFTWARE_DIR, script))
     else:
         pass
+    try:
+        subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        return "error, info:{}".format(e)
     if delscript:
         os.remove(script)
         if os.path.exists(os.path.dirname(script) + '/temp_r.Rout'):
             os.remove(os.path.dirname(script) + '/temp_r.Rout')
+    return 0
 
 
 def plsda(otu_file, group_file, output_dir, one_group):
     create_r(otu_file=otu_file, group_file=group_file, output_dir=output_dir, one_group=one_group)
-    run_r_script(output_dir + '/temp_r.R', delscript=False)
-    return 0
+    return run_r_script(output_dir + '/temp_r.R', delscript=False)
 
 # plsda("C:\\Users\\sheng.he.MAJORBIO\\Desktop\\Plsda\\otu.new.xls", "C:\\Users\\sheng.he.MAJORBIO\\Desktop\\Plsda\\map.txt",  "C:\\Users\\sheng.he.MAJORBIO\\Desktop", 'group')

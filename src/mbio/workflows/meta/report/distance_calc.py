@@ -8,6 +8,7 @@ import re
 from biocluster.workflow import Workflow
 from bson import ObjectId
 from mbio.packages.beta_diversity.filter_newick import *
+import datetime
 
 
 class DistanceCalcWorkflow(Workflow):
@@ -25,6 +26,7 @@ class DistanceCalcWorkflow(Workflow):
             {"name": "otu_id", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "matrix_id", "type": "string"},
+            {"name": "task_type", "type": "string"},
             # {"name": "matrix_out", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
         ]
         self.add_option(options)
@@ -127,10 +129,14 @@ class DistanceCalcWorkflow(Workflow):
         params_json = {
             'otu_id': self.option('otu_id'),
             'level_id': self.option('level'),
-            'distance_algorithm': self.option('method')
+            'distance_algorithm': self.option('method'),
+            'taskType': self.option('task_type'),
+            'submit_location': 'beta_sample_distance'
             }
         matrix_id = api_distance.add_dist_table(matrix_path,
                                                 major=True,
+                                                name='Distance_{}_{}'.format(self.option('method'),
+                                                                             datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
                                                 level=self.option('level'),
                                                 otu_id=self.option('otu_id'),
                                                 params=params_json)
@@ -144,6 +150,6 @@ class DistanceCalcWorkflow(Workflow):
         result_dir.add_relpath_rules([
             [".", "", "距离矩阵计算结果输出目录"],
             ["./%s" % os.listdir(self.output_dir)[0], "xls", "样本距离矩阵文件"],
-        ])
+            ])
         print self.get_upload_files()
         super(DistanceCalcWorkflow, self).end()
