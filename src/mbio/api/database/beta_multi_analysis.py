@@ -84,16 +84,18 @@ class BetaMultiAnalysis(Base):
             env_id = ObjectId(env_id)
         else:
             if 'env_id' in self.bind_object.sheet.data['options']:
-                env_id = ObjectId(self.bind_object.option('env_id'))
+                env_id = ObjectId(self.bind_object.option('env_id'))  # 仅仅即时计算直接绑定workflow对象
         if not isinstance(group_id, ObjectId) and group_id is not None:
             group_id = ObjectId(group_id)
         else:
             if 'group_id' in self.bind_object.sheet.data['options']:
-                group_id = ObjectId(self.bind_object.option('group_id'))
-        if not isinstance(otu_id, ObjectId) and otu_id is not None:
+                group_id = ObjectId(self.bind_object.option('group_id'))  # 仅仅即时计算直接绑定workflow对象
+        if isinstance(otu_id, ObjectId):
+            pass
+        elif otu_id is not None:
             otu_id = ObjectId(otu_id)
         else:
-            otu_id = ObjectId(self.bind_object.option('otu_id'))
+            otu_id = ObjectId(self.bind_object.option('otu_id'))  # 仅仅即时计算直接绑定workflow对象
         _main_collection = self.db['sg_beta_multi_analysis']
         if main:
             if not isinstance(params, dict):

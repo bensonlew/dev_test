@@ -172,7 +172,7 @@ class PlsdaTool(Tool):
         self.logger.info('运行plsda_r.py程序计算PLSDA')
         return_mess = plsda(self.otu_table, self.option('group').path,
                             self.work_dir, self.grouplab)
-        self.logger.info('运行plsda_r.py程序计算PLSDA成功')
+        # self.logger.info('运行plsda_r.py程序计算PLSDA成功')
         if return_mess == 0:
             self.linkfile(self.work_dir + '/plsda_sites.xls', 'plsda_sites.xls')
             self.linkfile(self.work_dir + '/plsda_rotation.xls', 'plsda_rotation.xls')

@@ -38,7 +38,7 @@ class MetaUpdateStatus(Base):
             temp_collection = self.db[type_name]
             tempfind = temp_collection.find_one({'_id': table_id})
             if not tempfind:
-                raise Exception('提供的ID无法在表:%s中找到' % type_name)
+                raise Exception('提供的ID:%s无法在表:%s中找到' % (table_id, type_name))
             if 'name' in tempfind:
                 table_name = tempfind['name']
             else:
