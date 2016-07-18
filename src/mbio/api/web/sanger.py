@@ -16,7 +16,7 @@ class Sanger(Log):
         super(Sanger, self).__init__(data)
         self._client = "client01"
         self._key = "1ZYw71APsQ"
-        self._url = "http://192.168.10.161/api/add_task_log"
+        self._url = "http://www.sanger.com/api/add_task_log"
         parsered_data = self.parse_data(self.post_data)
         self._post_data = "%s&%s" % (self.get_sig(), parsered_data)
 
