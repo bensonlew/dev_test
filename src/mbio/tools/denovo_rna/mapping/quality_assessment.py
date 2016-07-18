@@ -52,9 +52,10 @@ class QualityAssessmentTool(Tool):
         self.python_path = "Python/bin/"
 
     def rpkm_saturation(self, bam, out_pre):
+        bam_name = bam.split("/")[-1]
+        out_pre = out_pre + "_" + bam_name
         satur_cmd = "{}RPKM_saturation.py -i {} -r {} -o {} -q {}".format(self.python_path, bam, self.option("bed").prop["path"], out_pre, self.option("quality"))
         print(satur_cmd)
-        bam_name = bam.split("/")[-1]
         self.logger.info("开始运行RPKM_saturation.py脚本")
         satur_command = self.add_command("{}_satur".format(bam_name.lower()), satur_cmd)
         satur_command.run()
@@ -69,11 +70,12 @@ class QualityAssessmentTool(Tool):
         return cmds
 
     def duplication(self, bam, out_pre):
+        bam_name = bam.split("/")[-1]
+        out_pre = out_pre + "_" + bam_name
         dup_cmd = "{}read_duplication.py -i {} -o {} -q {}".format(self.python_path, bam, out_pre, self.option("quality"))
         print(dup_cmd)
-        bam_name = bam.split("/")[-1]
         self.logger.info("开始运行read_duplication.py脚本")
-        dup_command = self.add_command("{}_dup".format(bam_name), dup_cmd)
+        dup_command = self.add_command("{}_dup".format(bam_name.lower()), dup_cmd)
         dup_command.run()
         return dup_command
 
@@ -89,11 +91,17 @@ class QualityAssessmentTool(Tool):
         self.logger.info("set out put")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        file_path = glob.glob(r"rpkm*")
-        print(file_path)
-        for f in file_path:
+        dup_file = glob.glob(r"*DupRate*")
+        print(dup_file)
+        for f in dup_file:
             output_dir = os.path.join(self.output_dir, f)
             os.link(os.path.join(self.work_dir, f), output_dir)
+        satur_file = glob.glob(r"satur*")
+        print(satur_file)
+        for f in satur_file:
+            output_dir = os.path.join(self.output_dir, f)
+            os.link(os.path.join(self.work_dir, f), output_dir)
+        self.logger.info("set done")
         self.end()
 
     def run(self):
@@ -101,10 +109,10 @@ class QualityAssessmentTool(Tool):
         运行
         """
         super(QualityAssessmentTool, self).run()
-        saturation = self.rpkm_saturation(self.option("bam"), "satur")
-        duplication = self.duplication(self.option("bam"), "dup")
-        self.wait()
         if self.option("bam").format == "align.bwa.bam":
+            saturation = self.rpkm_saturation(self.option("bam").prop["path"], "satur")
+            duplication = self.duplication(self.option("bam").prop["path"], "dup")
+            self.wait()
             if saturation.return_code == 0:
                 self.logger.info("运行RPKM_saturation.py脚本结束！")
             else:
@@ -113,7 +121,10 @@ class QualityAssessmentTool(Tool):
                 self.logger.info("运行read_duplication.py脚本结束！")
             else:
                 self.set_error("运行read_duplication.py脚本过程出错")
-        else:
+        elif self.option("bam").format == "align.bwa.bam_dir":
+            saturation = self.multi_satur(self.option("bam").prop["path"], "satur")
+            duplication = self.multi_dup(self.option("bam").prop["path"], "dup")
+            self.wait()
             for cmd in saturation:
                 if cmd.return_code == 0:
                     self.logger.info("运行{}结束!".format(cmd.name))
@@ -124,5 +135,7 @@ class QualityAssessmentTool(Tool):
                     self.logger.info("运行{}结束!".format(cmd.name))
                 else:
                     self.set_error("运行{}结束!".format(cmd.name))
+        # else:
+        #     self.logger.info("false")
         self.set_output()
 

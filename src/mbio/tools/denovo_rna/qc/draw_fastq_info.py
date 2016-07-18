@@ -62,7 +62,7 @@ class DrawFastqInfoTool(Tool):
     """
     def __init__(self, config):
         super(DrawFastqInfoTool, self).__init__(config)
-        self.fastxtoolkit_path = 'fastxtoolkit/bin/'
+        self.fastxtoolkit_path = 'bioinfo/seq/fastx_toolkit_0.0.14/'
         self.fastq_name = self.option("fastq").prop['path'].split("/")[-1]
 
     def fastq_quality_stats(self, fastq, outfile):
@@ -93,22 +93,14 @@ class DrawFastqInfoTool(Tool):
         将结果文件链接至output
         """
         self.logger.info("set output")
+        for f in os.listdir(self.output_dir):
+            os.remove(os.path.join(self.output_dir, f))
         file_path = glob.glob(r"*qual_stat*")
         print(file_path)
-        # for f in file_path:
-        #     fastq_qual_stat(f)
-        # file_path = glob.glob(r"*qual_stat*")
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)
-            if os.path.exists(output_dir):
-                os.remove(output_dir)
-                os.link(os.path.join(self.work_dir, f), output_dir)
-            else:
-                os.link(os.path.join(self.work_dir, f), output_dir)
-        # os.link(self.work_dir+'/qual.stat', self.output_dir+'/{}_qual.stat'.format(self.fastq_name))
-        # os.link(self.work_dir+'/qual.stat.base', self.output_dir+'/{}_qual.stat.base'.format(self.fastq_name))
-        # os.link(self.work_dir+'/qual.stat.err', self.output_dir+'/{}_qual.stat.err'.format(self.fastq_name))
-        # os.link(self.work_dir+'/qual.stat.qual', self.output_dir+'/{}_qual.stat.qaul'.format(self.fastq_name))
+            os.link(os.path.join(self.work_dir, f), output_dir)
+            os.remove(os.path.join(self.work_dir, f))
 
     def run(self):
         """
