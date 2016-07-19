@@ -78,9 +78,11 @@ class AssembleTool(Tool):
     def __init__(self, config):
         super(AssembleTool, self).__init__(config)
         self._version = "v1.0.1"
-        self.trinity_path = 'rna/trinityrnaseq-2.1.1/'
-        self.package_path = 'packages/trinity_stat.py'
-        self.gene_fa = os.path.join(self.work_dir, "output", "gene.fasta")
+        self.trinity_path = '/bioinfo/rna/trinityrnaseq-2.1.1/'
+        self.bowtie = self.config.SOFTWARE_DIR + '/bioinfo/align/bowtie2-2.2.9/'
+        self.samtools = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
+        self.set_environ(PATH=self.bowtie)
+        self.set_environ(PATH=self.samtools)
 
     def run(self):
         """

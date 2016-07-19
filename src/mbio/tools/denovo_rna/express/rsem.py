@@ -85,7 +85,7 @@ class RsemTool(Tool):
     def __init__(self, config):
         super(RsemTool, self).__init__(config)
         self._version = '1.0.1'
-        self.fpkm = "/bioinfo/seq/trinityrnaseq-2.1.1/util/fpkm/abundance_estimates_to_matrix.pl"
+        self.fpkm = "/bioinfo/rna/scripts/abundance_estimates_to_matrix.pl"
         self.tpm = "/bioinfo/seq/trinityrnaseq-2.1.1/util/abundance_estimates_to_matrix.pl"
         self.rsem = "/bioinfo/seq/trinityrnaseq-2.1.1/util/align_and_estimate_abundance.pl"
 
@@ -93,10 +93,12 @@ class RsemTool(Tool):
         bamfiles = os.listdir(bamdir)
         fq_bam = {}
         for bam in bamfiles:
-            sample = bam.split('.bam')[0]
+            sample = bam.split('.')[0]
             if self.option('fq_s'):
+                # fq_bam[sample] = [bam, sample + '_sickle_s.fq']
                 fq_bam[sample] = [bam, sample + '.fq']
             else:
+                # fq_bam[sample] = [bam, sample + '_sickle_r.fq', sample + '_sickle_l.fq']
                 fq_bam[sample] = [bam, sample + '_r.fq', sample + '_l.fq']
         return fq_bam
 
