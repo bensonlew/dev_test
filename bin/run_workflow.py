@@ -67,7 +67,7 @@ def main():
                 exstr = traceback.format_exc()
                 print exstr
                 write_log("运行出错: %s" % e)
-                wj.unlock()
+                # wj.unlock()
                 time.sleep(Config().SERVICE_LOOP)
                 continue
             if json_data:
@@ -113,7 +113,7 @@ def main():
 
 
 def check_run(wj):
-    wj.lock()
+    # wj.lock()
     json_data = None
     if args.service:
         wj.check_time_out()
@@ -124,7 +124,7 @@ def check_run(wj):
         json_data = wj.get_from_database(args.rerun_id)
     if json_data:
         wj.update_workflow()
-    wj.unlock()
+    # wj.unlock()
 
     return json_data
 
@@ -349,26 +349,26 @@ class WorkJob(object):
                 "is_end": 1
             }
             myvar = dict(id=self.workflow_id)
-            self.lock()
+            # self.lock()
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
             self.insert_api_log(self.json_data, error, self._start_time)
-            self.unlock()
+            # self.unlock()
         write_log("End running workflow:%s" % self.workflow_id)
 
     def update_error(self, workflow_id, json_data, start_time):
 
         myvar = dict(id=workflow_id)
-        self.lock()
+        # self.lock()
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id and is_end=0 and is_error=0",
                                 vars=myvar)
         if isinstance(results, long) or isinstance(results, int):
-            self.unlock()
+            # self.unlock()
             return None
         if len(results) > 0:
             error = "程序无警告异常中断"
             self.db.update("workflow", vars=myvar, where="workflow_id = $id", is_error=1, error=error)
             self.insert_api_log(json_data, error, start_time)
-        self.unlock()
+        # self.unlock()
 
     def insert_api_log(self, json_data, error_info, start_time):
         if json_data and "UPDATE_STATUS_API" in json_data.keys():
