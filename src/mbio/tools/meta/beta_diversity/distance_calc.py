@@ -116,7 +116,7 @@ class DistanceCalcTool(Tool):
         self._version = '1.9.1'  # qiime版本
         self.cmd_path = 'program/Python/bin/beta_diversity.py'
         # 设置运行环境变量
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
         self.real_otu = self.gettable()  # 获取真实的OTU表路劲
         self.biom = self.biom_otu_table()  # 传入otu表需要转化为biom格式
 

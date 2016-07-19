@@ -22,7 +22,7 @@ class AssembleAgent(Agent):
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，所有样本fastq序列文件
             {"name": "length", "type": "int", "default": 400},  # 统计步长
             {"name": "cpu", "type": "int", "default": 10},  # trinity软件所分配的cpu数量
-            {"name": "max_memory", "type": "string", "default": '50G'},  # trinity软件所分配的最大内存，单位为GB
+            {"name": "max_memory", "type": "string", "default": '100G'},  # trinity软件所分配的最大内存，单位为GB
             {"name": "min_contig_length", "type": "int", "default": 200},  # trinity报告出的最短的contig长度。默认为200
             {"name": "SS_lib_type", "type": "string", "default": 'none'},  # reads的方向，成对的reads: RF or FR; 不成对的reads: F or R，默认情况下，不设置此参数
             {"name": "gene_fa", "type": "outfile", "format": "sequence.fasta"},
@@ -78,9 +78,11 @@ class AssembleTool(Tool):
     def __init__(self, config):
         super(AssembleTool, self).__init__(config)
         self._version = "v1.0.1"
-        self.trinity_path = 'rna/trinityrnaseq-2.1.1/'
-        self.package_path = 'packages/trinity_stat.py'
-        self.gene_fa = os.path.join(self.work_dir, "output", "gene.fasta")
+        self.trinity_path = '/bioinfo/rna/trinityrnaseq-2.1.1/'
+        self.bowtie = self.config.SOFTWARE_DIR + '/bioinfo/align/bowtie-1.1.2/'
+        # self.samtools = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
+        self.set_environ(PATH=self.bowtie)
+        # self.set_environ(PATH=self.samtools)
 
     def run(self):
         """

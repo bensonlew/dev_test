@@ -99,7 +99,7 @@ class ClusterTool(Tool):
     def __init__(self, config):
         super(ClusterTool, self).__init__(config)
         self._version = '1.0.1'
-        self.r_path = '/R-3.2.2/bin/Rscript'
+        self.r_path = '/program/R-3.3.1/bin/Rscript'
 
     def run_cluster(self):
         clust(input_matrix=self.option('diff_fpkm').prop['path'], sub_num=self.option('sub_num'), method=self.option('method'), lognorm=self.option('log'), distance_method=self.option('distance_method'), cltype="both")
