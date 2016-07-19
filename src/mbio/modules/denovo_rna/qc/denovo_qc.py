@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-# import shutil
+import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 
@@ -22,13 +22,14 @@ class DenovoQcModule(Module):
             {"name": "length_a", "type": "int", "default": 30},  # 去接头碱基长度
             {"name": "quality_q", "type": "int", "default": 20},  # 质量剪切碱基质量
             {"name": "length_q", "type": "int", "default": 30},  # 质量剪切碱基长度
-            {"name": "clip_s", "type": "outfile", "format": "sequence.fastq"},  # SE去接头输出结果
-            {"name": "sickle_s", "type": "outfile", "format": "sequence.fastq"},  # SE输出结果
-            {"name": "seqprep_r", "type": "outfile", "format": "sequence.fastq"},  # PE的右端输出结果
-            {"name": "seqprep_l", "type": "outfile", "format": "sequence.fastq"},  # PE的左端输出结果
-            {"name": "sickle_r", "type": "outfile", "format": "sequence.fastq"},  # PE的右端输出结果
-            {"name": "sickle_l", "type": "outfile", "format": "sequence.fastq"},  # PE的左端输出结果
-            {"name": "sickle_un", "type": "outfile", "format": "sequence.fastq"}  # PE的未配对输出结果
+            {"name": "clip_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # SE去接头输出结果文件夹
+            {"name": "sickle_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # 质量剪切输出结果文件夹(包括左右段)
+            {"name": "sickle_r_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # 质量剪切右端输出结果文件夹
+            {"name": "sickle_l_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # 质量剪切左端输出结果文件夹
+            {"name": "seqprep_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # PE的去接头输出结果文件
+            {"name": "fq_s", "type": "outfile", "format": "sequence.fastq"},  # SE所有样本集合
+            {"name": "fq_r", "type": "outfile", "format": "sequence.fastq"},  # PE所有右端序列样本集合
+            {"name": "fq_l", "type": "outfile", "format": "sequence.fastq"},  # PE所有左端序列样本集合
         ]
         self.add_option(options)
         self.stat = self.add_tool('denovo_rna.qc.fastq_stat')
@@ -91,7 +92,7 @@ class DenovoQcModule(Module):
             "fastq_dir": self.clipper.output_dir
         })
         self.step.sickle.start()
-        self.sickle.on("end", self.stat_after)
+        self.sickle.on("end", self.stat_after_run)
         self.sickle.on("end", self.draw_info_after_run)
         self.sickle.run()
 
@@ -152,21 +153,62 @@ class DenovoQcModule(Module):
 
     def set_output(self):
         self.logger.info("set output")
-        module_stat = os.path.join(self.output_dir, "fastq_stat")
-        module_draw = os.path.join(self.output_dir, "qual_stat")
-        if os.path.exists(module_draw):
-            pass
-        else:
-            os.makedirs(module_draw)
-        if os.path.exists(module_stat):
-            pass
-        else:
-            os.makedirs(module_stat)
+        stat_dir = os.path.join(self.output_dir, "fastqStat_dir")
+        draw_dir = os.path.join(self.output_dir, "qualStat_dir")
+        draw_after_dir = os.path.join(self.output_dir, "qualStat_after_sickle")
+        sickle_dir = os.path.join(self.output_dir, "sickle_dir")
+        sickle_r_dir = os.path.join(self.output_dir, "sickle_r_forRSEM")
+        sickle_l_dir = os.path.join(self.output_dir, "sickle_l_forRSEM")
+        seqprep_dir = os.path.join(self.output_dir, "seqprep_dir")
+        clip_dir = os.path.join(self.output_dir, "clip_dir")
+        dir_list = [stat_dir, draw_dir, sickle_dir, seqprep_dir, clip_dir, draw_after_dir, sickle_r_dir, sickle_l_dir]
+        self.logger.info(dir_list)
+        for d in dir_list:
+            if os.path.exists(d):
+                shutil.rmtree(d)
+            os.mkdir(d)
+        for f in os.listdir(self.stat.output_dir):
+            from_output = os.path.join(self.stat.output_dir, f)
+            target_path = os.path.join(stat_dir, f)
+            os.link(from_output, target_path)
+        for f in os.listdir(self.stat_after.output_dir):
+            from_output = os.path.join(self.stat_after.output_dir, f)
+            target_path = os.path.join(stat_dir, f)
+            os.link(from_output, target_path)
         for f in os.listdir(self.draw_info.output_dir):
-            # self.logger.info(os.path.join(self.draw_info.output_dir, f))
-            draw_output = os.path.join(self.draw_info.output_dir, f)
-            module_draw_file = os.path.join(module_draw, f)
-            os.link(draw_output, module_draw_file)
+            from_output = os.path.join(self.draw_info.output_dir, f)
+            target_path = os.path.join(draw_dir, f)
+            os.link(from_output, target_path)
+        for f in os.listdir(self.draw_info_after.output_dir):
+            from_output = os.path.join(self.draw_info_after.output_dir, f)
+            target_path = os.path.join(draw_after_dir, f)
+            os.link(from_output, target_path)
+        for f in os.listdir(self.sickle.output_dir):
+            from_output = os.path.join(self.sickle.output_dir, f)
+            target_path = os.path.join(sickle_dir, f)
+            os.link(from_output, target_path)
+            if "sickle_r.fastq" in f:
+                os.link(from_output, os.path.join(sickle_r_dir, f))
+            elif "sickle_l.fastq" in f:
+                os.link(from_output, os.path.join(sickle_l_dir, f))
+        self.option("sickle_dir").set_path(sickle_dir)
+        if self.option("fq_type") == "PE":
+            for f in os.listdir(self.seqprep.output_dir):
+                from_output = os.path.join(self.seqprep.output_dir, f)
+                target_path = os.path.join(seqprep_dir, f)
+                os.link(from_output, target_path)
+            self.option("seqprep_dir").set_path(seqprep_dir)
+            shutil.rmtree(clip_dir)
+        else:
+            for f in os.listdir(self.clipper.output_dir):
+                from_output = os.path.join(self.clipper.output_dir, f)
+                target_path = os.path.join(clip_dir, f)
+                os.link(from_output, target_path)
+            self.option("clip_dir").set_path(clip_dir)
+            shutil.rmtree(seqprep_dir)
+            shutil.rmtree(sickle_l_dir)
+            shutil.rmtree(sickle_r_dir)
+        self.logger.info("done")
         self.end()
 
     def run(self):
@@ -181,7 +223,7 @@ class DenovoQcModule(Module):
             self.stat_run()
             self.draw_info_run()
             self.clipper_run()
-            self.on_rely([self.stat, self.draw_info, self.clipper, self.sickle], self.set_output)
+            self.on_rely([self.stat, self.draw_info, self.clipper, self.sickle, self.stat_after, self.draw_info_after], self.set_output)
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

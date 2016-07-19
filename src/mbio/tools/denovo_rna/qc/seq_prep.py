@@ -84,7 +84,7 @@ class SeqPrepTool(Tool):
         fq_r_path = self.option("fastq_r").prop['path']
         fq_l_path = self.option("fastq_l").prop['path']
         cmd = self.seqprep_path + "SeqPrep -f {} -r {} -1 {} -2 {} -q {} -L {} -A {} -B {}".\
-            format(fq_l_path, fq_r_path, '{}seqprep_l.gz'.format(self.sample_name_l), '{}seqprep_r.gz'.format(self.sample_name_r), self.option('quality'),
+            format(fq_l_path, fq_r_path, '{}_seqprep_l.gz'.format(self.sample_name_l), '{}_seqprep_r.gz'.format(self.sample_name_r), self.option('quality'),
                    self.option('length'), self.option("adapter_a"), self.option("adapter_b"))
         self.logger.info(cmd)
         self.logger.info("开始运行seqprep")
@@ -93,7 +93,6 @@ class SeqPrepTool(Tool):
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("运行seqprep完成")
-            self.set_output()
         else:
             self.set_error("运行seqprep运行出错!")
             return False
@@ -146,14 +145,18 @@ class SeqPrepTool(Tool):
         """
         self.logger.info("set output")
         for f in os.listdir(self.output_dir):
-            os.remove(os.path.join(self.output_dir, f))
+            if f == "list.txt":
+                pass
+            else:
+                os.remove(os.path.join(self.output_dir, f))
         file_path = glob.glob(r"*.gz")
         self.logger.info(len(file_path))
         self.logger.info(file_path)
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)
+            # shutil.move(os.path.join(self.work_dir, f), self.output_dir)
             os.link(os.path.join(self.work_dir, f), output_dir)
-            # os.remove(os.path.join(self.work_dir, f))
+            os.remove(os.path.join(self.work_dir, f))
         if self.option("fastq_dir").is_set:
             self.option("seqprep_dir").set_path(self.output_dir)
         else:
