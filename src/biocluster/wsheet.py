@@ -114,9 +114,7 @@ class Sheet(object):
         :return: dict name/value
         """
         if self.type == "pipeline":
-           raise Exception("pipeline类型没有参数")
+            raise Exception("pipeline类型没有参数")
         else:
             data = self._data['options']
             return data
-
-
