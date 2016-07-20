@@ -362,7 +362,7 @@ class WorkJob(object):
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id and is_end=0 and is_error=0",
                                 vars=myvar)
         if isinstance(results, long) or isinstance(results, int):
-            # self.unlock()
+            #  self.unlock()
             return None
         if len(results) > 0:
             error = "程序无警告异常中断"
