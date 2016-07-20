@@ -38,6 +38,14 @@ class CorrelationAgent(Agent):
         self._cpu = 10
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+            ["./correlation_matrix.xls", "xls", "相关系数矩阵表"]
+        ])
+        super(CorrelationAgent, self).end()
+
 
 class CorrelationTool(Tool):
     """

@@ -20,7 +20,7 @@ class FastxClipperAgent(Agent):
             {"name": "fastq_s", "type": "infile", "format": "sequence.fastq"},  # 输入文件SE序列
             {"name": "clip_s", "type": "outfile", "format": "sequence.fastq"},  # SE去接头输出结果
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
-            {"name": "fastq_s_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # fastq文件夹
+            {"name": "clip_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # fastq文件夹
             {"name": "length", "type": "int", "default": 30},
             {"name": "adapter", "type": "string", "default": 'AGATCGGAAGAGCACACGTC'}
         ]
@@ -41,8 +41,8 @@ class FastxClipperAgent(Agent):
         """
         检测参数是否正确
         """
-        if not self.option("fastq_dir").is_set or self.option("fastq_s").is_set:
-            raise OptionError("请传入PE序列文件或者文件夹")
+        if not self.option("fastq_dir").is_set and not self.option("fastq_s").is_set:
+            raise OptionError("请传入SE序列文件或者文件夹")
 
     def set_resource(self):
         """
@@ -51,6 +51,14 @@ class FastxClipperAgent(Agent):
         self._cpu = 11
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+            # ["./fastq_stat.xls", "xls", "fastq信息统计表"]
+        ])
+        super(FastxClipperAgent, self).end()
+
 
 class FastxClipperTool(Tool):
     """
@@ -58,7 +66,7 @@ class FastxClipperTool(Tool):
     """
     def __init__(self, config):
         super(FastxClipperTool, self).__init__(config)
-        self.fastxtoolkit_path = 'fastxtoolkit/bin/'
+        self.fastxtoolkit_path = 'bioinfo/seq/fastx_toolkit_0.0.14/'
 
     def fastxclipper(self):
         fq_s_path = self.option("fastq_s").prop['path']
@@ -71,26 +79,36 @@ class FastxClipperTool(Tool):
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("运行fastx_clipper完成")
-            self.set_output()
+            # self.set_output()
         else:
             self.set_error("运行fastx_clipper运行出错!")
             return False
 
     def multi_fastxclipper(self):
         fq_dir = self.option("fastq_dir").prop["path"]
+        self.logger.info(fq_dir)
         commands = []
-        for f in os.listdir(fq_dir):
-            if f == "list.txt":
-                pass
-            else:
-                fq_s_path = os.path.join(fq_dir, f)
-                cmd = self.fastxtoolkit_path + 'fastx_clipper -i {} -a {} -Q 35 -v -l {} -o {}_clip_s.fastq'.\
-                    format(fq_s_path, self.option('adapter'), self.option('length'), f)
-                self.logger.info(cmd)
-                self.logger.info("开始运行fastx_clipper")
-                command = self.add_command("fastx_clipper_{}".format(f), cmd)
-                command.run()
-                commands.append(command)
+        fqs = []
+        if "list.txt" in os.listdir(fq_dir):
+            fq_list = os.path.join(fq_dir, "list.txt")
+            output_list = os.path.join(self.output_dir, "list.txt")
+            with open(fq_list, "r") as l, open(output_list, "wb") as w:
+                for line in l:
+                    line = line.strip().split()
+                    fqs.append(line[0])
+                    write_line = "{}_clip_s.fastq\t{}\n".format(line[0], line[1])
+                    w.write(write_line)
+        else:
+            fqs = os.listdir(fq_dir)
+        for f in fqs:
+            fq_s_path = os.path.join(fq_dir, f)
+            cmd = self.fastxtoolkit_path + 'fastx_clipper -i {} -a {} -Q 35 -v -l {} -o {}_clip_s.fastq'.\
+                format(fq_s_path, self.option('adapter'), self.option('length'), f)
+            self.logger.info(cmd)
+            self.logger.info("开始运行fastx_clipper")
+            command = self.add_command("fastx_clipper_{}".format(f.lower()), cmd)
+            command.run()
+            commands.append(command)
         return commands
 
     def write_list(self):
@@ -112,15 +130,22 @@ class FastxClipperTool(Tool):
         将结果文件链接至output
         """
         self.logger.info("set output")
-        file_path = glob.glob(r"*_clip_s*")
+        for f in os.listdir(self.output_dir):
+            if f == "list.txt":
+                pass
+            else:
+                os.remove(os.path.join(self.output_dir, f))
+        file_path = glob.glob(r"*.fastq")
         print(file_path)
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)
-            if os.path.exists(output_dir):
-                os.remove(output_dir)
-                os.link(os.path.join(self.work_dir, f), output_dir)
-            else:
-                os.link(os.path.join(self.work_dir, f), output_dir)
+            os.link(os.path.join(self.work_dir, f), output_dir)
+            os.remove(os.path.join(self.work_dir, f))
+        if self.option("fastq_dir").is_set:
+            self.option("clip_dir").set_path(self.output_dir)
+        else:
+            for f in os.listdir(self.output_dir):
+                self.option("clip_s").set_path(os.path.join(self.output_dir, f))
         self.logger.info("done")
 
     def run(self):
@@ -138,7 +163,7 @@ class FastxClipperTool(Tool):
                     self.set_error("运行{}运行出错!".format(cmd.name))
                     return False
             self.set_output()
-            self.write_list()
+            # self.write_list()
         else:
             self.fastxclipper()
             self.set_output()

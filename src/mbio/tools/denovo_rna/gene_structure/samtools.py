@@ -31,7 +31,7 @@ class SamtoolsAgent(Agent):
             # {"name": "vcf", "type": "outfile", "format": "vcf"},     # Variant Call Format
             # {"name": "pileup", "type": "outfile", "format": "pileup"},  # pileup格式文件
             # {"name": "bcf", "type": "outfile", "format": "bcf"},     # Variant Call Format
-            # {"name": "out_bam", "type": "outfile", "format": "align.bwa.bam"}  # bam格式输入文件
+            {"name": "out_bam", "type": "outfile", "format": "align.bwa.bam"}  # bam格式输入文件
         ]
         self.add_option(options)
 
@@ -64,8 +64,8 @@ class SamtoolsTool(Tool):
 
     def __init__(self, config):
         super(SamtoolsTool, self).__init__(config)
-        self.samtools_path = "rna/samtools-1.3.1/"
-        self.bcftools_path = "rna/bcftools-1.3.1/"
+        self.samtools_path = "bioinfo/align/samtools-1.3.1/"
+        # self.bcftools_path = "rna/bcftools-1.3.1/"
         if self.option("ref_fasta").is_set:
             self.fasta_name = self.option("ref_fasta").prop["path"].split("/")[-1]
         if self.option("sam").is_set:
@@ -170,6 +170,10 @@ class SamtoolsTool(Tool):
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)
             os.link(os.path.join(self.work_dir, f), output_dir)
+            if postfix == "out_bam":
+                self.option("out_bam").set_path(output_dir)
+            # else:
+            #     self.option("pileup").set_path(output_dir)
         self.logger.info("output done")
         # self.end()
 
