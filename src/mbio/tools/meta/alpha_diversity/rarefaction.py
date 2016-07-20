@@ -59,7 +59,8 @@ class RarefactionAgent(Agent):
         """
             所需资源
             """
-        self._cpu = 11
+        # self._cpu = 11
+        self._cpu = 17
         self._memory = ''
 
     def end(self):
@@ -130,7 +131,9 @@ class RarefactionTool(Tool):
         执行命令运行mothur程序，生成rarefaction结果文件
         """
         cmd = '/bioinfo/meta/mothur-1.30/mothur.1.30 "#rarefaction.single(shared=%s.shared,calc=%s,groupmode=f,' \
-              'freq=%s,processors=10)"' % (self.option("level"), self.indices, self.option('freq'))
+              'freq=%s,processors=15)"' % (self.option("level"), self.indices, self.option('freq'))
+        # cmd = '/bioinfo/meta/mothur-1.30/mothur.1.30 "#rarefaction.single(shared=%s.shared,calc=%s,groupmode=f,' \
+            #   'freq=%s,processors=10)"' % (self.option("level"), self.indices, self.option('freq'))
         # print cmd
         self.logger.info("开始运行mothur")
         mothur_command = self.add_command("mothur", cmd)
