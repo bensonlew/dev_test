@@ -86,8 +86,10 @@ class RsemTool(Tool):
         super(RsemTool, self).__init__(config)
         self._version = '1.0.1'
         self.fpkm = "/bioinfo/rna/scripts/abundance_estimates_to_matrix.pl"
-        self.tpm = "/bioinfo/rna/trinityrnaseq-2.1.1/util/abundance_estimates_to_matrix.pl"
-        self.rsem = "/bioinfo/rna/trinityrnaseq-2.1.1/util/align_and_estimate_abundance.pl"
+        self.tpm = "/bioinfo/rna/trinityrnaseq-2.2.0/util/abundance_estimates_to_matrix.pl"
+        self.rsem = "/bioinfo/rna/trinityrnaseq-2.2.0/util/align_and_estimate_abundance.pl"
+        self.rsem_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/RSEM-1.2.31/bin'
+        self.set_environ(PATH=self.rsem_path)
 
     def fq_bam(self, bamdir):
         bamfiles = os.listdir(bamdir)

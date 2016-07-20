@@ -78,7 +78,7 @@ class AssembleTool(Tool):
     def __init__(self, config):
         super(AssembleTool, self).__init__(config)
         self._version = "v1.0.1"
-        self.trinity_path = '/bioinfo/rna/trinityrnaseq-2.1.1/'
+        self.trinity_path = '/bioinfo/rna/trinityrnaseq-2.2.0/'
         self.bowtie = self.config.SOFTWARE_DIR + '/bioinfo/align/bowtie-1.1.2/'
         # self.samtools = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
         self.set_environ(PATH=self.bowtie)
