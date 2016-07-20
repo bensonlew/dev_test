@@ -115,7 +115,7 @@ class Pipeline(object):
                             json_obj['error'] = "tag{}里不包含fileList".format(opt.tag)
                             return json_obj
                         fileList = opt.attrib['fileList']
-                        tmp_list = [None, "none", "None", "null", 'Null', '[]']
+                        tmp_list = [None, "none", "None", "null", 'Null', '[]', '']
                         if fileList in tmp_list:
                             json_obj['options'][opt.tag] = "%s||%s/%s" % (opt.attrib["format"], file_path, opt.text)
                         else:
