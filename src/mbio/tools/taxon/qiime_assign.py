@@ -84,13 +84,13 @@ class QiimeAssignAgent(Agent):
                 raise OptionError('提供的库fasta序列过大{}G，暂不支持'.format(fasta_size))
             self._memory = str(QiimeAssignAgent.max_memory_func(fasta_size)) + 'G'
         else:
-            self._memory = '15G'
+            self._memory = '25G'
         self.logger.info('Memory:{}  CPU:{}'.format(self._memory, self._cpu))
 
     @staticmethod
     def max_memory_func(memory):
         """根据提供的fasta大小（单位G）来设定需要的内存大小（单位G）"""
-        return int(round(60 * memory)) + 15
+        return int(round(70 * memory)) + 25
 
 
 class QiimeAssignTool(Tool):
