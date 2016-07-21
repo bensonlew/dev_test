@@ -107,9 +107,9 @@ class GroupStat(object):
         collection = self.db['sg_specimen_group']
         result = collection.find_one({'_id': group_id})
         gname = result['group_name']
-        second_gname = result['second_category_names']
-        if second_gname != '':
-            gname = gname + ',' + 'second_group'
+        if 'second_category_names' in result:
+            if result['second_category_names']:
+                gname = gname + ',' + 'second_group'
         return gname
 
     def get_otu_sample_name(self, otu_id):
