@@ -189,7 +189,7 @@ class RandomforestTool(Tool):
         运行RandomForest.pl
         """
         real_otu_path = self.formattable(self.otu_table)
-        cmd = 'perl ' + self.cmd_path
+        cmd = self.config.SOFTWARE_DIR + '/program/perl/perls/perl-5.24.0/bin/perl ' + self.cmd_path
         cmd += ' -i %s -o %s' % (real_otu_path, self.work_dir + '/RandomForest')
         if self.option('envtable').is_set:
             cmd += ' -g %s -m %s' % (self.env_table, self.env_table)
@@ -228,7 +228,7 @@ class RandomforestTool(Tool):
             self.end()
         if not (allfiles[5] and allfiles[6]):
             self.end()
-        cmd = 'perl ' + self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/calc_roc.pl'
+        cmd = self.config.SOFTWARE_DIR + '/program/perl/perls/perl-5.24.0/bin/perl ' + self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/calc_roc.pl'
         cmd += ' -i1 %s' %(self.work_dir + '/RandomForest/randomforest_votes_probably.xls')
         cmd += ' -i2 %s' %(self.work_dir + '/RandomForest/randomforest_predicted_answer.xls')
         cmd += ' -o %s' %(self.work_dir + '/ROC/')
