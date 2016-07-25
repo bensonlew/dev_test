@@ -34,8 +34,17 @@ class ControlTableFile(File):
             num = len(lines)-1
             vs_list = []
             for line in lines[1:]:
-                vs = line.strip('\n').split('\t')[0]
-                vs_list.append(tuple(vs.split('_vs_')))
+                vs = line.strip('\n').split()[0]
+                if not re.findall(r'_vs_', vs):
+                    raise FileError('两两比较方案须以（样本名/分组名_vs_样本名/分组名）的形式定义')
+                elif len(re.findall(r'_vs_', vs)) > 1:
+                    raise FileError('两两比较方案须以（样本名/分组名_vs_样本名/分组名）的形式定义且只能有一个_vs_')
+                sams = vs.split('_vs_')
+                if line.strip('\n').split()[1] not in sams:
+                    raise FileError('两两比较方案中不含此对照组（样本）名字')
+                vs_list.append(tuple(sams))
+                if sams[0] == sams[1]:
+                    raise FileError('两两比较方案中样本（分组）名字相同！')
             return num, vs_list
 
     def get_control_dict(self):
@@ -48,10 +57,8 @@ class ControlTableFile(File):
                 raise FileError('对照组文件为空')
             adict = dict()
             for line in lines[1:]:
-                info = line.strip().split('\t')
+                info = line.strip().split()
                 sam = info[0].split('_vs_')
-                if info[1] not in sam:
-                    raise Exception('对照方案中不含此对照组名字')
                 sam.remove(info[1].strip())
                 adict[info[0]] = [info[1], sam[0]]
         return adict
