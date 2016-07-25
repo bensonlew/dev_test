@@ -3,6 +3,8 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from mbio.files.sequence.file_sample import FileSampleFile
+import os
 
 
 class FileDenovoAgent(Agent):
@@ -41,7 +43,7 @@ class FileDenovoAgent(Agent):
             raise OptionError('fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
         if not self.option('control_file').is_set:
             raise OptionError("必须输入对照组文件，用于查找上下调基因")
-        if not self.option('fq_file'):
+        if not self.option('fq_type').is_set:
             raise OptionError("必须设置测序类型：PE or SE")
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError("测试类型只能是PE或者SE")
@@ -70,6 +72,15 @@ class FileDenovoTool(Tool):
         col_num = self.get_list_info()
         if self.option("fq_type") in ["PE"] and col_num != 3:
             raise OptionError("PE文件夹的list应该包含三行信息，文件名-样本名-左端OR右端")
+        file_list = FileSampleFile()
+        list_txt = os.path.join(self.option('fastq_dir').prop['path'], "list.txt")
+        file_list.set_path(list_txt)
+        file_sample = file_list.get_list()
+        print file_sample
+        if self.option('fq_type') == 'PE':
+            for i in file_sample.keys():
+                if len(i) != 2:
+                    raise OptionError("PE测序时，每个样本至少有一个左端fq和右端fq文件")
         self.logger.info("fastq文件检测完毕")
 
     def get_list_info(self):

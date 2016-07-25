@@ -73,12 +73,12 @@ class FileSampleFile(File):
                             file_sample[line[1]] = {"l":line[0]}
                     else:
                         if line[2] == 'r':
-                            if len(file_sample[line[1]]) == 2:
+                            if 'r' in file_sample[line[1]]:
                                 file_sample[line[1]]['r'] += ',{}'.format(line[0])
                             else:
                                 file_sample[line[1]]['r'] = line[0]
                         else:
-                            if len(file_sample[line[1]]) == 2:
+                            if 'l' in file_sample[line[1]]:
                                 file_sample[line[1]]['l'] += ',{}'.format(line[0])
                             else:
                                 file_sample[line[1]]['l'] = line[0]

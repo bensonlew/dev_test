@@ -45,7 +45,7 @@ class RsemAgent(Agent):
         重写参数检测函数
         :return:
         """
-        # print self.option('fq_s'), self.option("fq_l"), self.option("fq_r")
+        # print self.option('fq_s').is_set, self.option("fq_l"), self.option("fq_r")
         if not self.option("fq_l") and not self.option("fq_r") and not self.option("fq_s"):
             raise OptionError("必须设置PE测序输入文件或者SE测序输入文件")
         if self.option("fq_l") and self.option("fq_r") and self.option("fq_s"):
