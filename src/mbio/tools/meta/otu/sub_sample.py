@@ -124,10 +124,13 @@ class SubSampleTool(Tool):
             self.set_error("运行sub.sample出错")
         self.logger.info("运行share2otu,将shared文件转化为otu")
         dir_ = os.listdir(mothur_dir)
+        sub_sampled_shared = ""
         for file_ in dir_:
             if re.search(r'subsample', file_):
                 sub_sampled_shared = os.path.join(mothur_dir, file_)
                 break
+        if sub_sampled_shared == "":
+            raise Exception("mothur未能成功的产生subsample结果")
         match = re.search(r"(^.+)(\..+$)", self.basename)
         prefix = match.group(1)
         suffix = match.group(2)

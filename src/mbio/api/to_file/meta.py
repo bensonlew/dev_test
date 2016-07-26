@@ -11,7 +11,7 @@ from collections import defaultdict
 
 
 client = Config().mongo_client
-db = client["sanger"]
+db = client[Config().MONGODB]
 
 
 def export_otu_table(data, option_name, dir_path, bind_obj=None):
@@ -165,7 +165,7 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
     """
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
-    if data == "all":
+    if data in ["all", "All", "ALL"]:
         with open(file_path, "wb") as f:
             f.write("#sample\t" + "##empty_group##" + "\n")
         return file_path
@@ -249,6 +249,10 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     """
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
+    if data in ["all", "All", "ALL"]:
+        with open(file_path, "wb") as f:
+            f.write("#sample\t" + "##empty_group##" + "\n")
+        return file_path
     data = _get_objectid(data)
     group_detail = bind_obj.sheet.option('group_detail')
     group_table = db['sg_specimen_group']
@@ -262,13 +266,11 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     group_schema = group_table.find_one({"_id": ObjectId(data)})
     if not group_schema:
         raise Exception("无法根据传入的group_id:{}在sg_specimen_group表里找到相应的记录".format(data))
-
     with open(file_path, "wb") as f:
         f.write("#sample\t" + group_schema["group_name"] + "\n")
 
     sample_table_name = 'sg_specimen'
     sample_table = db[sample_table_name]
-
     with open(file_path, "ab") as f:
         for k in table_dict:
             for sp_id in table_dict[k]:
