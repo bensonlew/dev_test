@@ -105,16 +105,16 @@ class QualityControlModule(Module):
             step = getattr(self.step, 'seqprep_{}'.format(n))
             step.start()
             seqprep.on("end", self.finish_update, "seqprep_{}".format(n))
-            seqprep.on("end", self.sickle_pe_run)
-            # seqprep.run()
+            seqprep.on("end", self.sickle_pe_run, n)
+            seqprep.run()
             n += 1
-            self.seqprep.append(seqprep)
-        self.logger.info(self.seqprep)
-        if len(self.seqprep) == 1:
-            self.seqprep[0].run()
-        else:
-            for tool in self.seqprep:
-                tool.run()
+        #     self.seqprep.append(seqprep)
+        # self.logger.info(self.seqprep)
+        # if len(self.seqprep) == 1:
+        #     self.seqprep[0].run()
+        # else:
+        #     for tool in self.seqprep:
+        #         tool.run()
 
     def sickle_se_run(self, event):
         obj = event["bind_object"]
@@ -128,24 +128,31 @@ class QualityControlModule(Module):
         self.step.sickle.start()
         sickle.on("end", self.finish_update)
         sickle.run()
-        self.sickle.append(sickle)
+        # self.sickle.append(sickle)
 
     def sickle_pe_run(self, event):
         obj = event["bind_object"]
-        seqprep_l = os.path.join(obj.output_dir, "sickle_l.fastq")
-        seqprep_r = os.path.join(obj.output_dir, "sickle_r.fastq")
+        seqprep_l = ""
+        seqprep_r = ""
+        for f in os.listdir(obj.output_dir):
+            if "seqprep_l" in f:
+                seqprep_l = os.path.join(obj.output_dir, f)
+            if "seqprep_r" in f:
+                seqprep_r = os.path.join(obj.output_dir, f)
         sickle = self.add_tool('denovo_rna.qc.sickle')
+        self.step.add_steps('sickle_{}'.format(event["data"]))
         sickle.set_options({
             "fq_type": self.option("fq_type"),
             "fastq_l": seqprep_l,
             "fastq_r": seqprep_r
 
         })
-        self.step.sickle.start()
+        step = getattr(self.step, 'sickle_{}'.format(event["data"]))
+        step.start()
         sickle.on("end", self.finish_update)
         sickle.on("end", self.set_output)
         sickle.run()
-        self.sickle.append(sickle)
+        # self.sickle.append(sickle)
 
     def set_output(self):
         self.logger.info("set output")
@@ -172,10 +179,6 @@ class QualityControlModule(Module):
             self.seqprep_run()
         else:
             self.clipper_run()
-        # if len(self.sickle) < 2:
-        #     self.sickle[0].on("end", self.set_output)
-        # else:
-        # self.on_rely(self.sickle, self.set_output)
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
