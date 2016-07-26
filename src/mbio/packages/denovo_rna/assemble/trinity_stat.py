@@ -18,21 +18,24 @@ def trinity_stat(fasta, length):
     tran_N50, tran_N90 = stat(transcript_detail, transcript_len)
     gene_seq_num, gene_base_num, gene_GC_per, gene_max_len, gene_min_len, gene_average,\
     gene_N50, gene_N90 = stat(gene_detail, gene_len)
-    with open('trinity.fasta.stat.xls', 'wb') as t, open("length.distribut.txt", "wb") as l, \
-            open("unigenes.length.txt", "wb") as f1, open("transcripts.length.txt", "wb") as f2:
+    with open('trinity.fasta.stat.xls', 'wb') as t, open("unigenes.length.txt", "wb") as f1, open("transcripts.length.txt", "wb") as f2:
         t.write('\tunigenes\ttranscripts\ntotal seq num\t%s\t%s\ntotal base num\t%s\t%s\npercent GC\t%s\t%s\n'
                 'largest transcript\t%s\t%s\nsmallest transcript\t%s\t%s\naverage length\t%s\t%s\nN50\t%s\t%s\n'
                 'N90\t%s\t%s' % (gene_seq_num, tran_seq_num, gene_base_num, tran_base_num, gene_GC_per, tran_GC_per,
                                  gene_max_len, tran_max_len, gene_min_len, tran_min_len, gene_average, tran_average,
                                  gene_N50, tran_N50, gene_N90, tran_N90))
-        transcript_len_range, tran_sum, tran_len_sum = len_stat(transcript_len, length)
-        gene_len_range, gene_sum, gene_len_sum = len_stat(gene_len, length)
-        l.write('length\tunigene_num\tunigene_per\ttranscript_num\ttranscript_per\n')
-        gene_len_range.keys().sort()
-        for key in gene_len_range.keys():
-            l.write('%s\t%s\t%s\t%s\t%s\n' % (key, gene_len_range[key], '%0.4g' %
-                                              (gene_len_range[key] * 100.0 / gene_sum), transcript_len_range[key],
-                                              '%0.4g' % (transcript_len_range[key] * 100.0 / tran_sum)))
+        lengths = length.split(',')
+        for one in lengths:
+            one = int(one)
+            with open("{}_length.distribut.txt".format(one), "wb") as l:
+                l.write('length\tunigene_num\tunigene_per\ttranscript_num\ttranscript_per\n')
+                transcript_len_range, tran_sum, tran_len_sum = len_stat(transcript_len, one)
+                gene_len_range, gene_sum, gene_len_sum = len_stat(gene_len, one)
+                gene_len_range.keys().sort()
+                for key in gene_len_range.keys():
+                    l.write('%s\t%s\t%s\t%s\t%s\n' % (key, gene_len_range[key], '%0.4g' %
+                                                      (gene_len_range[key] * 100.0 / gene_sum), transcript_len_range[key],
+                                                      '%0.4g' % (transcript_len_range[key] * 100.0 / tran_sum)))
         f1.write('length\tunigenes_number\n')
         for i in gene_len_sum:
             f1.write('%s\t%s\n' % (i[0], i[1]))
