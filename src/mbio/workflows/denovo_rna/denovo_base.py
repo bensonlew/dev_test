@@ -44,7 +44,7 @@ class DenovoBaseWorkflow(Workflow):
             raise OptionError('必须设置输入对照方案文件')
         if not self.option('fq_type'):
             raise OptionError('必须设置测序类型：PE OR SE')
-        if sefl.option('fq_type') not in ['PE', 'SE']:
+        if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError('测序类型不在所给范围内')
 
     def set_step(self, event):
@@ -100,9 +100,9 @@ class DenovoBaseWorkflow(Workflow):
     def set_output(self, event):
         obj = event["bind_object"]
         # 设置qc报告文件
+        self.option('sickle_dir', obj.option('sickle_dir'))
         if event['data'] == 'qc':
             if self.option('fq_type') == 'SE':
-                self.option('sickle_dir', obj.option('sickle_dir'))
                 self.option('fq_s', obj.option('fq_s'))
             else:
                 self.option('sickle_l_dir', obj.option('sickle_l_dir'))

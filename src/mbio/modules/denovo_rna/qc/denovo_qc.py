@@ -191,16 +191,24 @@ class DenovoQcModule(Module):
                 os.link(from_output, os.path.join(sickle_r_dir, f))
             elif "sickle_l.fastq" in f:
                 os.link(from_output, os.path.join(sickle_l_dir, f))
-        #add by qiuping,2017.07.25
-        if self.option('fq_type') == 'PE'：
+        ### add by qiuping,2017.07.25
+        if self.option('fq_type') == 'PE':
             self.option('sickle_r_dir', sickle_r_dir)
             self.option('sickle_l_dir', sickle_l_dir)
             r_files = os.listdir(self.option('sickle_r_dir').prop['path'])
             l_files = os.listdir(self.option('sickle_l_dir').prop['path'])
             r_file = ' '.join(r_files)
             l_file = ' '.join(l_files)
-            os.system('cd {} && cat{} > {}/left.fq && cat{} > {}/right.fq'.format(l_file, r_file))
-            self.option('fq_r', self.work_dir +)
+            os.system('cd {} && cat {} > {}/left.fq && cd {} && cat {} > {}/right.fq'.format(sickle_l_dir, l_file, self.work_dir, sickle_r_dir, r_file, self.work_dir))
+            self.logger.info('cd {} && cat {} > {}/left.fq && cd {} && cat {} > {}/right.fq'.format(sickle_l_dir, l_file, self.work_dir, sickle_r_dir, r_file, self.work_dir))
+            self.option('fq_l', self.work_dir + '/left.fq')
+            self.option('fq_r', self.work_dir + '/right.fq')
+        if self.option('fq_type') == 'SE':
+            files = os.listdir(sickle_dir)
+            s_file = ' '.join(files)
+            os.system('cd {} && cat {} > {}/single.fq'.format(sickle_dir, s_file, self.work_dir))
+            self.option('fq_r', self.work_dir + '/single.fq')
+        ### modify end，将多个fq文件cat到一起并设置outfile
         self.option("sickle_dir").set_path(sickle_dir)
         if self.option("fq_type") == "PE":
             for f in os.listdir(self.seqprep.output_dir):

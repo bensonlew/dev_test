@@ -5,6 +5,7 @@ from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.packages.denovo_rna.assemble.trinity_stat import *
 import os
+import re
 
 
 class AssembleAgent(Agent):
@@ -17,10 +18,11 @@ class AssembleAgent(Agent):
     def __init__(self, parent):
         super(AssembleAgent, self).__init__(parent)
         options = [
+            {"name": "fq_type", "type": "string"}, # PE OR SE
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，所有样本fastq左端序列文件
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，所有样本fastq右端序列文件
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，所有样本fastq序列文件
-            {"name": "length", "type": "int", "default": 400},  # 统计步长
+            {"name": "length", "type": "string", "default": "100,200,400,500,600,800,1000,1200"},  # 统计步长
             {"name": "cpu", "type": "int", "default": 10},  # trinity软件所分配的cpu数量
             {"name": "max_memory", "type": "string", "default": '100G'},  # trinity软件所分配的最大内存，单位为GB
             {"name": "min_contig_length", "type": "int", "default": 200},  # trinity报告出的最短的contig长度。默认为200
@@ -46,10 +48,16 @@ class AssembleAgent(Agent):
         重写参数检测函数
         :return:
         """
+        if not self.option('fq_type'):
+            raise OptionError('必须设置测序类型：PE OR SE')
+        if self.option('fq_type') not in ['PE', 'SE']:
+            raise OptionError('测序类型不在所给范围内')
         if not self.option("fq_l").is_set and not self.option("fq_r").is_set and not self.option("fq_s").is_set:
             raise OptionError("必须设置PE测序输入文件或者SE测序输入文件")
-        if self.option("fq_l").is_set and self.option("fq_r").is_set and self.option("fq_s").is_set:
-            raise OptionError("不能同时设置PE测序输入文件和SE测序输入文件的参数")
+        if self.option("fq_type") == "PE" and not self.option("fq_r").is_set and not self.option("fq_l").is_set:
+            raise OptionError("PE测序时需设置左端序列和右端序列输入文件")
+        if self.option("fq_type") == "SE" and not self.option("fq_s").is_set:
+            raise OptionError("SE测序时需设置序列输入文件")
         if self.option("SS_lib_type") != 'none' and self.option("SS_lib_type") not in ['F', 'R', 'FR', 'RF']:
             raise OptionError("所设reads方向不在范围值内")
         return True
@@ -98,7 +106,7 @@ class AssembleTool(Tool):
         """
         运行trinity软件，进行拼接组装
         """
-        if self.option('fq_s').is_set:
+        if self.option('fq_type') == 'SE':
             if self.option('SS_lib_type') != 'None':
                 cmd = self.trinity_path + 'Trinity --seqType fq --max_memory %s --min_contig_length %s --CPU %s ' \
                                           '--single %s' % (self.option('max_memory'), self.option('min_contig_length'),
@@ -144,13 +152,16 @@ class AssembleTool(Tool):
             for names in files:
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
+        files = os.listdir(self.work_dir)
         try:
-            os.link(self.work_dir + '/length.distribut.txt', self.output_dir + '/length.distribut.txt')
+            for f in files:
+                if re.search(r'length.distribut.txt$', f):
+                    os.link(self.work_dir + f, self.output_dir + f)
             os.link(self.work_dir + '/transcript.iso.txt', self.output_dir + '/transcript.iso.txt')
             os.link(self.work_dir + '/trinity.fasta.stat.xls', self.output_dir + '/trinity.fasta.stat.xls')
             self.option('gene_fa').set_path(self.work_dir + '/gene.fasta')
             self.logger.info(self.option('gene_fa').prop['path'])
             self.option('trinity_fa').set_path(self.work_dir + '/trinity_out_dir/Trinity.fasta')
             self.logger.info("设置组装拼接分析结果目录成功")
-        except:
-            self.logger.info("设置组装拼接分析结果目录失败")
+        except Exception as e:
+            self.logger.info("设置组装拼接分析结果目录失败{}".format(e))
