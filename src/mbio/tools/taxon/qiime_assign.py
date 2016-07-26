@@ -58,7 +58,9 @@ class QiimeAssignAgent(Agent):
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
-            if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea',
+            if self.option("database") not in ['silva123/16s_bacteria', 'silva123/16s_archaea',
+                                               'silva123/16s', 'silva123/18s_eukaryota', 'silva123',
+                                               'silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
                                                'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
