@@ -55,7 +55,7 @@ class OrfTool(Tool):
         self.transdecoder_path = "bioinfo/gene-structure/TransDecoder-3.0.0/"
         self.hmmscan_path = "bioinfo/align/hmmer-3.1b2/binaries/"
         self.pfam_db = self.config.SOFTWARE_DIR + "/database/Pfam/Pfam-A.hmm"
-        self.fasta_name = self.option("fasta").prop["path"].split("/")[-1]        self.fasta_name = self.option("fasta").prop["path"].split("/")[-1]
+        self.fasta_name = self.option("fasta").prop["path"].split("/")[-1]
 
     def td_longorfs(self):
         self.logger.info(self.option("p_length"))
