@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import division
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 import glob
+import re
 
 
 class SeqPrepAgent(Agent):
@@ -139,6 +141,22 @@ class SeqPrepTool(Tool):
                         sample[line[1]] = line[0]
         return sample
 
+    def adapter(self):
+        files = glob.glob(r'{}/*.o'.format(self.work_dir))
+        with open("adapter.xls", "w") as w:
+            w.write("sample\tadapter%\n")
+            for f in files:
+                sample_name = f.split("/")[-1]
+                w.write("{}\t".format(sample_name))
+                with open(f, "r") as f:
+                    for line in f:
+                        if re.match(r"Pairs Processed", line):
+                            total = line.strip().split()[-1]
+                        if re.match(r"Pairs With Adapters", line):
+                            adapter = line.strip().split()[-1]
+                            adap_rate = int(adapter)/int(total)
+                            w.write("{}\n".format(adap_rate))
+
     def set_output(self):
         """
         将结果文件链接至output
@@ -165,6 +183,7 @@ class SeqPrepTool(Tool):
                     self.option("seqprep_l").set_path(os.path.join(self.output_dir, f))
                 elif "seqprep_r.gz" in f:
                     self.option("seqprep_r").set_path(os.path.join(self.output_dir, f))
+        self.adapter()
         self.logger.info("done")
 
     def run(self):
