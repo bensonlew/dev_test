@@ -29,8 +29,9 @@ class SLURM(Job):
             cpu = 32
         with open(file_path, "w") as f:
             f.write("#!/bin/bash\n")
-            f.write("#SBATCH -n {}\n".format(cpu))
+            f.write("#SBATCH -c {}\n".format(cpu))
             f.write("#SBATCH -N 1\n")
+            f.write("#SBATCH -J {}\n".format(self.agent.id))
             f.write("#SBATCH -t 10-00:00\n")
             if self.master_ip == "192.168.12.101":
                 f.write("#SBATCH -p SANGER\n")

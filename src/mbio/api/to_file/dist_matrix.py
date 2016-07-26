@@ -9,7 +9,7 @@ from bson.objectid import ObjectId
 
 
 client = Config().mongo_client
-db = client["sanger"]
+db = client[Config().MONGODB]
 
 
 def export_distance_matrix(data, option_name, dir_path, bind_obj=None):

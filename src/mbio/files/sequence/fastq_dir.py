@@ -76,12 +76,14 @@ class FastqDirFile(Directory):
                 my_fastq.set_path(fq_path)
                 my_fastq.get_info()
                 if my_fastq.check():
-                    self.fastqs.append(filename)
+                    if filename not in self.fastqs:
+                        self.fastqs.append(filename)
         else:
             filelist = os.listdir(self.prop['path'])
             for file_ in filelist:
                 if re.search(r'\.(fastq|fq)$', file_) or re.search(r'\.(fastq|fq)\.gz$', file_):
-                    self.fastqs.append(file_)
+                    if file_ not in self.fastqs:
+                        self.fastqs.append(file_)
         return len(self.fastqs)
 
     def make_work_dir(self, work_path):
