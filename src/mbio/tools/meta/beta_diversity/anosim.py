@@ -198,7 +198,7 @@ class AnosimTool(Tool):
         for line in ad:
             if re.match(r'qiime\.data\$map\[\[opts\$category\]\]', line):
                 line_sp = line.split()
-                if len(line_sp) == 8 or 7:
+                if len(line_sp) == 8 or len(line_sp) == 7:
                     ad_r = line_sp[5]
                     ad_p = line_sp[6]
                 elif len(line_sp) == 6:

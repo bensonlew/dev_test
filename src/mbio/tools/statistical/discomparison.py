@@ -10,7 +10,7 @@ class DiscomparisonAgent(Agent):
     discomparison:用于检验群落距离矩阵和环境变量距离矩阵之间的相关性
     version: 1.0
     author: wangbixuan
-    last_modified: 20160711
+    last_modified: 20160725
     """
     MATRIX=['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean', 
     'binary_hamming', 'binary_jaccard', 'binary_lennon', 'binary_ochiai', 
@@ -30,14 +30,7 @@ class DiscomparisonAgent(Agent):
     def __init__(self,parent):
         super(DiscomparisonAgent,self).__init__(parent)
         options = [
-            #{"name": "level", "type": "string", "default": "otu"},
-            #{"name":"otutable","type":"infile","format":"meta.otu.otu_table, meta.otu.tax_summary_dir"},
-            #{"name":"otumatrixtype","type":"string","default":"weighted_unifrac"},
-            #{"name":"factor","type":"infile","format":"meta.otu.group_table"},
-            #{"name":"factormatrixtype","type":"string","default":"bray_curtis"},
-            #{"name":"factorselected","type":"string","default":""},
-            #{"name":"newicktree","type":"infile","format":"meta.beta_diversity.newick_tree"},
-            {"name":"partialmatrix","type":"infile","format":"meta.beta_diversity.distance_matrix"}, #not sure
+            {"name":"partialmatrix","type":"infile","format":"meta.beta_diversity.distance_matrix"},
             {'name':'otudistance','type':'infile','format':'meta.beta_diversity.distance_matrix'},
             {'name':'facdistance','type':'infile','format':'meta.beta_diversity.distance_matrix'}
         ]
@@ -64,40 +57,10 @@ class DiscomparisonAgent(Agent):
             return self.option('otutable').prop['path']
 
     def check_options(self):
-        '''
-        if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class', 'order',
-                                        'family', 'genus', 'species']:
-            raise OptionError("分类水平不正确")
-        if not self.option("otutable").is_set:
-            raise OptionError('必须提供otu表')
-        self.option('otutable').get_info()
-        if not self.option("factor").is_set:
-            raise OptionError('必须提供环境因子表')
-        else:
-            self.option('factor').get_info()
-            if self.option('factorselected'):
-                factors=self.option('factorselected').split(',')
-                for f in factors:
-                    if f not in self.option('factor').prop['group_scheme']:
-                        raise OptionError('该因子不存在于环境因子表：%s' %f)
-            else:
-                pass
-        
-        if self.option("otumatrixtype") not in DiscomparisonAgent.MATRIX:
-            raise OptionError('otu距离矩阵计算方法不正确')
-        if self.option("factormatrixtype") not in DiscomparisonAgent.MATRIXFACTOR:
-            raise OptionError('环境因子距离矩阵计算方法不正确')
-        '''
         if not self.option('otudistance').is_set:
             raise OptionError('必须提供otu距离表')
         if not self.option('facdistance').is_set:
             raise OptionError('必须提供环境因子距离表')
-        '''
-        if not self.option("newicktree").is_set: #not sure
-            raise OptionError("必须提供newicktree")
-        self.option("newicktree").get_info()
-        #partial?
-        '''
 
     def set_resource(self):
         self._cpu=5
@@ -114,34 +77,9 @@ class DiscomparisonAgent(Agent):
 class DiscomparisonTool(Tool):
     def __init__(self,config):
         super(DiscomparisonTool,self).__init__(config)
-        self.version='1.9.1' #qiime version?
-        self.cmd_path='Python/bin/compare_distance_matrices.py'
+        self.version='1.9.1'
+        self.cmd_path='program/Python/bin/compare_distance_matrices.py'
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
-        #self.real_otu=self.get_otu_table()
-        #self.real_fac=self.get_factor_table()
-        #self.real_tree=self.get_newick()
-
-    '''
-    def get_factor_table(self):
-        fpath=self.option('factor').prop['path']
-        return fpath
-
-    def get_newick(self):
-        tpath=self.option('newicktree').prop['path']
-        return tpath
-
-
-    def get_otu_table(self):
-        """
-        根据level返回进行计算的otu表路径
-        :return:
-        """
-        if self.option('otutable').format == "meta.otu.tax_summary_dir":
-            otu_path = self.option('otutable').get_table(self.option('level'))
-        else:
-            otu_path = self.option('otutable').prop['path']
-        return otu_path
-    '''
 
     def run(self):
         """
@@ -150,7 +88,7 @@ class DiscomparisonTool(Tool):
         super(DiscomparisonTool,self).run()
         self.run_discomparison()
         #self.set_output()
-        self.end()
+        #self.end()
 
     
     def run_discomparison(self):
@@ -158,19 +96,6 @@ class DiscomparisonTool(Tool):
         run Mantel_test.pl
         """
         cmd=self.cmd_path
-        #cmd+=" -otu '%s' -motu '%s' -factor '%s' -mfactor '%s' -t '%s'"%(self.real_otu,self.option('otumatrixtype'),self.real_fac,self.option('factormatrixtype'),self.real_tree)
-        '''
-        cmd+=" -otu %s -motu %s -factor %s -mfactor %s -t %s"%(self.real_otu,self.option('otumatrixtype'),self.real_fac,self.option('factormatrixtype'),self.real_tree)
-        if self.option('factorselected'):
-            cmd+=' -select_factor \"%s\"'%self.option(factorselected)
-        '''
-        '''
-        cmd+=' -i %s,%s -o %s -n 999'%(self.option('otudistance').prop['path'],self.option('facdistance').prop['path'],self.work_dir)
-        if self.option('partialmatrix').is_set:
-            cmd+=" -c %s --method partial_mantel"%self.option('patialmatrix').prop['path']
-        else:
-            cmd+=" --method mantel"
-        '''
         if self.option('partialmatrix').is_set:
             cmd+=' -i %s,%s -c %s -o %s --method partial_mantel -n 999'%(self.option('otudistance').prop['path'],self.option('partialmatrix').prop['path'],self.option('facdistance').prop['path'],self.work_dir)
         else:
@@ -191,13 +116,6 @@ class DiscomparisonTool(Tool):
             if os.path.exists(linkfile):
                 os.remove(linkfile)
             os.link(filename,linkfile)
+            self.end()
         else:
             self.set_error('Error in running compare_distance_matrices.py')
-                
-    '''
-    def set_output(self):
-        if self.option('partialmatrix').is_set:
-            os.link(self.work_dir + "/partial_mantel_results.txt",self.output_dir + "/partial_mantel_results.txt")
-        else:
-            os.link(self.work_dir + "/mantel_results.txt",self.output_dir + "/mantel_results.txt")
-    '''

@@ -15,7 +15,7 @@ class RarefactionAgent(Agent):
     rarefaction:稀释曲线
     version 1.0
     author: qindanhua
-    last_modify: 2015.12.10 by yuguo
+    last_modify: 2016.07.20
     """
     ESTIMATORS = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon',
                   'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
@@ -98,6 +98,7 @@ class RarefactionTool(Tool):
         self.cmd_path = '/bioinfo/meta/alpha_diversity/'
         self.shared_path = self.config.SOFTWARE_DIR+'/bioinfo/meta/scripts/'
         self.indices = '-'.join(self.option('indices').split(','))
+        self.freq = 0
 
     def shared(self):
         """
@@ -106,6 +107,7 @@ class RarefactionTool(Tool):
         otu_table = self.option("otu_table").prop['path']
         if self.option("otu_table").format == "meta.otu.tax_summary_dir":
             otu_table = self.option("otu_table").get_table(self.option("level"))
+        self.freq = self.get_freq(otu_table)
         self.logger.info("转化otu_table({})为shared文件({})".format(otu_table, "otu.shared"))
         try:
             subprocess.check_output(self.config.SOFTWARE_DIR+"/bioinfo/meta/scripts/otu2shared.pl "+" -i " +
@@ -130,9 +132,10 @@ class RarefactionTool(Tool):
         执行命令运行mothur程序，生成rarefaction结果文件
         """
         cmd = '/bioinfo/meta/mothur-1.30/mothur.1.30 "#rarefaction.single(shared=%s.shared,calc=%s,groupmode=f,' \
-              'freq=%s,processors=10)"' % (self.option("level"), self.indices, self.option('freq'))
+              'freq=%s,processors=10)"' % (self.option("level"), self.indices, self.freq)
         # print cmd
         self.logger.info("开始运行mothur")
+        self.logger.info(cmd)
         mothur_command = self.add_command("mothur", cmd)
         mothur_command.run()
         self.wait(mothur_command)
@@ -142,6 +145,27 @@ class RarefactionTool(Tool):
         else:
             self.set_error("运行mothur出错！")
             raise Exception("运行mothur出错！")
+
+    def get_freq(self, otu_table):
+        # otu_table = self.option("otu_table").prop["path"]
+        with open(otu_table, "r") as f:
+            seq_num_list = []
+            sample_num = len(f.readline().strip().split("\t")) - 1
+            n = 0
+            while n < sample_num:
+                seq_num_list.append(0)
+                n += 1
+            for line in f:
+                line = line.strip().split("\t")
+                for k, v in enumerate(seq_num_list):
+                    seq_num_list[k] += int(line[k+1])
+            # print seq_num_list
+            min_seq = min(seq_num_list)
+            if min_seq < 10000:
+                freq = 100
+            else:
+                freq = int(round(min_seq/10000.0) * 100)
+        return freq
 
     def set_output(self):
         """

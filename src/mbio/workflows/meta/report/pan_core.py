@@ -8,6 +8,7 @@ import os
 import json
 import datetime
 from biocluster.workflow import Workflow
+import re
 
 
 class PanCoreWorkflow(Workflow):
@@ -18,7 +19,8 @@ class PanCoreWorkflow(Workflow):
             {"name": "in_otu_table", "type": "infile", 'format': "meta.otu.otu_table"},
             {"name": "group_table", "type": "infile", 'format': "meta.otu.group_table"},
             {"name": "update_info", "type": "string"},
-            {"name": "category_name", "type": "string"},
+            {"name": "group_detail", "type": "string"},
+            {"name": "samples", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "pan_id", "type": "string"},
             {"name": "core_id", "type": "string"}
@@ -26,15 +28,16 @@ class PanCoreWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.pan_core = self.add_tool("meta.otu.pan_core_otu")
+        self.samples = re.split(',', self.option("samples"))
 
-    def run_pan_core(self):
+    def run_pan_core(self, no_zero_otu):
         if self.option("group_table").prop["is_empty"]:
             options = {
-                "in_otu_table": self.option("in_otu_table")
+                "in_otu_table": no_zero_otu
             }
         else:
             options = {
-                "in_otu_table": self.option("in_otu_table"),
+                "in_otu_table": no_zero_otu,
                 "group_table": self.option("group_table")
             }
         self.pan_core.set_options(options)
@@ -63,7 +66,10 @@ class PanCoreWorkflow(Workflow):
         self.end()
 
     def run(self):
-        self.run_pan_core()
+        no_zero_otu = os.path.join(self.work_dir, "otu.nozero")
+        my_sps = self.samples
+        self.option("in_otu_table").sub_otu_sample(my_sps, no_zero_otu)
+        self.run_pan_core(no_zero_otu)
         super(PanCoreWorkflow, self).run()
 
     def end(self):

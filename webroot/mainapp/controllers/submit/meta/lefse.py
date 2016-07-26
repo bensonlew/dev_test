@@ -17,7 +17,7 @@ class Lefse(object):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         return_result = self.check_options(data)
-        print G().get_group_name(data.group_id)
+        print G().get_group_name(data.group_id, lefse=True)
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
@@ -64,12 +64,12 @@ class Lefse(object):
                     "update_info": update_info,
                     "group_file": data.group_id,
                     "group_detail": data.group_detail,
-                    "group_name": G().get_group_name(data.group_id),
+                    "group_name": G().get_group_name(data.group_id, lefse=True),
                     "strict": data.strict,
                     "lda_filter": data.lda_filter,
                     "lefse_id": str(lefse_id)
+                    }
                 }
-            }
             insert_data = {"client": client,
                            "workflow_id": workflow_id,
                            "json": json.dumps(json_data),

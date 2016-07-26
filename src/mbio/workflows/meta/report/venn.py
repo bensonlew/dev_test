@@ -7,6 +7,7 @@ import os
 import datetime
 import json
 import shutil
+import re
 from biocluster.workflow import Workflow
 
 
@@ -18,7 +19,8 @@ class VennWorkflow(Workflow):
             {"name": "in_otu_table", "type": "infile", 'format': "meta.otu.otu_table"},
             {"name": "group_table", "type": "infile", 'format': "meta.otu.group_table"},
             {"name": "update_info", "type": "string"},
-            {"name": "category_name", "type": "string"},
+            {"name": "group_detail", "type": "string"},
+            {"name": "samples", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "otu_id", "type": "string"},
             {"name": "venn_id", "type": "string"}
@@ -26,10 +28,11 @@ class VennWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.venn = self.add_tool("graph.venn_table")
+        self.samples = re.split(',', self.option("samples"))
 
-    def run_venn(self):
+    def run_venn(self, no_zero_otu):
         options = {
-            "otu_table": self.option("in_otu_table"),
+            "otu_table": no_zero_otu,
             "group_table": self.option("group_table")
         }
         self.venn.set_options(options)
@@ -51,7 +54,10 @@ class VennWorkflow(Workflow):
         self.end()
 
     def run(self):
-        self.run_venn()
+        no_zero_otu = os.path.join(self.work_dir, "otu.nozero")
+        my_sps = self.samples
+        self.option("in_otu_table").sub_otu_sample(my_sps, no_zero_otu)
+        self.run_venn(no_zero_otu)
         super(VennWorkflow, self).run()
 
     def end(self):

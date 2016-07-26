@@ -141,7 +141,7 @@ class File(FileBase):
         """
         super(File, self).get_info()
         self.set_property("size", self.get_size())
-        self.set_property("md5", self.get_md5())
+        # self.set_property("md5", self.get_md5())
 
     def check(self):
         """
