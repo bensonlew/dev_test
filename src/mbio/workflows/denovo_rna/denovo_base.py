@@ -19,6 +19,8 @@ class DenovoBaseWorkflow(Workflow):
             {"name": "fq_type", "type": "string"}, # PE OR SE
             {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  #对照组文件，格式同分组文件
+            {"name": "min_contig_length", "type": "int", "default": 200},  # trinity报告出的最短的contig长度。默认为200
+            {"name": "SS_lib_type", "type": "string", "default": 'none'},  # reads的方向，成对的reads: RF or FR; 不成对的reads: F or R，默认情况下，不设置此参数
             {"name": "sickle_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # 质量剪切输出结果文件夹(包括左右段)
             {"name": "sickle_r_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # 质量剪切右端输出结果文件夹
             {"name": "sickle_l_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # 质量剪切左端输出结果文件夹
@@ -76,7 +78,14 @@ class DenovoBaseWorkflow(Workflow):
         self.qc.run()
 
     def run_assemble(self):
-        pass
+        opts = {
+            'fq_type': self.option('fq_type'),
+            'min_contig_length': self.option('min_contig_length'),
+            'SS_lib_type': self.option('SS_lib_type'),
+        }
+        if self.option('fq_type') == 'SE':
+            opts.update({'fq_type': self.option('fq_type')})
+        self.assemble.set_options()
 
     def move2outputdir(self, olddir, newname, mode='link'):
         """

@@ -22,7 +22,7 @@ class AssembleAgent(Agent):
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，所有样本fastq左端序列文件
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，所有样本fastq右端序列文件
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，所有样本fastq序列文件
-            {"name": "length", "type": "string", "default": "100,200,400,500,600,800,1000,1200"},  # 统计步长
+            {"name": "length", "type": "string", "default": "100,200,400,500,600,800,1000,1200,1500,2000"},  # 统计步长
             {"name": "cpu", "type": "int", "default": 10},  # trinity软件所分配的cpu数量
             {"name": "max_memory", "type": "string", "default": '100G'},  # trinity软件所分配的最大内存，单位为GB
             {"name": "min_contig_length", "type": "int", "default": 200},  # trinity报告出的最短的contig长度。默认为200
@@ -156,7 +156,7 @@ class AssembleTool(Tool):
         try:
             for f in files:
                 if re.search(r'length.distribut.txt$', f):
-                    os.link(self.work_dir + f, self.output_dir + f)
+                    os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
             os.link(self.work_dir + '/transcript.iso.txt', self.output_dir + '/transcript.iso.txt')
             os.link(self.work_dir + '/trinity.fasta.stat.xls', self.output_dir + '/trinity.fasta.stat.xls')
             self.option('gene_fa').set_path(self.work_dir + '/gene.fasta')
