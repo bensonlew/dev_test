@@ -49,7 +49,7 @@ class QualityAssessmentTool(Tool):
 
     def __init__(self, config):
         super(QualityAssessmentTool, self).__init__(config)
-        self.python_path = "Python/bin/"
+        self.python_path = "program/Python/bin/"
 
     def rpkm_saturation(self, bam, out_pre):
         bam_name = bam.split("/")[-1]
