@@ -97,7 +97,7 @@ class SickleTool(Tool):
             fq_r_path = self.option("fastq_r").prop['path']
             fq_l_path = self.option("fastq_l").prop['path']
             cmd = self.sickle_path + 'sickle pe -f {} -r {} -o {} -p {} -s {} -t {} -q {} -l {} {}'.\
-                format(fq_l_path, fq_r_path, 'sickle_l.fastq', 'sickle_r.fastq', 'sickle_un.fastq', self.option('qual_type'),
+                format(fq_l_path, fq_r_path, 'sickle_l.fastq', 'sickle_r.fastq', 'sickle_un.fq', self.option('qual_type'),
                        self.option('quality'), self.option('length'), self.truncate_n)
         else:
             fq_s_path = self.option("fastq_s").prop['path']
@@ -127,7 +127,7 @@ class SickleTool(Tool):
                 fq_l_path = os.path.join(fq_dir, samples[sample]["l"])
                 cmd = self.sickle_path + 'sickle pe -f {} -r {} -o {} -p {} -s {} -t {} -q {} -l {} {}'.\
                     format(fq_l_path, fq_r_path, '{}_sickle_l.fastq'.format(sample), '{}_sickle_r.fastq'.format(sample),
-                           '{}_sickle_un.fastq'.format(sample), self.option('qual_type'), self.option('quality'),
+                           '{}_sickle_un.fq'.format(sample), self.option('qual_type'), self.option('quality'),
                            self.option('length'), self.truncate_n)
                 self.logger.info(cmd)
                 self.logger.info("开始运行sickle_{}".format(sample.lower()))
@@ -196,7 +196,7 @@ class SickleTool(Tool):
                         self.option("sickle_l").set_path(os.path.join(self.output_dir, f))
                     elif "sickle_r.fastq" in f:
                         self.option("sickle_r").set_path(os.path.join(self.output_dir, f))
-                    elif "sickle_un.fastq" in f:
+                    elif "sickle_un.fq" in f:
                         self.option("sickle_un").set_path(os.path.join(self.output_dir, f))
             elif self.option("fq_type") == "SE":
                 for f in os.listdir(self.output_dir):
