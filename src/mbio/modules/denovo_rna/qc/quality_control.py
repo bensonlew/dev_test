@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 import shutil
+import glob
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
@@ -33,10 +34,9 @@ class QualityControlModule(Module):
             # {"name": "length_q", "type": "int", "default": 30},  # 质量剪切碱基长度
         ]
         self.add_option(options)
-        self.clipper = []
-        self.seqprep = []
-        self.sickle = []
         self.samples = {}
+        self.seqprep = []
+        self.clipper = []
         self.end_times = 0
 
     def check_options(self):
@@ -56,18 +56,17 @@ class QualityControlModule(Module):
         self.step.update()
 
     def get_list(self):
-        if self.option("fastq_dir").is_set:
-            self.logger.info("hei")
         list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
-        self.logger.info(list_path)
+        # self.logger.info(list_path)
         file_sample = FileSampleFile()
         file_sample.set_path(list_path)
         samples = file_sample.get_list()
-        self.logger.info(samples)
+        # self.logger.info(samples)
         return samples
 
     def clipper_run(self):
         n = 1
+        self.samples = self.get_list()
         for f in self.samples:
             fq_s = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f])
             clipper = self.add_tool('denovo_rna.qc.fastx_clipper')
@@ -78,7 +77,8 @@ class QualityControlModule(Module):
             step = getattr(self.step, 'clipper_{}'.format(n))
             step.start()
             clipper.on("end", self.finish_update, "clipper_{}".format(n))
-            clipper.on("end", self.sickle_se_run)
+            clipper.on("end", self.rename, f)
+            clipper.on("end", self.sickle_se_run, f)
             # clipper.run()
             n += 1
             self.clipper.append(clipper)
@@ -94,8 +94,6 @@ class QualityControlModule(Module):
         for f in self.samples:
             fq_l = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f]["l"])
             fq_r = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f]["r"])
-            self.logger.info(fq_l)
-            self.logger.info(fq_r)
             seqprep = self.add_tool('denovo_rna.qc.seq_prep')
             self.step.add_steps('seqprep_{}'.format(n))
             seqprep.set_options({
@@ -105,28 +103,31 @@ class QualityControlModule(Module):
             step = getattr(self.step, 'seqprep_{}'.format(n))
             step.start()
             seqprep.on("end", self.finish_update, "seqprep_{}".format(n))
-            seqprep.on("end", self.sickle_pe_run, n)
-            seqprep.run()
+            seqprep.on("end", self.sickle_pe_run, f)
+            # seqprep.run()
             n += 1
-        #     self.seqprep.append(seqprep)
-        # self.logger.info(self.seqprep)
-        # if len(self.seqprep) == 1:
-        #     self.seqprep[0].run()
-        # else:
-        #     for tool in self.seqprep:
-        #         tool.run()
+            self.seqprep.append(seqprep)
+        self.logger.info(self.seqprep)
+        if len(self.seqprep) == 1:
+            self.seqprep[0].run()
+        else:
+            for tool in self.seqprep:
+                tool.run()
 
     def sickle_se_run(self, event):
         obj = event["bind_object"]
-        clip_s = os.path.join(obj.output_dir, "clip_s.fastq")
+        clip_s = os.path.join(obj.output_dir, event["data"] + "_clip_s.fastq")
         self.logger.info(clip_s)
         sickle = self.add_tool('denovo_rna.qc.sickle')
+        self.step.add_steps('sickle_{}'.format(self.end_times))
         sickle.set_options({
             "fq_type": self.option("fq_type"),
             "fastq_s": clip_s
         })
-        self.step.sickle.start()
-        sickle.on("end", self.finish_update)
+        step = getattr(self.step, 'sickle_{}'.format(self.end_times))
+        step.start()
+        sickle.on("end", self.finish_update, 'sickle_{}'.format(self.end_times))
+        sickle.on("end", self.set_output, event["data"])
         sickle.run()
         # self.sickle.append(sickle)
 
@@ -140,45 +141,82 @@ class QualityControlModule(Module):
             if "seqprep_r" in f:
                 seqprep_r = os.path.join(obj.output_dir, f)
         sickle = self.add_tool('denovo_rna.qc.sickle')
-        self.step.add_steps('sickle_{}'.format(event["data"]))
+        self.step.add_steps('sickle_{}'.format(self.end_times))
         sickle.set_options({
             "fq_type": self.option("fq_type"),
             "fastq_l": seqprep_l,
             "fastq_r": seqprep_r
 
         })
-        step = getattr(self.step, 'sickle_{}'.format(event["data"]))
+        step = getattr(self.step, 'sickle_{}'.format(self.end_times))
         step.start()
-        sickle.on("end", self.finish_update)
-        sickle.on("end", self.set_output)
+        sickle.on("end", self.finish_update, 'sickle_{}'.format(self.end_times))
+        sickle.on("end", self.set_output, event["data"])
         sickle.run()
         # self.sickle.append(sickle)
 
-    def set_output(self):
+    def rename(self, event):
+        obj = event["bind_object"]
+        for f in os.listdir(obj.output_dir):
+            old_name = os.path.join(obj.output_dir, f)
+            new_name = os.path.join(obj.output_dir, event["data"] + "_" + f)
+            os.rename(old_name, new_name)
+
+    def set_output(self, event):
         self.logger.info("set output")
+        obj = event["bind_object"]
         if self.end_times < len(self.samples):
             self.end_times += 1
+        for f in os.listdir(obj.output_dir):
+            old_name = os.path.join(obj.output_dir, f)
+            new_name = os.path.join(obj.output_dir, event["data"] + "_" + f)
+            os.rename(old_name, new_name)
         if self.end_times == len(self.samples):
             sickle_dir = os.path.join(self.output_dir, "sickle_dir")
-            sickle_r_dir = os.path.join(self.output_dir, "sickle_r_forRSEM")
-            sickle_l_dir = os.path.join(self.output_dir, "sickle_l_forRSEM")
+            sickle_r_dir = os.path.join(self.work_dir, "sickle_r_forRSEM")
+            sickle_l_dir = os.path.join(self.work_dir, "sickle_l_forRSEM")
             seqprep_dir = os.path.join(self.output_dir, "seqprep_dir")
             clip_dir = os.path.join(self.output_dir, "clip_dir")
             dir_list = [sickle_dir, seqprep_dir, clip_dir, sickle_r_dir, sickle_l_dir]
-            self.logger.info(dir_list)
+            # self.logger.info(dir_list)
             for d in dir_list:
                 if os.path.exists(d):
                     shutil.rmtree(d)
                 os.mkdir(d)
+            sickle_out = glob.glob(r"{}/Sickle*/output/*".format(self.work_dir))
+            seqprep_out = glob.glob(r"{}/SeqPrep*/output/*".format(self.work_dir))
+            clip_out = glob.glob(r"{}/FastxClipper*/output/*".format(self.work_dir))
+            for f in sickle_out:
+                f_name = f.split("/")[-1]
+                target_path = os.path.join(sickle_dir, f_name)
+                os.link(f, target_path)
+            self.option("sickle_dir").set_path(sickle_dir)
+            if self.option("fq_type") == "PE":
+                shutil.rmtree(clip_dir)
+                for f in seqprep_out:
+                    f_name = f.split("/")[-1]
+                    target_path = os.path.join(seqprep_dir, f_name)
+                    os.link(f, target_path)
+                self.option("seqprep_dir").set_path(seqprep_dir)
+            else:
+                shutil.rmtree(seqprep_dir)
+                shutil.rmtree(sickle_r_dir)
+                shutil.rmtree(sickle_l_dir)
+                for f in clip_out:
+                    f_name = f.split("/")[-1]
+                    target_path = os.path.join(clip_dir, f_name)
+                    os.link(f, target_path)
+                self.option("clip_dir").set_path(clip_dir)
             self.logger.info("done")
             self.end()
 
     def run(self):
-        super(QualityControlModule, self).run()
+        # super(QualityControlModule, self).run()
         if self.option("fq_type") in ["PE"]:
             self.seqprep_run()
         else:
             self.clipper_run()
+        super(QualityControlModule, self).run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
