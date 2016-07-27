@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-# import shutil
+import shutil
 import glob
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
@@ -76,13 +76,30 @@ class MapAssessmentModule(Module):
 
     def set_output(self):
         self.logger.info("set output")
+        dirs = ["bam_stat", "coverage", "dup", "satur"]
         for f in os.listdir(self.output_dir):
             f_path = os.path.join(self.output_dir, f)
             os.remove(f_path)
+        for d in dirs:
+            path = os.path.join(self.output_dir, d)
+            if os.path.exists(path):
+                shutil.rmtree(path)
+            os.makedirs(path)
         for f in os.listdir(self.bam_stat.output_dir):
-            stat_output = os.path.join(self.bam_stat.output_dir, f)
-            module_out = os.path.join(self.output_dir, f)
-            os.link(stat_output, module_out)
+            from_path = os.path.join(self.bam_stat.output_dir, f)
+            target_path = os.path.join(self.output_dir, "bam_stat", f)
+            os.link(from_path, target_path)
+        for f in os.listdir(self.qual_assess.output_dir):
+            from_path = os.path.join(self.qual_assess.output_dir, f)
+            if "DupRate" in f:
+                target_path = os.path.join(self.output_dir, "dup", f)
+            else:
+                target_path = os.path.join(self.output_dir, "satur", f)
+            os.link(from_path, target_path)
+        # for f in os.listdir(self.coverage.output_dir):
+        #     from_path = os.path.join(self.coverage.output_dir, f)
+        #     target_path = os.path.join(self.output_dir, "bam_stat", f)
+        #     os.link(from_path, target_path)
         self.end()
 
     def run(self):
@@ -90,7 +107,8 @@ class MapAssessmentModule(Module):
         self.bam_stat_run()
         # self.coverage_run()
         self.qual_assess_run()
-        self.on_rely([self.bam_stat, self.coverage, self.qual_assess], self.set_output)
+        self.on_rely([self.bam_stat, self.qual_assess], self.set_output)
+        # self.on_rely([self.bam_stat, self.coverage, self.qual_assess], self.set_output)
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
