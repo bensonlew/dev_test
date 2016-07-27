@@ -59,7 +59,7 @@ class CorrelationTool(Tool):
         self.fpkm_path = self.option("fpkm").prop["path"]
         self.Rscript_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin/"
         self.perl_path = self.config.SOFTWARE_DIR + "/program/perl/perls/perl-5.24.0/bin/"
-        self.hcluster_script_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/statistical/scripts/"
+        self.hcluster_script_path = self.config.SOFTWARE_DIR + "/bioinfo/statistical/scripts/"
 
     def correlation(self):
         with open(self.fpkm_path, "r") as f, open("correlation_matrix.xls", "w") as w:

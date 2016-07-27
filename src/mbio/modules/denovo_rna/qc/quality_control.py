@@ -163,7 +163,7 @@ class QualityControlModule(Module):
             os.rename(old_name, new_name)
 
     def set_output(self, event):
-        self.logger.info("set output")
+        self.logger.info("set output{}".format(event["data"]))
         obj = event["bind_object"]
         if self.end_times < len(self.samples):
             self.end_times += 1
@@ -190,6 +190,10 @@ class QualityControlModule(Module):
                 f_name = f.split("/")[-1]
                 target_path = os.path.join(sickle_dir, f_name)
                 os.link(f, target_path)
+                if "sickle_r.fastq" in f:
+                    os.link(f, os.path.join(sickle_r_dir, f_name))
+                elif "sickle_l.fastq" in f:
+                    os.link(f, os.path.join(sickle_l_dir, f_name))
             self.option("sickle_dir").set_path(sickle_dir)
             if self.option("fq_type") == "PE":
                 shutil.rmtree(clip_dir)
@@ -198,7 +202,17 @@ class QualityControlModule(Module):
                     target_path = os.path.join(seqprep_dir, f_name)
                     os.link(f, target_path)
                 self.option("seqprep_dir").set_path(seqprep_dir)
-            else:
+                self.option('sickle_r_dir', sickle_r_dir)
+                self.option('sickle_l_dir', sickle_l_dir)
+                r_files = os.listdir(self.option('sickle_r_dir').prop['path'])
+                l_files = os.listdir(self.option('sickle_l_dir').prop['path'])
+                r_file = ' '.join(r_files)
+                l_file = ' '.join(l_files)
+                os.system('cd {} && cat {} > {}/left.fq && cd {} && cat {} > {}/right.fq'.format(sickle_l_dir, l_file, self.work_dir, sickle_r_dir, r_file, self.work_dir))
+                self.logger.info('cd {} && cat {} > {}/left.fq && cd {} && cat {} > {}/right.fq'.format(sickle_l_dir, l_file, self.work_dir, sickle_r_dir, r_file, self.work_dir))
+                self.option('fq_l', self.work_dir + '/left.fq')
+                self.option('fq_r', self.work_dir + '/right.fq')
+            elif self.option('fq_type') == 'SE':
                 shutil.rmtree(seqprep_dir)
                 shutil.rmtree(sickle_r_dir)
                 shutil.rmtree(sickle_l_dir)
@@ -207,7 +221,11 @@ class QualityControlModule(Module):
                     target_path = os.path.join(clip_dir, f_name)
                     os.link(f, target_path)
                 self.option("clip_dir").set_path(clip_dir)
-            self.logger.info("done")
+                files = os.listdir(sickle_dir)
+                s_file = ' '.join(files)
+                os.system('cd {} && cat {} > {}/single.fq'.format(sickle_dir, s_file, self.work_dir))
+                self.option('fq_r', self.work_dir + '/single.fq')
+                self.logger.info("done")
             self.end()
 
     def run(self):
