@@ -165,6 +165,8 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置kruskal_wallis_H_test输入的分组文件')
                 if not self.option("kru_H_gname"):
                     raise OptionError("kru_H_gname参数为必须参数，请设置")
+                if len(self.option("kru_H_gname").split(',')) != 1:
+                    raise OptionError("组间差异的分组方案只能为1个")
                 if self.option("kru_H_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
                                                            "fdr", "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
@@ -189,6 +191,8 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置kruskal_wallis_H_test输入的分组文件')
                 if not self.option("anova_gname"):
                     raise OptionError("anova_gname参数为必须参数，请设置")
+                if len(self.option("anova_gname").split(',')) != 1:
+                    raise OptionError("组间差异的分组方案只能为1个")
                 if self.option("anova_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
                                                            "fdr", "none"]:
                     raise OptionError('该多重检验校正的方法不被支持')
@@ -218,6 +222,8 @@ class MetastatAgent(Agent):
                     raise OptionError('所输入的类型不在范围值内')
                 if not self.option("mann_gname"):
                     raise OptionError("mann_gname参数为必须参数，请设置")
+                if len(self.option("mann_gname").split(',')) != 1:
+                    raise OptionError("组间差异的分组方案只能为1个")
                 gnum = self.option('mann_group').group_num(self.option('mann_gname'))
                 if gnum != 2:
                     raise OptionError("mann检验的分组方案的分组类别必须等于2")
@@ -242,6 +248,8 @@ class MetastatAgent(Agent):
                     raise OptionError('所输入的类型不在范围值内')
                 if not self.option("student_gname"):
                     raise OptionError("student_gname参数为必须参数，请设置")
+                if len(self.option("student_gname").split(',')) != 1:
+                    raise OptionError("组间差异的分组方案只能为1个")
                 gnum = self.option('student_group').group_num(self.option('student_gname'))
                 if gnum != 2:
                     raise OptionError("student检验的分组方案的分组类别必须等于2")
@@ -266,6 +274,8 @@ class MetastatAgent(Agent):
                     raise OptionError('所输入的类型不在范围值内')
                 if not self.option("welch_gname"):
                     raise OptionError("welch_gname参数为必须参数，请设置")
+                if len(self.option("welch_gname").split(',')) != 1:
+                    raise OptionError("组间差异的分组方案只能为1个")
                 gnum = self.option('welch_group').group_num(self.option('welch_gname'))
                 if gnum != 2:
                     raise OptionError("mann检验的分组方案的分组类别必须等于2")

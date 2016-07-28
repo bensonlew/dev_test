@@ -3,6 +3,7 @@
 import re
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
+import os
 
 
 class FileSampleFile(File):
@@ -14,6 +15,8 @@ class FileSampleFile(File):
         super(FileSampleFile, self).__init__()
         self.col = 0
         self.repeat_name = False
+        self.se_repeat = False      #modify by qiuping 2016.07.22,add 2 line
+        self.pe_repeat = False
 
     def get_info(self):
         """
@@ -35,23 +38,75 @@ class FileSampleFile(File):
             name = dict()
             for line in f:
                 line = line.rstrip('\n')
-                line = re.split('\t', line)
+                line = line.split()
                 self.col = len(line)
+                if self.col != 2 and self.col !=3:   #modify by qiuping 2016.07.22
+                    raise FileError('这个文件的列数应该为2(SE)或者3(PE)')
                 if line[1] not in sample.keys():
                     sample[line[1]] = 1
+                else:                   #modify by qiuping 2016.07.22,add 2 lines
+                    sample[line[1]] += 1
                 if line[0] not in name.keys():
                     name[line[0]] = 1
                 else:
                     self.repeat_name = True
+                if self.col == 3:      #modify by qiuping 2016.07.22,add 3 lines
+                    if line[2] not in ['l','r']:
+                        raise FileError('为PE测序时，标识左右两端的字段不符合要求：l,r')
         return sample, name
+
+    def get_list(self):
+        """
+        return::
+           SE时，返回一个字典，样本重复：{'样本名'：'fq文件名，fq文件名'}，否则{'样本名'：'fq文件名'}
+           PE时，返回一个字典，样本重复：{'样本名'：{'r'：'fq文件名，fq文件名','l'：'fq文件名，fq文件名'}}，否则{'样本名'：{'r'：'fq文件名'，'l'：'fq文件名'}}
+        """
+        file_sample = {}
+        with open(self.prop['path'], "rb") as l:
+            for line in l:
+                line = line.strip().split()
+                if len(line) == 3:
+                    if line[1] not in file_sample:
+                        if line[2] == 'r':
+                            file_sample[line[1]] = {"r":line[0]}
+                        else:
+                            file_sample[line[1]] = {"l":line[0]}
+                    else:
+                        if line[2] == 'r':
+                            if 'r' in file_sample[line[1]]:
+                                file_sample[line[1]]['r'] += ',{}'.format(line[0])
+                            else:
+                                file_sample[line[1]]['r'] = line[0]
+                        else:
+                            if 'l' in file_sample[line[1]]:
+                                file_sample[line[1]]['l'] += ',{}'.format(line[0])
+                            else:
+                                file_sample[line[1]]['l'] = line[0]
+                if len(line) == 2:
+                    if line[1] not in file_sample:
+                        file_sample[line[1]] = line[0]
+                    else:
+                        file_sample[line[1]] += line[0]
+        return file_sample
 
     def check(self):
         if super(FileSampleFile, self).check():
             self.get_info()
+            if not os.path.exists(self.prop['path']):
+                raise FileError('文件路径不存在，请检查')
             if self.prop["sample_number"] == 0:
                 raise FileError('应该至少包含一个样本')
-            if self.col != 2:
-                raise FileError('这个文件的列数应该为2')
             if self.repeat_name:
                 raise FileError('文件名不能重复！')
+            #modify by qiuping 2016.07.22,add 10 lines
+            (sample, name) = self.get_file_info()
+            for num in sample.values():
+                if self.col == 3:
+                    if num < 2:
+                        raise FileError("PE测序时一个样本至少要有两个fastq文件")
+                    if num > 2:
+                        self.pe_repeat = True
+                if self.col == 2:
+                    if num >= 2:
+                        self.se_repeat = True
             return True
