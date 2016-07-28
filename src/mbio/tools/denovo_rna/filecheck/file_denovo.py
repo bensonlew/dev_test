@@ -20,7 +20,7 @@ class FileDenovoAgent(Agent):
         options = [
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"},  # PE OR SE
-            {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
+            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"}  #对照组文件，格式同分组文件
         ]
         self.add_option(options)
@@ -90,10 +90,10 @@ class FileDenovoTool(Tool):
         return col_num
 
     def check_group(self):
-        if self.option('group_file').is_set:
+        if self.option('group_table').is_set:
             self.logger.info("正在检测group文件")
-            self.option("group_file").get_info()
-            gp_sample = self.option("group_file").prop["sample"]
+            self.option("group_table").get_info()
+            gp_sample = self.option("group_table").prop["sample"]
             for gp in gp_sample:
                 if gp not in self.samples:
                     raise Exception("group表出错, 样本{}在fastq文件中未出现".format(gp))

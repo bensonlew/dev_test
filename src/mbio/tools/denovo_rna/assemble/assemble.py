@@ -160,7 +160,7 @@ class AssembleTool(Tool):
             os.link(self.work_dir + '/transcript.iso.txt', self.output_dir + '/transcript.iso.txt')
             os.link(self.work_dir + '/trinity.fasta.stat.xls', self.output_dir + '/trinity.fasta.stat.xls')
             self.option('gene_fa').set_path(self.work_dir + '/gene.fasta')
-            self.logger.info(self.option('gene_fa').prop['path'])
+            # self.logger.info(self.option('gene_fa').prop['path'])
             self.option('trinity_fa').set_path(self.work_dir + '/trinity_out_dir/Trinity.fasta')
             self.logger.info("设置组装拼接分析结果目录成功")
         except Exception as e:

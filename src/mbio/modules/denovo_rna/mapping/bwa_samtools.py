@@ -17,7 +17,7 @@ class BwaSamtoolsModule(Module):
     def __init__(self, work_id):
         super(BwaSamtoolsModule, self).__init__(work_id)
         options = [
-            {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
+            {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # denovo时是基因的参考序列
             {"name": "fq_type", "type": "string", "default": ""},  # fq类型，必传
             {"name": "fastq_r", "type": "infile", "format": "sequence.fastq"},  # 右端序列文件
             {"name": "fastq_l", "type": "infile", "format": "sequence.fastq"},  # 左端序列文件

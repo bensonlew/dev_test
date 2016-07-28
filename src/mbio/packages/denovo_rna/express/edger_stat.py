@@ -91,8 +91,8 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
             for sam in group_sample:
                 head += "%s_count\t%s_fpkm\t" % (sam, sam)
             head += "%s_mean_fpkm\t%s_mean_fpkm\tLog2FC(%s/%s)\tPvalue\tFDR\tSignificant\tRegulate\n" % (control, other, other, control)
-            print head
             w.write(head)
+        # print '######%s-%s:regulate is %s' %  (control, other,regulate)
         while True:
             eline = e.readline().strip('\n').split('\t')
             if not eline[0]:

@@ -30,6 +30,7 @@ class DiffExpAgent(Agent):
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
             {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  #差异基因计数表
             {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  #差异基因表达量表
+            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "gname", "type": "string"},  #  分组方案名称
             {"name": "diff_rate", "type": "float", "default": 0.01}  #期望的差异基因比率
         ]
@@ -45,7 +46,6 @@ class DiffExpAgent(Agent):
     def stepfinish(self):
         self.step.diff_exp.finish()
         self.step.update()
-
 
     def check_options(self):
         """
@@ -65,7 +65,6 @@ class DiffExpAgent(Agent):
         if self.option("sample_list") != '' and self.option("edger_group").is_set:
             raise OptionError("有生物学重复时不可设sample_list参数")
         samples, genes = self.option('count').get_matrix_info()
-        # num, control_vs = self.option('control_file').get_control_info()
         if self.option("sample_list") != '':
             sam = self.option("sample_list").split(',')
             for i in sam:
@@ -78,9 +77,6 @@ class DiffExpAgent(Agent):
             vs_list = list(itertools.permutations(gnames, 2))
         else:
             vs_list = list(itertools.permutations(samples, 2))
-        # print samples,vs_list,num,control_vs
-        # if num != len(vs_list) / 2:
-        #     raise OptionError("缺少对照样本名")
         for n in self.option('control_file').prop['vs_list']:
             if n not in vs_list:
                 raise OptionError("对照样本名在fpkm表中不存在")
@@ -134,7 +130,7 @@ class DiffExpTool(Tool):
                 if re.search(r'edgeR.DE_results$', f):
                     get_diff_list(self.work_dir + '/edger_result/' + f, self.work_dir + '/' + f.split('.')[3] + '_diff_list', self.option('diff_ci'))
                     edger_files += '%s ' % (self.work_dir + '/' + f.split('.')[3] + '_diff_list')
-            os.system('cat %s> diff_list && sort diff_list | uniq' % edger_files)
+            os.system('cat %s> diff_lists && sort diff_lists | uniq > diff_list' % edger_files)
         else:
             self.logger.info("运行edger_cmd出错")
 
@@ -150,28 +146,33 @@ class DiffExpTool(Tool):
         else:
             pass
 
-    def stat_egder(self):
+    def run_stat_egder(self):
         control_dict = self.option('control_file').get_control_dict()
         self.logger.info(str(control_dict))
         edger_results = os.listdir(self.work_dir + '/edger_result')
-        for afile in edger_results:
-            if re.search(r'edgeR.DE_results$', afile):
-                for i in control_dict.keys():
-                    con_keys = i.split('_vs_')
-                    if con_keys[0] in afile and con_keys[1] in afile:
+        sams = control_dict.values()
+        edger_file = []
+        for i in sams:
+            for afile in edger_results:
+                if re.search(r'edgeR.DE_results$', afile):
+                    if i[0] in afile and i[1] in afile:
+                        # self.logger.info(afile)
                         if self.option("edger_group").is_set:
-                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], control_dict[i][0], control_dict[i][1], self.output_dir + "/", './edger_group', self.option("diff_ci"), True)
+                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], i[0], i[1], self.output_dir + "/", './edger_group', self.option("diff_ci"), True)
                         else:
-                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], control_dict[i][0], control_dict[i][1], self.output_dir + "/", None, self.option("diff_ci"), True)
-                    else:
-                        control = afile.split('.')[3].split('_vs_')[0]
-                        other = afile.split('.')[3].split('_vs_')[1]
-                        if self.option("edger_group").is_set:
-                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], control, other, self.output_dir + "/", './edger_group', self.option("diff_ci"), False)
-                        else:
-                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], control, other, self.output_dir + "/", None, self.option("diff_ci"), False)
-            else:
-                pass
+                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], i[0], i[1], self.output_dir + "/", None, self.option("diff_ci"), True)
+                        edger_results.remove(afile)
+                else:
+                    pass
+        for f in edger_results:
+            if re.search(r'edgeR.DE_results$', f):
+                self.logger.info(f)
+                control = f.split('.')[3].split('_vs_')[0]
+                other = f.split('.')[3].split('_vs_')[1]
+                if self.option("edger_group").is_set:
+                    stat_edger(self.work_dir + '/edger_result/' + f, self.option('count').prop['path'], self.option('fpkm').prop['path'], control, other, self.output_dir + "/", './edger_group', self.option("diff_ci"), False)
+                else:
+                    stat_edger(self.work_dir + '/edger_result/' + f, self.option('count').prop['path'], self.option('fpkm').prop['path'], control, other, self.output_dir + "/", None, self.option("diff_ci"), False)
 
     def set_output(self):
         """
@@ -180,10 +181,12 @@ class DiffExpTool(Tool):
         """
         try:
             self.logger.info("设置结果目录")
-            get_diff_matrix(self.option('fpkm').prop['path'], self.output_dir + '/diff_list', self.output_dir + '/diff_fpkm')
-            get_diff_matrix(self.option('count').prop['path'], self.output_dir + '/diff_list', self.output_dir + '/diff_count')
+            get_diff_matrix(self.option('fpkm').prop['path'], self.work_dir + '/diff_list', self.output_dir + '/diff_fpkm')
+            get_diff_matrix(self.option('count').prop['path'], self.work_dir + '/diff_list', self.output_dir + '/diff_count')
             self.option('diff_fpkm').set_path(self.output_dir + '/diff_fpkm')
             self.option('diff_count').set_path(self.output_dir + '/diff_count')
+            get_gene_list(self.output_dir + '/diff_fpkm', self.output_dir + '/gene_file')
+            self.option('gene_file', self.output_dir + '/gene_file')
             self.logger.info("设置edger分析结果目录成功")
         except Exception as e:
             self.logger.info("设置edger分析结果目录失败{}".format(e))
@@ -192,6 +195,6 @@ class DiffExpTool(Tool):
         super(DiffExpTool, self).run()
         self.run_edger()
         self.re_run_edger()
-        self.stat_egder()
+        self.run_stat_egder()
         self.set_output()
         self.end()
