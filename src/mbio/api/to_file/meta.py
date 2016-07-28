@@ -286,20 +286,27 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
 def export_cascading_table_by_detail(data, option_name, dir_path, bind_obj=None):
     """
     根据group_detail生成group表或者二级group表
-    使用时确保你的workflow的option里group_detal这个字段
+    使用时确保你的workflow的option里group_detail这个字段
     """
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
     data = _get_objectid(data)
     group_detail = bind_obj.sheet.option('group_detail')
+    second_group_detail = bind_obj.sheet.option('second_group_detail')
     group_table = db['sg_specimen_group']
-    if not isinstance(group_detail, list):
+    if not isinstance(group_detail, dict):
         try:
-            table_list = json.loads(group_detail)
+            table_list = [json.loads(group_detail)]
         except Exception:
-            raise Exception("生成group表失败，传入的{}不是一个数组或者是数组对应的字符串".format(option_name))
-    if not isinstance(table_list, list):
-        raise Exception("生成group表失败，传入的{}不是一个数组或者是数组对应的字符串".format(option_name))
+            raise Exception("生成group表失败，传入的一级分组不是一个字典或者是字典对应的字符串")
+    if second_group_detail != '' and not isinstance(second_group_detail, dict):
+        try:
+            table_list.append(json.loads(second_group_detail))
+        except Exception:
+            raise Exception("生成group表失败，传入的二级分组不是一个字典或者是字典对应的字符串")
+    for i in table_list:
+        if not isinstance(i, dict):
+            raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
     group_schema = group_table.find_one({"_id": ObjectId(data)})
     if not group_schema:
         raise Exception("无法根据传入的group_id:{}在sg_specimen_group表里找到相应的记录".format(data))

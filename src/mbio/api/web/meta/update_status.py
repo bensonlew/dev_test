@@ -27,7 +27,7 @@ class UpdateStatus(Log):
         self._task_id = self.data.task_id
         self.db = self._config.get_db()
         self._mongo_client = self._config.mongo_client
-        self.mongodb = self._mongo_client["sanger"]
+        self.mongodb = self._mongo_client[Config().MONGODB]
         self._sheetname = "update_info"
 
     def update(self):
