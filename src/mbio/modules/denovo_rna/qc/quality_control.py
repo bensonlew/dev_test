@@ -186,14 +186,22 @@ class QualityControlModule(Module):
             sickle_out = glob.glob(r"{}/Sickle*/output/*".format(self.work_dir))
             seqprep_out = glob.glob(r"{}/SeqPrep*/output/*".format(self.work_dir))
             clip_out = glob.glob(r"{}/FastxClipper*/output/*".format(self.work_dir))
-            for f in sickle_out:
-                f_name = f.split("/")[-1]
-                target_path = os.path.join(sickle_dir, f_name)
-                os.link(f, target_path)
-                if "sickle_r.fastq" in f:
-                    os.link(f, os.path.join(sickle_r_dir, f_name))
-                elif "sickle_l.fastq" in f:
-                    os.link(f, os.path.join(sickle_l_dir, f_name))
+            self.logger.info(os.path.join(sickle_dir, "list.txt"))
+            with open(os.path.join(sickle_dir, "list.txt"), "w") as w:
+                for f in sickle_out:
+                    f_name = f.split("/")[-1]
+                    sample_name = f_name.split("_")[0]
+                    w.write("{}\t{}".format(f_name, sample_name))
+                    if "sickle_r.fastq" in f:
+                        w.write("\t{}\n".format("r"))
+                        os.link(f, os.path.join(sickle_r_dir, f_name))
+                    elif "sickle_l.fastq" in f:
+                        w.write("\t{}\n".format("l"))
+                        os.link(f, os.path.join(sickle_l_dir, f_name))
+                    else:
+                        w.write("\n")
+                    target_path = os.path.join(sickle_dir, f_name)
+                    os.link(f, target_path)
             self.option("sickle_dir").set_path(sickle_dir)
             if self.option("fq_type") == "PE":
                 shutil.rmtree(clip_dir)

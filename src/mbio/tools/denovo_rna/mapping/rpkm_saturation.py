@@ -8,16 +8,16 @@ from biocluster.core.exceptions import OptionError
 import glob
 
 
-class QualityAssessmentAgent(Agent):
+class RpkmSaturationAgent(Agent):
     """
     Rseqc-2.3.6:RNA测序分析工具
     version 1.0
     author: qindanhua
-    last_modify: 2016.07.13
+    last_modify: 2016.07.27
     """
 
     def __init__(self, parent):
-        super(QualityAssessmentAgent, self).__init__(parent)
+        super(RpkmSaturationAgent, self).__init__(parent)
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
@@ -42,13 +42,13 @@ class QualityAssessmentAgent(Agent):
         self._memory = ''
 
 
-class QualityAssessmentTool(Tool):
+class RpkmSaturationTool(Tool):
     """
     version 1.0
     """
 
     def __init__(self, config):
-        super(QualityAssessmentTool, self).__init__(config)
+        super(RpkmSaturationTool, self).__init__(config)
         self.python_path = "program/Python/bin/"
 
     def rpkm_saturation(self, bam, out_pre):
@@ -69,33 +69,10 @@ class QualityAssessmentTool(Tool):
             cmds.append(cmd)
         return cmds
 
-    def duplication(self, bam, out_pre):
-        bam_name = bam.split("/")[-1]
-        out_pre = out_pre + "_" + bam_name
-        dup_cmd = "{}read_duplication.py -i {} -o {} -q {}".format(self.python_path, bam, out_pre, self.option("quality"))
-        print(dup_cmd)
-        self.logger.info("开始运行read_duplication.py脚本")
-        dup_command = self.add_command("{}_dup".format(bam_name.lower()), dup_cmd)
-        dup_command.run()
-        return dup_command
-
-    def multi_dup(self, bam_dir, out_pre):
-        cmds = []
-        bams = glob.glob("{}/*".format(bam_dir))
-        for bam in bams:
-            cmd = self.duplication(bam, out_pre)
-            cmds.append(cmd)
-        return cmds
-
     def set_output(self):
         self.logger.info("set out put")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        dup_file = glob.glob(r"*DupRate*")
-        print(dup_file)
-        for f in dup_file:
-            output_dir = os.path.join(self.output_dir, f)
-            os.link(os.path.join(self.work_dir, f), output_dir)
         satur_file = glob.glob(r"satur*")
         print(satur_file)
         for f in satur_file:
@@ -108,29 +85,18 @@ class QualityAssessmentTool(Tool):
         """
         运行
         """
-        super(QualityAssessmentTool, self).run()
+        super(RpkmSaturationTool, self).run()
         if self.option("bam").format == "align.bwa.bam":
             saturation = self.rpkm_saturation(self.option("bam").prop["path"], "satur")
-            duplication = self.duplication(self.option("bam").prop["path"], "dup")
             self.wait()
             if saturation.return_code == 0:
                 self.logger.info("运行RPKM_saturation.py脚本结束！")
             else:
                 self.set_error("运行RPKM_saturation.py脚本过程出错")
-            if duplication.return_code == 0:
-                self.logger.info("运行read_duplication.py脚本结束！")
-            else:
-                self.set_error("运行read_duplication.py脚本过程出错")
         elif self.option("bam").format == "align.bwa.bam_dir":
             saturation = self.multi_satur(self.option("bam").prop["path"], "satur")
-            duplication = self.multi_dup(self.option("bam").prop["path"], "dup")
             self.wait()
             for cmd in saturation:
-                if cmd.return_code == 0:
-                    self.logger.info("运行{}结束!".format(cmd.name))
-                else:
-                    self.set_error("运行{}结束!".format(cmd.name))
-            for cmd in duplication:
                 if cmd.return_code == 0:
                     self.logger.info("运行{}结束!".format(cmd.name))
                 else:
@@ -138,4 +104,5 @@ class QualityAssessmentTool(Tool):
         # else:
         #     self.logger.info("false")
         self.set_output()
+
 
