@@ -8,7 +8,7 @@ import json
 
 
 client = MongoClient(Config().MONGO_URI)
-db = client["sanger"]
+db = client[Config().MONGODB]
 
 
 def export_est_table(data, option_name, dir_path, bind_obj=None):
@@ -20,6 +20,7 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
     bind_obj.logger.debug(data)
     est_collection = db['sg_alpha_diversity']
     result = est_collection.find_one({"_id": ObjectId(data)})
+    bind_obj.logger.debug(result)
     if not result:
         raise Exception('没有找到多样性指数id对应的表，请检查传入的id是否正确')
     print(type(result['params']))
@@ -44,6 +45,8 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
         for col in details:
             line = '%s' % col['specimen_name']
             for index in indices:
+                if index == "jack":
+                    index = "jackknife"
                 line += '\t%s' % col[index]
                 # bind_obj.logger.debug(line)
             f.write('%s\n' % line)

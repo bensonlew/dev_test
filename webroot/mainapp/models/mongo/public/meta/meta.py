@@ -44,9 +44,9 @@ class Meta(object):
                     id_ = ObjectId(id_)
                 else:
                     raise Exception("样本id必须为ObjectId对象或者其对应的字符串！")
-                result = collection.find_one({"_id": id_})
-                if not result:
-                    raise Exception("无法根据传入的_id:{}在sg_speciem表里找到相应的记录".format(str(id_)))
-                mySampleNames.append(result["specimen_name"])
-            mySamples = ",".join(mySampleNames)
-            return mySamples
+            result = collection.find_one({"_id": id_})
+            if not result:
+                raise Exception("无法根据传入的_id:{}在sg_speciem表里找到相应的记录".format(str(id_)))
+            mySampleNames.append(result["specimen_name"])
+        mySamples = ",".join(mySampleNames)
+        return mySamples
