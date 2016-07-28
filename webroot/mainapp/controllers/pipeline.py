@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 import web
+from biocluster.config import Config
 from mainapp.libs.signature import check_sig, CreateSignature
 from web import form
 from mainapp.libs.input_check import check_format
@@ -16,7 +17,7 @@ import datetime
 class Pipeline(object):
     def __init__(self):
         self.client = get_mongo_client()
-        self.db = self.client["sanger"]
+        self.db = self.client[Config().MONGODB]
 
     def GET(self):
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../views/'))
