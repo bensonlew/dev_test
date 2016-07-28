@@ -50,6 +50,9 @@ class RpkmSaturationTool(Tool):
     def __init__(self, config):
         super(RpkmSaturationTool, self).__init__(config)
         self.python_path = "program/Python/bin/"
+        self.perl_path = "program/perl/perls/perl-5.24.0/bin/perl"
+        self.plot_script = self.config.SOFTWARE_DIR + "/bioinfo/plot/scripts/saturation2plot.pl"
+        self.plot_cmd = []
 
     def rpkm_saturation(self, bam, out_pre):
         bam_name = bam.split("/")[-1]
@@ -63,11 +66,22 @@ class RpkmSaturationTool(Tool):
 
     def multi_satur(self, bam_dir, out_pre):
         cmds = []
-        bams = glob.glob("{}/*".format(bam_dir))
+        bams = glob.glob("{}/*.bam".format(bam_dir))
         for bam in bams:
             cmd = self.rpkm_saturation(bam, out_pre)
             cmds.append(cmd)
         return cmds
+
+    def rpkm_plot(self, rpkm, out_pre):
+        cmd = "{} {} -in {} -out {}".format(self.perl_path, self.plot_script, rpkm, out_pre)
+        self.logger.info(cmd)
+        cmd = self.add_command("rpkm_plot_{}".format(out_pre.lower()), cmd)
+        cmd.run()
+        if cmd.return_code == 0:
+            self.logger.info("运行{}结束!".format(cmd.name))
+        else:
+            self.set_error("运行{}出错!".format(cmd.name))
+        return cmd
 
     def set_output(self):
         self.logger.info("set out put")
@@ -78,6 +92,13 @@ class RpkmSaturationTool(Tool):
         for f in satur_file:
             output_dir = os.path.join(self.output_dir, f)
             os.link(os.path.join(self.work_dir, f), output_dir)
+            if "RPKM" in f:
+                self.logger.info("saturation2plot")
+                self.logger.info(f)
+                plot_cmd = self.rpkm_plot(output_dir, f.split("_")[1].split(".")[0])
+                self.plot_cmd.append(plot_cmd)
+                self.logger.info(self.plot_cmd)
+        self.wait()
         self.logger.info("set done")
         self.end()
 
@@ -100,9 +121,7 @@ class RpkmSaturationTool(Tool):
                 if cmd.return_code == 0:
                     self.logger.info("运行{}结束!".format(cmd.name))
                 else:
-                    self.set_error("运行{}结束!".format(cmd.name))
-        # else:
-        #     self.logger.info("false")
+                    self.set_error("运行{}出错!".format(cmd.name))
         self.set_output()
 
 

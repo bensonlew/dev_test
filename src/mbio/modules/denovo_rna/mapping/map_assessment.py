@@ -24,17 +24,17 @@ class MapAssessmentModule(Module):
         self.add_option(options)
         self.tools = []
         self.files = []
-        self.coverage = self.add_tool('denovo_rna.mapping.coverage')
-        self.step.add_steps('coverage')
+        # self.coverage = self.add_tool('denovo_rna.mapping.coverage')
+        # self.step.add_steps('coverage')
 
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
         step.finish()
         self.step.update()
 
-    def coverage_finish_update(self):
-        self.step.coverage.finish()
-        self.step.update()
+    # def coverage_finish_update(self):
+    #     self.step.coverage.finish()
+    #     self.step.update()
 
     def check_options(self):
         """
@@ -91,30 +91,19 @@ class MapAssessmentModule(Module):
             self.tools.append(dup)
 
     def coverage_run(self):
-        self.coverage.set_options({
-            'bam': self.option('bam').prop["path"],
-            "bed": self.option('bed').prop["path"]
-            })
-        self.step.coverage.start()
-        self.coverage.on("end", self.coverage_finish_update)
-        self.coverage.run()
-        self.tools.append(self.coverage)
-
-    # def qual_assess_run(self):
-    #     files = self.get_files()
-    #     for f in files:
-    #         n = 0
-    #         qual_assess = self.add_tool('denovo_rna.mapping.quality_assessment')
-    #         self.step.add_steps('QualAssess_{}'.format(n))
-    #         qual_assess.set_options({
-    #             'bam': f,
-    #             "bed": self.option('bed').prop["path"]
-    #             })
-    #         step = getattr(self.step, 'QualAssess_{}'.format(n))
-    #         step.start()
-    #         qual_assess.on("end", self.finish_update, 'QualAssess_{}'.format(n))
-    #         qual_assess.run()
-    #         self.tools.append(qual_assess)
+        for f in self.files:
+            n = 0
+            coverage = self.add_tool('denovo_rna.mapping.coverage')
+            self.step.add_steps('coverage_{}'.format(n))
+            coverage.set_options({
+                'bam': f,
+                "bed": self.option('bed').prop["path"]
+                })
+            step = getattr(self.step, 'coverage_{}'.format(n))
+            step.start()
+            coverage.on("end", self.finish_update, 'coverage_{}'.format(n))
+            coverage.run()
+            self.tools.append(coverage)
 
     def get_files(self):
         files = []
@@ -150,10 +139,10 @@ class MapAssessmentModule(Module):
             f_name = f.split("/")[-1]
             target_path = os.path.join(self.output_dir, "satur", f_name)
             os.link(f, target_path)
-        # for f in os.listdir(self.coverage.output_dir):
-        #     from_path = os.path.join(self.coverage.output_dir, f)
-        #     target_path = os.path.join(self.output_dir, "bam_stat", f)
-        #     os.link(from_path, target_path)
+        for f in glob.glob(r"{}/Coverage*/output/*".format(self.work_dir)):
+            f_name = f.split("/")[-1]
+            target_path = os.path.join(self.output_dir, "bam_stat", f_name)
+            os.link(f, target_path)
         self.end()
 
     def run(self):
@@ -161,7 +150,7 @@ class MapAssessmentModule(Module):
         self.bam_stat_run()
         self.dup_run()
         self.satur_run()
-        # self.coverage_run()
+        self.coverage_run()
         self.on_rely(self.tools, self.set_output)
         super(MapAssessmentModule, self).run()
 

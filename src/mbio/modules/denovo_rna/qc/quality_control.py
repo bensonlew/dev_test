@@ -45,12 +45,21 @@ class QualityControlModule(Module):
         """
         if not self.option("fastq_dir").is_set:
             raise OptionError("需要传入fastq文件或者文件夹")
-        if not self.option('fastq_dir').prop['has_list_file']:
-            raise OptionError('fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
+        if self.option("fastq_dir").is_set:
+            # self.samples = self.get_list()
+            list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
+            if not os.path.exists(list_path):
+                OptionError("缺少list文件")
+            row_num = len(open(list_path, "r").readline().split())
+            self.logger.info(row_num)
+            if self.option('fq_type') == "PE" and row_num != 3:
+                raise OptionError("PE序列list文件应该包括文件名、样本名和左右端说明三列")
+            elif self.option('fq_type') == "SE" and row_num != 2:
+                raise OptionError("SE序列list文件应该包括文件名、样本名两列")
+        # if not self.option('fastq_dir').prop['has_list_file']:
+        #     raise OptionError('fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
 
     def finish_update(self, event):
-        # obj = event['bind_object']
-        # self.logger.info(event)
         step = getattr(self.step, event['data'])
         step.finish()
         self.step.update()
