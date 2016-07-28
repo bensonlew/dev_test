@@ -16,20 +16,21 @@ class Lefse(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        print data
         return_result = self.check_options(data)
-        print G().get_group_name(data.group_id, lefse=True)
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
-        category, second_category = get_lefse_catecory_name(data.group_detail)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['group_detail'] = sub_group_detail_sort(data.group_detail)
+        my_param['group_detail'] = group_detail_sort(data.group_detail)
+        if data.second_group_detail:
+            my_param['second_group_detail'] = group_detail_sort(data.second_group_detail)
+        else:
+            my_param['second_group_detail'] = data.second_group_detail
         my_param['group_id'] = data.group_id
         my_param['lda_filter'] = float(data.lda_filter)
         my_param['strict'] = int(data.strict)
-        my_param['category_name'] = category
-        my_param['second_category_name'] = second_category
         my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
@@ -64,6 +65,7 @@ class Lefse(object):
                     "update_info": update_info,
                     "group_file": data.group_id,
                     "group_detail": data.group_detail,
+                    "second_group_detail": data.second_group_detail,
                     "group_name": G().get_group_name(data.group_id, lefse=True),
                     "strict": data.strict,
                     "lda_filter": data.lda_filter,
@@ -95,7 +97,7 @@ class Lefse(object):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict']
+        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict', 'second_group_detail']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
@@ -105,7 +107,11 @@ class Lefse(object):
             return json.dumps(info)
         if float(data.lda_filter) > 4.0 or float(data.lda_filter) < -4.0:
             success.append("LDA阈值不在范围内")
-        table_dict = json.loads(data.group_detail)
-        if not isinstance(table_dict, list):
-            success.append("传入的table_dict不是一个列表")
+        group_detail = json.loads(data.group_detail)
+        if not isinstance(group_detail, dict):
+            success.append("传入的group_detail不是一个字典")
+        if data.second_group_detail != '':
+            second_group_detail = json.loads(data.second_group_detail)
+            if not isinstance(second_group_detail, dict):
+                success.append("传入的second_group_detail不是一个字典")
         return success
