@@ -12,7 +12,7 @@ class MapAssessmentModule(Module):
     denovoRNA比对后质量评估
     version 1.0
     author: qindanhua
-    last_modify: 2016.07.14
+    last_modify: 2016.07.27
     """
     def __init__(self, work_id):
         super(MapAssessmentModule, self).__init__(work_id)
@@ -23,21 +23,18 @@ class MapAssessmentModule(Module):
         ]
         self.add_option(options)
         self.tools = []
-        # self.bam_stat = self.add_tool('denovo_rna.mapping.bam_stat')
-        self.coverage = self.add_tool('denovo_rna.mapping.coverage')
-        # self.qual_assess = self.add_tool('denovo_rna.mapping.quality_assessment')
-        self.step.add_steps('coverage')
+        self.files = []
+        # self.coverage = self.add_tool('denovo_rna.mapping.coverage')
+        # self.step.add_steps('coverage')
 
     def finish_update(self, event):
-        # obj = event['bind_object']
-        # self.logger.info(event)
         step = getattr(self.step, event['data'])
         step.finish()
         self.step.update()
 
-    def coverage_finish_update(self):
-        self.step.coverage.finish()
-        self.step.update()
+    # def coverage_finish_update(self):
+    #     self.step.coverage.finish()
+    #     self.step.update()
 
     def check_options(self):
         """
@@ -47,11 +44,11 @@ class MapAssessmentModule(Module):
             raise OptionError("请传入bed文件")
         if not self.option("bam").is_set:
             raise OptionError("请传入bam文件")
+        self.files = self.get_files()
 
     def bam_stat_run(self):
-        files = self.get_files()
         n = 0
-        for f in files:
+        for f in self.files:
             bam_stat = self.add_tool('denovo_rna.mapping.bam_stat')
             self.step.add_steps('bamStat_{}'.format(n))
             bam_stat.set_options({
@@ -63,88 +60,107 @@ class MapAssessmentModule(Module):
             bam_stat.run()
             self.tools.append(bam_stat)
 
-    def coverage_run(self):
-        self.coverage.set_options({
-            'bam': self.option('bam').prop["path"],
-            "bed": self.option('bed').prop["path"]
-            })
-        self.step.coverage.start()
-        self.coverage.on("end", self.coverage_finish_update)
-        self.coverage.run()
-        self.tools.append(self.coverage)
-
-    def qual_assess_run(self):
-        files = self.get_files()
-        for f in files:
+    def satur_run(self):
+        for f in self.files:
             n = 0
-            qual_assess = self.add_tool('denovo_rna.mapping.quality_assessment')
-            self.step.add_steps('QualAssess_{}'.format(n))
-            qual_assess.set_options({
+            satur = self.add_tool('denovo_rna.mapping.rpkm_saturation')
+            self.step.add_steps('satur{}'.format(n))
+            satur.set_options({
                 'bam': f,
                 "bed": self.option('bed').prop["path"]
                 })
-            step = getattr(self.step, 'QualAssess_{}'.format(n))
+            step = getattr(self.step, 'satur{}'.format(n))
             step.start()
-            qual_assess.on("end", self.finish_update, 'QualAssess_{}'.format(n))
-            qual_assess.run()
-            self.tools.append(qual_assess)
+            satur.on("end", self.finish_update, 'satur{}'.format(n))
+            satur.run()
+            self.tools.append(satur)
+
+    def dup_run(self):
+        for f in self.files:
+            n = 0
+            dup = self.add_tool('denovo_rna.mapping.read_duplication')
+            self.step.add_steps('dup_{}'.format(n))
+            dup.set_options({
+                'bam': f,
+                "bed": self.option('bed').prop["path"]
+                })
+            step = getattr(self.step, 'dup_{}'.format(n))
+            step.start()
+            dup.on("end", self.finish_update, 'dup_{}'.format(n))
+            dup.run()
+            self.tools.append(dup)
+
+    def coverage_run(self):
+        for f in self.files:
+            n = 0
+            coverage = self.add_tool('denovo_rna.mapping.coverage')
+            self.step.add_steps('coverage_{}'.format(n))
+            coverage.set_options({
+                'bam': f,
+                "bed": self.option('bed').prop["path"]
+                })
+            step = getattr(self.step, 'coverage_{}'.format(n))
+            step.start()
+            coverage.on("end", self.finish_update, 'coverage_{}'.format(n))
+            coverage.run()
+            self.tools.append(coverage)
 
     def get_files(self):
-        f_path = self.option("bam").prop["path"]
         files = []
         if self.option("bam").format == "align.bwa.bam":
-            files.append(f_path)
+            files.append(self.option("bam").prop["path"])
         elif self.option("bam").format == "align.bwa.bam_dir":
-            for f in glob.glob(r"{}/*.bam".format(f_path)):
-                files.append(os.path.join(f_path, f))
+            for f in glob.glob(r"{}/*.bam".format(self.option("bam").prop["path"])):
+                files.append(os.path.join(self.option("bam").prop["path"], f))
         return files
 
     def set_output(self):
         self.logger.info("set output")
         dirs = ["coverage", "dup", "satur"]
-        for f in os.listdir(self.output_dir):
-            f_path = os.path.join(self.output_dir, f)
-            os.remove(f_path)
         for d in dirs:
             path = os.path.join(self.output_dir, d)
             if os.path.exists(path):
                 shutil.rmtree(path)
             os.makedirs(path)
-        with open("bam_stat.xls", "w") as w:
+        self.logger.info(os.path.join(self.output_dir, "bam_stat.xls"))
+        bam_out = glob.glob(r"{}/BamStat*/output/*".format(self.work_dir))
+        with open(os.path.join(self.output_dir, "bam_stat.xls"), "w") as w:
             w.write("sample\tmappped_num\trate\n")
-            for f in glob.glob(r"{}/BamStat*/output/*"):
+            for f in bam_out:
                 with open(f, "r") as r:
                     r.readline()
-                    w.write(r.next())
-        from_path = os.path.join(self.work_dir, "bam_stat.xls")
-        target_path = os.path.join(self.output_dir, "bam_stat.xls")
-        os.link(from_path, target_path)
-        for f in glob.glob(r"{}/QualityAssessment*/output/*"):
-            self.logger.info(f)
-            f_name = f.split("/")[-1]
-            if "DupRate" in f:
-                target_path = os.path.join(self.output_dir, "dup", f_name)
-            else:
-                target_path = os.path.join(self.output_dir, "satur", f_name)
+                    for line in r:
+                        w.write(line)
+        for f in glob.glob(r"{}/ReadDuplication*/output/*".format(self.work_dir)):
+            f_name = os.path.basename(f)
+            target_path = os.path.join(self.output_dir, "dup", f_name)
             os.link(f, target_path)
-        # for f in os.listdir(self.coverage.output_dir):
-        #     from_path = os.path.join(self.coverage.output_dir, f)
-        #     target_path = os.path.join(self.output_dir, "bam_stat", f)
-        #     os.link(from_path, target_path)
+        for f in glob.glob(r"{}/RpkmSaturation*/output/*".format(self.work_dir)):
+            f_name = os.path.basename(f)
+            target_path = os.path.join(self.output_dir, "satur", f_name)
+            os.link(f, target_path)
+        for f in glob.glob(r"{}/Coverage*/output/*".format(self.work_dir)):
+            f_name = os.path.basename(f)
+            target_path = os.path.join(self.output_dir, "bam_stat", f_name)
+            os.link(f, target_path)
         self.end()
 
     def run(self):
         # super(MapAssessmentModule, self).run()
         self.bam_stat_run()
-        # self.coverage_run()
-        self.qual_assess_run()
+        self.dup_run()
+        self.satur_run()
+        self.coverage_run()
         self.on_rely(self.tools, self.set_output)
-        # self.on_rely([self.bam_stat, self.coverage, self.qual_assess], self.set_output)
         super(MapAssessmentModule, self).run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"]
+            [r".", "", "结果输出目录"],
+            [r"./coverage/", "", "基因覆盖度分析输出目录"],
+            [r"./dup/", "", "冗余序列分析输出目录"],
+            [r"./satur/", "", "测序饱和度分析输出目录"],
+            [r"./bam_stat.xls", "xls", "bam格式比对结果统计表"]
         ])
         super(MapAssessmentModule, self).end()

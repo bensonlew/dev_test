@@ -45,12 +45,21 @@ class QualityControlModule(Module):
         """
         if not self.option("fastq_dir").is_set:
             raise OptionError("需要传入fastq文件或者文件夹")
-        if not self.option('fastq_dir').prop['has_list_file']:
-            raise OptionError('fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
+        if self.option("fastq_dir").is_set:
+            # self.samples = self.get_list()
+            list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
+            if not os.path.exists(list_path):
+                OptionError("缺少list文件")
+            row_num = len(open(list_path, "r").readline().split())
+            self.logger.info(row_num)
+            if self.option('fq_type') == "PE" and row_num != 3:
+                raise OptionError("PE序列list文件应该包括文件名、样本名和左右端说明三列")
+            elif self.option('fq_type') == "SE" and row_num != 2:
+                raise OptionError("SE序列list文件应该包括文件名、样本名两列")
+        # if not self.option('fastq_dir').prop['has_list_file']:
+        #     raise OptionError('fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
 
     def finish_update(self, event):
-        # obj = event['bind_object']
-        # self.logger.info(event)
         step = getattr(self.step, event['data'])
         step.finish()
         self.step.update()
@@ -186,14 +195,22 @@ class QualityControlModule(Module):
             sickle_out = glob.glob(r"{}/Sickle*/output/*".format(self.work_dir))
             seqprep_out = glob.glob(r"{}/SeqPrep*/output/*".format(self.work_dir))
             clip_out = glob.glob(r"{}/FastxClipper*/output/*".format(self.work_dir))
-            for f in sickle_out:
-                f_name = f.split("/")[-1]
-                target_path = os.path.join(sickle_dir, f_name)
-                os.link(f, target_path)
-                if "sickle_r.fastq" in f:
-                    os.link(f, os.path.join(sickle_r_dir, f_name))
-                elif "sickle_l.fastq" in f:
-                    os.link(f, os.path.join(sickle_l_dir, f_name))
+            self.logger.info(os.path.join(sickle_dir, "list.txt"))
+            with open(os.path.join(sickle_dir, "list.txt"), "w") as w:
+                for f in sickle_out:
+                    f_name = f.split("/")[-1]
+                    sample_name = f_name.split("_sickle_r.fastq")[0]
+                    w.write("{}\t{}".format(f_name, sample_name))
+                    if "sickle_r.fastq" in f:
+                        w.write("\t{}\n".format("r"))
+                        os.link(f, os.path.join(sickle_r_dir, f_name))
+                    elif "sickle_l.fastq" in f:
+                        w.write("\t{}\n".format("l"))
+                        os.link(f, os.path.join(sickle_l_dir, f_name))
+                    else:
+                        w.write("\n")
+                    target_path = os.path.join(sickle_dir, f_name)
+                    os.link(f, target_path)
             self.option("sickle_dir").set_path(sickle_dir)
             if self.option("fq_type") == "PE":
                 shutil.rmtree(clip_dir)
@@ -238,7 +255,16 @@ class QualityControlModule(Module):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"]
-        ])
+        if self.option("fq_type") == "PE":
+            result_dir.add_relpath_rules([
+                [r".", "", "结果输出目录"],
+                [r"./seqprep_dir/", "文件夹", "PE去接头后fastq文件输出目录"],
+                [r"./sickle_dir/", "文件夹", "质量剪切后fastq文件输出目录"]
+            ])
+        else:
+            result_dir.add_relpath_rules([
+                [r".", "", "结果输出目录"],
+                [r"./clip_dir/", "文件夹", "SE去接头后fastq文件输出目录"],
+                [r"./sickle_dir/", "文件夹", "质量剪切后fastq文件输出目录"]
+            ])
         super(QualityControlModule, self).end()

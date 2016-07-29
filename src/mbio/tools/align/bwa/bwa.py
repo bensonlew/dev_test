@@ -47,7 +47,7 @@ class BwaAgent(Agent):
                 raise OptionError("请传入PE右端序列文件")
             if not self.option("fastq_l").is_set:
                 raise OptionError("请传入PE左端序列文件")
-        if not self.option("fastq_dir").is_set and self.option('fq_type') in ["PE"]:
+        if not self.option("fastq_dir").is_set and self.option('fq_type') in ["SE"]:
             if not self.option("fastq_s").is_set:
                 raise OptionError("请传入SE序列文件")
         return True
@@ -246,9 +246,6 @@ class BwaTool(Tool):
                     self.set_error("右端比对出错")
                 self.bwa_sampe("pe.sam", "aln_l.sai", "aln_r.sai", self.option("fastq_l").prop["path"], self.option("fastq_r").prop["path"])
             elif self.option("fq_type") in ["SE"]:
-                self.logger.info("run1")
-                # self.bwa_index()
-                self.logger.info("run2")
                 aln_s = self.bwa_aln(self.option("fastq_s").prop["path"], "aln_s.sai")
                 self.wait(aln_s)
                 if aln_s.return_code == 0:

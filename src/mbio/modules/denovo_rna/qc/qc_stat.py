@@ -36,12 +36,19 @@ class QcStatModule(Module):
         """
         if not self.option("fastq_dir").is_set:
             raise OptionError("需要传入fastq文件或者文件夹")
-        if not self.option('fastq_dir').prop['has_list_file']:
-            raise OptionError('fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
+        if self.option("fastq_dir").is_set:
+            list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
+            if not os.path.exists(list_path):
+                OptionError("缺少list文件")
+            self.samples = self.get_list()
+            row_num = len(open(list_path, "r").readline().split())
+            self.logger.info(row_num)
+            if self.option('fq_type') == "PE" and row_num != 3:
+                raise OptionError("PE序列list文件应该包括文件名、样本名和左右端说明三列")
+            elif self.option('fq_type') == "SE" and row_num != 2:
+                raise OptionError("SE序列list文件应该包括文件名、样本名两列")
 
     def finish_update(self, event):
-        # obj = event['bind_object']
-        # self.logger.info(event)
         step = getattr(self.step, event['data'])
         step.finish()
         self.step.update()
@@ -77,7 +84,7 @@ class QcStatModule(Module):
         self.tools.append(self.dup)
 
     def draw_run(self):
-        self.samples = self.get_list()
+        # self.samples = self.get_list()
         # files = []
         n = 1
         if self.option("fq_type") == "PE":
@@ -100,8 +107,8 @@ class QcStatModule(Module):
                 step.start()
                 draw_l.on("end", self.finish_update, "drawL_{}".format(n))
                 draw_r.on("end", self.finish_update, "drawR_{}".format(n))
-                draw_l.on("end", self.rename, "L_{}".format(f))
-                draw_r.on("end", self.rename, "R_{}".format(f))
+                draw_l.on("end", self.rename, "{}_l".format(f))
+                draw_r.on("end", self.rename, "{}_r".format(f))
                 draw_l.run()
                 draw_r.run()
                 self.tools.append(draw_l)
@@ -135,23 +142,37 @@ class QcStatModule(Module):
 
     def set_output(self):
         self.logger.info("set output")
+        for f in glob.glob(r"{}/*".format(self.output_dir)):
+            if os.path.isdir(f):
+                shutil.rmtree(f)
+            else:
+                os.remove(f)
         draw_dir = os.path.join(self.output_dir, "qualityStat")
         if os.path.exists(draw_dir):
             shutil.rmtree(draw_dir)
         os.mkdir(draw_dir)
         draw_out = glob.glob(r"{}/DrawFastqInfo*/output/*".format(self.work_dir))
-        dup_out = glob.glob(r"{}/FastqDup/output/*".format(self.work_dir))
         stat_out = glob.glob(r"{}/FastqStat/output/*".format(self.work_dir))
         for f in draw_out:
-            f_name = f.split("/")[-1]
+            f_name = os.path.basename(f)
             target_path = os.path.join(draw_dir, f_name)
             os.link(f, target_path)
-        for f in dup_out:
-            f_name = f.split("/")[-1]
-            os.link(f, self.output_dir + "/{}".format(f_name))
         for f in stat_out:
-            f_name = f.split("/")[-1]
-            os.link(f, self.output_dir + "/{}".format(f_name))
+            # f_name = os.path.basename(f)
+            os.link(f, self.output_dir + "/{}".format("fastq_stat.xls"))
+        if self.option("dup") is True:
+            dup_out = glob.glob(r"{}/FastqDup/output/*".format(self.work_dir))
+            with open(self.work_dir + "/dup.xls", "w") as w:
+                if self.option("fq_type") == "PE":
+                    w.write("sample\tread1Dup\tread2Dup\tPairedDup\n")
+                else:
+                    w.write("sample\treadDup\n")
+                for f in dup_out:
+                    sample_name = os.path.basename(f).split("_")[0]
+                    f = open(f, "r")
+                    f.readline()
+                    w.write("{}\t{}".format(sample_name, f.next()))
+            os.link(self.work_dir + "/dup.xls", self.output_dir + "/dup.xls")
         self.logger.info("done")
         self.end()
 
@@ -163,10 +184,8 @@ class QcStatModule(Module):
             os.rename(old_name, new_name)
 
     def get_list(self):
-        if self.option("fastq_dir").is_set:
-            self.logger.info("hei")
         list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
-        self.logger.info(list_path)
+        # self.logger.info(list_path)
         file_sample = FileSampleFile()
         file_sample.set_path(list_path)
         samples = file_sample.get_list()
@@ -175,8 +194,20 @@ class QcStatModule(Module):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"]
-        ])
+        if self.option("dup") is True:
+            file_des = [
+                [r".", "", "结果输出目录"],
+                [r"./qualityStat/", "文件夹", "质量统计文件夹"],
+                [r"./fastq_stat.xls", "xls", "fastq信息统计表"],
+                [r"./dup.xls", "xls", "fastq序列重复信息"]
+            ]
+        else:
+            file_des = [
+                [r".", "", "结果输出目录"],
+                [r"./qualityStat/", "文件夹", "质量统计文件夹"],
+                [r"./fastq_stat.xls", "xls", "fastq信息统计表"]
+            ]
+        result_dir.add_relpath_rules(file_des)
+        # print self.get_upload_files()
         super(QcStatModule, self).end()
 
