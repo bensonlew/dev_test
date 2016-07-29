@@ -56,7 +56,7 @@ class HclusterWorkflow(Workflow):
             'specimen_distance_id': self.option('distance_id'),
             'hcluster_method': self.option('method'),
             'submit_location': self.option('submit_location'),
-            'taskType': self.option('task_type')
+            'task_type': self.option('task_type')
             }
         return_id = api_newick.add_tree_file(newick_fath, major=True, table_id=self.option('distance_id'),
                                              task_id=task_id, table_type='dist', tree_type='cluster',

@@ -318,7 +318,7 @@ class MetaBaseWorkflow(Workflow):
                 "level_id": level_id,
                 "indices": ','.join(indice),
                 'submit_location': 'alpha_diversity_index',
-                'taskType': 'reportTask'
+                'task_type': 'reportTask'
                 }
             est_id = api_est.add_est_table(est_path, major=True, level=level_id, otu_id=str(self.otu_id), params=params)
             self.updata_status_api.add_meta_status(table_id=str(est_id), type_name='sg_alpha_diversity')  # 主表写入没有加name，所以此处table_name固定
@@ -331,7 +331,7 @@ class MetaBaseWorkflow(Workflow):
                 "indices": ','.join(indice),
                 'freq': self.option('rarefy_freq'),
                 'submit_location': 'alpha_rarefaction_curve',
-                'taskType': 'reportTask'
+                'task_type': 'reportTask'
                 }
             rare_id = api_rare.add_rare_table(rare_path, level=level_id, otu_id=str(self.otu_id), params=params)
             self.updata_status_api.add_meta_status(table_id=str(rare_id), type_name='sg_alpha_rarefaction_curve')  # 主表写入没有加name，所以此处table_name固定
@@ -347,7 +347,7 @@ class MetaBaseWorkflow(Workflow):
                 # 'otu_id': str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                 'level_id': level_id,
                 'distance_algorithm': self.option('dis_method'),
-                'taskType': 'reportTask',
+                'task_type': 'reportTask',
                 'submit_location': 'beta_sample_distance'  # 为前端分析类型标识
                 }
             dist_id = api_dist.add_dist_table(dist_path, level=level_id, otu_id=self.otu_id, major=True, params=params)
@@ -361,7 +361,7 @@ class MetaBaseWorkflow(Workflow):
                 params = {
                     # 'specimen_distance_id': str(dist_id),  # 在metabase中不能执行，生成dist_id的api可能会被截取
                     'hcluster_method': self.option('linkage'),
-                    'taskType': 'reportTask',
+                    'task_type': 'reportTask',
                     'submit_location': 'beta_sample_distance_hcluster_tree'  # 为前端分析类型标识
                     }
                 tree_id = api_hcluster.add_tree_file(hcluster_path, major=True, table_id=str(dist_id), table_type='dist', tree_type='cluster', params=params)
@@ -377,7 +377,7 @@ class MetaBaseWorkflow(Workflow):
                         'level_id': level_id,
                         'analysis_type': ana,
                         'submit_location': beta_multi_analysis_dict[ana],
-                        'taskType': 'reportTask'
+                        'task_type': 'reportTask'
                         }
                     if self.option('envtable').is_set:
                         # params['env_id'] = str(self.env_id)  # 在metabase中不能执行，生成self.env_id的api可能会被截取

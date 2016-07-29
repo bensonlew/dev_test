@@ -31,7 +31,7 @@ class MultiAnalysis(MetaController):
             'level_id': int(data.level_id),
             'analysis_type': data.analysis_type,
             'submit_location': data.submit_location,
-            'taskType': data.taskType
+            'task_type': data.task_type
             }
         env_id = None
         env_labs = ''

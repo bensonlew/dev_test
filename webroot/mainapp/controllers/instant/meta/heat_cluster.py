@@ -37,7 +37,7 @@ class HeatCluster(MetaController):
         my_param['specimen_ids'] = new_cname
         my_param["submit_location"] = data.submit_location
         my_param["linkage"] = data.linkage
-        my_param["taskType"] = "reportTask"
+        my_param["task_type"] = "reportTask"
         self.params = param_pack(my_param)
         self.run()
         return self.returnInfo
