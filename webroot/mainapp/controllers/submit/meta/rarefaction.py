@@ -44,7 +44,7 @@ class Rarefaction(object):
         sort_index = ','.join(sort_index)
         my_param['indices'] = sort_index
         my_param['submit_location'] = data.submit_location
-        my_param['taskType'] = data.taskType
+        my_param['task_type'] = data.task_type
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
