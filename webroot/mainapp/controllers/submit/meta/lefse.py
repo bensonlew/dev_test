@@ -32,6 +32,7 @@ class Lefse(object):
         my_param['lda_filter'] = float(data.lda_filter)
         my_param['strict'] = int(data.strict)
         my_param['submit_location'] = data.submit_location
+        my_param['taskType'] = data.taskType
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
@@ -66,7 +67,7 @@ class Lefse(object):
                     "group_file": data.group_id,
                     "group_detail": data.group_detail,
                     "second_group_detail": data.second_group_detail,
-                    "group_name": G().get_group_name(data.group_id, lefse=True),
+                    "group_name": G().get_group_name(data.group_id, lefse=True,second_group=data.second_group_detail),
                     "strict": data.strict,
                     "lda_filter": data.lda_filter,
                     "lefse_id": str(lefse_id)
