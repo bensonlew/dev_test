@@ -93,7 +93,7 @@ class GroupStat(object):
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 
-    def get_group_name(self, group_id, lefse=False):
+    def get_group_name(self, group_id, lefse=False, second_group=''):
         """
         根据分组方案id获取分组方案名字
         :param group_id: 分组方案id
@@ -107,10 +107,8 @@ class GroupStat(object):
         collection = self.db['sg_specimen_group']
         result = collection.find_one({'_id': group_id})
         gname = result['group_name']
-        if lefse:
-            if 'second_category_names' in result:
-                if result['second_category_names']:
-                    gname = gname + ',' + 'second_group'
+        if lefse and second_group:
+            gname = gname + ',' + 'second_group'
         return gname
 
     def get_otu_sample_name(self, otu_id):
