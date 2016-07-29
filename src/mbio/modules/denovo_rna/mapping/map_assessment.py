@@ -132,15 +132,15 @@ class MapAssessmentModule(Module):
                     for line in r:
                         w.write(line)
         for f in glob.glob(r"{}/ReadDuplication*/output/*".format(self.work_dir)):
-            f_name = f.split("/")[-1]
+            f_name = os.path.basename(f)
             target_path = os.path.join(self.output_dir, "dup", f_name)
             os.link(f, target_path)
         for f in glob.glob(r"{}/RpkmSaturation*/output/*".format(self.work_dir)):
-            f_name = f.split("/")[-1]
+            f_name = os.path.basename(f)
             target_path = os.path.join(self.output_dir, "satur", f_name)
             os.link(f, target_path)
         for f in glob.glob(r"{}/Coverage*/output/*".format(self.work_dir)):
-            f_name = f.split("/")[-1]
+            f_name = os.path.basename(f)
             target_path = os.path.join(self.output_dir, "bam_stat", f_name)
             os.link(f, target_path)
         self.end()
@@ -157,6 +157,10 @@ class MapAssessmentModule(Module):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"]
+            [r".", "", "结果输出目录"],
+            [r"./coverage/", "", "基因覆盖度分析输出目录"],
+            [r"./dup/", "", "冗余序列分析输出目录"],
+            [r"./satur/", "", "测序饱和度分析输出目录"],
+            [r"./bam_stat.xls", "xls", "bam格式比对结果统计表"]
         ])
         super(MapAssessmentModule, self).end()

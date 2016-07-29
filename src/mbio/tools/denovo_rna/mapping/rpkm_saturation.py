@@ -77,6 +77,7 @@ class RpkmSaturationTool(Tool):
         self.logger.info(cmd)
         cmd = self.add_command("rpkm_plot_{}".format(out_pre.lower()), cmd)
         cmd.run()
+        self.wait()
         if cmd.return_code == 0:
             self.logger.info("运行{}结束!".format(cmd.name))
         else:
@@ -92,13 +93,6 @@ class RpkmSaturationTool(Tool):
         for f in satur_file:
             output_dir = os.path.join(self.output_dir, f)
             os.link(os.path.join(self.work_dir, f), output_dir)
-            if "RPKM" in f:
-                self.logger.info("saturation2plot")
-                self.logger.info(f)
-                plot_cmd = self.rpkm_plot(output_dir, f.split("_")[1].split(".")[0])
-                self.plot_cmd.append(plot_cmd)
-                self.logger.info(self.plot_cmd)
-        self.wait()
         self.logger.info("set done")
         self.end()
 
@@ -109,7 +103,7 @@ class RpkmSaturationTool(Tool):
         super(RpkmSaturationTool, self).run()
         if self.option("bam").format == "align.bwa.bam":
             saturation = self.rpkm_saturation(self.option("bam").prop["path"], "satur")
-            self.wait()
+            self.wait(saturation)
             if saturation.return_code == 0:
                 self.logger.info("运行RPKM_saturation.py脚本结束！")
             else:
@@ -122,6 +116,13 @@ class RpkmSaturationTool(Tool):
                     self.logger.info("运行{}结束!".format(cmd.name))
                 else:
                     self.set_error("运行{}出错!".format(cmd.name))
+        for f in os.listdir(self.work_dir):
+            if "RPKM" in f:
+                self.logger.info("saturation2plot")
+                self.logger.info(f)
+                plot_cmd = self.rpkm_plot(os.path.join(self.work_dir, f), "satur_" + f.split("_")[1].split(".")[0])
+                self.logger.info(plot_cmd)
         self.set_output()
+        # for f in os.listdir(self.output_dir):
 
 

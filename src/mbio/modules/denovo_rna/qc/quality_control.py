@@ -199,7 +199,7 @@ class QualityControlModule(Module):
             with open(os.path.join(sickle_dir, "list.txt"), "w") as w:
                 for f in sickle_out:
                     f_name = f.split("/")[-1]
-                    sample_name = f_name.split("_")[0]
+                    sample_name = f_name.split("_sickle_r.fastq")[0]
                     w.write("{}\t{}".format(f_name, sample_name))
                     if "sickle_r.fastq" in f:
                         w.write("\t{}\n".format("r"))
@@ -255,7 +255,16 @@ class QualityControlModule(Module):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"]
-        ])
+        if self.option("fq_type") == "PE":
+            result_dir.add_relpath_rules([
+                [r".", "", "结果输出目录"],
+                [r"./seqprep_dir/", "文件夹", "PE去接头后fastq文件输出目录"],
+                [r"./sickle_dir/", "文件夹", "质量剪切后fastq文件输出目录"]
+            ])
+        else:
+            result_dir.add_relpath_rules([
+                [r".", "", "结果输出目录"],
+                [r"./clip_dir/", "文件夹", "SE去接头后fastq文件输出目录"],
+                [r"./sickle_dir/", "文件夹", "质量剪切后fastq文件输出目录"]
+            ])
         super(QualityControlModule, self).end()

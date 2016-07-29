@@ -247,6 +247,7 @@ class BwaSamtoolsModule(Module):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"]
+            [r".", "", "结果输出目录"],
+            [r"./sorted_bam/", "文件夹", "排序后的bam格式比对结果文件输出目录"]
         ])
         super(BwaSamtoolsModule, self).end()
