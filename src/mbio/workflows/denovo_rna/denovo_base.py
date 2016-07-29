@@ -95,8 +95,8 @@ class DenovoBaseWorkflow(Workflow):
         self.qc.on('end', self.set_step, {'end': self.step.qcstat})
         self.qc.run()
 
-    def run_qc_stat(self, qc=False):
-        if qc:
+    def run_qc_stat(self, qc):
+        if qc['data']:
             self.qc_stat.set_options({
                 'fastq_dir': self.qc.option('sickle_dir'),
                 'fq_type': self.option('fq_type'),
@@ -267,4 +267,97 @@ class DenovoBaseWorkflow(Workflow):
             self.move2outputdir(obj.output_dir, self.output_dir + 'Express')
 
     def run(self):
-        self.filecheck.on('end', self.run)
+        self.filecheck.on('end', self.run_qc)
+        self.file_check.on('end', self.run_qc_stat, False)
+        self.qc.on('end', self.run_qc_stat, True)
+        self.qc.on('end', self.run_assemble)
+        self.assemble.on('end', self.run_map_orf)
+        self.on_rely([self.orf, self.bwa], self.run_ssr_snp)
+        self.on_rely([self.orf, self.bwa], self.run_map_qc)
+        self.assemble.on('end', self.run_exp_stat)
+        self.exp_stat.on('end', self.run_exp_diff)
+        self.on_rely([self.map_qc, self.run_exp_diff, self.ssr, self.snp], self.end)
+        super(DenovoBaseWorkflow, self).run()
+
+
+    def send_files(self):
+        repaths = [
+            [".", "", "多样性结果文件目录"],
+            ["QC_stat", "", "样本数据统计文件目录"],
+            ["QC_stat/samples_info/samples_info.txt", "txt", "样本信息统计文件"],
+            ["QC_stat/base_info", "", "单个样本碱基质量统计目录"],
+            ["QC_stat/reads_len_info", "", "序列长度分布统计文件目录"],
+            ["Otu", "", "OTU聚类结果文件目录"],
+            ["Tax_assign", "", "OTU对应物种分类文件目录"],
+            ["Tax_assign/seqs_tax_assignments.txt", "taxon.seq_taxon", "OTU序列物种分类文件"],
+            ["OtuTaxon_summary", "", "OTU物种分类综合统计目录"],
+            ["OtuTaxon_summary/otu_taxon.biom", "meta.otu.biom", "OTU的biom格式文件"],
+            ["OtuTaxon_summary/otu_taxon.xls", "meta.otu.otu_table", "OTU物种分类统计表"],
+            ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"],
+            ["Alpha_diversity", "", "Alpha diversity文件目录"],
+            ["Alpha_diversity/estimators.xls", "xls", "Alpha多样性指数表"],
+            ["Beta_diversity", "", "Beta diversity文件目录"],
+            ["Beta_diversity/Anosim", "", "anosim&adonis结果输出目录"],
+            ["Beta_diversity/Anosim/anosim_results.txt", "txt", "anosim分析结果"],
+            ["Beta_diversity/Anosim/adonis_results.txt", "txt", "adonis分析结果"],
+            ["Beta_diversity/Anosim/format_results.xls", "xls", "anosim&adonis综合统计表"],
+            ["Beta_diversity/Dbrda", "", "db_rda分析结果目录"],
+            ["Beta_diversity/Dbrda/db_rda_sites.xls", "xls", "db_rda样本坐标表"],
+            ["Beta_diversity/Dbrda/db_rda_species.xls", "xls", "db_rda物种坐标表"],
+            ["Beta_diversity/Dbrda/db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
+            ["Beta_diversity/Dbrda/db_rda_biplot.xls", "xls", "db_rda数量型环境因子坐标表"],
+            ["Beta_diversity/Box", "", "距离统计和统计检验分析结果目录"],
+            ["Beta_diversity/Box/Stats.xls", "xls", "分组统计检验结果"],
+            ["Beta_diversity/Box/Distances.xls", "xls", "组内组间距离值统计结果"],
+            ["Beta_diversity/Distance", "", "距离矩阵计算结果输出目录"],
+            ["Beta_diversity/Hcluster", "", "层次聚类结果目录"],
+            ["Beta_diversity/Hcluster/hcluster.tre", "graph.newick_tree", "层次聚类树"],
+            ["Beta_diversity/Nmds", "", "NMDS分析结果输出目录"],
+            ["Beta_diversity/Nmds/nmds_sites.xls", "xls", "样本各维度坐标"],
+            ["Beta_diversity/Pca", "", "PCA分析结果输出目录"],
+            ["Beta_diversity/Pca/pca_importance.xls", "xls", "主成分解释度表"],
+            ["Beta_diversity/Pca/pca_rotation.xls", "xls", "物种主成分贡献度表"],
+            ["Beta_diversity/Pca/pca_sites.xls", "xls", "样本各成分轴坐标"],
+            ["Beta_diversity/Pca/pca_envfit_factor_scores.xls", "xls", "哑变量环境因子表"],
+            ["Beta_diversity/Pca/pca_envfit_factor.xls", "xls", "哑变量环境因子坐标表"],
+            ["Beta_diversity/Pca/pca_envfit_vector_scores.xls", "xls", "数量型环境因子表"],
+            ["Beta_diversity/Pca/pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
+            ["Beta_diversity/Pcoa", "", "pcoa分析结果目录"],
+            ["Beta_diversity/Pcoa/pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
+            ["Beta_diversity/Pcoa/pcoa_sites.xls", "xls", "样本坐标表"],
+            ['Beta_diversity/Rda/dca.xls', 'xls', 'DCA分析结果'],
+            ["Beta_diversity/Plsda", "", "plsda分析结果目录"],
+            ["Beta_diversity/Plsda/plsda_sites.xls", "xls", "样本坐标表"],
+            ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
+            ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
+            ["Beta_diversity/Rda", "", "rda_cca分析结果目录"]
+        ]
+        regexps = [
+            [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
+            [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
+            [r'Beta_diversity/Distance/%s.*\.xls$' % self.option('dis_method'), 'meta.beta_diversity.distance_matrix', '样本距离矩阵文件'],
+            [r'Beta_diversity/Rda/.+_importance\.xls$', 'xls', '主成分变化解释度表'],
+            [r'Beta_diversity/Rda/.+_sites\.xls$', 'xls', '样本坐标表'],
+            [r'Beta_diversity/Rda/.+_species\.xls$', 'xls', '物种坐标表'],
+            [r'Beta_diversity/Rda/.+_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
+            [r'Beta_diversity/Rda/.+_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
+            ["Otu/otu_reps.fasta", "sequence.fasta", "OTU代表序列"],
+            ["Otu/otu_seqids.txt", "txt", "OTU代表序列名称列表"],
+            ["Otu/otu_table.biom", 'meta.otu.biom', "OTU表对应的Biom文件"],
+            ["Otu/otu_table.xls", "meta.otu.otu_table", "OTU统计表"],
+            ["Otu/otu_phylo.tre", "graph.newick_tree", "OTU代表序列进化树"],
+            ["QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "txt", "单个样本碱基质量统计文件"],
+            ["QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "txt", "序列长度分布统计文件"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "单级物种分类统计表"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
+        ]
+        sdir = self.add_upload_dir(self.output_dir)
+        sdir.add_relpath_rules(repaths)
+        sdir.add_regexp_rules(regexps)
+        for i in self.get_upload_files():
+            self.logger.info('upload file:{}'.format(str(i)))
+
+    def end(self):
+        self.send_files()
+        super(MetaBaseWorkflow, self).end()
