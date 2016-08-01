@@ -22,7 +22,7 @@ class Rarefaction(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'index_type', 'freq', 'submit_location']
+        params_name = ['otu_id', 'level_id', 'index_type', 'freq', 'submit_location', 'task_type']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
@@ -44,6 +44,7 @@ class Rarefaction(object):
         sort_index = ','.join(sort_index)
         my_param['indices'] = sort_index
         my_param['submit_location'] = data.submit_location
+        my_param['task_type'] = data.task_type
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
