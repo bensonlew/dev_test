@@ -86,6 +86,7 @@ class FileMetabaseTool(Tool):
             gp_sample = self.option("group_table").prop["sample"]
             for gp in gp_sample:
                 if gp not in self.samples:
+                    self.set_error("group表出错, 样本{}在fastq文件中未出现".format(gp))
                     raise Exception("group表出错, 样本{}在fastq文件中未出现".format(gp))
         else:
             self.logger.info("未检测到group文件， 跳过...")
