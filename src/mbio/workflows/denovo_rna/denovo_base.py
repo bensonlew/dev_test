@@ -84,7 +84,10 @@ class DenovoBaseWorkflow(Workflow):
             'SS_lib_type': self.option('SS_lib_type'),
         }
         if self.option('fq_type') == 'SE':
-            opts.update({'fq_type': self.option('fq_type')})
+            opts.update({'fq_s': self.option('fq_s')})
+        else:
+            opts.update({'fq_s': self.option('fq_s')})
+
         self.assemble.set_options()
 
     def move2outputdir(self, olddir, newname, mode='link'):

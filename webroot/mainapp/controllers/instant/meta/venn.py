@@ -40,7 +40,7 @@ class Venn(MetaController):
         my_param['group_id'] = data.group_id
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param["submit_location"] = data.submit_location
-        my_param["taskType"] = "reportTask"
+        my_param["task_type"] = "reportTask"
         self.params = param_pack(my_param)
         self.run()
         return self.returnInfo
