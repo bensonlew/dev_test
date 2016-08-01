@@ -45,7 +45,7 @@ class RsemAgent(Agent):
         重写参数检测函数
         :return:
         """
-        # print self.option('fq_s'), self.option("fq_l"), self.option("fq_r")
+        # print self.option('fq_s').is_set, self.option("fq_l"), self.option("fq_r")
         if not self.option("fq_l") and not self.option("fq_r") and not self.option("fq_s"):
             raise OptionError("必须设置PE测序输入文件或者SE测序输入文件")
         if self.option("fq_l") and self.option("fq_r") and self.option("fq_s"):
@@ -86,8 +86,10 @@ class RsemTool(Tool):
         super(RsemTool, self).__init__(config)
         self._version = '1.0.1'
         self.fpkm = "/bioinfo/rna/scripts/abundance_estimates_to_matrix.pl"
-        self.tpm = "/bioinfo/rna/trinityrnaseq-2.1.1/util/abundance_estimates_to_matrix.pl"
-        self.rsem = "/bioinfo/rna/trinityrnaseq-2.1.1/util/align_and_estimate_abundance.pl"
+        self.tpm = "/bioinfo/rna/trinityrnaseq-2.2.0/util/abundance_estimates_to_matrix.pl"
+        self.rsem = "/bioinfo/rna/trinityrnaseq-2.2.0/util/align_and_estimate_abundance.pl"
+        self.rsem_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/RSEM-1.2.31/bin'
+        self.set_environ(PATH=self.rsem_path)
 
     def fq_bam(self, bamdir):
         bamfiles = os.listdir(bamdir)

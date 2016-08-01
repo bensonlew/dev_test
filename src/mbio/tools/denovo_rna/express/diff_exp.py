@@ -8,6 +8,7 @@ from mbio.packages.denovo_rna.express.edger_stat import *
 import os
 import re
 import itertools
+import shutil
 
 class DiffExpAgent(Agent):
     """
@@ -64,7 +65,7 @@ class DiffExpAgent(Agent):
         if self.option("sample_list") != '' and self.option("edger_group").is_set:
             raise OptionError("有生物学重复时不可设sample_list参数")
         samples, genes = self.option('count').get_matrix_info()
-        num, control_vs = self.option('control_file').get_control_info()
+        # num, control_vs = self.option('control_file').get_control_info()
         if self.option("sample_list") != '':
             sam = self.option("sample_list").split(',')
             for i in sam:
@@ -78,9 +79,9 @@ class DiffExpAgent(Agent):
         else:
             vs_list = list(itertools.permutations(samples, 2))
         # print samples,vs_list,num,control_vs
-        if num != len(vs_list) / 2:
-            raise OptionError("缺少对照样本名")
-        for n in control_vs:
+        # if num != len(vs_list) / 2:
+        #     raise OptionError("缺少对照样本名")
+        for n in self.option('control_file').prop['vs_list']:
             if n not in vs_list:
                 raise OptionError("对照样本名在fpkm表中不存在")
         return True
@@ -114,7 +115,7 @@ class DiffExpTool(Tool):
     def __init__(self, config):
         super(DiffExpTool, self).__init__(config)
         self._version = '1.0.1'
-        self.edger = "rna/trinityrnaseq-2.1.1/Analysis/DifferentialExpression/run_DE_analysis.pl"
+        self.edger = "/bioinfo/rna/trinityrnaseq-2.2.0/Analysis/DifferentialExpression/run_DE_analysis.pl"
 
     def run_edger(self):
         if self.option('edger_group').is_set:
@@ -128,9 +129,12 @@ class DiffExpTool(Tool):
         if edger_com.return_code == 0:
             self.logger.info("运行edger_cmd成功")
             edger = os.listdir(self.work_dir + '/edger_result/')
+            edger_files = ''
             for f in edger:
                 if re.search(r'edgeR.DE_results$', f):
-                    get_diff_list(self.work_dir + '/edger_result/' + f, self.output_dir + '/diff_list', self.option('diff_ci'))
+                    get_diff_list(self.work_dir + '/edger_result/' + f, self.work_dir + '/' + f.split('.')[3] + '_diff_list', self.option('diff_ci'))
+                    edger_files += '%s ' % (self.work_dir + '/' + f.split('.')[3] + '_diff_list')
+            os.system('cat %s> diff_list && sort diff_list | uniq' % edger_files)
         else:
             self.logger.info("运行edger_cmd出错")
 
@@ -140,7 +144,8 @@ class DiffExpTool(Tool):
         self.logger.info(genes,gene_num)
         if not self.option('edger_group').is_set and gene_num > 10000:
             diff_num = len(open('diff_list','rb').readlines())
-            dispersion = check_dispersion(genes, diff_num, self.potion('diff_rate'))
+            dispersion = check_dispersion(genes, diff_num, self.option('diff_rate'))
+            shutil.rmtree(self.work_dir + '/edger_result/')
             self.run_edger()
         else:
             pass
@@ -155,9 +160,16 @@ class DiffExpTool(Tool):
                     con_keys = i.split('_vs_')
                     if con_keys[0] in afile and con_keys[1] in afile:
                         if self.option("edger_group").is_set:
-                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], control_dict[i][0], control_dict[i][1], self.output_dir + "/", './edger_group', self.option("diff_ci"))
+                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], control_dict[i][0], control_dict[i][1], self.output_dir + "/", './edger_group', self.option("diff_ci"), True)
                         else:
-                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], control_dict[i][0], control_dict[i][1], self.output_dir + "/", None, self.option("diff_ci"))
+                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], control_dict[i][0], control_dict[i][1], self.output_dir + "/", None, self.option("diff_ci"), True)
+                    else:
+                        control = afile.split('.')[3].split('_vs_')[0]
+                        other = afile.split('.')[3].split('_vs_')[1]
+                        if self.option("edger_group").is_set:
+                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], control, other, self.output_dir + "/", './edger_group', self.option("diff_ci"), False)
+                        else:
+                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], control, other, self.output_dir + "/", None, self.option("diff_ci"), False)
             else:
                 pass
 

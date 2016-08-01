@@ -27,8 +27,7 @@ class SnpModule(Module):
         ]
         self.add_option(options)
         self.bam_files = []
-        self.end_info = 0
-        self.varscan = []
+        self.end_info = 1
         self.samtools = []
 
     def check_options(self):
@@ -56,6 +55,7 @@ class SnpModule(Module):
         n = 1
         self.logger.info(len(self.bam_files))
         for f_path in self.bam_files:
+            sample_name = f_path.split("/")[-1].split(".")[0]
             self.logger.info(f_path)
             samtools = self.add_tool('denovo_rna.gene_structure.samtools')
             self.step.add_steps('samtools_{}'.format(n))
@@ -68,72 +68,47 @@ class SnpModule(Module):
             step.start()
             samtools.on("end", self.samtools_finish_update, 'samtools_{}'.format(n))
             self.logger.info(n)
-            samtools.on("end", self.varscan_single, n)
+            samtools.on("end", self.varscan_single, sample_name)
             n += 1
             self.samtools.append(samtools)
         self.logger.info(self.samtools)
         if len(self.samtools) == 1:
-            # self.samtools[0].on("end", self.varscan_run)
             self.samtools[0].run()
         else:
-            # self.on_rely(sam_tools, self.varscan_run)
-            # self.logger.info("samtools-run")
             for tool in self.samtools:
                 tool.run()
-
-    # def varscan_run(self):
-    #     self.logger.info("varscan")
-    #     varscan_tools = []
-    #     files = glob.glob("{}/Samtools*/output/*.pileup".format(self.work_dir))
-    #     self.logger.info(files)
-    #     n = 1
-    #     for f_path in files:
-    #         self.logger.info(f_path)
-    #         varscan = self.add_tool('denovo_rna.gene_structure.varscan')
-    #         self.step.add_steps('varscan_{}'.format(n))
-    #         varscan.set_options({
-    #             "pileup": f_path,
-    #             "method": self.option("varscan_method")
-    #         })
-    #         step = getattr(self.step, 'varscan_{}'.format(n))
-    #         step.start()
-    #         varscan.on("end", self.samtools_finish_update, 'varscan_{}'.format(n))
-    #         # varscan.run()
-    #         varscan_tools.append(varscan)
-    #         n += 1
-    #     if len(varscan_tools) == 1:
-    #         varscan_tools[0].on("end", self.set_output)
-    #         varscan_tools[0].run()
-    #     else:
-    #         # self.on_rely(varscan_tools, self.set_output)
-    #         for tool in varscan_tools:
-    #             tool.run()
-    #         self.on_rely(varscan_tools, self.set_output)
 
     def varscan_single(self, event):
         self.logger.info("varscan")
         obj = event["bind_object"]
         pileup_path = obj.option("pileup").prop["path"]
-        self.logger.info(pileup_path)
+        self.logger.info(self.end_info)
         self.logger.info(event["data"])
         # file_name = event["data"].split("/")[-1].split(".")[0]
         varscan = self.add_tool('denovo_rna.gene_structure.varscan')
-        self.step.add_steps('varscan_{}'.format(event["data"]))
+        self.step.add_steps('varscan_{}'.format(self.end_info))
         varscan.set_options({
                 "pileup": pileup_path,
                 "method": self.option("varscan_method")
             })
-        step = getattr(self.step, 'varscan_{}'.format(event["data"]))
+        step = getattr(self.step, 'varscan_{}'.format(self.end_info))
         step.start()
-        varscan.on("end", self.samtools_finish_update, 'varscan_{}'.format(event["data"]))
+        varscan.on("end", self.samtools_finish_update, 'varscan_{}'.format(self.end_info))
+        varscan.on("end", self.rename, event["data"])
         varscan.on("end", self.set_output)
         self.logger.info("varscanrun")
         varscan.run()
-        self.varscan.append(varscan)
+        # self.varscan.append(varscan)
+
+    def rename(self, event):
+        obj = event["bind_object"]
+        for f in os.listdir(obj.output_dir):
+            old_name = os.path.join(obj.output_dir, f)
+            new_name = os.path.join(obj.output_dir, event["data"] + "_" + f)
+            os.rename(old_name, new_name)
 
     def set_output(self):
         self.logger.info("set output")
-        self.logger.info(len(self.bam_files))
         if self.end_info < len(self.bam_files):
             self.logger.info(self.end_info)
             self.end_info += 1
@@ -144,8 +119,14 @@ class SnpModule(Module):
                     shutil.rmtree(f_path)
                 else:
                     os.remove(f_path)
-            samtools_out = glob.glob(r"{}/Samtools*/output/*".format(self.work_dir))
-            self.logger.info(samtools_out)
+            # samtools_out = glob.glob(r"{}/Samtools*/output/*".format(self.work_dir))
+            varscan_out = glob.glob(r"{}/Varscan*/output/*".format(self.work_dir))
+            self.logger.info(varscan_out)
+            for f in varscan_out:
+                f_name = f.split("/")[-1]
+                target_path = os.path.join(self.output_dir, f_name)
+                os.link(f, target_path)
+            # self.logger.info(samtools_out)
             self.logger.info("done")
             self.end()
 
@@ -154,8 +135,9 @@ class SnpModule(Module):
         运行
         :return:
         """
-        super(SnpModule, self).run()
+        # super(SnpModule, self).run()
         self.samtools_run()
+        super(SnpModule, self).run()
         # self.on_rely(self.varscan, self.set_output)
 
     def end(self):

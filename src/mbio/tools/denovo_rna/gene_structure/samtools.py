@@ -190,6 +190,7 @@ class SamtoolsTool(Tool):
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)
             os.link(os.path.join(self.work_dir, f), output_dir)
+            os.remove(os.path.join(self.work_dir, f))
             if postfix == "out_bam":
                 self.option("out_bam").set_path(output_dir)
             else:

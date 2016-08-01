@@ -5,6 +5,7 @@ import shutil
 import glob
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
+from mbio.files.sequence.file_sample import FileSampleFile
 
 
 class BwaSamtoolsModule(Module):
@@ -24,14 +25,16 @@ class BwaSamtoolsModule(Module):
             {"name": "fastq_s", "type": "infile", "format": "sequence.fastq"},  # SE序列文件
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
             {"name": "head", "type": "string", "default": None},  # 设置结果头文件
-            # {"name": "sam", "type": "outfile", "format": "align.samtools.sam,align.samtools.sam_dir"},
+            # {"name": "sam", "type": "outfile", "format": "align.bwa.sam_dir"},
             # {"name": "sam", "type": "infile", "format": "align.bwa.sam"},    # sam格式文件
-            {"name": "out_bam", "type": "outfile", "format": "align.bwa.bam"},  # bam格式输入文件
+            {"name": "out_bam", "type": "outfile", "format": "align.bwa.bam_dir"},  # bam格式输入文件
             {"name": "method", "type": "string", "default": ""}     # samtool工具
         ]
         self.add_option(options)
-        self.bwa = self.add_tool('align.bwa.bwa')
-        # self.samtools = self.add_tool('denovo_rna.gene_structure.samtools')
+        self.samples = {}
+        self.bwa_tools = []
+        self.bwa = None
+        self.end_times = 1
         self.step.add_steps('bwa')
 
     def check_options(self):
@@ -40,6 +43,15 @@ class BwaSamtoolsModule(Module):
         """
         if not self.option("ref_fasta").is_set:
             raise OptionError("请传入参考序列")
+        if self.option("fastq_dir").is_set:
+            self.samples = self.get_list()
+            list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
+            row_num = len(open(list_path, "r").readline().split())
+            self.logger.info(row_num)
+            if self.option('fq_type') == "PE" and row_num != 3:
+                raise OptionError("PE序列list文件应该包括文件名、样本名和左右端说明三列")
+            elif self.option('fq_type') == "SE" and row_num != 2:
+                raise OptionError("SE序列list文件应该包括文件名、样本名两列")
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError("请说明序列类型，PE or SE?")
         if not self.option("fastq_dir").is_set and self.option('fq_type') in ["PE"]:
@@ -47,115 +59,195 @@ class BwaSamtoolsModule(Module):
                 raise OptionError("请传入PE右端序列文件")
             if not self.option("fastq_l").is_set:
                 raise OptionError("请传入PE左端序列文件")
-        if self.option('fq_type') in ["SE"] and not self.option("fastq_s").is_set:
-            raise OptionError("请传入SE序列文件")
+        if not self.option("fastq_dir").is_set and self.option('fq_type') == "SE":
+            if not self.option("fastq_s").is_set:
+                raise OptionError("请传入SE序列文件")
         return True
 
     def bwa_finish_update(self):
         self.step.bwa.finish()
         self.step.update()
 
-    def samtools_finish_update(self, event):
-        # obj = event['bind_object']
-        # self.logger.info(event)
+    def finish_update(self, event):
         step = getattr(self.step, event['data'])
         step.finish()
         self.step.update()
 
-    def bwa_run(self):
-        if self.option("fastq_dir").is_set:
+    def samtools_finish_update(self, event):
+        step = getattr(self.step, event['data'])
+        step.finish()
+        self.step.update()
+
+    def multi_bwa_run(self):
+        # self.samples = self.get_list()
+        n = 0
+        if self.option("fq_type") == "PE":
+            for f in self.samples:
+                fq_l = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])
+                fq_r = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["r"])
+                bwa = self.add_tool('align.bwa.bwa')
+                self.step.add_steps('bwa_{}'.format(n))
+                bwa.set_options({
+                    "ref_fasta": self.option('ref_fasta').prop["path"],
+                    'fastq_l': fq_l,
+                    'fastq_r': fq_r,
+                    'fq_type': self.option('fq_type')
+                })
+                step = getattr(self.step, 'bwa_{}'.format(n))
+                step.start()
+                bwa.on("end", self.finish_update, "bwa_{}".format(n))
+                bwa.on("end", self.rename, f)
+                bwa.on("end", self.samtools_run, n)
+                # bwa.run()
+                self.bwa_tools.append(bwa)
+        elif self.option("fq_type") == "SE":
+            for f in self.samples:
+                fq_s = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f])
+                bwa = self.add_tool('align.bwa.bwa')
+                self.step.add_steps('bwa_{}'.format(n))
+                bwa.set_options({
+                    "ref_fasta": self.option('ref_fasta').prop["path"],
+                    'fastq_s': fq_s,
+                    'fq_type': self.option('fq_type')
+                })
+                step = getattr(self.step, 'bwa_{}'.format(n))
+                step.start()
+                bwa.on("end", self.finish_update, "bwa_{}".format(n))
+                bwa.on("end", self.rename, f)
+                bwa.on("end", self.samtools_run, n)
+                # bwa.run()
+                self.bwa_tools.append(bwa)
+        if len(self.bwa_tools) == 1:
+            # self.bwa_tools[0].on("end", self.multi_samtools_run)
+            self.bwa_tools[0].run()
+        else:
+            for tool in self.bwa_tools:
+                tool.run()
+            # self.on_rely(self.bwa_tools, self.multi_samtools_run)
+
+    def bwa_single_run(self):
+        self.bwa = self.add_tool('align.bwa.bwa')
+        if self.option("fq_type") == "PE":
             self.bwa.set_options({
                 "ref_fasta": self.option('ref_fasta').prop["path"],
-                'fastq_dir': self.option('fastq_dir').prop["path"],
+                'fastq_l': self.option('fastq_l').prop["path"],
+                'fastq_r': self.option('fastq_r').prop["path"],
                 'fq_type': self.option('fq_type')
                 })
-        elif not self.option("fastq_dir").is_set:
-            if self.option("fq_type") == "PE":
-                self.bwa.set_options({
-                    "ref_fasta": self.option('ref_fasta').prop["path"],
-                    'fastq_l': self.option('fastq_l').prop["path"],
-                    'fastq_r': self.option('fastq_r').prop["path"],
-                    'fq_type': self.option('fq_type')
-                    })
-            elif self.option("fq_type") == "SE":
-                self.bwa.set_options({
-                    "ref_fasta": self.option('ref_fasta').prop["path"],
-                    'fastq_s': self.option('fastq_s').prop["path"],
-                    'fq_type': self.option('fq_type')
-                    })
-        # else:
-        #     raise OptionError("文件类型不正确")
+        elif self.option("fq_type") == "SE":
+            self.bwa.set_options({
+                "ref_fasta": self.option('ref_fasta').prop["path"],
+                'fastq_s': self.option('fastq_s').prop["path"],
+                'fq_type': self.option('fq_type')
+                })
         self.step.bwa.start()
         self.bwa.on("end", self.bwa_finish_update)
-        self.bwa.on("end", self.multi_samtools_run)
+        self.bwa.on("end", self.samtools_run, 1)
         self.bwa.run()
 
-    def multi_samtools_run(self):
-        tools = []
-        files = os.listdir(self.bwa.output_dir)
-        n = 1
-        for f in files:
-            f_path = os.path.join(self.bwa.output_dir, f)
-            self.logger.info(f_path)
-            samtools = self.add_tool('denovo_rna.gene_structure.samtools')
-            self.step.add_steps('samtools_{}'.format(n))
-            samtools.set_options({
-                "ref_fasta": self.option('ref_fasta').prop["path"],
-                "sam": f_path,
-                "method": "sort"
-            })
-            step = getattr(self.step, 'samtools_{}'.format(n))
-            step.start()
-            samtools.on("end", self.samtools_finish_update, 'samtools_{}'.format(n))
-            # samtools.run()
-            tools.append(samtools)
-            n += 1
-        self.logger.info(len(tools))
-        if len(tools) == 1:
-            tools[0].on("end", self.set_output)
-            tools[0].run()
-        else:
-            for tool in tools:
-                tool.run()
-            self.on_rely(tools, self.set_output)
+    def samtools_run(self, event):
+        obj = event["bind_object"]
+        bwa_output = os.listdir(obj.output_dir)
+        f_path = os.path.join(obj.output_dir, bwa_output[0])
+        self.logger.info(f_path)
+        samtools = self.add_tool('denovo_rna.gene_structure.samtools')
+        self.step.add_steps('samtools_{}'.format(event["data"]))
+        samtools.set_options({
+            "ref_fasta": self.option('ref_fasta').prop["path"],
+            "sam": f_path,
+            "method": "sort"
+        })
+        step = getattr(self.step, 'samtools_{}'.format(event["data"]))
+        step.start()
+        samtools.on("end", self.finish_update, 'samtools_{}'.format(event["data"]))
+        samtools.on("end", self.set_output)
+        self.logger.info("samRunnnnn")
+        samtools.run()
+        # self.samtools.append(samtools)
+
+    # def multi_samtools_run(self):
+    #     tools = []
+    #     files = glob.glob(r"{}/Bwa*/output/*".format(self.work_dir))
+    #     self.logger.info(files)
+    #     n = 1
+    #     for f in files:
+    #         samtools = self.add_tool('denovo_rna.gene_structure.samtools')
+    #         self.step.add_steps('samtools_{}'.format(n))
+    #         samtools.set_options({
+    #             "ref_fasta": self.option('ref_fasta').prop["path"],
+    #             "sam": f,
+    #             "method": "sort"
+    #         })
+    #         step = getattr(self.step, 'samtools_{}'.format(n))
+    #         step.start()
+    #         samtools.on("end", self.samtools_finish_update, 'samtools_{}'.format(n))
+    #         # samtools.run()
+    #         tools.append(samtools)
+    #         n += 1
+    #     self.logger.info(len(tools))
+    #     if len(tools) == 1:
+    #         tools[0].on("end", self.set_output)
+    #         tools[0].run()
+    #     else:
+    #         for tool in tools:
+    #             tool.run()
+    #         self.on_rely(tools, self.set_output)
+
+    def rename(self, event):
+        obj = event["bind_object"]
+        for f in os.listdir(obj.output_dir):
+            old_name = os.path.join(obj.output_dir, f)
+            new_name = os.path.join(obj.output_dir, event["data"] + ".sam")
+            os.rename(old_name, new_name)
+
+    def get_list(self):
+        list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
+        file_sample = FileSampleFile()
+        file_sample.set_path(list_path)
+        samples = file_sample.get_list()
+        return samples
 
     def set_output(self):
         self.logger.info("set output")
-        for f in os.listdir(self.output_dir):
-            f_path = os.path.join(self.output_dir, f)
-            if os.path.isdir(f_path):
-                shutil.rmtree(f_path)
-            else:
-                os.remove(f_path)
-        sam_dir = os.path.join(self.output_dir, "sam")
-        # self.option('sam').set_path(sam_dir)
-        bam_dir = os.path.join(self.output_dir, "sorted_bam")
-        # self.option('out_bam').set_path(bam_dir)
-        os.makedirs(sam_dir)
-        os.makedirs(bam_dir)
-        for f in os.listdir(self.bwa.output_dir):
-            bwa_output = os.path.join(self.bwa.output_dir, f)
-            sam_output = os.path.join(sam_dir, f)
-            os.link(bwa_output, sam_output)
-        self.logger.info("{}/Samtools*".format(self.work_dir))
-        samtools_out = glob.glob(r"{}/Samtools*".format(self.work_dir))
-        for sam_out in samtools_out:
-            sorted_bam = glob.glob(r"{}/*sorted.bam".format(sam_out))
-            for bam in sorted_bam:
+        if self.end_times < len(self.samples):
+            self.end_times += 1
+        elif self.end_times == len(self.samples):
+            for f in os.listdir(self.output_dir):
+                f_path = os.path.join(self.output_dir, f)
+                if os.path.isdir(f_path):
+                    shutil.rmtree(f_path)
+                else:
+                    os.remove(f_path)
+            bam_dir = os.path.join(self.output_dir, "sorted_bam")
+            os.makedirs(bam_dir)
+            samtools_out = glob.glob(r"{}/Samtools*/output/*sorted.bam".format(self.work_dir))
+            self.logger.info(samtools_out)
+            for bam in samtools_out:
                 target = bam_dir + "/" + bam.split("/")[-1]
                 if os.path.exists(target):
                     os.remove(target)
                 os.link(bam, target)
-        self.logger.info("set output done")
-        self.end()
+            # sam_dir = os.path.join(self.output_dir, "sam")
+            # os.makedirs(sam_dir)
+            # for f in glob.glob(r"{}/Bwa*/output/*".format(self.work_dir)):
+            #     f_name = f.split("/")[-1]
+            #     sam_output = os.path.join(sam_dir, f_name)
+            #     os.link(f, sam_output)
+            self.option('out_bam').set_path(bam_dir)
+            self.logger.info("set output done")
+            self.end()
 
     def run(self):
+        if self.option("fastq_dir").is_set:
+            self.multi_bwa_run()
+        else:
+            self.bwa_single_run()
         super(BwaSamtoolsModule, self).run()
-        self.bwa_run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"]
+            [r".", "", "结果输出目录"],
+            [r"./sorted_bam/", "文件夹", "排序后的bam格式比对结果文件输出目录"]
         ])
         super(BwaSamtoolsModule, self).end()

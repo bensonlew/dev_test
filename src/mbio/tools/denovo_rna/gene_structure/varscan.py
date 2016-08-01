@@ -70,7 +70,7 @@ class VarscanTool(Tool):
 
     def __init__(self, config):
         super(VarscanTool, self).__init__(config)
-        self.varscan_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/gene-structure/VarScan.v2.3.9.jar"
+        self.varscan_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/VarScan.v2.3.9.jar"
         self.java_path = "program/sun_jdk1.8.0/bin/"
 
     def pileup2snp(self):

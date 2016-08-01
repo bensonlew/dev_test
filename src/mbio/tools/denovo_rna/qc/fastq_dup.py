@@ -6,6 +6,7 @@ from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.files.sequence.file_sample import FileSampleFile
 import os
+import glob
 
 
 class FastqDupAgent(Agent):
@@ -99,7 +100,7 @@ class FastqDupTool(Tool):
                 cmd = "{}python {}fastq_dup.py -t {} -l {} -r {} -o {}".format(self.python_path, self.script_path, "PE", fq_l, fq_r, sample + "_dup.xls")
             else:
                 fq_s = os.path.join(self.fq_path, self.samples[sample])
-                cmd = "{}python {}fastq_dup.py -t {} -s {} -o {}".format(self.python_path, self.script_path, "PE", fq_s, sample + "_dup.xls")
+                cmd = "{}python {}fastq_dup.py -t {} -s {} -o {}".format(self.python_path, self.script_path, "SE", fq_s, sample + "_dup.xls")
             self.logger.info(cmd)
             self.logger.info("开始运行{}_dup.py".format(sample.lower()))
             command = self.add_command("{}_dup".format(sample.lower()), cmd)
@@ -110,7 +111,7 @@ class FastqDupTool(Tool):
     def single_dup(self):
         if self.option("fq_type") == "SE":
             fq_s = self.option("fastq_s").prop["path"]
-            cmd = "{}python {}fastq_dup.py -t {} -s {} -o {}".format(self.python_path, self.script_path, "PE", fq_s, "fastq_dup.xls")
+            cmd = "{}python {}fastq_dup.py -t {} -s {} -o {}".format(self.python_path, self.script_path, "SE", fq_s, "fastq_dup.xls")
         else:
             fq_l = self.option("fastq_l").prop["path"]
             fq_r = self.option("fastq_r").prop["path"]
@@ -130,9 +131,11 @@ class FastqDupTool(Tool):
         self.logger.info("set output")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        # from_path = self.work_dir + "/fastq_dup_xls"
-        # target_path = self.output_dir + "/fastq_dup_xls"
-        # os.link(from_path, target_path)
+        outfiles = glob.glob(r"*dup.xls")
+        for f in outfiles:
+            from_path = self.work_dir + "/" + f
+            target_path = self.output_dir + "/" + f
+            os.link(from_path, target_path)
         self.logger.info("done")
 
     def run(self):
