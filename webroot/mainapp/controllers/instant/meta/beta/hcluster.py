@@ -27,7 +27,7 @@ class Hcluster(MetaController):
             'distance_id': data.specimen_distance_id,
             'method': data.hcluster_method,
             'submit_location': data.submit_location,
-            'task_type': data.taskType
+            'task_type': data.task_type
             }
         self.to_file = 'dist_matrix.export_distance_matrix(distance_matrix)'
         self.run()
