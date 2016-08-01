@@ -5,6 +5,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
+from mbio.packages.denovo_rna.gene_structure.snp_position import snp_stat
 
 
 class VarscanAgent(Agent):
@@ -22,6 +23,7 @@ class VarscanAgent(Agent):
         options = [
             {"name": "pileup", "type": "infile", "format": "denovo_rna.gene_structure.pileup"},  # mpileup 输出格式
             {"name": "method", "type": "string", "default": "pileup2snp"},  # mpileup 输出格式
+            {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             # {"name": "vcf", "type": "outfile", "format": "vcf"}     # Variant Call Format
         ]
         self.add_option(options)
@@ -90,7 +92,13 @@ class VarscanTool(Tool):
         self.logger.info("set out put")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        os.link(self.work_dir+'/pileup2snp.o', self.output_dir+'/pileup_out.xls')
+        if self.option("bed").is_set:
+            snp_stat(self.work_dir+'/pileup2snp.o', self.option("bed").prop["path"])
+            os.link(self.work_dir + "/snp.xls", self.output_dir + "/snp.xls")
+            os.link(self.work_dir + "/snp_type_stat.xls", self.output_dir + "/snp_type_stat.xls")
+            os.link(self.work_dir + "/snp_position_stat.xls", self.output_dir + "/snp_position_stat.xls")
+        else:
+            os.link(self.work_dir+'/pileup2snp.o', self.output_dir+'/pileup_out.xls')
         self.logger.info("done")
 
     def run(self):
