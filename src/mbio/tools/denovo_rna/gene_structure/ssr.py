@@ -26,6 +26,17 @@ class SsrAgent(Agent):
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"}  # bed格式文件
         ]
         self.add_option(options)
+        self.step.add_steps('ssr')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.ssr.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.ssr.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -41,6 +52,18 @@ class SsrAgent(Agent):
         self._cpu = 10
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            # ["./estimators.xls", "xls", "alpha多样性指数表"]
+        ])
+        result_dir.add_regexp_rules([
+            [r"misa$", "misa", "ssr结果"]
+        ])
+        # print self.get_upload_files()
+        super(SsrAgent, self).end()
+
 
 class SsrTool(Tool):
     """
@@ -51,7 +74,7 @@ class SsrTool(Tool):
         super(SsrTool, self).__init__(config)
         self.misa_path = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/gene-structure/misa/")
         self.primer3_path = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/gene-structure/primer3-2.3.7/")
-        self.script_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/gene-structure/scripts/"
+        self.script_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/scripts/"
         self.fasta_name = self.option("fasta").prop["path"].split("/")[-1]
         self.perl_path = "program/perl/perls/perl-5.24.0/bin/"
         self.python_path = "program/Python/bin/"

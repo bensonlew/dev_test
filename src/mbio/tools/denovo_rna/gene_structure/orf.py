@@ -29,6 +29,17 @@ class OrfAgent(Agent):
             {"name": "pep", "type": "outfile", "format": "sequence.fasta"}  # 输出结果
         ]
         self.add_option(options)
+        self.step.add_steps('orf')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.orf.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.orf.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -44,6 +55,24 @@ class OrfAgent(Agent):
         self._cpu = 20
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            # ["./estimators.xls", "xls", "alpha多样性指数表"]
+        ])
+        result_dir.add_regexp_rules([
+            [r"transdecoder.pep$", "fasta", "蛋白质序列文件"],
+            [r"transdecoder.cds$", "fasta", "cds序列文件"],
+            [r"transdecoder.bed$", "bed", "orf位置信息bed格式文件"]
+        ])
+        if self.option("search_pfam") is True:
+            result_dir.add_relpath_rules([
+                ["./pfam_domain", "", "Pfam比对蛋白域结果信息"]
+            ])
+        # print self.get_upload_files()
+        super(OrfAgent, self).end()
+
 
 class OrfTool(Tool):
     """
@@ -54,8 +83,11 @@ class OrfTool(Tool):
         super(OrfTool, self).__init__(config)
         self.transdecoder_path = "bioinfo/gene-structure/TransDecoder-3.0.0/"
         self.hmmscan_path = "bioinfo/align/hmmer-3.1b2/binaries/"
-        self.pfam_db = "/mnt/ilustre/users/sanger-dev/app/database/Pfam/Pfam-A.hmm"
+        self.pfam_db = self.config.SOFTWARE_DIR + "/database/Pfam/Pfam-A.hmm"
         self.fasta_name = self.option("fasta").prop["path"].split("/")[-1]
+        self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
+        self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
 
     def td_longorfs(self):
         self.logger.info(self.option("p_length"))
@@ -116,7 +148,8 @@ class OrfTool(Tool):
         self.option('bed').set_path(self.output_dir+"/"+bed)
         os.link(self.work_dir+"/"+cds, self.output_dir+"/"+cds)
         self.option('cds').set_path(self.output_dir+"/"+cds)
-        os.link(self.work_dir+"/"+"pfam_domain", self.output_dir+"/"+"pfam_domain")
+        if self.option("search_pfam") is True:
+            os.link(self.work_dir+"/"+"pfam_domain", self.output_dir+"/"+"pfam_domain")
         self.logger.info("done")
 
     def run(self):

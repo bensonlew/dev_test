@@ -61,6 +61,16 @@ class VarscanAgent(Agent):
             [".", "", "结果输出目录"],
             # ["./estimators.xls", "xls", "alpha多样性指数表"]
         ])
+        if self.option("bed").is_set:
+            result_dir.add_relpath_rules([
+                ["./snp_position_stat.xls", "xls", "snp编码位置信息统计表"],
+                ["./snp_type_stat.xls", "xls", "snp类型统计表"],
+                ["./snp.xls", "xls", "snp信息表"]
+            ])
+        else:
+            result_dir.add_relpath_rules([
+                ["./pileup_out.xls", "xls", "snp信息表"]
+            ])
         # print self.get_upload_files()
         super(VarscanAgent, self).end()
 

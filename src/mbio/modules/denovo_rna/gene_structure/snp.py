@@ -20,8 +20,6 @@ class SnpModule(Module):
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
-            {"name": "varscan_method", "type": "string", "default": "pileup2snp"},  # 选择varscan的pileup2snp方法
-            {"name": "samtools_method", "type": "string", "default": "mplieup"},  # 选择samtools的mpileup方法
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
             # {"name": "pileup", "type": "outfile", "format": "gene_structure.pileup"},  # pileup格式文件
         ]
@@ -89,7 +87,8 @@ class SnpModule(Module):
         self.step.add_steps('varscan_{}'.format(self.end_info))
         varscan.set_options({
                 "pileup": pileup_path,
-                "method": self.option("varscan_method")
+                "method": "pileup2snp",
+                "bed": self.option("bed").prop["path"]
             })
         step = getattr(self.step, 'varscan_{}'.format(self.end_info))
         step.start()
@@ -145,4 +144,15 @@ class SnpModule(Module):
         result_dir.add_relpath_rules([
             [r".", "", "结果输出目录"]
         ])
+        if self.option("bed").is_set:
+            result_dir.add_relpath_rules([
+                [r"snp_position_stat.xls$", "xls", "样本snp编码位置信息统计表"],
+                [r"snp_type_stat.xls$", "xls", "样本snp类型统计表"],
+                [r"snp.xls$", "xls", "样本snp信息表"]
+            ])
+        else:
+            result_dir.add_relpath_rules([
+                [r"pileup_out.xls$", "xls", "样本snp信息表"]
+            ])
+        # print self.get_upload_files()
         super(SnpModule, self).end()

@@ -59,10 +59,11 @@ class MapAssessmentModule(Module):
             bam_stat.on("end", self.finish_update, 'bamStat_{}'.format(n))
             bam_stat.run()
             self.tools.append(bam_stat)
+            n += 1
 
     def satur_run(self):
+        n = 0
         for f in self.files:
-            n = 0
             satur = self.add_tool('denovo_rna.mapping.rpkm_saturation')
             self.step.add_steps('satur{}'.format(n))
             satur.set_options({
@@ -74,10 +75,11 @@ class MapAssessmentModule(Module):
             satur.on("end", self.finish_update, 'satur{}'.format(n))
             satur.run()
             self.tools.append(satur)
+            n += 1
 
     def dup_run(self):
+        n = 0
         for f in self.files:
-            n = 0
             dup = self.add_tool('denovo_rna.mapping.read_duplication')
             self.step.add_steps('dup_{}'.format(n))
             dup.set_options({
@@ -89,10 +91,11 @@ class MapAssessmentModule(Module):
             dup.on("end", self.finish_update, 'dup_{}'.format(n))
             dup.run()
             self.tools.append(dup)
+            n += 1
 
     def coverage_run(self):
+        n = 0
         for f in self.files:
-            n = 0
             coverage = self.add_tool('denovo_rna.mapping.coverage')
             self.step.add_steps('coverage_{}'.format(n))
             coverage.set_options({
@@ -104,6 +107,7 @@ class MapAssessmentModule(Module):
             coverage.on("end", self.finish_update, 'coverage_{}'.format(n))
             coverage.run()
             self.tools.append(coverage)
+            n += 1
 
     def get_files(self):
         files = []
@@ -150,7 +154,7 @@ class MapAssessmentModule(Module):
         self.bam_stat_run()
         self.dup_run()
         self.satur_run()
-        self.coverage_run()
+        # self.coverage_run()
         self.on_rely(self.tools, self.set_output)
         super(MapAssessmentModule, self).run()
 
