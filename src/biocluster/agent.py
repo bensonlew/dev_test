@@ -32,6 +32,7 @@ class PickleConfig(object):
         self.KEEP_ALIVE_TIME = ""
         self.MAX_KEEP_ALIVE_TIME = ""
         self._remote_data = ""
+        self._instant = False
 
     def clone(self, agent):
         """
@@ -90,6 +91,7 @@ class Agent(Basic):
         self._remote_data = {}
         self.version = 0  # 重投递运行次数
         self.shared_callback_action = {}  # 进程共享变量，
+        self._instant = False  # 本地进程模式
 
     def _call_state_callback(self, message):
         """
@@ -255,6 +257,7 @@ class Agent(Basic):
         super(Agent, self).run()
         if self.get_workflow().sheet.instant:
             self._run_mode = "process"
+            self._instant = True
         else:
             self.save_class_path()
             self.save_config()

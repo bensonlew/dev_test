@@ -216,6 +216,8 @@ class RemoteActor(threading.Thread):
 
 
 class ProcessActor(RemoteActor):
+    def __init__(self, tool, main_thread):
+        super(ProcessActor, self).__init__(tool, main_thread)
 
     def run(self):
         self.config.KEEP_ALIVE_TIME = 0
