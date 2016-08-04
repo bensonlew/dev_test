@@ -7,6 +7,7 @@ import os
 from biocluster.core.exceptions import OptionError
 import subprocess
 import shutil
+from mbio.packages.denovo_rna.gene_structure.snp_position import ssr_position
 
 
 class SsrAgent(Agent):
@@ -15,7 +16,7 @@ class SsrAgent(Agent):
     primer3：引物设计软件
     version 1.0
     author: qindanhua
-    last_modify: 2016.07.12
+    last_modify: 2016.08.03
     """
 
     def __init__(self, parent):
@@ -75,7 +76,7 @@ class SsrTool(Tool):
         self.misa_path = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/gene-structure/misa/")
         self.primer3_path = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/gene-structure/primer3-2.3.7/")
         self.script_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/scripts/"
-        self.fasta_name = self.option("fasta").prop["path"].split("/")[-1]
+        self.fasta_name = os.path.basename(self.option("fasta").prop["path"])
         self.perl_path = "program/perl/perls/perl-5.24.0/bin/"
         self.python_path = "program/Python/bin/"
 
@@ -84,7 +85,7 @@ class SsrTool(Tool):
         fasta_path = self.option("fasta").prop["path"]
         shutil.copy(fasta_path, self.work_dir)
         fasta_copy = self.work_dir + "/" + self.fasta_name
-        self.logger.info(fasta_copy)
+        self.logger.info(fasta_copy + ".misa")
         cmd = "{}perl {}misa.pl {}".format(self.perl_path, self.misa_path, fasta_copy)
         print(cmd)
         self.logger.info("开始运行misa")
@@ -93,6 +94,7 @@ class SsrTool(Tool):
         self.wait()
         if command.return_code == 0:
             self.logger.info("运行misa结束！")
+            ssr_position(fasta_copy + ".misa", self.option("bed").prop["path"])
         else:
             self.set_error("运行misa过程出错")
 
@@ -161,10 +163,10 @@ class SsrTool(Tool):
         super(SsrTool, self).run()
         if self.option("bed").is_set:
             self.misa()
-            self.primer_in()
-            self.primer()
-            self.primer_out()
-            self.ssr_position()
+            # self.primer_in()
+            # self.primer()
+            # self.primer_out()
+            # self.ssr_position()
         else:
             self.misa()
             self.primer_in()

@@ -9,7 +9,7 @@ from biocluster.module import Module
 
 class MapAssessmentModule(Module):
     """
-    denovoRNA比对后质量评估
+    denovoRNA比对后质量评估:基因覆盖率、比对结果统计、冗余序列分析
     version 1.0
     author: qindanhua
     last_modify: 2016.07.27
@@ -24,17 +24,18 @@ class MapAssessmentModule(Module):
         self.add_option(options)
         self.tools = []
         self.files = []
-        # self.coverage = self.add_tool('denovo_rna.mapping.coverage')
-        # self.step.add_steps('coverage')
+        self.bam_stat = self.add_tool('denovo_rna.qc.fastq_stat')
+        # self.bam_stat = self.add_tool('denovo_rna.mapping.bam_stat')
+        self.step.add_steps('stat')
 
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
         step.finish()
         self.step.update()
 
-    # def coverage_finish_update(self):
-    #     self.step.coverage.finish()
-    #     self.step.update()
+    def stat_finish_update(self):
+        self.step.stat.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -45,6 +46,15 @@ class MapAssessmentModule(Module):
         if not self.option("bam").is_set:
             raise OptionError("请传入bam文件")
         self.files = self.get_files()
+
+    # def bam_stat_run(self):
+    #     self.bam_stat.set_options({
+    #             'bam': self.option("bam").prop["path"]
+    #             })
+    #     self.step.stat.start()
+    #     self.bam_stat.on("end", self.stat_finish_update)
+    #     self.bam_stat.run()
+    #     self.tools.append(self.bam_stat)
 
     def bam_stat_run(self):
         n = 0
@@ -83,8 +93,7 @@ class MapAssessmentModule(Module):
             dup = self.add_tool('denovo_rna.mapping.read_duplication')
             self.step.add_steps('dup_{}'.format(n))
             dup.set_options({
-                'bam': f,
-                "bed": self.option('bed').prop["path"]
+                'bam': f
                 })
             step = getattr(self.step, 'dup_{}'.format(n))
             step.start()
@@ -120,14 +129,46 @@ class MapAssessmentModule(Module):
 
     def set_output(self):
         self.logger.info("set output")
+        # make dir
         dirs = ["coverage", "dup", "satur"]
+        for f in os.listdir(self.output_dir):
+            f_path = os.path.join(self.output_dir, f)
+            if os.path.exists(f_path):
+                if os.path.isdir(f_path):
+                    shutil.rmtree(f_path)
+                else:
+                    os.remove(f_path)
         for d in dirs:
-            path = os.path.join(self.output_dir, d)
-            if os.path.exists(path):
-                shutil.rmtree(path)
-            os.makedirs(path)
+            f_path = os.path.join(self.output_dir, d)
+            os.makedirs(f_path)
         self.logger.info(os.path.join(self.output_dir, "bam_stat.xls"))
-        bam_out = glob.glob(r"{}/BamStat*/output/*".format(self.work_dir))
+        # link output
+        bam_out = []
+        for tool in self.tools:
+            out = os.listdir(tool.output_dir)
+            for f_name in out:
+                fp = os.path.join(tool.output_dir, f_name)
+                if f_name == "bam_stat.xls":
+                    bam_out.append(fp)
+                    # target = os.path.join(self.output_dir, f_name)
+                    # if os.path.exists(target):
+                    #     os.remove(target)
+                    # os.link(fp, target)
+                elif "DupRate" in f_name:
+                    target = os.path.join(self.output_dir, "dup", f_name)
+                    if os.path.exists(target):
+                        os.remove(target)
+                    os.link(fp, target)
+                elif "satur_" in f_name:
+                    target = os.path.join(self.output_dir, "satur", f_name)
+                    if os.path.exists(target):
+                        os.remove(target)
+                    os.link(fp, target)
+                elif "geneBodyCoverage" in f_name:
+                    target = os.path.join(self.output_dir, "coverage", f_name)
+                    if os.path.exists(target):
+                        os.remove(target)
+                    os.link(fp, target)
         with open(os.path.join(self.output_dir, "bam_stat.xls"), "w") as w:
             w.write("sample\tmappped_num\trate\n")
             for f in bam_out:
@@ -135,28 +176,16 @@ class MapAssessmentModule(Module):
                     r.readline()
                     for line in r:
                         w.write(line)
-        for f in glob.glob(r"{}/ReadDuplication*/output/*".format(self.work_dir)):
-            f_name = os.path.basename(f)
-            target_path = os.path.join(self.output_dir, "dup", f_name)
-            os.link(f, target_path)
-        for f in glob.glob(r"{}/RpkmSaturation*/output/*".format(self.work_dir)):
-            f_name = os.path.basename(f)
-            target_path = os.path.join(self.output_dir, "satur", f_name)
-            os.link(f, target_path)
-        for f in glob.glob(r"{}/Coverage*/output/*".format(self.work_dir)):
-            f_name = os.path.basename(f)
-            target_path = os.path.join(self.output_dir, "bam_stat", f_name)
-            os.link(f, target_path)
         self.end()
 
     def run(self):
-        # super(MapAssessmentModule, self).run()
+        super(MapAssessmentModule, self).run()
         self.bam_stat_run()
         self.dup_run()
         self.satur_run()
         # self.coverage_run()
         self.on_rely(self.tools, self.set_output)
-        super(MapAssessmentModule, self).run()
+        # super(MapAssessmentModule, self).run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

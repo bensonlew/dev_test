@@ -32,6 +32,7 @@ class BwaSamtoolsModule(Module):
         ]
         self.add_option(options)
         self.samples = {}
+        self.samtools = []
         self.bwa_tools = []
         self.bwa = None
         self.end_times = 1
@@ -185,7 +186,7 @@ class BwaSamtoolsModule(Module):
         samtools.on("end", self.set_output)
         self.logger.info("samRunnnnn")
         samtools.run()
-        # self.samtools.append(samtools)
+        self.samtools.append(samtools)
 
     def rename(self, event):
         obj = event["bind_object"]
@@ -214,19 +215,14 @@ class BwaSamtoolsModule(Module):
                     os.remove(f_path)
             bam_dir = os.path.join(self.output_dir, "sorted_bam")
             os.makedirs(bam_dir)
-            samtools_out = glob.glob(r"{}/Samtools*/output/*sorted.bam".format(self.work_dir))
-            self.logger.info(samtools_out)
-            for bam in samtools_out:
-                target = bam_dir + "/" + bam.split("/")[-1]
-                if os.path.exists(target):
-                    os.remove(target)
-                os.link(bam, target)
-            # sam_dir = os.path.join(self.output_dir, "sam")
-            # os.makedirs(sam_dir)
-            # for f in glob.glob(r"{}/Bwa*/output/*".format(self.work_dir)):
-            #     f_name = f.split("/")[-1]
-            #     sam_output = os.path.join(sam_dir, f_name)
-            #     os.link(f, sam_output)
+            for sam in self.samtools:
+                outfiles = os.listdir(sam.output_dir)
+                # self.logger.info(outfiles)
+                for f in outfiles:
+                    f_path = os.path.join(sam.output_dir, f)
+                    target = bam_dir + "/" + f
+                    if "sorted.bam" in f:
+                        os.link(f_path, target)
             self.option('out_bam').set_path(bam_dir)
             self.logger.info("set output done")
             self.end()

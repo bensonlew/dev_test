@@ -95,3 +95,39 @@ def snp_stat(snp, orf):
             p.write("snp_position\tCount\n")
             for key in snp_position_count:
                 p.write("{}\t{}\n".format(key, snp_position_count[key]))
+
+
+def ssr_position(ssr, bed):
+    orf_info = get_orf_info(bed)
+    # ssr_positions = {}
+    with open(ssr, "r") as s, open("{}.stat.xls".format(ssr), "w") as w:
+        w.write(s.readline().strip() + "\tposition\n")
+        for line in s:
+            write_line = line.strip()
+            line = write_line.split("\t")
+            ssr_pos = "undetermined"
+            if line[0] in orf_info:
+                max_info = max(orf_info[line[0]])
+                for info in orf_info[line[0]]:
+                    if info[0] == "+" and int(line[5]) > info[1]:
+                        ssr_pos = "coding"
+                    elif info[0] == "-" and int(line[6]) < info[2]:
+                        ssr_pos = "coding"
+                if ssr_pos == "undetermined":
+                    if max_info[0] == "+":
+                        if int(line[6]) < max_info[1]:
+                            ssr_pos = "utr5"
+                        elif int(line[5]) > max_info[2]:
+                            ssr_pos = "utr3"
+                    if max_info[0] == "-":
+                        if int(line[6]) < max_info[1]:
+                            ssr_pos = "utr3"
+                        elif int(line[5]) > max_info[2]:
+                            ssr_pos = "utr5"
+                print(write_line + "\t" + ssr_pos + "\n")
+            w.write(write_line + "\t" + ssr_pos + "\n")
+    #         if ssr_pos in ssr_positions:
+    #             ssr_positions[ssr_pos] += 1
+    #         else:
+    #             ssr_positions[ssr_pos] = 0
+    # print ssr_positions

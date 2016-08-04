@@ -37,6 +37,7 @@ class QualityControlModule(Module):
         self.samples = {}
         self.seqprep = []
         self.clipper = []
+        self.sickle = []
         self.end_times = 0
 
     def check_options(self):
@@ -51,7 +52,7 @@ class QualityControlModule(Module):
             if not os.path.exists(list_path):
                 OptionError("缺少list文件")
             row_num = len(open(list_path, "r").readline().split())
-            self.logger.info(row_num)
+            # self.logger.info(row_num)
             if self.option('fq_type') == "PE" and row_num != 3:
                 raise OptionError("PE序列list文件应该包括文件名、样本名和左右端说明三列")
             elif self.option('fq_type') == "SE" and row_num != 2:
@@ -138,7 +139,7 @@ class QualityControlModule(Module):
         sickle.on("end", self.finish_update, 'sickle_{}'.format(self.end_times))
         sickle.on("end", self.set_output, event["data"])
         sickle.run()
-        # self.sickle.append(sickle)
+        self.sickle.append(sickle)
 
     def sickle_pe_run(self, event):
         obj = event["bind_object"]
@@ -162,7 +163,7 @@ class QualityControlModule(Module):
         sickle.on("end", self.finish_update, 'sickle_{}'.format(self.end_times))
         sickle.on("end", self.set_output, event["data"])
         sickle.run()
-        # self.sickle.append(sickle)
+        self.sickle.append(sickle)
 
     def rename(self, event):
         obj = event["bind_object"]
@@ -192,24 +193,42 @@ class QualityControlModule(Module):
                 if os.path.exists(d):
                     shutil.rmtree(d)
                 os.mkdir(d)
-            sickle_out = glob.glob(r"{}/Sickle*/output/*".format(self.work_dir))
-            seqprep_out = glob.glob(r"{}/SeqPrep*/output/*".format(self.work_dir))
-            clip_out = glob.glob(r"{}/FastxClipper*/output/*".format(self.work_dir))
+            sickle_out = []
+            seqprep_out = []
+            clip_out = []
+            for sic in self.sickle:
+                for f in os.listdir(sic.output_dir):
+                    f_path = os.path.join(sic.output_dir, f)
+                    sickle_out.append(f_path)
+            for seq in self.seqprep:
+                for f in os.listdir(seq.output_dir):
+                    f_path = os.path.join(seq.output_dir, f)
+                    seqprep_out.append(f_path)
+            for clip in self.clipper:
+                for f in os.listdir(clip.output_dir):
+                    f_path = os.path.join(clip.output_dir, f)
+                    clip_out.append(f_path)
+            # self.logger.info(sickle_out)
             self.logger.info(os.path.join(sickle_dir, "list.txt"))
             with open(os.path.join(sickle_dir, "list.txt"), "w") as w:
                 for f in sickle_out:
                     f_name = f.split("/")[-1]
-                    sample_name = f_name.split("_sickle_r.fastq")[0]
-                    w.write("{}\t{}".format(f_name, sample_name))
                     if "sickle_r.fastq" in f:
-                        w.write("\t{}\n".format("r"))
+                        sample_name = f_name.split("_sickle_r.fastq")[0]
+                        w.write("{}\t{}\t{}\n".format(f_name, sample_name, "r"))
                         os.link(f, os.path.join(sickle_r_dir, f_name))
                     elif "sickle_l.fastq" in f:
-                        w.write("\t{}\n".format("l"))
+                        sample_name = f_name.split("_sickle_l.fastq")[0]
+                        w.write("{}\t{}\t{}\n".format(f_name, sample_name, "l"))
                         os.link(f, os.path.join(sickle_l_dir, f_name))
+                    elif "sickle_s.fastq" in f:
+                        sample_name = f_name.split("_sickle_s.fastq")[0]
+                        w.write("{}\t{}\n".format(f_name, sample_name))
                     else:
                         w.write("\n")
                     target_path = os.path.join(sickle_dir, f_name)
+                    if os.path.exists(target_path):
+                        os.remove(target_path)
                     os.link(f, target_path)
             self.option("sickle_dir").set_path(sickle_dir)
             if self.option("fq_type") == "PE":
@@ -241,7 +260,7 @@ class QualityControlModule(Module):
                 files = os.listdir(sickle_dir)
                 s_file = ' '.join(files)
                 os.system('cd {} && cat {} > {}/single.fq'.format(sickle_dir, s_file, self.work_dir))
-                self.option('fq_r', self.work_dir + '/single.fq')
+                self.option('fq_s', self.work_dir + '/single.fq')
                 self.logger.info("done")
             self.end()
 

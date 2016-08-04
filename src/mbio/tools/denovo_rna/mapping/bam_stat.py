@@ -60,11 +60,11 @@ class BamStatTool(Tool):
         return stat_command
 
     def multi_stat(self):
-        files = os.listdir(self.bam_path)
+        files = glob.glob(r"{}/.bam".format(self.bam_path))
         cmds = []
         for f in files:
-            f_path = os.path.join(self.bam_path, f)
-            f_cmd = self.bamstat(f_path)
+            # f_path = os.path.join(self.bam_path, f)
+            f_cmd = self.bamstat(f)
             cmds.append(f_cmd)
         return cmds
 
