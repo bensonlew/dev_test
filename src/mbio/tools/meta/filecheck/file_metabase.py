@@ -86,6 +86,7 @@ class FileMetabaseTool(Tool):
             gp_sample = self.option("group_table").prop["sample"]
             for gp in gp_sample:
                 if gp not in self.samples:
+                    self.set_error("group表出错, 样本{}在fastq文件中未出现".format(gp))
                     raise Exception("group表出错, 样本{}在fastq文件中未出现".format(gp))
         else:
             self.logger.info("未检测到group文件， 跳过...")
@@ -100,8 +101,10 @@ class FileMetabaseTool(Tool):
             self.logger.info("已获取tax文件的所有的序列名，开始校对...")
             for f_name in fasta_name:
                 if f_name not in taxon_name:
+                    self.set_error("序列名{}在taxon文件里未出现")
                     raise Exception("序列名{}在taxon文件里未出现")
             if len(fasta_name) != len(taxon_name):
+                self.set_error("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
                 raise Exception("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
         else:
             self.logger.info("未检测到ref_fasta和ref_taxon文件， 跳过...")
