@@ -64,7 +64,7 @@ class LocalProcess(Process):
 
         config = PickleConfig()
         config.clone(self.agent)
-
+        config.DEBUG = False
         tool.shared_callback_action = self._shared_callback_action
         tool.shared_queue = self._shared_queue
         config._instant = True
