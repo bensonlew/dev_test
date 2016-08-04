@@ -87,7 +87,7 @@ class Agent(Basic):
         self._end_run_time = None
         self._rerun_time = 0
         self.is_wait = False
-        # self._remote_data = {}
+        self._remote_data = {}
         self.version = 0  # 重投递运行次数
         self.shared_callback_action = {}  # 进程共享变量，
 
@@ -139,26 +139,26 @@ class Agent(Basic):
         """
         return self._run_mode
 
-    # def add_remote_data(self, name, value):
-    #     """
-    #     添加需要传递到远程Tool的数据
-    #
-    #     :param name:
-    #     :param value:
-    #     :return:
-    #     """
-    #     if name in self._remote_data.keys():
-    #         raise Exception("远程数据名称%s已经存在，请勿重复添加" % name)
-    #     if not isinstance(name, types.StringType):
-    #         raise Exception("远程数据名称必须为字符串")
-    #     elif not name.islower():
-    #         raise Exception("命令名称必须都为小写字母！")
-    #     if not (isinstance(value, types.StringTypes) or isinstance(value, types.BooleanType) or
-    #             isinstance(value, types.IntType) or isinstance(value, types.LongType) or
-    #             isinstance(value, types.FloatType) or isinstance(value, types.TupleType) or
-    #             isinstance(value, types.ListType) or isinstance(value, types.DictType)):
-    #         raise Exception("远程数据值必须为Python内置数据类型: 字符串，数字，布尔，list,tuple,dict！")
-    #     self._remote_data[name] = value
+    def add_remote_data(self, name, value):
+        """
+        添加需要传递到远程Tool的数据
+
+        :param name:
+        :param value:
+        :return:
+        """
+        if name in self._remote_data.keys():
+            raise Exception("远程数据名称%s已经存在，请勿重复添加" % name)
+        if not isinstance(name, types.StringType):
+            raise Exception("远程数据名称必须为字符串")
+        elif not name.islower():
+            raise Exception("命令名称必须都为小写字母！")
+        if not (isinstance(value, types.StringTypes) or isinstance(value, types.BooleanType) or
+                isinstance(value, types.IntType) or isinstance(value, types.LongType) or
+                isinstance(value, types.FloatType) or isinstance(value, types.TupleType) or
+                isinstance(value, types.ListType) or isinstance(value, types.DictType)):
+            raise Exception("远程数据值必须为Python内置数据类型: 字符串，数字，布尔，list,tuple,dict！")
+        self._remote_data[name] = value
 
     def set_queue(self, queue):
         """
