@@ -30,8 +30,10 @@ class SLURM(Job):
         with open(file_path, "w") as f:
             f.write("#!/bin/bash\n")
             f.write("#SBATCH -c {}\n".format(cpu))
+            f.write("#SBATCH -D %s\n" % self.agent.work_dir)
+            f.write("#SBATCH -n 1\n")
             f.write("#SBATCH -N 1\n")
-            f.write("#SBATCH -J {}\n".format(self.agent.id))
+            f.write("#SBATCH -J {}\n".format(self.agent.fullname))
             f.write("#SBATCH -t 10-00:00\n")
             if self.master_ip == "192.168.12.101":
                 f.write("#SBATCH -p SANGER\n")
@@ -39,6 +41,7 @@ class SLURM(Job):
                 f.write("#SBATCH -p SANGERDEV\n")
             else:
                 raise Exception("错误master_ip{}".format(self.master_ip))
+
             f.write("#SBATCH --mem={}\n".format(mem))
             f.write("#SBATCH -o {}/{}_%j.out\n".format(self.agent.work_dir, self.agent.name))
             f.write("#SBATCH -e {}/{}_%j.err\n".format(self.agent.work_dir, self.agent.name))
@@ -53,6 +56,7 @@ class SLURM(Job):
 
         :return: jobid
         """
+        super(SLURM, self).submit()
         pbs_file = self.create_file()
         cmd = "sbatch {}".format(pbs_file)
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)

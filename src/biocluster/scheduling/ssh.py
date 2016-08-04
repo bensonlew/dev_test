@@ -27,6 +27,7 @@ class SSH(Job):
         投递任务到远程服务器
         :return:
         """
+        super(SSH, self).submit()
         script = os.path.abspath(os.path.dirname(__file__) + "/../../../bin/runtool.py")
         cmd = 'ssh -o GSSAPIAuthentication=no %s "source ~/.bash_profile;cd %s;%s -b %s;sleep 1;cat run.pid"' \
               % (self.server_ip, self.agent.work_dir, script, self.agent.name)

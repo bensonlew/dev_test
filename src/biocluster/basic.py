@@ -722,6 +722,17 @@ class StepMain(Step):
         self._end_time = datetime.datetime.now()
         self._error_info = info
 
+    def finish(self):
+        """
+        设置步骤为完成状态
+
+        :return:
+        """
+        workflow = self.bind_obj.get_workflow()
+        if self.bind_obj is not workflow:
+            raise Exception("此方法只能在workflow中调用！")
+        super(StepMain, self).finish()
+
     def pause(self):
         """
         设置状态为暂停
@@ -793,81 +804,48 @@ class StepMain(Step):
                         up_data["call"] = api_call_list
 
                 if len(self.bind_obj.upload_dir) > 0:
-                    if self.bind_obj is workflow:  # 普通模式的workflow 或 pipeline
-                        if self.bind_obj.sheet.type == "workflow" and self.bind_obj.sheet.output:
-                            up_data["upload_dir"] = []
-                            files = []
-                            for up in self.bind_obj.upload_dir:
-                                target_dir = os.path.join(self.bind_obj.sheet.output, os.path.dirname(up.upload_path))
-                                up_data["upload_dir"].append({
-                                    "source": up.path,
-                                    "target": target_dir
-                                })
-                                files.append({
-                                    "target": os.path.join(self.bind_obj.sheet.output, up.upload_path),
-                                    "files": up.file_list
-                                })
-                                post_data["upload_files"] = files
+                    # if self.bind_obj is workflow and self.bind_obj.sheet.output:  # 普通模式的workflow 或 pipeline
+                    up_data["upload_dir"] = []
+                    files = []
+                    for up in self.bind_obj.upload_dir:
+                        target_dir = os.path.join(self.bind_obj.sheet.output, os.path.dirname(up.upload_path))
+                        up_data["upload_dir"].append({
+                            "source": up.path,
+                            "target": target_dir
+                        })
+                        files.append({
+                            "target": os.path.join(self.bind_obj.sheet.output, up.upload_path),
+                            "files": up.file_list
+                        })
+                        post_data["upload_files"] = files
 
-                            # data["upload"] = json.dumps(up_data)
-                            # data["has_upload"] = 1
-                            # data["uploaded"] = 0
-                            # post_data["upload_files"] = {
-                            #     "target": self.bind_obj.sheet.output,
-                            #     "files": self.bind_obj.get_upload_files()
-                            # }
-                            # data["data"] = urllib.urlencode(post_data)
-                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
-                        elif self.bind_obj.sheet.type in ["tool", "module"] and workflow.sheet.output:
-                            up_data["upload_dir"] = []
-                            files = []
-                            for up in self.bind_obj.upload_dir:
-                                target_dir = os.path.join(workflow.sheet.output, os.path.dirname(up.upload_path))
-                                up_data["upload_dir"].append({
-                                    "source": up.path,
-                                    "target": target_dir
-                                })
-                                files.append({
-                                    "target": os.path.join(workflow.sheet.output, up.upload_path),
-                                    "files": up.file_list
-                                })
-                                post_data["upload_files"] = files
-
-                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
-                    else:
-                        if workflow.sheet.type in ["tool", "module"] and workflow.sheet.output:
-                            up_data["upload_dir"] = []
-                            files = []
-                            for up in self.bind_obj.upload_dir:
-                                target_dir = os.path.join(workflow.sheet.output, os.path.dirname(up.upload_path))
-                                up_data["upload_dir"].append({
-                                    "source": up.path,
-                                    "target": target_dir
-                                })
-                                files.append({
-                                    "target": os.path.join(workflow.sheet.output, up.upload_path),
-                                    "files": up.file_list
-                                })
-                                post_data["upload_files"] = files
-
-                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
-                        elif self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
-                            up_data["upload_dir"] = []
-                            files = []
-                            target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
-                            for up in self.bind_obj.upload_dir:
-                                target_dir = os.path.join(target_path, os.path.dirname(up.upload_path))
-                                up_data["upload_dir"].append({
-                                    "source": up.path,
-                                    "target": target_dir
-                                })
-                                files.append({
-                                    "target": os.path.join(target_path, up.upload_path),
-                                    "files": up.file_list
-                                })
-                                post_data["upload_files"] = files
-
-                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
+                        # data["upload"] = json.dumps(up_data)
+                        # data["has_upload"] = 1
+                        # data["uploaded"] = 0
+                        # post_data["upload_files"] = {
+                        #     "target": self.bind_obj.sheet.output,
+                        #     "files": self.bind_obj.get_upload_files()
+                        # }
+                        # data["data"] = urllib.urlencode(post_data)
+                        data["data"] = json.dumps(post_data, cls=CJsonEncoder)
+                    # else:
+                    #     if self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
+                    #         up_data["upload_dir"] = []
+                    #         files = []
+                    #         target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
+                    #         for up in self.bind_obj.upload_dir:
+                    #             target_dir = os.path.join(target_path, os.path.dirname(up.upload_path))
+                    #             up_data["upload_dir"].append({
+                    #                 "source": up.path,
+                    #                 "target": target_dir
+                    #             })
+                    #             files.append({
+                    #                 "target": os.path.join(target_path, up.upload_path),
+                    #                 "files": up.file_list
+                    #             })
+                    #             post_data["upload_files"] = files
+                    #
+                    #         data["data"] = json.dumps(post_data, cls=CJsonEncoder)
                 if up_data:
                     up_data["bind"] = {
                         "name": self.bind_obj.name,
@@ -1022,9 +1000,9 @@ class UploadDir(object):
         """
         self.match()
         data = []
-        pathList = list()
+        path_list = list()
         for i in self._file_list:
-            if i.relpath not in pathList:
+            if i.relpath not in path_list:
                 data.append({
                     "path": i.relpath,
                     "type": i.file_type,
@@ -1032,7 +1010,7 @@ class UploadDir(object):
                     "description": i.description,
                     "size": i.size
                 })
-                pathList.append(i.relpath)
+                path_list.append(i.relpath)
         return data
 
 
