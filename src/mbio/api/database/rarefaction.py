@@ -59,7 +59,7 @@ class Rarefaction(Base):
                     # print rarefaction
                     insert_data = {
                         "rarefaction_curve_id": rare_id,
-                        "task_id": task_id,
+                        # "task_id": task_id,
                         "index_type": rare_path,
                         "specimen_name": sample_name,
                         "json_value": rarefaction
