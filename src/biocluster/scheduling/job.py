@@ -5,7 +5,6 @@ from ..config import Config
 import gevent
 import importlib
 import datetime
-from .process import PROCESS
 
 
 @singleton
