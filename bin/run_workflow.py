@@ -263,7 +263,8 @@ class WorkJob(object):
             if "type" not in data.keys() or "id" not in data.keys():
                 raise Exception("Json格式错误")
             self.workflow_id = data["id"]
-            self.insert_workflow(data)
+            if data["USE_DB"]:
+                self.insert_workflow(data)
             return data
 
     def insert_workflow(self, data):
