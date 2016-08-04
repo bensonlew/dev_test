@@ -122,7 +122,7 @@ def check_run(wj):
         json_data = wj.get_from_file(args.json)
     elif args.rerun_id:
         json_data = wj.get_from_database(args.rerun_id)
-    if json_data:
+    if json_data and json_data["USE_DB"]:
         wj.update_workflow()
     # wj.unlock()
 
@@ -301,25 +301,24 @@ class WorkJob(object):
 
     def start(self, json_data):
         self.json_data = json_data
-        self.db.update("workflow", vars={"id": self.workflow_id}, where="workflow_id = $id", waiting=1)
-        if self.client:
-            max_limit = self.get_client_limit()
-            if max_limit > 0:
-                while True:
-                    running = self.get_running_workflow()
-                    if running <= max_limit:
-                        break
-                    else:
-                        write_log("running workflow %s reach the max limit of client %s ,waiting for 1 minute "
-                                  "and check again ..." % (self.workflow_id, self.client))
-                        time.sleep(60)
+        if self.json_data["USE_DB"]:
+            self.db.update("workflow", vars={"id": self.workflow_id}, where="workflow_id = $id", waiting=1)
+            if self.client:
+                max_limit = self.get_client_limit()
+                if max_limit > 0:
+                    while True:
+                        running = self.get_running_workflow()
+                        if running <= max_limit:
+                            break
+                        else:
+                            write_log("running workflow %s reach the max limit of client %s ,waiting for 1 minute "
+                                      "and check again ..." % (self.workflow_id, self.client))
+                            time.sleep(60)
         self._start_time = datetime.datetime.now()
         self.workflow_id = json_data["id"]
         write_log("Start running workflow:%s" % self.workflow_id)
         if json_data["type"] == "workflow":
             path = json_data["name"]
-        elif json_data["type"] == "link":
-            path = "link"
         else:
             path = "single"
         workflow = None
@@ -350,13 +349,15 @@ class WorkJob(object):
             }
             myvar = dict(id=self.workflow_id)
             # self.lock()
-            self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
-            self.insert_api_log(self.json_data, error, self._start_time)
+            if self.json_data["USE_DB"]:
+                self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+                self.insert_api_log(self.json_data, error, self._start_time)
             # self.unlock()
         write_log("End running workflow:%s" % self.workflow_id)
 
     def update_error(self, workflow_id, json_data, start_time):
-
+        if not self.json_data["USE_DB"]:
+            return
         myvar = dict(id=workflow_id)
         # self.lock()
         results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id and is_end=0 and is_error=0",
