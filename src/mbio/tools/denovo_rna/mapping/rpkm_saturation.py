@@ -24,6 +24,17 @@ class RpkmSaturationAgent(Agent):
             {"name": "quality", "type": "int", "default": 30}  # 质量值
         ]
         self.add_option(options)
+        self.step.add_steps('satur')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.satur.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.satur.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -40,6 +51,13 @@ class RpkmSaturationAgent(Agent):
         """
         self._cpu = 10
         self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        super(RpkmSaturationAgent, self).end()
 
 
 class RpkmSaturationTool(Tool):

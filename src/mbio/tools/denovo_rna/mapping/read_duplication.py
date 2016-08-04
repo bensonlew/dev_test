@@ -23,6 +23,17 @@ class ReadDuplicationAgent(Agent):
             {"name": "quality", "type": "int", "default": 30}  # 质量值
         ]
         self.add_option(options)
+        self.step.add_steps('dup')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.dup.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.dup.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -37,6 +48,13 @@ class ReadDuplicationAgent(Agent):
         """
         self._cpu = 10
         self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        super(ReadDuplicationAgent, self).end()
 
 
 class ReadDuplicationTool(Tool):
