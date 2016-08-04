@@ -114,25 +114,28 @@ class Command(object):
         :return: list of all child psutil_process objects
         """
         if self.is_running:
-            if not self._psutil_process:
-                self._psutil_process = psutil.Process(self._pid)
-                self._all_processes = [self._psutil_process]
-            chidrens = self._psutil_process.children(recursive=True)
-            chidrens.insert(0, self._psutil_process)
-            for child in self._all_processes:   # 删除已完成的进程
-                found = False
-                for p in chidrens:
-                    if p.pid == child.pid:
-                        found = True
-                if not found:
-                    self._all_processes.remove(child)
-            for p in chidrens:                # 添加新进程
-                found = False
-                for child in self._all_processes:
-                    if p.pid == child.pid:
-                        found = True
-                if not found:
-                    self._all_processes.append(p)
+            try:
+                if not self._psutil_process:
+                    self._psutil_process = psutil.Process(self._pid)
+                    self._all_processes = [self._psutil_process]
+                chidrens = self._psutil_process.children(recursive=True)
+                chidrens.insert(0, self._psutil_process)
+                for child in self._all_processes:   # 删除已完成的进程
+                    found = False
+                    for p in chidrens:
+                        if p.pid == child.pid:
+                            found = True
+                    if not found:
+                        self._all_processes.remove(child)
+                for p in chidrens:                # 添加新进程
+                    found = False
+                    for child in self._all_processes:
+                        if p.pid == child.pid:
+                            found = True
+                    if not found:
+                        self._all_processes.append(p)
+            except Exception, e:
+                self.tool.logger.debug("获取命令%s进程时发生错误: %s" % (self.name, e))
         return self._all_processes
 
     def _run(self):
@@ -168,6 +171,10 @@ class Command(object):
                     if len(args) != 3:
                         raise Exception("状态监测函数参数必须为3个(包括self)!")
                 while True:
+                    if self.tool.is_end or self.tool.exit_signal:
+                        break
+                    if self.is_error or not self.is_running:
+                        break
                     line = self._subprocess.stdout.readline()
                     if not line:
                         if not self.is_running:
@@ -178,15 +185,12 @@ class Command(object):
                     if func is not None:
                         line = line.strip()
                         func(self, line)   # check function(toolself, command, line)  single line
-                    if self.is_error or not self.is_running:
-                        break
-
                 endtime = datetime.datetime.now()
                 use_time = (endtime - starttime).seconds
                 # time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
                 f.write("%s\t运行结束，运行时长:%ss,exitcode:%s\n" % (endtime, use_time, self.return_code))
         except IOError, e:
-            self.tool.set_error(e)
+            self.tool.set_error("运行命令%s出错: %s" % (self.name, e))
         return self
 
     def run(self):
@@ -233,3 +237,4 @@ class Command(object):
         """
         if self.is_running:
             self._subprocess.kill()
+            self._is_error = True

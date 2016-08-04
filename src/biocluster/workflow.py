@@ -7,7 +7,7 @@ from .basic import Basic
 from .config import Config
 import os
 import sys
-from .rpc import RPC
+from .rpc import RPC, LocalServer
 from .logger import Wlog
 from .agent import Agent
 from .module import Module
@@ -31,55 +31,50 @@ class Workflow(Basic):
             self.debug = kwargs["debug"]
         else:
             self.debug = False
-        if hasattr(wsheet, 'USE_RPC'):
-            self.rpc = wsheet.USE_RPC
-        self.noRPC_signal = None  # 即时计算的结束信号
-        if self.rpc is not None and not self.rpc:
-            self.noRPC_signal = gevent.event.Event()
-            self._return_mongo_ids = []
-            # 在非rpc模式下，需要返回写入mongo库的主表ids，用于更新sg_status表，值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
-        else:
-            self.rpc = True
         super(Workflow, self).__init__(**kwargs)
         self.sheet = wsheet
+
         self.last_update = datetime.datetime.now()
         if "parent" in kwargs.keys():
             self._parent = kwargs["parent"]
         else:
             self._parent = None
+
         self.pause = False
         self._pause_time = None
         self.USE_DB = False
         self.__json_config()
-        if self._parent is None:
-            self._id = wsheet.id
-            self.config = Config()
-            self.db = self.config.get_db()
-            self._work_dir = self.__work_dir()
-            self._output_path = self._work_dir + "/output"
-            if not self.debug:
-                if not os.path.exists(self._work_dir):
-                    os.makedirs(self._work_dir)
-                if not os.path.exists(self._output_path):
-                    os.makedirs(self._output_path)
-                self.__check_to_file_option()
-                self.step_start()
-            self._logger = Wlog(self).get_logger("")
-            if self.rpc:
-                self.rpc_server = RPC(self)
+
+        self._id = wsheet.id
+        self.config = Config()
+        self.db = self.config.get_db()
+        self._work_dir = self.__work_dir()
+        self._output_path = self._work_dir + "/output"
+        if not self.debug:
+            if not os.path.exists(self._work_dir):
+                os.makedirs(self._work_dir)
+            if not os.path.exists(self._output_path):
+                os.makedirs(self._output_path)
+            self.__check_to_file_option()
+            self.step_start()
+        self._logger = Wlog(self).get_logger("")
+        if self.sheet.instant is True:
+            self.USE_DB = False
+            self.IMPORT_REPORT_DATA = True
+            self.IMPORT_REPORT_AFTER_END = False
+            self.rpc_server = LocalServer(self)
         else:
-            self.config = self._parent.config
-            self.db = self.config.get_db()
+            self.rpc_server = RPC(self)
 
     def __json_config(self):
-        if self.sheet.USE_DB is True and self.rpc:
+        if self.sheet.USE_DB is True:
             self.USE_DB = True
-        if self.sheet.UPDATE_STATUS_API is not None and self.rpc:
+        if self.sheet.UPDATE_STATUS_API is not None:
             self.UPDATE_STATUS_API = self.sheet.UPDATE_STATUS_API
         if self.sheet.IMPORT_REPORT_DATA is True:
             self.IMPORT_REPORT_DATA = True
-        if self.sheet.IMPORT_REPORT_AFTER_END is True:
-            self.IMPORT_REPORT_AFTER_END = True
+        if self.sheet.IMPORT_REPORT_AFTER_END is False:
+            self.IMPORT_REPORT_AFTER_END = False
 
     def step_start(self):
         """
@@ -111,7 +106,6 @@ class Workflow(Basic):
             else:
                 to_files = data
             for opt in to_files:
-                self.logger.info(opt)
                 m = re.match(r"([_\w\.]+)\((.*)\)", opt)
                 if m:
                     func_path = m.group(1)
@@ -201,21 +195,7 @@ class Workflow(Basic):
                 gevent.spawn(self.__update_service)
                 gevent.spawn(self.__check_tostop)
                 gevent.spawn(self.__check_pause)
-            if self.rpc:
-                self.rpc_server.run()
-            else:
-                self.noRPC_signal.wait()
-
-    @property
-    def return_mongo_ids(self):
-        return self._return_mongo_ids
-
-    def add_return_mongo_id(self, collection_name, table_id, desc=''):
-        return_dict = dict()
-        return_dict['id'] = table_id
-        return_dict['collection_name'] = collection_name
-        return_dict['desc'] = desc
-        self._return_mongo_ids.append(return_dict)
+            self.rpc_server.run()
 
     def end(self):
         """
@@ -224,25 +204,19 @@ class Workflow(Basic):
         :return:
         """
         super(Workflow, self).end()
-        if self._parent is None:
-            # self._upload_result()
-            data = {
-                "is_end": 1,
-                "end_time": datetime.datetime.now(),
-                "workdir": self.work_dir,
-                "output": self.output_dir
-            }
-            self._update(data)
-            self.step.finish()
-            self.step.update()
-            self.logger.info("运行结束!")
-            if self.rpc:
-                self.rpc_server.server.close()
-            else:
-                self._upload_result()
-                self.noRPC_signal.set()
-        else:
-            self.logger.info("运行结束!")
+        if self.sheet.instant is True:
+            self._upload_result()
+        data = {
+            "is_end": 1,
+            "end_time": datetime.datetime.now(),
+            "workdir": self.work_dir,
+            "output": self.output_dir
+        }
+        self._update(data)
+        self.step.finish()
+        self.step.update()
+        self.logger.info("运行结束!")
+        self.rpc_server.close()
 
     def _upload_result(self):
         """
@@ -254,14 +228,14 @@ class Workflow(Basic):
             remote_file = RemoteFileManager(self._sheet.output)
             if remote_file.type != "local":
                 self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
-                umask = os.umask(0)
-                remote_file.upload(self.output_dir)
-                # for root, subdirs, files in os.walk("c:\\test"):
-                #     for filepath in files:
-                #         os.chmod(os.path.join(root, filepath), 0o777)
-                #     for sub in subdirs:
-                #         os.chmod(os.path.join(root, sub), 0o666)
-                os.umask(umask)
+                # umask = os.umask(0)
+                remote_file.upload(os.path.join(self.output_dir))
+                for root, subdirs, files in os.walk("c:\\test"):
+                    for filepath in files:
+                        os.chmod(os.path.join(root, filepath), 0o777)
+                    for sub in subdirs:
+                        os.chmod(os.path.join(root, sub), 0o666)
+                # os.umask(umask)
                 self.logger.info("结果上传完成!")
 
     def exit(self, exitcode=1, data="", terminated=False):
@@ -286,12 +260,8 @@ class Workflow(Basic):
             self.step.failed(data)
         self.step.update()
         self.logger.info("程序退出: %s " % data)
-        if self.rpc:
-            self.rpc_server.server.close()
-            sys.exit(exitcode)
-        else:
-            # self.noRPC_signal.set()
-            raise Exception('即时运行程序出错')
+        self.rpc_server.close()
+        sys.exit(exitcode)
 
     def __update_service(self):
         """
@@ -399,8 +369,8 @@ class Workflow(Basic):
                                 self.pause = False
                                 self._pause_time = None
                                 update_data = {
-                                    "continue_time": datetime.datetime.now(),
-                                    "has_continue": 1
+                                        "continue_time": datetime.datetime.now(),
+                                        "has_continue": 1
                                 }
                                 self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
                                 self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",

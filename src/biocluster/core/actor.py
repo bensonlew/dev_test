@@ -9,10 +9,8 @@ import datetime
 import threading
 import inspect
 import zerorpc
-import sys
 import platform
 import traceback
-import os
 
 
 class State(object):
@@ -34,6 +32,7 @@ class LocalActor(gevent.Greenlet):
         self._start_time = None  # 开始运行时间
         self._keep_alive_out_fired = False
         self._wait_time_out_fired = False
+        self.auto_break = False  # 自动退出
         Greenlet.__init__(self)
 
     def check_time(self):
@@ -45,10 +44,10 @@ class LocalActor(gevent.Greenlet):
                     self._keep_alive_out_fired = True
         if not self._wait_time_out_fired and self._update is None:
             if not self._agent.is_wait:
-                if self._start_time is not None:
-                    if (now - self._start_time).seconds > self._config.MAX_WAIT_TIME:
-                        self._agent.fire('waittimeout')
-                        self._wait_time_out_fired = True
+                if self._agent.job.submit_time is not None:
+                        if (now - self._agent.job.submit_time).seconds > self._config.MAX_WAIT_TIME:
+                            self._agent.fire('waittimeout')
+                            self._wait_time_out_fired = True
 
     def receive(self, message):
         """
@@ -66,31 +65,11 @@ class LocalActor(gevent.Greenlet):
             if (not isinstance(message, dict)) or ('state' not in message.keys()):
                 self._agent.logger.warning("接收到不符合规范的消息，丢弃!")
             if message['state'] != "keepalive":
-                if hasattr(self._agent, message['state']+'_callback'):
-                    func = getattr(self._agent, message['state']+'_callback')
-                    argspec = inspect.getargspec(func)
-                    args = argspec.args
-                    if len(args) == 1:
-                        func()
-                    elif len(args) == 2:
-                        func(message['data'])
-                    else:
-                        raise Exception("状态回调函数参数不能超过2个(包括self)!")
-                else:
-                    self.default_callback(message)
+                self._agent.fire("recivestate", message)
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
             self._agent.get_workflow().exit(exitcode=1, data=e)
-
-    def default_callback(self, message):
-        """
-        消息处理函数不存在时对默认的处理方法
-
-        :param message:   接收到的消息
-        :return:
-        """
-        self._agent.logger.warning(self._agent.name + "没有定义消息对应的处理函数" + message['state'] + "!")
 
     def _run(self):
         self._start_time = datetime.datetime.now()
@@ -99,7 +78,7 @@ class LocalActor(gevent.Greenlet):
             # message = self.inbox.get()
             # self.receive(message)
             self.check_time()
-            if self._agent.is_end:
+            if self._agent.is_end or self.auto_break:
                 break
             gevent.sleep(3)
 
@@ -113,7 +92,7 @@ class RemoteActor(threading.Thread):
         super(RemoteActor, self).__init__()
         self._tool = tool
         self.config = tool.config
-        self.mutex = threading.Lock()
+        self.mutex = tool.mutex
         self._lost_connection_count = 0
         self.main_thread = main_thread
         self._has_record_commands = []
@@ -125,19 +104,28 @@ class RemoteActor(threading.Thread):
         :return: None
         """
         gevent.spawn(self.check_command)
-        while (not self._tool.is_end) or len(self._tool.states) > 0:
-            if self._tool.exit_signal and len(self._tool.states) == 0:
+        self.mutex.acquire()
+        is_end = self._tool.is_end
+        states = self._tool.states
+        self.mutex.release()
+
+        while (not is_end) or len(states) > 0:
+            self.mutex.acquire()
+            is_end = self._tool.is_end
+            states = self._tool.states
+            exit_signal = self._tool.exit_signal
+            self.mutex.release()
+            if exit_signal and len(states) == 0:
                 self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
+                self._tool.exit(1)
                 break
-            # is_main_thread_active = True
-            # for i in threading.enumerate():
-            #     if i.name == "MainThread":
-            #         is_main_thread_active = i.is_alive()
-            if not self.main_thread.is_alive() and len(self._tool.states) == 0 and self._tool.exit_signal is not True:
+
+            if not self.main_thread.is_alive() and len(states) == 0 and exit_signal is not True:
                 self.send_state(State('error', "检测到远程主线程异常结束"))
                 self._tool.logger.debug("检测到主线程已退出，终止运行!")
+                self._tool.exit(1)
                 break
-            if len(self._tool.states) > 0:
+            if len(states) > 0:
                 self.mutex.acquire()
                 state = self._tool.states.pop(0)
                 self.mutex.release()
@@ -157,6 +145,7 @@ class RemoteActor(threading.Thread):
                         else:
                             self._tool.logger.warn("没有为返回action %s设置处理函数!" % action['action'])
                 if state.name in {"finish", "error"}:
+                    self._tool.exit(0)
                     break
             else:
                 action = self.send_state(State('keepalive', platform.uname()[1]))
@@ -185,7 +174,8 @@ class RemoteActor(threading.Thread):
         """
         msg = {"id": self._tool.id,
                "state": state.name,
-               "data": state.data
+               "data": state.data,
+               "version": self._tool.version
                }
         client = None
         try:
@@ -198,7 +188,7 @@ class RemoteActor(threading.Thread):
             if self._lost_connection_count >= 10:
                 self._tool.logger.error("网络连接出现错误，尝试10次仍然无法连接，即将退出运行:%s" % e)
                 self._tool.exit_signal = True
-                os.system("kill -9 %s" % os.getpid())
+                self._tool.exit(1)
             else:
                 self._tool.logger.error("网络连接出现错误，将重新尝试连接:%s" % e)
                 if client:
@@ -208,16 +198,42 @@ class RemoteActor(threading.Thread):
         else:
             if not isinstance(result, dict):
                 self._tool.logger.error("接收到异常信息，退出运行!")
-                sys.exit(1)
+                self._tool.exit(1)
             self._lost_connection_count = 0
             return result
 
     def check_command(self):
         while not self._tool.is_end:
-            if (not self.main_thread.is_alive()) or self._tool.exit_signal:
+            if not self.main_thread.is_alive():
+                break
+            if self._tool.is_end or self._tool.exit_signal:
                 break
             for name, cmd in self._tool.commands.items():
                 if name not in self._has_record_commands:
                     gevent.spawn(self._tool.resource_record, cmd)
                     self._has_record_commands.append(name)
             gevent.sleep(3)
+
+
+class ProcessActor(RemoteActor):
+
+    def run(self):
+        self.config.KEEP_ALIVE_TIME = 0
+        super(ProcessActor, self).run()
+
+    def send_state(self, state):
+
+        msg = {"id": self._tool.id,
+               "state": state.name,
+               "data": state.data,
+               "version": self._tool.version
+               }
+
+        self._tool.shared_queue.put(msg)
+        key = "%s" % self._tool.version
+        if key in self._tool.shared_callback_action.keys():
+            action = self._tool.shared_callback_action[key]
+            del self._tool.shared_callback_action[key]
+        else:
+            action = {'action': 'none'}
+        return action

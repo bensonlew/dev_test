@@ -14,6 +14,7 @@ import threading
 import time
 import re
 import importlib
+from .core.function import stop_thread
 
 
 class RemoteData(object):
@@ -46,7 +47,6 @@ class Tool(object):
         :return:
         """
         super(Tool, self).__init__()
-        self._agent = None  # 即时计算时，保存agent对象，用于直接触发Agent的相关方法
         self.config = config
         self._name = ""
         self._full_name = ""
@@ -59,12 +59,16 @@ class Tool(object):
         self._end = False
         self._options = {}
         self._remote_data = {}
+        self.version = 0
         self.load_config()
         self.logger = Wlog(self).get_logger('')
+        self.main_thread = threading.current_thread()
         self.actor = RemoteActor(self, threading.current_thread())
         self.mutex = threading.Lock()
         self.exit_signal = False
         self._remote_data_object = RemoteData(self._remote_data)
+        self._rerun = False
+        self._instant = False  # 本地进程模式
 
     @property
     def remote(self):
@@ -206,8 +210,8 @@ class Tool(object):
         while True:
             if self.exit_signal:
                 self.logger.info("接收到退出信号，终止程序运行!")
-                self.exit()
-            if len(self._commands) == 0:
+                break
+            if len(cmds) == 0:
                 break
             is_running = False
             for command in cmds:
@@ -273,16 +277,19 @@ class Tool(object):
 
         filepath = os.path.join(self.work_dir, command.name+"_resource.txt")
         while True:
+            if self.is_end or self.exit_signal:
+                break
             if not command.has_run:
                 if command.is_error:
                     break
+                gevent.sleep(1)
                 continue
             if command.is_running:
-                processes = command.get_psutil_processes()
-                time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
-                process_num = len(processes)
-                if process_num == 1:
-                    try:
+                try:
+                    processes = command.get_psutil_processes()
+                    time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
+                    process_num = len(processes)
+                    if process_num == 1:
                         pid = processes[0].pid
                         cmd = " ".join(processes[0].cmdline())
                         cpu_percent = processes[0].cpu_percent()
@@ -290,21 +297,18 @@ class Tool(object):
                         memory_info = processes[0].memory_info()
                         memory_rss = friendly_size(memory_info[0])
                         memory_vms = friendly_size(memory_info[1])
-                    except Exception, e:
-                        self.logger.debug("监控资源时发生错误: %s" % e )
-                    else:
+
                         with open(filepath, "a") as f:
                             f.write("%s\tmain_pid:%s\tcpu_percent:%s\tmemory_percent:%s\tmemory_rss:%s"
                                     "\tmemory_vms:%s\tcmd:%s\n" % (time_now, pid, cpu_percent, memory_percent,
                                                                    memory_rss, memory_vms, cmd))
 
-                if process_num > 1:
-                    with open(filepath, "a") as f:
-                        pid = processes[0].pid
-                        cmd = " ".join(processes[0].cmdline())
-                        f.write("\n%s\tprocess_num:%s\tmain_pid:%s\tcmd:%s\n" % (time_now, process_num, pid, cmd))
-                        for p in processes:
-                            try:
+                    if process_num > 1:
+                        with open(filepath, "a") as f:
+                            pid = processes[0].pid
+                            cmd = " ".join(processes[0].cmdline())
+                            f.write("\n%s\tprocess_num:%s\tmain_pid:%s\tcmd:%s\n" % (time_now, process_num, pid, cmd))
+                            for p in processes:
                                 pid = p.pid
                                 cmd = " ".join(p.cmdline())
                                 cpu_percent = p.cpu_percent()
@@ -312,24 +316,44 @@ class Tool(object):
                                 memory_info = p.memory_info()
                                 memory_rss = friendly_size(memory_info[0])
                                 memory_vms = friendly_size(memory_info[1])
-                            except Exception, e:
-                                self.logger.debug("监控资源时发生错误: %s" % e )
-                            else:
+
                                 f.write("\t\t\tpid:%s\tcpu_percent:%s\tmemory_percent:%s\tmemory_rss:%s\t"
                                         "memory_vms:%s\tcmd:%s\n" % (pid, cpu_percent, memory_percent,
                                                                      memory_rss, memory_vms, cmd))
+                except Exception, e:
+                    self.logger.debug("监控资源时发生错误: %s" % e)
                 gevent.sleep(10)
             else:
                 break
 
     def exit_action(self, data):
         """
-        处理远程发回的exit action
+        处理远程agent端发回的exit action
 
         :param data:  退出指令说明
         :return:
         """
         self.logger.info("接收到action退出指令:%s" % str(data))
+        self.exit()
+
+    def rerun_action(self, data):
+        """
+        处理远程agent端发回的rerun指令
+
+        :param data:  退出指令说明
+        :return:
+        """
+        self.logger.info("接收到rerun退出指令:%s" % str(data))
+        self._rerun = True
+        self.kill_all_commonds()
+        os.chdir(self.work_dir)
+        script = sys.executable
+        args = " ".join(sys.argv)
+        self.kill_all_commonds()
+        self.logger.info("终止主线程运行...")
+        stop_thread(self.main_thread)
+        self.logger.info("开始重新运行...")
+        os.system("%s %s" % (script, args))
         self.exit()
 
     def end(self):
@@ -338,13 +362,13 @@ class Tool(object):
 
         :return:
         """
-        self._end = True
         self.save_output()
         self.add_state('finish')
         self.logger.info("程序运行完成")
+        self.mutex.acquire()
+        self._end = True
         self.exit_signal = True
-        if self._agent:  # 即时计算用于触发agent结束函数
-            self._agent.finish_callback()
+        self.mutex.release()
 
     def exit(self, status=1):
         """
@@ -355,9 +379,8 @@ class Tool(object):
         """
         self._end = True
         self.exit_signal = True
-        for command in self._commands.values():
-            command.kill()
-        sys.exit(status)
+        self.kill_all_commonds()
+        os._exit(status)
 
     def save_output(self):
         """
@@ -393,12 +416,13 @@ class Tool(object):
         :param error_data:
         :return:
         """
+
         self.add_state('error', error_data)
         self.logger.info("运行出错:%s" % error_data )
+        self.mutex.acquire()
         self._end = True
         self.exit_signal = True
-        if self._agent:  # 即时计算用于触发agent的错误函数
-            self._agent.error_callback('运行出错:{}'.format(error_data))
+        self.mutex.release()
 
     @staticmethod
     def set_environ(**kwargs):
@@ -439,3 +463,15 @@ class Tool(object):
         class_name = "".join(l)
         imp = importlib.import_module("mbio.packages." + path)
         return getattr(imp, class_name)
+
+    def kill_all_commonds(self):
+        """
+        杀死所有正在运行的Commond
+        :return:
+        """
+        for name, command in self._commands.items():
+            if command.is_running:
+                self.logger.info("终止命令%s运行..." % name)
+                command.kill()
+
+
