@@ -62,6 +62,7 @@ class LocalServer(object):
         self._report = Report(workflow)
         self._close = False
         self.process_queue = Queue()
+        self.endpoint = ""
 
     def run(self):
         while True:

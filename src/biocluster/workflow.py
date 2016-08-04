@@ -60,8 +60,6 @@ class Workflow(Basic):
         self._logger = Wlog(self).get_logger("")
         if self.sheet.instant is True:
             self.USE_DB = False
-            self.IMPORT_REPORT_DATA = True
-            self.IMPORT_REPORT_AFTER_END = False
             self.rpc_server = LocalServer(self)
         else:
             self.rpc_server = RPC(self)
