@@ -63,12 +63,12 @@ class Tool(object):
         self.load_config()
         self.logger = Wlog(self).get_logger('')
         self.main_thread = threading.current_thread()
-        self.actor = RemoteActor(self, threading.current_thread())
         self.mutex = threading.Lock()
         self.exit_signal = False
         self._remote_data_object = RemoteData(self._remote_data)
         self._rerun = False
-        self._instant = False  # 本地进程模式
+        self._instant = False  # 本地进程模式\
+        self.actor = RemoteActor(self, threading.current_thread())
 
     @property
     def remote(self):
