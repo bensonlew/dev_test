@@ -209,6 +209,11 @@ class BwaTool(Tool):
         运行
         """
         super(BwaTool, self).run()
+        index_outfile = os.path.basename(self.option("ref_fasta").prop["path"]) + ".amb"
+        if os.path.exists(os.path.join(self.option("ref_fasta").prop["path"], index_outfile)):
+            pass
+        else:
+            self.bwa_index()
         if self.option("fastq_dir").is_set:
             # self.bwa_index()
             aln_commands = self.multi_aln()
@@ -246,6 +251,7 @@ class BwaTool(Tool):
                     self.set_error("右端比对出错")
                 self.bwa_sampe("pe.sam", "aln_l.sai", "aln_r.sai", self.option("fastq_l").prop["path"], self.option("fastq_r").prop["path"])
             elif self.option("fq_type") in ["SE"]:
+                # self.bwa_index()
                 aln_s = self.bwa_aln(self.option("fastq_s").prop["path"], "aln_s.sai")
                 self.wait(aln_s)
                 if aln_s.return_code == 0:

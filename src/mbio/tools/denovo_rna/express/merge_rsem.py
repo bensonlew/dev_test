@@ -75,6 +75,9 @@ class MergeRsemTool(Tool):
         self._version = '1.0.1'
         self.fpkm = "/bioinfo/rna/scripts/abundance_estimates_to_matrix.pl"
         self.tpm = "/bioinfo/rna/trinityrnaseq-2.2.0/util/abundance_estimates_to_matrix.pl"
+        self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
+        self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
 
     def merge_rsem(self):
         files = os.listdir(self.option('rsem_files').prop['path'])
@@ -133,8 +136,8 @@ class MergeRsemTool(Tool):
                     os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
                     self.option('gene_count').set_path(self.output_dir + '/' + f)
             self.logger.info("设置merge_rsem分析结果目录成功")
-        except:
-            self.logger.info("设置merge_rsem分析结果目录失败")
+        except Exception as e:
+            self.logger.info("设置merge_rsem分析结果目录失败{}".format(e))
 
     def run(self):
         super(MergeRsemTool, self).run()

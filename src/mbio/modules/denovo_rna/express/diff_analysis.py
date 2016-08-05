@@ -44,8 +44,8 @@ class DiffAnalysisModule(Module):
             raise OptionError("所选方法不在范围内")
         if not isinstance(self.option("sub_num"), int):
             raise OptionError("子聚类数目必须为整数")
-        if not self.option("group_table").is_set:
-            raise OptionError("venn分析的分组文件必须设置")
+        # if not self.option("group_table").is_set:
+        #     raise OptionError("venn分析的分组文件必须设置")
         if self.option("softpower") > 20 or self.option("softpower") < 1:
             raise OptionError("softpower值超出范围")
         if self.option('dissimilarity') > 1 or self.option("dissimilarity") < 0:
@@ -136,12 +136,17 @@ class DiffAnalysisModule(Module):
             self._end_info += 1
         else:
             pass
-        if self._end_info == 3:
+        if self.option('group_table').is_set:
+            if self._end_info == 3:
+                self.end()
+        elif self._end_info == 2:
             self.end()
+
 
     def run(self):
         super(DiffAnalysisModule, self).run()
-        self.venn_run()
+        if self.option('group_table').is_set:
+            self.venn_run()
         self.cluster_run()
         self.network_run()
         # self.on_rely([self.venn, self.cluster], self.end)

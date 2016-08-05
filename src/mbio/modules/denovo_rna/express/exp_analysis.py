@@ -17,11 +17,12 @@ class ExpAnalysisModule(Module):
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq_dir"},  # SE测序，包含所有样本的fq文件的文件夹
+            {"name": "bam", "type": "infile", "format": "align.bwa.bam_dir"},  # 输入文件，bam格式的比对文件
             {"name": "tran_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
             {"name": "gene_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
             {"name": "tran_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
             {"name": "gene_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
+            {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"},
             {"name": "exp_way", "type": "string", "default": "fpkm"},
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
             {"name": "min_rowsum_counts",  "type": "int", "default": 20},  # 离散值估计检验的最小计数值
@@ -42,6 +43,8 @@ class ExpAnalysisModule(Module):
     def check_options(self):
         if not self.option('fq_type'):
             raise OptionError('必须设置测序类型：PE OR SE')
+        if not self.option('bam').is_set:
+            raise OptionError('必须设置bam文件夹')
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError('测序类型不在所给范围内')
         if not self.option("fq_l").is_set and not self.option("fq_r").is_set and not self.option("fq_s").is_set:
@@ -71,27 +74,41 @@ class ExpAnalysisModule(Module):
             'fq_type': self.option('fq_type'),
             'rsem_fa': self.option('rsem_fa')
         }
+        bam_files = os.listdir(self.option('bam').prop['path'])
         if self.option('fq_type') == 'SE':
             s_files = os.listdir(self.option('fq_s').prop['path'])
             for f in s_files:
-                tool_opt['fq_s'] = self.option('fq_s').prop['path'] + '/' + f
-                self.rsem = self.add_tool('denovo_rna.express.rsem')
-                self.rsem.set_options(tool_opt)
-                self.rsem.run()
-                self.tool_lists.append(self.rsem)
+                if re.search(r'fastq$', f):
+                    sample = f.split('_sickle_s.fastq')[0]
+                    for bam in bam_files:
+                        if re.search(r'sam.bam.sorted.bam$', bam) and sample in bam:
+                            tool_opt.update({'fq_s': self.option('fq_s').prop['path'] + '/' + f,
+                            'bam':self.option('bam').prop['path'] + '/' + bam
+                            })
+                            self.rsem = self.add_tool('denovo_rna.express.rsem')
+                            self.rsem.set_options(tool_opt)
+                            self.rsem.run()
+                            self.tool_lists.append(self.rsem)
         else:
             r_files = os.listdir(self.option('fq_r').prop['path'])
             l_files = os.listdir(self.option('fq_l').prop['path'])
             for f in r_files:
-                tool_opt['fq_r'] = self.option('fq_r').prop['path'] + '/' + f
-                sample = f.split('_r.fq')[0]
-                for f1 in l_files:
-                    if sample in f1:
-                        tool_opt['fq_l'] = self.option('fq_l').prop['path'] + '/' + f1
-                self.rsem = self.add_tool('denovo_rna.express.rsem')
-                self.rsem.set_options(tool_opt)
-                self.rsem.run()
-                self.tool_lists.append(self.rsem.run())
+                if re.search(r'fastq$', f):
+                    tool_opt['fq_r'] = self.option('fq_r').prop['path'] + '/' + f
+                    sample = f.split('sickle_r.fastq')[0]
+                    for bam in bam_files:
+                        if re.search(r'sam.bam.sorted.bam$', bam) and sample in bam:
+                            tool_opt.update({
+                            'bam':self.option('bam').prop['path'] + '/' + bam
+                            })
+                        for f1 in l_files:
+                            if sample in f1:
+                                tool_opt['fq_l'] = self.option('fq_l').prop['path'] + '/' + f1
+                                self.rsem = self.add_tool('denovo_rna.express.rsem')
+                                self.rsem.set_options(tool_opt)
+                                self.rsem.run()
+                                self.tool_lists.append(self.rsem.run())
+        print self.tool_lists
         self.on_rely(self.tool_lists, self.set_output, 'rsem')
         self.on_rely(self.tool_lists, self.set_step, {'end': self.step.rsem, 'start': self.step.merge_rsem})
 

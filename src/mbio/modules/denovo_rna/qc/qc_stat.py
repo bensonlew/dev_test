@@ -148,20 +148,26 @@ class QcStatModule(Module):
             else:
                 os.remove(f)
         draw_dir = os.path.join(self.output_dir, "qualityStat")
-        if os.path.exists(draw_dir):
-            shutil.rmtree(draw_dir)
         os.mkdir(draw_dir)
-        draw_out = glob.glob(r"{}/DrawFastqInfo*/output/*".format(self.work_dir))
-        stat_out = glob.glob(r"{}/FastqStat/output/*".format(self.work_dir))
-        for f in draw_out:
-            f_name = os.path.basename(f)
-            target_path = os.path.join(draw_dir, f_name)
-            os.link(f, target_path)
-        for f in stat_out:
-            # f_name = os.path.basename(f)
-            os.link(f, self.output_dir + "/{}".format("fastq_stat.xls"))
+        dup_out = []
+        for tool in self.tools:
+            out_files = os.listdir(tool.output_dir)
+            for f in out_files:
+                f_path = os.path.join(tool.output_dir, f)
+                if "qual_stat" in f:
+                    target = os.path.join(draw_dir, f)
+                    if os.path.exists(target):
+                        os.remove(target)
+                    os.link(f_path, target)
+                elif "dup" in f:
+                    dup_out.append(f_path)
+                else:
+                    target = self.output_dir + "/{}".format("fastq_stat.xls")
+                    if os.path.exists(target):
+                        os.remove(target)
+                    os.link(f_path, target)
+        # self.logger.info(dup_out)
         if self.option("dup") is True:
-            dup_out = glob.glob(r"{}/FastqDup/output/*".format(self.work_dir))
             with open(self.work_dir + "/dup.xls", "w") as w:
                 if self.option("fq_type") == "PE":
                     w.write("sample\tread1Dup\tread2Dup\tPairedDup\n")
@@ -172,6 +178,8 @@ class QcStatModule(Module):
                     f = open(f, "r")
                     f.readline()
                     w.write("{}\t{}".format(sample_name, f.next()))
+            if os.path.exists(self.output_dir + "/dup.xls"):
+                os.remove(self.output_dir + "/dup.xls")
             os.link(self.work_dir + "/dup.xls", self.output_dir + "/dup.xls")
         self.logger.info("done")
         self.end()
@@ -194,20 +202,14 @@ class QcStatModule(Module):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        if self.option("dup") is True:
-            file_des = [
-                [r".", "", "结果输出目录"],
-                [r"./qualityStat/", "文件夹", "质量统计文件夹"],
-                [r"./fastq_stat.xls", "xls", "fastq信息统计表"],
-                [r"./dup.xls", "xls", "fastq序列重复信息"]
-            ]
-        else:
-            file_des = [
+        result_dir.add_relpath_rules([
                 [r".", "", "结果输出目录"],
                 [r"./qualityStat/", "文件夹", "质量统计文件夹"],
                 [r"./fastq_stat.xls", "xls", "fastq信息统计表"]
-            ]
-        result_dir.add_relpath_rules(file_des)
+            ])
+        if self.option("dup") is True:
+            result_dir.add_relpath_rules([
+                [r"./dup.xls", "xls", "fastq序列重复信息"]
+            ])
         # print self.get_upload_files()
         super(QcStatModule, self).end()
-

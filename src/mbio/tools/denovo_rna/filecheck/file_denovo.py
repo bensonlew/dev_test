@@ -3,6 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from mbio.files.sequence.fastq import FastqFile
 from mbio.files.sequence.file_sample import FileSampleFile
 import os
 
@@ -76,11 +77,17 @@ class FileDenovoTool(Tool):
         list_txt = os.path.join(self.option('fastq_dir').prop['path'], "list.txt")
         file_list.set_path(list_txt)
         file_sample = file_list.get_list()
-        print file_sample
         if self.option('fq_type') == 'PE':
             for i in file_sample.keys():
                 if len(i) != 2:
                     raise OptionError("PE测序时，每个样本至少有一个左端fq和右端fq文件")
+        files = self.option('fastq_dir').prop['fastq_basename']
+        self.logger.info('%s' % files)
+        for f in files:
+            fq_path = os.path.join(self.option('fastq_dir').prop['path'], f)
+            my_fastq = FastqFile()
+            my_fastq.set_path(fq_path)
+            my_fastq.check_content()
         self.logger.info("fastq文件检测完毕")
 
     def get_list_info(self):

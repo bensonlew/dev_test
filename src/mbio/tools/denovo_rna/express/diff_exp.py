@@ -30,7 +30,7 @@ class DiffExpAgent(Agent):
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
             {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  #差异基因计数表
             {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  #差异基因表达量表
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
+            {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"},
             {"name": "gname", "type": "string"},  #  分组方案名称
             {"name": "diff_rate", "type": "float", "default": 0.01}  #期望的差异基因比率
         ]
@@ -112,6 +112,10 @@ class DiffExpTool(Tool):
         super(DiffExpTool, self).__init__(config)
         self._version = '1.0.1'
         self.edger = "/bioinfo/rna/trinityrnaseq-2.2.0/Analysis/DifferentialExpression/run_DE_analysis.pl"
+        self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
+        self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
+        self.restart_edger = False
 
     def run_edger(self):
         if self.option('edger_group').is_set:
@@ -120,7 +124,10 @@ class DiffExpTool(Tool):
         else:
             edger_cmd = self.edger + " --matrix %s --method edgeR --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], self.option('dispersion'), self.option('min_rowsum_counts'))
         self.logger.info("开始运行edger_cmd")
-        edger_com = self.add_command("edger_cmd", edger_cmd).run()
+        if self.restart_edger:
+            edger_com = self.add_command("restart_edger_cmd", edger_cmd).run()
+        else:
+            edger_com = self.add_command("edger_cmd", edger_cmd).run()
         self.wait(edger_com)
         if edger_com.return_code == 0:
             self.logger.info("运行edger_cmd成功")
@@ -137,11 +144,11 @@ class DiffExpTool(Tool):
     def re_run_edger(self):
         samples, genes = self.option('fpkm').get_matrix_info()
         gene_num = len(genes)
-        self.logger.info(genes,gene_num)
         if not self.option('edger_group').is_set and gene_num > 10000:
             diff_num = len(open('diff_list','rb').readlines())
-            dispersion = check_dispersion(genes, diff_num, self.option('diff_rate'))
+            dispersion = check_dispersion(gene_num, diff_num, self.option('diff_rate'))
             shutil.rmtree(self.work_dir + '/edger_result/')
+            self.restart_edger = True
             self.run_edger()
         else:
             pass

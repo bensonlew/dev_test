@@ -20,7 +20,8 @@ class RsemAgent(Agent):
             {"name": "rsem_fa", "type": "infile", "format": "sequence.fasta"},  #trinit.fasta文件
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
-            {"name": "fq_s", "type": "infile", "format": "sequence.fastq"}  # SE测序，包含所有样本的fq文件的文件夹
+            {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件夹
+            {"name": "bam", "type": "infile", "format": "align.bwa.bam"}  # 输入文件，bam格式的比对文件
         ]
         self.add_option(options)
         self.step.add_steps("rsem")
@@ -50,6 +51,8 @@ class RsemAgent(Agent):
             raise OptionError("PE测序时需设置左端序列和右端序列输入文件")
         if self.option("fq_type") == "SE" and not self.option("fq_s").is_set:
             raise OptionError("SE测序时需设置序列输入文件")
+        if not self.option("bam").is_set:
+            raise OptionError("需设置bam输入文件")
         return True
 
     def set_resource(self):
@@ -78,21 +81,24 @@ class RsemTool(Tool):
     def __init__(self, config):
         super(RsemTool, self).__init__(config)
         self._version = '1.0.1'
-        self.fpkm = "/bioinfo/rna/scripts/abundance_estimates_to_matrix.pl"
-        self.tpm = "/bioinfo/rna/trinityrnaseq-2.2.0/util/abundance_estimates_to_matrix.pl"
         self.rsem = "/bioinfo/rna/trinityrnaseq-2.2.0/util/align_and_estimate_abundance.pl"
         self.rsem_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/RSEM-1.2.31/bin'
-        self.bowtie_path = self.config.SOFTWARE_DIR + '/bioinfo/align/bowtie2-2.2.9/'
+        # self.bowtie_path = self.config.SOFTWARE_DIR + '/bioinfo/align/bowtie2-2.2.9/'
+        self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
+        self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
         self.set_environ(PATH=self.rsem_path)
-        self.set_environ(PATH=self.bowtie_path)
+        # self.set_environ(PATH=self.bowtie_path)
 
     def run_rsem(self):
         if self.option('fq_type') == 'SE':
-            sample = os.path.basename(self.option('fq_s').prop['path']).split('_s.fq')[0]
-            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --single %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --prep_reference --aln_method bowtie2 --output_prefix %s' % (self.option('rsem_fa').prop['path'], self.option('fq_s').prop['path'], self.work_dir, sample)
+            sample = os.path.basename(self.option('fq_s').prop['path']).split('_sickle_s.fastq')[0]
+            os.system('cp {} ./{}.bam'.format(self.option('bam').prop['path'], sample))
+            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --single %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --prep_reference --aln_method %s --output_prefix %s' % (self.option('rsem_fa').prop['path'], self.option('fq_s').prop['path'], self.work_dir, sample+'.bam', sample)
         else:
-            sample = os.path.basename(self.option('fq_l').prop['path']).split('_l.fq')[0]
-            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --right %s --left %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --prep_reference --aln_method bowtie2 --output_prefix %s' % (self.option('rsem_fa').prop['path'], self.option('fq_r').prop['path'], self.option('fq_l').prop['path'], self.work_dir, sample)
+            sample = os.path.basename(self.option('fq_l').prop['path']).split('_sickle_l.fastq')[0]
+            os.system('cp {} ./{}.bam'.format(self.option('bam').prop['path'], sample))
+            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --right %s --left %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --prep_reference --aln_method %s --output_prefix %s' % (self.option('rsem_fa').prop['path'], self.option('fq_r').prop['path'], self.option('fq_l').prop['path'], self.work_dir, sample+'.bam', sample)
         self.logger.info("开始运行_rsem_cmd")
         cmd = self.add_command("rsem_cmd", rsem_cmd).run()
         self.wait()

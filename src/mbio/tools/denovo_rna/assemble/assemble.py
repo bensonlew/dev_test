@@ -60,6 +60,11 @@ class AssembleAgent(Agent):
             raise OptionError("SE测序时需设置序列输入文件")
         if self.option("SS_lib_type") != 'none' and self.option("SS_lib_type") not in ['F', 'R', 'FR', 'RF']:
             raise OptionError("所设reads方向不在范围值内")
+        if self.option("fq_type") == "SE":
+            self.option('fq_s').check_content()
+        if self.option("fq_type") == "PE":
+            self.option('fq_r').check_content()
+            self.option('fq_l').check_content()
         return True
 
     def set_resource(self):
@@ -88,9 +93,12 @@ class AssembleTool(Tool):
         self._version = "v1.0.1"
         self.trinity_path = '/bioinfo/rna/trinityrnaseq-2.2.0/'
         self.bowtie = self.config.SOFTWARE_DIR + '/bioinfo/align/bowtie-1.1.2/'
-        # self.samtools = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
+        self.samtools = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
+        self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
+        self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
         self.set_environ(PATH=self.bowtie)
-        # self.set_environ(PATH=self.samtools)
+        self.set_environ(PATH=self.samtools)
+        self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
 
     def run(self):
         """
@@ -99,8 +107,6 @@ class AssembleTool(Tool):
         """
         super(AssembleTool, self).run()
         self.run_trinity()
-        self.set_output()
-        self.end()
 
     def run_trinity(self):
         """
@@ -109,24 +115,24 @@ class AssembleTool(Tool):
         if self.option('fq_type') == 'SE':
             if self.option('SS_lib_type') != 'None':
                 cmd = self.trinity_path + 'Trinity --seqType fq --max_memory %s --min_contig_length %s --CPU %s ' \
-                                          '--single %s' % (self.option('max_memory'), self.option('min_contig_length'),
+                                          '--single %s --no_version_check' % (self.option('max_memory'), self.option('min_contig_length'),
                                                            self.option('cpu'), self.option('fq_s').prop['path'])
             else:
                 cmd = self.trinity_path + 'Trinity --seqType fq --max_memory %s --min_contig_length %s --CPU %s ' \
-                                          '--single %s --SS_lib_type %s' % \
+                                          '--single %s --SS_lib_type %s --no_version_check' % \
                                           (self.option('max_memory'), self.option('min_contig_length'),
                                            self.option('cpu'), self.option('fq_s').prop['path'],
                                            self.option('SS_lib_type'))
         else:
             if self.option('SS_lib_type') != 'None':
                 cmd = self.trinity_path + 'Trinity --seqType fq --max_memory %s --min_contig_length %s ' \
-                                          '--CPU %s --left %s --right %s' % \
+                                          '--CPU %s --left %s --right %s --no_version_check' % \
                                           (self.option('max_memory'), self.option('min_contig_length'),
                                            self.option('cpu'), self.option('fq_l').prop['path'],
                                            self.option('fq_r').prop['path'])
             else:
                 cmd = self.trinity_path + 'Trinity --seqType fq --max_memory %s --min_contig_length %s --CPU %s --left ' \
-                                          '%s --right %s --SS_lib_type %s' % \
+                                          '%s --right %s --SS_lib_type %s --no_version_check' % \
                                           (self.option('max_memory'), self.option('min_contig_length'),
                                            self.option('cpu'), self.option('fq_l').prop['path'],
                                            self.option('fq_r').prop['path'], self.option('SS_lib_type'))
@@ -138,6 +144,7 @@ class AssembleTool(Tool):
             result = trinity_stat(self.work_dir + '/trinity_out_dir/Trinity.fasta', self.option('length'))  # 运行trnity_stat.py，对trinity.fatsa文件进行统计
             if result == 1:
                 self.logger.info('trinity_stat.py运行成功，统计trinity.fasta信息成功')
+                self.set_output()
             else:
                 self.logger.info('trinity_stat.py运行出错，统计trinity.fasta信息失败')
         else:
@@ -163,5 +170,7 @@ class AssembleTool(Tool):
             # self.logger.info(self.option('gene_fa').prop['path'])
             self.option('trinity_fa').set_path(self.work_dir + '/trinity_out_dir/Trinity.fasta')
             self.logger.info("设置组装拼接分析结果目录成功")
+            self.end()
         except Exception as e:
             self.logger.info("设置组装拼接分析结果目录失败{}".format(e))
+            self.set_error("设置组装拼接分析结果目录失败{}".format(e))

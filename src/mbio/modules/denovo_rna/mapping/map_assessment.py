@@ -146,13 +146,14 @@ class MapAssessmentModule(Module):
         self.end()
 
     def run(self):
-        # super(MapAssessmentModule, self).run()
+        self.add_tool('align.ncbi.blast')
+        super(MapAssessmentModule, self).run()
         self.bam_stat_run()
         self.dup_run()
         self.satur_run()
         self.coverage_run()
         self.on_rely(self.tools, self.set_output)
-        super(MapAssessmentModule, self).run()
+        # super(MapAssessmentModule, self).run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
