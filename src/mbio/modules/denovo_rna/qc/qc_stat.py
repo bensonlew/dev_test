@@ -137,8 +137,12 @@ class QcStatModule(Module):
             self.dup_run()
         self.draw_run()
         self.on_rely(self.tools, self.set_output)
+        self.logger.info('{}'.format(self.events))
         # self.logger.info(self.tools)
         super(QcStatModule, self).run()
+        for eve in self.events.values():
+            self.logger.info('{}'.format(eve.is_start))
+
 
     def set_output(self):
         self.logger.info("set output")

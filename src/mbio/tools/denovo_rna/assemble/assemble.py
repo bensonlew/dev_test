@@ -60,11 +60,11 @@ class AssembleAgent(Agent):
             raise OptionError("SE测序时需设置序列输入文件")
         if self.option("SS_lib_type") != 'none' and self.option("SS_lib_type") not in ['F', 'R', 'FR', 'RF']:
             raise OptionError("所设reads方向不在范围值内")
-        if self.option("fq_type") == "SE":
-            self.option('fq_s').check_content()
-        if self.option("fq_type") == "PE":
-            self.option('fq_r').check_content()
-            self.option('fq_l').check_content()
+        # if self.option("fq_type") == "SE":
+        #     self.option('fq_s').check_content()
+        # if self.option("fq_type") == "PE":
+        #     self.option('fq_r').check_content()
+        #     self.option('fq_l').check_content()
         return True
 
     def set_resource(self):
