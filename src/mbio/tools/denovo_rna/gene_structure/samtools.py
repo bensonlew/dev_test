@@ -94,9 +94,8 @@ class SamtoolsTool(Tool):
             self.bam_name = self.option("in_bam").prop["path"].split("/")[-1]
 
     def dict(self):
-        cmd = "{}samtools dict {} -o {}".format(self.samtools_path, self.option("ref_fasta").prop["path"], self.fasta_name +
-                                                ".dict")
-        print cmd
+        cmd = "{}samtools dict {} -o {}".format(self.samtools_path, self.option("ref_fasta").prop["path"], self.fasta_name + ".dict")
+        # print cmd
         self.logger.info("开始运行samtools dict命令")
         command = self.add_command("dict", cmd)
         command.run()
@@ -108,7 +107,7 @@ class SamtoolsTool(Tool):
 
     def faidx(self):
         cmd = "{}samtools faidx {}".format(self.samtools_path, self.option("ref_fasta").prop["path"])
-        print cmd
+        # print cmd
         self.logger.info("开始运行samtools faidx命令")
         command = self.add_command("faidx", cmd)
         command.run()
@@ -120,7 +119,7 @@ class SamtoolsTool(Tool):
 
     def index(self, bam):
         cmd = "{}samtools index {}".format(self.samtools_path, bam)
-        print cmd
+        # print cmd
         self.logger.info("开始运行samtools index命令")
         command = self.add_command("index", cmd)
         command.run()
@@ -131,7 +130,7 @@ class SamtoolsTool(Tool):
             self.set_error("index运行过程出错")
 
     def view(self):
-        self.logger.info("run3")
+        # self.logger.info("run3")
         if not self.option("ref_fasta").is_set:
             ref_command = ""
             ref_t = ""
@@ -141,7 +140,7 @@ class SamtoolsTool(Tool):
         cmd = "{}samtools view -b{} {} -o {} {}".format(self.samtools_path, ref_t,  ref_command, self.sam_name + ".bam",
                                                         self.option("sam").prop["path"])
         self.logger.info(cmd)
-        print cmd
+        # print cmd
         self.logger.info("开始运行samtools view命令")
         command = self.add_command("view", cmd)
         command.run()
@@ -153,7 +152,7 @@ class SamtoolsTool(Tool):
 
     def sort(self, bam, sorted_bam):
         cmd = "{}samtools sort -o {} {}".format(self.samtools_path, sorted_bam, bam)
-        print cmd
+        # print cmd
         self.logger.info("开始运行samtools sort命令")
         command = self.add_command("sort", cmd)
         command.run()
@@ -166,7 +165,7 @@ class SamtoolsTool(Tool):
     def mpileup(self, mpileup_out, sort_bam):
         out_option = {"pileup": "", "bcf": "-gu", "vcf": "-vu"}
         cmd = "{}samtools mpileup {} -f {} -o {} {}".format(self.samtools_path, out_option[self.option("mpileup_out")], self.option("ref_fasta").prop["path"], mpileup_out,  sort_bam)
-        print cmd
+        # print cmd
         self.logger.info(cmd)
         self.logger.info("开始运行samtools mpileup命令")
         command = self.add_command("mpileup", cmd)
@@ -203,7 +202,7 @@ class SamtoolsTool(Tool):
         运行
         """
         super(SamtoolsTool, self).run()
-        self.logger.info("run1")
+        # self.logger.info("run1")
         if self.option("ref_fasta").is_set and not self.option("method") in ["dict", "faidx"]:
             self.faidx()
         self.logger.info(self.option("method"))

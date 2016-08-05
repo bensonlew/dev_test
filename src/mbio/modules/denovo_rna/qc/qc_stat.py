@@ -137,7 +137,7 @@ class QcStatModule(Module):
             self.dup_run()
         self.draw_run()
         self.on_rely(self.tools, self.set_output)
-        self.logger.info(self.tools)
+        # self.logger.info(self.tools)
         super(QcStatModule, self).run()
 
     def set_output(self):

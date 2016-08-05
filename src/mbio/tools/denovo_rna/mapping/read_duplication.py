@@ -19,7 +19,6 @@ class ReadDuplicationAgent(Agent):
     def __init__(self, parent):
         super(ReadDuplicationAgent, self).__init__(parent)
         options = [
-            {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "quality", "type": "int", "default": 30}  # 质量值
         ]
@@ -31,8 +30,6 @@ class ReadDuplicationAgent(Agent):
         """
         if not self.option("bam").is_set:
             raise OptionError("请传入比对结果bam格式文件")
-        if not self.option("bed").is_set:
-            raise OptionError("请传入bed格式文件")
 
     def set_resource(self):
         """
@@ -63,7 +60,7 @@ class ReadDuplicationTool(Tool):
 
     def multi_dup(self, bam_dir, out_pre):
         cmds = []
-        bams = glob.glob("{}/*".format(bam_dir))
+        bams = glob.glob("{}/*.bam".format(bam_dir))
         for bam in bams:
             cmd = self.duplication(bam, out_pre)
             cmds.append(cmd)

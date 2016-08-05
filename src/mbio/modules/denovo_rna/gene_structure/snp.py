@@ -20,8 +20,6 @@ class SnpModule(Module):
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
-            {"name": "varscan_method", "type": "string", "default": "pileup2snp"},  # 选择varscan的pileup2snp方法
-            {"name": "samtools_method", "type": "string", "default": "mplieup"},  # 选择samtools的mpileup方法
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
             # {"name": "pileup", "type": "outfile", "format": "gene_structure.pileup"},  # pileup格式文件
         ]
@@ -29,6 +27,7 @@ class SnpModule(Module):
         self.bam_files = []
         self.end_info = 1
         self.samtools = []
+        self.varscan = []
 
     def check_options(self):
         """
@@ -89,7 +88,8 @@ class SnpModule(Module):
         self.step.add_steps('varscan_{}'.format(self.end_info))
         varscan.set_options({
                 "pileup": pileup_path,
-                "method": self.option("varscan_method")
+                "method": "pileup2snp",
+                "bed": self.option("bed").prop["path"]
             })
         step = getattr(self.step, 'varscan_{}'.format(self.end_info))
         step.start()
@@ -98,7 +98,7 @@ class SnpModule(Module):
         varscan.on("end", self.set_output)
         self.logger.info("varscanrun")
         varscan.run()
-        # self.varscan.append(varscan)
+        self.varscan.append(varscan)
 
     def rename(self, event):
         obj = event["bind_object"]
@@ -119,14 +119,11 @@ class SnpModule(Module):
                     shutil.rmtree(f_path)
                 else:
                     os.remove(f_path)
-            # samtools_out = glob.glob(r"{}/Samtools*/output/*".format(self.work_dir))
-            varscan_out = glob.glob(r"{}/Varscan*/output/*".format(self.work_dir))
-            self.logger.info(varscan_out)
-            for f in varscan_out:
-                f_name = f.split("/")[-1]
-                target_path = os.path.join(self.output_dir, f_name)
-                os.link(f, target_path)
-            # self.logger.info(samtools_out)
+            for var in self.varscan:
+                for f in os.listdir(var.output_dir):
+                    f_path = os.path.join(var.output_dir, f)
+                    target_path = os.path.join(self.output_dir, f)
+                    os.link(f_path, target_path)
             self.logger.info("done")
             self.end()
 
@@ -145,4 +142,15 @@ class SnpModule(Module):
         result_dir.add_relpath_rules([
             [r".", "", "结果输出目录"]
         ])
+        if self.option("bed").is_set:
+            result_dir.add_relpath_rules([
+                [r"./*snp_position_stat\.xls$", "xls", "样本snp编码位置信息统计表"],
+                [r"./*snp_type_stat\.xls$", "xls", "样本snp类型统计表"],
+                [r"./*snp\.xls", "xls$", "样本snp信息表"]
+            ])
+        else:
+            result_dir.add_relpath_rules([
+                [r"./*pileup_out\.xls$", "xls", "样本snp信息表"]
+            ])
+        print self.get_upload_files()
         super(SnpModule, self).end()
