@@ -12,9 +12,7 @@ from .scheduling.job import JobManager
 from .core.function import get_classpath_by_object, load_class_by_path
 import datetime
 import types
-import gevent
-from .logger import Wlog
-import logging
+import inspect
 
 
 class PickleConfig(object):
@@ -29,6 +27,7 @@ class PickleConfig(object):
         self.endpoint = ""
         self._options = ""
         self._output_path = ""
+        self.version = ""
         self.SOFTWARE_DIR = ""
         self.KEEP_ALIVE_TIME = ""
         self.MAX_KEEP_ALIVE_TIME = ""
@@ -68,7 +67,7 @@ class Agent(Basic):
         self._cpu = 0
         self._memory = ''
         self._default_callback_action = {'action': 'none'}
-        self._callback_action = self._default_callback_action
+        self._callback_action = {}
         self._status = "W"                # W 等待 Q 排队 R 运行 E 完成
         self.add_event('keepaliveout')   # 保持连接超时
         self.on('keepaliveout', self._event_keepaliveout)
@@ -77,10 +76,9 @@ class Agent(Basic):
         self.add_event('runstart')       # 远端开始运行
         self.on("runstart", self._event_runstart)
         self.on("error", self._agent_event_error)
-        if self.get_workflow().rpc:
-            self.endpoint = self.get_workflow().rpc_server.endpoint
-        else:
-            self.endpoint = ''
+        self.add_event("recivestate", loop=True)
+        self.on("recivestate", self._call_state_callback)  # 收到state状态时调用对应的处理函数
+        self.endpoint = self.get_workflow().rpc_server.endpoint
         self.job = None
         self._run_mode = "Auto"      # 运行模式 Auto表示由 main.conf中的 platform参数决定
         self._job_manager = JobManager()
@@ -90,6 +88,37 @@ class Agent(Basic):
         self._rerun_time = 0
         self.is_wait = False
         self._remote_data = {}
+        self.version = 0  # 重投递运行次数
+        self.shared_callback_action = {}  # 进程共享变量，
+
+    def _call_state_callback(self, message):
+        """
+        将自定义的callback函数转换为事件处理函数
+
+        :param message:   接收到的消息
+        :return:
+        """
+        if hasattr(self, message['state'] + '_callback'):
+            func = getattr(self, message['state'] + '_callback')
+            argspec = inspect.getargspec(func)
+            args = argspec.args
+            if len(args) == 1:
+                func()
+            elif len(args) == 2:
+                func(message['data'])
+            else:
+                raise Exception("状态回调函数参数不能超过2个(包括self)!")
+        else:
+            self._default_callback(message)
+
+    def _default_callback(self, message):
+        """
+        消息处理函数不存在时对默认的处理方法
+
+        :param message:   接收到的消息
+        :return:
+        """
+        self.logger.warning(self.name + "没有定义消息对应的处理函数" + message['state'] + "!")
 
     @property
     def queue(self):
@@ -158,7 +187,7 @@ class Agent(Basic):
         :return:
         """
         self._cpu = 0
-        self._memory = ''
+        self._memory = "1GB"
 
     def save_config(self):
         """
@@ -223,45 +252,17 @@ class Agent(Basic):
 
         :return:
         """
-        self._run_time = datetime.datetime.now()
         super(Agent, self).run()
-        configfile = self.save_config()
-        if self.get_workflow().rpc:
-            self.save_class_path()
-            self.job = self._job_manager.add_job(self)
-            self._status = "Q"
-            self.actor.start()
+        if self.get_workflow().sheet.instant:
+            self._run_mode = "process"
         else:
-            self.fire('runstart')  # 即时运算直接触发runstart
-            self._status = "R"
-            os.chdir(self.work_dir)
-            self.tool = self._tool_object(configfile)
-            gevent.spawn(self.tool.run)
-
-
-    def _tool_object(self, config_file):
-        """即时计算直接获取tool对象"""
-        with open(config_file, "r") as f:
-            config = pickle.load(f)
-            config.DEBUG = True
-        real_agent_path = get_classpath_by_object(self)
-        real_agent_path = real_agent_path.split('.')
-        real_agent_path.pop(0)
-        real_agent_path.pop(0)
-        self._tool = load_class_by_path('.'.join(real_agent_path), tp="Tool")(config)
-        self._tool._agent = self
-        self._add_instant_tool_logger()
-        return self._tool
-
-    def _add_instant_tool_logger(self):
-        """添加即时模块tool的文件输出(因为tool在agent中直接实例化时logger对象为单例模式)"""
-        logger = Wlog(self)  # 获取此处的logger的设置
-        self._tool.logger.removeHandler(logger.file_handler)  # 去除原有的workflow初始化的logger
-        log_path = self.work_dir + '/' + 'log.txt'
-        file_handler = logging.FileHandler(log_path)
-        file_handler.setLevel(logger.level)
-        file_handler.setFormatter(logger.formatter)
-        self._tool.logger.addHandler(file_handler)
+            self.save_class_path()
+            self.save_config()
+        self.job = self._job_manager.add_job(self)
+        self._run_time = datetime.datetime.now()
+        self._status = "Q"
+        if not self.get_workflow().sheet.instant:
+            self.actor.start()
 
     def rerun(self):
         """
@@ -275,33 +276,82 @@ class Agent(Basic):
         else:
             self.stop_listener()
             self.restart_listener()
-            self.save_class_path()
-            self.save_config()
+            self.version += 1
+            self._work_dir += "_%s" % self.version
+            self._output_path = self._work_dir + "/output"
+            self.create_work_dir()
+            if not self.get_workflow().sheet.instant:
+                self.save_class_path()
+                self.save_config()
+                self.actor.kill()
             self._run_time = datetime.datetime.now()
             self._status = "Q"
+            self.actor.auto_break = True
             # self.actor.kill()
             self.logger.info("开始重新投递任务!")
             self.job.resubmit()
             self.actor = LocalActor(self)
             self.actor.start()
 
-    def set_callback_action(self, action, data=None):
+    def _set_callback_action(self, action, data=None, version=None):
         """
         设置需要发送给远程的Action指令,只会被远程获取一次
 
         :param action: string
         :param data: python内置数据类型,需要被传递给远程的数据
+        :param version: agent版本编号
         :return:
         """
-        self._callback_action = {'action': action, 'data': data}
+        if version is None:
+            version = self.version
+        if self.get_workflow().sheet.instant:
+            self._callback_action = self.shared_callback_action
+        self._callback_action["%s" % version] = {'action': action, 'data': data}
 
-    def get_callback_action(self):
+    def get_callback_action(self, version):
         """
         获取需要返回给远程的Action信息,此信息只会被获取一次
+
+        :param version: 远程tool版本号
+        :return: None
         """
-        action = self._callback_action
-        self._callback_action = self._default_callback_action
+        key = "%s" % version
+        if key in self._callback_action.keys():
+            action = self._callback_action[key]
+            del self._callback_action[key]
+        else:
+            action = self._default_callback_action
         return action
+
+    def send_exit_action(self, reason="", version=None):
+        """
+        发送exit指令到远程tool,此指令将导致远程Tool自动退出
+
+        :param reason: 发送exit指令的原因
+        :param version: agent版本编号
+        :return:
+        """
+        if version is None:
+            version = self.version
+        self.logger.info("发送exit指令到远程Tool 版本%s ...." % version)
+        self._set_callback_action("exit", data=reason, version=version)
+
+    def send_rerun_action(self, reason, version=None):
+        """
+        发送rerun指令到远程tool,此指令讲导致远程Tool重新运行。
+        一般情况下，需要先修改agent自身的option参数，然后再发送此指令，修改后的参数值将在远程Tool中生效。
+        警告：未经修改option而直接发送此指令，将导致远程Tool终止并重新运行，并不会产生其他的效果。
+
+        :param reason: 发送rerun指令的原因
+        :param version: agent版本编号
+        :return:
+        """
+        if version is None:
+            version = self.version
+        self.logger.info("发送rerun指令到远程Tool,版本%s ...." % version)
+        self.save_class_path()
+        self.save_config()
+        self._set_callback_action("rerun", data=reason, version=version)
 
     def finish_callback(self):
         """
@@ -313,9 +363,8 @@ class Agent(Basic):
         self._status = "E"
         self._end_run_time = datetime.datetime.now()
         secends = (self._end_run_time - self._start_run_time).seconds
-        self.logger.info("任务运行结束，运行时间:%ss" % secends)
-        if self.get_workflow().rpc:
-            self.job.set_end()
+        self.logger.info("   任务运行结束，运行时间:%ss" % secends)
+        self.job.set_end()
         self.end()
 
     def error_callback(self, data):
@@ -336,6 +385,8 @@ class Agent(Basic):
         :return:
         """
         self.logger.error("发现运行错误:%s" % data)
+        self.job.set_end()
+        self._job_manager.remove_all_jobs()
         self.get_workflow().exit(data="%s %s" % (self.fullname, data))
 
     def _event_keepaliveout(self):
@@ -370,8 +421,9 @@ class Agent(Basic):
         :return:
         """
         self._start_run_time = datetime.datetime.now()
+        self._status = "R"
         secends = (self._start_run_time - self._run_time).seconds
-        if self.get_workflow().rpc:
-            self.logger.info("远程任务开始运行，任务ID:%s,远程主机:%s,:排队时间%ss" % (self.job.id, data, secends))
+        if self.get_workflow().sheet.instant:
+            self.logger.info("本地进程任务开始运行,PID:%s" % self.job.id)
         else:
-            self.logger.info("即时运算开始时间:{}".format(self._start_run_time))
+            self.logger.info("远程任务开始运行，任务ID:%s,远程主机:%s,:排队时间%ss" % (self.job.id, data, secends))
