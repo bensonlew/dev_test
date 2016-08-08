@@ -112,7 +112,7 @@ class FastqDirFile(Directory):
                 for fastq in self.unzip_file:
                     fasta = re.search(r'(.+)\.(fastq|fq)', fastq).group(1)
                     fasta = os.path.join(self.work_dir, 'converted_fastas', os.path.basename(fasta) + ".fasta")
-                    convert_str = (self.fastq_to_fasta_path + ' -Q 33' + ' -i '
+                    convert_str = (self.fastq_to_fasta_path + ' -Q 33' + ' -n -i '
                                    + fastq + ' -o ' + fasta)
                     mycmd = subprocess.Popen(convert_str, shell=True,
                                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

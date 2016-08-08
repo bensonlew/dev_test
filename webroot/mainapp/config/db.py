@@ -14,6 +14,7 @@ class Config(object):
         self.rcf = ConfigParser.RawConfigParser()
         self.rcf.read(self.CONF_FILE)
         self._db = None
+        self._identity_db = None
         self._mongo_client = None
 
     def get_db(self):
@@ -26,6 +27,17 @@ class Config(object):
             port = self.rcf.get("DB", "port")
             self._db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
         return self._db
+
+    def get_identity_db(self):
+        if not self._identity_db:
+            dbtype = self.rcf.get("IDENTITY_DB", "dbtype")
+            host = self.rcf.get("IDENTITY_DB", "host")
+            user = self.rcf.get("IDENTITY_DB", "user")
+            passwd = self.rcf.get("IDENTITY_DB", "passwd")
+            dbname = self.rcf.get("IDENTITY_DB", "db")
+            port = self.rcf.get("IDENTITY_DB", "port")
+            self._identity_db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
+        return self._identity_db
 
     def get_mongo_client(self):
         if not self._mongo_client:
@@ -41,6 +53,7 @@ def get_db():
     return Config().get_db()
 
 DB = get_db()
+IDENTITY_DB = Config().get_identity_db()
 
 
 def get_use_api_clients():

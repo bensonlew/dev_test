@@ -41,7 +41,7 @@ class PanCore(MetaController):
         my_param['group_id'] = data.group_id
         my_param['group_detail'] = json.loads(group_detail_sort(data.group_detail))
         my_param["submit_location"] = data.submit_location
-        my_param["taskType"] = "reportTask"
+        my_param["taskType"] = data.task_type
         self.params = param_pack(my_param)
         self.run()
         return self.returnInfo

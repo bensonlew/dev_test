@@ -248,7 +248,7 @@ class QcFormatTool(Tool):
             self.logger.info("fasta 文件夹生成完毕")
         except Exception:
             self.logger.error("fastq转化fasta失败！" + traceback.format_exc())
-            raise Exception("软件fastq_to_fasta运行出处，请查看输入的fastq是否正确")
+            raise Exception("软件fastq_to_fasta运行出错，请查看输入的fastq是否正确")
 
     def get_fasta(self):
         """
