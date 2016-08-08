@@ -56,6 +56,8 @@ class String2cogAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
+        ])
+        result_dir.add_regexp_rules([
             ['cog_list.xls', 'xls', 'COG注释表'],
             ['cog_summary.xls', 'xls', 'COG注释总结'],
             ['cog_table.xls', 'xls', 'COG注释详细表']
@@ -68,7 +70,7 @@ class String2cogTool(Tool):
     def __init__(self, config):
         super(String2cogTool, self).__init__(config)
         self._version = '1.0'  # to be changed
-        self.cmd_path = '{}/program/Python/bin/python {}/annotation/scripts/string2cog.py'.format(
+        self.cmd_path = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/string2cog.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
 
     def run(self):
@@ -77,7 +79,7 @@ class String2cogTool(Tool):
 
     def run_string2cog(self):
         cmd = self.cmd_path
-        cmd += ' %s' % self.option("blastout")
+        cmd += ' %s %s' % (self.option("blastout").prop['path'], self.work_dir)
         self.logger.info('运行string2cog.py')
         self.logger.info(cmd)
         try:
