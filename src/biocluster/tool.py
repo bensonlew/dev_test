@@ -60,7 +60,7 @@ class Tool(object):
         self._options = {}
         self._remote_data = {}
         self.version = 0
-        self._instant = False  # 本地进程模式
+        self.instant = False  # 本地进程模式
         self.load_config()
         self.logger = Wlog(self).get_logger('')
         self.main_thread = threading.current_thread()
@@ -68,7 +68,7 @@ class Tool(object):
         self.exit_signal = False
         self._remote_data_object = RemoteData(self._remote_data)
         self._rerun = False
-        if self._instant:
+        if self.instant:
             self.actor = ProcessActor(self, threading.current_thread())
         else:
             self.actor = RemoteActor(self, threading.current_thread())
