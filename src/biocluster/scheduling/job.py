@@ -101,6 +101,16 @@ class JobManager(object):
                     queue_job.agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, queue_job.id))
                     self.queue_jobs.remove(queue_job)
 
+    def remove_all_jobs(self):
+        """
+        删除所有未完成任务
+
+        :return:
+        """
+        for job in self.run_jobs:
+            if not job.is_end:
+                job.delete()
+
 
 class Job(object):
     """

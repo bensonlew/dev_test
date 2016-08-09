@@ -148,21 +148,22 @@ class RemoteActor(threading.Thread):
                     self._tool.exit(0)
                     break
             else:
-                action = self.send_state(State('keepalive', platform.uname()[1]))
-                if isinstance(action, dict) and 'action' in action.keys():
-                    if action['action'] != "none":
-                        if hasattr(self._tool, action['action'] + '_action'):
-                            func = getattr(self._tool, action['action'] + '_action')
-                            argspec = inspect.getargspec(func)
-                            args = argspec.args
-                            if len(args) == 1:
-                                func()
-                            elif len(args) == 2:
-                                func(action['data'])
+                if not self._tool.instant:
+                    action = self.send_state(State('keepalive', platform.uname()[1]))
+                    if isinstance(action, dict) and 'action' in action.keys():
+                        if action['action'] != "none":
+                            if hasattr(self._tool, action['action'] + '_action'):
+                                func = getattr(self._tool, action['action'] + '_action')
+                                argspec = inspect.getargspec(func)
+                                args = argspec.args
+                                if len(args) == 1:
+                                    func()
+                                elif len(args) == 2:
+                                    func(action['data'])
+                                else:
+                                    raise Exception("action处理函数参数不能超过2个(包括self)!")
                             else:
-                                raise Exception("action处理函数参数不能超过2个(包括self)!")
-                        else:
-                            self._tool.logger.warn("没有为返回action %s设置处理函数!" % action['action'])
+                                self._tool.logger.warn("没有为返回action %s设置处理函数!" % action['action'])
             gevent.sleep(int(self.config.KEEP_ALIVE_TIME))
 
     def send_state(self, state):
@@ -232,6 +233,7 @@ class ProcessActor(RemoteActor):
                }
 
         self._tool.shared_queue.put(msg)
+        # print "Put MSG:%s" % msg
         key = "%s" % self._tool.version
         if key in self._tool.shared_callback_action.keys():
             action = self._tool.shared_callback_action[key]

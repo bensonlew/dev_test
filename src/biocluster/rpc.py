@@ -66,12 +66,13 @@ class LocalServer(object):
 
     def run(self):
         while True:
-            gevent.sleep(0)
+            gevent.sleep(0.3)
             try:
                 msg = self.process_queue.get_nowait()
             except Exception:
                 pass
             else:
+                # print "GET MSG:%s" % msg
                 self._report.report(msg)
             if self._close:
                 break

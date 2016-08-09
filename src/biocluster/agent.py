@@ -363,7 +363,7 @@ class Agent(Basic):
         self._status = "E"
         self._end_run_time = datetime.datetime.now()
         secends = (self._end_run_time - self._start_run_time).seconds
-        self.logger.info("任务运行结束，运行时间:%ss" % secends)
+        self.logger.info("   任务运行结束，运行时间:%ss" % secends)
         self.job.set_end()
         self.end()
 
@@ -386,6 +386,7 @@ class Agent(Basic):
         """
         self.logger.error("发现运行错误:%s" % data)
         self.job.set_end()
+        self._job_manager.remove_all_jobs()
         self.get_workflow().exit(data="%s %s" % (self.fullname, data))
 
     def _event_keepaliveout(self):
@@ -422,4 +423,7 @@ class Agent(Basic):
         self._start_run_time = datetime.datetime.now()
         self._status = "R"
         secends = (self._start_run_time - self._run_time).seconds
-        self.logger.info("远程任务开始运行，任务ID:%s,远程主机:%s,:排队时间%ss" % (self.job.id, data, secends))
+        if self.get_workflow().sheet.instant:
+            self.logger.info("本地进程任务开始运行,PID:%s" % self.job.id)
+        else:
+            self.logger.info("远程任务开始运行，任务ID:%s,远程主机:%s,:排队时间%ss" % (self.job.id, data, secends))

@@ -25,9 +25,11 @@ class PROCESS(Job):
     def submit(self):
         super(PROCESS, self).submit()
         self.process.start()
+        self.id = self.process.pid
 
     def delete(self):
-        self.process.terminate()
+        if isinstance(self.process, Process) and self.process.is_alive():
+            self.process.terminate()
 
     def set_end(self):
         super(PROCESS, self).set_end()
@@ -67,5 +69,5 @@ class LocalProcess(Process):
         config.DEBUG = False
         tool.shared_callback_action = self._shared_callback_action
         tool.shared_queue = self._shared_queue
-        config._instant = True
+        config.instant = True
         tool(config).run()
