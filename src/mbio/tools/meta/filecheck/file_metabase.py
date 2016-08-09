@@ -101,8 +101,10 @@ class FileMetabaseTool(Tool):
             self.logger.info("已获取tax文件的所有的序列名，开始校对...")
             for f_name in fasta_name:
                 if f_name not in taxon_name:
+                    self.set_error("序列名{}在taxon文件里未出现")
                     raise Exception("序列名{}在taxon文件里未出现")
             if len(fasta_name) != len(taxon_name):
+                self.set_error("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
                 raise Exception("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
         else:
             self.logger.info("未检测到ref_fasta和ref_taxon文件， 跳过...")

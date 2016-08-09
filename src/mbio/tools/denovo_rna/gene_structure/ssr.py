@@ -49,12 +49,12 @@ class SsrTool(Tool):
 
     def __init__(self, config):
         super(SsrTool, self).__init__(config)
-        self.misa_path = "rna/misa/"
-        self.primer3_path = "rna/primer3-2.3.6/"
-        self.script_path = "/mnt/ilustre/users/sanger/app/rna/primer3-2.3.6/"
+        self.misa_path = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/gene-structure/misa/")
+        self.primer3_path = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/gene-structure/primer3-2.3.7/")
+        self.script_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/gene-structure/scripts/"
         self.fasta_name = self.option("fasta").prop["path"].split("/")[-1]
-        self.perl_path = "Perl/bin/"
-        self.python_path = "Python/bin/"
+        self.perl_path = "program/perl/perls/perl-5.24.0/bin/"
+        self.python_path = "program/Python/bin/"
 
     def misa(self):
         # self.logger.info(self.work_dir + "/" + self.fasta_name)
@@ -62,7 +62,7 @@ class SsrTool(Tool):
         shutil.copy(fasta_path, self.work_dir)
         fasta_copy = self.work_dir + "/" + self.fasta_name
         self.logger.info(fasta_copy)
-        cmd = "{}misa.pl {}".format(self.misa_path, fasta_copy)
+        cmd = "{}perl {}misa.pl {}".format(self.perl_path, self.misa_path, fasta_copy)
         print(cmd)
         self.logger.info("开始运行misa")
         command = self.add_command("misa", cmd)
@@ -74,7 +74,7 @@ class SsrTool(Tool):
             self.set_error("运行misa过程出错")
 
     def primer(self):
-        cmd = "{}python {}primer3_core.py -p {} -i {} -o {}".format(self.python_path, self.script_path, self.script_path, self.fasta_name + ".p3in", self.fasta_name + ".misa.p3out")
+        cmd = "{}python {}primer3_core.py -p {} -i {} -o {}".format(self.python_path, self.script_path, self.primer3_path, self.fasta_name + ".p3in", self.fasta_name + ".misa.p3out")
         print(cmd)
         self.logger.info(cmd)
         self.logger.info("开始运行primer")
@@ -87,7 +87,7 @@ class SsrTool(Tool):
             self.set_error("运行primer出错")
 
     def primer_in(self):
-        p3_in_cmd = "{}p3_in.pl {}".format(self.misa_path, self.fasta_name + ".misa")
+        p3_in_cmd = "{}perl {}p3_in.pl {}".format(self.perl_path, self.misa_path, self.fasta_name + ".misa")
         self.logger.info("转换misa结果为primer输入格式")
         print(p3_in_cmd)
         self.logger.info(p3_in_cmd)
@@ -100,7 +100,7 @@ class SsrTool(Tool):
             self.set_error("运行p3_in过程出错")
 
     def primer_out(self):
-        p3_out_cmd = "{}p3_in.pl {}".format(self.misa_path, self.fasta_name + ".misa.p3out")
+        p3_out_cmd = "{}perl {}p3_out.pl {} {}".format(self.perl_path, self.misa_path, self.fasta_name + ".misa.p3out", self.fasta_name + ".misa")
         self.logger.info("转换misa结果为primer输出格式")
         self.logger.info(p3_out_cmd)
         command = self.add_command("p3_out", p3_out_cmd)
@@ -112,8 +112,8 @@ class SsrTool(Tool):
             self.set_error("运行p3_out过程出错")
 
     def ssr_position(self):
-        self.logger.info(self.config.self.config.SOFTWARE_DIR + self.misa_path)
-        ssr_position_cmd = "{}misa_anno.pl -i {} -orf {}".format(self.config.self.config.SOFTWARE_DIR + self.misa_path, self.fasta_name + ".misa", self.option("bed").prop["path"])
+        self.logger.info(self.config.SOFTWARE_DIR + self.misa_path)
+        ssr_position_cmd = "{}perl {}misa_anno.pl -i {} -orf {}".format(self.config.SOFTWARE_DIR + "/" + self.perl_path, self.misa_path, self.fasta_name + ".misa", self.option("bed").prop["path"])
         self.logger.info("判断ssr位置")
         self.logger.info(ssr_position_cmd)
         try:

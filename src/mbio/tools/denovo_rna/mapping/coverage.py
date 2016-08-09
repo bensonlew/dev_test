@@ -49,8 +49,8 @@ class CoverageTool(Tool):
 
     def __init__(self, config):
         super(CoverageTool, self).__init__(config)
-        self.python_path = "Python/bin/"
-        self.samtools_path = "rna/samtools-1.3.1/"
+        self.python_path = "program/Python/bin/"
+        self.samtools_path = "bioinfo/align/samtools-1.3.1/"
 
     def index(self):
         cmds = []
