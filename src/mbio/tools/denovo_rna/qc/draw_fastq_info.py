@@ -21,16 +21,16 @@ class DrawFastqInfoAgent(Agent):
             {"name": "fastq", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"}  # 输入文件fastq序列
         ]
         self.add_option(options)
-        self.step.add_steps('fastx_clipper')
+        self.step.add_steps('quality_stat')
         self.on('start', self.step_start)
         self.on('end', self.step_end)
 
     def step_start(self):
-        self.step.fastx_clipper.start()
+        self.step.quality_stat.start()
         self.step.update()
 
     def step_end(self):
-        self.step.fastx_clipper.finish()
+        self.step.quality_stat.finish()
         self.step.update()
 
     def check_options(self):
@@ -51,8 +51,11 @@ class DrawFastqInfoAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"]
-            # ["./fastq_stat.xls", "xls", "fastq信息统计表"]
         ])
+        result_dir.add_regexp_rules([
+            [r".*qual_stat", "xls", "fastq质量统计结果表"]
+        ])
+        # print self.get_upload_files()
         super(DrawFastqInfoAgent, self).end()
 
 
@@ -95,7 +98,7 @@ class DrawFastqInfoTool(Tool):
         self.logger.info("set output")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        file_path = glob.glob(r"*qual_stat*")
+        file_path = glob.glob(r"*qual_stat")
         print(file_path)
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)

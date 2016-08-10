@@ -20,7 +20,11 @@ class GoAnnotationAgent(Agent):
         super(GoAnnotationAgent, self).__init__(parent)
         options = [
             {"name": "blastout", "type": "infile",
-                "format": "align.blast.blast_xml"}
+                "format": "align.blast.blast_xml"},
+            {"name": "go2level_out", "type": "outfile",
+                "format": "annotation.go.level2"},
+            {"name": "golist_out", "type": "outfile",
+                "format": "annotation.go.go_list"}
         ]
         self.add_option(options)
         self.step.add_steps('go_annotation')
@@ -37,6 +41,7 @@ class GoAnnotationAgent(Agent):
 
     def check_options(self):
         if self.option("blastout").is_set:
+            '''
             document = ET.parse(self.option("blastout").prop['path'])
             root = document.getroot()
             db = root.find('BlastOutput_db')
@@ -44,6 +49,8 @@ class GoAnnotationAgent(Agent):
                 pass
             else:
                 raise OptionError("BLAST比对数据库不支持")
+            '''
+            pass
         else:
             raise OptionError("必须提供BLAST结果文件")
 
@@ -55,6 +62,8 @@ class GoAnnotationAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
+        ])
+        result_dir.add_regexp_rules([
             ["./blast2go.annot", "annot", "Go annotation based on blast output"],
             ["./query_gos.list", "list", "Merged Go annotation"],
             ["./go1234level_statistics.xls", "xls", "Go annotation on 4 levels"],
@@ -75,9 +84,9 @@ class GoAnnotationTool(Tool):
     def run(self):
         super(GoAnnotationTool, self).run()
         self.run_b2g()
-        #self.run_gomerge()
-        #self.run_annotation()
-        #self.run_gosplit()
+        # self.run_gomerge()
+        # self.run_annotation()
+        # self.run_gosplit()
 
     def run_b2g(self):
         cmd = "java -Xmx500m -cp /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/*:/mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/ext/*: es.blast2go.prog.B2GAnnotPipe -in %s -prop /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out %s" % (self.option("blastout").prop[
@@ -92,7 +101,7 @@ class GoAnnotationTool(Tool):
             if os.path.exists(linkfile):
                 os.remove(linkfile)
             os.link(self.work_dir + '/blast2go.annot', linkfile)
-            #self.run_gomerge
+            # self.run_gomerge
             # self.end()
         except subprocess.CalledProcessError:
             self.set_error('运行b2g出错')
@@ -118,11 +127,12 @@ class GoAnnotationTool(Tool):
             subprocess.check_output(cmd1, shell=True)
             if os.path.exists(self.output_dir + '/GO.list'):
                 os.remove(self.output_dir + '/GO.list')
-            if os.path.exists(self.output_dir+'/query_gos.list'):
-                os.remove(self.output_dir+'/query_gos.list')
+            if os.path.exists(self.output_dir + '/query_gos.list'):
+                os.remove(self.output_dir + '/query_gos.list')
             os.link(self.work_dir + '/GO.list',
                     self.output_dir + '/query_gos.list')
-            #self.run_annotation
+            self.option('golist_out', self.output_dir + '/query_gos.list')
+            # self.run_annotation
         # else:
         except subprocess.CalledProcessError:
             self.set_error('运行mergeGO.py出错')
@@ -149,7 +159,7 @@ class GoAnnotationTool(Tool):
             os.link(self.work_dir + '/go1234level_statistics.xls',
                     self.output_dir + '/go1234level_statistics.xls')
             # self.end()
-            #self.run_gosplit
+            # self.run_gosplit
         except subprocess.CalledProcessError:
             self.set_error("运行goAnnot.py出错")
         self.run_gosplit()
@@ -176,6 +186,7 @@ class GoAnnotationTool(Tool):
                 if os.path.exists(linkfile):
                     os.remove(linkfile)
                 os.link(self.work_dir + '/' + item, linkfile)
+            self.option('go2level_out', self.output_dir + '/go2level.xls')
         except subprocess.CalledProcessError:
             self.set_error("运行goSplit.py出错")
         self.end()
