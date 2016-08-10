@@ -213,4 +213,3 @@ class QcStatModule(Module):
             ])
         # print self.get_upload_files()
         super(QcStatModule, self).end()
-

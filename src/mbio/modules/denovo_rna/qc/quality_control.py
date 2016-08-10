@@ -230,7 +230,7 @@ class QualityControlModule(Module):
                     if os.path.exists(target_path):
                         os.remove(target_path)
                     os.link(f, target_path)
-            self.option("sickle_dir").set_path(sickle_dir)
+            self.option("sickle_dir", sickle_dir)
             if self.option("fq_type") == "PE":
                 shutil.rmtree(clip_dir)
                 for f in seqprep_out:
@@ -257,7 +257,7 @@ class QualityControlModule(Module):
                     target_path = os.path.join(clip_dir, f_name)
                     os.link(f, target_path)
                 self.option("clip_dir").set_path(clip_dir)
-                files = os.listdir(sickle_dir)
+                files = self.option('sickle_dir').prop['fastq_basename']
                 s_file = ' '.join(files)
                 os.system('cd {} && cat {} > {}/single.fq'.format(sickle_dir, s_file, self.work_dir))
                 self.option('fq_s', self.work_dir + '/single.fq')

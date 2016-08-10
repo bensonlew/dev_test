@@ -3,6 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from mbio.files.sequence.fastq import FastqFile
 from mbio.files.sequence.file_sample import FileSampleFile
 import os
 
@@ -20,7 +21,7 @@ class FileDenovoAgent(Agent):
         options = [
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"},  # PE OR SE
-            {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
+            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"}  #对照组文件，格式同分组文件
         ]
         self.add_option(options)
@@ -76,11 +77,17 @@ class FileDenovoTool(Tool):
         list_txt = os.path.join(self.option('fastq_dir').prop['path'], "list.txt")
         file_list.set_path(list_txt)
         file_sample = file_list.get_list()
-        print file_sample
         if self.option('fq_type') == 'PE':
             for i in file_sample.keys():
                 if len(i) != 2:
                     raise OptionError("PE测序时，每个样本至少有一个左端fq和右端fq文件")
+        files = self.option('fastq_dir').prop['fastq_basename']
+        self.logger.info('%s' % files)
+        for f in files:
+            fq_path = os.path.join(self.option('fastq_dir').prop['path'], f)
+            my_fastq = FastqFile()
+            my_fastq.set_path(fq_path)
+            my_fastq.check_content()
         self.logger.info("fastq文件检测完毕")
 
     def get_list_info(self):
@@ -90,10 +97,10 @@ class FileDenovoTool(Tool):
         return col_num
 
     def check_group(self):
-        if self.option('group_file').is_set:
+        if self.option('group_table').is_set:
             self.logger.info("正在检测group文件")
-            self.option("group_file").get_info()
-            gp_sample = self.option("group_file").prop["sample"]
+            self.option("group_table").get_info()
+            gp_sample = self.option("group_table").prop["sample"]
             for gp in gp_sample:
                 if gp not in self.samples:
                     raise Exception("group表出错, 样本{}在fastq文件中未出现".format(gp))

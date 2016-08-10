@@ -179,6 +179,10 @@ class MapAssessmentModule(Module):
         self.end()
 
     def run(self):
+<<<<<<< HEAD
+        self.add_tool('align.ncbi.blast')
+=======
+>>>>>>> 7c6b146612ba698ee11106d0fcd77024c468ea92
         super(MapAssessmentModule, self).run()
         self.bam_stat_run()
         self.dup_run()

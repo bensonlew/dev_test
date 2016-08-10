@@ -129,8 +129,9 @@ class ClusterTool(Tool):
             if self.option('method') in ('both', 'kmeans'):
                 os.system('cp -r %s/kmeans/ %s/' % (self.work_dir, self.output_dir))
                 self.logger.info("设置kmeans结果目录成功")
-        except:
-            self.logger.info("设置聚类分析结果目录失败")
+            self.logger.info("设置聚类分析结果目录成功")
+        except Exception as e:
+            self.logger.info("设置聚类分析结果目录失败{}".format(e))
 
     def run(self):
         super(ClusterTool, self).run()
