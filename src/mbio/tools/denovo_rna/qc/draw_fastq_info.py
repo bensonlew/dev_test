@@ -53,9 +53,9 @@ class DrawFastqInfoAgent(Agent):
             [".", "", "结果输出目录"]
         ])
         result_dir.add_regexp_rules([
-            [r"./*qual_stat", "", "fastq质量统计结果表"]
+            [r".*qual_stat", "xls", "fastq质量统计结果表"]
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(DrawFastqInfoAgent, self).end()
 
 
@@ -98,7 +98,7 @@ class DrawFastqInfoTool(Tool):
         self.logger.info("set output")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        file_path = glob.glob(r"*qual_stat*")
+        file_path = glob.glob(r"*qual_stat")
         print(file_path)
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)

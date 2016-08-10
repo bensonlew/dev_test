@@ -54,6 +54,10 @@ class ReadDuplicationAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"]
         ])
+        result_dir.add_regexp_rules([
+            [r".*pos\.DupRate\.xls", "xls", "比对到基因组的序列的冗余统计表"],
+            [r".*seq\.DupRate\.xls", "xls", "所有序列的冗余统计表"]
+        ])
         super(ReadDuplicationAgent, self).end()
 
 
@@ -88,7 +92,7 @@ class ReadDuplicationTool(Tool):
         self.logger.info("set out put")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        dup_file = glob.glob(r"*DupRate*")
+        dup_file = glob.glob(r"*DupRate.xls")
         print(dup_file)
         for f in dup_file:
             output_dir = os.path.join(self.output_dir, f)

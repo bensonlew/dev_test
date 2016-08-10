@@ -57,6 +57,10 @@ class RpkmSaturationAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"]
         ])
+        result_dir.add_regexp_rules([
+            [r".*eRPKM\.xls", "xls", "RPKM表"],
+            [r".*cluster_percent\.xls", "xls", "作图数据"]
+        ])
         super(RpkmSaturationAgent, self).end()
 
 
@@ -73,7 +77,7 @@ class RpkmSaturationTool(Tool):
         self.plot_cmd = []
 
     def rpkm_saturation(self, bam, out_pre):
-        bam_name = bam.split("/")[-1]
+        bam_name = bam.split("/")[-1].split(".")[0]
         out_pre = out_pre + "_" + bam_name
         satur_cmd = "{}RPKM_saturation.py -i {} -r {} -o {} -q {}".format(self.python_path, bam, self.option("bed").prop["path"], out_pre, self.option("quality"))
         print(satur_cmd)
@@ -106,10 +110,19 @@ class RpkmSaturationTool(Tool):
         self.logger.info("set out put")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        satur_file = glob.glob(r"satur*")
+        files = os.listdir(self.work_dir)
+        satur_file = []
+        for f in files:
+            if "cluster_percent.xls" in f:
+                satur_file.append(f)
+            if "eRPKM.xls" in f:
+                satur_file.append(f)
+        # satur_file = glob.glob(r"*eRPKM.xls")
         print(satur_file)
         for f in satur_file:
             output_dir = os.path.join(self.output_dir, f)
+            if os.path.exists(output_dir):
+                os.remove(output_dir)
             os.link(os.path.join(self.work_dir, f), output_dir)
         self.logger.info("set done")
         self.end()
@@ -138,7 +151,7 @@ class RpkmSaturationTool(Tool):
             if "RPKM" in f:
                 self.logger.info("saturation2plot")
                 self.logger.info(f)
-                plot_cmd = self.rpkm_plot(os.path.join(self.work_dir, f), "satur_" + f.split("_")[1].split(".")[0])
+                plot_cmd = self.rpkm_plot(os.path.join(self.work_dir, f), f)
                 self.logger.info(plot_cmd)
         self.set_output()
         # for f in os.listdir(self.output_dir):

@@ -183,7 +183,7 @@ class MapAssessmentModule(Module):
         self.bam_stat_run()
         self.dup_run()
         self.satur_run()
-        # self.coverage_run()
+        self.coverage_run()
         self.on_rely(self.tools, self.set_output)
         # super(MapAssessmentModule, self).run()
 
@@ -196,4 +196,11 @@ class MapAssessmentModule(Module):
             [r"./satur/", "", "测序饱和度分析输出目录"],
             [r"./bam_stat.xls", "xls", "bam格式比对结果统计表"]
         ])
+        result_dir.add_regexp_rules([
+            [r".*pos\.DupRate\.xls", "xls", "比对到基因组的序列的冗余统计表"],
+            [r".*seq\.DupRate\.xls", "xls", "所有序列的冗余统计表"],
+            [r".*eRPKM\.xls", "xls", "RPKM表"],
+            [r".*cluster_percent\.xls", "xls", "饱和度作图数据"]
+        ])
+        # print self.get_upload_files()
         super(MapAssessmentModule, self).end()
