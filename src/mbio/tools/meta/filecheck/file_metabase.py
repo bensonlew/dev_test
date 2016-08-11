@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
+from __future__ import division
+import os
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -59,7 +61,15 @@ class FileMetabaseAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        total = 0
+        if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
+            for f in self.prop["samples"]:
+                total += os.path.getsize(f)
+        if self.get_option_object("in_fastq").format == 'sequence.fastq':
+            total = os.path.getsize(self.option("in_fastq").prop["path"])
+        total = total / (1024 * 1024 * 1024)
+        total = total * 4
+        self._memory = '{:.2f}G'.format(total)
 
 
 class FileMetabaseTool(Tool):
