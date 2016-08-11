@@ -65,7 +65,7 @@ class Agent(Basic):
         self._queue = "default"
         self._host = ""
         self._cpu = 0
-        self._memory = ''
+        self._memory = "1G"
         self._default_callback_action = {'action': 'none'}
         self._callback_action = {}
         self._status = "W"                # W 等待 Q 排队 R 运行 E 完成
