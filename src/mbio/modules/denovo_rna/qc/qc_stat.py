@@ -205,7 +205,13 @@ class QcStatModule(Module):
         return samples
 
     def end(self):
+        self.logger.info('%s' % self.upload_dir)
+        if self.upload_dir:
+            for i in self.upload_dir:
+                self.logger.info('%s' % i._parent)
+                self.logger.info('%s' % i.file_list)
         result_dir = self.add_upload_dir(self.output_dir)
+        self.logger.info('%s' % self.upload_dir)
         result_dir.add_relpath_rules([
                 [r".", "", "结果输出目录"],
                 [r"./qualityStat/", "文件夹", "质量统计文件夹"],

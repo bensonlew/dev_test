@@ -17,7 +17,7 @@ class ExpAnalysisModule(Module):
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq_dir"},  # SE测序，包含所有样本的fq文件的文件夹
-            {"name": "bam", "type": "infile", "format": "align.bwa.bam_dir"},  # 输入文件，bam格式的比对文件
+            # {"name": "bam", "type": "infile", "format": "align.bwa.bam_dir"},  # 输入文件，bam格式的比对文件
             {"name": "tran_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
             {"name": "gene_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
             {"name": "tran_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
@@ -32,9 +32,11 @@ class ExpAnalysisModule(Module):
             {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  #差异基因计数表
             {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  #差异基因表达量表
             {"name": "gname", "type": "string"},  #  分组方案名称
-            {"name": "diff_rate", "type": "float", "default": 0.01}  #期望的差异基因比率
+            {"name": "diff_rate", "type": "float", "default": 0.01},  #期望的差异基因比率
+            {"name": "only_bowtie_build", "type": "bool", "default": False}  #  为true时该tool只建索引
         ]
         self.add_option(options)
+        self.bowtie_build = self.add_tool("denovo_rna.express.rsem")
         self.merge_rsem = self.add_tool("denovo_rna.express.merge_rsem")
         self.diff_exp = self.add_tool("denovo_rna.express.diff_exp")
         self.correlation = self.add_tool("denovo_rna.mapping.correlation")
@@ -43,16 +45,13 @@ class ExpAnalysisModule(Module):
     def check_options(self):
         if not self.option('fq_type'):
             raise OptionError('必须设置测序类型：PE OR SE')
-        if not self.option('bam').is_set:
-            raise OptionError('必须设置bam文件夹')
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError('测序类型不在所给范围内')
-        if not self.option("fq_l").is_set and not self.option("fq_r").is_set and not self.option("fq_s").is_set:
-            raise OptionError("必须设置PE测序输入文件或者SE测序输入文件")
-        if self.option("fq_type") == "PE" and not self.option("fq_r").is_set and not self.option("fq_l").is_set:
-            raise OptionError("PE测序时需设置左端序列和右端序列输入文件")
-        if self.option("fq_type") == "SE" and not self.option("fq_s").is_set:
-            raise OptionError("SE测序时需设置序列输入文件")
+        if not self.option('only_bowtie_build'):
+            if self.option("fq_type") == "PE" and not self.option("fq_r").is_set and not self.option("fq_l").is_set:
+                raise OptionError("PE测序时需设置左端序列和右端序列输入文件")
+            if self.option("fq_type") == "SE" and not self.option("fq_s").is_set:
+                raise OptionError("SE测序时需设置序列输入文件")
         if self.option("exp_way") not in ['fpkm', 'tpm']:
             raise OptionError("所设表达量的代表指标不在范围内，请检查")
         if not self.option('control_file').is_set:
@@ -65,30 +64,40 @@ class ExpAnalysisModule(Module):
             raise OptionError("有分组文件时必须传入分组方案名字")
         if self.option('group_table').is_set and self.option('gname') not in self.option('group_table').prop['group_scheme']:
             raise OptionError("传入分组方案名字不在分组文件内")
+        if not isinstance(self.option('only_bowtie_build'), bool):
+            raise OptionError('only_bowtie_build只能为bool')
         return True
+
+    def run_bowtie_build(self):
+        tool_opt = {
+            'fq_type': self.option('fq_type'),
+            'rsem_fa': self.option('rsem_fa'),
+            'only_bowtie_build': True
+        }
+        self.bowtie_build.set_options(tool_opt)
+        self.bowtie_build.run()
 
     def rsem_run(self):
         self.step.rsem.start()
         self.step.update()
         tool_opt = {
             'fq_type': self.option('fq_type'),
-            'rsem_fa': self.option('rsem_fa')
+            'only_bowtie_build': self.option('only_bowtie_build'),
+            'rsem_fa': self.bowtie_build.option('fa_build')
         }
-        bam_files = os.listdir(self.option('bam').prop['path'])
         if self.option('fq_type') == 'SE':
             s_files = os.listdir(self.option('fq_s').prop['path'])
             for f in s_files:
                 if re.search(r'fastq$', f):
                     sample = f.split('_sickle_s.fastq')[0]
-                    for bam in bam_files:
-                        if re.search(r'sam.bam.sorted.bam$', bam) and sample in bam:
-                            tool_opt.update({'fq_s': self.option('fq_s').prop['path'] + '/' + f,
-                            'bam':self.option('bam').prop['path'] + '/' + bam
-                            })
-                            self.rsem = self.add_tool('denovo_rna.express.rsem')
-                            self.rsem.set_options(tool_opt)
-                            self.rsem.run()
-                            self.tool_lists.append(self.rsem)
+                    tool_opt.update(
+                    {'fq_s': self.option('fq_s').prop['path'] + '/' + f})
+                    self.rsem = self.add_tool('denovo_rna.express.rsem')
+                    print tool_opt
+                    # print self.bowtie_build.option('fa_build').prop['path']
+                    self.rsem.set_options(tool_opt)
+                    self.rsem.run()
+                    self.tool_lists.append(self.rsem)
         else:
             r_files = os.listdir(self.option('fq_r').prop['path'])
             l_files = os.listdir(self.option('fq_l').prop['path'])
@@ -96,18 +105,13 @@ class ExpAnalysisModule(Module):
                 if re.search(r'fastq$', f):
                     tool_opt['fq_r'] = self.option('fq_r').prop['path'] + '/' + f
                     sample = f.split('sickle_r.fastq')[0]
-                    for bam in bam_files:
-                        if re.search(r'sam.bam.sorted.bam$', bam) and sample in bam:
-                            tool_opt.update({
-                            'bam':self.option('bam').prop['path'] + '/' + bam
-                            })
-                        for f1 in l_files:
-                            if sample in f1:
-                                tool_opt['fq_l'] = self.option('fq_l').prop['path'] + '/' + f1
-                                self.rsem = self.add_tool('denovo_rna.express.rsem')
-                                self.rsem.set_options(tool_opt)
-                                self.rsem.run()
-                                self.tool_lists.append(self.rsem.run())
+                    for f1 in l_files:
+                        if sample in f1:
+                            tool_opt['fq_l'] = self.option('fq_l').prop['path'] + '/' + f1
+                            self.rsem = self.add_tool('denovo_rna.express.rsem')
+                            self.rsem.set_options(tool_opt)
+                            self.rsem.run()
+                            self.tool_lists.append(self.rsem.run())
         print self.tool_lists
         self.on_rely(self.tool_lists, self.set_output, 'rsem')
         self.on_rely(self.tool_lists, self.set_step, {'end': self.step.rsem, 'start': self.step.merge_rsem})
@@ -197,7 +201,8 @@ class ExpAnalysisModule(Module):
 
     def run(self):
         super(ExpAnalysisModule, self).run()
-        self.rsem_run()
+        self.bowtie_build.on('end', self.rsem_run)
+        self.run_bowtie_build()
         self.merge_rsem.on('end', self.diff_exp_run)
         self.merge_rsem.on('end', self.run_correlation)
         self.on_rely([self.correlation, self.diff_exp], self.end)

@@ -80,10 +80,12 @@ class AssembleAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
             ["transcript.iso.txt", "txt", "按照拥有的isoform（可变剪接体）数目，统计转录本的数量分布的文件"],
-            ["length.distribut.txt", "txt", "长度分布信息统计文件"],
             ["trinity.fasta.stat.xls", "xls", "trinity.fasta文件统计信息，信息包括（转录本、基因的）序列总数，碱基总数，"
                                               "GC含量，最长（短）转录本长度，平均长度，N50，N90"]
         ])
+        result_dir.add_regexp_rules([
+            [r"length.distribut.txt$", "txt", "长度分布信息统计文件"]
+            ])
         super(AssembleAgent, self).end()
 
 

@@ -54,7 +54,8 @@ class CorrelationAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            ["./correlation_matrix.xls", "xls", "相关系数矩阵表"]
+            ["./correlation_matrix.xls", "xls", "相关系数矩阵表"],
+            ["./hcluster_tree_correlation_matrix.xls_average.tre", "xls", "相关系数树文件"]
         ])
         super(CorrelationAgent, self).end()
 

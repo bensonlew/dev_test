@@ -76,7 +76,7 @@ def mean_fpkm(count_dict, fpkm_dict):
 
 def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replicates = None, diff_ci = 0.05, regulate=True):
     """对edgeR结果进行统计，获得两两分组（或样本）的edgeR统计文件以及差异基因列表文件"""
-    with open(edgr_result, 'rb') as e, open('%s/%s_vs_%s_edgr_stat.xls' % (output, control, other), 'wb') as w, open("%s_vs_%s_diff_gene_list" % (control, other), 'wb') as wf:
+    with open(edgr_result, 'rb') as e, open('%s/%s_vs_%s_edgr_stat.xls' % (output, control, other), 'wb') as w:
         eline = e.readline()
         stat_dict = dict()
         if replicates == None:
@@ -115,7 +115,6 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
             fdr = float(eline[4])
             if fdr < diff_ci:
                 sig = 'yes'
-                wf.write('%s\n' % gene_id)
             else:
                 sig = 'no'
             if replicates == None:

@@ -18,7 +18,7 @@ class DiffAnalysisModule(Module):
             {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "distance_method", "type": "string", "default": "euclidean"},  # 计算距离的算法
             {"name": "log",  "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
-            {"name": "method", "type": "string", "default": "h_clust"},  # 聚类方法选择
+            {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
             {"name": "sub_num", "type": "int", "default": 10},  # 子聚类的数目
             {"name": "softpower", "type": "int", "default": 9},
             {"name": "dissimilarity",  "type": "float", "default": 0.25},
@@ -40,7 +40,7 @@ class DiffAnalysisModule(Module):
             raise OptionError("所选距离算法不在提供的范围内")
         if self.option('log') not in (10, 2):
             raise OptionError("所选log底数不在提供的范围内")
-        if self.option("method") not in ("h_clust", "kmeans", "both"):
+        if self.option("method") not in ("hclust", "kmeans", "both"):
             raise OptionError("所选方法不在范围内")
         if not isinstance(self.option("sub_num"), int):
             raise OptionError("子聚类数目必须为整数")
@@ -169,7 +169,7 @@ class DiffAnalysisModule(Module):
                     ["networkHeatmap.pdf", "pdf", "networkHeatmap图"],
                     ["sampleClustering.pdf", "pdf", "sampleClustering图"]
                     ]
-        if self.option('method') in ('both', 'h_clust'):
+        if self.option('method') in ('both', 'hclust'):
             repaths += [
                          ["./cluster/hclust", "", "hclust分析结果输出目录"],
 

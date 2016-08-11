@@ -58,7 +58,7 @@ class SsrAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"]
-            # ["./misa_stat.xls", "xls", "alpha多样性指数表"]
+            ["./misa_stat.xls", "xls", "ssr类型统计表"]
         ])
         result_dir.add_regexp_rules([
             [r"misa$", "misa", "ssr结果"]
@@ -185,4 +185,3 @@ class SsrTool(Tool):
             self.primer_in()
             self.primer_out()
         self.set_output()
-

@@ -23,7 +23,7 @@ class DiffExpAgent(Agent):
             {"name": "count", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，基因技术矩阵
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  #输入文件，基因表达量矩阵
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
-            {"name": "min_rowsum_counts",  "type": "int", "default": 20},  # 离散值估计检验的最小计数值
+            {"name": "min_rowsum_counts",  "type": "int", "default": 2},  # 离散值估计检验的最小计数值
             {"name": "edger_group", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "sample_list", "type": "string", "default": ''},  # 选择计算表达量的样本名，多个样本用‘，’隔开,有重复时没有该参数
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  #对照组文件，格式同分组文件
@@ -95,8 +95,8 @@ class DiffExpAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
             # ["./edger_stat", "", "edger统计结果目录"],
-            [r"diff_fpkm", "xls", "差异基因表达量表"],
-            [r"diff_count", "xls", "差异基因计数表"]
+            ["diff_fpkm", "xls", "差异基因表达量表"],
+            ["diff_count", "xls", "差异基因计数表"]
         ])
         result_dir.add_regexp_rules([
             [r"_edgr_stat\.xls$", "xls", "edger统计结果文件"]
@@ -192,8 +192,8 @@ class DiffExpTool(Tool):
             get_diff_matrix(self.option('count').prop['path'], self.work_dir + '/diff_list', self.output_dir + '/diff_count')
             self.option('diff_fpkm').set_path(self.output_dir + '/diff_fpkm')
             self.option('diff_count').set_path(self.output_dir + '/diff_count')
-            get_gene_list(self.output_dir + '/diff_fpkm', self.output_dir + '/gene_file')
-            self.option('gene_file', self.output_dir + '/gene_file')
+            get_gene_list(self.output_dir + '/diff_fpkm', self.work_dir + '/gene_file')
+            self.option('gene_file', self.work_dir + '/gene_file')
             self.logger.info("设置edger分析结果目录成功")
         except Exception as e:
             self.logger.info("设置edger分析结果目录失败{}".format(e))

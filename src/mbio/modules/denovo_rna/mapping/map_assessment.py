@@ -179,10 +179,6 @@ class MapAssessmentModule(Module):
         self.end()
 
     def run(self):
-<<<<<<< HEAD
-        self.add_tool('align.ncbi.blast')
-=======
->>>>>>> 7c6b146612ba698ee11106d0fcd77024c468ea92
         super(MapAssessmentModule, self).run()
         self.bam_stat_run()
         self.dup_run()
@@ -194,11 +190,11 @@ class MapAssessmentModule(Module):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"],
-            [r"./coverage/", "", "基因覆盖度分析输出目录"],
-            [r"./dup/", "", "冗余序列分析输出目录"],
-            [r"./satur/", "", "测序饱和度分析输出目录"],
-            [r"./bam_stat.xls", "xls", "bam格式比对结果统计表"]
+            [".", "", "结果输出目录"],
+            ["./coverage/", "", "基因覆盖度分析输出目录"],
+            ["./dup/", "", "冗余序列分析输出目录"],
+            ["./satur/", "", "测序饱和度分析输出目录"],
+            ["./bam_stat.xls", "xls", "bam格式比对结果统计表"]
         ])
         result_dir.add_regexp_rules([
             [r".*pos\.DupRate\.xls", "xls", "比对到基因组的序列的冗余统计表"],
