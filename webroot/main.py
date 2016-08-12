@@ -19,6 +19,7 @@ from mainapp.controllers.instant.meta.est_t_test import EstTTest
 from mainapp.controllers.submit.meta.rarefaction import Rarefaction
 from mainapp.controllers.instant.meta.beta.multi_analysis import MultiAnalysis
 from mainapp.controllers.instant.meta.beta.anosim import Anosim
+from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
 
 # web.config.debug = False
 urls = (
@@ -48,7 +49,8 @@ urls = (
     "/meta/est_t_test", "EstTTest",
     "/meta/rarefaction", "Rarefaction",
     "/meta/beta/multi_analysis", "MultiAnalysis",
-    "/meta/beta/anosim", "Anosim"
+    "/meta/beta/anosim", "Anosim",
+    "/dataexchange/download_task", "DownloadTask"
 )
 
 

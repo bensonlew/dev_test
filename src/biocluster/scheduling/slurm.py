@@ -25,14 +25,17 @@ class SLURM(Job):
         file_path = os.path.join(self.agent.work_dir, self.agent.name + ".sbatch")
         script = os.path.abspath(os.path.dirname(__file__) + "/../../../bin/runtool.py")
         cpu, mem = self.agent.get_resource()
+        if mem == "":
+            mem = "1G"
         if int(cpu) > 32:
             cpu = 32
         with open(file_path, "w") as f:
             f.write("#!/bin/bash\n")
             f.write("#SBATCH -c {}\n".format(cpu))
             f.write("#SBATCH -N 1\n")
+            f.write("#SBATCH -n 1\n")
             f.write("#SBATCH -J {}\n".format(self.agent.id))
-            f.write("#SBATCH -t 10-00:00\n")
+            # f.write("#SBATCH -t 10-00:00\n")
             if self.master_ip == "192.168.12.101":
                 f.write("#SBATCH -p SANGER\n")
             elif self.master_ip == "192.168.12.102":

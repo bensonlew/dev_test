@@ -30,14 +30,11 @@ def xml2table(xml_fp, table_out, header=None):
         for rec in records:
             query = re.split(' ', rec.query, maxsplit=1)[0]
             for align in rec.alignments:
-                hit_def = re.split(' ', align.hit_def, maxsplit=1)
                 for hsp in align.hsps:
                     one_hsp = values.copy()
                     one_hsp['Query-Name'] = query
-                    one_hsp['Hit-Name'] = hit_def[0]
-                    if len(hit_def) == 2:
-
-                        one_hsp['Hit-Description'] = hit_def[1]
+                    one_hsp['Hit-Name'] = align.hit_id
+                    one_hsp['Hit-Description'] = align.hit_def
                     one_hsp['Score'] = str(hsp.score)
                     one_hsp['E-Value'] = str(hsp.expect)
                     one_hsp['HSP-Len'] = str(hsp.align_length)
@@ -62,8 +59,8 @@ def xml2table(xml_fp, table_out, header=None):
     return table_out
 
 if __name__ == '__main__':  # for test
-    xml2table('C:\\Users\\sheng.he.MAJORBIO\\Desktop\\annotation\\annotation\\NR\\transcript.fa_vs_nr.xml',
-              'C:\\Users\\sheng.he.MAJORBIO\\Desktop\\blast_test.xls', ['Score', 'E-Value', 'HSP-Len', 'Positives'])
-    a = 'C:\\Users\\sheng.he.MAJORBIO\\Desktop\\sheghe0615.xml'
+    # xml2table('C:\\Users\\sheng.he.MAJORBIO\\Desktop\\annotation\\annotation\\NR\\transcript.fa_vs_nr.xml',
+            #   'C:\\Users\\sheng.he.MAJORBIO\\Desktop\\blast_test.xls', ['Score', 'E-Value', 'HSP-Len', 'Positives'])
+    a = 'C:\\Users\\sheng.he.MAJORBIO\\Desktop\\Trinity_vs_nr.xml'
     b = 'C:\\Users\\sheng.he.MAJORBIO\\Desktop\\blast_test_1.xls'
     xml2table(a, b)
