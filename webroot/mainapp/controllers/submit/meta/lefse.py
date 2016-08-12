@@ -31,6 +31,7 @@ class Lefse(object):
         my_param['category_name'] = category
         my_param['second_category_name'] = second_category
         my_param['submit_location'] = data.submit_location
+        my_param['task_type'] = data.task_type
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
@@ -95,7 +96,7 @@ class Lefse(object):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict']
+        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict', 'task_type']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
