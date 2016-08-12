@@ -22,7 +22,7 @@ def up_down_express_list(fp):
                 if line_sp[-1] == 'up':
                     up.append(line_sp[0])
                 elif line_sp[-1] == 'down':
-                    down.append('down')
+                    down.append(line_sp[0])
                 elif line_sp[-1] == 'undone':
                     raise Exception('文件中检查到‘undone’，表明文件没有上下调控信息')
                 else:
@@ -33,7 +33,6 @@ def up_down_express_list(fp):
 
 
 def get_level_2_info(fp):
-    level2_header = ['term_type', 'term', 'GO', 'number', 'percent', 'sequence']
     with open(fp) as f:
         header = f.readline().strip()
         if header != 'term_type\tterm\tGO\tnumber\tpercent\tsequence':
@@ -42,13 +41,13 @@ def get_level_2_info(fp):
         level2info = []
         for line in f:
             line_sp = line.strip().split('\t')
-            gene_list = [re.sub(r'\(GO:.+\)','', i) for i in line_sp[-1].split(';')]
+            gene_list = [re.sub(r'\(GO:.+\)', '', i) for i in line_sp[-1].split(';')]
             all_gene_list.update(gene_list)
             level2info.append([line_sp[0], line_sp[1], line_sp[2], gene_list])
     return level2info
 
 
-def get_level_2_up_down(level2fp, up , down, outfile='./GO_up_down.xls'):
+def get_level_2_up_down(level2fp, up, down, outfile='./GO_up_down.xls'):
     with open(outfile, 'wb') as w:
         all_genes = set()  # 保存注释和上下调同时存在基因
         all_records = []  # 保存上下调基因
