@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
+from __future__ import division
 import os
 import re
 from biocluster.agent import Agent
@@ -44,7 +45,15 @@ class BaseInfoAgent(Agent):
         设置所需资源
         """
         self._cpu = 16
-        self._memory = ''
+        total = 0
+        if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
+            for f in self.prop["samples"]:
+                total += os.path.getsize(f)
+        if self.get_option_object("in_fastq").format == 'sequence.fastq':
+            total = os.path.getsize(self.option("in_fastq").prop["path"])
+        total = total / (1024 * 1024 * 1024)
+        total = total * 4
+        self._memory = '{:.2f}G'.format(total)
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

@@ -1,10 +1,21 @@
 <?php
-function checkIdentity($code, $fileName){
-    $servername = "localhost";
-	$username = "biocluster102";
-	$password = "sanger-dev-123";
-	$database = "identity_db";
+function checkIdentity($code, $fileName, $mode){
 	$info = array();
+	$servername = "localhost";
+	if ($mode == "tsanger"){
+	    $username = "biocluster102";
+	    $password = "sanger-dev-123";
+	}
+	else if ($mode == "sanger"){
+	    $username = "biocluster101";
+		$password = "sanger101";
+	}
+	else {
+	    $info["success"] = false;
+		$info["info"] = "模式错误";
+		return $info;
+	}
+	$database = "identity_db";
 	$conn = new mysqli($servername, $username, $password, $database);
 	if ($conn->connect_error) {
 	    die("连接失败: " . $conn->connect_error);
@@ -52,7 +63,7 @@ function checkIdentity($code, $fileName){
 
 $file = $_POST['file'];
 $code = $_POST['indentity_code'];
-
+$mode = $_POST['mode'];
 
 $filename = basename($file);
 $encoded_filename = urlencode($filename);
@@ -62,7 +73,7 @@ if ((preg_match("/MSIE/", $ua)) or (preg_match("/Firefox/", $ua)) or (preg_match
 	throw new Exception("不可以使用浏览器访问！");
 }
 else {
-    $info = checkIdentity($code, $file);
+    $info = checkIdentity($code, $file, $mode);
 	if (!$info["success"]){
 		header('HTTP/1.1 405 '. $info["info"]);
 	}

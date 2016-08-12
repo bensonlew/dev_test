@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
-from mainapp.config.db import DB, IDENTITY_DB
 import web
 import datetime
 import json
 import re
+from mainapp.config.db import DB, IDENTITY_DB, get_mongo_client
+from biocluster.config import Config
 
 
 class Identity(object):
@@ -45,6 +46,8 @@ class Download(object):
     def __init__(self):
         self.table = "workflow"
         self.db = DB
+        self.client = get_mongo_client()
+        self.mongodb = self.client[Config().MONGODB]
 
     def get_path_by_workflow_id(self, wid):
         """
@@ -66,6 +69,16 @@ class Download(object):
             str_ = "在workflow表里未找到workflow_id为: {} 的记录".format(wid)
             print str_
             return "empty"
+
+    def get_report_by_workflow_id(self, wid):
+        collection = self.mongodb['sg_task']
+        result = collection.find_one({"task_id": wid})
+        if result:
+            path = "rerewrweset/files/{}/{}/{}/report_results".format(result['member_id'], result['project_sn'], wid)
+            return path
+        else:
+            return "empty"
+
 
 if __name__ == "__main__":
     d = Identity()

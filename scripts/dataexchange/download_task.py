@@ -97,7 +97,7 @@ class DownloadTask(object):
         """
         获取编码相对应的task_id, 以及相关的目录结构
         """
-        data = urllib.urlencode({"ip": self.ip, "identity": self.identity, "user": self.user})
+        data = urllib.urlencode({"ip": self.ip, "identity": self.identity, "user": self.user, "mode": self.mode})
         req = urllib2.Request(self.url, data)
         try:
             self.logger.info("用户: {}, 验证码: {}".format(self.user, self.identity))
@@ -116,6 +116,8 @@ class DownloadTask(object):
                     sys.exit(1)
                 else:
                     info = response.read()
+            else:
+                sys.exit(1)
         else:
             info = response.read()
 
@@ -126,6 +128,7 @@ class DownloadTask(object):
         else:
             self.logger.info("通信成功，任务id为：{}。开始下载文件...".format(info["task_id"]))
             self._file_list = info["data"]
+            print info["data"]
 
     def download_files(self):
         total_sum = len(self._file_list)
@@ -137,7 +140,7 @@ class DownloadTask(object):
             local_file = os.path.join(local_dir, file_name)
             self.logger.info("正在下载第 {}/{} 个文件: {}, 文件大小{}".format(count, total_sum, file_name, f_info[1]))
             count += 1
-            post_info = urllib.urlencode({'indentity_code': self.identity, 'file': f_info[0]})
+            post_info = urllib.urlencode({'indentity_code': self.identity, 'file': f_info[0], 'mode': self.mode})
             request = urllib2.Request(self.download_url, post_info)
             try:
                 u = urllib2.urlopen(request)
