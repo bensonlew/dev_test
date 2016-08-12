@@ -414,8 +414,7 @@ def export_otu_table_only_level(data, option_name, dir_path, bind_obj=None):
     if not results.count():
         raise Exception("otu_id: {}在sg_otu_detail表中未找到！".format(data))
     for col in results:
-        tmp = level + 1
-        new_classify_name = _get_only_classify_name(col, tmp, bind_obj)
+        new_classify_name = _get_only_classify_name(col, level, bind_obj)
         if new_classify_name not in name_dic:
             name_dic[new_classify_name] = dict()
             for sp in samples:

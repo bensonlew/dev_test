@@ -134,7 +134,7 @@ class MultiAnalysis(MetaController):
             'env_labs': env_labs,
             'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
             }
-        self.to_file.append('meta.export_otu_table_by_level(otu_file)')
+        self.to_file.append('meta.export_otu_table_only_level(otu_file)')
         if env_id:
             self.to_file.append('env.export_env_table(env_file)')
             self.options['env_file'] = data.env_id
