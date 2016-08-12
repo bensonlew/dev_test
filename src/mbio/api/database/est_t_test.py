@@ -65,6 +65,10 @@ class EstTTest(Base):
             from_est_id = ObjectId(from_est_id)
         else:
             raise Exception("est_id必须为ObjectId对象或其对应的字符串!")
+        if group_id == "all":
+            group_id = group_id
+        else:
+            group_id = ObjectId(group_id)
         collection = self.db["sg_alpha_diversity"]
         result = collection.find_one({"_id": from_est_id})
         project_sn = result['project_sn']
