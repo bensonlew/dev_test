@@ -25,6 +25,8 @@ class SLURM(Job):
         file_path = os.path.join(self.agent.work_dir, self.agent.name + ".sbatch")
         script = os.path.abspath(os.path.dirname(__file__) + "/../../../bin/runtool.py")
         cpu, mem = self.agent.get_resource()
+        if mem == "":
+            mem = "1G"
         if int(cpu) > 32:
             cpu = 32
         with open(file_path, "w") as f:
