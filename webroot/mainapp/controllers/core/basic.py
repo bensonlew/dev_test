@@ -117,11 +117,11 @@ class Basic(object):
 
     def run(self):
         """新线程运行_run方法"""
-        print('Tread start run......')
+        print('即时计算 Thread start run......')
         run_object = threading.Thread(target=self._run)
         run_object.start()
         run_object.join()
-        print('Tread over......')
+        print('即时计算 Thread over......')
 
     def get_task_object(self, origin='mbio'):
         """"""
