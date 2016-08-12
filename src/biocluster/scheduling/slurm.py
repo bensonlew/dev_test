@@ -34,7 +34,7 @@ class SLURM(Job):
             f.write("#SBATCH -n 1\n")
             f.write("#SBATCH -N 1\n")
             f.write("#SBATCH -J {}\n".format(self.agent.fullname))
-            f.write("#SBATCH -t 10-00:00\n")
+            # f.write("#SBATCH -t 10-00:00\n")
             if self.master_ip == "192.168.12.101":
                 f.write("#SBATCH -p SANGER\n")
             elif self.master_ip == "192.168.12.102":
