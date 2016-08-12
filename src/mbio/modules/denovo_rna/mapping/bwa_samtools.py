@@ -18,7 +18,7 @@ class BwaSamtoolsModule(Module):
     def __init__(self, work_id):
         super(BwaSamtoolsModule, self).__init__(work_id)
         options = [
-            {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
+            {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # denovo时是基因的参考序列
             {"name": "fq_type", "type": "string", "default": ""},  # fq类型，必传
             {"name": "fastq_r", "type": "infile", "format": "sequence.fastq"},  # 右端序列文件
             {"name": "fastq_l", "type": "infile", "format": "sequence.fastq"},  # 左端序列文件
@@ -32,10 +32,13 @@ class BwaSamtoolsModule(Module):
         ]
         self.add_option(options)
         self.samples = {}
+        self.samtools = []
         self.bwa_tools = []
         self.bwa = None
         self.end_times = 1
         self.step.add_steps('bwa')
+        self.ref_link = ""
+        self.index = self.add_tool('align.bwa.bwa')
 
     def check_options(self):
         """
@@ -68,6 +71,10 @@ class BwaSamtoolsModule(Module):
         self.step.bwa.finish()
         self.step.update()
 
+    def index_finish_update(self):
+        self.step.index.finish()
+        self.step.update()
+
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
         step.finish()
@@ -77,6 +84,22 @@ class BwaSamtoolsModule(Module):
         step = getattr(self.step, event['data'])
         step.finish()
         self.step.update()
+
+    def index_run(self):
+        ref_fasta = self.option('ref_fasta').prop["path"]
+        self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta)
+        if os.path.exists(self.ref_link):
+            os.remove(self.ref_link)
+        os.link(ref_fasta, self.ref_link)
+        self.step.add_steps("index")
+        self.index.set_options({
+            "ref_fasta": self.ref_link,
+            "method": "index"
+        })
+        self.step.index.start()
+        self.index.on("end", self.index_finish_update)
+        self.index.on("end", self.multi_bwa_run)
+        self.index.run()
 
     def multi_bwa_run(self):
         # self.samples = self.get_list()
@@ -88,7 +111,7 @@ class BwaSamtoolsModule(Module):
                 bwa = self.add_tool('align.bwa.bwa')
                 self.step.add_steps('bwa_{}'.format(n))
                 bwa.set_options({
-                    "ref_fasta": self.option('ref_fasta').prop["path"],
+                    "ref_fasta": self.ref_link,
                     'fastq_l': fq_l,
                     'fastq_r': fq_r,
                     'fq_type': self.option('fq_type')
@@ -106,7 +129,7 @@ class BwaSamtoolsModule(Module):
                 bwa = self.add_tool('align.bwa.bwa')
                 self.step.add_steps('bwa_{}'.format(n))
                 bwa.set_options({
-                    "ref_fasta": self.option('ref_fasta').prop["path"],
+                    "ref_fasta": self.ref_link,
                     'fastq_s': fq_s,
                     'fq_type': self.option('fq_type')
                 })
@@ -153,7 +176,7 @@ class BwaSamtoolsModule(Module):
         samtools = self.add_tool('denovo_rna.gene_structure.samtools')
         self.step.add_steps('samtools_{}'.format(event["data"]))
         samtools.set_options({
-            "ref_fasta": self.option('ref_fasta').prop["path"],
+            "ref_fasta": self.ref_link,
             "sam": f_path,
             "method": "sort"
         })
@@ -163,35 +186,7 @@ class BwaSamtoolsModule(Module):
         samtools.on("end", self.set_output)
         self.logger.info("samRunnnnn")
         samtools.run()
-        # self.samtools.append(samtools)
-
-    # def multi_samtools_run(self):
-    #     tools = []
-    #     files = glob.glob(r"{}/Bwa*/output/*".format(self.work_dir))
-    #     self.logger.info(files)
-    #     n = 1
-    #     for f in files:
-    #         samtools = self.add_tool('denovo_rna.gene_structure.samtools')
-    #         self.step.add_steps('samtools_{}'.format(n))
-    #         samtools.set_options({
-    #             "ref_fasta": self.option('ref_fasta').prop["path"],
-    #             "sam": f,
-    #             "method": "sort"
-    #         })
-    #         step = getattr(self.step, 'samtools_{}'.format(n))
-    #         step.start()
-    #         samtools.on("end", self.samtools_finish_update, 'samtools_{}'.format(n))
-    #         # samtools.run()
-    #         tools.append(samtools)
-    #         n += 1
-    #     self.logger.info(len(tools))
-    #     if len(tools) == 1:
-    #         tools[0].on("end", self.set_output)
-    #         tools[0].run()
-    #     else:
-    #         for tool in tools:
-    #             tool.run()
-    #         self.on_rely(tools, self.set_output)
+        self.samtools.append(samtools)
 
     def rename(self, event):
         obj = event["bind_object"]
@@ -220,26 +215,21 @@ class BwaSamtoolsModule(Module):
                     os.remove(f_path)
             bam_dir = os.path.join(self.output_dir, "sorted_bam")
             os.makedirs(bam_dir)
-            samtools_out = glob.glob(r"{}/Samtools*/output/*sorted.bam".format(self.work_dir))
-            self.logger.info(samtools_out)
-            for bam in samtools_out:
-                target = bam_dir + "/" + bam.split("/")[-1]
-                if os.path.exists(target):
-                    os.remove(target)
-                os.link(bam, target)
-            # sam_dir = os.path.join(self.output_dir, "sam")
-            # os.makedirs(sam_dir)
-            # for f in glob.glob(r"{}/Bwa*/output/*".format(self.work_dir)):
-            #     f_name = f.split("/")[-1]
-            #     sam_output = os.path.join(sam_dir, f_name)
-            #     os.link(f, sam_output)
+            for sam in self.samtools:
+                outfiles = os.listdir(sam.output_dir)
+                # self.logger.info(outfiles)
+                for f in outfiles:
+                    f_path = os.path.join(sam.output_dir, f)
+                    target = bam_dir + "/" + f
+                    if "sorted.bam" in f:
+                        os.link(f_path, target)
             self.option('out_bam').set_path(bam_dir)
             self.logger.info("set output done")
             self.end()
 
     def run(self):
         if self.option("fastq_dir").is_set:
-            self.multi_bwa_run()
+            self.index_run()
         else:
             self.bwa_single_run()
         super(BwaSamtoolsModule, self).run()

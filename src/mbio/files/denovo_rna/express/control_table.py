@@ -59,6 +59,7 @@ class ControlTableFile(File):
             for line in lines[1:]:
                 info = line.strip().split()
                 sam = info[0].split('_vs_')
+                # print sam,info[1].strip()
                 sam.remove(info[1].strip())
                 adict[info[0]] = [info[1], sam[0]]
         return adict
