@@ -45,6 +45,7 @@ class DenovoBaseWorkflow(Workflow):
         self.map_qc = self.add_module("denovo_rna.mapping.map_assessment")
         self.exp_stat = self.add_module("denovo_rna.express.exp_analysis")
         self.exp_diff = self.add_module("denovo_rna.express.diff_analysis")
+        self.orf_len = self.add_tool("meta.qc.reads_len_info")
         self.step.add_steps("qcstat", "assemble", "annotation", "express", "gene_structure", "map_stat")
         self.logger.info('{}'.format(self.events))
         self.logger.info('{}'.format(self.children))
@@ -146,6 +147,12 @@ class DenovoBaseWorkflow(Workflow):
         self.orf.on('start', self.set_step, {'start': self.step.gene_structure})
         self.bwa.run()
         self.orf.run()
+
+    def run_orf_len(self):
+        orf_fasta = self.orf.work_dir + '/ORF_fasta'
+        self.orf_len.set_options({'fasta_path': orf_fasta})
+        self.orf_len.on('end', self.set_output, 'orf_len')
+        self.orf_len.run()
 
     def run_ssr_snp(self):
         ssr_opts = {
@@ -260,6 +267,8 @@ class DenovoBaseWorkflow(Workflow):
             self.move2outputdir(obj.output_dir, 'Map_stat')
         if event['data'] == 'orf':
             self.move2outputdir(obj.output_dir, 'Gene_structure/orf')
+        if event['data'] == 'orf_len':
+            self.move2outputdir(obj.output_dir, 'Gene_structure/orf')
         if event['data'] == 'ssr':
             self.move2outputdir(obj.output_dir, 'Gene_structure/ssr')
         if event['data'] == 'snp':
@@ -277,9 +286,10 @@ class DenovoBaseWorkflow(Workflow):
         self.assemble.on('end', self.run_map_orf)
         self.on_rely([self.orf, self.bwa], self.run_ssr_snp)
         self.on_rely([self.orf, self.bwa], self.run_map_qc)
+        self.orf.on('end', self.orf_len)
         self.assemble.on('end', self.run_exp_stat)
         self.exp_stat.on('end', self.run_exp_diff)
-        self.on_rely([self.map_qc, self.exp_diff, self.ssr, self.snp], self.end)
+        self.on_rely([self.map_qc, self.exp_diff, self.ssr, self.snp, self.orf_len], self.end)
         self.run_filecheck()
         super(DenovoBaseWorkflow, self).run()
 
@@ -305,6 +315,7 @@ class DenovoBaseWorkflow(Workflow):
             ['Gene_structure', "文件夹", "基因结构分析结果目录"],
             ['Gene_structure/snp', "文件夹", "snp分析结果目录"],
             ['Gene_structure/orf', "文件夹", "orf分析结果目录"],
+            ["Gene_structure/orf/reads_len_info", "文件夹", "orf序列长度分布信息文件夹"],
             ['Gene_structure/ssr', "文件夹", "orf分析结果目录"],
             ["Gene_structure/ssr/misa_stat.xls", "xls", "ssr类型统计表"],
             ['Map_stat', "文件夹", "Mapping后质量统计结果目录"],
@@ -316,7 +327,7 @@ class DenovoBaseWorkflow(Workflow):
             ['Express/', "文件夹", "表达量分析结果目录"],
             ['Express/diff_exp', "文件夹", "表达量差异检测分析结果目录"],
             ["Express/diff_exp/diff_fpkm", "xls", "差异基因表达量表"],
-            ["Express/diff_exp/diff_count", "xls", "差异基因计数表"]
+            ["Express/diff_exp/diff_count", "xls", "差异基因计数表"],
             ['Express/rsem', "文件夹", "表达量计算分析结果目录"],
             ['Express/network', "文件夹", "差异基因网络共表达分析结果目录"],
             ["Express/network/all_edges.txt", "txt", "edges结果信息"],
@@ -331,8 +342,8 @@ class DenovoBaseWorkflow(Workflow):
             ["Express/network/sampleClustering.pdf", "pdf", "sampleClustering图"],
             ['Express/correlation', "文件夹", "表达量样本相关性分析结果目录"],
             ["Express/correlation/correlation_matrix.xls", "xls", "相关系数矩阵表"],
-            ["Express/correlation/hcluster_tree_correlation_matrix.xls_average.tre", "xls", "相关系数树文件"]
-            ['Express/cluster', "文件夹", "差异基因聚类分析分析结果目录"],
+            ["Express/correlation/hcluster_tree_correlation_matrix.xls_average.tre", "xls", "相关系数树文件"],
+            ["Express/cluster", "文件夹", "差异基因聚类分析分析结果目录"],
             ["Express/cluster/hclust/", "", "层级聚类分析结果目录"],
             ["Express/cluster/hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
             ["Express/cluster/hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
@@ -344,6 +355,7 @@ class DenovoBaseWorkflow(Workflow):
             [r"Gene_structure/snp/.*snp_type_stat\.xls", "xls", "样本snp类型统计表"],
             [r"Gene_structure/snp/.*snp\.xls", "xls", "样本snp信息表"],
             [r"Gene_structure/ssr/.*misa$", "misa", "ssr结果"],
+            [r"Gene_structure/orf/reads_len_info/.*reads_len_info\.txt$", "xls", "orf序列长度分布信息文件"],
             [r"Gene_structure/orf/transdecoder.pep$", "fasta", "蛋白质序列文件"],
             [r"Gene_structure/orf/transdecoder.cds$", "fasta", "cds序列文件"],
             [r"Gene_structure/orf/transdecoder.bed$", "bed", "orf位置信息bed格式文件"],
