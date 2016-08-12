@@ -24,6 +24,17 @@ class CoverageAgent(Agent):
             {"name": "quality", "type": "int", "default": 30}  # 质量值
         ]
         self.add_option(options)
+        self.step.add_steps('coverage')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.coverage.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.coverage.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -41,6 +52,13 @@ class CoverageAgent(Agent):
         self._cpu = 10
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        super(CoverageAgent, self).end()
+
 
 class CoverageTool(Tool):
     """
@@ -51,6 +69,7 @@ class CoverageTool(Tool):
         super(CoverageTool, self).__init__(config)
         self.python_path = "program/Python/bin/"
         self.samtools_path = "bioinfo/align/samtools-1.3.1/"
+        self.bam_name = os.path.basename(self.option("bam").prop["path"]).split(".")[0]
 
     def index(self):
         cmds = []
@@ -71,7 +90,7 @@ class CoverageTool(Tool):
 
     def coverage(self):
         coverage_cmd = "{}geneBody_coverage.py  -i {} -r {} -o {}".\
-            format(self.python_path, self.option("bam").prop["path"], self.option("bed").prop["path"], "coverage")
+            format(self.python_path, self.option("bam").prop["path"], self.option("bed").prop["path"], "coverage_" + self.bam_name)
         print(coverage_cmd)
         self.logger.info("开始运行geneBody_coverage.py脚本")
         coverage_command = self.add_command("coverage", coverage_cmd)
@@ -86,7 +105,7 @@ class CoverageTool(Tool):
         self.logger.info("set out put")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        file_path = glob.glob(r"coverage")
+        file_path = glob.glob(r"*Coverage.txt")
         print(file_path)
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)

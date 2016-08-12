@@ -19,11 +19,21 @@ class ReadDuplicationAgent(Agent):
     def __init__(self, parent):
         super(ReadDuplicationAgent, self).__init__(parent)
         options = [
-            {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "quality", "type": "int", "default": 30}  # 质量值
         ]
         self.add_option(options)
+        self.step.add_steps('dup')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.dup.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.dup.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -31,8 +41,6 @@ class ReadDuplicationAgent(Agent):
         """
         if not self.option("bam").is_set:
             raise OptionError("请传入比对结果bam格式文件")
-        if not self.option("bed").is_set:
-            raise OptionError("请传入bed格式文件")
 
     def set_resource(self):
         """
@@ -40,6 +48,17 @@ class ReadDuplicationAgent(Agent):
         """
         self._cpu = 10
         self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+        ])
+        result_dir.add_regexp_rules([
+            [r".*pos\.DupRate\.xls", "xls", "比对到基因组的序列的冗余统计表"],
+            [r".*seq\.DupRate\.xls", "xls", "所有序列的冗余统计表"]
+        ])
+        super(ReadDuplicationAgent, self).end()
 
 
 class ReadDuplicationTool(Tool):
@@ -63,7 +82,7 @@ class ReadDuplicationTool(Tool):
 
     def multi_dup(self, bam_dir, out_pre):
         cmds = []
-        bams = glob.glob("{}/*".format(bam_dir))
+        bams = glob.glob("{}/*.bam".format(bam_dir))
         for bam in bams:
             cmd = self.duplication(bam, out_pre)
             cmds.append(cmd)
@@ -73,7 +92,7 @@ class ReadDuplicationTool(Tool):
         self.logger.info("set out put")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        dup_file = glob.glob(r"*DupRate*")
+        dup_file = glob.glob(r"*DupRate.xls")
         print(dup_file)
         for f in dup_file:
             output_dir = os.path.join(self.output_dir, f)

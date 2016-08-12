@@ -24,6 +24,17 @@ class CorrelationAgent(Agent):
             # {"name": "", "type": "outfile", "format": "denovo_rna.gene_structure.bed"}  # bed格式文件
         ]
         self.add_option(options)
+        self.step.add_steps('correlation')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.correlation.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.correlation.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -42,8 +53,9 @@ class CorrelationAgent(Agent):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
-            # ["./correlation_matrix.xls", "xls", "相关系数矩阵表"]
+            [".", "", "结果输出目录"],
+            ["./correlation_matrix.xls", "xls", "相关系数矩阵表"],
+            ["./hcluster_tree_correlation_matrix.xls_average.tre", "xls", "相关系数树文件"]
         ])
         super(CorrelationAgent, self).end()
 
