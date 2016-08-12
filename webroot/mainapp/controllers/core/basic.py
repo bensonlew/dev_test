@@ -7,6 +7,7 @@ import random
 import json
 import web
 import re
+import threading
 from mainapp.models.instant_task import InstantTask
 from mainapp.config.db import Config, get_mongo_client
 from biocluster.wsheet import Sheet
@@ -94,7 +95,7 @@ class Basic(object):
         self._uploadTarget = self._uploadTarget + "/report_results/" + self.name + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         return self._uploadTarget
 
-    def run(self):
+    def _run(self):
         """
         运行即时计算，分三步，一、根据参数生成Sheet对象；二、获取workflow类对象，并使用Sheet对象实例化，运行，三、处理运行结果
         """
@@ -113,6 +114,14 @@ class Basic(object):
         self.update_api.manager = self._task_object.api
         self._uploadDirObj = self._task_object._upload_dir_obj
         self.end()
+
+    def run(self):
+        """新线程运行_run方法"""
+        print('Tread start run......')
+        run_object = threading.Thread(target=self._run)
+        run_object.start()
+        run_object.join()
+        print('Tread over......')
 
     def get_task_object(self, origin='mbio'):
         """"""
