@@ -55,7 +55,7 @@ class Anosim(MetaController):
             'group_id': data.group_id,
             'group_detail': group_detail_sort(data.group_detail),
             'submit_location': data.submit_location,
-            'taskType': data.taskType
+            'task_type': data.task_type
             }
         self.options = {
             'otu_file': data.otu_id,

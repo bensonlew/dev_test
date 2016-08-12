@@ -52,9 +52,9 @@ class OrfTool(Tool):
 
     def __init__(self, config):
         super(OrfTool, self).__init__(config)
-        self.transdecoder_path = "rna/TransDecoder-2.0.1/"
-        self.hmmscan_path = "rna/hmmer-3.1b2/src/"
-        self.pfam_db = "/mnt/ilustre/users/sanger/app/rna/PfamScan/db/Pfam-A.hmm"
+        self.transdecoder_path = "bioinfo/gene-structure/TransDecoder-3.0.0/"
+        self.hmmscan_path = "bioinfo/align/hmmer-3.1b2/binaries/"
+        self.pfam_db = self.config.SOFTWARE_DIR + "/database/Pfam/Pfam-A.hmm"
         self.fasta_name = self.option("fasta").prop["path"].split("/")[-1]
 
     def td_longorfs(self):

@@ -27,6 +27,8 @@ def export_otu_table(data, option_name, dir_path, bind_obj=None):
             raise Exception("意外错误，样本id:{}在sg_specimen中未找到！")
         samples.append(id_result["specimen_name"])
     # samples = result["specimen_names"]
+    # 因为有些样本名以1,2,3,4进行编号， 导致读出来了之后samples列表里的元素是数字， 需要先转化成字符串
+    samples = map(str, samples)
     collection = db['sg_otu_detail']
     with open(file_path, "wb") as f:
         f.write("OTU ID\t%s\ttaxonomy\n" % "\t".join(samples))
@@ -63,6 +65,8 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
         if not my_result:
             raise Exception("意外错误，样本id:{}在sg_specimen表里未找到".format(sp_id))
         samples.append(my_result["specimen_name"])
+    # 因为有些样本名以1,2,3,4进行编号， 导致读出来了之后samples列表里的元素是数字， 需要先转化成字符串
+    samples = map(str, samples)
     level = int(bind_obj.sheet.option("level"))
     collection = db['sg_otu_detail']
     name_dic = dict()

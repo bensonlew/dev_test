@@ -23,7 +23,7 @@ class EstimatorsWorkflow(Workflow):
             {"name": "level", "type": "int"},
             {"name": "est_id", "type": "string"},
             {"name": "submit_location", "type": "string"},
-            {"name": "taskType", "type": "string"}
+            {"name": "task_type", "type": "string"}
             ]
         self.add_option(options)
         # print(self._sheet.options())
@@ -59,7 +59,7 @@ class EstimatorsWorkflow(Workflow):
             'level_id': self.option('level'),
             'indices': sort_index,
             "submit_location":self.option("submit_location"),
-            "taskType": self.option("taskType")
+            "task_type": self.option("task_type")
             }
         est_id = api_estimators.add_est_table(est_path, major=True, level=self.option('level'),
                                               otu_id=self.option('otu_id'), params=params_json, name=name)

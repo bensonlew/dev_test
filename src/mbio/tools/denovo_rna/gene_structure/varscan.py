@@ -25,6 +25,17 @@ class VarscanAgent(Agent):
             # {"name": "vcf", "type": "outfile", "format": "vcf"}     # Variant Call Format
         ]
         self.add_option(options)
+        self.step.add_steps('varscan')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.varscan.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.varscan.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -42,6 +53,15 @@ class VarscanAgent(Agent):
         self._cpu = 10
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            # ["./estimators.xls", "xls", "alpha多样性指数表"]
+        ])
+        # print self.get_upload_files()
+        super(VarscanAgent, self).end()
+
 
 class VarscanTool(Tool):
     """
@@ -50,8 +70,8 @@ class VarscanTool(Tool):
 
     def __init__(self, config):
         super(VarscanTool, self).__init__(config)
-        self.varscan_path = "/mnt/ilustre/users/sanger/app/rna/VarScan.v2.3.9.jar"
-        self.java_path = "sun_jdk1.8.0/bin/"
+        self.varscan_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/VarScan.v2.3.9.jar"
+        self.java_path = "program/sun_jdk1.8.0/bin/"
 
     def pileup2snp(self):
         cmd = "{}java -jar {} pileup2snp {} --min-coverage 8 --min-reads2 3 --min-strands2 2 --min-avg-qual 30 " \
@@ -71,6 +91,7 @@ class VarscanTool(Tool):
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
         os.link(self.work_dir+'/pileup2snp.o', self.output_dir+'/pileup_out.xls')
+        self.logger.info("done")
 
     def run(self):
         """

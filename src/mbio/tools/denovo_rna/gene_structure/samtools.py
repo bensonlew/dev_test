@@ -29,11 +29,22 @@ class SamtoolsAgent(Agent):
             {"name": "in_bam", "type": "infile", "format": "align.bwa.bam"},     # bam格式输入文件(sam的二进制文件)
             {"name": "mpileup_out", "type": "string", "default": "pileup"},  # mpileup 输出格式
             # {"name": "vcf", "type": "outfile", "format": "vcf"},     # Variant Call Format
-            # {"name": "pileup", "type": "outfile", "format": "pileup"},  # pileup格式文件
+            {"name": "pileup", "type": "outfile", "format": "denovo_rna.gene_structure.pileup"},  # pileup格式文件
             # {"name": "bcf", "type": "outfile", "format": "bcf"},     # Variant Call Format
             {"name": "out_bam", "type": "outfile", "format": "align.bwa.bam"}  # bam格式输入文件
         ]
         self.add_option(options)
+        self.step.add_steps('samtools')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.samtools.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.samtools.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -55,6 +66,15 @@ class SamtoolsAgent(Agent):
         """
         self._cpu = 10
         self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            # ["./estimators.xls", "xls", "alpha多样性指数表"]
+        ])
+        # print self.get_upload_files()
+        super(SamtoolsAgent, self).end()
 
 
 class SamtoolsTool(Tool):
@@ -170,10 +190,11 @@ class SamtoolsTool(Tool):
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)
             os.link(os.path.join(self.work_dir, f), output_dir)
+            os.remove(os.path.join(self.work_dir, f))
             if postfix == "out_bam":
                 self.option("out_bam").set_path(output_dir)
-            # else:
-            #     self.option("pileup").set_path(output_dir)
+            else:
+                self.option("pileup").set_path(output_dir)
         self.logger.info("output done")
         # self.end()
 

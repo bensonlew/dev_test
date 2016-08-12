@@ -25,7 +25,7 @@ class HeatClusterMongo(Base):
         my_sp.sort()
         params['specimen_ids'] = ','.join(my_sp)
         params["submit_location"] = data.submit_location
-        params["taskType"] = data.taskType
+        params["task_type"] = data.task_type
         params = self.SortDict(params)
         return params
 

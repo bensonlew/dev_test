@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import division
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 import glob
+import re
 
 
 class FastxClipperAgent(Agent):
@@ -125,6 +127,23 @@ class FastxClipperTool(Tool):
                 self.logger.info(write_line)
                 w.write(write_line)
 
+    def adapter(self):
+        files = glob.glob(r'*.o')
+        with open("adapter.xls", "w") as w:
+            w.write("sample\tadapter%\n")
+            for f in files:
+                sample_name = f.split("_")[1][:-2]
+                w.write("{}\t".format(sample_name))
+                with open(f, "r") as f:
+                    for line in f:
+                        if re.match(r"Input", line):
+                            total = line.strip().split()[-2]
+                            f.next()
+                            f.next()
+                            adapter = f.next().split()[1]
+                            adap_rate = int(adapter)/int(total)
+                            w.write("{}\n".format(adap_rate))
+
     def set_output(self):
         """
         将结果文件链接至output
@@ -146,6 +165,7 @@ class FastxClipperTool(Tool):
         else:
             for f in os.listdir(self.output_dir):
                 self.option("clip_s").set_path(os.path.join(self.output_dir, f))
+        self.adapter()
         self.logger.info("done")
 
     def run(self):
