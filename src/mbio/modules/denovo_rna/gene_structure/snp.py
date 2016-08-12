@@ -143,14 +143,14 @@ class SnpModule(Module):
             [r".", "", "结果输出目录"]
         ])
         if self.option("bed").is_set:
-            result_dir.add_relpath_rules([
-                [r"./*snp_position_stat\.xls$", "xls", "样本snp编码位置信息统计表"],
-                [r"./*snp_type_stat\.xls$", "xls", "样本snp类型统计表"],
-                [r"./*snp\.xls", "xls$", "样本snp信息表"]
+            result_dir.add_regexp_rules([
+                [r".*snp_position_stat\.xls", "xls", "样本snp编码位置信息统计表"],
+                [r".*snp_type_stat\.xls", "xls", "样本snp类型统计表"],
+                [r".*snp\.xls", "xls", "样本snp信息表"]
             ])
         else:
-            result_dir.add_relpath_rules([
-                [r"./*pileup_out\.xls$", "xls", "样本snp信息表"]
+            result_dir.add_regexp_rules([
+                [r".*pileup_out\.xls", "xls", "样本snp信息表"]
             ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(SnpModule, self).end()

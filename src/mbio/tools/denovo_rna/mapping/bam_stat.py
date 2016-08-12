@@ -24,6 +24,17 @@ class BamStatAgent(Agent):
             {"name": "quality", "type": "int", "default": 30}  # 质量值
         ]
         self.add_option(options)
+        self.step.add_steps('stat')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.stat.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.stat.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -38,6 +49,14 @@ class BamStatAgent(Agent):
         """
         self._cpu = 10
         self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["./bam_stat.xls", "xls", "比对结果信息统计表"]
+        ])
+        super(BamStatAgent, self).end()
 
 
 class BamStatTool(Tool):

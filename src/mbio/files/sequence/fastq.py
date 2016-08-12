@@ -148,6 +148,7 @@ class FastqFile(File):
                     count = count + 4
                     line = line.rstrip("\r\n")
                     if not re.search(r'^@', line):
+                        print line, count
                         raise Exception("未检测到@，非fastq格式文件")
                     line = re.sub("^@", "", line)
                     line = re.split('\s+', line)[0]

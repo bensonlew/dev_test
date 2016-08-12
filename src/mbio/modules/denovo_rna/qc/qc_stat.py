@@ -137,8 +137,12 @@ class QcStatModule(Module):
             self.dup_run()
         self.draw_run()
         self.on_rely(self.tools, self.set_output)
+        self.logger.info('{}'.format(self.events))
         # self.logger.info(self.tools)
         super(QcStatModule, self).run()
+        for eve in self.events.values():
+            self.logger.info('{}'.format(eve.is_start))
+
 
     def set_output(self):
         self.logger.info("set output")
@@ -201,7 +205,13 @@ class QcStatModule(Module):
         return samples
 
     def end(self):
+        self.logger.info('%s' % self.upload_dir)
+        if self.upload_dir:
+            for i in self.upload_dir:
+                self.logger.info('%s' % i._parent)
+                self.logger.info('%s' % i.file_list)
         result_dir = self.add_upload_dir(self.output_dir)
+        self.logger.info('%s' % self.upload_dir)
         result_dir.add_relpath_rules([
                 [r".", "", "结果输出目录"],
                 [r"./qualityStat/", "文件夹", "质量统计文件夹"],
@@ -213,4 +223,3 @@ class QcStatModule(Module):
             ])
         # print self.get_upload_files()
         super(QcStatModule, self).end()
-

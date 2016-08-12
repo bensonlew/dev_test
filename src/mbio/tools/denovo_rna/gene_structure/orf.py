@@ -4,6 +4,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
+import shutil
 from biocluster.core.exceptions import OptionError
 from mbio.packages.denovo_rna.gene_structure.pfam_domtblout import pfam_out
 
@@ -119,7 +120,6 @@ class OrfTool(Tool):
             self.logger.info("预测编码区域完成！")
         else:
             self.set_error("预测过程过程出错")
-        self.set_output()
 
     def hmmscan(self, pep):
         cmd = "{}hmmscan --cpu 20 --noali --cut_nc --acc --notextw --domtblout {} {} {}".format(
@@ -150,6 +150,11 @@ class OrfTool(Tool):
         self.option('cds').set_path(self.output_dir+"/"+cds)
         if self.option("search_pfam") is True:
             os.link(self.work_dir+"/"+"pfam_domain", self.output_dir+"/"+"pfam_domain")
+        fasta_for_len = os.path.join(self.work_dir, "ORF_fasta")
+        if os.path.exists(fasta_for_len):
+            shutil.rmtree(fasta_for_len)
+        os.makedirs(fasta_for_len)
+        os.link(self.work_dir+"/"+cds, fasta_for_len+"/"+cds+".fasta")
         self.logger.info("done")
 
     def run(self):
@@ -166,4 +171,5 @@ class OrfTool(Tool):
             # pfam_out("pfam.domtblout")
             # self.set_output()
             self.td_predict()
+        self.set_output()
         self.end()

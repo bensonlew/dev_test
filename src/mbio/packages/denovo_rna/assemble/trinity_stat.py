@@ -68,7 +68,7 @@ def trinity_info(fasta):
             gene_index = unigene.values().index(max_len)
             gene_len[unigene.keys()[gene_index]] = unigene.values()[gene_index]
             gene_detail[unigene.keys()[gene_index]] = transcript_detail[unigene.keys()[gene_index]]
-            w.write('%s\n%s\n' % (unigene.keys()[gene_index], transcript_detail[unigene.keys()[gene_index]]))
+            w.write('>%s\n%s\n' % (unigene.keys()[gene_index], transcript_detail[unigene.keys()[gene_index]]))
     return transcript_detail, transcript_len, gene_len, gene_detail
 
 

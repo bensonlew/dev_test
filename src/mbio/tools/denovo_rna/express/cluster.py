@@ -24,7 +24,7 @@ class ClusterAgent(Agent):
             {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  #输入文件，差异基因表达量矩阵
             {"name": "distance_method", "type": "string", "default": "euclidean"},  # 计算距离的算法
             {"name": "log",  "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
-            {"name": "method", "type": "string", "default": "h_clust"},  # 聚类方法选择
+            {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
             {"name": "sub_num", "type": "int", "default": 10}  # 子聚类的数目
 
         ]
@@ -53,7 +53,7 @@ class ClusterAgent(Agent):
             raise OptionError("所选距离算法不在提供的范围内")
         if self.option('log') not in (10, 2):
             raise OptionError("所选log底数不在提供的范围内")
-        if self.option("method") not in ("h_clust", "kmeans", "both"):
+        if self.option("method") not in ("hclust", "kmeans", "both"):
             raise OptionError("所选方法不在范围内")
         if not isinstance(self.option("sub_num"), int):
             raise OptionError("子聚类数目必须为整数")
@@ -69,13 +69,13 @@ class ClusterAgent(Agent):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        if self.option('method') in ('both', 'h_clust'):
+        if self.option('method') in ('both', 'hclust'):
             result_dir.add_relpath_rules([
                 [".", "", "结果输出目录"],
                 ["./hclust/", "", "hclust分析结果目录"],
-                [r"hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
-                [r"hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
-                [r"hclust/hclust_heatmap.xls", "xls", "层级聚类热图数据"]
+                ["hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
+                ["hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
+                ["hclust/hclust_heatmap.xls", "xls", "层级聚类热图数据"]
             ])
             result_dir.add_regexp_rules([
                 [r"hclust/subcluster_", "xls", "子聚类热图数据"]
@@ -84,7 +84,7 @@ class ClusterAgent(Agent):
             result_dir.add_relpath_rules([
                 [".", "", "结果输出目录"],
                 ["./kmeans/", "", "kmeans分析结果目录"],
-                [r"kmeans/kmeans_heatmap.xls", "xls", "层级聚类热图数据"]
+                ["kmeans/kmeans_heatmap.xls", "xls", "层级聚类热图数据"]
             ])
             result_dir.add_regexp_rules([
                 [r"kmeans/subcluster_", "xls", "子聚类热图数据"]
@@ -121,16 +121,16 @@ class ClusterTool(Tool):
             for names in files:
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
-
         try:
-            if self.option('method') in ('both', 'h_clust'):
+            if self.option('method') in ('both', 'hclust'):
                 os.system('cp -r %s/hclust/ %s/' % (self.work_dir, self.output_dir))
                 self.logger.info("设置hclust结果目录成功")
             if self.option('method') in ('both', 'kmeans'):
                 os.system('cp -r %s/kmeans/ %s/' % (self.work_dir, self.output_dir))
                 self.logger.info("设置kmeans结果目录成功")
-        except:
-            self.logger.info("设置聚类分析结果目录失败")
+            self.logger.info("设置聚类分析结果目录成功")
+        except Exception as e:
+            self.logger.info("设置聚类分析结果目录失败{}".format(e))
 
     def run(self):
         super(ClusterTool, self).run()

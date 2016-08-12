@@ -1,4 +1,3 @@
-## !/mnt/ilustre/users/sanger/app/Python/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
 #last_modify:20160616
@@ -42,3 +41,10 @@ def check_dispersion(genes, diff_num, diff_rate):
     elif dispersion == 0:
         dispersion = 0.001
     return dispersion
+
+def get_gene_list(fpkm_file, output):
+    with open(fpkm_file, 'rb') as r, open(output, 'wb') as w:
+        w.write('gene_id\tgene_id\n')
+        lines = r.readlines()
+        for line in lines[1:]:
+            w.write('{}\t{}\n'.format(line.split('\t')[0], line.split('\t')[0]))

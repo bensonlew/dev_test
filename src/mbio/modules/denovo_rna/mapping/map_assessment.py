@@ -183,17 +183,24 @@ class MapAssessmentModule(Module):
         self.bam_stat_run()
         self.dup_run()
         self.satur_run()
-        # self.coverage_run()
+        self.coverage_run()
         self.on_rely(self.tools, self.set_output)
         # super(MapAssessmentModule, self).run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"],
-            [r"./coverage/", "", "基因覆盖度分析输出目录"],
-            [r"./dup/", "", "冗余序列分析输出目录"],
-            [r"./satur/", "", "测序饱和度分析输出目录"],
-            [r"./bam_stat.xls", "xls", "bam格式比对结果统计表"]
+            [".", "", "结果输出目录"],
+            ["./coverage/", "", "基因覆盖度分析输出目录"],
+            ["./dup/", "", "冗余序列分析输出目录"],
+            ["./satur/", "", "测序饱和度分析输出目录"],
+            ["./bam_stat.xls", "xls", "bam格式比对结果统计表"]
         ])
+        result_dir.add_regexp_rules([
+            [r".*pos\.DupRate\.xls", "xls", "比对到基因组的序列的冗余统计表"],
+            [r".*seq\.DupRate\.xls", "xls", "所有序列的冗余统计表"],
+            [r".*eRPKM\.xls", "xls", "RPKM表"],
+            [r".*cluster_percent\.xls", "xls", "饱和度作图数据"]
+        ])
+        # print self.get_upload_files()
         super(MapAssessmentModule, self).end()

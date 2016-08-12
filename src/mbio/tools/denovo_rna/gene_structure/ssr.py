@@ -4,6 +4,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
+import re
 from biocluster.core.exceptions import OptionError
 import subprocess
 import shutil
@@ -56,8 +57,8 @@ class SsrAgent(Agent):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-            # ["./estimators.xls", "xls", "alpha多样性指数表"]
+            [".", "", "结果输出目录"]
+            ["./misa_stat.xls", "xls", "ssr类型统计表"]
         ])
         result_dir.add_regexp_rules([
             [r"misa$", "misa", "ssr结果"]
@@ -87,7 +88,7 @@ class SsrTool(Tool):
         fasta_copy = self.work_dir + "/" + self.fasta_name
         self.logger.info(fasta_copy + ".misa")
         cmd = "{}perl {}misa.pl {}".format(self.perl_path, self.misa_path, fasta_copy)
-        print(cmd)
+        # print(cmd)
         self.logger.info("开始运行misa")
         command = self.add_command("misa", cmd)
         command.run()
@@ -100,7 +101,7 @@ class SsrTool(Tool):
 
     def primer(self):
         cmd = "{}python {}primer3_core.py -p {} -i {} -o {}".format(self.python_path, self.script_path, self.primer3_path, self.fasta_name + ".p3in", self.fasta_name + ".misa.p3out")
-        print(cmd)
+        # print(cmd)
         self.logger.info(cmd)
         self.logger.info("开始运行primer")
         command = self.add_command("primer", cmd)
@@ -153,6 +154,18 @@ class SsrTool(Tool):
         self.logger.info("set out put")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
+        misa_stat = self.work_dir+'/' + self.fasta_name + ".statistics"
+        if os.path.exists(misa_stat):
+            start_n = 0
+            with open(misa_stat, "r") as s, open(self.output_dir + "/misa_stat.xls", "w") as w:
+                for n, line in enumerate(s):
+                    if re.match(r"Frequency of classified repeat types", line):
+                        start_n = n + 2
+                    if start_n == 0:
+                        continue
+                    else:
+                        if n > start_n:
+                            w.write(line)
         os.link(self.work_dir+'/' + self.fasta_name + ".misa", self.output_dir+'/' + self.fasta_name + ".misa")
         self.end()
 
@@ -163,13 +176,12 @@ class SsrTool(Tool):
         super(SsrTool, self).run()
         if self.option("bed").is_set:
             self.misa()
-            # self.primer_in()
-            # self.primer()
-            # self.primer_out()
+            self.primer_in()
+            self.primer()
+            self.primer_out()
             # self.ssr_position()
         else:
             self.misa()
             self.primer_in()
             self.primer_out()
         self.set_output()
-
