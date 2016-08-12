@@ -87,8 +87,8 @@ class BlastAgent(Agent):
         return True
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = ''
+        self._cpu = 20
+        self._memory = '50G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -110,9 +110,8 @@ class BlastTool(Tool):
     def __init__(self, config):
         super(BlastTool, self).__init__(config)
         self._version = "2.3.0"
-        self.db_path = os.path.join(self.config.SOFTWARE_DIR, "align/ncbi/db/")
-        # self.db_path = '/mnt/ilustre/app/rna/database/blast/db'  # for test
-        self.cmd_path = "ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
+        self.db_path = os.path.join(self.config.SOFTWARE_DIR, "database/align/ncbi/db")
+        self.cmd_path = "/bioinfo/align/ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
 
     def run_makedb_and_blast(self):
         """
