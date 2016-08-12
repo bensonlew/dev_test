@@ -79,8 +79,13 @@ class VennTableTool(Tool):
         if num_lines < 11:
             self.set_error("输入文件的行数小于10个！请更换输入文件！")
             raise Exception("输入文件的行数小于10个！请更换输入文件！")
-        venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table,
-                                                                      self.option("group_table").prop['path'])
+        if len(self.option("group_table").prop['group_scheme']) == 1:
+            venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table,self.option("group_table").prop['path'])
+        # add by qiuping, for denovo_rna venn, 2060728
+        else:
+            self.option('group_table').sub_group(self.work_dir + '/venn_group', self.option("group_table").prop['group_scheme'][0])
+            venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table, self.work_dir + '/venn_group')
+        # add end
         self.logger.info(venn_cmd)
         os.system(venn_cmd)
         cmd = self.R_path + 'Rscript cmd.r'

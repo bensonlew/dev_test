@@ -5,6 +5,7 @@ from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
 from types import StringTypes
 import datetime
+import re
 from biocluster.config import Config
 
 
@@ -52,9 +53,12 @@ class HeatCluster(Base):
         with open(path, 'rb') as r:
             line = r.readline().strip('\r\n')
             samples = self.bind_object.hcluster.option("newicktree").prop['sample']
+        new_samples = list()
+        for sp in samples:
+            new_samples.append(re.split("\s*;\s*", sp).pop(-1))
         insert_data = {
             "value": line,
-            "samples": samples
+            "samples": new_samples
         }
         collection = self.db['sg_newick_tree']
         try:

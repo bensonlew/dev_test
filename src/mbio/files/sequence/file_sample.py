@@ -86,7 +86,7 @@ class FileSampleFile(File):
                     if line[1] not in file_sample:
                         file_sample[line[1]] = line[0]
                     else:
-                        file_sample[line[1]] += line[0]
+                        file_sample[line[1]] += ',{}'.format(line[0])
         return file_sample
 
     def check(self):

@@ -24,6 +24,17 @@ class BamStatAgent(Agent):
             {"name": "quality", "type": "int", "default": 30}  # 质量值
         ]
         self.add_option(options)
+        self.step.add_steps('stat')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.stat.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.stat.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -38,6 +49,14 @@ class BamStatAgent(Agent):
         """
         self._cpu = 10
         self._memory = ''
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["./bam_stat.xls", "xls", "比对结果信息统计表"]
+        ])
+        super(BamStatAgent, self).end()
 
 
 class BamStatTool(Tool):
@@ -60,11 +79,11 @@ class BamStatTool(Tool):
         return stat_command
 
     def multi_stat(self):
-        files = os.listdir(self.bam_path)
+        files = glob.glob(r"{}/.bam".format(self.bam_path))
         cmds = []
         for f in files:
-            f_path = os.path.join(self.bam_path, f)
-            f_cmd = self.bamstat(f_path)
+            # f_path = os.path.join(self.bam_path, f)
+            f_cmd = self.bamstat(f)
             cmds.append(f_cmd)
         return cmds
 
