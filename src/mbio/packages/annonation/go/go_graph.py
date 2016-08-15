@@ -240,7 +240,7 @@ def get_color(values, steps=1000):
     return [i.hex for i in colors]
 
 
-def draw_GO(GOs, out='GO_lineage', obo="C:\\Users\\sheng.he.MAJORBIO\\Desktop\\goatools-master\\go-plus.obo"):
+def draw_GO(GOs, out='GO_lineage', obo="/mnt/ilustre/users/sanger-dev/app/database/GO/go-plus.obo"):
     """"""
     if isinstance(GOs, list):
         terms_colors = [(i, '#ffce7b') for i in GOs]
@@ -261,7 +261,7 @@ def draw_GO(GOs, out='GO_lineage', obo="C:\\Users\\sheng.he.MAJORBIO\\Desktop\\g
                        label=relation, color=relationship_dict[relation][0],
                        style=relationship_dict[relation][1],
                        minlen=1.5, arrowsize=1.3, penwidth=1.5)
-    G.add_nodes_from([terms[i].id + '\n' + terms[i].name for i in recs])
+    G.add_nodes_from([terms[i].id + '\n' + terms[i].name for i in GOs])
     G.graph_attr.update(dpi="180")
     G.node_attr.update(shape="box", style="rounded,filled", fillcolor="#efefef")
     G.edge_attr.update(dir="back")

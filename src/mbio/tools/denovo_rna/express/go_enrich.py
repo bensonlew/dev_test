@@ -4,6 +4,7 @@
 
 import os
 import threading
+import traceback
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -53,7 +54,7 @@ class GoEnrichAgent(Agent):
         :return:
         """
         self._cpu = 1
-        self._memory = '2G'
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -97,10 +98,11 @@ class GoEnrichTool(Tool):
 
     def run_draw_go_graph(self):
         try:
+            self.logger.info('run_draw_go_graph')
             draw_GO(self.get_go_pvalue_dict(), out=self.out_go_graph)
             self.end()
         except Exception:
-            self.set_error('绘图发生错误')
+            self.set_error('绘图发生错误:\n{}'.format(traceback.format_exc()))
 
 
     def get_go_pvalue_dict(self):
@@ -109,7 +111,7 @@ class GoEnrichTool(Tool):
             f.readline()
             for line in f:
                 line_sp = line.split('\t')
-                go2pvalue[line_sp[0]] = line_sp[9]
+                go2pvalue[line_sp[0]] = float(line_sp[9])
         return go2pvalue
 
     def run(self):
