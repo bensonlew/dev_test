@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = "shenghe"
-#last_modify:20160809
+# last_modify:20160815
 
 import os
 import threading
@@ -21,8 +21,8 @@ class GoEnrichAgent(Agent):
         options = [
             {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
-            {"name": "go_list", "type": "infile", "format": "annotation.go.go_list"}, # test
-        ]
+            {"name": "go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
+            ]
         self.add_option(options)
         self.step.add_steps("goenrich")
         self.on('start', self.stepstart)
@@ -59,10 +59,10 @@ class GoEnrichAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"]
-        ])
+            ])
         result_dir.add_regexp_rules([
-            [r"go_enrich_.*", "xls", "go富集结果文件"]，
-            [r"go_lineage.*", "png", "go富集有向无环图"]，
+            [r"go_enrich_.*", "xls", "go富集结果文件"],
+            [r"go_lineage.*", "png", "go富集有向无环图"],
             ])
         super(GoEnrichAgent, self).end()
 
@@ -72,7 +72,6 @@ class GoEnrichTool(Tool):
     """
     def __init__(self, config):
         super(GoEnrichTool, self).__init__(config)
-        # self.graph_go_path = '/bioinfo/annotation/scripts/GO_graph.py'
         self.goatools_path = '/bioinfo/annotation/goatools-0.6.5-shenghe'
         self.go_enrich_path = self.goatools_path + '/scripts/find_enrichment.py'
         self.obo = self.config.SOFTWARE_DIR + '/database/GO/go-basic.obo'
@@ -110,8 +109,8 @@ class GoEnrichTool(Tool):
             f.readline()
             for line in f:
                 line_sp = line.split('\t')
-                go2value[line_sp[0]] = line_sp[9]
-        return go2value
+                go2pvalue[line_sp[0]] = line_sp[9]
+        return go2pvalue
 
     def run(self):
         super(GoEnrichTool, self).run()
