@@ -53,7 +53,7 @@ class GoEnrichAgent(Agent):
         :return:
         """
         self._cpu = 1
-        self._memory = ''
+        self._memory = '2G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -87,7 +87,7 @@ class GoEnrichTool(Tool):
         cmd = cmd + ' --obo ' + self.obo
         command = self.add_command('go_enrich', cmd)
         command.run()
-        command.wait()
+        self.wait()
         if command.return_code == 0:
             draw_thread = threading.Thread(target=self.run_draw_go_graph)
             draw_thread.start()
