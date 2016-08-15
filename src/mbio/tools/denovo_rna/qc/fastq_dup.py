@@ -61,7 +61,7 @@ class FastqDupAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '50G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
