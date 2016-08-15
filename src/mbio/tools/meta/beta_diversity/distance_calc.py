@@ -95,7 +95,7 @@ class DistanceCalcAgent(Agent):
         设置所需资源
         """
         self._cpu = 5
-        self._memory = ''
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

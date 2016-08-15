@@ -71,7 +71,7 @@ class OtuTaxonStatAgent(Agent):
         设置所需要的资源
         """
         self._cpu = 1
-        self._memory = ''
+        self._memory = '3G'
 
 
 class OtuTaxonStatTool(Tool):
@@ -233,6 +233,23 @@ class OtuTaxonStatTool(Tool):
         else:
             self.set_error("taxon_biom_otu生成失败")
 
+    def get_full_otu(self, otu_table):
+        """
+        生成名称为全场的OTU表，放到tax_summary_dir里面
+        """
+        otu_full_path = os.path.join(self.work_dir, "output", "tax_summary_a", "otu_taxon_otu.full.xls")
+        with open(otu_table, 'rb') as r, open(otu_full_path, 'wb') as w:
+            line = r.next().rstrip("\r\n").split("\t")
+            line.pop(-1)
+            w.write("\t".join(line))
+            w.write("\n")
+            for line in r:
+                line = line.rstrip("\r\n").split("\t")
+                line[0] = "{}; {}".format(line[-1], line[0])
+                line.pop(-1)
+                w.write("\t".join(line))
+                w.write("\n")
+
     def run(self):
         """
         运行
@@ -246,5 +263,6 @@ class OtuTaxonStatTool(Tool):
         self.get_diff_level(biom)
         self.option("otu_taxon_dir").set_path(self.otu_taxon_dir)
         self.option("otu_taxon_table").check()
+        self.get_full_otu(otu_table)
         self.logger.info("otu_taxon完成，即将退出程序")
         self.end()
