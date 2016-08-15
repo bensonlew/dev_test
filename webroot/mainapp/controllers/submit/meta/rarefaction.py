@@ -42,7 +42,7 @@ class Rarefaction(object):
         sort_index = data.index_type.split(',')
         sort_index.sort()
         sort_index = ','.join(sort_index)
-        my_param['indices'] = sort_index
+        my_param['index_type'] = sort_index
         my_param['submit_location'] = data.submit_location
         my_param['task_type'] = data.task_type
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
