@@ -179,7 +179,7 @@ class EventHandler(object):
         :return: self
         """
         if self.is_start:
-            raise Exception("事件已经启动监听，需的调用EventHandler.stop方法停止后才能重新启动!" % self.name)
+            raise Exception("%s事件已经启动监听，需的调用EventHandler.stop方法停止后才能重新启动!" % self.name)
         else:
             self._event = AsyncResult()
             self._greenlets = []
