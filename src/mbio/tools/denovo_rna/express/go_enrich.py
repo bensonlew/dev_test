@@ -111,7 +111,9 @@ class GoEnrichTool(Tool):
             f.readline()
             for line in f:
                 line_sp = line.split('\t')
-                go2pvalue[line_sp[0]] = float(line_sp[9])
+                p_bonferroni = float(line_sp[9])
+                if p_bonferroni < 0.0005:
+                    go2pvalue[line_sp[0]] = p_bonferroni
         return go2pvalue
 
     def run(self):
