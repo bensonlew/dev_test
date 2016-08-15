@@ -97,10 +97,10 @@ class FastqDupTool(Tool):
             if self.option("fq_type") == "PE":
                 fq_l = os.path.join(self.fq_path, self.samples[sample]["l"])
                 fq_r = os.path.join(self.fq_path, self.samples[sample]["r"])
-                cmd = "{}python {}fastq_dup.py -t {} -l {} -r {} -o {}".format(self.python_path, self.script_path, "PE", fq_l, fq_r, sample + "_dup.xls")
+                cmd = "{}python {}fastq_dup.py -l {} -r {} -o {}".format(self.python_path, self.script_path, fq_l, fq_r, sample + "_dup.xls")
             else:
                 fq_s = os.path.join(self.fq_path, self.samples[sample])
-                cmd = "{}python {}fastq_dup.py -t {} -s {} -o {}".format(self.python_path, self.script_path, "SE", fq_s, sample + "_dup.xls")
+                cmd = "{}python {}fastq_dup.py -s {} -o {}".format(self.python_path, self.script_path, fq_s, sample + "_dup.xls")
             self.logger.info(cmd)
             self.logger.info("开始运行{}_dup.py".format(sample.lower()))
             command = self.add_command("{}_dup".format(sample.lower()), cmd)
@@ -111,11 +111,11 @@ class FastqDupTool(Tool):
     def single_dup(self):
         if self.option("fq_type") == "SE":
             fq_s = self.option("fastq_s").prop["path"]
-            cmd = "{}python {}fastq_dup.py -t {} -s {} -o {}".format(self.python_path, self.script_path, "SE", fq_s, "fastq_dup.xls")
+            cmd = "{}python {}fastq_dup.py -s {} -o {}".format(self.python_path, self.script_path, fq_s, "fastq_dup.xls")
         else:
             fq_l = self.option("fastq_l").prop["path"]
             fq_r = self.option("fastq_r").prop["path"]
-            cmd = "{}python {}fastq_dup.py -t {} -l {} -r {} -o {}".format(self.python_path, self.script_path, "PE", fq_l, fq_r, "fastq_dup.xls")
+            cmd = "{}python {}fastq_dup.py -l {} -r {} -o {}".format(self.python_path, self.script_path, fq_l, fq_r, "fastq_dup.xls")
         self.logger.info(cmd)
         self.logger.info("开始运行fastq_dup.py")
         command = self.add_command("fastq_dup", cmd)

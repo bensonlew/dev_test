@@ -183,7 +183,7 @@ class MapAssessmentModule(Module):
         self.bam_stat_run()
         self.dup_run()
         self.satur_run()
-        self.coverage_run()
+        # self.coverage_run()
         self.on_rely(self.tools, self.set_output)
         # super(MapAssessmentModule, self).run()
 
