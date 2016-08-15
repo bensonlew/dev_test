@@ -279,5 +279,5 @@ if __name__ == '__main__':
     p_bonferroni = [5.58E-09, 5.58E-09, 3.05E-08, 3.05E-08, 3.33E-08, 6.06E-08, 7.82E-08, 8.35E-08, 8.35E-08, 1.99E-07,
                     2.86E-07, 3.40E-07, 3.45E-07, 4.72E-07, 7.47E-07, 8.18E-07, 9.87E-07, 1.02E-06, 1.02E-06, 2.29E-06]
     my_test = dict(zip(recs, p_bonferroni))
-    draw_GO(my_test)
-    draw_GO(recs, out='GO_lineage_1')
+    draw_GO(my_test, obo="C:\\Users\\sheng.he.MAJORBIO\\Desktop\\goa\\go-basic.obo")
+    draw_GO(recs, out='GO_lineage_1', obo="C:\\Users\\sheng.he.MAJORBIO\\Desktop\\goa\\go-basic.obo")

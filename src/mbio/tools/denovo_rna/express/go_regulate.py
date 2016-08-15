@@ -54,10 +54,9 @@ class GoRegulateAgent(Agent):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        if self.option('method') in ('both', 'h_clust'):
-            result_dir.add_relpath_rules([
-                [".", "", "结果输出目录"],
-                ["GO_regulate.xls", "xls", "基因上下调在GO2level层级分布情况表"],
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["GO_regulate.xls", "xls", "基因上下调在GO2level层级分布情况表"],
             ])
         super(GoRegulateAgent, self).end()
 
@@ -70,10 +69,6 @@ class GoRegulateTool(Tool):
 
     def run_go_regulate(self):
         try:
-
-            self.logger.info('AAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-            self.logger.info(self.option('diff_express').path)
-            self.logger.info(self.option('go_level_2').path)
             self.logger.info(self.output_dir + '/GO_regulate.xls')
             GO_level_2_regulate(self.option('diff_express').path, self.option('go_level_2').path, self.output_dir + '/GO_regulate.xls')
             self.end()
