@@ -367,7 +367,7 @@ class Tool(object):
         """
         self.save_output()
         self.add_state('finish')
-        self.logger.info("程序运行完成")
+        self.logger.info("Tool程序运行完成")
         self._end = True
         self.exit_signal = True
 
