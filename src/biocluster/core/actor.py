@@ -104,17 +104,13 @@ class RemoteActor(threading.Thread):
         :return: None
         """
         gevent.spawn(self.check_command)
-        self.mutex.acquire()
         is_end = self._tool.is_end
         states = self._tool.states
-        self.mutex.release()
 
         while (not is_end) or len(states) > 0:
-            self.mutex.acquire()
             is_end = self._tool.is_end
             states = self._tool.states
             exit_signal = self._tool.exit_signal
-            self.mutex.release()
             if exit_signal and len(states) == 0:
                 self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
                 self._tool.exit(1)

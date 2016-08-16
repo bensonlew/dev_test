@@ -368,10 +368,8 @@ class Tool(object):
         self.save_output()
         self.add_state('finish')
         self.logger.info("程序运行完成")
-        self.mutex.acquire()
         self._end = True
         self.exit_signal = True
-        self.mutex.release()
 
     def exit(self, status=1):
         """
@@ -422,10 +420,8 @@ class Tool(object):
 
         self.add_state('error', error_data)
         self.logger.info("运行出错:%s" % error_data )
-        self.mutex.acquire()
         self._end = True
         self.exit_signal = True
-        self.mutex.release()
 
     @staticmethod
     def set_environ(**kwargs):
