@@ -2,7 +2,8 @@
 # __author__ = 'yuguo'
 
 """Usearch OTU聚类工具"""
-
+from __future__ import division
+import math
 from biocluster.tool import Tool
 from biocluster.agent import Agent
 import os
@@ -67,7 +68,10 @@ class UsearchOtuAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = ''
+        total = os.path.getsize(self.option("fasta").prop["path"])
+        total = int(math.ceil(total / (1024 * 1024 * 1024)))
+        total = int(total * 10)
+        self._memory = "{}G".format(total)
 
 
 class UsearchOtuTool(Tool):

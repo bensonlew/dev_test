@@ -188,7 +188,7 @@ class FastqFile(File):
         """
         if not self.is_convert:
             try:
-                convert_str = (self.fastq_to_fasta_path + ' -i '
+                convert_str = (self.fastq_to_fasta_path + ' -n -i '
                                + self.unzipfile + ' -o ' + self.fastaname)
                 subprocess.check_call(convert_str, shell=True)
                 self.is_convert = True

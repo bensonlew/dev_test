@@ -26,7 +26,7 @@ class OtuSubsample(MetaController):
         my_param['otu_id'] = data.otu_id
         my_param["submit_location"] = data.submit_location
         my_param["size"] = data.size
-        my_param["task_type"] = "reportTask"
+        my_param["taskType"] = data.task_type
         self.params = param_pack(my_param)
         self.run()
         return self.returnInfo

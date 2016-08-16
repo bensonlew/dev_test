@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
+from __future__ import division
+import math
 import os
 import re
 from biocluster.agent import Agent
@@ -54,7 +56,13 @@ class SamplesInfoAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        total = 0
+        for f in self.option("fasta_path").prop["fasta_fullname"]:
+            total += os.path.getsize(f)
+        total = total / (1024 * 1024 * 1024)
+        total = total * 4
+        total = math.ceil(total)
+        self._memory = '{}G'.format(int(total))
 
 
 class SamplesInfoTool(Tool):
