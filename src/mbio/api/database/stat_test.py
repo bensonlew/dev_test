@@ -130,7 +130,7 @@ class StatTest(Base):
                 line_data = line.split("\t")
                 i = 1
                 for name in group_list:
-                    data = [("species_check_id", table_id), ("species_name", line_data[0]), ("type", "box")]
+                    data = [("species_check_id", table_id), ("species_name", line_data[0].split('; ')[-1]), ("type", "box")]
                     data.append(("category_name", name))
                     data.append(("min", float(line_data[i])))
                     data.append(("q1", float(line_data[i + 1])))
