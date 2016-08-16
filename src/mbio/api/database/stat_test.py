@@ -96,7 +96,7 @@ class StatTest(Base):
         data_list = []
         for name in sort_list:
             data = [
-                ("species_name", name),
+                ("species_name", name.split(';')[-1]),
                 ("type", "bar"),
                 ("species_check_id", table_id)
             ]
