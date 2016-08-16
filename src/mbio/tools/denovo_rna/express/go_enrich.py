@@ -3,7 +3,6 @@
 # last_modify:20160815
 
 import os
-import threading
 import traceback
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -90,9 +89,7 @@ class GoEnrichTool(Tool):
         command.run()
         self.wait()
         if command.return_code == 0:
-            draw_thread = threading.Thread(target=self.run_draw_go_graph)
-            draw_thread.start()
-            draw_thread.join()
+            self.run_draw_go_graph()
         else:
             self.set_error('goatools计算错误')
 
