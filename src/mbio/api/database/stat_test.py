@@ -65,7 +65,7 @@ class StatTest(Base):
             data = [
                 ("species_check_id", table_id),
                 ("full_species_name", name),
-                ("species_name", name.split(';')[-1])
+                ("species_name", name.split('; ')[-1])
             ]
             for i in stat_info[name].keys():
                 if i in ['pvalue', 'qvalue', 'corrected_pvalue'] and stat_info[name][i] == 'NA':
@@ -96,7 +96,7 @@ class StatTest(Base):
         data_list = []
         for name in sort_list:
             data = [
-                ("species_name", name.split(';')[-1]),
+                ("species_name", name.split('; ')[-1]),
                 ("type", "bar"),
                 ("species_check_id", table_id)
             ]
