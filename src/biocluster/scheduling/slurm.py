@@ -15,6 +15,7 @@ class SLURM(Job):
     def __init__(self, agent):
         super(SLURM, self).__init__(agent)
         self.master_ip = agent.config.JOB_MASTER_IP
+        self.count = 1
 
     def create_file(self):
         """
@@ -25,6 +26,10 @@ class SLURM(Job):
         file_path = os.path.join(self.agent.work_dir, self.agent.name + ".sbatch")
         script = os.path.abspath(os.path.dirname(__file__) + "/../../../bin/runtool.py")
         cpu, mem = self.agent.get_resource()
+        if mem == "":
+            mem = "1G"
+        if int(mem.rstrip("G")) > 120:
+            mem = ""
         if int(cpu) > 32:
             cpu = 32
         with open(file_path, "w") as f:
@@ -71,9 +76,18 @@ class SLURM(Job):
                 self.id = m.group(1)
                 return self.id
             else:
-                self.agent.logger.warn("任务投递系统出现错误:%s，30秒后尝试再次投递!\n" % text)
-                gevent.sleep(30)
-                self.submit()
+                if re.search("invalid\smemory\sconstraint", text):
+                    self.agent.logger.error("内存指定出错 {}。任务运行失败".format(text))
+                    self.agent.fire("error", "内存指定出错 {}。任务运行失败".format(text))
+                elif self.count < 10:
+                    self.agent.logger.warn("任务投递系统出现错误:%s，30秒后尝试再次投递!\n" % text)
+                    self.logger.debug(self.count)
+                    gevent.sleep(30)
+                    self.count += 1
+                    self.submit()
+                else:
+                    self.agent.logger.error("已重复投递10次任务，终止运行")
+                    self.agent.fire("error", "内存指定出错 {}。任务运行失败".format(text))
 
     def delete(self):
         """

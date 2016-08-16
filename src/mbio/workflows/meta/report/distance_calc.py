@@ -130,7 +130,7 @@ class DistanceCalcWorkflow(Workflow):
             'otu_id': self.option('otu_id'),
             'level_id': self.option('level'),
             'distance_algorithm': self.option('method'),
-            'taskType': self.option('task_type'),
+            'task_type': self.option('task_type'),
             'submit_location': 'beta_sample_distance'
             }
         matrix_id = api_distance.add_dist_table(matrix_path,
