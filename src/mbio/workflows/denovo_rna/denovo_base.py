@@ -19,14 +19,14 @@ class DenovoBaseWorkflow(Workflow):
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq,sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  #对照组文件，格式同分组文件
+            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
             {"name": "search_pfam", "type": "bool", "default": False},  # orf 是否比对Pfam数据库
             {"name": "primer", "type": "bool", "default": True},  # 是否设计SSR引物
 
             {"name": "min_contig_length", "type": "int", "default": 200},  # trinity报告出的最短的contig长度。默认为200
             {"name": "SS_lib_type", "type": "string", "default": 'none'},  # reads的方向，成对的reads: RF or FR; 不成对的reads: F or R，默认情况下，不设置此参数
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
-            {"name": "min_rowsum_counts",  "type": "int", "default": 2},  # 离散值估计检验的最小计数值
+            {"name": "min_rowsum_counts", "type": "int", "default": 2},  # 离散值估计检验的最小计数值
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
             {"name": "diff_rate", "type": "float", "default": 0.01}  # 期望的差异基因比率
 
@@ -72,10 +72,10 @@ class DenovoBaseWorkflow(Workflow):
 
     def run_filecheck(self):
         opts = {
-                'fastq_dir': self.option('fastq_dir'),
-                'fq_type': self.option('fq_type'),
-                'control_file': self.option('control_file')
-                }
+            'fastq_dir': self.option('fastq_dir'),
+            'fq_type': self.option('fq_type'),
+            'control_file': self.option('control_file')
+        }
         if self.option('group_table').is_set:
             opts.update({'group_table': self.option('group_table')})
         print opts

@@ -18,7 +18,7 @@ otu_data <- otu_data[apply(otu_data,1,function(x)any(x>0)),]
 lendata <- nrow(otu_data)
 if(lendata > 1){
   da <- otu_data
-  otu_data <-apply(da,2,function(x) as.numeric(x)/sum(as.numeric(x))) 
+  otu_data <-apply(da,2,function(x) as.numeric(x)/sum(as.numeric(x)))
   rownames(otu_data)<-rownames(da)
 }
 samp <- samp[which(samp %in% gsamp)]
@@ -59,12 +59,12 @@ for(i in 1:length(pvalue)){
 }
 result <- cbind(result,pvalue)
 result <- cbind(result,qv)
-colnames(result) <- c(" ",paste("mean(",g1,")",sep=''),paste("sd(",g1,")",sep=''),paste("mean(",g2,")",sep=''),paste("sd(",g2,")",sep=''),"pvalue","corrected_pvalue")
-result_order <- result[order(-(as.numeric(result[,2])+as.numeric(result[,4]))),] 
+colnames(result) <- c(" ",paste(g1,"-mean",sep=''),paste(g1,"-sd",sep=''),paste(g2,"-mean",sep=''),paste(g2,"-sd",sep=''),"pvalue","corrected_pvalue")
+result_order <- result[order(-(as.numeric(result[,2])+as.numeric(result[,4]))),]
 if(lendata == 1){
   a <- data.frame(result_order)
   result_order <- t(a)
-} 
+}
 write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)
 colnames(box_result) <- c(" ",paste("min(",g1,")",sep=''),paste("Q1(",g1,")",sep=''),paste("Median(",g1,")",sep=''),paste("Q3(",g1,")",sep=''),paste("max(",g1,")",sep=''),paste("min(",g2,")",sep=''),paste("Q1(",g2,")",sep=''),paste("Median(",g2,")",sep=''),paste("Q3(",g2,")",sep=''),paste("max(",g2,")",sep=''))
 write.table(box_result,"${boxfile}",sep = '\t',col.names = T,row.names = F,quote = F)
