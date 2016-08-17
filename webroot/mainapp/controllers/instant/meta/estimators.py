@@ -3,6 +3,7 @@
 import web
 import json
 from mainapp.controllers.project.meta_controller import MetaController
+from mainapp.libs.param_pack import group_detail_sort
 
 
 class Estimators(MetaController):
@@ -21,7 +22,7 @@ class Estimators(MetaController):
         if return_info:
             return return_info
         data = web.input()
-        default_argu = ['otu_id', 'level_id', 'index_type', 'submit_location']  # 可以不要otu_id
+        default_argu = ['otu_id', 'level_id', 'index_type', 'submit_location', "group_id"]  # 可以不要otu_id
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -30,6 +31,7 @@ class Estimators(MetaController):
             if index not in self.ESTIMATORS:
                 info = {"success": False, "info": "指数类型不正确{}".format(index)}
                 return json.dumps(info)
+        group_detail = group_detail_sort(data.group_detail)
         self.task_name = 'meta.report.estimators'
         self.task_type = 'workflow'
         self.options = {"otu_file": data.otu_id,
@@ -37,7 +39,9 @@ class Estimators(MetaController):
                         "indices": data.index_type,
                         "level": data.level_id,
                         "submit_location": data.submit_location,
-                        "taskType": data.taskType
+                        "task_type": data.task_type,
+                        "group_detail": group_detail,
+                        "group_id": data.group_id
                         }
         self.to_file = 'meta.export_otu_table_by_level(otu_file)'
         self.run()

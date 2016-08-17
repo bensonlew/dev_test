@@ -78,7 +78,8 @@ class Rarefaction(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": "meta.export_otu_table_by_level(otu_table)",
+                # "to_file": "meta.export_otu_table_by_level(otu_table)",
+                "to_file": "meta.export_otu_table_by_detail(otu_table)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": update_api,
@@ -91,7 +92,8 @@ class Rarefaction(object):
                     "indices": data.index_type,
                     "level": data.level_id,
                     "freq": data.freq,
-                    "rare_id": str(rare_id)
+                    "rare_id": str(rare_id),
+                    "group_detail": data.group_detail
                 }
             }
             insert_data = {"client": client,
