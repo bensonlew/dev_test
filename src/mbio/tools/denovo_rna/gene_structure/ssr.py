@@ -57,7 +57,7 @@ class SsrAgent(Agent):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "结果输出目录"],
             ["./misa_stat.xls", "xls", "ssr类型统计表"]
         ])
         result_dir.add_regexp_rules([
