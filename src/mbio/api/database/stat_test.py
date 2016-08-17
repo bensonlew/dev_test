@@ -45,6 +45,29 @@ class StatTest(Base):
                             data[line[0]].update(info)
                         else:
                             pass
+        if cifiles and len(cifiles) > 1:
+            for name in data:
+                keys = data[name].keys()
+                mean = []
+                low_ci = []
+                ci = []
+                for i in keys:
+                    if re.search(r'mean$', i):
+                        mean.append(float(data[name][i]))
+                    elif re.search(r'lowerCI$', i):
+                        group = i.split('_')[0]
+                        up = group + '_upperCI'
+                        low_ci.append(float(data[name][i]))
+                        ci.append(float(data[name][up]) - float(data[name][i]))
+                max_mean = max(mean)
+                max_ci = max(ci)
+                min_ci = min(low_ci)
+                if max_ci <= max_mean:
+                    n = 1
+                else:
+                    n = round(max_ci / max_mean)
+                l = round(abs(min_ci / n) + max_mean + 3)
+                data[name].update({'n': n, 'l': l})
         return data, sort_list
 
     @report_check
