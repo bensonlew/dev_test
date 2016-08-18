@@ -44,5 +44,6 @@ class Estimators(MetaController):
                         "group_id": data.group_id
                         }
         self.to_file = 'meta.export_otu_table_by_level(otu_file)'
+        # self.to_file = 'meta.export_otu_table_by_detail(otu_file)'
         self.run()
         return self.returnInfo
