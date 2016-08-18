@@ -13,7 +13,7 @@ class GroupStat(object):
         self.client = get_mongo_client()
         self.db = self.client[Config().MONGODB]
 
-    def create_species_difference_check(self, level, check_type, params, group_id=0,  from_otu_table=0, name=None):
+    def create_species_difference_check(self, level, check_type, params, category_name, group_id=0, from_otu_table=0, name=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -23,7 +23,7 @@ class GroupStat(object):
             if isinstance(group_id, StringTypes):
                 group_id = ObjectId(group_id)
             else:
-                raise Exception("group_detail必须为ObjectId对象或其对应的字符串!")
+                raise Exception("group_id必须为ObjectId对象或其对应的字符串!")
         collection = self.db["sg_otu"]
         result = collection.find_one({"_id": from_otu_table})
         project_sn = result['project_sn']
@@ -54,13 +54,14 @@ class GroupStat(object):
                 "params": params,
                 "desc": desc,
                 "status": "start",
-                "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "category_name": category_name
             }
         collection = self.db["sg_species_difference_check"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 
-    def create_species_difference_lefse(self, params, group_id=0,  from_otu_table=0, name=None):
+    def create_species_difference_lefse(self, params, group_id=0, from_otu_table=0, name=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -93,7 +94,7 @@ class GroupStat(object):
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 
-    def get_group_name(self, group_id, lefse=False):
+    def get_group_name(self, group_id, lefse=False, second_group=''):
         """
         根据分组方案id获取分组方案名字
         :param group_id: 分组方案id
@@ -107,10 +108,8 @@ class GroupStat(object):
         collection = self.db['sg_specimen_group']
         result = collection.find_one({'_id': group_id})
         gname = result['group_name']
-        if lefse:
-            if 'second_category_names' in result:
-                if result['second_category_names']:
-                    gname = gname + ',' + 'second_group'
+        if lefse and second_group:
+            gname = gname + ',' + 'second_group'
         return gname
 
     def get_otu_sample_name(self, otu_id):
