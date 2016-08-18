@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 from __future__ import division
+import math
 import os
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -63,13 +64,14 @@ class FileMetabaseAgent(Agent):
         self._cpu = 10
         total = 0
         if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
-            for f in self.prop["samples"]:
+            for f in self.option("in_fastq").prop["samples"]:
                 total += os.path.getsize(f)
         if self.get_option_object("in_fastq").format == 'sequence.fastq':
             total = os.path.getsize(self.option("in_fastq").prop["path"])
         total = total / (1024 * 1024 * 1024)
         total = total * 4
-        self._memory = '{:.2f}G'.format(total)
+        total = math.ceil(total)
+        self._memory = '{}G'.format(int(total))
 
 
 class FileMetabaseTool(Tool):

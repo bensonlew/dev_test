@@ -27,7 +27,8 @@ class TwoGroupWorkflow(Workflow):
             {"name": "ci", "type": "float", "default": 0.05},
             {"name": "group_name", "type": "string"},
             {"name": "coverage", "type": "float"},
-            {"name": "params", "type": "string"}
+            {"name": "params", "type": "string"},
+            {"name": "category_name", "type": "string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -81,7 +82,7 @@ class TwoGroupWorkflow(Workflow):
             [r".*_result\.xls", "xls", "物种组间差异显著性比较结果表，包括均值，标准差，p值"],
             [r".*_CI\.xls", "xls", "组间差异显著性比较两组，两样本比较的置信区间值以及效果量"],
             [r".*_boxfile\.xls", "xls", "组间差异显著性比较用于画箱线图的数据，包含四分位值"]
-            ])
+        ])
         super(TwoGroupWorkflow, self).end()
 
     def set_db(self):
@@ -89,10 +90,10 @@ class TwoGroupWorkflow(Workflow):
         保存两组比较分析的结果表保存到mongo数据库中
         """
         api_two_group = self.api.stat_test
-        # self.logger.info("test1111111111")
         stat_path = self.output_dir + '/' + self.option("test") + '_result.xls'
         boxfile_path = self.output_dir + '/' + self.option("test") + '_boxfile.xls'
         ci_path = self.output_dir + '/' + self.option("test") + '_CI.xls'
+        bar_path = self.two_group.work_dir + '/' + self.option("test") + '_plot_group_bar.xls'
         if not os.path.isfile(stat_path):
             raise Exception("找不到报告文件:{}".format(stat_path))
         if not os.path.isfile(boxfile_path):
@@ -100,9 +101,10 @@ class TwoGroupWorkflow(Workflow):
         if not os.path.isfile(ci_path):
             raise Exception("找不到报告文件:{}".format(ci_path))
         params = eval(self.option("params"))
-        main_id = api_two_group.add_species_difference_check_detail(file_path=stat_path, table_id=None, level=self.option("level"), check_type='two_group', params=self.option("params"), group_id=params["group_id"], from_otu_table=params["otu_id"], major=True)
+        main_id = api_two_group.add_species_difference_check_detail(statfile=stat_path, cifiles=[ci_path], table_id=None, level=self.option("level"), check_type='two_group', params=self.option("params"), category_name=self.option('category_name'), group_id=params["group_id"], from_otu_table=params["otu_id"], major=True, posthoc=None)
         api_two_group.add_species_difference_check_boxplot(boxfile_path, main_id)
-        api_two_group.add_species_difference_check_ci_plot(file_path=ci_path, table_id=main_id)
+        print bar_path
+        api_two_group.add_species_difference_check_barplot(bar_path, main_id)
         api_two_group.update_species_difference_check(main_id, stat_path, ci_path, 'twogroup')
         self.add_return_mongo_id('sg_species_difference_check', main_id)
         self.end()

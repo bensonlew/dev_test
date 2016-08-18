@@ -15,6 +15,7 @@ class SLURM(Job):
     def __init__(self, agent):
         super(SLURM, self).__init__(agent)
         self.master_ip = agent.config.JOB_MASTER_IP
+        self.count = 1
 
     def create_file(self):
         """
@@ -27,14 +28,17 @@ class SLURM(Job):
         cpu, mem = self.agent.get_resource()
         if mem == "":
             mem = "1G"
+        if int(mem.rstrip("G")) > 120:
+            mem = ""
         if int(cpu) > 32:
             cpu = 32
         with open(file_path, "w") as f:
             f.write("#!/bin/bash\n")
             f.write("#SBATCH -c {}\n".format(cpu))
-            f.write("#SBATCH -N 1\n")
+            f.write("#SBATCH -D %s\n" % self.agent.work_dir)
             f.write("#SBATCH -n 1\n")
-            f.write("#SBATCH -J {}\n".format(self.agent.id))
+            f.write("#SBATCH -N 1\n")
+            f.write("#SBATCH -J {}\n".format(self.agent.fullname))
             # f.write("#SBATCH -t 10-00:00\n")
             if self.master_ip == "192.168.12.101":
                 f.write("#SBATCH -p SANGER\n")
@@ -42,6 +46,7 @@ class SLURM(Job):
                 f.write("#SBATCH -p SANGERDEV\n")
             else:
                 raise Exception("错误master_ip{}".format(self.master_ip))
+
             f.write("#SBATCH --mem={}\n".format(mem))
             f.write("#SBATCH -o {}/{}_%j.out\n".format(self.agent.work_dir, self.agent.name))
             f.write("#SBATCH -e {}/{}_%j.err\n".format(self.agent.work_dir, self.agent.name))
@@ -56,6 +61,7 @@ class SLURM(Job):
 
         :return: jobid
         """
+        super(SLURM, self).submit()
         pbs_file = self.create_file()
         cmd = "sbatch {}".format(pbs_file)
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
@@ -70,9 +76,18 @@ class SLURM(Job):
                 self.id = m.group(1)
                 return self.id
             else:
-                self.agent.logger.warn("任务投递系统出现错误:%s，30秒后尝试再次投递!\n" % text)
-                gevent.sleep(30)
-                self.submit()
+                if re.search("invalid\smemory\sconstraint", text):
+                    self.agent.logger.error("内存指定出错 {}。任务运行失败".format(text))
+                    self.agent.fire("error", "内存指定出错 {}。任务运行失败".format(text))
+                elif self.count < 10:
+                    self.agent.logger.warn("任务投递系统出现错误:%s，30秒后尝试再次投递!\n" % text)
+                    self.logger.debug(self.count)
+                    gevent.sleep(30)
+                    self.count += 1
+                    self.submit()
+                else:
+                    self.agent.logger.error("已重复投递10次任务，终止运行")
+                    self.agent.fire("error", "内存指定出错 {}。任务运行失败".format(text))
 
     def delete(self):
         """

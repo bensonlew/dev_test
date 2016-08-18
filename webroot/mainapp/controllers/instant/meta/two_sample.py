@@ -57,8 +57,7 @@ class TwoSample(MetaController):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction',
-                       'type', 'test', 'methor', 'coverage', 'submit_location']
+        params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction', 'type', 'test', 'methor', 'coverage', 'submit_location']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
