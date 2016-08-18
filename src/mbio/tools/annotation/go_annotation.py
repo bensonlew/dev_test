@@ -56,7 +56,7 @@ class GoAnnotationAgent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = ''
+        self._memory = '15G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -103,7 +103,8 @@ class GoAnnotationTool(Tool):
             os.link(self.work_dir + '/blast2go.annot', linkfile)
             # self.run_gomerge
             # self.end()
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as e:
+            self.logger.debug(e)
             self.set_error('运行b2g出错')
         self.logger.debug("b2g end")
         self.run_gomerge()
@@ -142,7 +143,7 @@ class GoAnnotationTool(Tool):
         cmd2 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/goAnnot.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
         cmd2 += ' %s %s %s %s' % (
-            self.work_dir + '/GO.list', '10.100.203.193', Config().DB_USER, Config().DB_PASSWD)
+            self.work_dir + '/GO.list', '10.100.203.193', Config().DB_USER, Config().DB_PASSWD)#10.100.203.193
         self.logger.info("运行goAnnot.py")
         self.logger.info(cmd2)
         '''
