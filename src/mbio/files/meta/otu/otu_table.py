@@ -185,6 +185,7 @@ class OtuTableFile(File):
             5: "f__", 6: "g__", 7: "s__"
         }
         tax = re.sub(r'\s', '', tax)
+        # cla 依据 d,k,p,c,...的顺序, 其顺序必须连续，不能在中间缺失某一等级
         cla = re.split(';', tax)
         new_cla = list()
         #  处理uncultured和Incertae_Sedis

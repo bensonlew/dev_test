@@ -58,7 +58,9 @@ class QiimeAssignAgent(Agent):
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
                 raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
         else:
-            if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea',
+            if self.option("database") not in ['silva123/16s_bacteria', 'silva123/16s_archaea',
+                                               'silva123/16s', 'silva123/18s_eukaryota', 'silva123',
+                                               'silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
                                                'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
@@ -84,13 +86,13 @@ class QiimeAssignAgent(Agent):
                 raise OptionError('提供的库fasta序列过大{}G，暂不支持'.format(fasta_size))
             self._memory = str(QiimeAssignAgent.max_memory_func(fasta_size)) + 'G'
         else:
-            self._memory = '15G'
+            self._memory = '25G'
         self.logger.info('Memory:{}  CPU:{}'.format(self._memory, self._cpu))
 
     @staticmethod
     def max_memory_func(memory):
         """根据提供的fasta大小（单位G）来设定需要的内存大小（单位G）"""
-        return int(round(60 * memory)) + 15
+        return int(round(70 * memory)) + 25
 
 
 class QiimeAssignTool(Tool):

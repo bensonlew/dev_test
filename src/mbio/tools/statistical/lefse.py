@@ -42,9 +42,9 @@ class LefseAgent(Agent):
             raise OptionError("所设严格性超出范围值")
         if self.option("lda_filter") > 4.0 or self.option("lda_filter") < -4.0:
             raise OptionError("所设阈值超出范围值")
+        if len(self.option('lefse_gname').split(',')) >= 3:
+            raise OptionError("lefse分析不支持大于2个的分组方案")
         for i in self.option('lefse_gname').split(','):
-            if len(self.option('lefse_gname').split(',')) >= 3:
-                raise OptionError("lefse分析不支持大于2个的分组方案")
             gnum = self.option('lefse_group').group_num(i)
             if gnum < 2:
                 raise OptionError("lefse分析分组类别必须大于2")

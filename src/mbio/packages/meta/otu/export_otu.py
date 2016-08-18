@@ -13,7 +13,7 @@ import re
 
 def export_otu_table_by_level(otu_id, level, path):
     client = Config().mongo_client
-    db = client["sanger"]
+    db = client[Config().MONGODB]
     collection = db['sg_otu_specimen']
     otu_id = _get_objectid(otu_id)
     results = collection.find({"otu_id": otu_id})

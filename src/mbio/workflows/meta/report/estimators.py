@@ -23,7 +23,9 @@ class EstimatorsWorkflow(Workflow):
             {"name": "level", "type": "int"},
             {"name": "est_id", "type": "string"},
             {"name": "submit_location", "type": "string"},
-            {"name": "taskType", "type": "string"}
+            {"name": "task_type", "type": "string"},
+            {"name": "group_id", "type": "string"},
+            {"name": "group_detail", "type": "string"}
             ]
         self.add_option(options)
         # print(self._sheet.options())
@@ -57,12 +59,15 @@ class EstimatorsWorkflow(Workflow):
         params_json = {
             'otu_id': self.option('otu_id'),
             'level_id': self.option('level'),
-            'indices': sort_index,
-            "submit_location":self.option("submit_location"),
-            "taskType": self.option("taskType")
+            'index_type': sort_index,
+            "submit_location": self.option("submit_location"),
+            "task_type": self.option("task_type"),
+            "group_id": self.option("group_id"),
+            "group_detail": self.option("group_detail")
             }
+        params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         est_id = api_estimators.add_est_table(est_path, major=True, level=self.option('level'),
-                                              otu_id=self.option('otu_id'), params=params_json, name=name)
+                                              otu_id=self.option('otu_id'), params=params, name=name)
         self.add_return_mongo_id('sg_alpha_diversity', est_id)
         self.end()
 

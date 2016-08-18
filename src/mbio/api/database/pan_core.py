@@ -21,7 +21,7 @@ class PanCore(Base):
                 from_otu_table = ObjectId(from_otu_table)
             else:
                 raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
-        if group_id != "all":
+        if group_id not in ["all", "All", "ALL"]:
             if not isinstance(group_id, ObjectId):
                 if isinstance(group_id, StringTypes):
                     group_id = ObjectId(group_id)

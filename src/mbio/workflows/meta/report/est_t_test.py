@@ -24,9 +24,9 @@ class EstTTestWorkflow(Workflow):
             {"name": "group_id", "type": "string"},
             {"name": "est_t_test_id", "type": "string"},
             {"name": "group_detail", "type": "string"},
-            {"name": "group_detail", "type": "string"},
+            # {"name": "group_detail", "type": "string"},
             {"name": "submit_location", "type": "string"},
-            {"name": "taskType", "type": "string"}
+            {"name": "task_type", "type": "string"}
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -69,7 +69,7 @@ class EstTTestWorkflow(Workflow):
         my_param['group_detail'] = group_detail_sort(self.option("group_detail"))
         my_param['group_id'] = self.option("group_id")
         my_param['submit_location'] = self.option("submit_location")
-        my_param['taskType'] = self.option("taskType")
+        my_param['task_type'] = self.option("task_type")
         my_param['otu_id'] = self.option("otu_id")
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         # print(params)
