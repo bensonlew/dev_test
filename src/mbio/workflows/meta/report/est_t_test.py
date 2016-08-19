@@ -78,7 +78,7 @@ class EstTTestWorkflow(Workflow):
         for f in os.listdir(self.output_dir):
             self.logger.info(os.path.join(self.output_dir, f))
             api_est_t_test.add_est_t_test_detail(os.path.join(self.output_dir, f), est_t_test_id)
-        self.add_return_mongo_id('sg_alpha_est_t_test', est_t_test_id)
+        self.add_return_mongo_id('sg_alpha_ttest', est_t_test_id)
         self.end()
 
     def end(self):

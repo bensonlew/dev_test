@@ -4,6 +4,7 @@ from biocluster.workflow import Workflow
 # import os
 from mbio.api.to_file.meta import *
 import datetime
+from mainapp.libs.param_pack import group_detail_sort
 
 
 class EstimatorsWorkflow(Workflow):
@@ -56,6 +57,7 @@ class EstimatorsWorkflow(Workflow):
         sort_index = self.option('indices').split(',')
         sort_index.sort()
         sort_index = ','.join(sort_index)
+        group_detail = group_detail_sort(self.option("group_detail"))
         params_json = {
             'otu_id': self.option('otu_id'),
             'level_id': self.option('level'),
@@ -63,11 +65,10 @@ class EstimatorsWorkflow(Workflow):
             "submit_location": self.option("submit_location"),
             "task_type": self.option("task_type"),
             "group_id": self.option("group_id"),
-            "group_detail": self.option("group_detail")
+            "group_detail": group_detail
             }
-        params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         est_id = api_estimators.add_est_table(est_path, major=True, level=self.option('level'),
-                                              otu_id=self.option('otu_id'), params=params, name=name)
+                                              otu_id=self.option('otu_id'), params=params_json, name=name)
         self.add_return_mongo_id('sg_alpha_diversity', est_id)
         self.end()
 
