@@ -8,7 +8,7 @@ import re
 import numpy as np
 import types
 from biocluster.workflow import Workflow
-from mbio.packages.beta_diversity.filter_newick import *
+from mbio.packages.beta_diversity.filter_newick import get_level_newicktree
 from bson import ObjectId
 import json
 import datetime
@@ -38,7 +38,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
             {"name": "env_id", "type": "string", "default": ""},
             {"name": "params", "type": "string", "default": ""},
             # {"name": "matrix_out", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
-        ]
+            ]
         self.add_option(options)
         self.set_options(self._sheet.options())
 
@@ -50,13 +50,13 @@ class BetaMultiAnalysisWorkflow(Workflow):
             # 'dis_method': self.option('dist_method'),
             'otutable': self.option('otu_file')
 
-        }
+            }
         if self.option('env_file').is_set:
             options['envlabs'] = self.option('env_labs')
             options['envtable'] = self.option('env_file')
         else:
             pass
-        if self.option('group_file').is_set:
+        if self.option('analysis_type') == 'plsda':
             options['group'] = self.option('group_file')
             options['grouplab'] = self.option('group_file').prop['group_scheme'][0]
         if self.option('analysis_type') in ['pcoa', 'nmds', 'dbrda']:
@@ -69,6 +69,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
                     for n, m in enumerate(all_find):
                         all_find[n] = m.strip('\'')
                     all_find = dict((i[1], i[0]) for i in enumerate(all_find))
+
                     def match_newname(matchname):
                         if hasattr(match_newname, 'count'):
                             match_newname.count = match_newname.count + 1
@@ -205,7 +206,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
             ["Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
             ["Rda", "", "rda_cca分析结果目录"],
             [r'Rda/dca.xls', 'xls', 'DCA分析结果'],
-        ]
+            ]
         regexps = [
             [r'Distance/%s.*\.xls$' % self.option('dist_method'), 'xls', '样本距离矩阵文件'],
             [r'Rda/.*_importance\.xls$', 'xls', '主成分解释度表'],
@@ -213,7 +214,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
             [r'Rda/.*_species\.xls$', 'xls', '物种坐标表'],
             [r'Rda/.*_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
             [r'Rda/.*_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
-        ]
+            ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
