@@ -148,6 +148,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
                                                            main=True, task_id=task_id,
                                                            name='{}_{}'.format(self.option('analysis_type'),
                                                            datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+                                                           level=self.option('level'),
                                                            remove=cond, params=json.loads(self.option('params')),
                                                            )
         self.add_return_mongo_id('sg_beta_multi_analysis', main_id)
