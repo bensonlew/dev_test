@@ -19,6 +19,7 @@ class MapAssessmentModule(Module):
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
+            {"name": "method", "type": "string", "default": "all"},
             {"name": "quality", "type": "int", "default": 30}  # 质量值
         ]
         self.add_option(options)
@@ -183,7 +184,7 @@ class MapAssessmentModule(Module):
         self.bam_stat_run()
         self.dup_run()
         self.satur_run()
-        self.coverage_run()
+        # self.coverage_run()
         self.on_rely(self.tools, self.set_output)
         # super(MapAssessmentModule, self).run()
 

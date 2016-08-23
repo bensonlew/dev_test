@@ -27,7 +27,7 @@ class QcStatModule(Module):
         self.tools = []
         self.stat = self.add_tool('denovo_rna.qc.fastq_stat')
         # self.draw_info = self.add_tool('denovo_rna.qc.draw_fastq_info')
-        self.dup = self.add_tool('denovo_rna.qc.fastq_dup')
+        # self.dup = self.add_tool('denovo_rna.qc.fastq_dup')
         self.step.add_steps("dup", "stat")
 
     def check_options(self):
@@ -73,15 +73,44 @@ class QcStatModule(Module):
         self.tools.append(self.stat)
 
     def dup_run(self):
-        self.dup.set_options({
-            'fastq_dir': self.option('fastq_dir').prop["path"],
-            'fq_type': self.option('fq_type')
-            })
-        # self.on_rely(estimators, self.rarefaction_run)
-        self.step.dup.start()
-        self.dup.on("end", self.dup_finish_update)
-        self.dup.run()
-        self.tools.append(self.dup)
+        n = 0
+        for f in self.samples:
+            options = {}
+            if self.option("fq_type") == "PE":
+                fq_l = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f]["l"])
+                fq_r = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f]["r"])
+                options = {
+                    'fastq_l': fq_l,
+                    'fastq_r': fq_r,
+                    'fq_type': self.option('fq_type')
+                }
+            elif self.option("fq_type") == "SE":
+                fq_s = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f])
+                options = {
+                    'fastq_s': fq_s,
+                    'fq_type': self.option('fq_type')
+                }
+            dup = self.add_tool('denovo_rna.qc.fastq_dup')
+            self.step.add_steps('dup_{}'.format(n))
+            dup.set_options(options)
+            step = getattr(self.step, 'dup_{}'.format(n))
+            step.start()
+            dup.on("end", self.finish_update, "dup_{}".format(n))
+            dup.on("end", self.rename, f)
+            dup.run()
+            self.tools.append(dup)
+            n += 1
+
+    # def dup_run(self):
+    #     self.dup.set_options({
+    #         'fastq_dir': self.option('fastq_dir').prop["path"],
+    #         'fq_type': self.option('fq_type')
+    #         })
+    #     # self.on_rely(estimators, self.rarefaction_run)
+    #     self.step.dup.start()
+    #     self.dup.on("end", self.dup_finish_update)
+    #     self.dup.run()
+    #     self.tools.append(self.dup)
 
     def draw_run(self):
         # self.samples = self.get_list()
@@ -142,7 +171,6 @@ class QcStatModule(Module):
         super(QcStatModule, self).run()
         for eve in self.events.values():
             self.logger.info('{}'.format(eve.is_start))
-
 
     def set_output(self):
         self.logger.info("set output")

@@ -308,6 +308,7 @@ def export_cascading_table_by_detail(data, option_name, dir_path, bind_obj=None)
             table_list.append(json.loads(second_group_detail))
         except Exception:
             raise Exception("生成group表失败，传入的二级分组不是一个字典或者是字典对应的字符串")
+    # bind_obj.logger.debug('{}'.format(table_list))
     for i in table_list:
         if not isinstance(i, dict):
             raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
@@ -374,3 +375,62 @@ def _write_cascading_table(table_list, sample_table, file_path, sample_table_nam
         _write_class2_table(table_list, file_path, sample_table, sample_table_name)
     else:
         raise Exception("group_detal字段含有三个或以上的字典")
+
+
+def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
+    """
+    按等级与分组信息(group_detail)获取OTU表
+    使用时确保你的workflow的option里level与group_detail这个字段
+    """
+    file_path = os.path.join(dir_path, "%s.xls" % option_name)
+    bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
+    bind_obj.logger.debug(data)
+    collection = db['sg_otu_specimen']
+    results = collection.find({"otu_id": ObjectId(data)})
+    if not results.count():
+        raise Exception("otu_id: {}在sg_otu_specimen表中未找到！".format(data))
+    samples = list()
+    table_dict = {}
+    group_detail = bind_obj.sheet.option("group_detail")
+    bind_obj.logger.debug(group_detail)
+    if not isinstance(group_detail, dict):
+        try:
+            table_dict = json.loads(group_detail)
+        except Exception:
+            raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+    if not isinstance(table_dict, dict):
+        raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+    sample_table = db['sg_specimen']
+    for k in table_dict:
+        for sp_id in table_dict[k]:
+            sp = sample_table.find_one({"_id": ObjectId(sp_id)})
+            if not sp:
+                raise Exception("group_detal中的样本_id:{}在样本表{}中未找到".format(sp_id, 'sg_specimen'))
+            else:
+                samples.append(sp["specimen_name"])
+
+    level = int(bind_obj.sheet.option("level"))
+    collection = db['sg_otu_detail']
+    name_dic = dict()
+    results = collection.find({"otu_id": ObjectId(data)})
+    if not results.count():
+        raise Exception("otu_id: {}在sg_otu_detail表中未找到！".format(data))
+    for col in results:
+        tmp = level + 1
+        new_classify_name = _create_classify_name(col, tmp, bind_obj)
+        if new_classify_name not in name_dic:
+            name_dic[new_classify_name] = dict()
+            for sp in samples:
+                name_dic[new_classify_name][sp] = int(col[sp])
+        else:
+            for sp in samples:
+                name_dic[new_classify_name][sp] += int(col[sp])
+    with open(file_path, "wb") as f:
+        f.write("OTU ID\t%s\n" % "\t".join(samples))
+        for k in name_dic.iterkeys():
+            line = k
+            for s in samples:
+                line += "\t" + str(name_dic[k][s])
+            line += "\n"
+            f.write(line)
+    return file_path
