@@ -130,8 +130,8 @@ class MultiAnalysis(MetaController):
             self.options['env_id'] = data.env_id
         if data.analysis_type == 'plsda':
             self.to_file.append('meta.export_group_table_by_detail(group_file)')
+            self.options['group_file'] = data.group_id
         self.to_file.append('meta.export_otu_table_by_detail(otu_file)')
-        self.options['group_file'] = data.group_id
         self.options['group_id'] = data.group_id
         self.options['group_detail'] = data.group_detail
         self.run()
