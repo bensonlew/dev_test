@@ -4,13 +4,13 @@ from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
 
-class GeneListFile(File):
+class KeggListFile(File):
     """
-    gene名字列表文件
+    定义kegg.list格式
     """
     def __init__(self):
-        super(GeneListFile, self).__init__()
+        super(KeggListFile, self).__init__()
 
     def check(self):
-        if super(GeneListFile, self).check():
+        if super(KeggListFile, self).check():
             return True

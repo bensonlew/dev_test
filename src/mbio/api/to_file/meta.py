@@ -308,6 +308,7 @@ def export_cascading_table_by_detail(data, option_name, dir_path, bind_obj=None)
             table_list.append(json.loads(second_group_detail))
         except Exception:
             raise Exception("生成group表失败，传入的二级分组不是一个字典或者是字典对应的字符串")
+    # bind_obj.logger.debug('{}'.format(table_list))
     for i in table_list:
         if not isinstance(i, dict):
             raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))

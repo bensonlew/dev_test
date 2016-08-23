@@ -24,7 +24,6 @@ class ControlTableFile(File):
             raise Exception('对照方案至少为1')
         self.set_property('vs_list', vs_list)
 
-
     def get_control_info(self):
         """
         :return:对照样本（组）数目：num；包含两两比较的样本（分组）元组的列表
