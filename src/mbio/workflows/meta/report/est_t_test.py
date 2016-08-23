@@ -31,7 +31,7 @@ class EstTTestWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.est_t_test = self.add_tool('statistical.metastat')
-        # self.tools = {}
+        self.group_name = ''
         self.group_file_dir = self.work_dir + '/two_group_output'
 
     # def check_options(self):
@@ -43,12 +43,21 @@ class EstTTestWorkflow(Workflow):
     #             raise Exception('分组样本不在otu表所拥有的样本内，请检查分组方案')
 
     def run(self):
-        file_path = group_file_spilt(self.option('group_table').prop['path'], self.group_file_dir)
-        # print(file_path)
+        group_name = group_file_spilt(self.option('group_table').prop['path'], self.group_file_dir)
+        name_list = []
+        for g in group_name:
+            if g[0] > g[1]:
+                gg = g[1]+'|'+g[0]
+                name_list.append(gg)
+            else:
+                gg = g[0]+'|'+g[1]
+                name_list.append(gg)
+        self.group_name = ",".join(name_list)
+        self.logger.info(self.group_name)
         options = {
                 'est_input': self.option('est_table'),
                 'test': 'estimator',
-                'est_group': file_path
+                'est_group': self.group_file_dir
                 }
         self.est_t_test.set_options(options)
         self.est_t_test.on('end', self.set_db)
@@ -74,7 +83,7 @@ class EstTTestWorkflow(Workflow):
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         # print(params)
         name = "est_t_test_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        est_t_test_id = api_est_t_test.add_est_t_test_collection(params, self.option("group_id"), self.option("est_id"), name)
+        est_t_test_id = api_est_t_test.add_est_t_test_collection(params, self.option("group_id"), self.option("est_id"), name=name, group_name=self.group_name)
         for f in os.listdir(self.output_dir):
             self.logger.info(os.path.join(self.output_dir, f))
             api_est_t_test.add_est_t_test_detail(os.path.join(self.output_dir, f), est_t_test_id)
