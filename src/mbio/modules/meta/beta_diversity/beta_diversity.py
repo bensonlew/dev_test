@@ -278,8 +278,6 @@ class BetaDiversityModule(Module):
         else:
             self.matrix_run()
 
-        # self.on_rely(self.tools.values(), self.end)
-
 
     def stepend(self):
         self.step.MultipleAnalysis.finish()
