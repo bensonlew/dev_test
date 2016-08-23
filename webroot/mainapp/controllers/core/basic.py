@@ -66,8 +66,9 @@ class Basic(object):
             'IMPORT_REPORT_DATA': True,
             'USE_RPC': False,
             'params': self.params,
+            'instant': True,
             'options': self.options  # 需要配置
-        }
+            }
         if self.to_file:  # 可以配置
                 sheet_data['to_file'] = self.to_file
         if not self.uploadTarget:
