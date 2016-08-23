@@ -60,7 +60,7 @@ class EstTTest(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
 
     @report_check
-    def add_est_t_test_collection(self, params, group_id, from_est_id=0, name=None):
+    def add_est_t_test_collection(self, params, group_id, from_est_id=0, name=None, group_name=None):
         if isinstance(from_est_id, StringTypes):
             from_est_id = ObjectId(from_est_id)
         else:
@@ -84,6 +84,7 @@ class EstTTest(Base):
                 "name": name if name else "多样性指数T检验结果表",
                 "level_id": int(level_id),
                 "group_id": group_id,
+                "compare_column": group_name,
                 "status": "end",
                 "desc": desc,
                 "params": params,

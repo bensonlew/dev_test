@@ -21,7 +21,7 @@ class CoverageAgent(Agent):
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
-            {"name": "quality", "type": "int", "default": 30}  # 质量值
+            # {"name": "min_len", "type": "int", "default": 100}  # Minimum mRNA length (bp).
         ]
         self.add_option(options)
         self.step.add_steps('coverage')
