@@ -137,16 +137,17 @@ class BetaMultiAnalysisWorkflow(Workflow):
         task_id = result['task_id']
         dir_path = self.output_dir
         cond, cons = [], []
-        if not self.option('group_file').is_set:
-            if self.option('env_file').is_set:
-                cond, cons = self.classify_env(self.option('env_file').path)
-                self.logger.info(cond)
-                self.logger.info(cons)
+        if self.option('env_file').is_set:
+            cond, cons = self.classify_env(self.option('env_file').path)
+            self.logger.info(cond)
+            self.logger.info(cons)
         if not os.path.isdir(dir_path):
             raise Exception("找不到报告文件夹:{}".format(dir_path))
 
         main_id = api_multi.add_beta_multi_analysis_result(dir_path, self.option('analysis_type'),
-                                                           main=True, task_id=task_id, name='{}_{}'.format(self.option('analysis_type'), datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+                                                           main=True, task_id=task_id,
+                                                           name='{}_{}'.format(self.option('analysis_type'),
+                                                           datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
                                                            remove=cond, params=json.loads(self.option('params')),
                                                            )
         self.add_return_mongo_id('sg_beta_multi_analysis', main_id)
