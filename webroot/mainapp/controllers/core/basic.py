@@ -7,6 +7,7 @@ import random
 import json
 import web
 import re
+import os
 import threading
 from mainapp.models.instant_task import InstantTask
 from mainapp.config.db import Config, get_mongo_client
@@ -69,6 +70,7 @@ class Basic(object):
             'IMPORT_REPORT_DATA': True,
             'USE_RPC': False,
             'params': self.params,
+            'instant': True,
             'options': self.options  # 需要配置
         }
         if self.to_file:  # 可以配置
@@ -270,20 +272,21 @@ class Basic(object):
         return_files = []
         return_dirs = []
 
-        def create_path(path):
-            return self.uploadTarget + '/' + path.lstrip('.')
+        def create_path(path, dir_path):
+            dir_path = os.path.split(dir_path)[1]
+            return self.uploadTarget + '/' + dir_path + '/' + path.lstrip('.')
         for i in self.upload_dirs:
             for one in i.file_list:
                 if one['type'] == 'file':
                     return_files.append({
-                        "path": create_path(one["path"]),
+                        "path": create_path(one["path"], i.path),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
                         })
                 elif one['type'] == 'dir':
                     return_dirs.append({
-                        "path": create_path(one["path"]),
+                        "path": create_path(one["path"], i.path),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]

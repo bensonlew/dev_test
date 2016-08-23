@@ -19,7 +19,7 @@ class MultiAnalysis(MetaController):
         if return_info:
             return return_info
         data = web.input()
-        default_argu = ['analysis_type', 'otu_id', 'level_id', 'submit_location']
+        default_argu = ['analysis_type', 'otu_id', 'level_id', 'submit_location', 'group_id', 'group_detail']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -31,12 +31,13 @@ class MultiAnalysis(MetaController):
             'level_id': int(data.level_id),
             'analysis_type': data.analysis_type,
             'submit_location': data.submit_location,
-            'task_type': data.task_type
+            'task_type': data.task_type,
+            'group_id': data.group_id,
+            'group_detail': group_detail_sort(data.group_detail)
             }
         env_id = None
         env_labs = ''
         dist_method = ''
-        group_id = None
         if data.analysis_type == 'pca':
             if hasattr(data, 'env_id'):
                 params_json['env_id'] = data.env_id
@@ -94,33 +95,20 @@ class MultiAnalysis(MetaController):
                 info = {'success': False, 'info': 'rda_cca分析缺少参数:env_id!'}
                 return json.dumps(info)
         elif data.analysis_type == 'plsda':
-            if hasattr(data, 'group_id'):
-                params_json['group_id'] = data.group_id
-                group_id = self.check_objectid(data.group_id)
-                if not group_id:
-                    info = {'success': False, 'info': 'group_id格式:%s不正确，无法转换为ObjectId格式！' % data.group_id}
-                    return json.dumps(info)
-                if hasattr(data, 'group_detail'):
-                    try:
-                        group = json.loads(data.group_detail)
-                    except ValueError:
-                        info = {'success': False, 'info': 'group_detail格式不正确!:%s' % data.group_detail}
-                        return json.dumps(info)
-                    params_json['group_detail'] = group_detail_sort(data.group_detail)
-                    if len(group) < 2:
-                        info = {'success': False, 'info': '不可只选择一个分组'}
-                        return json.dumps(info)
-                    samples = reduce(lambda x, y: x + y, group.values())
-                    if len(samples) == len(set(samples)):
-                        pass
-                    else:
-                        info = {'success': False, 'info': '不同分组存在相同的样本id'}
-                        return json.dumps(info)
-                else:
-                    info = {'success': False, 'info': '没有group_detail数据'}
-                    return json.dumps(info)
+            try:
+                group = json.loads(data.group_detail)
+            except ValueError:
+                info = {'success': False, 'info': 'group_detail格式不正确!:%s' % data.group_detail}
+                return json.dumps(info)
+            params_json['group_detail'] = group_detail_sort(data.group_detail)
+            if len(group) < 2:
+                info = {'success': False, 'info': '不可只选择一个分组'}
+                return json.dumps(info)
+            samples = reduce(lambda x, y: x + y, group.values())
+            if len(samples) == len(set(samples)):
+                pass
             else:
-                info = {'success': False, 'info': 'plsda分析缺少参数:group_id!'}
+                info = {'success': False, 'info': '不同分组存在相同的样本id'}
                 return json.dumps(info)
         else:
             info = {'success': False, 'info': '不正确的分析方法:%s' % data.analysis_type}
@@ -132,18 +120,20 @@ class MultiAnalysis(MetaController):
             'level': int(data.level_id),
             'dist_method': dist_method,
             'env_labs': env_labs,
+            'group_id': data.group_id,
+            'group_detail': data.group_detail,
             'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
             }
-        self.to_file.append('meta.export_otu_table_only_level(otu_file)')
         if env_id:
             self.to_file.append('env.export_env_table(env_file)')
             self.options['env_file'] = data.env_id
             self.options['env_id'] = data.env_id
-        elif group_id:
+        if data.analysis_type == 'plsda':
             self.to_file.append('meta.export_group_table_by_detail(group_file)')
             self.options['group_file'] = data.group_id
-            self.options['group_id'] = data.group_id
-            self.options['group_detail'] = data.group_detail
+        self.to_file.append('meta.export_otu_table_by_detail(otu_file)')
+        self.options['group_id'] = data.group_id
+        self.options['group_detail'] = data.group_detail
         self.run()
         return self.returnInfo
 
