@@ -29,6 +29,7 @@ class Lefse(object):
         else:
             my_param['second_group_detail'] = data.second_group_detail
         my_param['group_id'] = data.group_id
+        my_param['second_group_id'] = data.second_group_id
         my_param['lda_filter'] = float(data.lda_filter)
         my_param['strict'] = int(data.strict)
         my_param['submit_location'] = data.submit_location
@@ -67,12 +68,12 @@ class Lefse(object):
                     "group_file": data.group_id,
                     "group_detail": data.group_detail,
                     "second_group_detail": data.second_group_detail,
-                    "group_name": G().get_group_name(data.group_id, lefse=True,second_group=data.second_group_detail),
+                    "group_name": G().get_group_name(data.group_id, lefse=True, second_group=data.second_group_detail),
                     "strict": data.strict,
                     "lda_filter": data.lda_filter,
                     "lefse_id": str(lefse_id)
-                    }
                 }
+            }
             insert_data = {"client": client,
                            "workflow_id": workflow_id,
                            "json": json.dumps(json_data),
@@ -98,7 +99,7 @@ class Lefse(object):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict', 'second_group_detail']
+        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict', 'second_group_detail', 'task_type', 'second_group_id']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
@@ -115,4 +116,6 @@ class Lefse(object):
             second_group_detail = json.loads(data.second_group_detail)
             if not isinstance(second_group_detail, dict):
                 success.append("传入的second_group_detail不是一个字典")
+            if len(group_detail) != len(second_group_detail):
+                success.append("二级分组与一级分组的样本数不相同，请检查！")
         return success

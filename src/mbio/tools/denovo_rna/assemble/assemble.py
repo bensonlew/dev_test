@@ -18,7 +18,7 @@ class AssembleAgent(Agent):
     def __init__(self, parent):
         super(AssembleAgent, self).__init__(parent)
         options = [
-            {"name": "fq_type", "type": "string"}, # PE OR SE
+            {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，所有样本fastq左端序列文件
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，所有样本fastq右端序列文件
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，所有样本fastq序列文件

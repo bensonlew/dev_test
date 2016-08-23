@@ -12,8 +12,8 @@ class ExpAnalysisModule(Module):
         super(ExpAnalysisModule, self).__init__(work_id)
         self.step.add_steps('rsem', 'merge_rsem', 'diff_exp', 'correlation')
         options = [
-            {"name": "fq_type", "type": "string"}, # PE OR SE
-            {"name": "rsem_fa", "type": "infile", "format": "sequence.fasta"},  #trinit.fasta文件
+            {"name": "fq_type", "type": "string"},  # PE OR SE
+            {"name": "rsem_fa", "type": "infile", "format": "sequence.fasta"},  # trinit.fasta文件
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq_dir"},  # SE测序，包含所有样本的fq文件的文件夹
@@ -25,15 +25,15 @@ class ExpAnalysisModule(Module):
             {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"},
             {"name": "exp_way", "type": "string", "default": "fpkm"},
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
-            {"name": "min_rowsum_counts",  "type": "int", "default": 20},  # 离散值估计检验的最小计数值
+            {"name": "min_rowsum_counts", "type": "int", "default": 20},  # 离散值估计检验的最小计数值
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  #对照组文件，格式同分组文件
+            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
-            {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  #差异基因计数表
-            {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  #差异基因表达量表
-            {"name": "gname", "type": "string"},  #  分组方案名称
-            {"name": "diff_rate", "type": "float", "default": 0.01},  #期望的差异基因比率
-            {"name": "only_bowtie_build", "type": "bool", "default": False}  #  为true时该tool只建索引
+            {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因计数表
+            {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
+            {"name": "gname", "type": "string"},  # 分组方案名称
+            {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
+            {"name": "only_bowtie_build", "type": "bool", "default": False}  # 为true时该tool只建索引
         ]
         self.add_option(options)
         self.bowtie_build = self.add_tool("denovo_rna.express.rsem")
@@ -90,8 +90,7 @@ class ExpAnalysisModule(Module):
             for f in s_files:
                 if re.search(r'fastq$', f):
                     sample = f.split('_sickle_s.fastq')[0]
-                    tool_opt.update(
-                    {'fq_s': self.option('fq_s').prop['path'] + '/' + f})
+                    tool_opt.update({'fq_s': self.option('fq_s').prop['path'] + '/' + f})
                     self.rsem = self.add_tool('denovo_rna.express.rsem')
                     print tool_opt
                     # print self.bowtie_build.option('fa_build').prop['path']

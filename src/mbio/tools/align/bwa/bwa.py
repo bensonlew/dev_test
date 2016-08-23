@@ -59,7 +59,7 @@ class BwaAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '10G'
 
 
 class BwaTool(Tool):

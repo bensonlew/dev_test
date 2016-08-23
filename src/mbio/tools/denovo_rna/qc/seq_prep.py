@@ -143,6 +143,7 @@ class SeqPrepTool(Tool):
 
     def adapter(self):
         files = glob.glob(r'{}/*.o'.format(self.work_dir))
+        total = 1
         with open("adapter.xls", "w") as w:
             w.write("sample\tadapter%\n")
             for f in files:
@@ -156,6 +157,8 @@ class SeqPrepTool(Tool):
                             adapter = line.strip().split()[-1]
                             adap_rate = int(adapter)/int(total)
                             w.write("{}\n".format(adap_rate))
+                        if not re.match(r"Pairs Processed", line):
+                            self.set_error("运行出错!")
 
     def set_output(self):
         """

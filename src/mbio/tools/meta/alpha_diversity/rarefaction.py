@@ -58,7 +58,7 @@ class RarefactionAgent(Agent):
     def set_resource(self):
         """
             所需资源
-            """
+        """
         self._cpu = 11
         self._memory = '5G'
 
@@ -202,3 +202,4 @@ class RarefactionTool(Tool):
         self.mothur()
         self.end()
         # self.set_output()
+

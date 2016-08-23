@@ -11,6 +11,9 @@ gsamp <- group[,1]
 otu <- otu[,which(sam %in% gsamp)]
 length <- nrow(otu)
 data <- apply(otu,2,function(x)signif(as.numeric(x)/sum(as.numeric(x)),4))
+if(length == 1){
+    data <- t(as.data.frame(data))
+}
 rownames(data) <- rownames(otu)
 col <- colnames(data)
 for(i in 1:(length(col))){

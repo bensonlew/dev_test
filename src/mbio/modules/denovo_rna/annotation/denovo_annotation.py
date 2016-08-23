@@ -29,9 +29,9 @@ class DenovoAnnotationModule(Module):
                 "format": "sequence.fasta"},  # 参考序列，选择customer时启动
             {"name": "reference_type", "type": "string"},  # 参考序列类型，nucl或prot
             {"name": "evalue", "type": "float", "default": 1e-5},
-            {"name": "threads", "type": "int", "default"：10}，
+            {"name": "threads", "type": "int", "default": 10},
             {"name": "anno_statistics", "type": "bool", "default": False},
-            {"name": "unigene", "type": "bool", "default": False}
+            {"name": "unigene", "type": "bool", "default": False},
             {"name": "query_gene", "type": "infile", "format": "sequence.fasta"}
         ]
         self.blast = self.add_tool('align.ncbi.blast')
