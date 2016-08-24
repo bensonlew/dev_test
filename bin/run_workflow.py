@@ -236,6 +236,9 @@ class WorkJob(object):
             return None
         if len(results) > 0:
             data = results[0]
+            list_ = ["", None]
+            if json.loads(data.json) in list_:
+                return None
             self.workflow_id = data.workflow_id
             self.client = data.client
             return json.loads(data.json)

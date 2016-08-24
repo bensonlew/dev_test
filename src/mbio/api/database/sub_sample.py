@@ -32,10 +32,10 @@ class SubSample(Base):
             "project_sn": project_sn,
             'task_id': task_id,
             'from_id': str(from_otu_table),
-            'name': "subsample" + str(my_size) + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            'name': "otu_stat" + str(my_size) + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             'status': 'end',
-            'desc': 'otu table after Subsample',
+            'desc': 'otu table after Otu Subsampe',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         collection = self.db["sg_otu"]
@@ -77,7 +77,7 @@ class SubSample(Base):
         self.bind_object.logger.info("代表序列查询完毕")
 
     @report_check
-    def add_sg_otu_detail(self, file_path, from_otu_id, new_otu_id):
+    def add_sg_otu_detail(self, file_path, from_otu_id, new_otu_id, new_samples=False):
         if not isinstance(from_otu_id, ObjectId):
             if isinstance(from_otu_id, StringTypes):
                 from_otu_id = ObjectId(from_otu_id)
@@ -125,11 +125,12 @@ class SubSample(Base):
             self.bind_object.logger.info("导入sg_otu_detail表格成功")
         # 导入sg_otu_specimen表
         self.bind_object.logger.info("开始导入sg_otu_specimen表")
-        insert_data = list()
-        for sp in new_head:
-            my_data = dict()
-            my_data['otu_id'] = new_otu_id
-            my_data["specimen_id"] = self.name_id[sp]
-            insert_data.append(my_data)
-        collection = self.db['sg_otu_specimen']
-        collection.insert_many(insert_data)
+        if not new_samples:
+            insert_data = list()
+            for sp in new_head:
+                my_data = dict()
+                my_data['otu_id'] = new_otu_id
+                my_data["specimen_id"] = self.name_id[sp]
+                insert_data.append(my_data)
+            collection = self.db['sg_otu_specimen']
+            collection.insert_many(insert_data)
