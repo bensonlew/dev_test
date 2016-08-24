@@ -35,7 +35,7 @@ class SubSample(Base):
             'name': "otu_stat" + str(my_size) + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             'status': 'end',
-            'desc': 'otu table after Otu Stat',
+            'desc': 'otu table after Otu Subsampe',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         collection = self.db["sg_otu"]
