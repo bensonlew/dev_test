@@ -2,11 +2,11 @@
 # __author__ = 'shenghe'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-# import os
+import os
 import types
 from biocluster.core.exceptions import OptionError
 from mbio.files.meta.otu.otu_table import OtuTableFile
-from mbio.packages.beta_diversity.plsda_r import *
+from mbio.packages.beta_diversity.plsda_r import plsda
 
 
 class PlsdaAgent(Agent):
@@ -109,6 +109,7 @@ class PlsdaTool(Tool):
         self._version = '1.0'
         self.cmd_path = 'mbio/packages/beta_diversity/plsda_r.py'
         self.grouplab = self.option('grouplab') if self.option('grouplab') else self.option('group').prop['group_scheme'][0]
+        self.set_environ(LD_LIBRARY_PATH="{}gcc/5.1.0/lib64".format(self.config.SOFTWARE_DIR))
         self.otu_table = self.get_otu_table()
 
     def get_otu_table(self):
