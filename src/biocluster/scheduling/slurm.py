@@ -28,7 +28,9 @@ class SLURM(Job):
         cpu, mem = self.agent.get_resource()
         if mem == "":
             mem = "1G"
-        if int(mem.rstrip("G")) > 120:
+        if not (("g" in mem) or ("G" in mem)):
+            mem = "1G"
+        if int(mem.rstrip("G")) > 240:
             mem = ""
         if int(cpu) > 32:
             cpu = 32
@@ -81,7 +83,7 @@ class SLURM(Job):
                     self.agent.fire("error", "内存指定出错 {}。任务运行失败".format(text))
                 elif self.count < 10:
                     self.agent.logger.warn("任务投递系统出现错误:%s，30秒后尝试再次投递!\n" % text)
-                    self.logger.debug(self.count)
+                    self.agent.logger.debug(self.count)
                     gevent.sleep(30)
                     self.count += 1
                     self.submit()

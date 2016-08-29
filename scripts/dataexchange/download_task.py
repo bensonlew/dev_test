@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 from __future__ import division
-import getpass
-import socket
 import urllib2
 import urllib
 import httplib
@@ -10,74 +8,18 @@ import sys
 import json
 import os
 import errno
-from logger import Wlog
+from basic import Basic
 
 
-class DownloadTask(object):
+class DownloadTask(Basic):
     def __init__(self, identity, target_path, mode, port, stream_on):
-        self._identity = identity
-        self._target_path = target_path
-        self._stream_on = stream_on
-        self._port = port
-        self._mode = mode
-        self._ip = ""
-        self._user = ""
-        self._url = self.get_url(mode, port)
+        super(DownloadTask, self).__init__(identity, target_path, mode, port, stream_on)
         self._download_url = self.get_download_url(mode)
-        self.get_ip()
-        self.get_user()
         self._file_list = list()
-        self.logger = Wlog(self).get_logger("")
-
-    @property
-    def user(self):
-        return self._user
-
-    @property
-    def url(self):
-        return self._url
 
     @property
     def download_url(self):
         return self._download_url
-
-    @property
-    def ip(self):
-        return self._ip
-
-    @property
-    def identity(self):
-        return self._identity
-
-    @property
-    def target_path(self):
-        return self._target_path
-
-    @property
-    def stream_on(self):
-        return self._stream_on
-
-    @property
-    def port(self):
-        return self._port
-
-    @property
-    def mode(self):
-        return self._mode
-
-    def get_ip(self):
-        """
-        获取客户端的ip
-        """
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("baidu.com", 80))
-        self._ip = s.getsockname()[0]
-        s.close()
-        return self._ip
-
-    def get_user(self):
-        self._user = getpass.getuser()
-        return self._user
 
     def get_url(self, mode, port):
         if mode == "sanger":
