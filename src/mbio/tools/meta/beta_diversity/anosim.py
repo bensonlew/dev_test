@@ -131,14 +131,18 @@ class AnosimTool(Tool):
         dist_anosim_command.run()
         dist_adonis_command = self.add_command('adonis', cmd2)
         dist_adonis_command.run()
+        self.logger.info('waiting................')
         self.wait()
+        self.logger.info('waiting over................')
         if dist_anosim_command.return_code == 0:
+            self.logger.info(os.path.join(self.work_dir, 'anosim_results.txt'))
+            self.linkfile(os.path.join(self.work_dir, 'anosim_results.txt'), 'anosim_results.txt')
             self.logger.info('运行qiime:compare_categories.py计算anosim完成')
-            self.linkfile(os.path.join(self.work_dir, 'adonis_results.txt'), 'adonis_results.txt')
             if dist_adonis_command.return_code == 0:
+                self.linkfile(os.path.join(self.work_dir, 'adonis_results.txt'), 'adonis_results.txt')
                 self.logger.info('运行qiime:compare_categories.py计算adonis完成')
-                self.linkfile(os.path.join(self.work_dir, 'anosim_results.txt'), 'anosim_results.txt')
                 self.format()
+                self.logger.info('整理anosim&adonis计算结果完成')
                 self.end()
             else:
                 self.set_error('运行qiime:compare_categories.py计算adonis出错')
