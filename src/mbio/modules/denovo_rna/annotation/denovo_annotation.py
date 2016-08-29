@@ -8,7 +8,7 @@ import os
 class DenovoAnnotationModule(Module):
     """
     module for denovorna annotation
-    last modified:20160808
+    last modified:20160829
     author: wangbixuan
     """
 
@@ -31,8 +31,13 @@ class DenovoAnnotationModule(Module):
             {"name": "evalue", "type": "float", "default": 1e-5},
             {"name": "threads", "type": "int", "default"：10}，
             {"name": "anno_statistics", "type": "bool", "default": False},
-            {"name": "unigene", "type": "bool", "default": False}
-            {"name": "query_gene", "type": "infile", "format": "sequence.fasta"}
+            {"name": "unigene", "type": "bool", "default": False},
+            {"name": "query_gene", "type": "infile", "format": "sequence.fasta"},
+            {'name': 'blast_stat', 'type': 'bool', 'default': False},
+            {'name': 'gi_taxon', 'type': 'bool', 'default': False},
+            {'name': 'go_annot', 'type': 'bool', 'default': False},
+            {'name': 'cog_annot', 'type': 'bool', 'default': False},
+            {'name': 'kegg_annot', 'type': 'bool', 'default': False}
         ]
         self.blast = self.add_tool('align.ncbi.blast')
         self.blast_stat = self.add_tool('align.ncbi.blaststat')
@@ -90,8 +95,8 @@ class DenovoAnnotationModule(Module):
                     if not item.startswith('TRINITY'):
                         raise OptionError("输入文件不是Trinity标准结果文件")
                         break
-            else:
-                raise OptionError("Unigene文件不存在")
+#            else:
+#                raise OptionError("Unigene文件不存在")
 
     def blast_run(self):
         if self.option('reference').is_set:
@@ -261,7 +266,7 @@ class DenovoAnnotationModule(Module):
             'unigene': self.option('unigene')
         })
         self.anno_stat.start()
-        self.anno_stat.on("end",self.set_output,'anno_stat')
+        self.anno_stat.on("end", self.set_output, 'anno_stat')
 
     def run(self):
         super(DenovoAnnotationModule, self).run()
@@ -269,35 +274,57 @@ class DenovoAnnotationModule(Module):
         # self.step.update()
         #self.on_rely(self.blast, self.blast_stat_run)
         self.step.update()
-        if self.option('database') == 'nr':
-            self.on_rely(
-                self.blast, [self.blast_stat_run, self.ncbi_taxon_run, self.go_annot_run])
-        else:
-            self.blast_gi_go_run()
-            self.on_rely(self.blast_gi_go, [
-                         self.ncbi_taxon_run, self.go_annot_run, self.blast_stat_run])
-        self.step.update()
-        if self.option('database') == 'string':
-            self.on_rely(self.blast, self.string_cog_run)
-        else:
-            self.blast_string_run()
-            self.on_rely(self.blast_string, self.string_cog_run)
-
-        if self.option('database') == 'kegg':
-            self.on_rely(self.blast, self.kegg_annot_run)
-        else:
-            self.blast_kegg_run()
-            self.on_rely(self.blast_kegg, self.kegg_annot_run)
-        self.step.update()
-        if not self.option('database') == 'swissprot':
-            self.blast_swiss_run()
+        l = []
+        if self.option('blast_stat') == True:
+            l.append(self.blast_stat)
+            if self.option('database') == 'nr':
+                self.on_rely(
+                    self.blast, [self.blast_stat_run, self.ncbi_taxon_run, self.go_annot_run])
+            else:
+                self.blast_gi_go_run()
+                self.on_rely(self.blast_gi_go, [
+                    self.ncbi_taxon_run, self.go_annot_run, self.blast_stat_run])
             self.step.update()
+        if self.option('gi_taxon') == True:
+            l.append(self.ncbi_taxon)
+            if self.option('database') == 'nr':
+                self.on_rely(self.blast, [self.ncbi_taxon_run])
+            else:
+                self.blast_gi_go_run()
+                self.on_rely(self.blast_gi_go, [self.go_annot_run])
+            self.step.update()
+        if self.option('go_annot') == True:
+            l.append(self.go_annot)
+            if self.option('database') == 'nr':
+                self.on_rely(self.blast, [self.go_annot_run])
+            else:
+                self.blast_gi_go_run()
+                self.on_rely(self.blast_gi_go, [self.go_annot_run])
+            self.step.update()
+        if self.option('cog_annot') == True:
+            l.append(self.string_cog)
+            if self.option('database') == 'string':
+                self.on_rely(self.blast, self.string_cog_run)
+            else:
+                self.blast_string_run()
+                self.on_rely(self.blast_string, self.string_cog_run)
+            self.step.update()
+        if self.option('kegg_annot') == True:
+            l.append(self.kegg_annot)
+            if self.option('database') == 'kegg':
+                self.on_rely(self.blast, self.kegg_annot_run)
+            else:
+                self.blast_kegg_run()
+                self.on_rely(self.blast_kegg, self.kegg_annot_run)
+            self.step.update()
+#        if not self.option('database') == 'swissprot':
+#            self.blast_swiss_run()
+#            self.step.update()
         if self.option('anno_statistics') == True:
-            self.on_rely([self.blast_stat, self.blast_swiss, self.ncbi_taxon,
-                          self.go_annot, self.kegg_annot], self.anno_stat)
+            self.on_rely(l, self.anno_stat)
+            self.on_rely(self.anno_stat, self.end)
         else:
-            self.on_rely([self.blast_stat, self.blast_swiss,
-                          self.ncbi_taxon, self.go_annot, self.kegg_annot], self.end)
+            self.on_rely(l, self.end)
         # add annotation next time
 
     def set_output(self, event):
@@ -321,7 +348,8 @@ class DenovoAnnotationModule(Module):
         elif event['data'] == 'kegg_annot':
             self.linkdir(obj.output_dir, 'kegg')
             self.step.kegg_annot.finish()
-        elif event[]
+        elif event['data'] == 'anno_stat':
+            self.linkdir(obj.output_dir, 'anno_stat')
         else:
             pass
 
@@ -365,7 +393,40 @@ class DenovoAnnotationModule(Module):
             ["go/go4level.xls", "xls", "Go annotation on level 4"],
             ["cog/cog_list.xls", "xls", "COG编号表"],
             ["cog/cog_summary.xls", "xls", "COG注释二级统计表"],
-            ["cog/cog_table.xls", "xls", "序列COG注释详细表"]
+            ["cog/cog_table.xls", "xls", "序列COG注释详细表"],
+            ["anno_stat/all_annotation.xls", "xls", "综合注释表"],
+            ["anno_stat/all_annotation_statistics.xls", "xls", "综合注释统计表"],
+            ["anno_stat/venn_table.xls", "xls", "文氏图参考表"],
+            ["anno_stat/unigene/blast/unigene_nr.xml", "xml", "nr_blast_xml"],
+            ["anno_stat/unigene/blast/unigene_nr.xls", "xls", "nr_blast_xls"],
+            ["anno_stat/unigene/blast/unigene_string.xml", "xml", "string_blast_xml"],
+            ["anno_stat/unigene/blast/unigene_string.xls", "xls", "string_blast_xls"],
+            ["anno_stat/unigene/blast/unigene_kegg.xml", "xml", "kegg_blast_xml"],
+            ["anno_stat/unigene/blast/unigene_kegg.xls", "xls", "kegg_blast_xls"],
+            ["anno_stat/unigene/blast_nr_statistics/unigene_evalue_statistics.xls",
+                "xls", "nr_blast_evalue统计表"],
+            ["anno_stat/unigene/blast_nr_statistics/unigene_similarity_statistics.xls",
+                "xls", "nr_blast_similarity统计表"],
+            ["anno_stat/unigene/ncbi_taxonomy/unigene_query_taxons_detail.xls",
+                "xls", "物种分类统计表"],
+            [".anno_stat/unigene/go/unigene_blast2go.annot",
+                "annot", "unigene blast2go结果"],
+            [".anno_stat/unigene/go/unigene_query_gos.list", "list", "unigene GO列表"],
+            [".anno_stat/unigene/go/unigene_go1234level_statistics.xls", "xls", "GO逐层统计表"],
+            [".anno_stat/unigene/go/unigene_go2level.xls", "xls", "GO level2统计表"],
+            [".anno_stat/unigene/go/unigene_go3level.xls", "xls", "GO level3统计表"],
+            [".anno_stat/unigene/go/unigene_go4level.xls", "xls", "GO level4统计表"],
+            [".anno_stat/unigene/cog/unigene_cog_list.xls", "xls", "unigene COG id表"],
+            [".anno_stat/unigene/cog/unigene_cog_summary.xls",
+                "xls", "unigene COG功能分类统计"],
+            [".anno_stat/unigene/cog/unigene_cog_table.xls",
+                "xls", "unigene COG综合统计表"],
+            [".anno_stat/unigene/kegg/unigene_kegg_table.xls",
+                "xls", "unigene KEGG ID表"],
+            [".anno_stat/unigene/kegg/unigene_pathway_table.xls",
+                "xls", "unigene KEGG pathway表"],
+            [".anno_stat/unigene/kegg/unigene_kegg_taxonomy.xls",
+                "xls", "unigene KEGG 二级分类统计表"]
         ]
         regexps = [
             [r"blast/.+_vs_.+\.xml", "xml", "blast比对输出结果，xml格式"],
