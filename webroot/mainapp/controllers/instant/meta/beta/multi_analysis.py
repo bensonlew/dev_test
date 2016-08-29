@@ -67,7 +67,7 @@ class MultiAnalysis(MetaController):
                 params_json['env_id'] = data.env_id
                 env_id = self.check_objectid(data.env_id)
                 if not env_id:
-                    info = {'success': False, 'info': 'group_id格式:%s不正确，无法转换为ObjectId格式！' % data.env_id}
+                    info = {'success': False, 'info': 'env_id格式:%s不正确，无法转换为ObjectId格式！' % data.env_id}
                     return json.dumps(info)
                 if hasattr(data, 'env_labs'):
                     params_json['env_labs'] = data.env_labs
