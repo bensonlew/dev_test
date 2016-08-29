@@ -62,7 +62,7 @@ class TwoSample(MetaController):
         for names in params_name:
             if not (hasattr(data, names)):
                 success.append("缺少参数!")
-        if int(data.level_id) not in [2, 3, 4, 5, 6, 7, 8, 9]:
+        if int(data.level_id) not in [3, 4, 5, 6, 7, 8, 9]:
             success.append("level_id不在范围内")
         if data.correction not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"]:
             success.append("多重检验方法不在范围内")
