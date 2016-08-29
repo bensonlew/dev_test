@@ -41,7 +41,6 @@ class ExpAnalysisModule(Module):
         self.bowtie_build = self.add_tool("denovo_rna.express.rsem")
         self.merge_rsem = self.add_tool("denovo_rna.express.merge_rsem")
         self.diff_exp = self.add_tool("denovo_rna.express.diff_exp")
-        self.correlation = self.add_tool("denovo_rna.mapping.correlation")
         self.tool_lists = []
         self.diff_gene = False
         self.bam_path = self.work_dir + '/bowtie2_bam_dir/'
