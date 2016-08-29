@@ -17,6 +17,7 @@ class BetaMultiAnalysis(Base):
     def __init__(self, bind_object):
         super(BetaMultiAnalysis, self).__init__(bind_object)
         self._db_name = Config().MONGODB
+        self._tables = []  # 记录存入了哪些表格
 
     @report_check
     def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None,
@@ -80,7 +81,7 @@ class BetaMultiAnalysis(Base):
                 rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation.xls'
                 importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
-                self.insert_table_detail(rotation_path, 'species', update_id=main_id)
+                self.insert_table_detail(rotation_path, 'species', update_id=main_id, split_fullname=True)
                 self.insert_table_detail(importance_path, 'importance', update_id=main_id)
                 if result['env_id']:
                     filelist = os.listdir(dir_path.rstrip('/') + '/Pca')
@@ -100,9 +101,7 @@ class BetaMultiAnalysis(Base):
             elif analysis == 'pcoa':
                 site_path = dir_path.rstrip('/') + '/Pcoa/pcoa_sites.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
-                # rotation_path = dir_path.rstrip('/') + '/Pcoa/pcoa_rotation.xls'
                 importance_path = dir_path.rstrip('/') + '/Pcoa/pcoa_eigenvalues.xls'
-                # (rotation_path, 'rotation', update_id=main_id)
                 self.insert_table_detail(importance_path, 'importance', update_id=main_id)
                 self.bind_object.logger.info('beta_diversity:PCoA分析结果导入数据库完成.')
             elif analysis == 'nmds':
@@ -111,10 +110,7 @@ class BetaMultiAnalysis(Base):
                 self.bind_object.logger.info('beta_diversity:NMDS分析结果导入数据库完成.')
             elif analysis == 'dbrda':
                 site_path = dir_path.rstrip('/') + '/Dbrda/db_rda_sites.xls'
-                # species_path = dir_path.rstrip('/') + '/Dbrda/db_rda_species.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
-                # if os.path.exists(species_path):
-                #     insert_table_detail(species_path, 'species', update_id=main_id)
                 filelist = os.listdir(dir_path.rstrip('/') + '/Dbrda')
                 if 'db_rda_centroids.xls' in filelist:
                     env_fac_path = dir_path.rstrip('/') + '/Dbrda/db_rda_centroids.xls'
@@ -133,7 +129,7 @@ class BetaMultiAnalysis(Base):
                 importance_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_importance.xls'
                 dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
-                self.insert_table_detail(species_path, 'species', update_id=main_id)
+                self.insert_table_detail(species_path, 'species', update_id=main_id, split_fullname=True)
                 self.insert_table_detail(importance_path, 'importance', update_id=main_id)
                 self.insert_table_detail(dca_path, 'dca', update_id=main_id)
                 filelist = os.listdir(dir_path.rstrip('/') + '/Rda')
@@ -149,11 +145,13 @@ class BetaMultiAnalysis(Base):
                 rotation_path = dir_path.rstrip('/') + '/Plsda/plsda_rotation.xls'
                 importance_path = dir_path.rstrip('/') + '/Plsda/plsda_importance.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id, remove_key_blank=True)
-                self.insert_table_detail(rotation_path, 'species', update_id=main_id)
-                self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+                self.insert_table_detail(rotation_path, 'species', update_id=main_id, remove_key_blank=True, split_fullname=True)
+                self.insert_table_detail(importance_path, 'importance', update_id=main_id, remove_key_blank=True)
+                self.bind_object.logger.info('beta_diversity:PLSDA分析结果导入数据库完成.')
             else:
                 raise Exception('提供的analysis：%s不存在' % analysis)
                 self.bind_object.logger.info('beta_diversity:PLSDA分析结果导入数据库完成.')
+            self.insert_main_tables(self._tables, update_id=main_id)
         else:
             raise Exception('提供的_id：%s在sg_beta_multi_analysis中无法找到表' % str(main_id))
         return main_id
@@ -161,7 +159,8 @@ class BetaMultiAnalysis(Base):
     def insert_table_detail(self, file_path, table_type, update_id,
                             coll_name='sg_beta_multi_analysis_detail',
                             main_coll='sg_beta_multi_analysis',
-                            update_column=True, db=None, fileter_biplot=None, remove_key_blank=False):
+                            update_column=True, db=None, fileter_biplot=None, remove_key_blank=False, split_fullname=False):
+        self._tables.append(table_type)
         if not db:
             db = self.db
         collection = db[coll_name]
@@ -186,9 +185,13 @@ class BetaMultiAnalysis(Base):
                     pass
                 insert_data = {
                     'multi_analysis_id': update_id,
-                    'type': table_type,
-                    'name': values[0]
+                    'type': table_type
                 }
+                if split_fullname:
+                    insert_data['fullname'] = values[0]
+                    insert_data['name'] = values[0].split(';')[-1].strip()
+                else:
+                    insert_data['name'] = values[0]
                 values_dict = dict(zip(columns, values[1:]))
                 data_temp.append(dict(insert_data, **values_dict))
             collection.insert_many(data_temp)
@@ -197,10 +200,10 @@ class BetaMultiAnalysis(Base):
                 # default_column = {'specimen': 'detail_column', 'factor': 'factor_column',
                 #                   'vector': 'vector_column',
                 #                   'species': 'species_column', 'rotation': 'rotation_column'}
-                default_column = {'specimen': 'detail_column', 'factor': 'factor_column', 'vector': 'vector_column',
-                                  'species': 'species_column', 'factor_stat': 'factor_stat_column',
-                                  'vector_stat': 'vector_stat_column',
-                                  'importance': 'importance_column', 'dca': 'dca_column'}
+                default_column = {'specimen': 'specimen', 'factor': 'factor', 'vector': 'vector',
+                                  'species': 'species', 'factor_stat': 'factor_stat',
+                                  'vector_stat': 'vector_stat',
+                                  'importance': 'importance', 'dca': 'dca'}
                 if table_type in default_column:
                     main_collection.update_one({'_id': update_id},
                                                {'$set': {default_column[table_type]: ','.join(columns)}},
@@ -221,3 +224,11 @@ class BetaMultiAnalysis(Base):
                 'json_value': data
             }
             collection.insert_one(insert_data)
+
+    def insert_main_tables(self, tables, update_id, main='sg_beta_multi_analysis'):
+        """
+        """
+        main_collection = self.db[main]
+        main_collection.update_one({'_id': update_id},
+                                   {'$set': {'tables': ','.join(tables)}},
+                                   upsert=False)

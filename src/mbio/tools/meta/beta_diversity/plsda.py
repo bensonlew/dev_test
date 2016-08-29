@@ -109,7 +109,7 @@ class PlsdaTool(Tool):
         self._version = '1.0'
         self.cmd_path = 'mbio/packages/beta_diversity/plsda_r.py'
         self.grouplab = self.option('grouplab') if self.option('grouplab') else self.option('group').prop['group_scheme'][0]
-        self.set_environ(LD_LIBRARY_PATH="{}gcc/5.1.0/lib64".format(self.config.SOFTWARE_DIR))
+        self.set_environ(LD_LIBRARY_PATH="{}/gcc/5.1.0/lib64".format(self.config.SOFTWARE_DIR))
         self.otu_table = self.get_otu_table()
 
     def get_otu_table(self):
@@ -170,16 +170,18 @@ class PlsdaTool(Tool):
         """
         运行plsda_r.py
         """
-        self.logger.info('运行plsda_r.py程序计算PLSDA')
-        return_mess = plsda(self.otu_table, self.option('group').path,
-                            self.work_dir, self.grouplab)
-        # self.logger.info('运行plsda_r.py程序计算PLSDA成功')
-        if return_mess == 0:
-            self.linkfile(self.work_dir + '/plsda_sites.xls', 'plsda_sites.xls')
-            self.linkfile(self.work_dir + '/plsda_rotation.xls', 'plsda_rotation.xls')
-            self.linkfile(self.work_dir + '/plsda_importance.xls', 'plsda_importance.xls')
-            self.logger.info('运行plsda_r.py程序计算PLSDA完成')
-            self.end()
-        else:
-            self.logger.info(return_mess)
-            self.set_error('运行plsda_r.py程序计算PLSDA出错')
+        try:
+            self.logger.info('运行plsda_r.py程序计算PLSDA')
+            return_mess = plsda(self.otu_table, self.option('group').path,
+                                self.work_dir, self.grouplab)
+            if return_mess == 0:
+                self.linkfile(self.work_dir + '/plsda_sites.xls', 'plsda_sites.xls')
+                self.linkfile(self.work_dir + '/plsda_rotation.xls', 'plsda_rotation.xls')
+                self.linkfile(self.work_dir + '/plsda_importance.xls', 'plsda_importance.xls')
+                self.logger.info('运行plsda_r.py程序计算PLSDA完成')
+                self.end()
+            else:
+                self.logger.info(return_mess)
+                self.set_error('运行plsda_r.py程序计算PLSDA出错:{}'.format(return_mess))
+        except Exception as e:
+            self.set_error('运行plsda_r.py程序计算PLSDA出错:{}'.format(e))

@@ -259,13 +259,13 @@ class BetaDiversityModule(Module):
                 self.tools.values()[0].on('end', self.stepend)
             else:
                 self.on_rely(self.tools.values(), self.stepend)
-            if 'pcoa' in self.option('analysis') or 'distance' in self.option('analysis') or 'anosim' in self.option('analysis') or 'nmds' in self.option('analysis'):
+            if ('pcoa' in self.option('analysis')) or ('distance' in self.option('analysis')) or ('anosim' in self.option('analysis')) or ('nmds' in self.option('analysis')):
                 self.matrix_run()
             if 'dbrda' in self.option('analysis'):
                 if self.option('dbrda_method'):
                     self.dbrda_run()
                 else:
-                    if 'pcoa' in self.option('analysis') or 'distance' in self.option('analysis') or 'anosim' in self.option('analysis') or 'nmds' in self.option('analysis'):
+                    if ('pcoa' in self.option('analysis')) or ('distance' in self.option('analysis')) or ('anosim' in self.option('analysis')) or ('nmds' in self.option('analysis')):
                         pass
                     else:
                         self.matrix_run()
@@ -330,6 +330,11 @@ class BetaDiversityModule(Module):
             [r'Rda/.*_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
             [r'Rda/.*_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
         ]
+        self.logger.info('shenghe:不能重复添加目录buglog。。。。。。。。。。。。。。。。')
+        self.logger.info(self.upload_dir)
+        for i in self.upload_dir:
+            self.logger.info(i.path)
+        self.logger.info('shenghe:不能重复添加目录buglog。。。。。。。。。。。。。。。。OVER')
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
