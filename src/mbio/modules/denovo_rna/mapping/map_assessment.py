@@ -177,6 +177,7 @@ class MapAssessmentModule(Module):
                     r.readline()
                     for line in r:
                         w.write(line)
+        self.logger.info('map_assessment set_output is end')
         self.end()
 
     def run(self):
@@ -204,4 +205,5 @@ class MapAssessmentModule(Module):
             [r".*cluster_percent\.xls", "xls", "饱和度作图数据"]
         ])
         # print self.get_upload_files()
+        self.logger.info('map_assessment is end')
         super(MapAssessmentModule, self).end()

@@ -139,7 +139,7 @@ class GroupTableFile(File):
         self.sub_group('./group_file', name)
         with open('group_file', 'rb') as r, open(edger_path, 'wb') as w:
             lines = r.readlines()
-            for line in line[1:]:
+            for line in lines[1:]:
                 info = line.strip('\n').split('\t')
                 w.write('%s\t%s\n' % (info[1], info[0]))
 
@@ -162,7 +162,7 @@ class GroupTableFile(File):
                     break
                 gnames.append(line.split()[site])
             return list(set(gnames))
-            
+
 if __name__ == "__main__":
     g = GroupTableFile()
     g.set_path("example.group")

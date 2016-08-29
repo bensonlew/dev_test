@@ -250,4 +250,7 @@ class QcStatModule(Module):
                 [r"./dup.xls", "xls", "fastq序列重复信息"]
             ])
         # print self.get_upload_files()
+        # self.logger.info(self._parent)
+        # self.logger.info(self._parent.events['childend'].is_start)
+        # self.logger.info(self.events['childend'].is_start)
         super(QcStatModule, self).end()

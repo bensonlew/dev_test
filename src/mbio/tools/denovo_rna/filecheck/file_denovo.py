@@ -22,7 +22,7 @@ class FileDenovoAgent(Agent):
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"}  #对照组文件，格式同分组文件
+            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"}  # 对照组文件，格式同分组文件
         ]
         self.add_option(options)
         self.step.add_steps("file_check")
@@ -77,9 +77,10 @@ class FileDenovoTool(Tool):
         list_txt = os.path.join(self.option('fastq_dir').prop['path'], "list.txt")
         file_list.set_path(list_txt)
         file_sample = file_list.get_list()
+        self.logger.info('%s' % file_sample)
         if self.option('fq_type') == 'PE':
             for i in file_sample.keys():
-                if len(i) != 2:
+                if len(file_sample[i]) != 2:
                     raise OptionError("PE测序时，每个样本至少有一个左端fq和右端fq文件")
         files = self.option('fastq_dir').prop['fastq_basename']
         self.logger.info('%s' % files)
