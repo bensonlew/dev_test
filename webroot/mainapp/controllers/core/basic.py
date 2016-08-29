@@ -41,7 +41,7 @@ class Basic(object):
         self._sheet = None  # 存放Sheet对象
         self._mongo_ids = []  # 存放worflow返回的写入mongo表的信息，每条信息为一个字典，含有collection_name,id,desc三个字段
         self.update_api = None  # 存放更新sg_status的方法
-        info = {"success": False, "info": "程序非正常结束(默认错误返回信息)"}
+        info = {"success": False, "info": "程序非正常结束(没有获取到有关错误信息)"}
         self.returnInfo = json.dumps(info)
         self.IMPORT_REPORT_AFTER_END = False
 
