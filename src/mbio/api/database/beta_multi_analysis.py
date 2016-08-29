@@ -35,7 +35,9 @@ class BetaMultiAnalysis(Base):
             group_id = ObjectId(group_id)
         else:
             if 'group_id' in self.bind_object.sheet.data['options']:
-                group_id = ObjectId(self.bind_object.option('group_id'))  # 仅仅即时计算直接绑定workflow对象
+                group_id = self.bind_object.option('group_id')
+                if group_id not in ['all', 'All', 'ALL']:
+                    group_id = ObjectId(group_id)  # 仅仅即时计算直接绑定workflow对象
         if isinstance(otu_id, ObjectId):
             pass
         elif otu_id is not None:
