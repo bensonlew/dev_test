@@ -84,20 +84,24 @@ class AssembleAgent(Agent):
             file_size = os.path.getsize(self.option('fq_s').prop['path']) / 1024 / 1024
         else:
             file_size = os.path.getsize(self.option('fq_r').prop['path']) / 1024 / 1024 + os.path.getsize(self.option('fq_l').prop['path']) / 1024 / 1024
-        if file_size <= 1024 * 5:
+        if file_size <= 1024 * 0.5:
             self._cpu = 5
-            self._memory = '25G'
-        elif file_size <= 1024 * 10 and file_size > 1024 * 5:
+            self._memory = '53G'
+        elif file_size <= 1024 * 4 and file_size > 1024 * 0.5:
             self._cpu = 10
             self._memory = '80G'
+        elif file_size <= 1024 * 10 and file_size > 1024 * 4:
+            self._cpu = 12
+            self._memory = '103G'
         elif file_size < 1024 * 20 and file_size > 1024 * 10:
             self._cpu = 16
-            self._memory = '120G'
+            self._memory = '128G'
         else:
             self._cpu = 25
             self._memory = '200G'
         self.option('cpu', self._cpu)
-        self.option('max_memory', self._memory)
+        mem = str(int(self._memory.strip('G')) - 3) + 'G'
+        self.option('max_memory', mem)
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

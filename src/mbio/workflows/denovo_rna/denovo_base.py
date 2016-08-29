@@ -84,6 +84,15 @@ class DenovoBaseWorkflow(Workflow):
             raise OptionError("所设kmer_size不在范围内，请检查")
         if self.option('min_kmer_cov') < 1:
             raise OptionError("所设min_kmer_cov不在范围内，请检查")
+        for i in self.option('exp_analysis').split(','):
+            if i not in ['', 'cluster', 'network', 'kegg_rich', 'go_rich']:
+                raise OptionError("差异性研究没有{}，请检查".format(i))
+        for i in self.option('gene_analysis').split(','):
+            if i not in ['orf', 'ssr', 'snp']:
+                raise OptionError("基因结构分析没有{}，请检查".format(i))
+        for i in self.option('map_qc_analysis').split(','):
+            if i not in ['', 'satur', 'coverage', 'dup', 'correlation']:
+                raise OptionError("转录组质量评估没有{}，请检查".format(i))
 
     def set_step(self, event):
         if 'start' in event['data'].keys():
@@ -203,7 +212,8 @@ class DenovoBaseWorkflow(Workflow):
     def run_map_qc(self):
         map_qc_opts = {
             'bed': self.orf.option('bed'),
-            'bam': self.bwa.option('out_bam')
+            'bam': self.exp_stat.option('bam_dir'),
+            'fpkm': self.exp_stat.option('gene_fpkm')
         }
         self.map_qc.set_options(map_qc_opts)
         self.map_qc.on('end', self.set_output, 'map_qc')
@@ -351,7 +361,7 @@ class DenovoBaseWorkflow(Workflow):
             self.final_tools.append(self.ssr)
         if 'snp' in self.option('gene_analysis'):
             self.assemble.on('end', self.run_bwa)
-            self.orf.on([self.bwa, self.orf], self.run_snp)
+            self.on_rely([self.bwa, self.orf], self.run_snp)
             self.final_tools.append(self.snp)
         if self.option('exp_analysis'):
             if 'go_rich' or 'kegg_rich' in self.option('exp_analysis'):
@@ -359,7 +369,7 @@ class DenovoBaseWorkflow(Workflow):
             else:
                 self.exp_stat.on('end', self.run_exp_diff)
         if len(self.final_tools) == 0:
-            self.on_rely([self.orf, self.exp_stat], self.end)
+            self.on_rely([self.orf_len, self.exp_stat], self.end)
         elif len(self.final_tools) == 1:
             self.final_tools[0].on('end', self.end)
         else:

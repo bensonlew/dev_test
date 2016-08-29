@@ -19,15 +19,17 @@ class MapAssessmentModule(Module):
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
-            {"name": "method", "type": "string", "default": "all"},
+            {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
+            {"name": "analysis", "type": "string", "default": "satur,dup,coverage,correlation"},
             {"name": "quality", "type": "int", "default": 30}  # 质量值
         ]
         self.add_option(options)
         self.tools = []
         self.files = []
-        self.bam_stat = self.add_tool('denovo_rna.qc.fastq_stat')
+        self.correlation = self.add_tool('denovo_rna.mapping.correlation')
         # self.bam_stat = self.add_tool('denovo_rna.mapping.bam_stat')
-        self.step.add_steps('stat')
+        self.step.add_steps('stat', 'correlation')
+        self.analysis = ["satur", "dup", "coverage", "correlation"]
 
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
@@ -38,6 +40,10 @@ class MapAssessmentModule(Module):
         self.step.stat.finish()
         self.step.update()
 
+    def correlation_finish_update(self):
+        self.step.correlation.finish()
+        self.step.update()
+
     def check_options(self):
         """
         检查参数
@@ -46,6 +52,9 @@ class MapAssessmentModule(Module):
             raise OptionError("请传入bed文件")
         if not self.option("bam").is_set:
             raise OptionError("请传入bam文件")
+        for analysis in self.option("analysis").split(","):
+            if analysis not in self.analysis:
+                raise OptionError("所选质量评估分析方法不在范围内")
         self.files = self.get_files()
 
     # def bam_stat_run(self):
@@ -56,6 +65,15 @@ class MapAssessmentModule(Module):
     #     self.bam_stat.on("end", self.stat_finish_update)
     #     self.bam_stat.run()
     #     self.tools.append(self.bam_stat)
+
+    def correlation_run(self):
+        self.correlation.set_options({
+                'fpkm': self.option("fpkm").prop["path"]
+                })
+        self.step.stat.start()
+        self.correlation.on("end", self.correlation_finish_update)
+        self.correlation.run()
+        self.tools.append(self.correlation)
 
     def bam_stat_run(self):
         n = 0
@@ -177,15 +195,21 @@ class MapAssessmentModule(Module):
                     r.readline()
                     for line in r:
                         w.write(line)
-        self.logger.info('map_assessment set_output is end')
         self.end()
 
     def run(self):
         super(MapAssessmentModule, self).run()
         self.bam_stat_run()
-        self.dup_run()
-        self.satur_run()
-        # self.coverage_run()
+        analysiss = self.option("analysis").split(",")
+        for m in analysiss:
+            if m == "satur":
+                self.satur_run()
+            if m == "dup":
+                self.dup_run()
+            if m == "coverage":
+                self.coverage_run()
+            if m == "correlation" and self.option("fpkm").is_set:
+                self.correlation_run()
         self.on_rely(self.tools, self.set_output)
         # super(MapAssessmentModule, self).run()
 
@@ -205,5 +229,4 @@ class MapAssessmentModule(Module):
             [r".*cluster_percent\.xls", "xls", "饱和度作图数据"]
         ])
         # print self.get_upload_files()
-        self.logger.info('map_assessment is end')
         super(MapAssessmentModule, self).end()
