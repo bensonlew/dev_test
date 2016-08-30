@@ -37,7 +37,7 @@ class Hcluster(MetaController):
             'otu_table': data.otu_id,
             'otu_id': data.otu_id,
             'level': int(data.level_id),
-            'distance_algorithm': data.distance_algorithm,
+            'dist_method': data.distance_algorithm,
             'hcluster_method': data.hcluster_method,
             'group_detail': data.group_detail,
             'params': json.dumps(params_json, sort_keys=True, separators=(',', ':'))
