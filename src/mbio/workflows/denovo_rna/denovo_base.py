@@ -32,7 +32,7 @@ class DenovoBaseWorkflow(Workflow):
             {"name": "exp_way", "type": "string", "default": "fpkm"},  # edger离散值
             {"name": "diff_ci", "type": "float", "default": 0.01},  # 显著性水平
             {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
-            {"name": "anno_analysis", "type": "string", "default": "nr,cog,go,kegg"},
+            {"name": "anno_analysis", "type": "string", "default": ""},
             {"name": "exp_analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich"},
             {"name": "gene_analysis", "type": "string", "default": "orf"},
             {"name": "map_qc_analysis", "type": "string", "default": "satur,dup,coverage,correlation"}
@@ -44,7 +44,8 @@ class DenovoBaseWorkflow(Workflow):
         self.qc_stat_before = self.add_module("denovo_rna.qc.qc_stat")
         self.qc_stat_after = self.add_module("denovo_rna.qc.qc_stat")
         self.assemble = self.add_tool("denovo_rna.assemble.assemble")
-        self.annotation = self.add_module('denovo_rna.annotation.denovo_annotation')
+        # self.annotation = self.add_module('denovo_rna.annotation.denovo_annotation')
+        self.annotation = self.add_module('denovo_rna.qc.qc_stat')
         self.orf = self.add_tool("denovo_rna.gene_structure.orf")
         self.ssr = self.add_tool("denovo_rna.gene_structure.ssr")
         self.bwa = self.add_module("denovo_rna.mapping.bwa_samtools")
@@ -57,6 +58,9 @@ class DenovoBaseWorkflow(Workflow):
         self.final_tools = list()
         self.logger.info('{}'.format(self.events))
         self.logger.info('{}'.format(self.children))
+        self.logger.info('{}'.format(self._upload_dir_obj))
+        self.logger.info('{}'.format(self.qc_stat_before._upload_dir_obj))
+        self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
 
     def check_options(self):
         """
@@ -213,7 +217,8 @@ class DenovoBaseWorkflow(Workflow):
         map_qc_opts = {
             'bed': self.orf.option('bed'),
             'bam': self.exp_stat.option('bam_dir'),
-            'fpkm': self.exp_stat.option('gene_fpkm')
+            'fpkm': self.exp_stat.option('gene_fpkm'),
+            'analysis': self.option('map_qc_analysis')
         }
         self.map_qc.set_options(map_qc_opts)
         self.map_qc.on('end', self.set_output, 'map_qc')
@@ -282,7 +287,6 @@ class DenovoBaseWorkflow(Workflow):
             self.final_tools.append(self.exp_diff)
         else:
             self.logger.info('输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略')
-
     def move2outputdir(self, olddir, newname, mode='link'):
         """
         移动一个目录下的所有文件/文件夹到workflow输出文件夹下
@@ -320,8 +324,10 @@ class DenovoBaseWorkflow(Workflow):
             self.move2outputdir(obj.output_dir, 'QC_stat')
         if event['data'] == 'qc_stat_before':
             self.move2outputdir(obj.output_dir, 'QC_stat/before_qc')
+            self.logger.info('{}'.format(self.qc_stat_before._upload_dir_obj))
         if event['data'] == 'qc_stat_after':
             self.move2outputdir(obj.output_dir, 'QC_stat/after_qc')
+            self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
         if event['data'] == 'assemble':
             self.move2outputdir(obj.output_dir, 'Assemble')
         if event['data'] == 'map_qc':
@@ -336,6 +342,7 @@ class DenovoBaseWorkflow(Workflow):
             self.move2outputdir(obj.output_dir, 'Gene_structure/snp')
         if event['data'] == 'exp_stat':
             self.move2outputdir(obj.output_dir, 'Express')
+            self.logger.info('%s' % self.exp_stat.diff_gene)
         if event['data'] == 'exp_diff':
             self.move2outputdir(obj.output_dir, 'Express')
         if event['data'] == 'annotation':
@@ -353,7 +360,7 @@ class DenovoBaseWorkflow(Workflow):
         if self.option('anno_analysis'):
             self.assemble.on('end', self.run_annotation)
             self.final_tools.append(self.annotation)
-        if self.option('map_analysis'):
+        if self.option('map_qc_analysis'):
             self.on_rely([self.orf, self.exp_stat], self.run_map_qc)
             self.final_tools.append(self.map_qc)
         if 'ssr' in self.option('gene_analysis'):
@@ -364,7 +371,7 @@ class DenovoBaseWorkflow(Workflow):
             self.on_rely([self.bwa, self.orf], self.run_snp)
             self.final_tools.append(self.snp)
         if self.option('exp_analysis'):
-            if 'go_rich' or 'kegg_rich' in self.option('exp_analysis'):
+            if ('go_rich' or 'kegg_rich') in self.option('exp_analysis'):
                 self.on_rely([self.exp_stat, self.annotation], self.run_exp_diff)
             else:
                 self.exp_stat.on('end', self.run_exp_diff)

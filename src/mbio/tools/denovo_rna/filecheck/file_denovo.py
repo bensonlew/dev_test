@@ -77,13 +77,13 @@ class FileDenovoTool(Tool):
         list_txt = os.path.join(self.option('fastq_dir').prop['path'], "list.txt")
         file_list.set_path(list_txt)
         file_sample = file_list.get_list()
-        self.logger.info('%s' % file_sample)
+        # self.logger.info('%s' % file_sample)
         if self.option('fq_type') == 'PE':
             for i in file_sample.keys():
                 if len(file_sample[i]) != 2:
                     raise OptionError("PE测序时，每个样本至少有一个左端fq和右端fq文件")
         files = self.option('fastq_dir').prop['fastq_basename']
-        self.logger.info('%s' % files)
+        # self.logger.info('%s' % files)
         for f in files:
             fq_path = os.path.join(self.option('fastq_dir').prop['path'], f)
             my_fastq = FastqFile()
@@ -115,7 +115,7 @@ class FileDenovoTool(Tool):
         con_samples = []
         for vs in vs_list:
             for i in vs:
-                if i in con_samples:
+                if i not in con_samples:
                     con_samples.append(i)
         for cp in con_samples:
             if cp not in self.samples:

@@ -14,10 +14,8 @@ def trinity_stat(fasta, length):
     生成trinity.fasta.stat.xls，length.distribut.txt, unigenes.length.txt, transcript.length.txt
     """
     transcript_detail, transcript_len, gene_len, gene_detail = trinity_info(fasta)
-    tran_seq_num, tran_base_num, tran_GC_per, tran_max_len, tran_min_len, tran_average,\
-    tran_N50, tran_N90 = stat(transcript_detail, transcript_len)
-    gene_seq_num, gene_base_num, gene_GC_per, gene_max_len, gene_min_len, gene_average,\
-    gene_N50, gene_N90 = stat(gene_detail, gene_len)
+    tran_seq_num, tran_base_num, tran_GC_per, tran_max_len, tran_min_len, tran_average, tran_N50, tran_N90 = stat(transcript_detail, transcript_len)
+    gene_seq_num, gene_base_num, gene_GC_per, gene_max_len, gene_min_len, gene_average, gene_N50, gene_N90 = stat(gene_detail, gene_len)
     with open('trinity.fasta.stat.xls', 'wb') as t, open("unigenes.length.txt", "wb") as f1, open("transcripts.length.txt", "wb") as f2:
         t.write('\tunigenes\ttranscripts\ntotal seq num\t%s\t%s\ntotal base num\t%s\t%s\npercent GC\t%s\t%s\n'
                 'largest transcript\t%s\t%s\nsmallest transcript\t%s\t%s\naverage length\t%s\t%s\nN50\t%s\t%s\n'
@@ -119,7 +117,7 @@ def len_stat(len_dict, length):
     len_range = {}
     left = 1
     rigth = length
-    for i in range(1, n+1):
+    for i in range(1, n + 1):
         key = '%s-%s' % (left, rigth)
         len_range[key] = 0
         for l in len_value:

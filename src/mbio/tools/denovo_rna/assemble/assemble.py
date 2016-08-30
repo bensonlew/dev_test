@@ -24,7 +24,7 @@ class AssembleAgent(Agent):
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，所有样本fastq序列文件
             {"name": "length", "type": "string", "default": "100,200,400,500,600,800,1000,1200,1500,2000"},  # 统计步长
             {"name": "cpu", "type": "int", "default": 6},  # trinity软件所分配的cpu数量
-            {"name": "max_memory", "type": "string", "default": '50G'},  # trinity软件所分配的最大内存，单位为GB
+            {"name": "max_memory", "type": "string", "default": '100G'},  # trinity软件所分配的最大内存，单位为GB
             {"name": "min_contig_length", "type": "int", "default": 200},  # trinity报告出的最短的contig长度。默认为200
             {"name": "kmer_size", "type": "int", "default": 25},
             {"name": "min_kmer_cov", "type": "int", "default": 1},
@@ -71,7 +71,7 @@ class AssembleAgent(Agent):
         # if self.option("fq_type") == "PE":
         #     self.option('fq_r').check_content()
         #     self.option('fq_l').check_content()
-        self.set_resource()
+        # self.set_resource()
         return True
 
     def set_resource(self):
@@ -79,29 +79,31 @@ class AssembleAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        file_size = 0
-        if self.option('fq_type') == 'SE':
-            file_size = os.path.getsize(self.option('fq_s').prop['path']) / 1024 / 1024
-        else:
-            file_size = os.path.getsize(self.option('fq_r').prop['path']) / 1024 / 1024 + os.path.getsize(self.option('fq_l').prop['path']) / 1024 / 1024
-        if file_size <= 1024 * 0.5:
-            self._cpu = 5
-            self._memory = '53G'
-        elif file_size <= 1024 * 4 and file_size > 1024 * 0.5:
-            self._cpu = 10
-            self._memory = '80G'
-        elif file_size <= 1024 * 10 and file_size > 1024 * 4:
-            self._cpu = 12
-            self._memory = '103G'
-        elif file_size < 1024 * 20 and file_size > 1024 * 10:
-            self._cpu = 16
-            self._memory = '128G'
-        else:
-            self._cpu = 25
-            self._memory = '200G'
-        self.option('cpu', self._cpu)
-        mem = str(int(self._memory.strip('G')) - 3) + 'G'
-        self.option('max_memory', mem)
+        # file_size = 0
+        # if self.option('fq_type') == 'SE':
+        #     file_size = os.path.getsize(self.option('fq_s').prop['path']) / 1024 / 1024
+        # else:
+        #     file_size = os.path.getsize(self.option('fq_r').prop['path']) / 1024 / 1024 + os.path.getsize(self.option('fq_l').prop['path']) / 1024 / 1024
+        # if file_size <= 1024 * 0.5:
+        #     self._cpu = 5
+        #     self._memory = '53G'
+        # elif file_size <= 1024 * 4 and file_size > 1024 * 0.5:
+        #     self._cpu = 10
+        #     self._memory = '80G'
+        # elif file_size <= 1024 * 10 and file_size > 1024 * 4:
+        #     self._cpu = 12
+        #     self._memory = '103G'
+        # elif file_size < 1024 * 20 and file_size > 1024 * 10:
+        #     self._cpu = 16
+        #     self._memory = '128G'
+        # else:
+        #     self._cpu = 25
+        #     self._memory = '200G'
+        # self.option('cpu', self._cpu)
+        # mem = str(int(self._memory.strip('G')) - 3) + 'G'
+        # self.option('max_memory', mem)
+        self._cpu = 10
+        self._memory = self.option('max_memory')
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

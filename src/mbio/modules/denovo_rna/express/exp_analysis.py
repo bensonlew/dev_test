@@ -192,7 +192,8 @@ class ExpAnalysisModule(Module):
             self.linkdir(obj.output_dir, 'rsem', self.output_dir)
             self.option('gene_count', self.merge_rsem.option('gene_count'))
             self.option('gene_fpkm', self.merge_rsem.option('gene_fpkm'))
-            self.option('all_list', self.option('gene_fpkm').get_list(self.work_dir + '/all_list'))
+            self.option('gene_fpkm').get_list(self.work_dir + '/all_list')
+            self.option('all_list', self.work_dir + '/all_list')
             self.option('tran_count', self.merge_rsem.option('tran_count'))
             self.option('tran_fpkm', self.merge_rsem.option('tran_fpkm'))
         elif event['data'] == 'diff_exp':

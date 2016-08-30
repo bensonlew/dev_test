@@ -57,3 +57,4 @@ class ExpressMatrixFile(File):
                     pass
                 else:
                     w.write(f.split('\t')[0] + '\n')
+        return output

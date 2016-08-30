@@ -44,7 +44,7 @@ class DenovoAnnotationModule(Module):
         self.blast_kegg = self.add_tool('align.ncbi.blast')  # blast kegg
         self.kegg_annot = self.add_tool('annotation.kegg_annotation')
         self.blast_swiss = self.add_tool('align.ncbi.blast')  # blast swiss
-        self.anno_stat = self.add_tool('annot.denovorna_anno_statistics')
+        self.anno_stat = self.add_tool('annotation.denovorna_anno_statistics')
         self.add_option(options)
         self.step_add_steps('blast', 'blast_stat', 'blast_gi_go', 'ncbi_taxon', 'blast_swiss',
                             'go_annot', 'blast_string', 'blast_kegg', 'kegg_annot', 'anno_stat', 'string_cog')
@@ -79,7 +79,7 @@ class DenovoAnnotationModule(Module):
         if not 1 > self.option('evalue') >= 0:
             raise OptionError(
                 'E-value值设定必须为[0-1)之间：{}'.format(self.option('evalue')))
-        if self.option('unigene') == True:
+        if self.option('unigene') is True:
             if self.option('query_gene').is_set:
                 seqid = []
                 f = open(self.option('query_gene').prop['path'])
@@ -261,7 +261,7 @@ class DenovoAnnotationModule(Module):
             'unigene': self.option('unigene')
         })
         self.anno_stat.start()
-        self.anno_stat.on("end",self.set_output,'anno_stat')
+        self.anno_stat.on("end", self.set_output, 'anno_stat')
 
     def run(self):
         super(DenovoAnnotationModule, self).run()
@@ -292,7 +292,7 @@ class DenovoAnnotationModule(Module):
         if not self.option('database') == 'swissprot':
             self.blast_swiss_run()
             self.step.update()
-        if self.option('anno_statistics') == True:
+        if self.option('anno_statistics') is True:
             self.on_rely([self.blast_stat, self.blast_swiss, self.ncbi_taxon,
                           self.go_annot, self.kegg_annot], self.anno_stat)
         else:
@@ -321,7 +321,7 @@ class DenovoAnnotationModule(Module):
         elif event['data'] == 'kegg_annot':
             self.linkdir(obj.output_dir, 'kegg')
             self.step.kegg_annot.finish()
-        elif event[]
+        # elif event[]
         else:
             pass
 
@@ -350,7 +350,7 @@ class DenovoAnnotationModule(Module):
 
     def end(self):
         repaths = [
-            [".", "", "DENOVO_RNA结果文件目录"]，
+            [".", "", "DENOVO_RNA结果文件目录"],
             ['ncbi_taxonomy/query_taxons_detail.xls', 'xls', '序列详细物种分类文件'],
             ["blast_nr_statistics/output_evalue.xls", "xls", "blast结果E-value统计"],
             ["blast_nr_statistics/output_similar.xls", "xls", "blast结果similarity统计"],
