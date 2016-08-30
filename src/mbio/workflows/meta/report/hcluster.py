@@ -32,7 +32,7 @@ class HclusterWorkflow(Workflow):
             {"name": "otu_id", "type": "string"},
             ]
         self.add_option(options)
-        # self.set_options(self._sheet.options())
+        self.set_options(self._sheet.options())
         self.dist = self.add_tool("meta.beta_diversity.distance_calc")
         self.hcluster = self.add_tool("meta.beta_diversity.hcluster")
         print 'init...........................over'
@@ -112,6 +112,8 @@ class HclusterWorkflow(Workflow):
                 'otutable': self.option('otu_table')
             }
         print options
+        print self.option('otu_table')
+        print self.option('otu_table').path
         self.dist.set_options(options)
         print 'dist...................'
         self.dist.on('end', self.run_hcluster)
@@ -125,7 +127,7 @@ class HclusterWorkflow(Workflow):
 
         options = {
             'linkage': self.option('hcluster_method'),
-            'dismatrix': self.dist.option('newicktree')
+            'dis_matrix': self.dist.option('dis_matrix')
         }
         self.hcluster.set_options(options)
         self.hcluster.run()
@@ -157,7 +159,7 @@ class HclusterWorkflow(Workflow):
         if not os.path.isfile(newick_fath):
             raise Exception("找不到报告文件:{}".format(newick_fath))
         return_id = api_newick.add_tree_file(newick_fath, major=True, table_id=self.option('otu_id'),
-                                             task_id=task_id, table_type='dist', tree_type='cluster',
+                                             task_id=task_id, table_type='dist', tree_type='cluster', level=self.option('level'),
                                              name='hcluset_{}_{}'.format(self.option('hcluster_method'), datetime.datetime.now().strftime("%Y%m%d_%H%M%S")), params=params_json)
         self.add_return_mongo_id('sg_newick_tree', return_id)
         self.end()
@@ -173,6 +175,6 @@ class HclusterWorkflow(Workflow):
             [".", "", "距离矩阵计算结果输出目录"],
         ])
         result_dir_distance.add_regexp_rules([
-            [r'%s.*\.xls' % self.option('method'), 'xls', '样本距离矩阵文件']
+            [r'%s.*\.xls' % self.option('dist_method'), 'xls', '样本距离矩阵文件']
         ])
         super(HclusterWorkflow, self).end()
