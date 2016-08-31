@@ -54,20 +54,20 @@ class RocAgent(Agent):
         os.system('cat %s | awk -F "\t" \'{ print $1 }\' > tmp.txt' %(self.option('genus_table')))
         genus_data = open("tmp.txt", "r").readlines()[1:]
         os.remove('tmp.txt')
-        map(string.strip, genus_data)
+        genus_data = map(string.rstrip, genus_data)
         sample_data = open(self.option('genus_table'), "r").readline().strip().split()[1:]
 
         group_data = open(self.option('group_table'), "r").readlines()[1:]
-        map(string.strip, group_data)
+        group_data = map(string.strip, group_data)
         for s in group_data:
             if s.split()[0] not in sample_data:
                 raise OptionError("物种%s不在Genus Table中" % s.split()[0])
             if s.split()[1] not in ['0','1']:
                 raise OptionError("物种分组只能有0和1！")
-        
+
         if self.option('mode')==2:
             name_data = open(self.option('name_table'), "r").readlines()[1:]
-            map(string.strip, name_data)
+            name_data = map(string.strip, name_data)
             for s in name_data:
                 if s not in genus_data:
                     raise OptionError("物种%s不在Genus Table中" % s)
