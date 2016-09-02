@@ -132,7 +132,6 @@ class EventHandler(object):
         :param para: 可选参数，触发事件时传递给事件绑定函数的参数
         """
         with self.sem:
-            print 'handler star fire {} ,参数: {}'.format(self.name, para)
             if self.is_start:
                 self._event.set(para)
             else:
@@ -202,9 +201,8 @@ class LoopEventHandler(EventHandler):
         :param para: 可选参数，触发事件时传递给事件绑定函数的参数 默认值:None
         """
         with self.sem:
-            print 'loophandler start fire:,{}, {}, {}, 参数：{}'.format(self.name, self, self.is_start, para)
             if not self.is_start:
-                raise EventStopError(self.name)
+                raise EventStopError("%s事件没有启动!" % self.name)
             if self._event.ready():
                 self.stop()
                 self.restart()
@@ -291,6 +289,10 @@ class EventObject(object):
         :param loop: bool  是否为可多次触发的事件
         :return: self
         """
+        if self.is_start:
+            raise Exception("%s已经开始运行，无法添加事件!" % self)
+        if self.is_end:
+            raise Exception("%s已经运行结束，无法添加事件!" % self)
         if event in self.events.keys():
             raise Exception("事件已经存在，请勿重复添加")
         if self.check_event_name(event):
@@ -364,7 +366,6 @@ class EventObject(object):
        :param para:  function 需要传递给事件绑定函数的参数
        :return: none
         """
-        print 'fire {}的{}事件,参数：{}'.format(self, name, para)
         if name not in self.events.keys():
             raise UnknownEventError(name)
         e = self.events[name]
