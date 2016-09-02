@@ -132,6 +132,7 @@ class EventHandler(object):
         :param para: 可选参数，触发事件时传递给事件绑定函数的参数
         """
         with self.sem:
+            print 'handler star fire {} ,参数: {}'.format(self.name, para)
             if self.is_start:
                 self._event.set(para)
             else:
@@ -201,6 +202,7 @@ class LoopEventHandler(EventHandler):
         :param para: 可选参数，触发事件时传递给事件绑定函数的参数 默认值:None
         """
         with self.sem:
+            print 'loophandler start fire:,{}, {}, {}, 参数：{}'.format(self.name, self, self.is_start, para)
             if not self.is_start:
                 raise EventStopError(self.name)
             if self._event.ready():
@@ -362,6 +364,7 @@ class EventObject(object):
        :param para:  function 需要传递给事件绑定函数的参数
        :return: none
         """
+        print 'fire {}的{}事件,参数：{}'.format(self, name, para)
         if name not in self.events.keys():
             raise UnknownEventError(name)
         e = self.events[name]

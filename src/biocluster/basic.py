@@ -396,6 +396,7 @@ class Basic(EventObject):
         """
         """
         if self._parent is not None and isinstance(self._parent, Basic):
+            self.logger.info('开始fire parent childend，parent：{}'.format(self._parent))
             self._parent.fire('childend', self)
 
     def __event_error(self):
@@ -411,7 +412,11 @@ class Basic(EventObject):
         """
         if self._rely:
             for rl in self._rely:
+                self.logger.info(rl.rely)
+                for i in rl.rely:
+                    self.logger.info(i.is_end)
                 if rl.satisfy:
+
                     event_name = "%s_%s" % (self.id.lower(), rl.name)
                     if not self.events[event_name].is_start:
                         self.events[event_name].stop()
@@ -445,13 +450,16 @@ class Basic(EventObject):
         此函数将会检测输出文件路径是否已经设置，如果没有设置则给出debug提示。
         """
         self.set_end()
+        self.logger.info('.....开始fire end:{}'.format(self))
         self.fire('end')
+        self.logger.info('finish fire end:{}'.format(self))
         if not os.listdir(self.output_dir):
             self.logger.debug("输出目录%s为空,你确定已经设置了输出目录?" % self.output_dir)
         for option in self._options.values():
             if option.type == 'outfile':
                 if not option.value.is_set:
                     self.logger.debug("输出参数%s没有设置输出文件路径,你确定此处不需要设置?" % option.name)
+        self.logger.info('{} is end'.format(self))
 
     def on_rely(self, rely, func, data=None):
         """

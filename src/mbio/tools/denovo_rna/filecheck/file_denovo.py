@@ -113,13 +113,20 @@ class FileDenovoTool(Tool):
         self.logger.info("正在检测control文件")
         vs_list = self.option("control_file").prop["vs_list"]
         con_samples = []
+        if self.option('group_table').is_set:
+            group_scheme = self.option('group_table').prop['group_scheme'][0]
+            group_name = self.option('group_table').get_group_name(group_scheme)
         for vs in vs_list:
             for i in vs:
                 if i not in con_samples:
                     con_samples.append(i)
-        for cp in con_samples:
-            if cp not in self.samples:
-                raise Exception("control表出错，样本{}在fastq文件中未出现".format(cp))
+            for cp in con_samples:
+                if self.option('group_table').is_set:
+                    if cp not in group_name:
+                        raise Exception("control表出错，分组{}在fastq文件中未出现".format(cp))
+                else:
+                    if cp not in self.samples:
+                        raise Exception("control表出错，样本{}在fastq文件中未出现".format(cp))
         self.logger.info("control文件检测完毕")
 
     def run(self):

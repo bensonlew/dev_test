@@ -229,7 +229,11 @@ class DenovoBaseWorkflow(Workflow):
         anno_opts = {
             "query": self.assemble.option('trinity_fa'),
             "query_type": 'nucl',
-            "database": self.option('anno_analysis')
+            "gi_taxon": True,
+            "go_annot": True,
+            "cog_annot": True,
+            "kegg_annot": True,
+            "blast_stat": True
         }
         self.annotation.set_options(anno_opts)
         self.annotation.on('end', self.set_output, 'annotation')
@@ -287,6 +291,7 @@ class DenovoBaseWorkflow(Workflow):
             self.final_tools.append(self.exp_diff)
         else:
             self.logger.info('输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略')
+
     def move2outputdir(self, olddir, newname, mode='link'):
         """
         移动一个目录下的所有文件/文件夹到workflow输出文件夹下
