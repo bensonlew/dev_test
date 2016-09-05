@@ -125,7 +125,12 @@ class FileMetabaseTool(Tool):
     def check_env(self):
         if self.option("envtable").is_set:
             self.logger.info("开始校验env文件")
-            self.option("envtable").check()
+            self.option("envtable").get_info()
+            ev_sample = self.option("envtable").prop["sample"]
+            for ev in ev_sample:
+                if ev not in self.samples:
+                    self.set_error("env表出错, 样本{}在fastq文件中未出现".format(ev))
+                    raise Exception("group表出错, 样本{}在fastq文件中未出现".format(ev))
         else:
             self.logger.info("未检测到env文件， 跳过...")
         self.logger.info("env文件检测完毕")

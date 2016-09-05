@@ -7,6 +7,7 @@ import math
 from biocluster.tool import Tool
 from biocluster.agent import Agent
 import os
+import re
 from biocluster.core.exceptions import OptionError
 
 
@@ -122,8 +123,29 @@ class UsearchOtuTool(Tool):
         return cmd
 
     def cmd8(self):
-        os.system("""cat otu_table.txt|sed -n '2p'|sed 's/#//' >otu_table.xls""")
-        os.system("""cat otu_table.txt|sed -n '3,$p'|sort -V |sed 's/\\.0//g' >>otu_table.xls""")
+        otu_path = os.path.join(self.work_dir, "otu_table.txt")
+        name_path = os.path.join(self.work_dir, "name.check")
+        new_otu_path = os.path.join(self.work_dir, "otu_table.txt.new")
+        name_dict = dict()
+        with open(otu_path, 'rb') as r1, open(name_path, 'rb') as r2, open(new_otu_path, 'wb') as w:
+            for line in r2:
+                line = line.rstrip().split("\t")
+                name_dict[line[0]] = line[1]
+            for line in r1:
+                if re.search("OTU\sID", line):
+                    line = line.rstrip().split("\t")
+                    new_line = list()
+                    for l in line:
+                        if l in name_dict:
+                            new_line.append(name_dict[l])
+                        else:
+                            new_line.append(l)
+                    w.write("\t".join(new_line))
+                    w.write("\n")
+                else:
+                    w.write(line)
+        os.system("""cat otu_table.txt.new|sed -n '2p'|sed 's/#//' >otu_table.xls""")
+        os.system("""cat otu_table.txt.new|sed -n '3,$p'|sort -V |sed 's/\\.0//g' >>otu_table.xls""")
         cmd = self.qiime_path+"""pick_rep_set.py -i otu_seqids.txt -f meta.fasta -m most_abundant -o otu_reps.fasta"""
         return cmd
 
