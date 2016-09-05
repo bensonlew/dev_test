@@ -33,7 +33,10 @@ class PROCESS(Job):
 
     def set_end(self):
         super(PROCESS, self).set_end()
-        self.process.join()
+        if self.process.is_alive():
+            self.process.terminate()
+        else:
+            self.process.join()
 
 
 class LocalProcess(Process):
