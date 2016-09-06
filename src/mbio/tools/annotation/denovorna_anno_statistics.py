@@ -3,7 +3,6 @@
 # __modified__ = 'hesheng'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-from biocluster.config import Config
 import os
 from biocluster.core.exceptions import OptionError
 import subprocess
@@ -23,14 +22,10 @@ class DenovornaAnnoStatisticsAgent(Agent):
         options = [
             {"name": "trinity_fasta", "type": "infile", "format": "sequence.fasta"},
             {"name": "gene_fasta", "type": "infile", "format": "sequence.fasta"},
-            {"name": "nr_blast_out", "type": "infile",
-                "format": "align.blast.blast_xml"},
-            {"name": "swiss_blast_out", "type": "infile",
-                "format": "align.blast.blast_xml"},
-            {"name": "string_blast_out", "type": "infile",
-                "format": "align.blast.blast_xml"},
-            {"name": "kegg_blast_out", "type": "infile",
-                "format": "align.blast.blast_xml"},
+            {"name": "nr_blast_out", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "swiss_blast_out", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "string_blast_out", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "kegg_blast_out", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "ncbi_taxonomy_output_dir", "type": "string"},
             {"name": "go_output_dir", "type": "string"},
             {"name": "cog_output_dir", "type": "string"},
