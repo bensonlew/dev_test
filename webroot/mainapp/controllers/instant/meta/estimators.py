@@ -21,12 +21,14 @@ class Estimators(MetaController):
         if return_info:
             return return_info
         data = web.input()
-        default_argu = ['otu_id', 'level_id', 'index_type', 'submit_location']  # 可以不要otu_id
+        default_argu = ['otu_id', 'level_id', 'index_type', 'submit_location', "group_id"]  # 可以不要otu_id
+        index_types = []
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
                 return json.dumps(info)
         for index in data.index_type.split(','):
+            index_types.append(index)
             if index not in self.ESTIMATORS:
                 info = {"success": False, "info": "指数类型不正确{}".format(index)}
                 return json.dumps(info)
@@ -37,8 +39,16 @@ class Estimators(MetaController):
                         "indices": data.index_type,
                         "level": data.level_id,
                         "submit_location": data.submit_location,
-                        "taskType": data.taskType
+                        "task_type": data.task_type,
+                        "group_detail": data.group_detail,
+                        "group_id": data.group_id
                         }
-        self.to_file = 'meta.export_otu_table_by_level(otu_file)'
+        # self.to_file = 'meta.export_otu_table_by_level(otu_file)'
+        self.to_file = 'meta.export_otu_table_by_detail(otu_file)'
         self.run()
-        return self.returnInfo
+        # print self.returnInfo
+        return_info = json.loads(self.returnInfo)
+        return_info['content']["ids"]["index_types"] = index_types
+        print(return_info['content']["ids"]["index_types"])
+        print(return_info)
+        return json.dumps(return_info)

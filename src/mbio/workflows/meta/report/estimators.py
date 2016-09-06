@@ -4,6 +4,7 @@ from biocluster.workflow import Workflow
 # import os
 from mbio.api.to_file.meta import *
 import datetime
+from mainapp.libs.param_pack import group_detail_sort
 
 
 class EstimatorsWorkflow(Workflow):
@@ -23,7 +24,9 @@ class EstimatorsWorkflow(Workflow):
             {"name": "level", "type": "int"},
             {"name": "est_id", "type": "string"},
             {"name": "submit_location", "type": "string"},
-            {"name": "taskType", "type": "string"}
+            {"name": "task_type", "type": "string"},
+            {"name": "group_id", "type": "string"},
+            {"name": "group_detail", "type": "string"}
             ]
         self.add_option(options)
         # print(self._sheet.options())
@@ -54,12 +57,15 @@ class EstimatorsWorkflow(Workflow):
         sort_index = self.option('indices').split(',')
         sort_index.sort()
         sort_index = ','.join(sort_index)
+        group_detail = group_detail_sort(self.option("group_detail"))
         params_json = {
             'otu_id': self.option('otu_id'),
             'level_id': self.option('level'),
-            'indices': sort_index,
-            "submit_location":self.option("submit_location"),
-            "taskType": self.option("taskType")
+            'index_type': sort_index,
+            "submit_location": self.option("submit_location"),
+            "task_type": self.option("task_type"),
+            "group_id": self.option("group_id"),
+            "group_detail": group_detail
             }
         est_id = api_estimators.add_est_table(est_path, major=True, level=self.option('level'),
                                               otu_id=self.option('otu_id'), params=params_json, name=name)

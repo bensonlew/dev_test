@@ -9,6 +9,7 @@ from mainapp.models.mongo.estimator import Estimator
 import random
 import datetime
 from mainapp.libs.param_pack import GetUploadInfo
+from mainapp.libs.param_pack import group_detail_sort
 
 
 class Rarefaction(object):
@@ -22,7 +23,7 @@ class Rarefaction(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'index_type', 'freq', 'submit_location']
+        params_name = ['otu_id', 'level_id', 'index_type', 'freq', 'submit_location', 'group_id', 'group_detail']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
@@ -38,12 +39,15 @@ class Rarefaction(object):
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = int(data.level_id)
         # my_param['indices'] = data.index_type
-        my_param['freq'] = data.freq
+        my_param['freq'] = int(data.freq)
         sort_index = data.index_type.split(',')
         sort_index.sort()
         sort_index = ','.join(sort_index)
-        my_param['indices'] = sort_index
+        my_param['index_type'] = sort_index
         my_param['submit_location'] = data.submit_location
+        my_param['task_type'] = data.task_type
+        my_param['group_detail'] = group_detail_sort(data.group_detail)
+        my_param['group_id'] = data.group_id
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
@@ -74,7 +78,8 @@ class Rarefaction(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": "meta.export_otu_table_by_level(otu_table)",
+                # "to_file": "meta.export_otu_table_by_level(otu_table)",
+                "to_file": "meta.export_otu_table_by_detail(otu_table)",
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": update_api,
@@ -87,7 +92,8 @@ class Rarefaction(object):
                     "indices": data.index_type,
                     "level": data.level_id,
                     "freq": data.freq,
-                    "rare_id": str(rare_id)
+                    "rare_id": str(rare_id),
+                    "group_detail": data.group_detail
                 }
             }
             insert_data = {"client": client,

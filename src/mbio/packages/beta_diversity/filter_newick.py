@@ -12,8 +12,12 @@ from mainapp.config.db import get_mongo_client
 from bson.objectid import ObjectId
 from bson.errors import InvalidId as bosn_InvalidID
 from collections import defaultdict
+from biocluster.config import Config
 import json
 import types
+
+
+db_name = Config().MONGODB
 
 
 class otu(object):
@@ -97,8 +101,8 @@ class otu_table(object):
         return self._samples
 
     def _get_samples_name(self):
-        collection = self.__mongodb['sanger']['sg_otu_specimen']
-        specimen_collection = self.__mongodb['sanger']['sg_specimen']
+        collection = self.__mongodb[db_name]['sg_otu_specimen']
+        specimen_collection = self.__mongodb[db_name]['sg_specimen']
         results = collection.find({'otu_id': self._id})
         samples = []
         if results.count():
@@ -116,7 +120,7 @@ class otu_table(object):
             raise Exception('OTU表没有样本信息')
 
     def _get_all_otus(self):
-        collection = self.__mongodb['sanger']['sg_otu_detail']
+        collection = self.__mongodb[db_name]['sg_otu_detail']
         results = collection.find({'otu_id': self._id})
         otus = []
         if results.count():
@@ -149,7 +153,7 @@ class otu_table(object):
 
 
 
-def get_origin_otu(otu_id, connecter=None, database='sanger', collection='sg_otu'):
+def get_origin_otu(otu_id, connecter=None, database=db_name, collection='sg_otu'):
     u"""从一个OTU ID找到这个OTU的原始OTU ID."""
     if not connecter:
         connecter = get_mongo_client()
@@ -181,7 +185,7 @@ def get_origin_otu(otu_id, connecter=None, database='sanger', collection='sg_otu
     return True, origin_id
 
 
-def get_otu_phylo_newick(otu_id, connecter=None, database='sanger',
+def get_otu_phylo_newick(otu_id, connecter=None, database=db_name,
                          collection='sg_newick_tree', table_type='otu', tree_type='phylo'):
     """
     根据原始表的OTU ID找到其对应的进化树文件
@@ -208,7 +212,7 @@ def get_otu_phylo_newick(otu_id, connecter=None, database='sanger',
 
 
 def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, bind_obj=None):
-    collection = get_mongo_client()['sanger']['sg_otu']
+    collection = get_mongo_client()[db_name]['sg_otu']
     tempdir = tempdir.rstrip('/') + '/'
     temptre = tempdir + 'temp_newick.tre'
     filter_tre = tempdir + 'temp_filter_newick.tre'

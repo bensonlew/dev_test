@@ -9,7 +9,7 @@ from biocluster.config import Config
 
 
 client = Config().mongo_client
-db = client["sanger"]
+db = client[Config().MONGODB]
 LEVEL = {
     9: "otu", 8: "s__", 7: "g__", 6: "f__", 5: "o__",
     4: "c__", 3: "p__", 2: "k__", 1: "d__"

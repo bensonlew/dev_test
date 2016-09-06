@@ -194,7 +194,47 @@ class DenovornaAnnoStatisticsTool(Tool):
         os.link(workdir + '/' + filename, outdir + '/' + filename)
 
     def run_annotUnigene(self):
-        cmd1 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/annotUnigene.py'.format(
+        if self.option('nr_blast_out').is_set:
+            nr_blast = self.option('nr_blast_out').prop['path']
+        else:
+            nr_blast = '0'
+        if self.option('swiss_blast_out').is_set:
+            swiss_blast = self.option('swiss_blast_out').prop['path']
+        else:
+            swiss_blast = '0'
+        if self.option('string_blast_out').is_set:
+            string_blast = self.option('string_blast_out').prop['path']
+        else:
+            string_blast = '0'
+        if self.option('kegg_blast_out').is_set:
+            kegg_blast = self.option('kegg_blast_out').prop['path']
+        else:
+            kegg_blast = '0'
+        if self.option('ncbi_taxonomy_output_dir').is_set:
+            taxo_dir = self.option('ncbi_taxonomy_output_dir')
+        else:
+            taxo_dir = '0'
+        if self.option('go_output_dir').is_set:
+            go_dir = self.option('go_output_dir')
+        else:
+            go_dir = '0'
+        if self.option('cog_output_dir').is_set:
+            cog_dir = self.option('cog_output_dir')
+        else:
+            cog_dir = '0'
+        if self.option('kegg_output_dir').is_set:
+            kegg_dir = self.option('kegg_output_dir')
+        else:
+            kegg_dir = '0'
+        if self.option('blast_stat_output_dir').is_set:
+            blastat_dir = self.option('blast_stat_output_dir')
+        else:
+            blastat_dir = '0'
+        if self.option('gene_fasta').is_set:
+            gene_fasta = self.option('gene_fasta').prop['path']
+        else:
+            gene_fasta = '0'
+        cmd1 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/annotStatNew.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
         cmd1 += ' %s %s %s %s %s %s %s %s %s %s %s %s %s' % (self.option('trinity_fasta').prop['path'],
                                                              self.option('nr_blast_out').prop['path'], self.option(
@@ -291,3 +331,7 @@ class DenovornaAnnoStatisticsTool(Tool):
         except subprocess.CalledProcessError:
             self.set_error("运行blastout_statistics.py出错")
         self.end()
+
+    def run(self):
+        super(DenovornaAnnoStatisticsTool, self).run()
+        self.run_annotUnigene()

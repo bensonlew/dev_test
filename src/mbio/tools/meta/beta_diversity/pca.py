@@ -171,15 +171,13 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         self.run_ordination()
 
     def formattable(self, tablepath):
-        alllines = open(tablepath).readlines()
-        if alllines[0][0] == '#':
-            newtable = open(os.path.join(self.work_dir, 'temp_format.table'), 'w')
-            newtable.write(alllines[0].lstrip('#'))
-            newtable.writelines(alllines[1:])
-            newtable.close()
-            return os.path.join(self.work_dir, 'temp_format.table')
-        else:
-            return tablepath
+        with open(tablepath) as table:
+            if table.read(1) == '#':
+                newtable = os.path.join(self.work_dir, 'temp_format.table')
+                with open(newtable, 'w') as w:
+                    w.write(table.read())
+                return newtable
+        return tablepath
 
     def run_ordination(self):
         """
