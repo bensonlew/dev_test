@@ -22,8 +22,10 @@ class Multiple(MetaController):
             return json.dumps(info)
         self.task_name = 'meta.report.multiple'
         self.task_type = 'workflow'  # 可以不配置
-        groupname = eval(data.group_detail).keys()
+        groupname = json.loads(data.group_detail).keys()
         groupname.sort()
+        category_name = ','.join(groupname)
+        print category_name
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = int(data.level_id)
@@ -33,7 +35,6 @@ class Multiple(MetaController):
         my_param['test'] = data.test
         my_param['methor'] = data.methor
         my_param['coverage'] = float(data.coverage)
-        my_param['category_name'] = ','.join(groupname)
         my_param['submit_location'] = data.submit_location
         my_param['task_type'] = 'reportTask'
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
@@ -46,7 +47,8 @@ class Multiple(MetaController):
                         "group_name": G().get_group_name(data.group_id),
                         "methor": data.methor,
                         "coverage": data.coverage,
-                        "group_detail":data.group_detail
+                        "group_detail": data.group_detail,
+                        "category_name": category_name
                         }
         self.to_file = ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table_by_detail(group_file)"]
         self.run()

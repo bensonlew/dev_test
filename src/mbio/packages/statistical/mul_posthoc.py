@@ -44,7 +44,7 @@ def stat_info(statfile, groupfile):
                 break
             taxon_list.append(sline_list[0])
             for gname in group_num_dict.keys():
-                gmean = "mean(" + gname
+                gmean = gname + "-mean"
                 for foo in shead:
                     if gmean in foo:
                         index_site = shead.index(foo)
@@ -62,10 +62,12 @@ def scheffe(statfile, groupfile, coverage, outfile):
     (N, dfN, dfD, group_num_dict) = group_detail(groupfile)
     two_hoc = list(itertools.combinations(group_num_dict.keys(), 2)) # the numbers of post-hoc test
     for one in two_hoc:
-        groups = '-'.join(list(one))
+        g = list(one)
+        g.sort()
+        groups = '-'.join(g)
         with open(outfile + '_scheffe_%s.xls' % groups, 'w') as w:
             cv = dfN*distributions.f.ppf(coverage, dfN, dfD)
-            w.write('\tEffectSize\tlowerCI\tupperCI\tpvalue\n')
+            w.write('\t%s_effectsize\t%s_lowerCI\t%s_upperCI\t%s_pvalue\n' % (groups, groups, groups, groups))
             for i in range(len(taxon_list)):
                 # calculate within group variance
                 withinGroupVar = 0
@@ -91,13 +93,15 @@ def welchuncorrected(statfile, groupfile, coverage, outfile):
     (N, dfN, dfD, group_num_dict) = group_detail(groupfile)
     two_hoc = list(itertools.combinations(group_num_dict.keys(), 2)) # the numbers of post-hoc test
     for one in two_hoc:
-        groups = '-'.join(list(one))
+        g = list(one)
+        g.sort()
+        groups = '-'.join(g)
         with open(outfile + '_welchuncorrected_%s.xls' % groups, 'w') as w:
             cv = dfN*distributions.f.ppf(coverage, dfN, dfD)
-            w.write('\tEffectSize\tlowerCI\tupperCI\tpvalue\n')
+            w.write('\t%s_effectsize\t%s_lowerCI\t%s_upperCI\t%s_pvalue\n' % (groups, groups, groups, groups))
             for i in range(len(taxon_list)):
                 meanG1 = mean_dict[one[0]][i]
-                meanG2 = mean_dict[one[1]][i]                               
+                meanG2 = mean_dict[one[1]][i]
                 dp = meanG1 - meanG2
                 varG1 = sd_dict[one[0]][i]**2
                 varG2 = sd_dict[one[1]][i]**2
@@ -111,7 +115,7 @@ def welchuncorrected(statfile, groupfile, coverage, outfile):
                     # p-value
                     T_statistic = (meanG1 - meanG2) / sqrtUnpooledVar
                     dof = (unpooledVar*unpooledVar) / ( (normVarG1*normVarG1)/(n1-1) + (normVarG2*normVarG2)/(n2-1) )
-                    pValue = t.cdf(T_statistic, dof)    
+                    pValue = t.cdf(T_statistic, dof)
                     # CI
                     tCritical = t.isf(0.5 * (1.0-coverage), dof)
                     # 0.5 factor accounts from symmetric nature of distribution
@@ -122,9 +126,9 @@ def welchuncorrected(statfile, groupfile, coverage, outfile):
                         pValue = 0.0
                         # the difference (at least according to these samples) must be true as there is no variance
                     else:
-                        pValue = 0.5                       
+                        pValue = 0.5
                     lowerCI = dp
-                    upperCI = dp 
+                    upperCI = dp
                 w.write('%s\t%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % dp, '%0.4g' % lowerCI, '%0.4g' % upperCI, '%0.4g' % pValue))
 
 
@@ -133,7 +137,7 @@ def tukeykramer(statfile, groupfile, coverage, outfile, preferences=None):
     (mean_dict, sd_dict, taxon_list) = stat_info(statfile, groupfile)
     (N, dfN, dfD, group_num_dict) = group_detail(groupfile)
     k = len(group_num_dict)
-    q_cv = qtable.cv(1.0-coverage, k, dfD)       
+    q_cv = qtable.cv(1.0-coverage, k, dfD)
     cv001 = qtable.cv(0.001, k, dfD)
     cv01 = qtable.cv(0.01, k, dfD)
     cv02 = qtable.cv(0.02, k, dfD)
@@ -141,9 +145,11 @@ def tukeykramer(statfile, groupfile, coverage, outfile, preferences=None):
     cv1 = qtable.cv(0.1, k, dfD)
     two_hoc = list(itertools.combinations(group_num_dict.keys(), 2))
     for one in two_hoc:
-        groups = '-'.join(list(one))
+        g = list(one)
+        g.sort()
+        groups = '-'.join(g)
         with open(outfile + '_tukeykramer_%s.xls' % groups, 'w') as w:
-            w.write('\tEffectSize\tlowerCI\tupperCI\tpvalue\n')
+            w.write('\t%s_effectsize\t%s_lowerCI\t%s_upperCI\t%s_pvalue\n' % (groups, groups, groups, groups))
             for i in range(len(taxon_list)):
                 # calculate within group variance
                 withinGroupVar = 0
@@ -176,20 +182,22 @@ def tukeykramer(statfile, groupfile, coverage, outfile, preferences=None):
                 w.write('%s\t%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % es, '%0.4g' % lowerCI, '%0.4g' % upperCI, pValue))
 
 
-def gameshowell(statfile, groupfile, coverage, outfile, preferences = None):
+def gameshowell(statfile, groupfile, coverage, outfile, preferences=None):
     qtable = QTable(preferences)
     (mean_dict, sd_dict, taxon_list) = stat_info(statfile, groupfile)
     (N, dfN, dfD, group_num_dict) = group_detail(groupfile)
     k = len(group_num_dict)
     two_hoc = list(itertools.combinations(group_num_dict.keys(), 2))
     for one in two_hoc:
-        groups = '-'.join(list(one))
+        g = list(one)
+        g.sort()
+        groups = '-'.join(g)
         with open(outfile + '_gameshowell_%s.xls' % groups, 'w') as w:
-            w.write('\tEffectSize\tlowerCI\tupperCI\tpvalue\n')
+            w.write('\t%s_effectsize\t%s_lowerCI\t%s_upperCI\t%s_pvalue\n' % (groups, groups, groups, groups))
             for i in range(len(taxon_list)):
                 meanG1 = mean_dict[one[0]][i]
-                meanG2 = mean_dict[one[1]][i] 
-                # effect size                              
+                meanG2 = mean_dict[one[1]][i]
+                # effect size
                 es = meanG1 - meanG2
                 varG1 = sd_dict[one[0]][i]**2
                 varG2 = sd_dict[one[1]][i]**2
@@ -198,7 +206,7 @@ def gameshowell(statfile, groupfile, coverage, outfile, preferences = None):
                 vn1 = varG1 / n1
                 vn2 = varG2 / n2
                 if vn1 == 0:
-                    vn1 = 1e-6                    
+                    vn1 = 1e-6
                 if vn2 == 0:
                     vn2 = 1e-6
                 df = (vn1 + vn2) * (vn1 + vn2)

@@ -6,7 +6,7 @@ import os
 class MantelTestModule(Module):
     """
     module for mantel test
-    last modified : 20160712
+    last modified : 20160725
     author: wangbixuan
     """
     MATRIX=['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean', 
@@ -38,10 +38,6 @@ class MantelTestModule(Module):
             {"name":"dis_matrix","type":"outfile","format":"meta.beta_diversity.distance_matrix"},
             {"name":"fac_matrix","type":"outfile","format":"meta.beta_diversity.distance_matrix"}
         ]
-        #self._version = '1.9.1'  # qiime版本
-        #self.cmd_path = 'Python/bin/beta_diversity.py'
-        # 设置运行环境变量
-        #self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
         self.otudistance=self.add_tool('meta.beta_diversity.distance_calc')
         self.facdistance=self.add_tool('statistical.factor_distance')
         self.discomparison=self.add_tool('statistical.discomparison')
@@ -92,7 +88,7 @@ class MantelTestModule(Module):
             })
         self.step.otudistance.start()
         self.otudistance.on("end",self.set_output,'otudistance')
-        self.otudistance.on("end",self.facdistance_run)
+        #self.otudistance.on("end",self.facdistance_run)
         self.otudistance.run()
 
     def facdistance_run(self):
@@ -103,7 +99,7 @@ class MantelTestModule(Module):
             })
         self.step.facdistance.start()
         self.facdistance.on("end",self.set_output,'facdistance')
-        self.facdistance.on("end",self.discomparison_run)
+        #self.facdistance.on("end",self.discomparison_run)
         self.facdistance.run()
 
     def discomparison_run(self):
@@ -117,23 +113,26 @@ class MantelTestModule(Module):
         self.discomparison.run()
 
     def run(self):
+        super(MantelTestModule,self).run()
         self.otudistance_run()
         self.step.update()
-        # self.facdistance_run()
-        #self.step.update()
-        #self.on_rely([self.otudistance_run,self.facdistance_run],self.discomparison_run)
+        self.facdistance_run()
+        self.step.update()
+        self.on_rely([self.otudistance,self.facdistance],self.discomparison_run)
         #self.on_rely(self.discomparison_run,self.end)
         self.discomparison.on("end",self.end)
-        super(MantelTestModule,self).run()
 
     def set_output(self,event):
         obj=event['bind_object']
         if event['data']=='facdistance':
             self.linkdir(obj.output_dir,'Facdistance')
+            self.step.facdistance.finish()
         elif event['data']=='otudistance':
             self.linkdir(obj.output_dir,'Otudistance')
+            self.step.otudistance.finish()
         elif event['data']=='discompare':
             self.linkdir(obj.output_dir,'Discompare')
+            self.step.discomparison.finish()
         else:
             pass
 
