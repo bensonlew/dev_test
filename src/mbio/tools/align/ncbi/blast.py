@@ -32,7 +32,7 @@ class BlastAgent(Agent):
             {"name": "reference_type", "type": "string"},  # 参考序列(库)的类型  为nucl或者prot
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
             {"name": "num_threads", "type": "int", "default": 10},  # cpu数
-            {"name": "num_alignment", "type": "int", "default": 500},  # 序列比对最大输出条数，默认500
+            {"name": "num_alignment", "type": "int", "default": 5},  # 序列比对最大输出条数，默认500
             {"name": "outxml", "type": "outfile", "format": "align.blast.blast_xml"},  # 输出格式为6时输出
             {"name": "outtable", "type": "outfile", "format": "align.blast.blast_table"},  # 输出格式为5时输出
             # 当输出格式为非5，6时，只产生文件不作为outfile
@@ -87,8 +87,8 @@ class BlastAgent(Agent):
         return True
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = ''
+        self._cpu = 20
+        self._memory = '50G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -110,9 +110,8 @@ class BlastTool(Tool):
     def __init__(self, config):
         super(BlastTool, self).__init__(config)
         self._version = "2.3.0"
-        self.db_path = os.path.join(self.config.SOFTWARE_DIR, "align/ncbi/db/")
-        # self.db_path = '/mnt/ilustre/app/rna/database/blast/db'  # for test
-        self.cmd_path = "ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
+        self.db_path = os.path.join(self.config.SOFTWARE_DIR, "database/align/ncbi/db")
+        self.cmd_path = "/bioinfo/align/ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
 
     def run_makedb_and_blast(self):
         """

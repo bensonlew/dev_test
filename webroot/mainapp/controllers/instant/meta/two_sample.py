@@ -57,13 +57,12 @@ class TwoSample(MetaController):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction',
-                       'type', 'test', 'methor', 'coverage', 'submit_location']
+        params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction', 'type', 'test', 'methor', 'coverage', 'submit_location']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
                 success.append("缺少参数!")
-        if int(data.level_id) not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+        if int(data.level_id) not in [3, 4, 5, 6, 7, 8, 9]:
             success.append("level_id不在范围内")
         if data.correction not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"]:
             success.append("多重检验方法不在范围内")

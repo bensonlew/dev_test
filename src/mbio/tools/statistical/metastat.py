@@ -73,7 +73,7 @@ class MetastatAgent(Agent):
             {"name": "fisher_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'},  # 两样本计算置信区间的方法
             {"name": "est_group", "type": "infile", "format": "meta.alpha_diversity.group_file_dir"},
             {"name": "est_input", "type": "infile", "format": "meta.otu.otu_table"}
-            ]
+        ]
         self.add_option(options)
         self.step.add_steps("stat_test")
         self.on('start', self.stepstart)
@@ -325,6 +325,7 @@ class MetastatTool(Tool):
         super(MetastatTool, self).__init__(config)
         self._version = "v1.0.1"
         self.package_path = 'packages/metastat.py'
+        self.r_path = '/program/R-3.3.1/bin/Rscript'
 
     def run(self):
         """
@@ -367,7 +368,7 @@ class MetastatTool(Tool):
         for group in gfilelist:
             est_ttest(self.option('est_input').prop['path'], self.work_dir + '/est_result%s.xls' % i,
                       os.path.join(self.option("est_group").prop['path'], group))
-            cmd = "program/R-3.3.1/bin/Rscript run_est_ttest.r"
+            cmd = self.r_path + " run_est_ttest.r"
             self.logger.info("开始运行est_T检验")
             command = self.add_command("est_cmd{}".format(i), cmd).run()
             i += 1
@@ -380,7 +381,7 @@ class MetastatTool(Tool):
     def run_chi(self):
         two_sample_test(self.option('chi_input').prop['path'], self.work_dir + '/chi_result.xls', "chi",
                         self.option('chi_sample1'), self.option('chi_sample2'), self.option('chi_correction'))
-        cmd = "program/R-3.3.1/bin/Rscript run_chi_test.r"
+        cmd = self.r_path + " run_chi_test.r"
         self.logger.info("开始运行卡方检验")
         command = self.add_command("chi_cmd", cmd).run()
         self.wait(command)
@@ -398,7 +399,7 @@ class MetastatTool(Tool):
                         self.option('fisher_sample1'), self.option('fisher_sample2'),
                         str(1 - self.option('fisher_ci')), self.option('fisher_type'),
                         self.option('fisher_correction'))
-        cmd = "program/R-3.3.1/bin/Rscript run_fisher_test.r"
+        cmd = self.r_path + " run_fisher_test.r"
         self.logger.info("开始运行fisher检验")
         command = self.add_command("fisher_cmd", cmd).run()
         self.wait(command)
@@ -427,16 +428,24 @@ class MetastatTool(Tool):
                        self.work_dir + '/student_result.xls', self.work_dir + '/student_boxfile.xls', "student",
                        str(1 - self.option('student_ci')), self.option('student_type'),
                        self.option('student_correction'))
-        cmd = "program/R-3.3.1/bin/Rscript run_student_test.r"
+        cmd = self.r_path + " run_student_test.r"
         self.logger.info("开始运行student_T检验")
         command = self.add_command("student_cmd", cmd).run()
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("student_cmd运行完成，开始运行计算置信区间")
             student(self.work_dir + '/student_result.xls', './student_group', self.option('student_coverage'))
+            self.logger.info("生成单物种柱状图的数据")
+            group_bar(self.option('student_input').prop['path'], './student_group', self.work_dir + '/student_plot_group_bar.xls', "student")
+            cmd1 = self.r_path + " run_student_bar.r"
+            bar_cmd = self.add_command("bar_cmd", cmd1).run()
+            self.wait(bar_cmd)
+            if bar_cmd.return_code == 0:
+                self.logger.info("student_test运行完成")
+            else:
+                self.set_error("bar_cmd运行出错!")
         else:
             self.set_error("student_cmd运行出错!")
-        self.logger.info("student_test运行完成")
 
     def run_welch(self):
         glist = [self.option('welch_gname')]
@@ -446,16 +455,24 @@ class MetastatTool(Tool):
                        str(1 - self.option('welch_ci')), self.option('welch_type'),
                        self.option('welch_correction'))
         self.logger.info(Config().SOFTWARE_DIR)
-        cmd = "program/R-3.3.1/bin/Rscript run_welch_test.r"
+        cmd = self.r_path + " run_welch_test.r"
         self.logger.info("开始运行welch_T检验")
         command = self.add_command("welch_cmd", cmd).run()
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("welch_cmd运行完成，开始运行计算置信区间")
             welch(self.work_dir + '/welch_result.xls', './welch_group', self.option('welch_coverage'))
+            self.logger.info("生成单物种柱状图的数据")
+            group_bar(self.option('welch_input').prop['path'], './welch_group', self.work_dir + '/welch_plot_group_bar.xls', 'welch')
+            cmd1 = self.r_path + " run_welch_bar.r"
+            bar_cmd = self.add_command("bar_cmd", cmd1).run()
+            self.wait(bar_cmd)
+            if bar_cmd.return_code == 0:
+                self.logger.info("welch_cmd运行完成")
+            else:
+                self.set_error("bar_cmd运行出错!")
         else:
             self.set_error("welch_cmd运行出错!")
-        self.logger.info("welch_test运行完成")
 
     def run_mann(self):
         glist = [self.option('mann_gname')]
@@ -464,16 +481,25 @@ class MetastatTool(Tool):
                        self.work_dir + '/mann_result.xls', self.work_dir + '/mann_boxfile.xls', "mann",
                        str(1 - self.option('mann_ci')), self.option('mann_type'),
                        self.option('mann_correction'))
-        cmd = "program/R-3.3.1/bin/Rscript run_mann_test.r"
+        cmd = self.r_path + " run_mann_test.r"
         self.logger.info("开始运行mann检验")
         command = self.add_command("mann_cmd", cmd).run()
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("mann_cmd运行完成，开始运行计算置信区间")
             student(self.work_dir + '/mann_result.xls', './mann_group', self.option('mann_coverage'))
+            self.logger.info("生成单物种柱状图的数据")
+            group_bar(self.option('mann_input').prop['path'], './mann_group', self.work_dir + '/mann_plot_group_bar.xls', 'mann')
+            cmd1 = self.r_path + " run_mann_bar.r"
+            bar_cmd = self.add_command("bar_cmd", cmd1).run()
+            self.wait(bar_cmd)
+            if bar_cmd.return_code == 0:
+                self.logger.info("mann_test运行完成")
+            else:
+                self.set_error("bar_cmd运行出错!")
+
         else:
             self.set_error("mann_cmd运行出错!")
-        self.logger.info("mann_test运行完成")
 
     def run_kru(self):
         glist = [self.option('kru_H_gname')]
@@ -481,7 +507,7 @@ class MetastatTool(Tool):
         mul_group_test(self.option('kru_H_input').prop['path'], self.work_dir + '/kru_H_result.xls',
                        self.work_dir + '/kru_H_boxfile.xls', './kru_H_group', "kru_H",
                        self.option('kru_H_correction'))
-        cmd = "program/R-3.3.1/bin/Rscript run_kru_H_test.r"
+        cmd = self.r_path + " run_kru_H_test.r"
         self.logger.info("开始运行kru_H检验")
         command = self.add_command("kru_cmd", cmd).run()
         self.wait(command)
@@ -489,9 +515,17 @@ class MetastatTool(Tool):
             self.logger.info("kru_cmd运行完成，开始运行post-hoc检验")
             self.posthoc(self.option("kru_H_methor"), self.work_dir + '/kru_H_result.xls', './kru_H_group',
                          self.option("kru_H_coverage"), './kru_H')
+            self.logger.info("生成单物种柱状图的数据")
+            group_bar(self.option('kru_H_input').prop['path'], './kru_H_group', self.work_dir + '/kru_H_plot_group_bar.xls', 'kru_H')
+            cmd1 = self.r_path + " run_kru_H_bar.r"
+            bar_cmd = self.add_command("bar_cmd", cmd1).run()
+            self.wait(bar_cmd)
+            if bar_cmd.return_code == 0:
+                self.logger.info("kru_H_test运行完成")
+            else:
+                self.set_error("bar_cmd运行出错!")
         else:
             self.set_error("kru_cmd运行出错!")
-        self.logger.info("kru_H_test运行完成")
 
     def run_anova(self):
         glist = [self.option('anova_gname')]
@@ -499,7 +533,7 @@ class MetastatTool(Tool):
         mul_group_test(self.option('anova_input').prop['path'], self.work_dir + '/anova_result.xls',
                        self.work_dir + '/anova_boxfile.xls', './anova_group', "anova",
                        self.option('anova_correction'))
-        cmd = "program/R-3.3.1/bin/Rscript run_anova_test.r"
+        cmd = self.r_path + " run_anova_test.r"
         self.logger.info("开始运行anova检验")
         command = self.add_command("anova_cmd", cmd).run()
         self.wait(command)
@@ -507,9 +541,17 @@ class MetastatTool(Tool):
             self.logger.info("anova_cmd运行完成,开始运行post-hoc检验")
             self.posthoc(self.option("anova_methor"), self.work_dir + '/anova_result.xls',
                          './anova_group', self.option("anova_coverage"), './anova')
+            self.logger.info("生成单物种柱状图的数据")
+            group_bar(self.option('anova_input').prop['path'], './anova_group', self.work_dir + '/anova_plot_group_bar.xls', 'anova')
+            cmd1 = self.r_path + " run_anova_bar.r"
+            bar_cmd = self.add_command("bar_cmd", cmd1).run()
+            self.wait(bar_cmd)
+            if bar_cmd.return_code == 0:
+                self.logger.info("anova_test运行完成")
+            else:
+                self.set_error("bar_cmd运行出错!")
         else:
             self.set_error("anova_cmd运行出错!")
-        self.logger.info("anova_test运行完成")
 
     def posthoc(self, methor, statfile, groupfile, coverage, outfile):
         if methor == 'tukeykramer':

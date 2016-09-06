@@ -2,6 +2,7 @@
 # __author__ = 'shenghe'
 import web
 import json
+from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
 
 
@@ -25,9 +26,9 @@ class Hcluster(MetaController):
         self.task_type = 'workflow'  # 可以不配置
         params_json = {
             'otu_id': data.otu_id,
-            'level_id': data.level_id,
+            'level_id': int(data.level_id),
             'group_id': data.group_id,
-            'group_detail': data.group_detail,
+            'group_detail': group_detail_sort(data.group_detail),
             'distance_algorithm': data.distance_algorithm,
             'hcluster_method': data.hcluster_method,
             'submit_location': data.submit_location,

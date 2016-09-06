@@ -56,7 +56,7 @@ class LefseAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '3G'
 
     def biom_start_callback(self):
         self.step.run_biom.start()
@@ -102,9 +102,10 @@ class LefseTool(Tool):
         self._version = '1.0.1'
         self.biom_path = "/program/Python/bin/"
         self.python_path = "/program/Python/bin/python"
+        self.perl_path = self.config.SOFTWARE_DIR + "/program/perl/perls/perl-5.24.0/bin/perl"
         self.sum_taxa_path = "/program/Python/bin/"
         self.script_path = "/bioinfo/taxon/scripts/"
-        self.plot_lefse_path = "/bioinfo/statistical/lefse/"
+        self.plot_lefse_path = self.config.SOFTWARE_DIR + "/bioinfo/statistical/lefse/"
         self._path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin:$PATH"
         self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
         self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
@@ -126,8 +127,8 @@ class LefseTool(Tool):
 
     def run_script(self):
         self.add_state("sum_taxa_start", data="开始生成每一水平的物种统计文件")
-        script_cmd = self.script_path + "summarize_taxa.py -i otu_taxa_table.biom " \
-                                        "-o tax_summary_a -L 1,2,3,4,5,6,7,8 -a"
+        script_cmd = self.python_path + " %ssummarize_taxa.py -i otu_taxa_table.biom " \
+                                        "-o tax_summary_a -L 1,2,3,4,5,6,7,8 -a" % (self.config.SOFTWARE_DIR + self.script_path)
         self.logger.info("开始运行script_cmd")
         script_command = self.add_command("script_cmd", script_cmd).run()
         self.wait(script_command)
@@ -139,10 +140,10 @@ class LefseTool(Tool):
 
     def run_sum_tax(self):
         cmd = "for ((i=1;i<=8;i+=1)){\n\
-            %ssum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
+            %s %ssum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
               "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
             mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
-        }" % (self.config.SOFTWARE_DIR + self.script_path)
+        }" % (self.perl_path, self.config.SOFTWARE_DIR + self.script_path)
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info("run_sum_tax运行完成")
@@ -153,15 +154,9 @@ class LefseTool(Tool):
 
     def format_input(self):
         self.add_state("lefse_start", data="开始进行lefse分析")
-
-        # if self.option('lefse_gname') == 'None':
-        #     plot_cmd = 'Python/bin/python ' + self.config.SOFTWARE_DIR + '/' + self.plot_lefse_path + \
-        #                "lefse-input.py -i tax_summary_a -g %s -o lefse_input.txt" % \
-        #                self.option('lefse_group').prop['path']
-        # else:
         glist = self.option('lefse_gname').split(',')
         self.option('lefse_group').sub_group('./lefse_group', glist)
-        plot_cmd = self.python_path + ' ' + self.config.SOFTWARE_DIR + self.plot_lefse_path + \
+        plot_cmd = self.python_path + ' ' + self.plot_lefse_path + \
                    "lefse-input.py -i tax_summary_a -g ./lefse_group -o lefse_input.txt"
         self.logger.info("开始运行format_input_cmd")
         plot_command = self.add_command("format_input_cmd", plot_cmd).run()
@@ -170,24 +165,12 @@ class LefseTool(Tool):
             self.logger.info("format_input_cmd运行完成")
         else:
             self.set_error("format_input_cmd运行出错!")
-    def run_format(self):
-        if len(self.option('lefse_gname').split(',')) == 1:
-            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -u 2 -o 1000000'
-        elif len(self.option('lefse_gname').split(',')) == 2:
-            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -s 2 -u 3 -o 1000000'
-        self.logger.info("开始运行format_cmd")
-        format_command = self.add_command("format_cmd", format_cmd).run()
-        self.wait(format_command)
-        if format_command.return_code == 0:
-            self.logger.info("format_cmd运行完成")
-        else:
-            self.set_error("format_cmd运行出错!")
 
     def run_format(self):
         if len(self.option('lefse_gname').split(',')) == 1:
-            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -u 2 -o 1000000'
+            format_cmd = self.python_path + " " + self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -u 2 -o 1000000'
         elif len(self.option('lefse_gname').split(',')) == 2:
-            format_cmd = self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -s 2 -u 3 -o 1000000'
+            format_cmd = self.python_path + " " + self.plot_lefse_path + 'format_input.py  lefse_input.txt  lefse_format.txt  -f  r -c 1 -s 2 -u 3 -o 1000000'
         self.logger.info("开始运行format_cmd")
         format_command = self.add_command("format_cmd", format_cmd).run()
         self.wait(format_command)
@@ -198,7 +181,7 @@ class LefseTool(Tool):
 
     def run_lefse(self):
         cmd = self.python_path + ' %srun_lefse.py lefse_format.txt lefse_LDA.xls ' \
-              '-l %s -y %s' % (self.config.SOFTWARE_DIR + self.plot_lefse_path, self.option("lda_filter"), self.option("strict"))
+              '-l %s -y %s' % (self.plot_lefse_path, self.option("lda_filter"), self.option("strict"))
         self.logger.info("开始运行run_lefse_cmd")
         self.logger.info(cmd)
         command = self.add_command("run_lefse_cmd", cmd).run()
@@ -215,7 +198,7 @@ class LefseTool(Tool):
 
     def plot_res(self):
         cmd = self.python_path + ' %splot_res.py lefse_LDA.xls lefse_LDA.png' \
-              ' --dpi 300 --format png --width 20' % (self.config.SOFTWARE_DIR + self.plot_lefse_path)
+              ' --dpi 300 --format png --width 20' % (self.plot_lefse_path)
         self.logger.info("开始运行plot_res_cmd")
         command = self.add_command("plot_res_cmd", cmd).run()
         self.wait(command)
@@ -226,7 +209,7 @@ class LefseTool(Tool):
 
     def plot_cladogram(self):
         cmd = '%s %splot_cladogram.py lefse_LDA.xls ' \
-              'lefse_LDA.cladogram.png' ' --format png' % (self.python_path ,self.config.SOFTWARE_DIR + self.plot_lefse_path)
+              'lefse_LDA.cladogram.png' ' --format png' % (self.python_path ,self.plot_lefse_path)
         self.logger.info("开始运行plot_cladogram_cmd")
         command = self.add_command("plot_cladogram_cmd", cmd).run()
         self.wait(command)

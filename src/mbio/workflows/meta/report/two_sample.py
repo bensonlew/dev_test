@@ -65,7 +65,7 @@ class TwoSampleWorkflow(Workflow):
         result_dir.add_regexp_rules([
             [r".*_result\.xls", "xls", "物种组间差异显著性比较结果表，包括均值，标准差，p值"],
             [r".*_CI\.xls", "xls", "组间差异显著性比较两组，两样本比较的置信区间值以及效果量"]
-            ])
+        ])
         super(TwoSampleWorkflow, self).end()
 
     def set_db(self):
@@ -77,10 +77,7 @@ class TwoSampleWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(two_sample_path))
         if not os.path.isfile(ci_path):
             raise Exception("找不到报告文件:{}".format(ci_path))
-        main_id = api_two_sample.add_twosample_species_difference_check_detail(file_path=two_sample_path, table_id=None,
-        level=self.option("level"), check_type='two_sample', params=self.option("params"), group_id=None,
-        from_otu_table=params["otu_id"], major=True)
-        api_two_sample.add_species_difference_check_ci_plot(file_path=ci_path, table_id=main_id)
+        main_id = api_two_sample.add_species_difference_check_detail(statfile=two_sample_path, cifiles=[ci_path], table_id=None, level=self.option("level"), check_type='two_sample', params=self.option("params"), group_id=None, from_otu_table=params["otu_id"], major=True, posthoc=None)
         api_two_sample.update_species_difference_check(main_id, two_sample_path, ci_path, 'twosample')
         self.add_return_mongo_id('sg_species_difference_check', main_id)
         self.end()
