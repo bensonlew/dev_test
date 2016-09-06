@@ -5,7 +5,6 @@ from biocluster.tool import Tool
 from biocluster.config import Config
 import os
 from biocluster.core.exceptions import OptionError
-# import xml.etree.ElementTree as ET
 import subprocess
 
 
@@ -19,12 +18,9 @@ class GoAnnotationAgent(Agent):
     def __init__(self, parent):
         super(GoAnnotationAgent, self).__init__(parent)
         options = [
-            {"name": "blastout", "type": "infile",
-                "format": "align.blast.blast_xml"},
-            {"name": "go2level_out", "type": "outfile",
-                "format": "annotation.go.level2"},
-            {"name": "golist_out", "type": "outfile",
-                "format": "annotation.go.go_list"}
+            {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "go2level_out", "type": "outfile", "format": "annotation.go.level2"},
+            {"name": "golist_out", "type": "outfile", "format": "annotation.go.go_list"}
         ]
         self.add_option(options)
         self.step.add_steps('go_annotation')
@@ -78,20 +74,18 @@ class GoAnnotationTool(Tool):
 
     def __init__(self, config):
         super(GoAnnotationTool, self).__init__(config)
-        self._version = "1.0"  # to be changed
-        # self.cmd_path
+        self._version = "1.0"
 
     def run(self):
         super(GoAnnotationTool, self).run()
         self.run_b2g()
-        # self.run_gomerge()
-        # self.run_annotation()
-        # self.run_gosplit()
 
     def run_b2g(self):
-        cmd = "java -Xmx500m -cp /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/*:/mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/ext/*: es.blast2go.prog.B2GAnnotPipe -in %s -prop /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out %s" % (self.option("blastout").prop[
-                                                                                                                                                                                                                                                                                                                                    'path'], self.work_dir + '/blast2go')
-        #cmd="java -Xms128m -Xmx80000m -cp /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/*:ext/*: es.blast2go.prog.B2GAnnotPipe –in %s -prop /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2gPipe.properties -out %s -annot"%(self.option("blastout").prop['path'],self.work_dir+'/blast2go')
+        cmd = 'java -Xmx500m -cp ' + self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/*:'
+        cmd += self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/ext/*: es.blast2go.prog.B2GAnnotPipe'
+        cmd += ' -in {} -prop {}/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out {}'.format(self.option("blastout").prop['path'], self.config.SOFTWARE_DIR, self.work_dir + '/blast2go')
+        # cmd = "java -Xmx500m -cp /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/*:/mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/ext/*:\
+        #  es.blast2go.prog.B2GAnnotPipe -in %s -prop /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out %s" % (self.option("blastout").prop['path'], self.work_dir + '/blast2go')
         self.logger.info('运行b2g程序')
         self.logger.info(cmd)
         try:
@@ -101,13 +95,11 @@ class GoAnnotationTool(Tool):
             if os.path.exists(linkfile):
                 os.remove(linkfile)
             os.link(self.work_dir + '/blast2go.annot', linkfile)
-            # self.run_gomerge
-            # self.end()
+            self.logger.debug("b2g end")
+            self.run_gomerge()
         except subprocess.CalledProcessError as e:
             self.logger.debug(e)
             self.set_error('运行b2g出错')
-        self.logger.debug("b2g end")
-        self.run_gomerge()
 
     def run_gomerge(self):
         cmd1 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/goMerge.py'.format(
