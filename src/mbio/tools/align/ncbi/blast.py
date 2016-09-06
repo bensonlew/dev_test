@@ -32,7 +32,7 @@ class BlastAgent(Agent):
             {"name": "reference_type", "type": "string"},  # 参考序列(库)的类型  为nucl或者prot
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
             {"name": "num_threads", "type": "int", "default": 10},  # cpu数
-            {"name": "num_alignment", "type": "int", "default": 500},  # 序列比对最大输出条数，默认500
+            {"name": "num_alignment", "type": "int", "default": 5},  # 序列比对最大输出条数，默认500
             {"name": "outxml", "type": "outfile", "format": "align.blast.blast_xml"},  # 输出格式为6时输出
             {"name": "outtable", "type": "outfile", "format": "align.blast.blast_table"},  # 输出格式为5时输出
             # 当输出格式为非5，6时，只产生文件不作为outfile
