@@ -45,7 +45,7 @@ class FastqStatAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '50G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -62,9 +62,9 @@ class FastqStatTool(Tool):
     """
     def __init__(self, config):
         super(FastqStatTool, self).__init__(config)
-        self.FastqStat_path = "/mnt/ilustre/users/sanger/app/rna/scripts/fastqstat.jar"
+        self.FastqStat_path = self.config.SOFTWARE_DIR + "/bioinfo/seq/scripts/FastqStat.jar"
         self.fastq_name = self.option("fastq").prop["path"].split("/")[-1]
-        self.java_path = "sun_jdk1.8.0/bin/"
+        self.java_path = "program/sun_jdk1.8.0/bin/"
 
     def fastq_stat(self):
         self.get_list_file()

@@ -15,7 +15,7 @@ class EstimatorsAgent(Agent):
     estimators:用于生成所有样本的指数表
     version 1.0
     author: qindanhua
-    last_modify: 2015.12.10 by yuguo
+    last_modify: 2016.05.06
     """
     ESTIMATORS = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron',
                   'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs',

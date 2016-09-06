@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import division
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 import glob
+import re
 
 
 class SeqPrepAgent(Agent):
@@ -22,6 +24,7 @@ class SeqPrepAgent(Agent):
             {"name": "seqprep_r", "type": "outfile", "format": "sequence.fastq"},  # PE的右端输出结果
             {"name": "seqprep_l", "type": "outfile", "format": "sequence.fastq"},  # PE的左端输出结果
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
+            {"name": "seqprep_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # fastq文件夹
             {"name": "quality", "type": "int", "default": 20},
             {"name": "length", "type": "int", "default": 30},
             {"name": "adapter_a", "type": "string", "default": "AGATCGGAAGAGCACACGTC"},
@@ -45,7 +48,7 @@ class SeqPrepAgent(Agent):
         """
         检测参数是否正确
         """
-        if not self.option("fastq_dir").is_set or self.option("fastq_r").is_set:
+        if not self.option("fastq_dir").is_set and not self.option("fastq_r").is_set:
             raise OptionError("请传入PE序列文件或者文件夹")
         if self.option("fastq_r").is_set and not self.option("fastq_l").is_set:
             raise OptionError("缺少PE序列左端文件")
@@ -59,6 +62,14 @@ class SeqPrepAgent(Agent):
         self._cpu = 11
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+            # ["./fastq_stat.xls", "xls", "fastq信息统计表"]
+        ])
+        super(SeqPrepAgent, self).end()
+
 
 class SeqPrepTool(Tool):
     """
@@ -66,7 +77,7 @@ class SeqPrepTool(Tool):
     """
     def __init__(self, config):
         super(SeqPrepTool, self).__init__(config)
-        self.seqprep_path = 'rna/SeqPrep-master/'
+        self.seqprep_path = 'bioinfo/seq/'
         if self.option("fastq_r").is_set and self.option("fastq_l").is_set:
             self.sample_name_r = self.option("fastq_r").prop["path"].split("/")[-1]
             self.sample_name_l = self.option("fastq_l").prop["path"].split("/")[-1]
@@ -75,7 +86,7 @@ class SeqPrepTool(Tool):
         fq_r_path = self.option("fastq_r").prop['path']
         fq_l_path = self.option("fastq_l").prop['path']
         cmd = self.seqprep_path + "SeqPrep -f {} -r {} -1 {} -2 {} -q {} -L {} -A {} -B {}".\
-            format(fq_l_path, fq_r_path, '{}seqprep_r.gz'.format(self.sample_name_r), '{}seqprep_l.gz'.format(self.sample_name_l), self.option('quality'),
+            format(fq_l_path, fq_r_path, '{}_seqprep_l.gz'.format(self.sample_name_l), '{}_seqprep_r.gz'.format(self.sample_name_r), self.option('quality'),
                    self.option('length'), self.option("adapter_a"), self.option("adapter_b"))
         self.logger.info(cmd)
         self.logger.info("开始运行seqprep")
@@ -84,7 +95,6 @@ class SeqPrepTool(Tool):
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("运行seqprep完成")
-            self.set_output()
         else:
             self.set_error("运行seqprep运行出错!")
             return False
@@ -131,20 +141,52 @@ class SeqPrepTool(Tool):
                         sample[line[1]] = line[0]
         return sample
 
+    def adapter(self):
+        files = glob.glob(r'{}/*.o'.format(self.work_dir))
+        total = 1
+        with open("adapter.xls", "w") as w:
+            w.write("sample\tadapter%\n")
+            for f in files:
+                sample_name = f.split("/")[-1]
+                w.write("{}\t".format(sample_name))
+                with open(f, "r") as f:
+                    for line in f:
+                        if re.match(r"Pairs Processed", line):
+                            total = line.strip().split()[-1]
+                        if re.match(r"Pairs With Adapters", line):
+                            adapter = line.strip().split()[-1]
+                            adap_rate = int(adapter)/int(total)
+                            w.write("{}\n".format(adap_rate))
+                        if not re.match(r"Pairs Processed", line):
+                            self.set_error("运行出错!")
+
     def set_output(self):
         """
         将结果文件链接至output
         """
         self.logger.info("set output")
+        for f in os.listdir(self.output_dir):
+            if f == "list.txt":
+                pass
+            else:
+                os.remove(os.path.join(self.output_dir, f))
         file_path = glob.glob(r"*.gz")
-        print(file_path)
+        self.logger.info(len(file_path))
+        self.logger.info(file_path)
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)
-            if os.path.exists(output_dir):
-                os.remove(output_dir)
-                os.link(os.path.join(self.work_dir, f), output_dir)
-            else:
-                os.link(os.path.join(self.work_dir, f), output_dir)
+            # shutil.move(os.path.join(self.work_dir, f), self.output_dir)
+            os.link(os.path.join(self.work_dir, f), output_dir)
+            os.remove(os.path.join(self.work_dir, f))
+        if self.option("fastq_dir").is_set:
+            self.option("seqprep_dir").set_path(self.output_dir)
+        else:
+            for f in os.listdir(self.output_dir):
+                if "seqprep_l.gz" in f:
+                    self.option("seqprep_l").set_path(os.path.join(self.output_dir, f))
+                elif "seqprep_r.gz" in f:
+                    self.option("seqprep_r").set_path(os.path.join(self.output_dir, f))
+        self.adapter()
         self.logger.info("done")
 
     def run(self):
@@ -153,7 +195,7 @@ class SeqPrepTool(Tool):
         """
         super(SeqPrepTool, self).run()
         if self.option("fastq_dir").is_set:
-            self.logger.info("where")
+            self.logger.info("fq_dir")
             commands = self.multi_seqprep()
             self.wait()
             for cmd in commands:

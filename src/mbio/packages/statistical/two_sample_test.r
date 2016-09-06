@@ -37,7 +37,6 @@ for(i in 1:length(pvalue)){
 }
 result <- cbind(result,pvalue)
 result <- cbind(result,qvalue)
-colnames(result) <- c(" ",paste("propotion(",s1,")",sep=''),paste("propotion(",s2,")",sep=''),"pvalue","corrected_pvalue")
-result_order <- result[order(-(as.numeric(result[,2])+as.numeric(result[,3]))),]  
+colnames(result) <- c(" ",paste(s1,"-propotion",sep=''),paste(s2,"-propotion",sep=''),"pvalue","corrected_pvalue")
+result_order <- result[order(-(as.numeric(result[,2])+as.numeric(result[,3]))),]
 write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)
-    

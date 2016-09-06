@@ -46,7 +46,7 @@ class MetaBaseWorkflow(Workflow):
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
             {"name": "plsda_grouplab", "type": 'string', "default": ''}
-        ]
+            ]
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.filecheck = self.add_tool("meta.filecheck.file_metabase")
@@ -291,7 +291,7 @@ class MetaBaseWorkflow(Workflow):
                 "revcomp": self.option("revcomp"),
                 "confidence": self.option("confidence"),
                 "database": self.option("database")
-            }
+                }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
             # self.otu_id = str(self.otu_id)
             # self.logger.info('OTU mongo ID:%s' % self.otu_id)
@@ -317,8 +317,9 @@ class MetaBaseWorkflow(Workflow):
                 # "otu_id": str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                 "level_id": level_id,
                 "indices": ','.join(indice),
-                'submit_location': 'alpha_diversity_index'
-            }
+                'submit_location': 'alpha_diversity_index',
+                'task_type': 'reportTask'
+                }
             est_id = api_est.add_est_table(est_path, major=True, level=level_id, otu_id=str(self.otu_id), params=params)
             self.updata_status_api.add_meta_status(table_id=str(est_id), type_name='sg_alpha_diversity')  # 主表写入没有加name，所以此处table_name固定
             api_rare = self.api.rarefaction
@@ -329,8 +330,9 @@ class MetaBaseWorkflow(Workflow):
                 "level_id": level_id,
                 "indices": ','.join(indice),
                 'freq': self.option('rarefy_freq'),
-                'submit_location': 'alpha_rarefaction_curve'
-            }
+                'submit_location': 'alpha_rarefaction_curve',
+                'task_type': 'reportTask'
+                }
             rare_id = api_rare.add_rare_table(rare_path, level=level_id, otu_id=str(self.otu_id), params=params)
             self.updata_status_api.add_meta_status(table_id=str(rare_id), type_name='sg_alpha_rarefaction_curve')  # 主表写入没有加name，所以此处table_name固定
         if event['data'] == "beta":
@@ -342,11 +344,12 @@ class MetaBaseWorkflow(Workflow):
                 raise Exception("找不到报告文件:{}".format(dist_path))
             level_id = self.level_dict[self.option('beta_level')]
             params = {
-                #'otu_id': str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
+                # 'otu_id': str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                 'level_id': level_id,
                 'distance_algorithm': self.option('dis_method'),
+                'task_type': 'reportTask',
                 'submit_location': 'beta_sample_distance'  # 为前端分析类型标识
-            }
+                }
             dist_id = api_dist.add_dist_table(dist_path, level=level_id, otu_id=self.otu_id, major=True, params=params)
             self.updata_status_api.add_meta_status(table_id=str(dist_id), type_name='sg_beta_specimen_distance')  # 主表写入没有加name，所以此处table_name固定
             if 'hcluster' in self.option('beta_analysis').split(','):
@@ -358,8 +361,9 @@ class MetaBaseWorkflow(Workflow):
                 params = {
                     # 'specimen_distance_id': str(dist_id),  # 在metabase中不能执行，生成dist_id的api可能会被截取
                     'hcluster_method': self.option('linkage'),
+                    'task_type': 'reportTask',
                     'submit_location': 'beta_sample_distance_hcluster_tree'  # 为前端分析类型标识
-                }
+                    }
                 tree_id = api_hcluster.add_tree_file(hcluster_path, major=True, table_id=str(dist_id), table_type='dist', tree_type='cluster', params=params)
                 self.updata_status_api.add_meta_status(table_id=str(tree_id), type_name='sg_newick_tree')  # 主表写入没有加name，所以此处table_name固定
             beta_multi_analysis_dict = {'pca': 'beta_multi_analysis_pca', 'pcoa': 'beta_multi_analysis_pcoa',
@@ -372,8 +376,9 @@ class MetaBaseWorkflow(Workflow):
                         # 'otu_id': str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                         'level_id': level_id,
                         'analysis_type': ana,
-                        'submit_location': beta_multi_analysis_dict[ana]
-                    }
+                        'submit_location': beta_multi_analysis_dict[ana],
+                        'task_type': 'reportTask'
+                        }
                     if self.option('envtable').is_set:
                         # params['env_id'] = str(self.env_id)  # 在metabase中不能执行，生成self.env_id的api可能会被截取
                         params['env_labs'] = ','.join(self.option('envtable').prop['group_scheme'])
@@ -447,7 +452,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
             ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Rda", "", "rda_cca分析结果目录"]
-        ]
+            ]
         regexps = [
             [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
             [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
@@ -467,7 +472,7 @@ class MetaBaseWorkflow(Workflow):
             ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
             ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "单级物种分类统计表"],
             ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
-        ]
+            ]
         for i in self.option("rarefy_indices").split(","):
             if i == "sobs":
                 repaths.append(["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)])

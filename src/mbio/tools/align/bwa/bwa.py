@@ -25,8 +25,9 @@ class BwaAgent(Agent):
             {"name": "fastq_l", "type": "infile", "format": "sequence.fastq"},  # 左端序列文件
             {"name": "fastq_s", "type": "infile", "format": "sequence.fastq"},  # SE序列文件
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
-            {"name": "head", "type": "string", "default": None},  # 设置结果头文件
-            {"name": "sam", "type": "outfile", "format": "align.samtools.sam,align.samtools.sam_dir"},     # sam格式文件
+            {"name": "head", "type": "string", "default": "'@RG\\tID:sample\\tLB:rna-seq\\tSM:sample\\tPL:ILLUMINA'"},  # 设置结果头文件
+            {"name": "sam", "type": "outfile", "format": "align.bwa.sam"},     # sam格式文件
+            {"name": "method", "type": "string", "default": "align"},     # sam格式文件
         ]
         self.add_option(options)
 
@@ -38,15 +39,19 @@ class BwaAgent(Agent):
             raise OptionError("请传入参考序列")
         # if not self.option("fastq_dir").is_set or self.option("fastq_r").is_set or self.option("fastq_s").is_set:
         #     raise OptionError("请传入fastq序列文件或者文件夹")
-        if self.option('fq_type') not in ['PE', 'SE']:
-            raise OptionError("请说明序列类型，PE or SE?")
+        if self.option("fastq_dir").is_set and not os.path.exists(self.option("fastq_dir").prop["path"] + "/list.txt"):
+            raise OptionError("fastq序列文件夹需还有list文件")
+        if self.option("method") == "align":
+            if self.option('fq_type') not in ['PE', 'SE']:
+                raise OptionError("请说明序列类型，PE or SE?")
         if not self.option("fastq_dir").is_set and self.option('fq_type') in ["PE"]:
             if not self.option("fastq_r").is_set:
                 raise OptionError("请传入PE右端序列文件")
             if not self.option("fastq_l").is_set:
                 raise OptionError("请传入PE左端序列文件")
-        if self.option('fq_type') in ["SE"] and not self.option("fastq_s").is_set:
-            raise OptionError("请传入SE序列文件")
+        if not self.option("fastq_dir").is_set and self.option('fq_type') in ["SE"]:
+            if not self.option("fastq_s").is_set:
+                raise OptionError("请传入SE序列文件")
         return True
 
     def set_resource(self):
@@ -54,7 +59,7 @@ class BwaAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '10G'
 
 
 class BwaTool(Tool):
@@ -64,7 +69,7 @@ class BwaTool(Tool):
 
     def __init__(self, config):
         super(BwaTool, self).__init__(config)
-        self.bwa_path = "align/bwa-0.7.9a/"
+        self.bwa_path = "bioinfo/align/bwa-0.7.9a/"
         if self.option("fastq_dir").is_set:
             self.samples = self.get_list()
             self.fq_dir = True
@@ -100,7 +105,7 @@ class BwaTool(Tool):
         else:
             cmd = "{}bwa sampe -r {} -f {} {} {} {} {} {}".format(self.bwa_path, self.option("head"), outfile, self.option("ref_fasta").prop["path"], aln_l, aln_r, fastq_l, fastq_r)
         print(cmd)
-        self.logger.info("开始生成sam比对结果文件")
+        # self.logger.info("开始生成sam比对结果文件")
         self.logger.info("开始运行{}_bwa_sampe".format(outfile.lower()))
         command = self.add_command("{}_bwa_sampe".format(outfile.lower()), cmd)
         command.run()
@@ -121,12 +126,13 @@ class BwaTool(Tool):
         else:
             cmd = "{}bwa samse -r {} -f {} {} {} {}".format(self.bwa_path, self.option("head"), outfile, self.option("ref_fasta").prop["path"], aln_s, fastq_s)
         print(cmd)
-        self.logger.info("开始生成sam比对结果文件")
-        command = self.add_command("bwa_samse", cmd)
+        # self.logger.info("开始生成sam比对结果文件")
+        self.logger.info("开始运行{}_bwa_sampe命令".format(outfile))
+        command = self.add_command("{}_bwa_samse".format(outfile.lower()), cmd)
+        command.run()
         if self.fq_dir is True:
             return command
         else:
-            command.run()
             self.wait()
             if command.return_code == 0:
                 self.logger.info("生成sam比对结果文件完成！")
@@ -143,7 +149,7 @@ class BwaTool(Tool):
                 aln_commands.append(aln_l_cmd)
                 aln_commands.append(aln_r_cmd)
             elif self.option("fq_type") in ["SE"]:
-                aln_s_cmd = self.bwa_aln(samples[sample], "{}_s.sai".format(sample))
+                aln_s_cmd = self.bwa_aln(os.path.join(self.fq_dir_path, samples[sample]), "{}_s.sai".format(sample))
                 aln_commands.append(aln_s_cmd)
                 self.logger.info(aln_s_cmd)
         return aln_commands
@@ -197,6 +203,7 @@ class BwaTool(Tool):
                 os.link(os.path.join(self.work_dir, f), output_dir)
             else:
                 os.link(os.path.join(self.work_dir, f), output_dir)
+        self.logger.info("done")
         self.end()
 
     def run(self):
@@ -204,52 +211,56 @@ class BwaTool(Tool):
         运行
         """
         super(BwaTool, self).run()
-        if self.option("fastq_dir").is_set:
-            # self.bwa_index()
-            aln_commands = self.multi_aln()
-            self.logger.info(aln_commands)
-            self.wait()
-            for aln_cmd in aln_commands:
-                if aln_cmd.return_code == 0:
-                    self.logger.info(str(aln_cmd.return_code))
-                    self.logger.info("运行{}完成".format(aln_cmd.name))
-                else:
-                    self.set_error("运行{}运行出错!".format(aln_cmd.name))
-                    return False
-            sam_commands = self.multi_sam()
-            self.wait()
-            for sam_cmd in sam_commands:
-                self.logger.info(str(sam_cmd.return_code))
-                if sam_cmd.return_code == 0:
-                    self.logger.info("运行{}完成".format(sam_cmd.name))
-                else:
-                    self.set_error("运行{}运行出错!".format(sam_cmd.name))
-                    return False
-            self.set_ouput()
+        if self.option("method") == "index":
+            self.bwa_index()
         else:
-            if self.option("fq_type") in ["PE"]:
-                # self.bwa_index()
-                aln_l = self.bwa_aln(self.option("fastq_l").prop["path"], "aln_l.sai")
-                aln_r = self.bwa_aln(self.option("fastq_r").prop["path"], "aln_r.sai")
-                self.wait(aln_l, aln_r)
-                if aln_l.return_code == 0:
-                    self.logger.info("左端比对完成！")
-                else:
-                    self.set_error("左端比对出错")
-                if aln_r.return_code == 0:
-                    self.logger.info("右端比对完成！")
-                else:
-                    self.set_error("右端比对出错")
-                self.bwa_sampe("pe.sam", "aln_l.sai", "aln_r.sai", self.option("fastq_l").prop["path"], self.option("fastq_r").prop["path"])
-            elif self.option("fq_type") in ["SE"]:
-                self.logger.info("run1")
+            if os.path.exists(self.option("ref_fasta").prop["path"] + ".amb"):
+                pass
+            else:
                 self.bwa_index()
-                self.logger.info("run2")
-                aln_s = self.bwa_aln(self.option("fastq_s").prop["path"], "aln_s.sai")
-                self.wait(aln_s)
-                if aln_s.return_code == 0:
-                    self.logger.info("比对完成！")
-                else:
-                    self.set_error("比对出错")
-                self.bwa_samse("se.sam", "aln_s.sai", self.option("fastq_s").prop["path"])
-            self.set_ouput()
+            if self.option("fastq_dir").is_set:
+                # self.bwa_index()
+                aln_commands = self.multi_aln()
+                self.logger.info(aln_commands)
+                self.wait()
+                for aln_cmd in aln_commands:
+                    if aln_cmd.return_code == 0:
+                        self.logger.info("运行{}完成".format(aln_cmd.name))
+                    else:
+                        self.set_error("运行{}运行出错!".format(aln_cmd.name))
+                        return False
+                sam_commands = self.multi_sam()
+                self.logger.info(sam_commands)
+                self.wait()
+                for sam_cmd in sam_commands:
+                    if sam_cmd.return_code == 0:
+                        self.logger.info("运行{}完成".format(sam_cmd.name))
+                    else:
+                        self.set_error("运行{}运行出错!".format(sam_cmd.name))
+                        return False
+                # self.set_ouput()
+            else:
+                if self.option("fq_type") in ["PE"]:
+                    # self.bwa_index()
+                    aln_l = self.bwa_aln(self.option("fastq_l").prop["path"], "aln_l.sai")
+                    aln_r = self.bwa_aln(self.option("fastq_r").prop["path"], "aln_r.sai")
+                    self.wait(aln_l, aln_r)
+                    if aln_l.return_code == 0:
+                        self.logger.info("左端比对完成！")
+                    else:
+                        self.set_error("左端比对出错")
+                    if aln_r.return_code == 0:
+                        self.logger.info("右端比对完成！")
+                    else:
+                        self.set_error("右端比对出错")
+                    self.bwa_sampe("pe.sam", "aln_l.sai", "aln_r.sai", self.option("fastq_l").prop["path"], self.option("fastq_r").prop["path"])
+                elif self.option("fq_type") in ["SE"]:
+                    # self.bwa_index()
+                    aln_s = self.bwa_aln(self.option("fastq_s").prop["path"], "aln_s.sai")
+                    self.wait(aln_s)
+                    if aln_s.return_code == 0:
+                        self.logger.info("比对完成！")
+                    else:
+                        self.set_error("比对出错")
+                    self.bwa_samse("se.sam", "aln_s.sai", self.option("fastq_s").prop["path"])
+        self.set_ouput()

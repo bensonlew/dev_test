@@ -17,21 +17,24 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
     cmd_path = os.path.join(dir_path, "cmd.r")
     bind_obj.logger.debug("正在导出参数%s的多样性指数表格为文件，路径:%s" % (option_name, file_path))
     collection = db['sg_alpha_diversity_detail']
-    bind_obj.logger.debug(data)
     est_collection = db['sg_alpha_diversity']
     result = est_collection.find_one({"_id": ObjectId(data)})
-    bind_obj.logger.debug(result)
     if not result:
         raise Exception('没有找到多样性指数id对应的表，请检查传入的id是否正确')
-    print(type(result['params']))
     if not result['params']:
         index_type = u"ace,chao,shannon,simpson,coverage"
     elif type(result['params']) is dict:
         params = result["params"]
-        index_type = params['indices']
+        if 'indices' in params:
+            index_type = params['indices']
+        elif 'index_type' in params:
+            index_type = params['index_type']
     else:
         params = json.loads(result["params"])
-        index_type = params['indices']
+        if 'indices' in params:
+            index_type = params['indices']
+        elif 'index_type' in params:
+            index_type = params['index_type']
     indices = index_type.split(',')
     bind_obj.logger.debug(indices)
     details = collection.find({"alpha_diversity_id": ObjectId(data)})

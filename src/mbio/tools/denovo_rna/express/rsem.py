@@ -16,16 +16,13 @@ class RsemAgent(Agent):
     def __init__(self, parent):
         super(RsemAgent, self).__init__(parent)
         options = [
-            {"name": "rsem_bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # 输入文件，bam格式的比对文件
+            {"name": "fq_type", "type": "string"}, # PE OR SE
             {"name": "rsem_fa", "type": "infile", "format": "sequence.fasta"},  #trinit.fasta文件
-            {"name": "fq_l", "type": "infile", "format": "sequence.fastq, sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
-            {"name": "fq_r", "type": "infile", "format": "sequence.fastq, sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
-            {"name": "fq_s", "type": "infile", "format": "sequence.fastq, sequence.fastq_dir"},  # SE测序，包含所有样本的fq文件的文件夹
-            {"name": "tran_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "gene_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "tran_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "gene_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "exp_way", "type": "string", "default": "fpkm"}
+            {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
+            {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
+            {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件夹
+            {"name": "fa_build", "type": "outfile", "format": "sequence.fasta"},  #trinit.fasta文件
+            {"name": "only_bowtie_build", "type": "bool", "default": False}  #  为true时该tool只建索引
         ]
         self.add_option(options)
         self.step.add_steps("rsem")
@@ -45,17 +42,19 @@ class RsemAgent(Agent):
         重写参数检测函数
         :return:
         """
-        # print self.option('fq_s'), self.option("fq_l"), self.option("fq_r")
-        if not self.option("fq_l") and not self.option("fq_r") and not self.option("fq_s"):
-            raise OptionError("必须设置PE测序输入文件或者SE测序输入文件")
-        if self.option("fq_l") and self.option("fq_r") and self.option("fq_s"):
-            raise OptionError("不能同时设置PE测序输入文件和SE测序输入文件的参数")
-        if self.option("fq_l") and not self.option("fq_r"):
-            raise OptionError("要同时设置PE测序左端fq和右端fq，缺少右端fq")
-        if not self.option("fq_l") and self.option("fq_r"):
-            raise OptionError("要同时设置PE测序左端fq和右端fq，缺少左端fq")
-        if self.option("exp_way") not in ['fpkm', 'tpm']:
-            raise OptionError("所设表达量的代表指标不在范围内，请检查")
+        if not self.option('fq_type'):
+            raise OptionError('必须设置测序类型：PE OR SE')
+        if self.option('fq_type') not in ['PE', 'SE']:
+            raise OptionError('测序类型不在所给范围内')
+        if not self.option('only_bowtie_build'):
+            if self.option("fq_type") == "PE" and not self.option("fq_r").is_set and not self.option("fq_l").is_set:
+                raise OptionError("PE测序时需设置左端序列和右端序列输入文件")
+            if self.option("fq_type") == "SE" and not self.option("fq_s").is_set:
+                raise OptionError("SE测序时需设置序列输入文件")
+        if not self.option("rsem_fa").is_set:
+            raise OptionError("需设置rsem_fa输入文件")
+        if not isinstance(self.option('only_bowtie_build'), bool):
+            raise OptionError('only_bowtie_build只能为bool')
         return True
 
     def set_resource(self):
@@ -72,8 +71,7 @@ class RsemAgent(Agent):
             [".", "", "结果输出目录"]
         ])
         result_dir.add_regexp_rules([
-            [r"results$", "xls", "rsem结果"],
-            [r"matrix$", "xls", "表达量矩阵"]
+            [r"results$", "xls", "rsem结果"]
             ])
         super(RsemAgent, self).end()
 
@@ -85,72 +83,49 @@ class RsemTool(Tool):
     def __init__(self, config):
         super(RsemTool, self).__init__(config)
         self._version = '1.0.1'
-        self.fpkm = "/rna/scripts/abundance_estimates_to_matrix.pl"
-        self.tpm = "/rna/trinityrnaseq-2.1.1/util/abundance_estimates_to_matrix.pl"
-        self.rsem = "/rna/trinityrnaseq-2.1.1/util/align_and_estimate_abundance.pl"
+        self.rsem = "/bioinfo/rna/scripts/align_and_estimate_abundance.pl"
+        self.rsem_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/RSEM-1.2.31/bin'
+        self.bowtie_path = self.config.SOFTWARE_DIR + '/bioinfo/align/bowtie2-2.2.9/'
+        # self.bowtie2 = '/bioinfo/align/bowtie2-2.2.9/bowtie2-build'
+        self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
+        self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
+        self.set_environ(PATH=self.rsem_path)
+        self.set_environ(PATH=self.bowtie_path)
 
-    def fq_bam(self, bamdir):
-        bamfiles = os.listdir(bamdir)
-        fq_bam = {}
-        for bam in bamfiles:
-            sample = bam.split('.bam')[0]
-            if self.option('fq_s'):
-                fq_bam[sample] = [bam, sample + '.fq']
-            else:
-                fq_bam[sample] = [bam, sample + '_r.fq', sample + '_l.fq']
-        return fq_bam
+    def bowtie_build(self):
+        rsem_fasta = self.work_dir + '/' + os.path.basename(self.option('rsem_fa').prop['path'])
+        if os.path.exists(rsem_fasta):
+            os.remove(rsem_fasta)
+            os.link(self.option('rsem_fa').prop['path'],rsem_fasta)
+        else:
+            os.link(self.option('rsem_fa').prop['path'],rsem_fasta)
+        cmd = self.rsem + ' --transcripts %s --seqType fq --single test.fq --est_method  RSEM --output_dir %s --trinity_mode --aln_method bowtie2 --prep_reference' % (rsem_fasta, self.work_dir)
+        self.logger.info('开始运行bowtie2建索引')
+        bowtie_cmd = self.add_command('bowtie_build', cmd).run()
+        self.wait()
+        if bowtie_cmd.return_code == 0:
+            self.logger.info("%s运行完成" % bowtie_cmd)
+            self.option('fa_build', rsem_fasta)
+        else:
+            self.set_error("%s运行出错!" % bowtie_cmd)
 
     def run_rsem(self):
-        if self.option('rsem_bam').format == "align.bwa.bam_dir":
-            fq_bam = self.fq_bam(self.option('rsem_bam').prop['path'])
-            comm_list = []
-            for sample in fq_bam.keys():
-                os.link(self.option('rsem_bam').prop['path'] + '/' + fq_bam[sample][0], self.work_dir + '/' + fq_bam[sample][0])
-                if self.option('fq_s'):
-                    rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --single %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --prep_reference --aln_method %s --output_prefix %s' % (self.option('rsem_fa').prop['path'], self.option('fq_s').prop['path'] + '/' + fq_bam[sample][1], self.work_dir, fq_bam[sample][0], sample)
-                else:
-                    rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --right %s --left %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --prep_reference --aln_method %s --output_prefix %s' % (self.option('rsem_fa').prop['path'], self.option('fq_r').prop['path'] + '/' + fq_bam[sample][1], self.option('fq_r').prop['path'] + '/' + fq_bam[sample][2], self.work_dir, fq_bam[sample][0], sample)
-                self.logger.info("开始运行%s_rsem_cmd" % sample)
-                cmd = str(("%srsem_cmd" % sample).lower())
-                self.logger.info(rsem_cmd)
-                comm_list.append(self.add_command(cmd, rsem_cmd).run())
-            self.wait()
-            for cmd in comm_list:
-                if cmd.return_code == 0:
-                    self.logger.info("%s运行完成" % cmd)
-
-                else:
-                    self.set_error("%s运行出错!" % cmd)
-
-    def merge_rsem(self):
-        files = os.listdir(self.work_dir)
-        if self.option('exp_way') == 'fpkm':
-            merge_gene_cmd = self.fpkm + ' --est_method RSEM --out_prefix genes '
-            merge_tran_cmd = self.fpkm + ' --est_method RSEM --out_prefix transcripts '
+        if self.option('fq_type') == 'SE':
+            sample = os.path.basename(self.option('fq_s').prop['path']).split('_sickle_s.fastq')[0]
+            # os.system('cp {} ./{}.bam'.format(self.option('bam').prop['path'], sample))
+            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --single %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (self.option('rsem_fa').prop['path'], self.option('fq_s').prop['path'], self.work_dir, sample)
         else:
-            merge_gene_cmd = self.tpm + ' --est_method RSEM --out_prefix genes '
-            merge_tran_cmd = self.tpm + ' --est_method RSEM --out_prefix transcripts '
-        for f in files:
-            if re.search(r'genes\Wresults$', f):
-                merge_gene_cmd += '%s ' % f
-            elif re.search(r'isoforms\Wresults$', f):
-                merge_tran_cmd += '%s ' % f
-        self.logger.info(merge_tran_cmd)
-        self.logger.info(merge_gene_cmd)
-        self.logger.info("开始运行merge_gene_cmd")
-        self.logger.info("开始运行merge_tran_cmd")
-        gene_com = self.add_command("merge_gene_cmd", merge_gene_cmd).run()
-        self.wait(gene_com)
-        if gene_com.return_code == 0:
-            self.logger.info("运行merge_gene_cmd成功")
+            sample = os.path.basename(self.option('fq_l').prop['path']).split('_sickle_l.fastq')[0]
+            # os.system('cp {} ./{}.bam'.format(self.option('bam').prop['path'], sample))
+            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --right %s --left %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (self.option('rsem_fa').prop['path'], self.option('fq_r').prop['path'], self.option('fq_l').prop['path'], self.work_dir, sample)
+        self.logger.info("开始运行_rsem_cmd")
+        cmd = self.add_command("rsem_cmd", rsem_cmd).run()
+        self.wait()
+        if cmd.return_code == 0:
+            self.logger.info("%s运行完成" % cmd)
         else:
-            self.logger.info("运行merge_gene_cmd出错")
-        tran_com = self.add_command("merge_tran_cmd", merge_tran_cmd).run()
-        self.wait(tran_com)
-        if tran_com.return_code == 0:
-            self.logger.info("运行merge_tran_cmd成功")
-        else:
-            self.logger.info("运行merge_tran_cmd出错")
+            self.set_error("%s运行出错!" % cmd)
 
     def set_output(self):
         """
@@ -166,25 +141,15 @@ class RsemTool(Tool):
             for f in results:
                 if re.search(r'results$', f):
                     os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-                elif re.search(r'^(transcripts\.TMM)(.+)(matrix)$', f):
-                    os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-                    self.option('tran_fpkm').set_path(self.output_dir + '/' + f)
-                elif re.search(r'^(genes\.TMM)(.+)(matrix)$', f):
-                    os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-                    self.option('gene_fpkm').set_path(self.output_dir + '/' + f)
-                elif re.search(r'^(transcripts\.count)(.+)(matrix)$', f):
-                    os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-                    self.option('tran_count').set_path(self.output_dir + '/' + f)
-                elif re.search(r'^(genes\.count)(.+)(matrix)$', f):
-                    os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-                    self.option('gene_count').set_path(self.output_dir + '/' + f)
             self.logger.info("设置rsem分析结果目录成功")
-        except:
-            self.logger.info("设置rsem分析结果目录失败")
+        except Exception as e:
+            self.logger.info("设置rsem分析结果目录失败{}".format(e))
 
     def run(self):
         super(RsemTool, self).run()
-        self.run_rsem()
-        self.merge_rsem()
+        if self.option('only_bowtie_build'):
+            self.bowtie_build()
+        else:
+            self.run_rsem()
         self.set_output()
         self.end()

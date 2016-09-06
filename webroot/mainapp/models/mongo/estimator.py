@@ -68,7 +68,7 @@ class Estimator(object):
                 "params": params,
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
-        collection = self.db["sg_alpha_est_t_test"]
+        collection = self.db["sg_alpha_ttest"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 
