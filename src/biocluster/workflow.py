@@ -19,6 +19,7 @@ import re
 import importlib
 import types
 import traceback
+from .core.watcher import Watcher
 
 
 class Workflow(Basic):
@@ -71,8 +72,8 @@ class Workflow(Basic):
             self.UPDATE_STATUS_API = self.sheet.UPDATE_STATUS_API
         if self.sheet.IMPORT_REPORT_DATA is True:
             self.IMPORT_REPORT_DATA = True
-        if self.sheet.IMPORT_REPORT_AFTER_END is False:
-            self.IMPORT_REPORT_AFTER_END = False
+        if self.sheet.IMPORT_REPORT_AFTER_END is True:
+            self.IMPORT_REPORT_AFTER_END = True
 
     def step_start(self):
         """
@@ -190,9 +191,10 @@ class Workflow(Basic):
             }
             self._update(data)
             if self.USE_DB:
-                gevent.spawn(self.__update_service)
-                gevent.spawn(self.__check_tostop)
-                gevent.spawn(self.__check_pause)
+                watcher = Watcher()
+                watcher.add(self.__update_service, 60)
+                watcher.add(self.__check_tostop, 10)
+                watcher.add(self.__check_pause, 15)
             self.rpc_server.run()
 
     def end(self):
@@ -281,15 +283,17 @@ class Workflow(Basic):
 
         :return:
         """
-        while self.is_end is False:
-            gevent.sleep(60)
-            try:
-                self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
-                              vars={'id': self._id})
-            except Exception, e:
-                exstr = traceback.format_exc()
-                print exstr
-                self.logger.debug("数据库更新异常: %s" % e)
+        # while self.is_end is False:
+        #     gevent.sleep(60)
+        if self.is_start is True:
+            return False
+        try:
+            self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
+                          vars={'id': self._id})
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.debug("数据库更新异常: %s" % e)
 
     def _update(self, data):
         """
@@ -308,30 +312,31 @@ class Workflow(Basic):
 
         :return:
         """
-        while self.is_end is False:
-            if (datetime.datetime.now() - self.last_update).seconds > self.config.MAX_WAIT_TIME:
-                self.exit(data="超过 %s s没有任何运行更新，退出运行！" % self.config.MAX_WAIT_TIME)
-            gevent.sleep(10)
-            myvar = dict(id=self._id)
-            try:
-                results = self.db.query("SELECT * FROM tostop "
-                                        "WHERE workflow_id=$id and done  = 0", vars={'id': self._id})
-                if isinstance(results, long) or isinstance(results, int):
-                    gevent.sleep(10)
-                    continue
-                if len(results) > 0:
-                    data = results[0]
-                    update_data = {
-                        "stoptime": datetime.datetime.now(),
-                        "done": 1
-                    }
-                    self.db.update("tostop", vars=myvar, where="workflow_id = $id", **update_data)
-                    self.exit(data="接收到终止运行指令,%s" % data.reson, terminated=True)
-            except Exception, e:
-                exstr = traceback.format_exc()
-                print exstr
-                self.logger.info("查询数据库异常: %s" % e)
-            gevent.sleep(10)
+        # while self.is_end is False:
+        if self.is_start is True:
+            return False
+        if (datetime.datetime.now() - self.last_update).seconds > self.config.MAX_WAIT_TIME:
+            self.exit(data="超过 %s s没有任何运行更新，退出运行！" % self.config.MAX_WAIT_TIME)
+        gevent.sleep(10)
+        myvar = dict(id=self._id)
+        try:
+            results = self.db.query("SELECT * FROM tostop "
+                                    "WHERE workflow_id=$id and done  = 0", vars={'id': self._id})
+            if isinstance(results, long) or isinstance(results, int):
+                gevent.sleep(10)
+                return
+            if len(results) > 0:
+                data = results[0]
+                update_data = {
+                    "stoptime": datetime.datetime.now(),
+                    "done": 1
+                }
+                self.db.update("tostop", vars=myvar, where="workflow_id = $id", **update_data)
+                self.exit(data="接收到终止运行指令,%s" % data.reson, terminated=True)
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.info("查询数据库异常: %s" % e)
 
     def __check_pause(self):
         """
@@ -339,59 +344,58 @@ class Workflow(Basic):
 
         :return:
         """
-        while self.is_end is False:
-            gevent.sleep(5)
-            myvar = dict(id=self._id)
-            try:
-                results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and "
-                                        "has_continue  = 0 and timeout = 0", vars={'id': self._id})
-                if isinstance(results, long) or isinstance(results, int):
-                    gevent.sleep(10)
-                    continue
-                if len(results) > 0:
-                    data = results[0]
-                    if data.has_pause == 0:
-                        self.pause = True
-                        self._pause_time = datetime.datetime.now()
-                        update_data = {
-                            "pause_time": datetime.datetime.now(),
-                            "has_pause": 1
-                        }
-                        self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
-                        self.db.query("UPDATE workflow SET paused = 1 where workflow_id=$id", vars={'id': self._id})
-                        self.step.pause()
-                        self.step.update()
-                        self.logger.info("检测到暂停指令，暂停所有新模块运行: %s" % data.reason)
-                    else:
-                        if data.exit_pause == 0:
-                            now = datetime.datetime.now()
-                            if self.pause:
-                                if (now - self._pause_time).seconds > self.config.MAX_PAUSE_TIME:
-                                    update_data = {
-                                        "timeout_time": datetime.datetime.now(),
-                                        "timeout": 1
-                                    }
-                                    self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
-                                    self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
-                                                  vars={'id': self._id})
-                                    self.exit(data="暂停超过规定的时间%ss,自动退出运行!" %
-                                                   self.config.MAX_PAUSE_TIME, terminated=True)
-                        else:
-                            if data.has_continue == 0 and data.timeout == 0:
-                                self.pause = False
-                                self._pause_time = None
+        if self.is_start is True:
+            return False
+        myvar = dict(id=self._id)
+        try:
+            results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and "
+                                    "has_continue  = 0 and timeout = 0", vars={'id': self._id})
+            if isinstance(results, long) or isinstance(results, int):
+                gevent.sleep(10)
+                return
+            if len(results) > 0:
+                data = results[0]
+                if data.has_pause == 0:
+                    self.pause = True
+                    self._pause_time = datetime.datetime.now()
+                    update_data = {
+                        "pause_time": datetime.datetime.now(),
+                        "has_pause": 1
+                    }
+                    self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
+                    self.db.query("UPDATE workflow SET paused = 1 where workflow_id=$id", vars={'id': self._id})
+                    self.step.pause()
+                    self.step.update()
+                    self.logger.info("检测到暂停指令，暂停所有新模块运行: %s" % data.reason)
+                else:
+                    if data.exit_pause == 0:
+                        now = datetime.datetime.now()
+                        if self.pause:
+                            if (now - self._pause_time).seconds > self.config.MAX_PAUSE_TIME:
                                 update_data = {
-                                        "continue_time": datetime.datetime.now(),
-                                        "has_continue": 1
+                                    "timeout_time": datetime.datetime.now(),
+                                    "timeout": 1
                                 }
                                 self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
                                 self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
                                               vars={'id': self._id})
-                                self.step.start()
-                                self.step.update()
-                                self.logger.info("检测到恢复运行指令，恢复所有模块运行!")
-            except Exception, e:
-                exstr = traceback.format_exc()
-                print exstr
-                self.logger.info("查询数据库异常: %s" % e)
-            gevent.sleep(15)
+                                self.exit(data="暂停超过规定的时间%ss,自动退出运行!" %
+                                               self.config.MAX_PAUSE_TIME, terminated=True)
+                    else:
+                        if data.has_continue == 0 and data.timeout == 0:
+                            self.pause = False
+                            self._pause_time = None
+                            update_data = {
+                                    "continue_time": datetime.datetime.now(),
+                                    "has_continue": 1
+                            }
+                            self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
+                            self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
+                                          vars={'id': self._id})
+                            self.step.start()
+                            self.step.update()
+                            self.logger.info("检测到恢复运行指令，恢复所有模块运行!")
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.info("查询数据库异常: %s" % e)

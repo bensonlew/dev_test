@@ -31,7 +31,10 @@ def sub_group_detail_sort(detail):
 
 
 def group_detail_sort(detail):
-    table_dict = json.loads(detail)
+    if isinstance(detail, dict):
+        table_dict = detail
+    else:
+        table_dict = json.loads(detail)
     if not isinstance(table_dict, dict):
         raise Exception("传入的table_dict不是一个字典")
     for keys in table_dict.keys():

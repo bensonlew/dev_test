@@ -8,6 +8,7 @@ from types import StringTypes
 from mainapp.config.db import get_mongo_client
 import json
 from biocluster.config import Config
+from mainapp.libs.param_pack import group_detail_sort
 
 
 class Rarefaction(Base):
@@ -26,8 +27,8 @@ class Rarefaction(Base):
             else:
                 raise Exception("rarefaction_id必须为ObjectId对象或其对应的字符串!")
         collection_first = self.db['sg_alpha_rarefaction_curve']
-        result = collection_first.find_one({"_id": rare_id})
-        task_id = result['task_id']
+        # result = collection_first.find_one({"_id": rare_id})
+        # task_id = result['task_id']
         rare_paths = os.listdir(file_path)
         rare_detail = []
         category_x = []
@@ -86,7 +87,7 @@ class Rarefaction(Base):
         # return max(self.category_x)
 
     @report_check
-    def add_rare_table(self, file_path, level, otu_id=None, task_id=None, name=None, params=None):
+    def add_rare_table(self, file_path, level, otu_id=None, task_id=None, name=None, params=None, spname_spid=None):
         if level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if task_id is None:
@@ -95,6 +96,9 @@ class Rarefaction(Base):
             if not isinstance(otu_id, ObjectId):
                 otu_id = ObjectId(otu_id)
             params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+        if spname_spid:
+            group_detail = {'All': [str(i) for i in spname_spid.values()]}
+            params['group_detail'] = group_detail_sort(group_detail)
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": task_id,

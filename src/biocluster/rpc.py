@@ -8,6 +8,8 @@ from .config import Config
 import datetime
 import gevent
 from multiprocessing import Queue
+import os
+# import gipc
 
 
 class Report(object):
@@ -61,6 +63,8 @@ class LocalServer(object):
     def __init__(self, workflow):
         self._report = Report(workflow)
         self._close = False
+        # (reader, writer) = gipc.pipe()
+        # print "reader %s, writer %s" % (reader, writer)
         self.process_queue = Queue()
         self.endpoint = ""
 
@@ -72,8 +76,8 @@ class LocalServer(object):
             except Exception:
                 pass
             else:
-                # print "GET MSG:%s" % msg
-                self._report.report(msg)
+                if msg:
+                    self._report.report(msg)
             if self._close:
                 break
 

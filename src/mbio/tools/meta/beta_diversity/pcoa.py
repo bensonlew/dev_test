@@ -55,7 +55,7 @@ class PcoaAgent(Agent):
             ["./pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
             ["./pcoa_sites.xls", "xls", "样本坐标表"],
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(PcoaAgent, self).end()
 
 
