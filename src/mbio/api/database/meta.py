@@ -43,6 +43,8 @@ class Meta(Base):
             }
             collection = self.db["sg_otu"]
             otu_id = collection.insert_one(insert_data).inserted_id
+            insert_data["from_id"] = str(otu_id)
+            collection.find_one_and_update({"_id": otu_id}, {'$set': insert_data})
         else:
             # if task_id is None:
             #     raise Exception("major为False时需提供task_id!")

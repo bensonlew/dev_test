@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import re
+import os
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
@@ -14,6 +15,7 @@ class FileSampleFile(File):
         super(FileSampleFile, self).__init__()
         self.col = 0
         self.repeat_name = False
+        self.file_sample = dict()  # 文件名与样本名的对应
 
     def get_info(self):
         """
@@ -25,15 +27,19 @@ class FileSampleFile(File):
         self.set_property("file_number", len(name))
         self.set_property("file_names", name.keys())
         self.set_property("sample_names", sample.keys())
+        self.set_property("file_sample", self.file_sample)
 
     def get_file_info(self):
         """
         获取file_sample文件的信息
         """
+        dir_name = os.path.dirname(self.prop['path'])
         with open(self.prop['path'], 'r') as f:
             sample = dict()
             name = dict()
             for line in f:
+                if "#" in line:
+                    continue
                 line = line.rstrip('\n')
                 line = re.split('\t', line)
                 self.col = len(line)
@@ -43,7 +49,25 @@ class FileSampleFile(File):
                     name[line[0]] = 1
                 else:
                     self.repeat_name = True
+                full_name = os.path.join(dir_name, line[0])
+                if os.path.isfile(full_name):
+                    self.file_sample[line[0]] = line[1]
         return sample, name
+
+    def check_exists(self):
+        """
+        检查file_list中的每个文件是否都存在
+        """
+        dir_name = os.path.dirname(self.prop['path'])
+        with open(self.prop['path'], 'r') as f:
+            for line in f:
+                if "#" in line:
+                    continue
+                line = line.rstrip().split("\t")
+                full_name = os.path.join(dir_name, line[0])
+                if not os.path.isfile(full_name):
+                    raise FileError("文件{}不存在".format(full_name))
+        return True
 
     def check(self):
         if super(FileSampleFile, self).check():
@@ -54,4 +78,5 @@ class FileSampleFile(File):
                 raise FileError('这个文件的列数应该为2')
             if self.repeat_name:
                 raise FileError('文件名不能重复！')
+            self.check_exists()
             return True

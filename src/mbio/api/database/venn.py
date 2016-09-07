@@ -95,9 +95,33 @@ class Venn(Base):
                 }
                 collection.insert_one(insert_data)
                 count += 1
+        # 由于需求的变更，要在原来基础上再把几个分组的all的导入sg_otu和sg_otu_species
+        # 所以要先获取到all的otu，再导入, 但是这几个的venn_detail表不用再进行导入
+        otu_list = defaultdict(list)
+        with open(venn_path, "rb") as r:
+            for line in r:
+                tmp_list = list()
+                line = line.rstrip().split("\t")
+                if re.search("only", line[0]):
+                    name = re.sub(" ", "", line[0])
+                    name = re.sub("only", "", name)
+                    if line[1] not in [0, "0"]:  # 当值为0的时候，列表少一个元素， line[2]不存在
+                        otu_list[name].extend(re.split(",", line[2]))
+                if re.search("&", line[0]):
+                    name = re.sub(" ", "", line[0])
+                    tmp_list = re.split("&", name)
+                    for g in tmp_list:
+                        if line[1] not in [0, "0"]:
+                            otu_list[g].extend(re.split(",", line[2]))
+        for g in otu_list:
+            otu_list[g] = list(set(otu_list[g]))
+        for g in otu_list:
+            new_otu_id = self._add_sg_otu(otu_id, g + "__all")
+            self._add_sg_otu_detail(",".join(otu_list[g]), otu_id, new_otu_id, g + "__all")
 
     def _get_venn_json(self, venn_path):
         num = defaultdict(int)
+        single = defaultdict(int)
         only = dict()
         gp = list()
         with open(self.bind_object.option("group_table").prop['path'], "rb") as r:
@@ -111,6 +135,8 @@ class Venn(Base):
         single_len = dict()
         # sum_len{分组的数目} : 该数目之下的和  例如该方案下有四个分组a,b,c,d 那么sum_len[3] 就应该是 abc， abd, bcd， acd 数目之和。
         # singel_len[(所包含的分组)]
+        # num字典中记录了取并关系的各个分组的数目
+        # single字典中记录了取交欢喜的各个分组的数目, 由于多次代码更新的原因，这个可能与only字典中的部分值有冗余
         with open(venn_path, 'rb') as r:
             for line in r:
                 line = line.strip('\r\n')
@@ -118,6 +144,7 @@ class Venn(Base):
                 if re.search("only", line[0]):
                     name = re.split('\s+', line[0])
                     only[(name[0],)] = int(line[1])
+                    single[(name[0],)] = int(line[1])
                 if re.search('&', line[0]):
                     line[0] = re.sub('\s+', '', line[0])
                     name = re.split('&', line[0])
@@ -126,6 +153,8 @@ class Venn(Base):
                     num[tuple(name)] += int(line[1])
         # print num
         # print only
+        # 因为程序运行出来的venn表当中只给了某个组别的only的值, 因此需要计算相应的all的值
+        # 计算某一个组取并的时候的数目和，例如如果有A,B,C三组，那就是计算所有的A当中有多少的OTU，B当中和C当中有多少的OTU
         for my_only in only:
             num[my_only] = only[my_only]
             for i in range(2, gp_len + 1):
@@ -134,10 +163,22 @@ class Venn(Base):
                     if len(s_len) == i and my_only[0] not in s_len:
                         num[my_only] = num[my_only] + ((-1) ** (i + 1) * single_len[s_len])
 
+        # 计算所有组别取交的值
+        for set_name in num:
+            single[set_name] = num[set_name]
+            c = 1
+            for i in range(len(set_name) + 1, gp_len + 1):
+                single[set_name] += ((-1) ** c) * sum_len[i]
+                for new_set in num:
+                    if len(new_set) == i and (not set(set_name) < set(new_set)):
+                        single[set_name] = single[set_name] + ((-1) ** (c + 1) * num[new_set])
+                c += 1
+
         # 为了Venn图美观，平均化单个的大小， 对其他部分的大小进行缩小
         avg = 0
         c = 0
-        # print num
+        print num
+        print single
         for name in num:
             if len(name) == 1:
                 avg += num[name]
@@ -269,6 +310,7 @@ class Venn(Base):
             "name": "venn_otu_" + name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "status": "end",
             "show": 0,
+            "submit_location": "otu_venn",
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         collection = self.db['sg_otu']

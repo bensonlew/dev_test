@@ -4,6 +4,7 @@
 from biocluster.api.database.base import Base, report_check
 import re
 import datetime
+import json
 from bson.objectid import ObjectId
 from types import StringTypes
 from biocluster.config import Config
@@ -28,13 +29,16 @@ class SubSample(Base):
             raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(str(from_otu_table)))
         project_sn = result['project_sn']
         task_id = result['task_id']
+        if not name:
+            name = "otu_subsample" + str(my_size) + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         insert_data = {
             "project_sn": project_sn,
             'task_id': task_id,
             'from_id': str(from_otu_table),
-            'name': "otu_stat" + str(my_size) + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            'name': name,
             "params": params,
             'status': 'end',
+            "level_id": json.dumps([9]),
             'desc': 'otu table after Otu Subsampe',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -108,7 +112,7 @@ class SubSample(Base):
                 otu_detail['otu_id'] = new_otu_id
                 for cf in classify_list:
                     if cf != "":
-                        otu_detail[cf[0:3]] = cf
+                        otu_detail[cf[0:3].lower()] = cf
                 for i in range(0, len(sample_num)):
                     otu_detail[new_head[i]] = sample_num[i]
                 if line[0] not in self.otu_rep:
@@ -134,3 +138,60 @@ class SubSample(Base):
                 insert_data.append(my_data)
             collection = self.db['sg_otu_specimen']
             collection.insert_many(insert_data)
+
+    @report_check
+    def add_sg_otu_detail_level(self, otu_path, from_otu_table, level):
+        if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
+            if isinstance(from_otu_table, StringTypes):
+                from_otu_table = ObjectId(from_otu_table)
+            else:
+                raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
+        collection = self.db["sg_otu"]
+        result = collection.find_one({"_id": from_otu_table})
+        if not result:
+            raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(str(from_otu_table)))
+        project_sn = result['project_sn']
+        task_id = result['task_id']
+        covered_level = list()
+        if "level_id" in result:
+            covered_level = json.loads(result["level_id"])
+            covered_level.append(int(level))
+        else:
+            covered_level.append(int(level))
+        covered_level = list(set(covered_level))
+        covered_level.sort()
+        result["level_id"] = json.dumps(covered_level)
+        collection.update({"_id": from_otu_table}, {"$set": result}, upsert=False)
+        insert_data = list()
+        with open(otu_path, 'rb') as r:
+            head = r.next().strip('\r\n')
+            head = re.split('\t', head)
+            new_head = head[1:-1]
+            for line in r:
+                line = line.rstrip("\r\n")
+                line = re.split('\t', line)
+                sample_num = line[1:-1]
+                classify_list = re.split(r"\s*;\s*", line[-1])
+                otu_detail = dict()
+                otu_detail['otu_id'] = from_otu_table
+                otu_detail['project_sn'] = project_sn
+                otu_detail['task_id'] = task_id
+                otu_detail["level_id"] = int(level)
+                otu_detail["otu"] = line[0]
+                for cf in classify_list:
+                    if cf != "":
+                        otu_detail[cf[0:3].lower()] = cf
+                count = 0
+                for i in range(0, len(sample_num)):
+                    otu_detail[new_head[i]] = sample_num[i]
+                    count += int(sample_num[i])
+                otu_detail["total_"] = count
+                insert_data.append(otu_detail)
+        try:
+            collection = self.db['sg_otu_detail_level']
+            collection.insert_many(insert_data)
+        except Exception as e:
+            self.bind_object.logger.info("导入sg_otu_detail_level表格失败：{}".format(e))
+            raise Exception("导入sg_otu_detail_level表格失败：{}".format(e))
+        else:
+            self.bind_object.logger.info("导入sg_otu_detail_copy表格成功")

@@ -15,7 +15,7 @@ class PanCore(Base):
         self._db_name = Config().MONGODB
 
     @report_check
-    def create_pan_core_table(self, pan_core_type, params, group_id, level_id, from_otu_table=0, name=None):
+    def create_pan_core_table(self, pan_core_type, params, group_id, level_id, from_otu_table=0, name=None, status=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -27,6 +27,8 @@ class PanCore(Base):
                     group_id = ObjectId(group_id)
                 else:
                     raise Exception("group_id必须为ObjectId对象或其对应的字符串!")
+        if not status:
+            status = "end"
         collection = self.db["sg_otu"]
         result = collection.find_one({"_id": from_otu_table})
         if not result:
@@ -44,7 +46,7 @@ class PanCore(Base):
             "level_id": level_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "status": "end",
+            "status": status,
             "desc": desc,
             "name": name if name else "pan_core表格",
             "params": params,
