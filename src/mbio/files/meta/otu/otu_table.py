@@ -77,7 +77,13 @@ class OtuTableFile(File):
         """
         # biom convert -i otu_table.txt -o otu_table.biom.rev  --table-type "otu table  --to-hdf5"
         # biom convert -i otu_taxa_table.txt -o otu_table.biom.revtax  --table-type "otu table"  --to-hdf5 --process-obs-metadata taxonomy
+<<<<<<< HEAD
         cmd = self.biom_path + "biom convert -i " + self.prop['path'] + " -o " + biom_filepath + ' --table-type \"OTU table\" --to-hdf5'
+=======
+        if 'metadata' not in self.prop:
+            self.get_info()
+        cmd = "biom convert -i " + self.prop['path'] + " -o " + biom_filepath + ' --table-type \"OTU table\" --to-hdf5'
+>>>>>>> hotfix0824
         if self.prop['metadata'] == "taxonomy":
             cmd += " --process-obs-metadata taxonomy"
         try:
@@ -99,6 +105,29 @@ class OtuTableFile(File):
         except subprocess.CalledProcessError:
             raise Exception("otu2shared.pl 运行出错！")
         return True
+
+    def ahead_taxonmoy(self, ahead_path, otu_path=None):
+        if not otu_path:
+            otu_path = self.prop["path"]
+        with open(otu_path, 'rb') as r, open(ahead_path, 'wb') as w:
+            """
+            将taxonomy列信息补充道第一列当中
+            """
+            line = r.next()
+            line = line.rstrip('\n')
+            line = re.split('\t', line)
+            if line[-1] != "taxonomy":
+                raise Exception("文件最后一列不为taxonomy，无法将taxonomy列提前")
+            line.pop()
+            w.write("\t".join(line) + "\n")
+            for line in r:
+                line = line.rstrip('\n')
+                line = re.split('\t', line)
+                tax_info = line[-1]
+                line.pop()
+                line[0] = tax_info + "; " + line[0]
+                newline = "\t".join(line)
+                w.write(newline + "\n")
 
     def del_taxonomy(self, otu_path, no_tax_otu_path):
         """
@@ -262,12 +291,19 @@ class OtuTableFile(File):
         """
         从一张otu表里删除几个样本， 在删除这些样本之后，有些OTU的数目会变成0, 删除这些OTU
         """
+        self.get_info()
+        tmp_dict = dict()
+        my_path = self.prop["path"]
+        if self.prop["metadata"] == "taxonomy":
+            no_tax = os.path.join(os.path.dirname(self.prop["path"]), os.path.basename(self.prop["path"]) + ".no_tax")
+            tmp_dict = self.del_taxonomy(self.prop["path"], no_tax)
+            my_path = no_tax
         colnum_list = list()
         otu_dict = dict()
         new_head = list()
         if not isinstance(samples, list):
             raise Exception("samples参数必须是列表")
-        with open(self.prop['path'], 'rb') as r:
+        with open(my_path, 'rb') as r:
             head = r.next().strip("\r\n")
             head = re.split('\t', head)
             for i in range(1, len(head)):
@@ -285,12 +321,18 @@ class OtuTableFile(File):
                     sum_ += int(num)
                 if sum_ == 0:
                     del otu_dict[line[0]]
-        with open(path, 'wb') as w:
+        if self.prop["metadata"] == "taxonomy":
+            out_path = os.path.join(os.path.dirname(self.prop["path"]), os.path.basename(self.prop["path"]) + ".no_zero")
+        else:
+            out_path = path
+        with open(out_path, 'wb') as w:
             w.write("OTU ID\t")
             w.write("\t".join(new_head) + "\n")
             for otu in otu_dict:
                 w.write(otu + "\t")
                 w.write("\t".join(otu_dict[otu]) + "\n")
+        if self.prop["metadata"] == "taxonomy":
+            self.add_taxonomy(tmp_dict, out_path, path)
 
     def transposition(self, path):
         """

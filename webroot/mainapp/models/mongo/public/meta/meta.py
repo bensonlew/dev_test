@@ -56,6 +56,7 @@ class Meta(object):
         """
         输入group_detail，返回一个group表
         """
+        print group_detail
         with open(group_path, "wb") as f:
             f.write("#sample\t" + "group_name" + "\n")
         if not isinstance(group_detail, dict):

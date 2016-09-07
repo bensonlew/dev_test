@@ -107,6 +107,7 @@ class Basic(object):
             self.logger = self._task_object.logger
             self._task_object.run()
         except Exception as e:
+            print e
             info = {"success": False, "info": "程序运行过程中发生错误，错误信息:{}".format(e)}
             self.returnInfo = json.dumps(info)
             # self.logger.error(self.returnInfo)

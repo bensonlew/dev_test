@@ -6,6 +6,8 @@
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
+import datetime
+import json
 import shutil
 
 
@@ -57,11 +59,12 @@ class MetaBaseWorkflow(Workflow):
         self.stat = self.add_tool("meta.otu.otu_taxon_stat")
         self.alpha = self.add_module("meta.alpha_diversity.alpha_diversity")
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
+        self.pan_core = self.add_tool("meta.otu.pan_core_otu")
         self.step.add_steps("qcstat", "otucluster", "taxassign", "alphadiv", "betadiv")
         self.spname_spid = dict()
         self.otu_id = None
         self.env_id = None
-        self.level_dict = {'Domain': 1, 'Kingdom': 2, 'Phylum': 3, 'Class': 4, 'Order': 5, 'Family': 6,'Genus' : 7, 'Species': 8, 'otu': 9}
+        self.level_dict = {'Domain': 1, 'Kingdom': 2, 'Phylum': 3, 'Class': 4, 'Order': 5, 'Family': 6, 'Genus': 7, 'Species': 8, 'otu': 9}
         self.updata_status_api = self.api.meta_update_status
 
     def check_options(self):
@@ -128,7 +131,7 @@ class MetaBaseWorkflow(Workflow):
             "fasta_file": self.otu.output_dir + "/otu_reps.fasta"
         })
         # self.phylo.on("start", self.set_step, {'end':self.step.otucluster, 'start':self.step.phylotree})
-        self.phylo.on("end", self.set_step, {'end':self.step.otucluster})
+        self.phylo.on("end", self.set_step, {'end': self.step.otucluster})
         self.phylo.run()
 
     def run_taxon(self):
@@ -201,6 +204,14 @@ class MetaBaseWorkflow(Workflow):
         self.beta.on("start", self.set_step, {'start': self.step.betadiv})
         self.beta.on("end", self.set_step, {'end': self.step.betadiv})
         self.beta.run()
+
+    def run_pan_core(self):
+        opts = {
+            "in_otu_table": self.stat.option("otu_taxon_dir")
+        }
+        self.pan_core.set_options(opts)
+        self.pan_core.on("end", self.set_output, "pan_core")
+        self.pan_core.run()
 
     def set_step(self, event):
         if 'start' in event['data'].keys():
@@ -292,6 +303,8 @@ class MetaBaseWorkflow(Workflow):
                 "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
+            api_otu_level = self.api.sub_sample
+            api_otu_level.add_sg_otu_detail_level(otu_path, self.otu_id, 9)
             # self.otu_id = str(self.otu_id)
             # self.logger.info('OTU mongo ID:%s' % self.otu_id)
             api_tree = self.api.newicktree
@@ -393,6 +406,22 @@ class MetaBaseWorkflow(Workflow):
                                                                        spname_spid=self.spname_spid)
                     self.updata_status_api.add_meta_status(table_id=main_id, type_name='sg_beta_multi_analysis')  # 主表写入没有加name，所以此处table_name固定
                     self.logger.info('set output beta %s over.' % ana)
+        if event['data'] == "pan_core":
+            self.move2outputdir(obj.output_dir, self.output_dir + "/pan_core")
+            api_pan_core = self.api.pan_core
+            name = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            params = {
+                "level_id": 9,
+                "group_id": "all",
+                "group_detail": "all"
+            }
+            pan_id = api_pan_core.create_pan_core_table(1, json.dumps(params), "all", 9, self.otu_id, name, "start")
+            name = "core_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            core_id = api_pan_core.create_pan_core_table(2, json.dumps(params), "all", 9, self.otu_id, name, "start")
+            pan_path = self.pan_core.option("pan_otu_table").prop["path"]
+            core_path = self.pan_core.option("core_otu_table").prop['path']
+            api_pan_core.add_pan_core_detail(pan_path, pan_id)
+            api_pan_core.add_pan_core_detail(core_path, core_id)
 
     def run(self):
         self.filecheck.on('end', self.run_qc)
@@ -403,11 +432,9 @@ class MetaBaseWorkflow(Workflow):
         self.on_rely([self.tax, self.phylo], self.run_stat)
         self.stat.on('end', self.run_alpha)
         self.stat.on('end', self.run_beta)
-        self.on_rely([self.alpha, self.beta], self.end)
-        self.logger.debug('Metabase IMPORT_REPORT_DATA:{}   IMPORT_REPORT_AFTER_END:{}'.format(self.IMPORT_REPORT_DATA,
-                                                                                               self.IMPORT_REPORT_AFTER_END))
+        self.stat.on('end', self.run_pan_core)
+        self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         super(MetaBaseWorkflow, self).run()
-
 
     def send_files(self):
         repaths = [

@@ -46,12 +46,17 @@ class Meta(Base):
             }
             collection = self.db["sg_otu"]
             otu_id = collection.insert_one(insert_data).inserted_id
+<<<<<<< HEAD
             params['otu_id'] = str(otu_id)
             try:
                 collection.update_one({'params': json.dumps(params, sort_keys=True, separators=(',', ':'))},
                                       {'$set': {'_id': otu_id}})
             except Exception as e:
                 raise Exception('更新OTU表params出错:{}'.format(e))
+=======
+            insert_data["from_id"] = str(otu_id)
+            collection.find_one_and_update({"_id": otu_id}, {'$set': insert_data})
+>>>>>>> hotfix0824
         else:
             if otu_id is None:
                 raise Exception("major为False时需提供otu_id!")
