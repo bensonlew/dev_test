@@ -286,11 +286,10 @@ class MetaBaseWorkflow(Workflow):
             if not os.path.isfile(otu_path):
                 raise Exception("找不到报告文件:{}".format(otu_path))
             params = {
-                "otu_id": str(self.otu_id),
-                "identity": self.option("identity"),
-                "revcomp": self.option("revcomp"),
-                "confidence": self.option("confidence"),
-                "database": self.option("database")
+                "group_id": 'all',
+                "size": "0",
+                "submit_location": 'otu_statistic',
+                "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
             # self.otu_id = str(self.otu_id)
@@ -316,23 +315,31 @@ class MetaBaseWorkflow(Workflow):
             params = {
                 # "otu_id": str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                 "level_id": level_id,
-                "indices": ','.join(indice),
-                'submit_location': 'alpha_diversity_index'
+                "index_type": ','.join(indice),
+                'submit_location': 'alpha_diversity_index',
+                'task_type': 'reportTask',
+                'group_id': 'all'
             }
-            est_id = api_est.add_est_table(est_path, major=True, level=level_id, otu_id=str(self.otu_id), params=params)
-            self.updata_status_api.add_meta_status(table_id=str(est_id), type_name='sg_alpha_diversity')  # 主表写入没有加name，所以此处table_name固定
+            est_id = api_est.add_est_table(est_path, major=True, level=level_id, otu_id=str(self.otu_id),
+                                           params=params, spname_spid=self.spname_spid)
+            self.updata_status_api.add_meta_status(table_id=str(est_id), type_name='sg_alpha_diversity')
+            # 主表写入没有加name，所以此处table_name固定
             api_rare = self.api.rarefaction
             rare_path = self.work_dir + "/AlphaDiversity/Rarefaction/output/"
             indice = sorted(self.option("rarefy_indices").split(','))
             params = {
                 # "otu_id": str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                 "level_id": level_id,
-                "indices": ','.join(indice),
+                "index_type": ','.join(indice),
                 'freq': self.option('rarefy_freq'),
-                'submit_location': 'alpha_rarefaction_curve'
+                'submit_location': 'alpha_rarefaction_curve',
+                'task_type': 'reportTask',
+                'group_id': 'all'
             }
-            rare_id = api_rare.add_rare_table(rare_path, level=level_id, otu_id=str(self.otu_id), params=params)
-            self.updata_status_api.add_meta_status(table_id=str(rare_id), type_name='sg_alpha_rarefaction_curve')  # 主表写入没有加name，所以此处table_name固定
+            rare_id = api_rare.add_rare_table(rare_path, level=level_id, otu_id=str(self.otu_id),
+                                              params=params, spname_spid=self.spname_spid)
+            self.updata_status_api.add_meta_status(table_id=str(rare_id), type_name='sg_alpha_rarefaction_curve')
+            # 主表写入没有加name，所以此处table_name固定
         if event['data'] == "beta":
             self.move2outputdir(obj.output_dir, self.output_dir + "/Beta_diversity", mode='copy')  # 代替cp
             # 设置beta多样性文件
@@ -342,25 +349,25 @@ class MetaBaseWorkflow(Workflow):
                 raise Exception("找不到报告文件:{}".format(dist_path))
             level_id = self.level_dict[self.option('beta_level')]
             params = {
-                #'otu_id': str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
+                # 'otu_id': str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                 'level_id': level_id,
                 'distance_algorithm': self.option('dis_method'),
-                'submit_location': 'beta_sample_distance'  # 为前端分析类型标识
+                'submit_location': 'beta_sample_distance_hcluster_tree',  # 为前端分析类型标识
+                'task_type': 'reportTask',
+                'hucluster_method': self.option('linkage'),
+                'group_id': 'all'
             }
-            dist_id = api_dist.add_dist_table(dist_path, level=level_id, otu_id=self.otu_id, major=True, params=params)
-            self.updata_status_api.add_meta_status(table_id=str(dist_id), type_name='sg_beta_specimen_distance')  # 主表写入没有加name，所以此处table_name固定
+            dist_id = api_dist.add_dist_table(dist_path, level=level_id, otu_id=self.otu_id, major=True, params=params, spname_spid=self.spname_spid)
+            # self.updata_status_api.add_meta_status(table_id=str(dist_id), type_name='sg_beta_specimen_distance')  # 主表写入没有加name，所以此处table_name固定
             if 'hcluster' in self.option('beta_analysis').split(','):
                 # 设置hcluster树文件
                 api_hcluster = self.api.newicktree
                 hcluster_path = self.beta.output_dir + "/Hcluster/hcluster.tre"
                 if not os.path.isfile(hcluster_path):
                     raise Exception("找不到报告文件:{}".format(hcluster_path))
-                params = {
-                    # 'specimen_distance_id': str(dist_id),  # 在metabase中不能执行，生成dist_id的api可能会被截取
-                    'hcluster_method': self.option('linkage'),
-                    'submit_location': 'beta_sample_distance_hcluster_tree'  # 为前端分析类型标识
-                }
-                tree_id = api_hcluster.add_tree_file(hcluster_path, major=True, table_id=str(dist_id), table_type='dist', tree_type='cluster', params=params)
+                tree_id = api_hcluster.add_tree_file(hcluster_path, major=True, table_id=str(self.otu_id),
+                                                     table_type='otu', tree_type='cluster', params=params,
+                                                     spname_spid=self.spname_spid, update_dist=dist_id)
                 self.updata_status_api.add_meta_status(table_id=str(tree_id), type_name='sg_newick_tree')  # 主表写入没有加name，所以此处table_name固定
             beta_multi_analysis_dict = {'pca': 'beta_multi_analysis_pca', 'pcoa': 'beta_multi_analysis_pcoa',
                                         'nmds': 'beta_multi_analysis_nmds', 'dbrda': 'beta_multi_analysis_dbrda',
@@ -372,14 +379,18 @@ class MetaBaseWorkflow(Workflow):
                         # 'otu_id': str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                         'level_id': level_id,
                         'analysis_type': ana,
-                        'submit_location': beta_multi_analysis_dict[ana]
+                        'submit_location': beta_multi_analysis_dict[ana],
+                        'task_type': 'reportTask'
                     }
                     if self.option('envtable').is_set:
                         # params['env_id'] = str(self.env_id)  # 在metabase中不能执行，生成self.env_id的api可能会被截取
                         params['env_labs'] = ','.join(self.option('envtable').prop['group_scheme'])
                     if ana in ['pcoa', 'nmds', 'dbrda']:
                         params['distance_algorithm'] = self.option('dis_method')
-                    main_id = api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana, main=True, env_id=self.env_id, otu_id=self.otu_id, params=params)
+                    main_id = api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana,
+                                                                       main=True, env_id=self.env_id,
+                                                                       otu_id=self.otu_id, params=params,
+                                                                       spname_spid=self.spname_spid)
                     self.updata_status_api.add_meta_status(table_id=main_id, type_name='sg_beta_multi_analysis')  # 主表写入没有加name，所以此处table_name固定
                     self.logger.info('set output beta %s over.' % ana)
 
@@ -393,6 +404,8 @@ class MetaBaseWorkflow(Workflow):
         self.stat.on('end', self.run_alpha)
         self.stat.on('end', self.run_beta)
         self.on_rely([self.alpha, self.beta], self.end)
+        self.logger.debug('Metabase IMPORT_REPORT_DATA:{}   IMPORT_REPORT_AFTER_END:{}'.format(self.IMPORT_REPORT_DATA,
+                                                                                               self.IMPORT_REPORT_AFTER_END))
         super(MetaBaseWorkflow, self).run()
 
 
