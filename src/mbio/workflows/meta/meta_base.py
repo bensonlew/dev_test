@@ -365,9 +365,9 @@ class MetaBaseWorkflow(Workflow):
                 hcluster_path = self.beta.output_dir + "/Hcluster/hcluster.tre"
                 if not os.path.isfile(hcluster_path):
                     raise Exception("找不到报告文件:{}".format(hcluster_path))
-                tree_id = api_hcluster.add_tree_file(hcluster_path, major=True, table_id=str(self.otu_id),
+                tree_id = api_hcluster.add_tree_file(hcluster_path, major=True, table_id=str(self.otu_id), level=level_id,
                                                      table_type='otu', tree_type='cluster', params=params,
-                                                     spname_spid=self.spname_spid, update_dist=dist_id)
+                                                     spname_spid=self.spname_spid, update_dist_id=dist_id)
                 self.updata_status_api.add_meta_status(table_id=str(tree_id), type_name='sg_newick_tree')  # 主表写入没有加name，所以此处table_name固定
             beta_multi_analysis_dict = {'pca': 'beta_multi_analysis_pca', 'pcoa': 'beta_multi_analysis_pcoa',
                                         'nmds': 'beta_multi_analysis_nmds', 'dbrda': 'beta_multi_analysis_dbrda',
@@ -492,8 +492,8 @@ class MetaBaseWorkflow(Workflow):
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
-        for i in self.get_upload_files():
-            self.logger.info('upload file:{}'.format(str(i)))
+        # for i in self.get_upload_files():
+        #     self.logger.info('upload file:{}'.format(str(i)))
 
     def end(self):
         self.send_files()

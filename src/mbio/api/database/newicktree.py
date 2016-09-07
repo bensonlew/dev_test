@@ -32,7 +32,8 @@ class Newicktree(Base):
             if not isinstance(table_id, ObjectId) and table_id is not None:
                 table_id = ObjectId(table_id)
             if table_type == 'otu':
-                params['otu_id'] = str(table_id)  # 不管是矩阵聚类还是序列进化树，的table_id都是 otu_id
+                if params:
+                    params['otu_id'] = str(table_id)  # 不管是矩阵聚类还是序列进化树，的table_id都是 otu_id
                 if spname_spid:
                     group_detail = {'All': [str(i) for i in spname_spid.values()]}
                     params['group_detail'] = group_detail_sort(group_detail)
