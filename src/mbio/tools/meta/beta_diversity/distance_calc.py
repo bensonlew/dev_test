@@ -179,6 +179,7 @@ class DistanceCalcTool(Tool):
             newtable.check()
         else:
             newtable = self.option('otutable')
+        newtable.get_info()
         biom_path = os.path.join(self.work_dir, 'temp.biom')
         if os.path.isfile(biom_path):
             os.remove(biom_path)
