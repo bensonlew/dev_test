@@ -399,4 +399,3 @@ class Workflow(Basic):
             exstr = traceback.format_exc()
             print exstr
             self.logger.info("查询数据库异常: %s" % e)
-
