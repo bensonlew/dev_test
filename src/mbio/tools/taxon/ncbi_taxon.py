@@ -29,7 +29,7 @@ class NcbiTaxonAgent(Agent):
             raise OptionError("blastdb参数必须设置")
         else:
             if self.option('blastdb') not in ['nr', 'nt']:
-                raise OptionError('blastdb必须为')
+                raise OptionError('blastdb必须为nr或者nt:{}'.format(self.option('blastdb')))
         return True
 
     def set_resource(self):
