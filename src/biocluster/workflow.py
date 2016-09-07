@@ -34,7 +34,7 @@ class Workflow(Basic):
             self.debug = False
         super(Workflow, self).__init__(**kwargs)
         self.sheet = wsheet
-
+        self._return_mongo_ids = []  # 在即时计算情况下，需要返回写入mongo库的主表ids，用于更新sg_status表，值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
         self.last_update = datetime.datetime.now()
         if "parent" in kwargs.keys():
             self._parent = kwargs["parent"]
@@ -217,6 +217,20 @@ class Workflow(Basic):
         self.step.update()
         self.logger.info("运行结束!")
         self.rpc_server.close()
+
+
+    @property
+    def return_mongo_ids(self):
+        return self._return_mongo_ids
+
+
+    def add_return_mongo_id(self, collection_name, table_id, desc=''):
+        return_dict = dict()
+        return_dict['id'] = table_id
+        return_dict['collection_name'] = collection_name
+        return_dict['desc'] = desc
+        self._return_mongo_ids.append(return_dict)
+
 
     def _upload_result(self):
         """

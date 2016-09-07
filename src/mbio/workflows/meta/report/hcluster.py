@@ -18,7 +18,6 @@ class HclusterWorkflow(Workflow):
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        print 'init...........................over'
         super(HclusterWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table"},
@@ -35,7 +34,6 @@ class HclusterWorkflow(Workflow):
         self.set_options(self._sheet.options())
         self.dist = self.add_tool("meta.beta_diversity.distance_calc")
         self.hcluster = self.add_tool("meta.beta_diversity.hcluster")
-        print 'init...........................over'
 
     def run(self):
         if 'unifrac' in self.option('dist_method'):
@@ -123,8 +121,6 @@ class HclusterWorkflow(Workflow):
 
 
     def run_hcluster(self):
-        print 'hcluster...................'
-
         options = {
             'linkage': self.option('hcluster_method'),
             'dis_matrix': self.dist.option('dis_matrix')
@@ -150,7 +146,7 @@ class HclusterWorkflow(Workflow):
                                                 level=self.option('level'),
                                                 otu_id=self.option('otu_id'),
                                                 params=params_json)
-        self.add_return_mongo_id('sg_beta_specimen_distance', matrix_id)
+        # self.add_return_mongo_id('sg_beta_specimen_distance', matrix_id)
         api_newick = self.api.newicktree
         collection = api_newick.db["sg_beta_specimen_distance"]
         result = collection.find_one({"_id": ObjectId(matrix_id)})
@@ -160,8 +156,9 @@ class HclusterWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(newick_fath))
         return_id = api_newick.add_tree_file(newick_fath, major=True, table_id=self.option('otu_id'),
                                              task_id=task_id, table_type='dist', tree_type='cluster', level=self.option('level'),
-                                             name='hcluset_{}_{}'.format(self.option('hcluster_method'), datetime.datetime.now().strftime("%Y%m%d_%H%M%S")), params=params_json)
+                                             name='hcluster_{}_{}'.format(self.option('hcluster_method'), datetime.datetime.now().strftime("%Y%m%d_%H%M%S")), params=params_json)
         self.add_return_mongo_id('sg_newick_tree', return_id)
+        collection.update_one({"_id": ObjectId(matrix_id)}, {'$set': {'newick_tree_id': ObjectId(return_id)}})
         self.end()
 
     def end(self):
