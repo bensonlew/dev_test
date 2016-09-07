@@ -45,7 +45,7 @@ class ClusterAnalysis(Base):
             'desc': 'otu table after Cluster Analysis',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "show": 0,
-            "submit_location": "otu_group_analyse"
+            "type": "otu_group_analyse"
         }
         collection = self.db["sg_otu"]
         inserted_id = collection.insert_one(insert_data).inserted_id

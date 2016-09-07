@@ -40,6 +40,7 @@ class SubSample(Base):
             'status': 'end',
             "level_id": json.dumps([9]),
             'desc': 'otu table after Otu Subsampe',
+            "type": "otu_statistic",
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         collection = self.db["sg_otu"]
