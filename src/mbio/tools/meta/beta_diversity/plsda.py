@@ -99,7 +99,7 @@ class PlsdaAgent(Agent):
             ["./plsda_rotation.xls", "xls", "物种主成分贡献度表"],
             ["./plsda_importance.xls", "xls", "主成分解释度表"],
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(PlsdaAgent, self).end()
 
 

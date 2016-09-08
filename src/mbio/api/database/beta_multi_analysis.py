@@ -8,6 +8,7 @@ from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
 from types import StringTypes
 from biocluster.config import Config
+from mainapp.libs.param_pack import group_detail_sort
 # import re
 # import datetime
 # from bson.son import SON
@@ -21,7 +22,8 @@ class BetaMultiAnalysis(Base):
 
     @report_check
     def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None,
-                                       task_id=None, otu_id=None, name=None, params=None, level=9, remove=None):
+                                       task_id=None, otu_id=None, name=None, params=None, level=9, remove=None,
+                                       spname_spid=None):
         if level and level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if task_id is None:
@@ -35,7 +37,11 @@ class BetaMultiAnalysis(Base):
             group_id = ObjectId(group_id)
         else:
             if 'group_id' in self.bind_object.sheet.data['options']:
-                group_id = ObjectId(self.bind_object.option('group_id'))  # 仅仅即时计算直接绑定workflow对象
+                group_id = self.bind_object.option('group_id')
+                if group_id not in ['all', 'All', 'ALL']:
+                    group_id = ObjectId(group_id)  # 仅仅即时计算直接绑定workflow对象
+            else:
+                group_id = 'all'
         if isinstance(otu_id, ObjectId):
             pass
         elif otu_id is not None:
@@ -52,6 +58,10 @@ class BetaMultiAnalysis(Base):
                 if isinstance(params, dict):
                     params_dict['env_id'] = str(env_id)    # env_id在再metabase中不可用
             params_dict['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+            if spname_spid:
+                params_dict['group_id'] = group_id
+                group_detail = {'All': [str(i) for i in spname_spid.values()]}
+                params_dict['group_detail'] = group_detail_sort(group_detail)
             insert_mongo_json = {
                 'project_sn': self.bind_object.sheet.project_sn,
                 'task_id': task_id,

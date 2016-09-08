@@ -4,9 +4,11 @@
 from biocluster.api.database.base import Base, report_check
 import re
 import datetime
+import json
 from bson.objectid import ObjectId
 from types import StringTypes
 from biocluster.config import Config
+from mainapp.libs.param_pack import group_detail_sort, param_pack
 
 
 class PanCore(Base):
@@ -15,7 +17,7 @@ class PanCore(Base):
         self._db_name = Config().MONGODB
 
     @report_check
-    def create_pan_core_table(self, pan_core_type, params, group_id, level_id, from_otu_table=0, name=None):
+    def create_pan_core_table(self, pan_core_type, params, group_id, level_id, from_otu_table=0, name=None, status=None, spname_spid=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -27,6 +29,14 @@ class PanCore(Base):
                     group_id = ObjectId(group_id)
                 else:
                     raise Exception("group_id必须为ObjectId对象或其对应的字符串!")
+        if not status:
+            status = "end"
+        if spname_spid:
+            my_params = json.loads(params)
+            group_detail = {'All': [str(i) for i in spname_spid.values()]}
+            my_params['group_detail'] = group_detail_sort(group_detail)
+            my_params['otu_id'] = str(from_otu_table)
+            params = param_pack(my_params)
         collection = self.db["sg_otu"]
         result = collection.find_one({"_id": from_otu_table})
         if not result:
@@ -44,7 +54,7 @@ class PanCore(Base):
             "level_id": level_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "status": "end",
+            "status": status,
             "desc": desc,
             "name": name if name else "pan_core表格",
             "params": params,

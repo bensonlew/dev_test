@@ -59,6 +59,9 @@ class GroupTableFile(File):
             length = len(line)
             if length < 2:
                 raise FileError('group_table 文件至少应该有两列')
+            for i in line[1:]:
+                if re.search("\s", i):
+                    raise FileError('分组方案名里不可以包含空格')
             for line in f:
                 line = line.rstrip("\r\n")
                 line = re.split("\t", line)
@@ -139,7 +142,7 @@ class GroupTableFile(File):
         self.sub_group('./group_file', name)
         with open('group_file', 'rb') as r, open(edger_path, 'wb') as w:
             lines = r.readlines()
-            for line in line[1:]:
+            for line in lines[1:]:
                 info = line.strip('\n').split('\t')
                 w.write('%s\t%s\n' % (info[1], info[0]))
 
@@ -162,7 +165,7 @@ class GroupTableFile(File):
                     break
                 gnames.append(line.split()[site])
             return list(set(gnames))
-            
+
 if __name__ == "__main__":
     g = GroupTableFile()
     g.set_path("example.group")

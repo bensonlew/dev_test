@@ -9,6 +9,7 @@ from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.group_stat import GroupStat as G
 from mainapp.libs.param_pack import *
+import re
 
 
 class Lefse(object):
@@ -30,7 +31,12 @@ class Lefse(object):
             my_param['second_group_detail'] = data.second_group_detail
         my_param['group_id'] = data.group_id
         my_param['second_group_id'] = data.second_group_id
-        my_param['lda_filter'] = float(data.lda_filter)
+        if re.search(r'\.0$', data.lda_filter):
+            my_param['lda_filter'] = int(float(data.lda_filter))
+        elif re.search(r'\..*$', data.lda_filter):
+            my_param['lda_filter'] = float(data.lda_filter)
+        else:
+            my_param['lda_filter'] = int(data.lda_filter)
         my_param['strict'] = int(data.strict)
         my_param['submit_location'] = data.submit_location
         my_param['task_type'] = data.task_type
@@ -114,8 +120,14 @@ class Lefse(object):
             success.append("传入的group_detail不是一个字典")
         if data.second_group_detail != '':
             second_group_detail = json.loads(data.second_group_detail)
+            first = 0
+            second = 0
+            for i in group_detail.values():
+                first += len(i)
+            for n in second_group_detail.values():
+                second += len(n)
             if not isinstance(second_group_detail, dict):
                 success.append("传入的second_group_detail不是一个字典")
-            if len(group_detail) != len(second_group_detail):
+            if first != second:
                 success.append("二级分组与一级分组的样本数不相同，请检查！")
         return success
