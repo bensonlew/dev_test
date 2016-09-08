@@ -12,7 +12,6 @@ from biocluster.core.function import load_class_by_path,  get_classpath_by_objec
 # from gipc.gipc import _GProcess as Process
 from biocluster.logger import Wlog
 import gipc
-import psutil
 
 
 class PROCESS(Job):
@@ -37,7 +36,6 @@ class PROCESS(Job):
         self.id = self.process.pid
 
     def delete(self):
-        if isinstance(self.process, gipc.gipc._GProcess):
             if self.process.is_alive():
                 self.process.terminate()
                 self.manager.shutdown()
@@ -47,12 +45,7 @@ class PROCESS(Job):
 
     def set_end(self):
         super(PROCESS, self).set_end()
-        if self.process.is_alive():
-            self.process.terminate()
-            self.manager.shutdown()
-        else:
-            self.process.join()
-            self.manager.shutdown()
+        self.delete()
 
 
 def local_process_run(agent, process_queue, shared_callback_action):
