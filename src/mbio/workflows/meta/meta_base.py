@@ -298,7 +298,7 @@ class MetaBaseWorkflow(Workflow):
                 raise Exception("找不到报告文件:{}".format(otu_path))
             params = {
                 "group_id": 'all',
-                "size": "0",
+                "size": 0,
                 "submit_location": 'otu_statistic',
                 "task_type": 'reportTask'
             }
@@ -412,12 +412,11 @@ class MetaBaseWorkflow(Workflow):
             name = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             params = {
                 "level_id": 9,
-                "group_id": "all",
-                "group_detail": "all"
+                "group_id": "all"
             }
-            pan_id = api_pan_core.create_pan_core_table(1, json.dumps(params), "all", 9, self.otu_id, name, "start")
+            pan_id = api_pan_core.create_pan_core_table(1, json.dumps(params), "all", 9, self.otu_id, name, "end", spname_spid=self.spname_spid)
             name = "core_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            core_id = api_pan_core.create_pan_core_table(2, json.dumps(params), "all", 9, self.otu_id, name, "start")
+            core_id = api_pan_core.create_pan_core_table(2, json.dumps(params), "all", 9, self.otu_id, name, "end", spname_spid=self.spname_spid)
             pan_path = self.pan_core.option("pan_otu_table").prop["path"]
             core_path = self.pan_core.option("core_otu_table").prop['path']
             api_pan_core.add_pan_core_detail(pan_path, pan_id)

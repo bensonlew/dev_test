@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
+import json
 from biocluster.api.database.base import Base, report_check
 import re
 from bson.objectid import ObjectId
@@ -7,7 +8,7 @@ import datetime
 from bson.son import SON
 from types import StringTypes
 from biocluster.config import Config
-from mainapp.libs.param_pack import group_detail_sort
+from mainapp.libs.param_pack import group_detail_sort, param_pack
 
 
 class Meta(Base):
@@ -32,6 +33,7 @@ class Meta(Base):
             if spname_spid and params:
                 group_detail = {'All': [str(i) for i in spname_spid.values()]}
                 params['group_detail'] = group_detail_sort(group_detail)
+                params['level_id'] = 9
             if task_id is None:
                 task_id = self.bind_object.sheet.id
             insert_data = {
@@ -40,13 +42,21 @@ class Meta(Base):
                 "name": name if name else "otu_taxon_origin",
                 "from_id": from_out_table,
                 "status": "end",
+                "level_id": json.dumps([9]),
+                "type": "otu_statistic,otu_venn,otu_group_analysis",
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             }
             collection = self.db["sg_otu"]
             otu_id = collection.insert_one(insert_data).inserted_id
+            params['otu_id'] = str(otu_id)
             insert_data["from_id"] = str(otu_id)
-            collection.find_one_and_update({"_id": otu_id}, {'$set': insert_data})
+            new_params = param_pack(params)
+            insert_data["params"] = new_params
+            try:
+                collection.find_one_and_update({"_id": otu_id}, {'$set': insert_data})
+            except Exception as e:
+                raise Exception('更新OTU表params出错:{}'.format(e))
         else:
             if otu_id is None:
                 raise Exception("major为False时需提供otu_id!")
