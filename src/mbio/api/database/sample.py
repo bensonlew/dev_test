@@ -44,6 +44,7 @@ class Sample(Base):
             self.bind_object.logger.error("导入样品信息数据出错:%s" % e)
         else:
             self.bind_object.logger.info("导入样品信息数据成功:%s" % result.inserted_ids)
+        return self.sample_table_ids
 
     @report_check
     def add_base_info(self, sample_name, file_path):

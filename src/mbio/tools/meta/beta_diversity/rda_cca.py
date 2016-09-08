@@ -101,7 +101,7 @@ class RdaCcaAgent(Agent):
             [r'.*_biplot\.xls', 'xls', '数量型环境因子坐标表'],
             [r'.*_centroids\.xls', 'xls', '哑变量环境因子坐标表']
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(RdaCcaAgent, self).end()
 
 

@@ -6,8 +6,8 @@ from bson.objectid import ObjectId
 import datetime
 from bson.son import SON
 from types import StringTypes
-import json
 from biocluster.config import Config
+from mainapp.libs.param_pack import group_detail_sort
 
 
 class Meta(Base):
@@ -17,7 +17,8 @@ class Meta(Base):
         self._db_name = Config().MONGODB
 
     @report_check
-    def add_otu_table(self, file_path, major=False, otu_id=None, from_out_table=0, rep_path=None, task_id=None, name=None, params=None, spname_spid=None):
+    def add_otu_table(self, file_path, major=False, otu_id=None, from_out_table=0, rep_path=None, task_id=None,
+                      name=None, params=None, spname_spid=None):
         if task_id is None:
             task_id = self.bind_object.sheet.id
         # if level not in range(1, 10):
@@ -28,6 +29,9 @@ class Meta(Base):
             else:
                 raise Exception("from_out_table必须为ObjectId对象或其对应的字符串!")
         if major:
+            if spname_spid and params:
+                group_detail = {'All': [str(i) for i in spname_spid.values()]}
+                params['group_detail'] = group_detail_sort(group_detail)
             if task_id is None:
                 task_id = self.bind_object.sheet.id
             insert_data = {
@@ -35,17 +39,15 @@ class Meta(Base):
                 "task_id": task_id,
                 "name": name if name else "otu_taxon_origin",
                 "from_id": from_out_table,
-                # "level": level,
                 "status": "end",
-                "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             }
             collection = self.db["sg_otu"]
             otu_id = collection.insert_one(insert_data).inserted_id
+            insert_data["from_id"] = str(otu_id)
+            collection.find_one_and_update({"_id": otu_id}, {'$set': insert_data})
         else:
-            # if task_id is None:
-            #     raise Exception("major为False时需提供task_id!")
             if otu_id is None:
                 raise Exception("major为False时需提供otu_id!")
         data_list = []
