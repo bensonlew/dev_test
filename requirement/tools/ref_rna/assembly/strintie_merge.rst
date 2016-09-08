@@ -26,7 +26,7 @@ StringTie：http://ccb.jhu.edu/software/stringtie/
 主要命令及功能模块
 -----------------------------------
 
-finf -name _./output/*_.gtf > assembly_GTF_list.txt
+find -name _./output/*_.gtf > assembly_GTF_list.txt
 stringtie --merge assembly_GTF_list.txt  -G <参考序列注释文件> -s <参考序列文件> -p <CPU线程> -o merge_out
 
 参数设计
