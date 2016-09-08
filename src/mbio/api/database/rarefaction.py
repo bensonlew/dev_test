@@ -32,6 +32,7 @@ class Rarefaction(Base):
         rare_paths = os.listdir(file_path)
         rare_detail = []
         category_x = []
+        max_counts = []
         for rare_path in rare_paths:
             # print os.path.join(file_path,rare_path)
             files = os.listdir(os.path.join(file_path, rare_path))
@@ -57,6 +58,7 @@ class Rarefaction(Base):
                         my_dic["value"] = line_data[1]
                         rarefaction.append(my_dic)
                     rarefaction.pop(0)
+                    max_counts.append(len(rarefaction))
                     # print rarefaction
                     insert_data = {
                         "rarefaction_curve_id": rare_id,
@@ -77,7 +79,7 @@ class Rarefaction(Base):
             collection.insert_many(rare_detail)
             # collection_first = self.db['sg_alpha_rarefaction_curve']
             collection_first.update({"_id": ObjectId(rare_id)},
-                                    {"$set": {"category_x": max(self.category_x), "status": "end"}})
+                                    {"$set": {"max_count": max(max_counts), "category_x": max(self.category_x), "status": "end"}})
         except Exception as e:
             self.bind_object.logger.error("导入rare_detail表格{}信息出错:{}".format(file_path, e))
         else:
