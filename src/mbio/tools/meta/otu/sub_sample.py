@@ -117,7 +117,7 @@ class SubSampleTool(Tool):
                 c += 1
 
         my_table.convert_to_shared(shared_path)
-        if int(self.option("size")) == 0 or self.option("size") == "min":
+        if self.option("size") in [0, "0", "min"]:
             cmd = self.mothur_path + " \"#set.dir(output=" + mothur_dir\
                 + ");sub.sample(shared=" + shared_path + ")\""
         else:

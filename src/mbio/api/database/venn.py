@@ -306,7 +306,7 @@ class Venn(Base):
         insert_data = {
             "project_sn": self.project_sn,
             "task_id": self.task_id,
-            "from_id": otu_id,
+            "from_id": str(otu_id),
             "name": "venn_otu_" + name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "status": "end",
             "show": 0,
