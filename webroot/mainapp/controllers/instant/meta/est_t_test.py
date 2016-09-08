@@ -29,8 +29,12 @@ class EstTTest(MetaController):
             info = {"success": False, "info": "传入的group_detail不是字典"}
             return json.dumps(info)
         if len(table_dict) < 2:
-            info = {"success": False, "info": "请选择至少两组及以上的分组"}
+            info = {"success": False, "info": "请选择至少两组以上的分组"}
             return json.dumps(info)
+        for key in table_dict:
+            if len(table_dict[key]) < 2:
+                info = {"success": False, "info": "每组至少有两个样本"}
+                return json.dumps(info)
         # my_param = dict()
         # group_detail = group_detail_sort(data.group_detail)
         # my_param['group_id'] = data.group_id

@@ -30,8 +30,8 @@ class QualityControlModule(Module):
             {"name": "fq_l", "type": "outfile", "format": "sequence.fastq"},  # PE所有左端序列样本cat集合
             # {"name": "quality_a", "type": "int", "default": 30},  # 去接头碱基质量
             # {"name": "length_a", "type": "int", "default": 30},  # 去接头碱基长度
-            # {"name": "quality_q", "type": "int", "default": 20},  # 质量剪切碱基质量
-            # {"name": "length_q", "type": "int", "default": 30},  # 质量剪切碱基长度
+            {"name": "quality_q", "type": "int", "default": 20},  # 质量剪切碱基质量
+            {"name": "length_q", "type": "int", "default": 30}  # 质量剪切碱基长度
         ]
         self.add_option(options)
         self.samples = {}
@@ -132,7 +132,9 @@ class QualityControlModule(Module):
         self.step.add_steps('sickle_{}'.format(self.end_times))
         sickle.set_options({
             "fq_type": self.option("fq_type"),
-            "fastq_s": clip_s
+            "fastq_s": clip_s,
+            "quality": self.option("quality_q"),
+            "length": self.option("length_q")
         })
         step = getattr(self.step, 'sickle_{}'.format(self.end_times))
         step.start()
@@ -155,8 +157,9 @@ class QualityControlModule(Module):
         sickle.set_options({
             "fq_type": self.option("fq_type"),
             "fastq_l": seqprep_l,
-            "fastq_r": seqprep_r
-
+            "fastq_r": seqprep_r,
+            "quality": self.option("quality_q"),
+            "length": self.option("length_q")
         })
         step = getattr(self.step, 'sickle_{}'.format(self.end_times))
         step.start()

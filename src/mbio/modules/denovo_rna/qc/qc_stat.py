@@ -241,9 +241,9 @@ class QcStatModule(Module):
         result_dir = self.add_upload_dir(self.output_dir)
         self.logger.info('%s' % self.upload_dir)
         result_dir.add_relpath_rules([
-                [r".", "", "结果输出目录"],
-                [r"./qualityStat/", "文件夹", "质量统计文件夹"],
-                [r"./fastq_stat.xls", "xls", "fastq信息统计表"]
+                [".", "", "结果输出目录"],
+                ["./qualityStat/", "文件夹", "质量统计文件夹"],
+                ["./fastq_stat.xls", "xls", "fastq信息统计表"]
             ])
         if self.option("dup") is True:
             result_dir.add_relpath_rules([

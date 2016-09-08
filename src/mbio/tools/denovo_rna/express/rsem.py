@@ -21,7 +21,7 @@ class RsemAgent(Agent):
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件夹
-            {"name": "fa_build", "type": "outfile", "format": "sequence.fasta"},  #trinit.fasta文件
+            {"name": "fa_build", "type": "outfile", "format": "sequence.fasta"},
             {"name": "only_bowtie_build", "type": "bool", "default": False}  #  为true时该tool只建索引
         ]
         self.add_option(options)
