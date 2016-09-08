@@ -216,7 +216,7 @@ class ProcessActor(RemoteActor):
         super(ProcessActor, self).__init__(tool, main_thread)
 
     def run(self):
-        self.config.KEEP_ALIVE_TIME = 0
+        self.config.KEEP_ALIVE_TIME = 0.3
         super(ProcessActor, self).run()
 
     def send_state(self, state):

@@ -218,11 +218,9 @@ class Workflow(Basic):
         self.logger.info("运行结束!")
         self.rpc_server.close()
 
-
     @property
     def return_mongo_ids(self):
         return self._return_mongo_ids
-
 
     def add_return_mongo_id(self, collection_name, table_id, desc=''):
         return_dict = dict()
@@ -230,7 +228,6 @@ class Workflow(Basic):
         return_dict['collection_name'] = collection_name
         return_dict['desc'] = desc
         self._return_mongo_ids.append(return_dict)
-
 
     def _upload_result(self):
         """

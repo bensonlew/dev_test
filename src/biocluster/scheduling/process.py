@@ -9,9 +9,10 @@ import pickle
 from biocluster.agent import PickleConfig
 import os
 from biocluster.core.function import load_class_by_path,  get_classpath_by_object
-from gipc.gipc import _GProcess as Process
+# from gipc.gipc import _GProcess as Process
 from biocluster.logger import Wlog
 import gipc
+import psutil
 
 
 class PROCESS(Job):
@@ -21,7 +22,8 @@ class PROCESS(Job):
     def __init__(self, agent):
         super(PROCESS, self).__init__(agent)
         self.agent = agent
-        self.shared_callback_action = Manager().dict()
+        self.manager = Manager()
+        self.shared_callback_action = self.manager.dict()
         agent.shared_callback_action = self.shared_callback_action
         self.workflow = agent.get_workflow()
         self.process = None
@@ -31,19 +33,26 @@ class PROCESS(Job):
         # self.process.start()
         self.process = gipc.start_process(local_process_run, args=(self.agent,
                                                                    self.workflow.rpc_server.process_queue,
-                                                                   self.shared_callback_action,))
+                                                                   self.shared_callback_action,), daemon=True)
         self.id = self.process.pid
 
     def delete(self):
-        if isinstance(self.process, Process) and self.process.is_alive():
-            self.process.terminate()
+        if isinstance(self.process, gipc.gipc._GProcess):
+            if self.process.is_alive():
+                self.process.terminate()
+                self.manager.shutdown()
+            else:
+                self.process.join()
+                self.manager.shutdown()
 
     def set_end(self):
         super(PROCESS, self).set_end()
         if self.process.is_alive():
             self.process.terminate()
+            self.manager.shutdown()
         else:
             self.process.join()
+            self.manager.shutdown()
 
 
 def local_process_run(agent, process_queue, shared_callback_action):
