@@ -108,7 +108,7 @@ class Basic(object):
             self._task_object.run()
         except Exception as e:
             print e
-            info = {"success": False, "info": "程序运行过程中发生错误，错误信息:{}".format(e)}
+            info = {"success": False, "info": "{}".format(e)}
             self.returnInfo = json.dumps(info)
             # self.logger.error(self.returnInfo)
             return self.returnInfo
@@ -284,14 +284,14 @@ class Basic(object):
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                        })
+                    })
                 elif one['type'] == 'dir':
                     return_dirs.append({
                         "path": create_path(one["path"], i.path),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                        })
+                    })
                 else:
                     raise Exception('错误的文件类型')
         return return_files, return_dirs

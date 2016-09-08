@@ -57,6 +57,9 @@ class VennWorkflow(Workflow):
         no_zero_otu = os.path.join(self.work_dir, "otu.nozero")
         my_sps = self.samples
         self.option("in_otu_table").sub_otu_sample(my_sps, no_zero_otu)
+        num_lines = sum(1 for line in open(no_zero_otu))
+        if num_lines < 11:
+            raise Exception("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
         self.run_venn(no_zero_otu)
         super(VennWorkflow, self).run()
 
