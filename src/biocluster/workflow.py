@@ -400,8 +400,7 @@ class Workflow(Basic):
             print exstr
             self.logger.info("查询数据库异常: %s" % e)
 
-    @staticmethod
-    def end_unfinish_job():
+    def end_unfinish_job(self):
         """
         结束所有未完成的job任务
 
@@ -410,3 +409,5 @@ class Workflow(Basic):
         manager = JobManager()
         for job in manager.get_unfinish_jobs():
                 job.delete()
+        if hasattr(self, "process_share_manager"):
+            self.process_share_manager.shutdown()
