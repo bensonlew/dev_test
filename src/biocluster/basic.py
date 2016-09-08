@@ -361,12 +361,7 @@ class Basic(EventObject):
         for c in child:
             if not isinstance(c, Basic):
                 raise Exception("child参数必须为Basic或其子类的实例对象!")
-            if not self._children:                # 第一次添加子模块时初始化childend事件
-                self.add_event('childend', True)  # 子对象事件结束事件
-                self.on('childend', self.__event_childend)
-                self.add_event('childerror', True)  # 子对象事件错误事件
-                self.add_event("childrerun", True)  # 子对象重新运行
-                self.on('childrerun', self.__event_childrerun)
+            # if not self._children:                # 第一次添加子模块时初始化childend事件
             self._children.append(c)
         return self
 
@@ -379,7 +374,7 @@ class Basic(EventObject):
             return self._logger
         else:
             workflow = self.get_workflow()
-            self._logger = Wlog(workflow).get_logger(self._full_name + "(" + workflow.id + ")")
+            self._logger = Wlog(workflow).get_logger(self._full_name + "(" + self.id + ")")
             return self._logger
 
     def __init_events(self):
@@ -391,6 +386,11 @@ class Basic(EventObject):
         self.on('end', self.__event_end)
         self.add_event('error')
         self.on('error', self.__event_error)
+        self.add_event('childend', True)  # 子对象事件结束事件
+        self.on('childend', self.__event_childend)
+        self.add_event('childerror', True)  # 子对象事件错误事件
+        self.add_event("childrerun", True)  # 子对象重新运行
+        self.on('childrerun', self.__event_childrerun)
 
     def __event_end(self):
         """
@@ -422,8 +422,11 @@ class Basic(EventObject):
         """
         当有子模块完成时触发
         """
+        if child not in self.children:
+            raise Exception("%s不是%s的子对象!" % (child.name, self.name))
         child.stop_listener()
-        self.__check_relys()
+        with self.sem:
+            self.__check_relys()
 
     def __event_childrerun(self, child):
         """
@@ -432,6 +435,8 @@ class Basic(EventObject):
         :param child:
         :return:
         """
+        if child not in self.children:
+            raise Exception("%s不是%s的子对象!" % (child.name, self.name))
         if not self.is_start:
             return
         if not child.actor.ready():
