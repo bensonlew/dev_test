@@ -41,7 +41,7 @@ def group_detail_sort(detail):
         table_dict[keys] = sorted(table_dict[keys])
     sort_key = OrderedDict(sorted(table_dict.items(), key=lambda t: t[0]))
     table_dict = sort_key
-    table_dict = json.dumps(table_dict, sort_keys=True, separators=(',', ':'))
+    # table_dict = json.dumps(table_dict, sort_keys=True, separators=(',', ':'))
     return table_dict
 
 
