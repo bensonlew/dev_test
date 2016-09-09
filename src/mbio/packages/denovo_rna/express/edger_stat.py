@@ -1,13 +1,13 @@
 # !/mnt/ilustre/users/sanger/app/Python/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
-#last_modify:20160616
+# last_modify:20160616
 
 import math
 import numpy as np
 
 
-def read_matrix(matrixfile, control, other, replicates= None):
+def read_matrix(matrixfile, control, other, replicates=None):
     """传入计数或表达量矩阵，返回一个字典，键为gene_id,值为对照组（样本）和实验组（样本）的count值，fpkm值；control为对照组名，other为实验组名"""
     with open(matrixfile, 'rb') as f:
         f_info = f.readlines()
@@ -59,12 +59,12 @@ def mean_fpkm(count_dict, fpkm_dict):
         other_libsize += sum(count_dict[gene][1])
         con_count.append(count_dict[gene][0])
         oth_count.append(count_dict[gene][1])
-    c_counts = np.array(con_count).sum(axis=0) #计算对照组每个样本的count的总和
-    o_counts = np.array(oth_count).sum(axis=0) #计算实验组每个样本的count的总和
+    c_counts = np.array(con_count).sum(axis=0)  # 计算对照组每个样本的count的总和
+    o_counts = np.array(oth_count).sum(axis=0)  # 计算实验组每个样本的count的总和
     for gene in fpkm_dict.keys():
         mean_fpkm[gene] = []
         con = 0
-        oth =0
+        oth = 0
         for i in range(len(fpkm_dict[gene][0])):
             con += fpkm_dict[gene][0][i] * c_counts[i]
             oth += fpkm_dict[gene][1][i] * o_counts[i]
@@ -74,12 +74,11 @@ def mean_fpkm(count_dict, fpkm_dict):
     return mean_fpkm
 
 
-def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replicates = None, diff_ci = 0.05, regulate=True):
+def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replicates=None, diff_ci=0.05, regulate=True):
     """对edgeR结果进行统计，获得两两分组（或样本）的edgeR统计文件以及差异基因列表文件"""
     with open(edgr_result, 'rb') as e, open('%s/%s_vs_%s_edgr_stat.xls' % (output, control, other), 'wb') as w:
         eline = e.readline()
-        stat_dict = dict()
-        if replicates == None:
+        if replicates is None:
             count_dict = read_matrix(countfile, control, other)
             fpkm_dict = read_matrix(fpkmfile, control, other)
             w.write("Gene_id\t%s_count\t%s_conut\t%s_fpkm\t%s_fpkm\tLog2FC(%s/%s)\tPvalue\tFDR\tSignificant\tRegulate\n" % (control, other, control, other, other, control))
@@ -98,10 +97,10 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
             if not eline[0]:
                 break
             gene_id = eline[0]
-            if replicates == None:
-                fc = (float(fpkm_dict[gene_id][1])+0.1) / (float(fpkm_dict[gene_id][0])+0.1)
+            if replicates is None:
+                fc = (float(fpkm_dict[gene_id][1]) + 0.1) / (float(fpkm_dict[gene_id][0]) + 0.1)
             else:
-                fc = (float(fpkm_mean[gene_id][1])+0.1) / (float(fpkm_mean[gene_id][0])+0.1)
+                fc = (float(fpkm_mean[gene_id][1]) + 0.1) / (float(fpkm_mean[gene_id][0]) + 0.1)
             logfc = math.log(fc, 2)
             if regulate:
                 if logfc > 0:
@@ -117,8 +116,8 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
                 sig = 'yes'
             else:
                 sig = 'no'
-            if replicates == None:
-                w.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (gene_id, count_dict[gene_id][0], count_dict[gene_id][1], fpkm_dict[gene_id][0], fpkm_dict[gene_id][1], '%0.3f' % logfc,'%0.3f' % float(eline[3]), '%0.3f' % fdr, sig, reg))
+            if replicates is None:
+                w.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (gene_id, count_dict[gene_id][0], count_dict[gene_id][1], fpkm_dict[gene_id][0], fpkm_dict[gene_id][1], '%0.3f' % logfc, '%0.3f' % float(eline[3]), '%0.3f' % fdr, sig, reg))
                 fpkm_dict.pop(gene_id)
             else:
                 w_text = "%s\t" % gene_id
@@ -126,7 +125,7 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
                 fpkm_list = fpkm_dict[gene_id][0] + fpkm_dict[gene_id][1]
                 for i in range(len(count_list)):
                     w_text += "%s\t%s\t" % (count_list[i], fpkm_list[i])
-                w.write("%s%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (w_text, fpkm_mean[gene_id][0], fpkm_mean[gene_id][1], '%0.3f' % logfc,'%0.3f' % float(eline[3]), '%0.3f' % fdr, sig, reg))
+                w.write("%s%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (w_text, fpkm_mean[gene_id][0], fpkm_mean[gene_id][1], '%0.3f' % logfc, '%0.3f' % float(eline[3]), '%0.3f' % fdr, sig, reg))
                 fpkm_dict.pop(gene_id)
         if replicates == None:
             for gene in fpkm_dict.keys():
