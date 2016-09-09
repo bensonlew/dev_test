@@ -48,7 +48,7 @@ class MetaBaseWorkflow(Workflow):
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
             {"name": "plsda_grouplab", "type": 'string', "default": ''}
-        ]
+            ]
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.filecheck = self.add_tool("meta.filecheck.file_metabase")
@@ -486,7 +486,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
             ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Rda", "", "rda_cca分析结果目录"]
-        ]
+            ]
         regexps = [
             [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
             [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
@@ -506,7 +506,7 @@ class MetaBaseWorkflow(Workflow):
             ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
             ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "单级物种分类统计表"],
             ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
-        ]
+            ]
         for i in self.option("rarefy_indices").split(","):
             if i == "sobs":
                 repaths.append(["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)])

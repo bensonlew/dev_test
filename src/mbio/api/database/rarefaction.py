@@ -107,7 +107,7 @@ class Rarefaction(Base):
             "level_id": level,
             "status": "start",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
-            # "category_x": max(self.category_x),
+            # "group_id": group_id,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         # if params is not None:

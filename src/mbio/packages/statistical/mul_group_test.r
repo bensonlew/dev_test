@@ -50,12 +50,12 @@ summary_stat <- function(x){
       n <- n+2
     }
   }
-  #  make the head of stat_result 
+  #  make the head of stat_result
   coln <- 1
   s_name <- names(s)
   for(m in 1:(length(s_name))){
-    stat_result[1,coln] <- paste("mean(",s_name[m],")",sep='')
-    stat_result[1,coln+1] <- paste("sd(",s_name[m],")",sep='')
+    stat_result[1,coln] <- paste(s_name[m],"-mean",sep='')
+    stat_result[1,coln+1] <- paste(s_name[m],"-sd",sep='')
     coln <- coln+2
   }
   head <- stat_result[1,]
@@ -81,7 +81,7 @@ lendata <- nrow(data)
 if(lendata > 1){
   da <- data
   data <- apply(da,2,function(x)as.numeric(x)/sum(as.numeric(x)))
-  rownames(data) <- rownames(da)  
+  rownames(data) <- rownames(da)
 }
 data <- t(data)
 data <- as.data.frame(data)
@@ -120,10 +120,9 @@ i <- 1
 while(n < g_num){
   order <- order + as.numeric(result[,i])
   i <- i + 2
-  n <- n + 1 
+  n <- n + 1
 }
 result_order <- result[order(-order),]
 write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=T,quote = F)
 boxfile <- boxplot_stat(data)
 write.table(boxfile,"${boxfile}",sep="\t",col.names=T,row.names=T,quote = F)
-

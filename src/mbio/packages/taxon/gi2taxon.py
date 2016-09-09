@@ -5,7 +5,7 @@
 
 import sqlite3
 import subprocess
-
+from biocluster.config import Config
 
 def create_gi2taxid(name, db, dbfile):
     """用于在sqlite3的数据库中创建表，导入gi2taxid的数据"""
@@ -30,8 +30,8 @@ def create_gi2taxid(name, db, dbfile):
 
 
 # 默认的数据库位置，待定
-gi_db = sqlite3.connect('/mnt/ilustre/users/sanger/sgBioinfo/shenghe/database/taxon/2taxid_sqlite3.db')
-taxon_db = sqlite3.connect('/mnt/ilustre/users/sanger/sgBioinfo/shenghe/database/taxon/taxa.sqlite')
+gi_db = sqlite3.connect(Config().SOFTWARE_DIR + '/database/ncbi_taxon/2taxid_sqlite3.db')
+taxon_db = sqlite3.connect(Config().SOFTWARE_DIR + '/database/ncbi_taxon/taxa.sqlite')
 
 
 class taxon(object):

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
-import re
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 

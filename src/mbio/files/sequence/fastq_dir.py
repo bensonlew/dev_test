@@ -32,6 +32,8 @@ class FastqDirFile(Directory):
         self.work_dir = ""
         self.has_list_file = False
         self.samples = list()
+        self.se_repeat = False
+        self.pe_repeat = False
 
     def get_info(self):
         """
@@ -71,7 +73,10 @@ class FastqDirFile(Directory):
             filesample = FileSampleFile()
             filesample.set_path(list_txt)
             filesample.get_info()
+            filesample.check()  #add 1 line by qiuping 20160722
             self.samples = filesample.prop["sample_names"]
+            self.se_repeat = filesample.se_repeat
+            self.pe_repeat = filesample.pe_repeat
             for filename in filesample.prop["file_names"]:
                 my_fastq = FastqFile()
                 fq_path = os.path.join(self.prop['path'], filename)

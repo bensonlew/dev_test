@@ -96,8 +96,11 @@ class NetworkTool(Tool):
     def __init__(self, config):
         super(NetworkTool, self).__init__(config)
         self._version = '1.0.1'
-        self.r_path = '/R-3.2.2/bin/Rscript'
-        self.script_path = '/mnt/ilustre/users/sanger/app/rna/scripts/'
+        self.r_path = '/program/R-3.3.1/bin/Rscript'
+        self.script_path = self.config.SOFTWARE_DIR +  '/bioinfo/rna/scripts/'
+        self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
+        self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
 
     def run_wgcna_one(self):
         one_cmd = self.r_path + " %sInModuleWGCNA-step01.r --args %s %s %s %s" % (self.script_path, self.option('diff_fpkm').prop['path'], 'wgcna_result', self.option('softpower'), self.option('dissimilarity'))
@@ -130,12 +133,16 @@ class NetworkTool(Tool):
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
         results = os.listdir(self.work_dir + '/wgcna_result/')
-        for f in results:
-            if re.search(r'.*Rdata$', f):
-                pass
-            else:
-                os.link(self.work_dir + '/wgcna_result/' + f, self.output_dir + '/' + f)
-        self.logger.info('设置文件夹路径成功')
+        try:
+            for f in results:
+                if re.search(r'.*Rdata$', f):
+                    pass
+                else:
+                    os.link(self.work_dir + '/wgcna_result/' + f, self.output_dir + '/' + f)
+            self.logger.info('设置文件夹路径成功')
+        except Exception as e:
+            self.logger.info("设置network分析结果目录失败{}".format(e))
+
 
 
     def run(self):

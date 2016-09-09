@@ -20,7 +20,8 @@ class RarefactionWorkflow(Workflow):
             {"name": "indices", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "freq", "type": "int"},
-            {"name": "rare_id", "type": "string"}
+            {"name": "rare_id", "type": "string"},
+            {"name": "group_detail", "type": "string"}
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())

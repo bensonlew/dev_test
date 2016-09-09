@@ -29,20 +29,24 @@ class EstTTest(MetaController):
             info = {"success": False, "info": "传入的group_detail不是字典"}
             return json.dumps(info)
         if len(table_dict) < 2:
-            info = {"success": False, "info": "请选择至少两组及以上的分组"}
+            info = {"success": False, "info": "请选择至少两组以上的分组"}
             return json.dumps(info)
+        for key in table_dict:
+            if len(table_dict[key]) < 2:
+                info = {"success": False, "info": "每组至少有两个样本"}
+                return json.dumps(info)
         # my_param = dict()
         # group_detail = group_detail_sort(data.group_detail)
         # my_param['group_id'] = data.group_id
         # my_param['submit_location'] = data.submit_location
-        est_params = Estimator().get_est_params(data.alpha_diversity_id)
-        otu_id = str(est_params[0])
+        # est_params = Estimator().get_est_params(data.alpha_diversity_id)
+        # otu_id = str(est_params[0])
         # print(my_param)
         # params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         self.task_name = 'meta.report.est_t_test'
         self.task_type = 'workflow'
         self.options = {"est_table": data.alpha_diversity_id,
-                        "otu_id": otu_id,
+                        "otu_id": str(data.otu_id),
                         "group_detail": data.group_detail,
                         "group_table": data.group_id,
                         'submit_location': data.submit_location,
