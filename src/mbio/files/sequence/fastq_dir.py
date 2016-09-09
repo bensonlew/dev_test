@@ -73,7 +73,7 @@ class FastqDirFile(Directory):
             filesample = FileSampleFile()
             filesample.set_path(list_txt)
             filesample.get_info()
-            filesample.check()  #add 1 line by qiuping 20160722
+            filesample.check()  # add 1 line by qiuping 20160722
             self.samples = filesample.prop["sample_names"]
             self.se_repeat = filesample.se_repeat
             self.pe_repeat = filesample.pe_repeat
@@ -82,7 +82,7 @@ class FastqDirFile(Directory):
                 fq_path = os.path.join(self.prop['path'], filename)
                 my_fastq.set_path(fq_path)
                 my_fastq.get_info()
-                sample_name = my_fastq.prop["file_sample"][filename]
+                sample_name = filesample.prop["file_sample"][filename]
                 if my_fastq.check():
                     if filename not in self.fastqs:
                         self.fastqs.append(filename)
