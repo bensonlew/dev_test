@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'wangbixuan'
+# __modified__ = 'hesheng'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.config import Config
@@ -9,16 +10,16 @@ import subprocess
 import Bio.SeqIO
 
 
-class DenovoAnnoStatisticsAgent(Agent):
+class DenovornaAnnoStatisticsAgent(Agent):
     """
     to perform annotation statistics
     this tool can only be called by denovorna module
     author:wangbixuan
-    last_modified:20160829
+    last_modified:20160831
     """
 
     def __init__(self, parent):
-        super(DenovoAnnoStatisticsAgent, self).__init__(parent)
+        super(DenovornaAnnoStatisticsAgent, self).__init__(parent)
         options = [
             {"name": "trinity_fasta", "type": "infile", "format": "sequence.fasta"},
             {"name": "gene_fasta", "type": "infile", "format": "sequence.fasta"},
@@ -35,14 +36,10 @@ class DenovoAnnoStatisticsAgent(Agent):
             {"name": "cog_output_dir", "type": "string"},
             {"name": "kegg_output_dir", "type": "string"},
             {"name": "blast_stat_output_dir", "type": "string"},
-            #{"name": "uni_out_path", "type": "string"},
             {"name": "unigene", "type": "bool"},  # 当gene fasta被提供时可用
-            {"name": 'uni_nr', "type": "outfile",
-                "format": "align.blast.blast_xml"},
-            {"name": 'uni_st', "type": "outfile",
-                "format": "align.blast.blast_xml"},
-            {"name": 'uni_ke', "type": "outfile",
-                "format": "align.blast.blast_xml"}
+            {"name": 'uni_nr', "type": "outfile", "format": "align.blast.blast_xml"},
+            {"name": 'uni_st', "type": "outfile", "format": "align.blast.blast_xml"},
+            {"name": 'uni_ke', "type": "outfile", "format": "align.blast.blast_xml"}
 
         ]
         self.add_option(options)
@@ -59,67 +56,64 @@ class DenovoAnnoStatisticsAgent(Agent):
         self.step.update()
 
     def check_options(self):
-        if self.option('unigene') == True:
+        if self.option('unigene') is True:
             if not self.option('gene_fasta').is_set:
                 raise OptionError("必须提供unigene的fasta文件")
         if not self.option('trinity_fasta').is_set:
             raise OptionError("必须提供trinity标准fasta文件")
-#        else:
-#            if self.option('gene_fasta').is_set:
-#                trinity = []
-#                for seq_record in Bio.SeqIO.parse(open(self.option('trinity_fasta').prop['path']), 'fasta'):
-#                    trinity.append(seq_record.id)
-#                gene = []
-#                for gene_seq_record in Bio.SeqIO.parse(open(self.option('gene_fasta').prop['path']), 'fasta'):
-#                    gene.append(gene_seq_record.id)
-#                for gid in gene:
-#                    if gid not in trinity:
-#                        raise OptionError(
-#                            "unigene_fasta文件存在trinity_fasta文件中不存在的序列")
-#                        break
-#        if not self.option('nr_blast_out').is_set:
-#            raise OptionError("必须提供nr对比blast结果xml文件")
-#        if not self.option('swiss_blast_out').is_set:
-#            raise OptionError("必须提供swissprot对比blast结果xml文件")
-#        if not self.option('string_blast_out').is_set:
-#            raise OptionError("必须提供string对比blast结果xml文件")
-#        if not self.option('kegg_blast_out').is_set:
-#            raise OptionError("必须提供kegg对比blast结果xml文件")
-#        if self.option('ncbi_taxonomy_output_dir').is_set:
-#            if not os.path.exists(self.option('ncbi_taxonomy_output_dir') + '/query_taxons_detail.xls'):
-#                raise OptionError(
-#                    "ncbi_taxonomy输出文件缺少'query_taxons_detail.xls'文件")
-#        else:
-#            raise OptionError("必须提供ncbi taxon输出结果文件夹路径")
-#        if self.option('go_output_dir').is_set:
-#            for gofile in ['blast2go.annot', 'query_gos.list', 'go1234level_statistics.xls', 'go2level.xls', 'go3level.xls', 'go4level.xls']:
-#                if not os.path.exists(self.option('go_output_dir') + '/' + gofile):
-#                    raise OptionError("go annotation输出文件缺少'%s'文件" % gofile)
-#        else:
-#            raise OptionError("必须提供go annotation输出结果文件夹路径")
-#        if self.option('cog_output_dir').is_set:
-#            for cogfile in ['cog_list.xls', 'cog_summary.xls', 'cog_table.xls']:
-#                if not os.path.exists(self.option('cog_output_dir') + '/' + cogfile):
-#                    raise OptionError("string2cog输出文件缺少'%s'文件" % cogfile)
-#        else:
-#            raise OptionError("必须提供string2cog输出结果文件夹路径")
-#        if self.option('kegg_output_dir').is_set:
-#            for keggfile in ['kegg_table.xls', 'pathway_table.xls', 'kegg_taxonomy.xls']:
-#                if not os.path.exists(self.option('kegg_output_dir') + '/' + keggfile):
-#                    raise OptionError("KEGG annotation输出文件缺少'%s'文件"keggfile)
-#        else:
-#            raise OptionError("必须提供KEGG annotation输出结果文件夹路径")
-#        if self.option('blast_stat_output_dir').is_set:
-#            #!important: change file names if needed!
-#            for bstatfile in ['evalue_statistics.xls', 'similarity_statistics.xls']:
-#                if not os.path.exists(self.option('blast_stat_output_dir') + '/' + bstatfile):
-#                    raise OptionError("blast stat输出文件缺少'%s'文件"bstatfile)
-#        else:
-#            raise OptionError("必须提供blast stat输出结果文件夹路径")
-        '''
-        if not self.option('uni_out_path').is_set:
-            raise OptionError("必须设置unigene结果输出文件夹")
-        '''
+        else:
+            if self.option('gene_fasta').is_set:
+                trinity = []
+                for seq_record in Bio.SeqIO.parse(open(self.option('trinity_fasta').prop['path']), 'fasta'):
+                    trinity.append(seq_record.id)
+                gene = []
+                for gene_seq_record in Bio.SeqIO.parse(open(self.option('gene_fasta').prop['path']), 'fasta'):
+                    gene.append(gene_seq_record.id)
+                for gid in gene:
+                    if gid not in trinity:
+                        raise OptionError(
+                            "unigene_fasta文件存在trinity_fasta文件中不存在的序列")
+                        break
+        if not self.option('nr_blast_out').is_set:
+            raise OptionError("必须提供nr对比blast结果xml文件")
+        # if not self.option('swiss_blast_out').is_set:
+            # raise OptionError("必须提供swissprot对比blast结果xml文件")
+        if not self.option('string_blast_out').is_set:
+            raise OptionError("必须提供string对比blast结果xml文件")
+        if not self.option('kegg_blast_out').is_set:
+            raise OptionError("必须提供kegg对比blast结果xml文件")
+        if self.option('ncbi_taxonomy_output_dir').is_set:
+            if not os.path.exists(self.option('ncbi_taxonomy_output_dir') + '/query_taxons_detail.xls'):
+                raise OptionError(
+                    "ncbi_taxonomy输出文件缺少'query_taxons_detail.xls'文件")
+        else:
+            raise OptionError("必须提供ncbi taxon输出结果文件夹路径")
+        if self.option('go_output_dir').is_set:
+            for gofile in ['blast2go.annot', 'query_gos.list', 'go1234level_statistics.xls',
+                           'go2level.xls', 'go3level.xls', 'go4level.xls']:
+                if not os.path.exists(self.option('go_output_dir') + '/' + gofile):
+                    raise OptionError("go annotation输出文件缺少'%s'文件" % gofile)
+        else:
+            raise OptionError("必须提供go annotation输出结果文件夹路径")
+        if self.option('cog_output_dir').is_set:
+            for cogfile in ['cog_list.xls', 'cog_summary.xls', 'cog_table.xls']:
+                if not os.path.exists(self.option('cog_output_dir') + '/' + cogfile):
+                    raise OptionError("string2cog输出文件缺少'%s'文件" % cogfile)
+        else:
+            raise OptionError("必须提供string2cog输出结果文件夹路径")
+        if self.option('kegg_output_dir').is_set:
+            for keggfile in ['kegg_table.xls', 'pathway_table.xls', 'kegg_taxonomy.xls']:
+                if not os.path.exists(self.option('kegg_output_dir') + '/' + keggfile):
+                    raise OptionError("KEGG annotation输出文件缺少\'%s\'文件" % keggfile)
+        else:
+            raise OptionError("必须提供KEGG annotation输出结果文件夹路径")
+        if self.option('blast_stat_output_dir').is_set:
+            # !important: change file names if needed!
+            for bstatfile in ['evalue_statistics.xls', 'similarity_statistics.xls']:
+                if not os.path.exists(self.option('blast_stat_output_dir') + '/' + bstatfile):
+                    raise OptionError("blast stat输出文件缺少'%s'文件" % bstatfile)
+        else:
+            raise OptionError("必须提供blast stat输出结果文件夹路径")
 
     def set_resource(self):
         self._cpu = 10
@@ -163,36 +157,36 @@ class DenovoAnnoStatisticsAgent(Agent):
             ["./unigene/kegg/unigene_kegg_taxonomy.xls",
                 "xls", "unigene KEGG 二级分类统计表"]
         ])
-        super(DenovoAnnoStatisticsAgent, self).end()
+        super(DenovornaAnnoStatisticsAgent, self).end()
 
 
-class DenovoAnnoStatisticsTool(Tool):
+class DenovornaAnnoStatisticsTool(Tool):
 
     def __init__(self, config):
-        super(DenovoAnnoStatisticsTool, self).__init__(config)
+        super(DenovornaAnnoStatisticsTool, self).__init__(config)
         self._version = "1.0"
 
-#    def run_annotStat(self):
-#        cmd = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/annotStat.py'.format(
-#            self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
-#        cmd += ' %s %s %s %s %s %s %s %s %s' % (self.option('trinity_fasta').prop['path'],
-#                                                self.option('nr_blast_out').prop['path'], self.option(
-#                                                    'swiss_blast_out').prop['path'],
-#                                                self.option('string_blast_out').prop[
-#            'path'], self.option('ncbi_taxonomy_output_dir'),
-#            self.option('go_output_dir').prop['path'], self.option(
-#                'cog_output_dir').prop['path'],
-#            self.option('kegg_output_dir').prop['path'], self.worl_dir)
-#        self.logger.info("运行annotStat.py")
-#        self.logger.info(cmd)
-#        try:
-#            subprocess.check_output(cmd, shell=True)
-#            self.logger.info("运行annotStat.py完成")
-#            for stat_file in ['all_annotation.xls', 'all_annotation_statistics.xls', 'venn_table.xls']:
-#                linkfile(self.work_dir, stat_file, self.output_dir)
-#        except subprocess.CalledProcessError:
-#            self.set_error("运行annotStat.py出错")
-#        self.end()
+    def run_annotStat(self):
+        cmd = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/annotStat.py'.format(
+            self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
+        cmd += ' %s %s %s %s %s %s %s %s %s' % (self.option('trinity_fasta').prop['path'],
+                                                self.option('nr_blast_out').prop['path'], self.option(
+                                                    'swiss_blast_out').prop['path'],
+                                                self.option('string_blast_out').prop[
+            'path'], self.option('ncbi_taxonomy_output_dir'),
+            self.option('go_output_dir').prop['path'], self.option(
+                'cog_output_dir').prop['path'],
+            self.option('kegg_output_dir').prop['path'], self.worl_dir)
+        self.logger.info("运行annotStat.py")
+        self.logger.info(cmd)
+        try:
+            subprocess.check_output(cmd, shell=True)
+            self.logger.info("运行annotStat.py完成")
+            for stat_file in ['all_annotation.xls', 'all_annotation_statistics.xls', 'venn_table.xls']:
+                self.linkfile(self.work_dir, stat_file, self.output_dir)
+        except subprocess.CalledProcessError:
+            self.set_error("运行annotStat.py出错")
+        self.end()
 
     def linkfile(self, workdir, filename, outdir):
         if os.path.exists(outdir + '/' + filename):
@@ -243,37 +237,42 @@ class DenovoAnnoStatisticsTool(Tool):
         cmd1 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/annotStatNew.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
         cmd1 += ' %s %s %s %s %s %s %s %s %s %s %s %s %s' % (self.option('trinity_fasta').prop['path'],
-                                                             nr_blast, swiss_blast,
-                                                             string_blast, kegg_blast, taxo_dir,
-                                                             go_dir, cog_dir,
-                                                             kegg_dir, self.work_dir + '/unigene',
-                                                             blastat_dir, gene_fasta,self.work_dir)
+                                                             self.option('nr_blast_out').prop['path'], self.option(
+                                                                 'swiss_blast_out').prop['path'],
+                                                             self.option('string_blast_out').prop['path'], self.option(
+                'kegg_blast_out').prop['path'],
+            self.option('ncbi_taxonomy_output_dir'),
+            self.option('go_output_dir').prop['path'], self.option(
+                'cog_output_dir').prop['path'],
+            self.option('kegg_output_dir').prop[
+            'path'], self.work_dir + '/unigene',
+            self.option('blast_stat_output_dir'), self.option('gene_fasta').prop['path'],
+            self.work_dir)
         self.logger.info("运行annotUnigene.py")
         self.logger.info(cmd1)
         try:
             subprocess.check_output(cmd1, shell=True)
             self.logger.info("运行annotUnigene.py完成")
             for u_stat_file in ['all_annotation.xls', 'all_annotation_statistics.xls', 'venn_table.xls']:
-                linkfile(self.work_dir, u_stat_file, self.output_dir)
+                self.linkfile(self.work_dir, u_stat_file, self.output_dir)
             for blast_unigene_file in ['unigene_nr.xml', 'unigene_string.xml', 'unigene_kegg.xml']:
-                linkfile(self.work_dir + '/unigene/blast',
-                         blast_unigene_file, self.output_dir + '/unigene/blast')
-            linkfile(self.work_dir + '/unigene/ncbi_taxonomy', 'unigene_query_taxons_detail.xls',
-                     self.output_dir + '/unigene/ncbi_taxonomy')
-            for go_unigene_file in ['unigene_blast2go.annot', 'unigene_query_gos.list', 'unigene_go1234level_statistics.xls', 'unigene_go2level.xls', 'unigene_go2level.xls', 'unigene_go4level.xls']:
-                linkfile(self.work_dir + '/unigene/go',
-                         go_unigene_file, self.output_dir + '/unigene/go')
+                self.linkfile(self.work_dir + '/unigene/blast',
+                              blast_unigene_file, self.output_dir + '/unigene/blast')
+            self.linkfile(self.work_dir + '/unigene/ncbi_taxonomy', 'unigene_query_taxons_detail.xls',
+                          self.output_dir + '/unigene/ncbi_taxonomy')
+            for go_unigene_file in ['unigene_blast2go.annot', 'unigene_query_gos.list',
+                                    'unigene_go1234level_statistics.xls', 'unigene_go2level.xls',
+                                    'unigene_go2level.xls', 'unigene_go4level.xls']:
+                self.linkfile(self.work_dir + '/unigene/go', go_unigene_file, self.output_dir + '/unigene/go')
             for cog_unigene_file in ['unigene_cog_list.xls', 'unigene_cog_summary.xls', 'unigene_cog_table.xls']:
-                linkfile(self.work_dir + '/unigene/cog', cog_unigene_file, self.output_dir_'/unigene/cog')
-            for kegg_unigene_file in ['unigene_kegg_table.xls', 'unigene_pathway_table.xls', 'unigene_kegg_taxonomy.xls']:
-                linkfile(self.work_dir + '/unigene/kegg',
-                         kegg_unigene_file, self.output_dir + '/unigene/kegg')
-            self.option('uni_nr', self.work_dir +
-                        '/unigene/blast/unigene_nr.xml')
-            self.option('uni_st', self.work_dir +
-                        '/unigene/blast/unigene_string.xml')
-            self.option('uni_ke', self.work_dir +
-                        '/unigene/blast/unigene_kegg.xml')
+                self.linkfile(self.work_dir + '/unigene/cog', cog_unigene_file, self.output_dir + '/unigene/cog')
+            for kegg_unigene_file in ['unigene_kegg_table.xls', 'unigene_pathway_table.xls',
+                                      'unigene_kegg_taxonomy.xls']:
+                self.linkfile(self.work_dir + '/unigene/kegg',
+                              kegg_unigene_file, self.output_dir + '/unigene/kegg')
+            self.option('uni_nr', self.work_dir + '/unigene/blast/unigene_nr.xml')
+            self.option('uni_st', self.work_dir + '/unigene/blast/unigene_string.xml')
+            self.option('uni_ke', self.work_dir + '/unigene/blast/unigene_kegg.xml')
         except subprocess.CalledProcessError:
             self.set_error("运行annotUnigene出错")
         self.run_xmltoxls()
@@ -288,8 +287,7 @@ class DenovoAnnoStatisticsTool(Tool):
             self.logger.info("nr格式转变完成")
             if os.path.exists(self.output_dir + '/unigene/blast/unigene_nr.xls'):
                 os.remove(self.output_dir + '/unigene/blast/unigene_nr.xls')
-            os.link(inputfile, self.output_dir +
-                    '/unigene/blast/unigene_nr.xls')
+            os.link(inputfile, self.output_dir + '/unigene/blast/unigene_nr.xls')
         inputfile2 = self.option('uni_st').prop['path']
         if self.option("uni_st").format == "align.blast.blast_xml":
             self.logger.info(
@@ -298,10 +296,8 @@ class DenovoAnnoStatisticsTool(Tool):
             self.option('uni_st').convert2table(inputfile2)
             self.logger.info("string格式转变完成")
             if os.path.exists(self.output_dir + '/unigene/blast/unigene_string.xls'):
-                os.remove(self.output_dir +
-                          '/unigene/blast/unigene_string.xls')
-            os.link(inputfile2, self.output_dir +
-                    '/unigene/blast/unigene_string.xls')
+                os.remove(self.output_dir + '/unigene/blast/unigene_string.xls')
+            os.link(inputfile2, self.output_dir + '/unigene/blast/unigene_string.xls')
         inputfile3 = self.option('uni_ke').prop['path']
         if self.option("uni_ke").format == "align.blast.blast_xml":
             self.logger.info(
@@ -311,35 +307,31 @@ class DenovoAnnoStatisticsTool(Tool):
             self.logger.info("kegg格式转变完成")
             if os.path.exists(self.output_dir + '/unigene/blast/unigene_kegg.xls'):
                 os.remove(self.output_dir + '/unigene/blast/unigene_kegg.xls')
-            os.link(inputfile3, self.output_dir +
-                    '/unigene/blast/unigene_kegg.xls')
-        self.blastinfile = infile
+            os.link(inputfile3, self.output_dir + '/unigene/blast/unigene_kegg.xls')
+        self.blastinfile = inputfile
         self.run_blast_stat()
 
     def run_blast_stat(self):
         cmd2 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/blastout_statistics.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
-        cmd2 += ' %s %s' % (self.blastinfile, self.work_dir +
-                            '/unigene/blast_nr_statistics/')
+        cmd2 += ' %s %s' % (self.blastinfile, self.work_dir + '/unigene/blast_nr_statistics/')
         self.logger.info("运行blastout_statistics.py")
         self.logger.info(cmd2)
         try:
             subprocess.check_output(cmd2, shell=True)
             self.logger.info("运行blastout_statistics.py完成")
             if os.path.exists(self.output_dir + '/unigene/blast_nr_statistics/unigene_evalue_statistics.xls'):
-                os.remove(
-                    self.output_dir + '/unigene/blast_nr_statistics/unigene_evalue_statistics.xls')
-            os.link(work_dir + '/unigene/blast_nr_statistics/output_evalue.xls',
+                os.remove(self.output_dir + '/unigene/blast_nr_statistics/unigene_evalue_statistics.xls')
+            os.link(self.work_dir + '/unigene/blast_nr_statistics/output_evalue.xls',
                     self.output_dir + '/unigene/blast_nr_statistics/unigene_evalue_statistics.xls')
             if os.path.exists(self.output_dir + '/unigene/blast_nr_statistics/unigene_similarity_statistics.xls'):
-                os.remove(
-                    self.output_dir + '/unigene/blast_nr_statistics/unigene_similarity_statistics.xls')
-            os.link(work_dir + '/unigene/blast_nr_statistics/output_similar.xls',
+                os.remove(self.output_dir + '/unigene/blast_nr_statistics/unigene_similarity_statistics.xls')
+            os.link(self.work_dir + '/unigene/blast_nr_statistics/output_similar.xls',
                     self.output_dir + '/unigene/blast_nr_statistics/unigene_similarity_statistics.xls')
         except subprocess.CalledProcessError:
             self.set_error("运行blastout_statistics.py出错")
         self.end()
 
     def run(self):
-        super(DenovoAnnoStatisticsTool, self).run()
+        super(DenovornaAnnoStatisticsTool, self).run()
         self.run_annotUnigene()

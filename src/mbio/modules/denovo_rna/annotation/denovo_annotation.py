@@ -24,20 +24,34 @@ class DenovoAnnotationModule(Module):
         options = [
             {"name": "query", "type": "infile", "format": "sequence.fasta"},
             {"name": "query_type", "type": "string"},
-            {"name": "database", "type": "string", "default": "nr"},
+            #{"name": "database", "type": "string", "default": "nr"},
             {"name": "reference", "type": "infile",
                 "format": "sequence.fasta"},  # 参考序列，选择customer时启动
             {"name": "reference_type", "type": "string"},  # 参考序列类型，nucl或prot
+<<<<<<< HEAD
             {"name": "evalue", "type": "float", "default": 1e-5},
             {"name": "threads", "type": "int", "default": 10},
             {"name": "anno_statistics", "type": "bool", "default": False},
             {"name": "unigene", "type": "bool", "default": False},
+=======
+            {"name":"nrblast","type":"bool","default":True},
+            {"name": "nrevalue", "type": "float", "default": 1e-5},
+            {'name':'stringblast','type':'bool','default':True},
+            {'name':'stringevalue','type':'float','default':1e-5},
+            {'name':'keggblast','type':'bool','default':True},
+            {'name':'keggevalue','type':'float','default':1e-5},
+            {'name':'swissblast','type':'bool','default':True},
+            {'name':'swissevalue','type':'float','default':1e-5},
+            {"name": "threads", "type": "int", "default"：10}，
+            {"name": "anno_statistics", "type": "bool", "default": True},
+            {"name": "unigene", "type": "bool", "default": True},
+>>>>>>> bf78bfaaabb7bf5733a1040649e44239f43dea09
             {"name": "query_gene", "type": "infile", "format": "sequence.fasta"},
-            {'name': 'blast_stat', 'type': 'bool', 'default': False},
-            {'name': 'gi_taxon', 'type': 'bool', 'default': False},
-            {'name': 'go_annot', 'type': 'bool', 'default': False},
-            {'name': 'cog_annot', 'type': 'bool', 'default': False},
-            {'name': 'kegg_annot', 'type': 'bool', 'default': False}
+            {'name': 'blast_stat', 'type': 'bool', 'default': True},
+            {'name': 'gi_taxon', 'type': 'bool', 'default': True},
+            {'name': 'go_annot', 'type': 'bool', 'default': True},
+            {'name': 'cog_annot', 'type': 'bool', 'default': True},
+            {'name': 'kegg_annot', 'type': 'bool', 'default': True}
         ]
         self.blast = self.add_tool('align.ncbi.blast')
         self.blast_stat = self.add_tool('align.ncbi.blaststat')
@@ -98,28 +112,28 @@ class DenovoAnnotationModule(Module):
 #            else:
 #                raise OptionError("Unigene文件不存在")
 
-    def blast_run(self):
-        if self.option('reference').is_set:
-            self.dbtype = self.option('reference_type')
-        else:
-            self.dbtype = self._database_type[self.option('database')]
-        self.checktype = {'nucl': {'nucl': 'blastn', 'prot': 'blastx'}, 'prot': {
-            'nucl': 'tblastn', 'prot': 'blastp'}}
-        self.blast.set_options({
-            'query': self.option('query'),
-            'query_type': self.option('query_type'),
-            'database': self.option('database'),
-            'outfmt': 6,
-            'blast': self.checktype[self.option('query_type')][self.dbtype],
-            'reference': self.option('reference'),
-            'reference_type': self.option('reference_type'),
-            'evalue': self.option('evalue'),
-            'num_threads': self.option('threads'),
-            'num_alignment': 500
-        })
-        self.step.blast.start()
-        self.blast.on("end", self.set_output, 'blast')
-        self.blast.run()
+#    def blast_run(self):
+#        if self.option('reference').is_set:
+#            self.dbtype = self.option('reference_type')
+#        else:
+#            self.dbtype = self._database_type[self.option('database')]
+#        self.checktype = {'nucl': {'nucl': 'blastn', 'prot': 'blastx'}, 'prot': {
+#            'nucl': 'tblastn', 'prot': 'blastp'}}
+#        self.blast.set_options({
+#            'query': self.option('query'),
+#            'query_type': self.option('query_type'),
+#            'database': self.option('database'),
+#            'outfmt': 6,
+#            'blast': self.checktype[self.option('query_type')][self.dbtype],
+#            'reference': self.option('reference'),
+#            'reference_type': self.option('reference_type'),
+#            'evalue': self.option('evalue'),
+#            'num_threads': self.option('threads'),
+#            'num_alignment': 500
+#        })
+#        self.step.blast.start()
+#        self.blast.on("end", self.set_output, 'blast')
+#        self.blast.run()
 
     def blast_gi_go_run(self):
         self.blast_gi_go.set_options({
@@ -128,18 +142,19 @@ class DenovoAnnotationModule(Module):
             'database': 'nr',
             'outfmt': 6,
             'blast': self._blast_type[self.option('query_type')]['prot'][0],
-            'evalue': self.option('evalue'),
+            'evalue': self.option('nrevalue'),
             'num_threads': self.option('threads'),
             'num_alignment': 500
         })
         self.step.blast_gi_go.start()
+        self.blast_gi_go.on("end",self.set_output,'nrblast')
         self.blast_gi_go.run()
 
     def blast_stat_run(self):
-        if self.option('database') == 'nr':
-            blastfile = self.blast.option('outxml')
-        else:
-            blastfile = self.blast_gi_go.option('outxml')
+#        if self.option('database') == 'nr':
+#            blastfile = self.blast.option('outxml')
+#        else:
+        blastfile = self.blast_gi_go.option('outxml')
         self.blast_stat.set_options({
             'in_stat': blastfile
         })
@@ -148,10 +163,10 @@ class DenovoAnnotationModule(Module):
         self.blast_stat.run()
 
     def ncbi_taxon_run(self):
-        if self.option('database') == 'nr':
-            blastfile = self.blast.option('outxml')
-        else:
-            blastfile = self.blast_gi_go.option('outxml')
+#        if self.option('database') == 'nr':
+#            blastfile = self.blast.option('outxml')
+#        else:
+        blastfile = self.blast_gi_go.option('outxml')
         self.ncbi_taxon.set_options({
             'blastout': blastfile,
             'blastdb': 'nr'
@@ -161,10 +176,10 @@ class DenovoAnnotationModule(Module):
         self.ncbi_taxon.run()
 
     def go_annot_run(self):
-        if self.option('database') == 'nr':
-            blastfile = self.blast.option('outxml')
-        else:
-            blastfile = self.blast_gi_go.option('outxml')
+#        if self.option('database') == 'nr':
+#            blastfile = self.blast.option('outxml')
+#        else:
+        blastfile = self.blast_gi_go.option('outxml')
         self.go_annot.set_options({
             'blastout': blastfile
         })
@@ -179,18 +194,19 @@ class DenovoAnnotationModule(Module):
             'database': 'string',
             'outfmt': 6,
             'blast': self._blast_type[self.option('query_type')]['prot'][0],
-            'evalue': self.option('evalue'),
+            'evalue': self.option('stringevalue'),
             'num_threads': self.option('threads'),
             'num_alignment': 500
         })
         self.step.blast_string.start()
+        self.blast_string.on("end",self.set_output,'stringblast')
         self.blast_string.run()
 
     def string_cog_run(self):
-        if self.option('database') == 'string':
-            blastfile = self.blast.option('outxml')
-        else:
-            blastfile = self.blast_string.option('outxml')
+#        if self.option('database') == 'string':
+#            blastfile = self.blast.option('outxml')
+#        else:
+        blastfile = self.blast_string.option('outxml')
         self.string_cog.set_options({
             'blastout': blastfile,
         })
@@ -205,18 +221,19 @@ class DenovoAnnotationModule(Module):
             'database': 'kegg',
             'outfmt': 6,
             'blast': self._blast_type[self.option('query_type')]['prot'][0],
-            'evalue': self.option('evalue'),
+            'evalue': self.option('keggevalue'),
             'num_threads': self.option('threads'),
             'num_alignment': 500
         })
         self.step.blast_kegg.start()
+        self.blast_kegg.on("end",self.set_output,'keggblast')
         self.blast_kegg.run()
 
     def kegg_annot_run(self):
-        if self.option('database') == 'kegg':
-            blastfile = self.blast.option('outxml')
-        else:
-            blastfile = self.blast_kegg.option('outxml')
+#        if self.option('database') == 'kegg':
+#            blastfile = self.blast.option('outxml')
+#        else:
+        blastfile = self.blast_kegg.option('outxml')
         self.kegg_annot.set_options({
             'blastout': blastfile
         })
@@ -231,38 +248,63 @@ class DenovoAnnotationModule(Module):
             'database': 'swissprot',
             'outfmt': 6,
             'blast': self._blast_type[self.option('query_type')]['prot'][0],
-            'evalue': self.option('evalue'),
+            'evalue': self.option('swissevalue'),
             'num_threads': self.option('threads'),
             'num_alignment': 500
         })
         self.step.blast_kegg.start()
+        self.blast_swiss.on("end",self.set_output,'swissblast')
         self.blast_kegg.run()
 
     def anno_stat_run(self):
-        if self.option('database') == 'nr':
-            nr_blastfile = self.blast.option('outxml')
+        if self.option('nrblast')==True or self.option('blast_stat')==True or self.option('gi_taxon')==True or self.option('go_annot')==True:
+            nrblast=self.blast_gi_go.option('outxml')
         else:
-            nr_blastfile = self.blast_gi_go.option('outxml')
-        if self.option('database') == 'string':
-            string_blastfile = self.blast.option('outxml')
+            nrblast='0'
+        if self.option('swissblast')==True:
+            swissblast=self.blast_swiss.option('outxml')
         else:
-            string_blastfile = self.blast_string.option('outxml')
-        if self.option('database') == 'kegg':
-            kegg_blastfile = self.blast.option('outxml')
+            swissblast='0'
+        if self.option('stringblast')==True or self.option('cog_annot')==True:
+            stringblast=self.blast_string.option('outxml')
         else:
-            kegg_blastfile = self.blast_kegg.option('outxml')
+            stringblast='0'
+        if self.option('keggblast')==True or self.option('kegg_annot')==True:
+            keggblast=self.blast_kegg.option('outxml')
+        else:
+            keggblast='0'
+        if self.option('gi_taxon')==True:
+            ncbitaxon=self.ncbi_taxon.output_dir
+        else:
+            ncbitaxon=='0'
+        if self.option('go_annot')==True:
+            godir=self.go_annot.output_dir
+        else:
+            godir='0'
+        if self.option('cog_annot')==True:
+            cogdir=self.string_cog.output_dir
+        else:
+            cogdir='0'
+        if self.option('kegg_annot')==True:
+            keggdir=self.kegg_annot.output_dir
+        else:
+            keggdir='0'
+        if self.option('blast_stat')==True:
+            bstatdir=self.blast_stat.output_dir
+        else:
+            bstatdir='0'
         self.anno_stat.set_options({
             'trinity_fasta': self.option('query'),
             'gene_fasta': self.option('query_gene'),
-            'nr_blast_output': nr_blastfile,
-            'swiss_blast_out': self.blast_swiss.option('outxml'),
-            'string_blast_out': string_blastfile,
-            'kegg_blast_out': kegg_blastfile,
-            'ncbi_taxonomy_output_dir': self.ncbi_taxon.output_dir,
-            'go_output_dir': self.go_annot.output_dir,
-            'cog_output_dir': self.string_cog.output_dir,
-            'kegg_output_dir': self.kegg_annot.output_dir,
-            'blast_stat_output_dir': self.blast_stat.output_dir,
+            'nr_blast_output': nrblast,
+            'swiss_blast_out': swissblast,
+            'string_blast_out': stringblast,
+            'kegg_blast_out': keggblast,
+            'ncbi_taxonomy_output_dir': ncbitaxon,
+            'go_output_dir': godir,
+            'cog_output_dir': cogdir,
+            'kegg_output_dir': keggdir,
+            'blast_stat_output_dir': bstatdir,
             'unigene': self.option('unigene')
         })
         self.anno_stat.start()
@@ -270,8 +312,9 @@ class DenovoAnnotationModule(Module):
 
     def run(self):
         super(DenovoAnnotationModule, self).run()
-        self.blast_run()
+        #self.blast_run()
         # self.step.update()
+<<<<<<< HEAD
         # self.on_rely(self.blast, self.blast_stat_run)
         self.step.update()
         l = []
@@ -280,8 +323,38 @@ class DenovoAnnotationModule(Module):
             if self.option('database') == 'nr':
                 self.on_rely(
                     self.blast, [self.blast_stat_run, self.ncbi_taxon_run, self.go_annot_run])
+=======
+        #self.on_rely(self.blast, self.blast_stat_run)
+        s=set()
+        '''run blast'''
+        if self.option('nrblast')==True:
+            s.add(self.blast_gi_go)
+            self.blast_gi_go_run()
+            self.step.update()
+        if self.option('stringblast')==True:
+            s.add(self.blast_string)
+            self.blast_string_run()
+            self.step.update()
+        if self.option('keggblast')==True:
+            s.add(self.blast_kegg)
+            self.blast_kegg_run()
+            self.step.update()
+        if self.option('swissblast')==True:
+            s.add(self.blast_swiss)
+            self.blast_swiss_run()
+            self.step.update()
+        ''' run annotation '''
+        if self.option('blast_stat')==True:
+            if self.option('nrblast')==True:
+                s.add(self.blast_stat)
+                self.on(self.blast_gi_go,self.blast_stat_run)
+                self.step.update()
+>>>>>>> bf78bfaaabb7bf5733a1040649e44239f43dea09
             else:
+                s.add(self.blast_gi_go)
+                s.add(self.blast_stat)
                 self.blast_gi_go_run()
+<<<<<<< HEAD
                 self.on_rely(self.blast_gi_go, [
                     self.ncbi_taxon_run, self.go_annot_run, self.blast_stat_run])
             self.step.update()
@@ -321,17 +394,76 @@ class DenovoAnnotationModule(Module):
 #            self.blast_swiss_run()
 #            self.step.update()
         if self.option('anno_statistics') is True:
+=======
+                self.step.update()
+                self.on(self.blast_gi_go,self.blast_stat_run)
+                self.step.update()
+        if self.option('gi_taxon')==True:
+            s.add(self.blast_gi_go)
+            s.add(self.ncbi_taxon)
+            if self.option('nrblast')==True:
+                self.on(self.blast_gi_go,self.ncbi_taxon_run)
+                self.step.update()
+            else:
+                self.blast_gi_go_run()
+                self.step.update()
+                self.on(self.blast_gi_go,self.ncbi_taxon_run)
+                self.step.update()
+        if self.option('go_annot')==True:
+            s.add(self.blast_gi_go)
+            s.add(self.go_annot)
+            if self.option('nrblast')==True:
+                self.on(self.blast_gi_go,self.go_annot_run)
+                self.step.update()
+            else:
+                self.blast_gi_go_run()
+                self.step.update()
+                self.on(self.blast_gi_go,self.go_annot_run)
+                self.step.update()
+        if self.option('cog_annot')==True:
+            s.add(self.blast_string)
+            s.add(self.string_cog)
+            if self.option('stringblast')==True:
+                self.on(self.blast_string,self.string_cog_run)
+                self.step.update()
+            else:
+                self.blast_string_run()
+                self.step.update()
+                self.on(self.blast_string,self.string_cog_run)
+                self.step.update()
+        if self.option('kegg_annot')==True:
+            s.add(self.blast_kegg)
+            s.add(self.kegg_annot)
+            if self.option('keggblast')==True:
+                self.on(self.blast_kegg,self.kegg_annot_run)
+                self.step.update()
+            else:
+                self.blast_kegg_run()
+                self.step.update()
+                self.on(self.blast_kegg,self.kegg_annot_run)
+                self.step.update()
+        l=list(s)
+        if self.option('anno_statistics') == True:
+>>>>>>> bf78bfaaabb7bf5733a1040649e44239f43dea09
             self.on_rely(l, self.anno_stat)
-            self.on_rely(self.anno_stat, self.end)
+            self.on(self.anno_stat, self.end)
         else:
             self.on_rely(l, self.end)
-        # add annotation next time
 
     def set_output(self, event):
         obj = event['bind_object']
-        if event['data'] == 'blast':
-            self.linkdir(obj.output_dir, 'blast')
-            self.step.blast.finish()
+        if event['data'] == 'nrblast':
+            self.linkdir(obj.output_dir, 'nrblast')
+            self.step.blast_gi_go.finish()
+        elif event['data'] == 'stringblast':
+            self.linkdir(obj.output_dir, 'stringblast')
+            self.step.blast_string.finish()
+        elif event['data']=='keggblast':
+            self.linkdir(obj.output_dir,'keggblast')
+            self.step.blast_kegg.finish()
+        elif event['data']=='swissblast':
+            self.linkdir(obj.output_dir,'swissblast')
+            self.step.blast_swiss.finish()
         elif event['data'] == 'blast_stat':
             self.linkdir(obj.output_dir, 'blast_nr_statistics')
             self.step.blast_stat.finish()
