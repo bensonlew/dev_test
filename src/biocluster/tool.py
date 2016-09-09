@@ -218,11 +218,11 @@ class Tool(object):
                 break
             is_running = False
             for command in cmds:
-                gevent.sleep(1)
+                time.sleep(1)
                 if command.is_running:
                         is_running = True
                 if not command.has_run:
-                    gevent.sleep(1)
+                    time.sleep(1)
                     if command.is_running:
                         is_running = True
             if not is_running:

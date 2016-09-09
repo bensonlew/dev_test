@@ -12,7 +12,6 @@ from biocluster.core.function import load_class_by_path,  get_classpath_by_objec
 # from gipc.gipc import _GProcess as Process
 from biocluster.logger import Wlog
 import gipc
-import psutil
 
 
 class PROCESS(Job):
@@ -22,10 +21,12 @@ class PROCESS(Job):
     def __init__(self, agent):
         super(PROCESS, self).__init__(agent)
         self.agent = agent
-        self.manager = Manager()
-        self.shared_callback_action = self.manager.dict()
-        agent.shared_callback_action = self.shared_callback_action
         self.workflow = agent.get_workflow()
+        if not hasattr(self.workflow, "process_share_manager"):
+            self.workflow.process_share_manager = Manager()
+        self.shared_callback_action = self.workflow.process_share_manager.dict()
+        agent.shared_callback_action = self.shared_callback_action
+
         self.process = None
 
     def submit(self):
@@ -37,22 +38,16 @@ class PROCESS(Job):
         self.id = self.process.pid
 
     def delete(self):
-        if isinstance(self.process, gipc.gipc._GProcess):
             if self.process.is_alive():
                 self.process.terminate()
-                self.manager.shutdown()
+                # self.manager.shutdown()
             else:
                 self.process.join()
-                self.manager.shutdown()
+                # self.manager.shutdown()
 
     def set_end(self):
         super(PROCESS, self).set_end()
-        if self.process.is_alive():
-            self.process.terminate()
-            self.manager.shutdown()
-        else:
-            self.process.join()
-            self.manager.shutdown()
+        self.delete()
 
 
 def local_process_run(agent, process_queue, shared_callback_action):

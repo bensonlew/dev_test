@@ -20,6 +20,7 @@ import importlib
 import types
 import traceback
 from .core.watcher import Watcher
+from .scheduling.job import JobManager
 
 
 class Workflow(Basic):
@@ -215,6 +216,7 @@ class Workflow(Basic):
         self._update(data)
         self.step.finish()
         self.step.update()
+        self.end_unfinish_job()
         self.logger.info("运行结束!")
         self.rpc_server.close()
 
@@ -270,6 +272,7 @@ class Workflow(Basic):
         else:
             self.step.failed(data)
         self.step.update()
+        self.end_unfinish_job()
         self.logger.info("程序退出: %s " % data)
         self.rpc_server.close()
         sys.exit(exitcode)
@@ -396,3 +399,15 @@ class Workflow(Basic):
             exstr = traceback.format_exc()
             print exstr
             self.logger.info("查询数据库异常: %s" % e)
+
+    def end_unfinish_job(self):
+        """
+        结束所有未完成的job任务
+
+        :return:
+        """
+        manager = JobManager()
+        for job in manager.get_unfinish_jobs():
+                job.delete()
+        if hasattr(self, "process_share_manager"):
+            self.process_share_manager.shutdown()
