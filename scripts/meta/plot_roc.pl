@@ -20,7 +20,7 @@ my $usage = <<"USAGE";
 			-group  *Group name in mapping file .
                         -o	*Output dir
                         -n	(*mode_1)Top n genus or other taxonomic level(relative abundance)
-                        -method (*mode_1)If you choose the mode_2 to analyze, you can also choose the analysis "methed". If you don't have a choice, you will make a separate analysis of them.   Follow method are available:sum, average, median
+                        -method (*mode_1)If you choose the mode_2 to analyze, you can also choose the analysis \"methed\". If you don\'t have a choice, you will make a separate analysis of them.   Follow method are available:sum, average, median
                         -name	(*mode_2)the name of Bacteria 
 			-ncuts	Number of cutpoints to display along each curve.Default:20
 			-labels	Logical, display cutoff text labels:Default:F
@@ -43,7 +43,7 @@ die $usage if(!($opts{mode}&&$opts{i}&&$opts{group}&&$opts{o}));
 
 
 $opts{n}=defined $opts{n}?$opts{n}:"20";
-$opts{method}=defined $opts{method}?$opts{method}:"chengchen.ye";
+$opts{method}=defined $opts{method}?$opts{method}:"None";
 $opts{name}=defined $opts{name}?$opts{name}:"NULL";
 $opts{ncuts}=defined $opts{ncuts}?$opts{ncuts}:20;
 $opts{labels}=defined $opts{labels}?$opts{labels}:"F";
@@ -150,7 +150,7 @@ x<-x-1
 ###The Receiver:2)The relative abundance of special bacteria.
 if($opts{mode}==2){
       
-if(\"$opts{method}\"==\"chengchen.ye\"){
+if(\"$opts{method}\"==\"None\"){
        name <- read.table(\"$opts{name}\",header=T,check.names=F,comment.char=\"\")
        name<-as.data.frame(name)
        x<-length(name[,1])
@@ -196,8 +196,8 @@ if($opts{rocci}==T){
 }
 }
 ######choose method
-if(\"$opts{method}\"!=\"chengchen.ye\"){
-name <- read.table(\"name.txt\",header=T,check.names=F,comment.char=\"\")
+if(\"$opts{method}\"!=\"None\"){
+name <- read.table(\"$opts{name}\",header=T,check.names=F,comment.char=\"\")
 otu_table<-as.data.frame(otu_table)
 nu<-length(name[,1])
 
@@ -349,8 +349,6 @@ if($opts{rocci}==T){
 
 
 
-
-
 ### Caculate the Area under the ROC curve
 p.auc <- calc_auc(p)
 write.table(p.auc,\"$opts{o}/roc_aucvalue.xls\",col.names=T,row.names=F,sep=\"\t\",quote=F)
@@ -393,7 +391,7 @@ p<-p + geom_text(x=0.8,y=0.06,label=test_auc3,size=4,colour=\"black\")
 
 if($opts{mode}==2){
       
-if(\"$opts{method}\"==\"chengchen.ye\"){
+if(\"$opts{method}\"==\"None\"){
 
 ###auc_name
 auc_name<-as.data.frame(sort(name[,1],decreasing=F))
@@ -431,7 +429,7 @@ p<-p + geom_text(x=Inf,y=-Inf,hjust=1.1,vjust=-2,label=test_auc3,size=4,colour=\
 
 }
 
-if(\"$opts{method}\"!=\"chengchen.ye\"){
+if(\"$opts{method}\"!=\"None\"){
 
 ###paste AUC to graph
 if(x==1){

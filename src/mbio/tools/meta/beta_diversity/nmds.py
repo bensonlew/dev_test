@@ -54,7 +54,7 @@ class NmdsAgent(Agent):
             [".", "", "NMDS分析结果输出目录"],
             ["./nmds_sites.xls", "xls", "样本坐标表"],
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(NmdsAgent, self).end()
 
 

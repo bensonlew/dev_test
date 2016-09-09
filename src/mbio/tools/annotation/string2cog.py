@@ -49,7 +49,7 @@ class String2cogAgent(Agent):
             raise OptionError("必须提供BLAST结果文件")
 
     def set_resource(self):
-        self._cpu = 10
+        self._cpu = 20
         self._memory = ''
 
     def end(self):

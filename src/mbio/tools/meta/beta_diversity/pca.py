@@ -101,7 +101,7 @@ class PcaAgent(Agent):
             ["./pca_envfit_vector_scores.xls", "xls", "数量型环境因子表"],
             ["./pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(PcaAgent, self).end()
 
 

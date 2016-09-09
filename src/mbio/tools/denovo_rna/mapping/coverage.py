@@ -20,8 +20,8 @@ class CoverageAgent(Agent):
         super(CoverageAgent, self).__init__(parent)
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
-            {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
-            # {"name": "min_len", "type": "int", "default": 100}  # Minimum mRNA length (bp).
+            {"name": "bam", "type": "infile", "format": "align.bwa.bam"},  # bam格式文件,排序过的
+            {"name": "min_len", "type": "int", "default": 100}  # Minimum mRNA length (bp).
         ]
         self.add_option(options)
         self.step.add_steps('coverage')
@@ -71,26 +71,31 @@ class CoverageTool(Tool):
         self.samtools_path = "bioinfo/align/samtools-1.3.1/"
         self.bam_name = os.path.basename(self.option("bam").prop["path"]).split(".")[0]
 
+    def sort(self):
+        cmd = "{}samtools sort -o {} {}".format(self.samtools_path, self.bam_name + ".sorted.bam", self.option("bam").prop["path"])
+        bam_name = self.option("bam").prop["path"].split("/")[-1]
+        command = self.add_command("sort_{}".format(bam_name.lower()), cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+                self.logger.info("运行{}结束！".format(command.name))
+        else:
+            self.set_error("运行{}过程出错".format(command.name))
+
     def index(self):
-        cmds = []
-        if self.option("bam").format == "align.bwa.bam":
-            cmd = "{}samtools index {}".format(self.samtools_path, self.option("bam").prop["path"])
-            bam_name = self.option("bam").prop["path"].split("/")[-1]
-            command = self.add_command("index_{}".format(bam_name.lower()), cmd)
-            command.run()
-            cmds.append(command)
-        elif self.option("bam").format == "align.bwa.bam_dir":
-            for f in glob.glob(self.option("bam").pro["path"]):
-                bam_name = f.split("/")[-1]
-                cmd = "{}samtools index {}".format(self.samtools_path, f)
-                command = self.add_command("index_{}".format(bam_name.lower()), cmd)
-                command.run()
-                cmds.append(command)
-        return cmds
+        cmd = "{}samtools index {}".format(self.samtools_path, self.bam_name + ".sorted.bam")
+        bam_name = self.option("bam").prop["path"].split("/")[-1]
+        command = self.add_command("index_{}".format(bam_name.lower()), cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("运行{}结束！".format(command.name))
+        else:
+            self.set_error("运行{}过程出错".format(command.name))
 
     def coverage(self):
-        coverage_cmd = "{}geneBody_coverage.py  -i {} -r {} -o {}".\
-            format(self.python_path, self.option("bam").prop["path"], self.option("bed").prop["path"], "coverage_" + self.bam_name)
+        coverage_cmd = "{}geneBody_coverage.py  -i {} -l {} -r {} -o {}".\
+            format(self.python_path, self.bam_name + ".sorted.bam", self.option("min_len"), self.option("bed").prop["path"], "coverage_" + self.bam_name)
         print(coverage_cmd)
         self.logger.info("开始运行geneBody_coverage.py脚本")
         coverage_command = self.add_command("coverage", coverage_cmd)
@@ -117,12 +122,7 @@ class CoverageTool(Tool):
         运行
         """
         super(CoverageTool, self).run()
-        cmds = self.index()
-        self.wait()
-        for cmd in cmds:
-            if cmd.return_code == 0:
-                self.logger.info("运行{}结束！".format(cmd.name))
-            else:
-                self.set_error("运行{}过程出错".format(cmd.name))
+        self.sort()
+        self.index()
         self.coverage()
         self.set_output()

@@ -115,7 +115,6 @@ class RemoteActor(threading.Thread):
                 self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
                 self._tool.exit(0)
                 break
-
             if not self.main_thread.is_alive() and len(states) == 0 and exit_signal is not True:
                 self.send_state(State('error', "检测到远程主线程异常结束"))
                 self._tool.logger.debug("检测到主线程已退出，终止运行!")
@@ -217,7 +216,7 @@ class ProcessActor(RemoteActor):
         super(ProcessActor, self).__init__(tool, main_thread)
 
     def run(self):
-        self.config.KEEP_ALIVE_TIME = 0
+        self.config.KEEP_ALIVE_TIME = 0.3
         super(ProcessActor, self).run()
 
     def send_state(self, state):
@@ -227,8 +226,12 @@ class ProcessActor(RemoteActor):
                "data": state.data,
                "version": self._tool.version
                }
+        try:
+            # self._tool.logger.debug("put msg %s" % msg)
+            self._tool.process_queue.put(msg)
+        except Exception, e:
+            self._tool.logger.debug("error: %s", e)
 
-        self._tool.shared_queue.put(msg)
         # print "Put MSG:%s" % msg
         key = "%s" % self._tool.version
         if key in self._tool.shared_callback_action.keys():
