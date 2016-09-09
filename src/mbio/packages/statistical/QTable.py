@@ -18,8 +18,9 @@ class QTable:
          'tukeyQ_05.txt',
          'tukeyQ_10.txt']
         self.qTables = {}
+        file_path = os.path.dirname(os.path.realpath(__file__))
         for i in xrange(0, len(tables)):
-            dataPath = '/mnt/ilustre/users/sanger/biocluster/src/mbio/packages/statistical/data/%s' % (tables[i])
+            dataPath = '%s/tukey_table/%s' % (file_path, tables[i])
             fin = open(dataPath, 'U')
             data = fin.readlines()
             fin.close()
@@ -48,4 +49,3 @@ class QTable:
         cvUpper = self.cv(alpha, k, dfUpper)
         cv = cvLower + (df - dfLower) * (cvUpper - cvLower)
         return cv
-

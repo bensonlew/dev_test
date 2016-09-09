@@ -13,7 +13,7 @@ class PileupFile(File):
 
     def __init__(self):
         super(PileupFile, self).__init__()
-        self.samtools_path = "rna/samtools-1.3.1/"
+        # self.samtools_path = "rna/samtools-1.3.1/"
 
     def check(self):
         """

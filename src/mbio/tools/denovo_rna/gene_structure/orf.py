@@ -4,6 +4,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
+import shutil
 from biocluster.core.exceptions import OptionError
 from mbio.packages.denovo_rna.gene_structure.pfam_domtblout import pfam_out
 
@@ -29,6 +30,17 @@ class OrfAgent(Agent):
             {"name": "pep", "type": "outfile", "format": "sequence.fasta"}  # 输出结果
         ]
         self.add_option(options)
+        self.step.add_steps('orf')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.orf.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.orf.finish()
+        self.step.update()
 
     def check_options(self):
         """
@@ -42,7 +54,25 @@ class OrfAgent(Agent):
         所需资源
         """
         self._cpu = 20
-        self._memory = ''
+        self._memory = '2G'
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            # ["./estimators.xls", "xls", "alpha多样性指数表"]
+        ])
+        result_dir.add_regexp_rules([
+            [r"transdecoder.pep$", "fasta", "蛋白质序列文件"],
+            [r"transdecoder.cds$", "fasta", "cds序列文件"],
+            [r"transdecoder.bed$", "bed", "orf位置信息bed格式文件"]
+        ])
+        if self.option("search_pfam") is True:
+            result_dir.add_relpath_rules([
+                ["./pfam_domain", "", "Pfam比对蛋白域结果信息"]
+            ])
+        # print self.get_upload_files()
+        super(OrfAgent, self).end()
 
 
 class OrfTool(Tool):
@@ -52,10 +82,13 @@ class OrfTool(Tool):
 
     def __init__(self, config):
         super(OrfTool, self).__init__(config)
-        self.transdecoder_path = "rna/TransDecoder-2.0.1/"
-        self.hmmscan_path = "rna/hmmer-3.1b2/src/"
-        self.pfam_db = "/mnt/ilustre/users/sanger/app/rna/PfamScan/db/Pfam-A.hmm"
+        self.transdecoder_path = "bioinfo/gene-structure/TransDecoder-3.0.0/"
+        self.hmmscan_path = "bioinfo/align/hmmer-3.1b2/binaries/"
+        self.pfam_db = self.config.SOFTWARE_DIR + "/database/Pfam/Pfam-A.hmm"
         self.fasta_name = self.option("fasta").prop["path"].split("/")[-1]
+        self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
+        self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
 
     def td_longorfs(self):
         self.logger.info(self.option("p_length"))
@@ -87,7 +120,6 @@ class OrfTool(Tool):
             self.logger.info("预测编码区域完成！")
         else:
             self.set_error("预测过程过程出错")
-        self.set_output()
 
     def hmmscan(self, pep):
         cmd = "{}hmmscan --cpu 20 --noali --cut_nc --acc --notextw --domtblout {} {} {}".format(
@@ -116,7 +148,13 @@ class OrfTool(Tool):
         self.option('bed').set_path(self.output_dir+"/"+bed)
         os.link(self.work_dir+"/"+cds, self.output_dir+"/"+cds)
         self.option('cds').set_path(self.output_dir+"/"+cds)
-        os.link(self.work_dir+"/"+"pfam_domain", self.output_dir+"/"+"pfam_domain")
+        if self.option("search_pfam") is True:
+            os.link(self.work_dir+"/"+"pfam_domain", self.output_dir+"/"+"pfam_domain")
+        fasta_for_len = os.path.join(self.work_dir, "ORF_fasta")
+        if os.path.exists(fasta_for_len):
+            shutil.rmtree(fasta_for_len)
+        os.makedirs(fasta_for_len)
+        os.link(self.work_dir+"/"+cds, fasta_for_len+"/"+cds+".fasta")
         self.logger.info("done")
 
     def run(self):
@@ -133,4 +171,5 @@ class OrfTool(Tool):
             # pfam_out("pfam.domtblout")
             # self.set_output()
             self.td_predict()
+        self.set_output()
         self.end()

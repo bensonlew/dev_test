@@ -25,6 +25,7 @@ class SickleAgent(Agent):
                 {"name": "sickle_un", "type": "outfile", "format": "sequence.fastq"},  # PE的未配对输出结果
                 {"name": "sickle_s", "type": "outfile", "format": "sequence.fastq"},  # SE输出结果
                 {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
+                {"name": "sickle_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # fastq文件夹
                 {"name": "quality", "type": "int", "default": 30},
                 {"name": "length", "type": "int", "default": 30},
                 {"name": "qual_type", "type": "string", "default": 'sanger'},
@@ -50,7 +51,7 @@ class SickleAgent(Agent):
         """
         检测参数是否正确
         """
-        if not self.option("fastq_dir").is_set or self.option("fastq_r").is_set or self.option("fastq_s").is_set:
+        if not self.option("fastq_dir").is_set and not self.option("fastq_r").is_set and not self.option("fastq_s").is_set:
             raise OptionError("请传入fastq序列文件或者文件夹")
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError("请说明序列类型，PE or SE?")
@@ -70,6 +71,14 @@ class SickleAgent(Agent):
         self._cpu = 11
         self._memory = ''
 
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"]
+            # ["./fastq_stat.xls", "xls", "fastq信息统计表"]
+        ])
+        super(SickleAgent, self).end()
+
 
 class SickleTool(Tool):
     """
@@ -77,7 +86,7 @@ class SickleTool(Tool):
     """
     def __init__(self, config):
         super(SickleTool, self).__init__(config)
-        self.sickle_path = 'rna/sickle-master/'
+        self.sickle_path = 'bioinfo/seq/sickle-1.33/'
         if self.option('truncate-n') is True:
             self.truncate_n = '-n'
         else:
@@ -88,7 +97,7 @@ class SickleTool(Tool):
             fq_r_path = self.option("fastq_r").prop['path']
             fq_l_path = self.option("fastq_l").prop['path']
             cmd = self.sickle_path + 'sickle pe -f {} -r {} -o {} -p {} -s {} -t {} -q {} -l {} {}'.\
-                format(fq_r_path, fq_l_path, 'sickle_r.fastq', 'sickle_l.fastq', 'sickle_un', self.option('qual_type'),
+                format(fq_l_path, fq_r_path, 'sickle_l.fastq', 'sickle_r.fastq', 'sickle_un.fq', self.option('qual_type'),
                        self.option('quality'), self.option('length'), self.truncate_n)
         else:
             fq_s_path = self.option("fastq_s").prop['path']
@@ -117,8 +126,8 @@ class SickleTool(Tool):
                 fq_r_path = os.path.join(fq_dir, samples[sample]["r"])
                 fq_l_path = os.path.join(fq_dir, samples[sample]["l"])
                 cmd = self.sickle_path + 'sickle pe -f {} -r {} -o {} -p {} -s {} -t {} -q {} -l {} {}'.\
-                    format(fq_r_path, fq_l_path, '{}_sickle_r.fastq'.format(sample), '{}_sickle_l.fastq'.format(sample),
-                           '{}_sickle_un'.format(sample), self.option('qual_type'), self.option('quality'),
+                    format(fq_l_path, fq_r_path, '{}_sickle_l.fastq'.format(sample), '{}_sickle_r.fastq'.format(sample),
+                           '{}_sickle_un.fq'.format(sample), self.option('qual_type'), self.option('quality'),
                            self.option('length'), self.truncate_n)
                 self.logger.info(cmd)
                 self.logger.info("开始运行sickle_{}".format(sample.lower()))
@@ -167,15 +176,32 @@ class SickleTool(Tool):
         将结果文件链接至output
         """
         self.logger.info("set output")
-        file_path = glob.glob(r"*_sickle_*")
+        for f in os.listdir(self.output_dir):
+            if f == "list.txt":
+                pass
+            else:
+                os.remove(os.path.join(self.output_dir, f))
+        file_path = glob.glob(r"*.fastq")
         print(file_path)
         for f in file_path:
             output_dir = os.path.join(self.output_dir, f)
-            if os.path.exists(output_dir):
-                os.remove(output_dir)
-                os.link(os.path.join(self.work_dir, f), output_dir)
-            else:
-                os.link(os.path.join(self.work_dir, f), output_dir)
+            os.link(os.path.join(self.work_dir, f), output_dir)
+            os.remove(os.path.join(self.work_dir, f))
+        if self.option("fastq_dir").is_set:
+            self.option("sickle_dir").set_path(self.output_dir)
+        else:
+            if self.option("fq_type") == "PE":
+                for f in os.listdir(self.output_dir):
+                    if "sickle_l.fastq" in f:
+                        self.option("sickle_l").set_path(os.path.join(self.output_dir, f))
+                    elif "sickle_r.fastq" in f:
+                        self.option("sickle_r").set_path(os.path.join(self.output_dir, f))
+                    elif "sickle_un.fq" in f:
+                        self.option("sickle_un").set_path(os.path.join(self.output_dir, f))
+            elif self.option("fq_type") == "SE":
+                for f in os.listdir(self.output_dir):
+                    if "sickle_s.fastq" in f:
+                        self.option("sickle_s").set_path(os.path.join(self.output_dir, f))
         self.logger.info("done")
 
     def run(self):

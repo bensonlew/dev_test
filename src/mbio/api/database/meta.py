@@ -57,6 +57,8 @@ class Meta(Base):
                 collection.find_one_and_update({"_id": otu_id}, {'$set': insert_data})
             except Exception as e:
                 raise Exception('更新OTU表params出错:{}'.format(e))
+            insert_data["from_id"] = str(otu_id)
+            collection.find_one_and_update({"_id": otu_id}, {'$set': insert_data})
         else:
             if otu_id is None:
                 raise Exception("major为False时需提供otu_id!")

@@ -18,7 +18,7 @@ class VennTableAgent(Agent):
     def __init__(self, parent):
         super(VennTableAgent, self).__init__(parent)
         options = [
-            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.otu_tax_summary_dir"},
+            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir,denovo_rna.express.express_matrix"},
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表格
             # {"name": "venn_table.xls", "type": "outfile", "format": "meta.otu.venn_table"},  # 输入的Venn表格
             {"name": "level", "type": "string", "default": "otu"}  # 物种水平
@@ -41,7 +41,7 @@ class VennTableAgent(Agent):
         参数检测
         :return:
         """
-        if not self.option("otu_table").is_set:
+        if not self.option("otu_table"):
             raise OptionError("参数otu_table不能为空")
         if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class',
                                         'order', 'family', 'genus', 'species']:
@@ -66,7 +66,6 @@ class VennTableTool(Tool):
         self.R_path = '/program/R-3.3.1/bin/'
         self.venn_path = self.config.SOFTWARE_DIR + '/bioinfo/plot/scripts/'
         self.python_path = self.config.SOFTWARE_DIR + '/program/Python/bin/'
-        print self.R_path
         self._version = 1.0
 
     def _create_venn_table(self):
@@ -78,10 +77,16 @@ class VennTableTool(Tool):
             otu_table = self.option("otu_table").get_table(self.option("level"))
         num_lines = sum(1 for line in open(otu_table))
         if num_lines < 11:
-            self.set_error("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
-            raise Exception("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
-        venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table,
-                                                                      self.option("group_table").prop['path'])
+            self.set_error("输入文件的行数小于10个！请更换输入文件！")
+            raise Exception("输入文件的行数小于10个！请更换输入文件！")
+        if len(self.option("group_table").prop['group_scheme']) == 1:
+            venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table,self.option("group_table").prop['path'])
+        # add by qiuping, for denovo_rna venn, 2060728
+        else:
+            self.option('group_table').sub_group(self.work_dir + '/venn_group', self.option("group_table").prop['group_scheme'][0])
+            venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table, self.work_dir + '/venn_group')
+        # add end
+        self.logger.info(venn_cmd)
         os.system(venn_cmd)
         cmd = self.R_path + 'Rscript cmd.r'
         # print cmd

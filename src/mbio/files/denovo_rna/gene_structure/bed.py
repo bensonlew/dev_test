@@ -13,7 +13,6 @@ class BedFile(File):
 
     def __init__(self):
         super(BedFile, self).__init__()
-        self.samtools_path = "rna/samtools-1.3.1/"
 
     def check(self):
         """
@@ -24,3 +23,18 @@ class BedFile(File):
             return True
         else:
             raise FileError("文件格式错误")
+
+    def get_info(self):
+        """
+        获取文件属性
+        :return:
+        """
+        super(BedFile, self).get_info()
+        self.get_bed_info()
+
+    def get_bed_info(self):
+        with open(self.prop['path'], 'r') as f:
+            f.readline()
+            row_num = len(f.next().strip().split())
+            if row_num != 12:
+                return False

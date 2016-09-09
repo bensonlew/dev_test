@@ -35,7 +35,7 @@ def stat_info(statfile, groupfile):
                 break
             taxon_list.append(sline_list[0])
             for gname in group_num_dict.keys():
-                gmean = "mean(" + gname
+                gmean = gname + "-mean"
                 for foo in shead:
                     if gmean in foo:
                         index_site = shead.index(foo)
@@ -63,7 +63,7 @@ def student(statfile, groupfile, coverage):
             varG2 = (sd_dict[group_names[1]][i])**2
             n1 = group_num_dict[group_names[0]]
             n2 = group_num_dict[group_names[1]]
-            
+
             dof = n1 + n2 -2
             dof = n1 + n2 - 2
             pooledVar = ((n1 - 1)*varG1 + (n2 - 1)*varG2) / (n1 + n2 - 2)
@@ -102,4 +102,3 @@ def welch(statfile, groupfile, coverage):
             lowerCI = dp - tCritical*sqrtUnpooledVar
             upperCI = dp + tCritical*sqrtUnpooledVar
             w.write('%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % (dp), '%0.4g' % (lowerCI), '%0.4g' % (upperCI)))
-
