@@ -18,6 +18,8 @@ class Venn(Base):
         super(Venn, self).__init__(bind_object)
         self._db_name = Config().MONGODB
         self.new_otu_id = list()
+        self.single = dict()
+        self.num = dict()
 
     @report_check
     def create_venn_table(self, params, group_id, level_id, from_otu_table=0, name=None):
@@ -84,6 +86,9 @@ class Venn(Base):
                     name_list.append(my_name)
                 display_name = ",".join(name_list)
                 collection = self.db['sg_otu_venn_detail']
+                tmp_name = re.sub("only", "", line[0])
+                tmp_name = re.sub(" ", "", tmp_name)
+                tmp_list = re.split("&", tmp_name)
                 insert_data = {
                     'otu_venn_id': venn_id,
                     'otu_id': new_otu_id,
@@ -91,6 +96,7 @@ class Venn(Base):
                     'species_name': line[2],
                     'species_name_display': display_name,
                     'species_count': int(line[1]),
+                    'display_count': int(self.single[tuple(tmp_list)]),
                     'venn_json': json.dumps(venn_json[count])
                 }
                 collection.insert_one(insert_data)
@@ -179,6 +185,8 @@ class Venn(Base):
         c = 0
         print num
         print single
+        self.num = num
+        self.single = single
         for name in num:
             if len(name) == 1:
                 avg += num[name]
@@ -215,7 +223,7 @@ class Venn(Base):
                     label = {"label": tmp_label}
                     tmp_list = [sets, size, label]
                     """
-                    tmp_list = {"sets": name, "size": num[tuple(name)], "label": tmp_label}
+                    tmp_list = {"sets": name, "size": num[tuple(name)], "label": ""}
                 else:
                     raise Exception("Venn 表格中行{}无法解析".format(strline))
                 venn_json.append(tmp_list)
