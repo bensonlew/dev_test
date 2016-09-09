@@ -4,7 +4,8 @@
 """otu样本序列数抽平"""
 from biocluster.workflow import Workflow
 import os
-from mbio.api.to_file.meta import export_otu_table
+import shutil
+from mainapp.models.mongo.public.meta.meta import Meta
 
 
 class OtuSubsampleWorkflow(Workflow):
@@ -17,39 +18,55 @@ class OtuSubsampleWorkflow(Workflow):
         self._sheet = wsheet_object
         super(OtuSubsampleWorkflow, self).__init__(wsheet_object)
         options = [
+            {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU表
             {"name": "input_otu_id", "type": "string"},  # 输入的OTU id
-            {"name": "size", "type": "int", "default": "min"},
-            {"name": "update_info", "type": "string"},
+            {"name": "size", "type": "string", "default": "min"},
+            {"name": "group_detail", "type": "string"},
+            {"name": "level", "type": "string", "default": "9"},
             {"name": "output_otu_id", "type": "string"}  # 结果的otu id
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.task = self.add_tool("meta.otu.sub_sample")
+        self.sort_samples = self.add_tool("meta.otu.sort_samples")
+        self.subsample = self.add_tool("meta.otu.sub_sample")
+        group_table_path = os.path.join(self.work_dir, "group_table.xls")
+        self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table_path)
 
-    def run(self):
-        self.task.set_options({
-            "in_otu_table": export_otu_table(self.option("input_otu_id"), "otu_taxon", self.task.work_dir, self),
+    def run_sort_samples(self):
+        self.sort_samples.set_options({
+            "in_otu_table": self.option("in_otu_table"),
+            "group_table": self.group_table_path
+        })
+        if self.option("size") != "":
+            self.sort_samples.on("end", self.run_subsample)
+        else:
+            self.sort_samples.on("end", self.set_db)
+        self.sort_samples.run()
+
+    def run_subsample(self):
+        self.subsample.set_options({
+            "in_otu_table": self.sort_samples.option("out_otu_table"),
             "size": self.option("size")
         })
-        self.task.on('end', self.set_db)
-        self.task.run()
-        super(OtuSubsampleWorkflow, self).run()
+        self.subsample.on('end', self.set_db)
+        self.subsample.run()
 
     def set_db(self):
         """
         保存结果otu表到mongo数据库中
         """
-        try:
-            os.system('cp ' + self.task.output_dir + '/otu_taxon.subsample.xls ' + self.output_dir)
-        except:
-            raise Exception("复制结果文件到output_dir出错！")
+        final_file = os.path.join(self.output_dir, "otu_taxon.subsample.xls")
+        if self.option("size") != "":
+            shutil.copy2(self.subsample.option("out_otu_table").prop["path"], final_file)
+        else:
+            shutil.copy2(self.sort_samples.option("out_otu_table").prop["path"], final_file)
         api_otu = self.api.sub_sample
         output_otu_id = api_otu.add_sg_otu(self.sheet.params, self.option("size"), self.option("input_otu_id"))
-        otu_path = self.task.output_dir + "/otu_taxon.subsample.xls"
-        if not os.path.isfile(otu_path):
-            raise Exception("找不到报告文件:{}".format(otu_path))
+        if not os.path.isfile(final_file):
+            raise Exception("找不到报告文件:{}".format(final_file))
         self.logger.info("开始讲信息导入sg_otu_detail表和sg_otu_specimen表中")
-        api_otu.add_sg_otu_detail(otu_path, self.option("input_otu_id"), output_otu_id)
+        api_otu.add_sg_otu_detail(final_file, self.option("input_otu_id"), output_otu_id)
+        api_otu.add_sg_otu_detail_level(final_file, output_otu_id, self.option("level"))
         self.add_return_mongo_id("sg_otu", output_otu_id)
         self.end()
 
@@ -61,5 +78,8 @@ class OtuSubsampleWorkflow(Workflow):
         result_dir.add_regexp_rules([
             ['\.subsample\.', 'meta.otu.otu_table', "抽平后的otu表格"]
         ])
-        print self.get_upload_files()
         super(OtuSubsampleWorkflow, self).end()
+
+    def run(self):
+        self.run_sort_samples()
+        super(OtuSubsampleWorkflow, self).run()

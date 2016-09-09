@@ -20,8 +20,14 @@ class MapAssessmentModule(Module):
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
-            {"name": "analysis", "type": "string", "default": "satur,dup,coverage,correlation"},
-            {"name": "quality", "type": "int", "default": 30}  # 质量值
+            {"name": "analysis", "type": "string", "default": "satur,dup,coverage,correlation"},  # 分析类型
+            {"name": "quality_satur", "type": "int", "default": 30},  # 测序饱和度分析质量值
+            {"name": "quality_dup", "type": "int", "default": 30},  # 冗余率分析质量值
+            {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
+            {"name": "up_bound", "type": "int", "default": 100},  # Sampling ends at this percentile
+            {"name": "step", "type": "int", "default": 5},  # Sampling frequency
+            {"name": "rpkm_cutof", "type": "float", "default": 0.01},  # RPKM阈值
+            {"name": "min_len", "type": "int", "default": 100}  # Minimum mRNA length (bp).
         ]
         self.add_option(options)
         self.tools = []
@@ -97,7 +103,12 @@ class MapAssessmentModule(Module):
             self.step.add_steps('satur{}'.format(n))
             satur.set_options({
                 'bam': f,
-                "bed": self.option('bed').prop["path"]
+                "bed": self.option('bed').prop["path"],
+                "low_bound": self.option("low_bound"),
+                "up_bound": self.option("low_bound"),
+                "step": self.option("step"),
+                "rpkm_cutof": self.option("rpkm_cutof"),
+                "quality_satur": self.option("quality_satur")
                 })
             step = getattr(self.step, 'satur{}'.format(n))
             step.start()
@@ -112,7 +123,8 @@ class MapAssessmentModule(Module):
             dup = self.add_tool('denovo_rna.mapping.read_duplication')
             self.step.add_steps('dup_{}'.format(n))
             dup.set_options({
-                'bam': f
+                'bam': f,
+                "quality_dup": self.option("quality_dup")
                 })
             step = getattr(self.step, 'dup_{}'.format(n))
             step.start()
@@ -128,7 +140,8 @@ class MapAssessmentModule(Module):
             self.step.add_steps('coverage_{}'.format(n))
             coverage.set_options({
                 'bam': f,
-                "bed": self.option('bed').prop["path"]
+                "bed": self.option('bed').prop["path"],
+                "min_len": self.option("min_len")
                 })
             step = getattr(self.step, 'coverage_{}'.format(n))
             step.start()
@@ -149,7 +162,7 @@ class MapAssessmentModule(Module):
     def set_output(self):
         self.logger.info("set output")
         # make dir
-        dirs = ["coverage", "dup", "satur"]
+        dirs = ["coverage", "dup", "satur", "correlation"]
         for f in os.listdir(self.output_dir):
             f_path = os.path.join(self.output_dir, f)
             if os.path.exists(f_path):
@@ -173,18 +186,23 @@ class MapAssessmentModule(Module):
                     # if os.path.exists(target):
                     #     os.remove(target)
                     # os.link(fp, target)
-                elif "DupRate" in f_name:
+                if "DupRate" in f_name:
                     target = os.path.join(self.output_dir, "dup", f_name)
                     if os.path.exists(target):
                         os.remove(target)
                     os.link(fp, target)
-                elif "satur_" in f_name:
+                if "satur_" in f_name:
                     target = os.path.join(self.output_dir, "satur", f_name)
                     if os.path.exists(target):
                         os.remove(target)
                     os.link(fp, target)
-                elif "geneBodyCoverage" in f_name:
+                if "geneBodyCoverage" in f_name:
                     target = os.path.join(self.output_dir, "coverage", f_name)
+                    if os.path.exists(target):
+                        os.remove(target)
+                    os.link(fp, target)
+                if "correlation" in f_name:
+                    target = os.path.join(self.output_dir, "correlation", f_name)
                     if os.path.exists(target):
                         os.remove(target)
                     os.link(fp, target)
@@ -216,17 +234,19 @@ class MapAssessmentModule(Module):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-            ["./coverage/", "", "基因覆盖度分析输出目录"],
-            ["./dup/", "", "冗余序列分析输出目录"],
-            ["./satur/", "", "测序饱和度分析输出目录"],
+            [".", "dir", "结果输出目录"],
+            ["./coverage/", "dir", "基因覆盖度分析输出目录"],
+            ["./dup/", "dir", "冗余序列分析输出目录"],
+            ["./satur/", "dir", "测序饱和度分析输出目录"],
             ["./bam_stat.xls", "xls", "bam格式比对结果统计表"]
         ])
         result_dir.add_regexp_rules([
             [r".*pos\.DupRate\.xls", "xls", "比对到基因组的序列的冗余统计表"],
             [r".*seq\.DupRate\.xls", "xls", "所有序列的冗余统计表"],
             [r".*eRPKM\.xls", "xls", "RPKM表"],
-            [r".*cluster_percent\.xls", "xls", "饱和度作图数据"]
+            [r".*cluster_percent\.xls", "xls", "饱和度作图数据"],
+            [r".correlation_matrix*\.xls", "xls", "相关系数矩阵"],
+            [r".hcluster_tree*\.xls", "xls", "样本间相关系数树文件"]
         ])
         # print self.get_upload_files()
         super(MapAssessmentModule, self).end()

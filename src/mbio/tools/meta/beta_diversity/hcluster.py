@@ -62,7 +62,7 @@ class HclusterAgent(Agent):
             [".", "", "层次聚类结果目录"],
             ["./hcluster.tre", "tre", "层次聚类树"]
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(HclusterAgent, self).end()
 
 
@@ -78,10 +78,8 @@ class HclusterTool(Tool):
         """
         运行
         """
-        self.logger.info('start runing')
         super(HclusterTool, self).run()
         self.run_hcluster()
-        self.logger.info('runing over')
 
     def run_hcluster(self):
         """
@@ -111,13 +109,10 @@ class HclusterTool(Tool):
             os.path.basename(real_dis_matrix) + '_' + self.option('linkage') + '.tre'
         linkfile = self.output_dir + '/hcluster.tre'
         self.re_recover_name(self.newname_dict, filename, filename + '.temp')
-        self.logger.info(filename + '.temp')
-        self.logger.info(linkfile)
         if os.path.exists(linkfile):
             os.remove(linkfile)
         os.link(filename + '.temp', linkfile)
         self.option('newicktree').set_path(linkfile)
-        self.logger.info(self.option('newicktree').prop)
         self.end()
 
     def change_sample_name(self, quotes=False, new_path=None):

@@ -4,6 +4,7 @@ from mainapp.config.db import get_mongo_client
 from bson.objectid import ObjectId
 import types
 import re
+import json
 from biocluster.config import Config
 
 
@@ -50,3 +51,29 @@ class Meta(object):
             mySampleNames.append(result["specimen_name"])
         mySamples = ",".join(mySampleNames)
         return mySamples
+
+    def group_detail_to_table(self, group_detail, group_path):
+        """
+        输入group_detail，返回一个group表
+        """
+        print group_detail
+        with open(group_path, "wb") as f:
+            f.write("#sample\t" + "group_name" + "\n")
+        if not isinstance(group_detail, dict):
+            try:
+                table_dict = json.loads(group_detail)
+            except Exception:
+                raise Exception("生成group表失败，传入的group_datail不是一个字典或者是字典对应的字符串")
+        if not isinstance(table_dict, dict):
+            raise Exception("生成group表失败，传入的group_datail不是一个字典或者是字典对应的字符串")
+        sample_table = self.db["sg_specimen"]
+        with open(group_path, "ab") as f:
+            for k in table_dict:
+                for sp_id in table_dict[k]:
+                    sp = sample_table.find_one({"_id": ObjectId(sp_id)})
+                    if not sp:
+                        raise Exception("group_detal中的样本_id:{}在样本表sg_specimen中未找到".format(sp_id))
+                    else:
+                        sp_name = sp["specimen_name"]
+                    f.write("{}\t{}\n".format(sp_name, k))
+        return group_path

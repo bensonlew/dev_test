@@ -9,6 +9,7 @@ from gevent.lock import BoundedSemaphore
 import socket
 from .exceptions import EventStopError, UnknownEventError
 import traceback
+# import copy
 
 
 class EventHandler(object):
@@ -25,7 +26,7 @@ class EventHandler(object):
         self._func = []
         self._greenlets = []
         self._start = False
-        self.sem = BoundedSemaphore(1)
+        self.sem = BoundedSemaphore()
 
     @property
     def name(self):
@@ -137,7 +138,6 @@ class EventHandler(object):
             else:
                 # print self.name, self
                 raise EventStopError(self.name)
-            gevent.sleep(0)
 
     def start(self):
         """
@@ -200,14 +200,17 @@ class LoopEventHandler(EventHandler):
 
         :param para: 可选参数，触发事件时传递给事件绑定函数的参数 默认值:None
         """
+        # print "%s start fire ....." % self.name
         with self.sem:
             if not self.is_start:
+                # print "%s 没有启动 ....." % self.name
                 raise EventStopError("%s事件没有启动!" % self.name)
             if self._event.ready():
                 self.stop()
                 self.restart()
             self._event.set(para)
-            gevent.sleep(0)
+        # self._current_handler.fire(para)
+        # print "%s Fire ................" % self.name
 
 
 class EventObject(object):
@@ -260,12 +263,12 @@ class EventObject(object):
         I'm testfunc2 and I'm x
         wait function will exit
     """
-    semaphore = BoundedSemaphore(1)
 
     def __init__(self):
         self.events = {}
         self._start = False   # 判断是否开始事件监听
         self._end = False     # 判断是否结束事件监听
+        self.semaphore = BoundedSemaphore(1)
 
     @property
     def is_start(self):
@@ -289,17 +292,18 @@ class EventObject(object):
         :param loop: bool  是否为可多次触发的事件
         :return: self
         """
-        if self.is_start:
-            raise Exception("%s已经开始运行，无法添加事件!" % self)
-        if self.is_end:
-            raise Exception("%s已经运行结束，无法添加事件!" % self)
-        if event in self.events.keys():
-            raise Exception("事件已经存在，请勿重复添加")
-        if self.check_event_name(event):
-            if loop:
-                self.events[event] = LoopEventHandler(event)
-            else:
-                self.events[event] = EventHandler(event)
+        # if self.is_start:
+        #     raise Exception("%s已经开始运行，无法添加事件!" % self)
+        # if self.is_end:
+        #     raise Exception("%s已经运行结束，无法添加事件!" % self)
+        with self.semaphore:
+            if event in self.events.keys():
+                raise Exception("事件已经存在，请勿重复添加")
+            if self.check_event_name(event):
+                if loop:
+                    self.events[event] = LoopEventHandler(event)
+                else:
+                    self.events[event] = EventHandler(event)
         return self
 
     @staticmethod
@@ -352,10 +356,11 @@ class EventObject(object):
         :param data: 可选参数 将通过 **event_data['data']** 形式传递给运行函数
         :return:
         """
-        if name not in self.events.keys():
-            raise UnknownEventError(name)
-        e = self.events[name]
-        e.bind(func, self, data)
+        with self.semaphore:
+            if name not in self.events.keys():
+                raise UnknownEventError(name)
+            e = self.events[name]
+            e.bind(func, self, data)
         return self
 
     def fire(self, name, para=None):
@@ -366,10 +371,11 @@ class EventObject(object):
        :param para:  function 需要传递给事件绑定函数的参数
        :return: none
         """
-        if name not in self.events.keys():
-            raise UnknownEventError(name)
-        e = self.events[name]
-        e.fire(para)
+        with self.semaphore:
+            if name not in self.events.keys():
+                raise UnknownEventError(name)
+            e = self.events[name]
+            e.fire(para)
 
     def start_listener(self):
         """

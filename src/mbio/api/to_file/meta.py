@@ -107,6 +107,21 @@ def _create_classify_name(col, tmp, bind_obj):
         new_col.append(col[LEVEL[i]])
     return "; ".join(new_col)
 
+
+def _get_only_classify_name(col, level, bind_obj):
+    LEVEL = {
+        1: "d__", 2: "k__", 3: "p__", 4: "c__", 5: "o__",
+        6: "f__", 7: "g__", 8: "s__", 9: "otu"
+        }
+    if level in LEVEL:
+        if LEVEL[level] in col:
+            return col[LEVEL[level]]
+        else:
+            raise Exception('数据库中不存在列：{}'.format(LEVEL[level]))
+    else:
+        raise Exception('错误的分类水平：{}'.format(level))
+
+
 """
 def _create_classify_name(col, tmp, bind_obj):
     LEVEL = {

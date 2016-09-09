@@ -37,11 +37,11 @@ class PanCore(MetaController):
         self.to_file = ["meta.export_otu_table_by_level(in_otu_table)", "meta.export_group_table_by_detail(group_table)"]
         my_param = dict()
         my_param['otu_id'] = data.otu_id
-        my_param['level_id'] = data.level_id
+        my_param['level_id'] = int(data.level_id)
         my_param['group_id'] = data.group_id
-        my_param['group_detail'] = json.loads(group_detail_sort(data.group_detail))
+        my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param["submit_location"] = data.submit_location
-        my_param["taskType"] = data.task_type
+        my_param["task_type"] = data.task_type
         self.params = param_pack(my_param)
         self.run()
         return self.returnInfo

@@ -21,7 +21,11 @@ class RpkmSaturationAgent(Agent):
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
-            {"name": "quality", "type": "int", "default": 30}  # 质量值
+            {"name": "quality", "type": "int", "default": 30},  # 质量值
+            {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
+            {"name": "up_bound", "type": "int", "default": 100},  # Sampling ends at this percentile
+            {"name": "step", "type": "int", "default": 5},  # Sampling frequency
+            {"name": "rpkm_cutof", "type": "float", "default": 0.01}  #  Transcripts with RPKM smaller than this number will be ignored
         ]
         self.add_option(options)
         self.step.add_steps('satur')
@@ -79,7 +83,7 @@ class RpkmSaturationTool(Tool):
     def rpkm_saturation(self, bam, out_pre):
         bam_name = bam.split("/")[-1].split(".")[0]
         out_pre = out_pre + "_" + bam_name
-        satur_cmd = "{}RPKM_saturation.py -i {} -r {} -o {} -q {}".format(self.python_path, bam, self.option("bed").prop["path"], out_pre, self.option("quality"))
+        satur_cmd = "{}RPKM_saturation.py -i {} -r {} -o {} -q {} -l {} -u {} -s {} -c {}".format(self.python_path, bam, self.option("bed").prop["path"], out_pre, self.option("quality"), self.option("low_bound"), self.option("up_bound"), self.option("step"), self.option("rpkm_cutof"))
         print(satur_cmd)
         self.logger.info("开始运行RPKM_saturation.py脚本")
         satur_command = self.add_command("{}_satur".format(bam_name.lower()), satur_cmd)
@@ -155,5 +159,3 @@ class RpkmSaturationTool(Tool):
                 self.logger.info(plot_cmd)
         self.set_output()
         # for f in os.listdir(self.output_dir):
-
-

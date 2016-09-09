@@ -7,6 +7,7 @@ import random
 import json
 import web
 import re
+import os
 import threading
 from mainapp.models.instant_task import InstantTask
 from mainapp.config.db import Config, get_mongo_client
@@ -40,7 +41,7 @@ class Basic(object):
         self._sheet = None  # 存放Sheet对象
         self._mongo_ids = []  # 存放worflow返回的写入mongo表的信息，每条信息为一个字典，含有collection_name,id,desc三个字段
         self.update_api = None  # 存放更新sg_status的方法
-        info = {"success": False, "info": "程序非正常结束(默认错误返回信息)"}
+        info = {"success": False, "info": "程序非正常结束(没有获取到有关错误信息)"}
         self.returnInfo = json.dumps(info)
         self.IMPORT_REPORT_AFTER_END = False
 
@@ -106,7 +107,8 @@ class Basic(object):
             self.logger = self._task_object.logger
             self._task_object.run()
         except Exception as e:
-            info = {"success": False, "info": "程序运行过程中发生错误，错误信息:{}".format(e)}
+            print e
+            info = {"success": False, "info": "{}".format(e)}
             self.returnInfo = json.dumps(info)
             # self.logger.error(self.returnInfo)
             return self.returnInfo
@@ -271,24 +273,25 @@ class Basic(object):
         return_files = []
         return_dirs = []
 
-        def create_path(path):
-            return self.uploadTarget + '/' + path.lstrip('.')
+        def create_path(path, dir_path):
+            dir_path = os.path.split(dir_path)[1]
+            return self.uploadTarget + '/' + dir_path + '/' + path.lstrip('.')
         for i in self.upload_dirs:
             for one in i.file_list:
                 if one['type'] == 'file':
                     return_files.append({
-                        "path": create_path(one["path"]),
+                        "path": create_path(one["path"], i.path),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                        })
+                    })
                 elif one['type'] == 'dir':
                     return_dirs.append({
-                        "path": create_path(one["path"]),
+                        "path": create_path(one["path"], i.path),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                        })
+                    })
                 else:
                     raise Exception('错误的文件类型')
         return return_files, return_dirs

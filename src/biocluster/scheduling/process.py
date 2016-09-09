@@ -4,11 +4,14 @@ from .job import Job
 import os
 import gevent
 import re
-from multiprocessing import Process, Manager
+from multiprocessing import Manager
 import pickle
 from biocluster.agent import PickleConfig
 import os
 from biocluster.core.function import load_class_by_path,  get_classpath_by_object
+# from gipc.gipc import _GProcess as Process
+from biocluster.logger import Wlog
+import gipc
 
 
 class PROCESS(Job):
@@ -17,38 +20,50 @@ class PROCESS(Job):
     """
     def __init__(self, agent):
         super(PROCESS, self).__init__(agent)
-        shared_callback_action = Manager().dict()
-        agent.shared_callback_action = shared_callback_action
-        workflow = agent.get_workflow()
-        self.process = LocalProcess(agent, workflow.rpc_server.process_queue, shared_callback_action)
+        self.agent = agent
+        self.workflow = agent.get_workflow()
+        if not hasattr(self.workflow, "process_share_manager"):
+            self.workflow.process_share_manager = Manager()
+        self.shared_callback_action = self.workflow.process_share_manager.dict()
+        agent.shared_callback_action = self.shared_callback_action
+
+        self.process = None
 
     def submit(self):
         super(PROCESS, self).submit()
-        self.process.start()
+        # self.process.start()
+        self.process = gipc.start_process(local_process_run, args=(self.agent,
+                                                                   self.workflow.rpc_server.process_queue,
+                                                                   self.shared_callback_action,), daemon=True)
         self.id = self.process.pid
 
     def delete(self):
-        if isinstance(self.process, Process) and self.process.is_alive():
-            self.process.terminate()
+            if self.process.is_alive():
+                self.process.terminate()
+                # self.manager.shutdown()
+            else:
+                self.process.join()
+                # self.manager.shutdown()
 
     def set_end(self):
         super(PROCESS, self).set_end()
-        self.process.join()
+        self.delete()
 
 
-class LocalProcess(Process):
-    def __init__(self, agent, shared_queue, shared_callback_action):
-        super(LocalProcess, self).__init__()
-        self.agent = agent
-        self._shared_queue = shared_queue
-        self._shared_callback_action = shared_callback_action
-        
-    def run(self):
-        super(LocalProcess, self).run()
-        os.chdir(self.agent.work_dir)
-
+def local_process_run(agent, process_queue, shared_callback_action):
+    #     # super(LocalProcess, self).__init__()
+    #     self.agent = agent
+    #     self._process_pipe_writer = process_pipe_writer
+    #     self._shared_callback_action = shared_callback_action
+    #
+    # def run(self):
+        # super(LocalProcess, self).run()
+        agent.get_workflow().rpc_server.close()
+        # Watcher().stopall()
+        gevent.sleep(0)
+        os.chdir(agent.work_dir)
         file_class_paths = []  #
-        for option in self.agent.get_option_object().values():
+        for option in agent.get_option_object().values():
             if option.type in {'outfile', 'infile'}:
                 if option.format:
                     file_class_paths.append(option.format)
@@ -58,16 +73,18 @@ class LocalProcess(Process):
         for file_class in file_class_paths:
             load_class_by_path(file_class, "File")
 
-        tool_path = get_classpath_by_object(self.agent)
+        tool_path = get_classpath_by_object(agent)
         paths = tool_path.split(".")
         paths.pop(0)
         paths.pop(0)
         tool = load_class_by_path(".".join(paths), "Tool")
 
         config = PickleConfig()
-        config.clone(self.agent)
+        config.clone(agent)
         config.DEBUG = False
-        tool.shared_callback_action = self._shared_callback_action
-        tool.shared_queue = self._shared_queue
         config.instant = True
-        tool(config).run()
+        itool = tool(config)
+        itool.logger = Wlog(itool).get_logger('Tool子进程 %s (parent: %s )' % (os.getpid(), os.getppid()))
+        itool.shared_callback_action = shared_callback_action
+        itool.process_queue = process_queue
+        itool.run()

@@ -59,6 +59,9 @@ class GroupTableFile(File):
             length = len(line)
             if length < 2:
                 raise FileError('group_table 文件至少应该有两列')
+            for i in line[1:]:
+                if re.search("\s", i):
+                    raise FileError('分组方案名里不可以包含空格')
             for line in f:
                 line = line.rstrip("\r\n")
                 line = re.split("\t", line)
