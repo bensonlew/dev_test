@@ -24,6 +24,7 @@ class BetaMultiAnalysis(Base):
     def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None,
                                        task_id=None, otu_id=None, name=None, params=None, level=9, remove=None,
                                        spname_spid=None):
+        self._tables = []  # 记录存入了哪些表格
         if level and level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if task_id is None:
