@@ -91,7 +91,7 @@ class DiffExpAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '2G'
+        self._memory = '5G'
 
     def diff_gene_callback(self):
         self.diff_gene = True
@@ -131,19 +131,21 @@ class DiffExpTool(Tool):
             edger_cmd = self.edger + " --matrix %s --method edgeR --samples_file %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], './edger_group', self.option('min_rowsum_counts'))
         else:
             edger_cmd = self.edger + " --matrix %s --method edgeR --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], self.option('dispersion'), self.option('min_rowsum_counts'))
-            restart_edger_cmd = self.edger + " --matrix %s --method edgeR --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], dispersion, self.option('min_rowsum_counts'))
+            restart_edger_cmd = self.edger + " --matrix %s --method edgeR --dispersion %s --output re_edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], dispersion, self.option('min_rowsum_counts'))
         self.logger.info("开始运行edger_cmd")
         if self.restart_edger:
             self.logger.info("开始运行重运行edger_cmd，校正dispersion")
-            shutil.rmtree(self.work_dir + '/edger_result/')
-            shutil.rmtree(self.work_dir + '/diff_list_dir/')
+            # shutil.rmtree(self.work_dir + '/diff_list_dir/')
             edger_com = self.add_command("restart_edger_cmd", restart_edger_cmd).run()
         else:
             edger_com = self.add_command("edger_cmd", edger_cmd).run()
         self.wait(edger_com)
         if edger_com.return_code == 0:
             self.logger.info("运行edger_cmd成功")
-            self.cat_diff_list(self.work_dir + '/edger_result/', self.work_dir + '/diff_list_dir/')
+            if self.restart_edger:
+                self.cat_diff_list(self.work_dir + '/re_edger_result', self.work_dir + '/re_diff_list_dir/')
+            else:
+                self.cat_diff_list(self.work_dir + '/edger_result/', self.work_dir + '/diff_list_dir/')
         else:
             self.set_error("运行edger_cmd出错")
             self.logger.info("运行edger_cmd出错")
@@ -168,7 +170,7 @@ class DiffExpTool(Tool):
         if not self.option('edger_group').is_set and gene_num > 10000:
             diff_num = len(open('diff_list', 'rb').readlines())
             dispersion = check_dispersion(gene_num, diff_num, self.option('diff_rate'))
-            shutil.rmtree(self.work_dir + '/edger_result/')
+            # shutil.rmtree(self.work_dir + '/edger_result/')
             self.restart_edger = True
             self.run_edger(dispersion)
         else:

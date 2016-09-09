@@ -69,7 +69,7 @@ class DiffAnalysisModule(Module):
             raise OptionError("模块network相异值超出范围")
         if self.option('correct') not in ['BY', 'BH', 'None', 'QVALUE']:
             raise OptionError('多重检验校正的方法不在提供的范围内')
-        if 'cluster' or 'network' or 'kegg_rich' or 'go_rich' or 'go_regulate' in self.option('analysis'):
+        if ('cluster' or 'network' or 'kegg_rich' or 'go_rich' or 'go_regulate') in self.option('analysis'):
             pass
         else:
             raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))

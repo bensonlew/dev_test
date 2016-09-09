@@ -65,7 +65,7 @@ class RsemAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

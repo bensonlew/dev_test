@@ -18,7 +18,7 @@ class ExpressMatrixFile(File):
         获取文件属性
         """
         super(ExpressMatrixFile, self).get_info()
-        samples,genes = self.get_matrix_info()
+        samples, genes = self.get_matrix_info()
         self.set_property('sample', samples)
         self.set_property('gene', genes)
 

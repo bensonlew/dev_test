@@ -365,9 +365,8 @@ class DenovoBaseWorkflow(Workflow):
         if self.option('anno_analysis'):
             self.assemble.on('end', self.run_annotation)
             self.final_tools.append(self.annotation)
-        if self.option('map_qc_analysis'):
-            self.on_rely([self.orf, self.exp_stat], self.run_map_qc)
-            self.final_tools.append(self.map_qc)
+        self.on_rely([self.orf, self.exp_stat], self.run_map_qc)
+        self.final_tools.append(self.map_qc)
         if 'ssr' in self.option('gene_analysis'):
             self.orf.on('end', self.run_ssr)
             self.final_tools.append(self.ssr)
