@@ -4,6 +4,8 @@ from ..core.singleton import singleton
 from ..config import Config
 import gevent
 import importlib
+import datetime
+from ..core.watcher import Watcher
 
 
 @singleton
@@ -15,9 +17,11 @@ class JobManager(object):
     """
     def __init__(self):
         config = Config()
-        self.jobs = []
+        self.run_jobs = []
         self.default_mode = config.JOB_PLATFORM
         self.max_job_number = config.MAX_JOB_NUMBER
+        self.queue_jobs = []
+        Watcher().add(self._watch_waiting_jobs, 10)
 
     def add_job(self, agent):
         """
@@ -28,21 +32,17 @@ class JobManager(object):
         mode = self.default_mode.lower()
         if agent.mode.lower() != "auto":
             mode = agent.mode.lower()
-        if self.default_mode == "LOCAL":
-            mode = "local"
         module = importlib.import_module("biocluster.scheduling.%s" % mode)
         job = getattr(module, mode.upper())(agent)
-        filled = False
-        while len(self.get_unfinish_jobs()) >= self.max_job_number:
-            if not filled:
-                agent.logger.info("任务队列达到最大上限%s个，排队等待运行!" % self.max_job_number)
-            filled = True
+
+        if len(self.get_unfinish_jobs()) >= self.max_job_number:
+            self.queue_jobs.append(job)
+            agent.logger.info("任务队列达到最大上限%s个，排队等待运行!" % self.max_job_number)
             agent.is_wait = True
-            gevent.sleep(1)
         else:
             agent.is_wait = False
             agent.logger.info("开始投递远程任务!")
-            self.jobs.append(job)
+            self.run_jobs.append(job)
             job.submit()
             agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, job.id))
         return job
@@ -53,6 +53,8 @@ class JobManager(object):
 
         :return: list  Job子类对象列表
         """
+        jobs = self.run_jobs
+        jobs.extend(self.queue_jobs)
         return self.jobs
 
     def get_unfinish_jobs(self):
@@ -62,7 +64,7 @@ class JobManager(object):
         :return: list  Job子类对象列表
         """
         un_done = []
-        for job in self.jobs:
+        for job in self.run_jobs:
             if not job.is_end:
                 un_done.append(job)
         return un_done
@@ -73,10 +75,42 @@ class JobManager(object):
 
          :return:  Job子类对象
         """
-        for job in self.jobs:
+        jobs = self.run_jobs
+        jobs.extend(self.queue_jobs)
+        for job in jobs:
             if agent is job.agent:
                 return job
         return False
+
+    def _watch_waiting_jobs(self):
+        """
+        监控等待排队的任务，满足任务运行条件时开始运行任务
+
+        :return:
+        """
+        # while True:
+        #     gevent.sleep(30)
+        for queue_job in self.queue_jobs:
+            if len(self.get_unfinish_jobs()) < self.max_job_number:
+                queue_job.agent.is_wait = False
+                queue_job.agent.logger.info("开始投递任务!")
+                self.run_jobs.append(queue_job)
+                mode = self.default_mode.lower()
+                if queue_job.agent.mode.lower() != "auto":
+                    mode = queue_job.agent.mode.lower()
+                queue_job.submit()
+                queue_job.agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, queue_job.id))
+                self.queue_jobs.remove(queue_job)
+
+    def remove_all_jobs(self):
+        """
+        删除所有未完成任务
+
+        :return:
+        """
+        for job in self.run_jobs:
+            if not job.is_end:
+                job.delete()
 
 
 class Job(object):
@@ -88,6 +122,7 @@ class Job(object):
         self.agent = agent
         self.id = 0
         self._end = False
+        self.submit_time = None
 
     @property
     def is_end(self):
@@ -104,7 +139,7 @@ class Job(object):
 
         :return:
         """
-        self.id = 0
+        self.submit_time = datetime.datetime.now()
 
     def resubmit(self):
         """
@@ -114,6 +149,8 @@ class Job(object):
         """
         self.delete()
         self.id = 0
+        self.submit_time = None
+        self._end = False
         self.submit()
 
     def delete(self):

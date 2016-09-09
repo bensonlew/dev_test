@@ -82,7 +82,7 @@ class DistanceBoxAgent(Agent):
             ["./Stats.xls", "xls", "分组统计检验结果"],
             ["./Distances.xls", "xls", "组内组间距离值统计结果"]
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(DistanceBoxAgent, self).end()
 
 
@@ -165,7 +165,7 @@ class DistanceBoxTool(Tool):
                 datalist.append([templist[0]] + self.calculate_boxdata(values))
             w.write('#Group\tmax\tmin\tq3\tq1\tmedian\tfliers\tmean\tstd\n')
             for box in datalist:
-                print box, type(box)
+                # print box, type(box)
                 w.write('\t'.join(box) + '\n')
 
     def format_stats(self, statfile, outfile):

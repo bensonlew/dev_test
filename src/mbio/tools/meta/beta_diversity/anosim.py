@@ -85,7 +85,7 @@ class AnosimAgent(Agent):
             ["./adonis_results.txt", "txt", "adonis分析结果"],
             ["./format_results.xls", "xls", "anosim&adonis整理结果表"],
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(AnosimAgent, self).end()
 
 
@@ -133,12 +133,13 @@ class AnosimTool(Tool):
         dist_adonis_command.run()
         self.wait()
         if dist_anosim_command.return_code == 0:
+            self.linkfile(os.path.join(self.work_dir, 'anosim_results.txt'), 'anosim_results.txt')
             self.logger.info('运行qiime:compare_categories.py计算anosim完成')
-            self.linkfile(os.path.join(self.work_dir, 'adonis_results.txt'), 'adonis_results.txt')
             if dist_adonis_command.return_code == 0:
+                self.linkfile(os.path.join(self.work_dir, 'adonis_results.txt'), 'adonis_results.txt')
                 self.logger.info('运行qiime:compare_categories.py计算adonis完成')
-                self.linkfile(os.path.join(self.work_dir, 'anosim_results.txt'), 'anosim_results.txt')
                 self.format()
+                self.logger.info('整理anosim&adonis计算结果完成')
                 self.end()
             else:
                 self.set_error('运行qiime:compare_categories.py计算adonis出错')

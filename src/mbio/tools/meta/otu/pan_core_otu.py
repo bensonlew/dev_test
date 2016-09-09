@@ -2,7 +2,6 @@
 # __author__ = 'xuting'
 import os
 import subprocess
-import shutil
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -64,7 +63,7 @@ class PanCoreOtuAgent(Agent):
         """
         设置所需资源
         """
-        self._cpu = 10
+        self._cpu = 3
         self._memory = ''
 
 
@@ -93,11 +92,12 @@ class PanCoreOtuTool(Tool):
 
         if self.option("group_table").is_set:
             group_table = self.option("group_table").prop['path']
-            pan_otu = pan_core(otu_path, "pan", group_table)
-            core_otu = pan_core(otu_path, "core", group_table)
+            pan_otu = pan_core(otu_path, "pan", group_table, self.work_dir)
+            core_otu = pan_core(otu_path, "core", group_table, self.work_dir)
         else:
-            pan_otu = pan_core(otu_path, "pan")
-            core_otu = pan_core(otu_path, "core")
+            pan_otu = pan_core(otu_path, "pan", "none", self.work_dir)
+            core_otu = pan_core(otu_path, "core", "none", self.work_dir)
+
         self.logger.info("R脚本生成完毕")
         self.logger.info("运行R,生成表格文件")
         try:
@@ -109,18 +109,37 @@ class PanCoreOtuTool(Tool):
         except subprocess.CalledProcessError:
             self.logger.info("表格生成失败")
             raise Exception("运行R出错")
-        tmp_pan = os.path.join(os.path.dirname(self.option("in_otu_table").prop["path"]), "pan.richness.xls")
-        tmp_core = os.path.join(os.path.dirname(self.option("in_otu_table").prop["path"]), "core.richness.xls")
+        tmp_pan = os.path.join(os.path.dirname(pan_otu), "pan.richness.xls")
+        tmp_core = os.path.join(os.path.dirname(core_otu), "core.richness.xls")
         pan_dir = os.path.join(self.work_dir, "output", "pan.richness.xls")
         core_dir = os.path.join(self.work_dir, "output", "core.richness.xls")
-        if os.path.exists(pan_dir):
-            os.remove(pan_dir)
-        if os.path.exists(core_dir):
-            os.remove(core_dir)
-        shutil.copy2(tmp_pan, pan_dir)
-        shutil.copy2(tmp_core, core_dir)
+        self.del_na(tmp_pan, pan_dir)
+        self.del_na(tmp_core, core_dir)
         self.option("pan_otu_table").set_path(pan_dir)
         self.option("core_otu_table").set_path(core_dir)
+
+    def del_na(self, in_path, out_path):
+        """
+        输出的pan和core表格存在多余的NA列的情况，删除这些列
+        """
+        none_na = list()
+        with open(in_path, "rb") as r:
+            r.next()
+            for line in r:
+                line = line.rstrip().split("\t")
+                for i in range(1, len(line)):
+                    if line[i] != "NA":
+                        none_na.append(i)
+                    else:
+                        break
+        max_len = max(none_na)
+        with open(in_path, "rb") as r, open(out_path, "wb") as w:
+            for line in r:
+                line = line.rstrip().split("\t")
+                tmp_list = list()
+                for i in range(max_len):
+                    tmp_list.append(line[i])
+                w.write("\t".join(tmp_list) + "\n")
 
     def run(self):
         """

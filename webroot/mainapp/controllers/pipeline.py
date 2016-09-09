@@ -31,7 +31,6 @@ class Pipeline(object):
         print data
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == "client01" or client == "client03":
-            print "flag_sanger_submit"
             json_obj = self.sanger_submit()
             json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
             json_obj["IMPORT_REPORT_AFTER_END"] = True

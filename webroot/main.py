@@ -8,17 +8,20 @@ from mainapp.controllers.instant.meta.two_group import TwoGroup
 from mainapp.controllers.instant.meta.estimators import Estimators
 from mainapp.controllers.instant.meta.pan_core import PanCore
 from mainapp.controllers.instant.meta.venn import Venn
-from mainapp.controllers.instant.meta.heat_cluster import HeatCluster
+from mainapp.controllers.instant.meta.cluster_analysis import ClusterAnalysis
 from mainapp.controllers.instant.meta.beta.distance_calc import DistanceCalc
 from mainapp.controllers.instant.meta.beta.hcluster import Hcluster
 from mainapp.controllers.instant.meta.otu_subsample import OtuSubsample
 from mainapp.controllers.instant.meta.two_sample import TwoSample
 from mainapp.controllers.instant.meta.multiple import Multiple
+from mainapp.controllers.instant.meta.convert_level import ConvertLevel
+from mainapp.controllers.submit.sequence.sample_extract import SampleExtract
 from mainapp.controllers.submit.meta.lefse import Lefse
 from mainapp.controllers.instant.meta.est_t_test import EstTTest
 from mainapp.controllers.submit.meta.rarefaction import Rarefaction
 from mainapp.controllers.instant.meta.beta.multi_analysis import MultiAnalysis
 from mainapp.controllers.instant.meta.beta.anosim import Anosim
+from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
 
 # web.config.debug = False
 urls = (
@@ -37,7 +40,9 @@ urls = (
     "/pipeline/stop_pause", "PipelineStopPause",
     "/meta/pan_core", "PanCore",
     "/meta/venn", "Venn",
-    "/meta/heat_cluster", "HeatCluster",
+    "/meta/convert_level", "ConvertLevel",
+    "/sequence/sample_extract", "SampleExtract",
+    "/meta/cluster_analysis", "ClusterAnalysis",
     "/meta/beta/distance_calc", "DistanceCalc",
     "/meta/beta/hcluster", "Hcluster",
     "/meta/otu_subsample", "OtuSubsample",
@@ -48,7 +53,8 @@ urls = (
     "/meta/est_t_test", "EstTTest",
     "/meta/rarefaction", "Rarefaction",
     "/meta/beta/multi_analysis", "MultiAnalysis",
-    "/meta/beta/anosim", "Anosim"
+    "/meta/beta/anosim", "Anosim",
+    "/dataexchange/download_task", "DownloadTask"
 )
 
 

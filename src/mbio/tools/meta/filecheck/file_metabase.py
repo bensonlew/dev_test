@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
+from __future__ import division
+import math
+import os
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -59,7 +62,16 @@ class FileMetabaseAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        total = 0
+        if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
+            for f in self.option("in_fastq").prop["samples"]:
+                total += os.path.getsize(f)
+        if self.get_option_object("in_fastq").format == 'sequence.fastq':
+            total = os.path.getsize(self.option("in_fastq").prop["path"])
+        total = total / (1024 * 1024 * 1024)
+        total = total * 4
+        total = math.ceil(total)
+        self._memory = '{}G'.format(int(total))
 
 
 class FileMetabaseTool(Tool):
@@ -86,6 +98,7 @@ class FileMetabaseTool(Tool):
             gp_sample = self.option("group_table").prop["sample"]
             for gp in gp_sample:
                 if gp not in self.samples:
+                    self.set_error("group表出错, 样本{}在fastq文件中未出现".format(gp))
                     raise Exception("group表出错, 样本{}在fastq文件中未出现".format(gp))
         else:
             self.logger.info("未检测到group文件， 跳过...")
@@ -100,8 +113,10 @@ class FileMetabaseTool(Tool):
             self.logger.info("已获取tax文件的所有的序列名，开始校对...")
             for f_name in fasta_name:
                 if f_name not in taxon_name:
+                    self.set_error("序列名{}在taxon文件里未出现")
                     raise Exception("序列名{}在taxon文件里未出现")
             if len(fasta_name) != len(taxon_name):
+                self.set_error("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
                 raise Exception("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
         else:
             self.logger.info("未检测到ref_fasta和ref_taxon文件， 跳过...")
@@ -110,7 +125,12 @@ class FileMetabaseTool(Tool):
     def check_env(self):
         if self.option("envtable").is_set:
             self.logger.info("开始校验env文件")
-            self.option("envtable").check()
+            self.option("envtable").get_info()
+            ev_sample = self.option("envtable").prop["sample"]
+            for ev in ev_sample:
+                if ev not in self.samples:
+                    self.set_error("env表出错, 样本{}在fastq文件中未出现".format(ev))
+                    raise Exception("group表出错, 样本{}在fastq文件中未出现".format(ev))
         else:
             self.logger.info("未检测到env文件， 跳过...")
         self.logger.info("env文件检测完毕")

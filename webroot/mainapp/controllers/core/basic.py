@@ -7,16 +7,20 @@ import random
 import json
 import web
 import re
-# from biocluster.config import Config as mainConfig
+import os
+import threading
 from mainapp.models.instant_task import InstantTask
-from mainapp.config.db import Config
+from mainapp.config.db import Config, get_mongo_client
 from biocluster.wsheet import Sheet
 from mbio.api.database.meta_update_status import MetaUpdateStatus  # 暂时使用这个更新，最好在基类base中加一个函数方法
+from biocluster.config import Config as mbio_config
+from bson import ObjectId
 
 
 class Basic(object):
     def __init__(self):
-        self.db = Config().get_db()
+        self.mongodb = get_mongo_client()  # mongo库
+        self.db = Config().get_db()  # mysql库
         self._mainTableId = ""  # 核心表在mongo的id，如otu表的id
         self._id = ""  # 新的ID
         self.data = None  # web数据
@@ -37,7 +41,7 @@ class Basic(object):
         self._sheet = None  # 存放Sheet对象
         self._mongo_ids = []  # 存放worflow返回的写入mongo表的信息，每条信息为一个字典，含有collection_name,id,desc三个字段
         self.update_api = None  # 存放更新sg_status的方法
-        info = {"success": False, "info": "程序非正常结束(默认错误返回信息)"}
+        info = {"success": False, "info": "程序非正常结束(没有获取到有关错误信息)"}
         self.returnInfo = json.dumps(info)
         self.IMPORT_REPORT_AFTER_END = False
 
@@ -66,6 +70,7 @@ class Basic(object):
             'IMPORT_REPORT_DATA': True,
             'USE_RPC': False,
             'params': self.params,
+            'instant': True,
             'options': self.options  # 需要配置
         }
         if self.to_file:  # 可以配置
@@ -92,25 +97,34 @@ class Basic(object):
         self._uploadTarget = self._uploadTarget + "/report_results/" + self.name + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         return self._uploadTarget
 
-    def run(self):
+    def _run(self):
         """
         运行即时计算，分三步，一、根据参数生成Sheet对象；二、获取workflow类对象，并使用Sheet对象实例化，运行，三、处理运行结果
         """
-        self.create_sheet()
-        self.get_task_object()
-        self.logger = self._task_object.logger
         try:
+            self.create_sheet()
+            self.get_task_object()
+            self.logger = self._task_object.logger
             self._task_object.run()
         except Exception as e:
-            info = {"success": False, "info": "程序运行过程中发生错误，错误信息:{}".format(e)}
+            print e
+            info = {"success": False, "info": "{}".format(e)}
             self.returnInfo = json.dumps(info)
-            self.logger.error(self.returnInfo)
+            # self.logger.error(self.returnInfo)
             return self.returnInfo
         self._mongo_ids = self._task_object.return_mongo_ids
         self.update_api = MetaUpdateStatus(self._task_object)
         self.update_api.manager = self._task_object.api
         self._uploadDirObj = self._task_object._upload_dir_obj
         self.end()
+
+    def run(self):
+        """新线程运行_run方法"""
+        print('即时计算 Thread start run......')
+        run_object = threading.Thread(target=self._run)
+        run_object.start()
+        run_object.join()
+        print('即时计算 Thread over......')
 
     def get_task_object(self, origin='mbio'):
         """"""
@@ -240,8 +254,11 @@ class Basic(object):
         content["files"] = list()
         content["ids"] = list()
         for one_insert in self.mongo_ids:
-            idDict = {one_insert['collection_name']: str(one_insert['id'])}
+            idDict = {'id': str(one_insert['id']),
+                      'name': self.get_main_table_name(one_insert['collection_name'], str(one_insert['id']))}
             content["ids"].append(idDict)
+        if len(self.mongo_ids) == 1:
+            content['ids'] = content['ids'][0]
         files, dirs = self.get_upload_files()
         content['files'] = files
         content['dirs'] = dirs
@@ -256,24 +273,34 @@ class Basic(object):
         return_files = []
         return_dirs = []
 
-        def create_path(path):
-            return self.uploadTarget + '/' + path.lstrip('.')
+        def create_path(path, dir_path):
+            dir_path = os.path.split(dir_path)[1]
+            return self.uploadTarget + '/' + dir_path + '/' + path.lstrip('.')
         for i in self.upload_dirs:
             for one in i.file_list:
                 if one['type'] == 'file':
                     return_files.append({
-                        "path": create_path(one["path"]),
+                        "path": create_path(one["path"], i.path),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                        })
+                    })
                 elif one['type'] == 'dir':
                     return_dirs.append({
-                        "path": create_path(one["path"]),
+                        "path": create_path(one["path"], i.path),
                         "format": one["format"],
                         "description": one["description"],
                         "size": one["size"]
-                        })
+                    })
                 else:
                     raise Exception('错误的文件类型')
         return return_files, return_dirs
+
+    def get_main_table_name(self, table, main_id):
+        """
+        查询数据库获取主表名称name
+        """
+        table_name = self.mongodb[mbio_config().MONGODB][table].find_one({'_id': ObjectId(main_id)})['name']
+        if not table_name:
+            raise Exception('在表:{} 中未找到_id为:{} 的数据，或者表中没有"name"字段'.format(table, main_id))
+        return table_name
