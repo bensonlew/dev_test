@@ -9,7 +9,7 @@ import pickle
 from biocluster.agent import PickleConfig
 import os
 from biocluster.core.function import load_class_by_path,  get_classpath_by_object
-from gipc.gipc import _GProcess as Process
+# from gipc.gipc import _GProcess as Process
 from biocluster.logger import Wlog
 import gipc
 
@@ -21,9 +21,12 @@ class PROCESS(Job):
     def __init__(self, agent):
         super(PROCESS, self).__init__(agent)
         self.agent = agent
-        self.shared_callback_action = Manager().dict()
-        agent.shared_callback_action = self.shared_callback_action
         self.workflow = agent.get_workflow()
+        if not hasattr(self.workflow, "process_share_manager"):
+            self.workflow.process_share_manager = Manager()
+        self.shared_callback_action = self.workflow.process_share_manager.dict()
+        agent.shared_callback_action = self.shared_callback_action
+
         self.process = None
 
     def submit(self):
@@ -31,19 +34,20 @@ class PROCESS(Job):
         # self.process.start()
         self.process = gipc.start_process(local_process_run, args=(self.agent,
                                                                    self.workflow.rpc_server.process_queue,
-                                                                   self.shared_callback_action,))
+                                                                   self.shared_callback_action,), daemon=True)
         self.id = self.process.pid
 
     def delete(self):
-        if isinstance(self.process, Process) and self.process.is_alive():
-            self.process.terminate()
+            if self.process.is_alive():
+                self.process.terminate()
+                # self.manager.shutdown()
+            else:
+                self.process.join()
+                # self.manager.shutdown()
 
     def set_end(self):
         super(PROCESS, self).set_end()
-        if self.process.is_alive():
-            self.process.terminate()
-        else:
-            self.process.join()
+        self.delete()
 
 
 def local_process_run(agent, process_queue, shared_callback_action):

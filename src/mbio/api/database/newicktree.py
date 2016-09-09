@@ -60,6 +60,7 @@ class Newicktree(Base):
             if tree_id is None:
                 raise Exception("major为False时需提供tree_id!")
         # update value
+        self.bind_object.logger('update_dist_id: {}'.format(update_dist_id))
         if update_dist_id:
             self.update_dist(update_dist_id, tree_id)
         with open(file_path, 'r') as f:
@@ -77,5 +78,5 @@ class Newicktree(Base):
         """
         从newick树更新距离矩阵结果的主表的newick_tree_id
         """
-        self.db['sg_beta_specimen_distance'].update_one({'newick_tree_id': ObjectId(tree_id)},
-                                                        {'$set': {'_id': ObjectId(distance_id)}})
+        self.db['sg_beta_specimen_distance'].update_one({'_id': ObjectId(distance_id)},
+                                                        {'$set': {'newick_tree_id': ObjectId(tree_id)}})
