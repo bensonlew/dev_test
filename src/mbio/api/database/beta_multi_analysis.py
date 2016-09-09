@@ -93,7 +93,7 @@ class BetaMultiAnalysis(Base):
                 importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
                 self.insert_table_detail(rotation_path, 'species', update_id=main_id, split_fullname=True)
-                self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+                self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
                 if result['env_id']:
                     filelist = os.listdir(dir_path.rstrip('/') + '/Pca')
                     if 'pca_envfit_factor_scores.xls' in filelist:
@@ -141,7 +141,7 @@ class BetaMultiAnalysis(Base):
                 dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
                 self.insert_table_detail(species_path, 'species', update_id=main_id, split_fullname=True)
-                self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+                self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
                 self.insert_table_detail(dca_path, 'dca', update_id=main_id)
                 filelist = os.listdir(dir_path.rstrip('/') + '/Rda')
                 if (rda_cca + '_centroids.xls') in filelist:
@@ -170,7 +170,8 @@ class BetaMultiAnalysis(Base):
     def insert_table_detail(self, file_path, table_type, update_id,
                             coll_name='sg_beta_multi_analysis_detail',
                             main_coll='sg_beta_multi_analysis',
-                            update_column=True, db=None, fileter_biplot=None, remove_key_blank=False, split_fullname=False):
+                            update_column=True, db=None, fileter_biplot=None, remove_key_blank=False,
+                            split_fullname=False, colls=None):
         self._tables.append(table_type)
         if not db:
             db = self.db
@@ -180,6 +181,8 @@ class BetaMultiAnalysis(Base):
             columns = all_lines[0].rstrip().split('\t')[1:]
             if remove_key_blank:
                 columns = [i.replace(' ', '') for i in columns]
+            if colls:
+                columns = colls
             data_temp = []
             for line in all_lines[1:]:
                 values = line.rstrip().split('\t')
