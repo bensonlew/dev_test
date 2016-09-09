@@ -21,8 +21,8 @@ class DiffAnalysisModule(Module):
             {"name": "sub_num", "type": "int", "default": 5},  # 子聚类的数目
             {"name": "softpower", "type": "int", "default": 9},
             {"name": "dissimilarity", "type": "float", "default": 0.25},
-            {"name": "module", "type": "float", "default": 0.6},
-            {"name": "network", "type": "float", "default": 0.6},
+            {"name": "module", "type": "float", "default": 0.1},
+            {"name": "network", "type": "float", "default": 0.2},
             {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "diff_list_dir", "type": "infile", "format": "denovo_rna.express.gene_list_dir"},  # 两两样本/分组的差异基因文件
             {"name": "correct", "type": "string", "default": "BH"},  # 多重检验校正方法

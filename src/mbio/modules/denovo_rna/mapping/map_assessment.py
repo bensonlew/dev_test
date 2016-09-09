@@ -108,7 +108,7 @@ class MapAssessmentModule(Module):
                 "up_bound": self.option("low_bound"),
                 "step": self.option("step"),
                 "rpkm_cutof": self.option("rpkm_cutof"),
-                "quality_satur": self.option("quality_satur")
+                "quality": self.option("quality_satur")
                 })
             step = getattr(self.step, 'satur{}'.format(n))
             step.start()
@@ -124,7 +124,7 @@ class MapAssessmentModule(Module):
             self.step.add_steps('dup_{}'.format(n))
             dup.set_options({
                 'bam': f,
-                "quality_dup": self.option("quality_dup")
+                "quality": self.option("quality_dup")
                 })
             step = getattr(self.step, 'dup_{}'.format(n))
             step.start()

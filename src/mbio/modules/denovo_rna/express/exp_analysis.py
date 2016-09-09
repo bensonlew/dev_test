@@ -25,10 +25,10 @@ class ExpAnalysisModule(Module):
             {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"},
             {"name": "exp_way", "type": "string", "default": "fpkm"},
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
-            {"name": "min_rowsum_counts", "type": "int", "default": 20},  # 离散值估计检验的最小计数值
+            {"name": "min_rowsum_counts", "type": "int", "default": 2},  # 离散值估计检验的最小计数值
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
-            {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
+            {"name": "diff_ci", "type": "float", "default": 0.01},  # 显著性水平
             {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因计数表
             {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
             {"name": "diff_list_dir", "type": "outfile", "format": "denovo_rna.express.gene_list_dir"},

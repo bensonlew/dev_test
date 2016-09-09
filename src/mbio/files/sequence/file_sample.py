@@ -105,7 +105,7 @@ class FileSampleFile(File):
             for line in f:
                 if "#" in line:
                     continue
-                line = line.rstrip().split("\t")
+                line = line.rstrip().split()
                 full_name = os.path.join(dir_name, line[0])
                 if not os.path.isfile(full_name):
                     raise FileError("文件{}不存在".format(full_name))

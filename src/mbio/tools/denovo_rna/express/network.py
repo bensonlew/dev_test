@@ -1,7 +1,6 @@
-## !/mnt/ilustre/users/sanger/app/program/Anaconda2/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
-#last_modify:20160701
+# last_modify:20160701
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool

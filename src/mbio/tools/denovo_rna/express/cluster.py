@@ -1,4 +1,3 @@
-# # !/mnt/ilustre/users/sanger/app/program/Anaconda2/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
 # last_modify:20160701

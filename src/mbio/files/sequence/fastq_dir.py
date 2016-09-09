@@ -73,7 +73,7 @@ class FastqDirFile(Directory):
             filesample = FileSampleFile()
             filesample.set_path(list_txt)
             filesample.get_info()
-            filesample.check()  #add 1 line by qiuping 20160722
+            filesample.check()  # add 1 line by qiuping 20160722
             self.samples = filesample.prop["sample_names"]
             self.se_repeat = filesample.se_repeat
             self.pe_repeat = filesample.pe_repeat

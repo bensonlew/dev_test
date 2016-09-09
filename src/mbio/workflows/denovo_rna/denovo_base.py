@@ -26,7 +26,7 @@ class DenovoBaseWorkflow(Workflow):
             {"name": "search_pfam", "type": "bool", "default": False},  # orf 是否比对Pfam数据库
             {"name": "primer", "type": "bool", "default": True},  # 是否设计SSR引物
             {"name": "kmer_size", "type": "int", "default": 25},
-            {"name": "min_kmer_cov", "type": "int", "default": 1},
+            {"name": "min_kmer_cov", "type": "int", "default": 2},
             {"name": "min_contig_length", "type": "int", "default": 200},  # trinity报告出的最短的contig长度。默认为200
             {"name": "SS_lib_type", "type": "string", "default": 'none'},  # reads的方向，成对的reads: RF or FR; 不成对的reads: F or R，默认情况下，不设置此参数
             {"name": "exp_way", "type": "string", "default": "fpkm"},  # edger离散值
