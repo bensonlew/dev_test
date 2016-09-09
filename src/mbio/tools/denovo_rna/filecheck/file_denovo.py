@@ -22,7 +22,7 @@ class FileDenovoAgent(Agent):
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"}  #对照组文件，格式同分组文件
+            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"}  # 对照组文件，格式同分组文件
         ]
         self.add_option(options)
         self.step.add_steps("file_check")
@@ -77,12 +77,13 @@ class FileDenovoTool(Tool):
         list_txt = os.path.join(self.option('fastq_dir').prop['path'], "list.txt")
         file_list.set_path(list_txt)
         file_sample = file_list.get_list()
+        # self.logger.info('%s' % file_sample)
         if self.option('fq_type') == 'PE':
             for i in file_sample.keys():
-                if len(i) != 2:
+                if len(file_sample[i]) != 2:
                     raise OptionError("PE测序时，每个样本至少有一个左端fq和右端fq文件")
         files = self.option('fastq_dir').prop['fastq_basename']
-        self.logger.info('%s' % files)
+        # self.logger.info('%s' % files)
         for f in files:
             fq_path = os.path.join(self.option('fastq_dir').prop['path'], f)
             my_fastq = FastqFile()
@@ -112,13 +113,20 @@ class FileDenovoTool(Tool):
         self.logger.info("正在检测control文件")
         vs_list = self.option("control_file").prop["vs_list"]
         con_samples = []
+        if self.option('group_table').is_set:
+            group_scheme = self.option('group_table').prop['group_scheme'][0]
+            group_name = self.option('group_table').get_group_name(group_scheme)
         for vs in vs_list:
             for i in vs:
-                if i in con_samples:
+                if i not in con_samples:
                     con_samples.append(i)
-        for cp in con_samples:
-            if cp not in self.samples:
-                raise Exception("control表出错，样本{}在fastq文件中未出现".format(cp))
+            for cp in con_samples:
+                if self.option('group_table').is_set:
+                    if cp not in group_name:
+                        raise Exception("control表出错，分组{}在fastq文件中未出现".format(cp))
+                else:
+                    if cp not in self.samples:
+                        raise Exception("control表出错，样本{}在fastq文件中未出现".format(cp))
         self.logger.info("control文件检测完毕")
 
     def run(self):

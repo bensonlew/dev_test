@@ -358,6 +358,10 @@ class Basic(EventObject):
         :param child: 一个或多个 :py:class:`biocluster.module.Module` 或  :py:class:`biocluster.agent.Agent` 对象
         :return: self
         """
+        if self.is_start:
+            raise Exception("%s已经开始运行，不能添加子模块!" % self.name)
+        if self.is_end:
+            raise Exception("%s已经运行结束，不能添加子模块!" % self.name)
         for c in child:
             if not isinstance(c, Basic):
                 raise Exception("child参数必须为Basic或其子类的实例对象!")
