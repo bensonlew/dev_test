@@ -20,6 +20,6 @@ def clust(input_matrix, sub_num, method="both", lognorm=10, distance_method="euc
     """
     this_file_dir = os.path.dirname(os.path.realpath(__file__))
     f = Template(filename=this_file_dir + '/cluster.r')
-    clust = f.render(input_matrix=input_matrix, k=sub_num, lognorm=lognorm, distance_method=distance_method, method=method, cltype=cltype)
+    clust = f.render(input_matrix=input_matrix, sub_num=sub_num, lognorm=lognorm, distance_method=distance_method, method=method, cltype=cltype)
     with open("clust.r", 'w') as rfile:
         rfile.write("%s" % clust)

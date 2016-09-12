@@ -8,6 +8,7 @@ from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
 from types import StringTypes
 from biocluster.config import Config
+from mainapp.libs.param_pack import group_detail_sort
 # import re
 # import datetime
 # from bson.son import SON
@@ -21,7 +22,9 @@ class BetaMultiAnalysis(Base):
 
     @report_check
     def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None,
-                                       task_id=None, otu_id=None, name=None, params=None, level=9, remove=None):
+                                       task_id=None, otu_id=None, name=None, params=None, level=9, remove=None,
+                                       spname_spid=None):
+        self._tables = []  # 记录存入了哪些表格
         if level and level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
         if task_id is None:
@@ -38,6 +41,8 @@ class BetaMultiAnalysis(Base):
                 group_id = self.bind_object.option('group_id')
                 if group_id not in ['all', 'All', 'ALL']:
                     group_id = ObjectId(group_id)  # 仅仅即时计算直接绑定workflow对象
+            else:
+                group_id = 'all'
         if isinstance(otu_id, ObjectId):
             pass
         elif otu_id is not None:
@@ -54,6 +59,10 @@ class BetaMultiAnalysis(Base):
                 if isinstance(params, dict):
                     params_dict['env_id'] = str(env_id)    # env_id在再metabase中不可用
             params_dict['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+            if spname_spid:
+                params_dict['group_id'] = group_id
+                group_detail = {'All': [str(i) for i in spname_spid.values()]}
+                params_dict['group_detail'] = group_detail_sort(group_detail)
             insert_mongo_json = {
                 'project_sn': self.bind_object.sheet.project_sn,
                 'task_id': task_id,
@@ -84,7 +93,7 @@ class BetaMultiAnalysis(Base):
                 importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
                 self.insert_table_detail(rotation_path, 'species', update_id=main_id, split_fullname=True)
-                self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+                self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
                 if result['env_id']:
                     filelist = os.listdir(dir_path.rstrip('/') + '/Pca')
                     if 'pca_envfit_factor_scores.xls' in filelist:
@@ -132,7 +141,7 @@ class BetaMultiAnalysis(Base):
                 dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
                 self.insert_table_detail(species_path, 'species', update_id=main_id, split_fullname=True)
-                self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+                self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
                 self.insert_table_detail(dca_path, 'dca', update_id=main_id)
                 filelist = os.listdir(dir_path.rstrip('/') + '/Rda')
                 if (rda_cca + '_centroids.xls') in filelist:
@@ -161,7 +170,8 @@ class BetaMultiAnalysis(Base):
     def insert_table_detail(self, file_path, table_type, update_id,
                             coll_name='sg_beta_multi_analysis_detail',
                             main_coll='sg_beta_multi_analysis',
-                            update_column=True, db=None, fileter_biplot=None, remove_key_blank=False, split_fullname=False):
+                            update_column=True, db=None, fileter_biplot=None, remove_key_blank=False,
+                            split_fullname=False, colls=None):
         self._tables.append(table_type)
         if not db:
             db = self.db
@@ -171,6 +181,8 @@ class BetaMultiAnalysis(Base):
             columns = all_lines[0].rstrip().split('\t')[1:]
             if remove_key_blank:
                 columns = [i.replace(' ', '') for i in columns]
+            if colls:
+                columns = colls
             data_temp = []
             for line in all_lines[1:]:
                 values = line.rstrip().split('\t')

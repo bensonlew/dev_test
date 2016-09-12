@@ -179,9 +179,9 @@ class RarefactionTool(Tool):
                 shutil.rmtree(os.path.join(self.output_dir, names))
         for estimators in self.indices.split('-'):
             if estimators in ["sobs", "default"]:
-                os.system('mkdir rarefaction|find -name "{}*rarefaction.xls"|xargs mv -t rarefaction'
+                os.system('mkdir sobs|find -name "{}*rarefaction.xls"|xargs mv -t sobs'
                           .format(self.option("level")))
-                os.system('cp -r rarefaction %s' % self.output_dir)
+                os.system('cp -r sobs %s' % self.output_dir)
                 os.system('mkdir rabund|find -name "{}*rabund*"|xargs mv -t rabund'.format(self.option("level")))
             else:
                 cmd = 'mkdir %s|find -name "%s.*.r_%s.xls"|xargs mv -t %s' % (estimators, self.option("level"),
@@ -202,4 +202,3 @@ class RarefactionTool(Tool):
         self.mothur()
         self.end()
         # self.set_output()
-

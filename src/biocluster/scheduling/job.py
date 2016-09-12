@@ -5,6 +5,7 @@ from ..config import Config
 import gevent
 import importlib
 import datetime
+from ..core.watcher import Watcher
 
 
 @singleton
@@ -20,7 +21,7 @@ class JobManager(object):
         self.default_mode = config.JOB_PLATFORM
         self.max_job_number = config.MAX_JOB_NUMBER
         self.queue_jobs = []
-        gevent.spawn(self._watch_waiting_jobs)
+        Watcher().add(self._watch_waiting_jobs, 10)
 
     def add_job(self, agent):
         """
@@ -87,19 +88,19 @@ class JobManager(object):
 
         :return:
         """
-        while True:
-            gevent.sleep(30)
-            for queue_job in self.queue_jobs:
-                if len(self.get_unfinish_jobs()) < self.max_job_number:
-                    queue_job.agent.is_wait = False
-                    queue_job.agent.logger.info("开始投递远程任务!")
-                    self.run_jobs.append(queue_job)
-                    mode = self.default_mode.lower()
-                    if queue_job.agent.mode.lower() != "auto":
-                        mode = queue_job.agent.mode.lower()
-                    queue_job.submit()
-                    queue_job.agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, queue_job.id))
-                    self.queue_jobs.remove(queue_job)
+        # while True:
+        #     gevent.sleep(30)
+        for queue_job in self.queue_jobs:
+            if len(self.get_unfinish_jobs()) < self.max_job_number:
+                queue_job.agent.is_wait = False
+                queue_job.agent.logger.info("开始投递任务!")
+                self.run_jobs.append(queue_job)
+                mode = self.default_mode.lower()
+                if queue_job.agent.mode.lower() != "auto":
+                    mode = queue_job.agent.mode.lower()
+                queue_job.submit()
+                queue_job.agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, queue_job.id))
+                self.queue_jobs.remove(queue_job)
 
     def remove_all_jobs(self):
         """

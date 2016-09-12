@@ -1,6 +1,6 @@
 options(warn=-100)
 method<-'${method}'
-k<-0
+k<- ${sub_num}
 distance_method <- "${distance_method}"
 input_matrix<-"${input_matrix}"
 lognorm<-${lognorm}
@@ -30,10 +30,10 @@ if(lognorm==0){
     hc_samples = hclust(as.dist(1-cor(final_data, method="spearman")), method="complete") # cluster conditions
 }
 
-if(k==0){
-    pamk <- pamk(final_data,diss=FALSE)
-    k <- pamk$nc
-}
+# if(k==0){
+#     pamk <- pamk(final_data,diss=FALSE)
+#     k <- pamk$nc
+# }
 
 ####hclust
 if ((method == "hclust") || (method == "both")){

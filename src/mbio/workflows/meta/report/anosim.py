@@ -39,7 +39,6 @@ class AnosimWorkflow(Workflow):
 
     def run(self):
         task = self.add_module("meta.beta_diversity.beta_diversity")
-        self.logger.info(self.option('otu_file').path)
         if 'unifrac' in self.option('method'):  # sanger_bioinfo/src/mbio/workflows/meta/report/distance_calc.py中的解释
             if self.option('level') != 9:
                 newicktree = get_level_newicktree(self.option('otu_id'), level=self.option('level'),
@@ -60,7 +59,6 @@ class AnosimWorkflow(Workflow):
                 tempfile = open(temp_tree_file, 'w')
                 tempfile.write(newline)
                 tempfile.close()
-                self.logger.info('get_newick:' + temp_tree_file)
                 otu_table = self.option('otu_file').path
                 temp_otu_file = self.option('otu_file').path + '.temp'
                 all_lines = open(otu_table, 'r').readlines()
@@ -144,7 +142,6 @@ class AnosimWorkflow(Workflow):
                                                     otu_id=self.option('otu_id'),
                                                     name="anosim&adonis_{}".format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
         self.add_return_mongo_id('sg_beta_multi_anosim', main_id)
-        self.logger.info(str(main_id))
         self.logger.info('运行self.end')
         self.end()
 

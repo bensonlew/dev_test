@@ -11,7 +11,7 @@ import re
 
 class BamStatAgent(Agent):
     """
-    Rseqc-2.3.6:RNA测序分析工具
+    Rseqc-2.3.6:RNA测序分析工具：统计比对结果信息
     version 1.0
     author: qindanhua
     last_modify: 2016.07.12

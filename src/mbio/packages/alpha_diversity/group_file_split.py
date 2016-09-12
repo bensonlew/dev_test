@@ -36,4 +36,4 @@ def group_file_spilt(group_file, output_dir):
                         rf.write('{}\n'.format(line))
         shutil.move('two_group_file{}'.format(n), output_dir)
         n += 1
-    return output_dir
+    return two_group_name
