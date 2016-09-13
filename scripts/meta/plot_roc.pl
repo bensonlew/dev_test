@@ -513,9 +513,14 @@ p<-p + geom_text(x=0.8,y=0.06,label=test_auc3,size=4,colour=\"black\")
 }
 
 
-pdf(\"$opts{o}/roc_curve.pdf\",width=$opts{w},height=$opts{h})
-p
-dev.off()
+curve <- paste(\"$opts{o}/\",\"roc_curve.xls\",sep=\"\")
+answer <- plot(p)\$data
+curve_data<-data.frame(x=answer[[1]]\$x,y=answer[[1]]\$y,group=answer[[1]]\$group)
+write.table(curve_data, curve, row.names=FALSE,sep=\"\\t\")
+
+##pdf(\"$opts{o}/roc_curve.pdf\",width=$opts{w},height=$opts{h})
+##p
+##dev.off()
 
 	
 ";
