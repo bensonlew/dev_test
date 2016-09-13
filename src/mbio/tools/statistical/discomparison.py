@@ -12,19 +12,19 @@ class DiscomparisonAgent(Agent):
     author: wangbixuan
     last_modified: 20160725
     """
-    MATRIX=['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean', 
-    'binary_hamming', 'binary_jaccard', 'binary_lennon', 'binary_ochiai', 
-    'binary_otu_gain', 'binary_pearson', 'binary_sorensen_dice', 'bray_curtis', 
-    'bray_curtis_faith', 'bray_curtis_magurran', 'canberra', 'chisq', 'chord', 
-    'euclidean', 'gower', 'hellinger', 'kulczynski', 'manhattan', 'morisita_horn', 
-    'pearson', 'soergel', 'spearman_approx', 'specprof', 'unifrac', 'unweighted_unifrac', 
+    MATRIX=['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean',
+    'binary_hamming', 'binary_jaccard', 'binary_lennon', 'binary_ochiai',
+    'binary_otu_gain', 'binary_pearson', 'binary_sorensen_dice', 'bray_curtis',
+    'bray_curtis_faith', 'bray_curtis_magurran', 'canberra', 'chisq', 'chord',
+    'euclidean', 'gower', 'hellinger', 'kulczynski', 'manhattan', 'morisita_horn',
+    'pearson', 'soergel', 'spearman_approx', 'specprof', 'unifrac', 'unweighted_unifrac',
     'weighted_normalized_unifrac', 'weighted_unifrac'
     ]
-    MATRIXFACTOR=['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean', 
-    'binary_hamming', 'binary_jaccard', 'binary_lennon', 'binary_ochiai', 
-    'binary_otu_gain', 'binary_pearson', 'binary_sorensen_dice', 'bray_curtis', 
-    'bray_curtis_faith', 'bray_curtis_magurran', 'canberra', 'chisq', 'chord', 
-    'euclidean', 'gower', 'hellinger', 'kulczynski', 'manhattan', 'morisita_horn', 
+    MATRIXFACTOR=['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean',
+    'binary_hamming', 'binary_jaccard', 'binary_lennon', 'binary_ochiai',
+    'binary_otu_gain', 'binary_pearson', 'binary_sorensen_dice', 'bray_curtis',
+    'bray_curtis_faith', 'bray_curtis_magurran', 'canberra', 'chisq', 'chord',
+    'euclidean', 'gower', 'hellinger', 'kulczynski', 'manhattan', 'morisita_horn',
     'pearson', 'soergel', 'spearman_approx', 'specprof']
 
     def __init__(self,parent):
@@ -77,7 +77,7 @@ class DiscomparisonAgent(Agent):
 class DiscomparisonTool(Tool):
     def __init__(self,config):
         super(DiscomparisonTool,self).__init__(config)
-        self.version='1.9.1'
+        self._version='1.9.1'
         self.cmd_path='program/Python/bin/compare_distance_matrices.py'
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
 
@@ -90,7 +90,7 @@ class DiscomparisonTool(Tool):
         #self.set_output()
         #self.end()
 
-    
+
     def run_discomparison(self):
         """
         run Mantel_test.pl

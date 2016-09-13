@@ -3,59 +3,57 @@ from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 import os
 
+
 class MantelTestModule(Module):
     """
     module for mantel test
     last modified : 20160725
     author: wangbixuan
     """
-    MATRIX=['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean', 
-    'binary_hamming', 'binary_jaccard', 'binary_lennon', 'binary_ochiai', 
-    'binary_otu_gain', 'binary_pearson', 'binary_sorensen_dice', 'bray_curtis', 
-    'bray_curtis_faith', 'bray_curtis_magurran', 'canberra', 'chisq', 'chord', 
-    'euclidean', 'gower', 'hellinger', 'kulczynski', 'manhattan', 'morisita_horn', 
-    'pearson', 'soergel', 'spearman_approx', 'specprof', 'unifrac', 'unweighted_unifrac', 
-    'weighted_normalized_unifrac', 'weighted_unifrac'
-    ]
-    MATRIXFACTOR=['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean', 
-    'binary_hamming', 'binary_jaccard', 'binary_lennon', 'binary_ochiai', 
-    'binary_otu_gain', 'binary_pearson', 'binary_sorensen_dice', 'bray_curtis', 
-    'bray_curtis_faith', 'bray_curtis_magurran', 'canberra', 'chisq', 'chord', 
-    'euclidean', 'gower', 'hellinger', 'kulczynski', 'manhattan', 'morisita_horn', 
-    'pearson', 'soergel', 'spearman_approx', 'specprof']
+    MATRIX = ['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean', 'binary_hamming', 'binary_jaccard',
+              'binary_lennon', 'binary_ochiai', 'binary_otu_gain', 'binary_pearson', 'binary_sorensen_dice',
+              'bray_curtis', 'bray_curtis_faith', 'bray_curtis_magurran', 'canberra', 'chisq', 'chord', 'euclidean',
+              'gower', 'hellinger', 'kulczynski', 'manhattan', 'morisita_horn', 'pearson', 'soergel', 'spearman_approx',
+              'specprof', 'unifrac', 'unweighted_unifrac', 'weighted_normalized_unifrac', 'weighted_unifrac']
+
+    MATRIXFACTOR = ['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean', 'binary_hamming',
+                    'binary_jaccard', 'binary_lennon', 'binary_ochiai', 'binary_otu_gain', 'binary_pearson',
+                    'binary_sorensen_dice', 'bray_curtis', 'bray_curtis_faith', 'bray_curtis_magurran', 'canberra',
+                    'chisq', 'chord', 'euclidean', 'gower', 'hellinger', 'kulczynski', 'manhattan', 'morisita_horn',
+                    'pearson', 'soergel', 'spearman_approx', 'specprof']
 
     def __init__(self, work_id):
         super(MantelTestModule, self).__init__(work_id)
         options = [
-            {"name": "level", "type": "string", "default": "otu"},
-            {"name":"otutable","type":"infile","format":"meta.otu.otu_table, meta.otu.tax_summary_dir"},
-            {"name":"otumatrixtype","type":"string","default":"weighted_unifrac"},
-            {"name":"factor","type":"infile","format":"meta.otu.group_table"},
-            {"name":"factormatrixtype","type":"string","default":"bray_curtis"},
-            {"name":"factorselected","type":"string","default":""},
-            {"name":"newicktree","type":"infile","format":"meta.beta_diversity.newick_tree"},
-            {"name":"partialmatrix","type":"infile","format":"meta.beta_diversity.distance_matrix"},
-            {"name":"dis_matrix","type":"outfile","format":"meta.beta_diversity.distance_matrix"},
-            {"name":"fac_matrix","type":"outfile","format":"meta.beta_diversity.distance_matrix"}
+            {"name": "level", "type": "string", "default": "otu"},  # 分类水平
+            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
+            {"name": "otumatrixtype", "type": "string", "default": "weighted_unifrac"},  # 计算群落距离矩阵的方法
+            {"name": "factor", "type": "infile", "format": "meta.otu.group_table"},  # 环境因子
+            {"name": "partial_factor", "type": "string"},  # 控制单位
+            {"name": "factormatrixtype", "type": "string", "default": "bray_curtis"},  # 计算群落距离矩阵的方法
+            {"name": "factorselected", "type": "string", "default": ""},
+            {"name": "newicktree", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
+            {"name": "partialmatrix", "type": "infile", "format": "meta.beta_diversity.distance_matrix"},
+            {"name": "dis_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
+            {"name": "fac_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
         ]
-        self.otudistance=self.add_tool('meta.beta_diversity.distance_calc')
-        self.facdistance=self.add_tool('statistical.factor_distance')
-        self.discomparison=self.add_tool('statistical.discomparison')
+        self.otudistance = self.add_tool('meta.beta_diversity.distance_calc')
+        self.facdistance = self.add_tool('statistical.factor_distance')
+        self.discomparison = self.add_tool('statistical.discomparison')
         self.add_option(options)
-        self.step.add_steps('otudistance','facdistance','discomparison')
+        self.step.add_steps('otudistance', 'facdistance', 'discomparison')
 
     def gettable(self):
         """
         get matrix for calculation by level provided
         """
-        if self.option("otutable").format=="meta.otu.tax_summary_dir":
+        if self.option("otutable").format == "meta.otu.tax_summary_dir":
             return self.option("otutable").get_table(self.option('level'))
         else:
             return self.option('otutable').prop['path']
 
     def check_options(self):
-        if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class', 'order',
-                                        'family', 'genus', 'species']:
+        if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class', 'order', 'family', 'genus', 'species']:
             raise OptionError("分类水平不正确")
         if not self.option("otutable").is_set:
             raise OptionError('必须提供otu表')
@@ -64,8 +62,12 @@ class MantelTestModule(Module):
             raise OptionError('必须提供环境因子表')
         else:
             self.option('factor').get_info()
+            partial_factors = self.option('partial_factor').split(',')
+            for f in partial_factors:
+                if f not in self.option('factor').prop['group_scheme']:
+                    raise OptionError('该因子不存在于环境因子表：%s' %f)
             if self.option('factorselected'):
-                factors=self.option('factorselected').split(',')
+                factors = self.option('factorselected').split(',')
                 for f in factors:
                     if f not in self.option('factor').prop['group_scheme']:
                         raise OptionError('该因子不存在于环境因子表：%s' %f)
@@ -75,27 +77,30 @@ class MantelTestModule(Module):
             raise OptionError('otu距离矩阵计算方法不正确')
         if self.option("factormatrixtype") not in MantelTestModule.MATRIXFACTOR:
             raise OptionError('环境因子距离矩阵计算方法不正确')
-        if not self.option("newicktree").is_set: #not sure
-            raise OptionError("必须提供newicktree")
+        if self.option("otumatrixtype") in ["unweighted_unifrac", "weighted_unifrac"]:
+            if not self.option("newicktree").is_set:
+                raise OptionError("unifrac方法必须提供newicktree")
         self.option("newicktree").get_info()
 
     def otudistance_run(self):
-        self.otudistance.set_options({
-            'otutable':self.option('otutable'),
-            'level':self.option('level'),
-            'method':self.option('otumatrixtype'),
-            'newicktree':self.option('newicktree')
-            })
+        options = {
+            'otutable': self.option('otutable'),
+            'level': self.option('level'),
+            'method': self.option('otumatrixtype')
+            }
+        if self.option('newicktree').is_set:
+            options["newicktree"] = self.option('newicktree')
+        self.otudistance.set_options(options)
         self.step.otudistance.start()
-        self.otudistance.on("end",self.set_output,'otudistance')
-        #self.otudistance.on("end",self.facdistance_run)
+        self.otudistance.on("end", self.set_output, 'otudistance')
+        # self.otudistance.on("end",self.facdistance_run)
         self.otudistance.run()
 
     def facdistance_run(self):
         self.facdistance.set_options({
             'factor':self.option('factor'),
-            'facmatrixtype':self.option('factormatrixtype'),
-            'factorselected':self.option('factorselected')
+            'facmatrixtype':self.option('factormatrixtype')
+            # 'factorselected':self.option('factorselected')
             })
         self.step.facdistance.start()
         self.facdistance.on("end",self.set_output,'facdistance')

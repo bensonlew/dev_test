@@ -12,11 +12,11 @@ class FactorDistanceAgent(Agent):
     author: wangbixuan
     last modified: 20160712
     """
-    MATRIXFACTOR=['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean', 
-    'binary_hamming', 'binary_jaccard', 'binary_lennon', 'binary_ochiai', 
-    'binary_otu_gain', 'binary_pearson', 'binary_sorensen_dice', 'bray_curtis', 
-    'bray_curtis_faith', 'bray_curtis_magurran', 'canberra', 'chisq', 'chord', 
-    'euclidean', 'gower', 'hellinger', 'kulczynski', 'manhattan', 'morisita_horn', 
+    MATRIXFACTOR=['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean',
+    'binary_hamming', 'binary_jaccard', 'binary_lennon', 'binary_ochiai',
+    'binary_otu_gain', 'binary_pearson', 'binary_sorensen_dice', 'bray_curtis',
+    'bray_curtis_faith', 'bray_curtis_magurran', 'canberra', 'chisq', 'chord',
+    'euclidean', 'gower', 'hellinger', 'kulczynski', 'manhattan', 'morisita_horn',
     'pearson', 'soergel', 'spearman_approx', 'specprof']
 
     def __init__(self,parent):
@@ -57,7 +57,7 @@ class FactorDistanceAgent(Agent):
 
     def set_resource(self):
         self._cpu = 5
-        self._memory = ''
+        self._memory = '5G'
 
     def end(self):
         result_dir=self.add_upload_dir(self.output_dir)
@@ -102,7 +102,7 @@ class FactorDistanceTool(Tool):
         else:
             self.set_error('Error in running beta_diversity.py')
 
-    
+
     def biom_fac_table(self):
         if self.option('factorselected'):
             #program to extract selected information begins
@@ -144,12 +144,12 @@ class FactorDistanceTool(Tool):
         df=pd.read_csv(open(newtable),delim_whitespace=True)
         df0=pd.DataFrame()
         titles=df.columns
-        samples=df.index        
+        samples=df.index
         for item in titles:
             for count in samples:
                 df0.loc[item,count]=df.loc[count,item]
         newindex=df0.index
-        newcolumns=df0.columns      
+        newcolumns=df0.columns
         with open('transtable.txt','w') as tf:
             for title in newindex:
                 if title==newindex[0]:
