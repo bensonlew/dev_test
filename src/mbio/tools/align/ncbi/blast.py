@@ -112,6 +112,7 @@ class BlastTool(Tool):
         self._version = "2.3.0"
         self.db_path = os.path.join(self.config.SOFTWARE_DIR, "database/align/ncbi/db")
         self.cmd_path = "/bioinfo/align/ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
+        self.set_environ(BLASTDB=self.db_path)
 
     def run_makedb_and_blast(self):
         """
@@ -141,7 +142,7 @@ class BlastTool(Tool):
         :param db_name: blastdb名称
         :return:
         """
-        db = os.path.join(self.db_path, db_name)
+        # db = os.path.join(self.db_path, db_name)
         query_name = os.path.splitext(os.path.basename(self.option("query").prop['path']))[0]
         cmd = os.path.join(self.cmd_path, self.option('blast'))
         outputfile = os.path.join(self.output_dir, query_name + "_vs_" + db_name)
@@ -155,7 +156,7 @@ class BlastTool(Tool):
         else:
             outputfile += '.txt'
         cmd += " -query %s -db %s -out %s -evalue %s -outfmt %s -max_hsps 10 -num_threads %s -max_target_seqs %s" % (
-            self.option("query").prop['path'], db, outputfile,
+            self.option("query").prop['path'], db_name, outputfile,
             self.option("evalue"), outfmt, self.option("num_threads"), self.option('num_alignment'))
         self.logger.info("开始运行blast")
         blast_command = self.add_command("blast", cmd)
