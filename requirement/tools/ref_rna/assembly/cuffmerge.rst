@@ -5,7 +5,7 @@
 Path
 -----------
 
-**ref_rna.assembly.cufflinks_merge**
+**ref_rna.assembly.cuffmerge**
 
 程序安装路径
 -----------------------------------
