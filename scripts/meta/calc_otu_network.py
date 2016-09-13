@@ -15,7 +15,7 @@ def make_env_table(inFile, outFile):
             tmp_file.write(samples_name[i]+"\tSTD\n") 
     return './group.txt'
 
-parser = argparse.ArgumentParser(description='输出OTU表格，生成OTU网络信息')
+parser = argparse.ArgumentParser(description='输入OTU表格，生成OTU网络信息')
 parser.add_argument('-i', "--otu_matrix", help="输入的OTU表", required = True)
 parser.add_argument('-o', "--output", help="输出文件位置", required = True)
 parser.add_argument('-m', "--env_table", help="样本分类表", required = False)
@@ -98,9 +98,10 @@ for i in range(position):
         H.add_edge(i,j,weight=0)
         for k in range(position,len(G)):
             if G.get_edge_data(i,k) and G.get_edge_data(j,k):
-                H.edge[i][j]['weight'] += 1
+                H.edge[i][j]['weight'] += min(G.edge[i][k]['weight']+G.edge[j][k]['weight'])
         if H.edge[i][j]['weight'] == 0:
             H.remove_edge(i,j)
+
 minx = 32767
 for i in range(position):
     for j in range(position):
@@ -114,7 +115,41 @@ for i in range(position):
             if H.edge[i][j]['weight'] <=0:
                 H.remove_edge(i,j)
 print H.edges()
+
+H = networkx.Graph()
+with open(outFile + "/real_node_table.txt" , "r") as node_file:
+    informations = node_file.readlines()
+    for i in range(1,len(informations)):
+        tmp = informations[i].rstrip().split("\t")
+        if tmp[2] == "otu_node":
+            break
+position = i
+for i in range(position,len(G)):
+    for j in range(position,len(G)):
+        H.add_edge(i,j,weight=0)
+        for k in range(position):
+            if G.get_edge_data(i,k) and G.get_edge_data(j,k):
+                H.edge[i][j]['weight'] += 1
+        if H.edge[i][j]['weight'] == 0:
+            H.remove_edge(i,j)
+print len(H)
+print len(H.edges())
+print H.edges()
+
+minx = 32767
+for i in range(position,len(G)):
+    for j in range(position,len(G)):
+        if (i in H)and(j in H)and(H.get_edge_data(i,j)):
+            minx = min(minx, H.edge[i][j]['weight'])
+
+for i in range(position):
+    for j in range(position):
+        if (i in H)and(j in H)and(H.get_edge_data(i,j)):
+            H.edge[i][j]['weight'] -= minx
+            if H.edge[i][j]['weight'] <=0:
+                H.remove_edge(i,j)
 """
+
 """3计算属性表，分本3"""
 
 #节点度中心系数，表示节点在图中的重要性
@@ -124,13 +159,13 @@ Closeness_Centrality = networkx.closeness_centrality(G)
 #节点介数中心系数，值越大表示通过该节点的最短路径越多，中心性越高
 Betweenness_Centrality = networkx.betweenness_centrality(G)
 with open(os.path.join(args["output"], "network_centrality.txt"), "w") as tmp_file:
-        tmp_file.write("Node_ID\tNode_Name\tDegree_Centrality\t")
-        tmp_file.write("Closeness_Centrality\tBetweenness_Centrality\n")
-        for i in range(1, len(G)+1):
-            tmp_file.write(str(i)+"\t"+node_name[i]+"\t")
-            tmp_file.write(str(Degree_Centrality[i])+"\t")
-            tmp_file.write(str(Closeness_Centrality[i])+"\t")
-            tmp_file.write(str(Betweenness_Centrality[i])+"\n")
+    tmp_file.write("Node_ID\tNode_Name\tDegree_Centrality\t")
+    tmp_file.write("Closeness_Centrality\tBetweenness_Centrality\n")
+    for i in range(1, len(G)+1):
+        tmp_file.write(str(i)+"\t"+node_name[i]+"\t")
+        tmp_file.write(str(Degree_Centrality[i])+"\t")
+        tmp_file.write(str(Closeness_Centrality[i])+"\t")
+        tmp_file.write(str(Betweenness_Centrality[i])+"\n")
 
 
 #网络传递性，二分图中应该为0，否则有问题
