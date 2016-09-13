@@ -3,6 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+import subprocess
 from mbio.packages.align.blast.blastout_statistics import blastout_statistics
 
 
@@ -11,7 +12,7 @@ class BlaststatAgent(Agent):
     statistics blastout 调用blastout_statistics.py 进行统计分析
     version v1.0
     author:mengmeng.liu
-    last_modify:2016.6.23
+    last_modify:2016.8.17 by wangbixuan
     """
 
     def __init__(self, parent):
@@ -64,8 +65,9 @@ class BlaststatTool(Tool):
 
     def run_stat(self, table_fp):
         self.logger.info("开始进行统计分析")
+        self.logger.info(cmd)
         try:
-            blastout_statistics(table_fp, self.output_dir)
+            subprocess.check_output(cmd, shell=True)
             self.logger.info("统计分析完成")
         except Exception as e:
             self.set_error("运行统计出错:{}".format(e))

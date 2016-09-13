@@ -236,7 +236,6 @@ class DenovoAnnotationModule(Module):
         elif event['data'] == 'go_annot':
             self.linkdir(obj.output_dir, 'go')
             self.step.go_annot.finish()
-
         elif event['data'] == 'string_cog':
             self.linkdir(obj.output_dir, 'cog')
             self.step.string_cog.finish()
@@ -273,7 +272,7 @@ class DenovoAnnotationModule(Module):
 
     def end(self):
         repaths = [
-            [".", "", "DENOVO_RNA结果文件目录"]，
+            [".", "", "DENOVO_RNA结果文件目录"],
             ['ncbi_taxonomy/query_taxons_detail.xls', 'xls', '序列详细物种分类文件'],
             ["blast_nr_statistics/output_evalue.xls", "xls", "blast结果E-value统计"],
             ["blast_nr_statistics/output_similar.xls", "xls", "blast结果similarity统计"],

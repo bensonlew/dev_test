@@ -86,7 +86,9 @@ class PearsonsCorrelationTool(Tool):
         super(PearsonsCorrelationTool,self).__init__(config)
         self.version='1.0' #脚本指定版本???
         #self.package_path='packages/pearsonsCorrelation.py'
-        self.cmd_path='python /mnt/ilustre/users/sanger/app/meta/scripts/pearsonsCorrelation.py'
+        #self.cmd_path='python /mnt/ilustre/users/sanger/app/meta/scripts/pearsonsCorrelation.py'
+        self.cmd_path='{}/program/Python/bin/python {}/bioinfo/statistical/scripts/pearsonsCorrelation.py'.format(self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
+        #self.cmd_path=os.path.join(self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/pearsonsCorrelation.py')
         self.env_table=self.get_new_env()
         self.real_otu=self.get_otu_table()
 
@@ -118,8 +120,8 @@ class PearsonsCorrelationTool(Tool):
         """
         super(PearsonsCorrelationTool,self).run()
         self.run_pearsonsCorrelation()
-        self.set_output()
-        self.end()
+        #self.set_output()
+        #self.end()
 
     def run_pearsonsCorrelation(self):
         """
@@ -136,6 +138,8 @@ class PearsonsCorrelationTool(Tool):
             self.logger.info('Pearsons Correlation 计算失败')
             self.set_error('pearsonsCorrelation.py 计算失败')
         self.logger.info('运行pearsonsCorrelation.py计算correlation完成')
+        self.set_output()
+        self.end()
 
     def set_output(self):
         #print self.work_dir + "/pearsons_correlation_at_%s_level.xls"%self.option('level')

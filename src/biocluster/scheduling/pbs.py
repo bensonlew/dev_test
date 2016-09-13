@@ -41,6 +41,7 @@ class PBS(Job):
 
         :return: jobid
         """
+        super(PBS, self).submit()
         pbs_file = self.create_file()
         output = os.popen('ssh -o GSSAPIAuthentication=no %s "/opt/torque/bin/qsub %s"' % (self.master_ip, pbs_file))
         text = output.read()

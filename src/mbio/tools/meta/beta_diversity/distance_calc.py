@@ -95,7 +95,7 @@ class DistanceCalcAgent(Agent):
         设置所需资源
         """
         self._cpu = 5
-        self._memory = ''
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -179,6 +179,7 @@ class DistanceCalcTool(Tool):
             newtable.check()
         else:
             newtable = self.option('otutable')
+        newtable.get_info()
         biom_path = os.path.join(self.work_dir, 'temp.biom')
         if os.path.isfile(biom_path):
             os.remove(biom_path)

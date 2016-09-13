@@ -24,6 +24,7 @@ class TwoGroup(MetaController):
         self.task_type = 'workflow'  # 可以不配置
         groupname = json.loads(data.group_detail).keys()
         groupname.sort()
+        category_name = ','.join(groupname)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = int(data.level_id)
@@ -34,9 +35,8 @@ class TwoGroup(MetaController):
         my_param['type'] = data.type
         my_param['test'] = data.test
         my_param['coverage'] = float(data.coverage)
-        my_param['category_name'] = ','.join(groupname)
         my_param['submit_location'] = data.submit_location
-        my_param['taskType'] = 'reportTask'
+        my_param['task_type'] = 'reportTask'
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         self.options = {"otu_file": data.otu_id,
                         "params": params,
@@ -48,11 +48,11 @@ class TwoGroup(MetaController):
                         "type": data.type,
                         "group_name": G().get_group_name(data.group_id),
                         "coverage": data.coverage,
-                        "group_detail": data.group_detail
+                        "group_detail": data.group_detail,
+                        "category_name": category_name
                         }
         self.to_file = ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table_by_detail(group_file)"]
         self.run()
-        print "bbbbbbbbbb"
         return self.returnInfo
 
     def check_options(self, data):

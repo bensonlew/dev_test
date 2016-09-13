@@ -358,15 +358,14 @@ class Basic(EventObject):
         :param child: 一个或多个 :py:class:`biocluster.module.Module` 或  :py:class:`biocluster.agent.Agent` 对象
         :return: self
         """
+        if self.is_start:
+            raise Exception("%s已经开始运行，不能添加子模块!" % self.name)
+        if self.is_end:
+            raise Exception("%s已经运行结束，不能添加子模块!" % self.name)
         for c in child:
             if not isinstance(c, Basic):
                 raise Exception("child参数必须为Basic或其子类的实例对象!")
-            if not self._children:                # 第一次添加子模块时初始化childend事件
-                self.add_event('childend', True)  # 子对象事件结束事件
-                self.on('childend', self.__event_childend)
-                self.add_event('childerror', True)  # 子对象事件错误事件
-                self.add_event("childrerun", True)  # 子对象重新运行
-                self.on('childrerun', self.__event_childrerun)
+            # if not self._children:                # 第一次添加子模块时初始化childend事件
             self._children.append(c)
         return self
 
@@ -379,7 +378,7 @@ class Basic(EventObject):
             return self._logger
         else:
             workflow = self.get_workflow()
-            self._logger = Wlog(workflow).get_logger(self._full_name + "(" + workflow.id + ")")
+            self._logger = Wlog(workflow).get_logger(self._full_name + "(" + self.id + ")")
             return self._logger
 
     def __init_events(self):
@@ -391,6 +390,11 @@ class Basic(EventObject):
         self.on('end', self.__event_end)
         self.add_event('error')
         self.on('error', self.__event_error)
+        self.add_event('childend', True)  # 子对象事件结束事件
+        self.on('childend', self.__event_childend)
+        self.add_event('childerror', True)  # 子对象事件错误事件
+        self.add_event("childrerun", True)  # 子对象重新运行
+        self.on('childrerun', self.__event_childrerun)
 
     def __event_end(self):
         """
@@ -422,8 +426,11 @@ class Basic(EventObject):
         """
         当有子模块完成时触发
         """
+        if child not in self.children:
+            raise Exception("%s不是%s的子对象!" % (child.name, self.name))
         child.stop_listener()
-        self.__check_relys()
+        with self.sem:
+            self.__check_relys()
 
     def __event_childrerun(self, child):
         """
@@ -432,6 +439,8 @@ class Basic(EventObject):
         :param child:
         :return:
         """
+        if child not in self.children:
+            raise Exception("%s不是%s的子对象!" % (child.name, self.name))
         if not self.is_start:
             return
         if not child.actor.ready():
@@ -722,6 +731,17 @@ class StepMain(Step):
         self._end_time = datetime.datetime.now()
         self._error_info = info
 
+    def finish(self):
+        """
+        设置步骤为完成状态
+
+        :return:
+        """
+        workflow = self.bind_obj.get_workflow()
+        if self.bind_obj is not workflow:
+            raise Exception("此方法只能在workflow中调用！")
+        super(StepMain, self).finish()
+
     def pause(self):
         """
         设置状态为暂停
@@ -793,81 +813,48 @@ class StepMain(Step):
                         up_data["call"] = api_call_list
 
                 if len(self.bind_obj.upload_dir) > 0:
-                    if self.bind_obj is workflow:  # 普通模式的workflow 或 pipeline
-                        if self.bind_obj.sheet.type == "workflow" and self.bind_obj.sheet.output:
-                            up_data["upload_dir"] = []
-                            files = []
-                            for up in self.bind_obj.upload_dir:
-                                target_dir = os.path.join(self.bind_obj.sheet.output, os.path.dirname(up.upload_path))
-                                up_data["upload_dir"].append({
-                                    "source": up.path,
-                                    "target": target_dir
-                                })
-                                files.append({
-                                    "target": os.path.join(self.bind_obj.sheet.output, up.upload_path),
-                                    "files": up.file_list
-                                })
-                                post_data["upload_files"] = files
+                    # if self.bind_obj is workflow and self.bind_obj.sheet.output:  # 普通模式的workflow 或 pipeline
+                    up_data["upload_dir"] = []
+                    files = []
+                    for up in self.bind_obj.upload_dir:
+                        target_dir = os.path.join(self.bind_obj.sheet.output, os.path.dirname(up.upload_path))
+                        up_data["upload_dir"].append({
+                            "source": up.path,
+                            "target": target_dir
+                        })
+                        files.append({
+                            "target": os.path.join(self.bind_obj.sheet.output, up.upload_path),
+                            "files": up.file_list
+                        })
+                        post_data["upload_files"] = files
 
-                            # data["upload"] = json.dumps(up_data)
-                            # data["has_upload"] = 1
-                            # data["uploaded"] = 0
-                            # post_data["upload_files"] = {
-                            #     "target": self.bind_obj.sheet.output,
-                            #     "files": self.bind_obj.get_upload_files()
-                            # }
-                            # data["data"] = urllib.urlencode(post_data)
-                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
-                        elif self.bind_obj.sheet.type in ["tool", "module"] and workflow.sheet.output:
-                            up_data["upload_dir"] = []
-                            files = []
-                            for up in self.bind_obj.upload_dir:
-                                target_dir = os.path.join(workflow.sheet.output, os.path.dirname(up.upload_path))
-                                up_data["upload_dir"].append({
-                                    "source": up.path,
-                                    "target": target_dir
-                                })
-                                files.append({
-                                    "target": os.path.join(workflow.sheet.output, up.upload_path),
-                                    "files": up.file_list
-                                })
-                                post_data["upload_files"] = files
-
-                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
-                    else:
-                        if workflow.sheet.type in ["tool", "module"] and workflow.sheet.output:
-                            up_data["upload_dir"] = []
-                            files = []
-                            for up in self.bind_obj.upload_dir:
-                                target_dir = os.path.join(workflow.sheet.output, os.path.dirname(up.upload_path))
-                                up_data["upload_dir"].append({
-                                    "source": up.path,
-                                    "target": target_dir
-                                })
-                                files.append({
-                                    "target": os.path.join(workflow.sheet.output, up.upload_path),
-                                    "files": up.file_list
-                                })
-                                post_data["upload_files"] = files
-
-                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
-                        elif self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
-                            up_data["upload_dir"] = []
-                            files = []
-                            target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
-                            for up in self.bind_obj.upload_dir:
-                                target_dir = os.path.join(target_path, os.path.dirname(up.upload_path))
-                                up_data["upload_dir"].append({
-                                    "source": up.path,
-                                    "target": target_dir
-                                })
-                                files.append({
-                                    "target": os.path.join(target_path, up.upload_path),
-                                    "files": up.file_list
-                                })
-                                post_data["upload_files"] = files
-
-                            data["data"] = json.dumps(post_data, cls=CJsonEncoder)
+                        # data["upload"] = json.dumps(up_data)
+                        # data["has_upload"] = 1
+                        # data["uploaded"] = 0
+                        # post_data["upload_files"] = {
+                        #     "target": self.bind_obj.sheet.output,
+                        #     "files": self.bind_obj.get_upload_files()
+                        # }
+                        # data["data"] = urllib.urlencode(post_data)
+                        data["data"] = json.dumps(post_data, cls=CJsonEncoder)
+                    # else:
+                    #     if self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
+                    #         up_data["upload_dir"] = []
+                    #         files = []
+                    #         target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
+                    #         for up in self.bind_obj.upload_dir:
+                    #             target_dir = os.path.join(target_path, os.path.dirname(up.upload_path))
+                    #             up_data["upload_dir"].append({
+                    #                 "source": up.path,
+                    #                 "target": target_dir
+                    #             })
+                    #             files.append({
+                    #                 "target": os.path.join(target_path, up.upload_path),
+                    #                 "files": up.file_list
+                    #             })
+                    #             post_data["upload_files"] = files
+                    #
+                    #         data["data"] = json.dumps(post_data, cls=CJsonEncoder)
                 if up_data:
                     up_data["bind"] = {
                         "name": self.bind_obj.name,
@@ -1022,9 +1009,9 @@ class UploadDir(object):
         """
         self.match()
         data = []
-        pathList = list()
+        path_list = list()
         for i in self._file_list:
-            if i.relpath not in pathList:
+            if i.relpath not in path_list:
                 data.append({
                     "path": i.relpath,
                     "type": i.file_type,
@@ -1032,7 +1019,7 @@ class UploadDir(object):
                     "description": i.description,
                     "size": i.size
                 })
-                pathList.append(i.relpath)
+                path_list.append(i.relpath)
         return data
 
 

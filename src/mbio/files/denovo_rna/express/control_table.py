@@ -24,14 +24,13 @@ class ControlTableFile(File):
             raise Exception('对照方案至少为1')
         self.set_property('vs_list', vs_list)
 
-
     def get_control_info(self):
         """
         :return:对照样本（组）数目：num；包含两两比较的样本（分组）元组的列表
         """
         with open(self.prop['path'], 'rb') as r:
             lines = r.readlines()
-            num = len(lines)-1
+            num = len(lines) - 1
             vs_list = []
             for line in lines[1:]:
                 vs = line.strip('\n').split()[0]

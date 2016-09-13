@@ -30,7 +30,7 @@ class Sample(Base):
                     "specimen_name": line_data[0],
                     "read_number": int(line_data[1]),
                     "base_number": int(line_data[2]),
-                    "average_length": int(line_data[3]),
+                    "average_length": float(line_data[3]),
                     "min_length": int(line_data[4]),
                     "max_length": int(line_data[5]),
                     "is_initial": 1
@@ -44,6 +44,7 @@ class Sample(Base):
             self.bind_object.logger.error("导入样品信息数据出错:%s" % e)
         else:
             self.bind_object.logger.info("导入样品信息数据成功:%s" % result.inserted_ids)
+        return self.sample_table_ids
 
     @report_check
     def add_base_info(self, sample_name, file_path):

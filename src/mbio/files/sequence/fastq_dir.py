@@ -24,6 +24,7 @@ class FastqDirFile(Directory):
         super(FastqDirFile, self).__init__()
         self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/seq/fastx_toolkit_0.0.14/fastq_to_fasta")
         self.fastqs = list()
+        self.file_sample = dict()  # 文件名与样本名的对应，文件名为带绝对路径的全名
         self.is_convert = False
         self.has_unziped = False
         self.unzip_file = list()
@@ -43,6 +44,7 @@ class FastqDirFile(Directory):
             self.set_property("fastq_basename", self.fastqs)
             self.set_property("has_list_file", self.has_list_file)
             self.set_property("samples", self.samples)
+            self.set_property("file_sample", self.file_sample)
         else:
             raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
 
@@ -71,7 +73,7 @@ class FastqDirFile(Directory):
             filesample = FileSampleFile()
             filesample.set_path(list_txt)
             filesample.get_info()
-            filesample.check()  #add 1 line by qiuping 20160722
+            filesample.check()  # add 1 line by qiuping 20160722
             self.samples = filesample.prop["sample_names"]
             self.se_repeat = filesample.se_repeat
             self.pe_repeat = filesample.pe_repeat
@@ -80,15 +82,23 @@ class FastqDirFile(Directory):
                 fq_path = os.path.join(self.prop['path'], filename)
                 my_fastq.set_path(fq_path)
                 my_fastq.get_info()
+                sample_name = my_fastq.prop["file_sample"][filename]
                 if my_fastq.check():
                     if filename not in self.fastqs:
                         self.fastqs.append(filename)
+                        self.file_sample[fq_path] = sample_name
         else:
             filelist = os.listdir(self.prop['path'])
-            for file_ in filelist:
-                if re.search(r'\.(fastq|fq)$', file_) or re.search(r'\.(fastq|fq)\.gz$', file_):
-                    if file_ not in self.fastqs:
-                        self.fastqs.append(file_)
+            for filename in filelist:
+                my_fastq = FastqFile()
+                fq_path = os.path.join(self.prop['path'], filename)
+                my_fastq.set_path(fq_path)
+                my_fastq.get_info()
+                sample_name = re.sub("\..+$", "", filename)
+                if my_fastq.check():
+                    self.fastqs.append(filename)
+                    self.file_sample[fq_path] = sample_name
+
         return len(self.fastqs)
 
     def make_work_dir(self, work_path):
@@ -117,7 +127,7 @@ class FastqDirFile(Directory):
                 for fastq in self.unzip_file:
                     fasta = re.search(r'(.+)\.(fastq|fq)', fastq).group(1)
                     fasta = os.path.join(self.work_dir, 'converted_fastas', os.path.basename(fasta) + ".fasta")
-                    convert_str = (self.fastq_to_fasta_path + ' -Q 33' + ' -i '
+                    convert_str = (self.fastq_to_fasta_path + ' -Q 33' + ' -n -i '
                                    + fastq + ' -o ' + fasta)
                     mycmd = subprocess.Popen(convert_str, shell=True,
                                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

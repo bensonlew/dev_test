@@ -6,6 +6,8 @@
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
+import datetime
+import json
 import shutil
 
 
@@ -46,7 +48,7 @@ class MetaBaseWorkflow(Workflow):
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
             {"name": "plsda_grouplab", "type": 'string', "default": ''}
-        ]
+            ]
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.filecheck = self.add_tool("meta.filecheck.file_metabase")
@@ -57,11 +59,12 @@ class MetaBaseWorkflow(Workflow):
         self.stat = self.add_tool("meta.otu.otu_taxon_stat")
         self.alpha = self.add_module("meta.alpha_diversity.alpha_diversity")
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
+        self.pan_core = self.add_tool("meta.otu.pan_core_otu")
         self.step.add_steps("qcstat", "otucluster", "taxassign", "alphadiv", "betadiv")
         self.spname_spid = dict()
         self.otu_id = None
         self.env_id = None
-        self.level_dict = {'Domain': 1, 'Kingdom': 2, 'Phylum': 3, 'Class': 4, 'Order': 5, 'Family': 6,'Genus' : 7, 'Species': 8, 'otu': 9}
+        self.level_dict = {'Domain': 1, 'Kingdom': 2, 'Phylum': 3, 'Class': 4, 'Order': 5, 'Family': 6, 'Genus': 7, 'Species': 8, 'otu': 9}
         self.updata_status_api = self.api.meta_update_status
 
     def check_options(self):
@@ -128,7 +131,7 @@ class MetaBaseWorkflow(Workflow):
             "fasta_file": self.otu.output_dir + "/otu_reps.fasta"
         })
         # self.phylo.on("start", self.set_step, {'end':self.step.otucluster, 'start':self.step.phylotree})
-        self.phylo.on("end", self.set_step, {'end':self.step.otucluster})
+        self.phylo.on("end", self.set_step, {'end': self.step.otucluster})
         self.phylo.run()
 
     def run_taxon(self):
@@ -201,6 +204,14 @@ class MetaBaseWorkflow(Workflow):
         self.beta.on("start", self.set_step, {'start': self.step.betadiv})
         self.beta.on("end", self.set_step, {'end': self.step.betadiv})
         self.beta.run()
+
+    def run_pan_core(self):
+        opts = {
+            "in_otu_table": self.stat.option("otu_taxon_dir")
+        }
+        self.pan_core.set_options(opts)
+        self.pan_core.on("end", self.set_output, "pan_core")
+        self.pan_core.run()
 
     def set_step(self, event):
         if 'start' in event['data'].keys():
@@ -286,13 +297,14 @@ class MetaBaseWorkflow(Workflow):
             if not os.path.isfile(otu_path):
                 raise Exception("找不到报告文件:{}".format(otu_path))
             params = {
-                "otu_id": str(self.otu_id),
-                "identity": self.option("identity"),
-                "revcomp": self.option("revcomp"),
-                "confidence": self.option("confidence"),
-                "database": self.option("database")
+                "group_id": 'all',
+                "size": 0,
+                "submit_location": 'otu_statistic',
+                "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
+            api_otu_level = self.api.sub_sample
+            api_otu_level.add_sg_otu_detail_level(otu_path, self.otu_id, 9)
             # self.otu_id = str(self.otu_id)
             # self.logger.info('OTU mongo ID:%s' % self.otu_id)
             api_tree = self.api.newicktree
@@ -316,23 +328,31 @@ class MetaBaseWorkflow(Workflow):
             params = {
                 # "otu_id": str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                 "level_id": level_id,
-                "indices": ','.join(indice),
-                'submit_location': 'alpha_diversity_index'
+                "index_type": ','.join(indice),
+                'submit_location': 'alpha_diversity_index',
+                'task_type': 'reportTask',
+                'group_id': 'all'
             }
-            est_id = api_est.add_est_table(est_path, major=True, level=level_id, otu_id=str(self.otu_id), params=params)
-            self.updata_status_api.add_meta_status(table_id=str(est_id), type_name='sg_alpha_diversity')  # 主表写入没有加name，所以此处table_name固定
+            est_id = api_est.add_est_table(est_path, major=True, level=level_id, otu_id=str(self.otu_id),
+                                           params=params, spname_spid=self.spname_spid)
+            self.updata_status_api.add_meta_status(table_id=str(est_id), type_name='sg_alpha_diversity')
+            # 主表写入没有加name，所以此处table_name固定
             api_rare = self.api.rarefaction
             rare_path = self.work_dir + "/AlphaDiversity/Rarefaction/output/"
             indice = sorted(self.option("rarefy_indices").split(','))
             params = {
                 # "otu_id": str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                 "level_id": level_id,
-                "indices": ','.join(indice),
+                "index_type": ','.join(indice),
                 'freq': self.option('rarefy_freq'),
-                'submit_location': 'alpha_rarefaction_curve'
+                'submit_location': 'alpha_rarefaction_curve',
+                'task_type': 'reportTask',
+                'group_id': 'all'
             }
-            rare_id = api_rare.add_rare_table(rare_path, level=level_id, otu_id=str(self.otu_id), params=params)
-            self.updata_status_api.add_meta_status(table_id=str(rare_id), type_name='sg_alpha_rarefaction_curve')  # 主表写入没有加name，所以此处table_name固定
+            rare_id = api_rare.add_rare_table(rare_path, level=level_id, otu_id=str(self.otu_id),
+                                              params=params, spname_spid=self.spname_spid)
+            self.updata_status_api.add_meta_status(table_id=str(rare_id), type_name='sg_alpha_rarefaction_curve')
+            # 主表写入没有加name，所以此处table_name固定
         if event['data'] == "beta":
             self.move2outputdir(obj.output_dir, self.output_dir + "/Beta_diversity", mode='copy')  # 代替cp
             # 设置beta多样性文件
@@ -342,25 +362,25 @@ class MetaBaseWorkflow(Workflow):
                 raise Exception("找不到报告文件:{}".format(dist_path))
             level_id = self.level_dict[self.option('beta_level')]
             params = {
-                #'otu_id': str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
+                # 'otu_id': str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                 'level_id': level_id,
                 'distance_algorithm': self.option('dis_method'),
-                'submit_location': 'beta_sample_distance'  # 为前端分析类型标识
+                'submit_location': 'beta_sample_distance_hcluster_tree',  # 为前端分析类型标识
+                'task_type': 'reportTask',
+                'hucluster_method': self.option('linkage'),
+                'group_id': 'all'
             }
-            dist_id = api_dist.add_dist_table(dist_path, level=level_id, otu_id=self.otu_id, major=True, params=params)
-            self.updata_status_api.add_meta_status(table_id=str(dist_id), type_name='sg_beta_specimen_distance')  # 主表写入没有加name，所以此处table_name固定
+            dist_id = api_dist.add_dist_table(dist_path, level=level_id, otu_id=self.otu_id, major=True, params=params, spname_spid=self.spname_spid)
+            # self.updata_status_api.add_meta_status(table_id=str(dist_id), type_name='sg_beta_specimen_distance')  # 主表写入没有加name，所以此处table_name固定
             if 'hcluster' in self.option('beta_analysis').split(','):
                 # 设置hcluster树文件
                 api_hcluster = self.api.newicktree
                 hcluster_path = self.beta.output_dir + "/Hcluster/hcluster.tre"
                 if not os.path.isfile(hcluster_path):
                     raise Exception("找不到报告文件:{}".format(hcluster_path))
-                params = {
-                    # 'specimen_distance_id': str(dist_id),  # 在metabase中不能执行，生成dist_id的api可能会被截取
-                    'hcluster_method': self.option('linkage'),
-                    'submit_location': 'beta_sample_distance_hcluster_tree'  # 为前端分析类型标识
-                }
-                tree_id = api_hcluster.add_tree_file(hcluster_path, major=True, table_id=str(dist_id), table_type='dist', tree_type='cluster', params=params)
+                tree_id = api_hcluster.add_tree_file(hcluster_path, major=True, table_id=str(self.otu_id), level=level_id,
+                                                     table_type='otu', tree_type='cluster', params=params,
+                                                     spname_spid=self.spname_spid, update_dist_id=dist_id)
                 self.updata_status_api.add_meta_status(table_id=str(tree_id), type_name='sg_newick_tree')  # 主表写入没有加name，所以此处table_name固定
             beta_multi_analysis_dict = {'pca': 'beta_multi_analysis_pca', 'pcoa': 'beta_multi_analysis_pcoa',
                                         'nmds': 'beta_multi_analysis_nmds', 'dbrda': 'beta_multi_analysis_dbrda',
@@ -372,16 +392,35 @@ class MetaBaseWorkflow(Workflow):
                         # 'otu_id': str(self.otu_id),  # 在metabase中不能执行，生成self.otu_id的api可能会被截取
                         'level_id': level_id,
                         'analysis_type': ana,
-                        'submit_location': beta_multi_analysis_dict[ana]
+                        'submit_location': beta_multi_analysis_dict[ana],
+                        'task_type': 'reportTask'
                     }
                     if self.option('envtable').is_set:
                         # params['env_id'] = str(self.env_id)  # 在metabase中不能执行，生成self.env_id的api可能会被截取
                         params['env_labs'] = ','.join(self.option('envtable').prop['group_scheme'])
                     if ana in ['pcoa', 'nmds', 'dbrda']:
                         params['distance_algorithm'] = self.option('dis_method')
-                    main_id = api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana, main=True, env_id=self.env_id, otu_id=self.otu_id, params=params)
+                    main_id = api_betam.add_beta_multi_analysis_result(dir_path=self.beta.output_dir, analysis=ana,
+                                                                       main=True, env_id=self.env_id,
+                                                                       otu_id=self.otu_id, params=params,
+                                                                       spname_spid=self.spname_spid)
                     self.updata_status_api.add_meta_status(table_id=main_id, type_name='sg_beta_multi_analysis')  # 主表写入没有加name，所以此处table_name固定
                     self.logger.info('set output beta %s over.' % ana)
+        if event['data'] == "pan_core":
+            self.move2outputdir(obj.output_dir, self.output_dir + "/pan_core")
+            api_pan_core = self.api.pan_core
+            name = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            params = {
+                "level_id": 9,
+                "group_id": "all"
+            }
+            pan_id = api_pan_core.create_pan_core_table(1, json.dumps(params), "all", 9, self.otu_id, name, "end", spname_spid=self.spname_spid)
+            name = "core_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            core_id = api_pan_core.create_pan_core_table(2, json.dumps(params), "all", 9, self.otu_id, name, "end", spname_spid=self.spname_spid)
+            pan_path = self.pan_core.option("pan_otu_table").prop["path"]
+            core_path = self.pan_core.option("core_otu_table").prop['path']
+            api_pan_core.add_pan_core_detail(pan_path, pan_id)
+            api_pan_core.add_pan_core_detail(core_path, core_id)
 
     def run(self):
         self.filecheck.on('end', self.run_qc)
@@ -392,9 +431,9 @@ class MetaBaseWorkflow(Workflow):
         self.on_rely([self.tax, self.phylo], self.run_stat)
         self.stat.on('end', self.run_alpha)
         self.stat.on('end', self.run_beta)
-        self.on_rely([self.alpha, self.beta], self.end)
+        self.stat.on('end', self.run_pan_core)
+        self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         super(MetaBaseWorkflow, self).run()
-
 
     def send_files(self):
         repaths = [
@@ -447,7 +486,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
             ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Rda", "", "rda_cca分析结果目录"]
-        ]
+            ]
         regexps = [
             [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
             [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
@@ -467,7 +506,7 @@ class MetaBaseWorkflow(Workflow):
             ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
             ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "单级物种分类统计表"],
             ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
-        ]
+            ]
         for i in self.option("rarefy_indices").split(","):
             if i == "sobs":
                 repaths.append(["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)])
@@ -479,8 +518,8 @@ class MetaBaseWorkflow(Workflow):
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
-        for i in self.get_upload_files():
-            self.logger.info('upload file:{}'.format(str(i)))
+        # for i in self.get_upload_files():
+        #     self.logger.info('upload file:{}'.format(str(i)))
 
     def end(self):
         self.send_files()

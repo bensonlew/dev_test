@@ -6,11 +6,14 @@ import sys
 import os
 
 
-def pan_core(otutable, dowhat, groupfile='none'):
+def pan_core(otutable, dowhat, groupfile='none', work_dir=None):
     """
     计算pan或core OTU
     """
-    output = os.path.dirname(otutable)
+    if not work_dir:
+        output = os.path.dirname(otutable)
+    else:
+        output = work_dir
     if dowhat not in ("pan", "core"):
         raise Exception(u"dowhat 只能是core或pan!")
         sys.exit()

@@ -58,13 +58,13 @@ def MetaCheck(f):
         data = web.input()
         print "收到请求, 请求的内容为："
         print data
-        if not hasattr(data, "taskType"):
-            print "缺少参数taskType"
-            info = {"success": False, "info": "缺少参数taskType!"}
+        if not hasattr(data, "task_type"):
+            print "缺少参数task_type"
+            info = {"success": False, "info": "缺少参数task_type!"}
             return json.dumps(info)
-        if data.taskType not in ["projectTask", "reportTask"]:
-            print "参数taskType的值必须为projectTask或者是reportTask!"
-            info = {"success": False, "info": "参数taskType的值必须为projectTask或者是reportTask!"}
+        if data.task_type not in ["projectTask", "reportTask"]:
+            print "参数task_type的值必须为projectTask或者是reportTask!"
+            info = {"success": False, "info": "参数task_type的值必须为projectTask或者是reportTask!"}
             return json.dumps(info)
         if not hasattr(data, "otu_id"):
             if not hasattr(data, 'specimen_distance_id'):

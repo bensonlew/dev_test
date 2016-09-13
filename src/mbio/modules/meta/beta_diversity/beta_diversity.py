@@ -16,6 +16,7 @@ class BetaDiversityModule(Module):
              "default": "distance,anosim,pca,pcoa,nmds,rda_cca,dbrda,hcluster,plsda"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
             {"name": "dbrda_method", "type": "string", "default": ""},
+            # 当设定此值时，dbrda的计算方式将会改变，使用R中自带的距离算法，而不是先计算好距离矩阵，此处的计算方式与一般的距离计算的的值不一致
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "level", "type": "string", "default": "otu"},
             {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
@@ -52,8 +53,9 @@ class BetaDiversityModule(Module):
             return self.otu_table
 
     def check_options(self):
-        if 'distance' or 'anosim' or 'pca' or 'pcoa' or 'nmds' or 'rda_cca' or 'dbrda' or 'hcluster' or 'plsda' in self.option('analysis'):
-            pass
+        for i in ['distance', 'anosim', 'pca', 'pcoa', 'nmds', 'rda_cca', 'dbrda', 'hcluster', 'plsda']:
+            if i in self.option('analysis'):
+                break
         else:
             raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))
         self.set_otu_table()
@@ -260,13 +262,13 @@ class BetaDiversityModule(Module):
                 self.tools.values()[0].on('end', self.stepend)
             else:
                 self.on_rely(self.tools.values(), self.stepend)
-            if 'pcoa' or 'distance' or 'anosim' or 'nmds' in self.option('analysis'):
+            if ('pcoa' in self.option('analysis')) or ('distance' in self.option('analysis')) or ('anosim' in self.option('analysis')) or ('nmds' in self.option('analysis')):
                 self.matrix_run()
             if 'dbrda' in self.option('analysis'):
                 if self.option('dbrda_method'):
                     self.dbrda_run()
                 else:
-                    if 'pcoa' or 'distance' or 'anosim' or 'nmds' in self.option('analysis'):
+                    if ('pcoa' in self.option('analysis')) or ('distance' in self.option('analysis')) or ('anosim' in self.option('analysis')) or ('nmds' in self.option('analysis')):
                         pass
                     else:
                         self.matrix_run()
@@ -278,8 +280,6 @@ class BetaDiversityModule(Module):
                 self.rda_run()
         else:
             self.matrix_run()
-
-        # self.on_rely(self.tools.values(), self.end)
 
 
     def stepend(self):
@@ -333,6 +333,11 @@ class BetaDiversityModule(Module):
             [r'Rda/.*_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
             [r'Rda/.*_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
         ]
+        self.logger.info('shenghe:不能重复添加目录buglog。。。。。。。。。。。。。。。。')
+        self.logger.info(self.upload_dir)
+        for i in self.upload_dir:
+            self.logger.info(i.path)
+        self.logger.info('shenghe:不能重复添加目录buglog。。。。。。。。。。。。。。。。OVER')
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)

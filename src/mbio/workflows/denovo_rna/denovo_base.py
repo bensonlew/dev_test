@@ -12,24 +12,30 @@ import shutil
 class DenovoBaseWorkflow(Workflow):
     def __init__(self, wsheet_object):
         """
+        version = v1.0
+        last_modify = 20160825
         """
         self._sheet = wsheet_object
         super(DenovoBaseWorkflow, self).__init__(wsheet_object)
+        print self._parent
         options = [
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq,sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  #对照组文件，格式同分组文件
+            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
             {"name": "search_pfam", "type": "bool", "default": False},  # orf 是否比对Pfam数据库
             {"name": "primer", "type": "bool", "default": True},  # 是否设计SSR引物
-
+            {"name": "kmer_size", "type": "int", "default": 25},
+            {"name": "min_kmer_cov", "type": "int", "default": 2},
             {"name": "min_contig_length", "type": "int", "default": 200},  # trinity报告出的最短的contig长度。默认为200
             {"name": "SS_lib_type", "type": "string", "default": 'none'},  # reads的方向，成对的reads: RF or FR; 不成对的reads: F or R，默认情况下，不设置此参数
-            {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
-            {"name": "min_rowsum_counts",  "type": "int", "default": 2},  # 离散值估计检验的最小计数值
-            {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
-            {"name": "diff_rate", "type": "float", "default": 0.01}  # 期望的差异基因比率
-
+            {"name": "exp_way", "type": "string", "default": "fpkm"},  # edger离散值
+            {"name": "diff_ci", "type": "float", "default": 0.01},  # 显著性水平
+            {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
+            {"name": "anno_analysis", "type": "string", "default": ""},
+            {"name": "exp_analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich"},
+            {"name": "gene_analysis", "type": "string", "default": "orf"},
+            {"name": "map_qc_analysis", "type": "string", "default": "satur,dup,coverage,correlation"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -38,17 +44,23 @@ class DenovoBaseWorkflow(Workflow):
         self.qc_stat_before = self.add_module("denovo_rna.qc.qc_stat")
         self.qc_stat_after = self.add_module("denovo_rna.qc.qc_stat")
         self.assemble = self.add_tool("denovo_rna.assemble.assemble")
-        self.bwa = self.add_module("denovo_rna.mapping.bwa_samtools")
+        # self.annotation = self.add_module('denovo_rna.annotation.denovo_annotation')
+        self.annotation = self.add_module('denovo_rna.qc.qc_stat')
         self.orf = self.add_tool("denovo_rna.gene_structure.orf")
         self.ssr = self.add_tool("denovo_rna.gene_structure.ssr")
+        self.bwa = self.add_module("denovo_rna.mapping.bwa_samtools")
         self.snp = self.add_module("denovo_rna.gene_structure.snp")
         self.map_qc = self.add_module("denovo_rna.mapping.map_assessment")
         self.exp_stat = self.add_module("denovo_rna.express.exp_analysis")
         self.exp_diff = self.add_module("denovo_rna.express.diff_analysis")
         self.orf_len = self.add_tool("meta.qc.reads_len_info")
         self.step.add_steps("qcstat", "assemble", "annotation", "express", "gene_structure", "map_stat")
+        self.final_tools = list()
         self.logger.info('{}'.format(self.events))
         self.logger.info('{}'.format(self.children))
+        self.logger.info('{}'.format(self._upload_dir_obj))
+        self.logger.info('{}'.format(self.qc_stat_before._upload_dir_obj))
+        self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
 
     def check_options(self):
         """
@@ -62,6 +74,29 @@ class DenovoBaseWorkflow(Workflow):
             raise OptionError('必须设置测序类型：PE OR SE')
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError('测序类型不在所给范围内')
+        if self.option('diff_ci') > 1 or self.option('diff_ci') < 0:
+            raise OptionError('显著性水平不在所给范围内[0,1]')
+        if self.option('diff_rate') > 1 or self.option('diff_rate') < 0:
+            raise OptionError('差异基因比率不在所给范围内[0,1]')
+        if self.option("fq_type") == 'SE' and self.option("SS_lib_type") not in ['F', 'R', 'none']:
+            raise OptionError("SE测序时所设reads方向：{}不正确".format(self.option("SS_lib_type")))
+        if self.option("fq_type") == 'PE' and self.option("SS_lib_type") not in ['FR', 'RF', 'none']:
+            raise OptionError("PE测序时所设reads方向：{}不正确".format(self.option("SS_lib_type")))
+        if self.option("exp_way") not in ['fpkm', 'tpm']:
+            raise OptionError("所设表达量的代表指标不在范围内，请检查")
+        if self.option('kmer_size') > 32 or self.option('kmer_size') < 1:
+            raise OptionError("所设kmer_size不在范围内，请检查")
+        if self.option('min_kmer_cov') < 1:
+            raise OptionError("所设min_kmer_cov不在范围内，请检查")
+        for i in self.option('exp_analysis').split(','):
+            if i not in ['', 'cluster', 'network', 'kegg_rich', 'go_rich']:
+                raise OptionError("差异性研究没有{}，请检查".format(i))
+        for i in self.option('gene_analysis').split(','):
+            if i not in ['orf', 'ssr', 'snp']:
+                raise OptionError("基因结构分析没有{}，请检查".format(i))
+        for i in self.option('map_qc_analysis').split(','):
+            if i not in ['', 'satur', 'coverage', 'dup', 'correlation']:
+                raise OptionError("转录组质量评估没有{}，请检查".format(i))
 
     def set_step(self, event):
         if 'start' in event['data'].keys():
@@ -72,13 +107,12 @@ class DenovoBaseWorkflow(Workflow):
 
     def run_filecheck(self):
         opts = {
-                'fastq_dir': self.option('fastq_dir'),
-                'fq_type': self.option('fq_type'),
-                'control_file': self.option('control_file')
-                }
+            'fastq_dir': self.option('fastq_dir'),
+            'fq_type': self.option('fq_type'),
+            'control_file': self.option('control_file')
+        }
         if self.option('group_table').is_set:
             opts.update({'group_table': self.option('group_table')})
-        print opts
         self.filecheck.set_options(opts)
         self.filecheck.run()
 
@@ -115,6 +149,8 @@ class DenovoBaseWorkflow(Workflow):
             'fq_type': self.option('fq_type'),
             'min_contig_length': self.option('min_contig_length'),
             'SS_lib_type': self.option('SS_lib_type'),
+            'kmer_size': self.option('kmer_size'),
+            'min_kmer_cov': self.option('min_kmer_cov'),
         }
         if self.option('fq_type') == 'SE':
             opts.update({'fq_s': self.qc.option('fq_s')})
@@ -129,23 +165,14 @@ class DenovoBaseWorkflow(Workflow):
         self.assemble.on('end', self.set_step, {'end': self.step.assemble})
         self.assemble.run()
 
-    def run_map_orf(self):
-        bwa_opts = {
-            'fastq_dir': self.qc.option('sickle_dir'),
-            'fq_type': self.option('fq_type'),
-            'ref_fasta': self.assemble.option('trinity_fa')
-        }
+    def run_orf(self):
         orf_opts = {
             'fasta': self.assemble.option('trinity_fa'),
             'search_pfam': self.option('search_pfam')
         }
-        self.bwa.set_options(bwa_opts)
         self.orf.set_options(orf_opts)
-        self.bwa.on('end', self.set_output, 'mapping')
-        self.bwa.on('start', self.set_step, {'start': self.step.map_stat})
         self.orf.on('end', self.set_output, 'orf')
         self.orf.on('start', self.set_step, {'start': self.step.gene_structure})
-        self.bwa.run()
         self.orf.run()
 
     def run_orf_len(self):
@@ -154,42 +181,72 @@ class DenovoBaseWorkflow(Workflow):
         self.orf_len.on('end', self.set_output, 'orf_len')
         self.orf_len.run()
 
-    def run_ssr_snp(self):
-        ssr_opts = {
-            'fasta': self.assemble.option('gene_fa'),
-            'bed': self.orf.option('bed'),
-            'primer': self.option('primer')
+    def run_bwa(self):
+        bwa_opts = {
+            'ref_fasta': self.assemble.option('gene_fa')
         }
+        if self.option('fq_type') == 'SE':
+            bwa_opts.update({'fastq_s': self.qc.option('fq_s')})
+        else:
+            bwa_opts.update({'fastq_r': self.qc.option('fq_r')})
+            bwa_opts.update({'fastq_l': self.qc.option('fq_l')})
+        self.bwa.set_options(bwa_opts)
+        self.bwa.run()
+
+    def run_snp(self):
         snp_opts = {
             'bed': self.orf.option('bed'),
             'bam': self.bwa.option('out_bam'),
             'ref_fasta': self.assemble.option('gene_fa')
         }
-        self.ssr.set_options(ssr_opts)
         self.snp.set_options(snp_opts)
-        self.ssr.on('end', self.set_output, 'ssr')
         self.snp.on('end', self.set_output, 'snp')
-        self.on_rely([self.ssr, self.snp], self.set_step, {'end': self.step.gene_structure})
-        self.ssr.run()
         self.snp.run()
+
+    def run_ssr(self):
+        ssr_opts = {
+            'fasta': self.assemble.option('gene_fa'),
+            'bed': self.orf.option('bed'),
+            'primer': self.option('primer')
+        }
+        self.ssr.set_options(ssr_opts)
+        self.ssr.on('end', self.set_output, 'ssr')
+        self.ssr.run()
 
     def run_map_qc(self):
         map_qc_opts = {
             'bed': self.orf.option('bed'),
-            'bam': self.bwa.option('out_bam')
+            'bam': self.exp_stat.option('bam_dir'),
+            'fpkm': self.exp_stat.option('gene_fpkm'),
+            'analysis': self.option('map_qc_analysis')
         }
         self.map_qc.set_options(map_qc_opts)
         self.map_qc.on('end', self.set_output, 'map_qc')
         self.map_qc.on('end', self.set_step, {'end': self.step.map_stat})
         self.map_qc.run()
 
+    def run_annotation(self):
+        anno_opts = {
+            "query": self.assemble.option('trinity_fa'),
+            "query_type": 'nucl',
+            "gi_taxon": True,
+            "go_annot": True,
+            "cog_annot": True,
+            "kegg_annot": True,
+            "blast_stat": True
+        }
+        self.annotation.set_options(anno_opts)
+        self.annotation.on('end', self.set_output, 'annotation')
+        self.annotation.on('start', self.set_step, {'start': self.step.annotation})
+        self.annotation.on('end', self.set_step, {'end': self.step.annotation})
+        self.annotation.run()
+
     def run_exp_stat(self):
         exp_stat_opts = {
             'fq_type': self.option('fq_type'),
             'rsem_fa': self.assemble.option('trinity_fa'),
-            'dispersion': self.option('dispersion'),
-            'min_rowsum_counts': self.option('min_rowsum_counts'),
             'control_file': self.option('control_file'),
+            'exp_way': self.option('exp_way'),
             'diff_ci': self.option('diff_ci'),
             'diff_rate': self.option('diff_rate')
         }
@@ -208,17 +265,32 @@ class DenovoBaseWorkflow(Workflow):
         self.exp_stat.run()
 
     def run_exp_diff(self):
-        exp_diff_opts = {
-            'diff_fpkm': self.exp_stat.option('diff_fpkm'),
-            'gene_file': self.exp_stat.option('gene_file')
-        }
-        if self.option('group_table').is_set:
-            exp_diff_opts.update({'group_table': self.option('group_table')})
-        self.exp_diff.set_options(exp_diff_opts)
-        self.exp_diff.on('end', self.set_output, 'exp_diff')
-        # move when enrich
-        self.exp_diff.on('end', self.set_step, {'end': self.step.express})
-        self.exp_diff.run()
+        if self.exp_stat.diff_gene:
+            exp_diff_opts = {
+                'diff_fpkm': self.exp_stat.option('diff_fpkm'),
+                'analysis': self.option('exp_analysis')
+            }
+            if 'network' in self.option('exp_analysis'):
+                exp_diff_opts.update({'gene_file': self.exp_stat.option('gene_file')})
+            elif 'kegg_rich' in self.option('exp_analysis'):
+                exp_diff_opts.update({
+                    'kegg_path': self.annotation.option('kegg_path'),
+                    'diff_list_dir': self.exp_stat.option('diff_list_dir')
+                })
+            elif 'go_rich' in self.option('exp_analysis'):
+                exp_diff_opts.update({
+                    'go_list': self.annotation.option('go_list'),
+                    'diff_list_dir': self.exp_stat.option('diff_list_dir'),
+                    'all_list': self.exp_stat.option('all_list'),
+                    'go_level_2': self.annotation.option('go_level_2')
+                })
+            self.exp_diff.set_options(exp_diff_opts)
+            self.exp_diff.on('end', self.set_output, 'exp_diff')
+            self.exp_diff.on('end', self.set_step, {'end': self.step.express})
+            self.exp_diff.run()
+            self.final_tools.append(self.exp_diff)
+        else:
+            self.logger.info('输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略')
 
     def move2outputdir(self, olddir, newname, mode='link'):
         """
@@ -257,12 +329,12 @@ class DenovoBaseWorkflow(Workflow):
             self.move2outputdir(obj.output_dir, 'QC_stat')
         if event['data'] == 'qc_stat_before':
             self.move2outputdir(obj.output_dir, 'QC_stat/before_qc')
+            self.logger.info('{}'.format(self.qc_stat_before._upload_dir_obj))
         if event['data'] == 'qc_stat_after':
             self.move2outputdir(obj.output_dir, 'QC_stat/after_qc')
+            self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
         if event['data'] == 'assemble':
             self.move2outputdir(obj.output_dir, 'Assemble')
-        if event['data'] == 'mapping':
-            self.move2outputdir(obj.output_dir, 'Map_stat')
         if event['data'] == 'map_qc':
             self.move2outputdir(obj.output_dir, 'Map_stat')
         if event['data'] == 'orf':
@@ -275,21 +347,44 @@ class DenovoBaseWorkflow(Workflow):
             self.move2outputdir(obj.output_dir, 'Gene_structure/snp')
         if event['data'] == 'exp_stat':
             self.move2outputdir(obj.output_dir, 'Express')
+            self.logger.info('%s' % self.exp_stat.diff_gene)
         if event['data'] == 'exp_diff':
             self.move2outputdir(obj.output_dir, 'Express')
+        if event['data'] == 'annotation':
+            self.move2outputdir(obj.output_dir, 'Annotation')
 
     def run(self):
         self.filecheck.on('end', self.run_qc)
         self.filecheck.on('end', self.run_qc_stat, False)
         self.qc.on('end', self.run_qc_stat, True)
         self.qc.on('end', self.run_assemble)
-        self.assemble.on('end', self.run_map_orf)
-        self.on_rely([self.orf, self.bwa], self.run_ssr_snp)
-        self.on_rely([self.orf, self.bwa], self.run_map_qc)
-        self.orf.on('end', self.orf_len)
+        self.assemble.on('end', self.run_orf)
         self.assemble.on('end', self.run_exp_stat)
-        self.exp_stat.on('end', self.run_exp_diff)
-        self.on_rely([self.map_qc, self.exp_diff, self.ssr, self.snp, self.orf_len], self.end)
+        self.orf.on('end', self.run_orf_len)
+        self.final_tools.append(self.orf_len)
+        if self.option('anno_analysis'):
+            self.assemble.on('end', self.run_annotation)
+            self.final_tools.append(self.annotation)
+        self.on_rely([self.orf, self.exp_stat], self.run_map_qc)
+        self.final_tools.append(self.map_qc)
+        if 'ssr' in self.option('gene_analysis'):
+            self.orf.on('end', self.run_ssr)
+            self.final_tools.append(self.ssr)
+        if 'snp' in self.option('gene_analysis'):
+            self.assemble.on('end', self.run_bwa)
+            self.on_rely([self.bwa, self.orf], self.run_snp)
+            self.final_tools.append(self.snp)
+        if self.option('exp_analysis'):
+            if ('go_rich' or 'kegg_rich') in self.option('exp_analysis'):
+                self.on_rely([self.exp_stat, self.annotation], self.run_exp_diff)
+            else:
+                self.exp_stat.on('end', self.run_exp_diff)
+        if len(self.final_tools) == 0:
+            self.on_rely([self.orf_len, self.exp_stat], self.end)
+        elif len(self.final_tools) == 1:
+            self.final_tools[0].on('end', self.end)
+        else:
+            self.on_rely(self.final_tools, self.end)
         self.run_filecheck()
         super(DenovoBaseWorkflow, self).run()
 
@@ -298,6 +393,7 @@ class DenovoBaseWorkflow(Workflow):
         super(DenovoBaseWorkflow, self).end()
 
     def send_files(self):
+        self.logger.info('denovo_base upload files start')
         repaths = [
             ['.', "文件夹", "denovo rna 结果文件目录"],
             ["QC_stat", "文件夹", "样本数据统计文件目录"],
@@ -326,28 +422,10 @@ class DenovoBaseWorkflow(Workflow):
             ["Map_stat/bam_stat.xls", "xls", "bam格式比对结果统计表"],
             ['Express/', "文件夹", "表达量分析结果目录"],
             ['Express/diff_exp', "文件夹", "表达量差异检测分析结果目录"],
-            ["Express/diff_exp/diff_fpkm", "xls", "差异基因表达量表"],
-            ["Express/diff_exp/diff_count", "xls", "差异基因计数表"],
             ['Express/rsem', "文件夹", "表达量计算分析结果目录"],
-            ['Express/network', "文件夹", "差异基因网络共表达分析结果目录"],
-            ["Express/network/all_edges.txt", "txt", "edges结果信息"],
-            ["Express/network/all_nodes.txt ", "txt", "nodes结果信息"],
-            ["Express/network/removeGene.xls ", "xls", "移除的基因信息"],
-            ["Express/network/removeSample.xls ", "xls", "移除的样本信息"],
-            ["Express/network/softPower.pdf", "pdf", "softpower相关信息"],
-            ["Express/network/ModuleTree.pdf", "pdf", "ModuleTree图"],
-            ["Express/network/eigengeneClustering.pdf", "pdf", "eigengeneClustering图"],
-            ["Express/network/eigenGeneHeatmap.pdf", "pdf", "eigenGeneHeatmap图"],
-            ["Express/network/networkHeatmap.pdf", "pdf", "networkHeatmap图"],
-            ["Express/network/sampleClustering.pdf", "pdf", "sampleClustering图"],
             ['Express/correlation', "文件夹", "表达量样本相关性分析结果目录"],
             ["Express/correlation/correlation_matrix.xls", "xls", "相关系数矩阵表"],
-            ["Express/correlation/hcluster_tree_correlation_matrix.xls_average.tre", "xls", "相关系数树文件"],
-            ["Express/cluster", "文件夹", "差异基因聚类分析分析结果目录"],
-            ["Express/cluster/hclust/", "", "层级聚类分析结果目录"],
-            ["Express/cluster/hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
-            ["Express/cluster/hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
-            ["Express/cluster/hclust/hclust_heatmap.xls", "xls", "层级聚类热图数据"]
+            ["Express/correlation/hcluster_tree_correlation_matrix.xls_average.tre", "xls", "相关系数树文件"]
         ]
         regexps = [
             [r'Assemble/.*_length\.distribut\.txt$', 'txt', '长度分布信息统计文件'],
@@ -363,11 +441,9 @@ class DenovoBaseWorkflow(Workflow):
             [r"Map_stat/dup/.*seq\.DupRate\.xls", "xls", "所有序列的冗余统计表"],
             [r"Map_stat/satur/.*eRPKM\.xls", "xls", "RPKM表"],
             [r"Map_stat/coverage/.*cluster_percent\.xls", "xls", "饱和度作图数据"],
-            [r"Express/cluster/hclust/subcluster_", "xls", "子聚类热图数据"],
             [r"Express/diff_exp/.*_edgr_stat\.xls$", "xls", "edger统计结果文件"],
             [r"Express/rsem/.*results$", "xls", "单样本rsem分析结果表"],
-            [r"Express/rsem/.*matrix$", "xls", "表达量矩阵"],
-            [r"Express/network/CytoscapeInput.*", "txt", "Cytoscape作图数据"]
+            [r"Express/rsem/.*matrix$", "xls", "表达量矩阵"]
         ]
         if self.option("search_pfam") is True:
             repaths += [["Gene_structure/orf/pfam_domain", "", "Pfam比对蛋白域结果信息"]]
@@ -379,8 +455,34 @@ class DenovoBaseWorkflow(Workflow):
             repaths += [
                 ["QC_stat/seqprep_dir/", "文件夹", "PE去接头后fastq文件输出目录"]
             ]
+        if self.exp_stat.diff_gene:
+            regexps += [
+                [r"Express/cluster/hclust/subcluster_", "xls", "子聚类热图数据"],
+                [r"Express/network/CytoscapeInput.*", "txt", "Cytoscape作图数据"]
+            ]
+            repaths += [
+                ["Express/diff_exp/diff_fpkm", "xls", "差异基因表达量表"],
+                ["Express/diff_exp/diff_count", "xls", "差异基因计数表"],
+                ['Express/network', "文件夹", "差异基因网络共表达分析结果目录"],
+                ["Express/network/all_edges.txt", "txt", "edges结果信息"],
+                ["Express/network/all_nodes.txt ", "txt", "nodes结果信息"],
+                ["Express/network/removeGene.xls ", "xls", "移除的基因信息"],
+                ["Express/network/removeSample.xls ", "xls", "移除的样本信息"],
+                ["Express/network/softPower.pdf", "pdf", "softpower相关信息"],
+                ["Express/network/ModuleTree.pdf", "pdf", "ModuleTree图"],
+                ["Express/network/eigengeneClustering.pdf", "pdf", "eigengeneClustering图"],
+                ["Express/network/eigenGeneHeatmap.pdf", "pdf", "eigenGeneHeatmap图"],
+                ["Express/network/networkHeatmap.pdf", "pdf", "networkHeatmap图"],
+                ["Express/network/sampleClustering.pdf", "pdf", "sampleClustering图"],
+                ["Express/cluster", "文件夹", "差异基因聚类分析分析结果目录"],
+                ["Express/cluster/hclust/", "", "层级聚类分析结果目录"],
+                ["Express/cluster/hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
+                ["Express/cluster/hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
+                ["Express/cluster/hclust/hclust_heatmap.xls", "xls", "层级聚类热图数据"]
+            ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
         for i in self.get_upload_files():
             self.logger.info('upload file:{}'.format(str(i)))
+        self.logger.info('denovo_base upload files end')

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+from __future__ import division
+import math
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
@@ -48,7 +49,10 @@ class PhyloTreeAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        total = os.path.getsize(self.option("fasta_file").prop["path"])
+        total = int(math.ceil(total / (1024 * 1024 * 1024)))
+        total = int(total * 10)
+        self._memory = "{}G".format(total)
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

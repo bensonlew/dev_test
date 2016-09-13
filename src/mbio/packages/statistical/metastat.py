@@ -55,7 +55,7 @@ def mul_group_test(inputfile, outputfile, boxfile, groupfile, choose_test, mul_t
     :param choose_test：选择两组检验的分析方法，包括：["kru_H","anova"]
     :param mul_test: 多重检验方法选择，默认为none，包括: ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"]
     """
-    f = Template(filename= this_file_dir + '/mul_group_test.r')
+    f = Template(filename=this_file_dir + '/mul_group_test.r')
     mul_test = f.render(inputfile=inputfile, outputfile=outputfile, boxfile=boxfile, groupfile=groupfile, choose_test=choose_test, mul_test=mul_test)
     with open("run_%s_test.r" % choose_test, 'w') as rfile:
         rfile.write("%s" % mul_test)
@@ -68,7 +68,17 @@ def est_ttest(inputfile, outputfile, groupfile):
     :param groupfile: 输入分组文件
     :param outputfile: 输出的结果文件
     """
-    f = Template(filename= this_file_dir + '/alpha_ttest.r')
+    f = Template(filename=this_file_dir + '/alpha_ttest.r')
     mul_test = f.render(inputfile=inputfile, outputfile=outputfile, groupfile=groupfile)
     with open("run_est_ttest.r", 'w') as rfile:
+        rfile.write("%s" % mul_test)
+
+
+def group_bar(inputfile, groupfile, outputfile, choose_test):
+    '''
+    计算单物种柱形图的数据
+    '''
+    f = Template(filename=this_file_dir + '/group_bar.r')
+    mul_test = f.render(inputfile=inputfile, outputfile=outputfile, groupfile=groupfile)
+    with open("run_{}_bar.r".format(choose_test), 'w') as rfile:
         rfile.write("%s" % mul_test)

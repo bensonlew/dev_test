@@ -18,6 +18,7 @@ from pymongo import MongoClient
 
 web.config.debug = False
 
+
 @singleton
 class Config(object):
     def __init__(self):

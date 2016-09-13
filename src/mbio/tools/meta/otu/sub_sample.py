@@ -26,7 +26,7 @@ class SubSampleAgent(Agent):
             {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir"},  # 输入的OTU文件
             {"name": "out_otu_table", "type": "outfile", "format": "meta.otu.otu_table"},  # 输出的OTU文件
             {"name": "level", "type": "string", "default": "otu"},
-            {"name": "size", "type": "int", "default": 0}
+            {"name": "size", "type": "string", "default": "min"}
         ]
         self.add_option(options)
         self.step.add_steps("sub_sample")
@@ -83,6 +83,7 @@ class SubSampleTool(Tool):
         """
         运行mothur的subsample，进行抽平
         """
+        new2old = dict()  # mothur进行抽平的时候会对OTU进行重命名， 我们需要找回原有的OTU名字
         if self.option("in_otu_table").format == "meta.otu.tax_summary_dir":
             otu_table = os.path.basename(self.option("otu_table").get_table(self.option("level")))
             self.basename = otu_table
@@ -107,8 +108,16 @@ class SubSampleTool(Tool):
             else:
                 my_table.set_path(self.option("in_otu_table").prop['path'])
         my_table.get_info()
+        with open(my_table.prop["path"], "rb") as r:
+            r.next()
+            c = 1
+            for line in r:
+                line = line.split("\t")
+                new2old["OTU" + str(c)] = line[0]
+                c += 1
+
         my_table.convert_to_shared(shared_path)
-        if self.option("size") == 0:
+        if self.option("size") in [0, "0", "min"]:
             cmd = self.mothur_path + " \"#set.dir(output=" + mothur_dir\
                 + ");sub.sample(shared=" + shared_path + ")\""
         else:
@@ -135,12 +144,22 @@ class SubSampleTool(Tool):
         prefix = match.group(1)
         suffix = match.group(2)
         sub_sampled_otu = os.path.join(self.work_dir, "output", prefix + ".subsample" + suffix)
-        cmd = self.shared2otu_path + " -l 0.97 -i " + sub_sampled_shared + " -o " + sub_sampled_otu
+        sub_sampled_otu_renamed = os.path.join(self.work_dir, prefix + ".subsample" + suffix + ".rename")
+        cmd = self.shared2otu_path + " -l 0.97 -i " + sub_sampled_shared + " -o " + sub_sampled_otu_renamed
         try:
             subprocess.check_call(cmd, shell=True)
-            self.option("out_otu_table").set_path(sub_sampled_otu)
         except subprocess.CalledProcessError:
             raise Exception("shared2otu.pl 运行出错")
+
+        # 将新的OTU表用就有的OTU表替换掉
+        with open(sub_sampled_otu_renamed, "rb") as r, open(sub_sampled_otu, "wb") as w:
+            line = r.next()
+            w.write(line)
+            for line in r:
+                line = line.split("\t")
+                line[0] = new2old[line[0]]
+                w.write("\t".join(line))
+        self.option("out_otu_table").set_path(sub_sampled_otu)
         self.option("out_otu_table").check()
         if self.has_tax is True:
             sub_sampled_otu_obj = OtuTableFile()

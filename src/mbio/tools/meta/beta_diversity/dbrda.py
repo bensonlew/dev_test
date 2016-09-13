@@ -4,6 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 # import os
 import types
+import os
 from biocluster.core.exceptions import OptionError
 from mbio.files.meta.otu.otu_table import OtuTableFile
 from mbio.packages.beta_diversity.dbrda_r import *
@@ -122,7 +123,7 @@ class DbrdaAgent(Agent):
             ["./db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
             ["./db_rda_biplot.xls", "xls", "db_rda数量型环境因子坐标表"],
         ])
-        print self.get_upload_files()
+        # print self.get_upload_files()
         super(DbrdaAgent, self).end()
 
 

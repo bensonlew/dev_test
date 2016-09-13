@@ -6,6 +6,10 @@
 import zerorpc
 from .config import Config
 import datetime
+import gevent
+from multiprocessing import Queue
+import os
+# import gipc
 
 
 class Report(object):
@@ -22,15 +26,20 @@ class Report(object):
         :param msg: 通过RPC服务接收的远程消息
         """
 
-        tool = self.workflow.find_tool_by_id(msg['id'])
-        if not tool:
+        agent = self.workflow.find_tool_by_id(msg['id'])
+        if not agent:
             self.workflow.logger.error("Server在workflow中找不到对应的tool: {} !".format(msg['id']))
-        if (not isinstance(msg, dict)) or ('id' not in msg.keys()):
-            self.workflow.logger.error("Server接收到不符合规范的消息: 不是字典类型或没有key值'id'!")
+            agent.send_exit_action("Server在workflow中找不到对应的tool: {} !".format(msg['id']), msg["version"])
+        if (not isinstance(msg, dict)) or ('id' not in msg.keys()) or ("version" not in msg.keys()):
+            self.workflow.logger.error("Server接收到不符合规范的消息: 不是字典类型或没有key值'id'或者'version'!")
+        elif msg["version"] != agent.version:
+            self.workflow.logger.error("接收到已经重新投递任务的历史版本信号，丢弃: %s ！" % msg)
+            agent.send_exit_action("此版本号已经更新过期", msg["version"])
         else:
             self.workflow.last_update = datetime.datetime.now()
-            tool.actor.receive(msg)
-        return tool.get_callback_action()
+            agent.actor.receive(msg)
+        if not self.workflow.sheet.instant:
+            return agent.get_callback_action(msg['version'])
 
 
 class RPC(object):
@@ -40,18 +49,41 @@ class RPC(object):
         self.endpoint = "tcp://{}:{}".format(config.LISTEN_IP, config.LISTEN_PORT)
         self._rpc_server.bind(self.endpoint)
 
-    @property
-    def server(self):
-        """
-        获取zerorpc.Server对象
-        """
-        return self._rpc_server
-
     def run(self):
         """
         开始运行RPC监听,此时会阻塞线程
         """
-        self.server.run()
+        self._rpc_server.run()
+
+    def close(self):
+        self._rpc_server.close()
+
+
+class LocalServer(object):
+    def __init__(self, workflow):
+        self._report = Report(workflow)
+        self._close = False
+        # (reader, writer) = gipc.pipe()
+        # print "reader %s, writer %s" % (reader, writer)
+        self.process_queue = Queue()
+        self.endpoint = ""
+
+    def run(self):
+        while True:
+            gevent.sleep(0.3)
+            try:
+                msg = self.process_queue.get_nowait()
+            except Exception:
+                pass
+            else:
+                if msg:
+                    self._report.report(msg)
+            if self._close:
+                break
+
+    def close(self):
+        self._close = True
+
 
 #
 # class RPCClient(zerorpc.Client):

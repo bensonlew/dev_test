@@ -24,7 +24,7 @@ class BwaSamtoolsModule(Module):
             {"name": "fastq_l", "type": "infile", "format": "sequence.fastq"},  # 左端序列文件
             {"name": "fastq_s", "type": "infile", "format": "sequence.fastq"},  # SE序列文件
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
-            {"name": "head", "type": "string", "default": None},  # 设置结果头文件
+            # {"name": "head", "type": "string", "default": None},  # 设置结果头文件
             # {"name": "sam", "type": "outfile", "format": "align.bwa.sam_dir"},
             # {"name": "sam", "type": "infile", "format": "align.bwa.sam"},    # sam格式文件
             {"name": "out_bam", "type": "outfile", "format": "align.bwa.bam_dir"},  # bam格式输入文件

@@ -32,6 +32,7 @@ class FastaDirFile(Directory):
             self.set_property("fasta_number", self.get_fasta_number())
         else:
             raise FileError("文件夹路径不正确，请设置正确的文件夹路径!")
+        self.set_property("fasta_fullname", self.fastas_full)
 
     def get_full_info(self, work_path):
         """
@@ -42,7 +43,6 @@ class FastaDirFile(Directory):
         self.make_work_dir(work_path)
         self.set_property("fasta_number", self.get_fasta_number())
         self.set_property("fasta_basename", self.fastas)
-        self.set_property("fasta_fullname", self.fastas_full)
 
     def set_file_number(self, number):
         """

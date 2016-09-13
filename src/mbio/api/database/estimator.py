@@ -8,6 +8,7 @@ import json
 from bson.son import SON
 from types import StringTypes
 from biocluster.config import Config
+from mainapp.libs.param_pack import group_detail_sort
 
 
 class Estimator(Base):
@@ -16,7 +17,8 @@ class Estimator(Base):
         self._db_name = Config().MONGODB
 
     @report_check
-    def add_est_table(self, file_path, level, major=False, otu_id=None, est_id=None, task_id=None, name=None, params=None):
+    def add_est_table(self, file_path, level, major=False, otu_id=None, est_id=None, task_id=None, name=None,
+                      params=None, spname_spid=None):
         if level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
         # if task_id is None:
@@ -34,6 +36,9 @@ class Estimator(Base):
         #     if not isinstance(otu_id, ObjectId):
         #         otu_id = ObjectId(otu_id)
         params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+        if spname_spid:
+            group_detail = {'All': [str(i) for i in spname_spid.values()]}
+            params['group_detail'] = group_detail_sort(group_detail)
         # insert major
         if major:
             insert_data = {
