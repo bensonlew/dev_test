@@ -5,7 +5,7 @@ from biocluster.tool import Tool
 from biocluster.config import Config
 import os
 from biocluster.core.exceptions import OptionError
-import xml.etree.ElementTree as ET
+# import xml.etree.ElementTree as ET
 import subprocess
 
 

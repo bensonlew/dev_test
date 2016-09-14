@@ -5,17 +5,19 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 import shutil
+import json
 
 class TophatAgent(Agent):
     """
     tophat  
-    version 1.0
+    version 2.0
     author: sj
-    last_modify: 2016.9.5
+    last_modify: 2016.9.8
     """
     def __init__(self, parent):
         super(TophatAgent, self).__init__(parent)
-        self._ref_genome_lst = ["customer_mode"]
+        self._ref_genome_lst = ["customer_mode","Chicken","Tilapia","Zebrafish","Cow","Pig","Fruitfly","Human","Mouse","Rat","Arabidopsis","Broomcorn",\
+        "Rice","Zeamays","Test"]
         options = [
             {"name": "ref_genome", "type": "string"},
             {"name":"ref_genome_custom", "type": "infile", "format": "sequence.fasta"},
@@ -48,7 +50,7 @@ class TophatAgent(Agent):
             if self.option("single_end_reads").is_set:
                 raise OptionError("您上传的是单端测序的序列，请上传双端序列")
             elif not (self.option("left_reads").is_set and  self.option("right_reads").is_set):
-                raise OptionError("您漏了一端序列")
+                raise OptionError("您漏了某端序列")
             else:
                 pass
         else:
@@ -85,23 +87,25 @@ class TophatTool(Tool):
         self.cmd_path = "bioinfo/align/tophat-2.1.1/tophat-2.1.1.Linux_x86_64/" 
     
     def run_build_index_and_blast(self):
-        cmd = "{}bowtie2-build {} ref".format(self.cmd_path,self.option("ref_genome_custom").prop['path'])
+        ref_genome_custom_path = os.path.split(self.option("ref_genome_custom").prop['path'])[0]
+        ref_path = os.path.join(ref_genome_custom_path,"ref_index")  # 保证生成的索引都在和基因组同一级的目录下
+        cmd = "{}bowtie2-build {} {}".format(self.cmd_path,self.option("ref_genome_custom").prop['path'],ref_path) 
         index_command_obj = self.add_command("build_index",cmd).run()
         self.wait(index_command_obj)
         if index_command_obj.return_code == 0:
             self.logger.info("索引建立完成")
-            self.run_tophat()
+            self.run_tophat(ref_path)
         else:
             self.set_error("索引建立出错")
         
         
-    def run_tophat(self):
+    def run_tophat(self,index_ref):
         pre = os.path.splitext(os.path.basename(self.option("left_reads").prop['path']))[0].split("_")[0] + "_"
-        ref_path = os.path.join(self.work_dir,"ref")
+        # ref_path = os.path.join(self.work_dir,"ref")
         if self.option("seq_method") == "Paired-end":
-            cmd = "{}tophat2 {} {} {}".format(self.cmd_path,ref_path,self.option("left_reads").prop['path'],self.option("right_reads").prop['path'])
+            cmd = "{}tophat2 {} {} {}".format(self.cmd_path,index_ref,self.option("left_reads").prop['path'],self.option("right_reads").prop['path'])
         else:
-            cmd = "{}tophat2 {} {}".format(self.cmd_path,ref_path,self.option("single_end_reads").prop['path'])
+            cmd = "{}tophat2 {} {}".format(self.cmd_path,index_ref,self.option("single_end_reads").prop['path'])
         tophat_command = self.add_command("tophat",cmd)
         self.logger.info("开始运行tophat")
         tophat_command.run()
@@ -112,7 +116,7 @@ class TophatTool(Tool):
             outfile = os.path.join(outfile_path,pre + "accepted_hits.bam")
             os.rename(output,outfile)
             self.option('bam_output').set_path(outfile)
-            shutil.move(outfile,"../output/")
+            #shutil.move(outfile,"../output/")
         return True
     
     def run(self):
@@ -124,7 +128,11 @@ class TophatTool(Tool):
         if self.option("ref_genome") == "customer_mode":
             self.run_build_index_and_blast()
         else:
-            self.run_tophat()
+            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/ref_genome.json","r") as f:
+                dict = json.loads(f.read())
+                ref = dict[self.option("ref_genome")]["ref_genome"]
+                index_ref = os.path.join(os.path.split(ref)[0],"ref_index")
+                self.run_tophat(index_ref)
         self.end()
         
         

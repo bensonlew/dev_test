@@ -360,7 +360,9 @@ class WorkJob(object):
         write_log("End running workflow:%s" % self.workflow_id)
 
     def update_error(self, workflow_id, json_data, start_time):
-        if not self.json_data["USE_DB"]:
+        # if not self.json_data["USE_DB"]:
+        #    return
+        if not json_data["USE_DB"]:
             return
         myvar = dict(id=workflow_id)
         # self.lock()

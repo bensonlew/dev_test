@@ -146,7 +146,7 @@ class HclusterWorkflow(Workflow):
                                                 level=self.option('level'),
                                                 otu_id=self.option('otu_id'),
                                                 params=params_json)
-        self.add_return_mongo_id('sg_beta_specimen_distance', matrix_id)
+        # self.add_return_mongo_id('sg_beta_specimen_distance', matrix_id)
         api_newick = self.api.newicktree
         collection = api_newick.db["sg_beta_specimen_distance"]
         result = collection.find_one({"_id": ObjectId(matrix_id)})
@@ -155,8 +155,8 @@ class HclusterWorkflow(Workflow):
         if not os.path.isfile(newick_fath):
             raise Exception("找不到报告文件:{}".format(newick_fath))
         return_id = api_newick.add_tree_file(newick_fath, major=True, table_id=self.option('otu_id'),
-                                             task_id=task_id, table_type='dist', tree_type='cluster', level=self.option('level'),
-                                             name='hcluset_{}_{}'.format(self.option('hcluster_method'), datetime.datetime.now().strftime("%Y%m%d_%H%M%S")), params=params_json)
+                                             task_id=task_id, table_type='otu', tree_type='cluster', level=self.option('level'),
+                                             name='hcluster_{}_{}'.format(self.option('hcluster_method'), datetime.datetime.now().strftime("%Y%m%d_%H%M%S")), params=params_json)
         self.add_return_mongo_id('sg_newick_tree', return_id)
         collection.update_one({"_id": ObjectId(matrix_id)}, {'$set': {'newick_tree_id': ObjectId(return_id)}})
         self.end()

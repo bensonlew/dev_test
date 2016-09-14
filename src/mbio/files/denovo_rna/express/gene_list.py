@@ -14,3 +14,13 @@ class GeneListFile(File):
     def check(self):
         if super(GeneListFile, self).check():
             return True
+
+    def get_one_col(self, output):
+        with open(self.prop['path'], 'rb') as r, open(output, 'wb') as w:
+            i = 0
+            for f in r:
+                i += 1
+                if i == 1:
+                    pass
+                else:
+                    w.write(f.split('\t')[0] + '\n')
