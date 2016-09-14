@@ -26,8 +26,8 @@ cuffcompare：http://cole-trapnell-lab.github.io/cufflinks/cuffcompare/index.htm
 -----------------------------------
 
 cuffcompare -s <参考基因组fa格式文件> -C -o <生成文件的前缀> -r <参考序列gtf格式文件> <样本转录本合并之后的gtf文件> 
-python assembly_stat.py -combinedfile <输出的combined的gtf文件> -merged_file <样本转录本合并之后的gtf文件>  -o <新转录本的gtf文件>
-perl gtf_to_fasta <新转录本的gtf文件> <参考序列gtf格式文件> <新转录本的fa文件>
+python assembly_stat.py -tmapdfile <输出的tmap的gtf文件> -transcript_file <样本转录本合并之后的gtf文件>  -o <新转录本的gtf文件>
+perl gtf_to_fasta <新转录本的gtf文件> <参考序列fa格式文件> <新转录本的fa文件>
 
 参数设计
 -----------------------------------
