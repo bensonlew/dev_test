@@ -52,7 +52,7 @@ class GoAnnotationAgent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = '15G'
+        self._memory = '25G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -81,15 +81,19 @@ class GoAnnotationTool(Tool):
         self.run_b2g()
 
     def run_b2g(self):
-        cmd = 'java -Xmx500m -cp ' + self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/*:'
+        self.blast_nr_out = self.work_dir + '/temp_blast_nr.xml'
+        self.option("blastout").change_blast_version(self.blast_nr_out)
+        cmd = '/program/sun_jdk1.8.0/bin/java -Xmx15g -cp ' + self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/*:'
         cmd += self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/ext/*: es.blast2go.prog.B2GAnnotPipe'
-        cmd += ' -in {} -prop {}/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out {}'.format(self.option("blastout").prop['path'], self.config.SOFTWARE_DIR, self.work_dir + '/blast2go')
+        cmd += ' -in {} -prop {}/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out {}'.format(self.blast_nr_out, self.config.SOFTWARE_DIR, self.work_dir + '/blast2go')
         # cmd = "java -Xmx500m -cp /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/*:/mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/ext/*:\
         #  es.blast2go.prog.B2GAnnotPipe -in %s -prop /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out %s" % (self.option("blastout").prop['path'], self.work_dir + '/blast2go')
         self.logger.info('运行b2g程序')
         self.logger.info(cmd)
-        try:
-            subprocess.check_output(cmd, shell=True)
+        b2g = self.add_command('b2g', cmd)
+        b2g.run()
+        self.wait('b2g')
+        if b2g.return_code == 0:
             self.logger.info('运行b2g完成')
             linkfile = self.output_dir + '/blast2go.annot'
             if os.path.exists(linkfile):
@@ -97,8 +101,7 @@ class GoAnnotationTool(Tool):
             os.link(self.work_dir + '/blast2go.annot', linkfile)
             self.logger.debug("b2g end")
             self.run_gomerge()
-        except subprocess.CalledProcessError as e:
-            self.logger.debug(e)
+        else:
             self.set_error('运行b2g出错')
 
     def run_gomerge(self):
@@ -135,7 +138,7 @@ class GoAnnotationTool(Tool):
         cmd2 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/goAnnot.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
         cmd2 += ' %s %s %s %s' % (
-            self.work_dir + '/GO.list', '10.100.203.193', Config().DB_USER, Config().DB_PASSWD)#10.100.203.193
+            self.work_dir + '/GO.list', '10.100.203.193', Config().DB_USER, Config().DB_PASSWD)  # 10.100.203.193
         self.logger.info("运行goAnnot.py")
         self.logger.info(cmd2)
         '''

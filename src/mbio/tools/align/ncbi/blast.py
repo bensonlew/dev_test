@@ -87,7 +87,7 @@ class BlastAgent(Agent):
         return True
 
     def set_resource(self):
-        self._cpu = 20
+        self._cpu = self.option('num_threads')
         self._memory = '50G'
 
     def end(self):
