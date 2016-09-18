@@ -1,41 +1,34 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'wangbixuan'
-# __modified__ = 'hesheng'
+# __author__ = 'hesheng'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 import subprocess
 import Bio.SeqIO
+from collections import defaultdict
 
 
 class DenovornaAnnoStatisticsAgent(Agent):
     """
-    to perform annotation statistics
-    this tool can only be called by denovorna module
-    author:wangbixuan
-    last_modified:20160831
+    特定用于denovo rna的注释的结果整理统计，同时对转录本transcripts进行特定的unigenes筛选
+    由于功能过于特定，不便于被其他模块调用，本tool仅仅适用于RNA注释module调用
+    author:hesheng
+    last_modified:20160918
     """
 
     def __init__(self, parent):
         super(DenovornaAnnoStatisticsAgent, self).__init__(parent)
         options = [
-            {"name": "trinity_fasta", "type": "infile", "format": "sequence.fasta"},
-            {"name": "gene_fasta", "type": "infile", "format": "sequence.fasta"},
+            {"name": "genes", "type": "infile", "format": "sequence.fasta"},
             {"name": "nr_blast_out", "type": "infile", "format": "align.blast.blast_xml"},
-            # {"name": "swiss_blast_out", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "string_blast_out", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "kegg_blast_out", "type": "infile", "format": "align.blast.blast_xml"},
-            {"name": "ncbi_taxonomy_output_dir", "type": "string"},
-            {"name": "nr_blast_stat_output_dir", "type": "string"},
-            {"name": "go_output_dir", "type": "string"},
-            {"name": "cog_output_dir", "type": "string"},
-            {"name": "kegg_output_dir", "type": "string"},
-            {"name": "unigene", "type": "bool"},  # 当gene fasta被提供时可用
-            {"name": 'uni_nr', "type": "outfile", "format": "align.blast.blast_xml"},
-            {"name": 'uni_st', "type": "outfile", "format": "align.blast.blast_xml"},
-            {"name": 'uni_ke', "type": "outfile", "format": "align.blast.blast_xml"}
-
+            {"name": "ncbi_taxonomy_output_dir", "type": "string", "default": ""},
+            # {"name": "nr_blast_stat_output_dir", "type": "string", "default": ""},
+            {"name": "go_output_dir", "type": "string", "default": ""},
+            {"name": "cog_output_dir", "type": "string", "default": ""},
+            {"name": "kegg_output_dir", "type": "string", "default": ""},
         ]
         self.add_option(options)
         self.step.add_steps('denovo_rna_statistics')
@@ -51,67 +44,47 @@ class DenovornaAnnoStatisticsAgent(Agent):
         self.step.update()
 
     def check_options(self):
-        if self.option('unigene') is True:
-            if not self.option('gene_fasta').is_set:
-                raise OptionError("必须提供unigene的fasta文件")
-        if not self.option('trinity_fasta').is_set:
-            raise OptionError("必须提供trinity标准fasta文件")
-        else:
-            if self.option('gene_fasta').is_set:
-                trinity = []
-                for seq_record in Bio.SeqIO.parse(open(self.option('trinity_fasta').prop['path']), 'fasta'):
-                    trinity.append(seq_record.id)
-                gene = []
-                for gene_seq_record in Bio.SeqIO.parse(open(self.option('gene_fasta').prop['path']), 'fasta'):
-                    gene.append(gene_seq_record.id)
-                for gid in gene:
-                    if gid not in trinity:
-                        raise OptionError(
-                            "unigene_fasta文件存在trinity_fasta文件中不存在的序列")
-                        break
-        if not self.option('nr_blast_out').is_set:
-            raise OptionError("必须提供nr对比blast结果xml文件")
-        # if not self.option('swiss_blast_out').is_set:
-            # raise OptionError("必须提供swissprot对比blast结果xml文件")
-        if not self.option('string_blast_out').is_set:
-            raise OptionError("必须提供string对比blast结果xml文件")
-        if not self.option('kegg_blast_out').is_set:
-            raise OptionError("必须提供kegg对比blast结果xml文件")
-        if self.option('ncbi_taxonomy_output_dir').is_set:
-            if not os.path.exists(self.option('ncbi_taxonomy_output_dir') + '/query_taxons_detail.xls'):
-                raise OptionError(
-                    "ncbi_taxonomy输出文件缺少'query_taxons_detail.xls'文件")
-        else:
-            raise OptionError("必须提供ncbi taxon输出结果文件夹路径")
-        if self.option('go_output_dir').is_set:
-            for gofile in ['blast2go.annot', 'query_gos.list', 'go1234level_statistics.xls',
-                           'go2level.xls', 'go3level.xls', 'go4level.xls']:
-                if not os.path.exists(self.option('go_output_dir') + '/' + gofile):
-                    raise OptionError("go annotation输出文件缺少'%s'文件" % gofile)
-        else:
-            raise OptionError("必须提供go annotation输出结果文件夹路径")
-        if self.option('cog_output_dir').is_set:
-            for cogfile in ['cog_list.xls', 'cog_summary.xls', 'cog_table.xls']:
-                if not os.path.exists(self.option('cog_output_dir') + '/' + cogfile):
-                    raise OptionError("string2cog输出文件缺少'%s'文件" % cogfile)
-        else:
-            raise OptionError("必须提供string2cog输出结果文件夹路径")
-        if self.option('kegg_output_dir').is_set:
-            for keggfile in ['kegg_table.xls', 'pathway_table.xls', 'kegg_taxonomy.xls']:
-                if not os.path.exists(self.option('kegg_output_dir') + '/' + keggfile):
-                    raise OptionError("KEGG annotation输出文件缺少\'%s\'文件" % keggfile)
-        else:
-            raise OptionError("必须提供KEGG annotation输出结果文件夹路径")
-        if self.option('blast_stat_output_dir').is_set:
-            # !important: change file names if needed!
-            for bstatfile in ['evalue_statistics.xls', 'similarity_statistics.xls']:
-                if not os.path.exists(self.option('blast_stat_output_dir') + '/' + bstatfile):
-                    raise OptionError("blast stat输出文件缺少'%s'文件" % bstatfile)
-        else:
-            raise OptionError("必须提供blast stat输出结果文件夹路径")
+        if (not self.option("ncbi_taxonomy_output_dir")) and (not self.option("go_output_dir")) and \
+           (not self.option("cog_output_dir")) and (not self.option("kegg_output_dir")):
+            raise OptionError("没有提供任何注释结果，不能进行统计计算")
+        if self.option("ncbi_taxonomy_output_dir"):
+            if os.path.isdir(self.option("ncbi_taxonomy_output_dir")):
+                if os.path.isfile(self.option("ncbi_taxonomy_output_dir") + '/query_taxons_detail.xls'):
+                    pass
+                else:
+                    raise OptionError("ncbi分类注释结果文件不存在")
+            else:
+                raise OptionError("ncbi注释结果目录不存在")
+        if self.option('go_output_dir'):
+            if os.path.isdir(self.option('go_output_dir')):
+                go_files = ['/blast2go.annot', '/go1234level_statistics.xls', '/go2level.xls',
+                            '/go3level.xls', '/go4level.xls', '/query_gos.list']
+                for i in go_files:
+                    if not os.path.isfile(self.option("go_output_dir") + i):
+                        raise OptionError('go注释结果文件夹下文件缺失:.{}'.format(i))
+            else:
+                raise OptionError('go注释结果目录不存在')
+        if self.option('cog_output_dir'):
+            if os.path.isdir(self.option('cog_output_dir')):
+                cog_files = ['/cog_list.xls', '/cog_summary.xls', '/cog_table.xls']
+                for i in cog_files:
+                    if not os.path.isfile(self.option("cog_output_dir") + i):
+                        raise OptionError('cog注释目录下缺少文件:.{}'.format(i))
+            else:
+                raise OptionError('cog注释目录不存在')
+        if self.option('kegg_output_dir'):
+            if os.path.isdir(self.option('kegg_output_dir')):
+                kegg_files = ['/kegg_layer.xls', '/kegg_table.xls', '/kegg_taxonomy.xls', '/pathway_table.xls']
+                for i in kegg_files:
+                    if not os.path.isfile(self.option('kegg_output_dir') + i):
+                        raise OptionError('kegg注释结果目录文件不存在:.{}'.format(i))
+                if not os.path.isdir(self.option('kegg_output_dir') + '/pathways'):
+                    raise OptionError('kegg注释结果目录下缺少pathways目录(存放pathways通路图目录)')
+            else:
+                raise OptionError('kegg注释结果目录不存在')
 
     def set_resource(self):
-        self._cpu = 10
+        self._cpu = 2
         self._memory = ''
 
     def end(self):
@@ -329,4 +302,19 @@ class DenovornaAnnoStatisticsTool(Tool):
 
     def run(self):
         super(DenovornaAnnoStatisticsTool, self).run()
-        self.run_annotUnigene()
+        if self.option('genes').is_set:
+            self.sub_unigenes_from_transcipts()
+            self.statistics_annotation(trinity_mode=True)
+        else:
+            self.statistics_annotation()
+
+    def statistics_annotation(self, trinity_mode=False):
+        """
+        """
+        self._total_keys = ['unigene', 'NR_Hit-Name', 'NR_Description', 'NR_E-Value', 'NR_Simil', 'NR_taxtonomy',
+                            'NR_taxtonomy_full', 'String_name', 'String_description', 'COG', 'NOG',
+                            'GO_molecular_function', 'GO_biological_process', 'GO_cellular_component',
+                            'KO_ID', 'KO_Description', 'KEGG_GENE', 'KEGG_PATHWAY']
+        self.total_infos = defaultdict(dict(zip(self._total_keys, [''] * len(self._total_keys))))
+        if self.option('nr_blast_out'):
+            pass
