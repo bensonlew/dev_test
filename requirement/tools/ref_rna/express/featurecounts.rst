@@ -28,10 +28,6 @@ featureCounts：https://sourceforge.net/projects/subread/files/subread-1.5.0-p3/
 
 featureCounts -T 15 -a ref_genome.gtf -g gene_id -p -M -s 0 -o output sample.bam
 
-makeblastdb -dbtype DNA -in db.fa -parse_seqids -title test -out test
-
-[blastn|blastp|blastx|tblastx] -query query.fa -db db -out output -evalue 1e-5 -outfmt 5 -max_hsps 10 -max_target_seqs 10 -num_threads %s
-
 
 参数设计
 -----------------------------------
