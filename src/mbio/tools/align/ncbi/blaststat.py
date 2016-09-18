@@ -1,10 +1,11 @@
 ﻿# -*- coding: utf-8 -*-
 # __author__ = 'mengmeng.liu'
+import os
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 import subprocess
-from mbio.packages.align.blast.blastout_statistics import blastout_statistics
+# from mbio.packages.align.blast.blastout_statistics import blastout_statistics
 
 
 class BlaststatAgent(Agent):
@@ -61,16 +62,19 @@ class BlaststatTool(Tool):
 
     def __init__(self, config):
         super(BlaststatTool, self).__init__(config)
-        self.packages_path = 'packages/align/blast/blastout_statistics.py'
+        # self.packages_path = 'packages/align/blast/blastout_statistics.py'
 
     def run_stat(self, table_fp):
+        cmd = '{}/program/Python/bin/python {}/bioinfo/align/scripts/blastout_statistics.py'.format(
+            self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
+        cmd += " %s %s" % (table_fp, self.output_dir)
         self.logger.info("开始进行统计分析")
         self.logger.info(cmd)
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info("统计分析完成")
-        except Exception as e:
-            self.set_error("运行统计出错:{}".format(e))
+        except subprocess.CalledProcessError:
+            self.set_error("运行统计出错")
 
     def convert_xml(self):
         inputfile = self.option('in_stat').prop['path']
