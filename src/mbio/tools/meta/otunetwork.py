@@ -53,11 +53,13 @@ class OtunetworkAgent(Agent):
         if not self.option('otutable').is_set:
             raise OptionError('必须提供otu表')
         self.option('otutable').get_info()
-        self.option('grouptable').get_info()
+        if self.option('grouptable').is_set:
+            self.option('grouptable').get_info()
         if self.option('otutable').prop['sample_num'] < 2:
             raise OptionError('otu表的样本数目少于2，不可进行网络分析')
-        if self.option('grouptable').prop['sample_number'] < 2:
-            raise OptionError('分组表的样本数目少于2，不可进行网络分析')
+        if self.option('grouptable').is_set:
+            if self.option('grouptable').prop['sample_number'] < 2:
+                raise OptionError('分组表的样本数目少于2，不可进行网络分析')
         samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
         if self.option('grouptable').is_set:
             if len(self.option('grouptable').prop['sample']) > len(samplelist):
@@ -76,8 +78,8 @@ class OtunetworkAgent(Agent):
         """
         设置所需资源
         """
-        self._cpu = 2
-        self._memory = ''
+        self._cpu = 10
+        self._memory = '5G'
         
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -90,6 +92,7 @@ class OtunetworkAgent(Agent):
                 ["./real_dc_sample_otu_degree.txt", "txt", "OTU网络节点度分布表"],
                 ["./network_centrality.txt", "txt", "OTU网络中心系数表"],
                 ["./network_attributes.txt", "txt", "OTU网络单值属性表"],
+                ["./network_degree.txt", "txt", "OTU网络度统计总表"]
                 ])
         print self.get_upload_files()
         super(OtunetworkAgent, self).end()
@@ -100,9 +103,10 @@ class OtunetworkTool(Tool):
         super(OtunetworkTool, self).__init__(config)
         self._version = "1.0.1"
         self.cmd_path = self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/calc_otu_network.py'
-        self.group_table = self.option('grouptable').prop['path']
+        if self.option('grouptable').is_set:
+            self.group_table = self.option('grouptable').prop['path']
         self.otu_table = self.get_otu_table()
-        self.out_files = ['real_node_table.txt', 'real_edge_table.txt', 'real_dc_otu_degree.txt', 'real_dc_sample_degree.txt', 'real_dc_sample_otu_degree.txt', 'network_centrality.txt', 'network_attributes.txt']
+        self.out_files = ['real_node_table.txt', 'real_edge_table.txt', 'real_dc_otu_degree.txt', 'real_dc_sample_degree.txt', 'real_dc_sample_otu_degree.txt', 'network_centrality.txt', 'network_attributes.txt', 'network_degree.txt']
         
         
     def get_otu_table(self):
@@ -152,7 +156,7 @@ class OtunetworkTool(Tool):
             self.set_error('运行calc_otu_network.py失败')
         allfiles = self.get_filesname()
         for i in range(len(self.out_files)):
-            self.linkfile(self.work_dir + '/otu_network/' + allfiles[i], self.out_files[i])
+            self.linkfile(allfiles[i], self.out_files[i])
         self.end()
 
     def linkfile(self, oldfile, newname):
@@ -169,7 +173,7 @@ class OtunetworkTool(Tool):
 
     def get_filesname(self):
         filelist = os.listdir(self.work_dir + '/otu_network')
-        files_status = [None, None, None, None, None, None, None]
+        files_status = [None, None, None, None, None, None, None, None]
         for paths,d,filelist in os.walk(self.work_dir + '/otu_network'):
             for filename in filelist:
                 name = os.path.join(paths, filename)

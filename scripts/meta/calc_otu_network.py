@@ -55,6 +55,31 @@ for paths,d,filelist in os.walk(outFile):
         name = os.path.join(paths, filename)
         if "props" in name:
             os.remove(name)
+data_a = open(os.path.join(outFile, 'real_dc_otu_degree.txt')).readlines()[2:]
+data_b = open(os.path.join(outFile, 'real_dc_sample_degree.txt')).readlines()[2:]
+data_c = open(os.path.join(outFile, 'real_dc_sample_otu_degree.txt')).readlines()[2:]
+with open(os.path.join(outFile, 'network_degree.txt'), "w") as tmp_file:
+    tmp_file.write("OTU_Degree\tOTU_Num\tSample_Degree\tSample_Num\tNode_Degree\tNode_Num\n")
+    for i in range(max(len(data_a), len(data_b), len(data_c))):
+        if i < len(data_a):
+            tmp_file.write(data_a[i].strip()+"\t")
+        else:
+            tmp_file.write("None\tNone\t")
+        if i < len(data_b):
+            tmp_file.write(data_b[i].strip()+'\t')
+        else:
+            tmp_file.write('None\tNone\t')
+        if i < len(data_c):
+            tmp_file.write(data_c[i])
+        else:
+            tmp_file.write("None\tNone\n")
+
+data = open(os.path.join(outFile, 'real_node_table.txt')).readlines()
+with open(os.path.join(outFile, 'real_node_table.txt'), "w") as tmp_file:
+    for i in range(len(data)):
+        for s in data[i].strip().split()[:-1]:
+            tmp_file.write(s+'\t')
+        tmp_file.write('\n')
 
 """
 根据node表建立{节点名字---节点编号}的字典
@@ -175,7 +200,7 @@ Diameter = networkx.diameter(G)
 #网络平均最短路长度
 Average_shortest_path = networkx.average_shortest_path_length(G)
 with open(os.path.join(args["output"], "network_attributes.txt"), "w") as tmp_file:
-    tmp_file.write("Transitivity:"+str(Transitivity)+"\n")
-    tmp_file.write("Diameter:"+str(Diameter)+"\n")
-    tmp_file.write("Average_shortest_path_length:"+str(Average_shortest_path)+"\n")
+    tmp_file.write("Transitivity\t"+str(Transitivity)+"\n")
+    tmp_file.write("Diameter\t"+str(Diameter)+"\n")
+    tmp_file.write("Average_shortest_path_length\t"+str(Average_shortest_path)+"\n")
 
