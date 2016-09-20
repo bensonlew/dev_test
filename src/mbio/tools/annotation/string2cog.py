@@ -19,10 +19,9 @@ class String2cogAgent(Agent):
         options = [
             {"name": "blastout", "type": "infile",
                 "format": "align.blast.blast_xml"},
-            {"name": "E_value", "type": "float", "default": "1E-6"},
-            {"name": "min_Coverage", "type": "string", "default": "50%"}
+            # {"name": "E_value", "type": "float", "default": "1E-6"},
+            # {"name": "min_Coverage", "type": "string", "default": "50%"}
         ]
-        # E-value?
         self.add_option(options)
         self.step.add_steps('string2cog')
         self.on('start', self.step_start)
@@ -41,7 +40,7 @@ class String2cogAgent(Agent):
             document = ET.parse(self.option("blastout").prop['path'])
             root = document.getroot()
             db = root.find('BlastOutput_db')
-            if db.text == 'string':
+            if db.text.endswith('string'):
                 pass
             else:
                 raise OptionError("BLAST比对数据库不支持")
@@ -50,7 +49,7 @@ class String2cogAgent(Agent):
 
     def set_resource(self):
         self._cpu = 20
-        self._memory = ''
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

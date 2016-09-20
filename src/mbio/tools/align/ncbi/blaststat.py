@@ -5,7 +5,8 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 import subprocess
-from mbio.packages.align.blast.blastout_statistics import blastout_statistics
+# from mbio.packages.align.blast.blastout_statistics import blastout_statistics
+
 
 class BlaststatAgent(Agent):
     """
@@ -15,15 +16,16 @@ class BlaststatAgent(Agent):
     last_modify:2016.8.17 by wangbixuan
     """
 
-    def __init__(self,parent):
-        super(BlaststatAgent,self).__init__(parent)
+    def __init__(self, parent):
+        super(BlaststatAgent, self).__init__(parent)
         options = [
-        {"name":"in_stat","type":"infile","format":"align.blast.blast_table,align.blast.blast_xml"},
+            {"name": "in_stat", "type": "infile",
+                "format": "align.blast.blast_table,align.blast.blast_xml"},
         ]
         self.add_option(options)
         self.step.add_steps("stat_blast")
-        self.on('start',self.start_statblast)
-        self.on('end',self.end_statblast)
+        self.on('start', self.start_statblast)
+        self.on('end', self.end_statblast)
 
     def start_statblast(self):
         self.step.stat_blast.start()
@@ -46,10 +48,10 @@ class BlaststatAgent(Agent):
             [".", "", "结果输出目录"],
         ])
         result_dir.add_regexp_rules([
-            [r".*_evalue\.xls","xls","比对结果E-value分布图"],
-            [r".*_similar\.xls","xls","比对结果相似度分布图"]
+            [r".*_evalue\.xls", "xls", "比对结果E-value分布图"],
+            [r".*_similar\.xls", "xls", "比对结果相似度分布图"]
         ])
-        super(BlaststatAgent,self).end()
+        super(BlaststatAgent, self).end()
 
     def set_resource(self):
         self._cpu = 1
@@ -57,18 +59,19 @@ class BlaststatAgent(Agent):
 
 
 class BlaststatTool(Tool):
-    def __init__(self,config):
-        super(BlaststatTool,self).__init__(config)
-        #self.packages_path = 'packages/align/blast/blastout_statistics.py'
 
-    def run_stat(self,table_fp):
-        cmd='{}/program/Python/bin/python {}/bioinfo/align/scripts/blastout_statistics.py'.format(
+    def __init__(self, config):
+        super(BlaststatTool, self).__init__(config)
+        # self.packages_path = 'packages/align/blast/blastout_statistics.py'
+
+    def run_stat(self, table_fp):
+        cmd = '{}/program/Python/bin/python {}/bioinfo/align/scripts/blastout_statistics.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
-        cmd+=" %s %s"%(table_fp, self.output_dir)
+        cmd += " %s %s" % (table_fp, self.output_dir)
         self.logger.info("开始进行统计分析")
         self.logger.info(cmd)
         try:
-            subprocess.check_output(cmd,shell=True)
+            subprocess.check_output(cmd, shell=True)
             self.logger.info("统计分析完成")
         except subprocess.CalledProcessError:
             self.set_error("运行统计出错")
@@ -86,6 +89,6 @@ class BlaststatTool(Tool):
         self.run_stat(inputfile)
 
     def run(self):
-        super(BlaststatTool,self).run()
+        super(BlaststatTool, self).run()
         self.convert_xml()
         self.end()

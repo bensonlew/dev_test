@@ -68,10 +68,35 @@ class BlastXmlFile(File):
         from mbio.packages.align.blast.xml2table import xml2table
         xml2table(self.path, outfile)
 
+    def sub_xml(self, query_list):
+        pass
+
+    def change_blast_version(self, fp, version='2.2.25+'):
+        """
+        特殊为blast2go准备，程序特定不能做当前2.3.0+版本的blast+
+        """
+        with open(self.path) as f, open(fp, 'w') as w:
+            for line in f:
+                l_str = line.strip()
+                if l_str.startswith('<BlastOutput_version>'):
+                    if '2.3.0+' not in line:
+                        raise Exception('blast 程序版本不是2.3.0版本，此处报错不是必须用2.3.0版本，而是b2gPipe程序需要版本为2.2.25，此处特殊改为2.2.25，依然可以进行blast2go，\
+                            但是不代表后续版本仍然可以使用，既然blast版本修改，请重新检查')
+                    line = line.replace('2.3.0+', version)
+                    w.write(line)
+                    break
+                else:
+                    w.write(line)
+            for line in f:
+                w.write(line)
+        return fp
+
+
 if __name__ == '__main__':  # for test
     a = BlastXmlFile()
     # a.set_path('C:\\Users\\sheng.he.MAJORBIO\\Desktop\\annotation\\annotation\\NR\\transcript.fa_vs_nr.blasttable.xls')
-    a.set_path('C:\\Users\\sheng.he.MAJORBIO\\Desktop\\annotation\\annotation\\NR\\transcript.fa_vs_nr.xml')
+    a.set_path("C:\\Users\\sheng.he.MAJORBIO\\Desktop\\blast_result\\Trinity_vs_nr.xml")
     a.check()
     a.get_info()
-    a.convert2table('C:\\Users\\sheng.he.MAJORBIO\\Desktop\\test.xls')
+    # a.convert2table('C:\\Users\\sheng.he.MAJORBIO\\Desktop\\test.xls')
+    a.change_blast_version("C:\\Users\\sheng.he.MAJORBIO\\Desktop\\blast_result\\Trinity_vs_nr.xml_new")
