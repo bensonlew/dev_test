@@ -24,7 +24,7 @@ class RandomforestAgent(Agent):
             {"name": "grouptable", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "ntree", "type": "int", "default": 500 },
             {"name": "problem_type", "type": "int", "default": 2 },
-            {"name": "top_number", "type": "int", "default": 50}
+            {"name": "top_number", "type": "int", "default": 32767}
             ]
         self.add_option(options)
         self.step.add_steps('RandomforestAnalysis')
@@ -75,8 +75,7 @@ class RandomforestAgent(Agent):
         if len(table.readlines()) < 4 :
             raise OptionError('数据表信息少于3行')
         table.close()
-        if self.option('top_number') > self.option('otutable').prop['otu_num']:
-            self.option('top_number', self.option('otutable').prop['otu_num'])
+        self.option('top_number', self.option('otutable').prop['otu_num'])
         return True
     
     def set_resource(self):
@@ -93,8 +92,8 @@ class RandomforestAgent(Agent):
             ["./randomforest_confusion_table.xls", "xls", "RandomForest样本分组模拟结果"],
             ["./randomforest_mds_sites.xls", "xls", "样本点坐标表"],
             ["./randomforest_proximity_table.xls", "xls", "样本相似度临近矩阵"],
-            ["./randomforest_topx_vimp.xls", "xls", "Top-X物种(环境因子)丰度表"],
-            ["./randomforest_vimp_table.xls", "xls", "所有物种(环境因子)重要度表"],
+            ["./randomforest_topx_vimp.xls", "xls", "Top-X物种分布情况统计表"],
+            ["./randomforest_vimp_table.xls", "xls", "所有物种重要度表"],
             ["./randomforest_predicted_answer.xls", "xls", "随机森林预测分组结果表"],
             ["./randomforest_votes_probably.xls","xls", "随机森林各样本分组投票预测概率表"]
         ])
@@ -171,13 +170,12 @@ class RandomforestTool(Tool):
         self.linkfile(self.work_dir + '/RandomForest/' + allfiles[2], 'randomforest_proximity_table.xls')
         self.linkfile(self.work_dir + '/RandomForest/' + allfiles[3], 'randomforest_topx_vimp.xls')
         self.linkfile(self.work_dir + '/RandomForest/' + allfiles[4], 'randomforest_vimp_table.xls')
-        if self.option('grouptable').is_set:
-            if allfiles[0] and allfiles[5] and allfiles[6]:
-                self.linkfile(self.work_dir + '/RandomForest/' + allfiles[0], 'randomforest_confusion_table.xls')
-                self.linkfile(self.work_dir + '/RandomForest/' + allfiles[5], 'randomforest_predicted_answer.xls')
-                self.linkfile(self.work_dir + '/RandomForest/' + allfiles[6], 'randomforest_votes_probably.xls')
-            else:
-                self.set_error('按分组计算的文件生成出错')
+        if allfiles[0] and allfiles[5] and allfiles[6]:
+            self.linkfile(self.work_dir + '/RandomForest/' + allfiles[0], 'randomforest_confusion_table.xls')
+            self.linkfile(self.work_dir + '/RandomForest/' + allfiles[5], 'randomforest_predicted_answer.xls')
+            self.linkfile(self.work_dir + '/RandomForest/' + allfiles[6], 'randomforest_votes_probably.xls')
+        else:
+            self.set_error('按分组计算的文件生成出错')
         self.end()
         
     def linkfile(self, oldfile, newname):
@@ -190,7 +188,51 @@ class RandomforestTool(Tool):
         newpath = os.path.join(self.output_dir, newname)
         if os.path.exists(newpath):
             os.remove(newpath)
+        if 'predicted_answer' in oldfile:
+            data = open(oldfile).readlines()[1:]
+            with open(oldfile, "w") as tmp_file:
+                tmp_file.write("Sample_Name\tPredicted_Group\n")
+                for s in data:
+                    tmp_file.write(s)
+        if 'vimp_table' in oldfile:
+            data = open(oldfile).readlines()
+            with open(oldfile, "w") as tmp_file:
+                tmp_file.write("Taxon\t")
+                for s in data:
+                    tmp_file.write(s)
+        if 'topx_vimp' in oldfile:
+            data = open(oldfile).readlines()
+            with open(oldfile, "w") as tmp_file:
+                tmp_file.write("Taxon\t")
+                for s in data:
+                    tmp_file.write(s)
+        if 'confusion' in oldfile:
+            data = open(oldfile).readlines()
+            with open(oldfile, "w") as tmp_file:
+                tmp_file.write("Std/Pred\t")
+                for s in data:
+                    tmp_file.write(s)
+        if 'mds_sites' in oldfile:
+            data = open(oldfile).readlines()[1:]
+            with open(oldfile, "w") as tmp_file:
+                tmp_file.write("Sample\tHorizontal_coordinate\tVertical_coordinate\n")
+                for s in data:
+                    tmp_file.write(s)
+        if 'proximity' in oldfile:
+            data = open(oldfile).readlines()
+            with open(oldfile, "w") as tmp_file:
+                tmp_file.write("Sample\t")
+                for s in data:
+                    tmp_file.write(s)
+        if 'votes' in oldfile:
+            data = open(oldfile).readlines()
+            with open(oldfile, "w") as tmp_file:
+                tmp_file.write("Sample\t")
+                for s in data:
+                    tmp_file.write(s)            
+
         os.link(oldfile, newpath)
+  
 
     def get_filesname(self):
         filelist = os.listdir(self.work_dir + '/RandomForest')
