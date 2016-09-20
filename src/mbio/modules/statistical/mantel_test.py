@@ -7,8 +7,8 @@ import os
 class MantelTestModule(Module):
     """
     module for mantel test
-    last modified : 20160725
     author: wangbixuan
+    last modified : 20160913 by qindanhua
     """
     MATRIX = ['abund_jaccard', 'binary_chisq', 'binary_chord', 'binary_euclidean', 'binary_hamming', 'binary_jaccard',
               'binary_lennon', 'binary_ochiai', 'binary_otu_gain', 'binary_pearson', 'binary_sorensen_dice',
@@ -40,8 +40,9 @@ class MantelTestModule(Module):
         self.otudistance = self.add_tool('meta.beta_diversity.distance_calc')
         self.facdistance = self.add_tool('statistical.factor_distance')
         self.discomparison = self.add_tool('statistical.discomparison')
+        self.partial = self.add_tool('statistical.factor_distance')
         self.add_option(options)
-        self.step.add_steps('otudistance', 'facdistance', 'discomparison')
+        self.step.add_steps('otudistance', 'facdistance', 'discomparison', 'partial')
 
     def gettable(self):
         """
@@ -97,51 +98,76 @@ class MantelTestModule(Module):
         self.otudistance.run()
 
     def facdistance_run(self):
-        self.facdistance.set_options({
-            'factor':self.option('factor'),
-            'facmatrixtype':self.option('factormatrixtype')
-            # 'factorselected':self.option('factorselected')
-            })
+        options = {
+            'factor': self.option('factor'),
+            'facmatrixtype': self.option('factormatrixtype')
+            }
+        if self.option('factorselected'):
+            options['factorselected'] = self.option('factorselected')
+        self.facdistance.set_options(options)
         self.step.facdistance.start()
-        self.facdistance.on("end",self.set_output,'facdistance')
-        #self.facdistance.on("end",self.discomparison_run)
+        self.facdistance.on("end", self.set_output, 'facdistance')
+        # self.facdistance.on("end",self.discomparison_run)
         self.facdistance.run()
 
+    def partial_run(self):
+        options = {
+            'factor': self.option('factor'),
+            'facmatrixtype': self.option('factormatrixtype'),
+            'factorselected': self.option('partial_factor')
+            }
+        self.partial.set_options(options)
+        self.step.partial.start()
+        self.partial.on("end", self.set_output, 'partial')
+        # self.facdistance.on("end",self.discomparison_run)
+        self.partial.run()
+
     def discomparison_run(self):
-        self.discomparison.set_options({
-            'otudistance':self.otudistance.option('dis_matrix'),
-            'facdistance':self.facdistance.option('fac_matrix'),
-            'partialmatrix':self.option('partialmatrix')
-            })
+        options = {
+            'otudistance':  self.otudistance.option('dis_matrix'),
+            'facdistance': self.facdistance.option('fac_matrix')
+            }
+        if self.option('partial_factor'):
+            options['partialmatrix'] = self.option('partialmatrix')
+        self.discomparison.set_options(options)
         self.step.discomparison.start()
-        self.discomparison.on("end",self.set_output,'discompare')
+        self.discomparison.on("end", self.set_output, 'discompare')
         self.discomparison.run()
 
     def run(self):
-        super(MantelTestModule,self).run()
+        super(MantelTestModule, self).run()
         self.otudistance_run()
         self.step.update()
         self.facdistance_run()
         self.step.update()
-        self.on_rely([self.otudistance,self.facdistance],self.discomparison_run)
-        #self.on_rely(self.discomparison_run,self.end)
-        self.discomparison.on("end",self.end)
+        if self.option("partial_factor"):
+            self.partial_run()
+            self.step.update()
+            self.on_rely([self.otudistance, self.facdistance, self.partial], self.discomparison_run)
+        else:
+            self.on_rely([self.otudistance, self.facdistance], self.discomparison_run)
+        # self.on_rely(self.discomparison_run,self.end)
+        self.discomparison.on("end", self.end)
 
-    def set_output(self,event):
-        obj=event['bind_object']
-        if event['data']=='facdistance':
-            self.linkdir(obj.output_dir,'Facdistance')
+    def set_output(self, event):
+        obj = event['bind_object']
+        if event['data'] == 'facdistance':
+            self.linkdir(obj.output_dir, 'Facdistance')
             self.step.facdistance.finish()
-        elif event['data']=='otudistance':
-            self.linkdir(obj.output_dir,'Otudistance')
+        elif event['data'] == 'otudistance':
+            self.linkdir(obj.output_dir, 'Otudistance')
             self.step.otudistance.finish()
-        elif event['data']=='discompare':
-            self.linkdir(obj.output_dir,'Discompare')
+        elif event['data'] == 'discompare':
+            self.linkdir(obj.output_dir, 'Discompare')
+            self.step.discomparison.finish()
+        elif event['data'] == 'partial':
+            self.linkdir(obj.output_dir, 'partial')
+            self.option('partialmatrix').set_path(os.path.join(obj.output_dir, "factor_out.xls"))
             self.step.discomparison.finish()
         else:
             pass
 
-    def linkdir(self,dirpath,dirname):
+    def linkdir(self, dirpath, dirname):
         """
         link一个文件夹下的所有文件到本module的output目录
         :param dirpath: 传入文件夹路径
@@ -165,18 +191,18 @@ class MantelTestModule(Module):
         self.end()
 
     def end(self):
-        repaths=[
-            [".","","Mantel_test计算结果文件目录"],
-            ["otu_distance.xls","xls","样本距离矩阵文件"],
-            ["factor_distance.xls","xls","环境因子距离矩阵文件"],
-            ["mantel_results.txt","txt","Discomparison结果"]
+        repaths = [
+            [".", "", "Mantel_test计算结果文件目录"],
+            ["otu_distance.xls", "xls", "样本距离矩阵文件"],
+            ["factor_distance.xls", "xls", "环境因子距离矩阵文件"],
+            ["mantel_results.txt", "txt", "Discomparison结果"]
         ]
-        regexps=[
+        regexps = [
             [r'%s.*\.xls' % self.option('otumatrixtype'), 'xls', '样本距离矩阵文件'],
-            [r'%s.*\.xls' % self.option('factormatrixtype'),'xls','环境因子距离矩阵文件'],
-            ["./mantel_results.txt","txt","Discomparison结果"]
+            [r'%s.*\.xls' % self.option('factormatrixtype'), 'xls', '环境因子距离矩阵文件'],
+            ["./mantel_results.txt", "txt", "Discomparison结果"]
         ]
-        sdir=self.add_upload_dir(self.output_dir)
+        sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
-        super(MantelTestModule,self).end()
+        super(MantelTestModule, self).end()
