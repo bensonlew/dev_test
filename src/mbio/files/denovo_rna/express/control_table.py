@@ -4,6 +4,7 @@
 import re
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
+from collections import Counter
 
 
 class ControlTableFile(File):
@@ -18,7 +19,6 @@ class ControlTableFile(File):
         获取文件属性
         """
         super(ControlTableFile, self).get_info()
-        self.get_control_dict()
         num, vs_list = self.get_control_info()
         if num == 0:
             raise Exception('对照方案至少为1')
@@ -26,42 +26,30 @@ class ControlTableFile(File):
 
     def get_control_info(self):
         """
-        :return:对照样本（组）数目：num；包含两两比较的样本（分组）元组的列表
+        :return:对照样本（组）数目：num；包含两两比较的样本（分组）元组的列表:[(对照，实验), (对照，实验)]
         """
         with open(self.prop['path'], 'rb') as r:
             lines = r.readlines()
-            num = len(lines) - 1
-            vs_list = []
-            for line in lines[1:]:
-                vs = line.strip('\n').split()[0]
-                if not re.findall(r'_vs_', vs):
-                    raise FileError('两两比较方案须以（样本名/分组名_vs_样本名/分组名）的形式定义')
-                elif len(re.findall(r'_vs_', vs)) > 1:
-                    raise FileError('两两比较方案须以（样本名/分组名_vs_样本名/分组名）的形式定义且只能有一个_vs_')
-                sams = vs.split('_vs_')
-                if line.strip('\n').split()[1] not in sams:
-                    raise FileError('两两比较方案中不含此对照组（样本）名字')
-                vs_list.append(tuple(sams))
-                if sams[0] == sams[1]:
-                    raise FileError('两两比较方案中样本（分组）名字相同！')
-            return num, vs_list
-
-    def get_control_dict(self):
-        """
-        :return:键为两两比较的样本/分组的信息，值为对照样本/分组,实验样本/组
-        """
-        with open(self.prop['path'], 'rb') as tempfile:
-            lines = tempfile.readlines()
             if not lines:
                 raise FileError('对照组文件为空')
-            adict = dict()
+            if not re.match(r'^#', lines[0]):
+                raise FileError('对照文件格式有误，表头应为#开头')
+            num = len(lines) - 1
+            vs_list = []
+            sam_list = []
             for line in lines[1:]:
-                info = line.strip().split()
-                sam = info[0].split('_vs_')
-                # print sam,info[1].strip()
-                sam.remove(info[1].strip())
-                adict[info[0]] = [info[1], sam[0]]
-        return adict
+                control = line.strip('\n').split()[0]
+                other = line.strip('\n').split()[1]
+                vs_list.append((control, other))
+                sam_list.append((other, control))
+                if control == other:
+                    raise FileError('对照组：{}与实验组：{}名字相同！'.format(control, other))
+            sam_list += vs_list
+            count = Counter(sam_list).values()
+            for i in count:
+                if i != 1:
+                    raise FileError("同一个两两比较分组中出现不同的对照组，请检查")
+            return num, vs_list
 
     def check(self):
         """

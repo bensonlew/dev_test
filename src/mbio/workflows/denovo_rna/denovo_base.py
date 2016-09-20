@@ -56,11 +56,11 @@ class DenovoBaseWorkflow(Workflow):
         self.orf_len = self.add_tool("meta.qc.reads_len_info")
         self.step.add_steps("qcstat", "assemble", "annotation", "express", "gene_structure", "map_stat")
         self.final_tools = list()
-        self.logger.info('{}'.format(self.events))
-        self.logger.info('{}'.format(self.children))
-        self.logger.info('{}'.format(self._upload_dir_obj))
-        self.logger.info('{}'.format(self.qc_stat_before._upload_dir_obj))
-        self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
+        # self.logger.info('{}'.format(self.events))
+        # self.logger.info('{}'.format(self.children))
+        # self.logger.info('{}'.format(self._upload_dir_obj))
+        # self.logger.info('{}'.format(self.qc_stat_before._upload_dir_obj))
+        # self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
 
     def check_options(self):
         """

@@ -30,7 +30,8 @@ class AssembleAgent(Agent):
             {"name": "min_kmer_cov", "type": "int", "default": 2},
             {"name": "SS_lib_type", "type": "string", "default": 'none'},  # reads的方向，成对的reads: RF or FR; 不成对的reads: F or R，默认情况下，不设置此参数
             {"name": "gene_fa", "type": "outfile", "format": "sequence.fasta"},
-            {"name": "trinity_fa", "type": "outfile", "format": "sequence.fasta"}
+            {"name": "trinity_fa", "type": "outfile", "format": "sequence.fasta"},
+            {"name": "gene_full_name", "type": "outfile", "format": "denovo_rna.express.gene_list"}
         ]
         self.add_option(options)
         self.step.add_steps("assemble")
@@ -162,7 +163,7 @@ class AssembleTool(Tool):
         if command.return_code == 0:
             self.logger.info("trinity运行完成")
             trinity_info = get_trinity_info(self.work_dir + '/trinity_out_dir/Trinity.fasta')
-            result = stat_info(trinity_info, self.work_dir + '/gene.fasta', self.work_dir + '/trinity.fasta.stat.xls', self.work_dir, self.option('length'))  # 运行trnity_stat.py，对trinity.fatsa文件进行统计
+            result = stat_info(trinity_info, self.work_dir + '/gene.fasta', self.work_dir + '/trinity.fasta.stat.xls', self.work_dir, self.option('length'), self.work_dir + '/gene_full_name.txt')  # 运行trnity_stat.py，对trinity.fatsa文件进行统计
             if result:
                 self.logger.info('trinity_stat.py运行成功，统计trinity.fasta信息成功')
                 self.set_output()
@@ -188,6 +189,7 @@ class AssembleTool(Tool):
             os.link(self.work_dir + '/trinity.fasta.stat.xls', self.output_dir + '/trinity.fasta.stat.xls')
             self.option('gene_fa').set_path(self.work_dir + '/gene.fasta')
             self.option('trinity_fa').set_path(self.work_dir + '/trinity_out_dir/Trinity.fasta')
+            self.option('gene_full_name', self.work_dir + '/gene_full_name.txt')
             self.logger.info("设置组装拼接分析结果目录成功")
             self.end()
         except Exception as e:

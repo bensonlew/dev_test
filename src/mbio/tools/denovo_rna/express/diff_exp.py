@@ -26,7 +26,7 @@ class DiffExpAgent(Agent):
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
             {"name": "min_rowsum_counts", "type": "int", "default": 2},  # 离散值估计检验的最小计数值
             {"name": "edger_group", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
-            {"name": "sample_list", "type": "string", "default": ''},  # 选择计算表达量的样本名，多个样本用‘，’隔开,有重复时没有该参数
+            # {"name": "sample_list", "type": "string", "default": ''},  # 选择计算表达量的样本名，多个样本用‘，’隔开,有重复时没有该参数
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
             {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因计数表
@@ -65,17 +65,17 @@ class DiffExpAgent(Agent):
             raise OptionError("显著性水平不在(0,1)范围内")
         if self.option("diff_rate") > 1 or self.option("diff_rate") <= 0:
             raise OptionError("期望的差异基因比率不在(0，1]范围内")
-        if self.option("sample_list") != '' and self.option("edger_group").is_set:
-            raise OptionError("有生物学重复时不可设sample_list参数")
+        # if self.option("sample_list") != '' and self.option("edger_group").is_set:
+        #     raise OptionError("有生物学重复时不可设sample_list参数")
         samples, genes = self.option('count').get_matrix_info()
-        if self.option("sample_list") != '':
-            sam = self.option("sample_list").split(',')
-            for i in sam:
-                if i not in samples:
-                    raise OptionError("传入的样本列表里的样本%s不在fpkm表里" % i)
-        if self.option("sample_list") != '':
-            vs_list = list(itertools.permutations(sam, 2))
-        elif self.option("edger_group").is_set:
+        # if self.option("sample_list") != '':
+        #     sam = self.option("sample_list").split(',')
+        #     for i in sam:
+        #         if i not in samples:
+        #             raise OptionError("传入的样本列表里的样本%s不在fpkm表里" % i)
+        # if self.option("sample_list") != '':
+        #     vs_list = list(itertools.permutations(sam, 2))
+        if self.option("edger_group").is_set:
             gnames = self.option('edger_group').get_group_name(self.option('gname'))
             vs_list = list(itertools.permutations(gnames, 2))
         else:
@@ -175,11 +175,9 @@ class DiffExpTool(Tool):
             pass
 
     def run_stat_egder(self):
-        control_dict = self.option('control_file').get_control_dict()
-        self.logger.info(str(control_dict))
         edger_results = os.listdir(self.work_dir + '/edger_result')
-        sams = control_dict.values()
-        # edger_file = []
+        num, sams = self.option('control_file').get_control_info()
+        self.logger.info(str(sams))
         for i in sams:
             for afile in edger_results:
                 if re.search(r'edgeR.DE_results$', afile):
