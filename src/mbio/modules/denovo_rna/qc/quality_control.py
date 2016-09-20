@@ -268,11 +268,14 @@ class QualityControlModule(Module):
             self.end()
 
     def run(self):
+        self.logger.info('{}'.format(self.events))
         # super(QualityControlModule, self).run()
         if self.option("fq_type") in ["PE"]:
             self.seqprep_run()
         else:
             self.clipper_run()
+        for eve in self.events.values():
+            self.logger.info('{}'.format(eve.is_start))
         super(QualityControlModule, self).run()
 
     def end(self):

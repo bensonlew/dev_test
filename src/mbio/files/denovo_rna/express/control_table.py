@@ -30,7 +30,7 @@ class ControlTableFile(File):
         """
         with open(self.prop['path'], 'rb') as r:
             lines = r.readlines()
-            num = len(lines)-1
+            num = len(lines) - 1
             vs_list = []
             for line in lines[1:]:
                 vs = line.strip('\n').split()[0]

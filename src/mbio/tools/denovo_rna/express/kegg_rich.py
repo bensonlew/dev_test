@@ -16,7 +16,7 @@ class KeggRichAgent(Agent):
     def __init__(self, parent):
         super(KeggRichAgent, self).__init__(parent)
         options = [
-            {"name": "kegg_path", "type": "infile", "format": "denovo_rna.express.gene_list"},  # KEGG的pathway文件
+            {"name": "kegg_path", "type": "infile", "format": "denovo_rna.annotation.kegg.kegg_list"},  # KEGG的pathway文件
             {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 两两样本/分组的差异基因文件
             {"name": "correct", "type": "string", "default": "BH"}  # 多重检验校正方法
         ]

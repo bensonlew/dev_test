@@ -18,7 +18,7 @@ class ExpressMatrixFile(File):
         获取文件属性
         """
         super(ExpressMatrixFile, self).get_info()
-        samples,genes = self.get_matrix_info()
+        samples, genes = self.get_matrix_info()
         self.set_property('sample', samples)
         self.set_property('gene', genes)
 
@@ -47,3 +47,14 @@ class ExpressMatrixFile(File):
             self.get_info()
             if self.prop['gene'] == 0:
                 raise FileError('表达量矩阵至少有一个基因')
+
+    def get_list(self, output):
+        with open(self.prop['path'], 'rb') as r, open(output, 'wb') as w:
+            i = 0
+            for f in r:
+                i += 1
+                if i == 1:
+                    pass
+                else:
+                    w.write(f.split('\t')[0] + '\n')
+        return output

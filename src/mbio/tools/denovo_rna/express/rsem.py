@@ -6,6 +6,7 @@ from biocluster.core.exceptions import OptionError
 import os
 import re
 
+
 class RsemAgent(Agent):
     """
     调用align_and_estimate_abundance.pl脚本，运行rsem，进行表达量计算分析
@@ -16,13 +17,14 @@ class RsemAgent(Agent):
     def __init__(self, parent):
         super(RsemAgent, self).__init__(parent)
         options = [
-            {"name": "fq_type", "type": "string"}, # PE OR SE
-            {"name": "rsem_fa", "type": "infile", "format": "sequence.fasta"},  #trinit.fasta文件
+            {"name": "fq_type", "type": "string"},  # PE OR SE
+            {"name": "rsem_fa", "type": "infile", "format": "sequence.fasta"},  # trinit.fasta文件
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件夹
-            {"name": "fa_build", "type": "outfile", "format": "sequence.fasta"},
-            {"name": "only_bowtie_build", "type": "bool", "default": False}  #  为true时该tool只建索引
+            {"name": "fa_build", "type": "outfile", "format": "sequence.fasta"},  # trinit.fasta文件
+            {"name": "only_bowtie_build", "type": "bool", "default": False},  # 为true时该tool只建索引
+            {"name": "bowtie_build_rsem", "type": "bool", "default": False}  # 为true时该tool只建索引
         ]
         self.add_option(options)
         self.step.add_steps("rsem")
@@ -63,7 +65,7 @@ class RsemAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -72,7 +74,7 @@ class RsemAgent(Agent):
         ])
         result_dir.add_regexp_rules([
             [r"results$", "xls", "rsem结果"]
-            ])
+        ])
         super(RsemAgent, self).end()
 
 
@@ -92,14 +94,15 @@ class RsemTool(Tool):
         self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
         self.set_environ(PATH=self.rsem_path)
         self.set_environ(PATH=self.bowtie_path)
+        # self.rsem_fasta = self.work_dir + '/' + os.path.basename(self.option('rsem_fa').prop['path'])
 
     def bowtie_build(self):
         rsem_fasta = self.work_dir + '/' + os.path.basename(self.option('rsem_fa').prop['path'])
         if os.path.exists(rsem_fasta):
             os.remove(rsem_fasta)
-            os.link(self.option('rsem_fa').prop['path'],rsem_fasta)
+            os.link(self.option('rsem_fa').prop['path'], rsem_fasta)
         else:
-            os.link(self.option('rsem_fa').prop['path'],rsem_fasta)
+            os.link(self.option('rsem_fa').prop['path'], rsem_fasta)
         cmd = self.rsem + ' --transcripts %s --seqType fq --single test.fq --est_method  RSEM --output_dir %s --trinity_mode --aln_method bowtie2 --prep_reference' % (rsem_fasta, self.work_dir)
         self.logger.info('开始运行bowtie2建索引')
         bowtie_cmd = self.add_command('bowtie_build', cmd).run()
@@ -110,15 +113,14 @@ class RsemTool(Tool):
         else:
             self.set_error("%s运行出错!" % bowtie_cmd)
 
-    def run_rsem(self):
+    def run_rsem(self, rsem_fasta):
         if self.option('fq_type') == 'SE':
             sample = os.path.basename(self.option('fq_s').prop['path']).split('_sickle_s.fastq')[0]
-            # os.system('cp {} ./{}.bam'.format(self.option('bam').prop['path'], sample))
-            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --single %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (self.option('rsem_fa').prop['path'], self.option('fq_s').prop['path'], self.work_dir, sample)
+            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --single %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (rsem_fasta, self.option('fq_s').prop['path'], self.work_dir, sample)
         else:
             sample = os.path.basename(self.option('fq_l').prop['path']).split('_sickle_l.fastq')[0]
-            # os.system('cp {} ./{}.bam'.format(self.option('bam').prop['path'], sample))
-            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --right %s --left %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (self.option('rsem_fa').prop['path'], self.option('fq_r').prop['path'], self.option('fq_l').prop['path'], self.work_dir, sample)
+            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --right %s --left %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (rsem_fasta, self.option('fq_r').prop['path'], self.option('fq_l').prop['path'], self.work_dir, sample)
+
         self.logger.info("开始运行_rsem_cmd")
         cmd = self.add_command("rsem_cmd", rsem_cmd).run()
         self.wait()
@@ -150,6 +152,10 @@ class RsemTool(Tool):
         if self.option('only_bowtie_build'):
             self.bowtie_build()
         else:
-            self.run_rsem()
+            if self.option('bowtie_build_rsem'):
+                self.bowtie_build()
+                self.run_rsem(self.option('fa_build').prop['path'])
+            else:
+                self.run_rsem(self.option('rsem_fa').prop['path'])
         self.set_output()
         self.end()

@@ -20,12 +20,12 @@ class NetworkAgent(Agent):
     def __init__(self, parent):
         super(NetworkAgent, self).__init__(parent)
         options = [
-            {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  #输入文件，差异基因表达量矩阵
+            {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，差异基因表达量矩阵
             {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "softpower", "type": "int", "default": 9},
-            {"name": "dissimilarity",  "type": "float", "default": 0.25},
-            {"name": "module", "type": "float", "default": 0.6},
-            {"name": "network", "type": "float", "default": 0.6}
+            {"name": "dissimilarity", "type": "float", "default": 0.25},
+            {"name": "module", "type": "float", "default": 0.1},
+            {"name": "network", "type": "float", "default": 0.2}
         ]
         self.add_option(options)
         self.step.add_steps("network")
@@ -85,7 +85,7 @@ class NetworkAgent(Agent):
         ])
         result_dir.add_regexp_rules([
             [r"^CytoscapeInput.*", "txt", "Cytoscape作图数据"]
-            ])
+        ])
         super(NetworkAgent, self).end()
 
 
@@ -97,7 +97,7 @@ class NetworkTool(Tool):
         super(NetworkTool, self).__init__(config)
         self._version = '1.0.1'
         self.r_path = '/program/R-3.3.1/bin/Rscript'
-        self.script_path = self.config.SOFTWARE_DIR +  '/bioinfo/rna/scripts/'
+        self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/'
         self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
         self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
         self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
