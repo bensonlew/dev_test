@@ -48,6 +48,7 @@ class Estimator(Base):
                 "name": name if name else "estimators_origin",
                 "level_id": level,
                 "status": "end",
+                "desc": "",
                 "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }

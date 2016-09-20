@@ -106,6 +106,7 @@ class Rarefaction(Base):
             "name": name if name else "rarefaction_origin",
             "level_id": level,
             "status": "start",
+            "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             # "group_id": group_id,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
