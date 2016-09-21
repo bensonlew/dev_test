@@ -35,7 +35,8 @@ class Instant(object):
             self._task_object.run()
             self._mongo_ids = self._task_object.return_mongo_ids
             for i in self._mongo_ids:
-                self.add_sg_status(i['id'], i['collection_name'], i['desc'])
+                if i["add_in_sg_status"]:
+                    self.add_sg_status(i['id'], i['collection_name'], i['desc'])
             self._uploadDirObj = self._task_object._upload_dir_obj
             self.format_result()
             # 整理返回前端结果
