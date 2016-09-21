@@ -285,8 +285,8 @@ class Workflow(Basic):
         """
         # while self.is_end is False:
         #     gevent.sleep(60)
-        if self.is_start is True:
-            return False
+        if self.is_end is True:
+            return "exit"
         try:
             self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
                           vars={'id': self._id})
@@ -313,8 +313,8 @@ class Workflow(Basic):
         :return:
         """
         # while self.is_end is False:
-        if self.is_start is True:
-            return False
+        if self.is_end is True:
+            return "exit"
         if (datetime.datetime.now() - self.last_update).seconds > self.config.MAX_WAIT_TIME:
             self.exit(data="超过 %s s没有任何运行更新，退出运行！" % self.config.MAX_WAIT_TIME)
         gevent.sleep(10)
@@ -344,8 +344,8 @@ class Workflow(Basic):
 
         :return:
         """
-        if self.is_start is True:
-            return False
+        if self.is_end is True:
+            return "exit"
         myvar = dict(id=self._id)
         try:
             results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and "
