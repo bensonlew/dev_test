@@ -5,7 +5,7 @@
 Path
 -----------
 
-**ref_rna.protein_regulation.PPInetwork**
+**ref_rna.protein_regulation**
 
 程序安装路径
 -----------------------------------
