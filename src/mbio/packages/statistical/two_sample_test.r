@@ -8,7 +8,7 @@ s1 <- "${sample1}"
 s2 <- "${sample2}"
 otu_data <- otu_data[,which(samp %in% c(s1,s2))]
 otu_data <- otu_data[apply(otu_data,1,function(x)any(x>0)),]
-
+lendata <- nrow(otu_data)
 result <- matrix(nrow = nrow(otu_data),ncol = 3)
 pvalue <- 1
 for(i in 1:nrow(otu_data)){
@@ -39,4 +39,8 @@ result <- cbind(result,pvalue)
 result <- cbind(result,qvalue)
 colnames(result) <- c(" ",paste(s1,"-propotion",sep=''),paste(s2,"-propotion",sep=''),"pvalue","corrected_pvalue")
 result_order <- result[order(-(as.numeric(result[,2])+as.numeric(result[,3]))),]
+if(lendata == 1){
+  a <- data.frame(result_order)
+  result_order <- t(a)
+}
 write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)
