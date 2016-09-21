@@ -13,7 +13,7 @@ class DenovoRnaSample(Base):
         self._db_name = Config().MONGODB
 
     @report_check
-    def add_samples_info(self, qc_stat, qc_adapt=None):
+    def add_samples_info(self, qc_stat, qc_adapt=None, fq_type='se'):
         stat_file = qc_stat + "/fastq_stat.xls"
         dup_file = qc_stat + "/dup.xls"
         dup = ""
@@ -66,7 +66,7 @@ class DenovoRnaSample(Base):
                         "q20_rate": float(line[12]),
                         "gc_rate": float(line[13]),
                         "about_qc": "before",
-                        "type": "se"   # 怎么得知待定
+                        "type": fq_type   # 怎么得知待定
                         }
                 if line[0] in dup_rate:
                     if dup == "se":
