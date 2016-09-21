@@ -94,8 +94,6 @@ class AlphaDiversityModule(Module):
         os.link(estimators, self.output_dir + '/estimators.xls')
         os.system('cp -r %s %s' % (rarefaction, self.output_dir))
         for estimators in self.option('rarefy_indices').split(','):
-            # if estimators == "sobs":
-            #     estimators = "sobs"
             est_path = self.work_dir + '/Rarefaction/output/%s/' % estimators
             os.system('cp -r %s %s' % (est_path, self.output_dir))
         # self.option('estimators').set_path(self.output_dir+'/estimators')
