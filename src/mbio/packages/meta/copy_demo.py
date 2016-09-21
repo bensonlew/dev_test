@@ -364,6 +364,8 @@ class CopyMongo(object):
         """
         coll = self.db.sg_task
         find = coll.find_one({'task_id': self._old_task_id})
+        if not find:
+            raise Exception('task_id找不到对应信息')
         find['task_id'] = self._new_task_id
         find['member_id'] = self._new_member_id
         find.pop('_id')
@@ -383,11 +385,12 @@ class CopyMongo(object):
                 params['group_detail'][one_group] = [self.specimen_id_dict[one_sp] for one_sp in params['group_detail'][one_group]]
             params['group_detail'] = group_detail_sort(params['group_detail'])
             if 'second_group_detail' in params:
-                for one_group in params['second_group_detail']:
-                    params['second_group_detail'][one_group] = [self.specimen_id_dict[one_sp] for one_sp in params['second_group_detail'][one_group]]
-                params['second_group_detail'] = group_detail_sort(params['second_group_detail'])
-                if 'second_group_id' in params:
-                    params['second_group_id'] = self.group_id_dict[params['second_group_id']]
+                if params['second_group_detail']:
+                    for one_group in params['second_group_detail']:
+                        params['second_group_detail'][one_group] = [self.specimen_id_dict[one_sp] for one_sp in params['second_group_detail'][one_group]]
+                    params['second_group_detail'] = group_detail_sort(params['second_group_detail'])
+                    if 'second_group_id' in params:
+                        params['second_group_id'] = self.group_id_dict[params['second_group_id']]
         if 'group_id' in params:
             params['group_id'] = self.group_id_dict[params['group_id']]
         if 'otu_id' in params:
