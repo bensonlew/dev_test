@@ -5,6 +5,7 @@ import json
 from mainapp.libs.signature import check_sig
 from biocluster.config import Config
 from mbio.packages.meta.copy_demo import CopyMongo
+import traceback
 
 
 class DemoMongodataCopy(object):
@@ -25,7 +26,7 @@ class DemoMongodataCopy(object):
         copy_task = CopyMongo(data.task_id, data.target_task_id, data.target_project_sn, data.target_member_id, db=db)
         try:
             copy_task.run()
-        except Exception as e:
-            print e
-            return json.dumps({"success": False, "info": "拉取复制失败"})
+        except Exception:
+            print traceback.format_exc()
+            return json.dumps({"success": False, "info": "复制Demo样例数据失败"})
         return json.dumps({"success": True, "info": "数据复制成功"})

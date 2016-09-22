@@ -206,6 +206,8 @@ class Venn(Base):
                 tmp_label = line[0]
                 tmp_list = list()
                 if re.search("only", line[0]):
+                    tmp_label = re.sub("only", "", tmp_label)
+                    tmp_label = re.sub(" ", "", tmp_label)
                     name = re.split('\s+', line[0])[0]
                     """
                     sets = {"sets": [name]}
