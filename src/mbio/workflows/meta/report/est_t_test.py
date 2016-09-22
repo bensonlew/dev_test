@@ -35,12 +35,16 @@ class EstTTestWorkflow(Workflow):
         self.group_file_dir = self.work_dir + '/two_group_output'
 
     # def check_options(self):
-    #     otu_sample = self.option('est_table').get_sample_info()
-    #     # self.logger.info(otu_sample)
-    #     group_sample, header, is_empty = self.option('group_table').get_file_info()
-    #     for name in group_sample:
-    #         if name not in otu_sample:
-    #             raise Exception('分组样本不在otu表所拥有的样本内，请检查分组方案')
+        # self.logger.info(otu_sample)
+        # sample = []
+        # with open(self.option('est_table').prop["path"], "r") as f:
+        #     sample = f.readline().strip().split()[1:]
+        # self.logger.info(sample)
+        # group_sample, header, is_empty = self.option('group_table').get_file_info()
+        # self.logger.info(group_sample)
+        # for name in group_sample:
+        #     if name not in sample:
+        #         raise Exception('分组样本不在otu表所拥有的样本内，请检查分组方案')
 
     def run(self):
         group_name = group_file_spilt(self.option('group_table').prop['path'], self.group_file_dir)
