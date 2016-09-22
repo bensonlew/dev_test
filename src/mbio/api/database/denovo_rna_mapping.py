@@ -279,10 +279,11 @@ class DenovoRnaMapping(Base):
             print("导入冗余分析数据成功")
 
     @report_check
-    def add_correlation_table(self, correlation, name=None, params=None):
+    def add_correlation_table(self, correlation, name=None, params=None, express_id=None):
         correlation_tree = glob.glob("{}/*.tre".format(correlation))
         with open(correlation_tree[0], "r") as t:
             correlation_tree = t.readline().strip()
+        params['express_id'] = express_id
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
