@@ -224,11 +224,12 @@ class Workflow(Basic):
     def return_mongo_ids(self):
         return self._return_mongo_ids
 
-    def add_return_mongo_id(self, collection_name, table_id, desc=''):
+    def add_return_mongo_id(self, collection_name, table_id, desc='', add_in_sg_status=True):
         return_dict = dict()
         return_dict['id'] = table_id
         return_dict['collection_name'] = collection_name
         return_dict['desc'] = desc
+        return_dict['add_in_sg_status'] = add_in_sg_status
         self._return_mongo_ids.append(return_dict)
 
     def _upload_result(self):
@@ -285,8 +286,8 @@ class Workflow(Basic):
         """
         # while self.is_end is False:
         #     gevent.sleep(60)
-        if self.is_start is True:
-            return False
+        if self.is_end is True:
+            return "exit"
         try:
             self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
                           vars={'id': self._id})
@@ -313,8 +314,8 @@ class Workflow(Basic):
         :return:
         """
         # while self.is_end is False:
-        if self.is_start is True:
-            return False
+        if self.is_end is True:
+            return "exit"
         if (datetime.datetime.now() - self.last_update).seconds > self.config.MAX_WAIT_TIME:
             self.exit(data="超过 %s s没有任何运行更新，退出运行！" % self.config.MAX_WAIT_TIME)
         gevent.sleep(10)
@@ -344,8 +345,8 @@ class Workflow(Basic):
 
         :return:
         """
-        if self.is_start is True:
-            return False
+        if self.is_end is True:
+            return "exit"
         myvar = dict(id=self._id)
         try:
             results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and "

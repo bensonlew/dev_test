@@ -56,6 +56,7 @@ class PanCore(Base):
             "group_id": group_id,
             "status": status,
             "desc": desc,
+            "submit_location": "otu_pan_core",
             "name": name if name else "pan_core表格",
             "params": params,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
