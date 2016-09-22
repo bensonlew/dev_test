@@ -184,7 +184,7 @@ class SubSample(Base):
                         otu_detail[cf[0:3].lower()] = cf
                 count = 0
                 for i in range(0, len(sample_num)):
-                    otu_detail[new_head[i]] = sample_num[i]
+                    otu_detail[new_head[i]] = int(sample_num[i])
                     count += int(sample_num[i])
                 otu_detail["total_"] = count
                 insert_data.append(otu_detail)
