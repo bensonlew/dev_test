@@ -208,7 +208,10 @@ class BetaMultiAnalysis(Base):
                     insert_data['name'] = values[0]
                 values_dict = dict(zip(columns, values[1:]))
                 data_temp.append(dict(insert_data, **values_dict))
-            collection.insert_many(data_temp)
+            if data_temp:
+                collection.insert_many(data_temp)
+            else:
+                return None
             if update_column:
                 main_collection = db[main_coll]
                 # default_column = {'specimen': 'detail_column', 'factor': 'factor_column',
