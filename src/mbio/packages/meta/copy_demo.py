@@ -61,7 +61,7 @@ class CopyMongo(object):
         self.copy_collection_with_change('sg_otu_detail', change_positions=['otu_id', ])
         self.copy_collection_with_change('sg_otu_detail_level', change_positions=['otu_id', ])
         self.env_id_dict = self.copy_collection_with_change('sg_env')
-        self.copy_main_details('sg_env_detail', 'env_id', self.env_id_dict)
+        self.copy_main_details('sg_env_detail', 'env_id', self.env_id_dict, others_position=['specimen_id'])
         self.env_id_dict[None] = None
         self.env_id_dict[''] = None
         self._exchange_dict['env_id'] = self.env_id_dict
