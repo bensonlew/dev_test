@@ -10,6 +10,7 @@ from bson import ObjectId
 import re
 import os
 import json
+import shutil
 
 
 class HclusterWorkflow(Workflow):
@@ -137,6 +138,8 @@ class HclusterWorkflow(Workflow):
         params_json = json.loads(self.option('params'))
         api_distance = self.api.distance
         matrix_path = self.dist.output_dir + '/' + os.listdir(self.dist.output_dir)[0]
+        final_matrix_path = os.path.join(self.output_dir, os.listdir(self.dist.output_dir)[0])
+        shutil.copy2(matrix_path, final_matrix_path)
         if not os.path.isfile(matrix_path):
             raise Exception("找不到报告文件:{}".format(matrix_path))
         matrix_id = api_distance.add_dist_table(matrix_path,
@@ -152,6 +155,8 @@ class HclusterWorkflow(Workflow):
         result = collection.find_one({"_id": ObjectId(matrix_id)})
         task_id = result['task_id']
         newick_fath = self.hcluster.output_dir + "/hcluster.tre"
+        final_newick_path = os.path.join(self.output_dir, "hcluster.tre")
+        shutil.copy2(newick_fath, final_newick_path)
         if not os.path.isfile(newick_fath):
             raise Exception("找不到报告文件:{}".format(newick_fath))
         return_id = api_newick.add_tree_file(newick_fath, major=True, table_id=self.option('otu_id'),
