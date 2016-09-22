@@ -90,9 +90,9 @@ class AlphaDiversityModule(Module):
             for f in files:
                 os.remove(os.path.join(self.output_dir, f))
         estimators = self.work_dir + '/Estimators/output/estimators.xls'
-        rarefaction = self.work_dir + '/Rarefaction/output/rarefaction/'
+        # rarefaction = self.work_dir + '/Rarefaction/output/rarefaction/'
         os.link(estimators, self.output_dir + '/estimators.xls')
-        os.system('cp -r %s %s' % (rarefaction, self.output_dir))
+        # os.system('cp -r %s %s' % (rarefaction, self.output_dir))
         for estimators in self.option('rarefy_indices').split(','):
             est_path = self.work_dir + '/Rarefaction/output/%s/' % estimators
             os.system('cp -r %s %s' % (est_path, self.output_dir))

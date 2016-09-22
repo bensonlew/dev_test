@@ -23,7 +23,7 @@ class UpdateStatus(Log):
         self._config = Config()
         self._client = "client01"
         self._key = "1ZYw71APsQ"
-        self._url = "http://192.168.10.161/api/add_file"
+        self._url = "http://www.sanger.com/api/add_file"
         self._task_id = self.data.task_id
         self.db = self._config.get_db()
         self._mongo_client = self._config.mongo_client
