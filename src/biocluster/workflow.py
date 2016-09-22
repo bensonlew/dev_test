@@ -308,8 +308,13 @@ class Workflow(Basic):
         """
         if self.USE_DB:
             myvar = dict(id=self._id)
-            with self.db_sem:
-                self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+            try:
+                with self.db_sem:
+                    self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+            except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
+                self.logger.debug("数据库更新异常: %s" % e)
 
     def __check_tostop(self):
         """
