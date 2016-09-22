@@ -26,14 +26,15 @@ class HeatCluster(Base):
             raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(str(from_otu_table)))
         project_sn = result['project_sn']
         task_id = result['task_id']
-        desc = "正在计算聚类树..."
+        desc = "物种聚类树"
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,
-            "table_type": "dist",
-            "tree_type": "cluster",
+            "table_type": "otu",
+            "tree_type": "otu_cluster",
             "hcluster_method": linkage,
             "status": "end",
+            "table_id": from_otu_table,
             "desc": desc,
             "name": name if name else "cluster_newick",
             "params": params,

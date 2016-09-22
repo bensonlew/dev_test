@@ -75,7 +75,7 @@ class RemoteFileManager(object):
             self._path = self._remote_path
             return
 
-        m = re.match(r"^(\w+):/*(.*)$", self._remote_path)
+        m = re.match(r"^([\w\-]+):/*(.*)$", self._remote_path)
         if m:
             self._type = m.group(1)
             self._path = m.group(2)

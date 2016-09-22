@@ -64,7 +64,7 @@ class PanCoreOtuAgent(Agent):
         设置所需资源
         """
         self._cpu = 3
-        self._memory = ''
+        self._memory = '5G'
 
 
 class PanCoreOtuTool(Tool):

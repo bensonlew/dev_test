@@ -226,11 +226,12 @@ class Workflow(Basic):
     def return_mongo_ids(self):
         return self._return_mongo_ids
 
-    def add_return_mongo_id(self, collection_name, table_id, desc=''):
+    def add_return_mongo_id(self, collection_name, table_id, desc='', add_in_sg_status=True):
         return_dict = dict()
         return_dict['id'] = table_id
         return_dict['collection_name'] = collection_name
         return_dict['desc'] = desc
+        return_dict['add_in_sg_status'] = add_in_sg_status
         self._return_mongo_ids.append(return_dict)
 
     def _upload_result(self):

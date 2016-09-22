@@ -6,7 +6,6 @@
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
-import datetime
 import json
 import shutil
 
@@ -48,7 +47,7 @@ class MetaBaseWorkflow(Workflow):
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
             {"name": "plsda_grouplab", "type": 'string', "default": ''}
-            ]
+        ]
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.filecheck = self.add_tool("meta.filecheck.file_metabase")
@@ -409,18 +408,21 @@ class MetaBaseWorkflow(Workflow):
         if event['data'] == "pan_core":
             self.move2outputdir(obj.output_dir, self.output_dir + "/pan_core")
             api_pan_core = self.api.pan_core
-            name = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            name = "pan_table_origin"
             params = {
                 "level_id": 9,
-                "group_id": "all"
+                "group_id": "all",
+                "submit_location": "otu_pan_core"
             }
             pan_id = api_pan_core.create_pan_core_table(1, json.dumps(params), "all", 9, self.otu_id, name, "end", spname_spid=self.spname_spid)
-            name = "core_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            name = "core_table_origin"
             core_id = api_pan_core.create_pan_core_table(2, json.dumps(params), "all", 9, self.otu_id, name, "end", spname_spid=self.spname_spid)
             pan_path = self.pan_core.option("pan_otu_table").prop["path"]
             core_path = self.pan_core.option("core_otu_table").prop['path']
             api_pan_core.add_pan_core_detail(pan_path, pan_id)
             api_pan_core.add_pan_core_detail(core_path, core_id)
+            self.updata_status_api.add_meta_status(table_id=pan_id, type_name='sg_otu_pan_core')
+            self.updata_status_api.add_meta_status(table_id=core_id, type_name='sg_otu_pan_core')
 
     def run(self):
         self.filecheck.on('end', self.run_qc)
@@ -486,7 +488,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
             ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Rda", "", "rda_cca分析结果目录"]
-            ]
+        ]
         regexps = [
             [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
             [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
@@ -506,7 +508,7 @@ class MetaBaseWorkflow(Workflow):
             ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
             ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "单级物种分类统计表"],
             ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
-            ]
+        ]
         for i in self.option("rarefy_indices").split(","):
             if i == "sobs":
                 repaths.append(["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)])
