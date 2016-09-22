@@ -866,9 +866,10 @@ class StepMain(Step):
                     data["uploaded"] = 0
 
             try:
-                workflow.db.insert("apilog", **data)
-                self.clean_change()
-                self._api_data = {}
+                with workflow.db_sem:
+                    workflow.db.insert("apilog", **data)
+                    self.clean_change()
+                    self._api_data = {}
             except Exception, e:
                 self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
 
@@ -901,8 +902,9 @@ class StepMain(Step):
                 "data": json.dumps(post_data, cls=CJsonEncoder)
             }
             try:
-                workflow.db.insert("apilog", **data)
-                self._api_data = {}
+                with workflow.db_sem:
+                    workflow.db.insert("apilog", **data)
+                    self._api_data = {}
             except Exception, e:
                 self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
 
