@@ -44,7 +44,7 @@ python RNASeq-MATS.py -b1 A1.bam,A2.bam,A3.bam（A条件下的各重复的比对结果bam文件
 		{"name": "analysis_mode", "type": "string", "default": "U"}
 		{"name": "cutoff_splicing_difference", "type": "float", "default": 0.001}
 		{"name": "constructing_sequencing_library_type", "type": "string", "default": "fr-unstranded"}
-		{"name": "cutoff_splicing_difference", "type": "float", "default": 0.001}
+		
 
             
             
