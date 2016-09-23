@@ -23,10 +23,7 @@ class Base(object):
     @property
     def db(self):
         if self._db is None:
-            if self._config.MONGODB == 'tsanger':
-                self._db = self._client['t' + self._db_name]
-            else:
-                self._db = self._client[self._db_name]
+            self._db = self._client[self._db_name]
         return self._db
 
     @staticmethod
