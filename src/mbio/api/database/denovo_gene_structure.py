@@ -133,6 +133,24 @@ class DenovoGeneStructure(Base):
             print("导入ORF预测结果数据成功")
 
     @report_check
+    def add_ssr_table(self, ssr, ssr_primer, ssr_stat, name=None, params=None):
+        insert_data = {
+            "project_sn": self.bind_object.sheet.project_sn,
+            "task_id": self.bind_object.sheet.id,
+            "name": name if name else "ssr_origin",
+            "status": "start",
+            "desc": "",
+            "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
+            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        collection = self.db["sg_denovo_ssr_detail"]
+        inserted_id = collection.insert_one(insert_data).inserted_id
+        self.add_ssr_detail(ssr, inserted_id)
+        self.add_ssr_primer(ssr_primer)
+        self.add_ssr_stat(ssr_stat)
+        return inserted_id
+
+    @report_check
     def add_ssr_detail(self, ssr, ssr_id=None):
         data_list = []
         with open(ssr, "r") as f:
@@ -210,3 +228,115 @@ class DenovoGeneStructure(Base):
             print("导入SSR引物结果数据出错:%s" % e)
         else:
             print("导入SSR引物结果结果数据成功")
+
+    @report_check
+    def add_ssr_stat(self, ssr_stat, ssr_id=None):
+        data_list = []
+        target_line = False
+        with open(ssr_stat, "r") as f:
+            for n, line in enumerate(f):
+                if re.match(r"Frequency of classified", line):
+                    target_line = True
+                    f.next()
+                    f.next()
+                    continue
+                elif target_line:
+                    line = line.strip().split()
+                    bar_a = line[1:12]
+                    bar_b = line[13:47]
+                    value_a = 0
+                    value_b = 0
+                    for a in bar_a:
+                        if a == "-":continue
+                        else:value_a += int(a)
+                    for b in bar_b:
+                        if b == "-":continue
+                        else:value_b += int(b)
+                    data = {
+                        "ssr_id": ssr_id,
+                        "ssr_type": line[0],
+                        "5-15": value_a,
+                        "16-51": value_b,
+                        "total": line[48]
+                    }
+                    data_list.append(data)
+        try:
+            collection = self.db["sg_denovo_ssr_stat"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            print("导入SSR引物统计数据出错:%s" % e)
+        else:
+            print("导入SSR引物统计数据成功")
+
+    @report_check
+    def add_snp_detail(self, snp):
+        snp_files = glob.glob("{}/*snp.xls".format(snp))
+        # print snp_files
+        data_list = []
+        for sf in snp_files:
+            sample_name = os.path.basename(sf).split("_")[0]
+            print sample_name
+            with open(sf, "r") as f:
+                f.readline()
+                # print f.next().strip().split()
+                # print len(f.next().strip().split("\t"))
+                for line in f:
+                    line = line.strip().split("\t")
+                    data = {
+                        "specimen_name": sample_name,
+                        "gene_id": line[0],
+                        "nucl_pos": line[1],
+                        "ref": line[2],
+                        "cous": line[3],
+                        "reads1_num": line[4],
+                        "reads2_num": line[5],
+                        "var_freq": line[6],
+                        "var_allele": line[18]
+                    }
+                    if len(line) == 20:
+                        data["gene_pos"] = line[19]
+                    data_list.append(data)
+        try:
+            collection = self.db["sg_denovo_snp_detail"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            print("导入SSR引物统计数据出错:%s" % e)
+        else:
+            print("导入SSR引物统计数据成功")
+
+    @report_check
+    def add_snp_graph(self, snp):
+        snp_pos = glob.glob("{}/*position_stat.xls".format(snp))
+        snp_type = glob.glob("{}/*type_stat.xls".format(snp))
+        data_list = []
+        for sp in snp_pos:
+            sample_name = os.path.basename(sp).split("_")[0]
+            data = {
+                "specimen_name": sample_name
+            }
+            with open(sp, "r") as f:
+                f.readline()
+                pos_value = {}
+                for line in f:
+                    line = line.strip().split("\t")
+                    pos_value[line[0]] = line[1]
+                data["pos_stat"] = pos_value
+                data_list.append(data)
+        for st in snp_type:
+            sample_name = os.path.basename(st).split("_")[0]
+            with open(st, "r") as f:
+                f.readline()
+                type_value = {}
+                for line in f:
+                    line = line.strip().split("\t")
+                    type_value[line[0]] = line[1]
+                for data in data_list:
+                    if sample_name == data["specimen_name"]:
+                        data["type_stat"] = type_value
+        try:
+            collection = self.db["sg_denovo_snp_graphic"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            print("导入SSR引物统计数据出错:%s" % e)
+        else:
+            print("导入SSR引物统计数据成功")
