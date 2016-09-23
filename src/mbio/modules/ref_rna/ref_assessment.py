@@ -9,10 +9,9 @@ from biocluster.module import Module
 
 class RefAssessmentModule(Module):
     """
-    denovoRNA比对后质量评估:基因覆盖率、比对结果统计、冗余序列分析
-    version 1.0
-    author: qindanhua
-    last_modify: 2016.07.27
+    denovoRNA比对后质量评估:基因覆盖率、比对结果统计、冗余序列分析 
+    author: zengjing
+    last_modify: 2016.09.23
     """
     def __init__(self, work_id):
         super(RefAssessmentModule, self).__init__(work_id)
@@ -25,7 +24,7 @@ class RefAssessmentModule(Module):
         self.add_option(options)
         self.tools = []
         self.files = []
-        self.bam_stat = self.add_tool('denovo_rna.qc.fastq_stat') 
+#        self.bam_stat = self.add_tool('denovo_rna.qc.fastq_stat')
         self.step.add_steps('stat')
 
     def finish_update(self, event):
@@ -45,7 +44,7 @@ class RefAssessmentModule(Module):
             raise OptionError("请传入bed文件")
         if not self.option("bam").is_set:
             raise OptionError("请传入bam文件")
-        self.files = self.get_files() 
+        self.files = self.get_files()
 
     def bam_stat_run(self):
         n = 0
@@ -113,7 +112,7 @@ class RefAssessmentModule(Module):
     def distribute_run(self):
         n = 0
         for f in self.files:
-            distribute = self.add_tool("ref_rna.test-zj.reads_distribution")
+            distribute = self.add_tool("ref_rna.mapping.reads_distribution")
             self.step.add_steps("distribute_{}".format(n))
             distribute.set_options({
                 "bam": f,
@@ -136,7 +135,7 @@ class RefAssessmentModule(Module):
         return files
 
     def set_output(self):
-        self.logger.info("set output") 
+        self.logger.info("set output")
         dirs = ["coverage", "dup", "satur", "distribute"]
         for f in os.listdir(self.output_dir):
             f_path = os.path.join(self.output_dir, f)
@@ -148,14 +147,14 @@ class RefAssessmentModule(Module):
         for d in dirs:
             f_path = os.path.join(self.output_dir, d)
             os.makedirs(f_path)
-        self.logger.info(os.path.join(self.output_dir, "bam_stat.xls")) 
+        self.logger.info(os.path.join(self.output_dir, "bam_stat.xls"))
         bam_out = []
         for tool in self.tools:
-            out = os.listdir(tool.output_dir) 
+            out = os.listdir(tool.output_dir)
             for f_name in out:
                 fp = os.path.join(tool.output_dir, f_name)
                 if f_name == "bam_stat.xls":
-                    bam_out.append(fp) 
+                    bam_out.append(fp)
                 elif "DupRate" in f_name:
                     target = os.path.join(self.output_dir, "dup", f_name)
                     if os.path.exists(target):
@@ -203,7 +202,7 @@ class RefAssessmentModule(Module):
             ["./dup/", "", "冗余序列分析输出目录"],
             ["./satur/", "", "测序饱和度分析输出目录"],
             ["./bam_stat.xls", "xls", "bam格式比对结果统计表"],
-            ["./", "txt", "reads区域分布目录"]
+            ["./distribute", "txt", "reads区域分布目录"]
         ])
         result_dir.add_regexp_rules([
             [r".*pos\.DupRate\.xls", "xls", "比对到基因组的序列的冗余统计表"],
@@ -211,5 +210,5 @@ class RefAssessmentModule(Module):
             [r".*eRPKM\.xls", "xls", "RPKM表"],
             [r".*cluster_percent\.xls", "xls", "饱和度作图数据"],
             [r".*distribution\.txt", "txt", "reads区域分布"]
-        ]) 
+        ])
         super(RefAssessmentModule, self).end()
