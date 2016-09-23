@@ -7,6 +7,8 @@ from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
 import shutil
+import threading
+import re
 
 
 class DenovoBaseWorkflow(Workflow):
@@ -56,6 +58,11 @@ class DenovoBaseWorkflow(Workflow):
         self.orf_len = self.add_tool("meta.qc.reads_len_info")
         self.step.add_steps("qcstat", "assemble", "annotation", "express", "gene_structure", "map_stat")
         self.final_tools = list()
+        self.update_status_api = self.api.denovo_update_status
+        self.spname_spid = dict()
+        self.samples = self.option('fastq_dir').samples
+        self.diff_gene_id = None
+        self.diff_genes = None
         # self.logger.info('{}'.format(self.events))
         # self.logger.info('{}'.format(self.children))
         # self.logger.info('{}'.format(self._upload_dir_obj))
@@ -329,12 +336,57 @@ class DenovoBaseWorkflow(Workflow):
             self.move2outputdir(obj.output_dir, 'QC_stat')
         if event['data'] == 'qc_stat_before':
             self.move2outputdir(obj.output_dir, 'QC_stat/before_qc')
-            self.logger.info('{}'.format(self.qc_stat_before._upload_dir_obj))
+            # set api
+            api_sample = self.api.denovo_rna_sample
+            qc_stat_info = self.output_dir + '/QC_stat/before_qc'
+            quality_stat = self.output_dir + '/QC_stat/before_qc/qualityStat'
+            if not os.path.exists(qc_stat_info):
+                raise Exception('找不到报告文件：{}'.format(qc_stat_info))
+            if not os.path.exists(quality_stat):
+                raise Exception('找不到报告文件：{}'.format(quality_stat))
+            api_sample.add_samples_info(qc_stat=qc_stat_info, qc_adapt=None, fq_type=self.option('fq_type'))
+            api_sample.add_gragh_info(quality_stat, about_qc='before')
         if event['data'] == 'qc_stat_after':
             self.move2outputdir(obj.output_dir, 'QC_stat/after_qc')
-            self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
+            # set api
+            api_sample = self.api.denovo_rna_sample
+            qc_stat_info = self.output_dir + '/QC_stat/after_qc'
+            quality_stat = self.output_dir + '/QC_stat/after_qc/qualityStat'
+            qc_adapt = self.output_dir + '/QC_stat/adapter.xls'
+            files = [qc_stat_info, quality_stat, qc_adapt]
+            for f in files:
+                if not os.path.exists(f):
+                    raise Exception('找不到报告文件：{}'.format(f))
+            api_sample.add_samples_info(qc_stat=qc_stat_info, qc_adapt=qc_adapt, fq_type=self.option('fq_type'))
+            api_sample.add_gragh_info(quality_stat, about_qc='after')
+            self.spname_spid = api_sample.get_spname_spid()
+            if self.option('group_table').is_set:
+                api_group = self.api.group
+                api_group.add_ini_group_table(self.option('group_table').prop['path'], self.spname_spid)
         if event['data'] == 'assemble':
             self.move2outputdir(obj.output_dir, 'Assemble')
+            # set api
+            api_assemble = self.api.denovo_assemble
+            trinity_path = obj.work_dir + '/trinity_out_dir/Trinity.fasta'
+            gene_path = obj.work_dir + '/gene.fasta'
+            stat_path = self.output_dir + '/Assemble/trinity.fasta.stat.xls'
+            files = [trinity_path, gene_path, stat_path]
+            for f in files:
+                if not os.path.exists(f):
+                    raise Exception('找不到报告文件：{}'.format(f))
+            sequence_id = api_assemble.add_sequence(trinity_path, gene_path)
+            api_assemble.add_sequence_detail(sequence_id, stat_path)
+            threads = []
+            for f in os.listdir(self.output_dir + '/Assemble'):
+                if re.search(r'length\.distribut\.txt$', f):
+                    step = f.split('_')[0]
+                    file_ = self.output_dir + '/Assemble/' + f
+                    t = threading.Thread(api_assemble.add_sequence_step, args=(file_, step))
+                    threads.append(t)
+            for th in threads:
+                th.setDaemon = True
+                th.start()
+            th.join()
         if event['data'] == 'map_qc':
             self.move2outputdir(obj.output_dir, 'Map_stat')
         if event['data'] == 'orf':
@@ -348,15 +400,93 @@ class DenovoBaseWorkflow(Workflow):
         if event['data'] == 'exp_stat':
             self.move2outputdir(obj.output_dir, 'Express')
             self.logger.info('%s' % self.exp_stat.diff_gene)
+            # set api
+            api_express = self.api.denovo_express
+            express_id = api_express.add_express(samples=self.samples, params=None, name=None)
+            rsem_files = os.listdir(self.output_dir + '/Express/rsem/')
+            for f in rsem_files:
+                if re.search(r'^genes\.TMM', f):
+                    count_path = self.output_dir + '/Express/rsem/' + f
+                    fpkm_path = self.output_dir + '/Express/rsem/genes.counts.matrix'
+                    api_express.add_express_detail(express_id, count_path, fpkm_path, 'gene')
+                elif re.search(r'^transcripts\.TMM', f):
+                    count_path = self.output_dir + '/Express/rsem/' + f
+                    fpkm_path = self.output_dir + '/Express/rsem/transcripts.counts.matrix'
+                    api_express.add_express_detail(express_id, count_path, fpkm_path, 'transcript')
+                elif re.search(r'\.genes\.results$', f):
+                    sample = f.split('.genes.results')[0]
+                    file_ = self.output_dir + '/Express/rsem/' + f
+                    api_express.add_express_specimen_detail(express_id, file_, 'gene', sample)
+                elif re.search(r'\.isoforms\.results$', f):
+                    sample = f.split('.genes.results')[0]
+                    file_ = self.output_dir + '/Express/rsem/' + f
+                    api_express.add_express_specimen_detail(express_id, file_, 'transcript', sample)
+            diff_files = os.listdir(self.output_dir + '/Express/diff_exp/')
+            param_1 = {
+                'ci': self.option('diff_ci'),
+                # 'group_id': 'All',
+                # 'group_detail'
+                # 'control_id': 'All',
+                # 'control_detail'
+                'rate': self.option('diff_rate'),
+            }
+            compare_column = list()
+            for f in diff_files:
+                if re.search(r'_edgr_stat.xls$', f):
+                    con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
+                    compare_column.append('|'.join(con_exp))
+            express_diff_id = api_express.add_express_diff(param_1, self.samples, compare_column)
+            path_ = os.path.join(self.output_dir, '/Express/diff_exp/')
+            for f in diff_files:
+                if re.search(r'_edgr_stat.xls$', f):
+                    con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
+                    api_express.add_express_diff_detail(express_diff_id, con_exp, path_ + f)
+                if f == 'diff_fpkm':
+                    param_2 = {
+                        # 'express_diff_id': ,
+                        'compare_list': compare_column,
+                        'is_sum': True,
+                    }
+                    self.diff_gene_id = api_express.add_express(samples=self.samples, params=param_2, express_id=express_id)
+                    api_express.add_express_detail(self.diff_gene_id, path_ + 'diff_count', path_ + f, 'gene')
         if event['data'] == 'exp_diff':
+            # set output
             self.move2outputdir(obj.output_dir, 'Express')
+            # set api
+            clust_path = os.path.join(self.output_dir, '/Express/cluster/hclust/')
+            clust_files = os.listdir(clust_path)
+            clust_params = {
+                # diff_fpkm: ,
+                'log': 10,
+                'methor': 'hclust',
+                'distance': 'euclidean',
+                'sub_num': 5,
+            }
+            clust_id = api_express.add_cluster(clust_params, self.diff_gene_id, clust_path + 'samples_tree.txt', clust_path + 'genes_tree.txt', clust_path + 'hclust_heatmap.xls')
+            for f in clust_files:
+                if re.search(r'^subcluster_', f):
+                    sub = f.split('_')[1]
+                    api_express.add_cluster_detail(clust_id, sub, clust_path + f)
+            net_path = os.path.join(self.output_dir + '/Express/network/')
+            net_files = os.listdir(net_path)
+            net_param = {
+                # diff_fpkm: ,
+                'softpower': 9,
+                'similar': 0.75,
+            }
+            net_id = api_express.add_network(net_param, self.diff_gene_id, net_path + 'softPower.pdf', net_path + 'ModuleTree.pdf')
+            api_express.add_network_detail(net_id, net_path + 'all_nodes.txt', net_path + 'all_edges.txt')
+            for f in net_files:
+                if re.search(r'^CytoscapeInput-edges-', f):
+                    color = f.split('-edges-')[-1].split('.')[0]
+                    api_express.add_network_module(net_id, net_path + 'f', color)
         if event['data'] == 'annotation':
             self.move2outputdir(obj.output_dir, 'Annotation')
 
     def run(self):
         self.filecheck.on('end', self.run_qc)
-        self.filecheck.on('end', self.run_qc_stat, False)
-        self.qc.on('end', self.run_qc_stat, True)
+        self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
+        self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_assemble)
         self.assemble.on('end', self.run_orf)
         self.assemble.on('end', self.run_exp_stat)
