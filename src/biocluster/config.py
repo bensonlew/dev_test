@@ -121,7 +121,6 @@ class Config(object):
                 for sip in ip_list:
                     if lip == sip:
                         return lip
-            return '127.0.0.1'
         if platform.system() == 'Linux' or platform.system() == 'Darwin':
             # return getip("eth1")
             ipstr = '([0-9]{1,3}\.){3}[0-9]{1,3}'
@@ -137,6 +136,7 @@ class Config(object):
                 for sip in ip_list:
                     if ip.group() == sip:
                         return ip.group()
+        return '127.0.0.1'
 
     @property
     def LISTEN_PORT(self):
