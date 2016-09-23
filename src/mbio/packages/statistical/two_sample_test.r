@@ -1,4 +1,4 @@
-otu_data <- read.table("${inputfile}",sep = "\t",comment.char = '')
+otu_data <- read.table("${inputfile}",sep = "\t",comment.char = '', colClasses="character")
 samp <- t(otu_data[1,-1])
 otu_data <- otu_data[-1,]
 rownames(otu_data) <- otu_data[,1]
