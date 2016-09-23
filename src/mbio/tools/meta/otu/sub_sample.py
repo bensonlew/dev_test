@@ -108,6 +108,12 @@ class SubSampleTool(Tool):
             else:
                 my_table.set_path(self.option("in_otu_table").prop['path'])
         my_table.get_info()
+        (min_sample, min_num) = my_table.get_min_sample_num()
+        if self.option("size") != "min":
+            if min_num < int(self.option("size")):
+                self.set_error("自定义抽平序列数目大于最小的样本序列数目！")
+                raise Exception("自定义抽平序列数目大于最小的样本序列数目！")
+
         with open(my_table.prop["path"], "rb") as r:
             r.next()
             c = 1
