@@ -183,6 +183,8 @@ class CopyMongo(object):
             self.insert_new_status('sg_newick_tree', docs, ids)
         else:
             self.newick_tree_id_dict = {}
+        self.newick_tree_id_dict[''] = None
+        self.newick_tree_id_dict[None] = None
         self._exchange_dict['newick_tree_id'] = self.newick_tree_id_dict
         return self.newick_tree_id_dict
 
