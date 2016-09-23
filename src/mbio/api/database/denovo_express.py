@@ -8,6 +8,8 @@ import types
 from biocluster.config import Config
 from bson.son import SON
 from bson.objectid import ObjectId
+import bson.binary
+from cStringIO import StringIO
 
 
 class DenovoExpress(Base):
@@ -16,13 +18,15 @@ class DenovoExpress(Base):
         self._db_name = Config().MONGODB + '_rna'
 
     @report_check
-    def add_express(self, samples=None, params=None, name=None):
+    def add_express(self, samples=None, params=None, name=None, express_id=None):
+        # 参数express_id只是为了插入差异基因矩阵时才用到，初始化不用
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
+        params['express_id'] = express_id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'express_matrix',
+            'name': name if name else 'express_matrix_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '表达量计算主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': params,
@@ -133,10 +137,11 @@ class DenovoExpress(Base):
     def add_express_diff(self, params, samples, compare_column, name=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
+        params['express_id'] = express_id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'gene_express_diff_stat',
+            'name': name if name else 'gene_express_diff_stat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '表达量差异检测主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': params,
@@ -180,16 +185,24 @@ class DenovoExpress(Base):
             self.bind_object.logger.info("导入基因表达差异统计表：%s信息成功!" % diff_stat_path)
 
     @report_check
-    def add_cluster(self, params, samples, express_id, sample_tree, gene_tree, genes, name=None):
+    def add_cluster(self, params, express_id, sample_tree, gene_tree, heatmap_path, name=None):
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
                 express_id = ObjectId(express_id)
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
+        with open(sample_tree, 'rb') as s, open(gene_tree, 'rb') as g, open(heatmap_path, 'rb') as h:
+            sample_tree = s.readlines()[0].strip('\n')
+            gene_tree = g.readlines()[0].strip('\n')
+            samples = h.readline().strip('\n').split('\t')
+            genes = list()
+            for line in h:
+                genes.append(line.strip().split('\t')[0])
+        params['express_id'] = express_id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'cluster_table',
+            'name': name if name else 'cluster_table_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '差异基因聚类分析主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': params,
@@ -236,28 +249,29 @@ class DenovoExpress(Base):
             self.bind_object.logger.info("导入子聚类统计表:%s信息成功!" % sub_path)
 
     @report_check
-    def add_network(self, params, express_id, softpower_id, module_id, name=None):
+    def add_network(self, params, express_id, softpower, module, name=None):
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
                 express_id = ObjectId(express_id)
             else:
                 raise Exception('express_matrix_id必须为ObjectId对象或其对应的字符串！')
-        if not isinstance(softpower_id, ObjectId):
-            if isinstance(softpower_id, types.StringTypes):
-                softpower_id = ObjectId(softpower_id)
-            else:
-                raise Exception('softpower_id必须为ObjectId对象或其对应的字符串！')
-        if not isinstance(module_id, ObjectId):
-            if isinstance(module_id, types.StringTypes):
-                module_id = ObjectId(module_id)
-            else:
-                raise Exception('module_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(softpower):
+            raise Exception('softpower所指定的路径不存在，请检查！')
+        if not os.path.exists(module):
+            raise Exception('module所指定的路径不存在，请检查！')
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
+        collection = self.db['sg_denovo_network']
+        with open(softpower, 'rb') as s, open(module, 'rb') as m:
+            softpower_id = StringIO(s.read())
+            softpower_id = bson.binary.Binary(softpower_id.getvalue())
+            module_id = StringIO(m.read())
+            module_id = bson.binary.Binary(module_id.getvalue())
+        params['express_id'] = express_id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'network_table',
+            'name': name if name else 'network_table_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '差异基因网络分析主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': params,
@@ -266,7 +280,6 @@ class DenovoExpress(Base):
             'softpower': softpower_id,
             'module': module_id,
         }
-        collection = self.db['sg_denovo_network']
         network_id = collection.insert_one(insert_data).inserted_id
         return network_id
 
