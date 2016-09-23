@@ -15,6 +15,7 @@ import importlib
 import web
 # import subprocess
 from pymongo import MongoClient
+import subprocess
 
 web.config.debug = False
 
@@ -51,6 +52,7 @@ class Config(object):
         self.MAX_JOB_NUMBER = int(self.rcf.get("Job", 'max_job_number'))
         self.MAX_WORKFLOW_NUMBER = int(self.rcf.get("Job", 'max_workflow_number'))
         self.JOB_MASTER_IP = self.rcf.get(self.JOB_PLATFORM, "master_ip")
+        self.JOB_QUEUE = self.rcf.get(self.JOB_PLATFORM, "queue")
 
         # db
         self.DB_TYPE = self.rcf.get("DB", "dbtype")
@@ -119,22 +121,22 @@ class Config(object):
                 for sip in ip_list:
                     if lip == sip:
                         return lip
-            return '127.0.0.1'
         if platform.system() == 'Linux' or platform.system() == 'Darwin':
-            return getip("eth1")
-            # ipstr = '([0-9]{1,3}\.){3}[0-9]{1,3}'
-            # ipconfig_process = subprocess.Popen("/sbin/ifconfig", stdout=subprocess.PIPE)
-            # output = ipconfig_process.stdout.read()
-            # ip_pattern = re.compile('(inet %s)' % ipstr)
-            # if platform == "Linux":
-            #     ip_pattern = re.compile('(inet addr:%s)' % ipstr)
-            # pattern = re.compile(ipstr)
-            # for ipaddr in re.finditer(ip_pattern, str(output)):
-            #     ip = pattern.search(ipaddr.group())
-            #     print ip.group()
-            #     for sip in ip_list:
-            #         if ip.group() == sip:
-            #             return ip.group()
+            # return getip("eth1")
+            ipstr = '([0-9]{1,3}\.){3}[0-9]{1,3}'
+            ipconfig_process = subprocess.Popen("/sbin/ifconfig", stdout=subprocess.PIPE)
+            output = ipconfig_process.stdout.read()
+            ip_pattern = re.compile('(inet %s)' % ipstr)
+            if platform.system() == "Linux":
+                ip_pattern = re.compile('(inet addr:%s)' % ipstr)
+            pattern = re.compile(ipstr)
+            for ipaddr in re.finditer(ip_pattern, str(output)):
+                ip = pattern.search(ipaddr.group())
+                # print ip.group()
+                for sip in ip_list:
+                    if ip.group() == sip:
+                        return ip.group()
+        return '127.0.0.1'
 
     @property
     def LISTEN_PORT(self):

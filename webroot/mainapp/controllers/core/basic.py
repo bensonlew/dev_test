@@ -1,37 +1,34 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 # lastmodified:20160701 by shenghe
-import importlib
 import datetime
 import random
 import json
 import web
 import re
 import os
-import threading
+import time
+import pickle
+import subprocess
 from mainapp.models.instant_task import InstantTask
-from mainapp.config.db import Config, get_mongo_client
-from biocluster.wsheet import Sheet
-from mbio.api.database.meta_update_status import MetaUpdateStatus  # 暂时使用这个更新，最好在基类base中加一个函数方法
 from biocluster.config import Config as mbio_config
-from bson import ObjectId
+from biocluster.core.function import get_clsname_form_path
 
 
 class Basic(object):
     def __init__(self):
-        self.mongodb = get_mongo_client()  # mongo库
-        self.db = Config().get_db()  # mysql库
         self._mainTableId = ""  # 核心表在mongo的id，如otu表的id
+        self.config = mbio_config()
         self._id = ""  # 新的ID
         self.data = None  # web数据
         self._name = self.__get_min_name()  # 实例类名称
+        self._task_object_name = ''  # 任务的对象名称
         self._taskId = ""
         self._projectSn = ""
         self._client = ""
         self._uploadTarget = ""  # 文件上传路径
         self.logger = None  # 必须在run开始后，logger为workflow的logger
         self._options = dict()
-        self._uploadDirObj = list()
         self.task_name = ''  # 需要调用的workflow或者module或者tool的路径(目前只支持workflow)，如: meta.report.distance_calc
         self.params = ""  # 在controller里面设定，这个值会在后续中写到mongo的主表当中去
         self.task_type = ''  # 调用的类型workflow或者module或者tool
@@ -39,8 +36,6 @@ class Basic(object):
         self.to_file = []  # 使用to_file模块，同原有写法
         self.USE_DB = False  # 是否使用数据库， 不一定生效，与运行的workflow是否设置使用rpc有关
         self._sheet = None  # 存放Sheet对象
-        self._mongo_ids = []  # 存放worflow返回的写入mongo表的信息，每条信息为一个字典，含有collection_name,id,desc三个字段
-        self.update_api = None  # 存放更新sg_status的方法
         info = {"success": False, "info": "程序非正常结束(没有获取到有关错误信息)"}
         self.returnInfo = json.dumps(info)
         self.IMPORT_REPORT_AFTER_END = False
@@ -78,8 +73,42 @@ class Basic(object):
         if not self.uploadTarget:
             self._uploadTarget = self._createUploadTarget()
         sheet_data['output'] = self._uploadTarget
-        self._sheet = Sheet(data=sheet_data)
+        self._sheet = sheet_data
+        self.pickle_sheet()
         return self._sheet
+
+    def __work_dir(self):
+        """
+        获取并创建工作目录
+        """
+        work_dir = self.config.WORK_DIR
+        timestr = str(time.strftime('%Y%m%d', time.localtime(time.time())))
+        work_dir = work_dir + "/" + timestr + "/" + self._task_object_name + "_" + self._id
+        return work_dir
+
+    def create_work_dir(self):
+        """
+        建立工作目录
+
+        :return:
+        """
+        if not os.path.exists(self._work_dir):
+            os.makedirs(self._work_dir)
+
+    def pickle_sheet(self):
+        """
+        打包sheet 字典为pk文件
+
+        :return:
+        """
+        self._task_object_name = self.__get_task_object_name()
+        self._work_dir = self.__work_dir()
+        self.create_work_dir()
+        self._pk_sheet = self._work_dir + '/' + self._task_object_name + '_sheet.pk'
+        with open(self._pk_sheet, 'w') as w:
+            pickle.dump(self._sheet, w)
+
+
 
     def _createUploadTarget(self):
         """
@@ -97,49 +126,29 @@ class Basic(object):
         self._uploadTarget = self._uploadTarget + "/report_results/" + self.name + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         return self._uploadTarget
 
-    def _run(self):
+    def run(self):
         """
         运行即时计算，分三步，一、根据参数生成Sheet对象；二、获取workflow类对象，并使用Sheet对象实例化，运行，三、处理运行结果
         """
+        self.create_sheet()
         try:
-            self.create_sheet()
-            self.get_task_object()
-            self.logger = self._task_object.logger
-            self._task_object.run()
+            bin_dir = os.path.dirname(self.config.WORK_DIR) + '/biocluster/bin'
+            cmd = 'python {}/run_instant.py {} > {} 2>&1'.format(bin_dir, self._pk_sheet, os.path.dirname(self._pk_sheet) + '/run_instant.log')
+            print 'INSTANT CMD:', cmd
+            subprocess.check_output(cmd, shell=True)
         except Exception as e:
-            print e
-            info = {"success": False, "info": "{}".format(e)}
+            print 'run_instant计算出错：', e
+            info = {"success": False, "info": "计算程序计算错误"}
             self.returnInfo = json.dumps(info)
-            # self.logger.error(self.returnInfo)
             return self.returnInfo
-        self._mongo_ids = self._task_object.return_mongo_ids
-        self.update_api = MetaUpdateStatus(self._task_object)
-        self.update_api.manager = self._task_object.api
-        self._uploadDirObj = self._task_object._upload_dir_obj
-        self.end()
-
-    def run(self):
-        """新线程运行_run方法"""
-        print('即时计算 Thread start run......')
-        run_object = threading.Thread(target=self._run)
-        run_object.start()
-        run_object.join()
-        print('即时计算 Thread over......')
-
-    def get_task_object(self, origin='mbio'):
-        """"""
-        path = origin + '.' + self.task_type + 's.' + self.task_name
-        module = importlib.import_module(path)
-        module_name = self.task_name.split('.')[-1]
-        class_name = [i.capitalize() for i in module_name.split('_')]
-        class_name.append(self.task_type.capitalize())
-        class_name = ''.join(class_name)
-        task_class = getattr(module, class_name)
-        if isinstance(self._sheet, Sheet):
-            self._task_object = task_class(self._sheet)
-            return self._task_object
-        else:
-            raise Exception('在调用get_task_object之前，需要先调用create_sheet')
+        self._return_pk = self._work_dir + '/' + 'return_web.pk'
+        if not os.path.exists(self._return_pk):
+            info = {"success": False, "info": "计算程序异常结束"}
+            self.returnInfo = json.dumps(info)
+            return self.returnInfo
+        self.returnInfo = json.dumps(pickle.load(open(self._return_pk, 'rb')))
+        self.addEndRecord()
+        # print 'WEB ReturnInfo', self.returnInfo
 
     def GetNewId(self, taskId, otuId=None):
         if otuId:
@@ -187,13 +196,18 @@ class Basic(object):
     def name(self):
         return self._name
 
-    @property
-    def mongo_ids(self):
-        return self._mongo_ids
-
     def __get_min_name(self):
         class_name = self.__class__.__name__
         return class_name
+
+    def __get_task_object_name(self):
+        """
+        获取task对象的名称
+        """
+        class_name = get_clsname_form_path(self.task_name, tp=self.task_type.capitalize())
+        class_name = class_name.replace(self.task_type.capitalize(), '')
+        return class_name
+
 
     @property
     def memberId(self):
@@ -233,74 +247,3 @@ class Basic(object):
             raise Exception("optionDict 不是一个字典")
         else:
             self._options = optionDict
-
-    @property
-    def upload_dirs(self):
-        return self._uploadDirObj
-
-    def update_sg_status(self):
-        """更新sg_status表"""
-        if self.update_api:
-            for one_insert in self.mongo_ids:
-                return_id = self.update_api.add_meta_status(table_id=one_insert['id'],
-                                                            type_name=one_insert['collection_name'],
-                                                            desc=one_insert['desc'], task_id=self.taskId)
-                print('sg_status_ID:', return_id)
-
-    def end(self):
-        self.update_sg_status()
-        content = dict()
-        content["dirs"] = list()
-        content["files"] = list()
-        content["ids"] = list()
-        for one_insert in self.mongo_ids:
-            idDict = {'id': str(one_insert['id']),
-                      'name': self.get_main_table_name(one_insert['collection_name'], str(one_insert['id']))}
-            content["ids"].append(idDict)
-        if len(self.mongo_ids) == 1:
-            content['ids'] = content['ids'][0]
-        files, dirs = self.get_upload_files()
-        content['files'] = files
-        content['dirs'] = dirs
-        info = dict()
-        info["success"] = True
-        info["content"] = content
-        self.returnInfo = json.dumps(info)
-        self.addEndRecord()
-
-    def get_upload_files(self):
-        """将workflow的文件上传对象的文件列表取出，用于返回前端"""
-        return_files = []
-        return_dirs = []
-
-        def create_path(path, dir_path):
-            dir_path = os.path.split(dir_path)[1]
-            return self.uploadTarget + '/' + dir_path + '/' + path.lstrip('.')
-        for i in self.upload_dirs:
-            for one in i.file_list:
-                if one['type'] == 'file':
-                    return_files.append({
-                        "path": create_path(one["path"], i.path),
-                        "format": one["format"],
-                        "description": one["description"],
-                        "size": one["size"]
-                    })
-                elif one['type'] == 'dir':
-                    return_dirs.append({
-                        "path": create_path(one["path"], i.path),
-                        "format": one["format"],
-                        "description": one["description"],
-                        "size": one["size"]
-                    })
-                else:
-                    raise Exception('错误的文件类型')
-        return return_files, return_dirs
-
-    def get_main_table_name(self, table, main_id):
-        """
-        查询数据库获取主表名称name
-        """
-        table_name = self.mongodb[mbio_config().MONGODB][table].find_one({'_id': ObjectId(main_id)})['name']
-        if not table_name:
-            raise Exception('在表:{} 中未找到_id为:{} 的数据，或者表中没有"name"字段'.format(table, main_id))
-        return table_name

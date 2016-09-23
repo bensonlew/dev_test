@@ -358,10 +358,6 @@ class Basic(EventObject):
         :param child: 一个或多个 :py:class:`biocluster.module.Module` 或  :py:class:`biocluster.agent.Agent` 对象
         :return: self
         """
-        if self.is_start:
-            raise Exception("%s已经开始运行，不能添加子模块!" % self.name)
-        if self.is_end:
-            raise Exception("%s已经运行结束，不能添加子模块!" % self.name)
         for c in child:
             if not isinstance(c, Basic):
                 raise Exception("child参数必须为Basic或其子类的实例对象!")
@@ -870,9 +866,10 @@ class StepMain(Step):
                     data["uploaded"] = 0
 
             try:
-                workflow.db.insert("apilog", **data)
-                self.clean_change()
-                self._api_data = {}
+                with workflow.db_sem:
+                    workflow.db.insert("apilog", **data)
+                    self.clean_change()
+                    self._api_data = {}
             except Exception, e:
                 self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
 
@@ -905,8 +902,9 @@ class StepMain(Step):
                 "data": json.dumps(post_data, cls=CJsonEncoder)
             }
             try:
-                workflow.db.insert("apilog", **data)
-                self._api_data = {}
+                with workflow.db_sem:
+                    workflow.db.insert("apilog", **data)
+                    self._api_data = {}
             except Exception, e:
                 self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
 

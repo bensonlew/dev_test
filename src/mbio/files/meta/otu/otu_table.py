@@ -9,6 +9,7 @@ from biocluster.config import Config
 import os
 import re
 from biocluster.core.exceptions import FileError
+from collections import defaultdict
 
 
 class OtuTableFile(File):
@@ -354,3 +355,28 @@ class OtuTableFile(File):
             sample = f.readline().strip('\n').split('\t')
             del sample[0]
         return sample
+
+    def get_min_sample_num(self):
+        """
+        获取最小的样本序列数
+        """
+        sample_name = list()
+        sample_num = defaultdict(int)
+        self.get_info()
+        with open(self.prop['path'], 'rb') as r:
+            line = r.next().strip().split("\t")
+            line.pop(0)
+            if self.prop["metadata"] == "taxonomy":
+                line.pop(-1)
+            sample_name = line[:]
+            for line in r:
+                line = line.rstrip().split()
+                for i in range(len(sample_name)):
+                    sample_num[sample_num[i]] += int(line[i])
+            min_num = sample_name[sample_num.keys()[0]]
+            min_sample = sample_num.keys()[0]
+            for k in sample_num:
+                if sample_num[k] < min_num:
+                    min_num = sample_num[k]
+                    min_sample = k
+        return (min_sample, min_num)
