@@ -1,11 +1,11 @@
-otu_data <- read.table("${inputfile}",sep = "\t",comment.char = '')
+otu_data <- read.table("${inputfile}",sep = "\t",comment.char = '', colClasses="character")
 samp <- t(otu_data[1,-1])
 otu_data <- otu_data[-1,]
 rownames(otu_data) <- otu_data[,1]
 otu_data <- otu_data[,-1]
 colnames(otu_data) <- samp
 #read groupfile to make the dataframe for test
-group <- read.table("${groupfile}",sep="\t")
+group <- read.table("${groupfile}",sep="\t",colClasses="character")
 #group <- group[-1,]
 gsamp <- group[,1]
 g1 <- group[1,2]
