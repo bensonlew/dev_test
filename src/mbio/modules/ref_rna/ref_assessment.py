@@ -9,9 +9,10 @@ from biocluster.module import Module
 
 class RefAssessmentModule(Module):
     """
-    denovoRNA比对后质量评估:基因覆盖率、比对结果统计、冗余序列分析 
-    author: zengjing
-    last_modify: 2016.09.23
+    denovoRNA比对后质量评估:基因覆盖率、比对结果统计、冗余序列分析
+    version 1.0
+    author: qindanhua
+    last_modify: 2016.07.27
     """
     def __init__(self, work_id):
         super(RefAssessmentModule, self).__init__(work_id)
@@ -202,7 +203,7 @@ class RefAssessmentModule(Module):
             ["./dup/", "", "冗余序列分析输出目录"],
             ["./satur/", "", "测序饱和度分析输出目录"],
             ["./bam_stat.xls", "xls", "bam格式比对结果统计表"],
-            ["./distribute", "txt", "reads区域分布目录"]
+            ["./", "txt", "reads区域分布目录"]
         ])
         result_dir.add_regexp_rules([
             [r".*pos\.DupRate\.xls", "xls", "比对到基因组的序列的冗余统计表"],
