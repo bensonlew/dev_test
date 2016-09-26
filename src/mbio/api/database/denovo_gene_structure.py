@@ -133,7 +133,7 @@ class DenovoGeneStructure(Base):
             print("导入ORF预测结果数据成功")
 
     @report_check
-    def add_ssr_table(self, ssr, ssr_primer, ssr_stat, name=None, params=None):
+    def add_ssr_table(self, ssr, ssr_stat, ssr_primer=None, name=None, params=None):
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
@@ -143,11 +143,12 @@ class DenovoGeneStructure(Base):
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        collection = self.db["sg_denovo_ssr_detail"]
+        collection = self.db["sg_denovo_ssr"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         self.add_ssr_detail(ssr, inserted_id)
-        self.add_ssr_primer(ssr_primer)
         self.add_ssr_stat(ssr_stat)
+        if ssr_primer is not None:
+            self.add_ssr_primer(ssr_primer)
         return inserted_id
 
     @report_check
@@ -269,7 +270,24 @@ class DenovoGeneStructure(Base):
             print("导入SSR引物统计数据成功")
 
     @report_check
-    def add_snp_detail(self, snp):
+    def add_snp_table(self, snp, name=None, params=None):
+        insert_data = {
+            "project_sn": self.bind_object.sheet.project_sn,
+            "task_id": self.bind_object.sheet.id,
+            "name": name if name else "snp_origin",
+            "status": "start",
+            "desc": "",
+            "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
+            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        collection = self.db["sg_denovo_snp"]
+        inserted_id = collection.insert_one(insert_data).inserted_id
+        self.add_snp_detail(snp, inserted_id)
+        self.add_snp_graph(snp, inserted_id)
+        return inserted_id
+
+    @report_check
+    def add_snp_detail(self, snp, snp_id=None):
         snp_files = glob.glob("{}/*snp.xls".format(snp))
         # print snp_files
         data_list = []
@@ -283,6 +301,7 @@ class DenovoGeneStructure(Base):
                 for line in f:
                     line = line.strip().split("\t")
                     data = {
+                        "snp_id": snp_id,
                         "specimen_name": sample_name,
                         "gene_id": line[0],
                         "nucl_pos": line[1],
@@ -305,13 +324,14 @@ class DenovoGeneStructure(Base):
             print("导入SSR引物统计数据成功")
 
     @report_check
-    def add_snp_graph(self, snp):
+    def add_snp_graph(self, snp, snp_id=None):
         snp_pos = glob.glob("{}/*position_stat.xls".format(snp))
         snp_type = glob.glob("{}/*type_stat.xls".format(snp))
         data_list = []
         for sp in snp_pos:
             sample_name = os.path.basename(sp).split("_")[0]
             data = {
+                "snp_id": snp_id,
                 "specimen_name": sample_name
             }
             with open(sp, "r") as f:
