@@ -97,10 +97,30 @@ class PcoaTool(Tool):
             self.logger.info('pcoa计算失败')
             self.set_error('R程序计算pcoa失败')
         allfile = self.get_filesname()
+        sites_file = self.format_header(allfile[1])
         self.linkfile(allfile[0], 'pcoa_eigenvalues.xls')
-        self.linkfile(allfile[1], 'pcoa_sites.xls')
+        self.linkfile(sites_file, 'pcoa_sites.xls')
         self.logger.info('运行ordination.pl程序计算pcoa完成')
         self.end()
+
+    def format_header(self, old):
+        """
+        """
+        with open(old) as f, open(self.work_dir + '/format_header.temp', 'w') as w:
+            headers = f.readline().rstrip().split()[1:]
+            for header in headers:
+                if header[0] != 'V':
+                    raise Exception('Pcoa结果不正确或者不规范')
+                num = header[1:]
+                if not num.isdigit():
+                    raise Exception('Pcoa结果不正确或者不规范 ')
+            news = ['pc' + i[1:] for i in headers]
+            news = [''] + news
+            new_header = '\t'.join(news) + '\n'
+            w.write(new_header)
+            for i in f:
+                w.write(i)
+        return self.work_dir + '/format_header.temp'
 
     def linkfile(self, oldfile, newname):
         """
