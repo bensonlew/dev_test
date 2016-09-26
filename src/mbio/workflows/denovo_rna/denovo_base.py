@@ -7,7 +7,6 @@ from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
 import shutil
-import threading
 import re
 
 
@@ -36,7 +35,7 @@ class DenovoBaseWorkflow(Workflow):
             {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
             {"name": "anno_analysis", "type": "string", "default": ""},
             {"name": "exp_analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich"},
-            {"name": "gene_analysis", "type": "string", "default": "orf"},
+            {"name": "gene_analysis", "type": "string", "default": "orf,snp"},
             {"name": "map_qc_analysis", "type": "string", "default": "satur,dup,coverage,correlation"}
         ]
         self.add_option(options)
@@ -61,13 +60,11 @@ class DenovoBaseWorkflow(Workflow):
         self.update_status_api = self.api.denovo_update_status
         self.spname_spid = dict()
         self.samples = self.option('fastq_dir').samples
-        self.diff_gene_id = None
-        self.diff_genes = None
-        # self.logger.info('{}'.format(self.events))
-        # self.logger.info('{}'.format(self.children))
-        # self.logger.info('{}'.format(self._upload_dir_obj))
-        # self.logger.info('{}'.format(self.qc_stat_before._upload_dir_obj))
-        # self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
+        self.diff_gene_id = None  # 差异基因矩阵id
+        self.diff_genes = None  # 差异基因列表
+        self.bam_path = ''  # rsem比对结果bam文件文件路径
+        self.orf_bed = ''  # orf bed结果文件路径
+        self.express_id = None
 
     def check_options(self):
         """
@@ -360,9 +357,6 @@ class DenovoBaseWorkflow(Workflow):
             api_sample.add_samples_info(qc_stat=qc_stat_info, qc_adapt=qc_adapt, fq_type=self.option('fq_type'))
             api_sample.add_gragh_info(quality_stat, about_qc='after')
             self.spname_spid = api_sample.get_spname_spid()
-            if self.option('group_table').is_set:
-                api_group = self.api.group
-                api_group.add_ini_group_table(self.option('group_table').prop['path'], self.spname_spid)
         if event['data'] == 'assemble':
             self.move2outputdir(obj.output_dir, 'Assemble')
             # set api
@@ -376,79 +370,117 @@ class DenovoBaseWorkflow(Workflow):
                     raise Exception('找不到报告文件：{}'.format(f))
             sequence_id = api_assemble.add_sequence(trinity_path, gene_path)
             api_assemble.add_sequence_detail(sequence_id, stat_path)
-            threads = []
             for f in os.listdir(self.output_dir + '/Assemble'):
                 if re.search(r'length\.distribut\.txt$', f):
                     step = f.split('_')[0]
                     file_ = self.output_dir + '/Assemble/' + f
-                    t = threading.Thread(api_assemble.add_sequence_step, args=(file_, step))
-                    threads.append(t)
-            for th in threads:
-                th.setDaemon = True
-                th.start()
-            th.join()
+                    api_assemble.add_sequence_step(file_, step)
         if event['data'] == 'map_qc':
             self.move2outputdir(obj.output_dir, 'Map_stat')
+            api_map = self.api.denovo_rna_mapping
+            api_map.add_mapping_stat(self.output_dir + '/Map_stat/bam_stat.xls')
+            rpkm_params = {
+                'analysis': 'satur',
+                'quality_satur': 30,
+                'low_bound': 5,
+                'up_bound': 100,
+                'step': 5,
+                'bam_path': self.bam_path,
+                'orf_bed': self.orf_bed,
+            }
+            rpkm_path = self.output_dir + '/Map_stat/satur/'
+            rpkm_id = api_map.add_rpkm_table(rpkm_path, params=rpkm_params)
+            api_map.add_rpkm_box(rpkm_path, rpkm_id)
+            api_map.add_rpkm_curve(rpkm_path, rpkm_id)
+            coverage_path = self.output_dir + '/Map_stat/coverage/'
+            cov_params = {
+                'analysis': 'coverage',
+                'min_len': 100,
+                'bam_path': self.bam_path,
+                'orf_bed': self.orf_bed,
+            }
+            api_map.add_coverage_table(coverage=coverage_path, name=None, params=cov_params)
+            dup_path = self.output_dir + '/Map_stat/dup/'
+            dup_params = {
+                'analysis': 'dup',
+                'quality_dup': 30,
+                'bam_path': self.bam_path,
+            }
+            api_map.add_duplication_table(dup=dup_path, params=dup_params)
+            corre_path = self.output_dir + '/Map_stat/correlation/'
+            corre_params = {
+                'analysis': 'dup',
+            }
+            api_map.add_correlation_table(correlation=corre_path, params=corre_params, express_id=self.express_id)
         if event['data'] == 'orf':
             self.move2outputdir(obj.output_dir, 'Gene_structure/orf')
+            self.orf_bed = obj.option('bed').prop['path']
         if event['data'] == 'orf_len':
             self.move2outputdir(obj.output_dir, 'Gene_structure/orf')
+            api_orf = self.api.denovo_gene_structure
+            orf_path = self.output_dir + 'Gene_structure/orf/'
+            if self.option('search_pfam'):
+                pfam_path = orf_path + 'pfam_domain'
+            else:
+                pfam_path = None
+            api_orf.add_orf_table(orf_bed=orf_path + 'Trinity.fasta.transdecoder.bed', reads_len_info=orf_path + 'reads_len_info', orf_domain=pfam_path, name=None, params=None)
         if event['data'] == 'ssr':
             self.move2outputdir(obj.output_dir, 'Gene_structure/ssr')
+            api_ssr = self.api.denovo_gene_structure
+            ssr_path = obj.work_dir
+            if self.option('primer'):
+                primer_path = ssr_path + '/gene.fasta.misa.results'
+            else:
+                primer_path = None
+            ssr_params = {
+                'orf_bed': self.orf_bed,
+                'primer': self.option('primer')
+            }
+            api_ssr.add_ssr_table(ssr=ssr_path + '/gene.fasta.misa', ssr_primer=primer_path, ssr_stat=ssr_path + '/gene.fasta.statistics', name=None, params=ssr_params)
         if event['data'] == 'snp':
             self.move2outputdir(obj.output_dir, 'Gene_structure/snp')
+            api_snp = self.api.denovo_gene_structure
+            snp_path = self.output_dir + '/Gene_structure/snp'
+            api_snp.add_snp_table(snp=snp_path)
         if event['data'] == 'exp_stat':
             self.move2outputdir(obj.output_dir, 'Express')
+            self.bam_path = obj.option('bam_dir').prop['path']
             self.logger.info('%s' % self.exp_stat.diff_gene)
             # set api
             api_express = self.api.denovo_express
-            express_id = api_express.add_express(samples=self.samples, params=None, name=None)
-            rsem_files = os.listdir(self.output_dir + '/Express/rsem/')
-            for f in rsem_files:
-                if re.search(r'^genes\.TMM', f):
-                    count_path = self.output_dir + '/Express/rsem/' + f
-                    fpkm_path = self.output_dir + '/Express/rsem/genes.counts.matrix'
-                    api_express.add_express_detail(express_id, count_path, fpkm_path, 'gene')
-                elif re.search(r'^transcripts\.TMM', f):
-                    count_path = self.output_dir + '/Express/rsem/' + f
-                    fpkm_path = self.output_dir + '/Express/rsem/transcripts.counts.matrix'
-                    api_express.add_express_detail(express_id, count_path, fpkm_path, 'transcript')
-                elif re.search(r'\.genes\.results$', f):
-                    sample = f.split('.genes.results')[0]
-                    file_ = self.output_dir + '/Express/rsem/' + f
-                    api_express.add_express_specimen_detail(express_id, file_, 'gene', sample)
-                elif re.search(r'\.isoforms\.results$', f):
-                    sample = f.split('.genes.results')[0]
-                    file_ = self.output_dir + '/Express/rsem/' + f
-                    api_express.add_express_specimen_detail(express_id, file_, 'transcript', sample)
-            diff_files = os.listdir(self.output_dir + '/Express/diff_exp/')
-            param_1 = {
-                'ci': self.option('diff_ci'),
-                # 'group_id': 'All',
-                # 'group_detail'
-                # 'control_id': 'All',
-                # 'control_detail'
-                'rate': self.option('diff_rate'),
-            }
+            rsem_dir = self.output_dir + '/Express/rsem/'
+            self.express_id = api_express.add_express(samples=self.samples, params=None, name=None, bam_path=self.bam_path, rsem_dir=rsem_dir)
+            api_control = self.api.control
+            if self.option('group_table').is_set:
+                api_group = self.api.group
+                group_id = api_group.add_ini_group_table(self.option('group_table').prop['path'], self.spname_spid)
+                control_id, control_detail = api_control.add_control(self.option('control_file').prop['path'], group_id[0])
+                group_detail = api_group.get_group_detail(self.option('group_table').prop['path'], self.spname_spid, self.option('group_table').prop['group_scheme'][0])
+
+            else:
+                control_id, control_detail = api_control.add_control(self.option('control_file').prop['path'], 'all')
+                sp_id = self.spname_spid.values()
+                sp_id.sort()
+                group_detail = {'all': sp_id}
             compare_column = list()
+            diff_exp_dir = self.output_dir + '/Express/diff_exp/'
+            diff_files = os.listdir(diff_exp_dir)
             for f in diff_files:
                 if re.search(r'_edgr_stat.xls$', f):
                     con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
                     compare_column.append('|'.join(con_exp))
-            express_diff_id = api_express.add_express_diff(param_1, self.samples, compare_column)
-            path_ = os.path.join(self.output_dir, '/Express/diff_exp/')
-            for f in diff_files:
-                if re.search(r'_edgr_stat.xls$', f):
-                    con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
-                    api_express.add_express_diff_detail(express_diff_id, con_exp, path_ + f)
-                if f == 'diff_fpkm':
-                    param_2 = {
-                        # 'express_diff_id': ,
-                        'compare_list': compare_column,
-                        'is_sum': True,
-                    }
-                    self.diff_gene_id = api_express.add_express(samples=self.samples, params=param_2, express_id=express_id)
-                    api_express.add_express_detail(self.diff_gene_id, path_ + 'diff_count', path_ + f, 'gene')
+            diff_param = {
+                'ci': self.option('diff_ci'),
+                'rate': self.option('diff_rate'),
+            }
+            express_diff_id = api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, control_detail=control_detail, diff_exp_dir=diff_exp_dir)
+            param_2 = {
+                # 'express_diff_id': ,
+                'compare_list': compare_column,
+                'is_sum': True,
+            }
+            self.diff_gene_id = api_express.add_express(samples=self.samples, params=param_2, express_diff_id=express_diff_id, major=False)
+            api_express.add_express_detail(self.diff_gene_id, diff_exp_dir + 'diff_count', diff_exp_dir + 'diff_fpkm', 'gene')
         if event['data'] == 'exp_diff':
             # set output
             self.move2outputdir(obj.output_dir, 'Express')
