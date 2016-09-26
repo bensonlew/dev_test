@@ -22,7 +22,7 @@ class DenovoGeneStructure(Base):
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
-            "name": name if name else "correlation_origin",
+            "name": name if name else "orf_origin",
             "status": "start",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
@@ -43,7 +43,7 @@ class DenovoGeneStructure(Base):
         data_list = []
         for sf in step_files:
             step = os.path.basename(sf).split(".")[0][5:]
-            # print step
+            # self.bind_object.logger.error step
             with open(sf, "r") as f:
                 step_line = f.readline().strip().split()
                 step_line.pop(0)
@@ -53,7 +53,7 @@ class DenovoGeneStructure(Base):
                 value_dict = {}
                 for i in range(col_num):
                     value_dict[step_line[i]] = value_line[i]
-                # print value_dict
+                # self.bind_object.logger.error value_dict
                 data = {
                     "orf_id": orf_id,
                     "step": step,
@@ -64,9 +64,9 @@ class DenovoGeneStructure(Base):
             collection = self.db["sg_denovo_orf_step"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入ORF长度分布数据出错:%s" % e)
+            self.bind_object.logger.error("导入ORF长度分布数据出错:%s" % e)
         else:
-            print("导入ORF长度分布数据成功")
+            self.bind_object.logger.error("导入ORF长度分布数据成功")
 
     @report_check
     def add_orf_domain(self, domain, orf_id=None):
@@ -90,21 +90,21 @@ class DenovoGeneStructure(Base):
                     "domain_evalue": line[9]
                 }
                 data_list.append(data)
-        # print data_list
+        # self.bind_object.logger.error data_list
         try:
             collection = self.db["sg_denovo_orf_domain"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入ORF蛋白域数据出错:%s" % e)
+            self.bind_object.logger.error("导入ORF蛋白域数据出错:%s" % e)
         else:
-            print("导入ORF蛋白域数据成功")
+            self.bind_object.logger.error("导入ORF蛋白域数据成功")
 
     @report_check
     def add_orf_bed(self, bed, orf_id=None):
         data_list = []
         with open(bed, "r") as f:
             f.readline()
-            # print len(f.next().strip().split())
+            # self.bind_object.logger.error len(f.next().strip().split())
             for line in f:
                 line = line.strip().split()
                 data = {
@@ -128,9 +128,9 @@ class DenovoGeneStructure(Base):
             collection = self.db["sg_denovo_orf_bed"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入ORF预测结果数据出错:%s" % e)
+            self.bind_object.logger.error("导入ORF预测结果数据出错:%s" % e)
         else:
-            print("导入ORF预测结果数据成功")
+            self.bind_object.logger.error("导入ORF预测结果数据成功")
 
     @report_check
     def add_ssr_table(self, ssr, ssr_stat, ssr_primer=None, name=None, params=None):
@@ -156,7 +156,7 @@ class DenovoGeneStructure(Base):
         data_list = []
         with open(ssr, "r") as f:
             f.readline().strip().split("\t")
-            # print f.next().strip().split("\t")
+            # self.bind_object.logger.error f.next().strip().split("\t")
             for line in f:
                 line = line.strip().split("\t")
                 data = {
@@ -175,16 +175,16 @@ class DenovoGeneStructure(Base):
             collection = self.db["sg_denovo_ssr_detail"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入SSR统计结果数据出错:%s" % e)
+            self.bind_object.logger.error("导入SSR统计结果数据出错:%s" % e)
         else:
-            print("导入SSR统计结果结果数据成功")
+            self.bind_object.logger.error("导入SSR统计结果结果数据成功")
 
     @report_check
     def add_ssr_primer(self, primer, ssr_id=None):
         data_list = []
         with open(primer, "r") as f:
-            print f.readline()
-            print len(f.next().strip().split("\t"))
+            f.readline()
+            # self.bind_object.logger.error(len(f.next().strip().split("\t")))
             for line in f:
                 line = line.strip().split("\t")
                 if len(line) < 34:
@@ -226,9 +226,9 @@ class DenovoGeneStructure(Base):
             collection = self.db["sg_denovo_ssr_primer"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入SSR引物结果数据出错:%s" % e)
+            self.bind_object.logger.error("导入SSR引物结果数据出错:%s" % e)
         else:
-            print("导入SSR引物结果结果数据成功")
+            self.bind_object.logger.error("导入SSR引物结果结果数据成功")
 
     @report_check
     def add_ssr_stat(self, ssr_stat, ssr_id=None):
@@ -265,9 +265,9 @@ class DenovoGeneStructure(Base):
             collection = self.db["sg_denovo_ssr_stat"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入SSR引物统计数据出错:%s" % e)
+            self.bind_object.logger.error("导入SSR引物统计数据出错:%s" % e)
         else:
-            print("导入SSR引物统计数据成功")
+            self.bind_object.logger.error("导入SSR引物统计数据成功")
 
     @report_check
     def add_snp_table(self, snp, name=None, params=None):
@@ -289,15 +289,15 @@ class DenovoGeneStructure(Base):
     @report_check
     def add_snp_detail(self, snp, snp_id=None):
         snp_files = glob.glob("{}/*snp.xls".format(snp))
-        # print snp_files
+        # self.bind_object.logger.error snp_files
         data_list = []
         for sf in snp_files:
             sample_name = os.path.basename(sf).split("_")[0]
-            print sample_name
+            # self.bind_object.logger.error(sample_name)
             with open(sf, "r") as f:
                 f.readline()
-                # print f.next().strip().split()
-                # print len(f.next().strip().split("\t"))
+                # self.bind_object.logger.error f.next().strip().split()
+                # self.bind_object.logger.error len(f.next().strip().split("\t"))
                 for line in f:
                     line = line.strip().split("\t")
                     data = {
@@ -319,9 +319,9 @@ class DenovoGeneStructure(Base):
             collection = self.db["sg_denovo_snp_detail"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入SSR引物统计数据出错:%s" % e)
+            self.bind_object.logger.error("导入SSR引物统计数据出错:%s" % e)
         else:
-            print("导入SSR引物统计数据成功")
+            self.bind_object.logger.error("导入SSR引物统计数据成功")
 
     @report_check
     def add_snp_graph(self, snp, snp_id=None):
@@ -357,6 +357,6 @@ class DenovoGeneStructure(Base):
             collection = self.db["sg_denovo_snp_graphic"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入SSR引物统计数据出错:%s" % e)
+            self.bind_object.logger.error("导入SSR引物统计数据出错:%s" % e)
         else:
-            print("导入SSR引物统计数据成功")
+            self.bind_object.logger.error("导入SSR引物统计数据成功")

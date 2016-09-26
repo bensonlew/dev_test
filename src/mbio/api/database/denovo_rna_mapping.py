@@ -36,9 +36,9 @@ class DenovoRnaMapping(Base):
             collection = self.db["sg_denovo_specimen_mapping"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入比对结果统计信息出错:%s" % e)
+            self.bind_object.logger.error("导入比对结果统计信息出错:%s" % e)
         else:
-            print("导入比对结果统计信息成功")
+            self.bind_object.logger.error("导入比对结果统计信息成功")
 
     @report_check
     def add_rpkm_table(self, file_path, name=None, params=None):
@@ -98,9 +98,9 @@ class DenovoRnaMapping(Base):
             collection = self.db["sg_denovo_rpkm_detail"]
             collection.insert_many(rpkm_detail)
         except Exception, e:
-            print("导入rpkm detail出错:%s" % e)
+            self.bind_object.logger.error("导入rpkm detail出错:%s" % e)
         else:
-            print("导入rpkm detail成功")
+            self.bind_object.logger.error("导入rpkm detail成功")
 
     def add_rpkm_box(self, rpkm_file, rpkm_id=None):
         rpkm_plot = glob.glob("{}/*saturation.r".format(rpkm_file))
@@ -143,9 +143,9 @@ class DenovoRnaMapping(Base):
             collection = self.db["sg_denovo_rpkm_box"]
             collection.insert_many(rpkm_box)
         except Exception, e:
-            print("导入rpkm箱线图数据出错:%s" % e)
+            self.bind_object.logger.error("导入rpkm箱线图数据出错:%s" % e)
         else:
-            print("导入rpkm箱线图数据")
+            self.bind_object.logger.error("导入rpkm箱线图数据")
 
     @report_check
     def add_rpkm_curve(self, rpkm_file, rpkm_id=None):
@@ -169,15 +169,15 @@ class DenovoRnaMapping(Base):
                     "column5": line_list[4],
                     "column6": line_list[5],
                 }
-                # print data
+                # self.bind_object.logger.error data
                 curve_data.append(data)
         try:
             collection = self.db["sg_denovo_rpkm_curve"]
             collection.insert_many(curve_data)
         except Exception, e:
-            print("导入rpkm曲线数据出错:%s" % e)
+            self.bind_object.logger.error("导入rpkm曲线数据出错:%s" % e)
         else:
-            print("导入rpkm曲线数据成功")
+            self.bind_object.logger.error("导入rpkm曲线数据成功")
 
     @report_check
     def add_coverage_table(self, coverage, name=None, params=None):
@@ -201,14 +201,14 @@ class DenovoRnaMapping(Base):
         data_list = []
         for cf in coverage_files:
             sample_name = os.path.basename(cf).split(".")[0][9:]
-            # print sample_name
+            # self.bind_object.logger.error sample_name
             with open(cf, "r") as f:
                 percent = f.readline().strip().split()
                 value = f.next().strip().split()
                 plot_value = {}
                 for i in range(100):
                     plot_value[percent[i+1]] = value[i+1]
-                # print plot_value
+                # self.bind_object.logger.error plot_value
                 data = {
                     "coverage_id": coverage_id,
                     "specimen_name": sample_name,
@@ -219,9 +219,9 @@ class DenovoRnaMapping(Base):
             collection = self.db["sg_denovo_coverage_detail"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入rpkm曲线数据出错:%s" % e)
+            self.bind_object.logger.error("导入rpkm曲线数据出错:%s" % e)
         else:
-            print("导入rpkm曲线数据成功")
+            self.bind_object.logger.error("导入rpkm曲线数据成功")
 
     @report_check
     def add_duplication_table(self, dup, name=None, params=None):
@@ -274,9 +274,9 @@ class DenovoRnaMapping(Base):
             collection = self.db["sg_denovo_duplicate_detail"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入冗余分析数据出错:%s" % e)
+            self.bind_object.logger.error("导入冗余分析数据出错:%s" % e)
         else:
-            print("导入冗余分析数据成功")
+            self.bind_object.logger.error("导入冗余分析数据成功")
 
     @report_check
     def add_correlation_table(self, correlation, name=None, params=None, express_id=None):
@@ -313,12 +313,12 @@ class DenovoRnaMapping(Base):
                 for i, s in enumerate(samples):
                     data["specimen_name"] = line[0]
                     data[s] = line[i+1]
-                # print data
+                # self.bind_object.logger.error data
                 data_list.append(data)
         try:
             collection = self.db["sg_denovo_correlation_detail"]
             collection.insert_many(data_list)
         except Exception, e:
-            print("导入相关系数分析数据出错:%s" % e)
+            self.bind_object.logger.error("导入相关系数分析数据出错:%s" % e)
         else:
-            print("导入相关系数分析数据成功")
+            self.bind_object.logger.error("导入相关系数分析数据成功")
