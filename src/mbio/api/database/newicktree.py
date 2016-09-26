@@ -60,7 +60,7 @@ class Newicktree(Base):
             if tree_id is None:
                 raise Exception("major为False时需提供tree_id!")
         # update value
-        self.bind_object.logger('update_dist_id: {}'.format(update_dist_id))
+        self.bind_object.logger.info('update_dist_id: {}'.format(update_dist_id))
         if update_dist_id:
             self.update_dist(update_dist_id, tree_id)
         with open(file_path, 'r') as f:

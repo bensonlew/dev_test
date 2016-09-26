@@ -34,6 +34,7 @@ def get_trinity_info(fasta):
         if seq.id.split('_i')[0] not in trinity_info:
             gene = gene_dict()
             gene.name = seq.id.split('_i')[0]
+            gene.full_name = seq.id
             gene.len = len(seq.seq)
             gene.seq = seq.seq
             gene.tran.append(tran)
@@ -41,15 +42,16 @@ def get_trinity_info(fasta):
         elif trinity_info[seq.id.split('_i')[0]].len >= tran.len:
             gene.tran.append(tran)
         else:
-            gene.name = tran.name
+            gene.name = tran.name.split('_i')[0]
             gene.len = tran.len
             gene.seq = tran.seq
+            gene.full_name = tran.name
             gene.tran.append(tran)
 
     return trinity_info
 
 
-def stat_info(trinity_info, gene_path, stat_path, len_dir_path, length):
+def stat_info(trinity_info, gene_path, stat_path, len_dir_path, length, full_name_path):
     gene_seq_num = len(trinity_info)
     tran_seq_num = 0
     gene_GC_num = 0
@@ -64,10 +66,11 @@ def stat_info(trinity_info, gene_path, stat_path, len_dir_path, length):
         one = int(one)
         gene_len_distri[one] = defaultdict(int)
         tran_len_distri[one] = defaultdict(int)
-    with open(gene_path, 'wb') as g, open(stat_path, 'wb') as s:
+    with open(gene_path, 'wb') as g, open(stat_path, 'wb') as s, open(full_name_path, 'wb') as fg:
         for i in trinity_info:
             gene = trinity_info[i]
             g.write('{}\n{}\n'.format(i, gene.seq))
+            fg.write('{}\n'.format(gene.full_name))
             tran_seq_num += len(gene.tran)
             gene_GC_num += (gene.seq.count('C') + gene.seq.count('G'))
             gene_base_num += gene.len

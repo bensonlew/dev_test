@@ -4,7 +4,6 @@ import web
 import json
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.group_stat import GroupStat as G
-from mainapp.libs.param_pack import group_detail_sort
 
 
 class TwoSample(MetaController):

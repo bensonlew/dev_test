@@ -21,8 +21,10 @@ class RocAgent(Agent):
         super(RocAgent, self).__init__(parent)
         options = [
             {"name": "mode", "type": "int", "default":1},
-            {"name": "genus_table", "type": "string"},
-            {"name": "group_table", "type": "string"},
+            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir", "default":None},
+            {"name": "factor_table", "type": "string", "default":""},
+            {"name": "level", "type": "string", "default": "otu"},
+            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "method", "type": "string", "default":""},
             {"name": "name_table", "type": "string", "default":""},
             {"name": "top_n", "type": "int", "default": 20}
@@ -40,47 +42,72 @@ class RocAgent(Agent):
         self.step.RocAnalysis.finish()
         self.step.update()
 
+    def gettable(self):
+        """
+        根据输入的otu表和分类水平计算新的otu表
+        :return:
+        """
+        if self.option('otu_table').format == "meta.otu.tax_summary_dir":
+            return self.option('otu_table').get_table(self.option('level'))
+        else:
+            return self.option('otu_table').prop['path']
+
     def check_options(self):
-        if not os.path.exists(self.option('genus_table')):
-            raise OptionError("必须提供Genus Table")
-        if not os.path.exists(self.option('group_table')):
-            raise OptionError("必须提供分组表格")
-        if self.option('method'):
-            if self.option('method') not in ['sum', 'average', 'median']:
-                raise OptionError("丰度计算方法只能选择sum,average,median之一")
-        if self.option('mode') == 2:
-            if not os.path.exists(self.option('name_table')):
-                raise OptionError("Mode 2 模式下必须提供物种名列表文件")
-        os.system('cat %s | awk -F "\t" \'{ print $1 }\' > tmp.txt' %(self.option('genus_table')))
-        genus_data = open("tmp.txt", "r").readlines()[1:]
-        os.remove('tmp.txt')
-        genus_data = map(string.rstrip, genus_data)
-        sample_data = open(self.option('genus_table'), "r").readline().strip().split()[1:]
+        if not self.option('otu_table') and self.option('mode') in [1,2]:
+            raise OptionError('必须提供OTU表')
+        if not self.option('factor_table') and self.option('mode') == 3:
+            raise OptionError('模式三必须提供factor表')
+        if self.option('mode') in [1,2]:
+            self.option('otu_table').get_info()
+            if self.option('otu_table').prop['sample_num'] < 2:
+                raise OptionError('otu表的样本数目小于2，不可进行ROC计算')
+            if not self.option('group_table').is_set:
+                raise OptionError("必须提供分组表格")
+            if self.option('method'):
+                if self.option('method') not in ['sum', 'average', 'median']:
+                    raise OptionError("丰度计算方法只能选择sum,average,median之一")
+                if self.option('mode') == 2:
+                    if not os.path.exists(self.option('name_table')):
+                        raise OptionError("Mode 2 模式下必须提供物种名列表文件")
+                os.system('cat %s | awk -F "\t" \'{ print $1 }\' > tmp.txt' %(self.gettable()))
+                otu_data = open("tmp.txt", "r").readlines()[1:]
+                os.remove('tmp.txt')
+                otu_data = map(string.rstrip, otu_data)
+                sample_data = open(self.gettable()).readline().strip().split()[1:]
+                group_data = open(self.option('group_table').prop['path']).readlines()[1:]
+                for s in group_data:
+                    if s.split()[0] not in sample_data:
+                        raise OptionError("分组表中物种%s不在OTU Table中" % s.split()[0])
+                    if s.split()[1] not in ['0','1']:
+                        raise OptionError("分组表中物种分组只能有0和1！")
 
-        group_data = open(self.option('group_table'), "r").readlines()[1:]
-        group_data = map(string.strip, group_data)
-        for s in group_data:
-            if s.split()[0] not in sample_data:
-                raise OptionError("物种%s不在Genus Table中" % s.split()[0])
-            if s.split()[1] not in ['0','1']:
-                raise OptionError("物种分组只能有0和1！")
+                if self.option('mode')==2:
+                    name_data = open(self.option('name_table'), "r").readlines()[1:]
+                    name_data = map(string.strip, name_data)
+                    for s in name_data:
+                        if s not in otu_data:
+                            raise OptionError("物种%s不在OTU Table中" % s)
 
-        if self.option('mode')==2:
-            name_data = open(self.option('name_table'), "r").readlines()[1:]
-            name_data = map(string.strip, name_data)
-            for s in name_data:
-                if s not in genus_data:
-                    raise OptionError("物种%s不在Genus Table中" % s)
-
-        if self.option('mode')==1:
-            if self.option('top_n')>len(genus_data):
-                raise OptionError("选择丰度前N高物种时，设定的N多于物种总数：%d>%d" %(self.option('top_n'), len(genus_data)))
-            
+                if self.option('mode')==1:
+                    if self.option('top_n')>len(otu_data):
+                        raise OptionError("选择丰度前N高物种时，设定的N多于物种总数：%d>%d" %(self.option('top_n'), len(otu_data)))
+        if self.option('mode') == 3:
+            os.system('cat %s | awk -F "\t" \'{ print $1 }\' > tmp.txt' %(self.option('factor_table')))
+            sample_data = open("tmp.txt", "r").readlines()[1:]
+            os.remove('tmp.txt')
+            sample_data = map(string.rstrip, sample_data)
+            group_data = open(self.option('group_table').prop['path']).readlines()[1:]
+            for s in group_data:
+                if s.split()[0] not in sample_data:
+                    raise OptionError("分组表中物种%s不在Factor Table中" % s.split()[0])
+                if s.split()[1] not in ['0','1']:
+                    raise OptionError("分组表中物种分组只能有0和1！")
         return True
 
     
     def set_resource(self):
         """
+        设置内存和CPU
         """
         self._cpu = 2
         self._memory = ''
@@ -89,7 +116,7 @@ class RocAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
                 [".", "", "ROC分析结果目录"],
-                ["./roc_curve.pdf", "pdf", "ROC受试者工作特征曲线图"],
+                ["./roc_curve.xls", "xls", "ROC受试者工作特征曲线数据"],
                 ["./roc_auc.xls", "xls", "ROC受试者工作特征曲线-AUC VALUE"]
                 ])
         print self.get_upload_files()
@@ -99,7 +126,10 @@ class RocTool(Tool):
     def __init__(self, config):
         super(RocTool, self).__init__(config)
         self._version = '1.0.1'
-    
+        self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
+        self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
+
     def run(self):
         """
         运行
@@ -107,17 +137,31 @@ class RocTool(Tool):
         super(RocTool, self).run()
         self.run_roc_perl()
 
+    def get_otu_table(self):
+        """
+        根据调用的level参数重构otu表
+        :return:
+        """
+        if self.option('otu_table').format == "meta.otu.tax_summary_dir":
+            otu_path = self.option('otu_table').get_table(self.option('level'))
+        else:
+            otu_path = self.option('otu_table').prop['path']
+        return otu_path
+                               
     def run_roc_perl(self):
         """
         运行calc_roc.perl
         """
-        os.system('export PATH=/mnt/ilustre/users/sanger-dev/app/gcc/5.1.0/bin:$PATH')
-        os.system('export LD_LIBRARY_PATH=/mnt/ilustre/users/sanger-dev/app/gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
         cmd = self.config.SOFTWARE_DIR + '/program/perl/perls/perl-5.24.0/bin/perl ' + self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/plot_roc.pl '
         cmd += '-o %s ' %(self.work_dir + '/ROC/')
-        cmd += '-i %s ' %(self.option('genus_table'))
+        if not os.path.exists(self.work_dir + '/ROC/'):
+            os.mkdir(self.work_dir + '/ROC/')
+        if self.option('mode') in [1,2]:
+            cmd += '-i %s ' %(self.get_otu_table())
+        else:
+            cmd += '-i %s ' %(self.option('factor_table'))
         cmd += '-mode %d ' %(self.option('mode'))
-        cmd += '-group %s ' %(self.option('group_table'))
+        cmd += '-group %s ' %(self.option('group_table').prop['path'])
         if self.option('mode')==2:
             cmd += '-name %s ' %(self.option('name_table'))
         if self.option('method'):
@@ -125,6 +169,14 @@ class RocTool(Tool):
         if self.option('mode')==1:
             cmd += '-n %d ' %(self.option('top_n'))
         cmd += '-labels F '
+        """
+        with open(self.work_dir + "/ROC/set_env_and_run.cmd", "w") as tmp_file:
+            tmp_file.write("#!/usr/bash\n\n")
+            tmp_file.write("export PATH=/mnt/ilustre/users/sanger-dev/app/gcc/5.1.0/bin:$PATH")
+            tmp_file.write("export LD_LIBRARY_PATH=/mnt/ilustre/users/sanger-dev/app/gcc/5.1.0/lib64:$LD_LIBRARY_PATH")
+            tmp_file.write(cmd + "\n")
+        cmd = "bash %s/ROC/set_env_and_run.cmd" % self.work_dir
+        """
         self.logger.info('开始运行calc_roc.pl计算ROC相关数据')
         
         try:
@@ -143,7 +195,7 @@ class RocTool(Tool):
             raise "运行R脚本计算ROC相关数据失败"
         self.logger.info('运行calc_roc.pl程序进行ROC计算完成')
         allfiles = self.get_roc_filesname()
-        self.linkfile(self.work_dir + '/ROC/' + allfiles[0], 'roc_curve.pdf')
+        self.linkfile(self.work_dir + '/ROC/' + allfiles[0], 'roc_curve.xls')
         self.linkfile(self.work_dir + '/ROC/' + allfiles[1], 'roc_auc.xls')
         self.end()
 
@@ -151,6 +203,18 @@ class RocTool(Tool):
         newpath = os.path.join(self.output_dir, newname)
         if os.path.exists(newpath):
             os.remove(newpath)
+        if "roc_curve" in oldfile:
+            data = open(oldfile).readlines()[1:]
+            with open(oldfile, "w") as tmp_file:
+                tmp_file.write("x\ty\tgroup\n")
+                for s in data:
+                    tmp_file.write(s)
+        if "aucvalue" in oldfile:
+            data = open(oldfile).readlines()
+            with open(oldfile, "w") as tmp_file:
+                for i in data:
+                    s = i.strip().split()
+                    tmp_file.write(s[1]+"\t"+s[2]+"\n")
         os.link(oldfile, newpath)
 
     def get_roc_filesname(self):
@@ -158,7 +222,7 @@ class RocTool(Tool):
         roc_curve = None
         roc_auc = None
         for name in filelist:
-            if 'roc_curve.pdf' in name:
+            if 'roc_curve.xls' in name:
                 roc_curve = name
             elif 'roc_aucvalue.xls' in name:
                 roc_auc = name

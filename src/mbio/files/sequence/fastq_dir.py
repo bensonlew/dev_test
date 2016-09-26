@@ -82,7 +82,7 @@ class FastqDirFile(Directory):
                 fq_path = os.path.join(self.prop['path'], filename)
                 my_fastq.set_path(fq_path)
                 my_fastq.get_info()
-                sample_name = my_fastq.prop["file_sample"][filename]
+                sample_name = filesample.prop["file_sample"][filename]
                 if my_fastq.check():
                     if filename not in self.fastqs:
                         self.fastqs.append(filename)
