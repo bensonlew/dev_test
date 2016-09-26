@@ -48,21 +48,6 @@ class DenovoRnaMapping(Base):
             "name": name if name else "rpkm_origin",
             "status": "start",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
-            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        collection = self.db["sg_denovo_rpkm"]
-        inserted_id = collection.insert_one(insert_data).inserted_id
-        self.add_rpkm_detail(inserted_id, file_path)
-        return inserted_id
-
-    @report_check
-    def add_rpkm_table(self, file_path, name=None, params=None):
-        insert_data = {
-            "project_sn": self.bind_object.sheet.project_sn,
-            "task_id": self.bind_object.sheet.id,
-            "name": name if name else "rpkm_origin",
-            "status": "start",
-            "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "curve_specimen": {"column1": "[0-0.3)", "column2": "[0.3-0.6)", "column3": "[0.6-3.5)", "column4": "[3.5-15)", "column5": "[15-60)", "column6": ">=60"},
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
