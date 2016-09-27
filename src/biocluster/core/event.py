@@ -9,7 +9,7 @@ from gevent.lock import BoundedSemaphore
 import socket
 from .exceptions import EventStopError, UnknownEventError
 import traceback
-# import copy
+import copy
 
 
 class EventHandler(object):
@@ -26,7 +26,7 @@ class EventHandler(object):
         self._func = []
         self._greenlets = []
         self._start = False
-        self.sem = BoundedSemaphore()
+        # self.sem = BoundedSemaphore()
 
     @property
     def name(self):
@@ -132,12 +132,12 @@ class EventHandler(object):
 
         :param para: 可选参数，触发事件时传递给事件绑定函数的参数
         """
-        with self.sem:
-            if self.is_start:
-                self._event.set(para)
-            else:
-                # print self.name, self
-                raise EventStopError(self.name)
+        # with self.sem:
+        if self.is_start:
+            self._event.set(para)
+        else:
+            # print self.name, self
+            raise EventStopError(self.name)
 
     def start(self):
         """
@@ -187,10 +187,78 @@ class EventHandler(object):
         return self
 
 
-class LoopEventHandler(EventHandler):
+class LoopEventHandler(object):
     """
     可循环触发的事件处理器, 继承至 **EventHandler**
     """
+
+    def __init__(self, name):
+        """
+        Constructor
+        """
+        self._name = name
+        # self._raw_handler = EventHandler(name)
+        self._loop_handlers = []
+        self._start = False
+        self.sem = BoundedSemaphore()
+        self._fire_count = 0
+        self._bind_list = []
+
+    @property
+    def name(self):
+        """
+        只读属性，获取事件名称
+        :return:str 返回事件名称
+        """
+        return self._name
+
+    @property
+    def is_start(self):
+        """
+        只读属性,返回是否事件开始监听
+        """
+        return self._start
+
+    def bind(self, func, bindobject, data=None):
+        """
+        添加事件监听函数
+
+        :param func: 为自定义unbound function 或bound method(对象方法或类方法),最多允许2个参数（bound method第一个参数除外,即self）,
+                      bound method定义时第一个参数应该为self或cls,如:
+
+        .. code-block:: python
+            :linenos:
+
+            class A(object):
+                def b(self,c):
+                    pass
+            x=A()
+            obj.bind(A.b)
+
+        function可定义为:``def func(a,b)`` 或 ``def func(a)`` 或 ``def func()``
+
+        1. 第一个参数运行时获取值为 **EventHandler.fire** 函数传递的参数
+
+        #. 第二个参数运行时获取值为一个 **event_data** 字典
+
+           * *event_data['bind_object']* 值是该方法绑定的EventObject对象
+
+           * *event_data['event']* 值是该方法绑定的EventHandler对象
+
+           * *event_data['data']* 是bind方法传递的data参数
+
+        #. 当定义时指定参数名为 *event* 时(如 ``def func(event)`` )，此时*event*的值为 **event_data** 字典,不区分参数位置
+
+        :param func:
+        :param bindobject:
+        :param data:
+        :return:
+        """
+        if self.is_start:
+            raise Exception("%s事件已经启动监听，绑定事件处理函数应该在启动事件前进行!" % self.name)
+        else:
+            self._bind_list.append([func, bindobject, data])
+        return self
 
     def fire(self, para=None):
         """
@@ -200,17 +268,66 @@ class LoopEventHandler(EventHandler):
 
         :param para: 可选参数，触发事件时传递给事件绑定函数的参数 默认值:None
         """
+        if self.is_start:
+            with self.sem:
+                # handler = copy.deepcopy(self._raw_handler)
+                self._fire_count += 1
+                name = "%s[%s]" % (self.name, self._fire_count)
+                handler = EventHandler(name)
+                for bind_para in self._bind_list:
+                    handler.bind(*bind_para)
+                self._loop_handlers.append(handler)
+                handler.start()
+                handler.fire(para)
+        else:
+            raise EventStopError(self.name)
+
         # print "%s start fire ....." % self.name
-        with self.sem:
-            if not self.is_start:
-                # print "%s 没有启动 ....." % self.name
-                raise EventStopError("%s事件没有启动!" % self.name)
-            if self._event.ready():
-                self.stop()
-                self.restart()
-            self._event.set(para)
-        # self._current_handler.fire(para)
-        # print "%s Fire ................" % self.name
+        # with self.sem:
+        #     if not self.is_start:
+        #         # print "%s 没有启动 ....." % self.name
+        #         raise EventStopError("%s事件没有启动!" % self.name)
+        #     if self._event.ready():
+        #         self.stop()
+        #         self.restart()
+        #     self._event.set(para)
+        # # self._current_handler.fire(para)
+        # # print "%s Fire ................" % self.name
+
+    def start(self):
+        """
+        开始启动事件监听,启动事件监听后将不能添加新的绑定事件
+        事件触发前，必须先启动事件监听
+
+        :return: self
+        """
+        self._start = True
+        return self
+
+    def stop(self):
+        """
+        停止事件监听,停止事件监听后事件将不能被再次触发::
+
+            注意：不能在事件触发的处理函数中来停止当前事件监听
+
+        :return: self
+        """
+        for handler in self._loop_handlers:
+            handler.stop()
+        self._start = False
+        return self
+
+    def restart(self):
+        """
+        重启事件监听,将已经stop的事件重新启动,并重置所有事件处理函数等待再次被触发
+
+        :return: self
+        """
+        if self.is_start:
+            raise Exception("%s事件已经启动监听，需的调用LoopEventHandler.stop方法停止后才能重新启动!" % self.name)
+        else:
+            self.start()
+        return self
 
 
 class EventObject(object):
@@ -268,7 +385,7 @@ class EventObject(object):
         self.events = {}
         self._start = False   # 判断是否开始事件监听
         self._end = False     # 判断是否结束事件监听
-        self.semaphore = BoundedSemaphore(1)
+        # self.semaphore = BoundedSemaphore(1)
 
     @property
     def is_start(self):
@@ -296,14 +413,14 @@ class EventObject(object):
         #     raise Exception("%s已经开始运行，无法添加事件!" % self)
         # if self.is_end:
         #     raise Exception("%s已经运行结束，无法添加事件!" % self)
-        with self.semaphore:
-            if event in self.events.keys():
-                raise Exception("事件已经存在，请勿重复添加")
-            if self.check_event_name(event):
-                if loop:
-                    self.events[event] = LoopEventHandler(event)
-                else:
-                    self.events[event] = EventHandler(event)
+        # with self.semaphore:
+        if event in self.events.keys():
+            raise Exception("事件已经存在，请勿重复添加")
+        if self.check_event_name(event):
+            if loop:
+                self.events[event] = LoopEventHandler(event)
+            else:
+                self.events[event] = EventHandler(event)
         return self
 
     @staticmethod
@@ -356,11 +473,11 @@ class EventObject(object):
         :param data: 可选参数 将通过 **event_data['data']** 形式传递给运行函数
         :return:
         """
-        with self.semaphore:
-            if name not in self.events.keys():
-                raise UnknownEventError(name)
-            e = self.events[name]
-            e.bind(func, self, data)
+        # with self.semaphore:
+        if name not in self.events.keys():
+            raise UnknownEventError(name)
+        e = self.events[name]
+        e.bind(func, self, data)
         return self
 
     def fire(self, name, para=None):
@@ -371,11 +488,11 @@ class EventObject(object):
        :param para:  function 需要传递给事件绑定函数的参数
        :return: none
         """
-        with self.semaphore:
-            if name not in self.events.keys():
-                raise UnknownEventError(name)
-            e = self.events[name]
-            e.fire(para)
+        # with self.semaphore:
+        if name not in self.events.keys():
+            raise UnknownEventError(name)
+        e = self.events[name]
+        e.fire(para)
 
     def start_listener(self):
         """
