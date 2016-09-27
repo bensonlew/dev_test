@@ -91,7 +91,7 @@ class PcoaTool(Tool):
             self.logger.info('生成 cmd.r 文件失败')
             self.set_error('无法生成 cmd.r 文件')
         try:
-            subprocess.check_output(self.config.SOFTWARE_DIR +'/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
+            subprocess.check_output(self.config.SOFTWARE_DIR + '/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
             self.logger.info('pcoa计算成功')
         except subprocess.CalledProcessError:
             self.logger.info('pcoa计算失败')
@@ -107,7 +107,7 @@ class PcoaTool(Tool):
         """
         """
         with open(old) as f, open(self.work_dir + '/format_header.temp', 'w') as w:
-            headers = f.readline().rstrip().split()[1:]
+            headers = f.readline().rstrip().split('\t')[1:]
             for header in headers:
                 if header[0] != 'V':
                     raise Exception('Pcoa结果不正确或者不规范')
