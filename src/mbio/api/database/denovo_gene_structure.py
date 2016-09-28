@@ -26,7 +26,8 @@ class DenovoGeneStructure(Base):
             "status": "start",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
-            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "orf-bed": orf_bed,
         }
         collection = self.db["sg_denovo_orf"]
         inserted_id = collection.insert_one(insert_data).inserted_id

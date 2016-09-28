@@ -10,6 +10,8 @@ from bson.son import SON
 from bson.objectid import ObjectId
 import bson.binary
 from cStringIO import StringIO
+import re
+import json
 
 
 class DenovoExpress(Base):
@@ -18,23 +20,44 @@ class DenovoExpress(Base):
         self._db_name = Config().MONGODB + '_rna'
 
     @report_check
-    def add_express(self, samples=None, params=None, name=None, express_id=None):
-        # 参数express_id只是为了插入差异基因矩阵时才用到，初始化不用
+    def add_express(self, rsem_dir, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True):
+        # 参数express_diff_id只是为了插入差异基因矩阵时才用到，初始化不用
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        params['express_id'] = express_id
+        if express_diff_id:
+            params['express_diff_id'] = express_diff_id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
             'name': name if name else 'express_matrix_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '表达量计算主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'params': params,
+            'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'specimen': samples,
             'status': 'end',
+            'bam_path': bam_path,
         }
         collection = self.db['sg_denovo_express']
         express_id = collection.insert_one(insert_data).inserted_id
+        if major:
+            rsem_files = os.listdir(rsem_dir)
+            for f in rsem_files:
+                if re.search(r'^genes\.TMM', f):
+                    count_path = rsem_dir + f
+                    fpkm_path = rsem_dir + 'genes.counts.matrix'
+                    self.add_express_detail(express_id, count_path, fpkm_path, 'gene')
+                elif re.search(r'^transcripts\.TMM', f):
+                    count_path = rsem_dir + f
+                    fpkm_path = rsem_dir + 'tanscripts.counts.matrix'
+                    self.add_express_detail(express_id, count_path, fpkm_path, 'transcript')
+                elif re.search(r'\.genes\.results$', f):
+                    sample = f.split('.genes.results')[0]
+                    file_ = rsem_dir + f
+                    self.add_express_specimen_detail(express_id, file_, 'gene', sample)
+                elif re.search(r'\.isoforms\.results$', f):
+                    sample = f.split('.genes.results')[0]
+                    file_ = rsem_dir + f
+                    self.add_express_specimen_detail(express_id, file_, 'transcript', sample)
         return express_id
 
     @report_check
@@ -134,23 +157,35 @@ class DenovoExpress(Base):
             self.bind_object.logger.info("导入单样本表达量矩阵: %s信息成功!" % rsem_result)
 
     @report_check
-    def add_express_diff(self, params, samples, compare_column, name=None):
+    def add_express_diff(self, params, samples, compare_column, diff_exp_dir, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, control_detail=None, major=True):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        params['express_id'] = express_id
+        params.update({
+            'express_id': express_id,
+            'group_id': group_id,
+            'group_detail': group_detail,
+            'control_id': control_id,
+            'control_detail': control_detail
+        })  # 为更新workflow的params，因为截停
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
             'name': name if name else 'gene_express_diff_stat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '表达量差异检测主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'params': params,
+            'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'specimen': samples,
             'status': 'end',
             'compare_column': compare_column,
         }
         collection = self.db['sg_denovo_express_diff']
         express_diff_id = collection.insert_one(insert_data).inserted_id
+        diff_exp_files = os.listdir(diff_exp_dir)
+        if major:
+            for f in diff_exp_files:
+                if re.search(r'_edgr_stat.xls$', f):
+                    con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
+                    self.add_express_diff_detail(express_diff_id, con_exp, diff_exp_dir + f)
         return express_diff_id
 
     @report_check
@@ -198,14 +233,14 @@ class DenovoExpress(Base):
             genes = list()
             for line in h:
                 genes.append(line.strip().split('\t')[0])
-        params['express_id'] = express_id
+        params['diff_fpkm'] = express_id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
             'name': name if name else 'cluster_table_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '差异基因聚类分析主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'params': params,
+            'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'specimen': samples,
             'status': 'end',
             'express_id': express_id,
@@ -267,14 +302,14 @@ class DenovoExpress(Base):
             softpower_id = bson.binary.Binary(softpower_id.getvalue())
             module_id = StringIO(m.read())
             module_id = bson.binary.Binary(module_id.getvalue())
-        params['express_id'] = express_id
+        params['diff_fpkm'] = express_id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
             'name': name if name else 'network_table_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '差异基因网络分析主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'params': params,
+            'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'status': 'end',
             'express_id': express_id,
             'softpower': softpower_id,

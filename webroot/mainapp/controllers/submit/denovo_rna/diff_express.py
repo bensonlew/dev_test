@@ -2,22 +2,18 @@
 # __author__ = 'qiuping'
 import web
 import json
-import datetime
-import random
 from mainapp.libs.signature import check_sig
-from mainapp.models.workflow import Workflow
 from bson.objectid import ObjectId
 from mainapp.libs.param_pack import *
-from mainapp.config.db import get_mongo_client
-import types
+from collections import OrderedDict
 from biocluster.config import Config
+from mbio.api.database.denovo_express import *
+from mainapp.models.mongo.denovo import Denovo
 
 
 class DiffExpress(object):
     def __init__(self):
-        self.client = get_mongo_client()
         self.db_name = Config().MONGODB + '_rna'
-        self.db = self.client[self.db_name]
 
     @check_sig
     def POST(self):
@@ -33,48 +29,47 @@ class DiffExpress(object):
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
         my_param['control_id'] = data.control_id
-        my_param['control_detail'] = group_detail_sort(data.control_detail)
+        my_param['control_detail'] = OrderedDict(sorted(json.loads(data.control_detail).items(), key=lambda t: t[0]))
         my_param['ci'] = data.ci
         my_param['rate'] = data.rate
         my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        express_info = self.get_express_info(data.express_id)
+        express_info = Denovo().get_main_info(data.express_id)
         if express_info:
-            name = "lefse_lda_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            task_info = self.get_task_info(express_info["task_id"])
+            task_info = Denovo().get_task_info(express_info["task_id"])
             if task_info:
                 member_id = task_info["member_id"]
             else:
                 info = {"success": False, "info": "这个express_id对应的表达量矩阵对应的task：{}没有member_id!".format(express_info["task_id"])}
                 return json.dumps(info)
-            lefse_id = G().create_species_difference_lefse(params, data.group_id, data.otu_id, name)
-            update_info = {str(lefse_id): "sg_species_difference_lefse", 'database': self.db_name}
+            express_id = DenovoExpress().add_express_diff(params=params, major=False, samples=samples, compare_column=compare_column)
+            update_info = {str(express_id): "sg_species_difference_lefse", 'database': self.db_name}
             update_info = json.dumps(update_info)
-            workflow_id = self.get_new_id(express_info["task_id"], data.otu_id)
-            (output_dir, update_api) = GetUploadInfo(client, member_id, express_info['project_sn'], express_info['task_id'], 'lefse_lda')
+            workflow_id = Denovo().get_new_id(express_info["task_id"], data.express_id)
+            (output_dir, update_api) = GetUploadInfo(client, member_id, express_info['project_sn'], express_info['task_id'], 'gene_express_diff_stat')
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
-                "name": "meta.report.lefse",
+                "name": "denovo_rna.report.diff_exp",
                 "type": "workflow",
                 "client": client,
                 "project_sn": express_info["project_sn"],
-                "to_file": ["meta.export_otu_table(otu_file)", "meta.export_cascading_table_by_detail(group_file)"],
+                "to_file": ["denovo.export_express_matrix(express_file)", "denovo.export_control_file(control_file)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": update_api,
                 "IMPORT_REPORT_AFTER_END": True,
                 "output": output_dir,
                 "options": {
-                    "otu_file": data.otu_id,
+                    "express_file": data.express_id,
                     "update_info": update_info,
                     "group_file": data.group_id,
                     "group_detail": data.group_detail,
-                    "second_group_detail": data.second_group_detail,
-                    "group_name": G().get_group_name(data.group_id, lefse=True, second_group=data.second_group_detail),
-                    "strict": data.strict,
-                    "lda_filter": data.lda_filter,
-                    "lefse_id": str(lefse_id)
+                    "control_file": data.control_id,
+                    "control_detail": data.control_detail,
+                    "ci": data.ci,
+                    "rate": data.rate,
+                    "express_id": str(express_id)
                 }
             }
             insert_data = {"client": client,
@@ -89,30 +84,6 @@ class DiffExpress(object):
         else:
             info = {"success": False, "info": "express_id不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-
-    def get_new_id(self, task_id, otu_id):
-        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
-        workflow_module = Workflow()
-        workflow_data = workflow_module.get_by_workflow_id(new_id)
-        if len(workflow_data) > 0:
-            return self.get_new_id(task_id, otu_id)
-        return new_id
-
-    def get_express_info(self, express_id):
-        if isinstance(express_id, types.StringTypes):
-            express_id = ObjectId(express_id)
-        elif isinstance(express_id, ObjectId):
-            express_id = express_id
-        else:
-            raise Exception("输入express_id参数必须为字符串或者ObjectId类型!")
-        collection = self.db['sg_denovo_express']
-        express_info = collection.find_one({'_id': express_id})
-        return express_info
-
-    def get_task_info(self, task_id):
-        sg_task = self.db['sg_task']
-        result = sg_task.find_one({'task_id': task_id})
-        return result
 
     def check_options(self, data):
         """
