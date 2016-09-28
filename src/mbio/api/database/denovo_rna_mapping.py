@@ -193,7 +193,6 @@ class DenovoRnaMapping(Base):
                 plot_value = {}
                 for i in range(100):
                     plot_value[percent[i+1]] = value[i+1]
-                # self.bind_object.logger.error plot_value
                 data = {
                     "coverage_id": coverage_id,
                     "specimen_name": sample_name,

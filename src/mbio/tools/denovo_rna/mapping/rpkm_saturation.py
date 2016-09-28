@@ -121,6 +121,8 @@ class RpkmSaturationTool(Tool):
                 satur_file.append(f)
             if "eRPKM.xls" in f:
                 satur_file.append(f)
+            if "saturation.r" in f:
+                satur_file.append(f)
         # satur_file = glob.glob(r"*eRPKM.xls")
         print(satur_file)
         for f in satur_file:
