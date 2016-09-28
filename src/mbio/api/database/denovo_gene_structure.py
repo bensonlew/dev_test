@@ -15,7 +15,7 @@ import os
 class DenovoGeneStructure(Base):
     def __init__(self, bind_object):
         super(DenovoGeneStructure, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._db_name = Config().MONGODB + '_rna'
 
     @report_check
     def add_orf_table(self, orf_bed, reads_len_info=None, orf_domain=None, name=None, params=None):

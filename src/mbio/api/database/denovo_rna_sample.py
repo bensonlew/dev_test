@@ -10,7 +10,7 @@ import os
 class DenovoRnaSample(Base):
     def __init__(self, bind_object):
         super(DenovoRnaSample, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._db_name = Config().MONGODB + '_rna'
         self.sample_ids = []
 
     @report_check

@@ -44,4 +44,4 @@ class Control(Base):
         }
         collection = self.db['sg_denovo_control']
         inserted_id = collection.insert_one(insert_data).inserted_id
-        return inserted_id, control_info
+        return inserted_id

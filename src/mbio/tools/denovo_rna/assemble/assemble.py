@@ -187,8 +187,8 @@ class AssembleTool(Tool):
                 if re.search(r'length.distribut.txt$', f):
                     os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
             os.link(self.work_dir + '/trinity.fasta.stat.xls', self.output_dir + '/trinity.fasta.stat.xls')
-            self.option('gene_fa').set_path(self.work_dir + '/gene.fasta')
-            self.option('trinity_fa').set_path(self.work_dir + '/trinity_out_dir/Trinity.fasta')
+            self.option('gene_fa', self.work_dir + '/gene.fasta')
+            self.option('trinity_fa', self.work_dir + '/trinity_out_dir/Trinity.fasta')
             self.option('gene_full_name', self.work_dir + '/gene_full_name.txt')
             self.logger.info("设置组装拼接分析结果目录成功")
             self.end()

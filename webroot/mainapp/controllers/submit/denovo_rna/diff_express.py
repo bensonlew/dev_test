@@ -5,7 +5,6 @@ import json
 from mainapp.libs.signature import check_sig
 from bson.objectid import ObjectId
 from mainapp.libs.param_pack import *
-from collections import OrderedDict
 from biocluster.config import Config
 from mbio.api.database.denovo_express import *
 from mainapp.models.mongo.denovo import Denovo
@@ -29,7 +28,6 @@ class DiffExpress(object):
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
         my_param['control_id'] = data.control_id
-        my_param['control_detail'] = OrderedDict(sorted(json.loads(data.control_detail).items(), key=lambda t: t[0]))
         my_param['ci'] = data.ci
         my_param['rate'] = data.rate
         my_param['submit_location'] = data.submit_location
@@ -66,7 +64,6 @@ class DiffExpress(object):
                     "group_file": data.group_id,
                     "group_detail": data.group_detail,
                     "control_file": data.control_id,
-                    "control_detail": data.control_detail,
                     "ci": data.ci,
                     "rate": data.rate,
                     "express_id": str(express_id)
