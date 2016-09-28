@@ -297,7 +297,7 @@ class DenovoGeneStructure(Base):
         # self.bind_object.logger.error snp_files
         data_list = []
         for sf in snp_files:
-            sample_name = os.path.basename(sf).split("_")[0]
+            sample_name = os.path.basename(sf).split(".")[0]
             # self.bind_object.logger.error(sample_name)
             with open(sf, "r") as f:
                 f.readline()
@@ -334,7 +334,7 @@ class DenovoGeneStructure(Base):
         snp_type = glob.glob("{}/*type_stat.xls".format(snp))
         data_list = []
         for sp in snp_pos:
-            sample_name = os.path.basename(sp).split("_")[0]
+            sample_name = os.path.basename(sp).split(".")[0]
             data = {
                 "snp_id": snp_id,
                 "specimen_name": sample_name
@@ -348,7 +348,7 @@ class DenovoGeneStructure(Base):
                 data["pos_stat"] = pos_value
                 data_list.append(data)
         for st in snp_type:
-            sample_name = os.path.basename(st).split("_")[0]
+            sample_name = os.path.basename(st).split(".")[0]
             with open(st, "r") as f:
                 f.readline()
                 type_value = {}

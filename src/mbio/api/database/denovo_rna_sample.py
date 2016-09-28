@@ -96,11 +96,11 @@ class DenovoRnaSample(Base):
         stat_files = glob.glob("{}/*".format(quality_stat))
         data_list = []
         for sf in stat_files:
-            sample_name = os.path.basename(sf).split("_q")[0]
+            sample_name = os.path.basename(sf).split(".")[0]
             self.bind_object.logger.info('%s,%s' % (sf, sample_name))
             self.bind_object.logger.info('%s' % self.spname_spid)
             spname_spid = self.get_spname_spid()
-            site = os.path.basename(sf).split("_")[1]
+            site = sample_name.split("_")[-1]
             if site == "l": site_type = "left"
             elif site == "r": site_type = "right"
             else: site_type = "single"
