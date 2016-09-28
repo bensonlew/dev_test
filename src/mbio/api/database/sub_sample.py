@@ -115,7 +115,7 @@ class SubSample(Base):
                     if cf != "":
                         otu_detail[cf[0:3].lower()] = cf
                 for i in range(0, len(sample_num)):
-                    otu_detail[new_head[i]] = sample_num[i]
+                    otu_detail[new_head[i]] = int(sample_num[i])
                 if line[0] not in self.otu_rep:
                     raise Exception("意外错误，otu_id: {}和otu: {}在sg_otu_detail表里未找到".format(from_otu_id, line[0]))
                 otu_detail['otu_rep'] = self.otu_rep[line[0]]
