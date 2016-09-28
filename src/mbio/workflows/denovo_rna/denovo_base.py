@@ -58,6 +58,7 @@ class DenovoBaseWorkflow(Workflow):
         self.step.add_steps("qcstat", "assemble", "annotation", "express", "gene_structure", "map_stat")
         self.final_tools = list()
         self.update_status_api = self.api.denovo_update_status
+        self.api_sample = self.api.denovo_rna_sample
         self.spname_spid = dict()
         self.samples = self.option('fastq_dir').samples
         self.diff_gene_id = None  # 差异基因矩阵id
@@ -65,6 +66,8 @@ class DenovoBaseWorkflow(Workflow):
         self.bam_path = ''  # rsem比对结果bam文件文件路径
         self.orf_bed = ''  # orf bed结果文件路径
         self.express_id = None
+        self.api_express = self.api.denovo_express
+
 
     def check_options(self):
         """
@@ -132,6 +135,7 @@ class DenovoBaseWorkflow(Workflow):
 
     def run_qc_stat(self, event):
         if event['data']:
+            print '........start run qc_stat_after'
             self.qc_stat_after.set_options({
                 'fastq_dir': self.qc.option('sickle_dir'),
                 'fq_type': self.option('fq_type'),
@@ -149,6 +153,7 @@ class DenovoBaseWorkflow(Workflow):
             self.qc_stat_before.run()
 
     def run_assemble(self):
+        print '........start run run_assemble'
         opts = {
             'fq_type': self.option('fq_type'),
             'min_contig_length': self.option('min_contig_length'),
@@ -187,13 +192,10 @@ class DenovoBaseWorkflow(Workflow):
 
     def run_bwa(self):
         bwa_opts = {
-            'ref_fasta': self.assemble.option('gene_fa')
+            'ref_fasta': self.assemble.option('gene_fa'),
+            'fq_type': self.option('fq_type'),
+            'fastq_dir': self.qc.option('sickle_dir'),
         }
-        if self.option('fq_type') == 'SE':
-            bwa_opts.update({'fastq_s': self.qc.option('fq_s')})
-        else:
-            bwa_opts.update({'fastq_r': self.qc.option('fq_r')})
-            bwa_opts.update({'fastq_l': self.qc.option('fq_l')})
         self.bwa.set_options(bwa_opts)
         self.bwa.run()
 
@@ -334,19 +336,18 @@ class DenovoBaseWorkflow(Workflow):
         if event['data'] == 'qc_stat_before':
             self.move2outputdir(obj.output_dir, 'QC_stat/before_qc')
             # set api
-            api_sample = self.api.denovo_rna_sample
             qc_stat_info = self.output_dir + '/QC_stat/before_qc'
             quality_stat = self.output_dir + '/QC_stat/before_qc/qualityStat'
             if not os.path.exists(qc_stat_info):
                 raise Exception('找不到报告文件：{}'.format(qc_stat_info))
             if not os.path.exists(quality_stat):
                 raise Exception('找不到报告文件：{}'.format(quality_stat))
+            api_sample = self.api.denovo_rna_sample
             api_sample.add_samples_info(qc_stat=qc_stat_info, qc_adapt=None, fq_type=self.option('fq_type'))
             api_sample.add_gragh_info(quality_stat, about_qc='before')
         if event['data'] == 'qc_stat_after':
             self.move2outputdir(obj.output_dir, 'QC_stat/after_qc')
             # set api
-            api_sample = self.api.denovo_rna_sample
             qc_stat_info = self.output_dir + '/QC_stat/after_qc'
             quality_stat = self.output_dir + '/QC_stat/after_qc/qualityStat'
             qc_adapt = self.output_dir + '/QC_stat/adapter.xls'
@@ -354,9 +355,9 @@ class DenovoBaseWorkflow(Workflow):
             for f in files:
                 if not os.path.exists(f):
                     raise Exception('找不到报告文件：{}'.format(f))
-            api_sample.add_samples_info(qc_stat=qc_stat_info, qc_adapt=qc_adapt, fq_type=self.option('fq_type'))
-            api_sample.add_gragh_info(quality_stat, about_qc='after')
-            self.spname_spid = api_sample.get_spname_spid()
+            self.api_sample.add_samples_info(qc_stat=qc_stat_info, qc_adapt=qc_adapt, fq_type=self.option('fq_type'))
+            self.api_sample.add_gragh_info(quality_stat, about_qc='after')
+            self.spname_spid = self.api_sample.get_spname_spid()
         if event['data'] == 'assemble':
             self.move2outputdir(obj.output_dir, 'Assemble')
             # set api
@@ -374,7 +375,7 @@ class DenovoBaseWorkflow(Workflow):
                 if re.search(r'length\.distribut\.txt$', f):
                     step = f.split('_')[0]
                     file_ = self.output_dir + '/Assemble/' + f
-                    api_assemble.add_sequence_step(file_, step)
+                    api_assemble.add_sequence_step(sequence_id, file_, step)
         if event['data'] == 'map_qc':
             self.move2outputdir(obj.output_dir, 'Map_stat')
             api_map = self.api.denovo_rna_mapping
@@ -447,21 +448,16 @@ class DenovoBaseWorkflow(Workflow):
             self.bam_path = obj.option('bam_dir').prop['path']
             self.logger.info('%s' % self.exp_stat.diff_gene)
             # set api
-            api_express = self.api.denovo_express
             rsem_dir = self.output_dir + '/Express/rsem/'
-            self.express_id = api_express.add_express(samples=self.samples, params=None, name=None, bam_path=self.bam_path, rsem_dir=rsem_dir)
+            self.express_id = self.api_express.add_express(samples=self.samples, params=None, name=None, bam_path=self.bam_path, rsem_dir=rsem_dir)
             api_control = self.api.control
             if self.option('group_table').is_set:
                 api_group = self.api.group
                 group_id = api_group.add_ini_group_table(self.option('group_table').prop['path'], self.spname_spid)
-                control_id, control_detail = api_control.add_control(self.option('control_file').prop['path'], group_id[0])
+                control_id = api_control.add_control(self.option('control_file').prop['path'], group_id[0])
                 group_detail = api_group.get_group_detail(self.option('group_table').prop['path'], self.spname_spid, self.option('group_table').prop['group_scheme'][0])
-
             else:
-                control_id, control_detail = api_control.add_control(self.option('control_file').prop['path'], 'all')
-                sp_id = self.spname_spid.values()
-                sp_id.sort()
-                group_detail = {'all': sp_id}
+                control_id = api_control.add_control(self.option('control_file').prop['path'], 'all')
             compare_column = list()
             diff_exp_dir = self.output_dir + '/Express/diff_exp/'
             diff_files = os.listdir(diff_exp_dir)
@@ -473,19 +469,23 @@ class DenovoBaseWorkflow(Workflow):
                 'ci': self.option('diff_ci'),
                 'rate': self.option('diff_rate'),
             }
-            express_diff_id = api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, control_detail=control_detail, diff_exp_dir=diff_exp_dir)
+            if self.option('group_table').is_set:
+                express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, diff_exp_dir=diff_exp_dir)
+            else:
+                express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id='all', group_detail={'all': sorted(self.api_sample.sample_ids)}, control_id=control_id, diff_exp_dir=diff_exp_dir)
+
             param_2 = {
                 # 'express_diff_id': ,
                 'compare_list': compare_column,
                 'is_sum': True,
             }
-            self.diff_gene_id = api_express.add_express(samples=self.samples, params=param_2, express_diff_id=express_diff_id, major=False)
-            api_express.add_express_detail(self.diff_gene_id, diff_exp_dir + 'diff_count', diff_exp_dir + 'diff_fpkm', 'gene')
+            self.diff_gene_id = self.api_express.add_express(samples=self.samples, params=param_2, express_diff_id=express_diff_id, major=False)
+            self.api_express.add_express_detail(self.diff_gene_id, diff_exp_dir + 'diff_count', diff_exp_dir + 'diff_fpkm', 'gene')
         if event['data'] == 'exp_diff':
             # set output
             self.move2outputdir(obj.output_dir, 'Express')
             # set api
-            clust_path = os.path.join(self.output_dir, '/Express/cluster/hclust/')
+            clust_path = self.output_dir + '/Express/cluster/hclust/'
             clust_files = os.listdir(clust_path)
             clust_params = {
                 # diff_fpkm: ,
@@ -494,11 +494,11 @@ class DenovoBaseWorkflow(Workflow):
                 'distance': 'euclidean',
                 'sub_num': 5,
             }
-            clust_id = api_express.add_cluster(clust_params, self.diff_gene_id, clust_path + 'samples_tree.txt', clust_path + 'genes_tree.txt', clust_path + 'hclust_heatmap.xls')
+            clust_id = self.api_express.add_cluster(clust_params, self.diff_gene_id, clust_path + 'samples_tree.txt', clust_path + 'genes_tree.txt', clust_path + 'hclust_heatmap.xls')
             for f in clust_files:
                 if re.search(r'^subcluster_', f):
                     sub = f.split('_')[1]
-                    api_express.add_cluster_detail(clust_id, sub, clust_path + f)
+                    self.api_express.add_cluster_detail(clust_id, sub, clust_path + f)
             net_path = os.path.join(self.output_dir + '/Express/network/')
             net_files = os.listdir(net_path)
             net_param = {
@@ -506,12 +506,12 @@ class DenovoBaseWorkflow(Workflow):
                 'softpower': 9,
                 'similar': 0.75,
             }
-            net_id = api_express.add_network(net_param, self.diff_gene_id, net_path + 'softPower.pdf', net_path + 'ModuleTree.pdf')
-            api_express.add_network_detail(net_id, net_path + 'all_nodes.txt', net_path + 'all_edges.txt')
+            net_id = self.api_express.add_network(net_param, self.diff_gene_id, net_path + 'softPower.pdf', net_path + 'ModuleTree.pdf')
+            self.api_express.add_network_detail(net_id, net_path + 'all_nodes.txt', net_path + 'all_edges.txt')
             for f in net_files:
                 if re.search(r'^CytoscapeInput-edges-', f):
                     color = f.split('-edges-')[-1].split('.')[0]
-                    api_express.add_network_module(net_id, net_path + 'f', color)
+                    self.api_express.add_network_module(net_id, net_path + 'f', color)
         if event['data'] == 'annotation':
             self.move2outputdir(obj.output_dir, 'Annotation')
 

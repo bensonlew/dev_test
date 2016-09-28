@@ -10,7 +10,7 @@ import os
 class DenovoRnaSample(Base):
     def __init__(self, bind_object):
         super(DenovoRnaSample, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._db_name = Config().MONGODB + '_rna'
         self.sample_ids = []
 
     @report_check
@@ -96,7 +96,9 @@ class DenovoRnaSample(Base):
         stat_files = glob.glob("{}/*".format(quality_stat))
         data_list = []
         for sf in stat_files:
-            sample_name = os.path.basename(sf).split("_")[0]
+            sample_name = os.path.basename(sf).split("_q")[0]
+            self.bind_object.logger.info('%s,%s' % (sf, sample_name))
+            self.bind_object.logger.info('%s' % self.spname_spid)
             spname_spid = self.get_spname_spid()
             site = os.path.basename(sf).split("_")[1]
             if site == "l": site_type = "left"
@@ -142,6 +144,6 @@ class DenovoRnaSample(Base):
         collection = self.db["sg_denovo_specimen"]
         spname_spid = {}
         for id_ in self.sample_ids:
-            results = collection.find({"_id": id_})
+            results = collection.find_one({"_id": id_})
             spname_spid[results['specimen_name']] = id_
         return spname_spid

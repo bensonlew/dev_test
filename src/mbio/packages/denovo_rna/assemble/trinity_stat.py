@@ -69,7 +69,7 @@ def stat_info(trinity_info, gene_path, stat_path, len_dir_path, length, full_nam
     with open(gene_path, 'wb') as g, open(stat_path, 'wb') as s, open(full_name_path, 'wb') as fg:
         for i in trinity_info:
             gene = trinity_info[i]
-            g.write('{}\n{}\n'.format(i, gene.seq))
+            g.write('>{}\n{}\n'.format(i, gene.seq))
             fg.write('{}\n'.format(gene.full_name))
             tran_seq_num += len(gene.tran)
             gene_GC_num += (gene.seq.count('C') + gene.seq.count('G'))

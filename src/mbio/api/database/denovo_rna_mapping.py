@@ -15,7 +15,7 @@ import os
 class DenovoRnaMapping(Base):
     def __init__(self, bind_object):
         super(DenovoRnaMapping, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._db_name = Config().MONGODB + '_rna'
 
     @report_check
     def add_mapping_stat(self, stat_file):

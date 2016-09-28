@@ -3,6 +3,7 @@
 import os
 from biocluster.config import Config
 from bson.objectid import ObjectId
+import types
 
 
 client = Config().mongo_client
@@ -49,4 +50,15 @@ def export_control_file(data, option_name, dir_path, bind_obj=None):
     if not result:
         raise Exception("意外错误，control_id:{}在sg_denovo_control中未找到！".format(ObjectId(data)))
     group_id = result['group_id']
-    group_coll = db['sg']
+    if isinstance(group_id, types.StringTypes):
+        group_id = ObjectId(group_id)
+    group_coll = db['sg_denovo_specimen_group']
+    g_result = group_coll.find_one({'_id': group_id})
+    if not g_result:
+        raise Exception("意外错误，control_file的group_id:{}在sg_denovo_specimen_group中未找到！".format(group_id))
+    control_detail = result['control_names']
+    with open(file_path, 'wb') as w:
+        w.write('#control\t{}\n'.format(result['scheme_name']))
+        for i in control_detail:
+            w.write('{}\t{}\n'.format(i, control_detail[i]))
+    return file_path

@@ -20,7 +20,7 @@ class DenovoExpress(Base):
         self._db_name = Config().MONGODB + '_rna'
 
     @report_check
-    def add_express(self, rsem_dir, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True):
+    def add_express(self, rsem_dir=None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True):
         # 参数express_diff_id只是为了插入差异基因矩阵时才用到，初始化不用
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
@@ -157,15 +157,15 @@ class DenovoExpress(Base):
             self.bind_object.logger.info("导入单样本表达量矩阵: %s信息成功!" % rsem_result)
 
     @report_check
-    def add_express_diff(self, params, samples, compare_column, diff_exp_dir, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, control_detail=None, major=True):
+    def add_express_diff(self, params, samples, compare_column, diff_exp_dir=None, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True):
+        # group_id, group_detail, control_id只供denovobase初始化时更新param使用
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         params.update({
             'express_id': express_id,
             'group_id': group_id,
             'group_detail': group_detail,
-            'control_id': control_id,
-            'control_detail': control_detail
+            'control_id': control_id
         })  # 为更新workflow的params，因为截停
         insert_data = {
             'project_sn': project_sn,
@@ -180,8 +180,8 @@ class DenovoExpress(Base):
         }
         collection = self.db['sg_denovo_express_diff']
         express_diff_id = collection.insert_one(insert_data).inserted_id
-        diff_exp_files = os.listdir(diff_exp_dir)
         if major:
+            diff_exp_files = os.listdir(diff_exp_dir)
             for f in diff_exp_files:
                 if re.search(r'_edgr_stat.xls$', f):
                     con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
