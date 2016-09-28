@@ -41,7 +41,7 @@ class DenovoRnaMapping(Base):
             self.bind_object.logger.error("导入比对结果统计信息成功")
 
     @report_check
-    def add_rpkm_table(self, file_path, name=None, params=None):
+    def add_rpkm_table(self, file_path, name=None, params=None, detail=True):
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
@@ -53,9 +53,10 @@ class DenovoRnaMapping(Base):
         }
         collection = self.db["sg_denovo_rpkm"]
         inserted_id = collection.insert_one(insert_data).inserted_id
-        self.add_rpkm_detail(file_path, inserted_id)
-        self.add_rpkm_box(file_path, inserted_id)
-        self.add_rpkm_curve(file_path, inserted_id)
+        if detail:
+            self.add_rpkm_detail(file_path, inserted_id)
+            self.add_rpkm_box(file_path, inserted_id)
+            self.add_rpkm_curve(file_path, inserted_id)
         return inserted_id
 
     @report_check
@@ -165,7 +166,7 @@ class DenovoRnaMapping(Base):
             self.bind_object.logger.error("导入rpkm曲线数据成功")
 
     @report_check
-    def add_coverage_table(self, coverage, name=None, params=None):
+    def add_coverage_table(self, coverage, name=None, params=None, detail=True):
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
@@ -177,7 +178,8 @@ class DenovoRnaMapping(Base):
         }
         collection = self.db["sg_denovo_coverage"]
         inserted_id = collection.insert_one(insert_data).inserted_id
-        self.add_coverage_detail(coverage, inserted_id)
+        if detail:
+            self.add_coverage_detail(coverage, inserted_id)
         return inserted_id
 
     @report_check
@@ -208,7 +210,7 @@ class DenovoRnaMapping(Base):
             self.bind_object.logger.error("导入rpkm曲线数据成功")
 
     @report_check
-    def add_duplication_table(self, dup, name=None, params=None):
+    def add_duplication_table(self, dup, name=None, params=None, detail=True):
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
@@ -220,7 +222,8 @@ class DenovoRnaMapping(Base):
         }
         collection = self.db["sg_denovo_duplicate"]
         inserted_id = collection.insert_one(insert_data).inserted_id
-        self.add_duplication_detail(dup, inserted_id)
+        if detail:
+            self.add_duplication_detail(dup, inserted_id)
         return inserted_id
 
     @report_check
@@ -263,7 +266,7 @@ class DenovoRnaMapping(Base):
             self.bind_object.logger.error("导入冗余分析数据成功")
 
     @report_check
-    def add_correlation_table(self, correlation, name=None, params=None, express_id=None):
+    def add_correlation_table(self, correlation, name=None, params=None, express_id=None, detail=True):
         correlation_tree = glob.glob("{}/*.tre".format(correlation))
         with open(correlation_tree[0], "r") as t:
             correlation_tree = t.readline().strip()
@@ -280,7 +283,8 @@ class DenovoRnaMapping(Base):
         }
         collection = self.db["sg_denovo_correlation"]
         inserted_id = collection.insert_one(insert_data).inserted_id
-        self.add_correlation_detail(correlation, inserted_id)
+        if detail:
+            self.add_correlation_detail(correlation, inserted_id)
         return inserted_id
 
     @report_check

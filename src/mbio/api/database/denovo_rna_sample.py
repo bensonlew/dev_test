@@ -18,6 +18,7 @@ class DenovoRnaSample(Base):
         stat_file = qc_stat + "/fastq_stat.xls"
         dup_file = qc_stat + "/dup.xls"
         dup = ""
+        dup_rate = {}
         adapter = False
         if not os.path.exists(stat_file):
             raise Exception("%s文件不存在" % stat_file)
@@ -29,7 +30,6 @@ class DenovoRnaSample(Base):
                     line = line.split()
                     adapt_rate[line[0]] = line[1]
         if os.path.exists(dup_file):
-            dup_rate = {}
             with open(dup_file, "r") as d:
                 col_num = len(d.readline().split())
                 if col_num == 4:

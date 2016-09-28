@@ -54,9 +54,10 @@ class MapAssessmentModule(Module):
         """
         检查参数
         """
-        if not self.option("bed").is_set:
-            raise OptionError("请传入bed文件")
-        if not self.option("bam").is_set:
+        if self.option("analysis") in ["satur", "coverage"]:
+            if not self.option("bed").is_set:
+                raise OptionError("请传入bed文件")
+        if not self.option("bam").is_set and self.option("analysis") != "correlation":
             raise OptionError("请传入bam文件")
         for analysis in self.option("analysis").split(","):
             if analysis not in self.analysis:
