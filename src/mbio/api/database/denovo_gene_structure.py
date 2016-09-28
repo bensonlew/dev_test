@@ -168,9 +168,10 @@ class DenovoGeneStructure(Base):
                     "ssr": line[3],
                     "ssr_size": line[4],
                     "ssr_start": line[5],
-                    "ssr_end": line[6],
-                    "ssr_pos": line[7]
+                    "ssr_end": line[6]
                 }
+                if len(line) == 8:
+                    data["ssr_pos"] = line[7]
                 data_list.append(data)
         try:
             collection = self.db["sg_denovo_ssr_detail"]
@@ -243,7 +244,7 @@ class DenovoGeneStructure(Base):
                     f.next()
                     continue
                 elif target_line:
-                    line = line.strip().split()
+                    line = line.strip().split("\t")
                     bar_a = line[1:12]
                     bar_b = line[13:47]
                     value_a = 0
