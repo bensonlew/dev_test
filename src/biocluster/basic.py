@@ -866,50 +866,50 @@ class StepMain(Step):
                     data["has_upload"] = 1
                     data["uploaded"] = 0
 
-                try:
-                        workflow.db.insert("apilog", **data)
+            try:
+                    workflow.db.insert("apilog", **data)
+                    self.clean_change()
+                    self._api_data = {}
+            except Exception, e:
+                self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
+            finally:
+                workflow.close_db_cursor()
 
-                        self.clean_change()
-                        self._api_data = {}
-                except Exception, e:
-                    self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
-                finally:
-                    workflow.close_db_cursor()
-            array = []
-            has_change = False
-            for step in self._steps.values():
-                if step.has_change:
-                    has_change = True
-                    state = {
-                        "name": step.name,
-                        "status": step.stats,
-                        "run_time": step.spend_time
-                    }
-                    array.append(state)
-                    step.clean_change()
-            if has_change:
-                json_obj = {"step": {
-                    "task_id": workflow.sheet.id,
-                    "stage_id": workflow.sheet.stage_id,
-                    "steps": array
-                }}
-                post_data = {
-                    "content": json_obj
+        array = []
+        has_change = False
+        for step in self._steps.values():
+            if step.has_change:
+                has_change = True
+                state = {
+                    "name": step.name,
+                    "status": step.stats,
+                    "run_time": step.spend_time
                 }
-                for k, v in self._api_data.items():
-                    post_data[k] = v
-                data = {
-                    "task_id": workflow.sheet.id,
-                    "api": self.api_type,
-                    "data": json.dumps(post_data, cls=CJsonEncoder)
-                }
-                try:
-                        workflow.db.insert("apilog", **data)
-                        self._api_data = {}
-                except Exception, e:
-                    self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
-                finally:
-                    workflow.close_db_cursor()
+                array.append(state)
+                step.clean_change()
+        if has_change:
+            json_obj = {"step": {
+                "task_id": workflow.sheet.id,
+                "stage_id": workflow.sheet.stage_id,
+                "steps": array
+            }}
+            post_data = {
+                "content": json_obj
+            }
+            for k, v in self._api_data.items():
+                post_data[k] = v
+            data = {
+                "task_id": workflow.sheet.id,
+                "api": self.api_type,
+                "data": json.dumps(post_data, cls=CJsonEncoder)
+            }
+            try:
+                    workflow.db.insert("apilog", **data)
+                    self._api_data = {}
+            except Exception, e:
+                self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
+            finally:
+                workflow.close_db_cursor()
 
 
 class UploadDir(object):
