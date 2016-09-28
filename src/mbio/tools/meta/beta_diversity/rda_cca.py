@@ -273,6 +273,10 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
             return max(pc1), max(pc2)
         range_vector_pc1, range_vector_pc2 = get_range(vector_file)
         range_sites_pc1, range_sites_pc2 = get_range(sites_file)
+        if range_vector_pc1 == 0:
+            range_vector_pc1 += 0.00001
+        if range_vector_pc2 == 0:
+            range_vector_pc2 += 0.00001
         magnify_1 = range_sites_pc1 / range_vector_pc1
         magnify_2 = range_sites_pc2 / range_vector_pc2
         magnify = magnify_1 if magnify_1 < magnify_2 else magnify_2
