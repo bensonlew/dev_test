@@ -94,10 +94,12 @@ class QualityControlModule(Module):
             # clipper.run()
             n += 1
             self.clipper.append(clipper)
-        self.on_rely(self.clipper, self.adapt_write)
+        # self.on_rely(self.clipper, self.adapt_write)
         if len(self.clipper) == 1:
+            self.clipper[0].on(self.adapt_write)
             self.clipper[0].run()
         else:
+            self.on_rely(self.clipper, self.adapt_write)
             for tool in self.clipper:
                 tool.run()
 
@@ -121,11 +123,13 @@ class QualityControlModule(Module):
             # seqprep.run()
             n += 1
             self.seqprep.append(seqprep)
-        self.on_rely(self.seqprep, self.adapt_write)
+        # self.on_rely(self.seqprep, self.adapt_write)
         self.logger.info(self.seqprep)
         if len(self.seqprep) == 1:
+            self.seqprep[0].on(self.adapt_write)
             self.seqprep[0].run()
         else:
+            self.on_rely(self.seqprep, self.adapt_write)
             for tool in self.seqprep:
                 tool.run()
 

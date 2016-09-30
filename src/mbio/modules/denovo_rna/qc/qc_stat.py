@@ -220,7 +220,7 @@ class QcStatModule(Module):
         obj = event["bind_object"]
         for f in os.listdir(obj.output_dir):
             old_name = os.path.join(obj.output_dir, f)
-            new_name = os.path.join(obj.output_dir, event["data"] + "_" + f)
+            new_name = os.path.join(obj.output_dir, event["data"] + "." + f)
             os.rename(old_name, new_name)
 
     def get_list(self):

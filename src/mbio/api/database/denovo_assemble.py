@@ -66,6 +66,7 @@ class DenovoAssemble(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % stat_path)
 
+    @report_check
     def add_sequence_step(self, sequence_id, length_path, step):
         if not os.path.exists(length_path):
             raise Exception('length_path所指定的路径不存在，请检查！')

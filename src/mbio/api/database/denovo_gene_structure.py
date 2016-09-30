@@ -15,7 +15,7 @@ import os
 class DenovoGeneStructure(Base):
     def __init__(self, bind_object):
         super(DenovoGeneStructure, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._db_name = Config().MONGODB + '_rna'
 
     @report_check
     def add_orf_table(self, orf_bed, reads_len_info=None, orf_domain=None, name=None, params=None):
@@ -26,7 +26,8 @@ class DenovoGeneStructure(Base):
             "status": "start",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
-            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "orf-bed": orf_bed,
         }
         collection = self.db["sg_denovo_orf"]
         inserted_id = collection.insert_one(insert_data).inserted_id
@@ -167,9 +168,10 @@ class DenovoGeneStructure(Base):
                     "ssr": line[3],
                     "ssr_size": line[4],
                     "ssr_start": line[5],
-                    "ssr_end": line[6],
-                    "ssr_pos": line[7]
+                    "ssr_end": line[6]
                 }
+                if len(line) == 8:
+                    data["ssr_pos"] = line[7]
                 data_list.append(data)
         try:
             collection = self.db["sg_denovo_ssr_detail"]
@@ -242,15 +244,18 @@ class DenovoGeneStructure(Base):
                     f.next()
                     continue
                 elif target_line:
-                    line = line.strip().split()
+                    line = line.strip().split('\t')
+                    self.bind_object.logger.info('%s,%s' % (line, len(line)))
                     bar_a = line[1:12]
                     bar_b = line[13:47]
                     value_a = 0
                     value_b = 0
                     for a in bar_a:
+                        if a == "":continue
                         if a == "-":continue
                         else:value_a += int(a)
                     for b in bar_b:
+                        if b == "":continue
                         if b == "-":continue
                         else:value_b += int(b)
                     data = {
@@ -292,7 +297,7 @@ class DenovoGeneStructure(Base):
         # self.bind_object.logger.error snp_files
         data_list = []
         for sf in snp_files:
-            sample_name = os.path.basename(sf).split("_")[0]
+            sample_name = os.path.basename(sf).split(".")[0]
             # self.bind_object.logger.error(sample_name)
             with open(sf, "r") as f:
                 f.readline()
@@ -329,7 +334,7 @@ class DenovoGeneStructure(Base):
         snp_type = glob.glob("{}/*type_stat.xls".format(snp))
         data_list = []
         for sp in snp_pos:
-            sample_name = os.path.basename(sp).split("_")[0]
+            sample_name = os.path.basename(sp).split(".")[0]
             data = {
                 "snp_id": snp_id,
                 "specimen_name": sample_name
@@ -343,7 +348,7 @@ class DenovoGeneStructure(Base):
                 data["pos_stat"] = pos_value
                 data_list.append(data)
         for st in snp_type:
-            sample_name = os.path.basename(st).split("_")[0]
+            sample_name = os.path.basename(st).split(".")[0]
             with open(st, "r") as f:
                 f.readline()
                 type_value = {}

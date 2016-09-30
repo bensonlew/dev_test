@@ -10,7 +10,7 @@ import os
 class DenovoRnaSample(Base):
     def __init__(self, bind_object):
         super(DenovoRnaSample, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._db_name = Config().MONGODB + '_rna'
         self.sample_ids = []
 
     @report_check
@@ -18,6 +18,7 @@ class DenovoRnaSample(Base):
         stat_file = qc_stat + "/fastq_stat.xls"
         dup_file = qc_stat + "/dup.xls"
         dup = ""
+        dup_rate = {}
         adapter = False
         if not os.path.exists(stat_file):
             raise Exception("%s文件不存在" % stat_file)
@@ -29,7 +30,6 @@ class DenovoRnaSample(Base):
                     line = line.split()
                     adapt_rate[line[0]] = line[1]
         if os.path.exists(dup_file):
-            dup_rate = {}
             with open(dup_file, "r") as d:
                 col_num = len(d.readline().split())
                 if col_num == 4:
@@ -96,9 +96,11 @@ class DenovoRnaSample(Base):
         stat_files = glob.glob("{}/*".format(quality_stat))
         data_list = []
         for sf in stat_files:
-            sample_name = os.path.basename(sf).split("_")[0]
+            sample_name = os.path.basename(sf).split(".")[0]
+            self.bind_object.logger.info('%s,%s' % (sf, sample_name))
+            self.bind_object.logger.info('%s' % self.spname_spid)
             spname_spid = self.get_spname_spid()
-            site = os.path.basename(sf).split("_")[1]
+            site = sample_name.split("_")[-1]
             if site == "l": site_type = "left"
             elif site == "r": site_type = "right"
             else: site_type = "single"
@@ -142,6 +144,6 @@ class DenovoRnaSample(Base):
         collection = self.db["sg_denovo_specimen"]
         spname_spid = {}
         for id_ in self.sample_ids:
-            results = collection.find({"_id": id_})
+            results = collection.find_one({"_id": id_})
             spname_spid[results['specimen_name']] = id_
         return spname_spid

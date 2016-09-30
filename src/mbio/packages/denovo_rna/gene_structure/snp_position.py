@@ -84,7 +84,7 @@ def snp_stat(snp, orf):
                     w.write(write_line)
         # print snp_position_count
         # print snp_type_count
-        with open("snp_type_stat.xls", "w") as t, open("snp_position_stat.xls", "w") as p:
+        with open("snp.type.stat.xls", "w") as t, open("snp.position.stat.xls", "w") as p:
             t.write("type\tCount\n")
             t.write("A/G\t{}\n".format(snp_type_count["AG"] + snp_type_count["GA"]))
             t.write("A/T\t{}\n".format(snp_type_count["AT"] + snp_type_count["TA"]))
