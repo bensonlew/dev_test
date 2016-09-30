@@ -70,13 +70,13 @@ class BlastXmlFile(File):
         from mbio.packages.align.blast.xml2table import xml2table
         xml2table(self.path, outfile)
 
-    def sub_blast_xml(self, xml_fp, genes, new_fp, trinity_mode=False):
+    def sub_blast_xml(self, genes, new_fp, trinity_mode=False):
         """
         根据提供的基因列表，查找xml中的查询序列，生成并集新的xml
         trinity_mode用于在新生成的xml的queryID是去除结尾的_i(数字) 的
         """
         genes = dict(zip(genes, xrange(len(genes))))
-        xml = ET.parse(xml_fp)
+        xml = ET.parse(self.path)
         root = xml.getroot()
         BlastOutput_iterations = root.find('BlastOutput_iterations')
         for one_query in BlastOutput_iterations.findall('Iteration'):
