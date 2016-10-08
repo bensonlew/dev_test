@@ -49,7 +49,7 @@ class FactorDistanceAgent(Agent):
                 factors=self.option('factorselected').split(',')
                 for f in factors:
                     if f not in self.option('factor').prop['group_scheme']:
-                        raise OptionError('不包含在原来的环境因子表格中的环境因子：%s' %f)
+                        raise OptionError('该环境因子在输入的环境因子表里不存在：%s' %f)
             else:
                 pass
         if self.option('facmatrixtype') not in FactorDistanceAgent.MATRIXFACTOR:
