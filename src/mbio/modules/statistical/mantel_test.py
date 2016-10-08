@@ -80,7 +80,7 @@ class MantelTestModule(Module):
             raise OptionError('环境因子距离矩阵计算方法不正确')
         if self.option("otumatrixtype") in ["unweighted_unifrac", "weighted_unifrac"]:
             if not self.option("newicktree").is_set:
-                raise OptionError("unifrac方法必须提供newicktree")
+                raise OptionError("必须提供物种进化树")
         self.option("newicktree").get_info()
 
     def otudistance_run(self):

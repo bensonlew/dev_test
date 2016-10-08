@@ -97,7 +97,7 @@ class PhyloTreeTool(Tool):
             self.logger.info("完成比对！")
         else:
             self.set_error("运行出错！")
-            raise Exception("比对处错")
+            raise Exception("比对出错")
         # self.add_state('clustalw_end', data='done')
 
     def fasttree(self):

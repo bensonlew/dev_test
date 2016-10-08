@@ -77,7 +77,7 @@ class RdaCcaAgent(Agent):
         #         raise OptionError('环境因子中存在，OTU表中的未知样本:%s' % sample)
         common_samples = set(samplelist) & set(self.option('envtable').prop['sample'])
         if len(common_samples) < 3:
-            raise OptionError("环境因子表和OTU表的共有样本数必需大于等于3个：{}".format(len(common_samples)))
+            raise OptionError("环境因子表和OTU表的共有样本数必须大于等于3个：{}".format(len(common_samples)))
         table = open(self.gettable())
         if len(table.readlines()) < 4:
             raise OptionError('提供的数据表信息少于3行')

@@ -15,7 +15,7 @@ def pan_core(otutable, dowhat, groupfile='none', work_dir=None):
     else:
         output = work_dir
     if dowhat not in ("pan", "core"):
-        raise Exception(u"dowhat 只能是core或pan!")
+        raise Exception("只能是计算core或pan!")
         sys.exit()
     cmd = "setwd('" + output + "')"
     cmd += '''

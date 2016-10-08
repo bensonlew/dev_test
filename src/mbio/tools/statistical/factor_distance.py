@@ -42,18 +42,18 @@ class FactorDistanceAgent(Agent):
 
     def check_options(self):
         if not self.option('factor').is_set:
-            raise OptionError('Factor table not provided')
+            raise OptionError('没有提供环境因子表')
         else:
             self.option('factor').get_info()
             if self.option('factorselected'):
                 factors = self.option('factorselected').split(',')
                 for f in factors:
                     if f not in self.option('factor').prop['group_scheme']:
-                        raise OptionError('such factor not included from original factor table：%s' % f)
+                        raise OptionError('该环境因子在输入的环境因子表里不存在：%s' %f)
             else:
                 pass
         if self.option('facmatrixtype') not in FactorDistanceAgent.MATRIXFACTOR:
-            raise OptionError('Selected matrix type is not supported.')
+            raise OptionError(' 不支持所选矩阵类型 .')
 
     def set_resource(self):
         self._cpu = 5

@@ -46,7 +46,7 @@ class SubSampleAgent(Agent):
         参数检测
         """
         if not self.option("in_otu_table").is_set:
-            raise OptionError("参数in_otu_table不能为空")
+            raise OptionError("输入的OTU文件不能为空")
         if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class',
                                         'order', 'family', 'genus', 'species']:
             raise OptionError("请选择正确的分类水平")

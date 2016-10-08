@@ -102,9 +102,9 @@ class FastaTrimAgent(Agent):
             else:
                 raise OptionError('没有提供质量文件，无法进行质量过滤')
             if self.option('start_quality') < 0:
-                raise OptionError('不再范围内的5\'端质量过滤设置：%s' % self.option('start_quality'))
+                raise OptionError('不在范围内的5\'端质量过滤设置：%s' % self.option('start_quality'))
             if self.option('end_quality') < 0:
-                raise OptionError('不再范围内的3\'端质量过滤设置：%s' % self.option('end_quality'))
+                raise OptionError('不在范围内的3\'端质量过滤设置：%s' % self.option('end_quality'))
             if self.option('phred') not in ['phred33', 'phred64']:
                 raise OptionError('phred设置错误：%s' % self.option('phred'))
         if self.option('remove_adapter'):

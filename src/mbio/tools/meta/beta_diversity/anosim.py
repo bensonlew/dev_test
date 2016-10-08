@@ -52,7 +52,7 @@ class AnosimAgent(Agent):
         if 10000 >= self.option('permutations') >= 10:
             pass
         else:
-            raise OptionError('随机置换次数:%s不再正常范围内[10, 10000]' % self.option('permutations'))
+            raise OptionError('随机置换次数:%s不在正常范围内[10, 10000]' % self.option('permutations'))
         if not self.option('group').is_set:
             raise OptionError('必须提供分组信息文件')
         else:
