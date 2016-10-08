@@ -37,6 +37,7 @@ Rscript --slave PPInetwork_predict.r diff_exp_mapped.txt 9606 PPI_result 600 0.2
      {"name": "species", "type": "int", "default": 9606}, #设置物种
      {"name": "combine_score",  "type": "int", "default": 600}, #蛋白质之间相互作用可能性，值越大越好
      {"name": "logFC",  "type": "float", "default": 0.2}, #logFC>0.2 && logFC <-0.2 的差异基因
+     {"name": "species_list", "type": "string"} #读入string数据库中存在的物种taxon_id，用于检测用户输入的taxon是不是正确
 
 
 

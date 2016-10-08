@@ -35,9 +35,8 @@ Rscript --slave map.r DeS1_vs_DeS2.xls 9606 PPI_result
 
      {"name": "diff_exp", "type": "infile", "format": "ref_rna.xls"},  #差异基因表达详情表
      {"name": "species", "type": "int", "default": 9606}, #设置物种
+     {"name": "species_list", "type": "string"} #读入string数据库中存在的物种taxon_id，用于检测用户输入的taxon是不是正确
      
-
-
 
 运行逻辑
 -----------------------------------
