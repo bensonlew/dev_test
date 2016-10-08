@@ -44,7 +44,7 @@ class ReadsLenInfoAgent(Agent):
         :return:
         """
         if not self.option("fasta_path").is_set:
-            raise OptionError("参数fasta_path不能都为空")
+            raise OptionError("输入的fasta文件夹路径没有指定")
         return True
 
     def end(self):
