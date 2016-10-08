@@ -116,7 +116,7 @@ class RocAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
                 [".", "", "ROC分析结果目录"],
-                ["./roc_curve.pdf", "pdf", "ROC受试者工作特征曲线图"],
+                ["./roc_curve.xls", "xls", "ROC受试者工作特征曲线数据"],
                 ["./roc_auc.xls", "xls", "ROC受试者工作特征曲线-AUC VALUE"]
                 ])
         print self.get_upload_files()
@@ -195,7 +195,7 @@ class RocTool(Tool):
             raise "运行R脚本计算ROC相关数据失败"
         self.logger.info('运行calc_roc.pl程序进行ROC计算完成')
         allfiles = self.get_roc_filesname()
-        self.linkfile(self.work_dir + '/ROC/' + allfiles[0], 'roc_curve.pdf')
+        self.linkfile(self.work_dir + '/ROC/' + allfiles[0], 'roc_curve.xls')
         self.linkfile(self.work_dir + '/ROC/' + allfiles[1], 'roc_auc.xls')
         self.end()
 
@@ -203,6 +203,18 @@ class RocTool(Tool):
         newpath = os.path.join(self.output_dir, newname)
         if os.path.exists(newpath):
             os.remove(newpath)
+        if "roc_curve" in oldfile:
+            data = open(oldfile).readlines()[1:]
+            with open(oldfile, "w") as tmp_file:
+                tmp_file.write("x\ty\tgroup\n")
+                for s in data:
+                    tmp_file.write(s)
+        if "aucvalue" in oldfile:
+            data = open(oldfile).readlines()
+            with open(oldfile, "w") as tmp_file:
+                for i in data:
+                    s = i.strip().split()
+                    tmp_file.write(s[1]+"\t"+s[2]+"\n")
         os.link(oldfile, newpath)
 
     def get_roc_filesname(self):
@@ -210,7 +222,7 @@ class RocTool(Tool):
         roc_curve = None
         roc_auc = None
         for name in filelist:
-            if 'roc_curve.pdf' in name:
+            if 'roc_curve.xls' in name:
                 roc_curve = name
             elif 'roc_aucvalue.xls' in name:
                 roc_auc = name
