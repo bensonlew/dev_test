@@ -76,7 +76,7 @@ class MantelTestModule(Module):
         if self.option("factormatrixtype") not in MantelTestModule.MATRIXFACTOR:
             raise OptionError('环境因子距离矩阵计算方法不正确')
         if not self.option("newicktree").is_set: #not sure
-            raise OptionError("必须提供newicktree")
+            raise OptionError("必须提供物种进化树")
         self.option("newicktree").get_info()
 
     def otudistance_run(self):
