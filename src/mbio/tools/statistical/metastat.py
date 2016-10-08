@@ -129,15 +129,15 @@ class MetastatAgent(Agent):
                     raise OptionError('必须设置卡方检验要比较的样品名')
                 if self.option("chi_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr",
                                                          "none"]:
-                    raise OptionError('chi检验的多重检验校正的方法不被支持')
+                    raise OptionError('卡方检验的多重检验校正的方法不被支持')
                 if self.option("chi_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
-                    raise OptionError('chi检验的置信区间的置信度不在范围值内')
+                    raise OptionError('卡方检验的置信区间的置信度不在范围值内')
                 if self.option("chi_methor") not in ["DiffBetweenPropAsymptoticCC", "DiffBetweenPropAsymptotic",
                                                      "NewcombeWilson"]:
-                    raise OptionError('chi检验的计算置信区间的方法不在范围值内')
+                    raise OptionError('卡方检验的计算置信区间的方法不在范围值内')
                 otu_sample = self.option('chi_input').get_sample_info()
                 if self.option('chi_sample1') not in otu_sample or self.option('chi_sample2') not in otu_sample:
-                    raise OptionError('输入的样本不在otu表所拥有的样本内，请检查chi检验样本名')
+                    raise OptionError('输入的样本不在otu表所拥有的样本内，请检查卡方检验样本名')
             elif i == "fisher":
                 if not self.option("fisher_input").is_set:
                     raise OptionError('必须设置费舍尔检验输入的otutable文件')
@@ -151,20 +151,20 @@ class MetastatAgent(Agent):
                 if self.option("fisher_type") not in ["two.side", "greater", "less"]:
                     raise OptionError('所输入的类型不在范围值内')
                 if self.option("fisher_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
-                    raise OptionError('fisher检验的置信区间的置信度不在范围值内')
+                    raise OptionError('费舍尔检验的置信区间的置信度不在范围值内')
                 if self.option("fisher_methor") not in ["DiffBetweenPropAsymptoticCC", "DiffBetweenPropAsymptotic",
                                                         "NewcombeWilson"]:
-                    raise OptionError('fisher检验的计算置信区间的方法不在范围值内')
+                    raise OptionError('费舍尔检验的计算置信区间的方法不在范围值内')
                 otu_sample = self.option('fisher_input').get_sample_info()
                 if self.option('fisher_sample1') not in otu_sample or self.option('fisher_sample2') not in otu_sample:
-                    raise OptionError('输入的样本不在otu表所拥有的样本内，请检查fisher检验样本名')
+                    raise OptionError('输入的样本不在otu表所拥有的样本内，请检查费舍尔检验样本名')
             elif i == "kru_H":
                 if not self.option("kru_H_input").is_set:
-                    raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
+                    raise OptionError('必须设置Kruskal-Wallis秩和检验输入的otutable文件')
                 if not self.option("kru_H_group").is_set:
-                    raise OptionError('必须设置kruskal_wallis_H_test输入的分组文件')
+                    raise OptionError('必须设置Kruskal-Wallis秩和检验输入的分组文件')
                 if not self.option("kru_H_gname"):
-                    raise OptionError("kru检验分组方案选择参数为必须参数，请设置")
+                    raise OptionError("Kruskal-Wallis秩和检验分组方案选择参数为必须参数，请设置")
                 if len(self.option("kru_H_gname").split(',')) != 1:
                     raise OptionError("组间差异的分组方案只能为1个")
                 if self.option("kru_H_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
@@ -174,11 +174,11 @@ class MetastatAgent(Agent):
                 #     raise OptionError('所输入的类型不在范围值内')
                 gnum = self.option('kru_H_group').group_num(self.option('kru_H_gname'))
                 if gnum < 3:
-                    raise OptionError("kru检验的分组方案的分组类别必须大于等于3")
+                    raise OptionError("Kruskal-Wallis秩和检验的分组方案的分组类别必须大于等于3")
                 if self.option("kru_H_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
-                    raise OptionError('kru_H检验的posthoc的置信度不在范围值内')
+                    raise OptionError('Kruskal-Wallis秩和检验的posthoc的置信度不在范围值内')
                 if self.option("kru_H_methor") not in ["scheffe", "welchuncorrected", "tukeykramer", "gameshowell"]:
-                    raise OptionError('kru_H检验的posthoc检验方法不在范围值内')
+                    raise OptionError('Kruskal-Wallis秩和检验的posthoc检验方法不在范围值内')
                 otu_sample = self.option('kru_H_input').get_sample_info()
                 self.logger.info(otu_sample)
                 group_sample, header, is_empty = self.option('kru_H_group').get_file_info()
@@ -186,9 +186,9 @@ class MetastatAgent(Agent):
                 self.check_group(self.option('kru_H_group').prop['path'])
             elif i == "anova":
                 if not self.option("anova_input").is_set:
-                    raise OptionError('必须设置kruskal_wallis_H_test输入的otutable文件')
+                    raise OptionError('必须设置Kruskal-Wallis秩和检验输入的otutable文件')
                 if not self.option("anova_group").is_set:
-                    raise OptionError('必须设置kruskal_wallis_H_test输入的分组文件')
+                    raise OptionError('必须设置Kruskal-Wallis秩和检验输入的分组文件')
                 if not self.option("anova_gname"):
                     raise OptionError("单因素方差分析分组方案选择参数为必须参数，请设置")
                 if len(self.option("anova_gname").split(',')) != 1:
@@ -198,11 +198,11 @@ class MetastatAgent(Agent):
                     raise OptionError('该多重检验校正的方法不被支持')
                 gnum = self.option('anova_group').group_num(self.option('anova_gname'))
                 if gnum < 3:
-                    raise OptionError("anova检验的分组方案的分组类别必须大于等于3")
+                    raise OptionError("单因素方差分析的分组方案的分组类别必须大于等于3")
                 if self.option("anova_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
-                    raise OptionError('anova检验的posthoc的置信度不在范围值内')
+                    raise OptionError('单因素方差分析的posthoc的置信度不在范围值内')
                 if self.option("anova_methor") not in ["scheffe", "welchuncorrected", "tukeykramer", "gameshowell"]:
-                    raise OptionError('anova检验的posthoc检验方法不在范围值内')
+                    raise OptionError('单因素方差分析的posthoc检验方法不在范围值内')
                 otu_sample = self.option('anova_input').get_sample_info()
                 self.logger.info(otu_sample)
                 group_sample, header, is_empty = self.option('anova_group').get_file_info()
@@ -226,9 +226,9 @@ class MetastatAgent(Agent):
                     raise OptionError("组间差异的分组方案只能为1个")
                 gnum = self.option('mann_group').group_num(self.option('mann_gname'))
                 if gnum != 2:
-                    raise OptionError("mann检验的分组方案的分组类别必须等于2")
+                    raise OptionError("wilcox秩和检验的分组方案的分组类别必须等于2")
                 if self.option("mann_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
-                    raise OptionError('mann检验的置信区间的置信度不在范围值内')
+                    raise OptionError('wilcox秩和检验的置信区间的置信度不在范围值内')
                 otu_sample = self.option('mann_input').get_sample_info()
                 self.logger.info(otu_sample)
                 group_sample, header, is_empty = self.option('mann_group').get_file_info()
@@ -247,14 +247,14 @@ class MetastatAgent(Agent):
                 if self.option("student_type") not in ["two.side", "greater", "less"]:
                     raise OptionError('所输入的类型不在范围值内')
                 if not self.option("student_gname"):
-                    raise OptionError("student检验分组方案选择参数为必须参数，请设置")
+                    raise OptionError("student_T检验分组方案选择参数为必须参数，请设置")
                 if len(self.option("student_gname").split(',')) != 1:
                     raise OptionError("组间差异的分组方案只能为1个")
                 gnum = self.option('student_group').group_num(self.option('student_gname'))
                 if gnum != 2:
-                    raise OptionError("student检验的分组方案的分组类别必须等于2")
+                    raise OptionError("student_T检验的分组方案的分组类别必须等于2")
                 if self.option("student_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
-                    raise OptionError('student检验的置信区间的置信度不在范围值内')
+                    raise OptionError('student_T检验的置信区间的置信度不在范围值内')
                 otu_sample = self.option('student_input').get_sample_info()
                 self.logger.info(otu_sample)
                 group_sample, header, is_empty = self.option('student_group').get_file_info()
@@ -273,14 +273,14 @@ class MetastatAgent(Agent):
                 if self.option("welch_type") not in ["two.side", "greater", "less"]:
                     raise OptionError('所输入的类型不在范围值内')
                 if not self.option("welch_gname"):
-                    raise OptionError("welch检验分组方案选择参数为必须参数，请设置")
+                    raise OptionError("welch_T检验分组方案选择参数为必须参数，请设置")
                 if len(self.option("welch_gname").split(',')) != 1:
                     raise OptionError("组间差异的分组方案只能为1个")
                 gnum = self.option('welch_group').group_num(self.option('welch_gname'))
                 if gnum != 2:
-                    raise OptionError("mann检验的分组方案的分组类别必须等于2")
+                    raise OptionError("welch_T检验的分组方案的分组类别必须等于2")
                 if self.option("welch_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
-                    raise OptionError('welch检验的置信区间的置信度不在范围值内')
+                    raise OptionError('welch_T检验的置信区间的置信度不在范围值内')
                 otu_sample = self.option('welch_input').get_sample_info()
                 self.logger.info(otu_sample)
                 group_sample, header, is_empty = self.option('welch_group').get_file_info()
