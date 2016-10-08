@@ -4,6 +4,8 @@ from biocluster.iofile import File
 # import os
 from biocluster.core.exceptions import FileError
 from Bio.Blast import NCBIXML
+import xml.etree.ElementTree as ET
+import re
 
 
 
@@ -68,8 +70,29 @@ class BlastXmlFile(File):
         from mbio.packages.align.blast.xml2table import xml2table
         xml2table(self.path, outfile)
 
-    def sub_xml(self, query_list):
-        pass
+    def sub_blast_xml(self, genes, new_fp, trinity_mode=False):
+        """
+        根据提供的基因列表，查找xml中的查询序列，生成并集新的xml
+        trinity_mode用于在新生成的xml的queryID是去除结尾的_i(数字) 的
+        """
+        genes = dict(zip(genes, xrange(len(genes))))
+        xml = ET.parse(self.path)
+        root = xml.getroot()
+        BlastOutput_iterations = root.find('BlastOutput_iterations')
+        for one_query in BlastOutput_iterations.findall('Iteration'):
+            query_def = one_query.find('Iteration_query-def')
+            query_def_split = re.split(r'\s', query_def.text, maxsplit=1)
+            query_ID = query_def_split[0]
+            if query_ID in genes:
+                if trinity_mode:
+                    query_ID = re.sub(r'_i[0-9]+$', '', query_def_split[0])
+                    if len(query_def_split) == 2:
+                        query_def.text = query_ID + ' ' + query_def_split[1]
+                    else:
+                        query_def.text = query_ID
+            else:
+                BlastOutput_iterations.remove(one_query)
+        xml.write(new_fp)
 
     def change_blast_version(self, fp, version='2.2.25+'):
         """
