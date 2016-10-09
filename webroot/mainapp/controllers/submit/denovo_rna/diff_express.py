@@ -7,8 +7,10 @@ from bson.objectid import ObjectId
 from mainapp.libs.param_pack import *
 from biocluster.config import Config
 from mbio.api.database.denovo_express import *
-from mainapp.models.mongo.submit.denovo_express import DenovoExpress
+from mainapp.models.mongo.submit.denovo_rna.denovo_express import DenovoExpress
 import types
+from mainapp.models.mongo.denovo import Denovo
+from mainapp.models.workflow import Workflow
 
 
 class DiffExpress(object):
@@ -46,8 +48,8 @@ class DiffExpress(object):
             else:
                 info = {"success": False, "info": "这个express_id对应的表达量矩阵对应的task：{}没有member_id!".format(express_info["task_id"])}
                 return json.dumps(info)
-            express_id = DenovoExpress().add_express_diff(params=params, major=False, samples=samples, compare_column=compare_column)
-            update_info = {str(express_id): "sg_species_difference_lefse", 'database': self.db_name}
+            express_id = DenovoExpress().add_express_diff(params=params, samples=None, compare_column=None, project_sn=project_sn, task_id=task_id)
+            update_info = {str(express_id): "sg_denovo_express_diff", 'database': self.db_name}
             update_info = json.dumps(update_info)
             workflow_id = Denovo().get_new_id(task_id, data.express_id)
             (output_dir, update_api) = GetUploadInfo_test(client, member_id, project_sn, task_id, 'gene_express_diff_stat')

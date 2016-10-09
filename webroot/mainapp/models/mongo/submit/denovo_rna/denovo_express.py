@@ -8,13 +8,11 @@ import json
 
 class DenovoExpress(object):
     def __init__(self):
+        self.client = Config().mongo_client
         self.db_name = Config().MONGODB + '_rna'
-        self.db = Config().mongo_client[self.db_name]
+        self.db = self.client[self.db_name]
 
-    def add_express(self, rsem_dir=None, samples=None, params=None, name=None, bam_path=None, from_id=None, collection_name=None):
-        main_info = self.get_main_info(from_id, collection_name)
-        task_id = main_info['task_id']
-        project_sn = main_info['project_sn']
+    def add_express(self, rsem_dir=None, samples=None, params=None, name=None, bam_path=None, project_sn=None, task_id=None):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -30,10 +28,7 @@ class DenovoExpress(object):
         express_id = collection.insert_one(insert_data).inserted_id
         return express_id
 
-    def add_express_diff(self, params, samples, compare_column, name=None, from_id=None, collection_name=None):
-        main_info = self.get_main_info(from_id, collection_name)
-        task_id = main_info['task_id']
-        project_sn = main_info['project_sn']
+    def add_express_diff(self, params, samples, compare_column, name=None, project_sn=None, task_id=None):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
