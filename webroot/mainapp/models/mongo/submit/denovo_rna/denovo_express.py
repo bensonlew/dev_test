@@ -9,7 +9,7 @@ import json
 class DenovoExpress(object):
     def __init__(self):
         self.db_name = Config().MONGODB + '_rna'
-        self.db = Config().mongo_client()[self.db_name]
+        self.db = Config().mongo_client[self.db_name]
 
     def add_express(self, rsem_dir=None, samples=None, params=None, name=None, bam_path=None, from_id=None, collection_name=None):
         main_info = self.get_main_info(from_id, collection_name)
