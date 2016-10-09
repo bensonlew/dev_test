@@ -10,7 +10,7 @@ from types import StringTypes
 
 
 client = Config().mongo_client
-db = client[Config().MONGODB] + '_rna'
+db = client[Config().MONGODB + '_rna']
 
 
 def export_express_matrix(data, option_name, dir_path, bind_obj=None):
@@ -23,7 +23,7 @@ def export_express_matrix(data, option_name, dir_path, bind_obj=None):
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
         raise Exception("意外错误，express_id:{}在sg_denovo_express中未找到！".format(ObjectId(data)))
-    samples = my_result['specimen'].split(',')
+    samples = my_result['specimen']
     with open(fpkm_path, "wb") as f, open(count_path, 'wb') as c:
         head = '\t'.join(samples)
         f.write('\t' + head + '\n')
@@ -41,7 +41,7 @@ def export_express_matrix(data, option_name, dir_path, bind_obj=None):
             count_write += '\n'
             f.write(fpkm_write)
             c.write(count_write)
-    paths = ','.join(fpkm_path, count_path)
+    paths = ','.join([fpkm_path, count_path])
     return paths
 
 
@@ -53,12 +53,13 @@ def export_control_file(data, option_name, dir_path, bind_obj=None):
     if not result:
         raise Exception("意外错误，control_id:{}在sg_denovo_control中未找到！".format(ObjectId(data)))
     group_id = result['group_id']
-    if isinstance(group_id, types.StringTypes):
-        group_id = ObjectId(group_id)
-    group_coll = db['sg_denovo_specimen_group']
-    g_result = group_coll.find_one({'_id': group_id})
-    if not g_result:
-        raise Exception("意外错误，control_file的group_id:{}在sg_denovo_specimen_group中未找到！".format(group_id))
+    if group_id not in ['all', 'All', 'ALL']:
+        if isinstance(group_id, types.StringTypes):
+            group_id = ObjectId(group_id)
+        group_coll = db['sg_denovo_specimen_group']
+        g_result = group_coll.find_one({'_id': group_id})
+        if not g_result:
+            raise Exception("意外错误，control_file的group_id:{}在sg_denovo_specimen_group中未找到！".format(group_id))
     control_detail = result['control_names']
     with open(file_path, 'wb') as w:
         w.write('#control\t{}\n'.format(result['scheme_name']))
