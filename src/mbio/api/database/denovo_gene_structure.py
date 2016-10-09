@@ -245,7 +245,6 @@ class DenovoGeneStructure(Base):
                     continue
                 elif target_line:
                     line = line.strip().split('\t')
-                    self.bind_object.logger.info('%s,%s' % (line, len(line)))
                     bar_a = line[1:12]
                     bar_b = line[13:47]
                     value_a = 0

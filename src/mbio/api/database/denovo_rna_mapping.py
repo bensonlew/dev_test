@@ -270,7 +270,7 @@ class DenovoRnaMapping(Base):
         correlation_tree = glob.glob("{}/*.tre".format(correlation))
         with open(correlation_tree[0], "r") as t:
             correlation_tree = t.readline().strip()
-        params['express_id'] = express_id
+        params['express_id'] = str(express_id)
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,

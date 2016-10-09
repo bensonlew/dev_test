@@ -14,23 +14,23 @@ class Denovo(object):
         self.db_name = Config().MONGODB + '_rna'
         self.db = self.client[self.db_name]
 
-    def get_new_id(self, task_id, express_id):
-        new_id = "%s_%s_%s" % (task_id, express_id[-4:], random.randint(1, 10000))
+    def get_new_id(self, task_id, main_id):
+        new_id = "%s_%s_%s" % (task_id, main_id[-4:], random.randint(1, 10000))
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(new_id)
         if len(workflow_data) > 0:
-            return self.get_new_id(task_id, express_id)
+            return self.get_new_id(task_id, main_id)
         return new_id
 
-    def get_main_info(self, express_id):
-        if isinstance(express_id, types.StringTypes):
-            express_id = ObjectId(express_id)
-        elif isinstance(express_id, ObjectId):
-            express_id = express_id
+    def get_main_info(self, main_id, collection_name):
+        if isinstance(main_id, types.StringTypes):
+            main_id = ObjectId(main_id)
+        elif isinstance(main_id, ObjectId):
+            main_id = main_id
         else:
-            raise Exception("输入express_id参数必须为字符串或者ObjectId类型!")
-        collection = self.db['sg_denovo_express']
-        express_info = collection.find_one({'_id': express_id})
+            raise Exception("输入main_id参数必须为字符串或者ObjectId类型!")
+        collection = self.db[collection_name]
+        express_info = collection.find_one({'_id': main_id})
         return express_info
 
     def get_task_info(self, task_id):
