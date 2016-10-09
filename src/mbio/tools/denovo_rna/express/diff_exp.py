@@ -33,7 +33,7 @@ class DiffExpAgent(Agent):
             {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
             {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"},
             {"name": "diff_list_dir", "type": "outfile", "format": "denovo_rna.express.gene_list_dir"},
-            {"name": "gname", "type": "string"},  # 分组方案名称
+            {"name": "gname", "type": "string", "default": "none"},  # 分组方案名称
             {"name": "diff_rate", "type": "float", "default": 0.01}  # 期望的差异基因比率
         ]
         self.add_option(options)
@@ -76,6 +76,8 @@ class DiffExpAgent(Agent):
         # if self.option("sample_list") != '':
         #     vs_list = list(itertools.permutations(sam, 2))
         if self.option("edger_group").is_set:
+            if self.option('gname') == "none":
+                self.option('gname', self.option('edger_group').prop['group_scheme'][0])
             gnames = self.option('edger_group').get_group_name(self.option('gname'))
             vs_list = list(itertools.permutations(gnames, 2))
         else:

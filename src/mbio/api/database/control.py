@@ -30,7 +30,7 @@ class Control(Base):
         task_id = self.bind_object.sheet.id
         control_info = dict()
         with open(control_file, 'rb') as c:
-            scheme_name = c.readline().strip('\n').split('\t')[1]
+            scheme_name = c.readline().strip('\n').split()[1]
             for line in c:
                 line = line.strip('\n').split('\t')
                 control_info[line[0]] = line[1]
@@ -42,6 +42,11 @@ class Control(Base):
             'scheme_name': scheme_name,
             'group_id': group_id,
         }
-        collection = self.db['sg_denovo_control']
-        inserted_id = collection.insert_one(insert_data).inserted_id
-        return inserted_id
+        try:
+            collection = self.db['sg_denovo_control']
+            inserted_id = collection.insert_one(insert_data).inserted_id
+        except Exception, e:
+            self.bind_object.logger.error("导入对照组文件信息出错:%s" % e)
+        else:
+            self.bind_object.logger.info("导入对照组文件信息成功!")
+            return inserted_id

@@ -25,7 +25,7 @@ class DenovoExpress(Base):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         if express_diff_id:
-            params['express_diff_id'] = express_diff_id
+            params['express_diff_id'] = str(express_diff_id)
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -48,7 +48,7 @@ class DenovoExpress(Base):
                     self.add_express_detail(express_id, count_path, fpkm_path, 'gene')
                 elif re.search(r'^transcripts\.TMM', f):
                     count_path = rsem_dir + f
-                    fpkm_path = rsem_dir + 'tanscripts.counts.matrix'
+                    fpkm_path = rsem_dir + 'transcripts.counts.matrix'
                     self.add_express_detail(express_id, count_path, fpkm_path, 'transcript')
                 elif re.search(r'\.genes\.results$', f):
                     sample = f.split('.genes.results')[0]
@@ -68,9 +68,9 @@ class DenovoExpress(Base):
             else:
                 raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(count_path):
-            raise Exception('count_path所指定的路径不存在，请检查！')
+            raise Exception('count_path:{}所指定的路径不存在，请检查！'.format(count_path))
         if not os.path.exists(fpkm_path):
-            raise Exception('fpkm_path所指定的路径不存在，请检查！')
+            raise Exception('fpkm_path:{}所指定的路径不存在，请检查！'.format(fpkm_path))
         data_list = list()
         count_dict = {}
         sample_count = {}
@@ -118,7 +118,7 @@ class DenovoExpress(Base):
             else:
                 raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(rsem_result):
-            raise Exception('rsem_result所指定的路径不存在，请检查！')
+            raise Exception('rsem_result所指定的路径：{}不存在，请检查！'.format(rsem_result))
         sample_name = os.path.basename(rsem_result).split('.')[0]
         data_list = []
         with open(rsem_result, 'rb') as f:
@@ -162,10 +162,10 @@ class DenovoExpress(Base):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         params.update({
-            'express_id': express_id,
-            'group_id': group_id,
+            'express_id': str(express_id),
+            'group_id': str(group_id),
             'group_detail': group_detail,
-            'control_id': control_id
+            'control_id': str(control_id)
         })  # 为更新workflow的params，因为截停
         insert_data = {
             'project_sn': project_sn,
@@ -196,7 +196,7 @@ class DenovoExpress(Base):
             else:
                 raise Exception('express_diff_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(diff_stat_path):
-            raise Exception('diff_stat_path所指定的路径不存在，请检查！')
+            raise Exception('diff_stat_path所指定的路径:{}不存在，请检查！'.format(diff_stat_path))
         data_list = []
         with open(diff_stat_path, 'rb') as f:
             head = f.readline().strip().split('\t')
@@ -233,7 +233,7 @@ class DenovoExpress(Base):
             genes = list()
             for line in h:
                 genes.append(line.strip().split('\t')[0])
-        params['diff_fpkm'] = express_id
+        params['diff_fpkm'] = str(express_id)
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -260,7 +260,7 @@ class DenovoExpress(Base):
             else:
                 raise Exception('cluster_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(sub_path):
-            raise Exception('sub_path所指定的路径不存在，请检查！')
+            raise Exception('sub_path所指定的路径:{}不存在，请检查！'.format(sub_path))
         data_list = []
         with open(sub_path, 'rb') as f:
             head = f.readline().strip().split('\t')
@@ -291,9 +291,9 @@ class DenovoExpress(Base):
             else:
                 raise Exception('express_matrix_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(softpower):
-            raise Exception('softpower所指定的路径不存在，请检查！')
+            raise Exception('softpower所指定的路径:{}不存在，请检查！'.format(softpower))
         if not os.path.exists(module):
-            raise Exception('module所指定的路径不存在，请检查！')
+            raise Exception('module所指定的路径:{}不存在，请检查！'.format(module))
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         collection = self.db['sg_denovo_network']
@@ -302,7 +302,7 @@ class DenovoExpress(Base):
             softpower_id = bson.binary.Binary(softpower_id.getvalue())
             module_id = StringIO(m.read())
             module_id = bson.binary.Binary(module_id.getvalue())
-        params['diff_fpkm'] = express_id
+        params['diff_fpkm'] = str(express_id)
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -324,9 +324,9 @@ class DenovoExpress(Base):
             if isinstance(network_id, types.StringTypes):
                 network_id = ObjectId(network_id)
         if not os.path.exists(node_path):
-            raise Exception('node_path所指定的路径不存在，请检查！')
+            raise Exception('node_path所指定的路径:{}不存在，请检查！'.format(node_path))
         if not os.path.exists(edge_path):
-            raise Exception('edge_path所指定的路径不存在，请检查！')
+            raise Exception('edge_path所指定的路径:{}不存在，请检查！'.format(edge_path))
         data_list = []
         gene_color = {}
         with open(node_path, 'rb') as n, open(edge_path, 'rb') as f:
@@ -359,7 +359,7 @@ class DenovoExpress(Base):
             if isinstance(network_id, types.StringTypes):
                 network_id = ObjectId(network_id)
         if not os.path.exists(module_path):
-            raise Exception('module_path所指定的路径不存在，请检查！')
+            raise Exception('module_path所指定的路径:{}不存在，请检查！'.format(module_path))
         data_list = []
         with open(module_path, 'rb') as f:
             f.readline()

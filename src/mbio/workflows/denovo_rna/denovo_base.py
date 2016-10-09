@@ -419,7 +419,7 @@ class DenovoBaseWorkflow(Workflow):
         if event['data'] == 'orf_len':
             self.move2outputdir(obj.output_dir, 'Gene_structure/orf')
             api_orf = self.api.denovo_gene_structure
-            orf_path = self.output_dir + 'Gene_structure/orf/'
+            orf_path = self.output_dir + '/Gene_structure/orf/'
             if self.option('search_pfam'):
                 pfam_path = orf_path + 'pfam_domain'
             else:
@@ -452,7 +452,7 @@ class DenovoBaseWorkflow(Workflow):
             self.express_id = self.api_express.add_express(samples=self.samples, params=None, name=None, bam_path=self.bam_path, rsem_dir=rsem_dir)
             api_control = self.api.control
             if self.option('group_table').is_set:
-                api_group = self.api.group
+                api_group = self.api.denovo_group
                 group_id = api_group.add_ini_group_table(self.option('group_table').prop['path'], self.spname_spid)
                 control_id = api_control.add_control(self.option('control_file').prop['path'], group_id[0])
                 group_detail = api_group.get_group_detail(self.option('group_table').prop['path'], self.spname_spid, self.option('group_table').prop['group_scheme'][0])
@@ -470,6 +470,7 @@ class DenovoBaseWorkflow(Workflow):
                 'rate': self.option('diff_rate'),
             }
             if self.option('group_table').is_set:
+                self.samples = self.option('group_table').prop['sample']
                 express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, diff_exp_dir=diff_exp_dir)
             else:
                 express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id='all', group_detail={'all': sorted(self.api_sample.sample_ids)}, control_id=control_id, diff_exp_dir=diff_exp_dir)
@@ -479,8 +480,9 @@ class DenovoBaseWorkflow(Workflow):
                 'compare_list': compare_column,
                 'is_sum': True,
             }
-            self.diff_gene_id = self.api_express.add_express(samples=self.samples, params=param_2, express_diff_id=express_diff_id, major=False)
-            self.api_express.add_express_detail(self.diff_gene_id, diff_exp_dir + 'diff_count', diff_exp_dir + 'diff_fpkm', 'gene')
+            if self.exp_stat.diff_gene:
+                self.diff_gene_id = self.api_express.add_express(samples=self.samples, params=param_2, express_diff_id=express_diff_id, major=False)
+                self.api_express.add_express_detail(self.diff_gene_id, diff_exp_dir + 'diff_count', diff_exp_dir + 'diff_fpkm', 'gene')
         if event['data'] == 'exp_diff':
             # set output
             self.move2outputdir(obj.output_dir, 'Express')
@@ -511,7 +513,7 @@ class DenovoBaseWorkflow(Workflow):
             for f in net_files:
                 if re.search(r'^CytoscapeInput-edges-', f):
                     color = f.split('-edges-')[-1].split('.')[0]
-                    self.api_express.add_network_module(net_id, net_path + 'f', color)
+                    self.api_express.add_network_module(net_id, net_path + f, color)
         if event['data'] == 'annotation':
             self.move2outputdir(obj.output_dir, 'Annotation')
 
