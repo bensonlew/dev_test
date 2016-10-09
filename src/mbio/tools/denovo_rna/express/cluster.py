@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
-# last_modify:20160701
+# last_modify:2016.10.09
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -23,7 +23,7 @@ class ClusterAgent(Agent):
             {"name": "distance_method", "type": "string", "default": "euclidean"},  # 计算距离的算法
             {"name": "log", "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
             {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
-            {"name": "sub_num", "type": "int", "default": 10}  # 子聚类的数目
+            {"name": "sub_num", "type": "int", "default": 0}  # 子聚类的数目
 
         ]
         self.add_option(options)
@@ -52,9 +52,13 @@ class ClusterAgent(Agent):
             raise OptionError("所选log底数不在提供的范围内")
         if self.option("method") not in ("hclust", "kmeans", "both"):
             raise OptionError("所选方法不在范围内")
-        if not isinstance(self.option("sub_num"), int):
-            raise OptionError("子聚类数目必须为整数")
-
+        #if not isinstance(self.option("sub_num"), int):
+        #   raise OptionError("子聚类数目必须为整数")
+        if self.option("sub_num") != 0:        
+            if not (self.option("sub_num") >=3 and self.option("sub_num") <= 35):
+                raise OptionError("子聚类数目范围必须在3-35之间！")
+            
+        
     def set_resource(self):
         """
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
@@ -98,7 +102,10 @@ class ClusterTool(Tool):
         self.r_path = '/program/R-3.3.1/bin/Rscript'
 
     def run_cluster(self):
-        clust(input_matrix=self.option('diff_fpkm').prop['path'], sub_num=self.option('sub_num'), method=self.option('method'), lognorm=self.option('log'), distance_method=self.option('distance_method'), cltype="both")
+    
+        
+        clust(input_matrix = self.option('diff_fpkm').prop['path'], sub_num=self.option('sub_num'), \
+        method = self.option('method'), lognorm = self.option('log'), distance_method = self.option('distance_method'), cltype = "both")
         clust_cmd = self.r_path + " clust.r"
         self.logger.info("开始运行clust_cmd")
         cmd = self.add_command("clust_cmd", clust_cmd).run()
@@ -128,8 +135,14 @@ class ClusterTool(Tool):
         except Exception as e:
             self.logger.info("设置聚类分析结果目录失败{}".format(e))
 
-    def run(self):
+    def run(self): 
         super(ClusterTool, self).run()
+        if self.option("sub_num") == 0:
+            if self.option("diff_fpkm").prop['gene'] > 200:
+                self.option("sub_num", 10)
+            else:
+                self.option("sub_num", 5) 
+        
         self.run_cluster()
         self.set_output()
         self.end()
