@@ -108,7 +108,7 @@ class CorrelationTool(Tool):
             self.logger.info("OK")
             return True
         except subprocess.CalledProcessError:
-            self.logger.info("转化otu_table到shared文件出错")
+            self.logger.info("运行hcluster出错")
             return False
 
     def set_output(self):

@@ -88,7 +88,7 @@ class DenovoRnaSample(Base):
             except Exception, e:
                 self.bind_object.logger.error("导入样品信息数据出错:%s" % e)
             else:
-                self.bind_object.logger.info("导入样品信息数据成功:%s" % result.inserted_ids)
+                self.bind_object.logger.info("导入样品信息数据成功")
                 self.sample_ids = result.inserted_ids
 
     @report_check
@@ -135,7 +135,7 @@ class DenovoRnaSample(Base):
         except Exception, e:
             self.bind_object.logger.error("导入样品画图数据信息出错:%s" % e)
         else:
-            self.bind_object.logger.info("导入样品画图数据信息成功:%s" % result.inserted_ids)
+            self.bind_object.logger.info("导入样品画图数据信息成功")
 
     @report_check
     def get_spname_spid(self):

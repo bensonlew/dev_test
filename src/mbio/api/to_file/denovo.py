@@ -119,3 +119,13 @@ def _get_objectid(data):
             except:
                 raise Exception("{}不为ObjectId类型或者其对应的字符串".format(data))
     return data
+
+
+def export_bam_path(data, option_name, dir_path, bind_obj=None):
+    my_collection = db['sg_denovo_express']
+    my_result = my_collection.find_one({'_id': ObjectId(data)})
+    if not my_result:
+        raise Exception("意外错误，express_id:{}在sg_denovo_express中未找到！".format(ObjectId(data)))
+    bam_dir = my_result['bam_path']
+    dir_path = bam_dir
+    return dir_path

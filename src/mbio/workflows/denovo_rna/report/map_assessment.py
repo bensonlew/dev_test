@@ -6,7 +6,7 @@ from mbio.api.to_file.denovo import *
 
 class MapAssessmentWorkflow(Workflow):
     """
-    报告中计算稀释性曲线时使用
+    报告中计算比对质量评估时使用
     """
 
     def __init__(self, wsheet_object):
@@ -16,8 +16,9 @@ class MapAssessmentWorkflow(Workflow):
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
+            {"name": "express_id", "type": "string"},
             {"name": "update_info", "type": "string"},
-            {"name": "analysis", "type": "string"},  # 分析类型
+            {"name": "analysis_type", "type": "string"},  # 分析类型
             {"name": "quality_satur", "type": "int"},  # 测序饱和度分析质量值
             {"name": "quality_dup", "type": "int"},  # 冗余率分析质量值
             {"name": "low_bound", "type": "int"},  # Sampling starts from this percentile
@@ -33,7 +34,7 @@ class MapAssessmentWorkflow(Workflow):
         options = {
             'bed': self.option('bed'),
             'bam': self.option('bam'),
-            'analysis': self.option('analysis'),
+            'analysis': self.option('analysis_type'),
             'quality_satur': self.option('quality_satur'),
             'quality_dup': self.option('quality_dup'),
             'low_bound': self.option('low_bound'),
