@@ -4,8 +4,10 @@
 """无参转录组表达差异分析"""
 
 from biocluster.workflow import Workflow
+from biocluster.config import Config
 import os
 import re
+from bson.objectid import ObjectId
 
 
 class DiffExpressWorkflow(Workflow):
@@ -24,9 +26,7 @@ class DiffExpressWorkflow(Workflow):
             {"name": "update_info", "type": "string"},
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},
             {"name": "ci", "type": "float"},
-            {"name": "rate", "type": "float"},
-            {"name": "express_id", "type": "string"},
-            {"name": "params", "type": "string"},
+            {"name": "diff_express_id", "type": "string"},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -34,30 +34,26 @@ class DiffExpressWorkflow(Workflow):
         self.output_dir = self.diff_exp.output_dir
 
     def run_diff_exp(self):
+        exp_files = self.option("express_file").split(',')
         options = {
-            "count": self.option("express_file")[1],
-            "fpkm": self.option("express_file")[0],
+            "count": exp_files[1],
+            "fpkm": exp_files[0],
             "control_file": self.option("control_file"),
             "diff_ci": self.option("ci"),
-            "diff_rate": self.option("rate"),
         }
         if self.option("group_id") != "all":
             options['edger_group'] = self.option("group_file")
-            self.samples = self.option('count').prop['sample']
-        else:
-            self.samples = self.option('edger_group').prop['sample']
         self.diff_exp.set_options(options)
         self.diff_exp.on("end", self.set_db)
         self.diff_exp.run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        relpath = [[".", "", "结果输出目录"]]
-        if self.diff_gene:
-            relpath += [
-                ["diff_fpkm", "xls", "差异基因表达量表"],
-                ["diff_count", "xls", "差异基因计数表"]
-            ]
+        relpath = [
+            [".", "", "结果输出目录"],
+            ["diff_fpkm", "xls", "差异基因表达量表"],
+            ["diff_count", "xls", "差异基因计数表"],
+        ]
         result_dir.add_regexp_rules([
             [r"_edgr_stat\.xls$", "xls", "edger统计结果文件"]
         ])
@@ -70,14 +66,24 @@ class DiffExpressWorkflow(Workflow):
         """
         api_diff_exp = self.api.denovo_express
         diff_files = os.listdir(self.output_dir)
+        if self.option("group_id") == "all":
+            self.samples = self.diff_exp.option('count').prop['sample']
+        else:
+            self.samples = self.diff_exp.option('edger_group').prop['sample']
         compare_column = list()
         for f in diff_files:
             if re.search(r'_edgr_stat.xls$', f):
                 con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
                 compare_column.append('|'.join(con_exp))
-        params = eval(self.option("params"))
-        api_diff_exp.add_express_diff(params=params, samples=self.samples, compare_column=compare_column, express_id=self.option('express_id'), diff_exp_dir=self.output_dir)
+                api_diff_exp.add_express_diff_detail(group=con_exp, express_diff_id=self.option('diff_express_id'), diff_stat_path=self.output_dir + '/' + f)
+        self.update_express_diff(table_id=self.option('diff_express_id'), compare_column=compare_column, specimen=self.samples)
         self.end()
+
+    def update_express_diff(self, table_id, compare_column, specimen):
+        client = Config().mongo_client
+        db_name = Config().MONGODB + '_rna'
+        collection = client[db_name]['sg_denovo_express_diff']
+        collection.update({'_id': ObjectId(table_id)}, {'$set': {'specimen': specimen, 'compare_column': compare_column}})
 
     def run(self):
         self.run_diff_exp()

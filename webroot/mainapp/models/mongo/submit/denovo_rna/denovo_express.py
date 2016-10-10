@@ -21,14 +21,14 @@ class DenovoExpress(object):
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'specimen': samples,
-            'status': 'end',
+            'status': 'start',
             'bam_path': bam_path,
         }
         collection = self.db['sg_denovo_express']
         express_id = collection.insert_one(insert_data).inserted_id
         return express_id
 
-    def add_express_diff(self, params, samples, compare_column, name=None, project_sn=None, task_id=None):
+    def add_express_diff(self, params, samples=None, compare_column=None, name=None, project_sn=None, task_id=None):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -37,7 +37,7 @@ class DenovoExpress(object):
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'specimen': samples,
-            'status': 'end',
+            'status': 'start',
             'compare_column': compare_column,
         }
         collection = self.db['sg_denovo_express_diff']

@@ -35,7 +35,6 @@ class DiffExpress(object):
         my_param['group_id'] = data.group_id
         my_param['control_id'] = data.control_id
         my_param['ci'] = data.ci
-        my_param['rate'] = data.rate
         my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         express_info = Denovo().get_main_info(data.express_id, 'sg_denovo_express')
@@ -48,8 +47,8 @@ class DiffExpress(object):
             else:
                 info = {"success": False, "info": "这个express_id对应的表达量矩阵对应的task：{}没有member_id!".format(express_info["task_id"])}
                 return json.dumps(info)
-            express_id = DenovoExpress().add_express_diff(params=params, samples=None, compare_column=None, project_sn=project_sn, task_id=task_id)
-            update_info = {str(express_id): "sg_denovo_express_diff", 'database': self.db_name}
+            diff_express_id = DenovoExpress().add_express_diff(params=params, samples=None, compare_column=None, project_sn=project_sn, task_id=task_id)
+            update_info = {str(diff_express_id): "sg_denovo_express_diff", 'database': self.db_name}
             update_info = json.dumps(update_info)
             workflow_id = Denovo().get_new_id(task_id, data.express_id)
             (output_dir, update_api) = GetUploadInfo_test(client, member_id, project_sn, task_id, 'gene_express_diff_stat')
@@ -69,17 +68,18 @@ class DiffExpress(object):
                 "options": {
                     "express_file": data.express_id,
                     "update_info": update_info,
-                    "group_file": data.group_id,
-                    "group_detail": data.group_detail,
                     "group_id": data.group_id,
                     "control_file": data.control_id,
                     "ci": data.ci,
-                    "rate": data.rate,
-                    "express_id": str(express_id)
+                    "diff_express_id": str(diff_express_id)
                 }
             }
             if data.group_id != 'all':
                 json_data['to_file'].append("denovo.export_group_table_by_detail(group_file)")
+                json_data['option'].update({
+                    "group_file": data.group_id,
+                    "group_detail": data.group_detail,
+                })
             insert_data = {"client": client,
                            "workflow_id": workflow_id,
                            "json": json.dumps(json_data),
@@ -97,20 +97,13 @@ class DiffExpress(object):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['express_id', 'ci', 'group_detail', 'group_id', 'control_id', 'rate', 'submit_location']
+        params_name = ['express_id', 'ci', 'group_detail', 'group_id', 'control_id', 'submit_location']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
                 success.append("缺少参数!")
-        if float(data.rate) >= 1 or float(data.rate) <= 0:
-            success.append("差异基因比率rate不在范围内")
         if float(data.ci) >= 1 or float(data.ci) <= 0:
             success.append("显著性水平ci不在范围内")
-        # print data.group_detail
-        # group_detail = (data.group_detail)
-        # print type(group_detail)
-        # if not isinstance(group_detail, dict) and not isinstance(ids, types.StringTypes):
-        #     success.append("传入的group_detail不是一个字典")
         for ids in [data.express_id, data.group_id, data.control_id]:
             ids = str(ids)
             print type(ids)
