@@ -196,8 +196,8 @@ class DiffExpTool(Tool):
         for f in edger_results:
             if re.search(r'edgeR.DE_results$', f):
                 self.logger.info(f)
-                control = f.split('.')[3].split('_vs_')[0]
-                other = f.split('.')[3].split('_vs_')[1]
+                control = f.split('.')[-3].split('_vs_')[0]
+                other = f.split('.')[-3].split('_vs_')[1]
                 if self.option("edger_group").is_set:
                     stat_edger(self.work_dir + '/edger_result/' + f, self.option('count').prop['path'], self.option('fpkm').prop['path'], control, other, self.output_dir + "/", './edger_group', self.option("diff_ci"), False)
                 else:

@@ -190,6 +190,7 @@ class DenovoExpress(Base):
 
     @report_check
     def add_express_diff_detail(self, express_diff_id, group, diff_stat_path):
+        """group为两两比较的样本或分组名，列表"""
         if not isinstance(express_diff_id, ObjectId):
             if isinstance(express_diff_id, types.StringTypes):
                 express_diff_id = ObjectId(express_diff_id)
