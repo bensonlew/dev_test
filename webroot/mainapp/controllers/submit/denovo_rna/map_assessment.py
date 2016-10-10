@@ -82,34 +82,42 @@ class MapAssessment(object):
 
     def get_insert_data(self, analysis_type, client, express_info,  data, member_id):
         my_params = self.get_params(data)
-        params = json.dumps(my_params, sort_keys=True, separators=(',', ':'))
+        # params = json.dumps(my_params, sort_keys=True, separators=(',', ':'))
+        params = my_params
+        print(params)
         options = {'analysis_type': data.analysis_type, "bam": data.express_id, "express_id": data.express_id}
         to_file = ["denovo.export_bam_path(express_id)", "denovo.export_bed_file(orf_id)"]
         name = analysis_type + "_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         if analysis_type == "saturation":
-            rpkm_id = DenovoMapping().add_rpkm_table(params=params, name=name, detail=False)
+            rpkm_id = DenovoMapping().add_rpkm_table(express_info["project_sn"], express_info["task_id"], params=params, name=name)
             update_info = {str(rpkm_id): "sg_denovo_rpkm", 'database': self.db_name}
             update_info = json.dumps(update_info)
             options["update_info"] = update_info
+            options["insert_id"] = str(rpkm_id)
+            options["bed"] = data.orf_id
             options.update(my_params)
-        elif analysis_type == "coverage":
-            coverage_id = DenovoMapping().add_coverage_table(params=params, name=name, detail=False)
-            update_info = {str(coverage_id): "sg_denovo_coverage", 'database': self.db_name}
-            update_info = json.dumps(update_info)
-            options["update_info"] = update_info
-            options.update(my_params)
+            to_file = ["denovo.export_bam_path(bam)", "denovo.export_bed_path(bed)"]
+        # elif analysis_type == "coverage":
+        #     coverage_id = DenovoMapping().add_coverage_table(params=params, name=name, detail=False)
+        #     update_info = {str(coverage_id): "sg_denovo_coverage", 'database': self.db_name}
+        #     update_info = json.dumps(update_info)
+        #     options["update_info"] = update_info
+        #     options["insert_id"] = coverage_id
+        #     options.update(my_params)
         elif analysis_type == "duplication":
             duplication_id = DenovoMapping().add_duplication_table(express_info["project_sn"], express_info["task_id"], params=params, name=name)
             update_info = {str(duplication_id): "sg_denovo_duplication", 'database': self.db_name}
             update_info = json.dumps(update_info)
             options["update_info"] = update_info
+            options["insert_id"] = str(duplication_id)
             options.update(my_params)
-            to_file = ["denovo.export_bam_path(express_id)"]
+            to_file = ["denovo.export_bam_path(bam)"]
         elif analysis_type == "correlation":
-            correlation_id = DenovoMapping().add_correlation_table(params=params, name=name, detail=False)
+            correlation_id = DenovoMapping().add_correlation_table(express_info["project_sn"], express_info["task_id"], params=params, name=name)
             update_info = {str(correlation_id): "sg_denovo_correlation", 'database': self.db_name}
             update_info = json.dumps(update_info)
             options["update_info"] = update_info
+            options["insert_id"] = str(correlation_id)
             options.update(my_params)
             to_file = ["denovo.export_express_matrix(express_id)"]
 
@@ -135,4 +143,5 @@ class MapAssessment(object):
                        "json": json.dumps(json_data),
                        "ip": web.ctx.ip
                        }
+        print(options)
         return insert_data

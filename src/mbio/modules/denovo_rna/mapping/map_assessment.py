@@ -20,7 +20,7 @@ class MapAssessmentModule(Module):
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
-            {"name": "analysis", "type": "string", "default": "satur,dup,coverage,correlation"},  # 分析类型
+            {"name": "analysis", "type": "string", "default": "saturation,duplication,coverage,correlation"},  # 分析类型
             {"name": "quality_satur", "type": "int", "default": 30},  # 测序饱和度分析质量值
             {"name": "quality_dup", "type": "int", "default": 30},  # 冗余率分析质量值
             {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
@@ -35,7 +35,7 @@ class MapAssessmentModule(Module):
         self.correlation = self.add_tool('denovo_rna.mapping.correlation')
         # self.bam_stat = self.add_tool('denovo_rna.mapping.bam_stat')
         self.step.add_steps('stat', 'correlation')
-        self.analysis = ["satur", "dup", "coverage", "correlation"]
+        self.analysis = ["saturation", "duplication", "coverage", "correlation"]
 
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
@@ -54,10 +54,10 @@ class MapAssessmentModule(Module):
         """
         检查参数
         """
-        if self.option("analysis") in ["satur", "coverage"]:
+        if self.option("analysis") in ["saturation", "coverage"]:
             if not self.option("bed").is_set:
                 raise OptionError("请传入bed文件")
-        if not self.option("bam").is_set and self.option("analysis") != "correlation":
+        if not self.option("bam").is_set and self.option("analysis") == "saturation":
             raise OptionError("请传入bam文件")
         for analysis in self.option("analysis").split(","):
             if analysis not in self.analysis:
@@ -221,9 +221,9 @@ class MapAssessmentModule(Module):
         self.bam_stat_run()
         analysiss = self.option("analysis").split(",")
         for m in analysiss:
-            if m == "satur":
+            if m == "saturation":
                 self.satur_run()
-            if m == "dup":
+            if m == "duplication":
                 self.dup_run()
             if m == "coverage":
                 self.coverage_run()

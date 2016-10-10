@@ -14,8 +14,9 @@ class MapAssessmentWorkflow(Workflow):
         super(MapAssessmentWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
-            {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
+            {"name": "bam", "type": "string"},  # bam格式文件,排序过的
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
+            {"name": "insert_id", "type": "string"},  # 插入的主表的ID
             {"name": "express_id", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "analysis_type", "type": "string"},  # 分析类型
@@ -28,7 +29,7 @@ class MapAssessmentWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.map_assess = self.add_module('denovo_rna.gene_structure.map_assessment')
+        self.map_assess = self.add_module('denovo_rna.mapping.map_assessment')
 
     def run(self):
         options = {
@@ -43,11 +44,35 @@ class MapAssessmentWorkflow(Workflow):
             'fpkm': self.option('fpkm'),
             'min_len': self.option('min_len')
             }
+        print(options)
         self.map_assess.set_options(options)
         self.map_assess.on('end', self.set_db)
         self.map_assess.run()
         self.output_dir = self.map_assess.output_dir
         super(MapAssessmentWorkflow, self).run()
+
+    def set_db(self):
+        api_mapping = self.api.denovo_rna_mapping
+        print(self.option("insert_id"))
+        if self.option("analysis_type") == "duplication":
+            dup_path = self.output_dir + "/dup"
+            print(dup_path)
+            if os.path.isfile(dup_path):
+                raise Exception("找不到报告文件夹:{}".format(dup_path))
+            api_mapping.add_duplication_detail(dup_path, self.option("insert_id"))
+        if self.option("analysis_type") == "saturation":
+            satur_path = self.output_dir + "/satur"
+            if os.path.isfile(satur_path):
+                raise Exception("找不到报告文件夹:{}".format(satur_path))
+            api_mapping.add_rpkm_detail(satur_path, self.option("insert_id"))
+            api_mapping.add_rpkm_box(satur_path, self.option("insert_id"))
+            api_mapping.add_rpkm_curve(satur_path, self.option("insert_id"))
+        if self.option("analysis_type") == "correlation":
+            correlation_path = self.output_dir + "/correlation"
+            if os.path.isfile(correlation_path):
+                raise Exception("找不到报告文件夹:{}".format(correlation_path))
+            api_mapping.add_correlation_detail(correlation_path, self.option("insert_id"))
+        self.end()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
