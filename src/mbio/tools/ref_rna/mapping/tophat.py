@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 # __author__ = 'sj'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
