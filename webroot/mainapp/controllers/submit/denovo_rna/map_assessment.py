@@ -7,7 +7,7 @@ from mainapp.models.workflow import Workflow
 import datetime
 from biocluster.config import Config
 from mainapp.models.mongo.denovo import Denovo
-from mainapp.libs.param_pack import GetUploadInfo
+from mainapp.libs.param_pack import GetUploadInfo_test
 from mbio.api.database.denovo_rna_mapping import *
 from mainapp.models.mongo.submit.denovo_rna.denovo_mapping import DenovoMapping
 
@@ -71,10 +71,9 @@ class MapAssessment(object):
             my_param["up_bound"] = data.up_bound
             my_param["step"] = data.step
             my_param["quality_satur"] = data.quality_satur
-            my_param["orf_id"] = data.orf_id
-        elif data.analysis_type == "coverage":
-            my_param["orf_id"] = data.orf_id
-            my_param["min_len"] = data.min_len
+        # elif data.analysis_type == "coverage":
+        #     my_param["orf_id"] = data.orf_id
+        #     my_param["min_len"] = data.min_len
         elif data.analysis_type == "duplication":
             my_param["quality_dup"] = data.quality_dup
         # params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
@@ -118,11 +117,12 @@ class MapAssessment(object):
             update_info = json.dumps(update_info)
             options["update_info"] = update_info
             options["insert_id"] = str(correlation_id)
+            options["fpkm"] = data.express_id
             options.update(my_params)
-            to_file = ["denovo.export_express_matrix(express_id)"]
+            to_file = ["denovo.export_express_matrix(fpkm)", "denovo.export_bam_path(bam)"]
 
         workflow_id = Denovo().get_new_id(express_info["task_id"], data.express_id)
-        (output_dir, update_api) = GetUploadInfo(client, member_id, express_info['project_sn'], express_info['task_id'], 'gene_structure')
+        (output_dir, update_api) = GetUploadInfo_test(client, member_id, express_info['project_sn'], express_info['task_id'], 'gene_structure')
         json_data = {
             "id": workflow_id,
             "stage_id": 0,

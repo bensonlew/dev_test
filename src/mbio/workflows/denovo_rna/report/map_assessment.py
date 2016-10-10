@@ -13,9 +13,9 @@ class MapAssessmentWorkflow(Workflow):
         self._sheet = wsheet_object
         super(MapAssessmentWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
+            {"name": "bed", "type": "string"},  # bed格式文件
             {"name": "bam", "type": "string"},  # bam格式文件,排序过的
-            {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
+            {"name": "fpkm", "type": "string"},  # 基因表达量表
             {"name": "insert_id", "type": "string"},  # 插入的主表的ID
             {"name": "express_id", "type": "string"},
             {"name": "update_info", "type": "string"},
@@ -34,16 +34,20 @@ class MapAssessmentWorkflow(Workflow):
     def run(self):
         options = {
             'bed': self.option('bed'),
-            'bam': self.option('bam'),
+            # 'bam': self.option('bam'),
             'analysis': self.option('analysis_type'),
             'quality_satur': self.option('quality_satur'),
             'quality_dup': self.option('quality_dup'),
             'low_bound': self.option('low_bound'),
             'up_bound': self.option('up_bound'),
             'step': self.option('step'),
-            'fpkm': self.option('fpkm'),
+            # 'fpkm': self.option('fpkm').split(",")[0],
             'min_len': self.option('min_len')
             }
+        if self.option("analysis_type") == "correlation":
+            options["fpkm"] = self.option('fpkm').split(",")[0]
+        if self.option("analysis_type") in ["saturation", "duplication"]:
+            options["bam"] = self.option('bam')
         print(options)
         self.map_assess.set_options(options)
         self.map_assess.on('end', self.set_db)
