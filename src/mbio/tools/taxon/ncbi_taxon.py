@@ -33,8 +33,8 @@ class NcbiTaxonAgent(Agent):
         return True
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = ''
+        self._cpu = 2
+        self._memory = '12G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -96,7 +96,7 @@ class NcbiTaxonTool(Tool):
         with open(self.output_dir + '/query_taxons_detail.xls', 'w') as w:
             for item in query_gi.iteritems():
                 if item[1][1]:
-                    w.write(item[0] + '\t' + item[1][0] + item[1][1] + '\n')
+                    w.write(item[0] + '\t' + item[1][0] + '\t' + item[1][1] + '\n')
         return True
 
     def filter_query(self, fp):
