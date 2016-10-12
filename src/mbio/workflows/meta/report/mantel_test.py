@@ -2,6 +2,7 @@
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
 import os
+import glob
 from mbio.api.to_file.meta import *
 import datetime
 from mainapp.libs.param_pack import group_detail_sort
@@ -22,14 +23,16 @@ class MantelTestWorkflow(Workflow):
             {"name": "newicktree", "type": "infile", 'format': "meta.otu.group_table"},  # 输入的环境因子表 id
             {"name": "level", "type": "int"},
             {"name": "otu_id", "type": "string"},
+            {"name": "env_id", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "group_id", "type": "string"},
             {"name": "group_detail", "type": "string"},
             {"name": "partial_factor", "type": "string"},
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
+            {"name": "params", "type": "string"},
             {"name": "env_method", "type": "string"},
-            {"name": "species_method", "type": "string"},
+            {"name": "otu_method", "type": "string"},
             {"name": "partialmatrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "dis_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "fac_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
@@ -40,16 +43,16 @@ class MantelTestWorkflow(Workflow):
         self.mantel = self.add_module('statistical.mantel_test')
         self.params = {}
 
-    def run_mantel(self):
+    def run(self):
         options = {
             'otutable': self.option('otu_file'),
             'factor': self.option('env_file'),
-            'level': self.option('level'),
+            # 'level': self.option('level'),
             'partial_factor': self.option('partial_factor'),
-            'otumatrixtype': self.option('species_method'),
+            'otumatrixtype': self.option('otu_method'),
             'factormatrixtype': self.option('env_method')
             }
-        # print(self.option('indices'))
+        # print("lhhhhhhhhhhhh")
         self.mantel.set_options(options)
         self.mantel.on('end', self.set_db)
         self.mantel.run()
@@ -60,11 +63,14 @@ class MantelTestWorkflow(Workflow):
         """
         保存结果指数表到mongo数据库中
         """
+        self.params = eval(self.option("params"))
+        del self.params["otu_file"]
+        del self.params["env_file"]
         api_mantel = self.api.meta_species_env
-        mantel_result = self.output_dir + "/mantel_results.txt"
-        partial_matrix = self.option("partialmatrix")
-        dis_matrix = self.option("dis_matrix")
-        fac_matrix = self.option("fac_matrix")
+        mantel_result = glob.glob(self.output_dir + "/Discompare/*")[0]
+        partial_matrix = glob.glob(self.output_dir + "/partial/*")[0]
+        dis_matrix = glob.glob(self.output_dir + "/partial/*")[0]
+        fac_matrix = glob.glob(self.output_dir + "/partial/*")[0]
         name = "mantel_test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         if not os.path.isfile(mantel_result):
             raise Exception("找不到报告文件:{}".format(mantel_result))
@@ -79,8 +85,8 @@ class MantelTestWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            # [".", "", "结果输出目录"],
-            [".//mantel_results.txt", "txt", "mantel检验结果"]
+            [".", "", "结果输出目录"]
+            # [".//mantel_results.txt", "txt", "mantel检验结果"]
         ])
         # print self.get_upload_files()
         super(MantelTestWorkflow, self).end()

@@ -81,7 +81,8 @@ class MantelTestModule(Module):
         if self.option("otumatrixtype") in ["unweighted_unifrac", "weighted_unifrac"]:
             if not self.option("newicktree").is_set:
                 raise OptionError("unifrac方法必须提供newicktree")
-        self.option("newicktree").get_info()
+        if self.option("newicktree").is_set:
+            self.option("newicktree").get_info()
 
     def otudistance_run(self):
         options = {
@@ -141,6 +142,7 @@ class MantelTestModule(Module):
         self.facdistance_run()
         self.step.update()
         if self.option("partial_factor"):
+            print("lllllllllllll")
             self.partial_run()
             self.step.update()
             self.on_rely([self.otudistance, self.facdistance, self.partial], self.discomparison_run)
