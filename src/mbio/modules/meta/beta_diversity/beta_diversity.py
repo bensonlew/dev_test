@@ -223,6 +223,8 @@ class BetaDiversityModule(Module):
         super(BetaDiversityModule, self).run()
         self.step.ChooseAnalysis.start()
         self.step.update()
+        if 'distance' in self.option('analysis'):
+            self.tools['distance'] = self.matrix
         if 'anosim' in self.option('analysis'):
             self.tools['anosim'] = self.add_tool('meta.beta_diversity.anosim')
             self.matrix.on('end', self.anosim_run)
