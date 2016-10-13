@@ -23,6 +23,10 @@ from mainapp.controllers.instant.meta.beta.multi_analysis import MultiAnalysis
 from mainapp.controllers.instant.meta.beta.anosim import Anosim
 from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
 from mainapp.controllers.instant.meta.demo_mongodata_copy import DemoMongodataCopy
+from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
+from mainapp.controllers.submit.denovo_rna.map_assessment import MapAssessment
+from mainapp.controllers.instant.meta.mantel_test import MantelTest
+from mainapp.controllers.instant.meta.pearson_correlation import PearsonCorrelation
 
 # web.config.debug = False
 urls = (
@@ -56,7 +60,11 @@ urls = (
     "/meta/rarefaction", "Rarefaction",
     "/meta/beta/multi_analysis", "MultiAnalysis",
     "/meta/beta/anosim", "Anosim",
-    "/dataexchange/download_task", "DownloadTask"
+    "/dataexchange/download_task", "DownloadTask",
+    "/denovo_rna/diff_express", "DiffExpress",
+    "/denovo_rna/map_assessment", "MapAssessment",
+    "/meta/mantel_test", "MantelTest",
+    "/meta/pearson_correlation", "PearsonCorrelation"
 )
 
 
