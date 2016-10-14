@@ -23,14 +23,17 @@ class MapAssessment(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        if not hasattr(data, "express_id"):
+            info = {"success": False, "info": "缺少参数express_id!"}
+            return json.dumps(info)
+        if not hasattr(data, "analysis_type"):
+            info = {"success": False, "info": "缺少参数analysis_type!"}
+            return json.dumps(info)
         analysis_type = data.analysis_type
         satur_params = ["low_bound", "up_bound", "step", "quality_satur", "orf_id"]
         coverage_params = ["orf_id", "min_len"]
         if analysis_type not in ["saturation", "coverage", "duplication", "correlation"]:
             info = {"success": False, "info": "不参在%s分析类型" % analysis_type}
-            return json.dumps(info)
-        if not hasattr(data, "express_id"):
-            info = {"success": False, "info": "缺少参数express_id!"}
             return json.dumps(info)
         if data.analysis_type == "saturation":
             for param in satur_params:
