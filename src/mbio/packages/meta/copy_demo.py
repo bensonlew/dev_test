@@ -367,7 +367,7 @@ class CopyMongo(object):
         coll = self.db.sg_task
         find = coll.find_one({'task_id': self._old_task_id})
         if not find:
-            raise Exception('task_id找不到对应信息')
+            raise Exception('运行错误：找不到demo任务相关信息')
         find['task_id'] = self._new_task_id
         find['member_id'] = self._new_member_id
         find.pop('_id')

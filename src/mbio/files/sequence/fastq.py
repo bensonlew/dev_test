@@ -145,7 +145,6 @@ class FastqFile(File):
             with open(self.prop['path'], 'rb') as f:
                 count = 2
                 for line in f:
-                    count = count + 4
                     line = line.rstrip("\r\n")
                     if not re.search(r'^@', line):
                         print line, count
@@ -157,11 +156,12 @@ class FastqFile(File):
                     sp_name = "_".join(line)
                     if sp_name not in self.samples:
                         self.samples.append(sp_name)
-                    line2 = f.next()
+                    line2 = f.next().rstrip()
                     f.next()
-                    line4 = f.next()
+                    line4 = f.next().rstrip()
                     if len(line2) != len(line4):
-                        raise Exception("第{}行碱基的长度与它的质量文件的长度不相等".format(str(count)))
+                        raise Exception("第{}行碱基的长度与它的质量文件的长度不相等, 碱基长度为{}, 质量长度为{}".format(str(count), str(len(line2)), str(len(line4))))
+                    count = count + 4
             self.set_property("samples", self.samples)
         return self.samples
 

@@ -371,9 +371,12 @@ class OtuTableFile(File):
             sample_name = line[:]
             for line in r:
                 line = line.rstrip().split()
+                line.pop(0)
+                if self.prop["metadata"] == "taxonomy":
+                    line.pop(-1)
                 for i in range(len(sample_name)):
-                    sample_num[sample_num[i]] += int(line[i])
-            min_num = sample_name[sample_num.keys()[0]]
+                    sample_num[sample_name[i]] += int(line[i])
+            min_num = sample_num.values()[0]
             min_sample = sample_num.keys()[0]
             for k in sample_num:
                 if sample_num[k] < min_num:
