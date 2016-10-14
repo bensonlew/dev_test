@@ -21,12 +21,7 @@ class CuffcompareAgent(Agent):
             {"name": "merged.gtf", "type": "infile","format":"ref_rna.assembly.gtf"},#拼接合并之后的转录本文件
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
             {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 参考基因的注释文件
-            {"name": "tmap", "type": "outfile", "format": "ref_rna.assembly.tmap"},  # compare后的tmap文件
-            {"name": "refmap", "type": "outfile", "format": "ref_rna.assembly.tmap"},  # compare后的refmap文件
             {"name": "combined.gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},  # compare后的combined.gtf文件
-            {"name": "loci", "type": "outfile", "format": "ref_rna.assembly.loci"},  # compare后的loci文件
-            {"name": "stats", "type": "outfile", "format": "ref_rna.assembly.stats"},  # compare后的stats文件
-            {"name": "tracking", "type": "outfile", "format": "ref_rna.assembly.tracking"},  # compare后的tracking文件
         ]
         self.add_option(options)
         self.step.add_steps("cuffcompare")
@@ -115,15 +110,8 @@ class CuffcompareTool(Tool):
         self.logger.info("设置结果目录")
         try:
             shutil.copy2(self.work_dir + "/cuffcmp.combined.gtf",self.output_dir + "/cuffcmp.combined.gtf")
-            shutil.copy2(self.work_dir + "/cuffcmp.loci", self.output_dir + "/cuffcmp.loci")
-            shutil.copy2(self.work_dir + "/cuffcmp.stats", self.output_dir + "/cuffcmp.stats")
-            shutil.copy2(self.work_dir + "/cuffcmp.tracking", self.output_dir + "/cuffcmp.tracking")
             self.option('combined.gtf').set_path(self.work_dir + "/cuffcmp.combined.gtf")
-            self.option('loci').set_path(self.work_dir + "/cuffcmp.loci")
-            self.option('stats').set_path(self.work_dir + "/cuffcmp.stats")
-            self.option('tracking').set_path(self.work_dir + "/cuffcmp.tracking")
             self.logger.info("设置拼接比较结果目录成功")
-
         except Exception as e:
             self.logger.info("设置拼接比较分析结果目录失败{}".format(e))
             self.set_error("设置拼接比较分析结果目录失败{}".format(e))

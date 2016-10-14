@@ -22,6 +22,7 @@ class CufflinksAgent(Agent):
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
             {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 参考基因的注释文件
             {"name": "cpu", "type": "int", "default":10},  #cufflinks软件所分配的cpu数量
+            {"name": "F", "type": "int", "default": 0.1},  # min-isoform-fraction
             {"name": "fr_stranded", "type": "string","default":"fr-unstranded"},  # 是否链特异性
             {"name": "strand_direct", "type": "string","default":"none"}, # 链特异性时选择正负链
             {"name": "sample_gtf", "type": "outfile","format":"ref_rna.assembly.gtf"},  # 输出的转录本文件
@@ -80,6 +81,7 @@ class CufflinksTool(Tool):
         super(CufflinksTool, self).__init__(config)
         self._version = "v1.0.1"
         self.cufflinks_path = '/bioinfo/rna/cufflinks-2.2.1/'
+        self.gtf_to_fa_path = 'bioinfo/rna/scripts/gtf_to_fasta'
 
     def run(self):
         """
@@ -88,6 +90,7 @@ class CufflinksTool(Tool):
         """
         super(CufflinksTool, self).run()
         self.run_cufflinks()
+        self.run_gtf_to_fa()
         self.set_output()
         self.end()
 
@@ -114,6 +117,21 @@ class CufflinksTool(Tool):
         else:
             self.set_error("cufflinks运行出错!")
 
+    def run_gtf_to_fa(self):
+        """
+        运行gtf_to_fasta，转录本gtf文件转fa文件
+        """
+        sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
+        cmd = self.gtf_to_fa_path + " %s %s %s.fa" % (self.work_dir+"/" + sample_name + "/transcripts.gtf", self.option('ref_fa').prop['path'], self.work_dir + "/"+sample_name)
+        self.logger.info('运行gtf_to_fasta，形成fasta文件')
+        command = self.add_command("gtf_to_fa_cmd", cmd).run()
+        self.wait(command)
+        if command.return_code == 0:
+            self.logger.info("gtf_to_fasta运行完成")
+        else:
+            self.set_error("gtf_to_fasta运行出错!")
+
+
 
     def set_output(self):
         """
@@ -126,6 +144,7 @@ class CufflinksTool(Tool):
             shutil.copy2(self.work_dir + "/" + sample_name + "/transcripts.gtf",self.output_dir + "/transcripts.gtf")
             shutil.copy2(self.work_dir + "/" + sample_name + "/genes.fpkm_tracking", self.output_dir + "/genes.fpkm_tracking")
             shutil.copy2(self.work_dir + "/" + sample_name + "/isoforms.fpkm_tracking", self.output_dir + "/isoforms.fpkm_tracking")
+            shutil.copy2(self.work_dir + "/" + sample_name + ".fa", self.output_dir + "/" + sample_name+ "_out.fa")
             shutil.move(self.output_dir + "/transcripts.gtf", self.output_dir + "/" + sample_name + "_out.gtf")
             shutil.move(self.output_dir + "/genes.fpkm_tracking", self.output_dir + "/" + sample_name + "_genes.fpkm_tracking")
             shutil.move(self.output_dir + "/isoforms.fpkm_tracking", self.output_dir + "/" + sample_name + "_isoforms.fpkm_tracking")
