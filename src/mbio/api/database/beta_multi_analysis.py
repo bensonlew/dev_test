@@ -117,7 +117,7 @@ class BetaMultiAnalysis(Base):
                 self.bind_object.logger.info('beta_diversity:PCoA分析结果导入数据库完成.')
             elif analysis == 'nmds':
                 site_path = dir_path.rstrip('/') + '/Nmds/nmds_sites.xls'
-                self.insert_table_detail(site_path, 'specimen', update_id=main_id)
+                self.insert_table_detail(site_path, 'specimen', update_id=main_id, colls=['NMDS1', 'NMDS2'])  # 这里暂且只有两个轴，故只写两个，后面如果修改进行多维NMDS，结果应该有多列，此种方式应该进行修改
                 self.bind_object.logger.info('beta_diversity:NMDS分析结果导入数据库完成.')
             elif analysis == 'dbrda':
                 site_path = dir_path.rstrip('/') + '/Dbrda/db_rda_sites.xls'
@@ -208,7 +208,10 @@ class BetaMultiAnalysis(Base):
                     insert_data['name'] = values[0]
                 values_dict = dict(zip(columns, values[1:]))
                 data_temp.append(dict(insert_data, **values_dict))
-            collection.insert_many(data_temp)
+            if data_temp:
+                collection.insert_many(data_temp)
+            else:
+                return None
             if update_column:
                 main_collection = db[main_coll]
                 # default_column = {'specimen': 'detail_column', 'factor': 'factor_column',

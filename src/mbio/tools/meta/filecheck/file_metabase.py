@@ -52,10 +52,10 @@ class FileMetabaseAgent(Agent):
                 raise OptionError("fastq文件中必须在序列名中带有样本名称(以下划线分隔)")
         if self.option("ref_fasta").is_set:
             if not self.option("ref_taxon").is_set:
-                raise OptionError("检测到ref_fasta， 但未检测到ref_taxon")
+                raise OptionError("检测到参考fasta序列， 但未检测到参考taxon文件")
         if self.option("ref_taxon").is_set:
             if not self.option("ref_fasta").is_set:
-                raise OptionError("检测到ref_taxon， 但未检测到ref_fasta")
+                raise OptionError("检测到参考taxon文件， 但未检测到参考fasta序列")
 
     def set_resource(self):
         """
@@ -117,7 +117,7 @@ class FileMetabaseTool(Tool):
                     raise Exception("序列名{}在taxon文件里未出现")
             if len(fasta_name) != len(taxon_name):
                 self.set_error("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
-                raise Exception("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
+                raise Exception("参考taxon文件里的某些序列名在参考fasta序列里未找到")
         else:
             self.logger.info("未检测到ref_fasta和ref_taxon文件， 跳过...")
         self.logger.info("ref和tax文件检测完毕")

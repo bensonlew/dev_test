@@ -62,7 +62,10 @@ class GroupTableFile(File):
             for i in line[1:]:
                 if re.search("\s", i):
                     raise FileError('分组方案名里不可以包含空格')
+        with open(self.prop['path'], 'r') as f:
             for line in f:
+                if "#" in line:
+                    continue
                 line = line.rstrip("\r\n")
                 line = re.split("\t", line)
                 for l in line:

@@ -39,7 +39,7 @@ class SortSamplesAgent(Agent):
         参数检测
         """
         if not self.option("in_otu_table").is_set:
-            raise OptionError("参数in_otu_table不能为空")
+            raise OptionError("输入的OTU文件不能为空")
         if self.option("method"):
             if self.option("method") not in ["", "no", "none", "No", "None", None, "average", "sum"]:
                 raise OptionError("参数method设置错误！")
