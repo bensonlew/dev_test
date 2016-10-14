@@ -98,6 +98,8 @@ class PearsonCorrelationWorkflow(Workflow):
         self.params = eval(self.option("params"))
         del self.params["otu_file"]
         del self.params["env_file"]
+        group_detail = self.params["group_detail"]
+        self.params["group_detail"] = group_detail_sort(group_detail)
         species_tree = ""
         env_tree = ""
         api_correlation = self.api.meta_species_env

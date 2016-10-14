@@ -3,7 +3,7 @@
 import web
 import json
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.libs.param_pack import group_detail_sort
+# from mainapp.libs.param_pack import group_detail_sort
 
 
 class MantelTest(MetaController):
