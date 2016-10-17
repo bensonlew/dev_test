@@ -147,7 +147,7 @@ class DenovoGeneStructure(Base):
         collection = self.db["sg_denovo_ssr"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         self.add_ssr_detail(ssr, inserted_id)
-        self.add_ssr_stat(ssr_stat)
+        self.add_ssr_stat(ssr_stat, inserted_id)
         if ssr_primer is not None:
             self.add_ssr_primer(ssr_primer)
         return inserted_id
@@ -155,6 +155,7 @@ class DenovoGeneStructure(Base):
     @report_check
     def add_ssr_detail(self, ssr, ssr_id=None):
         data_list = []
+        ssr_id = ObjectId(ssr_id)
         with open(ssr, "r") as f:
             f.readline().strip().split("\t")
             # self.bind_object.logger.error f.next().strip().split("\t")
@@ -184,6 +185,7 @@ class DenovoGeneStructure(Base):
     @report_check
     def add_ssr_primer(self, primer, ssr_id=None):
         data_list = []
+        ssr_id = ObjectId(ssr_id)
         with open(primer, "r") as f:
             f.readline()
             # self.bind_object.logger.error(len(f.next().strip().split("\t")))
@@ -235,6 +237,7 @@ class DenovoGeneStructure(Base):
     @report_check
     def add_ssr_stat(self, ssr_stat, ssr_id=None):
         data_list = []
+        ssr_id = ObjectId(ssr_id)
         target_line = False
         with open(ssr_stat, "r") as f:
             for n, line in enumerate(f):

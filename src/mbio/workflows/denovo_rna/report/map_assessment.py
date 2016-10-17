@@ -30,6 +30,8 @@ class MapAssessmentWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.map_assess = self.add_module('denovo_rna.mapping.map_assessment')
+        self.pca = None
+        self.tools = [self.map_assess]
 
     def run(self):
         options = {
@@ -46,14 +48,25 @@ class MapAssessmentWorkflow(Workflow):
             }
         if self.option("analysis_type") == "correlation":
             options["fpkm"] = self.option('fpkm').split(",")[0]
+            self.pca = self.add_tool("meta.beta_diversity.pca")
+            self.tools.append(self.pca)
+            self.on_rely(self.tools, self.set_db)
+            self.pca_run()
         if self.option("analysis_type") in ["saturation", "duplication"]:
             options["bam"] = self.option('bam')
+            self.map_assess.on('end', self.set_db)
         print(options)
         self.map_assess.set_options(options)
-        self.map_assess.on('end', self.set_db)
+        # self.map_assess.on('end', self.set_db)
         self.map_assess.run()
         self.output_dir = self.map_assess.output_dir
         super(MapAssessmentWorkflow, self).run()
+
+    def pca_run(self):
+        self.pca.set_options({
+            "otutable": self.option('fpkm').split(",")[0]
+        })
+        self.pca.run()
 
     def set_db(self):
         api_mapping = self.api.denovo_rna_mapping

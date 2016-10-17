@@ -22,6 +22,17 @@ from mainapp.controllers.submit.meta.rarefaction import Rarefaction
 from mainapp.controllers.instant.meta.beta.multi_analysis import MultiAnalysis
 from mainapp.controllers.instant.meta.beta.anosim import Anosim
 from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
+from mainapp.controllers.instant.dataexchange.upload_task import UploadTask
+from mainapp.controllers.instant.meta.demo_mongodata_copy import DemoMongodataCopy
+from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
+from mainapp.controllers.submit.denovo_rna.map_assessment import MapAssessment
+from mainapp.controllers.instant.meta.mantel_test import MantelTest
+from mainapp.controllers.instant.meta.pearson_correlation import PearsonCorrelation
+from mainapp.controllers.submit.denovo_rna.cluster import Cluster
+from mainapp.controllers.submit.denovo_rna.network import Network
+from mainapp.controllers.instant.denovo_rna.get_diff_express import GetDiffExpress
+from mainapp.controllers.submit.meta.otunetwork import Otunetwork
+from mainapp.controllers.submit.denovo_rna.ssr import Ssr
 
 # web.config.debug = False
 urls = (
@@ -36,6 +47,7 @@ urls = (
     "/pipeline/queue", "PipelineQueue",
     "/pipeline/pause", "PipelinePause",
     "/pipeline/stop_pause", "PipelineStopPause",
+    "/meta/demo_mongodata_copy", "DemoMongodataCopy",
     "/meta/estimators", "Estimators",
     "/pipeline/stop_pause", "PipelineStopPause",
     "/meta/pan_core", "PanCore",
@@ -54,7 +66,17 @@ urls = (
     "/meta/rarefaction", "Rarefaction",
     "/meta/beta/multi_analysis", "MultiAnalysis",
     "/meta/beta/anosim", "Anosim",
-    "/dataexchange/download_task", "DownloadTask"
+    "/dataexchange/download_task", "DownloadTask",
+    "/dataexchange/upload_task", "UploadTask",
+    "/denovo_rna/diff_express", "DiffExpress",
+    "/denovo_rna/map_assessment", "MapAssessment",
+    "/meta/mantel_test", "MantelTest",
+    "/meta/pearson_correlation", "PearsonCorrelation",
+    "/denovo_rna/cluster","Cluster",
+    "/denovo_rna/network", "Network",
+    "/denovo_rna/get_diff_express", "GetDiffExpress",
+    "/meta/otu_network", "Otunetwork",
+    "/denovo_rna/ssr", "Ssr"
 )
 
 
@@ -65,4 +87,4 @@ class hello(object):
 
 if __name__ == "__main__":
     app = web.application(urls, globals())
-    app.run()
+    app.run()  

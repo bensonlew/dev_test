@@ -139,3 +139,13 @@ def export_bed_path(data, option_name, dir_path, bind_obj=None):
     bam_dir = my_result['orf-bed']
     dir_path = bam_dir
     return dir_path
+
+
+def export_fasta_path(data, option_name, dir_path, bind_obj=None):
+    my_collection = db['sg_denovo_sequence']
+    my_result = my_collection.find_one({'_id': ObjectId(data)})
+    if not my_result:
+        raise Exception("意外错误，id:{}在sg_denovo_sequence中未找到！".format(ObjectId(data)))
+    gene_path = my_result['gene_path']
+    dir_path = gene_path
+    return dir_path

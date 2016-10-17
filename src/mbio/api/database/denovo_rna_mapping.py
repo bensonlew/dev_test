@@ -310,3 +310,10 @@ class DenovoRnaMapping(Base):
             self.bind_object.logger.error("导入相关系数分析数据出错:%s" % e)
         else:
             self.bind_object.logger.error("导入相关系数分析数据成功")
+
+    @report_check
+    def add_pca(self, pca_output,correlation_id=None):
+        pca_importance = pca_output + "/pca_importance.xls"
+        pca_rotation = pca_output + "/pca_rotation.xls"
+        pca_sites = pca_output + "/pca_sites.xls"
+
