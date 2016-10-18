@@ -64,7 +64,7 @@ class PanCoreOtuAgent(Agent):
         设置所需资源
         """
         self._cpu = 3
-        self._memory = ''
+        self._memory = '5G'
 
 
 class PanCoreOtuTool(Tool):
@@ -132,7 +132,7 @@ class PanCoreOtuTool(Tool):
                         none_na.append(i)
                     else:
                         break
-        max_len = max(none_na)
+        max_len = max(none_na) + 1
         with open(in_path, "rb") as r, open(out_path, "wb") as w:
             for line in r:
                 line = line.rstrip().split("\t")

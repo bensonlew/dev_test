@@ -1,4 +1,4 @@
-otu_data <- read.table("${inputfile}",sep = "\t",comment.char = '')
+otu_data <- read.table("${inputfile}",sep = "\t",comment.char = '', colClasses="character")
 samp <- t(otu_data[1,-1])
 otu_data <- otu_data[-1,]
 rownames(otu_data) <- otu_data[,1]
@@ -6,7 +6,7 @@ otu_data <- otu_data[,-1]
 colnames(otu_data) <- samp
 lendata <- nrow(otu_data)
 #read groupfile to make the dataframe for test
-group <- read.table("${groupfile}",sep="\t")
+group <- read.table("${groupfile}",sep="\t", colClasses="character")
 #group <- group[-1,]
 gsamp <- group[,1]
 g1 <- group[1,2]
@@ -40,9 +40,9 @@ for(i in 1:length(pvalue)){
 result <- cbind(result,pvalue)
 result <- cbind(result,qv)
 colnames(result) <- c(" ",paste("mean(",g1,")",sep=''),paste("sd(",g1,")",sep=''),paste("mean(",g2,")",sep=''),paste("sd(",g2,")",sep=''),"pvalue","corrected_pvalue")
-result_order <- result[order(-(as.numeric(result[,2])+as.numeric(result[,4]))),] 
+result_order <- result[order(-(as.numeric(result[,2])+as.numeric(result[,4]))),]
 if(lendata == 1){
   a <- data.frame(result_order)
   result_order <- t(a)
-} 
+}
 write.table(result_order,"${outputfile}",sep="\t",col.names=T,row.names=F,quote = F)

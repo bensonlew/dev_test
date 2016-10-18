@@ -61,7 +61,7 @@ class CopyMongo(object):
         self.copy_collection_with_change('sg_otu_detail', change_positions=['otu_id', ])
         self.copy_collection_with_change('sg_otu_detail_level', change_positions=['otu_id', ])
         self.env_id_dict = self.copy_collection_with_change('sg_env')
-        self.copy_main_details('sg_env_detail', 'env_id', self.env_id_dict)
+        self.copy_main_details('sg_env_detail', 'env_id', self.env_id_dict, others_position=['specimen_id'])
         self.env_id_dict[None] = None
         self.env_id_dict[''] = None
         self._exchange_dict['env_id'] = self.env_id_dict
@@ -183,6 +183,8 @@ class CopyMongo(object):
             self.insert_new_status('sg_newick_tree', docs, ids)
         else:
             self.newick_tree_id_dict = {}
+        self.newick_tree_id_dict[''] = None
+        self.newick_tree_id_dict[None] = None
         self._exchange_dict['newick_tree_id'] = self.newick_tree_id_dict
         return self.newick_tree_id_dict
 
@@ -270,7 +272,7 @@ class CopyMongo(object):
             find.update(update_dict)
             update_sg_status_docs.append(find)
             self.db.sg_otu.update_one({'_id': i}, {'$set': update_dict})
-        update_sg_status_docs = [i for i in update_sg_status_docs if i['type'] == 'otu_statistic']
+        update_sg_status_docs = [i for i in update_sg_status_docs if i['type'] in ['otu_statistic', "otu_statistic,otu_venn,otu_group_analysis", 'otu_group_analysis']]
         ids = [i['_id'] for i in update_sg_status_docs]
         self.insert_new_status('sg_otu', update_sg_status_docs, ids)
         return self.otu_id_dict
@@ -365,7 +367,7 @@ class CopyMongo(object):
         coll = self.db.sg_task
         find = coll.find_one({'task_id': self._old_task_id})
         if not find:
-            raise Exception('task_id找不到对应信息')
+            raise Exception('运行错误：找不到demo任务相关信息')
         find['task_id'] = self._new_task_id
         find['member_id'] = self._new_member_id
         find.pop('_id')

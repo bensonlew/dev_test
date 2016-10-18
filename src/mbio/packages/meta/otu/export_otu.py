@@ -27,7 +27,7 @@ def export_otu_table_by_level(otu_id, level, path):
         my_collection = db['sg_specimen']
         my_result = my_collection.find_one({"_id": sp_id})
         if not my_result:
-            raise Exception("意外错误，样本id:{}在sg_specimen表里未找到".format(sp_id))
+            raise Exception("样本id:{}在sg_specimen表里未找到".format(sp_id))
         samples.append(my_result["specimen_name"])
     level = int(level)
     collection = db['sg_otu_detail']

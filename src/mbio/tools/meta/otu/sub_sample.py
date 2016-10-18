@@ -46,7 +46,7 @@ class SubSampleAgent(Agent):
         参数检测
         """
         if not self.option("in_otu_table").is_set:
-            raise OptionError("参数in_otu_table不能为空")
+            raise OptionError("输入的OTU文件不能为空")
         if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class',
                                         'order', 'family', 'genus', 'species']:
             raise OptionError("请选择正确的分类水平")
@@ -108,6 +108,12 @@ class SubSampleTool(Tool):
             else:
                 my_table.set_path(self.option("in_otu_table").prop['path'])
         my_table.get_info()
+        (min_sample, min_num) = my_table.get_min_sample_num()
+        if self.option("size") != "min":
+            if min_num < int(self.option("size")):
+                self.set_error("自定义抽平序列数目大于最小的样本序列数目！")
+                raise Exception("自定义抽平序列数目大于最小的样本序列数目！")
+
         with open(my_table.prop["path"], "rb") as r:
             r.next()
             c = 1

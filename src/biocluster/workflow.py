@@ -21,6 +21,7 @@ import types
 import traceback
 from .core.watcher import Watcher
 from .scheduling.job import JobManager
+from gevent.lock import BoundedSemaphore
 
 
 class Workflow(Basic):
@@ -50,6 +51,7 @@ class Workflow(Basic):
         self._id = wsheet.id
         self.config = Config()
         self.db = self.config.get_db()
+        # self.db_sem = BoundedSemaphore(1)
         self._work_dir = self.__work_dir()
         self._output_path = self._work_dir + "/output"
         if not self.debug:
@@ -224,11 +226,12 @@ class Workflow(Basic):
     def return_mongo_ids(self):
         return self._return_mongo_ids
 
-    def add_return_mongo_id(self, collection_name, table_id, desc=''):
+    def add_return_mongo_id(self, collection_name, table_id, desc='', add_in_sg_status=True):
         return_dict = dict()
         return_dict['id'] = table_id
         return_dict['collection_name'] = collection_name
         return_dict['desc'] = desc
+        return_dict['add_in_sg_status'] = add_in_sg_status
         self._return_mongo_ids.append(return_dict)
 
     def _upload_result(self):
@@ -287,13 +290,17 @@ class Workflow(Basic):
         #     gevent.sleep(60)
         if self.is_end is True:
             return "exit"
+        # with self.db_sem:
         try:
-            self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
-                          vars={'id': self._id})
+            with self.db.transaction():
+                self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
+                              vars={'id': self._id})
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
             self.logger.debug("数据库更新异常: %s" % e)
+        finally:
+            self.close_db_cursor()
 
     def _update(self, data):
         """
@@ -303,8 +310,15 @@ class Workflow(Basic):
         :return:
         """
         if self.USE_DB:
-            myvar = dict(id=self._id)
-            self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+            try:
+                myvar = dict(id=self._id)
+                self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+            except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
+                self.logger.debug("数据库更新异常: %s" % e)
+            finally:
+                self.close_db_cursor()
 
     def __check_tostop(self):
         """
@@ -323,6 +337,7 @@ class Workflow(Basic):
             results = self.db.query("SELECT * FROM tostop "
                                     "WHERE workflow_id=$id and done  = 0", vars={'id': self._id})
             if isinstance(results, long) or isinstance(results, int):
+                self.close_db_cursor()
                 gevent.sleep(10)
                 return
             if len(results) > 0:
@@ -333,10 +348,13 @@ class Workflow(Basic):
                 }
                 self.db.update("tostop", vars=myvar, where="workflow_id = $id", **update_data)
                 self.exit(data="接收到终止运行指令,%s" % data.reson, terminated=True)
+
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
             self.logger.info("查询数据库异常: %s" % e)
+        finally:
+            self.close_db_cursor()
 
     def __check_pause(self):
         """
@@ -351,6 +369,7 @@ class Workflow(Basic):
             results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and "
                                     "has_continue  = 0 and timeout = 0", vars={'id': self._id})
             if isinstance(results, long) or isinstance(results, int):
+                self.close_db_cursor()
                 gevent.sleep(10)
                 return
             if len(results) > 0:
@@ -399,6 +418,8 @@ class Workflow(Basic):
             exstr = traceback.format_exc()
             print exstr
             self.logger.info("查询数据库异常: %s" % e)
+        finally:
+            self.close_db_cursor()
 
     def end_unfinish_job(self):
         """
@@ -411,3 +432,7 @@ class Workflow(Basic):
                 job.delete()
         if hasattr(self, "process_share_manager"):
             self.process_share_manager.shutdown()
+
+    def close_db_cursor(self):
+        cursor = self.db._db_cursor()
+        cursor.close()
