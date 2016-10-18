@@ -15,6 +15,7 @@ g2 <- g2[1]
 gsamp1=group[which(group[,2] %in% g1),1]
 gsamp2=group[which(group[,2] %in% g2),1]
 otu_data <- otu_data[,which(samp %in% gsamp)]
+otu_data <- otu_data[apply(otu_data,1,function(x)length(unique(x))!=1),]
 samp <- samp[which(samp %in% gsamp)]
 result <- matrix(nrow = nrow(otu_data),ncol = 5)
 pvalue <- 1
