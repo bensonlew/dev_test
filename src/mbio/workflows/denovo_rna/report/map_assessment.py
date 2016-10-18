@@ -86,16 +86,22 @@ class MapAssessmentWorkflow(Workflow):
             api_mapping.add_rpkm_curve(satur_path, self.option("insert_id"))
         if self.option("analysis_type") == "correlation":
             correlation_path = self.output_dir + "/correlation"
+            pca_path = self.pca.output_dir + "/pca_importance.xls"
+            pca_rotation = self.pca.output_dir + "/pca_rotation.xls"
+            pca_sites = self.pca.output_dir + "/pca_sits.xls"
             if os.path.isfile(correlation_path):
                 raise Exception("找不到报告文件夹:{}".format(correlation_path))
             api_mapping.add_correlation_detail(correlation_path, self.option("insert_id"))
+            api_mapping.add_pca(pca_path, self.option("insert_id"))
+            api_mapping.add_pca_rotation(pca_rotation, "sg_denovo_correlation_pca_rotation", self.option("insert_id"))
+            api_mapping.add_pca_rotation(pca_sites, "sg_denovo_correlation_pca_sites", self.option("insert_id"))
         self.end()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "dir", "结果输出目录"],
-            ["./coverage/", "dir", "基因覆盖度分析输出目录"],
+            # ["./coverage/", "dir", "基因覆盖度分析输出目录"],
             ["./dup/", "dir", "冗余序列分析输出目录"],
             ["./satur/", "dir", "测序饱和度分析输出目录"],
             ["./bam_stat.xls", "xls", "bam格式比对结果统计表"]

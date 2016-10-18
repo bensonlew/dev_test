@@ -312,8 +312,45 @@ class DenovoRnaMapping(Base):
             self.bind_object.logger.error("导入相关系数分析数据成功")
 
     @report_check
-    def add_pca(self, pca_output,correlation_id=None):
-        pca_importance = pca_output + "/pca_importance.xls"
-        pca_rotation = pca_output + "/pca_rotation.xls"
-        pca_sites = pca_output + "/pca_sites.xls"
+    def add_pca(self, pca_file, correlation_id=None):
+        data_list = []
+        with open(pca_file, "r") as f:
+            f.readline()
+            for line in f:
+                line = line.strip().split("\t")
+                data = {
+                    "correlation_id": correlation_id,
+                    line[0]: line[1]
+                }
+                data_list.append(data)
+            print data_list
+        try:
+            collection = self.db["sg_denovo_correlation_pca"]
+            result = collection.insert_many(data_list)
+        except Exception, e:
+            print("导入pca结果数据出错:%s" % e)
+        else:
+            print("导入pca结果数据成功")
 
+    @report_check
+    def add_pca_rotation(self, input_file, db_name, correlation_id=None):
+        data_list = []
+        with open(input_file, "r") as f:
+            pcas = f.readline().strip().split("\t")[1:]
+            print pcas
+            for line in f:
+                line = line.strip().split("\t")
+                data = {
+                    "correlation_id": correlation_id,
+                    "gene_id": line[0]
+                }
+                for n, p in enumerate(pcas):
+                    data[p] = line[n+1]
+                data_list.append(data)
+        try:
+            collection = self.db[db_name]
+            result = collection.insert_many(data_list)
+        except Exception, e:
+            print("导入pca结果数据出错:%s" % e)
+        else:
+            print("导入pca结果数据成功")

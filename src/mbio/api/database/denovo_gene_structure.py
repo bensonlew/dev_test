@@ -140,7 +140,7 @@ class DenovoGeneStructure(Base):
             "task_id": self.bind_object.sheet.id,
             "name": name if name else "ssr_origin",
             "status": "start",
-            "desc": "",
+            "desc": "ssr主表",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -194,38 +194,51 @@ class DenovoGeneStructure(Base):
                 if len(line) < 34:
                     continue
                 else:
-                    data = {
+                    primer1_data = {
                         "ssr_id": ssr_id,
                         "gene_id": line[0],
-                        "forward1": line[7],
-                        "f_tm1": line[8],
-                        "f_size1": line[9],
-                        "reverse1": line[10],
-                        "r_tm1": line[11],
-                        "r_size1": line[12],
-                        "pro_size1": line[13],
-                        "pro_start1": line[14],
-                        "pro_end1": line[15],
-                        "forward2": line[16],
-                        "f_tm2": line[17],
-                        "f_size2": line[18],
-                        "reverse2": line[19],
-                        "r_tm2": line[20],
-                        "r_size2": line[21],
-                        "pro_size2": line[22],
-                        "pro_start2": line[23],
-                        "pro_end2": line[24],
-                        "forward3": line[25],
-                        "f_tm3": line[26],
-                        "f_size3": line[27],
-                        "reverse3": line[28],
-                        "r_tm3": line[29],
-                        "r_size3": line[30],
-                        "pro_size3": line[31],
-                        "pro_start3": line[32],
-                        "pro_end3": line[33],
+                        "primer_name": "primer1",
+                        "forward": line[7],
+                        "f_tm": line[8],
+                        "f_size": line[9],
+                        "reverse": line[10],
+                        "r_tm": line[11],
+                        "r_size": line[12],
+                        "pro_size": line[13],
+                        "pro_start": line[14],
+                        "pro_end": line[15]
                     }
-                    data_list.append(data)
+                    primer2_data = {
+                        "ssr_id": ssr_id,
+                        "gene_id": line[0],
+                        "primer_name": "primer2",
+                        "forward": line[16],
+                        "f_tm": line[17],
+                        "f_size2": line[18],
+                        "reverse": line[19],
+                        "r_tm": line[20],
+                        "r_size": line[21],
+                        "pro_size": line[22],
+                        "pro_start": line[23],
+                        "pro_end": line[24]
+                    }
+                    primer3_data = {
+                        "ssr_id": ssr_id,
+                        "gene_id": line[0],
+                        "primer_name": "primer3",
+                        "forward": line[25],
+                        "f_tm": line[26],
+                        "f_size": line[27],
+                        "reverse": line[28],
+                        "r_tm": line[29],
+                        "r_size": line[30],
+                        "pro_size": line[31],
+                        "pro_start": line[32],
+                        "pro_end": line[33],
+                    }
+                    data_list.append(primer1_data)
+                    data_list.append(primer2_data)
+                    data_list.append(primer3_data)
         try:
             collection = self.db["sg_denovo_ssr_primer"]
             collection.insert_many(data_list)
@@ -284,6 +297,7 @@ class DenovoGeneStructure(Base):
             "name": name if name else "snp_origin",
             "status": "start",
             "desc": "",
+            "snp_types": ["A/T", "A/G", "A/C", "C/T", "C/G", "T/G"],
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -321,6 +335,10 @@ class DenovoGeneStructure(Base):
                     }
                     if len(line) == 20:
                         data["gene_pos"] = line[19]
+                    if line[2] > line[18]:
+                        data["snp_type"] = line[18] + "/" + line[2]
+                    else:
+                        data["snp_type"] = line[2] + "/" + line[18]
                     data_list.append(data)
         try:
             collection = self.db["sg_denovo_snp_detail"]
