@@ -87,6 +87,10 @@ class FileMetabaseTool(Tool):
             self.samples = self.option('in_fastq').prop["samples"]
         if self.get_option_object('in_fastq').format == 'sequence.fastq':
             self.logger.info("输入的fastq文件为单文件格式")
+            num_lines = sum(1 for line in open(self.option("in_fastq").prop["path"]))
+            if num_lines < 200:
+                self.set_error("fastq序列数目过少，仅有{}条，无法进行后续运算".format(num_lines))
+                raise Exception("fastq序列数目过少，仅有{}条，无法进行后续运算".format(num_lines))
             self.option("in_fastq").check_content()
             self.samples = self.option('in_fastq').prop["samples"]
         self.logger.info("fastq文件检测完毕,文件中所包含的样本为: {}".format(self.samples))

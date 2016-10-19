@@ -14,6 +14,7 @@ class BaseInfoAgent(Agent):
     version 1.0
     author: xuting
     last_modify: 2015.11.06
+    用于统计多个fastq文件的碱基质量信息
     """
     def __init__(self, parent):
         super(BaseInfoAgent, self).__init__(parent)
@@ -82,18 +83,19 @@ class BaseInfoTool(Tool):
         j = 0
         for fastq in self.option('fastq_path').prop['unzip_fastqs']:
             fastq_list.append(fastq)
+            self.logger.info(fastq)
+        # 同时运行过多的命令会导致远程的机器失去响应，对同一时间内的运行程序数量做出限制
         while len(fastq_list) > 0:
             cmd_list = list()
             k = 15
-            if len(fastq_list) < 15:
+            if len(fastq_list) < k:
                 k = len(fastq_list)
             for i in range(k):
                 j += 1
-                self.logger.debug("列表长度{}".format(len(fastq_list)))
+                self.logger.info("列表长度{}".format(len(fastq_list)))
                 fastq = fastq_list.pop()
                 file_name = os.path.join(base_info_dir, os.path.basename(fastq) + ".fastxstat.txt")
                 cmd = self.fastx_stats_path + " -i " + fastq + " -o " + file_name
-                self.logger.info(cmd)
                 str_ = "fastx_quality_stats_" + str(j) + "_" + re.split("\.", os.path.basename(fastq))[0]
                 command = self.add_command(str(str_.lower()), cmd)
                 cmd_list.append(command)

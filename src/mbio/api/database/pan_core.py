@@ -4,7 +4,9 @@
 from biocluster.api.database.base import Base, report_check
 import re
 import datetime
+from random import choice
 import json
+import string
 from bson.objectid import ObjectId
 from types import StringTypes
 from biocluster.config import Config
@@ -15,6 +17,7 @@ class PanCore(Base):
     def __init__(self, bind_object):
         super(PanCore, self).__init__(bind_object)
         self._db_name = Config().MONGODB
+        self.unique_id = self.get_unique()
 
     @report_check
     def create_pan_core_table(self, pan_core_type, params, group_id, level_id, from_otu_table=0, name=None, status=None, spname_spid=None):
@@ -56,6 +59,7 @@ class PanCore(Base):
             "group_id": group_id,
             "status": status,
             "desc": desc,
+            "unique_id": self.unique_id,
             "submit_location": "otu_pan_core",
             "name": name if name else "pan_core表格",
             "params": params,
@@ -99,3 +103,12 @@ class PanCore(Base):
                 self.bind_object.logger.error("导入pan_core_detail表格{}信息出错:{}".format(file_path, e))
             else:
                 self.bind_object.logger.info("导入pan_core_detail表格{}成功".format(file_path))
+
+    def get_unique(self):
+        chars = string.ascii_letters + string.digits
+        unique_id = "".join([choice(chars) for i in range(10)])
+        collection = self.db["sg_otu_pan_core"]
+        result = collection.find_one({"unique_id": unique_id})
+        if result:
+            return self.get_unique()
+        return unique_id
