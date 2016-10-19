@@ -16,6 +16,7 @@ class Config(object):
         self._db = None
         self._identity_db = None
         self._mongo_client = None
+        self._record_db = None
 
     def get_db(self):
         if not self._db:
@@ -29,6 +30,9 @@ class Config(object):
         return self._db
 
     def get_identity_db(self):
+        """
+        上传、下载验证码数据库
+        """
         if not self._identity_db:
             dbtype = self.rcf.get("IDENTITY_DB", "dbtype")
             host = self.rcf.get("IDENTITY_DB", "host")
@@ -38,6 +42,20 @@ class Config(object):
             port = self.rcf.get("IDENTITY_DB", "port")
             self._identity_db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
         return self._identity_db
+
+    def get_record_db(self):
+        """
+        上传、下载记录数据库
+        """
+        if not self._record_db:
+            dbtype = self.rcf.get("DATA_RECORD_DB", "dbtype")
+            host = self.rcf.get("DATA_RECORD_DB", "host")
+            user = self.rcf.get("DATA_RECORD_DB", "user")
+            passwd = self.rcf.get("DATA_RECORD_DB", "passwd")
+            dbname = self.rcf.get("DATA_RECORD_DB", "db")
+            port = self.rcf.get("DATA_RECORD_DB", "port")
+            self._record_db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
+        return self._record_db
 
     def get_mongo_client(self):
         if not self._mongo_client:
@@ -54,6 +72,7 @@ def get_db():
 
 DB = get_db()
 IDENTITY_DB = Config().get_identity_db()
+RECORD_DB = Config().get_record_db()
 
 
 def get_use_api_clients():
