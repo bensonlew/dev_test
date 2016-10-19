@@ -100,15 +100,15 @@ class CufflinksTool(Tool):
         """
         if self.option('fr_stranded') =="fr-unstranded" :
              sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-             cmd = self.cufflinks_path + ('cufflinks -p %s -g %s -b %s --library-type %s -o  ' % (self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],self.option('fr_stranded')) + sample_name)+ ' %s' % (self.option('sample_bam').prop['path'])
+             cmd = self.cufflinks_path + ('cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],self.option('fr_stranded')) + sample_name)+ ' %s' % (self.option('sample_bam').prop['path'])
         else:
             if self.option('strand_direct')=="firststrand" :
                  sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-                 cmd = self.cufflinks_path + ('cufflinks -p %s -g %s -b %s --library-type %s -o  ' % (self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],self.option('strand_direct')) + sample_name) + ' %s' % (self.option('sample_bam').prop['path'])
+                 cmd = self.cufflinks_path + ('cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],self.option('strand_direct')) + sample_name) + ' %s' % (self.option('sample_bam').prop['path'])
             else:
                 if self.option('strand_direct')=='secondstrand' :
                      sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-                     cmd = self.cufflinks_path +( 'cufflinks -p %s -g %s -b %s --library-type %s -o  ' % (self.option('cpu'), self.option('ref_gtf').prop['path'],self.option('ref_fa').prop['path'], self.option('strand_direct'))+ sample_name) +' %s'%(self.option('sample_bam').prop['path'])
+                     cmd = self.cufflinks_path +( 'cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (self.option('cpu'), self.option('ref_gtf').prop['path'],self.option('ref_fa').prop['path'], self.option('strand_direct'))+ sample_name) +' %s'%(self.option('sample_bam').prop['path'])
         self.logger.info('运行cufflinks软件，进行组装拼接')
         command = self.add_command("cufflinks_cmd", cmd).run()
         self.wait(command)
