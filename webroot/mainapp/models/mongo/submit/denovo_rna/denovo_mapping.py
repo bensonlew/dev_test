@@ -38,8 +38,7 @@ class DenovoMapping(object):
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 
-    def add_correlation_table(self, project_sn, task_id, name=None, params=None, express_id=None):
-        params['express_id'] = str(express_id)
+    def add_correlation_table(self, project_sn, task_id, name=None, params=None):
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,

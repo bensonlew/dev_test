@@ -54,13 +54,16 @@ class MapAssessmentModule(Module):
         """
         检查参数
         """
-        if self.option("analysis") in ["saturation", "coverage"]:
-            if not self.option("bed").is_set:
-                raise OptionError("请传入bed文件")
-        if self.option("analysis") in ["saturation", "duplication", "stat", "coverage"]:
-            self.files = self.get_files()
-            if not self.option("bam").is_set:
-                raise OptionError("请传入bam文件")
+        analysis = self.option("analysis").split(",")
+        for an in analysis:
+            if an in ["saturation", "coverage"]:
+                if not self.option("bed").is_set:
+                    raise OptionError("请传入bed文件")
+        for an in analysis:
+            if an in ["saturation", "duplication", "stat", "coverage"]:
+                self.files = self.get_files()
+                if not self.option("bam").is_set:
+                    raise OptionError("请传入bam文件")
         for analysis in self.option("analysis").split(","):
             if analysis not in self.analysis:
                 raise OptionError("所选质量评估分析方法不在范围内")
@@ -221,6 +224,8 @@ class MapAssessmentModule(Module):
         super(MapAssessmentModule, self).run()
         analysiss = self.option("analysis").split(",")
         for m in analysiss:
+            # self.logger.info(m)
+            # self.logger.info(self.tools)
             if m == "saturation":
                 self.satur_run()
             if m == "duplication":
@@ -231,10 +236,11 @@ class MapAssessmentModule(Module):
                 self.correlation_run()
             if m == "coverage":
                 self.coverage_run()
+        # self.logger.info(self.tools)
         if len(self.tools) > 1:
+            self.on_rely(self.tools, self.set_output)
             for t in self.tools:
                 t.run()
-            self.on_rely(self.tools, self.set_output)
         else:
             self.tools[0].on("end", self.set_output)
             self.tools[0].run()

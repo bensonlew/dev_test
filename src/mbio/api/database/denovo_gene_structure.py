@@ -361,20 +361,20 @@ class DenovoGeneStructure(Base):
             }
             with open(sp, "r") as f:
                 f.readline()
-                pos_value = {}
+                pos_value = []
                 for line in f:
                     line = line.strip().split("\t")
-                    pos_value[line[0]] = line[1]
+                    pos_value.append({"name": line[0], "value": line[1]})
                 data["pos_stat"] = pos_value
                 data_list.append(data)
         for st in snp_type:
             sample_name = os.path.basename(st).split(".")[0]
             with open(st, "r") as f:
                 f.readline()
-                type_value = {}
+                type_value = []
                 for line in f:
                     line = line.strip().split("\t")
-                    type_value[line[0]] = line[1]
+                    type_value.append({"name": line[0], "value": line[1]})
                 for data in data_list:
                     if sample_name == data["specimen_name"]:
                         data["type_stat"] = type_value

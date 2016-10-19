@@ -88,7 +88,7 @@ class MapAssessmentWorkflow(Workflow):
             correlation_path = self.output_dir + "/correlation"
             pca_path = self.pca.output_dir + "/pca_importance.xls"
             pca_rotation = self.pca.output_dir + "/pca_rotation.xls"
-            pca_sites = self.pca.output_dir + "/pca_sits.xls"
+            pca_sites = self.pca.output_dir + "/pca_sites.xls"
             if os.path.isfile(correlation_path):
                 raise Exception("找不到报告文件夹:{}".format(correlation_path))
             api_mapping.add_correlation_detail(correlation_path, self.option("insert_id"))

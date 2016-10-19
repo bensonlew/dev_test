@@ -288,7 +288,7 @@ class DenovoRnaMapping(Base):
         return inserted_id
 
     @report_check
-    def add_correlation_detail(self, collection, correlation_id=None):
+    def add_correlation_detail(self, collection, correlation_id=None, updata_tree=False):
         correlation_matrix = collection + "/correlation_matrix.xls"
         data_list = []
         with open(correlation_matrix, "r") as m:
@@ -303,6 +303,17 @@ class DenovoRnaMapping(Base):
                     data[s] = line[i+1]
                 # self.bind_object.logger.error data
                 data_list.append(data)
+        if updata_tree:
+            col_tree = collection + "/corr_col.tre"
+            row_tree = collection + "/corr_row.tre"
+            f = open(col_tree, "r")
+            r = open(row_tree, "r")
+            tree_col = f.readline().strip()
+            tree_row = r.readline().strip()
+            f.close()
+            r.close()
+            collection_first = self.db['sg_denovo_correlation']
+            collection_first.update({"_id": ObjectId(correlation_id)}, {"$set": {"row_tree": tree_row, "col_tree": tree_col}})
         try:
             collection = self.db["sg_denovo_correlation_detail"]
             collection.insert_many(data_list)
@@ -314,6 +325,7 @@ class DenovoRnaMapping(Base):
     @report_check
     def add_pca(self, pca_file, correlation_id=None):
         data_list = []
+        correlation_id = ObjectId(correlation_id)
         with open(pca_file, "r") as f:
             f.readline()
             for line in f:
@@ -323,26 +335,29 @@ class DenovoRnaMapping(Base):
                     line[0]: line[1]
                 }
                 data_list.append(data)
-            print data_list
         try:
             collection = self.db["sg_denovo_correlation_pca"]
             result = collection.insert_many(data_list)
         except Exception, e:
-            print("导入pca结果数据出错:%s" % e)
+            self.bind_object.logger.error("导入sg_denovo_correlation_pca数据出错:%s" % e)
         else:
-            print("导入pca结果数据成功")
+            self.bind_object.logger.error("导入sg_denovo_correlation_pca数据成功")
 
     @report_check
     def add_pca_rotation(self, input_file, db_name, correlation_id=None):
         data_list = []
+        correlation_id = ObjectId(correlation_id)
+        if db_name == "sg_denovo_correlation_pca_rotation":
+            col_name = "gene_id"
+        else:
+            col_name = "species_name"
         with open(input_file, "r") as f:
             pcas = f.readline().strip().split("\t")[1:]
-            print pcas
             for line in f:
                 line = line.strip().split("\t")
                 data = {
                     "correlation_id": correlation_id,
-                    "gene_id": line[0]
+                    col_name: line[0]
                 }
                 for n, p in enumerate(pcas):
                     data[p] = line[n+1]
@@ -351,6 +366,6 @@ class DenovoRnaMapping(Base):
             collection = self.db[db_name]
             result = collection.insert_many(data_list)
         except Exception, e:
-            print("导入pca结果数据出错:%s" % e)
+            self.bind_object.logger.error("导入%s数据出错:%s" % db_name, e)
         else:
-            print("导入pca结果数据成功")
+            self.bind_object.logger.error("导入%s数据成功" % db_name)
