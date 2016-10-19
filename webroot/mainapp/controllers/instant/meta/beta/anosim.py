@@ -32,6 +32,9 @@ class Anosim(MetaController):
         except ValueError:
             info = {'success': False, 'info': 'permutations格式应该为数字!:%s' % data.permutations}
             return json.dumps(info)
+        if not (9 < int(data.permutations) < 10000):
+            info = {'success': False, 'info': '置换次数应该在[10-10000]之间:%s' % data.permutations}
+            return json.dumps(info)
         if len(group) < 2:
             info = {'success': False, 'info': '不可只选择一个分组'}
             return json.dumps(info)

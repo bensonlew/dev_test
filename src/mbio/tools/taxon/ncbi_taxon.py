@@ -24,12 +24,12 @@ class NcbiTaxonAgent(Agent):
 
     def check_options(self):
         if not self.option("blastout").is_set:
-            raise OptionError("必须设置参数blastout")
+            raise OptionError("必须设置输入文件")
         if self.option('blastdb') == 'None':
-            raise OptionError("blastdb参数必须设置")
+            raise OptionError("必须设置输入文件的blast比对类型")
         else:
             if self.option('blastdb') not in ['nr', 'nt']:
-                raise OptionError('blastdb必须为')
+                raise OptionError('blast比对类型必须为nt或者nr')
         return True
 
     def set_resource(self):
