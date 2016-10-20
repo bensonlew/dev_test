@@ -64,7 +64,7 @@ class MapAssessment(object):
             info = {"success": True, "info": "提交成功!"}
             return json.dumps(info)
         else:
-            info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
+            info = {"success": False, "info": "表达量表id不存在！!"}
             return json.dumps(info)
 
     def get_params(self, data):

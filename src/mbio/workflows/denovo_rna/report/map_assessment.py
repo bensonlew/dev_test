@@ -91,7 +91,7 @@ class MapAssessmentWorkflow(Workflow):
             pca_sites = self.pca.output_dir + "/pca_sites.xls"
             if os.path.isfile(correlation_path):
                 raise Exception("找不到报告文件夹:{}".format(correlation_path))
-            api_mapping.add_correlation_detail(correlation_path, self.option("insert_id"))
+            api_mapping.add_correlation_detail(correlation_path, self.option("insert_id"), updata_tree=True)
             api_mapping.add_pca(pca_path, self.option("insert_id"))
             api_mapping.add_pca_rotation(pca_rotation, "sg_denovo_correlation_pca_rotation", self.option("insert_id"))
             api_mapping.add_pca_rotation(pca_sites, "sg_denovo_correlation_pca_sites", self.option("insert_id"))

@@ -289,6 +289,7 @@ class DenovoRnaMapping(Base):
 
     @report_check
     def add_correlation_detail(self, collection, correlation_id=None, updata_tree=False):
+        correlation_id = ObjectId(correlation_id)
         correlation_matrix = collection + "/correlation_matrix.xls"
         data_list = []
         with open(correlation_matrix, "r") as m:

@@ -206,7 +206,7 @@ class MapAssessmentModule(Module):
                     if os.path.exists(target):
                         os.remove(target)
                     os.link(fp, target)
-                if "correlation" in f_name:
+                if "correlation" in f_name or ".tre" in f_name:
                     target = os.path.join(self.output_dir, "correlation", f_name)
                     if os.path.exists(target):
                         os.remove(target)
