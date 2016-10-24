@@ -365,3 +365,30 @@ class Venn(Base):
         # print data_list
         if len(data_list) > 0:
             collection.insert_many(data_list)
+
+    @report_check
+    def add_venn_graph(self, venn_graph_path, venn_id, otu_id):
+        data_list = []
+        if not isinstance(venn_id, ObjectId):
+            if isinstance(venn_id, StringTypes):
+                venn_id = ObjectId(venn_id)
+            else:
+                raise Exception("venn_id必须为ObjectId对象或其对应的字符串!")
+        with open(venn_graph_path, "r") as f:
+            f.readline()
+            for line in f:
+                line = line.strip().split("\t")
+                insert_data = {
+                    'venn_id': venn_id,
+                    'otu_id': ObjectId(otu_id),
+                    'category_name': line[0],
+                    'otu_names': line[1]
+                }
+                data_list.append(insert_data)
+        try:
+            collection = self.db["sg_otu_venn_graph"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入Venn画图数据出错:%s" % e)
+        else:
+            self.bind_object.logger.error("导入Venn画图数据成功")
