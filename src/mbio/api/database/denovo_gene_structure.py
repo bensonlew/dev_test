@@ -258,6 +258,7 @@ class DenovoGeneStructure(Base):
                     target_line = True
                     f.next()
                     f.next()
+                    f.next()
                     continue
                 elif target_line:
                     line = line.strip().split('\t')
