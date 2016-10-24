@@ -63,15 +63,17 @@ class PlotTreeAgent(Agent):
         """
         设置所需资源
         """
-        self._cpu = 5
-        self._memory = '5G'
+        self._cpu = 6
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "距离矩阵计算结果输出目录"],
             ["fan.png", "png", "环形树图结果文件"],
-            ["bar.png", "png", "带有bar图的树结果文件"]
+            ["bar.png", "png", "带有bar图的树结果文件"],
+            ["fan.pdf", "pdf", "环形树图结果文件"],
+            ["bar.pdf", "pdf", "带有bar图的树结果文件"]
         ])
         super(PlotTreeAgent, self).end()
 
@@ -92,18 +94,20 @@ class PlotTreeTool(Tool):
         self.run_plot_tree()
 
     def run_plot_tree(self):
-        cmd_fan = self.perl_path + self.plot_tree_fan_path + ' -i ' + self.option('newicktree').path + ' -o ' + self.output_dir + '/fan.png' + ' -tretype fan '
+        cmd_fan = self.perl_path + self.plot_tree_fan_path + ' -i ' + self.option('newicktree').path + ' -o ' + self.output_dir + '/fan.pdf' + ' -tretype fan '
         if self.option('leaves_group').is_set:
             cmd_fan += ' -d ' + self.option('leaves_group').path
-        cmd_bar = self.perl_path + self.plot_tree_bar_path + ' -i ' + self.option('newicktree').path + ' -o ' + self.output_dir + '/bar.png'
+        cmd_bar = self.perl_path + self.plot_tree_bar_path + ' -i ' + self.option('newicktree').path + ' -o ' + self.output_dir + '/bar.pdf'
         cmd_bar += ' -t ' + self.option('abundance_table').path
         if self.option("sample_group").is_set:
             cmd_bar += ' -g ' + self.option('sample_group').path
         else:
             cmd_bar += ' -g ALL'
-        heigth = len(self.option('newicktree').prop['sample']) / 10
-        if heigth < 7:
-            heigth = 7
+        heigth = int(len(self.option('newicktree').prop['sample']) * 0.26)
+        if heigth < 3:
+            heigth = 3
+        if heigth > 80:
+            heigth = 80
         if self.option('leaves_group').is_set:
             cmd_bar += ' -d ' + self.option('leaves_group').path
         else:
@@ -115,19 +119,54 @@ class PlotTreeTool(Tool):
             fan_label_size = 1 - len(self.option('newicktree').prop['sample']) / 100.0 / 10.0
         else:
             fan_label_size = 1
-        cmd_bar += ' -h {} -eg 0.5 -w 10'.format(heigth)
-        cmd_fan += ' -h {} -w {} -cex {}'.format(heigth / 2, heigth / 2, fan_label_size)
+        max_name_length = 0
+        for i in self.option('newicktree').prop['sample']:
+            name_length = len(i)
+            if name_length > max_name_length:
+                max_name_length = name_length
+        print max_name_length
+        width = int(max_name_length * 0.65)
+        if width < 7:
+            width = 7
+        width = int(heigth / 10) + width
+        cmd_bar += ' -h {} -w {} -lw 5-2-2 -cex 1.2'.format(heigth, width)
+        # fan_size = int(width * 0.7)
+        # if fan_size < 8:
+        #     fan_size = 8
+        # temp_size = heigth / 2
+        fan_size = int(heigth * 0.6) + int(width * 0.65)
+        cmd_fan += ' -h {} -w {} -cex {}'.format(fan_size, fan_size, fan_label_size)
         fan_command = self.add_command('fan', cmd_fan)
         bar_command = self.add_command('bar', cmd_bar)
         fan_command.run()
         bar_command.run()
         self.wait()
         if bar_command.return_code == 0 and fan_command.return_code == 0:
-            if os.path.isfile(self.output_dir + '/fan.png') and os.path.isfile(self.output_dir + '/bar.png'):
-                self.end()
+            if os.path.isfile(self.output_dir + '/fan.pdf') and os.path.isfile(self.output_dir + '/bar.pdf'):
+                if self.convert_pdf_to_png([self.output_dir + '/fan.pdf', self.output_dir + '/bar.pdf'],
+                                           [self.output_dir + '/fan.png', self.output_dir + '/bar.png']):
+                    self.end()
+                else:
+                    self.set_error("结果格式转换发生错误")
             else:
                 self.set_error('结果文件没有正确生成')
         else:
             self.logger.info(bar_command.return_code)
             self.logger.info(fan_command.return_code)
             self.set_error('程序计算错误')
+
+    def convert_pdf_to_png(self, olds, news):
+        self.image_magick = '/program/ImageMagick/bin/convert'
+        convert_commands = []
+        for index, i in enumerate(olds):
+            cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + i + ' ' + news[index]
+            command = self.add_command('convert_{}'.format(index), cmd)
+            command.run()
+            convert_commands.append(command)
+        self.wait()
+        for i in convert_commands:
+            if i.return_code == 0:
+                pass
+            else:
+                return False
+        return True

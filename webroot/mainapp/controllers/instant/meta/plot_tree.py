@@ -20,6 +20,9 @@ class PlotTree(MetaController):
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
                 return json.dumps(info)
+        if int(data.level_id) < int(data.color_level_id):
+            info = {'success': False, 'info': '颜色设置水平必须高于进化树绘制水平!'}
+            return json.dumps(info)
         self.task_name = 'meta.report.plot_tree'
         self.task_type = 'workflow'  # 可以不配置
         params = {

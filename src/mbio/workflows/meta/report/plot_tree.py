@@ -111,9 +111,11 @@ class PlotTreeWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "进化树绘图结果目录"],
+            [".", "", "距离矩阵计算结果输出目录"],
             ["fan.png", "png", "环形树图结果文件"],
-            ["bar.png", "png", "带有bar图的树结果文件"]
+            ["bar.png", "png", "带有bar图的树结果文件"],
+            ["fan.pdf", "pdf", "环形树图结果文件"],
+            ["bar.pdf", "pdf", "带有bar图的树结果文件"]
             ])
         print self.get_upload_files()
         super(PlotTreeWorkflow, self).end()
