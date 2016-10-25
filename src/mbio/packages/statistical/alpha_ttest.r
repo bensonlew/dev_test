@@ -4,7 +4,7 @@ otu_data <- otu_data[-1,]
 rownames(otu_data) <- otu_data[,1]
 otu_data <- otu_data[,-1]
 colnames(otu_data) <- samp
-lendata <- nrow(otu_data)
+#lendata <- nrow(otu_data)
 #read groupfile to make the dataframe for test
 group <- read.table("${groupfile}",sep="\t", colClasses="character")
 #group <- group[-1,]
@@ -16,6 +16,7 @@ gsamp1=group[which(group[,2] %in% g1),1]
 gsamp2=group[which(group[,2] %in% g2),1]
 otu_data <- otu_data[,which(samp %in% gsamp)]
 otu_data <- otu_data[apply(otu_data,1,function(x)length(unique(x))!=1),]
+lendata <- nrow(otu_data)
 samp <- samp[which(samp %in% gsamp)]
 result <- matrix(nrow = nrow(otu_data),ncol = 5)
 pvalue <- 1
