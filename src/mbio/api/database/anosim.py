@@ -103,7 +103,7 @@ class Anosim(Base):
                 'project_sn': self.bind_object.sheet.project_sn,
                 'task_id': task_id,
                 'otu_id': otu_id,
-                'level_id': int(level),
+                # 'level_id': int(level),
                 'name': name if name else 'anosim_origin',
                 'group_id': group_id,
                 'params': (json.dumps(params, sort_keys=True, separators=(',', ':'))
