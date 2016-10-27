@@ -50,7 +50,6 @@ class DenovoGroup(Base):
             "specimen_names": specimen_names
         }
         try:
-            self.collection.insert_one(insert_date)
             inserted_id = self.collection.insert_one(insert_date).inserted_id
         except Exception as e:
                 self.bind_object.logger.error("导入sg_specimen_group表格{}失败：{}".format(file_path, e))
@@ -85,7 +84,7 @@ class DenovoGroup(Base):
             if s[0] == scheme_name:
                 sp_id = list()
                 for name in info_dic[s]:
-                    sp_id.append(spname_spid[name])
+                    sp_id.append(str(spname_spid[name]))
                 sp_id.sort()
                 group_detail[s[1]] = sp_id
         group_detail = OrderedDict(sorted(group_detail.items(), key=lambda t: t[0]))

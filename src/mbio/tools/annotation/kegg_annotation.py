@@ -19,8 +19,8 @@ class KeggAnnotationAgent(Agent):
     def __init__(self, parent):
         super(KeggAnnotationAgent, self).__init__(parent)
         options = [
-            {"name": "blastout", "type": "infile",
-                "format": "align.blast.blast_xml"}
+            {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
         ]
         self.add_option(options)
         self.step.add_steps('kegg_annotation')
@@ -84,6 +84,7 @@ class KeggAnnotationTool(Tool):
                 os.remove(self.output_dir + '/pathway_table.xls')
             os.link(self.work_dir + '/kegg_table.xls',
                     self.output_dir + '/kegg_table.xls')
+            self.option('kegg_table', self.output_dir + '/kegg_table.xls')
             os.link(self.work_dir + '/pathway_table.xls',
                     self.output_dir + '/pathway_table.xls')
         except subprocess.CalledProcessError:

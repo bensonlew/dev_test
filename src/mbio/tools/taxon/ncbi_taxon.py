@@ -18,6 +18,7 @@ class NcbiTaxonAgent(Agent):
         super(NcbiTaxonAgent, self).__init__(parent)
         options = [
             {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml, align.blast.blast_table"},  # 输入文件
+            {"name": "taxon_out", "type": "outfile", "format": "annotation.nr.nr_taxon"},  # 输出结果文件
             {"name": "blastdb", 'type': 'string', 'default': 'None'}  # 输入文件的blast比对类型，必须为nr或者nt
             ]
         self.add_option(options)
@@ -81,6 +82,7 @@ class NcbiTaxonTool(Tool):
         run_gitaxon.start()
         run_gitaxon.join()
         if run_gitaxon.result:
+            self.option('taxon_out', self.output_dir + '/query_taxons_detail.xls')
             self.end()
         else:
             self.set_error('注释查询出错！')

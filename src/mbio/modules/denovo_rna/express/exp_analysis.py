@@ -108,7 +108,7 @@ class ExpAnalysisModule(Module):
             for f in r_files:
                 if re.search(r'fastq$', f):
                     tool_opt['fq_r'] = self.option('fq_r').prop['path'] + '/' + f
-                    sample = f.split('sickle_r.fastq')[0]
+                    sample = f.split('_sickle_r.fastq')[0]
                     for f1 in l_files:
                         if sample in f1:
                             tool_opt['fq_l'] = self.option('fq_l').prop['path'] + '/' + f1
@@ -118,6 +118,7 @@ class ExpAnalysisModule(Module):
                             self.tool_lists.append(self.rsem)
         print self.tool_lists
         self.on_rely(self.tool_lists, self.set_output, 'rsem')
+        self.on_rely(self.tool_lists, self.merge_rsem_run)
         self.on_rely(self.tool_lists, self.set_step, {'end': self.step.rsem, 'start': self.step.merge_rsem})
 
     def set_step(self, event):
@@ -187,7 +188,7 @@ class ExpAnalysisModule(Module):
                         else:
                             os.link(os.path.join(tool.work_dir, f), self.bam_path + f)
             self.option('bam_dir', self.bam_path)
-            self.merge_rsem_run()
+            # self.merge_rsem_run()
         elif event['data'] == 'merge_rsem':
             self.linkdir(obj.output_dir, 'rsem', self.output_dir)
             self.option('gene_count', self.merge_rsem.option('gene_count'))

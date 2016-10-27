@@ -20,7 +20,8 @@ class GoAnnotationAgent(Agent):
         options = [
             {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "go2level_out", "type": "outfile", "format": "annotation.go.level2"},
-            {"name": "golist_out", "type": "outfile", "format": "annotation.go.go_list"}
+            {"name": "golist_out", "type": "outfile", "format": "annotation.go.go_list"},
+            {"name": "blast2go_annot", "type": "outfile", "format": "annotation.go.blast2go_annot"}
         ]
         self.add_option(options)
         self.step.add_steps('go_annotation')
@@ -99,6 +100,7 @@ class GoAnnotationTool(Tool):
             if os.path.exists(linkfile):
                 os.remove(linkfile)
             os.link(self.work_dir + '/blast2go.annot', linkfile)
+            self.option('blast2go_annot', linkfile)
             self.logger.debug("b2g end")
             self.run_gomerge()
         else:

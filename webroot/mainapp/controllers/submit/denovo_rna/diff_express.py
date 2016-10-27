@@ -28,10 +28,7 @@ class DiffExpress(object):
             return json.dumps(info)
         my_param = dict()
         my_param['express_id'] = data.express_id
-        if data.group_id != 'all':
-            my_param['group_detail'] = group_detail_sort(data.group_detail)
-        else:
-            my_param['group_detail'] = data.group_detail
+        my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
         my_param['control_id'] = data.control_id
         my_param['ci'] = data.ci
@@ -51,7 +48,7 @@ class DiffExpress(object):
             update_info = {str(diff_express_id): "sg_denovo_express_diff", 'database': self.db_name}
             update_info = json.dumps(update_info)
             workflow_id = Denovo().get_new_id(task_id, data.express_id)
-            (output_dir, update_api) = GetUploadInfo_test(client, member_id, project_sn, task_id, 'gene_express_diff_stat')
+            (output_dir, update_api) = GetUploadInfo_denovo(client, member_id, project_sn, task_id, 'gene_express_diff_stat')
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,

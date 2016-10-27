@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-import Bio.SeqIO
+from mbio.packages.annonation.denovo_anno_stat.all_annotation_stat import *
 import os
+import shutil
 
 
 class DenovoAnnotationModule(Module):
@@ -16,10 +18,12 @@ class DenovoAnnotationModule(Module):
         options = [
             {"name": "query", "type": "infile", "format": "sequence.fasta"},
             {"name": "database", "type": "string", "default": 'nr,go,cog,kegg'},  # 默认全部四个注释
-            {"name": "blast_evalue", "type": "float", "default": 1e-5},
+            {"name": "nr_blast_evalue", "type": "float", "default": 1e-5},
+            {"name": "string_blast_evalue", "type": "float", "default": 1e-5},
+            {"name": "kegg_blast_evalue", "type": "float", "default": 1e-5},
             {"name": "blast_threads", "type": "int", "default": 10},
             {"name": "anno_statistics", "type": "bool", "default": True},
-            {"name": "trinity_gene", "type": "infile", "format": "sequence.fasta"}
+            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"}
         ]
         self.add_option(options)
         self.blast_nr = self.add_tool('align.ncbi.blast')
@@ -30,9 +34,9 @@ class DenovoAnnotationModule(Module):
         self.go_annot = self.add_tool('annotation.go_annotation')
         self.string_cog = self.add_tool('annotation.string2cog')
         self.kegg_annot = self.add_tool('annotation.kegg_annotation')
-        self.anno_stat = self.add_tool('annot.denovorna_anno_statistics')
-        self.step.add_steps('blast_nr', 'blast_string', 'blast_kegg', 'blast_statistics',
-                            'go_annot', 'kegg_annot', 'cog_annot', 'taxon_annot', 'anno_stat')
+        self.anno_stat = self.add_tool('annotation.denovo_anno_stat')
+        self.step.add_steps('blast_nr', 'blast_string', 'blast_kegg', 'blast_statistics', 'go_annot', 'kegg_annot', 'cog_annot', 'taxon_annot', 'anno_stat')
+        self.anno_num = dict()
 
     def check_options(self):
         if not self.option("query").is_set:
@@ -40,74 +44,23 @@ class DenovoAnnotationModule(Module):
         else:
             if self.option('query').prop['seq_type'] != 'DNA':
                 raise OptionError('传入查询序列必须是核酸序列')
-        self.anno_database = set(self.option('database').split(','))
+        self.anno_database = self.option('database').split(',')
         if len(self.anno_database) < 1:
             raise OptionError('至少选择一种注释库')
         for i in self.anno_database:
             if i not in ['nr', 'go', 'cog', 'kegg']:
                 raise OptionError('需要注释的数据库不在支持范围内[\'nr\', \'go\', \'cog\', \'kegg\']:{}'.format(i))
-        if not 1 > self.option('blast_evalue') >= 0:
-            raise OptionError(
-                'E-value值设定必须为[0-1)之间：{}'.format(self.option('evalue')))
-        if self.option('trinity_gene').is_set:
-            self.option('trinity_gene').check_trinity()
-            self.option('query').check_trinity()
-            pass  # 检查是不是转录本对应的gene fasta
+        if not 1 > self.option('nr_blast_evalue') >= 0 and not 1 > self.option('string_blast_evalue') >= 0 and not 1 > self.option('kegg_blast_evalue') >= 0:
+            raise OptionError('E-value值设定必须为[0-1)之间')
+        if self.option('anno_statistics') and not self.option('gene_file').is_set:
+            raise OptionError('运行注释统计的tool必须要设置gene_file')
 
-    def anno_stat_run(self):
-        if self.option('nrblast') or self.option('blast_stat') or self.option('gi_taxon') or self.option('go_annot'):
-            nrblast = self.blast_gi_go.option('outxml')
-        else:
-            nrblast = '0'
-        if self.option('swissblast'):
-            swissblast = self.blast_swiss.option('outxml')
-        else:
-            swissblast = '0'
-        if self.option('stringblast') or self.option('cog_annot'):
-            stringblast = self.blast_string.option('outxml')
-        else:
-            stringblast = '0'
-        if self.option('keggblast') or self.option('kegg_annot'):
-            keggblast = self.blast_kegg.option('outxml')
-        else:
-            keggblast = '0'
-        if self.option('gi_taxon'):
-            ncbitaxon = self.ncbi_taxon.output_dir
-        else:
-            ncbitaxon == '0'
-        if self.option('go_annot'):
-            godir = self.go_annot.output_dir
-        else:
-            godir = '0'
-        if self.option('cog_annot'):
-            cogdir = self.string_cog.output_dir
-        else:
-            cogdir = '0'
-        if self.option('kegg_annot'):
-            keggdir = self.kegg_annot.output_dir
-        else:
-            keggdir = '0'
-        if self.option('blast_stat'):
-            bstatdir = self.blast_stat.output_dir
-        else:
-            bstatdir = '0'
-        self.anno_stat.set_options({
-            'trinity_fasta': self.option('query'),
-            'gene_fasta': self.option('query_gene'),
-            'nr_blast_output': nrblast,
-            'swiss_blast_out': swissblast,
-            'string_blast_out': stringblast,
-            'kegg_blast_out': keggblast,
-            'ncbi_taxonomy_output_dir': ncbitaxon,
-            'go_output_dir': godir,
-            'cog_output_dir': cogdir,
-            'kegg_output_dir': keggdir,
-            'blast_stat_output_dir': bstatdir,
-            'unigene': self.option('unigene')
-        })
-        self.anno_stat.start()
-        self.anno_stat.on("end", self.set_output, 'anno_stat')
-
+    def set_step(self, event):
+        if 'start' in event['data'].keys():
+            event['data']['start'].start()
+        if 'end' in event['data'].keys():
+            event['data']['end'].finish()
+        self.step.update()
 
     def run_blast(self):
         """
@@ -118,11 +71,12 @@ class DenovoAnnotationModule(Module):
             'query_type': 'nucl',
             'database': 'nr',
             'blast': 'blastx',
-            'evalue': self.option('blast_evalue'),
+            'evalue': None,
             'num_threads': self.option('blast_threads'),
             'outfmt': 6
         }
         if 'nr' in self.anno_database or 'go' in self.anno_database:
+            temp_options['evalue'] = self.option('nr_blast_evalue')
             self.blast_nr.set_options(temp_options)
             if 'nr' in self.anno_database:
                 self.blast_nr.on('end', self.run_blast_stat)
@@ -132,18 +86,29 @@ class DenovoAnnotationModule(Module):
             if 'go' in self.anno_database:
                 self.blast_nr.on('end', self.run_go_anno)
                 self.all_end_tool.append(self.go_annot)
+            self.blast_nr.on('start', self.set_step, {'start': self.step.blast_nr})
+            self.blast_nr.on('end', self.set_step, {'end': self.step.blast_nr})
+            self.blast_nr.on('end', self.set_output, 'nrblast')
             self.blast_nr.run()
         if 'cog' in self.anno_database:
             temp_options['database'] = 'string'
+            temp_options['evalue'] = self.option('string_blast_evalue')
             self.blast_string.set_options(temp_options)
             self.blast_string.on('end', self.run_string2cog)
             self.all_end_tool.append(self.string_cog)
+            self.blast_string.on('start', self.set_step, {'start': self.step.blast_string})
+            self.blast_string.on('end', self.set_step, {'end': self.step.blast_string})
+            self.blast_string.on('end', self.set_output, 'stringblast')
             self.blast_string.run()
         if 'kegg' in self.anno_database:
+            temp_options['evalue'] = self.option('kegg_blast_evalue')
             temp_options['database'] = 'kegg'
             self.blast_kegg.set_options(temp_options)
             self.blast_kegg.on('end', self.run_kegg_anno)
             self.all_end_tool.append(self.kegg_annot)
+            self.blast_kegg.on('start', self.set_step, {'start': self.step.blast_kegg})
+            self.blast_kegg.on('end', self.set_step, {'end': self.step.blast_kegg})
+            self.blast_kegg.on('end', self.set_output, 'keggblast')
             self.blast_kegg.run()
         if len(self.all_end_tool) > 1:
             self.on_rely(self.all_end_tool, self.run_annot_stat)
@@ -152,29 +117,51 @@ class DenovoAnnotationModule(Module):
         else:
             self.logger.info('NEVER HERE')
 
-
     def run_annot_stat(self):
         """
         """
-        pass
+        opts = {'gene_file': self.option('gene_file'), 'database': self.option('database')}
+        if 'kegg' in self.anno_database:
+            opts['kegg_xml'] = self.blast_kegg.option('outxml')
+        if 'go' in self.anno_database:
+            opts['gos_list'] = self.go_annot.option('golist_out')
+            opts['blast2go_annot'] = self.go_annot.option('blast2go_annot')
+        if 'cog' in self.anno_database:
+            opts['string_xml'] = self.blast_string.option('outxml')
+            opts['cog_list'] = self.string_cog.option('cog_list')
+            opts['cog_table'] = self.string_cog.option('cog_table')
+        if 'nr' in self.anno_database:
+            opts['nr_xml'] = self.blast_kegg.option('outxml')
+            opts['nr_taxon_details'] = self.ncbi_taxon.option('taxon_out')
+        self.anno_stat.set_options(opts)
+        self.annot_stat.on('start', self.set_step, {'start': self.step.annot_stat})
+        self.annot_stat.on('end', self.set_step, {'end': self.step.annot_stat})
+        self.annot_stat.on('end', self.set_output, 'annot_stat')
+        self.annot_stat.run()
 
     def run_kegg_anno(self):
         """
         """
+        self.anno_num['kegg'] = [self.blast_kegg.option('outtable').prop['query_num']]
         options = {
             'blastout': self.blast_kegg.option('outxml')
         }
         self.kegg_annot.set_options(options)
+        self.kegg_annot.on('start', self.set_step, {'start': self.step.kegg_annot})
+        self.kegg_annot.on('end', self.set_step, {'end': self.step.kegg_annot})
+        self.kegg_annot.on('end', self.set_output, 'kegg_annot')
         self.kegg_annot.run()
 
-
     def run_string2cog(self):
+        self.anno_num['string'] = [self.blast_string.option('outtable').prop['query_num']]
         options = {
             'blastout': self.blast_string.option('outxml')
         }
         self.string_cog.set_options(options)
+        self.string_cog.on('start', self.set_step, {'start': self.step.cog_annot})
+        self.string_cog.on('end', self.set_step, {'end': self.step.cog_annot})
+        self.string_cog.on('end', self.set_output, 'string_cog')
         self.string_cog.run()
-
 
     def run_go_anno(self):
         """
@@ -183,6 +170,9 @@ class DenovoAnnotationModule(Module):
             'blastout': self.blast_nr.option('outxml')
         }
         self.go_annot.set_options(options)
+        self.go_annot.on('start', self.set_step, {'start': self.step.go_annot})
+        self.go_annot.on('end', self.set_step, {'end': self.step.go_annot})
+        self.go_annot.on('end', self.set_output, 'go_annot')
         self.go_annot.run()
 
     def run_blast_stat(self):
@@ -193,21 +183,24 @@ class DenovoAnnotationModule(Module):
             'in_stat': self.blast_nr.option('outxml')
         }
         self.blast_stat_nr.set_options(options)
+        self.blast_stat_nr.on('start', self.set_step, {'start': self.step.blast_statistics})
+        self.blast_stat_nr.on('end', self.set_step, {'end': self.step.blast_statistics})
+        self.blast_stat_nr.on('end', self.set_output, 'blast_stat')
         self.blast_stat_nr.run()
-
 
     def run_ncbi_taxon(self):
         """
         """
+        self.anno_num['nr'] = [self.blast_nr.option('outtable').prop['query_num']]
         options = {
             'blastout': self.blast_nr.option('outxml'),
             'blastdb': 'nr'
         }
         self.ncbi_taxon.set_options(options)
+        self.ncbi_taxon.on('start', self.set_step, {'start': self.step.taxon_annot})
+        self.ncbi_taxon.on('end', self.set_step, {'end': self.step.taxon_annot})
+        self.ncbi_taxon.on('end', self.set_output, 'ncbi_taxon')
         self.ncbi_taxon.run()
-
-
-
 
     def run(self):
         super(DenovoAnnotationModule, self).run()
@@ -217,58 +210,95 @@ class DenovoAnnotationModule(Module):
         obj = event['bind_object']
         if event['data'] == 'nrblast':
             self.linkdir(obj.output_dir, 'nrblast')
-            self.step.blast_gi_go.finish()
         elif event['data'] == 'stringblast':
             self.linkdir(obj.output_dir, 'stringblast')
-            self.step.blast_string.finish()
         elif event['data'] == 'keggblast':
             self.linkdir(obj.output_dir, 'keggblast')
-            self.step.blast_kegg.finish()
-        elif event['data'] == 'swissblast':
-            self.linkdir(obj.output_dir, 'swissblast')
-            self.step.blast_swiss.finish()
         elif event['data'] == 'blast_stat':
             self.linkdir(obj.output_dir, 'blast_nr_statistics')
-            self.step.blast_stat.finish()
         elif event['data'] == 'ncbi_taxon':
             self.linkdir(obj.output_dir, 'ncbi_taxonomy')
-            self.step.ncbi_taxon.finish()
         elif event['data'] == 'go_annot':
             self.linkdir(obj.output_dir, 'go')
-            self.step.go_annot.finish()
         elif event['data'] == 'string_cog':
             self.linkdir(obj.output_dir, 'cog')
-            self.step.string_cog.finish()
         elif event['data'] == 'kegg_annot':
             self.linkdir(obj.output_dir, 'kegg')
-            self.step.kegg_annot.finish()
         elif event['data'] == 'anno_stat':
             self.linkdir(obj.output_dir, 'anno_stat')
+            self.anno_num = {'total': [self.option('query').prop['seq_number'], self.option('gene_file').prop['gene_num']]}
+            if 'nr' in self.anno_database:
+                self.anno_num['nr'].append(obj.option('gene_nr_table').prop['query_num'])
+            if 'kegg' in self.anno_database:
+                self.anno_num['kegg'].append(obj.option('gene_kegg_table').prop['query_num'])
+            if 'cog' in self.anno_database:
+                self.anno_num['string'].append(obj.option('gene_string_table').prop['query_num'])
+            try:
+                self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation_statistics.xls', self.output_dir + '/anno_stat/all_annotation.xls')
+            except Exception as e:
+                self.logger.info("统计all_annotation出错：{}".format(e))
+            self.end()
         else:
             pass
 
-    def linkdir(self, dirpath, dirname):
-        """
-        link一个文件夹下的所有文件到本module的output目录
-        :param dirpath: 传入文件夹路径
-        :param dirname: 新的文件夹名称
-        :return:
-        """
-        allfiles = os.listdir(dirpath)
-        newdir = os.path.join(self.output_dir, dirname)
-        if not os.path.exists(newdir):
-            os.mkdir(newdir)
-        oldfiles = [os.path.join(dirpath, i) for i in allfiles]
-        newfiles = [os.path.join(newdir, i) for i in allfiles]
-        for newfile in newfiles:
-            if os.path.exists(newfile):
-                os.remove(newfile)
-        for i in range(len(allfiles)):
-            os.link(oldfiles[i], newfiles[i])
+    def get_all_anno_stat(self, all_anno_stat_path, all_anno_path):
+        # stat all_annotation_statistics.xls
+        with open(all_anno_stat_path, 'wb') as w:
+            w.write('type\ttranscripts\tgenes\ttranscripts_percent\tgenes_percent\n')
+            anno_sum = [0, 0]
+            dbs = self.anno_database
+            if 'cog' in dbs:
+                dbs.remove('cog')
+                dbs.append('string')
+            for db in dbs:
+                anno_sum[0] += self.anno_num[db][0]
+                anno_sum[1] += self.anno_num[db][1]
+                w.write('{}\t{}\t{}\t{}\t{}\n'.format(anno_sum[db], anno_sum['db'][0], anno_sum['db'][1], '%0.4g' % anno_sum['db'][0] / self.anno_num['total'][0], '%0.4g' % anno_sum['db'][1] / self.anno_num['total'][1]))
+            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_sum[0], anno_sum[1], '%0.4g' % anno_sum[0] / self.anno_num['total'][0], '%0.4g' % anno_sum[1] / self.anno_num['total'][1]))
+            w.write('total\t{}\t{}\t100\t100\n'.format(self.anno_num['total'][0], self.anno_num['total'][1]))
+        # stat all_annotation.xls
+        kwargs = {'outpath': all_anno_path, 'gene_list': self.option('gene_file').prop['gene_list']}
+        for db in self.anno_database:
+            if db == 'cog':
+                kwargs['cog_list'] = self.string_cog.option('cog_list').prop['path']
+            if db == 'go':
+                kwargs['gos_list'] = self.go_annot.option('golist_out').prop['path']
+            if db == 'kegg':
+                kwargs['kegg_table'] = self.kegg_annot.option('kegg_table').prop['path']
+            if db == 'nr':
+                kwargs['blast_nr_table'] = self.blast_nr.option('outtable').prop['path']
+                kwargs['nr_taxons'] = self.anno_stat.option('nr_taxons').prop['path']
+        allstat = AllAnnoStat()
+        allstat.get_anno_stat(**kwargs)
 
-    def stepend(self):
-        self.step.update()
-        self.end()
+    def linkdir(self, olddir, newname, mode='link'):
+        """
+        移动一个目录下的所有文件/文件夹到workflow输出文件夹下
+        """
+        if not os.path.isdir(olddir):
+            raise Exception('需要移动到output目录的文件夹不存在。')
+        newdir = os.path.join(self.output_dir, newname)
+        if not os.path.exists(newdir):
+            if mode == 'link':
+                shutil.copytree(olddir, newdir, symlinks=True)
+            elif mode == 'copy':
+                shutil.copytree(olddir, newdir)
+            else:
+                raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
+        else:
+            allfiles = os.listdir(olddir)
+            oldfiles = [os.path.join(olddir, i) for i in allfiles]
+            newfiles = [os.path.join(newdir, i) for i in allfiles]
+            for newfile in newfiles:
+                if os.path.isfile(newfile) and os.path.exists(newfile):
+                    os.remove(newfile)
+                elif os.path.isdir(newfile) and os.path.exists(newfile):
+                    shutil.rmtree(newfile)
+            for i in range(len(allfiles)):
+                if os.path.isfile(oldfiles[i]):
+                    os.system('cp {} {}'.format(oldfiles[i], newfiles[i]))
+                else:
+                    os.system('cp -r {} {}'.format(oldfiles[i], newdir))
 
     def end(self):
         repaths = [
@@ -288,39 +318,41 @@ class DenovoAnnotationModule(Module):
             ["cog/cog_list.xls", "xls", "COG编号表"],
             ["cog/cog_summary.xls", "xls", "COG注释二级统计表"],
             ["cog/cog_table.xls", "xls", "序列COG注释详细表"],
-            ["anno_stat/all_annotation.xls", "xls", "综合注释表"],
-            ["anno_stat/all_annotation_statistics.xls", "xls", "综合注释统计表"],
-            ["anno_stat/venn_table.xls", "xls", "文氏图参考表"],
-            ["anno_stat/unigene/blast/unigene_nr.xml", "xml", "nr_blast_xml"],
-            ["anno_stat/unigene/blast/unigene_nr.xls", "xls", "nr_blast_xls"],
-            ["anno_stat/unigene/blast/unigene_string.xml", "xml", "string_blast_xml"],
-            ["anno_stat/unigene/blast/unigene_string.xls", "xls", "string_blast_xls"],
-            ["anno_stat/unigene/blast/unigene_kegg.xml", "xml", "kegg_blast_xml"],
-            ["anno_stat/unigene/blast/unigene_kegg.xls", "xls", "kegg_blast_xls"],
-            ["anno_stat/unigene/blast_nr_statistics/unigene_evalue_statistics.xls",
-                "xls", "nr_blast_evalue统计表"],
-            ["anno_stat/unigene/blast_nr_statistics/unigene_similarity_statistics.xls",
-                "xls", "nr_blast_similarity统计表"],
-            ["anno_stat/unigene/ncbi_taxonomy/unigene_query_taxons_detail.xls",
-                "xls", "物种分类统计表"],
-            [".anno_stat/unigene/go/unigene_blast2go.annot",
-                "annot", "unigene blast2go结果"],
-            [".anno_stat/unigene/go/unigene_query_gos.list", "list", "unigene GO列表"],
-            [".anno_stat/unigene/go/unigene_go1234level_statistics.xls", "xls", "GO逐层统计表"],
-            [".anno_stat/unigene/go/unigene_go2level.xls", "xls", "GO level2统计表"],
-            [".anno_stat/unigene/go/unigene_go3level.xls", "xls", "GO level3统计表"],
-            [".anno_stat/unigene/go/unigene_go4level.xls", "xls", "GO level4统计表"],
-            [".anno_stat/unigene/cog/unigene_cog_list.xls", "xls", "unigene COG id表"],
-            [".anno_stat/unigene/cog/unigene_cog_summary.xls",
-                "xls", "unigene COG功能分类统计"],
-            [".anno_stat/unigene/cog/unigene_cog_table.xls",
-                "xls", "unigene COG综合统计表"],
-            [".anno_stat/unigene/kegg/unigene_kegg_table.xls",
-                "xls", "unigene KEGG ID表"],
-            [".anno_stat/unigene/kegg/unigene_pathway_table.xls",
-                "xls", "unigene KEGG pathway表"],
-            [".anno_stat/unigene/kegg/unigene_kegg_taxonomy.xls",
-                "xls", "unigene KEGG 二级分类统计表"]
+            ["/anno_stat", "", "denovo注释统计结果输出目录"],
+            ["/anno_stat/nr_stat/", "dir", "nr统计结果目录"],
+            ["/anno_stat/cog_stat/", "dir", "cog统计结果目录"],
+            ["/anno_stat/go_stat/", "dir", "go统计结果目录"],
+            ["/anno_stat/kegg_stat/", "dir", "kegg统计结果目录"],
+            ["/anno_stat/blast_result/", "dir", "基因序列blast比对结果目录"],
+            ["/anno_stat/blast_result/gene_kegg.xls", "xls", "基因序列blast比对kegg注释结果table"],
+            ["/anno_stat/blast_result/gene_nr.xls", "xls", "基因序列blast比对nr注释结果table"],
+            ["/anno_stat/blast_result/gene_string.xls", "xls", "基因序列blast比对string注释结果table"],
+            ["/anno_stat/blast_result/gene_string.xml", "xml", "基因序列blast比对string注释结果xml"],
+            ["/anno_stat/blast_result/gene_kegg.xml", "xml", "基因序列blast比对kegg注释结果xml"],
+            ["/anno_stat/blast_result/gene_string.xml", "xml", "基因序列blast比对string注释结果xml"],
+            ["/anno_stat/cog_stat/gene_cog_list.xls", "xls", "基因序列cog_list统计结果"],
+            ["/anno_stat/cog_stat/gene_cog_summary.xls", "xls", "基因序列cog_summary统计结果"],
+            ["/anno_stat/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
+            ["/anno_stat/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
+            ["/anno_stat/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
+            ["/anno_stat/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
+            ["/anno_stat/go_stat/gene_blast2go.annot", "annot", "Go annotation based on blast output of gene"],
+            ["/anno_stat/go_stat/gene_gos.list", "list", "Merged Go annotation of gene"],
+            ["/anno_stat/go_stat/gene_go1234level_statistics.xls", "xls", "Go annotation on 4 levels of gene"],
+            ["/anno_stat/go_stat/gene_go2level.xls", "xls", "Go annotation on level 2 of gene"],
+            ["/anno_stat/go_stat/gene_go3level.xls", "xls", "Go annotation on level 3 of gene"],
+            ["/anno_stat/go_stat/gene_go4level.xls", "xls", "Go annotation on level 4 of gene"],
+            ["/anno_stat/kegg_stat/gene_kegg_table.xls", "xls", "KEGG annotation table of gene"],
+            ["/anno_stat/kegg_stat/gene_pathway_table.xls", "xls", "Sorted pathway table of gene"],
+            ["/anno_stat/kegg_stat/gene_kegg_taxonomy.xls", "xls", "KEGG taxonomy summary of gene"],
+            ["/anno_stat/kegg_stat/gene_kegg_layer.xls", "xls", "KEGG taxonomy summary of gene"],
+            ["/anno_stat/kegg_stat/gene_pathway/", "dir", "基因的标红pathway图"],
+            ['/nr_stat/gene_taxons_detail.xls', 'xls', '基因序列详细物种分类文件'],
+            ["/anno_stat/nr_stat/gene_nr_evalue.xls", "xls", "基因序列blast结果E-value统计"],
+            ["/anno_stat/nr_stat/gene_nr_similar.xls", "xls", "基因序列blast结果similarity统计"],
+            ["/anno_stat/nr_stat/nr_taxon_stat.xls", "xls", "nr物种分类统计表"],
+            ["/anno_stat/nr_stat/gene_taxons.xls", "xls", "基因序列nr物种注释表"],
+            ["/anno_stat/nr_stat/query_taxons.xls", "xls", "nr物种注释表"],
         ]
         regexps = [
             [r"blast/.+_vs_.+\.xml", "xml", "blast比对输出结果，xml格式"],

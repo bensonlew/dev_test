@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
+from __future__ import division
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 import glob
@@ -98,7 +99,7 @@ class DenovoRnaSample(Base):
         for sf in stat_files:
             sample_name = os.path.basename(sf).split(".")[0]
             self.bind_object.logger.info('%s,%s' % (sf, sample_name))
-            self.bind_object.logger.info('%s' % self.spname_spid)
+            # self.bind_object.logger.info('%s' % self.spname_spid)
             spname_spid = self.get_spname_spid()
             site = sample_name.split("_")[-1]
             if site == "l": site_type = "left"

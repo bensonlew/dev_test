@@ -16,6 +16,8 @@ class Control(Base):
 
     @report_check
     def add_control(self, control_file, group_id):
+        if group_id not in ['all', 'ALL', 'All']:
+            group_id = group_id[0]
         if not isinstance(group_id, ObjectId):
             if isinstance(group_id, types.StringTypes):
                 if group_id == 'all':
@@ -32,7 +34,7 @@ class Control(Base):
         with open(control_file, 'rb') as c:
             scheme_name = c.readline().strip('\n').split()[1]
             for line in c:
-                line = line.strip('\n').split('\t')
+                line = line.strip('\n').split()
                 control_info[line[0]] = line[1]
         control_info = OrderedDict(sorted(control_info.items(), key=lambda t: t[0]))
         insert_data = {

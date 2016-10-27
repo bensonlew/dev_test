@@ -80,7 +80,7 @@ def GetUploadInfo(client, member_id, project_sn, task_id, name):
     return (fullPath, update_api)
 
 
-def GetUploadInfo_test(client, member_id, project_sn, task_id, name):
+def GetUploadInfo_denovo(client, member_id, project_sn, task_id, name):
     if client == "client01":
         head = "sanger:"
         update_api = "denovo.update_status"
