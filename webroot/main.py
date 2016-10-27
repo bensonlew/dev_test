@@ -61,6 +61,7 @@ urls = (
     "/meta/rarefaction", "Rarefaction",
     "/meta/beta/multi_analysis", "MultiAnalysis",
     "/meta/beta/anosim", "Anosim",
+    "/dataexchange/upload_task", "UploadTask"
     "/dataexchange/download_task", "DownloadTask",
     "/dataexchange/upload_task", "UploadTask"
     "/denovo_rna/diff_express", "DiffExpress",
