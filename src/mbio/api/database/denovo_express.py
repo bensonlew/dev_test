@@ -189,8 +189,11 @@ class DenovoExpress(Base):
         return express_diff_id
 
     @report_check
-    def add_express_diff_detail(self, express_diff_id, group, diff_stat_path):
-        """group为两两比较的样本或分组名，列表"""
+    def add_express_diff_detail(self, express_diff_id, group, diff_stat_path, samples=None):
+        """
+        group:为两两比较的样本或分组名，列表
+        samples: 两两比较分组中的样本明细，有分组时：[s1,s2,s3]
+        """
         if not isinstance(express_diff_id, ObjectId):
             if isinstance(express_diff_id, types.StringTypes):
                 express_diff_id = ObjectId(express_diff_id)
@@ -207,6 +210,7 @@ class DenovoExpress(Base):
                     ('name', group[0]),
                     ('compare_name', group[1]),
                     ('express_diff_id', express_diff_id),
+                    ('specimen', samples),
                 ]
                 for i in range(len(head)):
                     data.append((head[i], line[i]))

@@ -36,7 +36,7 @@ class DenovoBaseWorkflow(Workflow):
             {"name": "anno_analysis", "type": "string", "default": ""},
             {"name": "exp_analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich"},
             {"name": "gene_analysis", "type": "string", "default": "orf,snp"},
-            {"name": "map_qc_analysis", "type": "string", "default": "satur,dup,coverage,correlation"}
+            {"name": "map_qc_analysis", "type": "string", "default": "saturation,duplication,stat,correlation"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -102,7 +102,7 @@ class DenovoBaseWorkflow(Workflow):
             if i not in ['orf', 'ssr', 'snp']:
                 raise OptionError("基因结构分析没有{}，请检查".format(i))
         for i in self.option('map_qc_analysis').split(','):
-            if i not in ['', 'satur', 'coverage', 'dup', 'correlation']:
+            if i not in ['', 'saturation', 'coverage', 'duplication', 'correlation', 'stat']:
                 raise OptionError("转录组质量评估没有{}，请检查".format(i))
 
     def set_step(self, event):
@@ -454,7 +454,7 @@ class DenovoBaseWorkflow(Workflow):
             if self.option('group_table').is_set:
                 api_group = self.api.denovo_group
                 group_id = api_group.add_ini_group_table(self.option('group_table').prop['path'], self.spname_spid)
-                control_id = api_control.add_control(self.option('control_file').prop['path'], group_id[0])
+                control_id = api_control.add_control(self.option('control_file').prop['path'], group_id)
                 group_detail = api_group.get_group_detail(self.option('group_table').prop['path'], self.spname_spid, self.option('group_table').prop['group_scheme'][0])
             else:
                 control_id = api_control.add_control(self.option('control_file').prop['path'], 'all')
@@ -470,7 +470,6 @@ class DenovoBaseWorkflow(Workflow):
                 'rate': self.option('diff_rate'),
             }
             if self.option('group_table').is_set:
-                self.samples = self.option('group_table').prop['sample']
                 express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, diff_exp_dir=diff_exp_dir)
             else:
                 express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id='all', group_detail={'all': sorted(self.api_sample.sample_ids)}, control_id=control_id, diff_exp_dir=diff_exp_dir)
@@ -480,9 +479,8 @@ class DenovoBaseWorkflow(Workflow):
                 'compare_list': compare_column,
                 'is_sum': True,
             }
-            if self.exp_stat.diff_gene:
-                self.diff_gene_id = self.api_express.add_express(samples=self.samples, params=param_2, express_diff_id=express_diff_id, major=False)
-                self.api_express.add_express_detail(self.diff_gene_id, diff_exp_dir + 'diff_count', diff_exp_dir + 'diff_fpkm', 'gene')
+            self.diff_gene_id = self.api_express.add_express(samples=self.samples, params=param_2, express_diff_id=express_diff_id, major=False)
+            self.api_express.add_express_detail(self.diff_gene_id, diff_exp_dir + 'diff_count', diff_exp_dir + 'diff_fpkm', 'gene')
         if event['data'] == 'exp_diff':
             # set output
             self.move2outputdir(obj.output_dir, 'Express')

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shenghe'
 from biocluster.iofile import File
-# import os
+import os
 from biocluster.core.exceptions import FileError
 from Bio.Blast import NCBIXML
 import xml.etree.ElementTree as ET
@@ -92,7 +92,13 @@ class BlastXmlFile(File):
                         query_def.text = query_ID
             else:
                 BlastOutput_iterations.remove(one_query)
-        xml.write(new_fp)
+        xml.write('tmp.txt')
+        with open('tmp.txt', 'rb') as f, open(new_fp, 'wb') as w:
+            lines = f.readlines()
+            a = '<?xml version=\"1.0\"?>\n<!DOCTYPE BlastOutput PUBLIC \"-//NCBI//NCBI BlastOutput/EN\" \"http://www.ncbi.nlm.nih.gov/dtd/NCBI_BlastOutput.dtd\">\n'
+            w.write(a)
+            w.writelines(lines)
+        os.remove('tmp.txt')
 
     def change_blast_version(self, fp, version='2.2.25+'):
         """
