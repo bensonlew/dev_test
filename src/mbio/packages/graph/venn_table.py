@@ -110,9 +110,11 @@ def venn_graph(otu_table, group_table, output):
             sets[gp] = set()
         for line in o:
             line = line.strip().split("\t")
-            for s in samples:
+            for n, s in enumerate(samples):
                 for gp in group:
-                    if s in group[gp]:
+                    if int(line[n+1]) == 0:
+                        continue
+                    elif s in group[gp]:
                         sets[gp].add(line[0].split("; ")[-1])
         w.write("#group_name\tspecies_name\n")
         for s in sets:
