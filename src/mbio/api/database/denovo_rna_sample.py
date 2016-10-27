@@ -66,7 +66,7 @@ class DenovoRnaSample(Base):
                         "error_rate": float(line[10]),
                         "q30_rate": float(line[11]),
                         "q20_rate": float(line[12]),
-                        "gc_rate": float(line[13]),
+                        "cg_rate": float(line[13]),
                         "about_qc": "before",
                         "type": fq_type   # 怎么得知待定
                         }
@@ -99,9 +99,8 @@ class DenovoRnaSample(Base):
         for sf in stat_files:
             sample_name = os.path.basename(sf).split(".")[0]
             self.bind_object.logger.info('%s,%s' % (sf, sample_name))
-            # self.bind_object.logger.info('%s' % self.spname_spid)
             spname_spid = self.get_spname_spid()
-            site = sample_name.split("_")[-1]
+            site = os.path.basename(sf).split(".")[1]
             if site == "l": site_type = "left"
             elif site == "r": site_type = "right"
             else: site_type = "single"
@@ -117,8 +116,8 @@ class DenovoRnaSample(Base):
                         "type": site_type,
                         "about_qc": about_qc,
                         "column": int(line[0]),
-                        "min": int(line[2]),
-                        "max": int(line[3]),
+                        "min": int(line[10]),
+                        "max": int(line[11]),
                         "q1": int(line[6]),
                         "q3": int(line[8]),
                         "median": int(line[7]),

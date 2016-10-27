@@ -64,10 +64,11 @@ class MapAssessment(object):
             info = {"success": True, "info": "提交成功!"}
             return json.dumps(info)
         else:
-            info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
+            info = {"success": False, "info": "表达量表id不存在！!"}
             return json.dumps(info)
 
     def get_params(self, data):
+        # print(data.express_id)
         my_param = {'analysis_type': data.analysis_type, "express_id": data.express_id}
         if data.analysis_type == "saturation":
             my_param["low_bound"] = data.low_bound
@@ -86,7 +87,6 @@ class MapAssessment(object):
         my_params = self.get_params(data)
         # params = json.dumps(my_params, sort_keys=True, separators=(',', ':'))
         params = my_params
-        print(params)
         options = {'analysis_type': data.analysis_type, "bam": data.express_id, "express_id": data.express_id}
         to_file = ["denovo.export_bam_path(express_id)", "denovo.export_bed_file(orf_id)"]
         name = analysis_type + "_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
