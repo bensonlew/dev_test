@@ -11,6 +11,7 @@ from mainapp.models.mongo.submit.denovo_rna.denovo_express import DenovoExpress 
 import types
 from mainapp.models.mongo.denovo import Denovo
 from mainapp.models.workflow import Workflow
+import random
 
 class Network(object):
     def __init__(self):
@@ -34,7 +35,6 @@ class Network(object):
         my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         express_info = Denovo().get_main_info(data.express_id, 'sg_denovo_express')
-        self.logger.info(express_info)
         if express_info:
             task_id = express_info['task_id']
             project_sn = express_info['project_sn']
@@ -48,8 +48,8 @@ class Network(object):
             network_express_id = DenovoExpress().add_network(params = params, softpower = None, module = None, name = None, color =None, project_sn = project_sn, task_id = task_id)
             update_info ={str(network_express_id): "sg_denovo_network", "database": self.db_name}
             update_info = json.dumps(update_info)
-            workflow_id = Denovo().get_new_id(task_id, data.express_id)
-            (output_dir, update_api) = GetUploadInfo_test(client, member_id, project_sn, task_id, "network_stat")
+            workflow_id = self.get_new_id(task_id, data.express_id)
+            (output_dir, update_api) = GetUploadInfo_denovo(client, member_id, project_sn, task_id, "network_stat")
             json_data = {
                 'id': workflow_id,
                 'stage_id': 0,
@@ -85,6 +85,14 @@ class Network(object):
         else:
             info = {'success': False, "info": "express_id不存在，请确认参数是否正确！"}
             return json.dumps(info)
+
+    def get_new_id(self, task_id, main_id):
+        new_id = "%s_%s_%s" % (task_id, main_id[-4:], random.randint(1, 10000))
+        workflow_module = Workflow()
+        workflow_data = workflow_module.get_by_workflow_id(new_id)
+        if len(workflow_data) > 0:
+            return self.get_new_id(task_id, main_id)
+        return new_id
 
     def check_options(self, data):
         """
