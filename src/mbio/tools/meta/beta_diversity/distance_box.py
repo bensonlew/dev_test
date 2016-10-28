@@ -45,7 +45,7 @@ class DistanceBoxAgent(Agent):
         if 10000 >= self.option('permutations') >= 10:
             pass
         else:
-            raise OptionError('随机置换次数:%s不再正常范围内[10, 10000]' % self.option('permutations'))
+            raise OptionError('随机置换次数:%s不在正常范围内[10, 10000]' % self.option('permutations'))
         if not self.option('dis_matrix').is_set:
             raise OptionError('必须提供距离矩阵文件')
         else:
@@ -73,7 +73,7 @@ class DistanceBoxAgent(Agent):
         设置所需资源
         """
         self._cpu = 2
-        self._memory = ''
+        self._memory = '3G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -185,7 +185,7 @@ class DistanceBoxTool(Tool):
                         split_line[1] = split_line[1].replace(' ', '_')
                         w.write('\t'.join(split_line))
         except IOError:
-            raise Exception('格式化Stats文件无法打开，或者写入文件无法成')
+            raise Exception('格式化Stats文件无法打开，或者写入文件无法成功')
 
     def calculate_boxdata(self, datalist):
         """

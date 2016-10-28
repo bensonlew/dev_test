@@ -49,10 +49,10 @@ class QiimeAssignAgent(Agent):
         if not self.option("fasta").is_set:
             raise OptionError("必须设置参数fasta")
         if self.option("revcomp") not in [True, False]:
-            raise OptionError("必须设置参数revcomp")
+            raise OptionError("必须设置序列是否翻转")
         if self.option('database') == "custom_mode":
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
-                raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
+                raise OptionError("数据库自定义模式必须设置参考fasta序列和参考taxon文件")
         else:
             if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea', 'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi', 'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS', 'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
                 raise OptionError("数据库{}不被支持".format(self.option("database")))

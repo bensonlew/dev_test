@@ -80,6 +80,7 @@ class StringtieTool(Tool):
         super(StringtieTool, self).__init__(config)
         self._version = "v1.0.1"
         self.stringtie_path = 'bioinfo/rna/stringtie-1.2.4/'
+        self.gtf_to_fa_path = 'bioinfo/rna/scripts/gtf_to_fasta'
 
     def run(self):
         """
@@ -88,6 +89,7 @@ class StringtieTool(Tool):
         """
         super(StringtieTool, self).run()
         self.run_stringtie()
+        self.run_gtf_to_fa()
         self.set_output()
         self.end()
 
@@ -105,6 +107,22 @@ class StringtieTool(Tool):
         else:
             self.set_error("stringtie运行出错!")
 
+    def run_gtf_to_fa(self):
+        """
+        运行gtf_to_fasta，转录本gtf文件转fa文件
+        """
+        sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
+        cmd = self.gtf_to_fa_path + " %s %s %s_out.fa" % (
+        self.work_dir +  "/"+sample_name+"_out.gtf", self.option('ref_fa').prop['path'],
+        self.work_dir + "/" + sample_name)
+        self.logger.info('运行gtf_to_fasta，形成fasta文件')
+        command = self.add_command("gtf_to_fa_cmd", cmd).run()
+        self.wait(command)
+        if command.return_code == 0:
+            self.logger.info("gtf_to_fasta运行完成")
+        else:
+            self.set_error("gtf_to_fasta运行出错!")
+
     def set_output(self):
         """
         将结果文件link到output文件夹下面
@@ -116,6 +134,7 @@ class StringtieTool(Tool):
         self.logger.info("设置结果目录")
         try:
             sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
+            shutil.copy2(self.work_dir + "/" + sample_name + "_out.fa", self.output_dir + "/" + sample_name + "_out.fa")
             shutil.copy2(self.work_dir + "/"+sample_name+"_out.gtf", self.output_dir +"/"+ sample_name+"_out.gtf")
             self.option('sample_gtf').set_path(self.work_dir +"/"+ sample_name+"_out.gtf")
             self.logger.info("设置组装拼接分析结果目录成功")

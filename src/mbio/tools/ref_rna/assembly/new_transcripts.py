@@ -22,6 +22,7 @@ class NewTranscriptsAgent(Agent):
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
             {"name": "merged.gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 拼接后的注释文件
             {"name": "new_gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"}, #新转录本注释文件
+            {"name": "new_genes_gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},  # 新基因gtf文件
             {"name": "new_fa", "type": "outfile", "format": "sequence.fasta"}  # 新转录本注释文件
         ]
         self.add_option(options)
@@ -65,6 +66,7 @@ class NewTranscriptsAgent(Agent):
         ])
         result_dir.add_regexp_rules([
             ["new_gtf", "gtf", "新转录本注释文件"],
+            ["new_genes_gtf", "gtf", "新转录本注释文件"],
             ["new_fa", "fa", "新转录本序列文件"],
         ])
         super(NewTranscriptsAgent, self).end()
@@ -94,7 +96,7 @@ class NewTranscriptsTool(Tool):
         """
         运行python，挑出新转录本gtf文件
         """
-        cmd = self.Python_path +self.newtranscripts_gtf_path +  " -tmapfile %s -transcript_file %s -o %snew_transcripts.gtf" %(self.option('tmap').prop['path'],self.option('merged.gtf').prop['path'],self.work_dir+"/")
+        cmd = self.Python_path +self.newtranscripts_gtf_path +  " -tmapfile %s -transcript_file %s -o1 %snew_transcripts.gtf -o2 %snew_genes.gtf" %(self.option('tmap').prop['path'],self.option('merged.gtf').prop['path'],self.work_dir+"/",self.work_dir+"/")
         self.logger.info('运行python，挑出新转录本gtf文件')
         command = self.add_command("newtranscripts_gtf_cmd", cmd).run()
         self.wait(command)
@@ -126,8 +128,10 @@ class NewTranscriptsTool(Tool):
         self.logger.info("设置结果目录")
         try:
             shutil.copy2(self.work_dir + "/new_transcripts.gtf",self.output_dir + "/new_transcripts.gtf")
+            shutil.copy2(self.work_dir + "/new_genes.gtf", self.output_dir + "/new_genes.gtf")
             shutil.copy2(self.work_dir + "/new_transcripts.fa", self.output_dir + "/new_transcripts.fa")
             self.option('new_gtf').set_path(self.work_dir + "/new_transcripts.gtf")
+            self.option('new_genes_gtf').set_path(self.work_dir + "/new_transcripts.gtf")
             self.option('new_fa').set_path(self.work_dir + "/new_transcripts.fa")
             self.logger.info("设置拼接比较结果目录成功")
 

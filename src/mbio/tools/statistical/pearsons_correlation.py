@@ -69,7 +69,7 @@ class PearsonsCorrelationAgent(Agent):
         设置所需资源
         """
         self._cpu=2
-        self._memory=''
+        self._memory='2G'
 
     def end(self):
         result_dir=self.add_upload_dir(self.output_dir)
@@ -84,7 +84,7 @@ class PearsonsCorrelationAgent(Agent):
 class PearsonsCorrelationTool(Tool):
     def __init__(self,config):
         super(PearsonsCorrelationTool,self).__init__(config)
-        self.version='1.0' #脚本指定版本???
+        # self.version='1.0' #脚本指定版本???
         #self.package_path='packages/pearsonsCorrelation.py'
         #self.cmd_path='python /mnt/ilustre/users/sanger/app/meta/scripts/pearsonsCorrelation.py'
         self.cmd_path='{}/program/Python/bin/python {}/bioinfo/statistical/scripts/pearsonsCorrelation.py'.format(self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)

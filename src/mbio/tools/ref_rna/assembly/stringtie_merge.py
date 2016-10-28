@@ -74,6 +74,7 @@ class StringtieMergeTool(Tool):
         super(StringtieMergeTool, self).__init__(config)
         self._version = "v1.0.1"
         self.stringtie_merge_path = 'bioinfo/rna/stringtie-1.2.4/'
+        self.gtf_to_fa_path = 'bioinfo/rna/scripts/gtf_to_fasta'
         tmp = os.path.join(self.config.SOFTWARE_DIR, self.stringtie_merge_path)
         tmp = tmp + ":$PATH"
         self.logger.debug(tmp)
@@ -86,6 +87,7 @@ class StringtieMergeTool(Tool):
         """
         super(StringtieMergeTool, self).run()
         self.run_stringtie_merge()
+        self.run_gtf_to_fa()
         self.set_output()
         self.end()
 
@@ -102,6 +104,21 @@ class StringtieMergeTool(Tool):
         else:
             self.set_error("stringtie_merge运行出错!")
 
+    def run_gtf_to_fa(self):
+        """
+        运行gtf_to_fasta，转录本gtf文件转fa文件
+        """
+        cmd = self.gtf_to_fa_path + " %s %s %smerged.fa" % (
+        self.work_dir +  "/merged.gtf", self.option('ref_fa').prop['path'],
+        self.work_dir + "/" )
+        self.logger.info('运行gtf_to_fasta，形成fasta文件')
+        command = self.add_command("gtf_to_fa_cmd", cmd).run()
+        self.wait(command)
+        if command.return_code == 0:
+            self.logger.info("gtf_to_fasta运行完成")
+        else:
+            self.set_error("gtf_to_fasta运行出错!")
+
 
     def set_output(self):
         """
@@ -111,6 +128,7 @@ class StringtieMergeTool(Tool):
         self.logger.info("设置结果目录")
         try:
             shutil.copy2(self.work_dir + "/merged.gtf",self.output_dir + "/merged.gtf")
+            shutil.copy2(self.work_dir + "/merged.fa", self.output_dir + "/merged.fa")
             self.option('merged.gtf').set_path(self.work_dir + "/merged.gtf")
             self.logger.info("设置拼接合并分析结果目录成功")
 

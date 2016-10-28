@@ -19,6 +19,7 @@ from mainapp.controllers.instant.meta.est_t_test import EstTTest
 from mainapp.controllers.submit.meta.rarefaction import Rarefaction
 from mainapp.controllers.instant.meta.beta.multi_analysis import MultiAnalysis
 from mainapp.controllers.instant.meta.beta.anosim import Anosim
+from mainapp.controllers.instant.meta.demo_mongodata_copy import DemoMongodataCopy
 
 
 
@@ -35,6 +36,7 @@ urls = (
     "/pipeline/queue", "PipelineQueue",
     "/pipeline/pause", "PipelinePause",
     "/pipeline/stop_pause", "PipelineStopPause",
+    "/meta/demo_mongodata_copy", "DemoMongodataCopy",
     "/meta/estimators", "Estimators",
     "/pipeline/stop_pause", "PipelineStopPause",
     "/meta/pan_core", "PanCore",

@@ -133,8 +133,8 @@ class Basic(object):
         self.create_sheet()
         try:
             bin_dir = os.path.dirname(self.config.WORK_DIR) + '/biocluster/bin'
-            cmd = 'python {}/run_instant.py {}'.format(bin_dir, self._pk_sheet)
-            # print 'INSTANT CMD:', cmd
+            cmd = 'python {}/run_instant.py {} > {} 2>&1'.format(bin_dir, self._pk_sheet, os.path.dirname(self._pk_sheet) + '/run_instant.log')
+            print 'INSTANT CMD:', cmd
             subprocess.check_output(cmd, shell=True)
         except Exception as e:
             print 'run_instant计算出错：', e

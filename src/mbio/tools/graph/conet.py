@@ -39,12 +39,12 @@ class ConetAgent(Agent):
         检查参数设置
         """
         if not self.option("data_file").is_set:
-            raise OptionError("必须设置参数data_file")
+            raise OptionError("必须设置输入数据矩阵")
         if self.option("stand"):
             if self.option("stand") not in ("row_stand", "row_stand_robust", "row_norm", "row_downsample", "row_norm_external", "col_norm", "col_downsample", "col_norm_external", "log2"):
-                raise OptionError("参数stand不在范围内")
+                raise OptionError("数据标准化方法不在范围内")
         if self.option("resamplemethod") not in ("permute", "bootstrap"):
-            raise OptionError("参数resamplemethod只能选择'permute', 'bootstrap'")
+            raise OptionError("重抽样方法只能选择'permute', 'bootstrap'")
         else:
             if self.option("resamplemethod") == "permute":
                 self.option("resamplemethod", value="shuffle_rows")

@@ -43,9 +43,9 @@ class OtuTaxonStatAgent(Agent):
         参数检测
         """
         if not self.option("in_otu_table").is_set:
-            raise OptionError("参数in_otu_table不能为空")
+            raise OptionError("输入的OTU文件不能为空")
         if not self.option("taxon_file").is_set:
-            raise OptionError("参数taxon_file不能为空")
+            raise OptionError("输入的taxon文件不能为空")
         self.option("in_otu_table").get_info()
         if self.option("in_otu_table").prop['metadata'] == "taxonomy":
             raise OptionError("otu表不应该有taxonomy信息")
