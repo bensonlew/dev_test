@@ -46,7 +46,8 @@ class MetaBaseWorkflow(Workflow):
             {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
-            {"name": "plsda_grouplab", "type": 'string', "default": ''}
+            {"name": "plsda_grouplab", "type": 'string', "default": ''},
+            {"name": "file_list", "type": "string", "default": ""}  # 待定的文件检测模块参数，暂时不使用
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -175,7 +176,7 @@ class MetaBaseWorkflow(Workflow):
 
     def run_beta(self):
         if len(open(self.stat.option("otu_taxon_dir").get_table("otu")).readline().split('\t')) < 4: # 只有两个样本
-            self.option('beta_analysis') = ''
+            self.option('beta_analysis', '')
         opts = {
             'analysis': 'distance,' + self.option('beta_analysis'),
             'dis_method': self.option('dis_method'),
