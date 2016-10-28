@@ -2,6 +2,7 @@
 # __author__ = 'qiuping'
 import web
 import json
+import random
 from mainapp.libs.signature import check_sig
 from bson.objectid import ObjectId
 from mainapp.libs.param_pack import *
@@ -34,6 +35,7 @@ class DiffExpress(object):
         my_param['ci'] = data.ci
         my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
+        print data.express_id
         express_info = Denovo().get_main_info(data.express_id, 'sg_denovo_express')
         if express_info:
             task_id = express_info["task_id"]
@@ -44,10 +46,10 @@ class DiffExpress(object):
             else:
                 info = {"success": False, "info": "这个express_id对应的表达量矩阵对应的task：{}没有member_id!".format(express_info["task_id"])}
                 return json.dumps(info)
-            diff_express_id = DenovoExpress().add_express_diff(params=params, samples=None, compare_column=None, project_sn=project_sn, task_id=task_id)
+            diff_express_id = DenovoExpress().add_express_diff(params=params, samples=None, compare_column=None, project_sn=project_sn, task_id=task_id, express_id=data.express_id)
             update_info = {str(diff_express_id): "sg_denovo_express_diff", 'database': self.db_name}
             update_info = json.dumps(update_info)
-            workflow_id = Denovo().get_new_id(task_id, data.express_id)
+            workflow_id = self.get_new_id(task_id, data.express_id)
             (output_dir, update_api) = GetUploadInfo_denovo(client, member_id, project_sn, task_id, 'gene_express_diff_stat')
             json_data = {
                 "id": workflow_id,
@@ -89,6 +91,14 @@ class DiffExpress(object):
         else:
             info = {"success": False, "info": "express_id不存在，请确认参数是否正确！!"}
             return json.dumps(info)
+
+    def get_new_id(self, task_id, main_id):
+        new_id = "%s_%s_%s" % (task_id, main_id[-4:], random.randint(1, 10000))
+        workflow_module = Workflow()
+        workflow_data = workflow_module.get_by_workflow_id(new_id)
+        if len(workflow_data) > 0:
+            return self.get_new_id(task_id, main_id)
+        return new_id
 
     def check_options(self, data):
         """

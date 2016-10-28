@@ -33,7 +33,10 @@ class DenovoBaseWorkflow(Workflow):
             {"name": "exp_way", "type": "string", "default": "fpkm"},  # edger离散值
             {"name": "diff_ci", "type": "float", "default": 0.01},  # 显著性水平
             {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
-            {"name": "anno_analysis", "type": "string", "default": ""},
+            {"name": "database", "type": "string", "default": 'nr,go,cog,kegg'},  # 默认全部四个注释
+            {"name": "nr_blast_evalue", "type": "float", "default": 1e-5},
+            {"name": "string_blast_evalue", "type": "float", "default": 1e-5},
+            {"name": "kegg_blast_evalue", "type": "float", "default": 1e-5},
             {"name": "exp_analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich"},
             {"name": "gene_analysis", "type": "string", "default": "orf,snp"},
             {"name": "map_qc_analysis", "type": "string", "default": "saturation,duplication,stat,correlation"}
@@ -45,8 +48,7 @@ class DenovoBaseWorkflow(Workflow):
         self.qc_stat_before = self.add_module("denovo_rna.qc.qc_stat")
         self.qc_stat_after = self.add_module("denovo_rna.qc.qc_stat")
         self.assemble = self.add_tool("denovo_rna.assemble.assemble")
-        # self.annotation = self.add_module('denovo_rna.annotation.denovo_annotation')
-        self.annotation = self.add_module('denovo_rna.qc.qc_stat')
+        self.annotation = self.add_module('denovo_rna.annotation.denovo_annotation')
         self.orf = self.add_tool("denovo_rna.gene_structure.orf")
         self.ssr = self.add_tool("denovo_rna.gene_structure.ssr")
         self.bwa = self.add_module("denovo_rna.mapping.bwa_samtools")
@@ -67,7 +69,6 @@ class DenovoBaseWorkflow(Workflow):
         self.orf_bed = ''  # orf bed结果文件路径
         self.express_id = None
         self.api_express = self.api.denovo_express
-
 
     def check_options(self):
         """
@@ -104,6 +105,14 @@ class DenovoBaseWorkflow(Workflow):
         for i in self.option('map_qc_analysis').split(','):
             if i not in ['', 'saturation', 'coverage', 'duplication', 'correlation', 'stat']:
                 raise OptionError("转录组质量评估没有{}，请检查".format(i))
+        self.anno_database = self.option('database').split(',')
+        if len(self.anno_database) < 1:
+            raise OptionError('至少选择一种注释库')
+        for i in self.anno_database:
+            if i not in ['nr', 'go', 'cog', 'kegg']:
+                raise OptionError('需要注释的数据库不在支持范围内[\'nr\', \'go\', \'cog\', \'kegg\']:{}'.format(i))
+        if not 1 > self.option('nr_blast_evalue') >= 0 and not 1 > self.option('string_blast_evalue') >= 0 and not 1 > self.option('kegg_blast_evalue') >= 0:
+            raise OptionError('E-value值设定必须为[0-1)之间')
 
     def set_step(self, event):
         if 'start' in event['data'].keys():
@@ -234,12 +243,11 @@ class DenovoBaseWorkflow(Workflow):
     def run_annotation(self):
         anno_opts = {
             "query": self.assemble.option('trinity_fa'),
-            "query_type": 'nucl',
-            "gi_taxon": True,
-            "go_annot": True,
-            "cog_annot": True,
-            "kegg_annot": True,
-            "blast_stat": True
+            "database": self.option('database'),
+            "nr_blast_evalue": self.option('nr_blast_evalue'),
+            "string_blast_evalue": self.option('string_blast_evalue'),
+            "kegg_blast_evalue": self.option('kegg_blast_evalue'),
+            "gene_file": self.assemble.option('gene_full_name'),
         }
         self.annotation.set_options(anno_opts)
         self.annotation.on('end', self.set_output, 'annotation')
@@ -524,7 +532,7 @@ class DenovoBaseWorkflow(Workflow):
         self.assemble.on('end', self.run_exp_stat)
         self.orf.on('end', self.run_orf_len)
         self.final_tools.append(self.orf_len)
-        if self.option('anno_analysis'):
+        if self.option('database'):
             self.assemble.on('end', self.run_annotation)
             self.final_tools.append(self.annotation)
         self.on_rely([self.orf, self.exp_stat], self.run_map_qc)
@@ -587,7 +595,60 @@ class DenovoBaseWorkflow(Workflow):
             ['Express/rsem', "文件夹", "表达量计算分析结果目录"],
             ['Express/correlation', "文件夹", "表达量样本相关性分析结果目录"],
             ["Express/correlation/correlation_matrix.xls", "xls", "相关系数矩阵表"],
-            ["Express/correlation/hcluster_tree_correlation_matrix.xls_average.tre", "xls", "相关系数树文件"]
+            ["Express/correlation/hcluster_tree_correlation_matrix.xls_average.tre", "xls", "相关系数树文件"],
+            ["./Annotation", "", "DENOVO_RNA结果文件目录"],
+            ['/Annotation/ncbi_taxonomy/query_taxons_detail.xls', 'xls', '序列详细物种分类文件'],
+            ["/Annotation/blast_nr_statistics/output_evalue.xls", "xls", "blast结果E-value统计"],
+            ["/Annotation/blast_nr_statistics/output_similar.xls", "xls", "blast结果similarity统计"],
+            ["/Annotation/kegg/kegg_table.xls", "xls", "KEGG annotation table"],
+            ["/Annotation/kegg/pathway_table.xls", "xls", "Sorted pathway table"],
+            ["/Annotation/kegg/kegg_taxonomy.xls", "xls", "KEGG taxonomy summary"],
+            ["/Annotation/go/blast2go.annot", "annot", "Go annotation based on blast output"],
+            ["/Annotation/go/query_gos.list", "list", "Merged Go annotation"],
+            ["/Annotation/go/go1234level_statistics.xls", "xls", "Go annotation on 4 levels"],
+            ["/Annotation/go/go2level.xls", "xls", "Go annotation on level 2"],
+            ["/Annotation/go/go3level.xls", "xls", "Go annotation on level 3"],
+            ["/Annotation/go/go4level.xls", "xls", "Go annotation on level 4"],
+            ["/Annotation/cog/cog_list.xls", "xls", "COG编号表"],
+            ["/Annotation/cog/cog_summary.xls", "xls", "COG注释二级统计表"],
+            ["/Annotation/cog/cog_table.xls", "xls", "序列COG注释详细表"],
+            ["/Annotation/anno_stat", "", "denovo注释统计结果输出目录"],
+            ["/Annotation/anno_stat/ncbi_taxonomy/", "dir", "nr统计结果目录"],
+            ["/Annotation/anno_stat/cog_stat/", "dir", "cog统计结果目录"],
+            ["/Annotation/anno_stat/go_stat/", "dir", "go统计结果目录"],
+            ["/Annotation/anno_stat/kegg_stat/", "dir", "kegg统计结果目录"],
+            ["/Annotation/anno_stat/blast/", "dir", "基因序列blast比对结果目录"],
+            ["/Annotation/anno_stat/blast_nr_statistics/", "dir", "基因序列blast比对nr库统计结果目录"],
+            ["/Annotation/anno_stat/blast/gene_kegg.xls", "xls", "基因序列blast比对kegg注释结果table"],
+            ["/Annotation/anno_stat/blast/gene_nr.xls", "xls", "基因序列blast比对nr注释结果table"],
+            ["/Annotation/anno_stat/blast/gene_nr.xls", "xls", "基因序列blast比对nr注释结果table"],
+            ["/Annotation/anno_stat/blast/gene_string.xml", "xml", "基因序列blast比对string注释结果xml"],
+            ["/Annotation/anno_stat/blast/gene_kegg.xml", "xml", "基因序列blast比对kegg注释结果xml"],
+            ["/Annotation/anno_stat/blast/gene_string.xml", "xml", "基因序列blast比对string注释结果xml"],
+            ["/Annotation/anno_stat/cog_stat/gene_cog_list.xls", "xls", "基因序列cog_list统计结果"],
+            ["/Annotation/anno_stat/cog_stat/gene_cog_summary.xls", "xls", "基因序列cog_summary统计结果"],
+            ["/Annotation/anno_stat/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
+            ["/Annotation/anno_stat/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
+            ["/Annotation/anno_stat/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
+            ["/Annotation/anno_stat/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
+            ["/Annotation/anno_stat/go_stat/gene_blast2go.annot", "annot", "Go annotation based on blast output of gene"],
+            ["/Annotation/anno_stat/go_stat/gene_gos.list", "list", "Merged Go annotation of gene"],
+            ["/Annotation/anno_stat/go_stat/gene_go1234level_statistics.xls", "xls", "Go annotation on 4 levels of gene"],
+            ["/Annotation/anno_stat/go_stat/gene_go2level.xls", "xls", "Go annotation on level 2 of gene"],
+            ["/Annotation/anno_stat/go_stat/gene_go3level.xls", "xls", "Go annotation on level 3 of gene"],
+            ["/Annotation/anno_stat/go_stat/gene_go4level.xls", "xls", "Go annotation on level 4 of gene"],
+            ["/Annotation/anno_stat/kegg_stat/gene_kegg_table.xls", "xls", "KEGG annotation table of gene"],
+            ["/Annotation/anno_stat/kegg_stat/gene_pathway_table.xls", "xls", "Sorted pathway table of gene"],
+            ["/Annotation/anno_stat/kegg_stat/gene_kegg_taxonomy.xls", "xls", "KEGG taxonomy summary of gene"],
+            ["/Annotation/anno_stat/kegg_stat/gene_kegg_layer.xls", "xls", "KEGG taxonomy summary of gene"],
+            ["/Annotation/anno_stat/kegg_stat/gene_pathway/", "dir", "基因的标红pathway图"],
+            ['/ncbi_taxonomy/gene_taxons_detail.xls', 'xls', '基因序列详细物种分类文件'],
+            ["/Annotation/anno_stat/blast_nr_statistics/gene_nr_evalue.xls", "xls", "基因序列blast结果E-value统计"],
+            ["/Annotation/anno_stat/blast_nr_statistics/gene_nr_similar.xls", "xls", "基因序列blast结果similarity统计"],
+            ["/Annotation/anno_stat/ncbi_taxonomy/gene_taxons.xls", "xls", "基因序列nr物种注释表"],
+            ["/Annotation/anno_stat/ncbi_taxonomy/query_taxons.xls", "xls", "nr物种注释表"],
+            ["/Annotation/anno_stat/all_annotation_statistics.xls", "xls", "注释统计总览表"],
+            ["/Annotation/anno_stat/all_annotation.xls", "xls", "注释统计表"],
         ]
         regexps = [
             [r'Assemble/.*_length\.distribut\.txt$', 'txt', '长度分布信息统计文件'],
@@ -605,9 +666,19 @@ class DenovoBaseWorkflow(Workflow):
             [r"Map_stat/coverage/.*cluster_percent\.xls", "xls", "饱和度作图数据"],
             [r"Express/diff_exp/.*_edgr_stat\.xls$", "xls", "edger统计结果文件"],
             [r"Express/rsem/.*results$", "xls", "单样本rsem分析结果表"],
-            [r"Express/rsem/.*matrix$", "xls", "表达量矩阵"]
+            [r"Express/rsem/.*matrix$", "xls", "表达量矩阵"],
+            [r"/Annotation/nrblast/.+_vs_.+\.xml", "xml", "blast比对nr输出结果，xml格式"],
+            [r"/Annotation/nrblast/.+_vs_.+\.xls", "xls", "blast比对nr输出结果，表格(制表符分隔)格式"],
+            [r"/Annotation/stringblast/.+_vs_.+\.xml", "xml", "blast比对string输出结果，xml格式"],
+            [r"/Annotation/stringblast/.+_vs_.+\.xls", "xls", "blast比对string输出结果，表格(制表符分隔)格式"],
+            [r"/Annotation/keggblast/.+_vs_.+\.xml", "xml", "blast比对kegg输出结果，xml格式"],
+            [r"/Annotation/keggblast/.+_vs_.+\.xls", "xls", "blast比对kegg输出结果，表格(制表符分隔)格式"],
+            [r"/Annotation/kegg/pathways/ko.\d+", 'pdf', '标红pathway图'],
+            [r"/Annotation/blast_nr_statistics/.*_evalue\.xls", "xls", "比对结果E-value分布图"],
+            [r"/Annotation/blast_nr_statistics/.*_similar\.xls", "xls", "比对结果相似度分布图"],
+            ["^/Annotation/anno_stat/ncbi_taxonomy/nr_taxon_stat", "xls", "nr物种分类统计表"],
         ]
-        if self.option("search_pfam") is True:
+        if self.option("search_pfam"):
             repaths += [["Gene_structure/orf/pfam_domain", "", "Pfam比对蛋白域结果信息"]]
         if self.option('fq_type') == 'SE':
             repaths += [
