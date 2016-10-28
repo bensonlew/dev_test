@@ -28,7 +28,7 @@ class DenovoExpress(object):
         express_id = collection.insert_one(insert_data).inserted_id
         return express_id
 
-    def add_express_diff(self, params, samples=None, compare_column=None, name=None, project_sn=None, task_id=None):
+    def add_express_diff(self, params, samples=None, compare_column=None, name=None, project_sn=None, task_id=None, samples_detail=None):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -39,6 +39,7 @@ class DenovoExpress(object):
             'specimen': samples,
             'status': 'start',
             'compare_column': compare_column,
+            'group_detail': samples_detail
         }
         collection = self.db['sg_denovo_express_diff']
         express_diff_id = collection.insert_one(insert_data).inserted_id

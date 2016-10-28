@@ -134,10 +134,10 @@ class DenovoAnnotationModule(Module):
             opts['nr_xml'] = self.blast_kegg.option('outxml')
             opts['nr_taxon_details'] = self.ncbi_taxon.option('taxon_out')
         self.anno_stat.set_options(opts)
-        self.annot_stat.on('start', self.set_step, {'start': self.step.annot_stat})
-        self.annot_stat.on('end', self.set_step, {'end': self.step.annot_stat})
-        self.annot_stat.on('end', self.set_output, 'annot_stat')
-        self.annot_stat.run()
+        self.anno_stat.on('start', self.set_step, {'start': self.step.anno_stat})
+        self.anno_stat.on('end', self.set_step, {'end': self.step.anno_stat})
+        self.anno_stat.on('end', self.set_output, 'anno_stat')
+        self.anno_stat.run()
 
     def run_kegg_anno(self):
         """
@@ -226,7 +226,7 @@ class DenovoAnnotationModule(Module):
             self.linkdir(obj.output_dir, 'kegg')
         elif event['data'] == 'anno_stat':
             self.linkdir(obj.output_dir, 'anno_stat')
-            self.anno_num = {'total': [self.option('query').prop['seq_number'], self.option('gene_file').prop['gene_num']]}
+            self.anno_num['total'] = [self.option('query').prop['seq_number'], self.option('gene_file').prop['gene_num']]
             if 'nr' in self.anno_database:
                 self.anno_num['nr'].append(obj.option('gene_nr_table').prop['query_num'])
             if 'kegg' in self.anno_database:
@@ -250,12 +250,16 @@ class DenovoAnnotationModule(Module):
             if 'cog' in dbs:
                 dbs.remove('cog')
                 dbs.append('string')
+            if 'go' in dbs:
+                dbs.remove('go')
+            for k in self.anno_num:
+                self.anno_num[k] = [float(i) for i in self.anno_num[k]]
             for db in dbs:
                 anno_sum[0] += self.anno_num[db][0]
                 anno_sum[1] += self.anno_num[db][1]
-                w.write('{}\t{}\t{}\t{}\t{}\n'.format(anno_sum[db], anno_sum['db'][0], anno_sum['db'][1], '%0.4g' % anno_sum['db'][0] / self.anno_num['total'][0], '%0.4g' % anno_sum['db'][1] / self.anno_num['total'][1]))
-            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_sum[0], anno_sum[1], '%0.4g' % anno_sum[0] / self.anno_num['total'][0], '%0.4g' % anno_sum[1] / self.anno_num['total'][1]))
-            w.write('total\t{}\t{}\t100\t100\n'.format(self.anno_num['total'][0], self.anno_num['total'][1]))
+                w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, self.anno_num[db][0], self.anno_num[db][1], '%0.4g' % (self.anno_num[db][0] / self.anno_num['total'][0]), '%0.4g' % (self.anno_num[db][1] / self.anno_num['total'][1])))
+            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_sum[0], anno_sum[1], '%0.4g' % (anno_sum[0] / self.anno_num['total'][0]), '%0.4g' % (anno_sum[1] / self.anno_num['total'][1])))
+            w.write('total\t{}\t{}\t1\t1\n'.format(self.anno_num['total'][0], self.anno_num['total'][1]))
         # stat all_annotation.xls
         kwargs = {'outpath': all_anno_path, 'gene_list': self.option('gene_file').prop['gene_list']}
         for db in self.anno_database:
@@ -353,6 +357,8 @@ class DenovoAnnotationModule(Module):
             ["/anno_stat/nr_stat/nr_taxon_stat.xls", "xls", "nr物种分类统计表"],
             ["/anno_stat/nr_stat/gene_taxons.xls", "xls", "基因序列nr物种注释表"],
             ["/anno_stat/nr_stat/query_taxons.xls", "xls", "nr物种注释表"],
+            ["/anno_stat/all_annotation_statistics.xls", "xls", "注释统计总览表"],
+            ["/anno_stat/all_annotation.xls", "xls", "注释统计表"],
         ]
         regexps = [
             [r"blast/.+_vs_.+\.xml", "xml", "blast比对输出结果，xml格式"],

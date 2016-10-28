@@ -62,11 +62,18 @@ class GetDiffExpress(object):
         """
         collection = self.db['sg_denovo_express_diff_detail']
         result = collection.find({'$and': [{'express_diff_id': ObjectId(table_id), 'name': compare_group[0], 'compare_name': compare_group[1]}]})
+        main_collection = self.db['sg_denovo_express_diff']
+        main_result = main_collection.find_one({'_id': ObjectId(table_id)})
+        samples = []
+        if len(main_result['group_detail']) == 1:
+            samples = main_result['group_detail']
+        else:
+            samples += main_result[compare_group[0]]
+            samples += main_result[compare_group[1]]
         diff_gene = []
         if not result.count():
             raise Exception('没有找到差异表达统计id对应的表，请检查传入的id是否正确')
         for row in result:
-            samples = row['specimen']
             if float(row['frd']) <= 0.05:
                 diff_gene.append(row['gene_id'])
         return (diff_gene, samples)

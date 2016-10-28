@@ -140,7 +140,7 @@ class DenovoAnnoStatTool(Tool):
         self.go_annot = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goAnnot.py'
         self.go_split = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goSplit.py'
         self.kegg_anno = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
-        self.gene_list = self.option('gene_file').get_gene_list()
+        self.gene_list = self.option('gene_file').prop['gene_list']
         self.gene_nr_xml = self.work_dir + '/blast/gene_nr.xml'
         self.gene_string_xml = self.work_dir + '/blast/gene_string.xml'
         self.gene_kegg_xml = self.work_dir + '/blast/gene_kegg.xml'

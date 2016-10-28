@@ -168,7 +168,7 @@ class BlastTool(Tool):
                 self.logger.info('程序输出结果为6(table)，实际需要结果为5(xml)，开始调用程序xml2table转换')
                 from mbio.packages.align.blast.xml2table import xml2table
                 xml2table(outputfile, outputfile[:-3] + 'xls')
-                blast_xml = self.work_dir + os.path.basename(outputfile)
+                blast_xml = self.work_dir + "/" + os.path.basename(outputfile)
                 os.system("mv {} {}".format(outputfile, blast_xml))
                 self.option("outxml", blast_xml)
                 self.logger.info('程序table格式转换完成，旧xml文件已移除')
