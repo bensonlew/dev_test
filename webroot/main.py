@@ -22,6 +22,7 @@ from mainapp.controllers.submit.meta.rarefaction import Rarefaction
 from mainapp.controllers.instant.meta.beta.multi_analysis import MultiAnalysis
 from mainapp.controllers.instant.meta.beta.anosim import Anosim
 from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
+from mainapp.controllers.instant.dataexchange.upload_task import UploadTask
 from mainapp.controllers.instant.meta.demo_mongodata_copy import DemoMongodataCopy
 from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
 from mainapp.controllers.submit.denovo_rna.map_assessment import MapAssessment
@@ -60,6 +61,7 @@ urls = (
     "/meta/rarefaction", "Rarefaction",
     "/meta/beta/multi_analysis", "MultiAnalysis",
     "/meta/beta/anosim", "Anosim",
+    "/dataexchange/upload_task", "UploadTask"
     "/dataexchange/download_task", "DownloadTask",
     "/denovo_rna/diff_express", "DiffExpress",
     "/denovo_rna/map_assessment", "MapAssessment",

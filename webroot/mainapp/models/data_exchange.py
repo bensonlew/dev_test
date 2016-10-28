@@ -4,7 +4,7 @@ import web
 import datetime
 import json
 import re
-from mainapp.config.db import DB, IDENTITY_DB, get_mongo_client
+from mainapp.config.db import DB, IDENTITY_DB, get_mongo_client, RECORD_DB
 from biocluster.config import Config
 
 
@@ -13,14 +13,15 @@ class Identity(object):
     验证发送过来的验证码
     """
     def __init__(self):
-        self.db = IDENTITY_DB
+        self.identity_db = IDENTITY_DB
+        self.record_db = RECORD_DB
 
     def get_task_id(self, code):
         """
         根据验证码， 获取taskid
         """
         where_dict = dict(code=code)
-        results = self.db.select("identity_code", where=web.db.sqlwhere(where_dict))
+        results = self.identity_db.select("sg_download_code", where=web.db.sqlwhere(where_dict))
         if results:
             for r in results:
                 create_time = r["create_time"]
@@ -36,7 +37,30 @@ class Identity(object):
             return info
 
     def add_download_record(self, data):
-        return self.db.insert("download_info", **data)
+        return self.record_db.insert("download_info", **data)
+
+    def get_target_path(self, code):
+        """
+        根据验证码，获取要上传的文件的目标路径
+        """
+        where_dict = dict(code=code)
+        results = self.identity_db.select("sg_upload_code", where=web.db.sqlwhere(where_dict))
+        if results:
+            for r in results:
+                create_time = r["create_time"]
+                if (create_time + datetime.timedelta(hours=12)) > datetime.datetime.now():
+                    info = {"success": True, "rel_path": r["rel_dir"], "info": ""}
+                    return info
+                else:
+                    continue
+            info = {"success": False, "rel_path": "", "info": "验证码: {} 已经超时， 请重新获取验证码".format(code)}
+            return info
+        else:
+            info = {"success": False, "rel_path": "", "info": "验证码: {} 错误！".format(code)}
+            return info
+
+    def add_upload_record(self, data):
+        return self.record_db.insert("upload_info", **data)
 
 
 class Download(object):
