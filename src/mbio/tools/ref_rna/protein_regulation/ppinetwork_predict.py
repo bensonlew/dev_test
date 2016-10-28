@@ -23,6 +23,7 @@ class PpinetworkPredictAgent(Agent):
             {"name": "species", "type": "int", "default": 9606},
             {"name": "combine_score",  "type": "int", "default": 600},
             {"name": "logFC", "type": "float", "default": 0.2},
+            {"name": "species_list", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("Ppinetwork")
@@ -43,13 +44,24 @@ class PpinetworkPredictAgent(Agent):
         重写参数检测函数
         :return:
         """
-        species_list = [9606,3711,4932]
+        # species_list = [9606,3711,4932]
         if not self.option('diff_exp_mapped').is_set:
             raise OptionError("必须输入含有STRINGid的差异基因表")
         if self.option('combine_score') > 1000 or self.option('combine_score') < 0:
             raise OptionError("combine_score值超出范围")
-        if self.option('species') not in species_list:  #species的判定有问题，
-            raise OptionError("species值超出范围")
+        if not self.option('species_list'):
+            raise OptionError('必须提供物种 taxon id 表')
+        if not os.path.exists(self.option('species_list')):
+            raise OptionError('species_list文件路径有错误')
+        with open(self.option('species_list'), "r") as f:
+            data = f.readlines()
+            species_list = []
+            for line in data:
+                temp = line.rstrip().split("\t")
+                species_list += [eval(temp[0])]
+                # print species_list
+        if self.option('species') not in species_list:
+            raise OptionError("物种不存在,请输入正确的物种taxon_id")
         if self.option('logFC') > 100 or self.option('logFC') < -100:
             raise OptionError("logFC值超出范围")
         return True
