@@ -28,8 +28,8 @@ class RnaseqMappingModule(Module):
             {"name": "single_end_reads", "type": "infile", "format": "sequence.fastq"},  # 单端序列
             {"name": "left_reads", "type": "infile", "format":"sequence.fastq"},  # 双端测序时，左端序列
             {"name": "right_reads", "type": "infile", "format":"sequence.fastq"},  # 双端测序时，右端序列
-            #{"name": "gff","type": "infile", "format":"ref_rna.reads_mapping.gff"},  # gff格式文件
-            {"name": "bam_output", "type": "outfile", "format": "align.bwa.bam"},  # 输出的bam
+            {"name": "gff","type": "infile", "format":"ref_rna.reads_mapping.gff"},  # gff格式文件
+            {"name": "bam_output", "type": "outfile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # 输出的bam
             #{"name": "gtf", "type": "outfile", "format" : "ref_rna.reads_mapping.gtf"},  # 输出的gtf格式文件
             #{"name": "bed", "type": "outfile", "format" : "ref_rna.reads_mapping.bed"},  # 输出的bed格式文件
             {"name": "assemble_method", "type": "string"}
@@ -52,6 +52,7 @@ class RnaseqMappingModule(Module):
             raise OptionError("请选择参考序列")
         if self.option("fastq_dir").is_set:
             self.samples = self.get_list()
+            self.logger.info(self.samples)
             list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
             row_num = len(open(list_path, "r").readline().split())
             self.logger.info(row_num)
@@ -92,7 +93,6 @@ class RnaseqMappingModule(Module):
 
 
     def multi_tophat_run(self):
-        #self.samples = self.get_list()
         n = 0
         if self.option("ref_genome") not in ["customer_mode"]: # 如果是本地参考基因组
             self.ref_name = self.option("ref_genome")
@@ -112,7 +112,6 @@ class RnaseqMappingModule(Module):
                     step = getattr(self.step, 'tophat_{}'.format(n))
                     step.start()
                     tophat.on("end", self.finish_update, "tophat_{}".format(n))
-                    tophat.on("end", self.set_output)
                     self.mapping_tools.append(tophat)
             elif self.option("seq_method") == "SE":  # 如果是单端测序
                 for f in self.samples:
@@ -128,7 +127,6 @@ class RnaseqMappingModule(Module):
                     step = getattr(self.step, 'tophat_{}'.format(n))
                     step.start()
                     tophat.on("end", self.finish_update, "tophat_{}".format(n))
-                    tophat.on("end", self.set_output)
                     self.mapping_tools.append(tophat)
         else:  # 如果是用户上传的基因组
             ref_fasta = self.option('ref_genome_custom').prop["path"]
@@ -151,9 +149,8 @@ class RnaseqMappingModule(Module):
                         "mapping_method":"tophat"
                     })
                     step = getattr(self.step, 'tophat_{}'.format(n))
-                    step.start()
+                    step.start()    
                     tophat.on("end", self.finish_update, "tophat_{}".format(n))
-                    tophat.on("end", self.set_output)
                     self.mapping_tools.append(tophat)
             elif self.option("seq_method") == "SE":  # 如果测序方式为SE测序
                 for f in self.samples:
@@ -170,11 +167,9 @@ class RnaseqMappingModule(Module):
                     step = getattr(self.step, 'tophat_{}'.format(n))
                     step.start()
                     tophat.on("end", self.finish_update, "tophat_{}".format(n))
-                    tophat.on("end", self.set_output)
                     self.mapping_tools.append(tophat)
-        self.on_rely(self.mapping_tools, self.end)
+        self.on_rely(self.mapping_tools, self.set_output)
         if len(self.mapping_tools) == 1:
-            # self.mapping_tools[0].on("end", self.multi_samtools_run)
             self.mapping_tools[0].run()
         else:
             for tool in self.mapping_tools:
@@ -214,7 +209,6 @@ class RnaseqMappingModule(Module):
                     })
         self.tophat.step_start()
         self.tophat.on("end", self.tophat_finish_update)
-        self.tophat.on("end", self.set_output)
         self.tophat.on("end", self.end)
         self.tophat.run()
 
@@ -301,7 +295,6 @@ class RnaseqMappingModule(Module):
                     self.mapping_tools.append(hisat)  
         self.on_rely(self.mapping_tools, self.end)
         if len(self.mapping_tools) == 1:
-            # self.mapping_tools[0].on("end", self.multi_samtools_run)
             self.mapping_tools[0].run()
         else:
             for tool in self.mapping_tools:
@@ -348,15 +341,6 @@ class RnaseqMappingModule(Module):
         self.hisat.on("end",self.set_output) 
         self.hisat.on("end",self.end)
         self.hisat.run()
-        
-        
-    def rename(self, event):
-        obj = event["bind_object"]
-        self.logger.info("obj is "+ str(obj))
-        for f in os.listdir(obj.output_dir):
-            old_name = os.path.join(obj.output_dir, f)
-            self.logger.info("lalala")  
-        self.end()
 
     def get_list(self):
         list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
@@ -366,28 +350,23 @@ class RnaseqMappingModule(Module):
         return samples
 
     def set_output(self):
-        #self.logger.info(str(len(self.samples)))
         self.logger.info("set output")
-        if self.end_times < len(self.samples):
-            self.end_times += 1
-            #self.logger.info(str(self.end_times))
-            #self.logger.info(str(len(self.samples)))
-        elif self.end_times == len(self.samples) or len(self.samples) == 0:
-            bam_dir = os.path.join(self.output_dir, "sorted_bam")
-            if not os.path.exists(bam_dir):
-                os.makedirs(bam_dir)
+        for f in glob.glob(r"{}/*".format(self.output_dir)):
+            if os.path.isdir(f):
+                shutil.rmtree(f)
             else:
-                for f in os.listdir(bam_dir):
-                    f_path = os.path.join(bam_dir, f)
-                    if os.path.isdir(f_path):
-                        shutil.rmtree(f_path)
-                    else:
-                        os.remove(f_path)
-            for f in os.listdir(self.output_dir):
-                if not os.path.isdir(f):
-                    f = os.path.join(self.output_dir,f)
-                    self.logger.info(f)
-                    shutil.move(f,bam_dir)
+                os.remove(f)
+        for tool in self.mapping_tools:
+            out_files = os.listdir(tool.output_dir)
+            for f in out_files:
+                f_path = os.path.join(tool.output_dir, f)
+                target = os.path.join(self.output_dir, f)
+                if os.path.exists(target):
+                    os.remove(target)
+                os.link(f_path, target)
+        self.option("bam_output").set_path(self.output_dir)
+        self.logger.info("done")
+        self.end()
         
             
     def run(self):
