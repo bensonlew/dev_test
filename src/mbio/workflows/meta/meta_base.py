@@ -153,6 +153,12 @@ class MetaBaseWorkflow(Workflow):
         self.tax.run()
 
     def run_stat(self):
+        self.samples_num = len(open(self.qc.output_dir + "/samples_info/samples_info.txt").readlines()) - 1
+        if self.samples_num < 2:
+            self.on_rely([self.alpha, self.beta], self.end)
+        else:
+            self.stat.on('end', self.run_pan_core)
+            self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         self.stat.set_options({
             "in_otu_table": self.otu.option("otu_table"),
             "taxon_file": self.tax.option("taxon_file")
@@ -175,7 +181,7 @@ class MetaBaseWorkflow(Workflow):
         self.alpha.run()
 
     def run_beta(self):
-        if len(open(self.stat.option("otu_taxon_dir").get_table("otu")).readline().split('\t')) < 4: # 只有两个样本
+        if self.samples_num < 3: # 只有两个样本
             self.option('beta_analysis', '')
         opts = {
             'analysis': 'distance,' + self.option('beta_analysis'),
@@ -436,8 +442,8 @@ class MetaBaseWorkflow(Workflow):
         self.on_rely([self.tax, self.phylo], self.run_stat)
         self.stat.on('end', self.run_alpha)
         self.stat.on('end', self.run_beta)
-        self.stat.on('end', self.run_pan_core)
-        self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
+        # self.stat.on('end', self.run_pan_core)
+        # self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         super(MetaBaseWorkflow, self).run()
 
     def send_files(self):
