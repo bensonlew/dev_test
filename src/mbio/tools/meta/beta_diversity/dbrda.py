@@ -72,16 +72,19 @@ class DbrdaAgent(Agent):
                         raise OptionError('提供的envlabs中有不在环境因子表中存在的因子：%s' % lab)
             else:
                 pass
-            if self.option('envtable').prop['sample_number'] < 2:
-                raise OptionError('环境因子表的样本数目少于2，不可进行beta多元分析')
+            if self.option('envtable').prop['sample_number'] < 3:
+                raise OptionError('环境因子表的样本数目少于3，不可进行beta多元分析')
             if self.option('dis_matrix').is_set:
-                self.option('dis_matrix').get_info()
+                # self.option('dis_matrix').get_info()
                 env_collection = set(self.option('envtable').prop['sample'])
                 collection = set(self.option('dis_matrix').prop['samp_list']) & env_collection
-                if collection == env_collection:  # 检查环境因子的样本是否是OTU表中样本的子集
-                    pass
-                else:
-                    raise OptionError('环境因子中存在距离矩阵中没有的样本')
+                if len(collection) < 3:
+                    raise OptionError("环境因子表和OTU表的共有样本数必需大于等于3个：{}".format(len(collection)))
+                # if collection == env_collection:  # 检查环境因子的样本是否是OTU表中样本的子集
+                #     pass
+                # else:
+                #     raise OptionError('环境因子中存在距离矩阵中没有的样本')
+                pass
             else:
                 if self.option('method') not in DbrdaAgent.METHOD_DICT:
                     raise OptionError('错误或者不支持的距离计算方法')
@@ -89,15 +92,18 @@ class DbrdaAgent(Agent):
                 if not self.option('otutable').is_set:
                     raise OptionError('没有提供距离矩阵的情况下，必须提供otu表')
                 self.real_otu = self.gettable()
-                if self.real_otu.prop['sample_num'] < 2:
-                    raise OptionError('otu表的样本数目少于2，不可进行beta多元分析')
+                if self.real_otu.prop['sample_num'] < 3:
+                    raise OptionError('otu表的样本数目少于3，不可进行beta多元分析')
                 samplelist = open(self.real_otu.path).readline().strip().split('\t')[1:]
-                if len(self.option('envtable').prop['sample']) > len(samplelist):
-                    raise OptionError('OTU表中的样本数量:%s少于环境因子表中的样本数量:%s' % (len(samplelist),
-                                      len(self.option('envtable').prop['sample'])))
-                for sample in self.option('envtable').prop['sample']:
-                    if sample not in samplelist:
-                        raise OptionError('环境因子中存在，OTU表中的未知样本%s' % sample)
+                # if len(self.option('envtable').prop['sample']) > len(samplelist):
+                #     raise OptionError('OTU表中的样本数量:%s少于环境因子表中的样本数量:%s' % (len(samplelist),
+                #                       len(self.option('envtable').prop['sample'])))
+                # for sample in self.option('envtable').prop['sample']:
+                #     if sample not in samplelist:
+                #         raise OptionError('环境因子中存在，OTU表中的未知样本%s' % sample)
+                common_samples = set(samplelist) & set(self.option('envtable').prop['sample'])
+                if len(common_samples) < 3:
+                    raise OptionError("环境因子表和OTU表的共有样本数必需大于等于3个：{}".format(len(common_samples)))
                 table = open(self.real_otu.path)
                 if len(table.readlines()) < 4:
                     raise OptionError('提供的数据表信息少于3行')
@@ -112,7 +118,7 @@ class DbrdaAgent(Agent):
         设置所需资源
         """
         self._cpu = 2
-        self._memory = ''
+        self._memory = '3G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -136,14 +142,51 @@ class DbrdaTool(Tool):
         self.env_table = self.get_new_env()
         if not self.option('dis_matrix').is_set:
             self.otu_table = self.get_otu_table()
+            new_otu_table = self.work_dir + '/new_otu_table.xls'
+            new_env_table = self.work_dir + '/new_env_table.xls'
+            if not self.create_otu_and_env_common(self.otu_table, self.env_table, new_otu_table, new_env_table):
+                self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
+            else:
+                self.otu_table = new_otu_table
+                self.env_table = new_env_table
         else:
-            self.dis_matrix = self.get_matrix()
+            samples = list(set(self.option('dis_matrix').prop['samp_list']) & set(self.option('envtable').prop['sample']))
+            self.env_table = self.sub_env(samples)
+            self.dis_matrix = self.get_matrix(samples)
 
-    def get_matrix(self):
+    def sub_env(self, samples):
+        with open(self.env_table) as f, open(self.work_dir + '/sub_env_temp.xls', 'w') as w:
+            w.write(f.readline())
+            for i in f:
+                if i.split('\t')[0] in samples:
+                    w.write(i)
+        return self.work_dir + '/sub_env_temp.xls'
+
+
+    def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
+        import pandas as pd
+        T1 = pd.read_table(T1, sep='\t')
+        T2 = pd.read_table(T2, sep='\t')
+        T1_names = list(T1.columns[1:])
+        T2_names = list(T2.iloc[0:, 0])
+        T1_T2 = set(T1_names) - set(T2_names)
+        T2_T1 = set(T2_names) - set(T1_names)
+        T1T2 = set(T2_names) & set(T1_names)
+        if len(T1T2) < 3:
+            return False
+        [T1_names.remove(value) for value in T1_T2]
+        T1.to_csv(new_T1, sep="\t", columns=[T1.columns[0]] + T1_names, index=False)
+        indexs = [T2_names.index(one) for one in T2_T1]
+        T2 = T2.drop(indexs)
+        T2.to_csv(new_T2, sep="\t", index=False)
+        return True
+
+    def get_matrix(self, samples):
         if len(self.option('dis_matrix').prop['samp_list']) == len(self.option('envtable').prop['sample']):
             return self.option('dis_matrix').path
         else:
-            self.option('dis_matrix').create_new(self.option('envtable').prop['sample'],
+            # samples = list(set(self.option('dis_matrix').prop['samp_list']) & set(self.option('envtable').prop['sample']))
+            self.option('dis_matrix').create_new(samples,
                                                  os.path.join(self.work_dir, 'dis_matrix_filter.temp'))
             return os.path.join(self.work_dir, 'dis_matrix_filter.temp')
 
@@ -168,8 +211,9 @@ class DbrdaTool(Tool):
         else:
             otu_path = self.option('otutable').prop['path']
         # otu表对象没有样本列表属性
-        return self.filter_otu_sample(otu_path, self.option('envtable').prop['sample'],
-                                      os.path.join(self.work_dir + 'temp_filter.otutable'))
+        return otu_path
+        # return self.filter_otu_sample(otu_path, self.option('envtable').prop['sample'],
+        #                               os.path.join(self.work_dir + 'temp_filter.otutable'))
 
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):

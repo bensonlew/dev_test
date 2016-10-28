@@ -39,6 +39,7 @@ class QualityControlModule(Module):
         self.clipper = []
         self.sickle = []
         self.end_times = 0
+        self.adapt_rate = []
 
     def check_options(self):
         """
@@ -88,10 +89,12 @@ class QualityControlModule(Module):
             step.start()
             clipper.on("end", self.finish_update, "clipper_{}".format(n))
             clipper.on("end", self.rename, f)
+            clipper.on("end", self.adapt, f)
             clipper.on("end", self.sickle_se_run, f)
             # clipper.run()
             n += 1
             self.clipper.append(clipper)
+        self.on_rely(self.clipper, self.adapt_write)
         if len(self.clipper) == 1:
             self.clipper[0].run()
         else:
@@ -113,10 +116,12 @@ class QualityControlModule(Module):
             step = getattr(self.step, 'seqprep_{}'.format(n))
             step.start()
             seqprep.on("end", self.finish_update, "seqprep_{}".format(n))
+            seqprep.on("end", self.adapt, f)
             seqprep.on("end", self.sickle_pe_run, f)
             # seqprep.run()
             n += 1
             self.seqprep.append(seqprep)
+        self.on_rely(self.seqprep, self.adapt_write)
         self.logger.info(self.seqprep)
         if len(self.seqprep) == 1:
             self.seqprep[0].run()
@@ -175,6 +180,20 @@ class QualityControlModule(Module):
             new_name = os.path.join(obj.output_dir, event["data"] + "_" + f)
             os.rename(old_name, new_name)
 
+    def adapt(self, event):
+        obj = event["bind_object"]
+        adapt_file = obj.work_dir + "/adapter.xls"
+        if os.path.exists(adapt_file):
+            with open(adapt_file, "r") as f:
+                f.readline()
+                adapt_rate = f.next().split()[1]
+                self.adapt_rate.append(["{}".format(event["data"]), adapt_rate])
+
+    def adapt_write(self):
+        with open(self.output_dir + "/adapter.xls", "w") as w:
+            for a in self.adapt_rate:
+                w.write("{}\t{}\n".format(a[0], a[1]))
+
     def set_output(self, event):
         self.logger.info("set output{}".format(event["data"]))
         obj = event["bind_object"]
@@ -188,8 +207,8 @@ class QualityControlModule(Module):
             sickle_dir = os.path.join(self.output_dir, "sickle_dir")
             sickle_r_dir = os.path.join(self.work_dir, "sickle_r_forRSEM")
             sickle_l_dir = os.path.join(self.work_dir, "sickle_l_forRSEM")
-            seqprep_dir = os.path.join(self.output_dir, "seqprep_dir")
-            clip_dir = os.path.join(self.output_dir, "clip_dir")
+            seqprep_dir = os.path.join(self.work_dir, "seqprep_dir")
+            clip_dir = os.path.join(self.work_dir, "clip_dir")
             dir_list = [sickle_dir, seqprep_dir, clip_dir, sickle_r_dir, sickle_l_dir]
             # self.logger.info(dir_list)
             for d in dir_list:

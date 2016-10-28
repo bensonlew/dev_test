@@ -62,7 +62,7 @@ class Agent(Basic):
         super(Agent, self).__init__(parent)
         self.config = Config()
         self.actor = LocalActor(self)
-        self._queue = "default"
+        self._queue = self.config.JOB_QUEUE
         self._host = ""
         self._cpu = 0
         self._memory = "1G"

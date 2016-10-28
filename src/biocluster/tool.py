@@ -381,7 +381,10 @@ class Tool(object):
         self._end = True
         self.exit_signal = True
         self.kill_all_commonds()
-        os._exit(status)
+        # os.kill(os.getpid(), signal.SIGTERM)
+        if self.main_thread.is_alive():
+            stop_thread(self.main_thread)
+        sys.exit(status)
 
     def save_output(self):
         """

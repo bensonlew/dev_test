@@ -333,11 +333,11 @@ class BetaDiversityModule(Module):
             [r'Rda/.*_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
             [r'Rda/.*_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
         ]
-        self.logger.info('shenghe:不能重复添加目录buglog。。。。。。。。。。。。。。。。')
-        self.logger.info(self.upload_dir)
+        # self.logger.info('shenghe:不能重复添加目录buglog。。。。。。。。。。。。。。。。')
+        # self.logger.info(self.upload_dir)
         for i in self.upload_dir:
             self.logger.info(i.path)
-        self.logger.info('shenghe:不能重复添加目录buglog。。。。。。。。。。。。。。。。OVER')
+        # self.logger.info('shenghe:不能重复添加目录buglog。。。。。。。。。。。。。。。。OVER')
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)

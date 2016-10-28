@@ -14,6 +14,7 @@ from bson import ObjectId, SON
 import datetime
 import os
 import json
+import traceback
 
 
 class Instant(object):
@@ -35,11 +36,15 @@ class Instant(object):
             self._task_object.run()
             self._mongo_ids = self._task_object.return_mongo_ids
             for i in self._mongo_ids:
-                self.add_sg_status(i['id'], i['collection_name'], i['desc'])
+                if i["add_in_sg_status"]:
+                    self.add_sg_status(i['id'], i['collection_name'], i['desc'])
             self._uploadDirObj = self._task_object._upload_dir_obj
             self.format_result()
             # 整理返回前端结果
         except Exception as e:
+            traceback_err = traceback.format_exc()
+            print traceback_err
+            self.logger.error(traceback_err)
             self.return_info = {"success": False, "info": "程序运行过程中发生错误，错误信息:{}".format(e)}
         self.pickle_result()
 
@@ -91,6 +96,7 @@ class Instant(object):
             self.logger.info('Insert sg_status ID:{}'.format(return_id))
             return str(return_id)
         else:
+            self.logger.error('插入sg_status表出错')
             raise Exception('插入sg_status表出错')
 
     @property

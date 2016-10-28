@@ -10,11 +10,12 @@ class SampleExtract(object):
         self.client = get_mongo_client()
         self.db = self.client[Config().MONGODB]
 
-    def add_sg_seq_sample(self, task_id, file_path, params):
+    def add_sg_seq_sample(self, task_id, file_path, params, query_id):
         insert_data = {
             "task_id": task_id,
             "file_path": file_path,
-            "params": params
+            "params": params,
+            "query_id": query_id
         }
         collection = self.db["sg_seq_sample"]
         inserted_id = collection.insert_one(insert_data).inserted_id
