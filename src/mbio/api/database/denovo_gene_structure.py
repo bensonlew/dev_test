@@ -155,12 +155,14 @@ class DenovoGeneStructure(Base):
     @report_check
     def add_ssr_detail(self, ssr, ssr_id=None):
         data_list = []
+        ssr_types = set()
         ssr_id = ObjectId(ssr_id)
         with open(ssr, "r") as f:
             f.readline().strip().split("\t")
             # self.bind_object.logger.error f.next().strip().split("\t")
             for line in f:
                 line = line.strip().split("\t")
+                ssr_types.add(line[2])
                 data = {
                     "ssr_id": ssr_id,
                     "gene_id": line[0],
@@ -174,6 +176,10 @@ class DenovoGeneStructure(Base):
                 if len(line) == 8:
                     data["ssr_pos"] = line[7]
                 data_list.append(data)
+        ssr_types = list(ssr_types)
+        main_collection = self.db["sg_denovo_ssr"]
+        if ssr_id:
+            main_collection.update({"_id": ObjectId(ssr_id)}, {"$set": {"ssr_types": ssr_types, "status": "end"}})
         try:
             collection = self.db["sg_denovo_ssr_detail"]
             collection.insert_many(data_list)
@@ -256,6 +262,7 @@ class DenovoGeneStructure(Base):
             for n, line in enumerate(f):
                 if re.match(r"Frequency of classified", line):
                     target_line = True
+                    f.next()
                     f.next()
                     f.next()
                     continue
@@ -350,8 +357,8 @@ class DenovoGeneStructure(Base):
 
     @report_check
     def add_snp_graph(self, snp, snp_id=None):
-        snp_pos = glob.glob("{}/*position_stat.xls".format(snp))
-        snp_type = glob.glob("{}/*type_stat.xls".format(snp))
+        snp_pos = glob.glob("{}/*position.stat.xls".format(snp))
+        snp_type = glob.glob("{}/*type.stat.xls".format(snp))
         data_list = []
         for sp in snp_pos:
             sample_name = os.path.basename(sp).split(".")[0]

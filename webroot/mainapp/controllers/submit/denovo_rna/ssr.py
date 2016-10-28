@@ -24,10 +24,19 @@ class Ssr(object):
         if not hasattr(data, "sequence_id"):
             info = {"success": False, "info": "缺少参数sequence_id!"}
             return json.dumps(info)
+        if not hasattr(data, "orf_id"):
+            info = {"success": False, "info": "缺少参数orf_id!"}
+            return json.dumps(info)
         if not hasattr(data, "primer"):
             info = {"success": False, "info": "缺少参数primer!"}
             return json.dumps(info)
-        params = {"sequence_id": data.sequence_id, "primer": data.primer}
+        print(data.primer)
+        # if data.primer == "0":
+        #     primer = "true"
+        # else:
+        #     primer = "false"
+        name = "ssr_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        params = {"sequence_id": data.sequence_id, "primer": data.primer, "orf_id": data.orf_id, "task_type": data.task_type, "submit_location": data.submit_location}
         sequence_info = Denovo().get_main_info(data.sequence_id, 'sg_denovo_sequence')
         if sequence_info:
             task_id = sequence_info["task_id"]
@@ -38,7 +47,7 @@ class Ssr(object):
             else:
                 info = {"success": False, "info": "这个sequence_info对应的序列信息对应的task：{}没有member_id!".format(sequence_info["task_id"])}
                 return json.dumps(info)
-            ssr_id = GeneStructure().add_ssr_table(project_sn, task_id, params=params)
+            ssr_id = GeneStructure().add_ssr_table(project_sn, task_id, params=params, name=name)
             update_info = {str(ssr_id): "sg_denovo_ssr", 'database': self.db_name}
             update_info = json.dumps(update_info)
             workflow_id = Denovo().get_new_id(task_id, data.sequence_id)
@@ -74,5 +83,5 @@ class Ssr(object):
             info = {"success": True, "info": "提交成功!"}
             return json.dumps(info)
         else:
-            info = {"success": False, "info": "express_id不存在，请确认参数是否正确！!"}
+            info = {"success": False, "info": "sequence_id不存在，请确认参数是否正确！!"}
             return json.dumps(info)

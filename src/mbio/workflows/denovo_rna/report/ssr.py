@@ -43,8 +43,10 @@ class SsrWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(ssr_path))
         api_ssr.add_ssr_detail(ssr_path, self.option("insert_id"))
         api_ssr.add_ssr_stat(stat_path, self.option("insert_id"))
-        if self.option("primer") is "true":
-            primer_path = self.ssr.output_dir + "/" + fasta_file_name + ".misa.results"
+        if self.option("primer") == "true":
+            print("lllllllllllllll")
+            primer_path = self.ssr.work_dir + "/" + fasta_file_name + ".misa.results"
+            print(primer_path)
             api_ssr.add_ssr_primer(primer_path, self.option("insert_id"))
         self.end()
 
