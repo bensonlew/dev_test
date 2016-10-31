@@ -47,7 +47,7 @@ class DenovoRnaMapping(Base):
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
-            "name": name if name else "rpkm_origin",
+            "name": name if name else "saturation_origin",
             "status": "start",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "curve_specimen": {"column1": "[0-0.3)", "column2": "[0.3-0.6)", "column3": "[0.6-3.5)", "column4": "[3.5-15)", "column5": "[15-60)", "column6": ">=60"},
@@ -138,6 +138,7 @@ class DenovoRnaMapping(Base):
 
     @report_check
     def add_rpkm_curve(self, rpkm_file, rpkm_id=None):
+        rpkm_id = ObjectId(rpkm_id)
         curve_files = glob.glob("{}/*cluster_percent.xls".format(rpkm_file))
         rpkm_pdf = glob.glob("{}/*.pdf".format(rpkm_file))
         curve_data = []

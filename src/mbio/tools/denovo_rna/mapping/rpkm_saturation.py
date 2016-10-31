@@ -119,9 +119,11 @@ class RpkmSaturationTool(Tool):
         for f in files:
             if "cluster_percent.xls" in f:
                 satur_file.append(f)
-            if "eRPKM.xls" in f:
+            if "eRPKM.xls" in f and "saturation.pdf" not in f:
                 satur_file.append(f)
             if "saturation.r" in f:
+                satur_file.append(f)
+            if "saturation.pdf" in f and "eRPKM.xls" not in f:
                 satur_file.append(f)
         # satur_file = glob.glob(r"*eRPKM.xls")
         print(satur_file)
