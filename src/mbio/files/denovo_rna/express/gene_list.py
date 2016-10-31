@@ -46,3 +46,11 @@ class GeneListFile(File):
                 gene_list.append(line[0])
         length = len(gene_list)
         return gene_list, length
+
+    def get_network_gene_file(self, outpath):
+        with open(self.prop['path'], 'rb') as r, open(outpath, 'wb') as w:
+            head = '#gene_id\tgene_id\n'
+            w.write(head)
+            for line in r:
+                line = line.strip('\n')
+                w.write('{}\t{}\n'.format(line, line))

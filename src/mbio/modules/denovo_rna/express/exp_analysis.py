@@ -191,20 +191,20 @@ class ExpAnalysisModule(Module):
             # self.merge_rsem_run()
         elif event['data'] == 'merge_rsem':
             self.linkdir(obj.output_dir, 'rsem', self.output_dir)
-            self.option('gene_count', self.merge_rsem.option('gene_count'))
-            self.option('gene_fpkm', self.merge_rsem.option('gene_fpkm'))
+            self.option('gene_count', self.merge_rsem.option('gene_count').prop['path'])
+            self.option('gene_fpkm', self.merge_rsem.option('gene_fpkm').prop['path'])
             self.option('gene_fpkm').get_list(self.work_dir + '/all_list')
             self.option('all_list', self.work_dir + '/all_list')
-            self.option('tran_count', self.merge_rsem.option('tran_count'))
-            self.option('tran_fpkm', self.merge_rsem.option('tran_fpkm'))
+            self.option('tran_count', self.merge_rsem.option('tran_count').prop['path'])
+            self.option('tran_fpkm', self.merge_rsem.option('tran_fpkm').prop['path'])
         elif event['data'] == 'diff_exp':
             self.linkdir(obj.output_dir, 'diff_exp', self.output_dir)
             self.diff_gene = obj.diff_gene
             if self.diff_gene:
-                self.option('diff_count', obj.option('diff_count'))
-                self.option('diff_fpkm', obj.option('diff_fpkm'))
-                self.option('gene_file', obj.option('gene_file'))
-                self.option('diff_list_dir', obj.option('diff_list_dir'))
+                self.option('diff_count', obj.option('diff_count').prop['path'])
+                self.option('diff_fpkm', obj.option('diff_fpkm').prop['path'])
+                self.option('gene_file', obj.option('gene_file').prop['path'])
+                self.option('diff_list_dir', obj.option('diff_list_dir').prop['path'])
             else:
                 self.logger.info('此输入文件没有检测到差异基因')
         else:

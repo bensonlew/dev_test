@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
-# last_modify:20160701
+# last_modify:20161031
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -38,7 +38,6 @@ class NetworkAgent(Agent):
     def stepfinish(self):
         self.step.network.finish()
         self.step.update()
-
 
     def check_options(self):
         """
@@ -113,7 +112,9 @@ class NetworkTool(Tool):
             self.logger.info("运行one_cmd出错")
 
     def run_wgcna_two(self):
-        two_cmd = self.r_path + " %sInModuleWGCNA-step02.r --args %s %s %s %s" % (self.script_path, 'wgcna_result', self.option('gene_file').prop['path'], self.option('module'), self.option('network'))
+        gene_file_path = self.work_dir + '/gene_file'
+        self.option('gene_file').get_network_gene_file(gene_file_path)
+        two_cmd = self.r_path + " %sInModuleWGCNA-step02.r --args %s %s %s %s" % (self.script_path, 'wgcna_result', gene_file_path, self.option('module'), self.option('network'))
         self.logger.info("开始运行two_cmd")
         cmd = self.add_command("two_cmd", two_cmd).run()
         self.wait(cmd)

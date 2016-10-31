@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# __author__ = 'qiuping'
 from __future__ import division
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
@@ -10,20 +11,21 @@ import shutil
 class DenovoAnnotationModule(Module):
     """
     module for denovorna annotation
-    last modified:20160829
-    author: wangbixuan
     """
     def __init__(self, work_id):
         super(DenovoAnnotationModule, self).__init__(work_id)
         options = [
             {"name": "query", "type": "infile", "format": "sequence.fasta"},
+            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "database", "type": "string", "default": 'nr,go,cog,kegg'},  # 默认全部四个注释
             {"name": "nr_blast_evalue", "type": "float", "default": 1e-5},
             {"name": "string_blast_evalue", "type": "float", "default": 1e-5},
             {"name": "kegg_blast_evalue", "type": "float", "default": 1e-5},
             {"name": "blast_threads", "type": "int", "default": 10},
             {"name": "anno_statistics", "type": "bool", "default": True},
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"}
+            {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
+            {"name": "gene_kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
+            {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
         ]
         self.add_option(options)
         self.blast_nr = self.add_tool('align.ncbi.blast')
@@ -231,8 +233,12 @@ class DenovoAnnotationModule(Module):
                 self.anno_num['nr'].append(obj.option('gene_nr_table').prop['query_num'])
             if 'kegg' in self.anno_database:
                 self.anno_num['kegg'].append(obj.option('gene_kegg_table').prop['query_num'])
+                self.option('gene_kegg_table', obj.option('gene_kegg_table').prop['path'])
             if 'cog' in self.anno_database:
                 self.anno_num['string'].append(obj.option('gene_string_table').prop['query_num'])
+            if 'go' in self.anno_database:
+                self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
+                self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])
             try:
                 self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation_statistics.xls', self.output_dir + '/anno_stat/all_annotation.xls')
             except Exception as e:

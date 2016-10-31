@@ -37,6 +37,8 @@ class DenovoAnnoStatAgent(Agent):
             {"name": "gene_string_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "gene_kegg_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "nr_taxons", "type": "outfile", "format": "annotation.nr.nr_taxon"},
+            {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
+            {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
         ]
         self.add_option(options)
         self.step.add_steps("denovo_anno_stat")
@@ -255,6 +257,7 @@ class DenovoAnnoStatTool(Tool):
                 if db == 'go':
                     self.movedir2output(self.go_stat_path, 'go_stat')
                     files = os.listdir(self.work_dir)
+                    self.option('gene_go_list', self.output_dir + '/go_stat/gene_gos.list')
                     for f in files:
                         if re.search(r'level_statistics\.xls$', f):
                             if os.path.exists(self.output_dir + '/go_stat/gene_go1234level_statistics.xls'):
@@ -264,6 +267,7 @@ class DenovoAnnoStatTool(Tool):
                             if os.path.exists(self.output_dir + '/go_stat/gene_{}'.format(f)):
                                 os.remove(self.output_dir + '/go_stat/gene_{}'.format(f))
                             os.link(self.work_dir + '/' + f, self.output_dir + '/go_stat/gene_{}'.format(f))
+                    self.option('gene_go_level_2', self.output_dir + '/go_stat/gene_go2level.xls')
         except Exception as e:
             self.set_error("设置注释统计分析结果目录失败{}".format(e))
             self.logger.info("设置注释统计分析结果目录失败{}".format(e))

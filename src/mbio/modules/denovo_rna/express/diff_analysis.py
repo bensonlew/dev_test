@@ -14,7 +14,7 @@ class DiffAnalysisModule(Module):
         options = [
             {"name": "analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich,go_regulate"},  # 选择要做的分析
             {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
+            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 基因名称文件
             {"name": "distance_method", "type": "string", "default": "euclidean"},  # 计算距离的算法
             {"name": "log", "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
             {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
@@ -23,12 +23,11 @@ class DiffAnalysisModule(Module):
             {"name": "dissimilarity", "type": "float", "default": 0.25},
             {"name": "module", "type": "float", "default": 0.1},
             {"name": "network", "type": "float", "default": 0.2},
-            {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "diff_list_dir", "type": "infile", "format": "denovo_rna.express.gene_list_dir"},  # 两两样本/分组的差异基因文件
             {"name": "correct", "type": "string", "default": "BH"},  # 多重检验校正方法
-            {"name": "kegg_path", "type": "infile", "format": "annotation.kegg.kegg_list"},  # KEGG的pathway文件
-            {"name": "go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
-            {"name": "go_level_2", "type": "infile", "format": "annotation.go.level2"}
+            {"name": "gene_kegg_table", "type": "infile", "format": "annotation.kegg.kegg_list"},  # KEGG的pathway文件
+            {"name": "gene_go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
+            {"name": "gene_go_level_2", "type": "infile", "format": "annotation.go.level2"}
         ]
         self.add_option(options)
         self.cluster = self.add_tool("denovo_rna.express.cluster")
@@ -45,12 +44,12 @@ class DiffAnalysisModule(Module):
             raise OptionError('缺少网络分析的输入文件：gene_file差异基因文件')
         if ('kegg_rich' or 'go_rich') in analysis and not self.option('diff_list_dir'):
             raise OptionError('缺少富集分析的输入文件：diff_list_dir差异基因文件夹')
-        if 'kegg_rich' in analysis and not self.option('kegg_path'):
-            raise OptionError('缺少输入文件：kegg_path文件')
-        if 'go_rich' in analysis and (not self.option('go_list') or not self.option('all_list')):
+        if 'kegg_rich' in analysis and not self.option('gene_kegg_table'):
+            raise OptionError('缺少输入文件：gene_kegg_table文件')
+        if 'go_rich' in analysis and (not self.option('gene_go_list') or not self.option('gene_file')):
             raise OptionError('缺少go_rich输入文件')
-        if 'go_rich' in analysis and not self.option('go_level_2'):
-            raise OptionError('缺少输入文件：go_level_2文件')
+        if 'go_rich' in analysis and not self.option('gene_go_level_2'):
+            raise OptionError('缺少输入文件：gene_go_level_2文件')
         if self.option("distance_method") not in ("manhattan", "euclidean"):
             raise OptionError("所选距离算法不在提供的范围内")
         if self.option('log') not in (10, 2):
@@ -112,8 +111,9 @@ class DiffAnalysisModule(Module):
     def kegg_rich_run(self):
         self.step.kegg_rich.start()
         opts = {
-            "kegg_path": self.option("kegg_path"),
-            "correct": self.option("correct")
+            "kegg_table": self.option("gene_kegg_table"),
+            "correct": self.option("correct"),
+            "all_list": self.option("gene_file"),
         }
         files = os.listdir(self.option('diff_list_dir').prop['path'])
         for f in files:
@@ -133,8 +133,8 @@ class DiffAnalysisModule(Module):
     def go_rich_run(self):
         self.step.go_rich.start()
         opts = {
-            "all_list": self.option("all_list"),
-            "go_list": self.option("go_list")
+            "all_list": self.option("gene_file"),
+            "go_list": self.option("gene_go_list")
         }
         files = os.listdir(self.option('diff_list_dir').prop['path'])
         for f in files:
@@ -155,7 +155,7 @@ class DiffAnalysisModule(Module):
         self.go_regulate = self.add_tool("denovo_rna.express.go_regulate")
         self.go_regulate.set_options({
             "diff_express": self.option("diff_fpkm"),
-            "go_level_2": self.option("go_level_2")
+            "go_level_2": self.option("gene_go_level_2")
         })
         self.go_regulate.on('end', self.set_output, 'go_regulate')
         self.go_regulate.run()
@@ -265,7 +265,7 @@ class DiffAnalysisModule(Module):
             [r"network/CytoscapeInput.*", "txt", "Cytoscape作图数据"],
             [r"go_rich/go_enrich_.*", "xls", "go富集结果文件"],
             [r"go_rich/go_lineage.*", "png", "go富集有向无环图"],
-            [r"kegg_rich/kegg_enrichment.xls$", "xls", "kegg富集分析结果"]
+            [r"kegg_rich/.*?kegg_enrichment.xls$", "xls", "kegg富集分析结果"]
         ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
