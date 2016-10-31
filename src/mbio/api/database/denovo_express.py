@@ -157,7 +157,7 @@ class DenovoExpress(Base):
             self.bind_object.logger.info("导入单样本表达量矩阵: %s信息成功!" % rsem_result)
 
     @report_check
-    def add_express_diff(self, params, samples, compare_column, diff_exp_dir=None, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True):
+    def add_express_diff(self, params, samples, compare_column, diff_exp_dir=None, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True, samples_detail=None, express_id=None):
         # group_id, group_detail, control_id只供denovobase初始化时更新param使用
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
@@ -177,6 +177,8 @@ class DenovoExpress(Base):
             'specimen': samples,
             'status': 'end',
             'compare_column': compare_column,
+            'group_detail': samples_detail,
+            'express_id': express_id
         }
         collection = self.db['sg_denovo_express_diff']
         express_diff_id = collection.insert_one(insert_data).inserted_id
@@ -189,10 +191,9 @@ class DenovoExpress(Base):
         return express_diff_id
 
     @report_check
-    def add_express_diff_detail(self, express_diff_id, group, diff_stat_path, samples=None):
+    def add_express_diff_detail(self, express_diff_id, group, diff_stat_path):
         """
         group:为两两比较的样本或分组名，列表
-        samples: 两两比较分组中的样本明细，有分组时：[s1,s2,s3]
         """
         if not isinstance(express_diff_id, ObjectId):
             if isinstance(express_diff_id, types.StringTypes):
@@ -210,7 +211,6 @@ class DenovoExpress(Base):
                     ('name', group[0]),
                     ('compare_name', group[1]),
                     ('express_diff_id', express_diff_id),
-                    ('specimen', samples),
                 ]
                 for i in range(len(head)):
                     data.append((head[i], line[i]))
