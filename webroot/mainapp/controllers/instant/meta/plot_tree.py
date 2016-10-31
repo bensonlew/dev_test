@@ -27,8 +27,8 @@ class PlotTree(MetaController):
         self.task_type = 'workflow'  # 可以不配置
         params = {
             'otu_id': data.otu_id,
-            'level_id': data.level_id,
-            'color_level_id': data.color_level_id,
+            'level_id': int(data.level_id),
+            'color_level_id': int(data.color_level_id),
             'group_id': data.group_id,
             'group_detail':group_detail_sort(data.group_detail),
             'submit_location': data.submit_location,

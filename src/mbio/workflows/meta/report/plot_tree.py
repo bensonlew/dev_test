@@ -50,9 +50,10 @@ class PlotTreeWorkflow(Workflow):
         self.get_newicktree(tree_file)
         options = {
             "abundance_table": otu_format,
-            "newicktree": tree_file,
-            "sample_group": self.option("sample_group")
+            "newicktree": tree_file
         }
+        if self.option("group_id") not in ['all', 'All', 'ALL', None]:
+            options['sample_group'] = self.option("sample_group")
         if self.option("color_level_id"):
             options["leaves_group"] = species_format
         self.task = self.add_tool("graph.plot_tree")

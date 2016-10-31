@@ -46,7 +46,7 @@ class TreePicture(Base):
             raise Exception("major为False时需提供main_id!")
         if not isinstance(main_id, ObjectId):
             main_id = ObjectId(main_id)
-        fs = gridfs.GridFS(self.db, collection="sg_tree_picture_file")
+        fs = gridfs.GridFS(self.db)
         # fs = gridfs.GridFS(self.db['sg_tree_picture_file'])
         fan_tree_id = fs.put(open(output_dir + '/fan.png', 'r'))
         bar_tree_id = fs.put(open(output_dir + '/bar.png', 'r'))

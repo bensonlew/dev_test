@@ -56,7 +56,7 @@ class PlotTreeAgent(Agent):
         if self.option('sample_group').is_set:
             for i in sample:
                 if i not in self.option("sample_group").prop['sample']:
-                    raise OptionError("otu/物种分度表中样本不在样本分组文件中")
+                    raise OptionError("otu/物种丰度表中样本不在样本分组文件中")
 
 
     def set_resource(self):
@@ -111,7 +111,8 @@ class PlotTreeTool(Tool):
         if self.option('leaves_group').is_set:
             cmd_bar += ' -d ' + self.option('leaves_group').path
         else:
-            cmd_bar += ' -d ALL'
+            pass
+            # cmd_bar += ' -d ALL'
         fan_label_size = 1
         if len(self.option('newicktree').prop['sample']) > 500:
             fan_label_size = 0.5
