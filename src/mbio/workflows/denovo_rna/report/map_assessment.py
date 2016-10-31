@@ -82,7 +82,7 @@ class MapAssessmentWorkflow(Workflow):
             if os.path.isfile(satur_path):
                 raise Exception("找不到报告文件夹:{}".format(satur_path))
             api_mapping.add_rpkm_detail(satur_path, self.option("insert_id"))
-            api_mapping.add_rpkm_box(satur_path, self.option("insert_id"))
+            # api_mapping.add_rpkm_box(satur_path, self.option("insert_id"))
             api_mapping.add_rpkm_curve(satur_path, self.option("insert_id"))
         if self.option("analysis_type") == "correlation":
             correlation_path = self.output_dir + "/correlation"

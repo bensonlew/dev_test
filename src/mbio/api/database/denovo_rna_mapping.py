@@ -3,6 +3,8 @@
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 from bson.objectid import ObjectId
+from cStringIO import StringIO
+import bson.binary
 import datetime
 import pandas
 import numpy
@@ -61,6 +63,7 @@ class DenovoRnaMapping(Base):
 
     @report_check
     def add_rpkm_detail(self, rpkm_file, rpkm_id=None):
+        rpkm_id = ObjectId(rpkm_id)
         rpkm_tables = glob.glob("{}/*eRPKM.xls".format(rpkm_file))
         rpkm_detail = []
         for rt in rpkm_tables:
@@ -136,6 +139,7 @@ class DenovoRnaMapping(Base):
     @report_check
     def add_rpkm_curve(self, rpkm_file, rpkm_id=None):
         curve_files = glob.glob("{}/*cluster_percent.xls".format(rpkm_file))
+        rpkm_pdf = glob.glob("{}/*.pdf".format(rpkm_file))
         curve_data = []
         for cf in curve_files:
             sample_name = os.path.basename(cf).split(".")[0][6:]
@@ -153,10 +157,21 @@ class DenovoRnaMapping(Base):
                     "column3": line_list[2],
                     "column4": line_list[3],
                     "column5": line_list[4],
-                    "column6": line_list[5],
+                    "column6": line_list[5]
                 }
                 # self.bind_object.logger.error data
                 curve_data.append(data)
+
+        for rp in rpkm_pdf:
+            sample_name = os.path.basename(rp).split(".")[0][6:]
+            # print sample_name
+            with open(rp, 'rb') as s:
+                box_id = StringIO(s.read())
+                box_id = bson.binary.Binary(box_id.getvalue())
+                for cd in curve_data:
+                    if cd["specimen_name"] == sample_name:
+                        cd["box_id"] = box_id
+        # print curve_data
         try:
             collection = self.db["sg_denovo_rpkm_curve"]
             collection.insert_many(curve_data)

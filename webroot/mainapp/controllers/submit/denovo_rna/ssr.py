@@ -8,6 +8,7 @@ from mainapp.libs.param_pack import *
 from biocluster.config import Config
 from mbio.api.database.denovo_express import *
 from mainapp.models.mongo.submit.denovo_rna.gene_structure import GeneStructure
+from mainapp.libs.param_pack import GetUploadInfo_denovo
 import types
 from mainapp.models.mongo.denovo import Denovo
 from mainapp.models.workflow import Workflow
@@ -51,7 +52,7 @@ class Ssr(object):
             update_info = {str(ssr_id): "sg_denovo_ssr", 'database': self.db_name}
             update_info = json.dumps(update_info)
             workflow_id = Denovo().get_new_id(task_id, data.sequence_id)
-            (output_dir, update_api) = GetUploadInfo_test(client, member_id, project_sn, task_id, 'ssr')
+            (output_dir, update_api) = GetUploadInfo_denovo(client, member_id, project_sn, task_id, 'ssr')
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,

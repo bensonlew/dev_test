@@ -110,7 +110,7 @@ class MapAssessmentModule(Module):
                 'bam': f,
                 "bed": self.option('bed').prop["path"],
                 "low_bound": self.option("low_bound"),
-                "up_bound": self.option("low_bound"),
+                "up_bound": self.option("up_bound"),
                 "step": self.option("step"),
                 "rpkm_cutof": self.option("rpkm_cutof"),
                 "quality": self.option("quality_satur")

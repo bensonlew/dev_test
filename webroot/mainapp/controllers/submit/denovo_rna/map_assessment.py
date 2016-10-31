@@ -7,9 +7,10 @@ from mainapp.models.workflow import Workflow
 import datetime
 from biocluster.config import Config
 from mainapp.models.mongo.denovo import Denovo
-from mainapp.libs.param_pack import GetUploadInfo_test
+from mainapp.libs.param_pack import GetUploadInfo_denovo
 from mbio.api.database.denovo_rna_mapping import *
 from mainapp.models.mongo.submit.denovo_rna.denovo_mapping import DenovoMapping
+import random
 
 
 class MapAssessment(object):
@@ -71,9 +72,9 @@ class MapAssessment(object):
         # print(data.express_id)
         my_param = {'analysis_type': data.analysis_type, "express_id": data.express_id}
         if data.analysis_type == "saturation":
-            my_param["low_bound"] = data.low_bound
-            my_param["up_bound"] = data.up_bound
-            my_param["step"] = data.step
+            my_param["low_bound"] = int(data.low_bound)
+            my_param["up_bound"] = int(data.up_bound)
+            my_param["step"] = int(data.step)
             my_param["quality_satur"] = data.quality_satur
         # elif data.analysis_type == "coverage":
         #     my_param["orf_id"] = data.orf_id
@@ -124,8 +125,9 @@ class MapAssessment(object):
             options.update(my_params)
             to_file = ["denovo.export_express_matrix(fpkm)", "denovo.export_bam_path(bam)"]
 
-        workflow_id = Denovo().get_new_id(express_info["task_id"], data.express_id)
-        (output_dir, update_api) = GetUploadInfo_test(client, member_id, express_info['project_sn'], express_info['task_id'], 'gene_structure')
+        # workflow_id = Denovo().get_new_id(express_info["task_id"], data.express_id)
+        workflow_id = self.get_new_id(express_info["task_id"], data.express_id)
+        (output_dir, update_api) = GetUploadInfo_denovo(client, member_id, express_info['project_sn'], express_info['task_id'], 'gene_structure')
         json_data = {
             "id": workflow_id,
             "stage_id": 0,
@@ -146,5 +148,14 @@ class MapAssessment(object):
                        "json": json.dumps(json_data),
                        "ip": web.ctx.ip
                        }
+        print("lllllllllllll")
         print(options)
         return insert_data
+
+    def get_new_id(self, task_id, main_id):
+        new_id = "%s_%s_%s" % (task_id, main_id[-4:], random.randint(1, 10000))
+        workflow_module = Workflow()
+        workflow_data = workflow_module.get_by_workflow_id(new_id)
+        if len(workflow_data) > 0:
+            return self.get_new_id(task_id, main_id)
+        return new_id
