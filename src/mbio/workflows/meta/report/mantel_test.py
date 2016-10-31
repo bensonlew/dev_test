@@ -26,10 +26,11 @@ class MantelTestWorkflow(Workflow):
             {"name": "level", "type": "int"},
             {"name": "otu_id", "type": "string"},
             {"name": "env_id", "type": "string"},
+            {"name": "env_labs", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "group_id", "type": "string"},
             {"name": "group_detail", "type": "string"},
-            {"name": "partial_factor", "type": "string"},
+            {"name": "units", "type": "string"},   # partial factor
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
             {"name": "params", "type": "string"},
@@ -91,8 +92,8 @@ class MantelTestWorkflow(Workflow):
         options = {
             'otutable': self.option('otu_file'),
             'factor': self.option('env_file'),
-            # 'level': self.option('level'),
-            'partial_factor': self.option('partial_factor'),
+            'factorselected': self.option('env_labs'),
+            'partial_factor': self.option('units'),
             'otumatrixtype': self.option('otu_method'),
             'factormatrixtype': self.option('env_method')
             }

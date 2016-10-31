@@ -46,7 +46,10 @@ class MetaSpeciesEnv(Base):
         return inserted_id
 
     @report_check
-    def add_mantel_detail(self, file_path, mantel_id=None):
+    def add_mantel_detail(self, file_path, mantel_id=None, main_colletion_name=None):
+        main_colletion_time = " "
+        if main_colletion_name:
+            main_colletion_time = main_colletion_name[11:]
         data_list = []
         with open(file_path, "r") as f:
             for line in f:
@@ -56,8 +59,8 @@ class MetaSpeciesEnv(Base):
                     line = line.strip().split("\t")
                     data = {
                         "mantel_id": mantel_id,
-                        "dm1": line[0],
-                        "dm2": line[1]
+                        "dm1": "species_matrix"+main_colletion_time,
+                        "dm2": "env_matrix"+main_colletion_time
                     }
                     if len(line) == 8:
                         data["entries_num"] = line[3]
@@ -65,7 +68,7 @@ class MetaSpeciesEnv(Base):
                         data["mantel_r"] = line[4]
                         data["p_value"] = line[5]
                         data["tail_type"] = line[7]
-                        data["cdm"] = line[2]
+                        data["cdm"] = "partial_matrix"+main_colletion_time
                     else:
                         data["entries_num"] = line[2]
                         data["permutations"] = line[5]
