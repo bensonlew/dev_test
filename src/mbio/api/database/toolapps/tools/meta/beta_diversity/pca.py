@@ -24,10 +24,36 @@ class Pca(Base):
         """
         运行函数
         """
+        self.scatter_in()
         self.main_in()
         self.detail_in()
         return self.main_id
         pass
+
+    def scatter_in(self):
+        """
+        """
+        with open(self.output_dir + '/pca_sites.xls') as f:
+            attrs = f.readline().strip().split('\t')[1:]
+            samples = []
+            insert_data = []
+            for line in f:
+                line_split = line.strip().split('\t')
+                samples.append(line_split[0])
+                data = dict(zip(attrs, line_split[1:]))
+                data["name"] = line_split[0]
+                insert_data.append(data)
+            self.db['scatter'].insert_one({
+                'project_sn': self.bind_object.sheet.project_sn,
+                'status': 'end',
+                'task_id': self.bind_object.id,
+                'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'name': 'pca',
+                'desc': 'PCA主成分分析'
+            })
+            self.db['scatter_detail'].insert_many(insert_data)
+
+
 
     def check(self):
         """
