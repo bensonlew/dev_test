@@ -21,11 +21,18 @@ class MetaSpeciesEnv(Base):
     def add_mantel_table(self, level, otu_id, env_id, task_id=None, name=None, params=None, spname_spid=None):
         if level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
+        # if task_id is None:
+        #     task_id = self.bind_object.sheet.id
+        matrix_types = ["species_matrix", "env_matrix", "partial_matrix"]
+        if params["units"] == "":
+            matrix_types = ["species_matrix", "env_matrix"]
+
         if not isinstance(otu_id, ObjectId):
             otu_id = ObjectId(otu_id)
-        # params['otu_id'] = str(otu_id)
+        collection = self.db["sg_otu"]
+        result = collection.find_one({"_id": otu_id})
+        if task_id is None:
+            task_id = result['task_id']
         if spname_spid:
             group_detail = {'All': [str(i) for i in spname_spid.values()]}
             params['group_detail'] = group_detail_sort(group_detail)
@@ -36,8 +43,9 @@ class MetaSpeciesEnv(Base):
             "otu_id": otu_id,
             "name": name if name else "mantel_origin",
             "level_id": level,
-            "status": "start",
+            "status": "end",
             "desc": "",
+            "matrix_types": matrix_types,
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -47,7 +55,7 @@ class MetaSpeciesEnv(Base):
 
     @report_check
     def add_mantel_detail(self, file_path, mantel_id=None, main_colletion_name=None):
-        main_colletion_time = " "
+        main_colletion_time = ""
         if main_colletion_name:
             main_colletion_time = main_colletion_name[11:]
         data_list = []
