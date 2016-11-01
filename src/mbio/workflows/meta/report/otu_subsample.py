@@ -20,6 +20,7 @@ class OtuSubsampleWorkflow(Workflow):
         options = [
             {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU表
             {"name": "input_otu_id", "type": "string"},  # 输入的OTU id
+            {"name": "filter_json", "type": "string", "default": ""},  # 输入的json文件
             {"name": "size", "type": "string", "default": "min"},
             {"name": "group_detail", "type": "string"},
             {"name": "level", "type": "string", "default": "9"},
@@ -27,16 +28,34 @@ class OtuSubsampleWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
+        self.filter_otu = self.add_tool("meta.otu.filter_otu")
         self.sort_samples = self.add_tool("meta.otu.sort_samples")
         self.subsample = self.add_tool("meta.otu.sub_sample")
         group_table_path = os.path.join(self.work_dir, "group_table.xls")
         self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table_path)
 
+    def run_filter_otu(self):
+        if self.option("filter_json") != "":
+            self.filter_otu.set_options({
+                "in_otu_table": self.option("in_otu_table"),
+                "filter_json": self.option("filter_json")
+            })
+            self.filter_otu.on("end", self.run_sort_samples)
+            self.filter_otu.run()
+        else:
+            self.run_sort_samples()
+
     def run_sort_samples(self):
-        self.sort_samples.set_options({
-            "in_otu_table": self.option("in_otu_table"),
-            "group_table": self.group_table_path
-        })
+        if self.option("filter_json") == "":
+            self.sort_samples.set_options({
+                "in_otu_table": self.option("in_otu_table"),
+                "group_table": self.group_table_path
+            })
+        else:
+            self.sort_samples.set_options({
+                "in_otu_table": self.filter_otu.option("out_otu_table"),
+                "group_table": self.group_table_path
+            })
         if self.option("size") != "":
             self.sort_samples.on("end", self.run_subsample)
         else:
@@ -81,5 +100,5 @@ class OtuSubsampleWorkflow(Workflow):
         super(OtuSubsampleWorkflow, self).end()
 
     def run(self):
-        self.run_sort_samples()
+        self.run_filter_otu()
         super(OtuSubsampleWorkflow, self).run()

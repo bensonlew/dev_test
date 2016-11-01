@@ -64,11 +64,12 @@ function checkIdentity($code, $input_dir, $mode){
 	}
 }	
 
-$post_json = json_decode($_POST["target"], true);
-$code = $post_json["code"];
-$mode = $post_json["mode"];
-$target_path = $post_json["target_path"];
-$input_dir = $post_json["rel_dir"];
+var_dump($_FILES);
+var_dump($_POST);
+$code = $_POST["code"];
+$mode = $_POST["mode"];
+$target_path = $_POST["target_path"];
+$input_dir = $_POST["rel_dir"];
 $dir_name = dirname($target_path);
 
 
