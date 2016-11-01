@@ -371,7 +371,7 @@ class Venn(Base):
             collection.insert_many(data_list)
 
     @report_check
-    def add_venn_graph(self, venn_graph_path, venn_id, otu_id):
+    def add_venn_graph(self, venn_graph_path, venn_id):
         data_list = []
         if not isinstance(venn_id, ObjectId):
             if isinstance(venn_id, StringTypes):

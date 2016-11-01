@@ -51,7 +51,7 @@ class VennWorkflow(Workflow):
         venn_path = os.path.join(self.venn.work_dir, "venn_table.xls")
         venn_graph_path = os.path.join(self.venn.work_dir, "venn_graph.xls")
         api_venn.add_venn_detail(venn_path, venn_id, self.option("otu_id"), self.option("level"))
-        api_venn.add_venn_graph(venn_graph_path, venn_id, self.option("otu_id"))
+        api_venn.add_venn_graph(venn_graph_path, venn_id)
         self.add_return_mongo_id("sg_otu_venn", venn_id)
         self.end()
 
