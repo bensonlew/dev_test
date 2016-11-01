@@ -38,13 +38,13 @@ class PearsonCorrelationWorkflow(Workflow):
         # print(self._sheet.options())
         self.set_options(self._sheet.options())
         self.correlation = self.add_tool('statistical.pearsons_correlation')
-        self.distance_otu = self.add_tool('meta.beta_diversity.distance_calc')
-        self.distance_env = self.add_tool('meta.beta_diversity.distance_calc')
-        self.hcluster_otu = self.add_tool('meta.beta_diversity.hcluster')
-        self.hcluster_env = self.add_tool('meta.beta_diversity.hcluster')
-        self.distance = [self.distance_otu, self.distance_env]
-        self.hcluster = [self.hcluster_otu, self.hcluster_env]
-        self.tools = [self.correlation] + self.distance + self.hcluster
+        # self.distance_otu = self.add_tool('meta.beta_diversity.distance_calc')
+        # self.distance_env = self.add_tool('meta.beta_diversity.distance_calc')
+        # self.hcluster_otu = self.add_tool('meta.beta_diversity.hcluster')
+        # self.hcluster_env = self.add_tool('meta.beta_diversity.hcluster')
+        # self.distance = [self.distance_otu, self.distance_env]
+        # self.hcluster = [self.hcluster_otu, self.hcluster_env]
+        # self.tools = [self.correlation] + self.distance + self.hcluster
         self.params = {}
 
     def run_correlation(self):
@@ -53,6 +53,7 @@ class PearsonCorrelationWorkflow(Workflow):
             'envtable': self.option('env_file')
             }
         self.correlation.set_options(options)
+        self.correlation.on("end", self.set_db)
         self.correlation.run()
         # self.output_dir = self.correlation.output_dir
         # super(PearsonCorrelationWorkflow, self).run()
@@ -89,8 +90,8 @@ class PearsonCorrelationWorkflow(Workflow):
         
     def run(self):
         self.run_correlation()
-        self.run_distance()
-        self.on_rely(self.tools, self.set_db)
+        # self.run_distance()
+        # self.on_rely(self.tools, self.set_db)
         super(PearsonCorrelationWorkflow, self).run()
 
     def set_db(self):
@@ -112,8 +113,10 @@ class PearsonCorrelationWorkflow(Workflow):
         api_correlation = self.api.meta_species_env
         corr_path = glob.glob(self.correlation.output_dir+"/*correlation*")
         pvalue_path = glob.glob(self.correlation.output_dir+"/*pvalue*")
-        env_tree_path = self.hcluster_env.output_dir + "/hcluster.tre"
-        species_tree_path = self.hcluster_otu.output_dir + "/hcluster.tre"
+
+        env_tree_path = self.correlation.work_dir + "/env_tree.tre"
+        species_tree_path = self.correlation.work_dir + "/species_tree.tre"
+
         if os.path.exists(env_tree_path):
             with open(env_tree_path, "r") as f:
                 env_tree = f.readline().strip()
