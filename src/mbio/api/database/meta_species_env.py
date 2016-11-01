@@ -119,7 +119,7 @@ class MetaSpeciesEnv(Base):
             self.bind_object.logger.info("导入mantel检验%s矩阵成功" % matrix_type)
 
     @report_check
-    def add_correlation(self, level, otu_id, env_id, species_tree=None, env_tree=None, task_id=None, name=None, params=None, spname_spid=None):
+    def add_correlation(self, level, otu_id, env_id, species_tree=None, env_tree=None, task_id=None, name=None, params=None, spname_spid=None, env_list=None, species_list=None):
         if level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
         # if task_id is None:
@@ -136,13 +136,15 @@ class MetaSpeciesEnv(Base):
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": task_id,
-            "env_id": env_id,
+            "env_id": ObjectId(env_id),
             "otu_id": otu_id,
             "name": name if name else "pearson_origin",
             "level_id": level,
             "status": "end",
-            "env_tree": env_tree,
-            "species_tree": species_tree,
+            "env_tree": env_tree if env_tree else "()",
+            "species_tree": species_tree if species_tree else "()",
+            "env_list": env_list if env_list else "[]",
+            "species_list": species_list if species_list else "[]",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

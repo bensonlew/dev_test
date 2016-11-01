@@ -31,7 +31,7 @@ class PearsonCorrelation(MetaController):
         self.task_type = 'workflow'
         self.options = {"otu_file": data.otu_id,
                         "otu_id": data.otu_id,
-                        "level": data.level_id,
+                        "level": int(data.level_id),
                         "submit_location": data.submit_location,
                         "task_type": data.task_type,
                         "group_detail": data.group_detail,

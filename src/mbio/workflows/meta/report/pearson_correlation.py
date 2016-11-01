@@ -7,6 +7,7 @@ from mbio.api.to_file.meta import *
 import datetime
 from mbio.packages.statistical.reverse_table import reverse_table
 from mainapp.libs.param_pack import group_detail_sort
+import re
 
 
 class PearsonCorrelationWorkflow(Workflow):
@@ -85,7 +86,7 @@ class PearsonCorrelationWorkflow(Workflow):
         })
         self.hcluster_env.run()
         self.hcluster_otu.run()
-
+        
     def run(self):
         self.run_correlation()
         self.run_distance()
@@ -99,10 +100,15 @@ class PearsonCorrelationWorkflow(Workflow):
         self.params = eval(self.option("params"))
         del self.params["otu_file"]
         del self.params["env_file"]
+        level = self.params["level"]
+        del self.params["level"]
+        self.params["level_id"] = int(level)
         group_detail = self.params["group_detail"]
         self.params["group_detail"] = group_detail_sort(group_detail)
         species_tree = ""
         env_tree = ""
+        env_list = []
+        species_list = []
         api_correlation = self.api.meta_species_env
         corr_path = glob.glob(self.correlation.output_dir+"/*correlation*")
         pvalue_path = glob.glob(self.correlation.output_dir+"/*pvalue*")
@@ -111,13 +117,25 @@ class PearsonCorrelationWorkflow(Workflow):
         if os.path.exists(env_tree_path):
             with open(env_tree_path, "r") as f:
                 env_tree = f.readline().strip()
+                raw_samp = re.findall(r'([(,]([\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', env_tree)
+                env_list = [i[1] for i in raw_samp]
+                env_list = sorted(env_list)
+                print("llllllllll")
+                print(env_list)
         if os.path.exists(species_tree_path):
             with open(species_tree_path, "r") as f:
                 species_tree = f.readline().strip()
+                raw_samp = re.findall(r'([(,]([\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', species_tree)
+                species_list = [i[1] for i in raw_samp]
+                species_list = sorted(species_list)
+                # print(species_list)
+                print("llllllllll")
         name = "correlation" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        corr_id = api_correlation.add_correlation(self.option("level"), self.option("otu_id"), self.option("env_id"), species_tree=species_tree, env_tree=env_tree, name=name, params=self.params)
+        corr_id = api_correlation.add_correlation(self.option("level"), self.option("otu_id"), self.option("env_id"),
+                                                  species_tree=species_tree, env_tree=env_tree, name=name,
+                                                  params=self.params, env_list=env_list, species_list=species_list)
         api_correlation.add_correlation_detail(corr_path[0], "correlation", corr_id)
-        api_correlation.add_correlation_detail(pvalue_path[0], "pvlue", corr_id)
+        api_correlation.add_correlation_detail(pvalue_path[0], "pvalue", corr_id)
         self.add_return_mongo_id('sg_species_env_correlation', corr_id)
         self.end()
 
