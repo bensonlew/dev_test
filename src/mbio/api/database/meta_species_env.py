@@ -122,11 +122,14 @@ class MetaSpeciesEnv(Base):
     def add_correlation(self, level, otu_id, env_id, species_tree=None, env_tree=None, task_id=None, name=None, params=None, spname_spid=None):
         if level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
+        # if task_id is None:
+        #     task_id = self.bind_object.sheet.id
         if not isinstance(otu_id, ObjectId):
             otu_id = ObjectId(otu_id)
-        # params['otu_id'] = str(otu_id)
+        collection = self.db["sg_otu"]
+        result = collection.find_one({"_id": otu_id})
+        if task_id is None:
+            task_id = result['task_id']
         if spname_spid:
             group_detail = {'All': [str(i) for i in spname_spid.values()]}
             params['group_detail'] = group_detail_sort(group_detail)
@@ -137,7 +140,7 @@ class MetaSpeciesEnv(Base):
             "otu_id": otu_id,
             "name": name if name else "pearson_origin",
             "level_id": level,
-            "status": "start",
+            "status": "end",
             "env_tree": env_tree,
             "species_tree": species_tree,
             "desc": "",

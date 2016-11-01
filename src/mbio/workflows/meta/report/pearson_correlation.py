@@ -25,6 +25,7 @@ class PearsonCorrelationWorkflow(Workflow):
             {"name": "params", "type": "string"},
             {"name": "env_file", "type": "infile", 'format': "meta.otu.group_table"},  # 输入的OTU id
             {"name": "env_id", "type": "string"},
+            {"name": "env_labs", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "correlation_id", "type": "string"},
             {"name": "submit_location", "type": "string"},
