@@ -34,7 +34,7 @@ class ClusterAnalysis(Base):
         project_sn = result['project_sn']
         self.task_id = result['task_id']
         if not name:
-            name = "cluser_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            name = "community_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         insert_data = {
             "project_sn": project_sn,
             'task_id': self.task_id,
