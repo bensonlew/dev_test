@@ -217,7 +217,6 @@ def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, bind_
     temptre = tempdir + 'temp_newick.tre'
     filter_tre = tempdir + 'temp_filter_newick.tre'
     origin_id = get_origin_otu(otu_id)
-    print 'aaaa'
     if bind_obj:
         bind_obj.logger.info('origin_id:' + str(origin_id))
     if origin_id[0]:

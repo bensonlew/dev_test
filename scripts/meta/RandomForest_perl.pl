@@ -45,11 +45,44 @@ print CMD "
 library(sp,warn.conflicts = F)
 library(randomForest,warn.conflicts = F)
 library(maptools,warn.conflicts = F)
+library(stringr)
 basename=\"randomforest\"
 
 
 # if read otu data
 otu <-read.table(\"$opts{i}\",sep=\"\\t\",head=T,check.names = F)
+b1<-ncol(otu)
+a1<-nrow(otu)
+otu1<-matrix(nrow=a1,ncol=1)
+#for(i in c(2:b1)){
+#for(j in c(1:a1)){
+#otu[j,i]<-otu1[j,i]
+#}
+#}
+
+
+#otu3<-c()
+
+zp<-length(str_split(otu[1,1],';')[[1]])
+
+for(i in c(1:nrow(otu))){
+otu1[i,1]<-str_split(otu[i,1],';')[[1]][zp]
+#otu1[i,1]<-sub(':',otu1[i,1])
+#otu1[i,1]<-str_split(otu[i,1],';')[[1]][2]
+}
+
+for(i in c(1:nrow(otu))){
+#otu1[i,1]<-str_split(otu[i,1],':')[[1]][1]
+otu1[i,1]<-sub(':','_',otu1[i,1])
+#otu1[i,1]<-str_split(otu[i,1],';')[[1]][2]
+}
+
+
+otu\$otu_id<-otu1
+otu<-otu[,-1]
+otu5<-data.frame(otu\$otu_id,otu[,-ncol(otu)])
+otu<-otu5
+
 rownames(otu) <-as.factor(otu[,1])
 otu <-otu[,-1]
 rownames(otu) <-sapply(rownames(otu),function(x) gsub(\"_*{.+}\",\" \",x,perl = TRUE))
@@ -67,7 +100,7 @@ if(map !=\"none\"){
                 sd <-read.table(\"$opts{m}\",head=T,sep=\"\\t\",comment.char = \"\",check.names = FALSE)        
                 rownames(sd) <- as.character(sd[,1])
                 sd[,1] <-as.character(sd[,1])
-                sd\$group <-as.factor(sd\$group )
+                sd\$group <-as.factor(sd[,2] )
                 legend <- as.matrix(unique(sd\$group)) 
 }
 
