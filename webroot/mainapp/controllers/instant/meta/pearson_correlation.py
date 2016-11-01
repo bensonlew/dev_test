@@ -41,7 +41,7 @@ class PearsonCorrelation(MetaController):
                         "env_labs": data.env_labs
                         }
         self.options["params"] = str(self.options)
-        self.to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_env_table(env_file)"]
+        self.to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
         self.run()
         # print self.returnInfo
         return_info = json.loads(self.returnInfo)
