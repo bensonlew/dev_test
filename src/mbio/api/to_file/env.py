@@ -68,7 +68,7 @@ def export_float_env(data, option_name, dir_path, bind_obj=None):
             if specimen_name:
                 line_list = [specimen_name['specimen_name']]
                 for env in env_labs:
-                    if re.match(r"\D", str(one[env])):
+                    if not re.match(r"\d+?\.?\d+$", str(one[env])):
                         flit_envs.add(env)
                         continue
                     else:

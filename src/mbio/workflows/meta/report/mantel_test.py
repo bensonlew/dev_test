@@ -61,6 +61,9 @@ class MantelTestWorkflow(Workflow):
         self.params = eval(self.option("params"))
         del self.params["otu_file"]
         del self.params["env_file"]
+        level = self.params["level"]
+        del self.params["level"]
+        self.params["level_id"] = int(level)
         group_detail = self.params["group_detail"]
         self.params["group_detail"] = group_detail_sort(group_detail)
         api_mantel = self.api.meta_species_env
@@ -92,7 +95,7 @@ class MantelTestWorkflow(Workflow):
         options = {
             'otutable': self.option('otu_file'),
             'factor': self.option('env_file'),
-            'factorselected': self.option('env_labs'),
+            # 'factorselected': self.option('env_labs'),
             'partial_factor': self.option('units'),
             'otumatrixtype': self.option('otu_method'),
             'factormatrixtype': self.option('env_method')
