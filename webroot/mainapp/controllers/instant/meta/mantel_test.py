@@ -30,7 +30,7 @@ class MantelTest(MetaController):
         if return_info:
             return return_info
         data = web.input()
-        default_argu = ['otu_id', 'level_id', 'submit_location', "group_id", "units", "env_id", "otu_method", "env_method", "env_labs"]
+        default_argu = ['otu_id', 'level_id', 'submit_location', "group_id", "env_id", "otu_method", "env_method", "env_labs"]
 
         for argu in default_argu:
             if not hasattr(data, argu):
@@ -60,12 +60,15 @@ class MantelTest(MetaController):
                         "env_file": data.env_id,
                         "otu_method": data.otu_method,
                         "env_method": data.env_method,
-                        "units": data.units,
                         "env_labs": data.env_labs
                         }
+        if data.units:
+            self.options["units"] = data.units
         self.options["params"] = str(self.options)
         self.to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
         self.run()
         # print self.returnInfo
         return_info = json.loads(self.returnInfo)
+        # if not return_info["success"]:
+        #     return_info["info"] = "程序运行出错，请检查输入的环境因子是否存在分类型环境因子"
         return json.dumps(return_info)

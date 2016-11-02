@@ -96,10 +96,12 @@ class MantelTestWorkflow(Workflow):
             'otutable': self.option('otu_file'),
             'factor': self.option('env_file'),
             # 'factorselected': self.option('env_labs'),
-            'partial_factor': self.option('units'),
+            # 'partial_factor': self.option('units'),
             'otumatrixtype': self.option('otu_method'),
             'factormatrixtype': self.option('env_method')
             }
+        if self.option('units'):
+            options['partial_factor'] = self.option('units')
         # print("lhhhhhhhhhhhh")
         if 'unifrac' in self.option('otu_method'):  # sanger_bioinfo/src/mbio/workflows/meta/report/distance_calc.py中的解释
             if self.option('level') != 9:
