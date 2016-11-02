@@ -1,7 +1,7 @@
 ## !/mnt/ilustre/users/sanger-dev/app/program/Python/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "moli.zhou"
-#last_modify:20161026
+#last_modify:20161102
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -15,7 +15,7 @@ class TfPredictAgent(Agent):
     利用hmmer软件，进行转录因子预测
     version v1.0
     author: moli.zhou
-    last_modify: 2016.10.26
+    last_modify: 2016.11.2
     """
     def __init__(self, parent):
         super(TfPredictAgent, self).__init__(parent)
@@ -23,7 +23,6 @@ class TfPredictAgent(Agent):
             {"name": "query_amino", "type": "infile", "format": "sequence.fasta"},  # 上游输入的氨基酸文件（含与差异基因的对应）
             # {"name": "query_amino", "type": "string"},
             {"name": "species", "type": "string", "default": "plant"},
-            {"name": "e-value",  "type": "float", "default": 1e-180}, # phmmer比对时的阈值
             {"name": "TFPredict", "type": "string"},
         ]
         self.add_option(options)
@@ -48,8 +47,6 @@ class TfPredictAgent(Agent):
         species_list = ["plant", "animal"]
         # if not self.option('query_amino').is_set:
         #     raise OptionError("必须输入氨基酸序列")
-        if self.option('e-value') > 1 :
-            raise OptionError("e-value值超出范围，必须小于1")
         if self.option('species') not in species_list:  # species的判定有问题
             raise OptionError("species选择不正确")
         return True
@@ -92,10 +89,10 @@ class TfPredictTool(Tool):
     # python phmmer_process.py 1e-180  PlantTFDB-all_TF_pep.fas test.fas planttfdb_family_vs_tfid.txt
     def run_tf(self):
         # if self.option("species") == 'plant':
-        ref = self.ref_path + "PlantTFDB-all_TF_pep.fas"
-        family = self.ref_path + "planttfdb_family_vs_tfid.txt"
+        ref = self.ref_path + "planttfdb.hmm"
+        family = self.ref_path + "family_DBD.txt"
 
-        tf_cmd = "{}python {}TF_process.py {} {} {} {}".format(self.python_path,self.script_path,self.option("e-value"),ref,self.option("query_amino").prop['path'],family)
+        tf_cmd = "{}python {}TF_process_newdb.py {} {} {}".format(self.python_path,self.script_path,ref,self.option("query_amino").prop['path'],family)
         # else:
         #     #动物数据库还未建好
         #     ref = self.ref_path + "PlantTFDB-all_TF_pep.fas"
@@ -121,7 +118,7 @@ class TfPredictTool(Tool):
             for names in files:
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
-        f = 'TF_result.txt'
+        f = 'TF_result_newdb.txt'
         os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
         self.logger.info('设置文件夹路径成功')
 
