@@ -62,7 +62,7 @@ class MantelTest(MetaController):
                         "env_method": data.env_method,
                         "env_labs": data.env_labs
                         }
-        if data.units:
+        if hasattr(data, "units"):
             self.options["units"] = data.units
         self.options["params"] = str(self.options)
         self.to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
