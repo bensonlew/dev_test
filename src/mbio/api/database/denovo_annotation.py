@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zengjing'
-import pymongo
 import os
 import re
 import datetime
 from bson.son import SON
 from bson.objectid import ObjectId
 import types
-import bson.binary
-from cStringIO import StringIO
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 
 
-class DenovoAnnotation(Base): 
+class DenovoAnnotation(Base):
     def __init__(self, bind_object):
         super(DenovoAnnotation, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_rna' 
-        
+        self._db_name = Config().MONGODB + '_rna'
+
     @report_check
     def add_annotation(self, name=None, params=None, anno_stat_dir=None, level_id=None, level=None):
         task_id = self.bind_object.sheet.id
@@ -30,17 +27,17 @@ class DenovoAnnotation(Base):
             'status': 'end',
             'desc': '注释概况主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        } 
+        }
         print "bbb"
         collection = self.db['sg_denovo_annotation']
         annotation_id = collection.insert_one(insert_data).inserted_id
         if anno_stat_dir:
             anno_file = os.listdir(anno_stat_dir)
-            add_annotation_pie(task_id, anno_stat_dir)
-            add_annotation_go_detail(task_id, anno_stat_dir)
-            add_annotation_go_graph(level, anno_stat_dir)
-            add_annotation_cog_detail(task_id, anno_stat_dir)
-            add_annotation_kegg_detail(task_id, anno_stat_dir)
+            self.add_annotation_pie(task_id, anno_stat_dir)
+            self.add_annotation_go_detail(task_id, anno_stat_dir)
+            self.add_annotation_go_graph(level, anno_stat_dir)
+            self.add_annotation_cog_detail(task_id, anno_stat_dir)
+            self.add_annotation_kegg_detail(task_id, anno_stat_dir)
             for f in anno_file:
                 if re.search(r'anno_stat', f):
                     stat_dir = anno_stat_dir + '/anno_stat'
@@ -51,11 +48,11 @@ class DenovoAnnotation(Base):
                             self.add_annotation_stat_detail(task_id, stat_path)
                         if re.search(r"ncbi_taxonomy", f1):
                             ncbi_path = stat_dir + '/ncbi_taxonomy'
-                            add_annotation_nr_detail(task_id, level_id, ncbi_path)
+                            self.add_annotation_nr_detail(task_id, level_id, ncbi_path)
                         if re.search(r"all_annotation.xls", f1):
                             query_path = stat_dir + '/all_annotation.xls'
-                            add_annotation_query(ask_id, query_path)
-        
+                            self.add_annotation_query(task_id, query_path)
+
         print "add sg_denovo_annotation sucess!"
         return annotation_id
 
@@ -86,8 +83,8 @@ class DenovoAnnotation(Base):
         try:
             collection = self.db['sg_denovo_annotation_stat_detail']
             collection.insert_many(data_list)
-        except Exception, e:
-            print "add sg_denovo_annotation_stat_detail failure"
+        except Exception as e:
+            print "add sg_denovo_annotation_stat_detail failure:{}".format(e)
         else:
             print "add sg_denovo_annotation_stat_detail sucess"
 
@@ -136,10 +133,10 @@ class DenovoAnnotation(Base):
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = db['sg_denovo_annotation_nr_detail']
+            collection = self.db['sg_denovo_annotation_nr_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "add sg_denovo_annotation_nr_detail failure"
+            print "add sg_denovo_annotation_nr_detail failure:{}".format(e)
         else:
             print "add sg_denovo_annotation_nr_detail sucess"
 
@@ -150,12 +147,12 @@ class DenovoAnnotation(Base):
                 task_id = ObjectId(task_id)
             else:
                 raise Exception('task_id必须为ObjectId对象或其对应的字符串！')
-        type = ['gene', 'transcript']
+        # type = ['gene', 'transcript']
         evalue_path = anno_stat_dir + '/blast_nr_statistics/nr_evalue.xls'
         similar_path = anno_stat_dir + '/blast_nr_statistics/nr_similar.xls'
         gene_evalue_path = anno_stat_dir + '/anno_stat/blast_nr_statistics/gene_nr_evalue.xls'
         gene_similar_path = anno_stat_dir + '/anno_stat/blast_nr_statistics/gene_nr_similar.xls'
-        evalue_list,similar_list = [], []
+        evalue_list, similar_list = [], []
         gene_evalue_list, gene_similar_list = [], []
         data_list = []
         with open(evalue_path, "r") as f1, open(similar_path, "r") as f2, open(gene_evalue_path, "r") as f3, open(gene_similar_path, "r") as f4:
@@ -196,12 +193,13 @@ class DenovoAnnotation(Base):
         data = SON(data)
         data_list.append(data)
         try:
-            collection = db['sg_denovo_annotation_pie']
+            collection = self.db['sg_denovo_annotation_pie']
             collection.insert_many(data_list)
         except Exception, e:
-            print "add sg_denovo_annotation_pie failure"
+            print "add sg_denovo_annotation_pie failure:{}".format(e)
         else:
             print "add sg_denovo_annotation_pie sucess"
+
     @report_check
     def add_annotation_go_detail(self, task_id, anno_stat_dir):
         if not isinstance(task_id, ObjectId):
@@ -246,10 +244,10 @@ class DenovoAnnotation(Base):
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = db['sg_denovo_annotation_go_detail']
+            collection = self.db['sg_denovo_annotation_go_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_annotation_go_detail failure"
+            print "sg_denovo_annotation_go_detail failure:{}".format(e)
         else:
             print "sg_denovo_annotation_go_detail sucess"
 
@@ -293,10 +291,10 @@ class DenovoAnnotation(Base):
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = db['sg_denovo_annotation_go_graph']
+            collection = self.db['sg_denovo_annotation_go_graph']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_annotation_go_graph failure"
+            print "sg_denovo_annotation_go_graph failure:{}".format(e)
         else:
             print "sg_denovo_annotation_go_graph sucess"
 
@@ -339,17 +337,17 @@ class DenovoAnnotation(Base):
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = db['sg_denovo_annotation_cog_detail']
+            collection = self.db['sg_denovo_annotation_cog_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_annotation_cog_detail failure"
+            print "sg_denovo_annotation_cog_detail failure:{}".format(e)
         else:
             print "sg_denovo_annotation_cog_detail sucess"
 
     @report_check
     def add_annotation_kegg_detail(self, task_id, anno_stat_dir):
         if not isinstance(task_id, ObjectId):
-            if isinstance(blast_id, types.StringTypes):
+            if isinstance(task_id, types.StringTypes):
                 task_id = ObjectId(task_id)
             else:
                 raise Exception('task_id必须为ObjectId对象或其对应的字符串！')
@@ -359,7 +357,7 @@ class DenovoAnnotation(Base):
         with open(kegg_path, 'r') as f1, open(gene_kegg_path, 'r') as f2:
             lines1 = f1.readlines()
             lines2 = f2.readlines()
-            i =1
+            i = 1
             for i in range(len(lines1)):
                 lines1[i] = lines1[i].strip().split('\t')
                 lines2[i] = lines2[i].strip().split('\t')
@@ -374,17 +372,17 @@ class DenovoAnnotation(Base):
                         data = SON(data)
                         data_list.append(data)
         try:
-            collection = db['sg_denovo_annotation_kegg_detail']
+            collection = self.db['sg_denovo_annotation_kegg_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_annotation_kegg_detail failure"
+            print "sg_denovo_annotation_kegg_detail failure:{}".format(e)
         else:
             print "sg_denovo_annotation_go_detail sucess"
 
     @report_check
     def add_annotation_query(self, task_id, query_path):
         if not isinstance(task_id, ObjectId):
-            if isinstance(blast_id, types.StringTypes):
+            if isinstance(task_id, types.StringTypes):
                 task_id = ObjectId(task_id)
             else:
                 raise Exception('task_id必须为ObjectId对象或其对应的字符串！')
@@ -406,21 +404,21 @@ class DenovoAnnotation(Base):
                     ('cog_detail_id', ''),
                 ]
                 try:
-                    data += [('nr_taxonomy', line[3]),]
+                    data += [('nr_taxonomy', line[3])]
                 except:
-                    data += [('nr_taxonomy', ''),]
+                    data += [('nr_taxonomy', '')]
                 try:
-                    data += [('kegg_pathway', line[8]),]
+                    data += [('kegg_pathway', line[8])]
                 except:
-                    data += [('kegg_pathway', ''),]
+                    data += [('kegg_pathway', '')]
                 try:
-                    data += [('cog', line[4]),]
+                    data += [('cog', line[4])]
                 except:
-                    data += [('cog', ''),]
+                    data += [('cog', '')]
                 try:
-                    data += [('go_id', line[5]),]
+                    data += [('go_id', line[5])]
                 except:
-                    data += [('go_id', ''),]
+                    data += [('go_id', '')]
                 try:
                     data += [
                         ('ko_id', line[6]),
@@ -434,15 +432,15 @@ class DenovoAnnotation(Base):
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = db['sg_denovo_annotation_query']
+            collection = self.db['sg_denovo_annotation_query']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_annotation_query failure"
+            print "sg_denovo_annotation_query failure:{}".format(e)
         else:
             print "sg_denovo_annotation_query sucess"
 
     @report_check
-    def add_blast(self, name=None, blast_version=None, blast_pro=None, blast_db=None, e_value=None, anno_stat_dir= None):
+    def add_blast(self, name=None, blast_version=None, blast_pro=None, blast_db=None, e_value=None, anno_stat_dir=None):
         project_sn = self.bind_object.sheet.project_sn
         task_id = self.bind_object.sheet.id
         insert_data = {
@@ -457,10 +455,10 @@ class DenovoAnnotation(Base):
             'blast_db': blast_db,
             'e_value': e_value
         }
-        collection = db['sg_denovo_blast']
+        collection = self.db['sg_denovo_blast']
         blast_id = collection.insert_one(insert_data).inserted_id
         if anno_stat_dir:
-            add_blast_table_detail(blast_id, blast_db,  )
+            self.add_blast_table_detail(blast_id, blast_db, anno_stat_dir)
         print "add sg_denovo_blast sucess!"
         return blast_id
 
@@ -526,20 +524,19 @@ class DenovoAnnotation(Base):
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = db['sg_denovo_blast_table_detail']
+            collection = self.db['sg_denovo_blast_table_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_blast_table_detail failure"
+            print "sg_denovo_blast_table_detail failure:{}".format(e)
         else:
             print "sg_denovo_blast_table_detail sucess"
 
 
 
 if __name__ == '__main__':
-    a = DenovoAnnotation(Base) 
+    a = DenovoAnnotation(Base)
     anno_stat_dir='/mnt/ilustre/users/sanger-dev/workspace/20161028/Single_denovo_anno/DenovoAnnotation/output'
     level_id=2
-    level=2 
+    level=2
     blast_version='2.3.0'
     a.add_annotation('', '', '', '', '')
-
