@@ -190,7 +190,7 @@ class QualityControlModule(Module):
         if os.path.exists(adapt_file):
             with open(adapt_file, "r") as f:
                 f.readline()
-                adapt_rate = f.next().split()[1]
+                adapt_rate = f.next().split()[-1]
                 self.adapt_rate.append(["{}".format(event["data"]), adapt_rate])
 
     def adapt_write(self):
