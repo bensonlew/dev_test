@@ -27,6 +27,7 @@ from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
 from mainapp.controllers.submit.denovo_rna.map_assessment import MapAssessment
 from mainapp.controllers.instant.meta.mantel_test import MantelTest
 from mainapp.controllers.instant.meta.pearson_correlation import PearsonCorrelation
+from mainapp.controllers.instant.meta.plot_tree import PlotTree
 
 # web.config.debug = False
 urls = (
@@ -64,7 +65,8 @@ urls = (
     "/denovo_rna/diff_express", "DiffExpress",
     "/denovo_rna/map_assessment", "MapAssessment",
     "/meta/mantel_test", "MantelTest",
-    "/meta/pearson_correlation", "PearsonCorrelation"
+    "/meta/pearson_correlation", "PearsonCorrelation",
+    "/meta/plot_tree", "PlotTree"
 )
 
 

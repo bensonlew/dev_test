@@ -30,7 +30,7 @@ class MantelTest(MetaController):
         if return_info:
             return return_info
         data = web.input()
-        default_argu = ['otu_id', 'level_id', 'submit_location', "group_id", "partial_factor", "env_id", "otu_method", "env_method"]
+        default_argu = ['otu_id', 'level_id', 'submit_location', "group_id", "units", "env_id", "otu_method", "env_method", "env_labs"]
 
         for argu in default_argu:
             if not hasattr(data, argu):
@@ -60,7 +60,8 @@ class MantelTest(MetaController):
                         "env_file": data.env_id,
                         "otu_method": data.otu_method,
                         "env_method": data.env_method,
-                        "partial_factor": data.partial_factor
+                        "units": data.units,
+                        "env_labs": data.env_labs
                         }
         self.options["params"] = str(self.options)
         self.to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_env_table(env_file)"]

@@ -21,11 +21,18 @@ class MetaSpeciesEnv(Base):
     def add_mantel_table(self, level, otu_id, env_id, task_id=None, name=None, params=None, spname_spid=None):
         if level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
+        # if task_id is None:
+        #     task_id = self.bind_object.sheet.id
+        matrix_types = ["species_matrix", "env_matrix", "partial_matrix"]
+        if params["units"] == "":
+            matrix_types = ["species_matrix", "env_matrix"]
+
         if not isinstance(otu_id, ObjectId):
             otu_id = ObjectId(otu_id)
-        # params['otu_id'] = str(otu_id)
+        collection = self.db["sg_otu"]
+        result = collection.find_one({"_id": otu_id})
+        if task_id is None:
+            task_id = result['task_id']
         if spname_spid:
             group_detail = {'All': [str(i) for i in spname_spid.values()]}
             params['group_detail'] = group_detail_sort(group_detail)
@@ -36,8 +43,9 @@ class MetaSpeciesEnv(Base):
             "otu_id": otu_id,
             "name": name if name else "mantel_origin",
             "level_id": level,
-            "status": "start",
+            "status": "end",
             "desc": "",
+            "matrix_types": matrix_types,
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -46,7 +54,10 @@ class MetaSpeciesEnv(Base):
         return inserted_id
 
     @report_check
-    def add_mantel_detail(self, file_path, mantel_id=None):
+    def add_mantel_detail(self, file_path, mantel_id=None, main_colletion_name=None):
+        main_colletion_time = ""
+        if main_colletion_name:
+            main_colletion_time = main_colletion_name[11:]
         data_list = []
         with open(file_path, "r") as f:
             for line in f:
@@ -56,8 +67,8 @@ class MetaSpeciesEnv(Base):
                     line = line.strip().split("\t")
                     data = {
                         "mantel_id": mantel_id,
-                        "dm1": line[0],
-                        "dm2": line[1]
+                        "dm1": "species_matrix"+main_colletion_time,
+                        "dm2": "env_matrix"+main_colletion_time
                     }
                     if len(line) == 8:
                         data["entries_num"] = line[3]
@@ -65,7 +76,7 @@ class MetaSpeciesEnv(Base):
                         data["mantel_r"] = line[4]
                         data["p_value"] = line[5]
                         data["tail_type"] = line[7]
-                        data["cdm"] = line[2]
+                        data["cdm"] = "partial_matrix"+main_colletion_time
                     else:
                         data["entries_num"] = line[2]
                         data["permutations"] = line[5]
@@ -108,27 +119,32 @@ class MetaSpeciesEnv(Base):
             self.bind_object.logger.info("导入mantel检验%s矩阵成功" % matrix_type)
 
     @report_check
-    def add_correlation(self, level, otu_id, env_id, species_tree=None, env_tree=None, task_id=None, name=None, params=None, spname_spid=None):
+    def add_correlation(self, level, otu_id, env_id, species_tree=None, env_tree=None, task_id=None, name=None, params=None, spname_spid=None, env_list=None, species_list=None):
         if level not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level)
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
+        # if task_id is None:
+        #     task_id = self.bind_object.sheet.id
         if not isinstance(otu_id, ObjectId):
             otu_id = ObjectId(otu_id)
-        # params['otu_id'] = str(otu_id)
+        collection = self.db["sg_otu"]
+        result = collection.find_one({"_id": otu_id})
+        if task_id is None:
+            task_id = result['task_id']
         if spname_spid:
             group_detail = {'All': [str(i) for i in spname_spid.values()]}
             params['group_detail'] = group_detail_sort(group_detail)
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": task_id,
-            "env_id": env_id,
+            "env_id": ObjectId(env_id),
             "otu_id": otu_id,
             "name": name if name else "pearson_origin",
             "level_id": level,
-            "status": "start",
-            "env_tree": env_tree,
-            "species_tree": species_tree,
+            "status": "end",
+            "env_tree": env_tree if env_tree else "()",
+            "species_tree": species_tree if species_tree else "()",
+            "env_list": env_list if env_list else "[]",
+            "species_list": species_list if species_list else "[]",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
