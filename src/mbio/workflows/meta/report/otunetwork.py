@@ -109,6 +109,7 @@ class OtunetworkWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(network_degree_path))
         print 'stat insert 1'
         api_otunetwork.add_node_table(file_path=node_table_path, table_id=self.option("network_id"))
+        api_otunetwork.add_node_table_group(file_path=node_table_path, table_id=self.option("network_id"))
         api_otunetwork.add_edge_table(file_path=edge_table_path, table_id=self.option("network_id"))
         api_otunetwork.add_network_attributes(file_path=network_attributes_path, table_id=self.option("network_id"))
         api_otunetwork.add_network_degree(file_path=network_degree_path, table_id=self.option("network_id"))
