@@ -13,13 +13,13 @@ from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 
 
-class DenovoAnnotation(Base):
+class DenovoAnnotation(Base): 
     def __init__(self, bind_object):
         super(DenovoAnnotation, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_rna'
-
+        self._db_name = Config().MONGODB + '_rna' 
+        
     @report_check
-    def add_annotation(self, name=None, params=None, anno_stat_dir=None):
+    def add_annotation(self, name=None, params=None, anno_stat_dir=None, level_id=None, level=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         insert_data = {
@@ -30,15 +30,37 @@ class DenovoAnnotation(Base):
             'status': 'end',
             'desc': '注释概况主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        }
+        } 
+        print "bbb"
         collection = self.db['sg_denovo_annotation']
         annotation_id = collection.insert_one(insert_data).inserted_id
         if anno_stat_dir:
-            pass
+            anno_file = os.listdir(anno_stat_dir)
+            add_annotation_pie(task_id, anno_stat_dir)
+            add_annotation_go_detail(task_id, anno_stat_dir)
+            add_annotation_go_graph(level, anno_stat_dir)
+            add_annotation_cog_detail(task_id, anno_stat_dir)
+            add_annotation_kegg_detail(task_id, anno_stat_dir)
+            for f in anno_file:
+                if re.search(r'anno_stat', f):
+                    stat_dir = anno_stat_dir + '/anno_stat'
+                    stat_file = os.listdir(stat_dir)
+                    for f1 in stat_file:
+                        if re.search(r"all_annotation_statistics.xls", f1):
+                            stat_path = stat_dir + '/all_annotation_statistics.xls'
+                            self.add_annotation_stat_detail(task_id, stat_path)
+                        if re.search(r"ncbi_taxonomy", f1):
+                            ncbi_path = stat_dir + '/ncbi_taxonomy'
+                            add_annotation_nr_detail(task_id, level_id, ncbi_path)
+                        if re.search(r"all_annotation.xls", f1):
+                            query_path = stat_dir + '/all_annotation.xls'
+                            add_annotation_query(ask_id, query_path)
+        
         print "add sg_denovo_annotation sucess!"
         return annotation_id
 
-    def add_annotation_stat_detail(task_id, stat_path):
+    @report_check
+    def add_annotation_stat_detail(self, task_id, stat_path):
         if not isinstance(task_id, ObjectId):
             if isinstance(task_id, types.StringTypes):
                 task_id = ObjectId(task_id)
@@ -69,7 +91,8 @@ class DenovoAnnotation(Base):
         else:
             print "add sg_denovo_annotation_stat_detail sucess"
 
-    def add_annotation_nr_detail(task_id, level_id, ncbi_path):
+    @report_check
+    def add_annotation_nr_detail(self, task_id, level_id, ncbi_path):
         if not isinstance(task_id, ObjectId):
             if isinstance(task_id, types.StringTypes):
                 task_id = ObjectId(task_id)
@@ -120,17 +143,18 @@ class DenovoAnnotation(Base):
         else:
             print "add sg_denovo_annotation_nr_detail sucess"
 
-    def add_annotation_pie(task_id, output_path):
+    @report_check
+    def add_annotation_pie(self, task_id, anno_stat_dir):
         if not isinstance(task_id, ObjectId):
             if isinstance(task_id, types.StringTypes):
                 task_id = ObjectId(task_id)
             else:
                 raise Exception('task_id必须为ObjectId对象或其对应的字符串！')
         type = ['gene', 'transcript']
-        evalue_path = output_path + '/blast_nr_statistics/nr_evalue.xls'
-        similar_path = output_path + '/blast_nr_statistics/nr_similar.xls'
-        gene_evalue_path = output_path + '/anno_stat/blast_nr_statistics/gene_nr_evalue.xls'
-        gene_similar_path = output_path + '/anno_stat/blast_nr_statistics/gene_nr_similar.xls'
+        evalue_path = anno_stat_dir + '/blast_nr_statistics/nr_evalue.xls'
+        similar_path = anno_stat_dir + '/blast_nr_statistics/nr_similar.xls'
+        gene_evalue_path = anno_stat_dir + '/anno_stat/blast_nr_statistics/gene_nr_evalue.xls'
+        gene_similar_path = anno_stat_dir + '/anno_stat/blast_nr_statistics/gene_nr_similar.xls'
         evalue_list,similar_list = [], []
         gene_evalue_list, gene_similar_list = [], []
         data_list = []
@@ -178,15 +202,15 @@ class DenovoAnnotation(Base):
             print "add sg_denovo_annotation_pie failure"
         else:
             print "add sg_denovo_annotation_pie sucess"
-
-    def add_annotation_go_detail(task_id, output_path):
+    @report_check
+    def add_annotation_go_detail(self, task_id, anno_stat_dir):
         if not isinstance(task_id, ObjectId):
             if isinstance(task_id, types.StringTypes):
                 task_id = ObjectId(task_id)
             else:
                 raise Exception('task_id必须为ObjectId对象或其对应的字符串！')
-        go_path = output_path + '/go/go1234level_statistics.xls'
-        gene_go_path = output_path + '/anno_stat/go_stat/gene_go1234level_statistics.xls'
+        go_path = anno_stat_dir + '/go/go1234level_statistics.xls'
+        gene_go_path = anno_stat_dir + '/anno_stat/go_stat/gene_go1234level_statistics.xls'
         data_list = list()
         with open(go_path, 'r') as f, open(gene_go_path, 'r') as f1:
             lines = f.readlines()
@@ -229,14 +253,15 @@ class DenovoAnnotation(Base):
         else:
             print "sg_denovo_annotation_go_detail sucess"
 
-    def add_annotation_go_graph(task_id, level, output_path):
+    @report_check
+    def add_annotation_go_graph(self, task_id, level, anno_stat_dir):
         if not isinstance(task_id, ObjectId):
             if isinstance(task_id, types.StringTypes):
                 task_id = ObjectId(task_id)
             else:
                 raise Exception('task_id必须为ObjectId对象或其对应的字符串！')
-        level_path = output_path + '/go/go' + str(level) + 'level.xls'
-        gene_level_path = output_path + '/anno_stat/go_stat/gene_go' + str(level) + 'level.xls'
+        level_path = anno_stat_dir + '/go/go' + str(level) + 'level.xls'
+        gene_level_path = anno_stat_dir + '/anno_stat/go_stat/gene_go' + str(level) + 'level.xls'
         data_list = list()
         with open(level_path, 'r') as f, open(gene_level_path, 'r') as f1:
             lines = f.readlines()
@@ -275,15 +300,16 @@ class DenovoAnnotation(Base):
         else:
             print "sg_denovo_annotation_go_graph sucess"
 
-    def add_annotation_cog_detail(task_id, output_path):
+    @report_check
+    def add_annotation_cog_detail(self, task_id, anno_stat_dir):
         if not isinstance(task_id, ObjectId):
             if isinstance(task_id, types.StringTypes):
                 task_id = ObjectId(task_id)
             else:
                 raise Exception('task_id必须为ObjectId对象或其对应的字符串！')
 
-        cog_path = output_path + '/cog/cog_summary.xls'
-        gene_cog_path = output_path + '/anno_stat/cog_stat/gene_cog_summary.xls'
+        cog_path = anno_stat_dir + '/cog/cog_summary.xls'
+        gene_cog_path = anno_stat_dir + '/anno_stat/cog_stat/gene_cog_summary.xls'
         data_list = list()
         with open(cog_path, 'r') as f, open(gene_cog_path, 'r') as f1:
             lines = f.readlines()
@@ -320,14 +346,15 @@ class DenovoAnnotation(Base):
         else:
             print "sg_denovo_annotation_cog_detail sucess"
 
-    def add_annotation_kegg_detail(task_id, output_path):
+    @report_check
+    def add_annotation_kegg_detail(self, task_id, anno_stat_dir):
         if not isinstance(task_id, ObjectId):
             if isinstance(blast_id, types.StringTypes):
                 task_id = ObjectId(task_id)
             else:
                 raise Exception('task_id必须为ObjectId对象或其对应的字符串！')
-        kegg_path = output_path + '/kegg/kegg_layer.xls'
-        gene_kegg_path = output_path + '/anno_stat/kegg_stat/gene_kegg_layer.xls'
+        kegg_path = anno_stat_dir + '/kegg/kegg_layer.xls'
+        gene_kegg_path = anno_stat_dir + '/anno_stat/kegg_stat/gene_kegg_layer.xls'
         data_list = list()
         with open(kegg_path, 'r') as f1, open(gene_kegg_path, 'r') as f2:
             lines1 = f1.readlines()
@@ -354,7 +381,8 @@ class DenovoAnnotation(Base):
         else:
             print "sg_denovo_annotation_go_detail sucess"
 
-    def add_annotation_query(task_id, query_path):
+    @report_check
+    def add_annotation_query(self, task_id, query_path):
         if not isinstance(task_id, ObjectId):
             if isinstance(blast_id, types.StringTypes):
                 task_id = ObjectId(task_id)
@@ -413,13 +441,14 @@ class DenovoAnnotation(Base):
         else:
             print "sg_denovo_annotation_query sucess"
 
-    def add_blast(name=None, blast_version=None, blast_pro=None, blast_db=None, e_value=None):
-        project_sn = 'test_project'
-        task_id = 'test_task'
+    @report_check
+    def add_blast(self, name=None, blast_version=None, blast_pro=None, blast_db=None, e_value=None, anno_stat_dir= None):
+        project_sn = self.bind_object.sheet.project_sn
+        task_id = self.bind_object.sheet.id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'annotation blast',
+            'name': name if name else 'annotation blast' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'status': 'end',
             'desc': 'blast最佳比对结果主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M%S'),
@@ -430,17 +459,20 @@ class DenovoAnnotation(Base):
         }
         collection = db['sg_denovo_blast']
         blast_id = collection.insert_one(insert_data).inserted_id
+        if anno_stat_dir:
+            add_blast_table_detail(blast_id, blast_db,  )
         print "add sg_denovo_blast sucess!"
         return blast_id
 
-    def add_blast_table_detail(blast_id, blast_db, output_path):
+    @report_check
+    def add_blast_table_detail(self, blast_id, blast_db, anno_stat_dir):
         if not isinstance(blast_id, ObjectId):
             if isinstance(blast_id, types.StringTypes):
                 blast_id = ObjectId(blast_id)
             else:
                 raise Exception('blast_id必须为ObjectId对象或其对应的字符串！')
-        blast_path = output_path + '/' + blast_db + 'blast/Trinity_vs_' + blast_db + '.xls'
-        gene_blast_path = output_path + '/anno_stat/blast/' + 'gene_' + blast_db + '.xls'
+        blast_path = anno_stat_dir + '/' + blast_db + 'blast/Trinity_vs_' + blast_db + '.xls'
+        gene_blast_path = anno_stat_dir + '/anno_stat/blast/' + 'gene_' + blast_db + '.xls'
         data_list = []
         with open(blast_path, 'r') as f, open(gene_blast_path, 'r') as f1:
             lines = f.readlines()
@@ -503,17 +535,11 @@ class DenovoAnnotation(Base):
 
 
 
-# output_path = '/mnt/ilustre/users/sanger-dev/workspace/20161028/Single_denovo_anno/DenovoAnnotation/output'
-# task_id = add_annotation('', '')
-# add_annotation_stat_detail(task_id, '/mnt/ilustre/users/sanger-dev/workspace/20161028/Single_denovo_anno/DenovoAnnotation/output/anno_stat/all_annotation_statistics.xls')
-# add_annotation_nr_detail(task_id, 2, '/mnt/ilustre/users/sanger-dev/workspace/20161028/Single_denovo_anno/DenovoAnnotation/output/anno_stat/ncbi_taxonomy')
-# add_annotation_pie(task_id, output_path)
-# add_annotation_go_detail(task_id, output_path)
-# add_annotation_go_graph(task_id, 2, output_path)
-# add_annotation_cog_detail(task_id, output_path)
-# add_annotation_kegg_detail(task_id, output_path)
-# add_annotation_query(task_id, '/mnt/ilustre/users/sanger-dev/workspace/20161028/Single_denovo_anno/DenovoAnnotation/output/anno_stat/all_annotation.xls')
-# blast_pro = 'blastx'
-# blast_db = 'kegg'
-# blast_id = add_blast('blast', '2.3.0', blast_pro, blast_db, 'le-5')
-# add_blast_table_detail(blast_id, blast_db, output_path)
+if __name__ == '__main__':
+    a = DenovoAnnotation(Base) 
+    anno_stat_dir='/mnt/ilustre/users/sanger-dev/workspace/20161028/Single_denovo_anno/DenovoAnnotation/output'
+    level_id=2
+    level=2 
+    blast_version='2.3.0'
+    a.add_annotation('', '', '', '', '')
+
