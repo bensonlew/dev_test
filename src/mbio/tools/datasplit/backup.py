@@ -55,8 +55,8 @@ class BackupTool(Tool):
         super(BackupTool, self).__init__(config)
         self._version = 1.0
         self.option('sample_info').get_info()
-        self.backup_dir = "/mnt/ilustre/users/sanger/data_split_tmp/"
-        self.gzip_path = os.path.join(Config().SOFTWARE_DIR, "datasplit/bin/gzip")
+        self.backup_dir = "/mnt/ilustre/users/sanger-dev/workspace/datasplit_tmp"
+        self.gzip_path = os.path.join(Config().SOFTWARE_DIR, "program/gzip-1.6")
         year = time.localtime()[0]
         month = time.localtime()[1]
         self.create_time_file(year, month)

@@ -40,7 +40,7 @@ class MergeTool(Tool):
         super(MergeTool, self).__init__(config)
         self._version = 1.0
         self.option('sample_info').get_info()
-        self.pear_path = os.path.join(Config().SOFTWARE_DIR, "datasplit/bin/pear")
+        self.pear_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/seq/pear-0.9.8/bin/pear")
 
     def make_ess_dir(self):
         merge_dir = os.path.join(self.work_dir, "merge")

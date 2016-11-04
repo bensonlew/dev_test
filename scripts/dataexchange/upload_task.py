@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 from __future__ import division
-from basic import Basic
 import urllib2
 import urllib
 import httplib
@@ -14,11 +13,30 @@ import re
 import random
 import time
 import hashlib
+from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
+from basic import Basic
+
+
+class FileLimiter(object):
+    def __init__(self, file_obj, read_limit):
+        self.read_limit = read_limit
+        self.amount_seen = 0
+        self.file_obj = file_obj
+        self.len = read_limit
+
+    def read(self, amount=-1):
+        if self.amount_seen >= self.read_limit:
+            return b''
+        remaining_amount = self.read_limit - self.amount_seen
+        data = self.file_obj.read(remaining_amount if amount < 0 else min(amount, remaining_amount))
+        self.amount_seen += len(data)
+        return data
 
 
 class UploadTask(Basic):
     def __init__(self, identity, target_path, mode, port, stream_on):
         super(UploadTask, self).__init__(identity, target_path, mode, port, stream_on)
+        self._target_path = ""
         self._upload_url = self.get_upload_url(mode)  # 文件上传的php接口的地址
         self._file_info = list()
         self.source_path = ""
@@ -33,7 +51,7 @@ class UploadTask(Basic):
         if mode == "sanger":
             self._url = "http://192.168.12.101:{}/app/dataexchange/upload_task".format(port)
         elif mode == "tsanger":
-            self._url = "http://192.168.12.102:{}/dataexchange/upload_task".format(port)
+            self._url = "http://192.168.12.102:{}/app/dataexchange/upload_task".format(port)
         return self._url  # 前置的接口地址，用于验证和获取上传文件的路径
 
     def get_upload_url(self, mode):
@@ -47,7 +65,7 @@ class UploadTask(Basic):
         if self.post_url != "":
             return self.post_url
         if mode == "sanger":
-            pass
+            self.post_url = "http://www.sanger.com/api/add_file_dir"
         if mode == "tsanger":
             self.post_url = "http://www.tsanger.com/api/add_file_dir"
         return self.post_url
@@ -108,6 +126,11 @@ class UploadTask(Basic):
                 self._file_info.append(info_dict)
         return self._file_info
 
+    def my_callback(self, monitor):
+        upload_bite = monitor.bytes_read
+        my_m = (upload_bite / 1024) / 1024
+        print "已经上传{0:.2f}M".format(my_m)
+
     def upload_files(self):
         """
         上传文件
@@ -133,9 +156,15 @@ class UploadTask(Basic):
             rel_path = os.path.join(soure_dir, rel_path).lstrip("/")
             d["rel_path"] = rel_path
             full_path = os.path.join(self.target_path, rel_path)
-            psot_json = {"target_path": full_path, "mode": self.mode, "code": self.identity, "rel_dir": self.no_prifix_path}
-            my_file = {'sources': (os.path.basename(d["path"]), open(d["path"], "rb"), 'application/octet-stream'),
-                       'target': (None, json.dumps(psot_json), 'application/json')}
+            # psot_json = {"target_path": full_path, "mode": self.mode, "code": self.identity, "rel_dir": self.no_prifix_path}
+
+            # my_file = {'sources': (os.path.basename(d["path"]), open(d["path"], "rb"), 'application/octet-stream'),
+            #           'target': (None, json.dumps(psot_json), 'application/json')}
+
+            m = MultipartEncoder(
+                fields={'sources': (os.path.basename(d["path"]), open(d["path"], "rb"), 'application/octet-stream'),
+                        "target_path": full_path, "mode": self.mode, "code": self.identity, "rel_dir": self.no_prifix_path})
+            m = MultipartEncoderMonitor(m, self.my_callback)
             d["target_path"] = full_path
             if self.mode == "tsanger":
                 prefix = "tsanger:"
@@ -143,8 +172,12 @@ class UploadTask(Basic):
                 prefix = "sanger:"
             d["submit_path"] = prefix + os.path.join(self.no_prifix_path, rel_path)  # 上传到硬盘的哪个位置
             self.logger.info("开始上传文件{}".format(d["path"]))
-            r = requests.post(self._upload_url, files=my_file)
+            # with open(d["path"], 'rb') as file_obj:
+            #    upload = FileLimiter(file_obj, 40960)
+            #    r = requests.post(self._upload_url, data=upload, headers={'Content-Type': 'application/octet-stream'}, json=psot_json)
+            r = requests.post(self._upload_url, data=m, headers={'Content-Type': m.content_type})
             # print r.text
+            print d["submit_path"]
             if r.status_code == 200:
                 self.logger.info("文件{}上传完成".format(d["path"]))
             else:

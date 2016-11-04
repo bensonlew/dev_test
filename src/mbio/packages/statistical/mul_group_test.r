@@ -43,6 +43,10 @@ summary_stat <- function(x){
   for(i in 1:len){
     Me <- lapply(s,function(x)mean(as.numeric(as.vector(x[,i]))))
     Sd <- lapply(s,function(x)sd(as.numeric(as.vector(x[,i]))))
+    if(len == 1){
+       Me <- lapply(s,function(x)x=1)
+       Sd <- lapply(s,function(x)x=0)
+    }
     n <- 1
     for(l in 1:length(Me)){
       stat_result[i+1,n] <- signif(Me[[l]]*100,4)

@@ -47,10 +47,10 @@ class FastxTool(Tool):
     def __init__(self, config):
         super(FastxTool, self).__init__(config)
         self._version = 1.0
-        self.fastx_dir = "fastxtoolkit/bin/"
-        self.python_dir = "Python/bin/python"
+        self.fastx_dir = "bioinfo/seq/fastx_toolkit_0.0.14/"
+        self.python_dir = "program/Python/bin/python"
         self.q20q30_stat = os.path.join(Config().SOFTWARE_DIR, "datasplit/bin/q20q30_stat.py")
-        self.gnuplot = os.path.join(Config().SOFTWARE_DIR, "gnuplot/bin")
+        self.gnuplot = os.path.join(Config().SOFTWARE_DIR, "bioinfo/plot/gnuplot/bin")
         self.option('sample_info').get_info()
         file_name = os.listdir(self.option("unzip_path"))
         self.fastqs = list()

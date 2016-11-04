@@ -1,8 +1,10 @@
+#!/bin/env python
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 from __future__ import division
 import argparse
 import os
+import re
 
 
 def get_size(path):
@@ -50,4 +52,9 @@ for d in os.walk(source_path):
 
 with open(target_path, "ab") as a:
     for l in file_list:
-        a.write("{}\t{}\t{}\t{}\n".format(l[0], l[1], "", "True"))
+        locked = False
+        fq_pattern = '(fq$)|(fastq$)|(fq.gz$)|(fastq.gz$)|(fq.tgz$)|(fastq.tgz$)|(fq.rar$)|(fastq.rar$)|(fq.zip$)    |(fastq.zip$)'
+        fa_pattern = '(fa$)|(fasta$)|(fa.gz$)|(fasta.gz$)|(fa.tgz$)|(fasta.tgz$)|(fa.rar$)|(fasta.rar$)|(fa.zip$)    |(fasta.zip$)'
+        if re.search(fq_pattern, os.path.basename(l[0])) or re.search(fa_pattern, os.path.basename(l[0])):
+            locked = True
+        a.write("{}\t{}\t{}\t{}\n".format(l[0], l[1], "", locked))

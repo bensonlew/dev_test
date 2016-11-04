@@ -127,6 +127,28 @@ class OtuTableFile(File):
                 newline = "\t".join(line)
                 w.write(newline + "\n")
 
+    def behind_taxnomy(self, behind_path, otu_path=None):
+        """
+        将文件的第一列信息拆分开来，只留下otu的信息，将OTU的信息放到每一行的最后，形成taxnomy列
+        """
+        if not otu_path:
+            otu_path = self.prop["path"]
+        with open(otu_path, 'rb') as r, open(behind_path, 'wb') as w:
+            line = r.next().rstrip()
+            line = re.split("\t", line)
+            if line[-1] == "taxonomy":
+                raise Exception("文件最后一列为taxonomy，无法将taxonomy列放到最后")
+            w.write("\t".join(line) + "\ttaxonomy\n")
+            for line in r:
+                line = line.rstrip('\n')
+                line = re.split('\t', line)
+                sp = re.split("; ", line[0])
+                line.pop(0)
+                otu = sp.pop(-1)
+                taxonomy = "; ".join(sp)
+                newline = otu + "\t" + "\t".join(line) + "\t" + taxonomy
+                w.write(newline + "\n")
+
     def del_taxonomy(self, otu_path, no_tax_otu_path):
         """
         删除taxonomy列  并返回一个字典
@@ -370,7 +392,7 @@ class OtuTableFile(File):
                 line.pop(-1)
             sample_name = line[:]
             for line in r:
-                line = line.rstrip().split()
+                line = line.rstrip().split("\t")
                 line.pop(0)
                 if self.prop["metadata"] == "taxonomy":
                     line.pop(-1)
@@ -383,3 +405,27 @@ class OtuTableFile(File):
                     min_num = sample_num[k]
                     min_sample = k
         return (min_sample, min_num)
+
+    def extract_info(self):
+        """
+        解析OTU表，将OTU表解析成一个二维字典
+        例如 dict[OTU1][sample1] = 20
+        代表sample1有20条序列在OTU1里
+        """
+        sample_name = list()
+        info_dict = defaultdict(dict)
+        self.get_info()
+        with open(self.prop['path'], 'rb') as r:
+            line = r.next().rstrip().split("\t")
+            line.pop(0)
+            if self.prop["metadata"] == "taxonomy":
+                line.pop(-1)
+            sample_name = line[:]
+            for line in r:
+                line = line.rstrip().split("\t")
+                otu_name = line.pop(0)
+                if self.prop["metadata"] == "taxonomy":
+                    line.pop(-1)
+                for i in range(len(sample_name)):
+                    info_dict[otu_name][sample_name[i]] = int(line[i])
+        return info_dict
