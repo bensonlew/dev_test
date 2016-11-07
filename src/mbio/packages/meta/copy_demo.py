@@ -416,5 +416,5 @@ class CopyMongo(object):
 if __name__ == '__main__':
     copy_task = CopyMongo('tsanger_2639', 'tsanger_2639_14', '10000485_1', 'shenghe_test')
     copy_task.run()
-    # copy_task = CopyMongo('tsg_3617', 'tsg_3617_copy', '10000782', 'm_188')
+    # copy_task = CopyMongo('tsg_3617', 'tsg_3617_022', '10000782_22', 'm_188_22')
     # copy_task.run()
