@@ -83,7 +83,7 @@ class PearsonCorrelationWorkflow(Workflow):
         if os.path.exists(env_tree_path):
             with open(env_tree_path, "r") as f:
                 env_tree = f.readline().strip()
-                raw_samp = re.findall(r'([(,]([\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', env_tree)
+                raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', env_tree)
                 env_list = [i[1] for i in raw_samp]
                 # env_list = sorted(env_list)
                 print("llllllllll")
@@ -91,7 +91,7 @@ class PearsonCorrelationWorkflow(Workflow):
         if os.path.exists(species_tree_path):
             with open(species_tree_path, "r") as f:
                 species_tree = f.readline().strip()
-                raw_samp = re.findall(r'([(,]([\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', species_tree)
+                raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', species_tree)
                 species_list = [i[1] for i in raw_samp]
                 # species_list = sorted(species_list)
                 # print(species_list)
