@@ -29,7 +29,7 @@ class DownloadTask(Basic):
         if mode == "sanger":
             self._url = "http://192.168.12.101:{}/app/dataexchange/download_task".format(port)
         elif mode == "tsanger":
-            self._url = "http://192.168.12.102:{}/dataexchange/download_task".format(port)
+            self._url = "http://192.168.12.102:{}/app/dataexchange/download_task".format(port)
         return self._url
 
     def get_download_url(self, mode):

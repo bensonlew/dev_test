@@ -46,7 +46,8 @@ class MetaBaseWorkflow(Workflow):
             {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
-            {"name": "plsda_grouplab", "type": 'string', "default": ''}
+            {"name": "plsda_grouplab", "type": 'string', "default": ''},
+            {"name": "file_list", "type": "string", "default": ""}  # 待定的文件检测模块参数，暂时不使用
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -152,6 +153,12 @@ class MetaBaseWorkflow(Workflow):
         self.tax.run()
 
     def run_stat(self):
+        self.samples_num = len(open(self.qc.output_dir + "/samples_info/samples_info.txt").readlines()) - 1
+        if self.samples_num < 2:
+            self.on_rely([self.alpha, self.beta], self.end)
+        else:
+            self.stat.on('end', self.run_pan_core)
+            self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         self.stat.set_options({
             "in_otu_table": self.otu.option("otu_table"),
             "taxon_file": self.tax.option("taxon_file")
@@ -174,6 +181,8 @@ class MetaBaseWorkflow(Workflow):
         self.alpha.run()
 
     def run_beta(self):
+        if self.samples_num < 3: # 只有两个样本
+            self.option('beta_analysis', '')
         opts = {
             'analysis': 'distance,' + self.option('beta_analysis'),
             'dis_method': self.option('dis_method'),
@@ -433,8 +442,8 @@ class MetaBaseWorkflow(Workflow):
         self.on_rely([self.tax, self.phylo], self.run_stat)
         self.stat.on('end', self.run_alpha)
         self.stat.on('end', self.run_beta)
-        self.stat.on('end', self.run_pan_core)
-        self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
+        # self.stat.on('end', self.run_pan_core)
+        # self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         super(MetaBaseWorkflow, self).run()
 
     def send_files(self):
