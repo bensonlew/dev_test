@@ -73,6 +73,15 @@ class CopyMongo(object):
         self._exchange_dict['alpha_diversity_id'] = self.alpha_diversity_id_dict
         self.copy_main_details('sg_alpha_diversity_detail', 'alpha_diversity_id', self.alpha_diversity_id_dict)
 
+        corr_id_dict = self.copy_collection_with_change('sg_species_env_correlation', change_positions=['otu_id', 'env_id'], update_sg_status=True)
+        # print(corr_id_dict)
+        self.copy_main_details("sg_species_env_correlation_detail", "correlation_id", corr_id_dict)
+
+        mantel_id_dict = self.copy_collection_with_change('sg_species_mantel_check', change_positions=['otu_id', 'env_id'], update_sg_status=True)
+        # print(mantel_id_dict)
+        self.copy_main_details("sg_species_mantel_check_detail", "mantel_id", mantel_id_dict)
+        self.copy_main_details("sg_species_mantel_check_matrix", "mantel_id", mantel_id_dict)
+
         venn_id_dict = self.copy_collection_with_change('sg_otu_venn', change_positions=['otu_id', 'group_id'], update_sg_status=True)
         self.copy_main_details('sg_otu_venn_detail', 'otu_venn_id', venn_id_dict, others_position=['otu_id'])
 
@@ -406,3 +415,5 @@ class CopyMongo(object):
 if __name__ == '__main__':
     copy_task = CopyMongo('tsanger_2639', 'tsanger_2639_14', '10000485_1', 'shenghe_test')
     copy_task.run()
+    # copy_task = CopyMongo('tsg_3617', 'tsg_3617_copy', '10000782', 'm_188')
+    # copy_task.run()
