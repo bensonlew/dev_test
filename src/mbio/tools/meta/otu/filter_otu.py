@@ -81,7 +81,7 @@ class FilterOtuTool(Tool):
                 self.keep_species(d)
                 keep_flag = 1
         if keep_flag:
-            self.otu_json = self.keep_list
+            self.otu_json = self.keep_list[:]
         for d in my_json:
             if d["name"] == "species_filter" and d["type"] == "remove":
                 self.remove_species(d)
@@ -92,33 +92,33 @@ class FilterOtuTool(Tool):
                 self.filter_reads(d)
 
     def keep_species(self, my_json):
-        j_value = re.sub("\w__", "", my_json["value"])
+        j_value = re.sub("^\w__", "", my_json["value"])
         for line in self.otu_json:
             sp_name = line.split("\t")[0].split("; ")
-            my_level = int(my_json["level"]) - 1
+            my_level = int(my_json["level_id"]) - 1
             # 当级别是9的时候，也即是OTU的时候，进行精确匹配
-            if int(my_json["level"]) == 9:
+            if int(my_json["level_id"]) == 9:
                 if sp_name[my_level] == my_json["value"] or sp_name[my_level].lower() == my_json["value"]:
                     self.keep_list.append(line)
             # 当级别不是OTU的时候, 进行模糊匹配。
             else:
-                pattern = self.LEVEL[int(my_json["level"])] + ".+" + j_value
+                pattern = self.LEVEL[int(my_json["level_id"])] + ".*" + j_value
                 if re.search(pattern, sp_name[my_level], re.IGNORECASE):
                     self.keep_list.append(line)
 
     def remove_species(self, my_json):
-        j_value = re.sub("\w__", "", my_json["value"])
+        j_value = re.sub("^\w__", "", my_json["value"])
         tmp_list = self.otu_json[:]
         for line in self.otu_json:
             sp_name = line.split("\t")[0].split("; ")
-            my_level = int(my_json["level"]) - 1
+            my_level = int(my_json["level_id"]) - 1
             # 当级别是9的时候，也即是OTU的时候，进行精确匹配
-            if int(my_json["level"]) == 9:
+            if int(my_json["level_id"]) == 9:
                 if sp_name[my_level] == my_json["value"] or sp_name[my_level].lower() == my_json["value"]:
                     tmp_list.remove(line)
             # 当级别不是OTU的时候, 进行模糊匹配。
             else:
-                pattern = self.LEVEL[int(my_json["level"])] + ".*" + j_value
+                pattern = self.LEVEL[int(my_json["level_id"])] + ".*" + j_value
                 if re.search(pattern, sp_name[my_level], re.IGNORECASE):
                     tmp_list.remove(line)
         self.otu_json = tmp_list[:]
@@ -158,8 +158,8 @@ class FilterOtuTool(Tool):
     def run(self):
         super(FilterOtuTool, self).run()
         self.filter_table()
-        if len(self.otu_json) == 0:
-            raise Exception("过滤之后的结果OTU是空的, 请查看过滤的条件是否正确！")
+        # if len(self.otu_json) == 0:
+        #    raise Exception("过滤之后的结果OTU是空的, 请查看过滤的条件是否正确！")
         with open(os.path.join(self.output_dir, "filter_otu.xls"), "wb") as w:
             w.write(self.otu_head)
             for line in self.otu_json:
