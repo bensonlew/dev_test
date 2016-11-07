@@ -31,11 +31,14 @@ class Env(Base):
         }
         main_collection = self.db['sg_env']
         collections = self.db['sg_env_detail']
+        data_list = []
         main_env_id = main_collection.insert_one(main_insert_data).inserted_id
         for sp_id, sp_dict in details.items():  # "details" is a dict, and "details"'s values is dict too
             sp_dict['env_id'] = main_env_id
             sp_dict['specimen_id'] = sp_id
-            collections.insert_one(sp_dict).inserted_id
+            data_list.append(sp_dict)
+            # collections.insert_one(sp_dict).inserted_id
+        collections.insert_many(data_list)
         return main_env_id
 
     def _get_table_info(self, file_path, name_to_id):
