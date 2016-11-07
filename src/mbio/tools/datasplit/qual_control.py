@@ -40,7 +40,7 @@ class QualControlTool(Tool):
         self._version = 1.0
         self.option('sample_info').get_info()
         self.javaPath = os.path.join(Config().SOFTWARE_DIR, "program/sun_jdk1.8.0/bin/java")
-        self.trimmomaticPath = os.path.join(Config().SOFTWARE_DIR, "bioinfo/seq/trimmomatic-0.36.jar")
+        self.trimmomaticPath = os.path.join(Config().SOFTWARE_DIR, "bioinfo/seq/trimmomatic-0.36/trimmomatic-0.36.jar")
 
     def run_trim(self):
         cmd_list = list()

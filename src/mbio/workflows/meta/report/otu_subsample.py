@@ -34,49 +34,63 @@ class OtuSubsampleWorkflow(Workflow):
         group_table_path = os.path.join(self.work_dir, "group_table.xls")
         self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table_path)
 
-    def run_filter_otu(self):
-        if self.option("filter_json") != "":
-            self.filter_otu.set_options({
-                "in_otu_table": self.option("in_otu_table"),
-                "filter_json": self.option("filter_json")
-            })
-            self.filter_otu.on("end", self.run_sort_samples)
-            self.filter_otu.run()
-        else:
-            self.run_sort_samples()
-
     def run_sort_samples(self):
-        if self.option("filter_json") == "":
-            self.sort_samples.set_options({
-                "in_otu_table": self.option("in_otu_table"),
-                "group_table": self.group_table_path
-            })
-        else:
-            self.sort_samples.set_options({
-                "in_otu_table": self.filter_otu.option("out_otu_table"),
-                "group_table": self.group_table_path
-            })
-        if self.option("size") != "":
+        self.sort_samples.set_options({
+            "in_otu_table": self.option("in_otu_table"),
+            "group_table": self.group_table_path
+        })
+        if self.option("filter_json") not in ["", "[]"]:
+            self.sort_samples.on("end", self.run_filter_otu)
+        elif self.option("size") != "":
             self.sort_samples.on("end", self.run_subsample)
         else:
             self.sort_samples.on("end", self.set_db)
         self.sort_samples.run()
 
-    def run_subsample(self):
-        self.subsample.set_options({
+    def run_filter_otu(self):
+        self.filter_otu.set_options({
             "in_otu_table": self.sort_samples.option("out_otu_table"),
-            "size": self.option("size")
+            "filter_json": self.option("filter_json")
         })
-        self.subsample.on('end', self.set_db)
+        if self.option("size") != "":
+            self.filter_otu.on("end", self.run_subsample)
+        else:
+            self.filter_otu.on("end", self.set_db)
+        self.filter_otu.run()
+
+    def run_subsample(self):
+        if self.option("filter_json") not in ["", "[]"]:
+            num_lines = sum(1 for line in open(self.filter_otu.option("out_otu_table").prop["path"]))
+            if num_lines < 2:
+                raise Exception("经过OTU过滤之后的OTU表是空的，请重新填写筛选的条件！")
+            self.subsample.set_options({
+                "in_otu_table": self.filter_otu.option("out_otu_table"),
+                "size": self.option("size")
+            })
+        else:
+            self.subsample.set_options({
+                "in_otu_table": self.sort_samples.option("out_otu_table"),
+                "size": self.option("size")
+            })
+        self.subsample.on("end", self.set_db)
         self.subsample.run()
 
     def set_db(self):
         """
         保存结果otu表到mongo数据库中
         """
+        if self.option("filter_json") not in ["", "[]"]:
+            num_lines = sum(1 for line in open(self.filter_otu.option("out_otu_table").prop["path"]))
+            if num_lines < 2:
+                raise Exception("经过OTU过滤之后的OTU表是空的，请重新填写筛选的条件！")
         final_file = os.path.join(self.output_dir, "otu_taxon.subsample.xls")
         if self.option("size") != "":
+            num_lines = sum(1 for line in open(self.subsample.option("out_otu_table").prop["path"]))
+            if num_lines < 2:
+                raise Exception("经过抽平之后的OTU表是空的，可能是因为进行物种筛选之后导致某些样本的序列数为0，然后按该样本的序列数进行了抽平！")
             shutil.copy2(self.subsample.option("out_otu_table").prop["path"], final_file)
+        elif self.option("filter_json") not in ["", "[]"]:
+            shutil.copy2(self.filter_otu.option("out_otu_table").prop["path"], final_file)
         else:
             shutil.copy2(self.sort_samples.option("out_otu_table").prop["path"], final_file)
         api_otu = self.api.sub_sample
@@ -100,5 +114,5 @@ class OtuSubsampleWorkflow(Workflow):
         super(OtuSubsampleWorkflow, self).end()
 
     def run(self):
-        self.run_filter_otu()
+        self.run_sort_samples()
         super(OtuSubsampleWorkflow, self).run()
