@@ -5,7 +5,7 @@ import os
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-# from mbio.packages.graph.venn_table import venn_table
+from mbio.packages.graph.venn_table import venn_graph
 
 
 class VennTableAgent(Agent):
@@ -99,6 +99,8 @@ class VennTableTool(Tool):
         else:
             self.set_error("运行venn_table运行出错!")
             raise Exception("运行venn_table运行出错，请检查输入的otu表和group表是否正确")
+        # 统计各组所有otu/物种名 add by qindanhua
+        venn_graph(otu_table, self.option("group_table").prop['path'], "venn_graph.xls")
         self.set_output()
 
     def set_output(self):
@@ -109,6 +111,8 @@ class VennTableTool(Tool):
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
         os.link(self.work_dir + '/venn_table.xls', self.output_dir + '/venn_table.xls')
+        if os.path.exists(self.work_dir + "/venn_graph.xls"):
+            os.link(self.work_dir + '/venn_graph.xls', self.output_dir + '/venn_graph.xls')
         # self.option('venn_table.xls').set_path(self.output_dir+'/venn_table.xls')
         self.logger.info("done")
 
