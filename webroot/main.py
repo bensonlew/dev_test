@@ -29,6 +29,7 @@ from mainapp.controllers.submit.denovo_rna.map_assessment import MapAssessment
 from mainapp.controllers.instant.meta.mantel_test import MantelTest
 from mainapp.controllers.instant.meta.pearson_correlation import PearsonCorrelation
 from mainapp.controllers.datasplit.datasplit import Datasplit
+from mainapp.controllers.instant.meta.plot_tree import PlotTree
 
 # web.config.debug = False
 urls = (
@@ -68,7 +69,8 @@ urls = (
     "/denovo_rna/map_assessment", "MapAssessment",
     "/meta/mantel_test", "MantelTest",
     "/meta/pearson_correlation", "PearsonCorrelation",
-    "/app/datasplit/datasplit", "Datasplit"
+    "/app/datasplit/datasplit", "Datasplit",
+    "/meta/plot_tree", "PlotTree"
 )
 
 

@@ -4,7 +4,7 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 from mbio.files.meta.otu.otu_table import OtuTableFile
-import pandas as pd
+import re
 
 
 class FactorDistanceAgent(Agent):
@@ -124,10 +124,17 @@ class FactorDistanceTool(Tool):
                 write_line_list[n] += "\t{}".format(line[0])
                 for i in fac_index:
                     n += 1
-                    write_line_list[n] += "\t{}".format(line[i])
+                    if re.match(r"\D", line[i]):
+                        continue
+                    else:
+                        write_line_list[n] += "\t{}".format(line[i])
+            write_line_len = len(write_line_list[0].split("\t"))
             for write_line in write_line_list:
-                w.write(write_line)
-                w.write("\n")
+                if len(write_line.split("\t")) < write_line_len:
+                    continue
+                else:
+                    w.write(write_line)
+                    w.write("\n")
 
         trans_newtable = OtuTableFile()
         trans_newtable.set_path('transtable.txt')
