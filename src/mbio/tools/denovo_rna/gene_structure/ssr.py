@@ -95,7 +95,10 @@ class SsrTool(Tool):
         self.wait()
         if command.return_code == 0:
             self.logger.info("运行misa结束！")
-            ssr_position(fasta_copy + ".misa", self.option("bed").prop["path"])
+            if self.option("bed").is_set:
+                self.logger.info("统计ssr位置信息")
+                ssr_position(fasta_copy + ".misa", self.option("bed").prop["path"])
+                self.logger.info("统计ssr位置信息完成")
         else:
             self.set_error("运行misa过程出错")
 
@@ -174,7 +177,7 @@ class SsrTool(Tool):
         运行
         """
         super(SsrTool, self).run()
-        if self.option("bed").is_set:
+        if self.option("primer"):
             self.misa()
             self.primer_in()
             self.primer()
@@ -182,6 +185,6 @@ class SsrTool(Tool):
             # self.ssr_position()
         else:
             self.misa()
-            self.primer_in()
-            self.primer_out()
+            # self.primer_in()
+            # self.primer_out()
         self.set_output()
