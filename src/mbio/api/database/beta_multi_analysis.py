@@ -78,7 +78,7 @@ class BetaMultiAnalysis(Base):
                 'desc': '',
                 'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
-            if analysis == 'rda_cca':
+            if analysis == 'rda_cca':  # 在主表中添加必要的rda或者是cca分类信息
                 rda_files = os.listdir(dir_path.rstrip('/') + '/Rda')
                 if 'cca_sites.xls' in rda_files:
                     insert_mongo_json['rda_cca'] = 'cca'
