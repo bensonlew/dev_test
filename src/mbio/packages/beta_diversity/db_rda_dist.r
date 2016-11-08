@@ -1,5 +1,9 @@
 dis_matrix <- read.table("${dis_matrix}",comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
+dis_matrix_temp <- read.table("${dis_matrix}",comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE, colClasses = c("character"))
+rownames(dis_matrix) <- row.names(dis_matrix_temp)
 env_factor <- read.table("${env_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
+env_factor_temp <- read.table("${env_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE, colClasses = c("character"))
+rownames(env_factor) <- row.names(env_factor_temp)
 centroids <- FALSE
 biplot <- FALSE
 for (i in env_factor) {
