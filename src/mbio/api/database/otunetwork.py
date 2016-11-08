@@ -151,6 +151,48 @@ class Otunetwork(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
 
+    # @report_check
+    def add_node_table_group(self, file_path, params=None, group_id=None, from_otu_table=None, table_id=None, major=False):
+        #该步是用于添加后面画网络图的时候，节点进行分组显示，传入的数据是workflow生成文件是real_node_table.txt。
+        if major:
+            table_id = self.create_otunetwork(self, params, group_id, from_otu_table, level_id)
+        else:
+            if table_id is None:
+                raise Exception("major为False时需提供table_id!")
+            if not isinstance(table_id, ObjectId):
+                if isinstance(table_id, StringTypes):
+                    table_id = ObjectId(table_id)
+                else:
+                    raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
+        data_list = []
+        with open(file_path, 'rb') as r:
+            data_line = r.readlines()[1:]
+            for line in data_line:
+                line_data = line.strip().split('\t')
+                match_obj = re.match('d__', line_data[0])
+                if match_obj is not None:
+                    line1 = line_data[0].strip().split(';')
+                    line2 = line1[len(line1)-1]
+                    data = [("network_id", table_id), ("id", line2),
+                            ("group", line2[0:3])]
+                else:
+                    line1 = line_data[0].strip().split("_")
+                    l = len(line1)
+                    line2 = line1[0:l-1]
+                    line3 = "_".join(line2)
+                    data = [("network_id", table_id), ("id", line_data[0]),
+                            ("group", line3)]
+                data_son = SON(data)
+                data_list.append(data_son)
+        try:
+            collection = self.db["sg_meta_network_node_table_group"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
+        else:
+            self.bind_object.logger.info("导入%s信息成功!" % file_path)
+        return data_list
+
     #@report_check
     def add_edge_table(self, file_path, table_id=None, group_id=None, from_otu_table=None, level_id=None,
                                major=False):
@@ -169,8 +211,9 @@ class Otunetwork(Base):
             data1 = r.readlines()[1:]
             for line in data1:
                 line_data = line.strip().split('\t')
-                data = [("network_id", table_id), ("from", line_data[0]), ("to", line_data[1]),
-                        ("eweight", eval(line_data[2]))]
+                line_data1 = line_data[1].rstrip().split(";")
+                data = [("network_id", table_id), ("source", line_data[0]), ("target", line_data1[len(line_data1)-1]),
+                        ("value", eval(line_data[2]))]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
