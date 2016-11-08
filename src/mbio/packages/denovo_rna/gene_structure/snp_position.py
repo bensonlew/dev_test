@@ -38,8 +38,8 @@ def get_orf_info(bed):
         bed.readline()
         for line in bed:
             line = line.strip().split()
-            # gene_name = line[0].split("_i")[0]
-            gene_name = line[0]
+            gene_name = line[0].split("_i")[0]
+            # gene_name = line[0]
             if gene_name in orf_info:
                 orf_info[gene_name].append([line[5], int(line[6]), int(line[7])])
             else:
