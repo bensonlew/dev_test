@@ -7,6 +7,7 @@ import os
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from mbio.files.sequence.fastq import FastqFile
 
 
 class FastqSampleExtractAgent(Agent):
@@ -42,10 +43,10 @@ class FastqSampleExtractAgent(Agent):
             self._memory = "2G"
         if self.get_option_object("in_fastq").format == 'sequence.fastq':
             total = os.path.getsize(self.option("in_fastq").prop["path"])
-        total = total / (1024 * 1024 * 1024)
-        total = total * 2
-        total = math.ceil(total)
-        self._memory = '{}G'.format(int(total))
+            total = total / (1024 * 1024 * 1024)
+            total = total * 2
+            total = math.ceil(total)
+            self._memory = '{}G'.format(int(total))
 
 
 class FastqSampleExtractTool(Tool):
@@ -56,12 +57,21 @@ class FastqSampleExtractTool(Tool):
         path = os.path.join(self.output_dir, "list.txt")
         with open(path, 'wb') as w:
             if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
-                for file_ in self.option("in_fastq").prop["file_sample"]:
-                    w.write("{}\t{}\n".format(file_, self.option("in_fastq").prop["file_sample"][file_]))
-            if self.get_option_object('in_fastq').format == 'sequence.fastq':
-                self.option("in_fastq").check_content()
-                for sp in self.option('in_fastq').prop["samples"]:
-                    w.write("{}\t{}\n".format(self.option("in_fastq").prop["path"], sp))
+                if self.option("in_fastq").prop["has_list_file"]:
+                    for file_ in self.option("in_fastq").prop["file_sample"]:
+                        w.write("{}\t{}\n".format(file_, self.option("in_fastq").prop["file_sample"][file_]))
+                else:
+                    for file_ in self.option("in_fastq").prop["file_sample"]:
+                        new_file = FastqFile()
+                        new_file.set_path(file_)
+                        new_file.check_content()
+                        for sp in new_file.prop["samples"]:
+                            w.write("{}\t{}\n".format(file_, sp))
+            else:
+                if self.get_option_object('in_fastq').format == 'sequence.fastq':
+                    self.option("in_fastq").check_content()
+                    for sp in self.option('in_fastq').prop["samples"]:
+                        w.write("{}\t{}\n".format(self.option("in_fastq").prop["path"], sp))
         self.option("file_sample_list").set_path(path)
 
     def run(self):
