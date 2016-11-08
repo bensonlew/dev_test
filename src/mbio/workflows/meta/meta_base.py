@@ -47,10 +47,11 @@ class MetaBaseWorkflow(Workflow):
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
             {"name": "plsda_grouplab", "type": 'string', "default": ''},
-            {"name": "file_list", "type": "string", "default": ""}  # 待定的文件检测模块参数，暂时不使用
+            {"name": "file_list", "type": "string", "default": "null"}  # 待定的文件检测模块参数，暂时不使用
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
+        self.sample_check = self.add_tool("meta.sample_check")
         self.filecheck = self.add_tool("meta.filecheck.file_metabase")
         self.qc = self.add_module("meta.qc.miseq_qc")
         self.otu = self.add_tool("meta.otu.usearch_otu")
@@ -86,12 +87,26 @@ class MetaBaseWorkflow(Workflow):
                                                'silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
-                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
+                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX','maarjam081/AM','Human_HOMD']:
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
         return True
 
+    def run_samplecheck(self):
+        opts = {"in_fastq": self.option("in_fastq"),
+                "file_list": self.option("file_list")       
+        }
+        self.sample_check.set_options(opts)
+        self.sample_check.run()
+
     def run_filecheck(self):
-        opts = {"in_fastq": self.option("in_fastq")}
+        # opts = {"in_fastq": self.option("in_fastq")}
+        if self.option("file_list") == "null":
+            opts = {"in_fastq": self.option("in_fastq")}
+        else:
+            if self.option("in_fastq").format == "sequence.fastq":
+                opts = {"in_fastq": self.sample_check.option("in_fastq_modified")}
+            else:
+                opts = {"in_fastq": self.sample_check.option("fastq_dir_modified")}
         if self.option("database") == "custom_mode":
             opts.update({
                 "ref_fasta": self.option("ref_fasta"),
@@ -110,9 +125,14 @@ class MetaBaseWorkflow(Workflow):
         self.filecheck.run()
 
     def run_qc(self):
-        self.qc.set_options({
-            "in_fastq": self.option("in_fastq")
-        })
+        if self.option("file_list") == "null":
+            opts = {"in_fastq": self.option("in_fastq")}
+        else:
+            if self.option("in_fastq").format == "sequence.fastq":
+                opts = {"in_fastq": self.sample_check.option("in_fastq_modified")}
+            else:                       
+                opts = {"in_fastq": self.sample_check.option("fastq_dir_modified")}
+        self.qc.set_options(opts)
         self.qc.on("end", self.set_output, "qc")
         self.qc.run()
 
@@ -153,8 +173,7 @@ class MetaBaseWorkflow(Workflow):
         self.tax.run()
 
     def run_stat(self):
-        self.samples_num = len(open(self.qc.output_dir + "/samples_info/samples_info.txt").readlines()) - 1
-        if self.samples_num < 2:
+        if len(open(self.qc.output_dir + "/samples_info/samples_info.txt").readlines()) < 3:
             self.on_rely([self.alpha, self.beta], self.end)
         else:
             self.stat.on('end', self.run_pan_core)
@@ -181,7 +200,7 @@ class MetaBaseWorkflow(Workflow):
         self.alpha.run()
 
     def run_beta(self):
-        if self.samples_num < 3: # 只有两个样本
+        if len(open(self.stat.option("otu_taxon_dir").get_table("otu")).readline().split('\t')) < 4: # 只有两个样本
             self.option('beta_analysis', '')
         opts = {
             'analysis': 'distance,' + self.option('beta_analysis'),
@@ -435,7 +454,7 @@ class MetaBaseWorkflow(Workflow):
 
     def run(self):
         self.filecheck.on('end', self.run_qc)
-        self.run_filecheck()
+        self.sample_check.on('end',self.run_filecheck)
         self.qc.on('end', self.run_otu)
         self.otu.on('end', self.run_taxon)
         self.otu.on('end', self.run_phylotree)
@@ -444,6 +463,11 @@ class MetaBaseWorkflow(Workflow):
         self.stat.on('end', self.run_beta)
         # self.stat.on('end', self.run_pan_core)
         # self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
+        if self.option("file_list") == "null":
+            self.run_filecheck()
+        else:
+            self.run_samplecheck()
+        # self.run_filecheck()
         super(MetaBaseWorkflow, self).run()
 
     def send_files(self):
