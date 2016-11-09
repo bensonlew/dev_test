@@ -21,7 +21,7 @@ class TranscriptAbstractAgent(Agent):
         options = [
             {"name": "ref_genome", "type": "string"},                                    # 参考基因组参数，若为customer_mode时，客户传入参考基因组文件，否则选择平台上的
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"}, # 参考基因组fasta文件
-            {"name": "ref_genome_gff", "type": "infile", "format": "ref_rna.gff"}        # 参考基因组gff文件
+            {"name": "ref_genome_gff", "type": "infile", "format": "ref_rna.reads_mapping.gff"}        # 参考基因组gff文件
         ]
         self.add_option(options) 
         self.step.add_steps("Transcript")
@@ -65,7 +65,7 @@ class TranscriptAbstractTool(Tool):
             fasta = self.option("ref_genome_custom").prop["path"]
             gff = self.option("ref_genome_gff").prop["path"]
         else:
-            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/ref_genome.json", "r") as a:
+            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/scripts/ref_genome.json", "r") as a:
                 dict = json.loads(a.read())
                 fasta = dict[self.option("ref_genome_custom")]["fasta"]
                 gff = dict[self.option("ref_genome")]["gff3"]

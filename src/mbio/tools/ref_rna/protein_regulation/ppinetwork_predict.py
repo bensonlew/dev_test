@@ -19,7 +19,7 @@ class PpinetworkPredictAgent(Agent):
     def __init__(self, parent):
         super(PpinetworkPredictAgent, self).__init__(parent)
         options = [
-            {"name": "diff_exp_mapped", "type": "infile", "format": "ref_rna.txt"},  #差异基因表达详情表
+            {"name": "diff_exp_mapped", "type": "infile", "format": "ref_rna.protein_regulation.txt"},  #差异基因表达详情表
             {"name": "species", "type": "int", "default": 9606},
             {"name": "combine_score",  "type": "int", "default": 600},
             {"name": "logFC", "type": "float", "default": 0.2},

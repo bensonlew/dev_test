@@ -20,7 +20,7 @@ class MapAgent(Agent):
     def __init__(self, parent):
         super(MapAgent, self).__init__(parent)
         options = [
-            {"name": "diff_exp", "type": "infile", "format": "ref_rna.xls"},  #差异基因表达详情表
+            {"name": "diff_exp", "type": "infile", "format": "ref_rna.protein_regulation.xls"},  #差异基因表达详情表
             {"name": "species", "type": "int", "default": 9606},
             {"name": "species_list", "type": "string"}
         ]

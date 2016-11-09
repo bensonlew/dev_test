@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = "moli.zhou"
 #last_modify:20161108
-# 包含三种数据库
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
