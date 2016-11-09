@@ -3,6 +3,7 @@
 import re
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
+from collections import defaultdict
 
 
 class GroupTableFile(File):
@@ -168,6 +169,28 @@ class GroupTableFile(File):
                     break
                 gnames.append(line.split()[site])
             return list(set(gnames))
+
+        def get_group_spname(self, name=None):
+            """
+            获取某一分组方案下分组类别对应的样本信息详细
+            :param name: 某一分组方案的名字,string
+            :return group_spname:该分组方案下分组类别对应的样本信息详细的字典，eg：{'A': [1,2,3], 'B': [4,5,6]}
+            add by qiuping, last_modify:20161027
+            """
+            with open(self.prop['path'], 'r') as f:
+                head = f.readline().split()
+                group_spname = defaultdict(list)
+                if not name:
+                    gname = head[0]
+                else:
+                    gname = name
+                _index = head.index(gname)
+                for line in f:
+                    line = line.strip('\n').split()
+                    sample = line[0]
+                    group = line[_index]
+                    group_spname[group].append(sample)
+            return group_spname
 
 if __name__ == "__main__":
     g = GroupTableFile()

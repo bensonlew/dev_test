@@ -33,8 +33,8 @@ class BlastAgent(Agent):
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
             {"name": "num_threads", "type": "int", "default": 10},  # cpu数
             {"name": "num_alignment", "type": "int", "default": 5},  # 序列比对最大输出条数，默认500
-            {"name": "outxml", "type": "outfile", "format": "align.blast.blast_xml"},  # 输出格式为6时输出
-            {"name": "outtable", "type": "outfile", "format": "align.blast.blast_table"},  # 输出格式为5时输出
+            {"name": "outxml", "type": "outfile", "format": "align.blast.blast_xml"},  # 输出格式为5时输出
+            {"name": "outtable", "type": "outfile", "format": "align.blast.blast_table"},  # 输出格式为6时输出
             # 当输出格式为非5，6时，只产生文件不作为outfile
             ]
         self.add_option(options)
@@ -87,7 +87,7 @@ class BlastAgent(Agent):
         return True
 
     def set_resource(self):
-        self._cpu = 20
+        self._cpu = self.option('num_threads')
         self._memory = '50G'
 
     def end(self):
@@ -112,6 +112,7 @@ class BlastTool(Tool):
         self._version = "2.3.0"
         self.db_path = os.path.join(self.config.SOFTWARE_DIR, "database/align/ncbi/db")
         self.cmd_path = "/bioinfo/align/ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
+        self.set_environ(BLASTDB=self.db_path)
 
     def run_makedb_and_blast(self):
         """
@@ -141,7 +142,7 @@ class BlastTool(Tool):
         :param db_name: blastdb名称
         :return:
         """
-        db = os.path.join(self.db_path, db_name)
+        # db = os.path.join(self.db_path, db_name)
         query_name = os.path.splitext(os.path.basename(self.option("query").prop['path']))[0]
         cmd = os.path.join(self.cmd_path, self.option('blast'))
         outputfile = os.path.join(self.output_dir, query_name + "_vs_" + db_name)
@@ -155,7 +156,7 @@ class BlastTool(Tool):
         else:
             outputfile += '.txt'
         cmd += " -query %s -db %s -out %s -evalue %s -outfmt %s -max_hsps 10 -num_threads %s -max_target_seqs %s" % (
-            self.option("query").prop['path'], db, outputfile,
+            self.option("query").prop['path'], db_name, outputfile,
             self.option("evalue"), outfmt, self.option("num_threads"), self.option('num_alignment'))
         self.logger.info("开始运行blast")
         blast_command = self.add_command("blast", cmd)
@@ -164,10 +165,12 @@ class BlastTool(Tool):
         if blast_command.return_code == 0:
             self.logger.info("运行blast完成")
             if self.option('outfmt') == 6:
-                self.logger.info('程序输出结果为6(xml)，实际需要结果为5(xml)，开始调用程序xml2table转换')
+                self.logger.info('程序输出结果为6(table)，实际需要结果为5(xml)，开始调用程序xml2table转换')
                 from mbio.packages.align.blast.xml2table import xml2table
                 xml2table(outputfile, outputfile[:-3] + 'xls')
-                os.remove(outputfile)
+                blast_xml = self.work_dir + "/" + os.path.basename(outputfile)
+                os.system("mv {} {}".format(outputfile, blast_xml))
+                self.option("outxml", blast_xml)
                 self.logger.info('程序table格式转换完成，旧xml文件已移除')
                 self.option('outtable', outputfile[:-3] + 'xls')
             elif self.option('outfmt') == 5:

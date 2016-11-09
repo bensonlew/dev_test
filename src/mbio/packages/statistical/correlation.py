@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 # __author__ = "qindanhua"
 from mako.template import Template
-from biocluster.config import Config
 import os
 
+
 this_file_dir = os.path.dirname(os.path.realpath(__file__))
+
+
 def correlation(inputfile, corr_matrix, pvalue_out, tvalue_out, heatmap_out, col_tree, row_tree):
     """
     生成并运行R脚本，进行相关系数分析
@@ -21,6 +23,7 @@ def correlation(inputfile, corr_matrix, pvalue_out, tvalue_out, heatmap_out, col
     mul_test = f.render(inputfile=inputfile, corr_matrix=corr_matrix, pvalue_out=pvalue_out, tvalue_out=tvalue_out, heatmap_out=heatmap_out, col_tree=col_tree, row_tree=row_tree)
     with open("run_correlation.r", 'w') as rfile:
         rfile.write("%s" % mul_test)
+
 
 def corr_heatmap(inputfile, col_tree, row_tree):
     """

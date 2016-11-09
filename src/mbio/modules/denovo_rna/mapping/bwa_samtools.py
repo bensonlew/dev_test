@@ -85,12 +85,16 @@ class BwaSamtoolsModule(Module):
         step.finish()
         self.step.update()
 
-    def index_run(self):
+    def link_ref(self):
         ref_fasta = self.option('ref_fasta').prop["path"]
         self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta)
+        self.logger.info(self.ref_link)
         if os.path.exists(self.ref_link):
             os.remove(self.ref_link)
         os.link(ref_fasta, self.ref_link)
+
+    def index_run(self):
+        self.link_ref()
         self.step.add_steps("index")
         self.index.set_options({
             "ref_fasta": self.ref_link,
@@ -149,17 +153,18 @@ class BwaSamtoolsModule(Module):
             # self.on_rely(self.bwa_tools, self.multi_samtools_run)
 
     def bwa_single_run(self):
+        self.link_ref()
         self.bwa = self.add_tool('align.bwa.bwa')
         if self.option("fq_type") == "PE":
             self.bwa.set_options({
-                "ref_fasta": self.option('ref_fasta').prop["path"],
+                "ref_fasta": self.ref_link,
                 'fastq_l': self.option('fastq_l').prop["path"],
                 'fastq_r': self.option('fastq_r').prop["path"],
                 'fq_type': self.option('fq_type')
                 })
         elif self.option("fq_type") == "SE":
             self.bwa.set_options({
-                "ref_fasta": self.option('ref_fasta').prop["path"],
+                "ref_fasta": self.ref_link,
                 'fastq_s': self.option('fastq_s').prop["path"],
                 'fq_type': self.option('fq_type')
                 })
@@ -173,6 +178,7 @@ class BwaSamtoolsModule(Module):
         bwa_output = os.listdir(obj.output_dir)
         f_path = os.path.join(obj.output_dir, bwa_output[0])
         self.logger.info(f_path)
+        self.logger.info(self.ref_link)
         samtools = self.add_tool('denovo_rna.gene_structure.samtools')
         self.step.add_steps('samtools_{}'.format(event["data"]))
         samtools.set_options({

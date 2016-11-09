@@ -38,8 +38,8 @@ def get_orf_info(bed):
         bed.readline()
         for line in bed:
             line = line.strip().split()
-            # gene_name = line[0].split("_i")[0]
-            gene_name = line[0]
+            gene_name = line[0].split("_i")[0]
+            # gene_name = line[0]
             if gene_name in orf_info:
                 orf_info[gene_name].append([line[5], int(line[6]), int(line[7])])
             else:
@@ -84,7 +84,7 @@ def snp_stat(snp, orf):
                     w.write(write_line)
         # print snp_position_count
         # print snp_type_count
-        with open("snp_type_stat.xls", "w") as t, open("snp_position_stat.xls", "w") as p:
+        with open("snp.type.stat.xls", "w") as t, open("snp.position.stat.xls", "w") as p:
             t.write("type\tCount\n")
             t.write("A/G\t{}\n".format(snp_type_count["AG"] + snp_type_count["GA"]))
             t.write("A/T\t{}\n".format(snp_type_count["AT"] + snp_type_count["TA"]))

@@ -96,7 +96,9 @@ class GoEnrichTool(Tool):
     def run_draw_go_graph(self):
         try:
             self.logger.info('run_draw_go_graph')
-            draw_GO(self.get_go_pvalue_dict(), out=self.out_go_graph)
+            go_pvalue = self.get_go_pvalue_dict()
+            if go_pvalue:
+                draw_GO(go_pvalue, out=self.out_go_graph)
             self.end()
         except Exception:
             self.set_error('绘图发生错误:\n{}'.format(traceback.format_exc()))
@@ -109,7 +111,7 @@ class GoEnrichTool(Tool):
             for line in f:
                 line_sp = line.split('\t')
                 p_bonferroni = float(line_sp[9])
-                if p_bonferroni < 0.0005:
+                if p_bonferroni < 0.05:
                     go2pvalue[line_sp[0]] = p_bonferroni
         return go2pvalue
 
