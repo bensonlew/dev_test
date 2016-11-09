@@ -4,6 +4,8 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 import os
+# import copy
+import collections
 
 
 class PlotTreeAgent(Agent):
@@ -85,6 +87,7 @@ class PlotTreeTool(Tool):
         self.plot_tree_bar_path = self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/plot-treeygbar.pl'
         self.plot_tree_fan_path = self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/plot-tree.pl'
         self.perl_path = 'program/perl/perls/perl-5.24.0/bin/perl '
+        self.colors_num = 21  # 目前支持的颜色数量
 
     def run(self):
         """
@@ -93,23 +96,59 @@ class PlotTreeTool(Tool):
         super(PlotTreeTool, self).run()
         self.run_plot_tree()
 
+    def leaf_group_filter(self):
+        """筛选leaf的颜色分类数量，当数量多余23个时去除多余的"""
+        if not self.option('leaves_group').is_set:
+            self.leaf_group_num = 0
+            return None
+        leaf_group_filter_file = self.work_dir + '/leaf_group_filter.temp'
+        with open(self.option('leaves_group').path) as f, open(leaf_group_filter_file, 'w') as w:
+            lines = f.readlines()
+            headers = lines[0]
+            lines = lines[1:]
+            # lines_copy = copy.copy(lines)
+            groups = [i.split('\t')[1] for i in lines]
+            count_dict = collections.defaultdict(int)
+            for i in groups:
+                count_dict[i] = count_dict[i] + 1
+            if len(count_dict) <= self.colors_num:
+                self.leaf_group_num = len(count_dict)
+                return self.option('leaves_group').path
+            self.leaf_group_num = self.colors_num
+            sorted_count = sorted(count_dict.items(), key=lambda x: x[1], reverse=True)
+            sorted_count = sorted_count[: self.colors_num - 1]  # 此处本来不应该减 1 ，但是脚本存在问题，减一， 相当于少了一个颜色
+            sorted_count = [i[0] for i in sorted_count]
+            w.write(headers)
+            for i in lines:
+                if i.split('\t')[1] in sorted_count:
+                    w.write(i)
+        return leaf_group_filter_file
+
+
     def run_plot_tree(self):
+        leaf_group_file = self.leaf_group_filter()
         cmd_fan = self.perl_path + self.plot_tree_fan_path + ' -i ' + self.option('newicktree').path + ' -o ' + self.output_dir + '/fan.pdf' + ' -tretype fan '
         if self.option('leaves_group').is_set:
-            cmd_fan += ' -d ' + self.option('leaves_group').path
+            cmd_fan += ' -d ' + leaf_group_file
         cmd_bar = self.perl_path + self.plot_tree_bar_path + ' -i ' + self.option('newicktree').path + ' -o ' + self.output_dir + '/bar.pdf'
         cmd_bar += ' -t ' + self.option('abundance_table').path
         if self.option("sample_group").is_set:
             cmd_bar += ' -g ' + self.option('sample_group').path
+            group_num = len(set([i.split('\t')[1] for i in open(self.option('sample_group').path).readlines()[1:]]))
         else:
+            group_num = len(open(self.option('abundance_table').path).readline().split('\t'))
             cmd_bar += ' -g ALL'
-        heigth = int(len(self.option('newicktree').prop['sample']) * 0.26)
+        all_legend_num = group_num + self.leaf_group_num
+        if all_legend_num > len(self.option('newicktree').prop['sample']):
+            heigth = int(all_legend_num * 0.26)
+        else:
+            heigth = int(len(self.option('newicktree').prop['sample']) * 0.26)
         if heigth < 3:
             heigth = 3
         if heigth > 80:
             heigth = 80
         if self.option('leaves_group').is_set:
-            cmd_bar += ' -d ' + self.option('leaves_group').path
+            cmd_bar += ' -d ' + leaf_group_file
         else:
             pass
             # cmd_bar += ' -d ALL'
