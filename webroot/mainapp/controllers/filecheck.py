@@ -160,7 +160,7 @@ class MultiFileCheck(object):
                 d.path = f["path"]
                 if d.format == "meta.otu.group_table" and isinstance(json_obj["file_list"],(dict)):
                     result = json.loads(self.checker.check_group(d,json_obj["file_list"]))
-                if d.format == "sequence.fastq_dir" and not isinstance(json_obj["file_list"],(dict)):
+                elif d.format == "sequence.fastq_dir" and not isinstance(json_obj["file_list"],(dict)):
                     info = {"success":False, "info":"fastq文件夹需进行文件检测"}
                     result = info
                 else:
