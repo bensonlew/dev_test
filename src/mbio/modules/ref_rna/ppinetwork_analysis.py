@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuanhongdong'
-# last_modify:2016.09.21
+# last_modify:2016.09.22
 
 from biocluster.module import Module
 import os
+import types
 from biocluster.core.exceptions import OptionError
 
 
@@ -12,10 +13,11 @@ class PpinetworkAnalysisModule(Module):
         super(PpinetworkAnalysisModule, self).__init__(work_id)
         self.step.add_steps('map', 'ppinetwork_predict', 'ppinetwork_topology')
         options = [
-            {"name": "diff_exp", "type": "infile", "format": "ref_rna.xls"},  # 差异基因详情表，表中含有logFC
+            {"name": "diff_exp", "type": "infile", "format": "ref_rna.protein_regulation.xls"},  # 差异基因详情表，表中含有logFC
             {"name": "species", "type": "int", "default": 9606},  #设置物种
             {"name": "combine_score", "type": "int", "default": 600},  # 设定蛋白质与蛋白质之间的相互作用可能性的阈值
             {"name": "logFC", "type": "float", "default": 0.2},  # 设定logFC系数的阈值
+            {"name": "species_list", "type": "string"}
         ]
         self.add_option(options)
         self.map = self.add_tool("ref_rna.protein_regulation.map")
@@ -24,11 +26,21 @@ class PpinetworkAnalysisModule(Module):
         self._end_info = 0
 
     def check_options(self):
-        species_list = [9606, 3711, 4932]   #  这里物种要继续补充
         if not self.option('diff_exp').is_set:
             raise OptionError("必须输入含有gene_id的差异基因表xls")
+        if not self.option('species_list'):
+            raise OptionError('必须提供物种 taxon id 表')
+        if not os.path.exists(self.option('species_list')):
+            raise OptionError('species_list文件路径有错误')
+        with open(self.option('species_list'), "r") as f:
+            data = f.readlines()
+            species_list = []
+            for line in data:
+                temp = line.rstrip().split("\t")
+                species_list += [eval(temp[0])]
+            # print species_list
         if self.option('species') not in species_list:
-            raise OptionError("物种不存在，请输入正确的物种 taxon id")
+            raise OptionError("物种不存在,请输入正确的物种taxon_id")
         if self.option('combine_score') > 1000 or self.option('combine_score') < 0:
             raise OptionError("combine_score值超出了范围")
         if self.option('logFC') > 100 or self.option('logFC') < -100:
@@ -46,7 +58,8 @@ class PpinetworkAnalysisModule(Module):
     def map_run(self):
         self.map.set_options({
             "diff_exp": self.option("diff_exp"),
-            "species": self.option("species")
+            "species": self.option("species"),
+            "species_list": self.option("species_list")
         })
         self.map.on('end', self.set_output, 'map')
         self.map.on('start', self.set_step, {'start': self.step.map})
@@ -60,7 +73,8 @@ class PpinetworkAnalysisModule(Module):
             "diff_exp_mapped": diff_exp_mapped_table,
             "species": self.option("species"),
             "combine_score": self.option("combine_score"),
-            "logFC": self.option("logFC")
+            "logFC": self.option("logFC"),
+            "species_list": self.option("species_list")
         })
         self.ppinetwork_predict.on('end', self.set_output, 'ppinetwork_predict')
         self.ppinetwork_predict.on('start', self.set_step, {'start': self.step.ppinetwork_predict})
@@ -122,7 +136,7 @@ class PpinetworkAnalysisModule(Module):
         if os.path.isfile(mapped_table):
             self.ppinetwork_predict_run()
         else:
-            self.map_run()  #判断map的结果文件存在，不运行map tool
+            self.map_run()
 
 
     def end(self):
