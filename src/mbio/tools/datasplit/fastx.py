@@ -47,10 +47,11 @@ class FastxTool(Tool):
     def __init__(self, config):
         super(FastxTool, self).__init__(config)
         self._version = 1.0
-        self.fastx_dir = "fastxtoolkit/bin/"
-        self.python_dir = "Python/bin/python"
+        self.fastx_dir = "bioinfo/seq/fastx_toolkit_0.0.14/"
+        self.python_dir = "program/Python/bin/python"
         self.q20q30_stat = os.path.join(Config().SOFTWARE_DIR, "datasplit/bin/q20q30_stat.py")
-        self.gnuplot = os.path.join(Config().SOFTWARE_DIR, "gnuplot/bin")
+        self.gnuplot = os.path.join(Config().SOFTWARE_DIR, "bioinfo/plot/gnuplot/bin")
+        self.lib_path = os.path.join(Config().SOFTWARE_DIR, "library/lib")
         self.option('sample_info').get_info()
         file_name = os.listdir(self.option("unzip_path"))
         self.fastqs = list()
@@ -111,16 +112,16 @@ class FastxTool(Tool):
         """
         cmd_list = list()
         i = 0
-        self.set_environ(PATH=self.gnuplot)
+        self.set_environ(PATH=self.gnuplot, LD_LIBRARY_PATH=self.lib_path, LIBRARY_PATH=self.lib_path)
         for fastxstat in self.fastx:
             i += 1
             nucl_name = os.path.join(self.work_dir, "fastx", os.path.basename(fastxstat) + ".nucl.png")
             box_name = os.path.join(self.work_dir, "fastx", os.path.basename(fastxstat) + ".box.png")
-            cmd = (self.fastx_dir + "fastx_nucleotide_distribution_graph.sh -i " + fastxstat
+            cmd = (self.fastx_dir + "script/fastx_nucleotide_distribution_graph.sh -i " + fastxstat
                    + " -o " + nucl_name)
             command = self.add_command("fastx_nucleotide_distribution_graph.sh" + str(i), cmd)
             cmd_list.append(command)
-            cmd = (self.fastx_dir + "fastq_quality_boxplot_graph.sh -i " + fastxstat
+            cmd = (self.fastx_dir + "script/fastq_quality_boxplot_graph.sh -i " + fastxstat
                    + " -o " + box_name)
             command = self.add_command("fastq_quality_boxplot_graph.sh" + str(i), cmd)
             cmd_list.append(command)

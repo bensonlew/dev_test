@@ -90,9 +90,15 @@ class PanCore(Base):
                     my_dic["title"] = header[i]
                     my_dic["value"] = line[i]
                     value.append(my_dic)
+
+                # 应前端要求，对category_name进行修改， 从group表的All改为all
+                if line[0] in ["All", "all", "ALL"]:
+                    temp_category_name = "all"
+                else:
+                    temp_category_name = line[0]
                 insert_data = {
                     "pan_core_id": pan_core_id,
-                    "category_name": line[0],
+                    "category_name": temp_category_name,
                     "value": value
                 }
                 pan_core_detail.append(insert_data)

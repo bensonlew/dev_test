@@ -1,3 +1,4 @@
+#!/bin/env python
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import argparse
@@ -27,10 +28,7 @@ if args["silence"] == "False":
 else:
     stream_on = False
 
-target_path = ""
-task = UploadTask(args["identity_code"], target_path, args["mode"], args["port"], stream_on)
+task = UploadTask(args["identity_code"], os.path.dirname(args["file_list"]), args["mode"], args["port"], stream_on)
 info = task.get_task_info()
-print info
 file_info = task.get_file_info(args["file_list"])
-print file_info
 task.upload_files()

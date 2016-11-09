@@ -4,6 +4,7 @@
 """bcl2fastq 工具 """
 import os
 import errno
+import re
 import xml.etree.ElementTree as ET
 from biocluster.tool import Tool
 from biocluster.agent import Agent
@@ -30,12 +31,6 @@ class Bcl2fastqAgent(Agent):
         """
         if not self.option('sample_info').is_set:
             raise OptionError("参数sample_info不能为空")
-        my_path = self.option('sample_info').prop["file_path"]
-        run_info = os.path.join(my_path, "RunInfo.xml")
-        if not os.path.exists(my_path):
-            raise Exception("数据路径{}不存在".format(my_path))
-        if not os.path.exists(run_info):
-            raise Exception("RunInfo.xml文件缺失")
         return True
 
     def set_resource(self):
@@ -52,9 +47,17 @@ class Bcl2fastqTool(Tool):
     def __init__(self, config):
         super(Bcl2fastqTool, self).__init__(config)
         self._version = 1.0
-        self.bcl2fastq_path = "rawdata/bcl2fastq/bin/bcl2fastq"
+        self.bcl2fastq_path = "bioinfo/seq/bcl2fastq2-v2.17.1.14/bin/bcl2fastq"
         self.option('sample_info').get_info()
         self.base_mask = ""
+        # 由于挂载点的问题，需要将下机文件的路径前缀由/mnt/ilustre换成/mnt/clustre
+        self.option('sample_info').prop["file_path"] = re.sub("^\/mnt\/ilustre", "/mnt/clustre", self.option('sample_info').prop["file_path"])
+        my_path = self.option('sample_info').prop["file_path"]
+        run_info = os.path.join(my_path, "RunInfo.xml")
+        if not os.path.exists(my_path):
+            raise Exception("数据路径{}不存在".format(my_path))
+        if not os.path.exists(run_info):
+            raise Exception("RunInfo.xml文件缺失")
         if not self.option('sample_info').check_parent_repeat():
             self.set_error("父样本中的index重复")
             raise Exception("父样本中的index重复")

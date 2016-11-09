@@ -98,10 +98,19 @@ class PcoaTool(Tool):
             self.set_error('R程序计算pcoa失败')
         allfile = self.get_filesname()
         sites_file = self.format_header(allfile[1])
-        self.linkfile(allfile[0], 'pcoa_eigenvalues.xls')
+        eigenvalues = self.format_eigenvalues(allfile[0])
+        self.linkfile(eigenvalues, 'pcoa_eigenvalues.xls')
         self.linkfile(sites_file, 'pcoa_sites.xls')
         self.logger.info('运行ordination.pl程序计算pcoa完成')
         self.end()
+
+    def format_eigenvalues(self, fp):
+        new_fp = self.work_dir + '/format_eigenvalues.txt'
+        with open(fp) as f, open(new_fp, 'w') as w:
+            w.write(f.readline())
+            for i in f:
+                w.write('PC' + i)
+        return new_fp
 
     def format_header(self, old):
         """
