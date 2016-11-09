@@ -122,7 +122,7 @@ def get_gene_list(diff_fpkm, fpkm_path):
     gene_list_path = os.path.join(fpkm_path, 'gene_list.txt')
     gene_list = open(gene_list_path, 'w+')
     i=0
-    gene_list.write("tracking_id" + "\t" + "tracking_id" + "\n")
+    #gene_list.write("tracking_id" + "\t" + "tracking_id" + "\n")
     with open(diff_fpkm, "r+") as files:
         for f in files:
             i += 1
@@ -131,6 +131,6 @@ def get_gene_list(diff_fpkm, fpkm_path):
             else:
                 file = f.strip().split("\t")
                 gene_name = file[0]
-                gene_list.write(gene_name + "\t" + gene_name +"\n")
+                gene_list.write(gene_name+"\n")
     gene_list.close()
     return gene_list_path
