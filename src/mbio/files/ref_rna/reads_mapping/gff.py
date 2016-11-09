@@ -59,7 +59,7 @@ class GffFile(File):
 """
 if __name__ == '__main__':
     a = GffFile()
-    a.set_path("/mnt/ilustre/users/sanger-dev/app/database/refGenome/Animal/Birds_Reptil/Chicken/Ensembl84/Gallus_gallus.Galgal4.84.gff3")
+    a.set_path("/mnt/ilustre/users/sanger-dev/app/database/refGenome/Plant/Rhodophyta/chondrus_crispus/ref/Chondrus_crispus.ASM35022v2.32.gff3")
     a.check()
-    a.gff_to_bed()
-"""    
+    a.gff_to_bed()    
+"""
