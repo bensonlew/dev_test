@@ -34,6 +34,7 @@ class SampleExtract(Base):
         if not results:
             raise Exception("table_id:{}在sg_seq_sample表里未找到".format(table_id))
         results["sample_info"] = json.dumps(file_sample)
+        results["name"] = "SampleExtract"
         try:
             collection.find_one_and_update({"_id": table_id}, {'$set': results})
             self.bind_object.logger.info("表格导入成功")

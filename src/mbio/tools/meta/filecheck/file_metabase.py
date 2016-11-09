@@ -52,10 +52,10 @@ class FileMetabaseAgent(Agent):
                 raise OptionError("fastq文件中必须在序列名中带有样本名称(以下划线分隔)")
         if self.option("ref_fasta").is_set:
             if not self.option("ref_taxon").is_set:
-                raise OptionError("检测到参考fasta序列， 但未检测到参考taxon文件")
+                raise OptionError("检测到ref_fasta， 但未检测到ref_taxon")
         if self.option("ref_taxon").is_set:
             if not self.option("ref_fasta").is_set:
-                raise OptionError("检测到参考taxon文件， 但未检测到参考fasta序列")
+                raise OptionError("检测到ref_taxon， 但未检测到ref_fasta")
 
     def set_resource(self):
         """
@@ -64,7 +64,9 @@ class FileMetabaseAgent(Agent):
         self._cpu = 10
         total = 0
         if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
-            for f in self.option("in_fastq").prop["samples"]:
+            self.option("in_fastq").get_info()
+            for f in self.option("in_fastq").prop["fastq_basename"]:  # modified by sj on 20161026
+                f = os.path.join(self.option("in_fastq").prop["path"],f)
                 total += os.path.getsize(f)
         if self.get_option_object("in_fastq").format == 'sequence.fastq':
             total = os.path.getsize(self.option("in_fastq").prop["path"])
@@ -81,9 +83,10 @@ class FileMetabaseTool(Tool):
 
     def check_fastq(self):
         self.logger.info("正在检测fastq文件")
-        self.option('in_fastq').get_info()
+        # self.option('in_fastq').get_info()
         if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
             self.logger.info("输入的fastq为文件夹格式")
+            self.option('in_fastq').get_info()
             self.samples = self.option('in_fastq').prop["samples"]
         if self.get_option_object('in_fastq').format == 'sequence.fastq':
             self.logger.info("输入的fastq文件为单文件格式")
@@ -121,7 +124,7 @@ class FileMetabaseTool(Tool):
                     raise Exception("序列名{}在taxon文件里未出现")
             if len(fasta_name) != len(taxon_name):
                 self.set_error("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
-                raise Exception("参考taxon文件里的某些序列名在参考fasta序列里未找到")
+                raise Exception("ref_taxon文件里的某些序列名在ref_fatsa里未找到")
         else:
             self.logger.info("未检测到ref_fasta和ref_taxon文件， 跳过...")
         self.logger.info("ref和tax文件检测完毕")

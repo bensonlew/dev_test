@@ -106,12 +106,17 @@ class UpdateStatus(Log):
         for k in id_value:
             obj_id = k
             dbname = id_value[k]
+            # print self.post_data
             collection = self.mongodb[dbname]
             if not isinstance(obj_id, ObjectId):
                 if isinstance(obj_id, StringTypes):
                     obj_id = ObjectId(obj_id)
                 else:
                     raise Exception("{}的值必须为ObjectId对象或其对应的字符串!".format(self._sheetname))
+            try:
+                print collection.find_one({"_id":obj_id})
+            except:
+                print "im a fool"
             create_time = str(create_time)
             if status == "finish":
                 status = "end"
@@ -122,16 +127,22 @@ class UpdateStatus(Log):
                 "created_ts": create_time
             }
             collection.find_one_and_update({"_id": obj_id}, {'$set': data}, upsert=True)
-
+            
             # 新建或更新sg_status表
             collection = self.mongodb['sg_status']
             if status == "start":
                 tmp_col = self.mongodb[dbname]
-                tb_name = tmp_col.find_one({"_id": obj_id})["name"]
+                try:
+                    tb_name = tmp_col.find_one({"_id": obj_id})["name"]
+                except:
+                    tb_name = ""
                 tmp_task_id = list()
+                print 'update_status task_id:', self._task_id
                 tmp_task_id = re.split("_", self._task_id)
                 tmp_task_id.pop()
                 tmp_task_id.pop()
+                print "bbb"
+                print tmp_task_id
                 insert_data = {
                     "table_id": obj_id,
                     "table_name": tb_name,
@@ -142,8 +153,11 @@ class UpdateStatus(Log):
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
+                print insert_data
                 collection.insert_one(insert_data)
+                print "insert into database success"
             elif status == "end":
+                print "end"
                 tmp_col = self.mongodb[dbname]
                 my_params = tmp_col.find_one({"_id": obj_id})["params"]
                 my_dict = json.loads(my_params)
@@ -166,6 +180,7 @@ class UpdateStatus(Log):
                 collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
                 self.post_data_to_web()
             else:
+                print "enter into else part"
                 insert_data = {
                     "status": status,
                     "desc": desc,
