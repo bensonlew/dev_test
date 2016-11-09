@@ -40,6 +40,7 @@ class PlotTree(MetaController):
                         'level': int(data.level_id),
                         'color_level_id': int(data.color_level_id),
                         'sample_group': data.group_id,
+                        'group_id': data.group_id,
                         'group_detail': data.group_detail,
                         'params': params
                         }

@@ -12,7 +12,7 @@ def up_down_express_list(fp):
     """
     with open(fp) as f:
         header = f.readline().strip()
-        if not header.endswith('Pvalue\tFDR\tSignificant\tRegulate'):
+        if not header.lower().endswith('pvalue\tfdr\tsignificant\tregulate'):
             raise Exception('错误的表头:{}，表头应与基因差异表达分析结果格式一致'.format(header))
         down = []
         up = []

@@ -17,25 +17,25 @@ class ExpAnalysisModule(Module):
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq_dir"},  # SE测序，包含所有样本的fq文件的文件夹
+            {"name": "gname", "type": "string"},  # 分组方案名称
+            {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
+            {"name": "only_bowtie_build", "type": "bool", "default": False},  # 为true时该tool只建索引
+            {"name": "exp_way", "type": "string", "default": "fpkm"},
+            {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
+            {"name": "min_rowsum_counts", "type": "int", "default": 2},  # 离散值估计检验的最小计数值
+            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
+            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
+            {"name": "diff_ci", "type": "float", "default": 0.01},  # 显著性水平
+            {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因计数表
+            {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
+            {"name": "diff_list_dir", "type": "outfile", "format": "denovo_rna.express.gene_list_dir"},
+            {"name": "all_list", "type": "outfile", "format": "denovo_rna.express.gene_list"},  # 全部基因名称文件
             {"name": "bam_dir", "type": "outfile", "format": "align.bwa.bam_dir"},  # bowtie2的bam格式的比对文件
             {"name": "tran_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
             {"name": "gene_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
             {"name": "tran_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
             {"name": "gene_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"},
-            {"name": "exp_way", "type": "string", "default": "fpkm"},
-            {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
-            {"name": "min_rowsum_counts", "type": "int", "default": 20},  # 离散值估计检验的最小计数值
-            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
-            {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
-            {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因计数表
-            {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
-            {"name": "diff_list_dir", "type": "outfile", "format": "denovo_rna.express.gene_list_dir"},
-            {"name": "all_list", "type": "outfile", "format": "denovo_rna.express.gene_list"},
-            {"name": "gname", "type": "string"},  # 分组方案名称
-            {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
-            {"name": "only_bowtie_build", "type": "bool", "default": False}  # 为true时该tool只建索引
+            {"name": "diff_list", "type": "outfile", "format": "denovo_rna.express.gene_list"},  # 差异基因名称文件
         ]
         self.add_option(options)
         self.bowtie_build = self.add_tool("denovo_rna.express.rsem")
@@ -108,7 +108,7 @@ class ExpAnalysisModule(Module):
             for f in r_files:
                 if re.search(r'fastq$', f):
                     tool_opt['fq_r'] = self.option('fq_r').prop['path'] + '/' + f
-                    sample = f.split('sickle_r.fastq')[0]
+                    sample = f.split('_sickle_r.fastq')[0]
                     for f1 in l_files:
                         if sample in f1:
                             tool_opt['fq_l'] = self.option('fq_l').prop['path'] + '/' + f1
@@ -118,6 +118,7 @@ class ExpAnalysisModule(Module):
                             self.tool_lists.append(self.rsem)
         print self.tool_lists
         self.on_rely(self.tool_lists, self.set_output, 'rsem')
+        self.on_rely(self.tool_lists, self.merge_rsem_run)
         self.on_rely(self.tool_lists, self.set_step, {'end': self.step.rsem, 'start': self.step.merge_rsem})
 
     def set_step(self, event):
@@ -152,6 +153,7 @@ class ExpAnalysisModule(Module):
         self.diff_exp.set_options(tool_opt)
         self.diff_exp.on('end', self.set_output, 'diff_exp')
         self.diff_exp.on('end', self.set_step, {'end': self.step.diff_exp})
+        self.diff_exp.on('end', self.end)
         self.diff_exp.run()
 
     def linkdir(self, dirpath, dirname, output_dir):
@@ -187,7 +189,7 @@ class ExpAnalysisModule(Module):
                         else:
                             os.link(os.path.join(tool.work_dir, f), self.bam_path + f)
             self.option('bam_dir', self.bam_path)
-            self.merge_rsem_run()
+            # self.merge_rsem_run()
         elif event['data'] == 'merge_rsem':
             self.linkdir(obj.output_dir, 'rsem', self.output_dir)
             self.option('gene_count', self.merge_rsem.option('gene_count'))
@@ -202,7 +204,7 @@ class ExpAnalysisModule(Module):
             if self.diff_gene:
                 self.option('diff_count', obj.option('diff_count'))
                 self.option('diff_fpkm', obj.option('diff_fpkm'))
-                self.option('gene_file', obj.option('gene_file'))
+                self.option('diff_list', obj.option('diff_list'))
                 self.option('diff_list_dir', obj.option('diff_list_dir'))
             else:
                 self.logger.info('此输入文件没有检测到差异基因')
@@ -214,7 +216,6 @@ class ExpAnalysisModule(Module):
         self.bowtie_build.on('end', self.rsem_run)
         self.run_bowtie_build()
         self.merge_rsem.on('end', self.diff_exp_run)
-        self.diff_exp.on('end', self.end)
 
     def end(self):
         repaths = [

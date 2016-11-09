@@ -17,7 +17,8 @@ import datetime
 class Pipeline(object):
     def __init__(self):
         self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+        self.db_name = None
+        # self.db = self.client[Config().MONGODB]
 
     def GET(self):
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../views/'))
@@ -69,6 +70,14 @@ class Pipeline(object):
                     "project_sn": json_obj['project_sn'],
                     "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
+                # add by qiuping 20162019,set the database with diff base
+                if json_obj["name"] == 'meta.meta_base':
+                    self.db_name = Config().MONGODB
+                if json_obj["name"] == 'denovo.denovo_base':
+                    self.db_name = Config().MONGODB + '_rna'
+                    task_info['params'] = json_obj['options']
+                # end by qiuping
+                self.db = self.client[self.db_name]
                 collection = self.db["sg_task"]
                 collection.insert_one(task_info)
             return json.dumps(info)
