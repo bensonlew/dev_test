@@ -157,7 +157,7 @@ class DenovoExpress(Base):
             self.bind_object.logger.info("导入单样本表达量矩阵: %s信息成功!" % rsem_result)
 
     @report_check
-    def add_express_diff(self, params, samples, compare_column, diff_exp_dir=None, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True, samples_detail=None, express_id=None):
+    def add_express_diff(self, params, samples, compare_column, diff_exp_dir=None, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True, samples_detail=None):
         # group_id, group_detail, control_id只供denovobase初始化时更新param使用
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn

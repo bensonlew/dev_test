@@ -37,11 +37,12 @@ class cog_stat(object):
             for line in f:
                 self.gene_list.append(line.strip('\n'))
 
-    def get_gene_cog_list(self, cog_list, gene_list, outpath):
+    def get_gene_cog_list(self, cog_list, gene_list, outpath, trinity_mode=True):
         """
         将string2cog注释的结果文件筛选只包含基因的结果信息
         cog_list:string2cog tool运行得到的cog_list.xls结果文件；
         gene_list: 只包含基因序列名字的列表
+        trinity_mode用于在新生成的xml的queryID是去除结尾的_i(数字) 的
         return: gene_cog_list.xls
         """
         with open(cog_list, 'rb') as c, open(outpath, 'wb') as w:
@@ -49,17 +50,22 @@ class cog_stat(object):
             w.write(head)
             gene_name = []
             for line in c:
-                name = line.strip('\n').split('\t')[0]
-                if name in gene_list and name not in gene_name:
-                    self.totalseq += 1
+                line = line.strip('\n').split('\t')
+                name = line[0]
+                if name in gene_list:
+                    if trinity_mode:
+                        name = name.split('_i')[0]
+                    w.write('{}\t{}\t{}\n'.format(name, line[1], line[2]))
+                    if name not in gene_name:
+                        self.totalseq += 1
                     gene_name.append(name)
-                    w.write(line)
 
-    def get_gene_summary(self, cog_table, gene_list, out_dir):
+    def get_gene_summary(self, cog_table, gene_list, out_dir, trinity_mode=True):
         """
         将string2cog注释的结果文件筛选只包含基因的结果信息:cog_table.xls, cog_summary.xls
         cog_table:string2cog tooly运行得到的cog_table.xls结果文件；
         gene_file: 只包含基因序列名字的列表
+        trinity_mode用于在新生成的xml的queryID是去除结尾的_i(数字) 的
         return: gene_cog_table.xls, gene_cog_summary.xls
         """
         fun_stat = {'COG': {}, 'NOG': {}}  # {COG: {A:2, B:3,...,Z:3}, NOG: {A:2, B:3,...,Z:3}}
@@ -76,7 +82,12 @@ class cog_stat(object):
                 if not first_gene:
                     first_gene = gene
                 if gene in gene_list:
-                    t.write(l)
+                    w_line = line
+                    if trinity_mode:
+                        tmp = gene.split('_i')[0]
+                        w_line[0] = tmp
+                    w_line = '\t'.join(w_line)
+                    t.write(w_line + '\n')
                     # deal with cog_summary.xls: get fun_stat
                     cog_id = line[-8]
                     if len(line[-6]) > 1:

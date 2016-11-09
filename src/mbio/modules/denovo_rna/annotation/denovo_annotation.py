@@ -38,7 +38,6 @@ class DenovoAnnotationModule(Module):
         self.kegg_annot = self.add_tool('annotation.kegg_annotation')
         self.anno_stat = self.add_tool('annotation.denovo_anno_stat')
         self.step.add_steps('blast_nr', 'blast_string', 'blast_kegg', 'blast_statistics', 'go_annot', 'kegg_annot', 'cog_annot', 'taxon_annot', 'anno_stat')
-        self.anno_num = dict()
 
     def check_options(self):
         if not self.option("query").is_set:
@@ -144,7 +143,6 @@ class DenovoAnnotationModule(Module):
     def run_kegg_anno(self):
         """
         """
-        self.anno_num['kegg'] = [self.blast_kegg.option('outtable').prop['query_num']]
         options = {
             'blastout': self.blast_kegg.option('outxml')
         }
@@ -155,7 +153,6 @@ class DenovoAnnotationModule(Module):
         self.kegg_annot.run()
 
     def run_string2cog(self):
-        self.anno_num['string'] = [self.blast_string.option('outtable').prop['query_num']]
         options = {
             'blastout': self.blast_string.option('outxml')
         }
@@ -193,7 +190,6 @@ class DenovoAnnotationModule(Module):
     def run_ncbi_taxon(self):
         """
         """
-        self.anno_num['nr'] = [self.blast_nr.option('outtable').prop['query_num']]
         options = {
             'blastout': self.blast_nr.option('outxml'),
             'blastdb': 'nr'
@@ -228,44 +224,20 @@ class DenovoAnnotationModule(Module):
             self.linkdir(obj.output_dir, 'kegg')
         elif event['data'] == 'anno_stat':
             self.linkdir(obj.output_dir, 'anno_stat')
-            self.anno_num['total'] = [self.option('query').prop['seq_number'], self.option('gene_file').prop['gene_num']]
-            if 'nr' in self.anno_database:
-                self.anno_num['nr'].append(obj.option('gene_nr_table').prop['query_num'])
             if 'kegg' in self.anno_database:
-                self.anno_num['kegg'].append(obj.option('gene_kegg_table').prop['query_num'])
                 self.option('gene_kegg_table', obj.option('gene_kegg_table').prop['path'])
-            if 'cog' in self.anno_database:
-                self.anno_num['string'].append(obj.option('gene_string_table').prop['query_num'])
             if 'go' in self.anno_database:
                 self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
                 self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])
             try:
-                self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation_statistics.xls', self.output_dir + '/anno_stat/all_annotation.xls')
+                self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
             except Exception as e:
                 self.logger.info("统计all_annotation出错：{}".format(e))
             self.end()
         else:
             pass
 
-    def get_all_anno_stat(self, all_anno_stat_path, all_anno_path):
-        # stat all_annotation_statistics.xls
-        with open(all_anno_stat_path, 'wb') as w:
-            w.write('type\ttranscripts\tgenes\ttranscripts_percent\tgenes_percent\n')
-            anno_sum = [0, 0]
-            dbs = self.anno_database
-            if 'cog' in dbs:
-                dbs.remove('cog')
-                dbs.append('string')
-            if 'go' in dbs:
-                dbs.remove('go')
-            for k in self.anno_num:
-                self.anno_num[k] = [float(i) for i in self.anno_num[k]]
-            for db in dbs:
-                anno_sum[0] += self.anno_num[db][0]
-                anno_sum[1] += self.anno_num[db][1]
-                w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, self.anno_num[db][0], self.anno_num[db][1], '%0.4g' % (self.anno_num[db][0] / self.anno_num['total'][0]), '%0.4g' % (self.anno_num[db][1] / self.anno_num['total'][1])))
-            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_sum[0], anno_sum[1], '%0.4g' % (anno_sum[0] / self.anno_num['total'][0]), '%0.4g' % (anno_sum[1] / self.anno_num['total'][1])))
-            w.write('total\t{}\t{}\t1\t1\n'.format(self.anno_num['total'][0], self.anno_num['total'][1]))
+    def get_all_anno_stat(self, all_anno_path):
         # stat all_annotation.xls
         kwargs = {'outpath': all_anno_path, 'gene_list': self.option('gene_file').prop['gene_list']}
         for db in self.anno_database:

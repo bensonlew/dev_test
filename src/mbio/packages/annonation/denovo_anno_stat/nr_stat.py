@@ -19,13 +19,14 @@ class nr_stat(object):
                 self.gene_list.append(line.strip('\n'))
         return self.gene_list
 
-    def detail_to_level(self, detail_file, out_dir, gene_list=None):
+    def detail_to_level(self, detail_file, out_dir, gene_list=None, trinity_mode=True):
         """
         对比对到nr库的结果文件query_taxons_detail.xls筛选只含有域界门纲目科属种的注释信息，去掉多余的部分（query_taxons.xls）；另外，当某一水平没有注释到相应的物种时，则该水平的物种名则命名为unclassified并加上它的父辈水平的名字。
         例如：某基因在种水平上没有注释到物种，则该种水平命名为：s__unclassified_g__xxx
         若传入gene_list，则筛选出只含有基因序列的gene_taxons_detail.xls，gene_taxons.xls。
         detail_file：blast比对到nr库的结果文件query_taxons_detail.xls
         gene_list:基因序列的列表，type：list
+        trinity_mode用于在新生成的xml的queryID是去除结尾的_i(数字) 的
         out_dir：输出结果文件夹路径
         """
         query_taxons = out_dir + '/query_taxons.xls'
@@ -71,8 +72,12 @@ class nr_stat(object):
                 w.write('{}\t{}\n'.format(query_name, ';'.join(species_name)))
                 if gene_list:
                     if query_name in gene_list:
+                        if trinity_mode:
+                            query_name = query_name.split('_i')[0]
                         gt.write('{}\t{}\n'.format(query_name, ';'.join(species_name)))
-                        gd.write(line)
+                        foo[0] = query_name
+                        w_line = '\t'.join(foo)
+                        gd.write(w_line + '\n')
 
     def nr_stat_info(self, tran_taxonfile, gene_list, outpath, level=7):
         """

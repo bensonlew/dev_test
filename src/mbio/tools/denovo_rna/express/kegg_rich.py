@@ -39,7 +39,7 @@ class KeggRichAgent(Agent):
         重写参数检测函数
         :return:
         """
-        if not self.option('kegg_path').is_set:
+        if not self.option('kegg_table').is_set:
             raise OptionError('必须设置kegg的pathway输入文件')
         if self.option('correct') not in ['BY', 'BH', 'None', 'QVALUE']:
             raise OptionError('多重检验校正的方法不在提供的范围内')
@@ -77,6 +77,7 @@ class KeggRichTool(Tool):
         self.set_environ(PYTHONPATH=self.kobas_path)
         self.python = '/program/Python/bin/'
         self.all_list = self.option('all_list').prop['gene_list']
+        self.diff_list = self.option('diff_list').prop['gene_list']
 
     def run(self):
         """
@@ -91,7 +92,7 @@ class KeggRichTool(Tool):
         运行kobas软件，进行kegg富集分析
         """
         try:
-            self.option('kegg_table').get_kegg_list(self.work_dir, self.all_list)
+            self.option('kegg_table').get_kegg_list(self.work_dir, self.all_list, self.diff_list)
             self.logger.info("kegg富集第一步运行完成")
             self.run_identify()
         except Exception as e:

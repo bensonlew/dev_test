@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
+from __future__ import division
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -11,6 +12,8 @@ import os
 import re
 import shutil
 from biocluster.config import Config
+import traceback
+from collections import defaultdict
 
 
 class DenovoAnnoStatAgent(Agent):
@@ -151,13 +154,17 @@ class DenovoAnnoStatTool(Tool):
             if os.path.exists(self.work_dir + i):
                 shutil.rmtree(self.work_dir + i)
             os.makedirs(self.work_dir + i)
+        if not os.path.exists(self.output_dir + '/venn'):
+            os.makedirs(self.output_dir + '/venn')
         self.database = self.option('database').split(',')
+        self.gene_anno_list = {}  # 注释到的基因序列名字
+        self.anno_list = {}  # 注释到的转录本序列名字
 
     def run_nr_stat(self):
         self.nr_stat_path = self.work_dir + '/ncbi_taxonomy/'
         # 筛选gene_nr.xml、gene_nr.xls
         self.logger.info("开始筛选gene_nr.xml、gene_nr.xls")
-        self.option('nr_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_nr_xml, trinity_mode=False)
+        self.option('nr_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_nr_xml, trinity_mode=True)
         xml2table(self.gene_nr_xml, self.work_dir + '/blast/gene_nr.xls')
         self.logger.info("完成筛选gene_nr.xml、gene_nr.xls")
         # stat gene_evalue and gene_simillar for NR
@@ -180,7 +187,7 @@ class DenovoAnnoStatTool(Tool):
         self.cog_stat_path = self.work_dir + '/cog_stat/'
         # 筛选gene_string.xml、gene_string.xls
         self.logger.info("开始筛选gene_string.xml、gene_string.xls")
-        self.option('string_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_string_xml, trinity_mode=False)
+        self.option('string_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_string_xml, trinity_mode=True)
         xml2table(self.gene_string_xml, self.work_dir + '/blast/gene_string.xls')
         self.logger.info("完成筛选gene_string.xml、gene_string.xls")
         # cog stat
@@ -200,7 +207,7 @@ class DenovoAnnoStatTool(Tool):
         os.makedirs(gene_pathway)
         # 筛选gene_kegg.xml、gene_kegg.xls
         self.logger.info("开始筛选gene_kegg.xml、gene_kegg.xls")
-        self.option('kegg_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_kegg_xml, trinity_mode=False)
+        self.option('kegg_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_kegg_xml, trinity_mode=True)
         xml2table(self.gene_kegg_xml, self.work_dir + '/blast/gene_kegg.xls')
         self.logger.info("完成筛选gene_kegg.xml、gene_kegg.xls")
         # kegg_stat
@@ -211,7 +218,7 @@ class DenovoAnnoStatTool(Tool):
     def run_go_stat(self):
         self.go_stat_path = self.work_dir + '/go_stat/'
 
-        def get_gene_go(go_result, gene_list, outpath):
+        def get_gene_go(go_result, gene_list, outpath, trinity_mode=True):
             """
             将go_annotation注释的结果文件筛选只包含基因的结果信息,保留含有基因序列的行
             go_result:go_annotation tool运行得到的blast2go.annot或query_gos.list结果文件；
@@ -219,9 +226,14 @@ class DenovoAnnoStatTool(Tool):
             """
             with open(go_result, 'rb') as c, open(outpath, 'wb') as w:
                 for line in c:
-                    name = line.strip('\n').split('\t')[0]
+                    line = line.strip('\n').split('\t')
+                    name = line[0]
                     if name in gene_list:
-                        w.write(line)
+                        if trinity_mode:
+                            name = name.split('_i')[0]
+                        line[0] = name
+                        w_line = '\t'.join(line)
+                        w.write(w_line + '\n')
         get_gene_go(go_result=self.option('blast2go_annot').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_blast2go.annot')
         get_gene_go(go_result=self.option('gos_list').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_gos.list')
         go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.go_stat_path + '/gene_gos.list', '10.100.203.193', Config().DB_USER, Config().DB_PASSWD)
@@ -246,14 +258,38 @@ class DenovoAnnoStatTool(Tool):
                 if db == 'cog':
                     self.movedir2output(self.cog_stat_path, 'cog_stat')
                     self.option('gene_string_table', self.output_dir + '/blast/gene_string.xls')
+                    # venn_stat
+                    self.option('string_xml').get_info()
+                    string_venn = self.option('string_xml').prop['hit_query_list']
+                    string_gene_venn = self.option('gene_string_table').prop['query_list']
+                    self.get_venn(venn_list=string_venn, output=self.output_dir + '/venn/string_venn.txt')
+                    self.get_venn(venn_list=string_gene_venn, output=self.output_dir + '/venn/gene_string_venn.txt')
+                    self.anno_list['string'] = string_venn
+                    self.gene_anno_list['string'] = string_gene_venn
                 if db == 'nr':
                     self.movedir2output(self.nr_stat_path, 'ncbi_taxonomy')
                     self.option('gene_nr_table', self.output_dir + '/blast/gene_nr.xls')
                     self.option('nr_taxons', self.output_dir + '/ncbi_taxonomy/query_taxons.xls')
                     self.movedir2output(self.work_dir + '/blast_nr_statistics/', 'blast_nr_statistics')
+                    # venn_stat
+                    self.option('nr_xml').get_info()
+                    nr_venn = self.option('nr_xml').prop['hit_query_list']
+                    nr_gene_venn = self.option('gene_nr_table').prop['query_list']
+                    self.get_venn(venn_list=nr_venn, output=self.output_dir + '/venn/nr_venn.txt')
+                    self.get_venn(venn_list=nr_gene_venn, output=self.output_dir + '/venn/gene_nr_venn.txt')
+                    self.anno_list['nr'] = nr_venn
+                    self.gene_anno_list['nr'] = nr_gene_venn
                 if db == 'kegg':
                     self.movedir2output(self.kegg_stat_path, 'kegg_stat')
                     self.option('gene_kegg_table', self.output_dir + '/blast/gene_kegg.xls')
+                    # venn_stat
+                    self.option('kegg_xml').get_info()
+                    kegg_venn = self.option('kegg_xml').prop['hit_query_list']
+                    kegg_gene_venn = self.option('gene_kegg_table').prop['query_list']
+                    self.get_venn(venn_list=kegg_venn, output=self.output_dir + '/venn/kegg_venn.txt')
+                    self.get_venn(venn_list=kegg_gene_venn, output=self.output_dir + '/venn/gene_kegg_venn.txt')
+                    self.anno_list['kegg'] = kegg_venn
+                    self.gene_anno_list['kegg'] = kegg_gene_venn
                 if db == 'go':
                     self.movedir2output(self.go_stat_path, 'go_stat')
                     files = os.listdir(self.work_dir)
@@ -269,6 +305,7 @@ class DenovoAnnoStatTool(Tool):
                             os.link(self.work_dir + '/' + f, self.output_dir + '/go_stat/gene_{}'.format(f))
                     self.option('gene_go_level_2', self.output_dir + '/go_stat/gene_go2level.xls')
         except Exception as e:
+            print traceback.format_exc()
             self.set_error("设置注释统计分析结果目录失败{}".format(e))
             self.logger.info("设置注释统计分析结果目录失败{}".format(e))
 
@@ -314,5 +351,31 @@ class DenovoAnnoStatTool(Tool):
                 self.run_go_stat()
         if 'go' in self.database or 'kegg' in self.database:
             self.wait()
+            self.logger.info('end: go and kegg stat')
         self.set_output()
+        self.get_all_anno_stat()
         self.end()
+
+    def get_venn(self, venn_list, output):
+        with open(output, 'wb') as w:
+            for i in venn_list:
+                w.write(i + '\n')
+
+    def get_all_anno_stat(self):
+        # stat all_annotation_statistics.xls
+        all_anno_stat = self.output_dir + '/all_annotation_statistics.xls'
+        anno_num = defaultdict(dict)
+        with open(all_anno_stat, 'wb') as w:
+            w.write('type\ttranscripts\tgenes\ttranscripts_percent\tgenes_percent\n')
+            tmp = []
+            tmp_gene = []
+            anno_num['total']['gene'] = len(self.option('gene_file').prop['gene_list'])
+            anno_num['total']['tran'] = self.option('string_xml').prop['query_num']
+            for db in self.anno_list:
+                w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, len(self.anno_list[db]), len(self.gene_anno_list[db]), '%0.4g' % (len(self.anno_list[db]) / anno_num['total']['tran']), '%0.4g' % (len(self.gene_anno_list[db]) / anno_num['total']['gene'])))
+                tmp += self.anno_list[db]
+                tmp_gene += self.gene_anno_list[db]
+            anno_num['total_anno']['gene'] = len(set(tmp_gene))
+            anno_num['total_anno']['tran'] = len(set(tmp))
+            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_num['total_anno']['tran'], anno_num['total_anno']['gene'], '%0.4g' % (anno_num['total_anno']['tran'] / anno_num['total']['tran']), '%0.4g' % (anno_num['total_anno']['gene'] / anno_num['total']['gene'])))
+            w.write('total\t{}\t{}\t1\t1\n'.format(anno_num['total']['tran'], anno_num['total']['gene']))
