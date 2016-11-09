@@ -18,9 +18,9 @@ class RefAssessmentModule(Module):
         super(RefAssessmentModule, self).__init__(work_id)
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
-            {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
+            {"name": "bam", "type": "infile", "format": "ref_rna.assembly.bam_dir"},  # bam格式文件,排序过的
             {"name": "method", "type": "string", "default": "all"},
-            {"name": "quality", "type": "int", "default": 30}  # 质量值
+            {"name": "quality", "type": "int", "default": 30}  # 质量值    
         ]
         self.add_option(options)
         self.tools = []
@@ -186,17 +186,19 @@ class RefAssessmentModule(Module):
                         w.write(line)
         self.end()
 
-    def run(self): 
+    def run(self):
         self.bam_stat_run()
         self.dup_run()
         self.satur_run()
         self.coverage_run()
         self.distribute_run()
-        self.on_rely(self.tools, self.set_output)
         super(RefAssessmentModule, self).run()
+        # self.on_rely(self.tools, self.set_output)
+        
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
+        """
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
             ["./coverage/", "", "基因覆盖度分析输出目录"],
@@ -212,4 +214,5 @@ class RefAssessmentModule(Module):
             [r".*cluster_percent\.xls", "xls", "饱和度作图数据"],
             [r".*distribution\.txt", "txt", "reads区域分布"]
         ])
+        """
         super(RefAssessmentModule, self).end()
