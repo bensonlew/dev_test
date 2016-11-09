@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import os
+import re
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
@@ -131,5 +132,9 @@ class FileSampleFile(File):
                 if self.col == 2:
                     if num >= 2:
                         self.se_repeat = True
+            # modify by qindanhua 20161109
+            for sam in sample.keys():
+                if re.search(r'\W', sam):
+                    raise FileError('样本名应由字母数字下划线组成')
             self.check_exists()
             return True
