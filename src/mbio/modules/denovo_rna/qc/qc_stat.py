@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import re
 import shutil
 import glob
 from biocluster.core.exceptions import OptionError
@@ -36,6 +37,11 @@ class QcStatModule(Module):
         """
         if not self.option("fastq_dir").is_set:
             raise OptionError("需要传入fastq文件或者文件夹")
+        if self.option("fastq_dir"):
+            self.option("fastq_dir").get_full_info(self.option("fastq_dir").prop["path"])
+            # if self.option("fastq_dir").prop["has_unziped"]:
+            #     print("lllllll")
+                # self.option("fastq_dir").unzip_fastq()
         if self.option("fastq_dir").is_set:
             list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
             if not os.path.exists(list_path):
@@ -47,6 +53,17 @@ class QcStatModule(Module):
                 raise OptionError("PE序列list文件应该包括文件名、样本名和左右端说明三列")
             elif self.option('fq_type') == "SE" and row_num != 2:
                 raise OptionError("SE序列list文件应该包括文件名、样本名两列")
+            if self.option('fq_type') == "PE":
+                for s in self.samples:
+                    if self.samples[s]["l"].split(".")[-1] in ["gz"]:
+                        self.samples[s]["l"] = ".".join(self.samples[s]["l"].split(".")[:-2]) + ".fastq"
+                    if self.samples[s]["r"].split(".")[-1] in ["gz"]:
+                        self.samples[s]["r"] = ".".join(self.samples[s]["r"].split(".")[:-2]) + ".fastq"
+            if self.option('fq_type') == "SE":
+                for s in self.samples:
+                    if self.samples[s].split(".")[-1] in ["gz"]:
+                        self.samples[s] = ".".join(self.samples[s].split(".")[:-2]) + ".fastq"
+            print(self.samples)
 
     def finish_update(self, event):
         step = getattr(self.step, event['data'])

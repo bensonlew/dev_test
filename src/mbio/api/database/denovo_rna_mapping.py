@@ -141,6 +141,12 @@ class DenovoRnaMapping(Base):
         rpkm_id = ObjectId(rpkm_id)
         curve_files = glob.glob("{}/*cluster_percent.xls".format(rpkm_file))
         rpkm_pdf = glob.glob("{}/*.pdf".format(rpkm_file))
+        erpkm = glob.glob("{}/*.eRPKM.xls".format(rpkm_file))
+        # curve_category = []
+        with open(erpkm[0], "r") as f:
+            category_line = f.readline().strip().split("\t")[6:]
+            curve_category = [i[:-1] for i in category_line]
+            # print(category_line)
         curve_data = []
         for cf in curve_files:
             sample_name = os.path.basename(cf).split(".")[0][6:]
@@ -175,7 +181,9 @@ class DenovoRnaMapping(Base):
         # print curve_data
         try:
             collection = self.db["sg_denovo_rpkm_curve"]
+            main_collection = self.db["sg_denovo_rpkm"]
             collection.insert_many(curve_data)
+            main_collection.update({"_id": ObjectId(rpkm_id)}, {"$set": {"curve_category": curve_category, "status": "end"}})
         except Exception, e:
             self.bind_object.logger.error("导入rpkm曲线数据出错:%s" % e)
         else:
