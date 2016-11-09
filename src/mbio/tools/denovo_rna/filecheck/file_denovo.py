@@ -6,6 +6,7 @@ from biocluster.core.exceptions import OptionError
 from mbio.files.sequence.fastq import FastqFile
 from mbio.files.sequence.file_sample import FileSampleFile
 import os
+import re
 
 
 class FileDenovoAgent(Agent):
@@ -88,6 +89,8 @@ class FileDenovoTool(Tool):
             fq_path = os.path.join(self.option('fastq_dir').prop['path'], f)
             my_fastq = FastqFile()
             my_fastq.set_path(fq_path)
+            if re.search('\.gz$', f) or re.search('\.gzip$', f):
+                my_fastq.is_gz = True
             my_fastq.check_content()
         self.logger.info("fastq文件检测完毕")
 

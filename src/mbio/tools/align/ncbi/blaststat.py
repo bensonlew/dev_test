@@ -1,11 +1,9 @@
 ﻿# -*- coding: utf-8 -*-
 # __author__ = 'mengmeng.liu'
-import os
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-import subprocess
-# from mbio.packages.align.blast.blastout_statistics import blastout_statistics
+from mbio.packages.align.blast.blastout_statistics import *
 
 
 class BlaststatAgent(Agent):
@@ -13,7 +11,7 @@ class BlaststatAgent(Agent):
     statistics blastout 调用blastout_statistics.py 进行统计分析
     version v1.0
     author:mengmeng.liu
-    last_modify:2016.8.17 by wangbixuan
+    last_modify:2016.10.25 by qiuping
     """
 
     def __init__(self, parent):
@@ -54,7 +52,7 @@ class BlaststatAgent(Agent):
         super(BlaststatAgent, self).end()
 
     def set_resource(self):
-        self._cpu = 1
+        self._cpu = 2
         self._memory = ''
 
 
@@ -62,25 +60,17 @@ class BlaststatTool(Tool):
 
     def __init__(self, config):
         super(BlaststatTool, self).__init__(config)
-        # self.packages_path = 'packages/align/blast/blastout_statistics.py'
 
     def run_stat(self, table_fp):
-        cmd = '{}/program/Python/bin/python {}/bioinfo/align/scripts/blastout_statistics.py'.format(
-            self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
-        cmd += " %s %s" % (table_fp, self.output_dir)
         self.logger.info("开始进行统计分析")
-        self.logger.info(cmd)
         try:
-            subprocess.check_output(cmd, shell=True)
+            blastout_statistics(blast_table=table_fp, evalue_path=self.output_dir + '/nr_evalue.xls', similarity_path=self.output_dir + '/nr_similar.xls')
             self.logger.info("统计分析完成")
-        except subprocess.CalledProcessError:
-            self.set_error("运行统计出错")
+        except Exception as e:
+            self.set_error("运行统计出错:{}".format(e))
 
     def convert_xml(self):
         inputfile = self.option('in_stat').prop['path']
-        self.logger.info(self.option("in_stat").format)
-        self.logger.info(self.option("in_stat").format.__class__)
-        self.logger.info("align.blast.blast_xml".__class__)
         if self.option("in_stat").format == "align.blast.blast_xml":
             self.logger.info('程序输出结果为6(xml)，实际需要结果为5(xls)，开始调用程序xml2table转换')
             inputfile = inputfile + "tmp.xls"

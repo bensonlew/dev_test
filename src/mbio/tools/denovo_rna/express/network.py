@@ -1,7 +1,6 @@
-## !/mnt/ilustre/users/sanger/app/program/Anaconda2/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
-#last_modify:20160701
+# last_modify:20161031
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -21,7 +20,7 @@ class NetworkAgent(Agent):
         super(NetworkAgent, self).__init__(parent)
         options = [
             {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，差异基因表达量矩阵
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
+            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 差异基因名称文件
             {"name": "softpower", "type": "int", "default": 9},
             {"name": "dissimilarity", "type": "float", "default": 0.25},
             {"name": "module", "type": "float", "default": 0.1},
@@ -39,7 +38,6 @@ class NetworkAgent(Agent):
     def stepfinish(self):
         self.step.network.finish()
         self.step.update()
-
 
     def check_options(self):
         """
@@ -66,7 +64,7 @@ class NetworkAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -114,7 +112,9 @@ class NetworkTool(Tool):
             self.logger.info("运行one_cmd出错")
 
     def run_wgcna_two(self):
-        two_cmd = self.r_path + " %sInModuleWGCNA-step02.r --args %s %s %s %s" % (self.script_path, 'wgcna_result', self.option('gene_file').prop['path'], self.option('module'), self.option('network'))
+        gene_file_path = self.work_dir + '/gene_file'
+        self.option('gene_file').get_network_gene_file(gene_file_path)
+        two_cmd = self.r_path + " %sInModuleWGCNA-step02.r --args %s %s %s %s" % (self.script_path, 'wgcna_result', gene_file_path, self.option('module'), self.option('network'))
         self.logger.info("开始运行two_cmd")
         cmd = self.add_command("two_cmd", two_cmd).run()
         self.wait(cmd)

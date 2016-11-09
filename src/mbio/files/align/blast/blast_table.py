@@ -22,6 +22,7 @@ class BlastTableFile(File):
         self.set_property('count', table_info[0])
         self.set_property('header', table_info[1])
         self.set_property('query_num', table_info[2])
+        self.set_property('query_list', table_info[3])
 
     def get_table_info(self):
         """
@@ -37,6 +38,7 @@ class BlastTableFile(File):
                         '\t'.join(default_header), '\t'.join(header)))
             count = 0
             query_count = 0
+            query_list = []
             flag = None
             for line in f:
                 count += 1
@@ -46,9 +48,10 @@ class BlastTableFile(File):
                 if flag == line_sp[5]:
                     pass
                 else:
+                    query_list.append(line_sp[5])
                     query_count += 1
                     flag = line_sp[5]
-        return count, default_header, query_count
+        return count, default_header, query_count, query_list
 
 
 

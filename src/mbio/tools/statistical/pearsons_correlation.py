@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# author: qindanhua
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError

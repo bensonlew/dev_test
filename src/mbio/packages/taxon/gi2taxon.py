@@ -7,6 +7,7 @@ import sqlite3
 import subprocess
 from biocluster.config import Config
 
+
 def create_gi2taxid(name, db, dbfile):
     """用于在sqlite3的数据库中创建表，导入gi2taxid的数据"""
     sql = 'CREATE TABLE {} (gi INT PRIMARY KEY NOT NULL, taxid INT NOT NULL);'.format(name)

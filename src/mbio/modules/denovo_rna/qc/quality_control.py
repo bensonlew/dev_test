@@ -30,8 +30,8 @@ class QualityControlModule(Module):
             {"name": "fq_l", "type": "outfile", "format": "sequence.fastq"},  # PE所有左端序列样本cat集合
             # {"name": "quality_a", "type": "int", "default": 30},  # 去接头碱基质量
             # {"name": "length_a", "type": "int", "default": 30},  # 去接头碱基长度
-            {"name": "quality_q", "type": "int", "default": 20},  # 质量剪切碱基质量
-            {"name": "length_q", "type": "int", "default": 30}  # 质量剪切碱基长度
+            {"name": "quality_q", "type": "int", "default": 30},  # 质量剪切碱基质量
+            {"name": "length_q", "type": "int", "default": 50}  # 质量剪切碱基长度
         ]
         self.add_option(options)
         self.samples = {}
@@ -94,10 +94,12 @@ class QualityControlModule(Module):
             # clipper.run()
             n += 1
             self.clipper.append(clipper)
-        self.on_rely(self.clipper, self.adapt_write)
+        # self.on_rely(self.clipper, self.adapt_write)
         if len(self.clipper) == 1:
+            self.clipper[0].on(self.adapt_write)
             self.clipper[0].run()
         else:
+            self.on_rely(self.clipper, self.adapt_write)
             for tool in self.clipper:
                 tool.run()
 
@@ -121,11 +123,13 @@ class QualityControlModule(Module):
             # seqprep.run()
             n += 1
             self.seqprep.append(seqprep)
-        self.on_rely(self.seqprep, self.adapt_write)
+        # self.on_rely(self.seqprep, self.adapt_write)
         self.logger.info(self.seqprep)
         if len(self.seqprep) == 1:
+            self.seqprep[0].on(self.adapt_write)
             self.seqprep[0].run()
         else:
+            self.on_rely(self.seqprep, self.adapt_write)
             for tool in self.seqprep:
                 tool.run()
 
@@ -186,7 +190,7 @@ class QualityControlModule(Module):
         if os.path.exists(adapt_file):
             with open(adapt_file, "r") as f:
                 f.readline()
-                adapt_rate = f.next().split()[1]
+                adapt_rate = f.next().split()[-1]
                 self.adapt_rate.append(["{}".format(event["data"]), adapt_rate])
 
     def adapt_write(self):
