@@ -86,9 +86,24 @@ class TranscriptAbstractTool(Tool):
         shutil.move(output1, "../TranscriptAbstract/output/")
         output2 = os.path.join(self.work_dir, "output.fa")
         shutil.move(output2, "../TranscriptAbstract/output/")
-                
+           
+    def get_gene_list(self):
+        output_path = self.work_dir + '/output/output.fa'
+        gene_list_path = self.work_dir + '/output/gene_list.txt'
+        gene_lists = []
+        with open(output_path, 'rb') as f, open(gene_list_path, 'wb') as w:
+            lines = f.readlines()
+            for line in lines:
+                m = re.match(r">(.+) gene=(.+)", line)
+                if m:
+                    trans_name = m.group(1)
+                    if trans_name not in gene_lists:
+                        w.write(trans_name + '\n')
+                        gene_lists.append(trans_name)
+    
     def run(self):
         super(TranscriptAbstractTool, self).run()
         self.run_gffread()
         self.run_long_transcript()
+        self.get_gene_list()
         self.end()
