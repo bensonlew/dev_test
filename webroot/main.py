@@ -28,7 +28,7 @@ from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
 from mainapp.controllers.submit.denovo_rna.map_assessment import MapAssessment
 from mainapp.controllers.instant.meta.mantel_test import MantelTest
 from mainapp.controllers.instant.meta.pearson_correlation import PearsonCorrelation
-from mainapp.controllers.datasplit.datasplit import Datasplit
+from mainapp.controllers.submit.datasplit.datasplit import Datasplit
 
 # web.config.debug = False
 urls = (
