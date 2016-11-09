@@ -29,7 +29,8 @@ class HisatAgent(Agent):
             {"name": "left_reads", "type": "infile", "format":"sequence.fastq"},
             {"name": "right_reads", "type": "infile", "format":"sequence.fastq"},
             {"name": "bam_output", "type": "outfile", "format": "align.bwa.bam"},
-            {"name": "assemble_method", "type": "string"}
+            {"name": "assemble_method", "type": "string"},
+            {"name": "sample", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps('hisat')
@@ -96,6 +97,7 @@ class HisatTool(Tool):
         参考基因组准备
         """
         if self.option("ref_genome") == "customer_mode":
+            
             cmd = "{}hisat2-build -f {} ref_index".format(self.hisat_path, self.option("ref_genome_custom").prop['path'])
             self.logger.info("开始运行hisat2-build，进行建索引")
             command = self.add_command("hisat_build", cmd)
@@ -161,13 +163,27 @@ class HisatTool(Tool):
         """
         subprocess.check_output(sort_cmd,shell=True)
         self.wait()
-        output = os.path.join(self.work_dir, "accepted_hits.bam")
-        if self.option("seq_method") == "PE":
-            pre = os.path.splitext(os.path.basename(self.option("left_reads").prop['path']))[0].split("_")[0] + "_"
+        """
+        if sort_cmd.return_code == 0:
+            os.remove(self.work_dir + "/" + "accepted_hits.unsorted.bam")
+            os.remove(self.work_dir + "/" + "accepted_hits.unsorted.sam")
+            self.logger.info("冗余文件删除完成")
+            output = os.path.join(self.work_dir, "accepted_hits.bam")
+            pre = self.option("sample")
+            if pre.find("_sickele") != -1:
+                pre = pre[:-9]
+            os.link(output, self.output_dir +"/" + pre + ".bam")
         else:
-            pre = os.path.splitext(os.path.basename(self.option("single_end_reads").prop['path']))[0].split("_")[0] + "_"
-        shutil.copyfile(output, "../output/" + pre + "accepted_hits.bam")
-    
+            self.logger.info("最后处理完成")
+        """
+        output = os.path.join(self.work_dir, "accepted_hits.bam")
+        pre = self.option("sample")
+        if pre.find("_sickele") != -1:
+            pre = pre[:-9]
+        if os.path.exists(self.output_dir +"/" + pre + ".bam"):
+            os.remove(self.output_dir +"/" + pre + ".bam")
+        os.link(output, self.output_dir +"/" + pre + ".bam")
+        
     def run(self):
         """
         运行
@@ -175,5 +191,5 @@ class HisatTool(Tool):
         super(HisatTool, self).run()
         self.hisat_build()
         self.hisat_mapping()
-        # self.sam_bam()
+        self.sam_bam()
         self.end()
