@@ -28,14 +28,13 @@ from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
 from mainapp.controllers.submit.denovo_rna.map_assessment import MapAssessment
 from mainapp.controllers.instant.meta.mantel_test import MantelTest
 from mainapp.controllers.instant.meta.pearson_correlation import PearsonCorrelation
-from mainapp.controllers.datasplit.datasplit import Datasplit
 from mainapp.controllers.instant.meta.plot_tree import PlotTree
-from mainapp.controllers.submit.denovo_rna.cluster import Cluster
+from mainapp.controllers.submit.datasplit.datasplit import Datasplit
+# from mainapp.controllers.submit.denovo_rna.cluster import Cluster
 from mainapp.controllers.submit.denovo_rna.network import Network
 from mainapp.controllers.instant.denovo_rna.get_diff_express import GetDiffExpress
 from mainapp.controllers.submit.meta.otunetwork import Otunetwork
 from mainapp.controllers.submit.denovo_rna.ssr import Ssr
-
 
 # web.config.debug = False
 urls = (
