@@ -127,7 +127,7 @@ class UpdateStatus(Log):
                 "created_ts": create_time
             }
             collection.find_one_and_update({"_id": obj_id}, {'$set': data}, upsert=True)
-            
+
             # 新建或更新sg_status表
             collection = self.mongodb['sg_status']
             if status == "start":
@@ -201,6 +201,7 @@ class UpdateStatus(Log):
     def _re_org_post(self, post_data):
         my_content = post_data["content"]
         my_stage = my_content["stage"]
+        """
         my_upload_files = post_data["upload_files"]
         target = my_upload_files[0]["target"]
         files = my_upload_files[0]["files"]
@@ -226,6 +227,44 @@ class UpdateStatus(Log):
         new_content = dict()
         new_content["files"] = new_files
         new_content["dirs"] = new_dirs
+        my_id = my_stage["task_id"]
+        my_id = re.split('_', my_id)
+        my_id.pop(-1)
+        my_id.pop(-1)
+        new_content["task_id"] = "_".join(my_id)
+        my_data = dict()
+        my_data["content"] = json.dumps(new_content)
+        print my_data
+        return urllib.urlencode(my_data)
+        """
+        try:
+            my_upload_files = post_data["upload_files"]
+            target = my_upload_files[0]["target"]
+            files = my_upload_files[0]["files"]
+            new_files = list()
+            new_dirs = list()
+            for my_file in files:
+                if my_file["type"] == "file":
+                    tmp_dict = dict()
+                    tmp_dict["path"] = os.path  .join(target, my_file["path"])
+                    tmp_dict["size"] = my_file["size"]
+                    tmp_dict["description"] = my_file["description"]
+                    tmp_dict["format"] = my_file["format"]
+                    new_files.append(tmp_dict)
+                elif my_file["type"] == "dir":
+                    tmp_dict = dict()
+                    tmpPath = re.sub("\.$", "", my_file["path"])
+                    tmp_dict["path"] = os.path.join(target, tmpPath)
+                    tmp_dict["size"] = my_file["size"]
+                    tmp_dict["description"] = my_file["description"]
+                    tmp_dict["format"] = my_file["format"]
+                    new_dirs.append(tmp_dict)
+            # my_stage["fil es"] = new_files
+            new_content = dict()
+            new_content["files"] = new_files
+            new_content["dirs"] = new_dirs
+        except:
+            new_content = dict()
         my_id = my_stage["task_id"]
         my_id = re.split('_', my_id)
         my_id.pop(-1)
