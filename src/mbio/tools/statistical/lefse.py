@@ -56,7 +56,7 @@ class LefseAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '3G'
+        self._memory = '10G'
 
     def biom_start_callback(self):
         self.step.run_biom.start()

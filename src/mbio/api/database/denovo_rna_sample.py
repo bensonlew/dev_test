@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
+from __future__ import division
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 import glob
@@ -10,13 +11,15 @@ import os
 class DenovoRnaSample(Base):
     def __init__(self, bind_object):
         super(DenovoRnaSample, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._db_name = Config().MONGODB + '_rna'
+        self.sample_ids = []
 
     @report_check
-    def add_samples_info(self, qc_stat, qc_adapt=None):
+    def add_samples_info(self, qc_stat, qc_adapt=None, fq_type='se'):
         stat_file = qc_stat + "/fastq_stat.xls"
         dup_file = qc_stat + "/dup.xls"
         dup = ""
+        dup_rate = {}
         adapter = False
         if not os.path.exists(stat_file):
             raise Exception("%s文件不存在" % stat_file)
@@ -28,7 +31,6 @@ class DenovoRnaSample(Base):
                     line = line.split()
                     adapt_rate[line[0]] = line[1]
         if os.path.exists(dup_file):
-            dup_rate = {}
             with open(dup_file, "r") as d:
                 col_num = len(d.readline().split())
                 if col_num == 4:
@@ -64,9 +66,9 @@ class DenovoRnaSample(Base):
                         "error_rate": float(line[10]),
                         "q30_rate": float(line[11]),
                         "q20_rate": float(line[12]),
-                        "gc_rate": float(line[13]),
+                        "cg_rate": float(line[13]),
                         "about_qc": "before",
-                        "type": "se"   # 怎么得知待定
+                        "type": fq_type   # 怎么得知待定
                         }
                 if line[0] in dup_rate:
                     if dup == "se":
@@ -87,16 +89,18 @@ class DenovoRnaSample(Base):
             except Exception, e:
                 self.bind_object.logger.error("导入样品信息数据出错:%s" % e)
             else:
-                self.bind_object.logger.info("导入样品信息数据成功:%s" % result.inserted_ids)
+                self.bind_object.logger.info("导入样品信息数据成功")
+                self.sample_ids = result.inserted_ids
 
     @report_check
     def add_gragh_info(self, quality_stat, about_qc="before"):
         stat_files = glob.glob("{}/*".format(quality_stat))
         data_list = []
         for sf in stat_files:
-            sample_name = os.path.basename(sf).split("_")[0]
-            sample_id = self.get_sample_id(sample_name, about_qc)
-            site = os.path.basename(sf).split("_")[1]
+            sample_name = os.path.basename(sf).split(".")[0]
+            self.bind_object.logger.info('%s,%s' % (sf, sample_name))
+            spname_spid = self.get_spname_spid()
+            site = os.path.basename(sf).split(".")[1]
             if site == "l": site_type = "left"
             elif site == "r": site_type = "right"
             else: site_type = "single"
@@ -108,12 +112,12 @@ class DenovoRnaSample(Base):
                         "project_sn": self.bind_object.sheet.project_sn,
                         "task_id": self.bind_object.sheet.id,
                         "specimen_name": sample_name,
-                        "specimen_id": sample_id,
+                        "specimen_id": spname_spid[sample_name],
                         "type": site_type,
                         "about_qc": about_qc,
                         "column": int(line[0]),
-                        "min": int(line[2]),
-                        "max": int(line[3]),
+                        "min": int(line[10]),
+                        "max": int(line[11]),
                         "q1": int(line[6]),
                         "q3": int(line[8]),
                         "median": int(line[7]),
@@ -131,14 +135,15 @@ class DenovoRnaSample(Base):
         except Exception, e:
             self.bind_object.logger.error("导入样品画图数据信息出错:%s" % e)
         else:
-            self.bind_object.logger.info("导入样品画图数据信息成功:%s" % result.inserted_ids)
+            self.bind_object.logger.info("导入样品画图数据信息成功")
 
     @report_check
-    def get_sample_id(self, sample_name, about_qc):
+    def get_spname_spid(self):
+        if not self.sample_ids:
+            raise Exception("样本id列表为空，请先调用add_samples_info产生sg_denovo_speciem的id")
         collection = self.db["sg_denovo_specimen"]
-        results = collection.find({"sg_denovo_specimen": sample_name, "about_qc": about_qc})
-        sample_id = None
-        if results.count():
-            for result in results:
-                sample_id = result["_id"]
-        return sample_id
+        spname_spid = {}
+        for id_ in self.sample_ids:
+            results = collection.find_one({"_id": id_})
+            spname_spid[results['specimen_name']] = id_
+        return spname_spid

@@ -68,8 +68,8 @@ def mean_fpkm(count_dict, fpkm_dict):
         for i in range(len(fpkm_dict[gene][0])):
             con += fpkm_dict[gene][0][i] * c_counts[i]
             oth += fpkm_dict[gene][1][i] * o_counts[i]
-        c_mean = '%0.3f' % (con / control_libsize)
-        o_mean = '%0.3f' % (oth / other_libsize)
+        c_mean = '%0.3g' % (con / control_libsize)
+        o_mean = '%0.3g' % (oth / other_libsize)
         mean_fpkm[gene] = [c_mean, o_mean]
     return mean_fpkm
 
@@ -81,7 +81,7 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
         if replicates is None:
             count_dict = read_matrix(countfile, control, other)
             fpkm_dict = read_matrix(fpkmfile, control, other)
-            w.write("Gene_id\t%s_count\t%s_conut\t%s_fpkm\t%s_fpkm\tLog2FC(%s/%s)\tPvalue\tFDR\tSignificant\tRegulate\n" % (control, other, control, other, other, control))
+            w.write("gene_id\t%s_count\t%s_conut\t%s_fpkm\t%s_fpkm\tlog2fc(%s/%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control))
         else:
             count_dict, group_sample = read_matrix(countfile, control, other, replicates)
             fpkm_dict, group_sample = read_matrix(fpkmfile, control, other, replicates)
@@ -89,7 +89,7 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
             head = "Gene_id\t"
             for sam in group_sample:
                 head += "%s_count\t%s_fpkm\t" % (sam, sam)
-            head += "%s_mean_fpkm\t%s_mean_fpkm\tLog2FC(%s/%s)\tPvalue\tFDR\tSignificant\tRegulate\n" % (control, other, other, control)
+            head += "%s_mean_fpkm\t%s_mean_fpkm\tlog2fc(%s/%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, other, control)
             w.write(head)
         # print '######%s-%s:regulate is %s' %  (control, other,regulate)
         while True:
@@ -117,7 +117,7 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
             else:
                 sig = 'no'
             if replicates is None:
-                w.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (gene_id, count_dict[gene_id][0], count_dict[gene_id][1], fpkm_dict[gene_id][0], fpkm_dict[gene_id][1], '%0.3f' % logfc, '%0.3f' % float(eline[3]), '%0.3f' % fdr, sig, reg))
+                w.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (gene_id, count_dict[gene_id][0], count_dict[gene_id][1], fpkm_dict[gene_id][0], fpkm_dict[gene_id][1], '%0.3g' % logfc, '%0.3g' % float(eline[3]), '%0.3g' % fdr, sig, reg))
                 fpkm_dict.pop(gene_id)
             else:
                 w_text = "%s\t" % gene_id
@@ -125,7 +125,7 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
                 fpkm_list = fpkm_dict[gene_id][0] + fpkm_dict[gene_id][1]
                 for i in range(len(count_list)):
                     w_text += "%s\t%s\t" % (count_list[i], fpkm_list[i])
-                w.write("%s%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (w_text, fpkm_mean[gene_id][0], fpkm_mean[gene_id][1], '%0.3f' % logfc, '%0.3f' % float(eline[3]), '%0.3f' % fdr, sig, reg))
+                w.write("%s%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (w_text, fpkm_mean[gene_id][0], fpkm_mean[gene_id][1], '%0.3g' % logfc, '%0.3g' % float(eline[3]), '%0.3g' % fdr, sig, reg))
                 fpkm_dict.pop(gene_id)
         if replicates == None:
             for gene in fpkm_dict.keys():

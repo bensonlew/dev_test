@@ -215,8 +215,8 @@ class StatTest(Base):
         else:
             collection = self.db["sg_species_difference_lefse"]
             fs = gridfs.GridFS(self.db)
-            ldaid = fs.put(open(lda_png_path, 'r'))
-            cladogramid = fs.put(open(lda_cladogram_path, 'r'))
+            ldaid = fs.put(open(lda_png_path, 'rb'))
+            cladogramid = fs.put(open(lda_cladogram_path, 'rb'))
             try:
                 collection.update({"_id": ObjectId(table_id)}, {"$set": {"lda_png_id": ldaid, "lda_cladogram_id": cladogramid}})
             except Exception, e:

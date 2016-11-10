@@ -196,7 +196,6 @@ class SubSample(Base):
                     otu_detail['otu'] = line[0]
                     classify_list = re.split(r"\s*;\s*", line[-1])
 
-                classify_list = re.split(r"\s*;\s*", line[-1])
                 otu_detail['otu_id'] = from_otu_table
                 otu_detail['project_sn'] = project_sn
                 otu_detail['task_id'] = task_id

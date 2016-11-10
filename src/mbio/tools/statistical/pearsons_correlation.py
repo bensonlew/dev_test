@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+# author: qindanhua
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from mbio.packages.statistical.correlation import corr_heatmap
 import subprocess
 import os
 
@@ -84,7 +86,9 @@ class PearsonsCorrelationAgent(Agent):
 class PearsonsCorrelationTool(Tool):
     def __init__(self, config):
         super(PearsonsCorrelationTool, self).__init__(config)
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
         self.perl_path = self.config.SOFTWARE_DIR + "/program/perl/perls/perl-5.24.0/bin/"
+        self.r_path = self.config.SOFTWARE_DIR + '/program/R-3.3.1/bin/Rscript'
         self.hcluster_script_path = self.config.SOFTWARE_DIR + "/bioinfo/statistical/scripts/"
         self.Rscript_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin/"
         self.cmd_path = '{}/program/Python/bin/python {}/bioinfo/statistical/scripts/pearsonsCorrelation.py'.format(self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
@@ -120,6 +124,7 @@ class PearsonsCorrelationTool(Tool):
         """
         super(PearsonsCorrelationTool, self).run()
         self.run_pearsonsCorrelation()
+        self.run_heatmap()
         # self.plot_hcluster()
         self.set_output()
         self.end()
@@ -141,6 +146,17 @@ class PearsonsCorrelationTool(Tool):
         self.logger.info('运行pearsonsCorrelation.py计算correlation完成')
         # self.set_output()
         # self.end()
+
+    def run_heatmap(self):
+        corr_heatmap(self.work_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level'), "env_tree.tre", "species_tree.tre")
+        cmd = self.r_path + " run_corr_heatmap.r"
+        try:
+            subprocess.check_output(cmd, shell=True)
+            self.logger.info('heatmap计算成功')
+        except subprocess.CalledProcessError:
+            self.logger.info('heatmap计算失败')
+            self.set_error('heatmap计算失败')
+        self.logger.info('生成树文件成功')
 
     def set_output(self):
         newpath = self.output_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level')

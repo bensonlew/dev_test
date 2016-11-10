@@ -78,7 +78,7 @@ class MantelTestModule(Module):
             raise OptionError('otu距离矩阵计算方法不正确')
         if self.option("factormatrixtype") not in MantelTestModule.MATRIXFACTOR:
             raise OptionError('环境因子距离矩阵计算方法不正确')
-        if self.option("otumatrixtype") in ["unweighted_unifrac", "weighted_unifrac"]:
+        if "unifrac" in self.option("otumatrixtype"):
             if not self.option("newicktree").is_set:
                 raise OptionError("unifrac方法必须提供newicktree")
         if self.option("newicktree").is_set:

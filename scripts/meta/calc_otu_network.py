@@ -12,7 +12,7 @@ def make_env_table(inFile, outFile):
     with open('group.txt' , "w") as tmp_file:
         tmp_file.write("#sample\tgroup\n")
         for i in range(1,len(samples_name)):
-            tmp_file.write(samples_name[i]+"\tSTD\n") 
+            tmp_file.write(samples_name[i]+"\tSTD\n")
     return './group.txt'
 
 parser = argparse.ArgumentParser(description='输入OTU表格，生成OTU网络信息')
@@ -31,7 +31,7 @@ else:
     env_table = args["env_table"]
 if os.path.exists(outFile):
     shutil.rmtree(outFile)
-    
+
 """
 执行make_otu_network.py 计算otu网络的相关信息并生成文件
 完成后由于make_otu_network.py生成的是一个文件夹，使用os和shutil的命令将文件全部移动到输出路径下
@@ -80,6 +80,13 @@ with open(os.path.join(outFile, 'real_node_table.txt'), "w") as tmp_file:
         for s in data[i].strip().split()[:-1]:
             tmp_file.write(s+'\t')
         tmp_file.write('\n')
+data = open(os.path.join(outFile, 'real_edge_table.txt')).readlines()
+with open(os.path.join(outFile, 'real_edge_table.txt'), "w") as tmp_file:
+    tmp_file.write(data[0].strip().split()[0]+"\t")
+    tmp_file.write(data[0].strip().split()[1]+"\t")
+    tmp_file.write(data[0].strip().split()[2]+"\n")
+    for i in range(1,len(data)):
+        tmp_file.write(data[i].strip()+"\n")
 
 """
 根据node表建立{节点名字---节点编号}的字典
@@ -203,4 +210,3 @@ with open(os.path.join(args["output"], "network_attributes.txt"), "w") as tmp_fi
     tmp_file.write("Transitivity\t"+str(Transitivity)+"\n")
     tmp_file.write("Diameter\t"+str(Diameter)+"\n")
     tmp_file.write("Average_shortest_path_length\t"+str(Average_shortest_path)+"\n")
-

@@ -93,6 +93,24 @@ class FastaFile(File):
                 raise Exception("序列名:{}在输入的fasta文件里面重复".format(str_))
         return seq_name
 
+    def check_trinity(self):
+        """
+        检查是不是trinity生成的组装结果文件，检查序列名的开头是不是TRINITY_
+        """
+        with open(self.path, 'r') as f:
+            check_num = 10  # 最小检查序列数
+            for i in f:
+                if check_num == 0:
+                    break
+                if i[0] == '>':
+                    check_num -= 1
+                    if i.startswith('>TRINITY_'):
+                        pass
+                    else:
+                        raise FileError('文件不是trinity生成的文件')
+        return True
+
+
     # def filter(self, smin=0, smax=0):
     #     """
     #     根据长度范围筛选Fasta

@@ -1,6 +1,10 @@
 ##############loadings file#########################
 dist_matrix <- read.table("${dist_matrix}",comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
+dist_matrix_temp <- read.table("${dist_matrix}",comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE, colClasses = c("character"))
+rownames(dist_matrix) <- row.names(dist_matrix_temp)
 group_factor <- read.table("${group_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
+group_factor_temp <- read.table("${group_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE, colClasses = c("character"))
+rownames(group_factor) <- row.names(group_factor_temp)
 ############calculate adonis##########################
 library(vegan)
 adonis_result <- adonis(as.dist(dist_matrix) ~ group_factor$${flied}, permutations = ${permutations})
