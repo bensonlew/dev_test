@@ -140,7 +140,7 @@ class DenovoRnaMapping(Base):
     def add_rpkm_curve(self, rpkm_file, rpkm_id=None):
         rpkm_id = ObjectId(rpkm_id)
         curve_files = glob.glob("{}/*cluster_percent.xls".format(rpkm_file))
-        rpkm_pdf = glob.glob("{}/*.pdf".format(rpkm_file))
+        rpkm_pdf = glob.glob("{}/*.png".format(rpkm_file))
         erpkm = glob.glob("{}/*.eRPKM.xls".format(rpkm_file))
         # curve_category = []
         with open(erpkm[0], "r") as f:

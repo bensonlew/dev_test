@@ -78,6 +78,7 @@ class RpkmSaturationTool(Tool):
         self.python_path = "program/Python/bin/"
         self.perl_path = "program/perl/perls/perl-5.24.0/bin/perl"
         self.plot_script = self.config.SOFTWARE_DIR + "/bioinfo/plot/scripts/saturation2plot.pl"
+        self.imagemagick_path = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/"
         self.plot_cmd = []
 
     def rpkm_saturation(self, bam, out_pre):
@@ -124,7 +125,10 @@ class RpkmSaturationTool(Tool):
             if "saturation.r" in f:
                 satur_file.append(f)
             if "saturation.pdf" in f and "eRPKM.xls" not in f:
+                png_file = ".".join(f.split(".")[:-1]) + ".png"
+                os.system(self.imagemagick_path + "convert {} {}".format(f, png_file))
                 satur_file.append(f)
+                satur_file.append(png_file)
         # satur_file = glob.glob(r"*eRPKM.xls")
         print(satur_file)
         for f in satur_file:
