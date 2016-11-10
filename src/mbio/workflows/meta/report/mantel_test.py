@@ -70,8 +70,8 @@ class MantelTestWorkflow(Workflow):
         mantel_result = glob.glob(self.output_dir + "/Discompare/*")[0]
         if self.option('units'):
             partial_matrix = glob.glob(self.output_dir + "/partial/*")[0]
-            dis_matrix = glob.glob(self.output_dir + "/partial/*")[0]
-            fac_matrix = glob.glob(self.output_dir + "/partial/*")[0]
+            dis_matrix = glob.glob(self.output_dir + "/Otudistance/*")[0]
+            fac_matrix = glob.glob(self.output_dir + "/Facdistance/*")[0]
         else:
             dis_matrix = glob.glob(self.output_dir + "/Otudistance/*")[0]
             fac_matrix = glob.glob(self.output_dir + "/Facdistance/*")[0]
