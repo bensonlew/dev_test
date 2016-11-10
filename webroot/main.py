@@ -2,7 +2,7 @@
 # __author__ = 'guoquan'
 import web
 from mainapp.libs.signature import check_sig
-from mainapp.controllers.pipeline import Pipeline, PipelineState,PipelineLog,PipelineStop,PipelineQueue,PipelineStopPause,PipelinePause
+from mainapp.controllers.pipeline import Pipeline, PipelineState, PipelineLog, PipelineStop, PipelineQueue, PipelineStopPause, PipelinePause
 from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.instant.meta.two_group import TwoGroup
 from mainapp.controllers.instant.meta.estimators import Estimators
@@ -68,17 +68,15 @@ urls = (
     "/meta/rarefaction", "Rarefaction",
     "/meta/beta/multi_analysis", "MultiAnalysis",
     "/meta/beta/anosim", "Anosim",
-    "app/dataexchange/upload_task", "UploadTask",
-    "/app/dataexchange/download_task", "DownloadTask",
     "/dataexchange/download_task", "DownloadTask",
     "/dataexchange/upload_task", "UploadTask",
     "/denovo_rna/diff_express", "DiffExpress",
     "/denovo_rna/map_assessment", "MapAssessment",
     "/meta/mantel_test", "MantelTest",
     "/meta/pearson_correlation", "PearsonCorrelation",
-    "/app/datasplit/datasplit", "Datasplit",
-    "/meta/plot_tree", "PlotTree"
-    "/denovo_rna/cluster","Cluster",
+    "/datasplit/datasplit", "Datasplit",
+    "/meta/plot_tree", "PlotTree",
+    # "/denovo_rna/cluster", "Cluster",
     "/denovo_rna/network", "Network",
     "/denovo_rna/get_diff_express", "GetDiffExpress",
     "/meta/otu_network", "Otunetwork",
