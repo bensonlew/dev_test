@@ -112,6 +112,8 @@ class CopyMongo(object):
         species_difference_lefse_id_dict = self.copy_collection_with_change('sg_species_difference_lefse', change_positions=['otu_id', 'group_id'], update_sg_status=True)
         self.copy_main_details('sg_species_difference_lefse_detail', 'species_lefse_id', species_difference_lefse_id_dict)
 
+        phylo_tree_plot_id_dict = self.copy_collection_with_change('sg_tree_picture', change_positions=['otu_id'], update_sg_status=True)
+
 
     def copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False):
         """

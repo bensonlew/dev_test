@@ -55,7 +55,7 @@ class StatTest(Base):
                     if re.search(r'mean$', i):
                         mean.append(float(data[name][i]))
                     elif re.search(r'lowerCI$', i):
-                        group = i.split('_')[0]
+                        group = i.split('_lowerCI')[0]
                         up = group + '_upperCI'
                         low_ci.append(float(data[name][i]))
                         ci.append(float(data[name][up]) - float(data[name][i]))

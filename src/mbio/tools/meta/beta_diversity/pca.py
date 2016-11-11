@@ -119,8 +119,8 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
 
     def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
         import pandas as pd
-        T1 = pd.read_table(T1, sep='\t')
-        T2 = pd.read_table(T2, sep='\t')
+        T1 = pd.read_table(T1, sep='\t', dtype=str)
+        T2 = pd.read_table(T2, sep='\t', dtype=str)
         T1_names = list(T1.columns[1:])
         T2_names = list(T2.iloc[0:, 0])
         T1_T2 = set(T1_names) - set(T2_names)
