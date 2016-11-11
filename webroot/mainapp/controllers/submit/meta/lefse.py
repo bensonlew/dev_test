@@ -77,7 +77,9 @@ class Lefse(object):
                     "group_name": G().get_group_name(data.group_id, lefse=True, second_group=data.second_group_detail),
                     "strict": data.strict,
                     "lda_filter": data.lda_filter,
-                    "lefse_id": str(lefse_id)
+                    "lefse_id": str(lefse_id),
+                    "start_level": int(data.start_level),
+                    "end_level": int(data.end_level),
                 }
             }
             insert_data = {"client": client,
@@ -105,7 +107,7 @@ class Lefse(object):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict', 'second_group_detail', 'task_type', 'second_group_id']
+        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict', 'second_group_detail', 'task_type', 'second_group_id', 'start_level', 'end_level']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
@@ -115,6 +117,10 @@ class Lefse(object):
             return json.dumps(info)
         if float(data.lda_filter) > 4.0 or float(data.lda_filter) < -4.0:
             success.append("LDA阈值不在范围内")
+        if int(data.start_level) not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+            success.append('起始分类水平不在范围内')
+        if int(data.end_level) not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+            success.append('结束分类水平不在范围内')
         group_detail = json.loads(data.group_detail)
         if not isinstance(group_detail, dict):
             success.append("传入的group_detail不是一个字典")

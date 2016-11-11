@@ -23,7 +23,9 @@ class LefseWorkflow(Workflow):
             {"name": "lda_filter", "type": "float", "default": 2.0},
             {"name": "strict", "type": "int", "default": 0},
             {"name": "group_name", "type": "string"},
-            {"name": "lefse_id", "type": "string"}
+            {"name": "lefse_id", "type": "string"},
+            {"name": "start_level", "type": "int", "default": 1},
+            {"name": "end_level", "type": "int", "default": 8},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -36,7 +38,9 @@ class LefseWorkflow(Workflow):
             "lefse_group": self.option("group_file"),
             "lda_filter": self.option("lda_filter"),
             "strict": self.option("strict"),
-            "lefse_gname": self.option("group_name")
+            "lefse_gname": self.option("group_name"),
+            "start_level": self.option("start_level"),
+            "end_level": self.option("end_level"),
         }
 
         self.lefse.set_options(options)
