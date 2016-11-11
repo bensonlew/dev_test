@@ -36,7 +36,8 @@ class GffFile(File):
                             
         else:
             raise FileError("文件格式错误") 
-		
+	
+    """	
     def gff_to_bed(self):
         bed_path = os.path.split(self.prop['path'])[0]
         bed = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".bed")
@@ -46,6 +47,7 @@ class GffFile(File):
         except subprocess.CalledProcessError:
             raise Exception("运行出错！")
         return True
+    """
 		
     def gff_to_gtf(self):
         gtf_path = os.path.split(self.prop['path'])[0]
@@ -56,10 +58,9 @@ class GffFile(File):
         except subprocess.CalledProcessError:
             raise Exception("运行出错！")
         return True
-"""
+
 if __name__ == '__main__':
     a = GffFile()
-    a.set_path("/mnt/ilustre/users/sanger-dev/app/database/refGenome/Plant/Rhodophyta/chondrus_crispus/ref/Chondrus_crispus.ASM35022v2.32.gff3")
+    a.set_path("/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/mapping_file/Saccharomyces_cerevisiae.R64-1-1.32.gff3")
     a.check()
-    a.gff_to_bed()    
-"""
+    a.gff_to_gtf()    
