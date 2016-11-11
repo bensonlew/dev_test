@@ -100,16 +100,17 @@ class FileCheck(object):
                 # file_list = eval(file_list)
                 sample_list = file_obj.prop["sample"]
                 new_list = [file_list[x][0] for x in file_list.keys()]
+                print "sample list: " + str(sample_list)
+                print "new_list: " + str(new_list)
                 for new_name in file_list.keys():
                     if file_list[new_name][0] not in sample_list:
-                        raise FileError("{}不在分组样本中".format(file_list[new_name][0]))
+                        raise FileError("分组文件中样本名与检测的样本信息不匹配")
                 for sample in sample_list:
                     if sample not in new_list:
-                        raise FileError("group中的{}不在新的样本集合中".format(sample))
+                        raise FileError("分组文件中样本名与检测的样本信息不匹配")
             except FileError,e:
-                exstr = traceback.format_exc()
-                print exstr
                 info = {"success":False,"info":"错误:%s" % e}
+                print "group 文件的info：" + str(info)
                 return json.dumps(info)
             else:
                 info = {"success":True,"info":"检测通过"}
@@ -159,16 +160,13 @@ class MultiFileCheck(object):
                 d.format = f["format"]
                 d.path = f["path"]
                 if d.format == "meta.otu.group_table" and isinstance(json_obj["file_list"],(dict)):
+                    print "lemon tree"    
                     result = json.loads(self.checker.check_group(d,json_obj["file_list"]))
                 elif d.format == "sequence.fastq_dir" and not isinstance(json_obj["file_list"],(dict)):
                     info = {"success":False, "info":"fastq文件夹需进行文件检测"}
                     result = info
                 else:
                     result = json.loads(self.checker.check(d))
-                print "abc"
-                print f
-                print result
-                print "def"
                 if result["success"]:
                     x = {
                         "name": f["name"],
