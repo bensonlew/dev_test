@@ -21,10 +21,10 @@ class HisatAgent(Agent):
     def __init__(self, parent):
         super(HisatAgent, self).__init__(parent)
         options = [
-            {"name": "ref_genome", "type": "string"},
-            {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},
-            {"name": "mapping_method", "type": "string"},
-            {"name": "seq_method", "type": "string"},
+            {"name": "ref_genome", "type": "string"}, # 参考基因组参数
+            {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"}, # 
+            {"name": "mapping_method", "type": "string"}, # 比对软件，tophat或hisat
+            {"name": "seq_method", "type": "string"}, # 测序方式，PE：单端测序，SE：双端测序
             {"name": "single_end_reads", "type": "infile", "format": "sequence.fastq"},
             {"name": "left_reads", "type": "infile", "format":"sequence.fastq"},
             {"name": "right_reads", "type": "infile", "format":"sequence.fastq"},
@@ -55,9 +55,7 @@ class HisatAgent(Agent):
                 if self.option("ref_genome") == "customer_mode":
                     raise OptionError("请传入自定义参考基因组")
                 else:
-                    raise OptionError("请选择平台上参考基因组")
-        if not self.option("mapping_method").is_set:
-            raise OptionError("请选择reads比对软件")
+                    raise OptionError("请选择平台上参考基因组") 
         if not self.option("seq_method").is_set:
             raise OptionError("请选择是双端测序还是单端测序")
         else:
