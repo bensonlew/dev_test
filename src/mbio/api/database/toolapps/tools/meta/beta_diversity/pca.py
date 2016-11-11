@@ -25,7 +25,7 @@ class Pca(Base):
         运行函数
         """
         self.main_id = self.scatter_in()
-        self.table_in()
+        self.table_ids = self.table_in()
         # self.main_in()
         # self.detail_in()
         return self.main_id
@@ -35,25 +35,10 @@ class Pca(Base):
         """
         导入表格相关信息
         """
-        with open(self.output_dir + '/pca_rotation.xls') as f:
-            columns = f.readline().strip().split('\t')
-            insert_data = []
-            table_id = self.db['table'].insert_one({
-                'project_sn': self.bind_object.sheet.project_sn,
-                'status': 'end',
-                'task_id': self.bind_object.id,
-                'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'name': 'PCA_物种主成分贡献度表',
-                'attrs': columns,
-                'desc': 'PCA分析中样本属性的贡献度统计结果，例如在OTU表的PCA分析中代表物种/OTU的贡献度',
-            }).inserted_id
-            for line in f:
-                line_split = line.strip().split('\t')
-                data = dict(zip(columns, line_split))
-                data['table_id'] = table_id
-                insert_data.append(data)
-            self.db['table_detail'].insert_many(insert_data)
-        return table_id
+        ratation = self.insert_table(self.output_dir + '/pca_rotation.xls', 'PCA_物种主成分贡献度表',
+                                     'PCA分析中样本属性的贡献度统计结果，例如在OTU表的PCA分析中代表物种/OTU的贡献度')
+        importance = self.insert_table(self.output_dir + '/pca_importance.xls', 'PCA_轴贡献度', 'PCA结果坐标轴的贡献度值')
+        return [ratation, importance]
 
     def insert_table(self, fp, name, desc):
         with open(fp) as f:
