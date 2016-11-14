@@ -38,13 +38,6 @@ class PearsonCorrelationWorkflow(Workflow):
         # print(self._sheet.options())
         self.set_options(self._sheet.options())
         self.correlation = self.add_tool('statistical.pearsons_correlation')
-        # self.distance_otu = self.add_tool('meta.beta_diversity.distance_calc')
-        # self.distance_env = self.add_tool('meta.beta_diversity.distance_calc')
-        # self.hcluster_otu = self.add_tool('meta.beta_diversity.hcluster')
-        # self.hcluster_env = self.add_tool('meta.beta_diversity.hcluster')
-        # self.distance = [self.distance_otu, self.distance_env]
-        # self.hcluster = [self.hcluster_otu, self.hcluster_env]
-        # self.tools = [self.correlation] + self.distance + self.hcluster
         self.params = {}
 
     def run_correlation(self):
@@ -57,36 +50,6 @@ class PearsonCorrelationWorkflow(Workflow):
         self.correlation.run()
         # self.output_dir = self.correlation.output_dir
         # super(PearsonCorrelationWorkflow, self).run()
-
-    def run_distance(self):
-        # print(self.option("otu_file"))
-        otu_file = self.work_dir + "/reverse_otu.xls"
-        print(self.work_dir + "/otu_file.xls")
-        print(self.option("env_file").path)
-        reverse_table(self.work_dir + "/otu_file.xls", otu_file)
-        print(otu_file)
-        self.distance_otu.set_options({
-            "otutable": otu_file
-        })
-        self.distance_env.set_options({
-            "otutable": self.option("env_file").path
-        })
-        # self.distance_env.on('end', self.run_hcluster)
-        self.on_rely(self.distance, self.run_hcluster)
-        self.distance_env.run()
-        self.distance_otu.run()
-
-    def run_hcluster(self):
-        distance_env = glob.glob(self.distance_env.output_dir + "/*")[0]
-        distance_otu = glob.glob(self.distance_otu.output_dir + "/*")[0]
-        self.hcluster_env.set_options({
-            "dis_matrix": distance_env
-        })
-        self.hcluster_otu.set_options({
-            "dis_matrix": distance_otu
-        })
-        self.hcluster_env.run()
-        self.hcluster_otu.run()
         
     def run(self):
         self.run_correlation()
@@ -120,17 +83,17 @@ class PearsonCorrelationWorkflow(Workflow):
         if os.path.exists(env_tree_path):
             with open(env_tree_path, "r") as f:
                 env_tree = f.readline().strip()
-                raw_samp = re.findall(r'([(,]([\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', env_tree)
+                raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', env_tree)
                 env_list = [i[1] for i in raw_samp]
-                env_list = sorted(env_list)
+                # env_list = sorted(env_list)
                 print("llllllllll")
                 print(env_list)
         if os.path.exists(species_tree_path):
             with open(species_tree_path, "r") as f:
                 species_tree = f.readline().strip()
-                raw_samp = re.findall(r'([(,]([\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', species_tree)
+                raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', species_tree)
                 species_list = [i[1] for i in raw_samp]
-                species_list = sorted(species_list)
+                # species_list = sorted(species_list)
                 # print(species_list)
                 print("llllllllll")
         name = "correlation" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))

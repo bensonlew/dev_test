@@ -23,9 +23,9 @@ class MetaSpeciesEnv(Base):
             raise Exception("level参数%s为不在允许范围内!" % level)
         # if task_id is None:
         #     task_id = self.bind_object.sheet.id
-        matrix_types = ["species_matrix", "env_matrix", "partial_matrix"]
-        if params["units"] == "":
-            matrix_types = ["species_matrix", "env_matrix"]
+        matrix_types = ["species_matrix", "env_matrix"]
+        if "units" in params:
+            matrix_types = ["species_matrix", "env_matrix", "partial_matrix"]
 
         if not isinstance(otu_id, ObjectId):
             otu_id = ObjectId(otu_id)

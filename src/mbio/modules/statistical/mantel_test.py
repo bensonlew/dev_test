@@ -63,10 +63,11 @@ class MantelTestModule(Module):
             raise OptionError('必须提供环境因子表')
         else:
             self.option('factor').get_info()
-            partial_factors = self.option('partial_factor').split(',')
-            for f in partial_factors:
-                if f not in self.option('factor').prop['group_scheme']:
-                    raise OptionError('该因子不存在于环境因子表：%s' %f)
+            if self.option("partial_factor"):
+                partial_factors = self.option('partial_factor').split(',')
+                for f in partial_factors:
+                    if f not in self.option('factor').prop['group_scheme']:
+                        raise OptionError('该因子不存在于环境因子表：%s' %f)
             if self.option('factorselected'):
                 factors = self.option('factorselected').split(',')
                 for f in factors:
