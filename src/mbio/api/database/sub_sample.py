@@ -102,23 +102,35 @@ class SubSample(Base):
         with open(file_path, 'rb') as r:
             head = r.next().strip('\r\n')
             head = re.split('\t', head)
-            new_head = head[1:-1]
+            if head[-1] == "taxonomy":
+                new_head = head[1:-1]
+            else:
+                new_head = head[1:]
             for line in r:
                 line = line.rstrip("\r\n")
                 line = re.split('\t', line)
-                sample_num = line[1:-1]
-                classify_list = re.split(r"\s*;\s*", line[-1])
                 otu_detail = dict()
-                otu_detail['otu'] = line[0]
+                # OTU表可能有taxonomy列， 也可能没有， 需要适应
+                if len(re.split("; ", line[0])) > 1:
+                    sample_num = line[1:]
+                    otu = re.split("; ", line[0])[-1]
+                    classify_list = re.split(r"\s*;\s*", line[0])
+                else:
+                    sample_num = line[1:-1]
+                    otu = line[0]
+                    otu_detail['otu'] = line[0]
+                    classify_list = re.split(r"\s*;\s*", line[-1])
+
                 otu_detail['otu_id'] = new_otu_id
                 for cf in classify_list:
                     if cf != "":
                         otu_detail[cf[0:3].lower()] = cf
                 for i in range(0, len(sample_num)):
-                    otu_detail[new_head[i]] = sample_num[i]
-                if line[0] not in self.otu_rep:
+                    otu_detail[new_head[i]] = int(sample_num[i])
+
+                if otu not in self.otu_rep:
                     raise Exception("意外错误，otu_id: {}和otu: {}在sg_otu_detail表里未找到".format(from_otu_id, line[0]))
-                otu_detail['otu_rep'] = self.otu_rep[line[0]]
+                otu_detail['otu_rep'] = self.otu_rep[otu]
                 otu_detail['task_id'] = self.task_id
                 insert_data.append(otu_detail)
         try:
@@ -167,24 +179,33 @@ class SubSample(Base):
         with open(otu_path, 'rb') as r:
             head = r.next().strip('\r\n')
             head = re.split('\t', head)
-            new_head = head[1:-1]
+            if head[-1] == "taxonomy":
+                new_head = head[1:-1]
+            else:
+                new_head = head[1:]
             for line in r:
                 line = line.rstrip("\r\n")
                 line = re.split('\t', line)
-                sample_num = line[1:-1]
-                classify_list = re.split(r"\s*;\s*", line[-1])
                 otu_detail = dict()
+
+                if len(re.split("; ", line[0])) > 1:
+                    sample_num = line[1:]
+                    classify_list = re.split(r"\s*;\s*", line[0])
+                else:
+                    sample_num = line[1:-1]
+                    otu_detail['otu'] = line[0]
+                    classify_list = re.split(r"\s*;\s*", line[-1])
+
                 otu_detail['otu_id'] = from_otu_table
                 otu_detail['project_sn'] = project_sn
                 otu_detail['task_id'] = task_id
                 otu_detail["level_id"] = int(level)
-                otu_detail["otu"] = line[0]
                 for cf in classify_list:
                     if cf != "":
                         otu_detail[cf[0:3].lower()] = cf
                 count = 0
                 for i in range(0, len(sample_num)):
-                    otu_detail[new_head[i]] = sample_num[i]
+                    otu_detail[new_head[i]] = int(sample_num[i])
                     count += int(sample_num[i])
                 otu_detail["total_"] = count
                 insert_data.append(otu_detail)

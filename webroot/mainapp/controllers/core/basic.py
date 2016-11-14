@@ -67,7 +67,7 @@ class Basic(object):
             'params': self.params,
             'instant': True,
             'options': self.options  # 需要配置
-            }
+        }
         if self.to_file:  # 可以配置
                 sheet_data['to_file'] = self.to_file
         if not self.uploadTarget:
@@ -108,8 +108,6 @@ class Basic(object):
         with open(self._pk_sheet, 'w') as w:
             pickle.dump(self._sheet, w)
 
-
-
     def _createUploadTarget(self):
         """
         根据client来确定需要上传文件的位置
@@ -133,12 +131,12 @@ class Basic(object):
         self.create_sheet()
         try:
             bin_dir = os.path.dirname(self.config.WORK_DIR) + '/biocluster/bin'
-            cmd = 'python {}/run_instant.py {}'.format(bin_dir, self._pk_sheet)
-            # print 'INSTANT CMD:', cmd
+            cmd = 'python {}/run_instant.py {} > {} 2>&1'.format(bin_dir, self._pk_sheet, os.path.dirname(self._pk_sheet) + '/run_instant.log')
+            print 'INSTANT CMD:', cmd
             subprocess.check_output(cmd, shell=True)
         except Exception as e:
             print 'run_instant计算出错：', e
-            info = {"success": False, "info": "计算程序计算错误"}
+            info = {"success": False, "info": "计算程序计算错误: {}".format(e)}
             self.returnInfo = json.dumps(info)
             return self.returnInfo
         self._return_pk = self._work_dir + '/' + 'return_web.pk'
@@ -207,7 +205,6 @@ class Basic(object):
         class_name = get_clsname_form_path(self.task_name, tp=self.task_type.capitalize())
         class_name = class_name.replace(self.task_type.capitalize(), '')
         return class_name
-
 
     @property
     def memberId(self):

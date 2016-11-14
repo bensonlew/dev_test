@@ -409,13 +409,13 @@ class Venn(Base):
         if not isinstance(express_id, ObjectId):
             express_id = ObjectId(express_id)
         insert_data = {
-            "project_sn": self.project_sn,
-            "task_id": self.task_id,
+            "project_sn": self.bind_object.sheet.project_sn,
+            "task_id": self.bind_object.sheet.id,
             "express_id": str(express_id),
             "name": "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "status": "end",
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "params": params,
+            "params": params
         }
         collection = self.db['sg_denovo_venn']
         inserted_id = collection.insert_one(insert_data).inserted_id

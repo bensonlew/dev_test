@@ -31,9 +31,9 @@ class Venn(Basic):
         if return_info:
             return return_info
         self.task_name = 'denovo_rna.report.venn'
-        self.to_file = ["denovo.export_express_matrix(express_file)", "meta.export_group_table_by_detail(group_table)"]
+        self.to_file = ["denovo.export_express_matrix(express_file)", "denovo.export_group_table_by_detail(group_table)"]
         my_param = dict()
-        my_param['express_id'] = data.otu_id
+        my_param['express_id'] = data.express_id
         my_param['group_id'] = data.group_id
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param["submit_location"] = data.submit_location
@@ -43,6 +43,7 @@ class Venn(Basic):
             "express_file": data.express_id,
             "group_table": data.group_id,
             "express_id": str(self._mainTableId),
+            "group_detail": data.group_detail
         }
         self.run()
         return self.returnInfo

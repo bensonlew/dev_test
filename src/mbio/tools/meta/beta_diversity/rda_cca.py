@@ -53,8 +53,8 @@ class RdaCcaAgent(Agent):
         """
         if not self.option('otutable').is_set:
             raise OptionError('必须提供otu表')
-        if self.option('otutable').prop['sample_num'] < 2:
-            raise OptionError('otu表的样本数目少于2，不可进行beta多元分析')
+        if self.option('otutable').prop['sample_num'] < 3:
+            raise OptionError('otu表的样本数目少于3，不可进行beta多元分析')
         if self.option('envtable').is_set:
             self.option('envtable').get_info()
             if self.option('envlabs'):
@@ -64,17 +64,20 @@ class RdaCcaAgent(Agent):
                         raise OptionError('提供的envlabs中有不在环境因子表中存在的因子：%s' % lab)
             else:
                 pass
-            if self.option('envtable').prop['sample_number'] < 2:
-                raise OptionError('环境因子表的样本数目少于2，不可进行beta多元分析')
+            if self.option('envtable').prop['sample_number'] < 3:
+                raise OptionError('环境因子表的样本数目少于3，不可进行beta多元分析')
         else:
             raise OptionError('必须提供环境因子表')
         samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
-        if len(self.option('envtable').prop['sample']) > len(samplelist):
-            raise OptionError('OTU表中的样本数量:%s小于环境因子表中的样本数量:%s' % (len(samplelist),
-                              len(self.option('envtable').prop['sample'])))
-        for sample in self.option('envtable').prop['sample']:
-            if sample not in samplelist:
-                raise OptionError('环境因子中存在，OTU表中的未知样本:%s' % sample)
+        # if len(self.option('envtable').prop['sample']) > len(samplelist):
+        #     raise OptionError('OTU表中的样本数量:%s小于环境因子表中的样本数量:%s' % (len(samplelist),
+        #                       len(self.option('envtable').prop['sample'])))
+        # for sample in self.option('envtable').prop['sample']:
+        #     if sample not in samplelist:
+        #         raise OptionError('环境因子中存在，OTU表中的未知样本:%s' % sample)
+        common_samples = set(samplelist) & set(self.option('envtable').prop['sample'])
+        if len(common_samples) < 3:
+            raise OptionError("环境因子表和OTU表的共有样本数必须大于等于3个：{}".format(len(common_samples)))
         table = open(self.gettable())
         if len(table.readlines()) < 4:
             raise OptionError('提供的数据表信息少于3行')
@@ -86,7 +89,7 @@ class RdaCcaAgent(Agent):
         设置所需资源
         """
         self._cpu = 2
-        self._memory = ''
+        self._memory = '3G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -111,9 +114,6 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
         self.cmd_path = os.path.join(
             self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/ordination.pl')
-        self.env_table = self.get_new_env()
-        self.otu_table = self.get_otu_table()
-        self.env_labs = open(self.env_table, 'r').readline().strip().split('\t')[1:]
 
     def get_new_env(self):
         """
@@ -136,8 +136,9 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         else:
             otu_path = self.option('otutable').prop['path']
         # otu表对象没有样本列表属性
-        return self.filter_otu_sample(otu_path, self.option('envtable').prop['sample'],
-                                      os.path.join(self.work_dir, 'temp_filter.otutable'))
+        return otu_path
+        # return self.filter_otu_sample(otu_path, self.option('envtable').prop['sample'],
+        #                               os.path.join(self.work_dir, 'temp_filter.otutable'))
 
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):
@@ -178,15 +179,40 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                 return newtable
         return tablepath
 
+    def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
+        import pandas as pd
+        T1 = pd.read_table(T1, sep='\t', dtype=str)
+        T2 = pd.read_table(T2, sep='\t', dtype=str)
+        T1_names = list(T1.columns[1:])
+        T2_names = list(T2.iloc[0:, 0])
+        T1_T2 = set(T1_names) - set(T2_names)
+        T2_T1 = set(T2_names) - set(T1_names)
+        T1T2 = set(T2_names) & set(T1_names)
+        if len(T1T2) < 3:
+            return False
+        [T1_names.remove(value) for value in T1_T2]
+        T1.to_csv(new_T1, sep="\t", columns=[T1.columns[0]] + T1_names, index=False)
+        indexs = [T2_names.index(one) for one in T2_T1]
+        T2 = T2.drop(indexs)
+        T2.to_csv(new_T2, sep="\t", index=False)
+        return True
+
     def run_ordination(self):
         """
         运行ordination.pl
         """
+        old_otu_table = self.get_otu_table()
+        old_env_table = self.get_new_env()
+        self.otu_table = self.work_dir + '/new_otu.xls'
+        self.env_table = self.work_dir + '/new_env.xls'
+        if not self.create_otu_and_env_common(old_otu_table, old_env_table, self.otu_table, self.env_table):
+            self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
         tablepath = self.formattable(self.otu_table)
+        self.env_labs = open(self.env_table, 'r').readline().strip().split('\t')[1:]
         self.logger.info(tablepath)
         cmd = self.cmd_path
         cmd += ' -type rdacca -community %s -environment %s -outdir %s -env_labs %s' % (
-               tablepath, self.option('envtable').prop['path'],
+               tablepath, self.env_table,
                self.work_dir, '+'.join(self.env_labs))
         try:
             subprocess.check_output(cmd, shell=True)
@@ -247,6 +273,10 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
             return max(pc1), max(pc2)
         range_vector_pc1, range_vector_pc2 = get_range(vector_file)
         range_sites_pc1, range_sites_pc2 = get_range(sites_file)
+        if range_vector_pc1 == 0:
+            range_vector_pc1 += 0.00001
+        if range_vector_pc2 == 0:
+            range_vector_pc2 += 0.00001
         magnify_1 = range_sites_pc1 / range_vector_pc1
         magnify_2 = range_sites_pc2 / range_vector_pc2
         magnify = magnify_1 if magnify_1 < magnify_2 else magnify_2

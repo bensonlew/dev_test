@@ -128,7 +128,7 @@ class UploadManager(object):
 
     def get_upload_tasks(self):
         sql = "SELECT id,task_id,api,`data`,upload,has_upload,uploaded from apilog where" \
-              " api<>'test' and success=0 and reject=0 and has_upload=1 and uploaded=0"
+              " api<>'test' and reject=0 and has_upload=1 and uploaded=0"
         results = self.db.query(sql)
         if isinstance(results, long) or isinstance(results, int):
             return None

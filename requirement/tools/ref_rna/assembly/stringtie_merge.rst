@@ -34,11 +34,15 @@ stringtie --merge assembly_GTF_list.txt  -G <参考序列注释文件> -s <参�
 
 ::
 
-            {"name": "assembly_GTF_list.txt", "type": "infile", "format": "ref_rna.txt"},  # 所有样本的转录本存放的路径
-            {"name": "ref_fa", "type": "infile", "format": "sequence.fa"},  # 参考基因文件
+            {"name": "sample_bam", "type": "infile", "format": "ref_rna.bam"},  # 所有样本比对之后的bam文件
+            {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
             {"name": "ref_gtf", "type": "infile", "format": "ref_rna.gtf"},  # 参考基因的注释文件
             {"name": "cpu", "type": "int", "default": 10},  # stringtie软件所分配的cpu数量
-            {"name": "sample_gtf", "type": "outfile","format":"ref_rna.gtf"},  # 输出的gtf文件
+            # {"name": "memory", "type": "string", "default": '100G'},  # stringtie软件所分配的内存，单位为GB
+            # {"name": "fr-unstranded", "type": "string"},  # 是否链特异性
+            # {"name": "fr-firststrand", "type": "string"},  # 链特异性时选择正链
+            # {"name": "fr-secondstrand", "type": "string"},  # 链特异性时选择负链
+            {"name": "sample_gtf", "type": "outfile", "format": "ref_rna.gtf"}# 输出的gtf文件
             
 
 

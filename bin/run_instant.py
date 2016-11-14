@@ -14,6 +14,36 @@ from bson import ObjectId, SON
 import datetime
 import os
 import json
+import traceback
+
+
+def task_obj_exit(obj, exitcode=1, data="", terminated=False):
+    """
+    立即退出当前流程
+
+    :param exitcode:
+    :return:
+    """
+    update_data = {
+        "is_error": 1,
+        "error": "程序主动退出:%s" % data,
+        "end_time": datetime.datetime.now(),
+        "is_end": 1,
+        "workdir": obj.work_dir,
+        "output": obj.output_dir
+    }
+    obj._update(update_data)
+    if terminated:
+        obj.step.terminated(data)
+    else:
+        obj.step.failed(data)
+    obj.step.update()
+    obj.end_unfinish_job()
+    obj.logger.info("程序退出: %s " % data)
+    obj.logger.info("shenghe log test")
+    obj.rpc_server.close()
+    obj.exit_data = data
+    raise Exception(data)
 
 
 class Instant(object):
@@ -21,25 +51,35 @@ class Instant(object):
     """
     def __init__(self):
         self._sheet = self.get_sheet()
-        self._task_object = load_class_by_path(self.sheet.name, tp='Workflow')(self.sheet)
+        self._workflow = load_class_by_path(self.sheet.name, tp='Workflow')
+        self._workflow.exit = task_obj_exit
+        self._task_object = self._workflow(self.sheet)
         self.logger = self._task_object.logger
         self._mongo_ids = None
         self.return_info = {"success": False, "info": "程序非正常结束"}
         self._uploadDirObj = list()
         self._work_dir = os.path.dirname(self._sheet_pk)
         self.config = self._task_object.config
-        self._db = self.config.mongo_client[self.config.MONGODB]
+        # self._db = self.config.mongo_client[self.config.MONGODB]
 
     def run(self):
         try:
+            # self._task_object.exit = task_obj_exit
             self._task_object.run()
+            if hasattr(self._task_object, "exit_data"):
+                raise Exception(self._task_object.exit_data)
             self._mongo_ids = self._task_object.return_mongo_ids
             for i in self._mongo_ids:
-                self.add_sg_status(i['id'], i['collection_name'], i['desc'])
+                self._db = self.config.mongo_client[i['mongodb']]
+                if i["add_in_sg_status"]:
+                    self.add_sg_status(i['id'], i['collection_name'], i['desc'])
             self._uploadDirObj = self._task_object._upload_dir_obj
             self.format_result()
             # 整理返回前端结果
         except Exception as e:
+            traceback_err = traceback.format_exc()
+            print traceback_err
+            self.logger.error(traceback_err)
             self.return_info = {"success": False, "info": "程序运行过程中发生错误，错误信息:{}".format(e)}
         self.pickle_result()
 
@@ -91,6 +131,7 @@ class Instant(object):
             self.logger.info('Insert sg_status ID:{}'.format(return_id))
             return str(return_id)
         else:
+            self.logger.error('插入sg_status表出错')
             raise Exception('插入sg_status表出错')
 
     @property
