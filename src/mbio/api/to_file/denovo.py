@@ -81,7 +81,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
         return file_path
     data = _get_objectid(data)
     group_detail = bind_obj.sheet.option('group_detail')
-    group_table = db['sg_specimen_group']
+    group_table = db['sg_denovo_specimen_group']
     if not isinstance(group_detail, dict):
         try:
             table_dict = json.loads(group_detail)
@@ -91,11 +91,11 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
         raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
     group_schema = group_table.find_one({"_id": ObjectId(data)})
     if not group_schema:
-        raise Exception("无法根据传入的group_id:{}在sg_specimen_group表里找到相应的记录".format(data))
+        raise Exception("无法根据传入的group_id:{}在sg_denovo_specimen_group表里找到相应的记录".format(data))
     schema_name = re.sub("\s", "_", group_schema["group_name"])  # 将分组方案名的空格替换成下划线
     with open(file_path, "wb") as f:
         f.write("#sample\t" + schema_name + "\n")
-    sample_table_name = 'sg_specimen'
+    sample_table_name = 'sg_denovo_specimen'
     sample_table = db[sample_table_name]
     with open(file_path, "ab") as f:
         for k in table_dict:

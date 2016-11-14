@@ -151,8 +151,8 @@ class DiffExpTool(Tool):
             os.mkdir(output_dir)
         for f in edger:
             if re.search(r'edgeR.DE_results$', f):
-                get_diff_list(edger_dir + f, output_dir + f.split('.')[3] + '_diff_list', self.option('diff_ci'))
-                edger_files += '%s ' % (output_dir + f.split('.')[3] + '_diff_list')
+                get_diff_list(edger_dir + f, output_dir + f.split('.')[-3] + '_diff_list', self.option('diff_ci'))
+                edger_files += '%s ' % (output_dir + f.split('.')[-3] + '_diff_list')
         os.system('cat %s> diff_lists && sort diff_lists | uniq > diff_list' % edger_files)
         os.remove('diff_lists')
 

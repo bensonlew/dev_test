@@ -63,7 +63,10 @@ class GroupTableFile(File):
             for i in line[1:]:
                 if re.search("\s", i):
                     raise FileError('分组方案名里不可以包含空格')
+        with open(self.prop['path'], 'r') as f:
             for line in f:
+                if "#" in line:
+                    continue
                 line = line.rstrip("\r\n")
                 line = re.split("\t", line)
                 for l in line:
@@ -167,27 +170,27 @@ class GroupTableFile(File):
                 gnames.append(line.split()[site])
             return list(set(gnames))
 
-        def get_group_spname(self, name=None):
-            """
-            获取某一分组方案下分组类别对应的样本信息详细
-            :param name: 某一分组方案的名字,string
-            :return group_spname:该分组方案下分组类别对应的样本信息详细的字典，eg：{'A': [1,2,3], 'B': [4,5,6]}
-            add by qiuping, last_modify:20161027
-            """
-            with open(self.prop['path'], 'r') as f:
-                head = f.readline().split()
-                group_spname = defaultdict(list)
-                if not name:
-                    gname = head[0]
-                else:
-                    gname = name
-                _index = head.index(gname)
-                for line in f:
-                    line = line.strip('\n').split()
-                    sample = line[0]
-                    group = line[_index]
-                    group_spname[group].append(sample)
-            return group_spname
+    def get_group_spname(self, name=None):
+        """
+        获取某一分组方案下分组类别对应的样本信息详细
+        :param name: 某一分组方案的名字,string
+        :return group_spname:该分组方案下分组类别对应的样本信息详细的字典，eg：{'A': [1,2,3], 'B': [4,5,6]}
+        add by qiuping, last_modify:20161027
+        """
+        with open(self.prop['path'], 'r') as f:
+            head = f.readline().split()
+            group_spname = defaultdict(list)
+            if not name:
+                gname = head[1]
+            else:
+                gname = name
+            _index = head.index(gname)
+            for line in f:
+                line = line.strip('\n').split()
+                sample = line[0]
+                group = line[_index]
+                group_spname[group].append(sample)
+        return group_spname
 
 if __name__ == "__main__":
     g = GroupTableFile()
