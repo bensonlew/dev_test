@@ -40,8 +40,8 @@ class Lefse(object):
         my_param['strict'] = int(data.strict)
         my_param['submit_location'] = data.submit_location
         my_param['task_type'] = data.task_type
-        my_param['start_level'] = data.start_level
-        my_param['end_level'] = data.end_level
+        my_param['start_level'] = int(data.start_level)
+        my_param['end_level'] = int(data.end_level)
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
