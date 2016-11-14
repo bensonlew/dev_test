@@ -24,8 +24,8 @@ class LefseAgent(Agent):
             {"name": "lda_filter", "type": "float", "default": 2.0},
             {"name": "strict", "type": "int", "default": 0},
             {"name": "lefse_gname", "type": "string"},
-            {"name": "start_level", "type": "int", "default": 1},
-            {"name": "end_level", "type": "int", "default": 9},
+            {"name": "start_level", "type": "int", "default": 3},
+            {"name": "end_level", "type": "int", "default": 7},
         ]
         self.add_option(options)
         self.step.add_steps("run_biom", "tacxon_stat", "plot_lefse")
@@ -117,6 +117,8 @@ class LefseTool(Tool):
         self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
         self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
         self.set_environ(PATH=self._path, R_HOME=self._r_home, LD_LIBRARY_PATH=self._LD_LIBRARY_PATH)
+        self.end_level = 7
+        self.start_level = 3
 
     def run_biom(self):
         self.add_state("biom_start", data="开始生成biom格式文件")
@@ -134,10 +136,16 @@ class LefseTool(Tool):
 
     def run_script(self):
         self.add_state("sum_taxa_start", data="开始生成每一水平的物种统计文件")
-        if self.option('end_level') == 9:
-            level = ','.join([str(i) for i in range(self.option('start_level'), self.option('end_level'))])
+        if self.option('end_level') >= self.option('start_level'):
+            self.start_level = self.option('start_level')
+            self.end_level = self.option('end_level')
         else:
-            level = ','.join([str(i) for i in range(self.option('start_level'), self.option('end_level') + 1)])
+            self.end_level = self.option('start_level')
+            self.start_level = self.option('end_level')
+        if self.end_level == 9:
+            level = ','.join([str(i) for i in range(self.start_level, self.end_level)])
+        else:
+            level = ','.join([str(i) for i in range(self.start_level, self.end_level + 1)])
         self.logger.info(level)
         script_cmd = self.python_path + " %ssummarize_taxa.py -i otu_taxa_table.biom " \
                                         "-o tax_summary_a -L %s -a" % (self.config.SOFTWARE_DIR + self.script_path, level)
@@ -156,11 +164,11 @@ class LefseTool(Tool):
             if re.search(r'txt$', i):
                 _path = os.path.join(tax_summary_a, i)
                 df = pd.read_table(_path, index_col=0)
-                tmp = df.rename(index=lambda x: ';'.join(x.split(';')[self.option('start_level') - 1:]))
+                tmp = df.rename(index=lambda x: ';'.join(x.split(';')[self.start_level - 1:]))
                 tmp.to_csv(_path, sep='\t')
 
     def get_otu_taxon(self):
-        if self.option('end_level') == 9:
+        if self.end_level == 9:
             otu_taxon_otu = os.path.join(self.work_dir + '/tax_summary_a', "otu_taxa_table_L9.txt")
             with open(self.option('lefse_input').prop['path'], 'r') as r:
                 with open(otu_taxon_otu, 'w') as w:
@@ -184,7 +192,7 @@ class LefseTool(Tool):
             %s %ssum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
               "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
             mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
-        }" % (self.option('start_level'), self.option('end_level'), self.perl_path, self.config.SOFTWARE_DIR + self.script_path)
+        }" % (self.start_level, self.end_level, self.perl_path, self.config.SOFTWARE_DIR + self.script_path)
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info("run_sum_tax运行完成")

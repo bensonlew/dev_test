@@ -24,8 +24,8 @@ class LefseWorkflow(Workflow):
             {"name": "strict", "type": "int", "default": 0},
             {"name": "group_name", "type": "string"},
             {"name": "lefse_id", "type": "string"},
-            {"name": "start_level", "type": "int", "default": 1},
-            {"name": "end_level", "type": "int", "default": 8},
+            {"name": "start_level", "type": "int", "default": 3},
+            {"name": "end_level", "type": "int", "default": 7},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
