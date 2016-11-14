@@ -37,27 +37,20 @@ class GtfFile(File):
             raise FileError("文件格式错误")
 
     def gtf_to_gff(self):
+        """
+        gtf格式转gff格式
+        """
         cmd = "perl {}gtf2gff.pl {}".format(self.gtf_to_gff_path, self.prop['path'])
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
             raise Exception("运行出错！")
-        return True
-    
-    """
-    def gtf_to_bed(self):
-        bed_path = os.path.split(self.prop['path'])[0]
-        bed = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".bed")
-        cmd = "perl {}gtf2bed -d <{} >{}".format(self.bedops_path,self.prop['path'],bed)
-        try:
-            subprocess.check_output(cmd, shell=True)
-        except subprocess.CalledProcessError:
-            os.remove(bed)
-            raise Exception("运行出错")
-        return True
-    """
+        return True 
         
     def gtf_to_bed(self):
+        """
+        gtf格式转bed格式
+        """
         bed_path = os.path.split(self.prop['path'])[0]
         bed = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".bed")
         cmd = "perl {} {} > {}".format(self.gtf2bed_path,self.prop['path'],bed)
