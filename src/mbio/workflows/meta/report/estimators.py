@@ -49,9 +49,13 @@ class EstimatorsWorkflow(Workflow):
         """
         保存结果指数表到mongo数据库中
         """
+        level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order",  "Family", "Genus", "Species", "OTU"]
+        level_index = self.option("level")-1
+        # print(level_index)
+        # print(level_name[level_index])
         api_estimators = self.api.estimator
         est_path = self.output_dir+"/estimators.xls"
-        name = "estimators" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        name = "{}_".format(level_name[level_index]) + "estimators" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         if not os.path.isfile(est_path):
             raise Exception("找不到报告文件:{}".format(est_path))
         sort_index = self.option('indices').split(',')
