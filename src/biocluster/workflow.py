@@ -37,6 +37,7 @@ class Workflow(Basic):
         super(Workflow, self).__init__(**kwargs)
         self.sheet = wsheet
         self._return_mongo_ids = []  # 在即时计算情况下，需要返回写入mongo库的主表ids，用于更新sg_status表，值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
+        self.mongodb = Config().MONGODB  # 用于即时计算时选择导入mongo数据库的名称
         self.last_update = datetime.datetime.now()
         if "parent" in kwargs.keys():
             self._parent = kwargs["parent"]
@@ -226,8 +227,10 @@ class Workflow(Basic):
     def return_mongo_ids(self):
         return self._return_mongo_ids
 
-    def add_return_mongo_id(self, collection_name, table_id, desc='', add_in_sg_status=True, mongodb='sanger'):
+    def add_return_mongo_id(self, collection_name, table_id, desc='', add_in_sg_status=True, mongodb=None):
         return_dict = dict()
+        if not mongodb:
+            mongodb = self.mongodb
         return_dict['id'] = table_id
         return_dict['collection_name'] = collection_name
         return_dict['desc'] = desc
