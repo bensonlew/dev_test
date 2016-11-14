@@ -4,6 +4,7 @@ import json
 from biocluster.api.database.base import Base, report_check
 import re
 import datetime
+from bson import SON
 from biocluster.config import Config
 
 
@@ -44,15 +45,15 @@ class Pca(Base):
         with open(fp) as f:
             columns = f.readline().strip().split('\t')
             insert_data = []
-            table_id = self.db['table'].insert_one({
-                'project_sn': self.bind_object.sheet.project_sn,
-                'status': 'end',
-                'task_id': self.bind_object.id,
-                'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'name': name,
-                'attrs': columns,
-                'desc': desc,
-            }).inserted_id
+            table_id = self.db['table'].insert_one(SON(
+                project_sn=self.bind_object.sheet.project_sn,
+                task_id=self.bind_object.id,
+                name=name,
+                attrs=columns,
+                desc=desc,
+                status='end',
+                created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )).inserted_id
             for line in f:
                 line_split = line.strip().split('\t')
                 data = dict(zip(columns, line_split))
@@ -69,32 +70,45 @@ class Pca(Base):
             attrs = f.readline().strip().split('\t')[1:]
             samples = []
             insert_data = []
-            scatter_id = self.db['scatter'].insert_one({
-                'project_sn': self.bind_object.sheet.project_sn,
-                'status': 'end',
-                'task_id': self.bind_object.id,
-                'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'name': 'pca',
-                'attrs': attrs,
-                'desc': 'PCA主成分分析',
-            }).inserted_id
+            scatter_id = self.db['scatter'].insert_one(SON(
+                project_sn=self.bind_object.sheet.project_sn,
+                task_id=self.bind_object.id,
+                name='pca',
+                attrs=attrs,
+                desc='PCA主成分分析',
+                status='faild',
+                created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )).inserted_id
             for line in f:
                 line_split = line.strip().split('\t')
                 samples.append(line_split[0])
-                data = dict(zip(attrs, line_split[1:]))
-                data["name"] = line_split[0]
-                data['scatter_id'] = scatter_id
+                data = SON(specimen_name=line_split[0],
+                           scatter_id=scatter_id)
+                data.update(zip(attrs, line_split[1:]))
                 insert_data.append(data)
+            specimen_ids_dict = self.insert_specimens(samples)
+            for i in insert_data:
+                i['specimen_id'] = specimen_ids_dict[i['specimen_name']]
             self.db['scatter_detail'].insert_many(insert_data)
-            self.db['scatter_group'].insert_one({
-                'scatter_id': scatter_id,
-                'name': 'ALL',
-                'category_names': ['ALL'],
-                'specimen_names': [
-                    samples
-                ]
-            })
+            reverse_ids = SON([(str(n), m) for m, n in specimen_ids_dict.iteritems()])
+            self.db['specimen_group'].insert_one(SON(data=[('project_sn', self.bind_object.sheet.project_sn),
+                                                           ('task_id', self.bind_object.id),
+                                                           ('visual_type', ['scatter']),
+                                                           ('visual_id', [scatter_id]),
+                                                           ('name', 'ALL'),
+                                                           ('category_names', ['ALL']),
+                                                           ('specimen', [reverse_ids])]))
+            self.db['scatter'].update_one({'_id': scatter_id}, {'$set': {'status': 'end', 'specimen_ids': specimen_ids_dict.values()}})
             return scatter_id
+
+    def insert_specimens(self, specimen_names):
+        """
+        """
+        task_id = self.bind_object.id
+        project_sn = self.bind_object.sheet.project_sn
+        datas = [SON(project_sn=project_sn, task_id=task_id, name=i) for i in specimen_names]
+        ids = self.db['specimen'].insert_many(datas).inserted_ids
+        return SON(zip(specimen_names, ids))
 
 
 
