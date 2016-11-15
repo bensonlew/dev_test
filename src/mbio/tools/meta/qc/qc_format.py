@@ -75,7 +75,8 @@ class QcFormatAgent(Agent):
         self._cpu = 10
         total = 0
         if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
-            for f in self.option("in_fastq").prop["samples"]:
+            for f in self.option("in_fastq").prop["fastq_basename"]:
+                f = os.path.join(self.option("in_fastq").prop["path"],f)
                 total += os.path.getsize(f)
         if self.get_option_object("in_fastq").format == 'sequence.fastq':
             total = os.path.getsize(self.option("in_fastq").prop["path"])
