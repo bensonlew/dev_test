@@ -283,6 +283,7 @@ class UploadProcess(Process):
             self.db.update("apilog", vars={"id": self._record.id}, where="id = $id", uploaded=1)
             self._bind_object.logger.info("上传全部完成")
         else:
+            self.db.update("apilog", vars={"id": self._record.id}, where="id = $id", uploaded=-1)  # add by shenghe 20161114 上传或者导入数据库出错后将uploaded值改为 -1 示意失败，避免重复上传
             error = "%s  %s" % (self.report_error, self.report_error)
             self.new_failed_statu(error)
 
