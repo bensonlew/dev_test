@@ -107,6 +107,8 @@ class PlotTreeWorkflow(Workflow):
 
     def get_newicktree(self, output_file):
         tree = get_level_newicktree(self.option("otu_id"), level=self.option('level'), tempdir=self.work_dir)
+        if '(' not in tree:
+            raise Exception('进化树水平选择过高，导致没有树枝， 请选择较低的水平')
 
         def simple_name(name):
             name = name.group()
