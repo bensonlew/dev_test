@@ -19,7 +19,7 @@ class Netshare(RemoteFile):
         tmp = re.split(";;", path)
         if len(tmp) > 1:
             self.fileType = "dir"
-            m = re.sub("u","",tmp[1])  # modified by sj on 2016.10.24
+            m = re.sub("u'","'",tmp[1])  # modified by sj on 2016.10.24
             self._fileList = eval(m)
         else:
             self.fileType = "file"
