@@ -112,13 +112,24 @@ class PlotTreeWorkflow(Workflow):
             name = name.group()
             return name.split(';')[-1].strip().replace(':', '-').strip('\'')  # replace用于去掉名称中带有冒号
         format_tree = re.sub(r'\'(.+?)\'', simple_name, tree)
+        format_tree = re.sub(r'(\[)', '--temp_replace_left--', format_tree)  # 中括号在phylo中的读取会被特别识别，出现错误，后续对中括号进行暂时替换处理
+        format_tree = re.sub(r'(\])', '--temp_replace_right--', format_tree)
+        self.logger.info(format_tree)
         from Bio import Phylo
         open(output_file + '.temp', 'w').write(format_tree)
         newick_tree = Phylo.read(output_file + '.temp', 'newick')
         self.logger.info('移除物种/OTU:{}'.format(self.rm_species))
         for i in self.rm_species:
             newick_tree.prune(i)
-        Phylo.write(newick_tree, output_file, 'newick')
+        Phylo.write(newick_tree, output_file + '.temp2', 'newick')
+        temp_tree = open(output_file + '.temp2').read()
+        temp_tree = re.sub(r'(--temp_replace_left--)', '[', temp_tree)
+        temp_tree = re.sub(r'(--temp_replace_right--)', ']', temp_tree)
+        temp_tree = re.sub(r'\'', '', temp_tree)
+        temp_tree = re.sub(r'\"', '', temp_tree)
+        with open(output_file, 'w') as w:
+            w.write(temp_tree)
+        self.logger.info(open(output_file).read())
 
 
     def end(self):
