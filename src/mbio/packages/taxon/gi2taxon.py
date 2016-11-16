@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'sheng.he'
 # last_modified:20160621
+# modified by konghualei 20161116
 
-
-import sqlite3
+#import sqlite3
 import subprocess
+import re
 from biocluster.config import Config
+from pymongo import MongoClient
 
+client=MongoClient("mongodb://10.100.200.129:27017")
+db=client.sanger_biodb
+nr_collection=db.NR_sequence
+taxon_collection=db.species_taxon
 
 def create_gi2taxid(name, db, dbfile):
     """用于在sqlite3的数据库中创建表，导入gi2taxid的数据"""
@@ -31,8 +37,8 @@ def create_gi2taxid(name, db, dbfile):
 
 
 # 默认的数据库位置，待定
-gi_db = sqlite3.connect(Config().SOFTWARE_DIR + '/database/ncbi_taxon/2taxid_sqlite3.db')
-taxon_db = sqlite3.connect(Config().SOFTWARE_DIR + '/database/ncbi_taxon/taxa.sqlite')
+#gi_db = sqlite3.connect(Config().SOFTWARE_DIR + '/database/ncbi_taxon/2taxid_sqlite3.db')
+#taxon_db = sqlite3.connect(Config().SOFTWARE_DIR + '/database/ncbi_taxon/taxa.sqlite')
 
 
 class taxon(object):
@@ -49,16 +55,19 @@ class taxon(object):
 
     def get_taxon(self):
         if self.taxid:
-            result = taxon_db.execute('select spname, rank from species where taxid={}'.format(self.taxid))
+            #result = taxon_db.execute('select spname, rank from species where taxid={}'.format(self.taxid))
+            result = taxon_collection.find({"_id":self.taxid})
             count = 0
             for one in result:
-                self.spname = one[0]
-                self.rank = one[1]
+                #self.spname = one[0]
+                self.spname = one['species_name']
+                #self.rank = one[1]
+                self.rank = one['rank']
                 count += 1
             if count == 1:
                 return (self.spname, self.rank)
             elif count == 0:
-                print('WARNNING:taxid:{}在数据库中没有信息'.format(self.taxid))
+                print 'WARNNING:taxid:{}在数据库中没有信息'.format(self.taxid)
             else:
                 raise Exception('taxid:{}在数据库中存在多条记录'.format(self.taxid))
 
@@ -72,48 +81,56 @@ class taxon(object):
             table = 'nucl_gi2taxid'
         else:
             raise TypeError('错误的table格式，必须为prot或者nucl')
-        result = gi_db.execute('select taxid from {} where gi={}'.format(table, gi))
+        #result = gi_db.execute('select taxid from {} where gi={}'.format(table, gi))
+        result = nr_collection.find({"_id":gi})
         count = 0
         for one in result:
-            self.taxid = int(one[0])
-            count += 1
-        if count == 1:
-            return self
-        elif count == 0:
-            print('WARNNING:gi:{}在{}没有物种分类注释信息'.format(gi, table))
-        else:
-            raise Exception('数据库中存在相同gi的信息table:{},gi:{}'.format(table, gi))
-
+            _taxid = str(one["taxid"])
+            if _taxid != "None":
+                self.taxid = int(one["taxid"])
+                count += 1
+            if count == 1:
+                return self
+            elif count == 0:
+                print 'WARNNING:gi:{}在{}没有物种分类注释信息'.format(gi, table)
+            else:
+                raise Exception('数据库中存在相同gi的信息table:{},gi:{}'.format(table, gi))
+         
 
     def get_track(self):
         if self.taxid:
-            result = taxon_db.execute('select track from species where taxid={}'.format(self.taxid))
+            #result = taxon_db.execute('select track from species where taxid={}'.format(self.taxid))
+            result = taxon_collection.find({"_id":self.taxid})
             count = 0
             for one in result:
                 count += 1
-                for i in one[0].split(','):
+                #for i in one[0].split(','):
+                for i in one['tree_path'].split(','):
                     track_one = taxon()
                     track_one.taxid = int(i)
                     track_one.get_taxon()
                     self.track.append(track_one)
             if count == 1:
                 return self.track
-            elif count == 0:
-                print('WARNNING:taxid:{}在表中不存在')
+            elif count ==0: 
+                print 'WARNNING:taxid:{}在表中不存在'
             else:
                 raise Exception('数据库中存在多条taxid:{}的信息'.format(self.taxid))
 
     def get_track_id(self):
         if self.taxid:
-            result = taxon_db.execute('select track from species where taxid={}'.format(self.taxid))
+            #result = taxon_db.execute('select track from species where taxid={}'.format(self.taxid))
+            result = taxon_collection.find({"_id": self.taxid})
             count = 0
             for one in result:
-                self.trackid = one[0]
+                #self.trackid = one[0]
+                self.track_taxon = one["tree_path"]
                 count += 1
             if count == 1:
-                return self.trackid
+                #return self.trackid
+                return self.track_taxon
             elif count == 0:
-                print('WARNNING:taxid:{}在数据库中没有信息'.format(self.taxid))
+                print 'WARNNING:taxid:{}在数据库中没有信息'.format(self.taxid)
             else:
                 raise Exception('taxid:{}在数据库中存在多条记录'.format(self.taxid))
 
@@ -132,12 +149,9 @@ def gi_taxon(gilist, db):
             gi_taxons[item[0]] = track
     return gi_taxons
 
-
-
-
-
 if __name__ == '__main__':  # for test
     a = taxon()
     a.get_taxid('148678297')
     a.get_track()
     print([(i.spname, i.rank) for i in a.track])
+
