@@ -448,5 +448,9 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
             for s in samples:
                 line += "\t" + str(name_dic[k][s])
             line += "\n"
-            f.write(line)
+            line_data = map(lambda x: float(x), line.strip("\n").split("\t")[1:])
+            if not any(line_data):
+                continue
+            else:
+                f.write(line)
     return file_path
