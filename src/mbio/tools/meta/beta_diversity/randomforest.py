@@ -20,7 +20,7 @@ class RandomforestAgent(Agent):
         super(RandomforestAgent, self).__init__(parent)
         options = [
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
-            {"name": "level", "type": "string", "default": "otu"},
+            {"name": "level", "type": "int", "default": 9},
             {"name": "grouptable", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "ntree", "type": "int", "default": 500 },
             {"name": "problem_type", "type": "int", "default": 2 },
@@ -120,6 +120,7 @@ class RandomforestTool(Tool):
         else:
             otu_path = self.option('otutable').prop['path']
         return otu_path
+
 
     def run(self):
         """
