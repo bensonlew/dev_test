@@ -64,7 +64,7 @@ class CatBlastoutTool(Tool):
         if self.option('blastout').format == 'align.blast.blast_xml_dir':
             w = open(self.output_dir + '/blast.xml', 'wb')
             files = os.listdir(self.option('blastout').prop['path'])
-            head = None
+            head = False
             for f in files:
                 with open(os.path.join(self.option('blastout').prop['path'], f), 'rb') as r:
                     flag = False
@@ -72,9 +72,12 @@ class CatBlastoutTool(Tool):
                         if not flag:
                             if not head:
                                 w.write(line)
-                            if re.match(r'^<Iteration>$', line):
+                            if re.match(r'^<Iteration>', line):
+                                if head:
+                                    w.write(line)
+                                else:
+                                    head = True
                                 flag = True
-                                head = True
                         elif not re.match(r'</BlastOutput', line) and line != '\n':
                             w.write(line)
                         else:
