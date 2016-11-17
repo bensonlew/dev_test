@@ -9,7 +9,9 @@ import re
 from biocluster.config import Config
 from pymongo import MongoClient
 
-client=MongoClient("mongodb://10.100.200.129:27017")
+#client1=MongoClient("mongodb://10.100.200.129:27017")
+mongodb_ip=Config().MONGO_BIO_URI
+client=MongoClient(mongodb_ip)
 db=client.sanger_biodb
 nr_collection=db.NR_sequence
 taxon_collection=db.species_taxon

@@ -4,15 +4,16 @@
 import xml.etree.ElementTree as ET
 import sqlite3
 from biocluster.config import Config
-
+from pymongo import MongoClient
 
 class string2cog(object):
     def __init__(self):
-        self.mongodb = Config().mongo_client.sanger_biodb
+        #self.mongodb = Config().mongo_client.sanger_biodb 
         self.sqlitedb_path = Config().SOFTWARE_DIR + '/database/COG/cog_temporary_new_index_id.db'
         self.sqlitedb = sqlite3.connect(self.sqlitedb_path)
-        self.cog_string = MongoClient('mongodb://10.100.200.129:27017').sanger_biodb.COG_String # 修改（连接mongo数据库COG_String; 2016.11.15; zengjing）
-        self.cog = MongoClient('mongodb://10.100.200.129:27017').sanger_biodb.COG # 修改（连接mongo数据库COG；2016.11.15；zengjing）
+        self.mongodb = Config().MONGO_BIO_URI # 修改（连接mongo数据库mongodb://10.100.200.129:27017/; 2016.11.17; zengjing）
+        self.cog_string = MongoClient(self.mongodb).sanger_biodb.COG_String # 修改（连接mongo数据库sanger_biodb.COG_String; 2016.11.15; zengjing）
+        self.cog = MongoClient(self.mongodb).sanger_biodb.COG # 修改（连接mongo数据库sanger_biodb.COG；2016.11.15；zengjing）
         self.func_type = {
             'INFORMATION STORAGE AND PROCESSING': sorted(['J', 'A', 'K', 'L', 'B']),
             'CELLULAR PROCESSES AND SIGNALING': sorted(['D', 'Y', 'V', 'T', 'M', 'N', 'Z', 'W', 'U', 'O']),
@@ -248,5 +249,7 @@ class string2cog(object):
                                       str(cogcount) + '\t' + str(nogcount) + '\n')
 """
 
-# test = string2cog()
-# test.string2cog_by_mongo(string_xml='/mnt/ilustre/users/sanger-dev/sg-users/hesheng/test/test_file/blast_result/Trinity_vs_string.xml', out_dir='/mnt/ilustre/users/sanger-dev/sg-users/qiuping/denovo/test/annotation/result_files/cog')
+#test = string2cog()
+#test.string2cog_by_mongo(string_xml='/mnt/ilustre/users/sanger-dev/sg-users/hesheng/test/test_file/blast_result/Trinity_vs_string.xml', out_dir='/mnt/ilustre/users/sanger-dev/sg-users/qiuping/denovo/test/annotation/result_files/cog')
+#test.string2cog_by_mongo(string_xml='/mnt/ilustre/users/sanger-dev/sg-users/zengjing/denovo_rna/anno_rewrite/test.xml', out_dir='/mnt/ilustre/users/sanger-dev/sg-users/zengjing/denovo_rna/anno_rewrite/out_file/cog')
+
