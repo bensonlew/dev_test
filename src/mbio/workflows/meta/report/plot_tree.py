@@ -82,6 +82,7 @@ class PlotTreeWorkflow(Workflow):
         """
         配合进化树，拆分otu表名称
         """
+        self.rm_species = []
         species_dict = defaultdict(list)
         species_index = self.option("color_level_id") - 1
         with open(self.option("otu_table").path) as f, open(out_otu_file, 'w') as w:
@@ -90,6 +91,9 @@ class PlotTreeWorkflow(Workflow):
                 line_split = re.split('\t', i, maxsplit=1)
                 name_split = line_split[0].split(';')
                 new_name = name_split[-1].strip().replace(':', '-')
+                if sum([int(i) for i in line_split[1].strip().split('\t')]) == 0:  # hesheng 20161115 去除所有样本为0的情况，目前to_file没有相关功能，暂时添加
+                    self.rm_species.append(new_name)
+                    continue
                 if out_species_group_file:
                     species_dict[name_split[species_index]].append(new_name)
                 w.write(new_name + '\t' + line_split[1])
@@ -103,11 +107,32 @@ class PlotTreeWorkflow(Workflow):
 
     def get_newicktree(self, output_file):
         tree = get_level_newicktree(self.option("otu_id"), level=self.option('level'), tempdir=self.work_dir)
+        if '(' not in tree:
+            raise Exception('进化树水平选择过高，导致没有树枝， 请选择较低的水平')
+
         def simple_name(name):
             name = name.group()
             return name.split(';')[-1].strip().replace(':', '-').strip('\'')  # replace用于去掉名称中带有冒号
         format_tree = re.sub(r'\'(.+?)\'', simple_name, tree)
-        open(output_file, 'w').write(format_tree)
+        format_tree = re.sub(r'(\[)', '--temp_replace_left--', format_tree)  # 中括号在phylo中的读取会被特别识别，出现错误，后续对中括号进行暂时替换处理
+        format_tree = re.sub(r'(\])', '--temp_replace_right--', format_tree)
+        self.logger.info(format_tree)
+        from Bio import Phylo
+        open(output_file + '.temp', 'w').write(format_tree)
+        newick_tree = Phylo.read(output_file + '.temp', 'newick')
+        self.logger.info('移除物种/OTU:{}'.format(self.rm_species))
+        for i in self.rm_species:
+            newick_tree.prune(i)
+        Phylo.write(newick_tree, output_file + '.temp2', 'newick')
+        temp_tree = open(output_file + '.temp2').read()
+        temp_tree = re.sub(r'(--temp_replace_left--)', '[', temp_tree)
+        temp_tree = re.sub(r'(--temp_replace_right--)', ']', temp_tree)
+        temp_tree = re.sub(r'\'', '', temp_tree)
+        temp_tree = re.sub(r'\"', '', temp_tree)
+        with open(output_file, 'w') as w:
+            w.write(temp_tree)
+        self.logger.info(open(output_file).read())
+
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -126,6 +151,7 @@ class PlotTreeWorkflow(Workflow):
 if __name__ == '__main__':
     a = get_level_newicktree('57fd7c2b17b2bf377d2d6dae', level=8)
     print a
+
     def simple(name):
         name = name.group()
         return name.split(';')[-1].strip().replace(':', '-')  # replace用于去掉名称中带有冒号
