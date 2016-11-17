@@ -88,6 +88,7 @@ class PlotTreeTool(Tool):
         self.plot_tree_fan_path = self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/plot-tree.pl'
         self.perl_path = 'program/perl/perls/perl-5.24.0/bin/perl '
         self.colors_num = 21  # 目前支持的颜色数量
+        self.max_species_group_name = 0
 
     def run(self):
         """
@@ -108,6 +109,7 @@ class PlotTreeTool(Tool):
             lines = lines[1:]
             # lines_copy = copy.copy(lines)
             groups = [i.split('\t')[1] for i in lines]
+            self.max_species_group_name = max([len(i) for i in groups])
             count_dict = collections.defaultdict(int)
             for i in groups:
                 count_dict[i] = count_dict[i] + 1
@@ -165,11 +167,15 @@ class PlotTreeTool(Tool):
             if name_length > max_name_length:
                 max_name_length = name_length
         print max_name_length
-        width = int(max_name_length * 0.65)
-        if width < 7:
-            width = 7
+        width = int(max_name_length * 0.4)
+        if width < 10:
+            width = 10
         width = int(heigth / 10) + width
-        cmd_bar += ' -h {} -w {} -lw 5-2-2 -cex 1.2'.format(heigth, width)
+        if self.max_species_group_name > 9:
+            lw = '6-1-2'
+        else:
+            lw = '6-1-1'
+        cmd_bar += ' -h {} -w {} -lw {} -cex 1.2'.format(heigth, width, lw)
         # fan_size = int(width * 0.7)
         # if fan_size < 8:
         #     fan_size = 8
