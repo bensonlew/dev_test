@@ -143,10 +143,7 @@ class LefseTool(Tool):
             self.end_level = self.option('start_level')
             self.start_level = self.option('end_level')
         if self.end_level == 9:
-            if self.start_level == 9:
-                level = ','.join([str(i) for i in range(self.start_level-1, self.end_level)])
-            else:
-                level = ','.join([str(i) for i in range(self.start_level, self.end_level)])
+            level = ','.join([str(i) for i in range(self.start_level, self.end_level)])
         else:
             level = ','.join([str(i) for i in range(self.start_level, self.end_level + 1)])
         self.logger.info(level)
