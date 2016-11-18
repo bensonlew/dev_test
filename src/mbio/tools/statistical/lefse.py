@@ -4,7 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 import os
-import subprocess
+# import subprocess
 import re
 import pandas as pd
 
@@ -147,28 +147,36 @@ class LefseTool(Tool):
         else:
             level = ','.join([str(i) for i in range(self.start_level, self.end_level + 1)])
         self.logger.info(level)
-        script_cmd = self.python_path + " %ssummarize_taxa.py -i otu_taxa_table.biom " \
-                                        "-o tax_summary_a -L %s -a" % (self.config.SOFTWARE_DIR + self.script_path, level)
-        self.logger.info("开始运行script_cmd")
-        script_command = self.add_command("script_cmd", script_cmd).run()
-        self.wait(script_command)
-        if script_command.return_code == 0:
-            self.logger.info("script_cmd运行完成")
-        else:
-            self.set_error("script_cmd运行出错!")
-            raise Exception("script_cmd运行出错!")
+        if self.start_level != 9:
+            script_cmd = self.python_path + " %ssummarize_taxa.py -i otu_taxa_table.biom " \
+                                            "-o tax_summary_a -L %s -a" % (self.config.SOFTWARE_DIR + self.script_path, level)
+            self.logger.info("开始运行script_cmd")
+            script_command = self.add_command("script_cmd", script_cmd).run()
+            self.wait(script_command)
+            if script_command.return_code == 0:
+                self.logger.info("script_cmd运行完成")
+            else:
+                self.set_error("script_cmd运行出错!")
+                raise Exception("script_cmd运行出错!")
+        self.get_otu_taxon()
+        self.remove_parent_otu(self.work_dir + '/tax_summary_a')
 
     def remove_parent_otu(self, tax_summary_a):
         files = os.listdir(tax_summary_a)
         for i in files:
             if re.search(r'txt$', i):
                 _path = os.path.join(tax_summary_a, i)
-                df = pd.read_table(_path, index_col=0)
+                if i == 'otu_taxa_table_L9.txt':
+                    df = pd.read_table(_path, index_col=0, skiprows=None)
+                else:
+                    df = pd.read_table(_path, index_col=0, skiprows=1)
                 tmp = df.rename(index=lambda x: ';'.join(x.split(';')[self.start_level - 1:]))
                 tmp.to_csv(_path, sep='\t')
 
     def get_otu_taxon(self):
         if self.end_level == 9:
+            if not os.path.exists(self.work_dir + '/tax_summary_a'):
+                os.mkdir(self.work_dir + '/tax_summary_a')
             otu_taxon_otu = os.path.join(self.work_dir + '/tax_summary_a', "otu_taxa_table_L9.txt")
             with open(self.option('lefse_input').prop['path'], 'r') as r:
                 with open(otu_taxon_otu, 'w') as w:
@@ -187,21 +195,21 @@ class LefseTool(Tool):
         else:
             pass
 
-    def run_sum_tax(self):
-        cmd = "for ((i=%s;i<=%s;i+=1)){\n\
-            %s %ssum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
-              "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
-            mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
-        }" % (self.start_level, self.end_level, self.perl_path, self.config.SOFTWARE_DIR + self.script_path)
-        try:
-            subprocess.check_output(cmd, shell=True)
-            self.logger.info("run_sum_tax运行完成")
-            self.get_otu_taxon()
-            self.remove_parent_otu(self.work_dir + '/tax_summary_a')
-            self.add_state("sum_taxa_finish", data="生成每一水平的物种统计文件完成")
-        except subprocess.CalledProcessError:
-            self.logger.info("run_sum_tax运行出错")
-            raise Exception("run_sum_tax运行出错")
+    # def run_sum_tax(self):
+    #     cmd = "for ((i=%s;i<=%s;i+=1)){\n\
+    #         %s %ssum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
+    #           "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
+    #         mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
+    #     }" % (self.start_level, self.end_level, self.perl_path, self.config.SOFTWARE_DIR + self.script_path)
+    #     try:
+    #         subprocess.check_output(cmd, shell=True)
+    #         self.logger.info("run_sum_tax运行完成")
+    #         self.get_otu_taxon()
+    #         self.remove_parent_otu(self.work_dir + '/tax_summary_a')
+    #         self.add_state("sum_taxa_finish", data="生成每一水平的物种统计文件完成")
+    #     except subprocess.CalledProcessError:
+    #         self.logger.info("run_sum_tax运行出错")
+    #         raise Exception("run_sum_tax运行出错")
 
     def format_input(self):
         self.add_state("lefse_start", data="开始进行lefse分析")
@@ -287,7 +295,7 @@ class LefseTool(Tool):
         super(LefseTool, self).run()
         self.run_biom()
         self.run_script()
-        self.run_sum_tax()
+        # self.run_sum_tax()
         self.format_input()
         self.run_format()
         self.run_lefse()
