@@ -18,7 +18,7 @@ class DenovoGoEnrich(Base):
     def __init__(self, bind_object):
         super(DenovoGoEnrich, self).__init__()
         self._db_name = Config().MONGODB + '_rna'
-    
+
     @report_check
     def add_go_enrich(self, name=None, params=None, go_graph_dir=None, go_enrich_dir=None, go_regulate_dir=None):
         project_sn = self.bind_object.sheet.project_sn
@@ -29,12 +29,12 @@ class DenovoGoEnrich(Base):
             'name': name if name else 'go_enrich' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             'params': params,
             'status': 'end',
-            'desc': 'go¸»¼¯·ÖÎöÖ÷±í',
+            'desc': 'goï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'go_directed_graph': '',
         }
         collection = self._db_name['sg_denovo_go_enrich']
-        go_enrich_id = collection.insert_one(insert_data).inserted_id 
+        go_enrich_id = collection.insert_one(insert_data).inserted_id
         if os.path.exists(go_enrich_dir):
             self.add_go_enrich_stat(go_enrich_id, go_enrich_dir)
             self.add_go_enrich_bar(go_enrich_id, go_enrich_dir)
@@ -42,16 +42,16 @@ class DenovoGoEnrich(Base):
             self.add_go_regulate_graph(go_enrich_id, go_regulate_dir)
         print "add sg_denovo_go_enrich sucess!"
         return go_enrich_id
-    
+
     @report_check
     def add_go_enrich_stat(self, go_enrich_id, go_enrich_dir):
         if not isinstance(go_enrich_id,ObjectId):
             if isinstance(go_enrich_id, types.StringTypes):
                 go_enrich_id = ObjectId(go_enrich_id)
             else:
-                raise Exception('go_enrich_idÐëÎªObjectId¶ÔÏó»òÆäËû¶ÔÓ¦µÄ×Ö·û´®£¡')
+                raise Exception('go_enrich_idï¿½ï¿½ÎªObjectIdï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½')
         if not os.path.exists(go_enrich_dir):
-            raise Exception('{}ËùÖ¸¶¨µÄÂ·¾¶²»´æÔÚ£¬Çë¼ì²é£¡'.format(go_enrich_dir))
+            raise Exception('{}ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é£¡'.format(go_enrich_dir))
         data_list = []
         with open(go_enrich_dir, 'r') as f:
             lines = f.readlines()
@@ -80,16 +80,16 @@ class DenovoGoEnrich(Base):
                 print "add sg_denovo_go_enrich_stat failure!"
             else:
                 print "add sg_denovo_go_enrich_stat sucess!"
-                   
+
     @report_check
     def add_go_enrich_bar(self, go_enrich_id, go_enrich_dir):
         if not isinstance(go_enrich_id,ObjectId):
             if isinstance(go_enrich_id, types.StringTypes):
                 go_enrich_id = ObjectId(go_enrich_id)
             else:
-                raise Exception('go_enrich_idÐëÎªObjectId¶ÔÏó»òÆäËû¶ÔÓ¦µÄ×Ö·û´®£¡')
+                raise Exception('go_enrich_idï¿½ï¿½ÎªObjectIdï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½')
         if not os.path.exists(go_enrich_dir):
-            raise Exception('{}ËùÖ¸¶¨µÄÂ·¾¶²»´æÔÚ£¬Çë¼ì²é£¡'.format(go_enrich_dir))
+            raise Exception('{}ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é£¡'.format(go_enrich_dir))
         data_list = []
         with open(go_enrich_dir, 'r') as f:
             lines = f.readlines()
@@ -116,16 +116,16 @@ class DenovoGoEnrich(Base):
                 print "add sg_denovo_go_enrich_bar failure!"
             else:
                 print "add sg_denovo_go_enrich_bar sucess!"
-    
-    @report_check    
+
+    @report_check
     def add_go_regulate_graph(self, go_enrich_id, go_regulate_dir):
         if not isinstance(go_enrich_id,ObjectId):
             if isinstance(go_enrich_id, types.StringTypes):
                 go_enrich_id = ObjectId(go_enrich_id)
             else:
-                raise Exception('go_enrich_idÐëÎªObjectId¶ÔÏó»òÆäËû¶ÔÓ¦µÄ×Ö·û´®£¡')
+                raise Exception('go_enrich_idï¿½ï¿½ÎªObjectIdï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½')
         if not os.path.exists(go_regulate_dir):
-            raise Exception('{}ËùÖ¸¶¨µÄÂ·¾¶²»´æÔÚ£¬Çë¼ì²é£¡'.format(go_regulate_dir))
+            raise Exception('{}ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é£¡'.format(go_regulate_dir))
         data_list = []
         with open(go_regulate_dir, 'r') as f:
             lines = f.readlines()
@@ -136,9 +136,9 @@ class DenovoGoEnrich(Base):
                 line[5] = int(line[5])
                 line[6] = float(line[6])
                 data = [
-                    ('go_enrich_id', go_enrich_id), 
+                    ('go_enrich_id', go_enrich_id),
                     ('go_type', line[0]),
-                    ('go', line[1]), 
+                    ('go', line[1]),
                     ('up_num', line[3]),
                     ('up_percent', line[4]),
                     ('down_num', line[5]),
@@ -153,8 +153,8 @@ class DenovoGoEnrich(Base):
                 print "add sg_denovo_go_regulate_graph failure!"
             else:
                 print "add sg_denovo_go_regulate_graph sucess!"
- 
-""" 
+
+"""
 if __name__ == '__main__':
     go = DenovoGoEnrich()
     go_enrich_dir = 'go_enrich_E20_vs_P1.DE.xls'
