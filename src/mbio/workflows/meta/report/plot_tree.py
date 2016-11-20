@@ -44,9 +44,15 @@ class PlotTreeWorkflow(Workflow):
         species_format = self.work_dir + '/species_group.xls'
         tree_file = self.work_dir + '/format.tre'
         if self.option('color_level_id'):
-            self.format_otu_table(otu_format, species_format)
+            if self.option("group_id") not in ['all', 'All', 'ALL', None]:
+                self.format_group_otu_table(otu_format, species_format)
+            else:
+                self.format_otu_table(otu_format, species_format)
         else:
-            self.format_otu_table(otu_format)
+            if self.option("group_id") not in ['all', 'All', 'ALL', None]:
+                self.format_group_otu_table(otu_format)
+            else:
+                self.format_otu_table(otu_format)
         self.get_newicktree(tree_file)
         options = {
             "abundance_table": otu_format,
@@ -58,11 +64,53 @@ class PlotTreeWorkflow(Workflow):
             options["leaves_group"] = species_format
         self.task = self.add_tool("graph.plot_tree")
         self.task.set_options(options)
-        self.task.on('end', self.set_db)
-        self.task.run()
+        # self.task.on('end', self.set_db)
+        # self.task.run()
+        self.end()
         print 'task stat run plot tree tool'
         self.output_dir = self.task.output_dir
         super(PlotTreeWorkflow, self).run()
+
+    def format_group_otu_table(self, out_otu_file, out_species_group_file=None):
+        """
+        """
+        species_dict = defaultdict(list)
+        species_index = self.option("color_level_id") - 1
+        with open(self.option('otu_table').path) as f, open(self.option("sample_group").path) as g, open(out_otu_file, 'w') as w:
+            g.readline()
+            group = {}  # 样本分组
+            for i in g:
+                split_i = i.strip().split('\t')
+                group[split_i[0]] = split_i[1]
+            group_names = list(set(group.values()))
+            group_index = dict(zip(group_names, [[]] * len(group_names)))  # 样本index
+            group_value = dict(zip(group_names, [[]] * len(group_names)))  # 包含样本值列表
+            all_sample = f.readline().rstrip().split('\t')[1:]
+            for m, n in enumerate(all_sample):
+                group_index[group[n]].append(m + 1)
+            w.write('ID\t' + '\t'.join(group_names) + '\n')
+            for i in f:
+                line_split = re.split('\t', i.strip())
+                name_split = line_split[0].split(';')
+                new_name = name_split[-1].strip().replace(':', '-')  # 协同树去除名称中有冒号的样本名
+                if out_species_group_file:
+                    species_dict[name_split[species_index]].append(new_name)
+                for key, indexs in group_index.iteritems():
+                    for index in indexs:
+                        group_value[key].append(int(line_split[index]))
+                print group_value
+                new_line = new_name
+                for group_name in group_names:
+                    new_line += '\t' + str(sum(group_value[group_name]))
+                w.write(new_line + '\n')
+            if out_species_group_file:
+                with open(out_species_group_file, 'w') as w:
+                    w.write('#species/OTU\tGROUP\n')
+                    for m, n in species_dict.iteritems():
+                        m = m.strip()
+                        for i in n:
+                            w.write(i + '\t' + m + '\n')
+
 
     def set_db(self):
         """
