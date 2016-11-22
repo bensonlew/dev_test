@@ -40,7 +40,6 @@ def task_obj_exit(obj, exitcode=1, data="", terminated=False):
     obj.step.update()
     obj.end_unfinish_job()
     obj.logger.info("程序退出: %s " % data)
-    obj.logger.info("shenghe log test")
     obj.rpc_server.close()
     obj.exit_data = data
     raise Exception(data)

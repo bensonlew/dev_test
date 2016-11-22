@@ -15,7 +15,7 @@ class PlotTree(MetaController):
         if return_info:
             return return_info
         data = web.input()
-        default_argu = ['otu_id', 'level_id', 'color_level_id','group_id' ,'group_detail', 'submit_location']
+        default_argu = ['otu_id', 'level_id', 'color_level_id', 'group_id', 'group_detail', 'submit_location']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -30,7 +30,7 @@ class PlotTree(MetaController):
             'level_id': int(data.level_id),
             'color_level_id': int(data.color_level_id),
             'group_id': data.group_id,
-            'group_detail':group_detail_sort(data.group_detail),
+            'group_detail': group_detail_sort(data.group_detail),
             'submit_location': data.submit_location,
             'task_type': 'reportTask'
         }

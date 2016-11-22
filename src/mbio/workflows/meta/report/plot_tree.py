@@ -54,22 +54,24 @@ class PlotTreeWorkflow(Workflow):
             else:
                 self.format_otu_table(otu_format)
         self.get_newicktree(tree_file)
-        options = {
-            "abundance_table": otu_format,
-            "newicktree": tree_file
-        }
-        if self.option("group_id") not in ['all', 'All', 'ALL', None]:
-            options['sample_group'] = self.option("sample_group")
-        if self.option("color_level_id"):
-            options["leaves_group"] = species_format
-        self.task = self.add_tool("graph.plot_tree")
-        self.task.set_options(options)
+        # options = {
+        #     "abundance_table": otu_format,
+        #     "newicktree": tree_file
+        # }
+        # if self.option("group_id") not in ['all', 'All', 'ALL', None]:
+        #     options['sample_group'] = self.option("sample_group")
+        # if self.option("color_level_id"):
+        #     options["leaves_group"] = species_format
+        # self.task = self.add_tool("graph.plot_tree")
+        # self.task.set_options(options)
         # self.task.on('end', self.set_db)
         # self.task.run()
-        self.end()
+        self.start_listener()
+        self.fire("start")
+        self.set_db()
         print 'task stat run plot tree tool'
-        self.output_dir = self.task.output_dir
-        super(PlotTreeWorkflow, self).run()
+        # self.output_dir = self.task.output_dir
+        # super(PlotTreeWorkflow, self).run()
 
     def format_group_otu_table(self, out_otu_file, out_species_group_file=None):
         """
@@ -98,7 +100,6 @@ class PlotTreeWorkflow(Workflow):
                 for key, indexs in group_index.iteritems():
                     for index in indexs:
                         group_value[key].append(int(line_split[index]))
-                print group_value
                 new_line = new_name
                 for group_name in group_names:
                     new_line += '\t' + str(sum(group_value[group_name]))
@@ -116,13 +117,27 @@ class PlotTreeWorkflow(Workflow):
         """
         """
         print 'stat set db'
-        api_tree = self.api.tree_picture
-        main_id = api_tree.add_tree_picture(self.output_dir, major=True,
-                                            params=json.loads(self.option('params')),
-                                            otu_id=self.option('otu_id'),
-                                            level=self.option('level'),
-                                            name='tree_{}'.format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
-        self.add_return_mongo_id('sg_tree_picture', str(main_id))
+        output_otu = self.output_dir + '/species_table.xls'
+        output_tree = self.output_dir + '/phylo_tree.tre'
+        output_species = self.output_dir + '/species_group.xls'
+        if os.path.exists(output_otu):
+            os.remove(output_otu)
+        os.link(self.work_dir + '/format_otu_table.xls', self.output_dir + '/species_table.xls')
+        if os.path.exists(output_tree):
+            os.remove(output_tree)
+        os.link(self.work_dir + '/format.tre', self.output_dir + '/phylo_tree.tre')
+        if os.path.exists(self.work_dir + '/species_group.xls'):
+            if os.path.exists(output_species):
+                os.remove(output_species)
+            os.link(self.work_dir + '/species_group.xls', self.output_dir + '/species_group.xls')
+        api_tree = self.api.phylo_tree
+        main_id = api_tree.add_phylo_tree_info()
+        # main_id = api_tree.add_tree_picture(self.output_dir, major=True,
+        #                                     params=json.loads(self.option('params')),
+        #                                     otu_id=self.option('otu_id'),
+        #                                     level=self.option('level'),
+        #                                     name='tree_{}'.format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
+        self.add_return_mongo_id('sg_phylo_tree', str(main_id))
         self.end()
         pass
 
@@ -166,8 +181,8 @@ class PlotTreeWorkflow(Workflow):
             ["fan.pdf", "pdf", "环形树图结果文件"],
             ["bar.pdf", "pdf", "带有bar图的树结果文件"]
             ])
-        print self.get_upload_files()
-        super(PlotTreeWorkflow, self).end()
+        # print self.get_upload_files()
+        # super(PlotTreeWorkflow, self).end()
 
 
 
