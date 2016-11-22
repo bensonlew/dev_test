@@ -33,7 +33,7 @@ class GroupTableFile(File):
         is_empty = False
         with open(self.prop['path'], 'r') as f:
             sample = list()
-            line = f.readline().rstrip("\r\n")
+            line = f.readline().rstrip()  # 将rstrip("\r\n") 全部替换为rstrip() 
             line = re.split("\t", line)
             if line[1] == "##empty_group##":
                 is_empty = True
@@ -44,7 +44,7 @@ class GroupTableFile(File):
             for i in range(1, len_):
                 header.append(line[i])
             for line in f:
-                line = line.rstrip("\r\n")
+                line = line.rstrip()
                 line = re.split("\t", line)
                 row += 1
                 if line[0] not in sample:
@@ -53,7 +53,7 @@ class GroupTableFile(File):
 
     def format_check(self):
         with open(self.prop['path'], 'r') as f:
-            line = f.readline().rstrip("\r\n")
+            line = f.readline().rstrip()
             if not re.search("^#", line[0]):
                 raise FileError("该group文件不含表头，group表第一列应该以#号开头")
             line = line.split("\t")
@@ -67,7 +67,7 @@ class GroupTableFile(File):
             for line in f:
                 if "#" in line:
                     continue
-                line = line.rstrip("\r\n")
+                line = line.rstrip()
                 line = re.split("\t", line)
                 for l in line:
                     if re.search("\s", l):
@@ -99,7 +99,7 @@ class GroupTableFile(File):
             if self.prop['group_scheme'][i] in header:
                 my_index.append(i + 1)
         with open(self.prop['path'], 'r') as f, open(target_path, 'w') as w:
-            line = f.readline().rstrip("\r\n")
+            line = f.readline().rstrip()
             line = re.split("\t", line)
             new_header = list()
             for i in my_index:
@@ -107,7 +107,7 @@ class GroupTableFile(File):
             w.write("#sample\t{}\n".format("\t".join(new_header)))
             for line in f:
                 sub_line = list()
-                line = line.rstrip("\r\n")
+                line = line.rstrip()
                 line = re.split("\t", line)
                 sub_line.append(line[0])
                 for i in my_index:
@@ -170,27 +170,27 @@ class GroupTableFile(File):
                 gnames.append(line.split()[site])
             return list(set(gnames))
 
-        def get_group_spname(self, name=None):
-            """
-            获取某一分组方案下分组类别对应的样本信息详细
-            :param name: 某一分组方案的名字,string
-            :return group_spname:该分组方案下分组类别对应的样本信息详细的字典，eg：{'A': [1,2,3], 'B': [4,5,6]}
-            add by qiuping, last_modify:20161027
-            """
-            with open(self.prop['path'], 'r') as f:
-                head = f.readline().split()
-                group_spname = defaultdict(list)
-                if not name:
-                    gname = head[0]
-                else:
-                    gname = name
-                _index = head.index(gname)
-                for line in f:
-                    line = line.strip('\n').split()
-                    sample = line[0]
-                    group = line[_index]
-                    group_spname[group].append(sample)
-            return group_spname
+    def get_group_spname(self, name=None):
+        """
+        获取某一分组方案下分组类别对应的样本信息详细
+        :param name: 某一分组方案的名字,string
+        :return group_spname:该分组方案下分组类别对应的样本信息详细的字典，eg：{'A': [1,2,3], 'B': [4,5,6]}
+        add by qiuping, last_modify:20161027
+        """
+        with open(self.prop['path'], 'r') as f:
+            head = f.readline().split()
+            group_spname = defaultdict(list)
+            if not name:
+                gname = head[1]
+            else:
+                gname = name
+            _index = head.index(gname)
+            for line in f:
+                line = line.strip('\n').split()
+                sample = line[0]
+                group = line[_index]
+                group_spname[group].append(sample)
+        return group_spname
 
 if __name__ == "__main__":
     g = GroupTableFile()
