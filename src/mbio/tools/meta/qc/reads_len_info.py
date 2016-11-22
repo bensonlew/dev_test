@@ -181,7 +181,7 @@ class ReadsLenInfoTool(Tool):
         """
         i = step
         while True:
-            if i // len_ == 1:
+            if i // len_ >= 1:  # modified by sj on 20161122
                 dict_[i] += 1
                 break
             i += step
