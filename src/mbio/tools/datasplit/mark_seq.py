@@ -105,7 +105,6 @@ class MarkSeqTool(Tool):
                 process_list.append(process)
         for my_p in process_list:
             my_p.daemon = True
-            self.logger.debug("aaaaaa")
             my_p.start()
             time.sleep(2)
         for my_p in process_list:

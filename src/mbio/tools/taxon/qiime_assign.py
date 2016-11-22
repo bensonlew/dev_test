@@ -63,7 +63,7 @@ class QiimeAssignAgent(Agent):
                                                'silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
-                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
+                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX','maarjam081/AM','Human_HOMD']:
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
 
     def end(self):

@@ -2,7 +2,7 @@
 # __author__ = 'guoquan'
 import web
 from mainapp.libs.signature import check_sig
-from mainapp.controllers.pipeline import Pipeline, PipelineState,PipelineLog,PipelineStop,PipelineQueue,PipelineStopPause,PipelinePause
+from mainapp.controllers.pipeline import Pipeline, PipelineState, PipelineLog, PipelineStop, PipelineQueue, PipelineStopPause, PipelinePause
 from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.instant.meta.two_group import TwoGroup
 from mainapp.controllers.instant.meta.estimators import Estimators
@@ -22,12 +22,19 @@ from mainapp.controllers.submit.meta.rarefaction import Rarefaction
 from mainapp.controllers.instant.meta.beta.multi_analysis import MultiAnalysis
 from mainapp.controllers.instant.meta.beta.anosim import Anosim
 from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
+from mainapp.controllers.instant.dataexchange.upload_task import UploadTask
 from mainapp.controllers.instant.meta.demo_mongodata_copy import DemoMongodataCopy
 from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
 from mainapp.controllers.submit.denovo_rna.map_assessment import MapAssessment
 from mainapp.controllers.instant.meta.mantel_test import MantelTest
 from mainapp.controllers.instant.meta.pearson_correlation import PearsonCorrelation
 from mainapp.controllers.instant.meta.plot_tree import PlotTree
+from mainapp.controllers.submit.datasplit.datasplit import Datasplit
+# from mainapp.controllers.submit.denovo_rna.cluster import Cluster
+from mainapp.controllers.submit.denovo_rna.network import Network
+from mainapp.controllers.instant.denovo_rna.get_diff_express import GetDiffExpress
+from mainapp.controllers.submit.meta.otunetwork import Otunetwork
+from mainapp.controllers.submit.denovo_rna.ssr import Ssr
 
 # web.config.debug = False
 urls = (
@@ -62,11 +69,18 @@ urls = (
     "/meta/beta/multi_analysis", "MultiAnalysis",
     "/meta/beta/anosim", "Anosim",
     "/dataexchange/download_task", "DownloadTask",
+    "/dataexchange/upload_task", "UploadTask",
     "/denovo_rna/diff_express", "DiffExpress",
     "/denovo_rna/map_assessment", "MapAssessment",
     "/meta/mantel_test", "MantelTest",
     "/meta/pearson_correlation", "PearsonCorrelation",
-    "/meta/plot_tree", "PlotTree"
+    "/datasplit/datasplit", "Datasplit",
+    "/meta/plot_tree", "PlotTree",
+    # "/denovo_rna/cluster", "Cluster",
+    "/denovo_rna/network", "Network",
+    "/denovo_rna/get_diff_express", "GetDiffExpress",
+    "/meta/otu_network", "Otunetwork",
+    "/denovo_rna/ssr", "Ssr"
 )
 
 

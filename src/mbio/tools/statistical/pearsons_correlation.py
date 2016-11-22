@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# author: qindanhua
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -85,6 +86,7 @@ class PearsonsCorrelationAgent(Agent):
 class PearsonsCorrelationTool(Tool):
     def __init__(self, config):
         super(PearsonsCorrelationTool, self).__init__(config)
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
         self.perl_path = self.config.SOFTWARE_DIR + "/program/perl/perls/perl-5.24.0/bin/"
         self.r_path = self.config.SOFTWARE_DIR + '/program/R-3.3.1/bin/Rscript'
         self.hcluster_script_path = self.config.SOFTWARE_DIR + "/bioinfo/statistical/scripts/"

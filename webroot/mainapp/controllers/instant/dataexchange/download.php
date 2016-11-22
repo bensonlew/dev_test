@@ -1,27 +1,28 @@
 <?php
 function checkIdentity($code, $fileName, $mode){
 	$info = array();
-	$servername = "localhost";
 	if ($mode == "tsanger"){
-	    $username = "biocluster102";
-	    $password = "sanger-dev-123";
+	    $servername = "192.168.10.51";
+	    $username = "i-sanger";
+	    $password = "sg123123";
 	}
 	else if ($mode == "sanger"){
-	    $username = "biocluster101";
-		$password = "sanger101";
+	    $servername = "192.168.10.179";
+	    $username = "tpuser";
+		$password = "uDB#345TT";
 	}
 	else {
 	    $info["success"] = false;
 		$info["info"] = "模式错误";
 		return $info;
 	}
-	$database = "identity_db";
+	$database = "tp";
 	$conn = new mysqli($servername, $username, $password, $database);
 	if ($conn->connect_error) {
 	    die("连接失败: " . $conn->connect_error);
 	}
 	echo $conn->connect_error;
-	$stmt = $conn->prepare("SELECT create_time, related_task_id FROM identity_code WHERE code=?");
+	$stmt = $conn->prepare("SELECT create_time, related_task_id FROM sg_download_code WHERE code=?");
 	$stmt->bind_param("s", $code);
 	$stmt->execute();
 	$stmt->bind_result($create_time, $task_id);

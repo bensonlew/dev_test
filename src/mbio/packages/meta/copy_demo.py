@@ -73,8 +73,18 @@ class CopyMongo(object):
         self._exchange_dict['alpha_diversity_id'] = self.alpha_diversity_id_dict
         self.copy_main_details('sg_alpha_diversity_detail', 'alpha_diversity_id', self.alpha_diversity_id_dict)
 
+        corr_id_dict = self.copy_collection_with_change('sg_species_env_correlation', change_positions=['otu_id', 'env_id'], update_sg_status=True)
+        # print(corr_id_dict)
+        self.copy_main_details("sg_species_env_correlation_detail", "correlation_id", corr_id_dict)
+
+        mantel_id_dict = self.copy_collection_with_change('sg_species_mantel_check', change_positions=['otu_id', 'env_id'], update_sg_status=True)
+        # print(mantel_id_dict)
+        self.copy_main_details("sg_species_mantel_check_detail", "mantel_id", mantel_id_dict)
+        self.copy_main_details("sg_species_mantel_check_matrix", "mantel_id", mantel_id_dict)
+
         venn_id_dict = self.copy_collection_with_change('sg_otu_venn', change_positions=['otu_id', 'group_id'], update_sg_status=True)
         self.copy_main_details('sg_otu_venn_detail', 'otu_venn_id', venn_id_dict, others_position=['otu_id'])
+        self.copy_main_details("sg_otu_venn_graph", 'venn_id', venn_id_dict)
 
         pan_core_id_dict = self.copy_collection_with_change('sg_otu_pan_core', change_positions=['otu_id', 'group_id'], update_sg_status=True)
         self.copy_main_details('sg_otu_pan_core_detail', 'pan_core_id', pan_core_id_dict)
@@ -101,6 +111,8 @@ class CopyMongo(object):
 
         species_difference_lefse_id_dict = self.copy_collection_with_change('sg_species_difference_lefse', change_positions=['otu_id', 'group_id'], update_sg_status=True)
         self.copy_main_details('sg_species_difference_lefse_detail', 'species_lefse_id', species_difference_lefse_id_dict)
+
+        phylo_tree_plot_id_dict = self.copy_collection_with_change('sg_tree_picture', change_positions=['otu_id'], update_sg_status=True)
 
 
     def copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False):
@@ -272,7 +284,7 @@ class CopyMongo(object):
             find.update(update_dict)
             update_sg_status_docs.append(find)
             self.db.sg_otu.update_one({'_id': i}, {'$set': update_dict})
-        update_sg_status_docs = [i for i in update_sg_status_docs if i['type'] == 'otu_statistic']
+        update_sg_status_docs = [i for i in update_sg_status_docs if i['type'] in ['otu_statistic', "otu_statistic,otu_venn,otu_group_analysis", 'otu_group_analysis']]
         ids = [i['_id'] for i in update_sg_status_docs]
         self.insert_new_status('sg_otu', update_sg_status_docs, ids)
         return self.otu_id_dict
@@ -406,3 +418,5 @@ class CopyMongo(object):
 if __name__ == '__main__':
     copy_task = CopyMongo('tsanger_2639', 'tsanger_2639_14', '10000485_1', 'shenghe_test')
     copy_task.run()
+    # copy_task = CopyMongo('tsg_3617', 'tsg_3617_022', '10000782_22', 'm_188_22')
+    # copy_task.run()

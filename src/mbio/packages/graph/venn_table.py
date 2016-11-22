@@ -91,3 +91,31 @@ def venn_table(otu_table, group_table, R_path):
         return venn_table
     except subprocess.CalledProcessError:
         raise Exception(u"生成Venn表出错！")
+
+
+def venn_graph(otu_table, group_table, output):
+    group = {}
+    sets = {}
+    with open(otu_table, "r") as o, open(group_table, "r") as g, open(output, "w") as w:
+        samples = o.readline().strip().split("\t")[1:]
+        g.readline()
+        for line in g:
+            line = line.strip().split("\t")
+            if line[1] in group:
+                group[line[1]].append(line[0])
+            else:
+                group[line[1]] = [line[0]]
+        # print group
+        for gp in group:
+            sets[gp] = set()
+        for line in o:
+            line = line.strip().split("\t")
+            for n, s in enumerate(samples):
+                for gp in group:
+                    if int(line[n+1]) == 0:
+                        continue
+                    elif s in group[gp]:
+                        sets[gp].add(line[0].split("; ")[-1])
+        w.write("#group_name\tspecies_name\n")
+        for s in sets:
+            w.write("{}\t{}\n".format(s, ",".join(list(sets[s]))))

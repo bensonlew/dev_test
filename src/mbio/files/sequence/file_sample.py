@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import os
+import re
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
@@ -105,7 +106,7 @@ class FileSampleFile(File):
             for line in f:
                 if "#" in line:
                     continue
-                line = line.rstrip().split("\t")
+                line = line.rstrip().split()
                 full_name = os.path.join(dir_name, line[0])
                 if not os.path.isfile(full_name):
                     raise FileError("文件{}不存在".format(full_name))
@@ -131,5 +132,9 @@ class FileSampleFile(File):
                 if self.col == 2:
                     if num >= 2:
                         self.se_repeat = True
+            # modify by qindanhua 20161109
+            for sam in sample.keys():
+                if re.search(r'\W', sam):
+                    raise FileError('样本名应由字母数字下划线组成')
             self.check_exists()
             return True

@@ -59,7 +59,7 @@ class Instant(object):
         self._uploadDirObj = list()
         self._work_dir = os.path.dirname(self._sheet_pk)
         self.config = self._task_object.config
-        self._db = self.config.mongo_client[self.config.MONGODB]
+        # self._db = self.config.mongo_client[self.config.MONGODB]
 
     def run(self):
         try:
@@ -69,6 +69,7 @@ class Instant(object):
                 raise Exception(self._task_object.exit_data)
             self._mongo_ids = self._task_object.return_mongo_ids
             for i in self._mongo_ids:
+                self._db = self.config.mongo_client[i['mongodb']]
                 if i["add_in_sg_status"]:
                     self.add_sg_status(i['id'], i['collection_name'], i['desc'])
             self._uploadDirObj = self._task_object._upload_dir_obj

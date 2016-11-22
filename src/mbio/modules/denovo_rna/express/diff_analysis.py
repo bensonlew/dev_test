@@ -14,33 +14,46 @@ class DiffAnalysisModule(Module):
         options = [
             {"name": "analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich"},  # 选择要做的分析
             {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
+            {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 全部基因名称文件
+            {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 差异基因名称文件
             {"name": "distance_method", "type": "string", "default": "euclidean"},  # 计算距离的算法
             {"name": "log", "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
             {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
-            {"name": "sub_num", "type": "int", "default": 10},  # 子聚类的数目
+            {"name": "sub_num", "type": "int", "default": 5},  # 子聚类的数目
             {"name": "softpower", "type": "int", "default": 9},
             {"name": "dissimilarity", "type": "float", "default": 0.25},
-            {"name": "module", "type": "float", "default": 0.6},
-            {"name": "network", "type": "float", "default": 0.6},
-            {"name": "kegg_path", "type": "infile", "format": "denovo_rna.express.gene_list"},  # KEGG的pathway文件
-            {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list_dir"},  # 两两样本/分组的差异基因文件
+            {"name": "module", "type": "float", "default": 0.1},
+            {"name": "network", "type": "float", "default": 0.2},
+            {"name": "diff_list_dir", "type": "infile", "format": "denovo_rna.express.gene_list_dir"},  # 两两样本/分组的差异基因文件
             {"name": "correct", "type": "string", "default": "BH"},  # 多重检验校正方法
-            {"name": "all_list", "type": "infile", "format": "annotation.kegg.kegg_list"},
-            {"name": "go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
-            {"name": "go_level_2", "type": "infile", "format": "annotation.go.level2"}
+            {"name": "gene_kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},  # KEGG的pathway文件
+            {"name": "gene_go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
+            {"name": "gene_go_level_2", "type": "infile", "format": "annotation.go.level2"},
+            {"name": "diff_stat_dir", "type": "infile", "format": "denovo_rna.express.diff_stat_dir"},
         ]
         self.add_option(options)
-        self.venn = self.add_tool("graph.venn_table")
         self.cluster = self.add_tool("denovo_rna.express.cluster")
         self.network = self.add_tool("denovo_rna.express.network")
         self._end_info = 0
+        self.kegg_rich_tool = []
+        self.go_rich_tool = []
+        self.go_regulate_tool = []
+        self.tools = []
 
     def check_options(self):
-        if not self.option("diff_fpkm").is_set:
-            raise OptionError("必须设置输入文件:差异基因fpkm表")
-        if not self.option("gene_file").is_set:
-            raise OptionError("必须设置输入文件:基因名字列表")
+        analysis = self.option('analysis').split(',')
+        if ('cluster' or 'network') in analysis and not self.option('diff_fpkm'):
+            raise OptionError('缺少输入文件：diff_fpkm差异基因表达量矩阵')
+        if 'network' in analysis and not self.option('diff_list'):
+            raise OptionError('缺少网络分析的输入文件：diff_list差异基因文件')
+        if ('kegg_rich' or 'go_rich') in analysis and not self.option('diff_list_dir'):
+            raise OptionError('缺少富集分析的输入文件：diff_list_dir差异基因文件夹')
+        if 'kegg_rich' in analysis and not self.option('gene_kegg_table'):
+            raise OptionError('缺少输入文件：gene_kegg_table文件')
+        if 'go_rich' in analysis and (not self.option('gene_go_list') and not self.option('all_list')):
+            raise OptionError('缺少go_rich输入文件')
+        if 'go_rich' in analysis and not self.option('gene_go_level_2'):
+            raise OptionError('缺少输入文件：gene_go_level_2文件')
         if self.option("distance_method") not in ("manhattan", "euclidean"):
             raise OptionError("所选距离算法不在提供的范围内")
         if self.option('log') not in (10, 2):
@@ -57,7 +70,20 @@ class DiffAnalysisModule(Module):
             raise OptionError("模块module相异值超出范围")
         if self.option('network') > 1 or self.option("network") < 0:
             raise OptionError("模块network相异值超出范围")
+        if self.option('correct') not in ['BY', 'BH', 'None', 'QVALUE']:
+            raise OptionError('多重检验校正的方法不在提供的范围内')
+        if ('cluster' or 'network' or 'kegg_rich' or 'go_rich') in self.option('analysis'):
+            pass
+        else:
+            raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))
         return True
+
+    def set_step(self, event):
+        if 'start' in event['data'].keys():
+            event['data']['start'].start()
+        if 'end' in event['data'].keys():
+            event['data']['end'].finish()
+        self.step.update()
 
     def cluster_run(self):
         self.cluster.set_options({
@@ -68,25 +94,87 @@ class DiffAnalysisModule(Module):
             "sub_num": self.option("sub_num")
         })
         self.cluster.on('end', self.set_output, 'cluster')
-        self.step.cluster.start()
-        self.cluster.run()
-        self.step.cluster.finish()
-        self.step.update()
+        self.cluster.on('start', self.set_step, {'start': self.step.cluster})
+        self.cluster.on('end', self.set_step, {'end': self.step.cluster})
+        self.tools.append(self.cluster)
+        # self.cluster.run()
 
     def network_run(self):
         self.network.set_options({
             "diff_fpkm": self.option("diff_fpkm"),
-            "gene_file": self.option("gene_file"),
+            "gene_file": self.option("diff_list"),
             "softpower": self.option("softpower"),
             "dissimilarity": self.option("dissimilarity"),
             "module": self.option("module"),
             "network": self.option("network")
         })
         self.network.on('end', self.set_output, 'network')
-        self.step.network.start()
-        self.network.run()
-        self.step.network.finish()
-        self.step.update()
+        self.network.on('start', self.set_step, {'start': self.step.network})
+        self.network.on('end', self.set_step, {'end': self.step.network})
+        self.tools.append(self.network)
+        # self.network.run()
+
+    def kegg_rich_run(self):
+        self.step.kegg_rich.start()
+        opts = {
+            "kegg_table": self.option("gene_kegg_table"),
+            "correct": self.option("correct"),
+            "all_list": self.option("all_list"),
+        }
+        files = os.listdir(self.option('diff_list_dir').prop['path'])
+        for f in files:
+            opts.update({"diff_list": os.path.join(self.option('diff_list_dir').prop['path'], f)})
+            self.kegg_rich = self.add_tool("denovo_rna.express.kegg_rich")
+            self.kegg_rich.set_options(opts)
+            self.kegg_rich_tool.append(self.kegg_rich)
+        if len(self.kegg_rich_tool) == 1:
+            self.kegg_rich.on('end', self.set_output, 'kegg_rich')
+            self.kegg_rich.on('end', self.set_step, {'end': self.step.kegg_rich})
+        else:
+            self.on_rely(self.kegg_rich_tool, self.set_output, 'kegg_rich')
+            self.on_rely(self.kegg_rich_tool, self.set_step, {'end': self.step.kegg_rich})
+        self.tools += self.kegg_rich_tool
+        # for tool in self.kegg_rich_tool:
+        #     tool.run()
+
+    def go_rich_run(self):
+        self.step.go_rich.start()
+        opts = {
+            "all_list": self.option("all_list"),
+            "go_list": self.option("gene_go_list")
+        }
+        files = os.listdir(self.option('diff_list_dir').prop['path'])
+        for f in files:
+            opts.update({"diff_list": os.path.join(self.option('diff_list_dir').prop['path'], f)})
+            self.go_rich = self.add_tool("denovo_rna.express.go_enrich")
+            self.go_rich.set_options(opts)
+            self.go_rich_tool.append(self.go_rich)
+        if len(self.go_rich_tool) == 1:
+            self.go_rich.on('end', self.set_output, 'go_rich')
+            self.go_rich.on('end', self.set_step, {'end': self.step.go_rich})
+        else:
+            self.on_rely(self.go_rich_tool, self.set_output, 'go_rich')
+            self.on_rely(self.go_rich_tool, self.set_step, {'end': self.step.go_rich})
+        self.tools += self.go_rich_tool
+        # for tool in self.go_rich_tool:
+        #     tool.run()
+
+    def go_regulate_run(self):
+        files = os.listdir(self.option('diff_stat_dir').prop['path'])
+        for f in files:
+            self.go_regulate = self.add_tool("denovo_rna.express.go_regulate")
+            self.go_regulate.set_options({
+                "diff_express": os.path.join(self.option('diff_stat_dir').prop['path'], f),
+                "go_level_2": self.option("gene_go_level_2")
+            })
+            self.go_regulate_tool.append(self.go_regulate)
+        if len(self.go_regulate_tool) == 1:
+            self.go_regulate.on('end', self.set_output, 'go_regulate')
+        else:
+            self.on_rely(self.go_regulate_tool, self.set_output, 'go_regulate')
+        self.tools += self.go_regulate_tool
+        # for tool in self.go_regulate_tool:
+        #     tool.run()
 
     def linkdir(self, dirpath, dirname):
         """
@@ -117,65 +205,95 @@ class DiffAnalysisModule(Module):
 
     def set_output(self, event):
         obj = event['bind_object']
-        if event['data'] == 'venn':
-            self.linkdir(obj.output_dir, 'venn')
-            self._end_info += 1
-        elif event['data'] == 'cluster':
+        if event['data'] == 'cluster':
             self.linkdir(obj.output_dir, 'cluster')
-            self._end_info += 1
         elif event['data'] == 'network':
             self.linkdir(obj.output_dir, 'network')
-            self._end_info += 1
+        elif event['data'] == 'kegg_rich':
+            for tool in self.kegg_rich_tool:
+                self.linkdir(tool.output_dir, 'kegg_rich')
+        elif event['data'] == 'go_rich':
+            for tool in self.go_rich_tool:
+                self.linkdir(tool.output_dir, 'go_rich')
+        elif event['data'] == 'go_regulate':
+            for tool in self.go_regulate_tool:
+                self.linkdir(tool.output_dir, 'go_rich')
         else:
             pass
-        if self.option('group_table').is_set:
-            if self._end_info == 3:
-                self.end()
-        elif self._end_info == 2:
-            self.end()
 
     def run(self):
         super(DiffAnalysisModule, self).run()
-        if self.option('group_table').is_set:
-            self.venn_run()
-        self.cluster_run()
-        self.network_run()
-        # self.on_rely([self.venn, self.cluster], self.end)
+        analysis = self.option('analysis').split(',')
+        if 'cluster' in analysis:
+            self.cluster_run()
+        if 'network' in analysis:
+            self.network_run()
+        if 'kegg_rich' in analysis:
+            self.kegg_rich_run()
+        if 'go_rich' in analysis:
+            self.go_rich_run()
+            self.go_regulate_run()
+        if len(self.tools) != 1:
+            self.on_rely(self.tools, self.end)
+        else:
+            self.tools[0].on('end', self.end)
+        self.run_tools()
+
+    def run_tools(self):
+        analysis = self.option('analysis').split(',')
+        if 'cluster' in analysis:
+            self.cluster.run()
+        if 'network' in analysis:
+            self.network.run()
+        if 'kegg_rich' in analysis:
+            for tool in self.kegg_rich_tool:
+                tool.run()
+        if 'go_rich' in analysis:
+            for tool in self.go_rich_tool:
+                tool.run()
+            for tool in self.go_regulate_tool:
+                tool.run()
 
     def end(self):
         repaths = [
-                    [".", "", "差异表达模块结果输出目录"],
-                    ["./venn", "", "venn分析结果输出目录"],
-                    ["./cluster", "", "cluster分析结果输出目录"],
-                    ["./network", "", "network分析结果输出目录"],
-                    ["venn/venn_table.xls", "xls", "venn分析结果"],
-                    ["all_edges.txt", "txt", "edges结果信息"],
-                    ["all_nodes.txt ", "txt", "nodes结果信息"],
-                    ["removeGene.xls ", "xls", "移除的基因信息"],
-                    ["removeSample.xls ", "xls", "移除的样本信息"],
-                    ["softPower.pdf", "pdf", "softpower相关信息"],
-                    ["ModuleTree.pdf", "pdf", "ModuleTree图"],
-                    ["eigengeneClustering.pdf", "pdf", "eigengeneClustering图"],
-                    ["eigenGeneHeatmap.pdf", "pdf", "eigenGeneHeatmap图"],
-                    ["networkHeatmap.pdf", "pdf", "networkHeatmap图"],
-                    ["sampleClustering.pdf", "pdf", "sampleClustering图"]
-                    ]
+            [".", "", "差异表达模块结果输出目录"],
+            ["venn", "", "venn分析结果输出目录"],
+            ["cluster", "", "cluster分析结果输出目录"],
+            ["network", "", "network分析结果输出目录"],
+            ["kegg_rich", "", "kegg_rich分析结果输出目录"],
+            ["go_rich", "", "go_rich分析结果输出目录"],
+            ["go_regulate", "", "go_regulate分析结果输出目录"],
+            ["venn/venn_table.xls", "xls", "venn分析结果"],
+            ["network/all_edges.txt", "txt", "edges结果信息"],
+            ["network/all_nodes.txt ", "txt", "nodes结果信息"],
+            ["network/removeGene.xls ", "xls", "移除的基因信息"],
+            ["network/removeSample.xls ", "xls", "移除的样本信息"],
+            ["network/softPower.pdf", "pdf", "softpower相关信息"],
+            ["network/ModuleTree.pdf", "pdf", "ModuleTree图"],
+            ["network/eigengeneClustering.pdf", "pdf", "eigengeneClustering图"],
+            ["network/eigenGeneHeatmap.pdf", "pdf", "eigenGeneHeatmap图"],
+            ["network/networkHeatmap.pdf", "pdf", "networkHeatmap图"],
+            ["network/sampleClustering.pdf", "pdf", "sampleClustering图"],
+            ["go_regulate/GO_regulate.xls", "xls", "基因上下调在GO2level层级分布情况表"],
+        ]
         if self.option('method') in ('both', 'hclust'):
             repaths += [
-                         ["./cluster/hclust", "", "hclust分析结果输出目录"],
-
-                         ["./cluster/hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
-                         ["./cluster/hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
-                         ["./cluster/hclust/hclust_heatmap.xls", "xls", "层级聚类热图数据"]
-                         ]
+                ["cluster/hclust", "", "hclust分析结果输出目录"],
+                ["cluster/hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
+                ["cluster/hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
+                ["cluster/hclust/hclust_heatmap.xls", "xls", "层级聚类热图数据"]
+            ]
         elif self.option('method') in ('both', 'kmeans'):
             repaths += [
-                         [r"./cluster/kmeans/kmeans_heatmap.xls", "xls", "层级聚类热图数据"]
-                         ]
+                ["cluster/kmeans/kmeans_heatmap.xls", "xls", "层级聚类热图数据"]
+            ]
         regexps = [
-                    [r"subcluster_", "xls", "子聚类热图数据"],
-                    [r"network/CytoscapeInput.*", "txt", "Cytoscape作图数据"]
-                    ]
+            [r"subcluster_", "xls", "子聚类热图数据"],
+            [r"network/CytoscapeInput.*", "txt", "Cytoscape作图数据"],
+            [r"go_rich/go_enrich_.*", "xls", "go富集结果文件"],
+            [r"go_rich/go_lineage.*", "png", "go富集有向无环图"],
+            [r"kegg_rich/.*?kegg_enrichment.xls$", "xls", "kegg富集分析结果"]
+        ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)

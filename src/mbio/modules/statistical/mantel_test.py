@@ -143,7 +143,6 @@ class MantelTestModule(Module):
         self.facdistance_run()
         self.step.update()
         if self.option("partial_factor"):
-            print("lllllllllllll")
             self.partial_run()
             self.step.update()
             self.on_rely([self.otudistance, self.facdistance, self.partial], self.discomparison_run)

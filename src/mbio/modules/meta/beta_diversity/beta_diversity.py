@@ -104,6 +104,7 @@ class BetaDiversityModule(Module):
         self.tools['anosim'].run()
 
     def box_run(self, rely_obj):
+        self.logger.info("box run iiiiiiiiiiiiiiiiiiiiiiing")
         self.tools['box'].set_options({
             'dis_matrix': self.matrix.option('dis_matrix'),
             'grouplab': self.option('grouplab') if self.option('grouplab') else self.option('anosim_grouplab'),
@@ -256,6 +257,8 @@ class BetaDiversityModule(Module):
         self.step.ChooseAnalysis.finish()
         self.step.MultipleAnalysis.start()
         self.step.update()
+        print self.tools
+        print self.matrix.events["end"]._func
         if self.tools:
             if len(self.tools) == 1:
                 self.tools.values()[0].on('end', self.stepend)
