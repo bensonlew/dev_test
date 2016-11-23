@@ -247,15 +247,13 @@ class DenovoAnnotation(Base):
                     ('parent_name', line[0]),
                     ('num', line[3]),
                     ('rate', line[4]),
+                    ('go_id', line[2]),
+                    ('sequence', line[5]),
                 ]
                 if query_type:
                     data.append(('type', query_type))
                 data = SON(data)
-                data_list.append(data)
-                data = SON(data)
-                data_list.append(data)
-                data = SON(data)
-                data_list.append(data)
+                data_list.append(data) 
         try:
             collection = self.db['sg_denovo_annotation_go_graph']
             collection.insert_many(data_list)
