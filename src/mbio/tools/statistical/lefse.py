@@ -4,8 +4,9 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 import os
-import subprocess
+# import subprocess
 import re
+import pandas as pd
 
 
 class LefseAgent(Agent):
@@ -22,7 +23,9 @@ class LefseAgent(Agent):
             {"name": "lefse_group", "type": "infile", "format": "meta.otu.group_table"},  # 输入分组文件
             {"name": "lda_filter", "type": "float", "default": 2.0},
             {"name": "strict", "type": "int", "default": 0},
-            {"name": "lefse_gname", "type": "string"}
+            {"name": "lefse_gname", "type": "string"},
+            {"name": "start_level", "type": "int", "default": 3},
+            {"name": "end_level", "type": "int", "default": 7},
         ]
         self.add_option(options)
         self.step.add_steps("run_biom", "tacxon_stat", "plot_lefse")
@@ -48,6 +51,10 @@ class LefseAgent(Agent):
             gnum = self.option('lefse_group').group_num(i)
             if gnum < 2:
                 raise OptionError("lefse分析分组类别必须大于2")
+        if self.option('start_level') not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+            raise OptionError('起始分类水平不在范围内')
+        if self.option('end_level') not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+            raise OptionError('结束分类水平不在范围内')
         return True
 
     def set_resource(self):
@@ -110,6 +117,8 @@ class LefseTool(Tool):
         self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
         self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
         self.set_environ(PATH=self._path, R_HOME=self._r_home, LD_LIBRARY_PATH=self._LD_LIBRARY_PATH)
+        self.end_level = 7
+        self.start_level = 3
 
     def run_biom(self):
         self.add_state("biom_start", data="开始生成biom格式文件")
@@ -127,30 +136,80 @@ class LefseTool(Tool):
 
     def run_script(self):
         self.add_state("sum_taxa_start", data="开始生成每一水平的物种统计文件")
-        script_cmd = self.python_path + " %ssummarize_taxa.py -i otu_taxa_table.biom " \
-                                        "-o tax_summary_a -L 1,2,3,4,5,6,7,8 -a" % (self.config.SOFTWARE_DIR + self.script_path)
-        self.logger.info("开始运行script_cmd")
-        script_command = self.add_command("script_cmd", script_cmd).run()
-        self.wait(script_command)
-        if script_command.return_code == 0:
-            self.logger.info("script_cmd运行完成")
+        if self.option('end_level') >= self.option('start_level'):
+            self.start_level = self.option('start_level')
+            self.end_level = self.option('end_level')
         else:
-            self.set_error("script_cmd运行出错!")
-            raise Exception("script_cmd运行出错!")
+            self.end_level = self.option('start_level')
+            self.start_level = self.option('end_level')
+        if self.end_level == 9:
+            level = ','.join([str(i) for i in range(self.start_level, self.end_level)])
+        else:
+            level = ','.join([str(i) for i in range(self.start_level, self.end_level + 1)])
+        self.logger.info(level)
+        if self.start_level != 9:
+            script_cmd = self.python_path + " %ssummarize_taxa.py -i otu_taxa_table.biom " \
+                                            "-o tax_summary_a -L %s -a" % (self.config.SOFTWARE_DIR + self.script_path, level)
+            self.logger.info("开始运行script_cmd")
+            script_command = self.add_command("script_cmd", script_cmd).run()
+            self.wait(script_command)
+            if script_command.return_code == 0:
+                self.logger.info("script_cmd运行完成")
+            else:
+                self.set_error("script_cmd运行出错!")
+                raise Exception("script_cmd运行出错!")
+        self.get_otu_taxon()
+        self.remove_parent_otu(self.work_dir + '/tax_summary_a')
 
-    def run_sum_tax(self):
-        cmd = "for ((i=1;i<=8;i+=1)){\n\
-            %s %ssum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
-              "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
-            mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
-        }" % (self.perl_path, self.config.SOFTWARE_DIR + self.script_path)
-        try:
-            subprocess.check_output(cmd, shell=True)
-            self.logger.info("run_sum_tax运行完成")
-            self.add_state("sum_taxa_finish", data="生成每一水平的物种统计文件完成")
-        except subprocess.CalledProcessError:
-            self.logger.info("run_sum_tax运行出错")
-            raise Exception("run_sum_tax运行出错")
+    def remove_parent_otu(self, tax_summary_a):
+        files = os.listdir(tax_summary_a)
+        for i in files:
+            if re.search(r'txt$', i):
+                _path = os.path.join(tax_summary_a, i)
+                if i == 'otu_taxa_table_L9.txt':
+                    df = pd.read_table(_path, index_col=0, skiprows=None)
+                else:
+                    df = pd.read_table(_path, index_col=0, skiprows=1)
+                tmp = df.rename(index=lambda x: ';'.join(x.split(';')[self.start_level - 1:]))
+                tmp.to_csv(_path, sep='\t')
+
+    def get_otu_taxon(self):
+        if self.end_level == 9:
+            if not os.path.exists(self.work_dir + '/tax_summary_a'):
+                os.mkdir(self.work_dir + '/tax_summary_a')
+            otu_taxon_otu = os.path.join(self.work_dir + '/tax_summary_a', "otu_taxa_table_L9.txt")
+            with open(self.option('lefse_input').prop['path'], 'r') as r:
+                with open(otu_taxon_otu, 'w') as w:
+                    line1 = r.next()
+                    if re.search(r'Constructed from biom', line1):
+                        line1 = r.next()
+                    w.write(line1)
+                    for line in r:
+                        line = re.sub(r'\.0', '', line)
+                        line = line.strip('\n').split('\t')
+                        name = line[-1].split('; ')
+                        name.append(line[0])
+                        line[0] = ';'.join(name)
+                        line = '\t'.join(line[0:-1]) + '\n'
+                        w.write(line)
+        else:
+            pass
+
+    # def run_sum_tax(self):
+    #     cmd = "for ((i=%s;i<=%s;i+=1)){\n\
+    #         %s %ssum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
+    #           "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
+    #         mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
+    #     }" % (self.start_level, self.end_level, self.perl_path, self.config.SOFTWARE_DIR + self.script_path)
+    #     try:
+    #         subprocess.check_output(cmd, shell=True)
+    #         self.logger.info("run_sum_tax运行完成")
+    #         self.get_otu_taxon()
+    #         self.remove_parent_otu(self.work_dir + '/tax_summary_a')
+    #         self.add_state("sum_taxa_finish", data="生成每一水平的物种统计文件完成")
+    #     except subprocess.CalledProcessError:
+    #         self.logger.info("run_sum_tax运行出错")
+    #         raise Exception("run_sum_tax运行出错")
 
     def format_input(self):
         self.add_state("lefse_start", data="开始进行lefse分析")
@@ -223,19 +282,20 @@ class LefseTool(Tool):
         """
         将结果文件链接至output
         """
-        os.system('sed -i "1i\\taxon\tmean\tgroup\tlda\tpvalue" %s' % (self.work_dir + '/lefse_LDA.xls'))
+        os.system('cp %s %s' % (self.work_dir + '/lefse_LDA.xls', self.work_dir + '/lefse_lda_head.xls'))
+        os.system('sed -i "1i\\taxon\tmean\tgroup\tlda\tpvalue" %s' % (self.work_dir + '/lefse_lda_head.xls'))
         for root, dirs, files in os.walk(self.output_dir):
             for names in files:
                 os.remove(os.path.join(root, names))
         os.link(self.work_dir + '/lefse_LDA.cladogram.png', self.output_dir + '/lefse_LDA.cladogram.png')
         os.link(self.work_dir + '/lefse_LDA.png', self.output_dir + '/lefse_LDA.png')
-        os.link(self.work_dir + '/lefse_LDA.xls', self.output_dir + '/lefse_LDA.xls')
+        os.link(self.work_dir + '/lefse_lda_head.xls', self.output_dir + '/lefse_LDA.xls')
 
     def run(self):
         super(LefseTool, self).run()
         self.run_biom()
         self.run_script()
-        self.run_sum_tax()
+        # self.run_sum_tax()
         self.format_input()
         self.run_format()
         self.run_lefse()
