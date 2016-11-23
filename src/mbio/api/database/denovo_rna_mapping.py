@@ -294,6 +294,8 @@ class DenovoRnaMapping(Base):
         correlation_tree = glob.glob("{}/*.tre".format(correlation))
         with open(correlation_tree[0], "r") as t:
             correlation_tree = t.readline().strip()
+            raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', correlation_tree)
+            tree_list = [i[1] for i in raw_samp]
         params['express_id'] = str(express_id)
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
@@ -302,6 +304,7 @@ class DenovoRnaMapping(Base):
             "status": "start",
             "desc": "",
             "correlation_tree": correlation_tree,
+            "tree_list": tree_list,
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -335,10 +338,12 @@ class DenovoRnaMapping(Base):
             r = open(row_tree, "r")
             tree_col = f.readline().strip()
             tree_row = r.readline().strip()
+            raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', tree_col)
+            tree_list = [i[1] for i in raw_samp]
             f.close()
             r.close()
             collection_first = self.db['sg_denovo_correlation']
-            collection_first.update({"_id": ObjectId(correlation_id)}, {"$set": {"row_tree": tree_row, "col_tree": tree_col}})
+            collection_first.update({"_id": ObjectId(correlation_id)}, {"$set": {"correlation_tree": tree_row, "row_tree": tree_row, "col_tree": tree_col, "tree_list": tree_list}})
         try:
             collection = self.db["sg_denovo_correlation_detail"]
             collection.insert_many(data_list)
