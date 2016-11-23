@@ -40,6 +40,7 @@ class PlotTreeWorkflow(Workflow):
 
     def run(self):
         print 'plot tree stat run'
+        self.species = []
         otu_format = self.work_dir + '/format_otu_table.xls'
         species_format = self.work_dir + '/species_group.xls'
         tree_file = self.work_dir + '/format.tre'
@@ -54,24 +55,10 @@ class PlotTreeWorkflow(Workflow):
             else:
                 self.format_otu_table(otu_format)
         self.get_newicktree(tree_file)
-        # options = {
-        #     "abundance_table": otu_format,
-        #     "newicktree": tree_file
-        # }
-        # if self.option("group_id") not in ['all', 'All', 'ALL', None]:
-        #     options['sample_group'] = self.option("sample_group")
-        # if self.option("color_level_id"):
-        #     options["leaves_group"] = species_format
-        # self.task = self.add_tool("graph.plot_tree")
-        # self.task.set_options(options)
-        # self.task.on('end', self.set_db)
-        # self.task.run()
+
         self.start_listener()
         self.fire("start")
         self.set_db()
-        print 'task stat run plot tree tool'
-        # self.output_dir = self.task.output_dir
-        # super(PlotTreeWorkflow, self).run()
 
     def format_group_otu_table(self, out_otu_file, out_species_group_file=None):
         """
@@ -95,6 +82,7 @@ class PlotTreeWorkflow(Workflow):
                 line_split = re.split('\t', i.strip())
                 name_split = line_split[0].split(';')
                 new_name = name_split[-1].strip().replace(':', '-')  # 协同树去除名称中有冒号的样本名
+                self.species.append(new_name)
                 if out_species_group_file:
                     species_dict[name_split[species_index]].append(new_name)
                 for key, indexs in group_index.iteritems():
@@ -145,7 +133,7 @@ class PlotTreeWorkflow(Workflow):
         """
         配合进化树，拆分otu表名称
         """
-        self.rm_species = []
+        # self.rm_species = []
         species_dict = defaultdict(list)
         species_index = self.option("color_level_id") - 1
         with open(self.option("otu_table").path) as f, open(out_otu_file, 'w') as w:
@@ -155,8 +143,10 @@ class PlotTreeWorkflow(Workflow):
                 name_split = line_split[0].split(';')
                 new_name = name_split[-1].strip().replace(':', '-')
                 if sum([int(i) for i in line_split[1].strip().split('\t')]) == 0:  # hesheng 20161115 去除所有样本为0的情况，目前to_file没有相关功能，暂时添加
-                    self.rm_species.append(new_name)
+                    # self.rm_species.append(new_name)
+                    raise Exception('存在全部物种/OTU代表序列数量都为0的情况')
                     continue
+                self.species.append(new_name)
                 if out_species_group_file:
                     species_dict[name_split[species_index]].append(new_name)
                 w.write(new_name + '\t' + line_split[1])
@@ -183,9 +173,12 @@ class PlotTreeWorkflow(Workflow):
         from Bio import Phylo
         open(output_file + '.temp', 'w').write(format_tree)
         newick_tree = Phylo.read(output_file + '.temp', 'newick')
-        self.logger.info('移除物种/OTU:{}'.format(self.rm_species))
-        for i in self.rm_species:
-            newick_tree.prune(i)
+        leaves = newick_tree.get_terminals()
+        for i in leaves:
+            if i.name not in self.species:
+                newick_tree.prune(i.name)
+                self.logger.info('移除物种/OTU:{}'.format(i.name))
+            # newick_tree.prune(i)
         Phylo.write(newick_tree, output_file + '.temp2', 'newick')
         temp_tree = open(output_file + '.temp2').read()
         temp_tree = re.sub(r'(--temp_replace_left--)', '[', temp_tree)
