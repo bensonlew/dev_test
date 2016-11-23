@@ -9,6 +9,7 @@ from bson.son import SON
 from bson.objectid import ObjectId
 import types
 import bson.binary
+import gridfs
 from cStringIO import StringIO
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
@@ -20,7 +21,7 @@ class DenovoGoEnrich(Base):
         self._db_name = Config().MONGODB + '_rna'
     
     @report_check
-    def add_go_enrich(self, name=None, params=None, go_graph_dir=None, go_enrich_dir=None, go_regulate_dir=None):
+    def add_go_enrich(self, name=None, params=None, go_graph_dir=None, go_enrich_dir=None):
         project_sn = self.bind_object.sheet.project_sn
         task_id = self.bind_object.sheet.id
         insert_data = {
@@ -30,20 +31,25 @@ class DenovoGoEnrich(Base):
             'params': params,
             'status': 'end',
             'desc': 'go富集分析主表',
-            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'go_directed_graph': '',
+            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
         }
         collection = self._db_name['sg_denovo_go_enrich']
         go_enrich_id = collection.insert_one(insert_data).inserted_id 
+        fs = gridfs.GridFS(self._db_name)
+        gra = fs.put(open(go_graph_dir, 'rb'))
+        try:
+            collection.update({"_id": ObjectId(go_enrich_id)}, {"$set": {'go_directed_graph': gra}})
+        except Exception, e:
+            self.bind_object.logger.error("导入%s信息出错：%s" % (go_graph_dir, e))
+        else:
+            self.bind_object.logger.info("导入%s信息成功！" % (go_graph_dir))
         if os.path.exists(go_enrich_dir):
-            self.add_go_enrich_stat(go_enrich_id, go_enrich_dir) 
-        if os.path.exists(go_regulate_dir):
-            self.add_go_regulate_graph(go_enrich_id, go_regulate_dir)
+            self.add_go_enrich_detail(go_enrich_id, go_enrich_dir)  
         print "add sg_denovo_go_enrich sucess!"
         return go_enrich_id
     
     @report_check
-    def add_go_enrich_stat(self, go_enrich_id, go_enrich_dir):
+    def add_go_enrich_detail(self, go_enrich_id, go_enrich_dir):
         if not isinstance(go_enrich_id,ObjectId):
             if isinstance(go_enrich_id, types.StringTypes):
                 go_enrich_id = ObjectId(go_enrich_id)
@@ -86,18 +92,37 @@ class DenovoGoEnrich(Base):
                 data = SON(data)
                 data_list.append(data)
             try:
-                collection = self._db_name['sg_denovo_go_enrich_stat']
+                collection = self._db_name['sg_denovo_go_enrich_detail']
                 collection.insert_many(data_list)
             except:
-                print "add sg_denovo_go_enrich_stat failure!"
+                print "add sg_denovo_go_enrich_detail failure!"
             else:
-                print "add sg_denovo_go_enrich_stat sucess!"
+                print "add sg_denovo_go_enrich_detail sucess!"
     
-    @report_check    
-    def add_go_regulate_graph(self, go_enrich_id, go_regulate_dir):
-        if not isinstance(go_enrich_id,ObjectId):
-            if isinstance(go_enrich_id, types.StringTypes):
-                go_enrich_id = ObjectId(go_enrich_id)
+    @report_check
+    def add_go_regulate(self, name=None, params=None, go_regulate_dir=None):
+        project_sn = self.bind_object.sheet.project_sn
+        task_id = self.bind_object.sheet.id
+        insert_data = {
+            'project_sn': project_sn,
+            'task_id': task_id,
+            'name': name if name else 'go_enrich' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            'params': params,
+            'status': 'end',
+            'desc': 'go调控分析主表',
+            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+        }
+        collection = self._db_name['sg_denovo_go_regulate']
+        go_regulate_id = collection.insert_one(insert_data).inserted_id   
+        if os.path.exists(go_regulate_dir):
+            self.add_go_regulate_detail(go_regulate_id, go_regulate_dir) 
+        return go_regulate_id
+        
+   @report_check    
+    def add_go_regulate_detail(self, go_regulate_id, go_regulate_dir):
+        if not isinstance(go_regulate_id,ObjectId):
+            if isinstance(go_regulate_id, types.StringTypes):
+                go_regulate_id = ObjectId(go_regulate_id)
             else:
                 raise Exception('go_enrich_id须为ObjectId对象或其他对应的字符串！')
         if not os.path.exists(go_regulate_dir):
@@ -112,7 +137,7 @@ class DenovoGoEnrich(Base):
                 line[5] = int(line[5])
                 line[6] = float(line[6])
                 data = [
-                    ('go_enrich_id', go_enrich_id), 
+                    ('go_regulate_id', go_regulate_id), 
                     ('go_type', line[0]),
                     ('go', line[1]), 
                     ('go_id', line[2]),
@@ -132,20 +157,9 @@ class DenovoGoEnrich(Base):
                 data = SON(data)
                 data_list.append(data)
             try:
-                collection = self._db_name['sg_denovo_go_regulate_graph']
+                collection = self._db_name['sg_denovo_go_regulate_detail']
                 collection.insert_many(data_list)
             except:
-                print "add sg_denovo_go_regulate_graph failure!"
+                print "add sg_denovo_go_regulate_detail failure!"
             else:
-                print "add sg_denovo_go_regulate_graph sucess!"
- 
-""" 
-if __name__ == '__main__':
-    go = DenovoGoEnrich()
-    go_enrich_dir = 'go_enrich_E20_vs_P1.DE.xls'
-    go_regulate_dir = 'GO_regulate.xls'
-    name = ''
-    params = None
-    go_graph_dir = ''
-    go_enrich_id = go.add_go_enrich(name, params, go_graph_dir, go_enrich_dir, go_regulate_dir)
-"""
+                print "add sg_denovo_go_regulate_detail sucess!"
