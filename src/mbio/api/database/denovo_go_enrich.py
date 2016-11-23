@@ -29,7 +29,7 @@ class DenovoGoEnrich(Base):
             'name': name if name else 'go_enrich' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             'params': params,
             'status': 'end',
-            'desc': 'go¸»¼¯·ÖÎöÖ÷±í',
+            'desc': 'goå¯Œé›†åˆ†æžä¸»è¡¨',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'go_directed_graph': '',
         }
@@ -48,9 +48,9 @@ class DenovoGoEnrich(Base):
             if isinstance(go_enrich_id, types.StringTypes):
                 go_enrich_id = ObjectId(go_enrich_id)
             else:
-                raise Exception('go_enrich_idÐëÎªObjectId¶ÔÏó»òÆäËû¶ÔÓ¦µÄ×Ö·û´®£¡')
+                raise Exception('go_enrich_idé¡»ä¸ºObjectIdå¯¹è±¡æˆ–å…¶ä»–å¯¹åº”çš„å­—ç¬¦ä¸²ï¼')
         if not os.path.exists(go_enrich_dir):
-            raise Exception('{}ËùÖ¸¶¨µÄÂ·¾¶²»´æÔÚ£¬Çë¼ì²é£¡'.format(go_enrich_dir))
+            raise Exception('{}æ‰€æŒ‡å®šçš„è·¯å¾„ä¸å­˜åœ¨ï¼Œè¯·æ£€æŸ¥ï¼'.format(go_enrich_dir))
         data_list = []
         with open(go_enrich_dir, 'r') as f:
             lines = f.readlines()
@@ -99,9 +99,9 @@ class DenovoGoEnrich(Base):
             if isinstance(go_enrich_id, types.StringTypes):
                 go_enrich_id = ObjectId(go_enrich_id)
             else:
-                raise Exception('go_enrich_idÐëÎªObjectId¶ÔÏó»òÆäËû¶ÔÓ¦µÄ×Ö·û´®£¡')
+                raise Exception('go_enrich_idé¡»ä¸ºObjectIdå¯¹è±¡æˆ–å…¶ä»–å¯¹åº”çš„å­—ç¬¦ä¸²ï¼')
         if not os.path.exists(go_regulate_dir):
-            raise Exception('{}ËùÖ¸¶¨µÄÂ·¾¶²»´æÔÚ£¬Çë¼ì²é£¡'.format(go_regulate_dir))
+            raise Exception('{}æ‰€æŒ‡å®šçš„è·¯å¾„ä¸å­˜åœ¨ï¼Œè¯·æ£€æŸ¥ï¼'.format(go_regulate_dir))
         data_list = []
         with open(go_regulate_dir, 'r') as f:
             lines = f.readlines()
