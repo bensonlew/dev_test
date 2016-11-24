@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zengjing'
-# last_modify:20161118
+# last_modify:20161124
 import pymongo
 import os
 import re
@@ -94,10 +94,10 @@ class DenovoGoEnrich(Base):
             try:
                 collection = self._db_name['sg_denovo_go_enrich_detail']
                 collection.insert_many(data_list)
-            except:
-                print "add sg_denovo_go_enrich_detail failure!"
+            except Exception, e:
+                self.bind_object.logger.error("导入go富集信息：%s出错!" % (go_enrich_dir, e))
             else:
-                print "add sg_denovo_go_enrich_detail sucess!"
+                self.bind_object.logger.info("导入go富集信息：%s成功!" % (go_graph_dir))
     
     @report_check
     def add_go_regulate(self, name=None, params=None, go_regulate_dir=None):
@@ -159,7 +159,7 @@ class DenovoGoEnrich(Base):
             try:
                 collection = self._db_name['sg_denovo_go_regulate_detail']
                 collection.insert_many(data_list)
-            except:
-                print "add sg_denovo_go_regulate_detail failure!"
+            except Exception, e:
+                self.bind_object.logger.error("导入go调控信息：%s出错!" % (go_regulate_dir, e))
             else:
-                print "add sg_denovo_go_regulate_detail sucess!"
+                self.bind_object.logger.info("导入go调控信息：%s成功!" % (go_regulate_dir))
