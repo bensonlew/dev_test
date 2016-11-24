@@ -66,16 +66,18 @@ class MantelTestWorkflow(Workflow):
         self.params["level_id"] = int(level)
         group_detail = self.params["group_detail"]
         self.params["group_detail"] = group_detail_sort(group_detail)
+        name = "mantel_test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         api_mantel = self.api.meta_species_env
         mantel_result = glob.glob(self.output_dir + "/Discompare/*")[0]
         if self.option('units'):
             partial_matrix = glob.glob(self.output_dir + "/partial/*")[0]
             dis_matrix = glob.glob(self.output_dir + "/Otudistance/*")[0]
             fac_matrix = glob.glob(self.output_dir + "/Facdistance/*")[0]
+            name = "partial_mantel_test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         else:
             dis_matrix = glob.glob(self.output_dir + "/Otudistance/*")[0]
             fac_matrix = glob.glob(self.output_dir + "/Facdistance/*")[0]
-        name = "mantel_test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+
         if not os.path.isfile(mantel_result):
             raise Exception("找不到报告文件:{}".format(mantel_result))
         mantel_id = api_mantel.add_mantel_table(self.option('level'), self.option('otu_id'), self.option('env_id'), name=name, params=self.params)
