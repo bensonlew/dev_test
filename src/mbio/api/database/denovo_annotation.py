@@ -77,8 +77,7 @@ class DenovoAnnotation(Base):
             self.add_annotation_kegg_detail(annotation_id=annotation_id, kegg_path=anno_stat_dir + '/kegg/kegg_layer.xls', gene_kegg_path=anno_stat_dir + '/anno_stat/kegg_stat/gene_kegg_layer.xls')
             self.add_annotation_query(annotation_id=annotation_id, query_path=anno_stat_dir + '/anno_stat/all_annotation.xls')
             venn_dir = anno_stat_dir + '/anno_stat/venn/'
-            self.add_venn(venn_dir=venn_dir, anno_id=annotation_id)
-        print "add sg_denovo_annotation sucess!"
+            self.add_venn(venn_dir=venn_dir, anno_id=annotation_id) 
         return annotation_id
 
     @report_check
@@ -109,9 +108,9 @@ class DenovoAnnotation(Base):
             collection = self.db['sg_denovo_annotation_stat_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "add sg_denovo_annotation_stat_detail failure{}".format(e)
+            self.bind_object.logger.error("导入注释统计信息：%s出错!" % (stat_path, e))
         else:
-            print "add sg_denovo_annotation_stat_detail sucess"
+            self.bind_object.logger.info("导入注释统计信息：%s成功!" % (stat_path))
 
     @report_check
     def add_annotation_nr_detail(self, annotation_id, level_id, taxon_path):
@@ -144,9 +143,9 @@ class DenovoAnnotation(Base):
             collection = self.db['sg_denovo_annotation_nr_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "add sg_denovo_annotation_nr_detail failure{}".format(e)
+            self.bind_object.logger.error("导入nr注释信息：%s出错!" % (taxon_path, e))
         else:
-            print "add sg_denovo_annotation_nr_detail sucess"
+            self.bind_object.logger.info("导入nr注释信息：%s成功!" % (taxon_path))
 
     @report_check
     def add_annotation_pie(self, annotation_id, evalue_path, similar_path, query_type=None):
@@ -185,9 +184,9 @@ class DenovoAnnotation(Base):
             collection = self.db['sg_denovo_annotation_pie']
             collection.insert_many(data_list)
         except Exception, e:
-            print "add sg_denovo_annotation_pie failure{}".format(e)
+            self.bind_object.logger.error("导入nr库注释作图信息evalue,similar：%s、%s出错!" % (value_path, similar_path, e))
         else:
-            print "add sg_denovo_annotation_pie sucess"
+            self.bind_object.logger.info("导入nr库注释作图信息evalue,similar：%s、%s成功!" % (value_path, similar_path))
 
     @report_check
     def add_annotation_go_detail(self, annotation_id, go_path, query_type=None):
@@ -222,9 +221,9 @@ class DenovoAnnotation(Base):
             collection = self.db['sg_denovo_annotation_go_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_annotation_go_detail failure{}".format(e)
+            self.bind_object.logger.error("导入go注释信息：%s出错!" % (go_path, e))
         else:
-            print "sg_denovo_annotation_go_detail sucess"
+            self.bind_object.logger.info("导入go注释信息：%s成功!" % (go_path))
 
     @report_check
     def add_annotation_go_graph(self, annotation_id, level, level_path, query_type):
@@ -258,9 +257,9 @@ class DenovoAnnotation(Base):
             collection = self.db['sg_denovo_annotation_go_graph']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_annotation_go_graph failure{}".format(e)
+            self.bind_object.logger.error("导入go注释作图信息：%s出错!" % (level_path, e))
         else:
-            print "sg_denovo_annotation_go_graph sucess"
+            self.bind_object.logger.info("导入go注释作图信息：%s成功!" % (level_path))
 
     @report_check
     def add_annotation_cog_detail(self, annotation_id, cog_path, query_type=None):
@@ -294,9 +293,9 @@ class DenovoAnnotation(Base):
             collection = self.db['sg_denovo_annotation_cog_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_annotation_cog_detail failure{}".format(e)
+            self.bind_object.logger.error("导入cog注释信息：%s出错!" % (cog_path, e))
         else:
-            print "sg_denovo_annotation_cog_detail sucess"
+            self.bind_object.logger.info("导入cog注释信息：%s成功!" % (cog_path))
 
     @report_check
     def add_annotation_kegg_detail(self, annotation_id, kegg_path, gene_kegg_path):
@@ -335,9 +334,9 @@ class DenovoAnnotation(Base):
             collection = self.db['sg_denovo_annotation_kegg_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_annotation_kegg_detail failure{}".format(e)
+            self.bind_object.logger.error("导入kegg注释信息：%s、%s出错!" % (kegg_path, gene_kegg_path, e))
         else:
-            print "sg_denovo_annotation_go_detail sucess"
+            self.bind_object.logger.info("导入kegg注释信息：%s、%s成功!" % (kegg_path, gene_kegg_path))
 
     @report_check
     def add_annotation_query(self, annotation_id, query_path):
@@ -395,9 +394,9 @@ class DenovoAnnotation(Base):
             collection = self.db['sg_denovo_annotation_query']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_annotation_query failure{}".format(e)
+            self.bind_object.logger.error("导入注释查询信息：%s出错!" % (query_path, e))
         else:
-            print "sg_denovo_annotation_query sucess"
+            self.bind_object.logger.info("导入注释查询信息：%s成功!" % (query_path))
 
     @report_check
     def add_blast(self, name=None, blast_version='2.3.0+', blast_pro=None, blast_db=None, e_value=None, blast_path=None, gene_list=None):
@@ -418,8 +417,7 @@ class DenovoAnnotation(Base):
         collection = self.db['sg_denovo_blast']
         blast_id = collection.insert_one(insert_data).inserted_id
         if blast_path:
-            self.add_blast_table_detail(blast_id, blast_path, gene_list)
-        print "add sg_denovo_blast sucess!"
+            self.add_blast_table_detail(blast_id, blast_path, gene_list) 
         return blast_id
 
     @report_check
@@ -469,9 +467,9 @@ class DenovoAnnotation(Base):
             collection = self.db['sg_denovo_blast_table_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            print "sg_denovo_blast_table_detail failure{}".format(e)
+            self.bind_object.logger.error("导入blast信息：%s出错!" % (blast_path, e))
         else:
-            print "sg_denovo_blast_table_detail sucess"
+            self.bind_object.logger.info("导入blast信息：%s成功!" % (blast_path))
 
     def add_venn(self, venn_dir, anno_id):
         files = os.listdir(venn_dir)
