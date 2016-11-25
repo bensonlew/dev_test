@@ -38,7 +38,8 @@ class RandomforestStat(object):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "otunetwork_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name":"randomforest_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            #"name": name if name else "randomforest_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "ntree_id":ntree_id,
             "level_id": level_id,
@@ -47,7 +48,7 @@ class RandomforestStat(object):
             "status": "end",
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        collection = self.db["sg_meta_randomforest"]
+        collection = self.db["sg_randomforest"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 
