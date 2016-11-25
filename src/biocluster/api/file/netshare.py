@@ -20,7 +20,6 @@ class Netshare(RemoteFile):
         if len(tmp) > 1:
             self.fileType = "dir"
             m = re.sub("u'","'",tmp[1])  
-            #  m = tmp[1].decode("unicode_escape")  # modified by sj on 2016.11.17
             self._fileList = eval(m)
         else:
             self.fileType = "file"
