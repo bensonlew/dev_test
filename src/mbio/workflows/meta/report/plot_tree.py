@@ -39,7 +39,6 @@ class PlotTreeWorkflow(Workflow):
             raise Exception("必须提供OTU的主表id")
 
     def run(self):
-        print 'plot tree stat run'
         self.species = []
         otu_format = self.work_dir + '/format_otu_table.xls'
         species_format = self.work_dir + '/species_group.xls'
@@ -104,7 +103,6 @@ class PlotTreeWorkflow(Workflow):
     def set_db(self):
         """
         """
-        print 'stat set db'
         output_otu = self.output_dir + '/species_table.xls'
         output_tree = self.output_dir + '/phylo_tree.tre'
         output_species = self.output_dir + '/species_group.xls'
@@ -169,22 +167,27 @@ class PlotTreeWorkflow(Workflow):
         format_tree = re.sub(r'\'(.+?)\'', simple_name, tree)
         format_tree = re.sub(r'(\[)', '--temp_replace_left--', format_tree)  # 中括号在phylo中的读取会被特别识别，出现错误，后续对中括号进行暂时替换处理
         format_tree = re.sub(r'(\])', '--temp_replace_right--', format_tree)
-        self.logger.info(format_tree)
         from Bio import Phylo
         open(output_file + '.temp', 'w').write(format_tree)
         newick_tree = Phylo.read(output_file + '.temp', 'newick')
         leaves = newick_tree.get_terminals()
         for i in leaves:
+            i.name = i.name.replace('--temp_replace_left--', '[')
+            i.name = i.name.replace('--temp_replace_right--', ']')
             if i.name not in self.species:
                 newick_tree.prune(i.name)
                 self.logger.info('移除物种/OTU:{}'.format(i.name))
-            # newick_tree.prune(i)
         Phylo.write(newick_tree, output_file + '.temp2', 'newick')
         temp_tree = open(output_file + '.temp2').read()
-        temp_tree = re.sub(r'(--temp_replace_left--)', '[', temp_tree)
-        temp_tree = re.sub(r'(--temp_replace_right--)', ']', temp_tree)
-        temp_tree = re.sub(r'\'', '', temp_tree)
-        temp_tree = re.sub(r'\"', '', temp_tree)
+
+        def replace_fun(matched):
+            try:
+                self.logger.info('shenghe_test logger: 存在引号')
+            except:
+                print 'logger:测试错误'
+            return ''
+        temp_tree = re.sub(r'\'', replace_fun, temp_tree)
+        temp_tree = re.sub(r'\"', replace_fun, temp_tree)
         with open(output_file, 'w') as w:
             w.write(temp_tree)
         self.logger.info(open(output_file).read())
@@ -194,12 +197,10 @@ class PlotTreeWorkflow(Workflow):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "距离矩阵计算结果输出目录"],
-            ["fan.png", "png", "环形树图结果文件"],
-            ["bar.png", "png", "带有bar图的树结果文件"],
-            ["fan.pdf", "pdf", "环形树图结果文件"],
-            ["bar.pdf", "pdf", "带有bar图的树结果文件"]
+            ["species_table.xls", "txt", "物种样本统计表"],
+            ["phylo_tree.tre", "tree", "进化树"],
+            ["species_group.xls", "txt", "物种在高层级的分类表"]
             ])
-        # print self.get_upload_files()
         # super(PlotTreeWorkflow, self).end()
 
 
