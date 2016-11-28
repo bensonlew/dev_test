@@ -15,6 +15,8 @@ import time
 import re
 import importlib
 from .core.function import stop_thread
+from .api.database.base import ApiManager
+import signal
 
 
 class RemoteData(object):
@@ -61,13 +63,14 @@ class Tool(object):
         self._remote_data = {}
         self.version = 0
         self.instant = False  # 本地进程模式
-        self.load_config()
+        self.load_config()  
         self.logger = Wlog(self).get_logger('')
         self.main_thread = threading.current_thread()
         self.mutex = threading.Lock()
         self.exit_signal = False
         self._remote_data_object = RemoteData(self._remote_data)
         self._rerun = False
+        self.api = ApiManager(self)
         if self.instant:
             self.actor = ProcessActor(self, threading.current_thread())
         else:
@@ -381,9 +384,9 @@ class Tool(object):
         self._end = True
         self.exit_signal = True
         self.kill_all_commonds()
-        # os.kill(os.getpid(), signal.SIGTERM)
-        if self.main_thread.is_alive():
-            stop_thread(self.main_thread)
+        os.kill(os.getpid(), signal.SIGTERM)
+        # if self.main_thread.is_alive():
+        #     stop_thread(self.main_thread)
         sys.exit(status)
 
     def save_output(self):

@@ -63,7 +63,7 @@ class Workflow(object):
 
     def exit_pause(self, wid):
         try:
-            results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id", vars={'id': wid})
+            results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and has_pause=1", vars={'id': wid})
             if len(results) > 0:
                 update_data = {
                     "exit_pause": 1,

@@ -86,10 +86,10 @@ class Netshare(RemoteFile):
             self._copy_dir(from_path, target)
             return target
 
-    def _debug(self, str_):
-        with open("/mnt/ilustre/users/sanger/sgBioinfo/xuting/webapi/netshare_debug.txt", 'ab') as a:
-            a.write(str_)
-            a.write("\n")
+    # def _debug(self, str_):
+    #     with open("/mnt/ilustre/users/sanger/sgBioinfo/xuting/webapi/netshare_debug.txt", 'ab') as a:
+    #         a.write(str_)
+    #         a.write("\n")
 
     def _copy_dir(self, src, dst, symlinks=False, ignore=None):
         if not os.path.exists(dst):
