@@ -17,12 +17,12 @@ class String2cogAgent(Agent):
     def __init__(self, parent):
         super(String2cogAgent, self).__init__(parent)
         options = [
-            {"name": "blastout", "type": "infile",
-                "format": "align.blast.blast_xml"},
-            {"name": "E_value", "type": "float", "default": "1E-6"},
-            {"name": "min_Coverage", "type": "string", "default": "50%"}
+            {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "cog_list", "type": "outfile", "format": "annotation.cog.cog_list"},
+            {"name": "cog_table", "type": "outfile", "format": "annotation.cog.cog_table"},
+            # {"name": "E_value", "type": "float", "default": "1E-6"},
+            # {"name": "min_Coverage", "type": "string", "default": "50%"}
         ]
-        # E-value?
         self.add_option(options)
         self.step.add_steps('string2cog')
         self.on('start', self.step_start)
@@ -41,7 +41,7 @@ class String2cogAgent(Agent):
             document = ET.parse(self.option("blastout").prop['path'])
             root = document.getroot()
             db = root.find('BlastOutput_db')
-            if db.text == 'string':
+            if db.text.endswith('string'):
                 pass
             else:
                 raise OptionError("BLAST比对数据库不支持")
@@ -49,8 +49,8 @@ class String2cogAgent(Agent):
             raise OptionError("必须提供BLAST结果文件")
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = ''
+        self._cpu = 20
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -91,6 +91,8 @@ class String2cogTool(Tool):
                 if os.path.exists(linkfile):
                     os.remove(linkfile)
                 os.link(self.work_dir + '/' + item, linkfile)
+            self.option('cog_list', self.output_dir + '/cog_list.xls')
+            self.option('cog_table', self.output_dir + '/cog_table.xls')
             self.end()
         except subprocess.CalledProcessError:
             self.set_error('运行string2cog.py出错')

@@ -12,6 +12,10 @@ from basic import Basic
 
 
 class DownloadTask(Basic):
+    """
+    用于内部下载一个任务的所有文件
+    last_modified: 20160928
+    """
     def __init__(self, identity, target_path, mode, port, stream_on):
         super(DownloadTask, self).__init__(identity, target_path, mode, port, stream_on)
         self._download_url = self.get_download_url(mode)
@@ -25,7 +29,7 @@ class DownloadTask(Basic):
         if mode == "sanger":
             self._url = "http://192.168.12.101:{}/app/dataexchange/download_task".format(port)
         elif mode == "tsanger":
-            self._url = "http://192.168.12.102:{}/dataexchange/download_task".format(port)
+            self._url = "http://192.168.12.102:{}/app/dataexchange/download_task".format(port)
         return self._url
 
     def get_download_url(self, mode):
@@ -73,6 +77,9 @@ class DownloadTask(Basic):
             print info["data"]
 
     def download_files(self):
+        """
+        遍历文件列表， 并下载文件
+        """
         total_sum = len(self._file_list)
         count = 1
         for f_info in self._file_list:

@@ -44,7 +44,7 @@ class ReadsLenInfoAgent(Agent):
         :return:
         """
         if not self.option("fasta_path").is_set:
-            raise OptionError("参数fasta_path不能都为空")
+            raise OptionError("输入的fasta文件夹路径没有指定")
         return True
 
     def end(self):
@@ -181,7 +181,7 @@ class ReadsLenInfoTool(Tool):
         """
         i = step
         while True:
-            if i // len_ == 1:
+            if i // len_ >= 1:  # modified by sj on 20161122
                 dict_[i] += 1
                 break
             i += step

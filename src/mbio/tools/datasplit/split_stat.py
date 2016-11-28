@@ -48,7 +48,7 @@ class SplitStatTool(Tool):
     def __init__(self, config):
         super(SplitStatTool, self).__init__(config)
         self._version = 1.0
-        self.backup_dir = "/mnt/ilustre/users/sanger/data_split_tmp/"
+        self.backup_dir = "/mnt/ilustre/users/sanger-dev/workspace/datasplit_tmp/"
         self.option('sample_info').get_info()
         self.option('time').get_info()
         self.json_str = ""

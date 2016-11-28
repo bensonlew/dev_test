@@ -50,7 +50,6 @@ class Config(object):
         # job
         self.JOB_PLATFORM = self.rcf.get("Job", "platform")
         self.MAX_JOB_NUMBER = int(self.rcf.get("Job", 'max_job_number'))
-        self.MAX_WORKFLOW_NUMBER = int(self.rcf.get("Job", 'max_workflow_number'))
         self.JOB_MASTER_IP = self.rcf.get(self.JOB_PLATFORM, "master_ip")
         self.JOB_QUEUE = self.rcf.get(self.JOB_PLATFORM, "queue")
 
@@ -87,6 +86,7 @@ class Config(object):
 
         # Mongo
         self.MONGO_URI = self.rcf.get("MONGO", "uri")
+        self.MONGO_BIO_URI = self.rcf.get("MONGO", "bio_uri")
         self._mongo_client = None
         self.MONGODB = self.rcf.get("MONGO", "mongodb")
 
@@ -248,5 +248,3 @@ class Config(object):
         else:
             self._update_exclude_api = []
             return self._update_exclude_api
-
-

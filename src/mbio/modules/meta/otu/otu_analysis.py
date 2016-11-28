@@ -45,10 +45,10 @@ class OtuAnalysisModule(Module):
         if self.option("identity") < 0 or self.option("identity") > 1:
             raise OptionError("identity值必须在0-1范围内.")
         if self.option("revcomp") not in [True, False]:
-            raise OptionError("必须设置参数revcomp")
+            raise OptionError("必须设置序列是否翻转")
         if self.option('database') == "custom_mode":
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
-                raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
+                raise OptionError("数据库自定义模式必须设置参考fasta序列和参考taxon文件")
         else:
             if self.option("database") not in ['silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/18s_eukaryota', 'unite7.0/its_fungi', 'fgr/amoA', 'fgr/nosZ',

@@ -16,21 +16,22 @@ class KeggRichAgent(Agent):
     def __init__(self, parent):
         super(KeggRichAgent, self).__init__(parent)
         options = [
-            {"name": "kegg_path", "type": "infile", "format": "denovo_rna.express.gene_list"},  # KEGG的pathway文件
+            {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},  # 只含有基因的kegg table结果文件
+            {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # gene名字文件
             {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 两两样本/分组的差异基因文件
             {"name": "correct", "type": "string", "default": "BH"}  # 多重检验校正方法
         ]
         self.add_option(options)
-        self.step.add_steps("kegg_path")
+        self.step.add_steps("kegg_rich")
         self.on('start', self.stepstart)
         self.on('end', self.stepfinish)
 
     def stepstart(self):
-        self.step.kegg_path.start()
+        self.step.kegg_rich.start()
         self.step.update()
 
     def stepfinish(self):
-        self.step.kegg_path.finish()
+        self.step.kegg_rich.finish()
         self.step.update()
 
     def check_options(self):
@@ -38,12 +39,14 @@ class KeggRichAgent(Agent):
         重写参数检测函数
         :return:
         """
-        if not self.option('kegg_path').is_set:
+        if not self.option('kegg_table').is_set:
             raise OptionError('必须设置kegg的pathway输入文件')
         if self.option('correct') not in ['BY', 'BH', 'None', 'QVALUE']:
             raise OptionError('多重检验校正的方法不在提供的范围内')
         if not self.option("diff_list").is_set:
             raise OptionError("必须设置输入文件diff_list")
+        if not self.option("all_list").is_set:
+            raise OptionError("必须设置输入文件all_list")
         return True
 
     def set_resource(self):
@@ -73,6 +76,8 @@ class KeggRichTool(Tool):
         self.kobas_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/kobas-2.1.1/src/'
         self.set_environ(PYTHONPATH=self.kobas_path)
         self.python = '/program/Python/bin/'
+        self.all_list = self.option('all_list').prop['gene_list']
+        self.diff_list = self.option('diff_list').prop['gene_list']
 
     def run(self):
         """
@@ -86,29 +91,27 @@ class KeggRichTool(Tool):
         """
         运行kobas软件，进行kegg富集分析
         """
-        cmd_1 = self.kobas + 'diff_ko_select.pl -g {} -k {} -o {}'.format(self.option('diff_list').prop['path'], self.option('kegg_path').prop['path'], self.work_dir + '/kofile')
-        self.logger.info('开始运行kegg富集第一步：合成差异基因kegg文件')
-        command_1 = self.add_command("cmd_1", cmd_1).run()
-        self.wait(command_1)
-        if command_1.return_code == 0:
+        try:
+            self.option('kegg_table').get_kegg_list(self.work_dir, self.all_list, self.diff_list)
             self.logger.info("kegg富集第一步运行完成")
             self.run_identify()
-        else:
-            self.set_error("kegg富集第一步运行出错!")
+        except Exception as e:
+            self.set_error("kegg富集第一步运行出错:{}".format(e))
+            self.logger.info("kegg富集第一步运行出错:{}".format(e))
 
     def run_identify(self):
         kofile = os.path.basename(self.option('diff_list').prop['path'])
-        cmd_2 = self.python + 'python {}identify.py -f {} -n {} -b {} -o {}.kegg_enrichment.xls'.format(self.config.SOFTWARE_DIR + self.kobas, self.work_dir + '/kofile', self.option('correct'), self.option('kegg_path').prop['path'], kofile)
+        cmd_2 = self.python + 'python {}identify.py -f {} -n {} -b {} -o {}.kegg_enrichment.xls'.format(self.config.SOFTWARE_DIR + self.kobas, self.work_dir + '/kofile', self.option('correct'), self.work_dir + '/all_kofile', kofile)
         self.logger.info('开始运行kegg富集第二步：进行kegg富集分析')
         command_2 = self.add_command("cmd_2", cmd_2).run()
         self.wait(command_2)
         if command_2.return_code == 0:
             self.logger.info("kegg富集分析运行完成")
-            self.set_output(kofile+'.kegg_enrichment.xls')
+            self.set_output(kofile + '.kegg_enrichment.xls')
         else:
             self.set_error("kegg富集分析运行出错!")
 
-    def set_output(self,linkfile):
+    def set_output(self, linkfile):
         """
         将结果文件link到output文件夹下面
         :return:

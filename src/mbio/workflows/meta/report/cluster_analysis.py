@@ -77,7 +77,7 @@ class ClusterAnalysisWorkflow(Workflow):
             self.add_return_mongo_id("sg_newick_tree", newick_id, "", False)
         api_otu = self.api.cluster_analysis
         new_otu_id = api_otu.add_sg_otu(self.sheet.params, self.option("input_otu_id"), None, newick_id)
-        api_otu.add_sg_otu_detail(self.sort_samples.option("out_otu_table").prop["path"], new_otu_id)
+        api_otu.add_sg_otu_detail(self.sort_samples.option("out_otu_table").prop["path"], new_otu_id, self.option("input_otu_id"))
         self.add_return_mongo_id("sg_otu", new_otu_id)
         self.end()
 

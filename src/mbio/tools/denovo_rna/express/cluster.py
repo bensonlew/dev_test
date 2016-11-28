@@ -1,14 +1,12 @@
-## !/mnt/ilustre/users/sanger/app/program/Anaconda2/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
-#last_modify:20160701
+# last_modify:2016.10.09
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.packages.denovo_rna.express.cluster import *
 import os
-import re
 
 
 class ClusterAgent(Agent):
@@ -21,11 +19,11 @@ class ClusterAgent(Agent):
     def __init__(self, parent):
         super(ClusterAgent, self).__init__(parent)
         options = [
-            {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  #输入文件，差异基因表达量矩阵
+            {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，差异基因表达量矩阵
             {"name": "distance_method", "type": "string", "default": "euclidean"},  # 计算距离的算法
-            {"name": "log",  "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
+            {"name": "log", "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
             {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
-            {"name": "sub_num", "type": "int", "default": 10}  # 子聚类的数目
+            {"name": "sub_num", "type": "int", "default": 5}  # 子聚类的数目
 
         ]
         self.add_option(options)
@@ -40,7 +38,6 @@ class ClusterAgent(Agent):
     def stepfinish(self):
         self.step.cluster.finish()
         self.step.update()
-
 
     def check_options(self):
         """
@@ -57,7 +54,9 @@ class ClusterAgent(Agent):
             raise OptionError("所选方法不在范围内")
         if not isinstance(self.option("sub_num"), int):
             raise OptionError("子聚类数目必须为整数")
-
+        if self.option("sub_num").is_set:
+            if not (self.option("sub_num") >= 3 and self.option("sub_num") <= 35):
+                raise OptionError("子聚类数目范围必须在3-35之间！")
 
     def set_resource(self):
         """
@@ -79,7 +78,7 @@ class ClusterAgent(Agent):
             ])
             result_dir.add_regexp_rules([
                 [r"hclust/subcluster_", "xls", "子聚类热图数据"]
-                ])
+            ])
         if self.option('method') in ('both', 'kmeans'):
             result_dir.add_relpath_rules([
                 [".", "", "结果输出目录"],
@@ -88,7 +87,7 @@ class ClusterAgent(Agent):
             ])
             result_dir.add_regexp_rules([
                 [r"kmeans/subcluster_", "xls", "子聚类热图数据"]
-                ])
+            ])
         super(ClusterAgent, self).end()
 
 
@@ -134,6 +133,11 @@ class ClusterTool(Tool):
 
     def run(self):
         super(ClusterTool, self).run()
+        if not self.option("sub_num").is_set:
+            if len(self.option("diff_fpkm").prop['gene']) > 200:
+                self.option("sub_num", 10)
+            else:
+                self.option("sub_num", 5)
         self.run_cluster()
         self.set_output()
         self.end()

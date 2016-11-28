@@ -106,12 +106,17 @@ class UpdateStatus(Log):
         for k in id_value:
             obj_id = k
             dbname = id_value[k]
+            # print self.post_data
             collection = self.mongodb[dbname]
             if not isinstance(obj_id, ObjectId):
                 if isinstance(obj_id, StringTypes):
                     obj_id = ObjectId(obj_id)
                 else:
                     raise Exception("{}的值必须为ObjectId对象或其对应的字符串!".format(self._sheetname))
+            try:
+                print collection.find_one({"_id":obj_id})
+            except:
+                print "im a fool"
             create_time = str(create_time)
             if status == "finish":
                 status = "end"
@@ -127,11 +132,17 @@ class UpdateStatus(Log):
             collection = self.mongodb['sg_status']
             if status == "start":
                 tmp_col = self.mongodb[dbname]
-                tb_name = tmp_col.find_one({"_id": obj_id})["name"]
+                try:
+                    tb_name = tmp_col.find_one({"_id": obj_id})["name"]
+                except:
+                    tb_name = ""
                 tmp_task_id = list()
+                print 'update_status task_id:', self._task_id
                 tmp_task_id = re.split("_", self._task_id)
                 tmp_task_id.pop()
                 tmp_task_id.pop()
+                print "bbb"
+                print tmp_task_id
                 insert_data = {
                     "table_id": obj_id,
                     "table_name": tb_name,
@@ -142,8 +153,11 @@ class UpdateStatus(Log):
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
+                print insert_data
                 collection.insert_one(insert_data)
+                print "insert into database success"
             elif status == "end":
+                print "end"
                 tmp_col = self.mongodb[dbname]
                 my_params = tmp_col.find_one({"_id": obj_id})["params"]
                 my_dict = json.loads(my_params)
@@ -166,6 +180,7 @@ class UpdateStatus(Log):
                 collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
                 self.post_data_to_web()
             else:
+                print "enter into else part"
                 insert_data = {
                     "status": status,
                     "desc": desc,
@@ -186,6 +201,7 @@ class UpdateStatus(Log):
     def _re_org_post(self, post_data):
         my_content = post_data["content"]
         my_stage = my_content["stage"]
+        """
         my_upload_files = post_data["upload_files"]
         target = my_upload_files[0]["target"]
         files = my_upload_files[0]["files"]
@@ -211,6 +227,44 @@ class UpdateStatus(Log):
         new_content = dict()
         new_content["files"] = new_files
         new_content["dirs"] = new_dirs
+        my_id = my_stage["task_id"]
+        my_id = re.split('_', my_id)
+        my_id.pop(-1)
+        my_id.pop(-1)
+        new_content["task_id"] = "_".join(my_id)
+        my_data = dict()
+        my_data["content"] = json.dumps(new_content)
+        print my_data
+        return urllib.urlencode(my_data)
+        """
+        try:
+            my_upload_files = post_data["upload_files"]
+            target = my_upload_files[0]["target"]
+            files = my_upload_files[0]["files"]
+            new_files = list()
+            new_dirs = list()
+            for my_file in files:
+                if my_file["type"] == "file":
+                    tmp_dict = dict()
+                    tmp_dict["path"] = os.path  .join(target, my_file["path"])
+                    tmp_dict["size"] = my_file["size"]
+                    tmp_dict["description"] = my_file["description"]
+                    tmp_dict["format"] = my_file["format"]
+                    new_files.append(tmp_dict)
+                elif my_file["type"] == "dir":
+                    tmp_dict = dict()
+                    tmpPath = re.sub("\.$", "", my_file["path"])
+                    tmp_dict["path"] = os.path.join(target, tmpPath)
+                    tmp_dict["size"] = my_file["size"]
+                    tmp_dict["description"] = my_file["description"]
+                    tmp_dict["format"] = my_file["format"]
+                    new_dirs.append(tmp_dict)
+            # my_stage["fil es"] = new_files
+            new_content = dict()
+            new_content["files"] = new_files
+            new_content["dirs"] = new_dirs
+        except:
+            new_content = dict()
         my_id = my_stage["task_id"]
         my_id = re.split('_', my_id)
         my_id.pop(-1)

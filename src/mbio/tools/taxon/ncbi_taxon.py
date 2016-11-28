@@ -18,23 +18,24 @@ class NcbiTaxonAgent(Agent):
         super(NcbiTaxonAgent, self).__init__(parent)
         options = [
             {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml, align.blast.blast_table"},  # 输入文件
+            {"name": "taxon_out", "type": "outfile", "format": "annotation.nr.nr_taxon"},  # 输出结果文件
             {"name": "blastdb", 'type': 'string', 'default': 'None'}  # 输入文件的blast比对类型，必须为nr或者nt
             ]
         self.add_option(options)
 
     def check_options(self):
         if not self.option("blastout").is_set:
-            raise OptionError("必须设置参数blastout")
+            raise OptionError("必须设置输入文件")
         if self.option('blastdb') == 'None':
-            raise OptionError("blastdb参数必须设置")
+            raise OptionError("必须设置输入文件的blast比对类型")
         else:
             if self.option('blastdb') not in ['nr', 'nt']:
-                raise OptionError('blastdb必须为')
+                raise OptionError('blastdb必须为nr或者nt:{}'.format(self.option('blastdb')))
         return True
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = ''
+        self._cpu = 2
+        self._memory = '12G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -81,6 +82,7 @@ class NcbiTaxonTool(Tool):
         run_gitaxon.start()
         run_gitaxon.join()
         if run_gitaxon.result:
+            self.option('taxon_out', self.output_dir + '/query_taxons_detail.xls')
             self.end()
         else:
             self.set_error('注释查询出错！')
@@ -96,7 +98,7 @@ class NcbiTaxonTool(Tool):
         with open(self.output_dir + '/query_taxons_detail.xls', 'w') as w:
             for item in query_gi.iteritems():
                 if item[1][1]:
-                    w.write(item[0] + '\t' + item[1][0] + item[1][1] + '\n')
+                    w.write(item[0] + '\t' + item[1][0] + '\t' + item[1][1] + '\n')
         return True
 
     def filter_query(self, fp):

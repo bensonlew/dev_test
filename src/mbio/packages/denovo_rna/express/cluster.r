@@ -1,6 +1,6 @@
 options(warn=-100)
 method<-'${method}'
-k<-0
+k<- ${sub_num}
 distance_method <- "${distance_method}"
 input_matrix<-"${input_matrix}"
 lognorm<-${lognorm}
@@ -30,10 +30,10 @@ if(lognorm==0){
     hc_samples = hclust(as.dist(1-cor(final_data, method="spearman")), method="complete") # cluster conditions
 }
 
-if(k==0){
-    pamk <- pamk(final_data,diss=FALSE)
-    k <- pamk$nc
-}
+# if(k==0){
+#     pamk <- pamk(final_data,diss=FALSE)
+#     k <- pamk$nc
+# }
 
 ####hclust
 if ((method == "hclust") || (method == "both")){
@@ -43,18 +43,18 @@ if ((method == "hclust") || (method == "both")){
     if(cltype=="both"){
         order_mat<-data[hc_genes$order[nrow(data):1],hc_samples$order]
         write.table(order_mat,"hclust/hclust_heatmap.xls",sep="\t",col.names=T,row.names=T,quote=F)
-        write.table(colnames(order_mat)[hc_samples$order],"hc_sample_order",col.names=F,row.names=F,quote=F)
-        write.table(rownames(order_mat)[hc_genes$order[nrow(data):1]],"hc_gene_order",col.names=F,row.names=F,quote=F)
+        # write.table(colnames(data)[hc_samples$order],"hc_sample_order",col.names=F,row.names=F,quote=F)
+        # write.table(rownames(data)[hc_genes$order[nrow(data):1]],"hc_gene_order",col.names=F,row.names=F,quote=F)
     }
     if(cltype=="row"){
         order_mat<-data[hc_genes$order[nrow(data):1],]
         write.table(order_mat,"hclust/hclust_heatmap.xls",sep="\t",col.names=T,row.names=T,quote=F)
-        write.table(rownames(order_mat)[hc_genes$order[nrow(data):1]],"hc_gene_order",col.names=F,row.names=F,quote=F)
+        # write.table(rownames(data)[hc_genes$order[nrow(data):1]],"hc_gene_order",col.names=F,row.names=F,quote=F)
      }
     if(cltype=="col"){
         order_mat<-data[,hc_samples$order]
         write.table(order_mat,"hclust/hclust_heatmap.xls",sep="\t",col.names=T,row.names=T,quote=F)
-        write.table(colnames(order_mat)[hc_samples$order],"hc_sample_order",col.names=F,row.names=F,quote=F)
+        # write.table(colnames(data)[hc_samples$order],"hc_sample_order",col.names=F,row.names=F,quote=F)
      }
 
     ####### newick tree

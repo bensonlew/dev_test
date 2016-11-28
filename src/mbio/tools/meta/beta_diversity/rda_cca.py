@@ -77,7 +77,7 @@ class RdaCcaAgent(Agent):
         #         raise OptionError('环境因子中存在，OTU表中的未知样本:%s' % sample)
         common_samples = set(samplelist) & set(self.option('envtable').prop['sample'])
         if len(common_samples) < 3:
-            raise OptionError("环境因子表和OTU表的共有样本数必需大于等于3个：{}".format(len(common_samples)))
+            raise OptionError("环境因子表和OTU表的共有样本数必须大于等于3个：{}".format(len(common_samples)))
         table = open(self.gettable())
         if len(table.readlines()) < 4:
             raise OptionError('提供的数据表信息少于3行')
@@ -181,8 +181,8 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
 
     def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
         import pandas as pd
-        T1 = pd.read_table(T1, sep='\t')
-        T2 = pd.read_table(T2, sep='\t')
+        T1 = pd.read_table(T1, sep='\t', dtype=str)
+        T2 = pd.read_table(T2, sep='\t', dtype=str)
         T1_names = list(T1.columns[1:])
         T2_names = list(T2.iloc[0:, 0])
         T1_T2 = set(T1_names) - set(T2_names)

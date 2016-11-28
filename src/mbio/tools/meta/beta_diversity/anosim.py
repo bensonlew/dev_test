@@ -5,6 +5,7 @@ from biocluster.tool import Tool
 import os
 import re
 from biocluster.core.exceptions import OptionError
+from mbio.packages.beta_diversity.adonis_r import adonis
 
 
 class AnosimAgent(Agent):
@@ -52,7 +53,7 @@ class AnosimAgent(Agent):
         if 10000 >= self.option('permutations') >= 10:
             pass
         else:
-            raise OptionError('随机置换次数:%s不再正常范围内[10, 10000]' % self.option('permutations'))
+            raise OptionError('随机置换次数:%s不在正常范围内[10, 10000]' % self.option('permutations'))
         if not self.option('group').is_set:
             raise OptionError('必须提供分组信息文件')
         else:
@@ -122,20 +123,21 @@ class AnosimTool(Tool):
                                                                          self.dis_matrix,
                                                                          self.work_dir, self.grouplab,
                                                                          self.option('permutations'))
-        cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c %s -n %d' % (self.option('group').path,
-                                                                         self.dis_matrix,
-                                                                         self.work_dir, self.grouplab,
-                                                                         self.option('permutations'))
+        # cmd2 = cmd + ' --method adonis -m %s -i %s -o %s -c %s -n %d' % (self.option('group').path,
+        #                                                                  self.dis_matrix,
+        #                                                                  self.work_dir, self.grouplab,
+        #                                                                  self.option('permutations'))
         self.logger.info('运行qiime:compare_categories.py,计算adonis&anosim程序')
         dist_anosim_command = self.add_command('anosim', cmd1)
         dist_anosim_command.run()
-        dist_adonis_command = self.add_command('adonis', cmd2)
-        dist_adonis_command.run()
+        # dist_adonis_command = self.add_command('adonis', cmd2)
+        # dist_adonis_command.run()
+        adonis_return = adonis(self.dis_matrix, self.option('group').path, self.work_dir, self.grouplab, self.option('permutations'))
         self.wait()
         if dist_anosim_command.return_code == 0:
             self.linkfile(os.path.join(self.work_dir, 'anosim_results.txt'), 'anosim_results.txt')
             self.logger.info('运行qiime:compare_categories.py计算anosim完成')
-            if dist_adonis_command.return_code == 0:
+            if adonis_return == 0:
                 self.linkfile(os.path.join(self.work_dir, 'adonis_results.txt'), 'adonis_results.txt')
                 self.logger.info('运行qiime:compare_categories.py计算adonis完成')
                 self.format()
@@ -191,28 +193,33 @@ class AnosimTool(Tool):
         功能同上面注释掉的部分，此函数用于暂时消除一个结果文件的bug，PR列被自动换行的情况
         """
         an = open(os.path.join(self.output_dir, 'anosim_results.txt'))
-        ad = open(os.path.join(self.output_dir, 'adonis_results.txt'))
+        ad = open(os.path.join(self.work_dir, 'adonis_format.txt'))
         new = open(os.path.join(self.output_dir, 'format_results.xls'), 'w')
         an_line = an.readlines()
-        ad_r = ''
-        ad_p = ''
-        for line in ad:
-            if re.match(r'qiime\.data\$map\[\[opts\$category\]\]', line):
-                line_sp = line.split()
-                if len(line_sp) == 8 or len(line_sp) == 7:
-                    ad_r = line_sp[5]
-                    ad_p = line_sp[6]
-                elif len(line_sp) == 6:
-                    ad_r = line_sp[5]
-                elif len(line_sp) == 3:
-                    ad_p = line_sp[1]
-                elif len(line_sp) == 2:
-                    pass
-                else:
-                    self.logger.info(line)
-                    self.set_error('adonis结果文件异常')
-        if not ad_r or not ad_p:
-            self.set_error('adonis结果文件异常')
+        ad_line = ad.readlines()
+        # ad_r = ''
+        # ad_p = ''
+        # for line in ad:
+        #     if re.match(r'qiime\.data\$map\[\[opts\$category\]\]', line):
+        #         line_sp = line.split()
+        #         if len(line_sp) == 8 or len(line_sp) == 7:
+        #             ad_r = line_sp[5]
+        #             ad_p = line_sp[6]
+        #         elif len(line_sp) == 6:
+        #             ad_r = line_sp[5]
+        #         elif len(line_sp) == 3:
+        #             ad_p = line_sp[1]
+        #         elif len(line_sp) == 2:
+        #             pass
+        #         else:
+        #             self.logger.info(line)
+        #             self.set_error('adonis结果文件异常')
+        # if not ad_r or not ad_p:
+        #     self.set_error('adonis结果文件异常')
+        # 旧的结果文件正则匹配方式获取R2和pr值
+        ad_splits = ad_line[1].strip().split('\t')
+        ad_r = ad_splits[1]
+        ad_p = ad_splits[2]
         an_r = an_line[4].strip().split('\t')[1]
         an_p = an_line[5].strip().split('\t')[1]
         permu = an_line[6].strip().split('\t')[1]

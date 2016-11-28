@@ -55,7 +55,7 @@ class StatTest(Base):
                     if re.search(r'mean$', i):
                         mean.append(float(data[name][i]))
                     elif re.search(r'lowerCI$', i):
-                        group = i.split('_')[0]
+                        group = i.split('_lowerCI')[0]
                         up = group + '_upperCI'
                         low_ci.append(float(data[name][i]))
                         ci.append(float(data[name][up]) - float(data[name][i]))
@@ -215,8 +215,8 @@ class StatTest(Base):
         else:
             collection = self.db["sg_species_difference_lefse"]
             fs = gridfs.GridFS(self.db)
-            ldaid = fs.put(open(lda_png_path, 'r'))
-            cladogramid = fs.put(open(lda_cladogram_path, 'r'))
+            ldaid = fs.put(open(lda_png_path, 'rb'))
+            cladogramid = fs.put(open(lda_cladogram_path, 'rb'))
             try:
                 collection.update({"_id": ObjectId(table_id)}, {"$set": {"lda_png_id": ldaid, "lda_cladogram_id": cladogramid}})
             except Exception, e:

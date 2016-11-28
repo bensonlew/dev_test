@@ -128,7 +128,7 @@ class UploadManager(object):
 
     def get_upload_tasks(self):
         sql = "SELECT id,task_id,api,`data`,upload,has_upload,uploaded from apilog where" \
-              " api<>'test' and success=0 and reject=0 and has_upload=1 and uploaded=0"
+              " api<>'test' and reject=0 and has_upload=1 and uploaded=0"
         results = self.db.query(sql)
         if isinstance(results, long) or isinstance(results, int):
             return None
@@ -283,6 +283,7 @@ class UploadProcess(Process):
             self.db.update("apilog", vars={"id": self._record.id}, where="id = $id", uploaded=1)
             self._bind_object.logger.info("上传全部完成")
         else:
+            self.db.update("apilog", vars={"id": self._record.id}, where="id = $id", uploaded=-1)  # add by shenghe 20161114 上传或者导入数据库出错后将uploaded值改为 -1 示意失败，避免重复上传
             error = "%s  %s" % (self.report_error, self.report_error)
             self.new_failed_statu(error)
 

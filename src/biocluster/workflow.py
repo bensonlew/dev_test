@@ -44,6 +44,7 @@ class Workflow(Basic):
 
         self._return_msg = None  # 需要返回给任务调用进程的值,支持常用数据类型
 
+
         self.last_update = datetime.datetime.now()
         if "parent" in kwargs.keys():
             self._parent = kwargs["parent"]
@@ -218,6 +219,7 @@ class Workflow(Basic):
     def set_return_msg(self, msg):
         """
         设置返回信息给WPM，使用WorkflowManager.get_msg方法可在运行完成后获取此信息，只能获取一次
+
 
         :param msg: 需要传递的信息，支持常用数据类型
         :return:

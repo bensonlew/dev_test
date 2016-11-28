@@ -13,9 +13,9 @@ db = client[Config().MONGODB]
 
 def export_est_table(data, option_name, dir_path, bind_obj=None):
     est_path = os.path.join(dir_path, "%s_input.estimators.xls" % option_name)
-    file_path = os.path.join(dir_path, "%s_input.est_for_t.xls" % option_name)
-    cmd_path = os.path.join(dir_path, "cmd.r")
-    bind_obj.logger.debug("正在导出参数%s的多样性指数表格为文件，路径:%s" % (option_name, file_path))
+    # file_path = os.path.join(dir_path, "%s_input.est_for_t.xls" % option_name)
+    # cmd_path = os.path.join(dir_path, "cmd.r")
+    bind_obj.logger.debug("正在导出参数%s的多样性指数表格为文件，路径:%s" % (option_name, est_path))
     collection = db['sg_alpha_diversity_detail']
     est_collection = db['sg_alpha_diversity']
     result = est_collection.find_one({"_id": ObjectId(data)})
@@ -40,26 +40,30 @@ def export_est_table(data, option_name, dir_path, bind_obj=None):
     details = collection.find({"alpha_diversity_id": ObjectId(data)})
     if not details.count():
         raise Exception('没有找到相应detail信息')
+    index_nan = []
+    write_data = {}
+    for index in indices:
+        if index == "jack":
+            write_data["jackknife"] = ""
+        else:
+            write_data[index] = ""
+    # print write_data
     with open(est_path, "wb") as f:
-        # f.write('index_type')
-        for index in indices:
-            f.write('\t%s' % index)
-        f.write('\n')
         for col in details:
-            line = '%s' % col['specimen_name']
-            for index in indices:
-                if index == "jack":
-                    index = "jackknife"
-                line += '\t%s' % col[index]
-                # bind_obj.logger.debug(line)
-            f.write('%s\n' % line)
-    test = '''
-    table <- read.table("'''+est_path+'''",sep = '\t')
-    table <- t(table)
-    write.table(table, "'''+file_path+'''",sep = '\t', row.names = F, col.names = F)'''
-    with open(cmd_path, 'wb') as r:
-        r.write('%s' % test)
-    R_path = os.path.join(Config().SOFTWARE_DIR, "program/R-3.3.1/bin/Rscript")
-    cmd = "{} {}".format(R_path, cmd_path)
-    os.system(cmd)
-    return file_path
+            f.write("\t{}".format(col["specimen_name"]))
+            for key in col:
+                if key in write_data:
+                    if str(col[key]) == "nan":
+                        index_nan.append(key)
+                    else:
+                        write_data[key] += "\t{}".format(str(col[key]))
+                else:
+                    continue
+        f.write("\n")
+        for line in write_data:
+            if line in index_nan:
+                pass
+            else:
+                f.write("{}{}\n".format(line, write_data[line]))
+    # print("hhhhhhhhhhhh")
+    return est_path

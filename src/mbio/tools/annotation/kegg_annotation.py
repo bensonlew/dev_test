@@ -19,8 +19,8 @@ class KeggAnnotationAgent(Agent):
     def __init__(self, parent):
         super(KeggAnnotationAgent, self).__init__(parent)
         options = [
-            {"name": "blastout", "type": "infile",
-                "format": "align.blast.blast_xml"}
+            {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
         ]
         self.add_option(options)
         self.step.add_steps('kegg_annotation')
@@ -43,7 +43,7 @@ class KeggAnnotationAgent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = ''
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -54,7 +54,7 @@ class KeggAnnotationAgent(Agent):
             ["./kegg_taxonomy.xls", "xls", "KEGG taxonomy summary"]
         ])
         result_dir.add_regexp_rules([
-            [r"pathways/ko\d+", 'pdf' , '标红pathway图']
+            [r"pathways/ko\d+", 'pdf', '标红pathway图']
         ])
         super(KeggAnnotationAgent, self).end()
 
@@ -84,6 +84,7 @@ class KeggAnnotationTool(Tool):
                 os.remove(self.output_dir + '/pathway_table.xls')
             os.link(self.work_dir + '/kegg_table.xls',
                     self.output_dir + '/kegg_table.xls')
+            self.option('kegg_table', self.output_dir + '/kegg_table.xls')
             os.link(self.work_dir + '/pathway_table.xls',
                     self.output_dir + '/pathway_table.xls')
         except subprocess.CalledProcessError:
@@ -115,7 +116,8 @@ class KeggAnnotationTool(Tool):
     def run_get_pic(self):
         cmd2 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/getPic.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
-        cmd2 += ' %s %s' % (self.work_dir + '/pid.txt',self.work_dir+'/pathways')
+        cmd2 += ' %s %s' % (self.work_dir + '/pid.txt',
+                            self.work_dir + '/pathways')
         self.logger.info("运行getPic.py")
         self.logger.info(cmd2)
         try:
@@ -130,10 +132,10 @@ class KeggAnnotationTool(Tool):
                     pid = record.split('\t')[0]
                     pids.append(pid)
             for p in pids:
-                if p!='ko00312' and p!='ko00351':
+                if p != 'ko00312' and p != 'ko00351':
                     if os.path.exists(self.output_dir + '/pathways/' + p + '.pdf'):
                         os.remove(self.output_dir + '/pathways/' + p + '.pdf')
-                    os.link(self.work_dir+'/pathways' + '/' + p + '.pdf',
+                    os.link(self.work_dir + '/pathways' + '/' + p + '.pdf',
                             self.output_dir + '/pathways/' + p + '.pdf')
         except subprocess.CalledProcessError:
             self.set_error("运行getPic.py出错")

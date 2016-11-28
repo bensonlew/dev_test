@@ -53,17 +53,20 @@ class QiimeAssignAgent(Agent):
         if not self.option("fasta").is_set:
             raise OptionError("必须设置参数fasta")
         if self.option("revcomp") not in [True, False]:
-            raise OptionError("必须设置参数revcomp")
+            raise OptionError("必须设置序列是否翻转")
         if self.option('database') == "custom_mode":
             if not self.option("ref_fasta").is_set or not self.option("ref_taxon").is_set:
-                raise OptionError("数据库自定义模式必须设置ref_fasta和ref_taxon参数")
+                raise OptionError("数据库自定义模式必须设置参考fasta序列和参考taxon文件")
         else:
             if self.option("database") not in ['silva123/16s_bacteria', 'silva123/16s_archaea',
                                                'silva123/16s', 'silva123/18s_eukaryota', 'silva123',
                                                'silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
-                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
+                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX','fgr/mrcA',
+                                               'maarjam081/AM','Human_HOMD',
+                                               'silva128/16s_archaea','silva128/16s_bacteria',
+                                               'silva128/18s_eukaryota','silva128/16s']:    #王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
 
     def end(self):

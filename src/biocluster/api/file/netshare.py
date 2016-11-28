@@ -8,7 +8,7 @@ import re
 import json
 import shutil
 import errno
-
+import re
 
 class Netshare(RemoteFile):
     def __init__(self, type_name, path):
@@ -19,7 +19,9 @@ class Netshare(RemoteFile):
         tmp = re.split(";;", path)
         if len(tmp) > 1:
             self.fileType = "dir"
-            self._fileList = json.loads(tmp[1])
+            m = re.sub("u'","'",tmp[1])  
+            # m = tmp[1].decode("unicode_escape")  # modified by sj on 2016.11.17
+            self._fileList = eval(m)
         else:
             self.fileType = "file"
         self._full_path = os.path.join(self.config[type_name + "_path"], tmp[0])
@@ -55,10 +57,15 @@ class Netshare(RemoteFile):
                     raise OSError("创建目录{}失败".format(to_path))
 
             for myDict in self._fileList:
-                source = os.path.join(self.config[self.type_name + "_path"], "rerewrweset", myDict["file_path"])
-                target = os.path.join(to_path, myDict["alias"])
+                source = os.path.join(self._full_path, myDict["file_path"])  # modified by sj on 2016.10.26
                 if not os.path.exists(source):
-                    raise Exception("文件{}不存在".format(source))
+                    m = myDict["file_path"].split("\\")
+                    source = os.path.join(self.config[self.type_name + "_path"], "rerewrweset", "".join(m))
+                    if not os.path.exists(source):
+                        source = os.path.join(self.config[self.type_name + "_path"], "".join(m))
+                        if not os.path.exists(source):
+                            raise Exception("文件{}不存在".format(source))
+                target = os.path.join(to_path, myDict["alias"])
                 shutil.copy(source, target)
             return to_path
 

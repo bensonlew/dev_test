@@ -417,6 +417,7 @@ class Basic(EventObject):
                         self.events[event_name].stop()
                         self.events[event_name].restart()
                     self.fire(event_name, rl)
+                    self._rely.remove(rl)
 
     def __event_childend(self, child):
         """
