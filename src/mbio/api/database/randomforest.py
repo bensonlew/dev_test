@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#-*- coding: utf-8 -*-
 # __author__ = 'zhangpeng'
 from biocluster.api.database.base import Base, report_check
 import re
@@ -70,7 +70,7 @@ class Randomforest(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("randomforest_id", table_id), ("x", line_data[1]), ("y", line_data[2])]
+                    data = [("randomforest_id", table_id),("specimen_name", line_data[0]),("x", line_data[1]), ("y", line_data[2])]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
@@ -107,7 +107,8 @@ class Randomforest(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("randomforest_id", table_id), ("accuracy", line_data[a2-1]), ("gini", line_data[a2])]
+                    #data = [("randomforest_id", table_id),("specimen_name","line_data[0]") ("accuracy", line_data[a2-1]), ("gini", line_data[a2])]
+                    data = [("randomforest_id", table_id), ("specimen_name", "line_data[0]"), ("accuracy", line_data[-2]), ("gini", line_data[-1])]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
