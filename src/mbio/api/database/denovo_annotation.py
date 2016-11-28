@@ -64,6 +64,8 @@ class DenovoAnnotation(Base):
             self.add_annotation_pie(annotation_id=annotation_id, evalue_path=nr_pie + 'nr_evalue.xls', similar_path=nr_pie + 'nr_similar.xls', query_type='transcript')
             self.add_annotation_go_detail(annotation_id=annotation_id, go_path=anno_stat_dir + '/go/go1234level_statistics.xls', query_type='transcript')
             self.add_annotation_go_detail(annotation_id=annotation_id, go_path=anno_stat_dir + '/anno_stat/go_stat/gene_go1234level_statistics.xls', query_type='gene')
+            self.add_gos_list(annotation_id=annotation_id, gos_path=anno_stat_dir + '/go/query_gos.list', query_type='transcript')
+            self.add_gos_list(annotation_id=annotation_id, gos_path=anno_stat_dir + '/anno_stat/go_stat/gene_gos.list', query_type='gene')
             go_files = os.listdir(anno_stat_dir + '/anno_stat/go_stat/') + os.listdir(anno_stat_dir + '/go')
             for i in go_files:
                 if re.search(r'^gene.*level\.xls$', i):
@@ -260,7 +262,37 @@ class DenovoAnnotation(Base):
             self.bind_object.logger.error("导入go注释作图信息：%s出错!" % (level_path, e))
         else:
             self.bind_object.logger.info("导入go注释作图信息：%s成功!" % (level_path))
-
+    @report_check
+    def add_gos_list(self, annotation_id, gos_path, query_type=None):
+        if not isinstance(annotation_id,ObjectId):
+            if isinstance(annotation, types.StringTypes):
+                annotation_id = ObjectId(annotation_id)
+            else:
+                raise Exception('annotation_id须为ObjectId对象或其他对应的字符串！')
+        if not os.path.exists(gos_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(gos_path))
+        data_list = []
+        with open(gos_path, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                line = line.strip().split('\t')                
+                data = [
+                    ('annotation_id', annotation_id),
+                    ('gene_id', line[0]),
+                    ('go_id', line[1]),                  
+                ]
+                if query_type:
+                    data.append(('type', query_type))
+                data = SON(data)
+                data_list.append(data)
+            try:
+                collection = self._db_name['sg_denovo_annotation_gos_list']
+                collection.insert_many(data_list)
+            except Exception, e:
+                self.bind_object.logger.error("导入cog注释信息：%s出错!" % (gos_path, e))
+          #  else:
+           #     self.bind_object.logger.info("导入cog注释信息：%s成功!" % (gos_path))
+           
     @report_check
     def add_annotation_cog_detail(self, annotation_id, cog_path, query_type=None):
         '''
