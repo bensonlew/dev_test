@@ -17,9 +17,9 @@ from biocluster.config import Config
 
 class DenovoGoEnrich(Base):
     def __init__(self, bind_object):
-        super(DenovoGoEnrich, self).__init__()
+        super(DenovoGoEnrich, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_rna'
-    
+
     @report_check
     def add_go_enrich(self, name=None, params=None, go_graph_dir=None, go_enrich_dir=None):
         project_sn = self.bind_object.sheet.project_sn
@@ -31,10 +31,10 @@ class DenovoGoEnrich(Base):
             'params': params,
             'status': 'end',
             'desc': 'go富集分析主表',
-            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
         collection = self._db_name['sg_denovo_go_enrich']
-        go_enrich_id = collection.insert_one(insert_data).inserted_id 
+        go_enrich_id = collection.insert_one(insert_data).inserted_id
         fs = gridfs.GridFS(self._db_name)
         gra = fs.put(open(go_graph_dir, 'rb'))
         try:
@@ -44,10 +44,10 @@ class DenovoGoEnrich(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功！" % (go_graph_dir))
         if os.path.exists(go_enrich_dir):
-            self.add_go_enrich_detail(go_enrich_id, go_enrich_dir)  
+            self.add_go_enrich_detail(go_enrich_id, go_enrich_dir)
         print "add sg_denovo_go_enrich sucess!"
         return go_enrich_id
-    
+
     @report_check
     def add_go_enrich_detail(self, go_enrich_id, go_enrich_dir):
         if not isinstance(go_enrich_id,ObjectId):
@@ -64,7 +64,7 @@ class DenovoGoEnrich(Base):
                 line = line.strip().split('\t')
                 m = re.match(r"(.+)/(.+)", line[5])
                 pop_count = int(m.group(1))
-                line[6] = float(line[6]) 
+                line[6] = float(line[6])
                 line[7] = int(line[7])
                 line[8] = int(line[8])
                 line[9] = float(line[9])
@@ -83,12 +83,24 @@ class DenovoGoEnrich(Base):
                     ('depth', line[7]),
                     ('study_count', line[8]),
                     ('pop_count', pop_count),
-                    ('p_bonferroni', line[9]), 
-                    ('p_sidak', line[10]),
-                    ('p_holm', line[11]),
-                    ('p_fdr', line[12]),
                     ('diff_genes', line[13]),
                 ]
+                try:
+                    data += [('p_bonferroni', line[9])]
+                except:
+                    data += [('p_bonferroni', '')]
+                try:
+                    data += [('p_sidak', line[10])]
+                except:
+                    data += [('p_sidak', '')]
+                try:
+                    data += [('p_holm', line[11])]
+                except:
+                    data += [('p_holm', '')]
+                try:
+                    data += [('p_fdr', line[12])]
+                except:
+                    data += [('p_fdr', '')]
                 data = SON(data)
                 data_list.append(data)
             try:
@@ -98,7 +110,7 @@ class DenovoGoEnrich(Base):
                 self.bind_object.logger.error("导入go富集信息：%s出错!" % (go_enrich_dir, e))
             else:
                 self.bind_object.logger.info("导入go富集信息：%s成功!" % (go_graph_dir))
-    
+
     @report_check
     def add_go_regulate(self, name=None, params=None, go_regulate_dir=None):
         project_sn = self.bind_object.sheet.project_sn
@@ -110,15 +122,15 @@ class DenovoGoEnrich(Base):
             'params': params,
             'status': 'end',
             'desc': 'go调控分析主表',
-            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
         collection = self._db_name['sg_denovo_go_regulate']
-        go_regulate_id = collection.insert_one(insert_data).inserted_id   
+        go_regulate_id = collection.insert_one(insert_data).inserted_id
         if os.path.exists(go_regulate_dir):
-            self.add_go_regulate_detail(go_regulate_id, go_regulate_dir) 
+            self.add_go_regulate_detail(go_regulate_id, go_regulate_dir)
         return go_regulate_id
-        
-   @report_check    
+
+    @report_check
     def add_go_regulate_detail(self, go_regulate_id, go_regulate_dir):
         if not isinstance(go_regulate_id,ObjectId):
             if isinstance(go_regulate_id, types.StringTypes):
@@ -137,9 +149,9 @@ class DenovoGoEnrich(Base):
                 line[5] = int(line[5])
                 line[6] = float(line[6])
                 data = [
-                    ('go_regulate_id', go_regulate_id), 
+                    ('go_regulate_id', go_regulate_id),
                     ('go_type', line[0]),
-                    ('go', line[1]), 
+                    ('go', line[1]),
                     ('go_id', line[2]),
                     ('up_num', line[3]),
                     ('up_percent', line[4]),
