@@ -108,7 +108,7 @@ class Randomforest(Base):
                     line = line.strip('\n')
                     line_data = line.split('\t')
                     #data = [("randomforest_id", table_id),("specimen_name","line_data[0]") ("accuracy", line_data[a2-1]), ("gini", line_data[a2])]
-                    data = [("randomforest_id", table_id), ("specimen_name", "line_data[0]"), ("accuracy", line_data[-2]), ("gini", line_data[-1])]
+                    data = [("randomforest_id", table_id), ("species_name", line_data[0]), ("accuracy", float(line_data[-2])), ("gini", float(line_data[-1]))]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
