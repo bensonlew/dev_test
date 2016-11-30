@@ -39,7 +39,11 @@ class PearsonCorrelation(MetaController):
                         "env_id": data.env_id,
                         "env_file": data.env_id,
                         "env_labs": data.env_labs
+                        # "method": "pearsonr"
                         }
+        if hasattr(data, "method"):
+            print(data.method)
+            self.options["method"] = data.method
         self.options["params"] = str(self.options)
         self.to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
         self.run()
