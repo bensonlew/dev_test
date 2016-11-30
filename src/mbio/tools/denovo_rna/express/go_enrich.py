@@ -22,6 +22,8 @@ class GoEnrichAgent(Agent):
             {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
+            {"name": "pval", "type": "string", "default": "0.05"},
+            {"name": "method", "type": "string", "default": "bonferroni,sidak,holm,fdr"}
             ]
         self.add_option(options)
         self.step.add_steps("goenrich")
@@ -42,9 +44,12 @@ class GoEnrichAgent(Agent):
         重写参数检测函数
         :return:
         """
-        for item in self._options.values():
-            if not item.is_set:
-                raise OptionError('缺少输入文件')
+        if not self.option("diff_list").is_set:
+            raise OptionError("缺少输入文件:差异基因名称文件")
+        if not self.option("all_list").is_set:
+            raise OptionError("缺少输入文件:全部基因名称文件")
+        if not self.option("go_list").is_set:
+            raise OptionError("缺少输入文件:差异基因对应的go_id")
 
 
     def set_resource(self):
@@ -83,7 +88,7 @@ class GoEnrichTool(Tool):
     def run_enrich(self):
         cmd = self.python_path + ' ' + self.config.SOFTWARE_DIR + self.go_enrich_path + ' '
         cmd = cmd + self.option('diff_list').path + ' ' + self.option('all_list').path + ' ' + self.option('go_list').path
-        cmd = cmd + ' --indent --method bonferroni,sidak,holm,fdr --outfile ' + self.out_enrich_fp
+        cmd = cmd + ' --pval ' + self.option('pval') + ' --indent' + ' --method ' + self.option('method') + ' --outfile ' + self.out_enrich_fp
         cmd = cmd + ' --obo ' + self.obo
         command = self.add_command('go_enrich', cmd)
         command.run()

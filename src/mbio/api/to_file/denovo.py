@@ -149,3 +149,44 @@ def export_fasta_path(data, option_name, dir_path, bind_obj=None):
     gene_path = my_result['gene_path']
     dir_path = gene_path
     return dir_path
+
+def go_enrich(data, option_name, dir_path, bind_obj=None):
+    all_list = os.path.join(dir_path, "all_gene.list")
+    diff_list = os.path.join(dir_path, "unigene.list")
+    #bind_obj.logger.debug('正在导出go富集分析的infile：%s' % (all_list, diff_list, go_list))
+    collection = db["sg_denovo_express_detail"]
+    my_collecton = db["sg_denovo_express"]
+    results = collection.find({"$and": [{"express_id": ObjectId(data)}, {"type": "gene"}]})
+    my_result = my_collecton.find_one({"_id": ObjectId(data)})
+    if not my_result:
+        raise Exception("意外错误，expree_id:{}在sg_denovo_express中未找到!".format(ObjectId(data)))
+    with open(all_list, "wb") as w1, open(diff_list, "wb") as w2:
+        for result in results:
+            gene_id = result["gene_id"]
+            w1.write(gene_id + "\n")
+            collection1 = db["sg_denovo_express_diff"]
+            results1 = collection1.find({"express_id": ObjectId(data)})
+            for result1 in results1:
+                express_diff_id = result1["_id"]
+                collection2 = db["sg_denovo_express_diff_detail"]
+                results2 = collection2.find({"express_diff_id": express_diff_id})
+                for result2 in results2:
+                    gene_id = result2["gene_id"]
+                    w2.write(gene_id + "\n")
+    paths = ','.join([all_list, diff_list])
+    return paths
+
+def go_enrich_annotation(data, option_name, dir_path, bind_obj=None):
+    gos_list = os.path.join(dir_path, "unigene_gos.list")
+    collection = db["sg_denovo_annotation_gos_list"]
+    results = collection.find({"annotation_id": ObjectId(data)})
+    my_collection = db["sg_denovo_annotation"]
+    my_result = my_collection.find_one({"_id": ObjectId(data)})
+    if not my_result:
+        raise Exception("意外错误，annotation_id:{}在sg_denovo_annotation中未找到！".format(ObjectId(data)))
+    with open(gos_list, "wb") as w:
+        for result in results:
+            gene_id = result["gene_id"]
+            go_list = result["go_id"]
+            w.write(gene_id + "\t" + go_list + "\n")
+    return gos_list
