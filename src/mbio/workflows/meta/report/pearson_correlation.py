@@ -32,6 +32,7 @@ class PearsonCorrelationWorkflow(Workflow):
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
             {"name": "group_id", "type": "string"},
+            {"name": "method", "type": "string", "default": "pearsonr"},
             {"name": "group_detail", "type": "string"}
             ]
         self.add_option(options)
@@ -39,11 +40,13 @@ class PearsonCorrelationWorkflow(Workflow):
         self.set_options(self._sheet.options())
         self.correlation = self.add_tool('statistical.pearsons_correlation')
         self.params = {}
+        self.name_to_name = {}
 
     def run_correlation(self):
         options = {
             'otutable': self.option('otu_file'),
-            'envtable': self.option('env_file')
+            'envtable': self.option('env_file'),
+            "method": self.option('method')
             }
         self.correlation.set_options(options)
         self.correlation.on("end", self.set_db)
@@ -56,6 +59,15 @@ class PearsonCorrelationWorkflow(Workflow):
         # self.run_distance()
         # self.on_rely(self.tools, self.set_db)
         super(PearsonCorrelationWorkflow, self).run()
+
+    def get_name(self):
+        with open(self.correlation.work_dir + "/name_to_name.xls", "r") as f:
+            for line in f:
+                line = line.strip().split("\t")
+                self.name_to_name[line[0]] = line[1]
+
+    def dashrepl(self, matchobj):
+        return self.name_to_name[matchobj.groups()[0]]
 
     def set_db(self):
         """
@@ -80,25 +92,28 @@ class PearsonCorrelationWorkflow(Workflow):
         env_tree_path = self.correlation.work_dir + "/env_tree.tre"
         species_tree_path = self.correlation.work_dir + "/species_tree.tre"
 
+        self.get_name()
+
         if os.path.exists(env_tree_path):
             with open(env_tree_path, "r") as f:
                 env_tree = f.readline().strip()
                 raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', env_tree)
                 env_list = [i[1] for i in raw_samp]
-                # env_list = sorted(env_list)
-                print("llllllllll")
-                print(env_list)
+                # print(env_list)
         if os.path.exists(species_tree_path):
             with open(species_tree_path, "r") as f:
                 species_tree = f.readline().strip()
                 raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', species_tree)
-                species_list = [i[1] for i in raw_samp]
-                # species_list = sorted(species_list)
+                # print(self.name_to_name)
+                species_list = [self.name_to_name[i[1]] for i in raw_samp]
+
+                new_species_tree = re.sub(r"(name\d+)", self.dashrepl, species_tree)
+                print(new_species_tree)
                 # print(species_list)
-                print("llllllllll")
+                # new_species_list = []
         name = "correlation" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         corr_id = api_correlation.add_correlation(self.option("level"), self.option("otu_id"), self.option("env_id"),
-                                                  species_tree=species_tree, env_tree=env_tree, name=name,
+                                                  species_tree=new_species_tree, env_tree=env_tree, name=name,
                                                   params=self.params, env_list=env_list, species_list=species_list)
         api_correlation.add_correlation_detail(corr_path[0], "correlation", corr_id)
         api_correlation.add_correlation_detail(pvalue_path[0], "pvalue", corr_id)
