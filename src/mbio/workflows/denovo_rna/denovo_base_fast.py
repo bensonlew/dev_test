@@ -10,14 +10,14 @@ import shutil
 import re
 
 
-class DenovoBaseWorkflow(Workflow):
+class DenovoBaseFastWorkflow(Workflow):
     def __init__(self, wsheet_object):
         """
         version = v1.0
         last_modify = 20160825
         """
         self._sheet = wsheet_object
-        super(DenovoBaseWorkflow, self).__init__(wsheet_object)
+        super(DenovoBaseFastWorkflow, self).__init__(wsheet_object)
         print self._parent
         options = [
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq,sequence.fastq_dir"},  # fastq文件夹
@@ -83,8 +83,6 @@ class DenovoBaseWorkflow(Workflow):
             raise OptionError('测序类型不在所给范围内')
         if self.option('diff_ci') > 1 or self.option('diff_ci') < 0:
             raise OptionError('显著性水平不在所给范围内[0,1]')
-        if self.option('diff_rate') > 1 or self.option('diff_rate') < 0:
-            raise OptionError('差异基因比率不在所给范围内[0,1]')
         if self.option("fq_type") == 'SE' and self.option("SS_lib_type") not in ['F', 'R', 'none']:
             raise OptionError("SE测序时所设reads方向：{}不正确".format(self.option("SS_lib_type")))
         if self.option("fq_type") == 'PE' and self.option("SS_lib_type") not in ['FR', 'RF', 'none']:
@@ -361,7 +359,7 @@ class DenovoBaseWorkflow(Workflow):
             self.blast_nr.set_options(blast_opts)
             self.blast_tools.append(self.blast_nr)
             self.blast_nr.on('end', self.set_output, 'nrblast')
-            self.blast_nr.run()
+            # self.blast_nr.run()
         if 'cog' in self.option('database'):
             self.blast_string = self.add_module('align.blast')
             blast_opts.update(
@@ -370,16 +368,16 @@ class DenovoBaseWorkflow(Workflow):
             self.blast_string.set_options(blast_opts)
             self.blast_tools.append(self.blast_string)
             self.blast_string.on('end', self.set_output, 'stringblast')
-            self.blast_string.run()
+            # self.blast_string.run()
         if 'kegg' in self.option('database'):
-            self.blast_string = self.add_module('align.blast')
+            self.blast_kegg = self.add_module('align.blast')
             blast_opts.update(
                 {'database': 'kegg', 'evalue': self.option('kegg_blast_evalue')}
             )
             self.blast_kegg.set_options(blast_opts)
             self.blast_tools.append(self.blast_kegg)
             self.blast_kegg.on('end', self.set_output, 'keggblast')
-            self.blast_kegg.run()
+            # self.blast_kegg.run()
         self.on_rely(self.blast_tools, self.run_annotation)
         if os.path.exists(self.work_dir + '/blast.o'):
             print '............blast have already run'
@@ -393,7 +391,7 @@ class DenovoBaseWorkflow(Workflow):
             self.test_end(self.blast_nr)
             self.test_end(self.blast_string)
         else:
-            print '............run annotation '
+            print '............run blast '
             self.blast_kegg.run()
             self.blast_nr.run()
             self.blast_string.run()
@@ -445,7 +443,6 @@ class DenovoBaseWorkflow(Workflow):
             'control_file': self.option('control_file'),
             'exp_way': self.option('exp_way'),
             'diff_ci': self.option('diff_ci'),
-            'diff_rate': self.option('diff_rate')
         }
         if self.option('fq_type') == 'SE':
             exp_stat_opts.update({'fq_s': self.qc.option('sickle_dir')})
@@ -661,7 +658,6 @@ class DenovoBaseWorkflow(Workflow):
                     compare_column.append('|'.join(con_exp))
             diff_param = {
                 'ci': self.option('diff_ci'),
-                'rate': self.option('diff_rate'),
             }
             if self.option('group_table').is_set:
                 express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, diff_exp_dir=diff_exp_dir)
@@ -740,7 +736,7 @@ class DenovoBaseWorkflow(Workflow):
         self.orf.on('end', self.run_orf_len)
         self.final_tools.append(self.orf_len)
         if self.option('database'):
-            self.assemble.on('end', self.run_annotation)
+            self.assemble.on('end', self.run_blast)
             self.final_tools.append(self.annotation)
         self.on_rely([self.orf, self.exp_stat], self.run_map_qc)
         self.final_tools.append(self.map_qc)
@@ -759,11 +755,11 @@ class DenovoBaseWorkflow(Workflow):
         else:
             self.on_rely(self.final_tools, self.end)
         self.run_filecheck()
-        super(DenovoBaseWorkflow, self).run()
+        super(DenovoBaseFastWorkflow, self).run()
 
     def end(self):
         self.send_files()
-        super(DenovoBaseWorkflow, self).end()
+        super(DenovoBaseFastWorkflow, self).end()
 
     def send_files(self):
         self.logger.info('denovo_base upload files start')

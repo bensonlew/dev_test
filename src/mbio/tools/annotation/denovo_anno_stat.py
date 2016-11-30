@@ -5,8 +5,8 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.packages.align.blast.xml2table import xml2table
-from mbio.packages.annonation.denovo_anno_stat.cog_stat import cog_stat
-from mbio.packages.annonation.denovo_anno_stat.nr_stat import nr_stat
+from mbio.packages.annotation.denovo_anno_stat.cog_stat import cog_stat
+from mbio.packages.annotation.denovo_anno_stat.nr_stat import nr_stat
 from mbio.packages.align.blast.blastout_statistics import *
 import os
 import re

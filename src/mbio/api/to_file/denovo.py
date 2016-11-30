@@ -64,7 +64,7 @@ def export_control_file(data, option_name, dir_path, bind_obj=None):
     with open(file_path, 'wb') as w:
         w.write('#control\t{}\n'.format(result['scheme_name']))
         for i in control_detail:
-            w.write('{}\t{}\n'.format(i, control_detail[i]))
+            w.write('{}\t{}\n'.format(i.keys()[0], i.values()[0]))
     return file_path
 
 

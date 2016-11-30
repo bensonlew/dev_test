@@ -3,7 +3,7 @@
 from __future__ import division
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-from mbio.packages.annonation.denovo_anno_stat.all_annotation_stat import AllAnnoStat
+from mbio.packages.annotation.denovo_anno_stat.all_annotation_stat import AllAnnoStat
 import os
 import shutil
 
@@ -202,7 +202,6 @@ class DenovoAnnotationModule(Module):
             self.all_end_tool.append(self.go_annot)
             self.run_go_anno()
         if self.option('blast_string_xml').is_set:
-            self.anno_stat_opt['string_xml'] = self.option('blast_string_xml')
             self.anno_database.append('cog')
             self.all_end_tool.append(self.string_cog)
             self.run_string2cog()

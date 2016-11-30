@@ -19,7 +19,7 @@ class BlastModule(Module):
         self._database_type = {'nt': 'nucl', 'nr': 'prot', 'kegg': 'prot', 'swissprot': 'prot', 'string': 'prot'}
         options = [
             {"name": "query", "type": "infile", "format": "sequence.fasta"},  # 输入文件
-            {"name": "lines", "type": "int", "default": 100000},  # 将fasta序列拆分此行数的多个文件
+            {"name": "lines", "type": "int", "default": 500},  # 将fasta序列拆分此行数的多个文件
             {"name": "query_type", "type": "string"},  # 输入的查询序列的格式，为nucl或者prot
             {"name": "database", "type": "string", "default": "nr"},
             # 比对数据库 nt nr string swissprot kegg customer_mode
@@ -120,9 +120,10 @@ class BlastModule(Module):
             blast_tool.run()
             self.blast_tools.append(blast_tool)
         self.on_rely(self.blast_tools, self.run_catblastout)
-        self.on_rely(self.blast_tools, self.set_step, {'end': self.step.blast})
+        # self.on_rely(self.blast_tools, self.set_step, {'end': self.step.blast})  # on_rely相同的依赖列表不能绑定多个函数
 
     def run_catblastout(self):
+        self.set_step(event={'data': {'end': self.step.blast}})
         if os.path.exists(self.work_dir + '/blast_tmp'):
             shutil.rmtree(self.work_dir + '/blast_tmp')
         os.mkdir(self.work_dir + '/blast_tmp')
@@ -150,12 +151,13 @@ class BlastModule(Module):
             self.catblast.on('end', self.set_step, {'end': self.step.cat_blastout})
             self.catblast.on('end', self.set_output)
         else:
-            self.on_rely(self.catblast_tools, self.set_step, {'end': self.step.cat_blastout})
+            # self.on_rely(self.catblast_tools, self.set_step, {'end': self.step.cat_blastout})
             self.on_rely(self.catblast_tools, self.set_output)
         for i in self.catblast_tools:
             i.run()
 
     def set_output(self):
+        self.set_step(event={'data': {'end': self.step.cat_blastout}})
         for root, dirs, files in os.walk(self.output_dir):
             for names in files:
                 os.remove(os.path.join(root, names))
