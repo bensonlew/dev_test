@@ -75,6 +75,7 @@ class RandomforestAgent(Agent):
         if len(table.readlines()) < 4 :
             raise OptionError('数据表信息少于3行')
         table.close()
+        #self.option(32767, self.option('otutable').prop['otu_num'])
         self.option('top_number', self.option('otutable').prop['otu_num'])
         return True
 
@@ -149,7 +150,8 @@ class RandomforestTool(Tool):
             cmd += ' -g %s -m %s' % (self.group_table, self.group_table)
         cmd += ' -ntree %s' % (str(self.option('ntree')))
         cmd += ' -type %s' % (str(self.option('problem_type')))
-        cmd += ' -top %s' % (str(self.option('top_number')))
+        #cmd += ' -top %s' % (str(self.option('top_number')))
+        #cmd += ' -top 32767
         self.logger.info('运行RandomForest_perl.pl程序进行RandomForest计算')
 
         try:
