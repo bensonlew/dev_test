@@ -37,6 +37,6 @@ class DenovoEnrich(object):
             'desc': 'go调控分析主表',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
         }
-        collection = self._db_name['sg_denovo_go_regulate']
+        collection = self.db['sg_denovo_go_regulate']
         go_regulate_id = collection.insert_one(insert_data).inserted_id    
         return go_regulate_id
