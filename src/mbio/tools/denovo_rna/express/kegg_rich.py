@@ -18,7 +18,7 @@ class KeggRichAgent(Agent):
         options = [
             {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},  # 只含有基因的kegg table结果文件
             {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # gene名字文件
-            {"name": "diff_stat", "type": "infile", "format": "denovo_rna.express.diff_stat_table"},
+            {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "correct", "type": "string", "default": "BH"}  # 多重检验校正方法
         ]
         self.add_option(options)
@@ -43,8 +43,8 @@ class KeggRichAgent(Agent):
             raise OptionError('必须设置kegg的pathway输入文件')
         if self.option('correct') not in ['BY', 'BH', 'None', 'QVALUE']:
             raise OptionError('多重检验校正的方法不在提供的范围内')
-        if not self.option("diff_stat").is_set:
-            raise OptionError("必须设置输入文件diff_stat")
+        if not self.option("diff_list").is_set:
+            raise OptionError("必须设置输入文件diff_list")
         if not self.option("all_list").is_set:
             raise OptionError("必须设置输入文件all_list")
         return True
@@ -77,7 +77,7 @@ class KeggRichTool(Tool):
         self.set_environ(PYTHONPATH=self.kobas_path)
         self.python = '/program/Python/bin/'
         self.all_list = self.option('all_list').prop['gene_list']
-        self.diff_list = self.option('diff_stat').prop['diff_genes']
+        self.diff_list = self.option('diff_list').prop['gene_list']
 
     def run(self):
         """
@@ -100,7 +100,7 @@ class KeggRichTool(Tool):
             self.logger.info("kegg富集第一步运行出错:{}".format(e))
 
     def run_identify(self):
-        kofile = os.path.splitext(os.path.basename(self.option('diff_stat').prop['path']))[0]
+        kofile = os.path.splitext(os.path.basename(self.option('diff_list').prop['path']))[0]
         cmd_2 = self.python + 'python {}identify.py -f {} -n {} -b {} -o {}.kegg_enrichment.xls'.format(self.config.SOFTWARE_DIR + self.kobas, self.work_dir + '/kofile', self.option('correct'), self.work_dir + '/all_kofile', kofile)
         self.logger.info('开始运行kegg富集第二步：进行kegg富集分析')
         command_2 = self.add_command("cmd_2", cmd_2).run()

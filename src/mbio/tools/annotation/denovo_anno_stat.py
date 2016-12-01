@@ -211,9 +211,17 @@ class DenovoAnnoStatTool(Tool):
         xml2table(self.gene_kegg_xml, self.work_dir + '/blast/gene_kegg.xls')
         self.logger.info("完成筛选gene_kegg.xml、gene_kegg.xls")
         # kegg_stat
-        kegg_cmd = '{} {} {} {} {} {} {} {} {}'.format(self.python_path, self.kegg_anno, self.gene_kegg_xml, self.kegg_stat_path + '/gene_kegg_table.xls', self.kegg_stat_path + '/gene_pathway_table.xls', self.kegg_stat_path + '/gene_pid.txt', self.kegg_stat_path + '/gene_kegg_layer.xls', self.kegg_stat_path + '/gene_kegg_taxonomy.xls', gene_pathway)
-        self.add_command('kegg_stat_cmd', kegg_cmd).run()
-        self.logger.info('Start: kegg stat')
+        try:
+            kegg_anno = self.load_package('annotation.kegg.kegg_annotation')()
+            kegg_anno.pathSearch(blast_xml=self.gene_kegg_xml, kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
+            kegg_anno.pathTable(kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls', pathway_path=self.kegg_stat_path + '/gene_pathway_table.xls', pidpath=self.work_dir + '/gene_pid.txt')
+            kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway)
+            kegg_anno.keggLayer(pathway_table=self.kegg_stat_path + '/gene_pathway_table.xls', layerfile=self.kegg_stat_path + '/gene_kegg_layer.xls', taxonomyfile=self.kegg_stat_path + '/gene_kegg_taxonomy.xls')
+            self.logger.info('finish: kegg stat')
+        except:
+            import traceback
+            self.logger.info('error:{}'.format(traceback.format_exc()))
+            self.set_error("运行kegg脚本出错！")
 
     def run_go_stat(self):
         self.go_stat_path = self.work_dir + '/go_stat/'
@@ -345,13 +353,13 @@ class DenovoAnnoStatTool(Tool):
                 self.run_cog_stat()
             if db == 'nr':
                 self.run_nr_stat()
-            if db == 'kegg':
-                self.run_kegg_stat()
             if db == 'go':
                 self.run_go_stat()
-        if 'go' in self.database or 'kegg' in self.database:
+            if db == 'kegg':
+                self.run_kegg_stat()
+        if 'go' in self.database:
             self.wait()
-            self.logger.info('end: go and kegg stat')
+            self.logger.info('end: go stat')
         self.set_output()
         self.get_all_anno_stat()
         self.end()

@@ -41,7 +41,7 @@ class ExpAnalysisModule(Module):
         self.bowtie_build = self.add_tool("denovo_rna.express.rsem")
         self.merge_rsem = self.add_tool("denovo_rna.express.merge_rsem")
         self.diff_exp = self.add_tool("denovo_rna.express.diff_exp")
-        self.tool_lists = []
+        self.rsem_tools = []
         self.diff_gene = False
         self.bam_path = self.work_dir + '/bowtie2_bam_dir/'
 
@@ -101,7 +101,7 @@ class ExpAnalysisModule(Module):
                     # print self.bowtie_build.option('fa_build').prop['path']
                     self.rsem.set_options(tool_opt)
                     self.rsem.run()
-                    self.tool_lists.append(self.rsem)
+                    self.rsem_tools.append(self.rsem)
         else:
             r_files = os.listdir(self.option('fq_r').prop['path'])
             l_files = os.listdir(self.option('fq_l').prop['path'])
@@ -115,11 +115,11 @@ class ExpAnalysisModule(Module):
                             self.rsem = self.add_tool('denovo_rna.express.rsem')
                             self.rsem.set_options(tool_opt)
                             self.rsem.run()
-                            self.tool_lists.append(self.rsem)
-        print self.tool_lists
-        self.on_rely(self.tool_lists, self.set_output, 'rsem')
-        self.on_rely(self.tool_lists, self.merge_rsem_run)
-        self.on_rely(self.tool_lists, self.set_step, {'end': self.step.rsem, 'start': self.step.merge_rsem})
+                            self.rsem_tools.append(self.rsem)
+        print self.rsem_tools
+        self.on_rely(self.rsem_tools, self.set_output, 'rsem')
+        # self.on_rely(self.rsem_tools, self.merge_rsem_run)
+        # self.on_rely(self.rsem_tools, self.set_step, {'end': self.step.rsem, 'start': self.step.merge_rsem})
 
     def set_step(self, event):
         if 'start' in event['data'].keys():
@@ -178,7 +178,7 @@ class ExpAnalysisModule(Module):
     def set_output(self, event):
         obj = event['bind_object']
         if event['data'] == 'rsem':
-            for tool in self.tool_lists:
+            for tool in self.rsem_tools:
                 self.linkdir(tool.output_dir, 'rsem', self.output_dir)
                 files = os.listdir(tool.work_dir)
                 for f in files:
@@ -189,7 +189,8 @@ class ExpAnalysisModule(Module):
                         else:
                             os.link(os.path.join(tool.work_dir, f), self.bam_path + f)
             self.option('bam_dir', self.bam_path)
-            # self.merge_rsem_run()
+            self.set_step({'data': {'end': self.step.rsem, 'start': self.step.merge_rsem}})
+            self.merge_rsem_run()
         elif event['data'] == 'merge_rsem':
             self.linkdir(obj.output_dir, 'rsem', self.output_dir)
             self.option('gene_count', self.merge_rsem.option('gene_count'))

@@ -1,189 +1,208 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'qiuping'
-
 import xml.etree.ElementTree as ET
-import sqlite3
+import pymongo
 from biocluster.config import Config
 import re
-import sys
+from Bio import SeqIO
 from Bio.KEGG.REST import *
 from Bio.KEGG.KGML import KGML_parser
 from Bio.Graphics.KGML_vis import KGMLCanvas
+import collections
+from itertools import islice
+import gridfs
+from IPython.display import Image, HTML
+from pymongo import MongoClient
+import os
+import sys
 
 
 class KeggAnnotation(object):
     def __init__(self):
-        self.mongodb = Config().mongo_client.sanger_biodb
-        self.sqlitedb_path = Config().SOFTWARE_DIR + '/database/KEGG/ko/ko.db'
-        self.sqlitedb = sqlite3.connect(self.sqlitedb_path)
-        self.stat_info = dict()  # {'path_id': {'seqs': set([gene1,gene2,...]), 'koids': set(['K04345', 'K04432',...]), 'seqlist': set(['gene1(K02183)', 'gene2(K04345)',...])},...}
-        self.cursor = self.sqlitedb.cursor()
-        self.pathway_pic = Config().SOFTWARE_DIR + '/database/KEGG/pathway_map2/'
+        """
+        设置数据库，连接到mongod数据库，kegg_ko,kegg_gene,kegg_pathway_png三个collections
+        """
+        self.client = MongoClient(Config().MONGO_BIO_URI)
+        self.mongodb = self.client.sanger_biodb
+        self.gene_coll = self.mongodb.kegg_gene
+        self.ko_coll = self.mongodb.kegg_ko
+        self.png_coll = self.mongodb.kegg_pathway_png
+        self.path = collections.defaultdict(str)
 
-    def transversion(self, givenlist):
-        return map(lambda x: x[0], givenlist)
+    def pathSearch(self, blast_xml, kegg_table):
+        # 输入blast比对的xml文件
+        """
+        输入blast比对的xml文件(Trinity_vs_kegg.xml)，输出kegg_table.xls
+        """
+        tablefile = open(kegg_table, "wb")
+        tablefile.write('#Query\tKO_ID (Gene id)\tKO_name (Gene name)\tHyperlink\tPaths\n')
+        docment = ET.parse(blast_xml)
+        root = docment.getroot()
+        iterns = root.find('BlastOutput_iterations')
+        for itern in iterns:
+            query = itern.find('Iteration_query-def').text.split()[0]
+            iter_hits = itern.find('Iteration_hits')
+            hits = iter_hits.findall('Hit')
+            if len(hits) > 0:
+                hit = hits[0]
+                gid = hit.find('Hit_id').text
+                # 在数据库中寻找该gene id对应的ko信息，可能改基因并不能在数据库中查到对应的信息
+                try:
 
-    def kegg_by_sqlite(self, kegg_xml, kegg_table):
-        """
-        传入blast比对kegg的xml文件，获取kegg注释信息：kegg_table.xls，并获取统计pathway信息的self.stat_info,用于生成pathway_table.xls,pid.txt
-        kegg_xml:blast比对kegg的xml文件
-        kegg_table:kegg_table.xls结果文件
-        """
-        with open(kegg_table, 'wb') as tablefile:
-            tablefile.write('#Query\tKO_ID (Gene id)\tKO_name (Gene name)\tHyperlink\tPaths\n')
-            document = ET.parse(kegg_xml)
-            root = document.getroot()
-            identations = root.find('BlastOutput_iterations')
-            for identation in identations.findall('Iteration'):
-                query = identation.find('Iteration_query-def').text.split()[0]
-                iter_hits = identation.find('Iteration_hits')
-                hits = iter_hits.findall('Hit')
-                duplicated = set()
-                if len(hits) > 0:
-                    for hit in hits:
-                        gid = hit.find('Hit_id').text
-                        koids = self.cursor.execute("SELECT koid FROM KoGenes WHERE gid = '%s'" % gid).fetchall()
-                        koids = self.transversion(koids)
-                        if len(koids) >= 1:
-                            for theid in koids:
-                                koresults = self.cursor.execute("SELECT * FROM Kos WHERE koid = '%s'" % theid).fetchall()
-                                if len(koresults) >= 1:
-                                    for ko in koresults:
-                                        koid = ko[0]
-                                        koname = ko[1]
-                                        kohlink = 'http://www.genome.jp/dbget-bin/www_bget?ko:{}'.format(koid)
-                                        pids = self.cursor.execute(
-                                            "SELECT pid FROM KoPathways WHERE koid = '%s'" % koid)
-                                        pids = self.transversion(pids)
-                                        if len(pids) >= 1:
-                                            newp = []
-                                            for p in pids:
-                                                newp.append('path:' + p)
-                                                if p in self.stat_info:
-                                                    self.stat_info[p]['seqs'].add(query)
-                                                    self.stat_info[p]['seqlist'].add('{}({})'.format(query, koid))
-                                                    self.stat_info[p]['koids'].add(koid)
-                                                else:
-                                                    s1 = set()
-                                                    s1.add(query)
-                                                    l1 = set()
-                                                    l1.add('{}({})'.format(query, koid))
-                                                    k1 = set()
-                                                    k1.add(koid)
-                                                    d1 = {}
-                                                    d1['seqs'] = s1
-                                                    d1['seqlist'] = l1
-                                                    d1['koids'] = k1
-                                                    self.stat_info[p] = d1
-                                            pathinfo = ';'.join(newp)
-                                        else:
-                                            pathinfo = ''
-                                        if koid not in duplicated:
-                                            tablefile.write(
-                                                query + '\t' + koid + '\t' + koname + '\t' + kohlink + '\t' + pathinfo + '\n')
-                                            duplicated.add(koid)
+                    koid = self.gene_coll.find_one({"gene_id": gid})["koid"]
+                    result = self.ko_coll.find_one({"ko_id": koid})
+                    ko_name = result['ko_name']
+                    ko_hlink = 'http://www.genome.jp/dbget-bin/www_bget?ko:' + koid
+                    pids = result['pathway_id']
 
-    def get_pathway_result(self, stat_info, pathway, pidpath, db='sqlite'):
-        """
-        传入KEGG_pathway的相关统计信息的字典（即self.stat_info），生成pathway_table.xls,pid.txt
-        stat_info：字典，存放着pathway的相关统计信息，见self.stat_info
-        pathway:pathway_table.xls输出文件结果路径
-        pidpath：pid.txt输出文件结果路径
-        db:查询的数据库，可选sqlite或mongodb
-        """
-        # pathway = out_dir + '/pathway_table.xls'
-        # pidpath = out_dir + '/pid.txt'
-        with open(pathway, 'wb') as pathfile, open(pidpath, 'wb') as pidfile:
-            pathfile.write('Pathway\tPathway_definition\tnumber_of_seqs\tseqs_kos/gene_list\tpathway_imagename\n')
-            sdic = {}
-            for thekey in stat_info:
-                sdic[thekey] = len(stat_info[thekey]['seqs'])
-            sortkey = list(reversed(sorted(sdic, key=lambda x: sdic[x])))
-            for dickey in sortkey:
-                pway = 'path:' + dickey
-                if db == 'sqlite':
-                    defseqrch = self.cursor.execute("SELECT name FROM Pathways WHERE pid = '%s'" % dickey).fetchone()
-                if defseqrch:
-                    pway_def = defseqrch[0]
-                num_seq = len(stat_info[dickey]['seqs'])
-                seq_list = ';'.join(list(stat_info[dickey]['seqlist']))
-                pathfile.write(pway + '\t' + pway_def + '\t' + str(num_seq) + '\t' + seq_list + '\t' + dickey + '.png' + '\n')
-                pidfile.write(dickey + '\t' + ';'.join(list(stat_info[dickey]['koids'])) + '\n')
+                    path = []
+                    for index, i in enumerate(pids):
+                        self.path[i] = result['pathway_category'][index]  # 对应pathway的definition
+                        path.append('path:' + i)
+                    path = ';'.join(path)
+                    if not path:
+                        path = '\t'
+                    tablefile.write(query + '\t' + koid + '\t' + ko_name + '\t' + ko_hlink + '\t' + path + '\n')
+                except Exception as e:  # 数据库中未找到
+                    print e
+            else:
+                print "没有找到在该query下对应的基因信息！"  #kgml文件中该query没有找到对应的基因
+        print "pathSearch finished!"
 
-    def get_kegg_layer(self, pathwayfile, layerfile, taxonomyfile, db='sqlite'):
+    def pathTable(self, kegg_table, pathway_path, pidpath):
         """
-        传入pathway_table.xls统计信息，生成kegg_layer.xls,kegg_taxonomy.txt
-        pathwayfile：pathway_table.xls统计信息
-        layerfile:kegg_layer.xls结果文件
-        taxonomyfile：kegg_taxonomy.txt结果文件
-        db:查询的数据库，可选sqlite或mongodb
+        根据pathSearch生成的kegg_table.xls统计pathway的信息，输入文件为kegg_table.xls,输出文件为pathway_table.xls,pid.txt
         """
+        path_table_xls = open(pathway_path, "wb")  # 输出文件path_table.xls
+        pid_txt = open(pidpath, "wb")  # 输出文件pid.txt
+        header_line = "Pathway" + "\t" + "Pathway_definition" + "\t" + "num_of_seqs" + "\t" + "seqs_kos/gene_list" + "\t" + "pathway_imagename" + "\n"
+        path_table_xls.write(header_line)
+        path_table = collections.defaultdict(list)
+        kegg_table = islice(open(kegg_table), 1, None)  # 打开kegg_table.xls
+        kegg = [i.strip('\n').split('\t') for i in kegg_table]
+        table = [(i[0] + '(' + i[1] + ')', i[4]) for i in kegg]
+        for i in table:
+            for path in i[1].split(';'):
+                path_table[path].append(i[0])
+                # definition = self.path[path.split(':')[1]]#pid对应的名字
+        for key in path_table:
+            if key:
+                pid = key.split(':')[1]
+                # print pid
+                definition = self.path[pid][2]
+                # print definition
+                koids = [i.split('(')[1][0:-1] for i in path_table[key]]
+                koid_str = ';'.join(koids)
+                pid_txt.write(pid + '\t' + koid_str + '\n')
+                try:
+                    num_of_seqs = len(path_table[key])
+                    if num_of_seqs > 1:
+                        genes = ';'.join(path_table[key])
+                    else:
+                        genes = path_table[key][0]
+                    path_image = key.split(":")[1] + '.png'
+                    line = key + '\t' + definition + "\t" + str(num_of_seqs) + "\t" + genes + "\t" + path_image
+                    path_table_xls.write(line + '\n')
+
+                except Exception as e:
+                    print e
+            else:
+                print "key==None，该基因没有对应的pathway！"
+        print "pathTable finished!!!"
+
+    def getPic(self, pidpath, pathwaydir):
+        """
+        输入文件pid.txt，输出文件夹pathways，作图
+        """
+        fs = gridfs.GridFS(self.mongodb)
+        f = open(pidpath)
+        if not os.path.exists(pathwaydir):
+            os.makedirs(pathwaydir)
+        for i in f:
+            if i:
+                i = i.strip('\n').split('\t')
+                pid = i[0]
+                koid = i[1].split(';')
+                l = []
+                kgml_path = os.path.join(os.getcwd(), "pathway.kgml")
+                png_path = os.path.join(os.getcwd(), "pathway.png")
+
+                if os.path.exists(kgml_path) and os.path.exists(png_path):
+                    os.remove(kgml_path)
+                    os.remove(png_path)
+                with open("pathway.kgml", "w+") as k, open("pathway.png", "w+") as p:
+                    # kgml_id = colln.find_one({"pathway_id": pid})['pathway_ko_kgml']
+                    # png_id = colln.find_one({"pathway_id": pid})['pathway_ko_png']
+                    result = self.png_coll.find_one({"pathway_id": pid})
+                    if result:
+                        kgml_id = result['pathway_ko_kgml']
+                        png_id = result['pathway_ko_png']
+                        k.write(fs.get(kgml_id).read())
+                        p.write(fs.get(png_id).read())
+                p_kgml = KGML_parser.read(open("pathway.kgml"))
+                p_kgml.image = png_path
+                for ko in koid:
+                    for degree in p_kgml.entries.values():
+                        if re.search(ko, degree.name):
+                            l.append(degree.id)
+
+                    for n in l:
+                        for graphic in p_kgml.entries[n].graphics:
+                            graphic.fgcolor = '#CC0000'
+
+                    canvas = KGMLCanvas(p_kgml, import_imagemap=True)
+                    canvas.draw(pathwaydir + '/' + pid + '.pdf')
+        print "getPic finished!!!"
+
+    def keggLayer(self, pathway_table, layerfile, taxonomyfile):
+        """
+        输入pathway_table.xls，获取分类信息文件
+        """
+
+        f = open(pathway_table)
         d = {}
-        with open(pathwayfile, 'rb') as f:
-            f.readline()
-            for line in f:
-                line = line.strip('\n').split('\t')
-                seqnum = int(line[2])
-                tlayer = line[1]
-                if db == 'sqlite':
-                    result = self.cursor.execute("SELECT * FROM kegg_layers WHERE third_layer = ?", (tlayer,))
-                result = result.fetchall()
-                if len(result) >= 1:
-                    for document in result:
-                        first_layer = document[0]
-                        second_layer = document[1]
-                        if first_layer in d:
-                            if second_layer in d[first_layer]:
-                                d[first_layer][second_layer] += seqnum
-                            else:
-                                d[first_layer][second_layer] = seqnum
-                        else:
-                            newdic = {}
-                            newdic[second_layer] = seqnum
-                            d[first_layer] = newdic
-        with open(layerfile, 'wb') as l, open(taxonomyfile, 'wb') as t:
-            for dickey in d:
-                count = 0
-                second_layer = []
-                for skey in d[dickey]:
-                    l.write('{}\t{}\t{}\n'.format(dickey, skey, d[dickey][skey]))
-                    count += d[dickey][skey]
-                    second_layer.append('--{}\t{}\n'.format(skey, d[dickey][skey]))
-                t.write('{}\t{}\n'.format(dickey, count))
-                for i in second_layer:
-                    t.write(i)
+        for record in islice(f, 1, None):
+            iterm = record.strip('\n').split('\t')
+            seqnum = int(iterm[2])
+            pid = iterm[0].split(":")[1]
+            result = self.ko_coll.find_one({"pathway_id": {"$in": [pid]}})  # 找到对应的集合
+            # print result
+            if result:
 
-    def get_pictrue(self, pidfile, out_dir):
-        """
-        传入pid.txt统计信息，生成pathway绘图文件夹
-        pidfile：pid.txt统计信息
-        out_dir:输出结果的目录
-        """
-        with open(pidfile, 'rb') as f:
-            for line in f:
-                line = line.strip('\n')
-                if line:
-                    line = line.split('\t')
-                    pid = line[0]
-                    koid = line[1].split(';')
-                    l = []
-                    if pid != 'ko00312' and pid != 'ko00351':
-                        pathway = KGML_parser.read(open(self.pathway_pic + pid + '.kgml'))
-                        pathway.image = self.pathway_pic + pid + '.png'
-                        for ko in koid:
-                            for degree in pathway.entries.values():
-                                if re.search(ko, degree.name):
-                                    l.append(degree.id)
-                        for theid in l:
-                            for graphic in pathway.entries[theid].graphics:
-                                graphic.fgcolor = '#CC0000'
-                        canvas = KGMLCanvas(pathway, import_imagemap=True)
-                        canvas.draw(out_dir + '/' + pid + '.pdf')
+                pids = result["pathway_id"]  # 找到对应的pid列表
+                # print pids
+                for index, i in enumerate(pids):
+                    category = result["pathway_category"][index]
+                    # [pathway_index]#找到pid对应的层级信息
+                    # print category
+                    layer_1st = category[0]  # 找到第一层
+                    layer_2nd = category[1]  # 找到第二层
+                    # print layer_1st
+                    # print layer_2nd
+                if d.has_key(layer_1st):
+                    if d[layer_1st].has_key(layer_2nd):
+                        d[layer_1st][layer_2nd] += seqnum
+                    else:
+                        d[layer_1st][layer_2nd] = seqnum
+                else:
+                    d[layer_1st] = {}
+                    d[layer_1st][layer_2nd] = seqnum
+        with open(layerfile, "w+") as k, open(taxonomyfile, "w+") as t:
+            for i in d:
+                n = 0
+                doc = ''
+                for j in d[i]:
+                    line = i + "\t" + j + "\t" + str(d[i][j]) + "\n"
+                    k.write(line)
+                    n += d[i][j]
+                    doc += '--' + j + '\t' + str(d[i][j]) + '\n'
+
+                t.write(i + '\t' + str(n) + '\n')
+                t.write(doc)
 
 if __name__ == '__main__':
-    # python KeggAnnotation.py Trinity_vs_kegg.xml  kegg_table.xls pathway_table.xls pid.txt kegg_layer.xls kegg_taxonomy.xls ./kegg/pathway
-    kegg = KeggAnnotation()
-    kegg.kegg_by_sqlite(kegg_xml=sys.argv[1], kegg_table=sys.argv[2])
-    kegg.get_pathway_result(stat_info=self.stat_info, pathway=sys.argv[3], pidpath=sys.argv[4], db='sqlite')
-    kegg.get_kegg_layer(pathwayfile=sys.argv[3], layerfile=sys.argv[5], taxonomyfile=sys.argv[6])
-    kegg.get_pictrue(pidfile=sys.argv[4], out_dir=sys.argv[7])
+    kegg_anno = KeggAnnotation()
+    kegg_anno.pathSearch(sys.argv[1])
+    print sys.argv[1]
+    kegg_anno.pathTable()
+    kegg_anno.getPic()
+    kegg_anno.keggLayer()

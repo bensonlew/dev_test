@@ -135,9 +135,9 @@ class DiffAnalysisModule(Module):
             "correct": self.option("correct"),
             "all_list": self.option("all_list"),
         }
-        files = os.listdir(self.option('diff_stat_dir').prop['path'])
+        files = os.listdir(self.option('diff_list_dir').prop['path'])
         for f in files:
-            opts.update({"diff_stat": os.path.join(self.option('diff_stat_dir').prop['path'], f)})
+            opts.update({"diff_list": os.path.join(self.option('diff_list_dir').prop['path'], f)})
             self.kegg_rich = self.add_tool("denovo_rna.express.kegg_rich")
             self.kegg_rich.set_options(opts)
             self.kegg_rich_tool.append(self.kegg_rich)
@@ -245,28 +245,28 @@ class DiffAnalysisModule(Module):
             print '..........network end'
         elif event['data'] == 'kegg_rich':
             for tool in self.kegg_rich_tool:
-                dirname = 'kegg_rich/' + os.path.splitext(os.path.basename(tool.option('diff_stat').path))[0].strip('_edgr_stat')
+                dirname = 'kegg_rich/' + os.path.splitext(os.path.basename(tool.option('diff_list').path))[0]
                 self.linkdir(tool.output_dir, dirname)
             self.set_step(event={'data': {'end': self.step.kegg_rich}})
-            print '..........kegg_rich end'
+            print '......ke:%s....kegg_rich end' % len(self.kegg_rich_tool)
         elif event['data'] == 'go_rich':
             for tool in self.go_rich_tool:
                 dirname = 'go_rich/' + os.path.splitext(os.path.basename(tool.option('diff_list').path))[0]
                 self.linkdir(tool.output_dir, dirname)
             self.set_step(event={'data': {'end': self.step.go_rich}})
-            print '..........go_rich end'
+            print '.......go:%s...go_rich end' % len(self.go_rich_tool)
         elif event['data'] == 'go_regulate':
             for tool in self.go_regulate_tool:
                 dirname = 'go_regulate/' + os.path.splitext(os.path.basename(tool.option('diff_stat').path))[0].strip('_edgr_stat')
                 self.linkdir(tool.output_dir, dirname)
             self.set_step(event={'data': {'end': self.step.go_regulate}})
-            print '..........go_regulate end'
+            print '......gr:%s....go_regulate end' % len(self.go_regulate_tool)
         elif event['data'] == 'kegg_regulate':
             for tool in self.kegg_regulate_tool:
                 dirname = 'kegg_regulate/' + os.path.splitext(os.path.basename(tool.option('diff_stat').path))[0].strip('_edgr_stat')
                 self.linkdir(tool.output_dir, dirname)
             self.set_step(event={'data': {'end': self.step.kegg_regulate}})
-            print '..........kegg_regulate end'
+            print '.......kr:%s...kegg_regulate end' % len(self.kegg_regulate_tool)
         else:
             pass
 
@@ -285,8 +285,10 @@ class DiffAnalysisModule(Module):
             self.go_regulate_run()
         if 'kegg_regulate' in analysis:
             self.kegg_regulate_run()
+        print '.....tools:%s' % len(self.tools)
         if len(self.tools) != 1:
             self.on_rely(self.tools, self.end)
+            print '......on rely end'
         else:
             self.tools[0].on('end', self.end)
         self.run_tools()
