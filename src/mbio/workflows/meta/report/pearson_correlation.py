@@ -33,6 +33,8 @@ class PearsonCorrelationWorkflow(Workflow):
             {"name": "task_type", "type": "string"},
             {"name": "group_id", "type": "string"},
             {"name": "method", "type": "string", "default": "pearsonr"},
+            {"name": "env_cluster", "type": "string", "default": "average"},
+            {"name": "species_cluster", "type": "string", "default": "average"},
             {"name": "group_detail", "type": "string"}
             ]
         self.add_option(options)
@@ -46,7 +48,9 @@ class PearsonCorrelationWorkflow(Workflow):
         options = {
             'otutable': self.option('otu_file'),
             'envtable': self.option('env_file'),
-            "method": self.option('method')
+            "method": self.option('method'),
+            "env_cluster": self.option("env_cluster"),
+            "species_cluster": self.option("species_cluster")
             }
         self.correlation.set_options(options)
         self.correlation.on("end", self.set_db)

@@ -25,7 +25,7 @@ def correlation(inputfile, corr_matrix, pvalue_out, tvalue_out, heatmap_out, col
         rfile.write("%s" % mul_test)
 
 
-def corr_heatmap(inputfile, col_tree, row_tree):
+def corr_heatmap(inputfile, col_tree, row_tree, col_cluster_method, row_cluster_method):
     """
     输入相关系数矩阵，输出矩阵树文件
     :param correlation:
@@ -34,6 +34,6 @@ def corr_heatmap(inputfile, col_tree, row_tree):
     :return:
     """
     f = Template(filename=this_file_dir + '/corr_heatmap.r')
-    heatmap = f.render(inputfile=inputfile, col_tree=col_tree, row_tree=row_tree)
+    heatmap = f.render(inputfile=inputfile, col_tree=col_tree, row_tree=row_tree, col_cluster_method=col_cluster_method, row_cluster_method=row_cluster_method)
     with open("run_corr_heatmap.r", 'w') as rfile:
         rfile.write("%s" % heatmap)
