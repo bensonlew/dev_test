@@ -230,19 +230,4 @@ def go_regulate(data, option_name, dir_path, bind_obj=None):
             sequence = result3['sequence']
             w.write(term_type + '\t' + term + '\t' + GO + '\t' + number + '\t' + percent + '\t' + sequence + '\n')
     paths = ','.join([diff_express, go2level])
-    return paths
-
-def go_enrich_annotation(data, option_name, dir_path, bind_obj=None):
-    gos_list = os.path.join(dir_path, "unigene_gos.list")
-    collection = db["sg_denovo_annotation_gos_list"]
-    results = collection.find({"annotation_id": ObjectId(data)})
-    my_collection = db["sg_denovo_annotation"]
-    my_result = my_collection.find_one({"_id": ObjectId(data)})
-    if not my_result:
-        raise Exception("意外错误，annotation_id:{}在sg_denovo_annotation中未找到！".format(ObjectId(data)))
-    with open(gos_list, "wb") as w:
-        for result in results:
-            gene_id = result["gene_id"]
-            go_list = result["go_id"]
-            w.write(gene_id + "\t" + go_list + "\n")
-    return gos_list
+    return paths 
