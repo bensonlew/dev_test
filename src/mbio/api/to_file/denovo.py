@@ -153,27 +153,83 @@ def export_fasta_path(data, option_name, dir_path, bind_obj=None):
 def go_enrich(data, option_name, dir_path, bind_obj=None):
     all_list = os.path.join(dir_path, "all_gene.list")
     diff_list = os.path.join(dir_path, "unigene.list")
-    #bind_obj.logger.debug('正在导出go富集分析的infile：%s' % (all_list, diff_list, go_list))
+    gos_list = os.path.join(dir_path, "unigene_gos.list")
     collection = db["sg_denovo_express_detail"]
-    my_collecton = db["sg_denovo_express"]
+    my_collection = db["sg_denovo_express"]
     results = collection.find({"$and": [{"express_id": ObjectId(data)}, {"type": "gene"}]})
-    my_result = my_collecton.find_one({"_id": ObjectId(data)})
+    my_result = my_collection.find_one({"_id": ObjectId(data)})
+    task_id = my_result["task_id"]
     if not my_result:
         raise Exception("意外错误，expree_id:{}在sg_denovo_express中未找到!".format(ObjectId(data)))
     with open(all_list, "wb") as w1, open(diff_list, "wb") as w2:
         for result in results:
             gene_id = result["gene_id"]
             w1.write(gene_id + "\n")
-            collection1 = db["sg_denovo_express_diff"]
-            results1 = collection1.find({"express_id": ObjectId(data)})
-            for result1 in results1:
-                express_diff_id = result1["_id"]
-                collection2 = db["sg_denovo_express_diff_detail"]
-                results2 = collection2.find({"express_diff_id": express_diff_id})
-                for result2 in results2:
-                    gene_id = result2["gene_id"]
-                    w2.write(gene_id + "\n")
-    paths = ','.join([all_list, diff_list])
+        collection1 = db["sg_denovo_express_diff"]
+        results1 = collection1.find({"express_id": ObjectId(data)})
+        #results1 = collection1.find_one({"express_id": data})
+        for result1 in results1:
+            express_diff_id = result1["_id"]
+            collection2 = db["sg_denovo_express_diff_detail"]
+            results2 = collection2.find({"express_diff_id": express_diff_id})
+            for result2 in results2:
+                gene_id = result2["gene_id"]
+                w2.write(gene_id + "\n")
+    my_collection1 = db["sg_denovo_annotation"]
+    my_result1 = my_collection1.find_one({"task_id": task_id})
+    annotation_id = my_result1["_id"]
+    if not my_result1:
+        raise Exception("意外错误，annotation_id:{}在sg_denovo_annotation中未找到！".format(annotation_id))
+    collection3 = db["sg_denovo_annotation_gos_list"]
+    results3 = collection3.find({"annotation_id": ObjectId(annotation_id)})
+    with open(gos_list, "wb") as w4:
+        for result3 in results3:
+            gene_id = result3["gene_id"]
+            go_list = result3["go_id"]
+            w4.write(gene_id + "\t" + go_list + "\n")
+    paths = ','.join([all_list, diff_list, gos_list])
+    return paths
+
+def go_regulate(data, option_name, dir_path, bind_obj=None):
+    diff_express = os.path.join(dir_path, "diff.exp.xls")
+    go2level = os.path.join(dir_path, "go2level.xls")
+    my_collection = db["sg_denovo_express"]
+    my_result = my_collection.find_one({"_id": ObjectId(data)})
+    task_id = my_result["task_id"]
+    if not my_result:
+        raise Exception("意外错误，expree_id:{}在sg_denovo_express中未找到!".format(ObjectId(data)))
+    with open(diff_express, 'wb') as w:
+        w.write('seq_id\tE20_1_count\tE20_2_count\tP1_1_count\tP1_2_count\tE20_1_fpkm\tE20_2_fpkm\tP1_1_fpkm\tP1_2_fpkm\tE20_mean_fpkm\tP1_mean_fpkm\tlogFC(P1/E20)\tPvalue\tFDR\tSignificant\tRegulate\n')
+        collection1 = db["sg_denovo_express_diff"]
+        #results1 = collection1.find({"express_id": ObjectId(data)})
+        results1 = collection1.find({"express_id": ObjectId("583ceba958e7b77d4c60d984")})
+        for result1 in results1:
+            express_diff_id = result1["_id"]
+            collection2 = db["sg_denovo_express_diff_detail"]
+            results2 = collection2.find({"express_diff_id": express_diff_id})
+            for result2 in results2:
+                gene_id = result2["gene_id"]
+                significant = result2['significant']  #
+                regulate = result2['regulate'] #
+                w.write(gene_id + '\t''\t''\t''\t''\t''\t''\t''\t''\t''\t''\t''\t''\t''\t' + significant + '\t' + regulate + '\n')
+    my_collection1 = db["sg_denovo_annotation"]
+    my_result1 = my_collection1.find_one({"task_id": task_id})
+    annotation_id = my_result1["_id"]
+    if not my_result1:
+        raise Exception("意外错误，annotation_id:{}在sg_denovo_annotation中未找到！".format(annotation_id))
+    collection3 = db["sg_denovo_annotation_go_graph"]
+    results3 = collection3.find({"$and": [{"annotation_id": annotation_id}, {"type": "gene"}, {"level": 2}]})
+    with open(go2level, "wb") as w:
+        w.write("term_type\tterm\tGO\tnumber\tpercent\tsequence\n")
+        for result3 in results3:
+            term_type = result3['parent_name']
+            term = result3['go_name']
+            GO = result3['go_id']
+            number = result3['num']
+            percent = result3['rate']
+            sequence = result3['sequence']
+            w.write(term_type + '\t' + term + '\t' + GO + '\t' + number + '\t' + percent + '\t' + sequence + '\n')
+    paths = ','.join([diff_express, go2level])
     return paths
 
 def go_enrich_annotation(data, option_name, dir_path, bind_obj=None):
