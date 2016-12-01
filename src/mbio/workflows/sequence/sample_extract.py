@@ -25,7 +25,7 @@ class SampleExtractWorkflow(Workflow):
         if self.setted_option == "fasta":
             self.seq_extract = self.add_tool("sequence.fasta_sample_extract")
         elif self.setted_option == "fastq":
-            self.seq_extract = self.add_tool("sequence.fastq_sample_extract")
+            self.seq_extract = self.add_module("meta.sample_extract.sample_extract")
 
     def check_options(self):
         # if self.option("in_fasta").is_set and self.option("in_fastq").is_set
