@@ -63,10 +63,12 @@ class QiimeAssignAgent(Agent):
                                                'silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
-                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX','fgr/mrcA',
-                                               'maarjam081/AM','Human_HOMD',
-                                               'silva128/16s_archaea','silva128/16s_bacteria',
-                                               'silva128/18s_eukaryota','silva128/16s']:    #王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA
+                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX', 'fgr/mrcA',
+                                               'maarjam081/AM', 'Human_HOMD',
+                                               'silva128/16s_archaea', 'silva128/16s_bacteria',
+                                               'silva128/18s_eukaryota', 'silva128/16s',
+                                               'greengenes135/16s', 'greengenes135/16s_archaea', 'greengenes135/16s_bacteria']:    
+                # 王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA 2016.12.01增加数据库greengenes135
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
 
     def end(self):
