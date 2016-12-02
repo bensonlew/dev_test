@@ -37,7 +37,7 @@ class RocStat(object):
             "project_sn": project_sn,
             "task_id": task_id,
             "otu_id": from_otu_table,
-            "name": name if name else "oturocwork_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": "roc_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "desc": desc,
             "status": "end",
