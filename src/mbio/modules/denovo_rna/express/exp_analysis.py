@@ -44,6 +44,13 @@ class ExpAnalysisModule(Module):
         self.tool_lists = []
         self.diff_gene = False
         self.bam_path = self.work_dir + '/bowtie2_bam_dir/'
+        # add by qindanhua 161201
+        self.gene_corr = self.add_tool("denovo_rna.mapping.correlation")
+        self.tran_corr = self.add_tool("denovo_rna.mapping.correlation")
+        self.gene_pca = self.add_tool("meta.beta_diversity.pca")
+        self.tran_pca = self.add_tool("meta.beta_diversity.pca")
+        self.corr_too_list = [self.gene_corr, self.tran_corr, self.gene_pca, self.tran_pca]
+        self.tool_lists += self.corr_too_list
 
     def check_options(self):
         if not self.option('fq_type'):
@@ -70,6 +77,27 @@ class ExpAnalysisModule(Module):
         if not isinstance(self.option('only_bowtie_build'), bool):
             raise OptionError('only_bowtie_build只能为bool')
         return True
+
+    # add by qindanhua 161201
+    def correlation_run(self):
+        self.gene_corr.set_options({
+                'fpkm': self.merge_rsem.output_dir + "/"
+                })
+        self.tran_corr.set_options({
+                'fpkm': self.merge_rsem.output_dir + "/"
+                })
+        self.tran_pca.set_options({
+                'otutable': self.merge_rsem.output_dir + "/"
+                })
+        self.gene_pca.set_options({
+                'otutable': self.merge_rsem.output_dir + "/"
+                })
+        # self.step.stat.start()
+        # self.gene_corr.on("end", self.correlation_finish_update)
+        self.gene_corr.run()
+        self.tran_corr.run()
+        self.gene_pca.run()
+        self.tran_pca.run()
 
     def run_bowtie_build(self):
         tool_opt = {
@@ -215,7 +243,10 @@ class ExpAnalysisModule(Module):
         self.bowtie_build.on('end', self.rsem_run)
         self.run_bowtie_build()
         self.merge_rsem.on('end', self.diff_exp_run)
-        self.diff_exp.on('end', self.end)
+        self.merge_rsem.on('end', self.correlation_run)
+        # change by qindanhua 注释掉原本end依赖对象
+        # self.diff_exp.on('end', self.end)
+        self.on_rely(self.tool_lists, self.end)
 
     def end(self):
         repaths = [
