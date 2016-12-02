@@ -64,7 +64,9 @@ class FileMetabaseAgent(Agent):
         self._cpu = 10
         total = 0
         if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
-            for f in self.option("in_fastq").prop["samples"]:
+            self.option("in_fastq").get_info()
+            for f in self.option("in_fastq").prop["fastq_basename"]:  # modified by sj on 20161026
+                f = os.path.join(self.option("in_fastq").prop["path"],f)
                 total += os.path.getsize(f)
         if self.get_option_object("in_fastq").format == 'sequence.fastq':
             total = os.path.getsize(self.option("in_fastq").prop["path"])
@@ -81,12 +83,17 @@ class FileMetabaseTool(Tool):
 
     def check_fastq(self):
         self.logger.info("正在检测fastq文件")
-        self.option('in_fastq').get_info()
+        # self.option('in_fastq').get_info()
         if self.get_option_object("in_fastq").format == 'sequence.fastq_dir':
             self.logger.info("输入的fastq为文件夹格式")
+            self.option('in_fastq').get_info()
             self.samples = self.option('in_fastq').prop["samples"]
         if self.get_option_object('in_fastq').format == 'sequence.fastq':
             self.logger.info("输入的fastq文件为单文件格式")
+            num_lines = sum(1 for line in open(self.option("in_fastq").prop["path"]))
+            if num_lines < 200:
+                self.set_error("fastq序列数目过少，仅有{}条，无法进行后续运算".format(num_lines))
+                raise Exception("fastq序列数目过少，仅有{}条，无法进行后续运算".format(num_lines))
             self.option("in_fastq").check_content()
             self.samples = self.option('in_fastq').prop["samples"]
         self.logger.info("fastq文件检测完毕,文件中所包含的样本为: {}".format(self.samples))

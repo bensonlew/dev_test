@@ -15,7 +15,7 @@ def pan_core(otutable, dowhat, groupfile='none', work_dir=None):
     else:
         output = work_dir
     if dowhat not in ("pan", "core"):
-        raise Exception(u"dowhat 只能是core或pan!")
+        raise Exception("只能是计算core或pan!")
         sys.exit()
     cmd = "setwd('" + output + "')"
     cmd += '''
@@ -141,12 +141,12 @@ def pan_core(otutable, dowhat, groupfile='none', work_dir=None):
     g = 1
     groups = "none"
     if (gfile !="none"){
-        map <- read.table(gfile,sep="\\t",head=F,check.names=F)
-        map <- as.matrix(map)
-        groups <- unique(map[,2])
+        map <- read.table(gfile,sep="\\t",head=F,check.names=F, colClasses = c("character"))
+        #map <- as.matrix(map)
+        groups <- as.character(unique(map[,2]))
         for(i in 1:length(groups))
         {
-            samples <- as.vector(map[which(map[,2] %in% groups[i]),1])
+            samples <- as.character(map[which(map[,2] %in% groups[i]),1])
             data_pick <- data[,which(colnames(data) %in% samples)]
             gdata[[i]] <- data_pick
         }

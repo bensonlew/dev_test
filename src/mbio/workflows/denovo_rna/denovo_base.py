@@ -24,7 +24,7 @@ class DenovoBaseWorkflow(Workflow):
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
-            {"name": "search_pfam", "type": "bool", "default": False},  # orf 是否比对Pfam数据库
+            {"name": "search_pfam", "type": "bool", "default": True},  # orf 是否比对Pfam数据库
             {"name": "primer", "type": "bool", "default": True},  # 是否设计SSR引物
             {"name": "kmer_size", "type": "int", "default": 25},
             {"name": "min_kmer_cov", "type": "int", "default": 2},
@@ -285,26 +285,29 @@ class DenovoBaseWorkflow(Workflow):
                 'analysis': self.option('exp_analysis')
             }
             if 'network' in self.option('exp_analysis'):
-                exp_diff_opts.update({'gene_file': self.exp_stat.option('gene_file')})
-            elif 'kegg_rich' in self.option('exp_analysis'):
+                exp_diff_opts.update({'diff_list': self.exp_stat.option('diff_list')})
+            if 'kegg_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
-                    'kegg_path': self.annotation.option('kegg_path'),
-                    'diff_list_dir': self.exp_stat.option('diff_list_dir')
-                })
-            elif 'go_rich' in self.option('exp_analysis'):
-                exp_diff_opts.update({
-                    'go_list': self.annotation.option('go_list'),
+                    'gene_kegg_table': self.annotation.option('gene_kegg_table'),
                     'diff_list_dir': self.exp_stat.option('diff_list_dir'),
                     'all_list': self.exp_stat.option('all_list'),
-                    'go_level_2': self.annotation.option('go_level_2')
+                })
+            if 'go_rich' in self.option('exp_analysis'):
+                exp_diff_opts.update({
+                    'gene_go_list': self.annotation.option('gene_go_list'),
+                    'diff_list_dir': self.exp_stat.option('diff_list_dir'),
+                    'all_list': self.exp_stat.option('all_list'),
+                    'gene_go_level_2': self.annotation.option('gene_go_level_2'),
+                    'diff_stat_dir': self.exp_stat.diff_exp.option('regulate_edgrstat_dir')
                 })
             self.exp_diff.set_options(exp_diff_opts)
             self.exp_diff.on('end', self.set_output, 'exp_diff')
             self.exp_diff.on('end', self.set_step, {'end': self.step.express})
-            self.exp_diff.run()
             self.final_tools.append(self.exp_diff)
+            self.exp_diff.run()
         else:
             self.logger.info('输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略')
+        self.on_rely(self.final_tools, self.end)
 
     def move2outputdir(self, olddir, newname, mode='link'):
         """
@@ -399,7 +402,7 @@ class DenovoBaseWorkflow(Workflow):
             }
             rpkm_path = self.output_dir + '/Map_stat/satur/'
             rpkm_id = api_map.add_rpkm_table(rpkm_path, params=rpkm_params)
-            api_map.add_rpkm_box(rpkm_path, rpkm_id)
+            # api_map.add_rpkm_box(rpkm_path, rpkm_id)
             api_map.add_rpkm_curve(rpkm_path, rpkm_id)
             coverage_path = self.output_dir + '/Map_stat/coverage/'
             cov_params = {
@@ -502,11 +505,12 @@ class DenovoBaseWorkflow(Workflow):
                 'distance': 'euclidean',
                 'sub_num': 5,
             }
-            clust_id = self.api_express.add_cluster(clust_params, self.diff_gene_id, clust_path + 'samples_tree.txt', clust_path + 'genes_tree.txt', clust_path + 'hclust_heatmap.xls')
+            api_clust = self.api.denovo_cluster
+            clust_id = api_clust.add_cluster(clust_params, self.diff_gene_id, clust_path + 'samples_tree.txt', clust_path + 'genes_tree.txt', clust_path + 'hclust_heatmap.xls')
             for f in clust_files:
                 if re.search(r'^subcluster_', f):
                     sub = f.split('_')[1]
-                    self.api_express.add_cluster_detail(clust_id, sub, clust_path + f)
+                    api_clust.add_cluster_detail(clust_id, sub, clust_path + f)
             net_path = os.path.join(self.output_dir + '/Express/network/')
             net_files = os.listdir(net_path)
             net_param = {
@@ -514,14 +518,28 @@ class DenovoBaseWorkflow(Workflow):
                 'softpower': 9,
                 'similar': 0.75,
             }
-            net_id = self.api_express.add_network(net_param, self.diff_gene_id, net_path + 'softPower.pdf', net_path + 'ModuleTree.pdf')
-            self.api_express.add_network_detail(net_id, net_path + 'all_nodes.txt', net_path + 'all_edges.txt')
+            api_network = self.api.denovo_network
+            net_id = api_network.add_network(net_param, self.diff_gene_id, net_path + 'softPower.pdf', net_path + 'ModuleTree.pdf')
+            api_network.add_network_detail(net_id, net_path + 'all_nodes.txt', net_path + 'all_edges.txt')
             for f in net_files:
                 if re.search(r'^CytoscapeInput-edges-', f):
                     color = f.split('-edges-')[-1].split('.')[0]
-                    self.api_express.add_network_module(net_id, net_path + f, color)
+                    api_network.add_network_module(net_id, net_path + f, color)
         if event['data'] == 'annotation':
             self.move2outputdir(obj.output_dir, 'Annotation')
+            # set api
+            api_anno = self.api.denovo_annotation
+            api_anno.add_annotation(anno_stat_dir=obj.output_dir)
+            gene_list = obj.option('gene_file').prop['gene_list']
+            if 'cog' in self.option('database'):
+                blastfile = obj.output_dir + '/stringblast/' + os.listdir(obj.output_dir + '/stringblast/')[0]
+                api_anno.add_blast(blast_pro='blastp', blast_db='string', e_value=self.option('string_blast_evalue'), blast_path=blastfile, gene_list=gene_list)
+            if 'kegg' in self.option('database'):
+                blastfile = obj.output_dir + '/keggblast/' + os.listdir(obj.output_dir + '/keggblast/')[0]
+                api_anno.add_blast(blast_pro='blastp', blast_db='kegg', e_value=self.option('kegg_blast_evalue'), blast_path=blastfile, gene_list=gene_list)
+            if 'go' in self.option('database') or 'nr' in self.option('database'):
+                blastfile = obj.output_dir + '/nrblast/' + os.listdir(obj.output_dir + '/nrblast/')[0]
+                api_anno.add_blast(blast_pro='blastp', blast_db='nr', e_value=self.option('nr_blast_evalue'), blast_path=blastfile, gene_list=gene_list)
 
     def run(self):
         self.filecheck.on('end', self.run_qc)
@@ -549,10 +567,6 @@ class DenovoBaseWorkflow(Workflow):
                 self.on_rely([self.exp_stat, self.annotation], self.run_exp_diff)
             else:
                 self.exp_stat.on('end', self.run_exp_diff)
-        if len(self.final_tools) == 0:
-            self.on_rely([self.orf_len, self.exp_stat], self.end)
-        elif len(self.final_tools) == 1:
-            self.final_tools[0].on('end', self.end)
         else:
             self.on_rely(self.final_tools, self.end)
         self.run_filecheck()

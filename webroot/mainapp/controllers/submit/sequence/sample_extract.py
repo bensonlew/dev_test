@@ -58,10 +58,11 @@ class SampleExtract(object):
 
         my_params = dict()
         my_params["task_id"] = data.task_id
-        my_params["file_info"] = data.file_info
+        my_params["file_info"] = json.loads(data.file_info)
         my_params["format"] = data.format
+        my_params["query_id"] = data.query_id
         params = json.dumps(my_params, sort_keys=True, separators=(',', ':'))
-        table_id = SE().add_sg_seq_sample(data.task_id, data.file_info, params)
+        table_id = SE().add_sg_seq_sample(data.task_id, data.file_info, params, data.query_id)
 
         json_obj = dict()
         json_obj["name"] = "sequence.sample_extract"
@@ -74,7 +75,7 @@ class SampleExtract(object):
         json_obj["options"] = dict()
 
         # 给json文件的options字段指定输入的序列，这个option的字段可能是in_fastq或者是in_fasta
-        if file_info["file_list"] in [None, "none", "None", "null", 'Null', '[]', '']:
+        if file_info["file_list"] in [None, "none", "None", "null", 'Null', '[]', '', []]:
             if data.format in ["sequence.fasta_dir", "sequence.fasta"]:
                 json_obj["options"]["in_fasta"] = "{}||{}/{}".format(data.format, pre_path, suff_path)
             elif data.format in ["sequence.fastq_dir", "sequence.fastq"]:

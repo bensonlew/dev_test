@@ -75,7 +75,7 @@ class DiffExpress(object):
             }
             if data.group_id != 'all':
                 json_data['to_file'].append("denovo.export_group_table_by_detail(group_file)")
-                json_data['option'].update({
+                json_data['options'].update({
                     "group_file": data.group_id,
                     "group_detail": data.group_detail,
                 })

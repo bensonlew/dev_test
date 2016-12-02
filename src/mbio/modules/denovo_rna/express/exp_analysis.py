@@ -17,12 +17,9 @@ class ExpAnalysisModule(Module):
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq_dir"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq_dir"},  # SE测序，包含所有样本的fq文件的文件夹
-            {"name": "bam_dir", "type": "outfile", "format": "align.bwa.bam_dir"},  # bowtie2的bam格式的比对文件
-            {"name": "tran_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "gene_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "tran_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "gene_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"},
+            {"name": "gname", "type": "string"},  # 分组方案名称
+            {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
+            {"name": "only_bowtie_build", "type": "bool", "default": False},  # 为true时该tool只建索引
             {"name": "exp_way", "type": "string", "default": "fpkm"},
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
             {"name": "min_rowsum_counts", "type": "int", "default": 2},  # 离散值估计检验的最小计数值
@@ -32,16 +29,19 @@ class ExpAnalysisModule(Module):
             {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因计数表
             {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
             {"name": "diff_list_dir", "type": "outfile", "format": "denovo_rna.express.gene_list_dir"},
-            {"name": "all_list", "type": "outfile", "format": "denovo_rna.express.gene_list"},
-            {"name": "gname", "type": "string"},  # 分组方案名称
-            {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
-            {"name": "only_bowtie_build", "type": "bool", "default": False}  # 为true时该tool只建索引
+            {"name": "all_list", "type": "outfile", "format": "denovo_rna.express.gene_list"},  # 全部基因名称文件
+            {"name": "bam_dir", "type": "outfile", "format": "align.bwa.bam_dir"},  # bowtie2的bam格式的比对文件
+            {"name": "tran_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
+            {"name": "gene_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
+            {"name": "tran_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
+            {"name": "gene_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
+            {"name": "diff_list", "type": "outfile", "format": "denovo_rna.express.gene_list"},  # 差异基因名称文件
         ]
         self.add_option(options)
         self.bowtie_build = self.add_tool("denovo_rna.express.rsem")
         self.merge_rsem = self.add_tool("denovo_rna.express.merge_rsem")
         self.diff_exp = self.add_tool("denovo_rna.express.diff_exp")
-        self.tool_lists = []
+        self.rsem_tools = []
         self.diff_gene = False
         self.bam_path = self.work_dir + '/bowtie2_bam_dir/'
         # add by qindanhua 161201
@@ -129,7 +129,7 @@ class ExpAnalysisModule(Module):
                     # print self.bowtie_build.option('fa_build').prop['path']
                     self.rsem.set_options(tool_opt)
                     self.rsem.run()
-                    self.tool_lists.append(self.rsem)
+                    self.rsem_tools.append(self.rsem)
         else:
             r_files = os.listdir(self.option('fq_r').prop['path'])
             l_files = os.listdir(self.option('fq_l').prop['path'])
@@ -143,11 +143,11 @@ class ExpAnalysisModule(Module):
                             self.rsem = self.add_tool('denovo_rna.express.rsem')
                             self.rsem.set_options(tool_opt)
                             self.rsem.run()
-                            self.tool_lists.append(self.rsem)
-        print self.tool_lists
-        self.on_rely(self.tool_lists, self.set_output, 'rsem')
-        self.on_rely(self.tool_lists, self.merge_rsem_run)
-        self.on_rely(self.tool_lists, self.set_step, {'end': self.step.rsem, 'start': self.step.merge_rsem})
+                            self.rsem_tools.append(self.rsem)
+        print self.rsem_tools
+        self.on_rely(self.rsem_tools, self.set_output, 'rsem')
+        # self.on_rely(self.rsem_tools, self.merge_rsem_run)
+        # self.on_rely(self.rsem_tools, self.set_step, {'end': self.step.rsem, 'start': self.step.merge_rsem})
 
     def set_step(self, event):
         if 'start' in event['data'].keys():
@@ -181,6 +181,7 @@ class ExpAnalysisModule(Module):
         self.diff_exp.set_options(tool_opt)
         self.diff_exp.on('end', self.set_output, 'diff_exp')
         self.diff_exp.on('end', self.set_step, {'end': self.step.diff_exp})
+        self.diff_exp.on('end', self.end)
         self.diff_exp.run()
 
     def linkdir(self, dirpath, dirname, output_dir):
@@ -205,7 +206,7 @@ class ExpAnalysisModule(Module):
     def set_output(self, event):
         obj = event['bind_object']
         if event['data'] == 'rsem':
-            for tool in self.tool_lists:
+            for tool in self.rsem_tools:
                 self.linkdir(tool.output_dir, 'rsem', self.output_dir)
                 files = os.listdir(tool.work_dir)
                 for f in files:
@@ -216,23 +217,24 @@ class ExpAnalysisModule(Module):
                         else:
                             os.link(os.path.join(tool.work_dir, f), self.bam_path + f)
             self.option('bam_dir', self.bam_path)
-            # self.merge_rsem_run()
+            self.set_step({'data': {'end': self.step.rsem, 'start': self.step.merge_rsem}})
+            self.merge_rsem_run()
         elif event['data'] == 'merge_rsem':
             self.linkdir(obj.output_dir, 'rsem', self.output_dir)
-            self.option('gene_count', self.merge_rsem.option('gene_count').prop['path'])
-            self.option('gene_fpkm', self.merge_rsem.option('gene_fpkm').prop['path'])
+            self.option('gene_count', self.merge_rsem.option('gene_count'))
+            self.option('gene_fpkm', self.merge_rsem.option('gene_fpkm'))
             self.option('gene_fpkm').get_list(self.work_dir + '/all_list')
             self.option('all_list', self.work_dir + '/all_list')
-            self.option('tran_count', self.merge_rsem.option('tran_count').prop['path'])
-            self.option('tran_fpkm', self.merge_rsem.option('tran_fpkm').prop['path'])
+            self.option('tran_count', self.merge_rsem.option('tran_count'))
+            self.option('tran_fpkm', self.merge_rsem.option('tran_fpkm'))
         elif event['data'] == 'diff_exp':
             self.linkdir(obj.output_dir, 'diff_exp', self.output_dir)
             self.diff_gene = obj.diff_gene
             if self.diff_gene:
-                self.option('diff_count', obj.option('diff_count').prop['path'])
-                self.option('diff_fpkm', obj.option('diff_fpkm').prop['path'])
-                self.option('gene_file', obj.option('gene_file').prop['path'])
-                self.option('diff_list_dir', obj.option('diff_list_dir').prop['path'])
+                self.option('diff_count', obj.option('diff_count'))
+                self.option('diff_fpkm', obj.option('diff_fpkm'))
+                self.option('diff_list', obj.option('diff_list'))
+                self.option('diff_list_dir', obj.option('diff_list_dir'))
             else:
                 self.logger.info('此输入文件没有检测到差异基因')
         else:

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'wangbixuan'
+# __author__ = 'chenyanyan'
+# modified 2016.11.28
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.config import Config
@@ -12,15 +13,14 @@ import subprocess
 class KeggAnnotationAgent(Agent):
     """
     to perform KEGG annotation
-    author:wangbixuan
-    last_modified:20160729
+    author:chenyanyan
+    modified at 20161128
     """
 
     def __init__(self, parent):
         super(KeggAnnotationAgent, self).__init__(parent)
         options = [
-            {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"},
-            {"name": "kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
+            {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"}
         ]
         self.add_option(options)
         self.step.add_steps('kegg_annotation')
@@ -67,76 +67,19 @@ class KeggAnnotationTool(Tool):
 
     def run(self):
         super(KeggAnnotationTool, self).run()
-        self.run_path_search()
+        self.kegg_annotation()
 
-    def run_path_search(self):
-        cmd = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/pathSearch.py'.format(
-            self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
-        cmd += ' %s %s %s %s' % (self.option('blastout').prop['path'], self.work_dir +
-                                 '/kegg_table.xls', self.work_dir + '/pid.txt', self.work_dir + '/pathway_table.xls')
-        self.logger.info("运行pathSearch.py")
-        self.logger.info(cmd)
+    def kegg_annotation(self):
+        self.logger.info("运行kegg注释脚本")
         try:
-            subprocess.check_output(cmd, shell=True)
-            if os.path.exists(self.output_dir + '/kegg_table.xls'):
-                os.remove(self.output_dir + '/kegg_table.xls')
-            if os.path.exists(self.output_dir + '/pathway_table.xls'):
-                os.remove(self.output_dir + '/pathway_table.xls')
-            os.link(self.work_dir + '/kegg_table.xls',
-                    self.output_dir + '/kegg_table.xls')
-            self.option('kegg_table', self.output_dir + '/kegg_table.xls')
-            os.link(self.work_dir + '/pathway_table.xls',
-                    self.output_dir + '/pathway_table.xls')
-        except subprocess.CalledProcessError:
-            self.set_error("运行pathSearch.py出错")
-        self.run_kegg_layer()
-
-    def run_kegg_layer(self):
-        cmd1 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/keggLayer.py'.format(
-            self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
-        cmd1 += ' %s %s %s' % (self.work_dir + '/pathway_table.xls', self.work_dir +
-                               '/kegg_layer.xls', self.work_dir + '/kegg_taxonomy.xls')
-        self.logger.info("运行keggLayer.py")
-        self.logger.info(cmd1)
-        try:
-            subprocess.check_output(cmd1, shell=True)
-            self.logger.info("运行keggLayer.py完成")
-            if os.path.exists(self.output_dir + '/kegg_layer.xls'):
-                os.remove(self.output_dir + '/kegg_layer.xls')
-            if os.path.exists(self.output_dir + '/kegg_taxonomy.xls'):
-                os.remove(self.output_dir + '/kegg_taxonomy.xls')
-            os.link(self.work_dir + '/kegg_layer.xls',
-                    self.output_dir + '/kegg_layer.xls')
-            os.link(self.work_dir + '/kegg_taxonomy.xls',
-                    self.output_dir + '/kegg_taxonomy.xls')
-        except subprocess.CalledProcessError:
-            self.set_error("运行keggLayer.py出错")
-        self.run_get_pic()
-
-    def run_get_pic(self):
-        cmd2 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/getPic.py'.format(
-            self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
-        cmd2 += ' %s %s' % (self.work_dir + '/pid.txt',
-                            self.work_dir + '/pathways')
-        self.logger.info("运行getPic.py")
-        self.logger.info(cmd2)
-        try:
-            subprocess.check_output(cmd2, shell=True)
-            self.logger.info("运行getPic.py完成")
-            if not os.path.exists(self.output_dir + '/pathways'):
-                os.makedirs(self.output_dir + '/pathways')
-            f = open(self.work_dir + '/pid.txt').read().split('\n')
-            pids = []
-            for record in f:
-                if record != '':
-                    pid = record.split('\t')[0]
-                    pids.append(pid)
-            for p in pids:
-                if p != 'ko00312' and p != 'ko00351':
-                    if os.path.exists(self.output_dir + '/pathways/' + p + '.pdf'):
-                        os.remove(self.output_dir + '/pathways/' + p + '.pdf')
-                    os.link(self.work_dir + '/pathways' + '/' + p + '.pdf',
-                            self.output_dir + '/pathways/' + p + '.pdf')
-        except subprocess.CalledProcessError:
-            self.set_error("运行getPic.py出错")
-        self.end()
+            kegg_anno = self.load_package('annotation.kegg.kegg_annotation')()
+            kegg_anno.pathSearch(blast_xml=self.option('blastout').prop['path'], kegg_table=self.output_dir + '/kegg_table.xls')
+            kegg_anno.pathTable(kegg_table=self.output_dir + '/kegg_table.xls', pathway_path=self.output_dir + '/pathway_table.xls', pidpath=self.work_dir + '/pid.txt')
+            kegg_anno.getPic(pidpath=self.work_dir + '/pid.txt', pathwaydir=self.output_dir + '/pathways')
+            kegg_anno.keggLayer(pathway_table=self.output_dir + '/pathway_table.xls', layerfile=self.output_dir + '/kegg_layer.xls', taxonomyfile=self.output_dir + '/kegg_taxonomy.xls')
+            self.logger.info("运行成功完成！")
+            self.end()
+        except:
+            import traceback
+            self.logger.info('error:{}'.format(traceback.format_exc()))
+            self.set_error("运行kegg脚本出错！")

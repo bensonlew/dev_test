@@ -42,7 +42,7 @@ class GtfFile(File):
         except subprocess.CalledProcessError:
             raise Exception("运行出错！")
         return True
-"""
+
     def gtf_to_bed(self):
         bed_path = os.path.split(self.prop['path'])[0]
         bed = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".bed")
@@ -53,12 +53,12 @@ class GtfFile(File):
             os.remove(bed)
             raise Exception("运行出错")
         return True
-        
+
 
 if __name__ == '__main__':
     a = GtfFile()
-    a.set_path("/mnt/ilustre/users/sanger-dev/app/database/refGenome/Animal/Birds_Reptil/Chicken/Ensembl84/Gallus_gallus.Galgal4.84.gff3.gtf")
+    a.set_path("/mnt/ilustre/users/sanger-dev/app/database/refGenome/Plant/Rhodophyta/chondrus_crispus/ref/Chondrus_crispus.ASM35022v2.32.gtf")
     a.check()
-    #a.gtf_to_bed()
-    a.gtf_to_gff()
-"""
+    a.gtf_to_bed()
+   # a.gtf_to_gff()
+

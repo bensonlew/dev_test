@@ -4,7 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.packages.denovo_rna.express.get_diff_matrix import *
-from mbio.packages.denovo_rna.express.edger_stat import *
+from mbio.packages.denovo_rna.express.diff_stat import *
 import os
 import re
 import itertools
@@ -26,15 +26,15 @@ class DiffExpAgent(Agent):
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
             {"name": "min_rowsum_counts", "type": "int", "default": 2},  # 离散值估计检验的最小计数值
             {"name": "edger_group", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
-            # {"name": "sample_list", "type": "string", "default": ''},  # 选择计算表达量的样本名，多个样本用‘，’隔开,有重复时没有该参数
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
+            {"name": "gname", "type": "string", "default": "none"},  # 分组方案名称
+            {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
             {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因计数表
             {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
-            {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"},
+            {"name": "diff_list", "type": "outfile", "format": "denovo_rna.express.gene_list"},  # 差异基因名称文件
             {"name": "diff_list_dir", "type": "outfile", "format": "denovo_rna.express.gene_list_dir"},
-            {"name": "gname", "type": "string", "default": "none"},  # 分组方案名称
-            {"name": "diff_rate", "type": "float", "default": 0.01}  # 期望的差异基因比率
+            {"name": "regulate_edgrstat_dir", "type": "outfile", "format": "denovo_rna.express.diff_stat_dir"},
         ]
         self.add_option(options)
         self.step.add_steps("diff_exp")
@@ -65,16 +65,7 @@ class DiffExpAgent(Agent):
             raise OptionError("显著性水平不在(0,1)范围内")
         if self.option("diff_rate") > 1 or self.option("diff_rate") <= 0:
             raise OptionError("期望的差异基因比率不在(0，1]范围内")
-        # if self.option("sample_list") != '' and self.option("edger_group").is_set:
-        #     raise OptionError("有生物学重复时不可设sample_list参数")
         samples, genes = self.option('count').get_matrix_info()
-        # if self.option("sample_list") != '':
-        #     sam = self.option("sample_list").split(',')
-        #     for i in sam:
-        #         if i not in samples:
-        #             raise OptionError("传入的样本列表里的样本%s不在fpkm表里" % i)
-        # if self.option("sample_list") != '':
-        #     vs_list = list(itertools.permutations(sam, 2))
         if self.option("edger_group").is_set:
             if self.option('gname') == "none":
                 self.option('gname', self.option('edger_group').prop['group_scheme'][0])
@@ -126,6 +117,7 @@ class DiffExpTool(Tool):
         self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
         self.restart_edger = False
         self.diff_gene = False
+        self.regulate_stat = self.work_dir + '/regulate_edgrstat_result'
 
     def run_edger(self, dispersion=None):
         if self.option('edger_group').is_set:
@@ -159,8 +151,8 @@ class DiffExpTool(Tool):
             os.mkdir(output_dir)
         for f in edger:
             if re.search(r'edgeR.DE_results$', f):
-                get_diff_list(edger_dir + f, output_dir + f.split('.')[3] + '_diff_list', self.option('diff_ci'))
-                edger_files += '%s ' % (output_dir + f.split('.')[3] + '_diff_list')
+                get_diff_list(edger_dir + f, output_dir + f.split('.')[-3], self.option('diff_ci'))
+                edger_files += '%s ' % (output_dir + f.split('.')[-3])
         os.system('cat %s> diff_lists && sort diff_lists | uniq > diff_list' % edger_files)
         os.remove('diff_lists')
 
@@ -178,17 +170,25 @@ class DiffExpTool(Tool):
 
     def run_stat_egder(self):
         edger_results = os.listdir(self.work_dir + '/edger_result')
-        num, sams = self.option('control_file').get_control_info()
-        self.logger.info(str(sams))
+        num, sams = self.option('control_file').get_control_info()  # sams为包含两两比较的样本（分组）元组的列表:[(对照，实验), (对照，实验)]
+        group_info = None
+        stat = DiffStat()
+        stat.get_express_info(countfile=self.option('count').prop['path'], fpkmfile=self.option('fpkm').prop['path'])
+        if self.option("edger_group").is_set:
+            group_info = stat.get_group_info(self.option("edger_group").prop['path'])
+        if not os.path.exists(self.regulate_stat):
+            os.mkdir(self.regulate_stat)
+        else:
+            shutil.rmtree(self.regulate_stat)
+            os.mkdir(self.regulate_stat)
         for i in sams:
             for afile in edger_results:
                 if re.search(r'edgeR.DE_results$', afile):
                     if i[0] in afile and i[1] in afile:
                         # self.logger.info(afile)
-                        if self.option("edger_group").is_set:
-                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], i[0], i[1], self.output_dir + "/", './edger_group', self.option("diff_ci"), True)
-                        else:
-                            stat_edger(self.work_dir + '/edger_result/' + afile, self.option('count').prop['path'], self.option('fpkm').prop['path'], i[0], i[1], self.output_dir + "/", None, self.option("diff_ci"), True)
+                        stat.diff_stat(express_info=stat.express_info, edgr_result=self.work_dir + '/edger_result/' + afile, control=i[0], other=i[1], output=self.output_dir, group_info=group_info, regulate=True, diff_ci=self.option("diff_ci"))
+                        file_name = '/%s_vs_%s_edgr_stat.xls' % (i[0], i[1])
+                        os.link(self.output_dir + file_name, self.regulate_stat + file_name)
                         edger_results.remove(afile)
                 else:
                     pass
@@ -198,10 +198,7 @@ class DiffExpTool(Tool):
                 self.logger.info(f)
                 control = f.split('.')[-3].split('_vs_')[0]
                 other = f.split('.')[-3].split('_vs_')[1]
-                if self.option("edger_group").is_set:
-                    stat_edger(self.work_dir + '/edger_result/' + f, self.option('count').prop['path'], self.option('fpkm').prop['path'], control, other, self.output_dir + "/", './edger_group', self.option("diff_ci"), False)
-                else:
-                    stat_edger(self.work_dir + '/edger_result/' + f, self.option('count').prop['path'], self.option('fpkm').prop['path'], control, other, self.output_dir + "/", None, self.option("diff_ci"), False)
+                stat.diff_stat(express_info=stat.express_info, edgr_result=self.work_dir + '/edger_result/' + f, control=control, other=other, output=self.output_dir, group_info=group_info, regulate=False, diff_ci=self.option("diff_ci"))
 
     def set_output(self):
         """
@@ -210,6 +207,7 @@ class DiffExpTool(Tool):
         """
         try:
             self.logger.info("设置结果目录")
+            self.option('regulate_edgrstat_dir', self.regulate_stat)
             if os.path.getsize(self.work_dir + '/diff_list') != 0:
                 get_diff_matrix(self.option('fpkm').prop['path'], self.work_dir + '/diff_list', self.output_dir + '/diff_fpkm')
                 get_diff_matrix(self.option('count').prop['path'], self.work_dir + '/diff_list', self.output_dir + '/diff_count')
@@ -217,8 +215,7 @@ class DiffExpTool(Tool):
                 self.add_state('diff_gene')
                 self.option('diff_fpkm', self.output_dir + '/diff_fpkm')
                 self.option('diff_count', self.output_dir + '/diff_count')
-                get_gene_list(self.output_dir + '/diff_fpkm', self.work_dir + '/gene_file')
-                self.option('gene_file', self.work_dir + '/gene_file')
+                self.option('diff_list', self.work_dir + '/diff_list')
                 files = os.listdir(self.work_dir + '/diff_list_dir/')
                 for f in files:
                     if not os.path.getsize(self.work_dir + '/diff_list_dir/' + f):

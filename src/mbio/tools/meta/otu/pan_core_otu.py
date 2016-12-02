@@ -64,7 +64,7 @@ class PanCoreOtuAgent(Agent):
         设置所需资源
         """
         self._cpu = 3
-        self._memory = ''
+        self._memory = '5G'
 
 
 class PanCoreOtuTool(Tool):
@@ -86,9 +86,9 @@ class PanCoreOtuTool(Tool):
 
         # 检测otu表行数
         num_lines = sum(1 for line in open(otu_path))
-        if num_lines < 11:
-            self.set_error("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
-            raise Exception("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
+        if num_lines < 5:
+            self.set_error("Otu表里的OTU数目小于3个！请更换OTU表或者选择更低级别的分类水平！")
+            raise Exception("Otu表里的OTU数目小于3个！请更换OTU表或者选择更低级别的分类水平！")
 
         if self.option("group_table").is_set:
             group_table = self.option("group_table").prop['path']
@@ -132,7 +132,7 @@ class PanCoreOtuTool(Tool):
                         none_na.append(i)
                     else:
                         break
-        max_len = max(none_na)
+        max_len = max(none_na) + 1
         with open(in_path, "rb") as r, open(out_path, "wb") as w:
             for line in r:
                 line = line.rstrip().split("\t")

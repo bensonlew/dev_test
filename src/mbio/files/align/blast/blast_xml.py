@@ -8,7 +8,6 @@ import xml.etree.ElementTree as ET
 import re
 
 
-
 class BlastXmlFile(File):
     """
     定义blast+比对输出类型为5结果文件的xml格式， 测试blast+为2.3.0版本
@@ -26,6 +25,7 @@ class BlastXmlFile(File):
         self.set_property('query_num', blast_info[0])
         self.set_property('hit_num', blast_info[1])
         self.set_property('hsp_num', blast_info[2])
+        self.set_property('hit_query_list', blast_info[3])
 
     def get_xml_info(self):
         """
@@ -38,8 +38,11 @@ class BlastXmlFile(File):
             query_count = 0
             align_count = 0
             hsp_count = 0
+            query_list = []
             for query in blastxml:
                 query_count += 1
+                if query.alignments:
+                    query_list.append(re.split(' ', query.query, maxsplit=1)[0])
                 for align in query.alignments:
                     align_count += 1
                     for hsp in align.hsps:
@@ -48,7 +51,7 @@ class BlastXmlFile(File):
             raise FileError('传入文件类型不正确，无法解析，请检查文件是否正确，或者生成文件的blast版本不正确，本程序测试版本blast+2.3.0')
         except Exception as e:
             raise FileError('未知原因导致blastxml文件解析失败:{}'.format(e))
-        return query_count, align_count, hsp_count
+        return query_count, align_count, hsp_count, query_list
 
     def check(self):
         """

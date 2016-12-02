@@ -12,6 +12,9 @@ import bson.binary
 from cStringIO import StringIO
 import re
 import json
+import pandas as pd
+import numpy as np
+from collections import Counter
 
 
 class DenovoExpress(Base):
@@ -46,10 +49,12 @@ class DenovoExpress(Base):
                     count_path = rsem_dir + f
                     fpkm_path = rsem_dir + 'genes.counts.matrix'
                     self.add_express_detail(express_id, count_path, fpkm_path, 'gene')
+                    self.add_express_gragh(express_id, fpkm_path, 'gene')
                 elif re.search(r'^transcripts\.TMM', f):
                     count_path = rsem_dir + f
                     fpkm_path = rsem_dir + 'transcripts.counts.matrix'
                     self.add_express_detail(express_id, count_path, fpkm_path, 'transcript')
+                    self.add_express_gragh(express_id, fpkm_path, 'transcript')
                 elif re.search(r'\.genes\.results$', f):
                     sample = f.split('.genes.results')[0]
                     file_ = rsem_dir + f
@@ -73,18 +78,18 @@ class DenovoExpress(Base):
             raise Exception('fpkm_path:{}所指定的路径不存在，请检查！'.format(fpkm_path))
         data_list = list()
         count_dict = {}
-        sample_count = {}
+        # sample_count = {}
         with open(count_path, 'rb') as c, open(fpkm_path, 'rb') as f:
             samples = c.readline().strip().split('\t')
-            for sam in samples:
-                sample_count[sam] = 0
+            # for sam in samples:
+            #     sample_count[sam] = 0
             for line in c:
                 line = line.strip().split('\t')
                 count_dict[line[0]] = line[1:]
-                count = line[1:]
-                for i in range(len(count)):
-                    if float(count[i]) > 0:
-                        sample_count[samples[i]] += 1
+                # count = line[1:]
+                # for i in range(len(count)):
+                #     if float(count[i]) > 0:
+                #         sample_count[samples[i]] += 1
             f.readline()
             for l in f:
                 l = l.strip().split('\t')
@@ -98,7 +103,7 @@ class DenovoExpress(Base):
                 for i in range(len(samples)):
                     data += [
                         ('{}_count'.format(samples[i]), count_dict[gene_id][i]), ('{}_fpkm'.format(samples[i]), fpkm[i]),
-                        ('{}_sum'.format(samples[i]), sample_count[samples[i]]),
+                        # ('{}_sum'.format(samples[i]), sample_count[samples[i]]),
                     ]
                 data = SON(data)
                 data_list.append(data)
@@ -157,7 +162,36 @@ class DenovoExpress(Base):
             self.bind_object.logger.info("导入单样本表达量矩阵: %s信息成功!" % rsem_result)
 
     @report_check
-    def add_express_diff(self, params, samples, compare_column, diff_exp_dir=None, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True, samples_detail=None, express_id=None):
+    def add_express_gragh(self, express_id, fpkm_path, query_type=None):
+        df = pd.read_table(fpkm_path)
+        samples = df.columns[1:]
+        data_list = []
+        for i in samples:
+            insert_data = [
+                ('express_id', express_id),
+                ('type', query_type),
+                ('specimen', i)
+            ]
+            tmp = []
+            data = df[i][df[i].apply(lambda x: x > 0)]
+            data = np.log10(data).apply(lambda x: round(x, 2))
+            count = Counter(data)
+            _sum = float(sum(count.values()))
+            for c in count:
+                tmp.append({'logfpkm': c, 'density': float('%0.3g' % (count[c] / _sum))})
+            insert_data.append(('data', tmp))
+            insert_data = SON(insert_data)
+            data_list.append(insert_data)
+        try:
+            collection = self.db["sg_denovo_express_gragh"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入表达量矩阵作图数据：%s信息出错:%s" % (fpkm_path, e))
+        else:
+            self.bind_object.logger.info("导入表达量矩阵作图数据: %s信息成功!" % fpkm_path)
+
+    @report_check
+    def add_express_diff(self, params, samples, compare_column, diff_exp_dir=None, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True, samples_detail=None):
         # group_id, group_detail, control_id只供denovobase初始化时更新param使用
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn

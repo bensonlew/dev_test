@@ -46,10 +46,10 @@ class TophatAgent(Agent):
             raise OptionError("请设置参考基因组")
         if self.option("ref_genome") == "customer_mode" and not self.option("ref_genome_custom").is_set:
             raise OptionError("请上传自定义参考基因组")
-        if self.option("seq_method") == "Paired-end":
+        if self.option("seq_method") == "PE":
             if self.option("single_end_reads").is_set:
                 raise OptionError("您上传的是单端测序的序列，请上传双端序列")
-            elif not (self.option("left_reads").is_set and  self.option("right_reads").is_set):
+            elif not (self.option("left_reads").is_set and self.option("right_reads").is_set):
                 raise OptionError("您漏了某端序列")
             else:
                 pass
@@ -60,8 +60,6 @@ class TophatAgent(Agent):
                 raise OptionError("有单端的序列就够啦")
             else:
                 pass
-        if not self.option("mapping_method") == "tophat":
-            raise OptionError("这是tophat的tool")
         return True
 
     def set_resource(self):
@@ -100,12 +98,14 @@ class TophatTool(Tool):
         
         
     def run_tophat(self,index_ref):
-        pre = os.path.splitext(os.path.basename(self.option("left_reads").prop['path']))[0].split("_")[0] + "_"
+        # pre = os.path.splitext(os.path.basename(self.option("left_reads").prop['path']))[0].split("_")[0] + "_"
         # ref_path = os.path.join(self.work_dir,"ref")
-        if self.option("seq_method") == "Paired-end":
+        if self.option("seq_method") == "PE":
             cmd = "{}tophat2 {} {} {}".format(self.cmd_path,index_ref,self.option("left_reads").prop['path'],self.option("right_reads").prop['path'])
+            pre = os.path.splitext(os.path.basename(self.option("left_reads").prop['path']))[0].split("_")[0] + "_"
         else:
             cmd = "{}tophat2 {} {}".format(self.cmd_path,index_ref,self.option("single_end_reads").prop['path'])
+            pre = os.path.splitext(os.path.basename(self.option("single_end_reads").prop['path']))[0].split("_")[0] + "_"
         tophat_command = self.add_command("tophat",cmd)
         self.logger.info("开始运行tophat")
         tophat_command.run()
@@ -115,8 +115,10 @@ class TophatTool(Tool):
             outfile_path = os.path.split(output)[0]
             outfile = os.path.join(outfile_path,pre + "accepted_hits.bam")
             os.rename(output,outfile)
-            self.option('bam_output').set_path(outfile)
-            #shutil.move(outfile,"../output/")
+            #self.option('bam_output').set_path(outfile)
+            if os.path.exists("../output/" + pre + "accepted_hits.bam"):
+                os.remove("../output/" + pre + "accepted_hits.bam")
+            os.link(outfile,"../output/" + pre + "accepted_hits.bam")
         return True
     
     def run(self):

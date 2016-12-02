@@ -4,7 +4,7 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 from mbio.files.meta.otu.otu_table import OtuTableFile
-import pandas as pd
+import re
 
 
 class FactorDistanceAgent(Agent):
@@ -42,18 +42,18 @@ class FactorDistanceAgent(Agent):
 
     def check_options(self):
         if not self.option('factor').is_set:
-            raise OptionError('Factor table not provided')
+            raise OptionError('没有提供环境因子表')
         else:
             self.option('factor').get_info()
             if self.option('factorselected'):
                 factors = self.option('factorselected').split(',')
                 for f in factors:
                     if f not in self.option('factor').prop['group_scheme']:
-                        raise OptionError('such factor not included from original factor table：%s' % f)
+                        raise OptionError('该环境因子在输入的环境因子表里不存在：%s' %f)
             else:
                 pass
         if self.option('facmatrixtype') not in FactorDistanceAgent.MATRIXFACTOR:
-            raise OptionError('Selected matrix type is not supported.')
+            raise OptionError(' 不支持所选矩阵类型 .')
 
     def set_resource(self):
         self._cpu = 5
@@ -124,10 +124,17 @@ class FactorDistanceTool(Tool):
                 write_line_list[n] += "\t{}".format(line[0])
                 for i in fac_index:
                     n += 1
-                    write_line_list[n] += "\t{}".format(line[i])
+                    if re.match(r"\D", line[i]):
+                        continue
+                    else:
+                        write_line_list[n] += "\t{}".format(line[i])
+            write_line_len = len(write_line_list[0].split("\t"))
             for write_line in write_line_list:
-                w.write(write_line)
-                w.write("\n")
+                if len(write_line.split("\t")) < write_line_len:
+                    continue
+                else:
+                    w.write(write_line)
+                    w.write("\n")
 
         trans_newtable = OtuTableFile()
         trans_newtable.set_path('transtable.txt')

@@ -11,14 +11,14 @@ class KeggRichAgent(Agent):
     Kegg富集分析
     version v1.0.1
     author: qiuping
-    last_modify: 2016.08.09
+    last_modify: 2016.11.23
     """
     def __init__(self, parent):
         super(KeggRichAgent, self).__init__(parent)
         options = [
             {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},  # 只含有基因的kegg table结果文件
             {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # gene名字文件
-            {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 两两样本/分组的差异基因文件
+            {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "correct", "type": "string", "default": "BH"}  # 多重检验校正方法
         ]
         self.add_option(options)
@@ -39,7 +39,7 @@ class KeggRichAgent(Agent):
         重写参数检测函数
         :return:
         """
-        if not self.option('kegg_path').is_set:
+        if not self.option('kegg_table').is_set:
             raise OptionError('必须设置kegg的pathway输入文件')
         if self.option('correct') not in ['BY', 'BH', 'None', 'QVALUE']:
             raise OptionError('多重检验校正的方法不在提供的范围内')
@@ -77,6 +77,7 @@ class KeggRichTool(Tool):
         self.set_environ(PYTHONPATH=self.kobas_path)
         self.python = '/program/Python/bin/'
         self.all_list = self.option('all_list').prop['gene_list']
+        self.diff_list = self.option('diff_list').prop['gene_list']
 
     def run(self):
         """
@@ -91,7 +92,7 @@ class KeggRichTool(Tool):
         运行kobas软件，进行kegg富集分析
         """
         try:
-            self.option('kegg_table').get_kegg_list(self.work_dir, self.all_list)
+            self.option('kegg_table').get_kegg_list(self.work_dir, self.all_list, self.diff_list)
             self.logger.info("kegg富集第一步运行完成")
             self.run_identify()
         except Exception as e:
@@ -99,7 +100,7 @@ class KeggRichTool(Tool):
             self.logger.info("kegg富集第一步运行出错:{}".format(e))
 
     def run_identify(self):
-        kofile = os.path.basename(self.option('diff_list').prop['path'])
+        kofile = os.path.splitext(os.path.basename(self.option('diff_list').prop['path']))[0]
         cmd_2 = self.python + 'python {}identify.py -f {} -n {} -b {} -o {}.kegg_enrichment.xls'.format(self.config.SOFTWARE_DIR + self.kobas, self.work_dir + '/kofile', self.option('correct'), self.work_dir + '/all_kofile', kofile)
         self.logger.info('开始运行kegg富集第二步：进行kegg富集分析')
         command_2 = self.add_command("cmd_2", cmd_2).run()
@@ -107,6 +108,7 @@ class KeggRichTool(Tool):
         if command_2.return_code == 0:
             self.logger.info("kegg富集分析运行完成")
             self.set_output(kofile + '.kegg_enrichment.xls')
+            self.end()
         else:
             self.set_error("kegg富集分析运行出错!")
 
@@ -122,7 +124,6 @@ class KeggRichTool(Tool):
         try:
             os.link(linkfile, self.output_dir + '/{}'.format(linkfile))
             self.logger.info("设置kegg富集分析结果目录成功")
-            self.end()
         except Exception as e:
             self.logger.info("设置kegg富集分析结果目录失败{}".format(e))
             self.set_error("设置kegg富集分析结果目录失败{}".format(e))

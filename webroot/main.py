@@ -2,7 +2,7 @@
 # __author__ = 'guoquan'
 import web
 from mainapp.libs.signature import check_sig
-from mainapp.controllers.pipeline import Pipeline, PipelineState,PipelineLog,PipelineStop,PipelineQueue,PipelineStopPause,PipelinePause
+from mainapp.controllers.pipeline import Pipeline, PipelineState, PipelineLog, PipelineStop, PipelineQueue, PipelineStopPause, PipelinePause
 from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.instant.meta.two_group import TwoGroup
 from mainapp.controllers.instant.meta.estimators import Estimators
@@ -28,7 +28,9 @@ from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
 from mainapp.controllers.submit.denovo_rna.map_assessment import MapAssessment
 from mainapp.controllers.instant.meta.mantel_test import MantelTest
 from mainapp.controllers.instant.meta.pearson_correlation import PearsonCorrelation
-from mainapp.controllers.submit.denovo_rna.cluster import Cluster
+from mainapp.controllers.instant.meta.plot_tree import PlotTree
+from mainapp.controllers.submit.datasplit.datasplit import Datasplit
+# from mainapp.controllers.submit.denovo_rna.cluster import Cluster
 from mainapp.controllers.submit.denovo_rna.network import Network
 from mainapp.controllers.instant.denovo_rna.get_diff_express import GetDiffExpress
 from mainapp.controllers.submit.meta.otunetwork import Otunetwork
@@ -72,7 +74,9 @@ urls = (
     "/denovo_rna/map_assessment", "MapAssessment",
     "/meta/mantel_test", "MantelTest",
     "/meta/pearson_correlation", "PearsonCorrelation",
-    "/denovo_rna/cluster","Cluster",
+    "/datasplit/datasplit", "Datasplit",
+    "/meta/plot_tree", "PlotTree",
+    # "/denovo_rna/cluster", "Cluster",
     "/denovo_rna/network", "Network",
     "/denovo_rna/get_diff_express", "GetDiffExpress",
     "/meta/otu_network", "Otunetwork",
@@ -87,4 +91,4 @@ class hello(object):
 
 if __name__ == "__main__":
     app = web.application(urls, globals())
-    app.run()  
+    app.run()

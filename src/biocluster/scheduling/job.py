@@ -22,6 +22,7 @@ class JobManager(object):
         self.max_job_number = config.MAX_JOB_NUMBER
         self.queue_jobs = []
         Watcher().add(self._watch_waiting_jobs, 10)
+        Watcher().add(self._watch_processing_jobs, 10)
 
     def add_job(self, agent):
         """
@@ -101,6 +102,24 @@ class JobManager(object):
                 queue_job.submit()
                 queue_job.agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, queue_job.id))
                 self.queue_jobs.remove(queue_job)
+
+    def _watch_processing_jobs(self):
+        """
+        监视本地进程模式时进程意外终止的问题
+
+        :return:
+        """
+        is_process = False
+        for running_job in self.get_unfinish_jobs():
+            if hasattr(running_job, "process"):
+                is_process = True
+                if not running_job.process.is_alive():
+                    gevent.sleep(10)
+                    if not running_job.is_end:
+                        running_job.agent.fire("error", "任务%s进程意外结束，请查看运行日志!" % running_job.agent.id)
+
+        if is_process is False:
+            return "exit"
 
     def remove_all_jobs(self):
         """

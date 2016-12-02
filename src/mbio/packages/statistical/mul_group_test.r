@@ -43,6 +43,10 @@ summary_stat <- function(x){
   for(i in 1:len){
     Me <- lapply(s,function(x)mean(as.numeric(as.vector(x[,i]))))
     Sd <- lapply(s,function(x)sd(as.numeric(as.vector(x[,i]))))
+    if(len == 1){
+       Me <- lapply(s,function(x)x=1)
+       Sd <- lapply(s,function(x)x=0)
+    }
     n <- 1
     for(l in 1:length(Me)){
       stat_result[i+1,n] <- signif(Me[[l]]*100,4)
@@ -66,14 +70,14 @@ summary_stat <- function(x){
 }
 
 #  deal with the input file, come into being a data frame of R
-data <- read.table('${inputfile}',sep = '\t',comment.char = '')
+data <- read.table('${inputfile}',sep = '\t',comment.char = '', colClasses="character")
 samp <- t(data[1,-1])
 data <- data[-1,]
 rownames(data) <- data[,1]
 data <- data[,-1]
 colnames(data) <- samp
 
-group <- read.table('${groupfile}',sep = '\t')
+group <- read.table('${groupfile}',sep = '\t',colClasses="character")
 gsamp <- group[,1]
 data <- data[,which(samp %in% gsamp)]
 data <- data[apply(data,1,function(x)any(x>0)),]

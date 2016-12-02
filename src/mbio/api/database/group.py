@@ -3,7 +3,7 @@
 
 from biocluster.api.database.base import Base, report_check
 import re
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from biocluster.config import Config
 
 
@@ -33,7 +33,7 @@ class Group(Base):
         for i in range(len(category_names)):
             for k in self.info_dict:
                 if k[0] == s and k[1] == category_names[i]:
-                    tmp_dic = dict()
+                    tmp_dic = OrderedDict()
                     for sp in self.info_dict[k]:
                         tmp_dic[str(spname_spid[sp])] = sp
                     specimen_names.append(tmp_dic)

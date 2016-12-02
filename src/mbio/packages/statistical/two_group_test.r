@@ -1,11 +1,11 @@
-otu_data <- read.table("${inputfile}",sep = "\t",comment.char = '')
+otu_data <- read.table("${inputfile}",sep = "\t",comment.char = '', colClasses="character")
 samp <- t(otu_data[1,-1])
 otu_data <- otu_data[-1,]
 rownames(otu_data) <- otu_data[,1]
 otu_data <- otu_data[,-1]
 colnames(otu_data) <- samp
 #read groupfile to make the dataframe for test
-group <- read.table("${groupfile}",sep="\t")
+group <- read.table("${groupfile}",sep="\t",colClasses="character")
 #group <- group[-1,]
 gsamp <- group[,1]
 g1 <- group[1,2]
@@ -28,6 +28,18 @@ pvalue <- 1
 for(i in 1:nrow(otu_data)){
   o1 <- as.numeric(as.vector(unlist(otu_data[i,which(samp %in% gsamp1)])))
   o2 <- as.numeric(as.vector(unlist(otu_data[i,which(samp %in% gsamp2)])))
+  test <- "${choose_test}"
+  if(test == "student"){
+    tt <- t.test(o1,o2,var.equal = TRUE,alternative = "${test_type}",conf.level = ${ci})
+  }else if(test == "welch"){
+    tt <- t.test(o1,o2,var.equal = FALSE,alternative = "${test_type}",conf.level = ${ci})
+  }else{
+    tt <- wilcox.test(o1,o2,alternative = "${test_type}",exact = F,conf.level = ${ci})
+  }
+  if(nrow(otu_data) == 1){
+     o1 = o1/o1
+     o2 = o2/o2
+  }
   sum1 <- as.numeric(summary(o1))[-4]
   sum2 <- as.numeric(summary(o2))[-4]
   for(l in 1:length(sum1)){
@@ -38,14 +50,6 @@ for(i in 1:nrow(otu_data)){
   me2 <- signif(mean(o2)*100,4)
   sd1 <- signif(sd(o1)*100,4)
   sd2 <- signif(sd(o2)*100,4)
-  test <- "${choose_test}"
-  if(test == "student"){
-    tt <- t.test(o1,o2,var.equal = TRUE,alternative = "${test_type}",conf.level = ${ci})
-  }else if(test == "welch"){
-    tt <- t.test(o1,o2,var.equal = FALSE,alternative = "${test_type}",conf.level = ${ci})
-  }else{
-    tt <- wilcox.test(o1,o2,alternative = "${test_type}",exact = F,conf.level = ${ci})
-  }
   pvalue <- c(pvalue,tt$p.value)
   result[i,] = c(rownames(otu_data)[i],me1,sd1,me2,sd2)
   box_result[i,] = c(rownames(otu_data)[i],sum1[1],sum1[2],sum1[3],sum1[4],sum1[5],sum2[1],sum2[2],sum2[3],sum2[4],sum2[5])

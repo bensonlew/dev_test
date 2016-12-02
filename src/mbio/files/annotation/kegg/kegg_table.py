@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
 from biocluster.iofile import File
+import re
+from collections import defaultdict
 
 
 class KeggTableFile(File):
@@ -9,12 +11,13 @@ class KeggTableFile(File):
     """
     def __init__(self):
         super(KeggTableFile, self).__init__()
+        self.gene_list = []
 
     def check(self):
         if super(KeggTableFile, self).check():
             return True
 
-    def get_kegg_list(self, outdir, all_list):
+    def get_kegg_list(self, outdir, all_list, diff_list):
         with open(self.prop['path'], 'rb') as r, open(outdir + '/kofile', 'wb') as w, open(outdir + '/all_kofile', 'wb') as a:
             r.readline()
             head = '##ko KEGG Orthology\n##Method: BLAST Options: evalue <= 1e-05; rank <= 5\n##Summary: None\n\n#Query\tKO ID|KO name|Hyperlink\n'
@@ -22,9 +25,29 @@ class KeggTableFile(File):
             a.write(head)
             for line in r:
                 line = line.strip('\n').split('\t')
-                w.write('{}\t{}\n'.format(line[0], line[1]))
-                a.write('{}\t{}\t|\t|\n'.format(line[0], line[1], line[2], line[3]))
+                if line[0] in diff_list:
+                    w.write('{}\t{}\n'.format(line[0], line[1]))
+                a.write('{}\t{}|{}|{}\n'.format(line[0], line[1], line[2], line[3]))
                 self.gene_list.append(line[0])
             for i in all_list:
                 if i not in self.gene_list:
                     a.write('{}\tNone\n'.format(i))
+
+    def get_pathway_koid(self):
+        '''
+        返回两个字典：
+        ko_gene:ko id对应的geneids
+        path_ko:pathway id为键，值为koid的列表；
+        '''
+        with open(self.prop['path'], 'rb') as r:
+            ko_gene = defaultdict(list)
+            path_ko = defaultdict(list)
+            r.readline()
+            for line in r:
+                line = line.strip('\n').split('\t')
+                ko_gene[line[1]].append(line[0])
+                paths = [re.sub('path:', '', i) for i in line[-1].split(';')]
+                for p in paths:
+                    if p:
+                        path_ko[p].append(line[1])
+        return ko_gene, path_ko

@@ -25,9 +25,9 @@ class NcbiTaxonAgent(Agent):
 
     def check_options(self):
         if not self.option("blastout").is_set:
-            raise OptionError("必须设置参数blastout")
+            raise OptionError("必须设置输入文件")
         if self.option('blastdb') == 'None':
-            raise OptionError("blastdb参数必须设置")
+            raise OptionError("必须设置输入文件的blast比对类型")
         else:
             if self.option('blastdb') not in ['nr', 'nt']:
                 raise OptionError('blastdb必须为nr或者nt:{}'.format(self.option('blastdb')))
@@ -78,10 +78,11 @@ class NcbiTaxonTool(Tool):
             db = 'prot'
         else:
             db = 'nucl'
-        run_gitaxon = self.result_thread(self.process_run, table, db)
-        run_gitaxon.start()
-        run_gitaxon.join()
-        if run_gitaxon.result:
+        if self.process_run(table, db):
+        # run_gitaxon = self.result_thread(self.process_run, table, db)
+        # run_gitaxon.start()
+        # run_gitaxon.join()
+        # if run_gitaxon.result:
             self.option('taxon_out', self.output_dir + '/query_taxons_detail.xls')
             self.end()
         else:
