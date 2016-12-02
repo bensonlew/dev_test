@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = "JieYao"
+# __author__ = "zhangpeng"
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -22,12 +22,12 @@ class RocAgent(Agent):
         options = [
             {"name": "mode", "type": "int", "default":1},
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir", "default":None},
-            {"name": "factor_table", "type": "string", "default":""},
-            {"name": "level", "type": "string", "default": "otu"},
+            #{"name": "factor_table", "type": "string", "default":""},
+            {"name": "level", "type": "int", "default": 9},
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "method", "type": "string", "default":""},
-            {"name": "name_table", "type": "string", "default":""},
-            {"name": "top_n", "type": "int", "default": 20}
+            {"name": "method", "type": "string", "default":"sum"},
+            #{"name": "name_table", "type": "string", "default":""},
+            {"name": "top_n", "type": "int", "default": 100}
             ]
         self.add_option(options)
         self.step.add_steps('RocAnalysis')
@@ -53,10 +53,10 @@ class RocAgent(Agent):
             return self.option('otu_table').prop['path']
 
     def check_options(self):
-        if not self.option('otu_table') and self.option('mode') in [1,2]:
+        if not self.option('otu_table') and self.option('mode') in [1]:
             raise OptionError('必须提供OTU表')
-        if not self.option('factor_table') and self.option('mode') == 3:
-            raise OptionError('模式三必须提供factor表')
+        #if not self.option('factor_table') and self.option('mode') == 3:
+            #raise OptionError('模式三必须提供factor表')
         if self.option('mode') in [1,2]:
             self.option('otu_table').get_info()
             if self.option('otu_table').prop['sample_num'] < 2:
@@ -78,8 +78,8 @@ class RocAgent(Agent):
                 for s in group_data:
                     if s.split()[0] not in sample_data:
                         raise OptionError("分组表中物种%s不在OTU Table中" % s.split()[0])
-                    if s.split()[1] not in ['0','1']:
-                        raise OptionError("分组表中物种分组只能有0和1！")
+                    #if s.split()[1] not in ['0','1']:
+                        #raise OptionError("分组表中物种分组只能有0和1！")
 
                 if self.option('mode')==2:
                     name_data = open(self.option('name_table'), "r").readlines()[1:]
@@ -88,9 +88,9 @@ class RocAgent(Agent):
                         if s not in otu_data:
                             raise OptionError("物种%s不在OTU Table中" % s)
 
-                if self.option('mode')==1:
-                    if self.option('top_n')>len(otu_data):
-                        raise OptionError("选择丰度前N高物种时，设定的N多于物种总数：%d>%d" %(self.option('top_n'), len(otu_data)))
+                #if self.option('mode')==1:
+                    #if self.option('top_n')>len(otu_data):
+                        #raise OptionError("选择丰度前N高物种时，设定的N多于物种总数：%d>%d" %(self.option('top_n'), len(otu_data)))
         if self.option('mode') == 3:
             os.system('cat %s | awk -F "\t" \'{ print $1 }\' > tmp.txt' %(self.option('factor_table')))
             sample_data = open("tmp.txt", "r").readlines()[1:]
@@ -152,7 +152,7 @@ class RocTool(Tool):
         """
         运行calc_roc.perl
         """
-        cmd = self.config.SOFTWARE_DIR + '/program/perl/perls/perl-5.24.0/bin/perl ' + self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/plot_roc.pl '
+        cmd = self.config.SOFTWARE_DIR + '/program/perl/perls/perl-5.24.0/bin/perl ' + self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/roc_plus_zp.pl '
         cmd += '-o %s ' %(self.work_dir + '/ROC/')
         if not os.path.exists(self.work_dir + '/ROC/'):
             os.mkdir(self.work_dir + '/ROC/')
@@ -168,7 +168,7 @@ class RocTool(Tool):
             cmd += '-method %s ' %(self.option('method'))
         if self.option('mode')==1:
             cmd += '-n %d ' %(self.option('top_n'))
-        cmd += '-labels F '
+        cmd += ' -ci F -smooth T'
         """
         with open(self.work_dir + "/ROC/set_env_and_run.cmd", "w") as tmp_file:
             tmp_file.write("#!/usr/bash\n\n")
@@ -224,7 +224,7 @@ class RocTool(Tool):
         for name in filelist:
             if 'roc_curve.xls' in name:
                 roc_curve = name
-            elif 'roc_aucvalue.xls' in name:
+            elif 'roc_auc.xls' in name:
                 roc_auc = name
         if (roc_curve and roc_auc):
             return [roc_curve, roc_auc]

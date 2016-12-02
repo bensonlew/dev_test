@@ -25,7 +25,7 @@ class RandomforestWorkflow(Workflow):
             
             {"name": "ntree", "type": "int", "default": 500},
             {"name": "problem_type", "type": "int", "default": 2},
-            {"name": "top_number", "type": "int", "default": 32767},
+            #{"name": "top_number", "type": "int", "default": 32767},
             {"name": "randomforest_id", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "group_id", "type": 'string'},
@@ -77,7 +77,7 @@ class RandomforestWorkflow(Workflow):
             'grouptable':self.option('grouptable'),
             'ntree':self.option('ntree'),
             'problem_type':self.option('problem_type'),
-            'top_number':self.option('top_number')
+            #'top_number':self.option('top_number')
         }
         self.randomforest.set_options(options)
         self.randomforest.on('end',self.set_db)
@@ -90,7 +90,7 @@ class RandomforestWorkflow(Workflow):
             [".", "", "结果输出文件目录"],
             ["./randomforest_mds_sites.xls", "xls", "坐标数据"],
             ["./randomforest_vimp_table.xls", "xls", "重要成分"],
-            ["./randomforest_confusion_table.xls", "xls", "错误率"]
+            #["./randomforest_confusion_table.xls", "xls", "错误率"]
         ])
         super(RandomforestWorkflow, self).end()
 
@@ -98,16 +98,16 @@ class RandomforestWorkflow(Workflow):
         api_randomforest = self.api.randomforest
         datadim = self.output_dir + '/randomforest_mds_sites.xls'
         datavip = self.output_dir + '/randomforest_vimp_table.xls'
-        dataerror = self.output_dir + '/randomforest_confusion_table.xls'
+        #dataerror = self.output_dir + '/randomforest_confusion_table.xls'
         if not os.path.isfile(datadim):
             raise Exception("找不到报告文件:{}".format(datadim))
         if not os.path.isfile(datavip):
             raise Exception("找不到报告文件:{}".format(datavip))
-        if not os.path.isfile(dataerror):
-            raise Exception("找不到报告文件:{}".format(dataerror))
+        #if not os.path.isfile(dataerror):
+            #raise Exception("找不到报告文件:{}".format(dataerror))
         api_randomforest.add_randomforest_dim(file_path=datadim, table_id=self.option("randomforest_id"))
         api_randomforest.add_randomforest_vip(file_path=datavip, table_id=self.option("randomforest_id"))
-        api_randomforest.add_randomforest_error(file_path=dataerror, table_id=self.option("randomforest_id"))
+        #api_randomforest.add_randomforest_error(file_path=dataerror, table_id=self.option("randomforest_id"))
         self.end()
 
     def run(self):
