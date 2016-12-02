@@ -26,6 +26,9 @@ class PanCore(MetaController):
         for v in group_detal_dict.values():
             for tmp in v:
                 specimen_ids.append(tmp)
+        if len(specimen_ids) < 5:
+            info = {'success': False, 'info': '样本数量少于5个,请选择更多的样本！'}
+            return json.dumps(info)
         specimen_ids = ",".join(specimen_ids)
         self.options = {
             "in_otu_table": data.otu_id,
