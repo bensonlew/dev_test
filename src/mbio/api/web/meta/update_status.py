@@ -114,9 +114,9 @@ class UpdateStatus(Log):
                 else:
                     raise Exception("{}的值必须为ObjectId对象或其对应的字符串!".format(self._sheetname))
             try:
-                print collection.find_one({"_id":obj_id})
+                print collection.find_one({"_id": obj_id})
             except:
-                print "im a fool"
+                print "查询数据结果出错{}:{}".format(dbname, str(obj_id))
             create_time = str(create_time)
             if status == "finish":
                 status = "end"
@@ -141,7 +141,6 @@ class UpdateStatus(Log):
                 tmp_task_id = re.split("_", self._task_id)
                 tmp_task_id.pop()
                 tmp_task_id.pop()
-                print "bbb"
                 print tmp_task_id
                 insert_data = {
                     "table_id": obj_id,
@@ -186,6 +185,14 @@ class UpdateStatus(Log):
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
+                tmp_col = self.mongodb[dbname]
+                find_one = tmp_col.find_one({"_id": obj_id})
+                if 'params' in find_one:
+                    insert_data['params'] = find_one['params']
+                if find_one['params']:
+                    my_dict = json.loads(find_one['params'])
+                    if "submit_location" in my_dict:
+                        insert_data['submit_location'] = my_dict['submit_location']
                 collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
             self._mongo_client.close()
 
