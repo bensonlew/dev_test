@@ -10,7 +10,7 @@ from biocluster.core.exceptions import OptionError
 class ExpAnalysisModule(Module):
     def __init__(self, work_id):
         super(ExpAnalysisModule, self).__init__(work_id)
-        self.step.add_steps('rsem', 'merge_rsem', 'diff_exp')
+        self.step.add_steps('rsem', 'merge_rsem', 'diff_exp', "gene_corr", "tran_corr", "tran_pca", "gene_pca")
         options = [
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "rsem_fa", "type": "infile", "format": "sequence.fasta"},  # trinit.fasta文件
@@ -45,12 +45,13 @@ class ExpAnalysisModule(Module):
         self.diff_gene = False
         self.bam_path = self.work_dir + '/bowtie2_bam_dir/'
         # add by qindanhua 161201
+        self.tool_lists = [self.merge_rsem]
         self.gene_corr = self.add_tool("denovo_rna.mapping.correlation")
         self.tran_corr = self.add_tool("denovo_rna.mapping.correlation")
         self.gene_pca = self.add_tool("meta.beta_diversity.pca")
         self.tran_pca = self.add_tool("meta.beta_diversity.pca")
-        self.corr_too_list = [self.gene_corr, self.tran_corr, self.gene_pca, self.tran_pca]
-        self.tool_lists += self.corr_too_list
+        self.corr_tool_list = [self.gene_corr, self.tran_corr, self.gene_pca, self.tran_pca]
+        self.tool_lists += self.corr_tool_list
 
     def check_options(self):
         if not self.option('fq_type'):
@@ -81,19 +82,26 @@ class ExpAnalysisModule(Module):
     # add by qindanhua 161201
     def correlation_run(self):
         self.gene_corr.set_options({
-                'fpkm': self.merge_rsem.output_dir + "/"
+                'fpkm': self.merge_rsem.output_dir + "/genes.TMM.fpkm.matrix"
                 })
         self.tran_corr.set_options({
-                'fpkm': self.merge_rsem.output_dir + "/"
+                'fpkm': self.merge_rsem.output_dir + "/transcripts.TMM.fpkm.matrix"
                 })
         self.tran_pca.set_options({
-                'otutable': self.merge_rsem.output_dir + "/"
+                'otutable': self.merge_rsem.output_dir + "/transcripts.TMM.fpkm.matrix"
                 })
         self.gene_pca.set_options({
-                'otutable': self.merge_rsem.output_dir + "/"
+                'otutable': self.merge_rsem.output_dir + "/genes.TMM.fpkm.matrix"
                 })
-        # self.step.stat.start()
-        # self.gene_corr.on("end", self.correlation_finish_update)
+        self.gene_corr.on('end', self.set_step, {'end': self.step.gene_corr, 'start': self.step.gene_corr})
+        self.tran_corr.on('end', self.set_step, {'end': self.step.tran_corr, 'start': self.step.tran_corr})
+        self.tran_pca.on('end', self.set_step, {'end': self.step.tran_pca, 'start': self.step.tran_pca})
+        self.gene_pca.on('end', self.set_step, {'end': self.step.gene_pca, 'start': self.step.gene_pca})
+        self.gene_corr.on('end', self.set_output, "gene_correlation")
+        self.tran_corr.on('end', self.set_output, "tran_correlation")
+        self.tran_pca.on('end', self.set_output, "tran_correlation")
+        self.gene_pca.on('end', self.set_output, "gene_correlation")
+        # self.on_rely(self.corr_tool_list, self.set_output, 'correlation')
         self.gene_corr.run()
         self.tran_corr.run()
         self.gene_pca.run()
@@ -237,6 +245,11 @@ class ExpAnalysisModule(Module):
                 self.option('diff_list_dir', obj.option('diff_list_dir'))
             else:
                 self.logger.info('此输入文件没有检测到差异基因')
+        # add by qindanhua 161205
+        elif event['data'] == 'tran_correlation':
+            self.linkdir(obj.output_dir, "tran_correlation", self.output_dir)
+        elif event['data'] == 'gene_correlation':
+            self.linkdir(obj.output_dir, "gene_correlation", self.output_dir)
         else:
             pass
 
@@ -246,7 +259,7 @@ class ExpAnalysisModule(Module):
         self.run_bowtie_build()
         self.merge_rsem.on('end', self.diff_exp_run)
         self.merge_rsem.on('end', self.correlation_run)
-        # change by qindanhua 注释掉原本end依赖对象
+        # change by qindanhua 改变end依赖对象
         # self.diff_exp.on('end', self.end)
         self.on_rely(self.tool_lists, self.end)
 
