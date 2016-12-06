@@ -10,7 +10,7 @@ from collections import defaultdict
 import datetime
 # import gridfs
 from bson.son import SON
-# from bson.objectid import ObjectId
+from bson.objectid import ObjectId
 from biocluster.config import Config
 # from mainapp.libs.param_pack import group_detail_sort
 
@@ -25,7 +25,7 @@ class PhyloTree(Base):
         collection = self.db["sg_phylo_tree"]
         main_data = [('project_sn', self.bind_object.sheet.project_sn),
                      ('task_id', self.bind_object.id),
-                     ('otu_id', self.bind_object.sheet.option('otu_id')),
+                     ('otu_id', ObjectId(self.bind_object.sheet.option('otu_id'))),
                      ('name', 'tree_{}'.format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))),
                      ('status', 'end'),
                      ('params', self.bind_object.sheet.option('params')),
