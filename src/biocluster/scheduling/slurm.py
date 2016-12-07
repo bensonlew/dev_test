@@ -76,13 +76,12 @@ class SLURM(Job):
                     self.agent.fire("error", "内存指定出错 {}。任务运行失败".format(text))
                 elif self.count < 10:
                     self.agent.logger.warn("任务投递系统出现错误:%s，30秒后尝试再次投递!\n" % text)
-                    self.agent.logger.debug(self.count)
+                    # self.agent.logger.debug(self.count)
                     gevent.sleep(30)
                     self.count += 1
                     self.submit()
                 else:
                     self.agent.logger.error("已重复投递10次任务，终止运行")
-                    self.agent.fire("error", "内存指定出错 {}。任务运行失败".format(text))
 
     def delete(self):
         """

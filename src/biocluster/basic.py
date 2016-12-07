@@ -12,7 +12,6 @@ from .core.exceptions import OptionError
 from gevent.lock import BoundedSemaphore
 import gevent
 import datetime
-from .core.function import CJsonEncoder
 import json
 # import urllib
 from biocluster.api.database.base import ApiManager
@@ -481,12 +480,18 @@ class Basic(EventObject):
                 raise Exception("rely参数必须为Basic或其子类的实例对象!")
             if r not in self._children:
                 raise Exception("rely模块必须为本对象的子模块!")
-        for r in self._rely:
-            if r == rely_list:
-                event_name = "%s_%s" % (self.id.lower(), r.name)
-                self.on(event_name, func, data)
-                return
         with self.sem:
+            for r in self._rely:
+                if r.rely == rely_list:
+                    event_name = "%s_%s" % (self.id.lower(), r.name)
+                    if self.events[event_name].is_start:
+                        raise Exception("rely条件已经被触发，无法再次绑定事件!")
+                    else:
+                        self.events[event_name].stop()
+                        self.on(event_name, func, data)
+                        self.events[event_name].restart()
+                    return
+
             rl = Rely(*rely_list)
             self._rely.append(rl)
             event_name = "%s_%s" % (self.id.lower(), rl.name)
@@ -511,20 +516,19 @@ class Basic(EventObject):
             gevent.sleep(1)
         self.fire("start")
 
+    def _get_workflow(self, obj):
+        if obj.parent:
+            return self._get_workflow(obj.parent)
+        else:
+            return obj
+
     def get_workflow(self):
         """
         获取当前workflow对象
 
         :return:  :py:class:`biocluster.workflow.Workflow` 对象
         """
-        obj = self
-        if self.parent:
-            obj = self.parent
-        if obj.parent:
-            obj = obj.parent
-        if obj.parent:
-            obj = obj.parent
-        return obj
+        return self._get_workflow(self)
 
     def add_upload_dir(self, dir_path):
         """
@@ -692,7 +696,7 @@ class StepMain(Step):
 
     def add_api_data(self, name, value):
         """
-        添加额外传送到API的数据，只发送一次，发送后清空
+        添加额外传送到API的数据，每次update执行后清空
 
         :param name:
         :param value:
@@ -780,8 +784,6 @@ class StepMain(Step):
             return
 
         workflow = self.bind_obj.get_workflow()
-        if not workflow.USE_DB:
-            return
 
         if self.has_change:
             json_obj = {"stage": {
@@ -791,6 +793,35 @@ class StepMain(Step):
                         "error": "%s" % self._error_info,
                         "status": self.stats,
                         "run_time": self.spend_time}}
+
+            if self.stats == "finish":
+                if len(self.bind_obj.upload_dir) > 0:
+                    file_list = []
+                    dir_list = []
+                    for up in self.bind_obj.upload_dir:
+                        for ifile in up.file_list:
+                            if ifile["type"] == "file":
+                                tmp_dict = dict()
+                                tmp_dict["path"] = os.path.join(os.path.join(self.bind_obj.sheet.output, up.upload_path)
+                                                                , ifile["path"])
+                                tmp_dict["size"] = ifile["size"]
+                                tmp_dict["description"] = ifile["description"]
+                                tmp_dict["format"] = ifile["format"]
+                                file_list.append(tmp_dict)
+                            elif ifile["type"] == "dir":
+                                tmp_dict = dict()
+                                tmp_path = re.sub("\.$", "", ifile["path"])
+                                tmp_dict["path"] = os.path.join(os.path.join(self.bind_obj.sheet.output, up.upload_path)
+                                                                , tmp_path)
+                                tmp_dict["size"] = ifile["size"]
+                                tmp_dict["description"] = ifile["description"]
+                                tmp_dict["format"] = ifile["format"]
+                                dir_list.append(tmp_dict)
+                    json_obj["files"] = file_list
+                    json_obj["dirs"] = dir_list
+                if "update_info" in self.bind_obj.sheet.options().keys():
+                    json_obj["update_info"] = self.bind_obj.sheet.options()
+
             post_data = {
                 "content": json_obj
             }
@@ -800,81 +831,9 @@ class StepMain(Step):
             data = {
                 "task_id": workflow.sheet.id,
                 "api": self.api_type,
-                "data": json.dumps(post_data, cls=CJsonEncoder)
+                "data": post_data
             }
-            if self.stats == "finish":
-                up_data = {}
-
-                if self.bind_obj.IMPORT_REPORT_DATA is True and self.bind_obj.IMPORT_REPORT_AFTER_END is True:
-                    api_call_list = self.bind_obj.api.get_call_records_list()
-                    if api_call_list:
-                        up_data["call"] = api_call_list
-
-                if len(self.bind_obj.upload_dir) > 0:
-                    # if self.bind_obj is workflow and self.bind_obj.sheet.output:  # 普通模式的workflow 或 pipeline
-                    up_data["upload_dir"] = []
-                    files = []
-                    for up in self.bind_obj.upload_dir:
-                        target_dir = os.path.join(self.bind_obj.sheet.output, os.path.dirname(up.upload_path))
-                        up_data["upload_dir"].append({
-                            "source": up.path,
-                            "target": target_dir
-                        })
-                        files.append({
-                            "target": os.path.join(self.bind_obj.sheet.output, up.upload_path),
-                            "files": up.file_list
-                        })
-                        post_data["upload_files"] = files
-
-                        # data["upload"] = json.dumps(up_data)
-                        # data["has_upload"] = 1
-                        # data["uploaded"] = 0
-                        # post_data["upload_files"] = {
-                        #     "target": self.bind_obj.sheet.output,
-                        #     "files": self.bind_obj.get_upload_files()
-                        # }
-                        # data["data"] = urllib.urlencode(post_data)
-                        data["data"] = json.dumps(post_data, cls=CJsonEncoder)
-                    # else:
-                    #     if self.bind_obj.stage_id and workflow.sheet.output:  # pipeline mode
-                    #         up_data["upload_dir"] = []
-                    #         files = []
-                    #         target_path = "%s/%s" % (workflow.sheet.output, self.bind_obj.stage_id)
-                    #         for up in self.bind_obj.upload_dir:
-                    #             target_dir = os.path.join(target_path, os.path.dirname(up.upload_path))
-                    #             up_data["upload_dir"].append({
-                    #                 "source": up.path,
-                    #                 "target": target_dir
-                    #             })
-                    #             files.append({
-                    #                 "target": os.path.join(target_path, up.upload_path),
-                    #                 "files": up.file_list
-                    #             })
-                    #             post_data["upload_files"] = files
-                    #
-                    #         data["data"] = json.dumps(post_data, cls=CJsonEncoder)
-                if up_data:
-                    up_data["bind"] = {
-                        "name": self.bind_obj.name,
-                        "id": self.bind_obj.id,
-                        "workdir": self.bind_obj.work_dir,
-                        "fullname": self.bind_obj.fullname,
-                        "output": self.bind_obj.output_dir
-                    }
-                    if self.bind_obj.sheet:
-                        up_data["bind"]["sheet"] = self.bind_obj.sheet.data
-                    data["upload"] = json.dumps(up_data)
-                    data["has_upload"] = 1
-                    data["uploaded"] = 0
-
-            try:
-                    workflow.db.insert("apilog", **data)
-                    self.clean_change()
-                    self._api_data = {}
-            except Exception, e:
-                self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
-            finally:
-                workflow.close_db_cursor()
+            workflow.send_log(data)
 
         array = []
         has_change = False
@@ -899,18 +858,13 @@ class StepMain(Step):
             }
             for k, v in self._api_data.items():
                 post_data[k] = v
+            self._api_data.clear()
             data = {
                 "task_id": workflow.sheet.id,
                 "api": self.api_type,
-                "data": json.dumps(post_data, cls=CJsonEncoder)
+                "data": post_data
             }
-            try:
-                    workflow.db.insert("apilog", **data)
-                    self._api_data = {}
-            except Exception, e:
-                self.bind_obj.logger.error("更新状态到数据库出错:%s" % e)
-            finally:
-                workflow.close_db_cursor()
+            workflow.send_log(data)
 
 
 class UploadDir(object):
