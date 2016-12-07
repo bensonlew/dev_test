@@ -2,137 +2,52 @@
 # __author__ = 'guoquan'
 
 from ..core.singleton import singleton
-from multiprocessing import Event
-from multiprocessing.managers import BaseManager
+from multiprocessing import Event, Queue, Process
 from .workflow import WorkflowWorker
 from ..wsheet import Sheet
-from threading import Lock, Thread
-import logging
+from .logger import Logger
+from .log import LogWorker
 from ..config import Config
-import time
+from .db import WorkflowModel, CheckModel
 import os
-
-
-class Logger(object):
-    """
-    日志类
-    """
-
-    def __init__(self, lock, log_type="WPM"):
-        """
-        """
-        self.config = Config()
-        log_level = {'debug': logging.DEBUG,
-                     'info': logging.INFO,
-                     'warning': logging.WARNING,
-                     'error': logging.ERROR,
-                     'critical': logging.CRITICAL}
-        self.format = self.config.LOG_FORMAT
-        self.formatter = logging.Formatter(self.format, "%Y-%m-%d %H:%M:%S")
-        self.level = log_level[self.config.LOG_LEVEL.lower()]
-        self.streem_on = self.config.LOG_STREEM
-        self._logger_date = time.strftime('%Y%m%d', time.localtime(time.time()))
-        self.file_handler = None
-        self.log_type = log_type
-        self.lock = lock
-        if self.log_type == "WPM":
-            self.path_dir = self.config.wpm_log_file
-        else:
-            self.path_dir = self.config.UPDATE_LOG
-        if self.streem_on:
-            self.stream_handler = logging.StreamHandler()
-            self.stream_handler.setLevel(self.level)
-            self.stream_handler.setFormatter(self.formatter)
-        self.logger = self.get_logger(self.log_type)
-
-    def get_logger(self, name=""):
-        """
-        返回一个logger对象
-
-        :param name: logger名字
-        """
-        logger = logging.getLogger(name)
-        logger.propagate = 0
-        if self.streem_on:
-            logger.addHandler(self.stream_handler)
-        self._add_handler(logger)
-        return logger
-
-    def _add_handler(self, logger):
-        """
-        """
-        logger.setLevel(self.level)
-        now_date = time.strftime('%Y%m%d', time.localtime(time.time()))
-        if now_date != self._logger_date or self.file_handler is None:
-            self._logger_date = now_date
-            logger.removeHandler(self.file_handler)
-            file_path = os.path.join(self.path_dir, now_date + ".log")
-            self.file_handler = logging.FileHandler(file_path)
-            self.file_handler.setLevel(self.level)
-            self.file_handler.setFormatter(self.formatter)
-            logger.addHandler(self.file_handler)
-
-    def debug(self, *args,  **kargs):
-         self.lock.acquire()
-         self._add_handler(self.logger)
-         self.logger.debug(*args,  **kargs)
-         self.lock.release()
-
-    def info(self, *args, **kargs):
-        self.lock.acquire()
-        self._add_handler(self.logger)
-        self.logger.info(*args, **kargs)
-        self.lock.release()
-
-    def warning(self, *args, **kargs):
-        self.lock.acquire()
-        self._add_handler(self.logger)
-        self.logger.warning(*args, **kargs)
-        self.lock.release()
-
-    def error(self, *args, **kargs):
-        self.lock.acquire()
-        self._add_handler(self.logger)
-        self.logger.error(*args, **kargs)
-        self.lock.release()
-
-    def critical(self, *args, **kargs):
-        self.lock.acquire()
-        self._add_handler(self.logger)
-        self.logger.critical(*args, **kargs)
-        self.lock.release()
+import traceback
+from pwd import getpwnam
+from multiprocessing.managers import BaseManager
+from threading import Thread
+import setproctitle
+import time
+import gevent
+import sys
 
 
 @singleton
 class WorkflowManager(object):
     def __init__(self):
+        self.queue = Queue()
         self.workflows = {}
         self.event = {}
         self.return_msg = {}
-        self.lock = Lock()
-        self.logger = Logger(self.lock)
+        self.logger = Logger()
+        self.server = None
 
     def add_task(self, json):
         if not isinstance(json, dict) or "id" not in json.keys():
             self.logger.error("add workflow %s format error!" % json)
-            return False, "json格式错误"
+            return {"success": False, "info": "json格式错误"}
         json["WPM"] = True
         wsheet = Sheet(data=json)
+        model = WorkflowModel(wsheet)
         if wsheet.id in self.workflows.keys():
             self.logger.error("Workflow %s has already run! " % wsheet.id)
-            return False, "Workflow %s正在运行，不能重复添加!" % wsheet.id
-
-        process = WorkflowWorker(wsheet, name="Workflow[%s] worker" % wsheet.id)
-        if process.model.find():
-            self.logger.error("workflow id is already exists!")
-            return False, "Workflow %s已经存在，不能重复运行!" % wsheet.id
-        self.workflows[wsheet.id] = process
-        self.lock.acquire()
-        process.start()
-        process.model.save()
-        self.lock.release()
-        self.logger.info("Workflow[%s] worker start run" % wsheet.id)
-        return True
+            return {"success": False, "info": "Workflow %s正在运行，不能重复添加!" % wsheet.id}
+        if model.find():
+            self.logger.error("workflow %s is already exists!" % wsheet.id)
+            return {"success": False, "info": "Workflow %s已经存在，不能重复运行!" % wsheet.id}
+        self.workflows[wsheet.id] = model
+        model.save()
+        self.queue.put(json)
+        self.logger.info("接收到Workflow[%s] 请求,放入队列..." % wsheet.id)
+        return {"success": True, "info": ""}
 
     def get_event(self, wid):
         if wid not in self.workflows.keys():
@@ -141,16 +56,34 @@ class WorkflowManager(object):
             return self.event[wid]
         else:
             event = Event()
-            self.event[id] = event
+            self.event[wid] = event
             return event
+
+    def start(self, wid, pid=0):
+        if wid in self.workflows.keys():
+            self.workflows[wid].update_pid(pid)
+            self.logger.info("Workflow %s 开始运行! " % wid)
 
     def set_end(self, wid, msg=None):
         if wid in self.workflows.keys():
-            self.workflows[wid].model.end()
-            self.return_msg[wid] = msg
+            self.workflows[wid].end()
+            self.workflows.pop(wid)
             if wid in self.event.keys():
+                self.return_msg[wid] = {"success": True, "info": msg}
                 self.event[wid].set()
                 self.event.pop(wid)
+            self.logger.info("Workflow %s 运行结束! " % wid)
+
+    def process_end(self, wid):
+        if wid in self.workflows.keys():
+            error_msg = "Worker %s 进程意外结束.." % wid
+            self.workflows[wid].error(error_msg)
+            self.workflows.pop(wid)
+            if wid in self.event.keys():
+                self.return_msg[wid] = {"success": False, "info": error_msg}
+                self.event[wid].set()
+                self.event.pop(wid)
+            self.logger.error("Workflow %s 进程意外结束: %s " % (wid, error_msg))
 
     def get_msg(self, wid):
         if wid in self.return_msg.keys():
@@ -160,33 +93,235 @@ class WorkflowManager(object):
 
     def keep_alive(self, wid):
         if wid in self.workflows.keys():
-            self.workflows[wid].model.update()
+            self.workflows[wid].update()
+            self.logger.debug("接收到Workflow %s keepavlie信息! " % wid)
 
     def set_error(self, wid, error_msg):
         if wid in self.workflows.keys():
-            self.workflows[wid].model.update(error_msg)
+            self.workflows[wid].error(error_msg)
+            self.workflows.pop(wid)
+            if wid in self.event.keys():
+                self.return_msg[wid] = {"success": False, "info": error_msg}
+                self.event[wid].set()
+                self.logger.error("event %s set" % wid)
+                # self.event.pop(wid)
+            self.logger.error("Workflow %s 运行出错: %s " % (wid, error_msg))
 
     def set_pause(self, wid):
         if wid in self.workflows.keys():
-            self.workflows[wid].model.pause()
+            self.workflows[wid].pause()
+            self.logger.info("Workflow %s 暂停运行..." % wid)
 
     def set_pause_exit(self, wid):
         if wid in self.workflows.keys():
-            self.workflows[wid].model.exit_pause()
+            self.workflows[wid].exit_pause()
+            self.logger.info("Workflow %s 退出暂停，继续运行..." % wid)
 
     def pause_timeout(self, wid):
         if wid in self.workflows.keys():
-            self.workflows[wid].model.pause_timeout()
+            self.workflows[wid].pause_timeout()
+            self.logger.info("Workflow %s 暂停超时，结束运行..." % wid)
+
+    def set_stop(self, wid):
+        if wid in self.workflows.keys():
+            self.workflows[wid].stop()
+            self.logger.info("Workflow %s 接收中止运行指令..." % wid)
 
 
 def get_event(wid):
     try:
         event = WorkflowManager().get_event(wid)
-    except Exception, e:
-        return False, "Error %d: %s" % (e.args[0], e.args[1])
+    except Exception:
+        return None
     else:
         return event
 
 
-class ListenManager(BaseManager):
-    pass
+class ManagerProcess(Process):
+    def __init__(self, queue):
+        super(ManagerProcess, self).__init__()
+        self.queue = queue
+        self.config = Config()
+        self.process = {}
+        self.model = CheckModel()
+
+    def run(self):
+        super(ManagerProcess, self).run()
+        os.setgid(getpwnam(self.config.wpm_user)[3])
+        os.setuid(getpwnam(self.config.wpm_user)[2])
+        setproctitle.setproctitle("WPM[Process Manager]")
+        self.start_thread()
+        while True:
+            json = self.queue.get()
+            try:
+                wsheet = Sheet(data=json)
+                worker = WorkflowWorker(wsheet)
+                worker.start()
+            except:
+                exstr = traceback.format_exc()
+                print exstr
+                sys.stdout.flush()
+                sys.stderr.flush()
+                self.process_end(json["id"])
+            else:
+                self.process[json["id"]] = worker
+                self.process_start(json["id"], worker.pid)
+
+    def process_end(self, wid):
+        class WorkerManager(BaseManager):
+            pass
+
+        WorkerManager.register("worker")
+        wpm_manager = WorkerManager(address=self.config.wpm_listen, authkey=self.config.wpm_authkey)
+        wpm_manager.connect()
+        worker = wpm_manager.worker()
+        worker.process_end(wid)
+
+        class LogManager(BaseManager):
+            pass
+        LogManager.register("apilog")
+        m = LogManager(address=self.config.wpm_logger_listen, authkey=self.config.wpm_logger_authkey)
+        m.connect()
+        log = m.apilog()
+        log.set_end(wid)
+
+    def process_start(self, wid, pid):
+        class WorkerManager(BaseManager):
+            pass
+
+        WorkerManager.register("worker")
+        wpm_manager = WorkerManager(address=self.config.wpm_listen, authkey=self.config.wpm_authkey)
+        wpm_manager.connect()
+        worker = wpm_manager.worker()
+        worker.start(wid, pid)
+
+    def _check_process(self):
+        while True:
+            time.sleep(1)
+            for wid, p in self.process.items():
+                if not p.is_alive():
+                    p.join()
+                    self.process.pop(wid)
+                    self.process_end(wid)
+
+    def _check_stop(self):
+        results = self.model.find_stop()
+        if results:
+            for row in results:
+                wid = row["workflow_id"]
+                if wid in self.process.keys():
+                    self.process[wid].action_queue.put("stop")
+
+    def _check_pause(self):
+        results = self.model.find_pause()
+        if results:
+            for row in results:
+                wid = row["workflow_id"]
+                if wid in self.process.keys():
+                    self.process[wid].action_queue.put("pause")
+
+    def _check_exit_pause(self):
+        results = self.model.find_exit_pause()
+        if results:
+            for row in results:
+                wid = row["workflow_id"]
+                if wid in self.process.keys():
+                    self.process[wid].action_queue.put("exit_pause")
+
+    def _check(self):
+        while True:
+            time.sleep(10)
+            self._check_stop()
+            self._check_pause()
+            self._check_exit_pause()
+
+    def start_thread(self):
+        thread = Thread(target=self._check_process, args=(), name='thread-process_check')
+        thread.setDaemon(True)
+        thread.start()
+        thread1 = Thread(target=self._check, args=(), name='thread-stop_pause_check')
+        thread1.setDaemon(True)
+        thread1.start()
+
+
+@singleton
+class ApiLogManager(object):
+    def __init__(self):
+        self._workers = {}
+        self._running_workers = {}
+        self.logger = Logger(log_type="API_LOG_MANAGER")
+        self.config = Config()
+
+    def add_log(self, data):
+        if data["api"] in self.config.update_exclude_api:
+            self.logger.info("Worker %s  API: %s API在排除更新列表中,忽略..." % (data["task_id"], data["api"]))
+            return
+        if data["task_id"] in self._workers.keys():
+            self._workers[data["task_id"]].add_log(data)
+            self.logger.info("Worker %s  更新进度.. " % data["task_id"])
+        elif data["task_id"] in self._running_workers.keys():
+            self._running_workers[data["task_id"]].add_log(data)
+            self.logger.info("Worker %s  更新进度.. " % data["task_id"])
+        else:
+            worker = LogWorker(data["task_id"])
+            worker.add_log(data)
+            self._workers[data["task_id"]] = worker
+            self.logger.info("新Worker %s  API: %s 开始运行... " % (data["task_id"], data["api"]))
+
+    def get_worker(self):
+        for wid, worker in self._workers.items():
+            self._workers.pop(wid)
+            if not worker.is_end:
+                self._running_workers[wid] = worker
+            return worker
+        return None
+
+    def set_end(self, wid):
+        if wid in self._workers.keys():
+            self._workers[wid].set_end()
+        if wid in self._running_workers.keys():
+            self._running_workers[wid].set_end()
+            self._running_workers.pop(wid)
+        self.logger.info("Worker %s 运行完成." % wid)
+
+
+class ApiLogProcess(Process):
+    def __init__(self, **kwargs):
+        super(ApiLogProcess, self).__init__(**kwargs)
+        self.config = Config()
+        self._log_date = None
+
+    def _check_log(self, log_manager):
+        while True:
+            if self._log_date != time.strftime('%Y%m%d', time.localtime(time.time())):
+                self._log_date = time.strftime('%Y%m%d', time.localtime(time.time()))
+                log = os.path.join(self.config.UPDATE_LOG, "%s.log" % self._log_date)
+                if not os.path.exists(self.config.UPDATE_LOG):
+                    os.mkdir(self.config.UPDATE_LOG)
+                so = file(log, 'a+')
+                se = file(log, 'a+', 0)
+                os.dup2(so.fileno(), sys.stdout.fileno())
+                os.dup2(se.fileno(), sys.stderr.fileno())
+            worker = log_manager.get_worker()
+            if worker:
+                worker.run()
+            else:
+                gevent.sleep(1)
+
+    def start_thread(self, log_manager):
+        thread = Thread(target=self._check_log, args=(log_manager, ), name='thread-API_check')
+        thread.setDaemon(True)
+        thread.start()
+
+    def run(self):
+        super(ApiLogProcess, self).run()
+        setproctitle.setproctitle("WPM[API LOG manager]")
+        log_manager = ApiLogManager()
+        self.start_thread(log_manager)
+
+        class ListenerManager(BaseManager):
+            pass
+        ListenerManager.register('apilog', ApiLogManager)
+        m = ListenerManager(address=self.config.wpm_logger_listen, authkey=self.config.wpm_logger_authkey)
+        s = m.get_server()
+        s.serve_forever()

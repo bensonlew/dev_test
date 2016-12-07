@@ -17,10 +17,10 @@ class Workflow(object):
     def add_record(self, data):
         return self.db.insert(self.table, **data)
 
-    def last_update_seconds(self, wid):
-        data = self.db.query("SELECT TIMESTAMPDIFF(SECOND,last_update,CURRENT_TIMESTAMP) as diff"
-                             " FROM workflow where workflow_id=$id", vars={'id': wid})
-        return data[0].diff
+    # def last_update_seconds(self, wid):
+    #     data = self.db.query("SELECT TIMESTAMPDIFF(SECOND,last_update,CURRENT_TIMESTAMP) as diff"
+    #                          " FROM workflow where workflow_id=$id", vars={'id': wid})
+    #     return data[0].diff
 
     def set_stop(self, wid, insert_data):
         try:
@@ -37,7 +37,7 @@ class Workflow(object):
             return True
 
     def get_running(self, client):
-        where_dict = dict(client=client, has_run=1, is_end=0, is_error=0)
+        where_dict = dict(client=client, is_end=0, is_error=0)
         return self.db.select(self.table, where=web.db.sqlwhere(where_dict))
 
     def get_queue(self, client):

@@ -23,7 +23,8 @@ import types
 from .core.watcher import Watcher
 from .scheduling.job import JobManager
 # from gevent.lock import BoundedSemaphore
-from multiprocessing.managers import BaseManager
+import traceback
+from .wpm.client import worker_client, log_client
 
 
 class Workflow(Basic):
@@ -36,6 +37,7 @@ class Workflow(Basic):
             self.debug = kwargs["debug"]
         else:
             self.debug = False
+
         super(Workflow, self).__init__(**kwargs)
         self.action_queue = kwargs["action_queue"] if "action_queue" in kwargs.keys() else None
         self.sheet = wsheet
@@ -43,8 +45,6 @@ class Workflow(Basic):
         # 值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
 
         self._return_msg = None  # 需要返回给任务调用进程的值,支持常用数据类型
-
-
         self.last_update = datetime.datetime.now()
         if "parent" in kwargs.keys():
             self._parent = kwargs["parent"]
@@ -194,10 +194,8 @@ class Workflow(Basic):
         """
         super(Workflow, self).run()
         if self._parent is None:
-            # self.add_log("progress", data)
             watcher = Watcher()
-            watcher.add(self.__check(), 3)
-            # watcher.add(self.__check_pause, 15)
+            watcher.add(self.__check, 3)
             self.rpc_server.run()
 
     def end(self):
@@ -276,10 +274,10 @@ class Workflow(Basic):
             self.step.terminated(data)
         else:
             self.step.failed(data)
-        self.step.update()
         self.end_unfinish_job()
         self.rpc_server.close()
         self.logger.info("程序退出: %s " % data)
+        self.step.update()
         self._update("error", "程序主动退出:%s" % data)
         sys.exit(exitcode)
 
@@ -324,20 +322,42 @@ class Workflow(Basic):
         #     finally:
         #         self.close_db_cursor()
         if self.sheet.WPM:
-            if not self.wpm_manager:
-                self.wpm_manager = BaseManager(address=self.config.wpm_listen, authkey=self.config.wpm_authkey)
-                self.wpm_manager.connect()
-            worker = self.wpm_manager.worker()
-            if type == "end":
-                worker.set_end(self.sheet.id, self._return_msg)
-            elif type == "error":
-                worker.set_error(self.sheet.id, msg)
-            elif type == "pause":
-                worker.set_pause(self.sheet.id)
-            elif type == "pause_exit":
-                worker.set_pause_exit(self.sheet.id)
-            elif type == "pause_timeout":
-                worker.pause_timeout(self.sheet.id)
+            try:
+                worker = worker_client()
+                if type == "end":
+                    worker.set_end(self.sheet.id, self._return_msg)
+                elif type == "keepalive":
+                    worker.keep_alive(self.sheet.id)
+                elif type == "error":
+                    worker.set_error(self.sheet.id, msg)
+                elif type == "pause":
+                    worker.set_pause(self.sheet.id)
+                elif type == "stop":
+                    worker.set_top(self.sheet.id)
+                elif type == "pause_exit":
+                    worker.set_pause_exit(self.sheet.id)
+                elif type == "pause_timeout":
+                    worker.pause_timeout(self.sheet.id)
+            except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
+                self.logger.error("连接WPM服务异常: %s" % e)
+
+    def send_log(self, data):
+        """
+        发送API LOG信息到WPM API LOG管理器
+
+        ;:param data: 需要发送的数据
+        :return:
+        """
+        if self.sheet.WPM:
+            try:
+                log = log_client()
+                log.add_log(data)
+            except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
+                self.logger.error("连接WPM服务异常: %s" % e)
 
     def __check(self):
         if self.is_end is True:
@@ -363,6 +383,7 @@ class Workflow(Basic):
                 self._exit_pause()
 
     def _stop(self):
+        self._update("stop")
         self.exit(data="接收到终止运行指令", terminated=True)
 
     def _pause(self):

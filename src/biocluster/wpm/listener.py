@@ -2,16 +2,74 @@
 # __author__ = 'guoquan'
 
 
+from .manager import ApiLogProcess, get_event, ManagerProcess, WorkflowManager
+from ..config import Config
+import setproctitle
+import time
+import os
+import sys
+from threading import Thread
+from multiprocessing.managers import BaseManager
+import traceback
 
-# class Listener(Process):
-#     def __init__(self, **kwargs):
-#         super(Listener, self).__init__(**kwargs)
-#         self.manager = TaskManager()
-#
-#     def run(self):
-#         super(Listener, self).run()
-#         ListenManager.register("Task", TaskManager)
-#         ListenManager.register("get_event", get_event)
-#         m = ListenManager(address=('127.0.0.1', 6789), authkey='abracadabra')
-#         s = m.get_server()
-#         s.serve_forever()
+
+def start():
+    server = MainServer()
+    server.start()
+
+
+class MainServer(object):
+    def __init__(self):
+        self.api_log_server = ApiLogProcess()
+        self.manager_server = None
+        self.config = Config()
+        self._log_date = None
+
+    def _check_date(self):
+        while True:
+            if self._log_date != time.strftime('%Y%m%d', time.localtime(time.time())):
+                self._log_date = time.strftime('%Y%m%d', time.localtime(time.time()))
+                log = os.path.join(self.config.wpm_log_file, "%s.log" % self._log_date)
+                so = file(log, 'a+')
+                se = file(log, 'a+', 0)
+                os.dup2(so.fileno(), sys.stdout.fileno())
+                os.dup2(se.fileno(), sys.stderr.fileno())
+            time.sleep(60)
+
+    def start_thread(self):
+        thread = Thread(target=self._check_date, args=(), name='thread-date_check')
+        thread.setDaemon(True)
+        thread.start()
+
+    def start(self):
+        # start check thread
+        setproctitle.setproctitle("WPM[main server]")
+        # start process manager
+        wm = WorkflowManager()
+        self.manager_server = ManagerProcess(wm.queue)
+        self.manager_server.start()
+        wm.logger.info("启动进程管理器...")
+        self.start_thread()
+        # start api server
+        self.api_log_server.daemon = True
+        self.api_log_server.start()
+        wm.logger.info("启动API LOG监听...")
+
+        # start main server
+        class ListenerManager(BaseManager):
+            pass
+        ListenerManager.register('worker', WorkflowManager)
+        ListenerManager.register('get_event', get_event)
+        try:
+            m = ListenerManager(address=self.config.wpm_listen, authkey=self.config.wpm_authkey)
+            s = m.get_server()
+            wm.logger.info("开始WPM主服务监听...")
+            s.serve_forever()
+        except Exception:
+            exstr = traceback.format_exc()
+            print exstr
+            sys.stdout.flush()
+            sys.stderr.flush()
+            self.manager_server.terminate()
+            self.api_log_server.terminate()
+            sys.exit(1)

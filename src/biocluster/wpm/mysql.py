@@ -4,8 +4,10 @@
 import sys, MySQLdb, traceback
 import time
 from ..config import Config
+from ..core.singleton import singleton
 
 
+@singleton
 class Mysql(object):
     def __init__(self,
                  host='',
@@ -22,17 +24,20 @@ class Mysql(object):
         self.port = port
         self.charset = charset
         self.conn = None
+        self.config = Config()
         self._conn()
         self.cursor = None
-        self.config = Config()
 
     def _conn(self):
         try:
             self.conn = MySQLdb.Connection(host=self.config.DB_HOST, user=self.config.DB_USER,
                                            passwd=self.config.DB_PASSWD, db=self.config.DB_NAME,
-                                           port=self.config.DB_PORT, charset='utf8')
+                                           port=int(self.config.DB_PORT), charset='utf8')
+
             return True
-        except:
+        except Exception:
+            exstr = traceback.format_exc()
+            print exstr
             return False
 
     def _re_conn(self, num=28800, stime=3):  # 重试连接总次数为1天,这里根据实际情况自己设置
