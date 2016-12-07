@@ -44,6 +44,7 @@ class UpdateStatus(Log):
         for obj_id, collection_name in self.update_info:
             obj_id = ObjectId(obj_id)
             collection = self.mongodb[collection_name]
+
             if status == "finish":
                 data = {
                     "status": "end",
@@ -101,7 +102,15 @@ class UpdateStatus(Log):
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
-                collection.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
-                                               {'$set': insert_data}, upsert=True)
+
+                tmp_col = self.mongodb[collection_name]
+                find_one = tmp_col.find_one({"_id": obj_id})
+                if 'params' in find_one:
+                    insert_data['params'] = find_one['params']
+                if find_one['params']:
+                    my_dict = json.loads(find_one['params'])
+                    if "submit_location" in my_dict:
+                        insert_data['submit_location'] = my_dict['submit_location']
+                collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
             self._mongo_client.close()
 
