@@ -51,6 +51,7 @@ class CopyMongo(object):
 
     def run(self):
         """
+        运行执行复制特定ID数据的操作，如果有新的分析请参照下面的写法添加代码，不同分析表结构不同，所有需要手动添加。
         """
         self.copy_member_id()
         self.copy_sg_specimen()
@@ -112,7 +113,25 @@ class CopyMongo(object):
         species_difference_lefse_id_dict = self.copy_collection_with_change('sg_species_difference_lefse', change_positions=['otu_id', 'group_id'], update_sg_status=True)
         self.copy_main_details('sg_species_difference_lefse_detail', 'species_lefse_id', species_difference_lefse_id_dict)
 
-        phylo_tree_plot_id_dict = self.copy_collection_with_change('sg_tree_picture', change_positions=['otu_id'], update_sg_status=True)
+        # phylo_tree_plot_id_dict = self.copy_collection_with_change('sg_tree_picture', change_positions=['otu_id'], update_sg_status=True)
+
+        network_id_dict = self.copy_collection_with_change('sg_network', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        self.copy_main_details('sg_network_centrality_node', 'network_id', network_id_dict)
+        self.copy_main_details('sg_network_distribution_node', 'network_id', network_id_dict)
+        self.copy_main_details('sg_network_structure_attributes', 'network_id', network_id_dict)
+        self.copy_main_details('sg_network_structure_link', 'network_id', network_id_dict)
+        self.copy_main_details('sg_network_structure_node', 'network_id', network_id_dict)
+
+        randomforest_id_dict = self.copy_collection_with_change('sg_randomforest', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        self.copy_main_details('sg_randomforest_species_bar', 'randomforest_id', randomforest_id_dict)
+        self.copy_main_details('sg_randomforest_specimen_scatter', 'randomforest_id', randomforest_id_dict)
+
+        phylo_tree_id_dict = self.copy_collection_with_change('sg_phylo_tree', change_positions=['otu_id'], update_sg_status=True)
+        self.copy_main_details('sg_phylo_tree_species_categories', 'phylo_tree_id', phylo_tree_id_dict)
+        self.copy_main_details('sg_phylo_tree_species_detail', 'phylo_tree_id', phylo_tree_id_dict)
+
+
+
 
 
     def copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False):
