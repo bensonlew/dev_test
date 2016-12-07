@@ -44,9 +44,12 @@ class JobManager(object):
             agent.is_wait = False
             agent.logger.info("开始投递远程任务!")
             self.run_jobs.append(job)
-            job.submit()
-            agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, job.id))
-        return job
+            if job.submit():
+                agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, job.id))
+                return job
+            else:
+                agent.logger.error("任务投递失败!")
+                agent.get_workflow().exit(data="Tool %s 任务投递失败!" % agent.id)
 
     def get_all_jobs(self):
         """

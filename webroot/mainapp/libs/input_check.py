@@ -52,43 +52,43 @@ def check_format(f):
     return wrapper
 
 
-def MetaCheck(f):
+def meta_check(f):
     @functools.wraps(f)
     def wrapper(obj):
         data = web.input()
-        print "收到请求, 请求的内容为："
-        print data
+        # print "收到请求, 请求的内容为："
+        # print data
         if not hasattr(data, "task_type"):
-            print "缺少参数task_type"
+            # print "缺少参数task_type"
             info = {"success": False, "info": "缺少参数task_type!"}
             return json.dumps(info)
         if data.task_type not in ["projectTask", "reportTask"]:
-            print "参数task_type的值必须为projectTask或者是reportTask!"
+            # print "参数task_type的值必须为projectTask或者是reportTask!"
             info = {"success": False, "info": "参数task_type的值必须为projectTask或者是reportTask!"}
             return json.dumps(info)
         if not hasattr(data, "otu_id"):
             if not hasattr(data, 'specimen_distance_id'):
-                print "缺少otu_id或者specimen_distance_id(聚类独有)!"
+                # print "缺少otu_id或者specimen_distance_id(聚类独有)!"
                 info = {"success": False, "info": "缺少otu_id或者在聚类分析中缺少距离矩阵specimen_distance_id!"}
                 return json.dumps(info)
             else:
                 table_info = Distance().get_distance_matrix_info(distance_id=data.specimen_distance_id)
                 if not table_info:
-                    print "specimen_distance_id不存在，请确认参数是否正确！!"
+                    # print "specimen_distance_id不存在，请确认参数是否正确！!"
                     info = {"success": False, "info": "specimen_distance_id不存在，请确认参数是否正确！!"}
                     return json.dumps(info)
         else:
             table_info = Meta().get_otu_table_info(data.otu_id)
             if not table_info:
-                print "OTU不存在，请确认参数是否正确！!"
+                # print "OTU不存在，请确认参数是否正确！!"
                 info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
                 return json.dumps(info)
         task_info = Meta().get_task_info(table_info["task_id"])
         if not task_info:
-            print "这个otu表对应的task：{}没有member_id!".format(table_info["task_id"])
+            # print "这个otu表对应的task：{}没有member_id!".format(table_info["task_id"])
             info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(table_info["task_id"])}
             return json.dumps(info)
-        print "MetaCheck完成"
+        # print "MetaCheck完成"
         return f(obj)
 
     return wrapper

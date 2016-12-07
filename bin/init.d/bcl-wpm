@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# bcl-wpm        Startup script for the Biocluster Worker Process Manager server
+#
+#
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+PYTHON_PATH=/mnt/ilustre/users/sanger-dev/app/program/Python
+BCL_PATH=/mnt/ilustre/users/sanger-dev/sg-users/guoquan/sanger_bioinfo
+TMPDIR=/mnt/ilustre/users/sanger-dev/workspace/tmp
+
+
+#Config
+wpm_bin=${WPMD-/mnt/ilustre/users/sanger-dev/sg-users/guoquan/test.py}
+prog=bcl-wpm
+pidfile=${PIDFILE-/var/run/bcl-wpm.pid}
+lockfile=${LOCKFILE-/var/lock/subsys/bcl-wpm}
+RETVAL=0
+STOP_TIMEOUT=${STOP_TIMEOUT-10}
+
+#
+export TMPDIR=$TMPDIR
+export TEMP=$TMPDIR
+export TMP=$TMPDIR
+export PATH=$PYTHON_PATH/bin:$PATH
+export PYTHONPATH=$BCL_PATH/src:$PYTHONPATH
+export PYTHON_EGG_CACHE=$BCL_PATH/cache
+
+# The semantics of these two functions differ from the way apachectl does
+# things -- attempting to start while running is a failure, and shutdown
+# when not running is also a failure.  So we just do it the way init scripts
+# are expected to behave here.
+start() {
+        echo -n $"Starting $prog: "
+        daemon --pidfile=${pidfile} $wpm_bin $OPTIONS
+        RETVAL=$?
+        echo
+        [ $RETVAL = 0 ] && touch ${lockfile}
+        return $RETVAL
+}
+
+# When stopping httpd, a delay (of default 10 second) is required
+# before SIGKILLing the httpd parent; this gives enough time for the
+# httpd parent to SIGKILL any errant children.
+stop() {
+	echo -n $"Stopping $prog: "
+	killproc -p ${pidfile} -d ${STOP_TIMEOUT} $wpm_bin
+	RETVAL=$?
+	echo
+	[ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+        status -p ${pidfile} $wpm_bin
+	RETVAL=$?
+	;;
+  restart)
+	stop
+	start
+	;;
+  condrestart|try-restart)
+	if status -p ${pidfile} $httpd >&/dev/null; then
+		stop
+		start
+	fi
+	;;
+  *)
+	echo $"Usage: $prog {start|stop|restart|condrestart|try-restart|status}"
+	RETVAL=2
+esac
+
+exit $RETVAL

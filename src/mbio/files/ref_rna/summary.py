@@ -5,6 +5,7 @@
 from biocluster.iofile import File
 from biocluster.core.exceptions import OptionError
 
+
 class SummaryFile(File):
     """summary 类"""
     def __init__(self):
