@@ -9,6 +9,7 @@ import os
 import re
 import itertools
 import shutil
+import copy
 
 
 class DiffRexpAgent(Agent):
@@ -188,7 +189,8 @@ class DiffRexpTool(Tool):
         self.logger.info(str(sams))
         # edger_file = []
         for i in sams:
-            for afile in edger_results:
+            results = copy.copy(edger_results)
+            for afile in results:
                 if re.search(r'edgeR.DE_results$', afile):
                     if i[0] in afile and i[1] in afile:
                         # self.logger.info(afile)

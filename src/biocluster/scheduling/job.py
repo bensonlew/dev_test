@@ -6,6 +6,7 @@ import gevent
 import importlib
 import datetime
 from ..core.watcher import Watcher
+import copy
 
 
 @singleton
@@ -94,7 +95,8 @@ class JobManager(object):
         """
         # while True:
         #     gevent.sleep(30)
-        for queue_job in self.queue_jobs:
+        jobs = copy.copy(self.queue_jobs)
+        for queue_job in jobs:
             if len(self.get_unfinish_jobs()) < self.max_job_number:
                 queue_job.agent.is_wait = False
                 queue_job.agent.logger.info("开始投递任务!")

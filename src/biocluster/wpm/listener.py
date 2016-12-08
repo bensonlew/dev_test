@@ -11,6 +11,13 @@ import sys
 from threading import Thread
 from multiprocessing.managers import BaseManager
 import traceback
+from ..core.singleton import singleton
+import datetime
+
+
+def write_log(info):
+    print("%s\t%s" % (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), info))
+    sys.stdout.flush()
 
 
 def start():
@@ -18,10 +25,12 @@ def start():
     server.start()
 
 
+@singleton
 class MainServer(object):
     def __init__(self):
         self.api_log_server = ApiLogProcess()
-        self.manager_server = None
+        wm = WorkflowManager()
+        self.manager_server = ManagerProcess(wm.queue)
         self.config = Config()
         self._log_date = None
 
@@ -44,18 +53,19 @@ class MainServer(object):
     def start(self):
         # start check thread
         setproctitle.setproctitle("WPM[main server]")
-        # start process manager
-        wm = WorkflowManager()
-        self.manager_server = ManagerProcess(wm.queue)
-        self.manager_server.start()
-        wm.logger.info("启动进程管理器...")
         self.start_thread()
+        time.sleep(2)
+        # start process manager
+        write_log("启动进程管理器...")
+        self.manager_server.start()
+
         # start api server
-        self.api_log_server.daemon = True
+        write_log("启动API LOG监听...")
         self.api_log_server.start()
-        wm.logger.info("启动API LOG监听...")
 
         # start main server
+        write_log("启动WPM主服务监听...")
+
         class ListenerManager(BaseManager):
             pass
         ListenerManager.register('worker', WorkflowManager)
@@ -63,7 +73,6 @@ class MainServer(object):
         try:
             m = ListenerManager(address=self.config.wpm_listen, authkey=self.config.wpm_authkey)
             s = m.get_server()
-            wm.logger.info("开始WPM主服务监听...")
             s.serve_forever()
         except Exception:
             exstr = traceback.format_exc()

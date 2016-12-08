@@ -12,6 +12,7 @@ import psutil
 import threading
 import datetime
 import inspect
+import copy
 
 
 class Command(object):
@@ -120,7 +121,8 @@ class Command(object):
                     self._all_processes = [self._psutil_process]
                 chidrens = self._psutil_process.children(recursive=True)
                 chidrens.insert(0, self._psutil_process)
-                for child in self._all_processes:   # 删除已完成的进程
+                all_process = copy.copy(self._all_processes)
+                for child in all_process:   # 删除已完成的进程
                     found = False
                     for p in chidrens:
                         if p.pid == child.pid:

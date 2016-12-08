@@ -44,7 +44,7 @@ class Workflow(Basic):
         # self._return_mongo_ids = []  # 在即时计算情况下，需要返回写入mongo库的主表ids，用于更新sg_status表，
         # 值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
 
-        self._return_msg = None  # 需要返回给任务调用进程的值,支持常用数据类型
+        self._return_msg = []  # 需要返回给任务调用进程的值,支持常用数据类型
         self.last_update = datetime.datetime.now()
         if "parent" in kwargs.keys():
             self._parent = kwargs["parent"]
@@ -224,17 +224,22 @@ class Workflow(Basic):
         """
         self._return_msg = msg
 
-    # @property
-    # def return_mongo_ids(self):
-    #     return self._return_mongo_ids
+    def add_return_mongo_id(self, collection_name, table_id, desc='', add_in_sg_status=True):
+        """
+        为了兼容旧版本,新版本请使用set_return_msg
 
-    # def add_return_mongo_id(self, collection_name, table_id, desc='', add_in_sg_status=True):
-    #     return_dict = dict()
-    #     return_dict['id'] = table_id
-    #     return_dict['collection_name'] = collection_name
-    #     return_dict['desc'] = desc
-    #     return_dict['add_in_sg_status'] = add_in_sg_status
-    #     self._return_mongo_ids.append(return_dict)
+        :param collection_name:
+        :param table_id:
+        :param desc:
+        :param add_in_sg_status:
+        :return:
+        """
+        return_dict = dict()
+        return_dict['id'] = table_id
+        return_dict['collection_name'] = collection_name
+        return_dict['desc'] = desc
+        return_dict['add_in_sg_status'] = add_in_sg_status
+        self._return_msg.append(return_dict)
 
     def _upload_result(self):
         """
