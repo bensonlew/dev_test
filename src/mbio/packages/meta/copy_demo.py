@@ -167,6 +167,11 @@ class CopyMongo(object):
         coll = self.db.sg_status
         news = []
         for index, doc in enumerate(main_docs):
+            try:
+                submit_location = json.loads(doc['params'])['submit_location']
+            except Exception:
+                print("WARNING: params参数没有submit_location字段, Doc:{}".format(doc))
+                submit_location = None
             status = {
                 "status": doc['status'],
                 "table_id": ids[index],
@@ -174,7 +179,7 @@ class CopyMongo(object):
                 "task_id": self._new_task_id,
                 "params": doc['params'],
                 "table_name": doc['name'],
-                "submit_location": json.loads(doc['params'])['submit_location'],
+                "submit_location": submit_location,
                 "type_name": collection,
                 "is_new": "new",
                 "desc": doc['desc'] if 'desc' in doc else None
@@ -289,7 +294,7 @@ class CopyMongo(object):
             update_dict = {}
             if 'from_id' in find:
                 update_dict['from_id'] = self.otu_id_dict[find['from_id']]
-            if 'params' in find:
+            if ('params' in find) and find['params']:
                 params = json.loads(find['params'])
                 if 'group_detail' in params:
                     for one_group in params['group_detail']:
@@ -410,7 +415,11 @@ class CopyMongo(object):
         """
         专门用于params的数据ID替换
         """
-        params = json.loads(params_str)
+        try:
+            params = json.loads(params_str)
+        except Exception:
+            print("WRANNING：非json格式的params：{}".format(params_str))
+            return params_str
         if not params:
             return None
         if 'group_detail' in params:
