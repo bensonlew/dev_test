@@ -7,7 +7,7 @@ from mainapp.libs.param_pack import group_detail_sort
 from mainapp.models.mongo.denovo import Denovo
 
 
-class Venn(Basic):
+class DenovoVenn(Basic):
     def POST(self):
         data = web.input()
         self.data = data
@@ -27,7 +27,7 @@ class Venn(Basic):
             else:
                 info = {"success": False, "info": "这个express_id对应的表达量矩阵对应的task：{}没有member_id!".format(express_info["task_id"])}
                 return json.dumps(info)
-        return_info = super(Venn, self).POST()
+        return_info = super(DenovoVenn, self).POST()
         if return_info:
             return return_info
         self.task_name = 'denovo_rna.report.venn'
@@ -37,7 +37,7 @@ class Venn(Basic):
         my_param['group_id'] = data.group_id
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param["submit_location"] = data.submit_location
-        my_param["task_type"] = data.task_type
+        # my_param["task_type"] = data.task_type
         self.params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         self.options = {
             "express_file": data.express_id,
@@ -52,7 +52,8 @@ class Venn(Basic):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['group_id', 'express_id', "group_detail", 'submit_location', 'task_type']
+        params_name = ['group_id', 'express_id', "group_detail", 'submit_location']
+        # params_name = ['group_id', 'express_id', "group_detail", 'submit_location', 'task_type']
         success = []
         table_dict = json.loads(data.group_detail)
         print "收到请求, 请求的内容为："
@@ -60,10 +61,10 @@ class Venn(Basic):
         for names in params_name:
             if not (hasattr(data, names)):
                 success.append("缺少参数!")
-        if not hasattr(data, "task_type"):
-            success.append("缺少参数task_type")
-        if data.task_type not in ["projectTask", "reportTask"]:
-            success.append("参数task_type的值必须为projectTask或者是reportTask!")
+        # if not hasattr(data, "task_type"):
+        #     success.append("缺少参数task_type")
+        # if data.task_type not in ["projectTask", "reportTask"]:
+        #     success.append("参数task_type的值必须为projectTask或者是reportTask!")
         if not isinstance(table_dict, dict):
             success.append("传入的table_dict不是一个字典")
         return success

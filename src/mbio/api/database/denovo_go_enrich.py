@@ -30,7 +30,7 @@ class DenovoGoEnrich(Base):
             'name': name if name else 'go_enrich' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             'params': params,
             'status': 'end',
-            'desc': 'go������������',
+            'desc': 'go富集分析主表',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
         collection = self._db_name['sg_denovo_go_enrich']
@@ -54,9 +54,9 @@ class DenovoGoEnrich(Base):
             if isinstance(go_enrich_id, types.StringTypes):
                 go_enrich_id = ObjectId(go_enrich_id)
             else:
-                raise Exception('go_enrich_id��ΪObjectId������������Ӧ���ַ�����')
+                raise Exception('go_enrich_id须为ObjectId对象或其他对应的字符串！')
         if not os.path.exists(go_enrich_dir):
-            raise Exception('{}��ָ����·�������ڣ������飡'.format(go_enrich_dir))
+            raise Exception('{}所指定的路径不存在，请检查！'.format(go_enrich_dir))
         data_list = []
         with open(go_enrich_dir, 'r') as f:
             lines = f.readlines()
@@ -136,9 +136,9 @@ class DenovoGoEnrich(Base):
             if isinstance(go_regulate_id, types.StringTypes):
                 go_regulate_id = ObjectId(go_regulate_id)
             else:
-                raise Exception('go_enrich_id��ΪObjectId������������Ӧ���ַ�����')
+                raise Exception('go_enrich_id须为ObjectId对象或其他对应的字符串！')
         if not os.path.exists(go_regulate_dir):
-            raise Exception('{}��ָ����·�������ڣ������飡'.format(go_regulate_dir))
+            raise Exception('{}所指定的路径不存在，请检查！'.format(go_regulate_dir))
         data_list = []
         with open(go_regulate_dir, 'r') as f:
             lines = f.readlines()

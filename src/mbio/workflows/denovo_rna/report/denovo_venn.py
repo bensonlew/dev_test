@@ -4,15 +4,14 @@
 """Venn表计算"""
 
 import os
-import json
 import shutil
 from biocluster.workflow import Workflow
 
 
-class VennWorkflow(Workflow):
+class DenovoVennWorkflow(Workflow):
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        super(VennWorkflow, self).__init__(wsheet_object)
+        super(DenovoVennWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "express_file", "type": "string"},
             {"name": "group_table", "type": "infile", 'format': "meta.otu.group_table"},
@@ -47,7 +46,7 @@ class VennWorkflow(Workflow):
 
     def run(self):
         self.run_venn()
-        super(VennWorkflow, self).run()
+        super(DenovoVennWorkflow, self).run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -55,4 +54,4 @@ class VennWorkflow(Workflow):
             [".", "", "结果输出目录"],
             ["venn_table.xls", "xls", "Venn表格"]
         ])
-        super(VennWorkflow, self).end()
+        super(DenovoVennWorkflow, self).end()

@@ -45,7 +45,7 @@ class ExpAnalysisModule(Module):
         self.diff_gene = False
         self.bam_path = self.work_dir + '/bowtie2_bam_dir/'
         # add by qindanhua 161201
-        self.tool_lists = [self.merge_rsem]
+        self.tool_lists = [self.diff_exp]
         self.gene_corr = self.add_tool("denovo_rna.mapping.correlation")
         self.tran_corr = self.add_tool("denovo_rna.mapping.correlation")
         self.gene_pca = self.add_tool("meta.beta_diversity.pca")
