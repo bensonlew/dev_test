@@ -71,14 +71,15 @@ class Rely(object):
 
         :return: bool
         """
-        is_end = True
-        if self._relys:
-            for r in self._relys:
-                if not r.is_end:
-                    is_end = False
-        else:
-            raise Exception("依赖对象不能为空!")
-        return is_end
+        with Rely.sem:
+            is_end = True
+            if self._relys:
+                for r in self._relys:
+                    if not r.is_end:
+                        is_end = False
+            else:
+                raise Exception("依赖对象不能为空!")
+            return is_end
 
 
 class Basic(EventObject):
@@ -95,7 +96,7 @@ class Basic(EventObject):
         else:
             parent = None
         self._parent = parent
-        self._rely = []
+        self._rely = {}
         self._children = []
         self._name = self.__get_min_name()
         self.sem = BoundedSemaphore(1)
@@ -408,25 +409,28 @@ class Basic(EventObject):
         """
         检查依赖是否符合条件，如完成则触发对应的依赖事件
         """
-        if self._rely:
-            for rl in self._rely:
-                if rl.satisfy:
-                    event_name = "%s_%s" % (self.id.lower(), rl.name)
-                    if not self.events[event_name].is_start:
-                        self.events[event_name].stop()
-                        self.events[event_name].restart()
-                    self.fire(event_name, rl)
-                    self._rely.remove(rl)
+        with self.sem:
+            if self._rely:
+                for name, rl in self._rely.items():
+                    if rl.satisfy:
+                        event_name = "%s_%s" % (self.id.lower(), name)
+                        self._rely.pop(event_name)
+
+                        # if not self.events[event_name].is_start:
+                        #     self.events[event_name].stop()
+                        #     self.events[event_name].restart()
+                        self.fire(event_name, rl)
 
     def __event_childend(self, child):
         """
         当有子模块完成时触发
         """
-        if child not in self.children:
-            raise Exception("%s不是%s的子对象!" % (child.name, self.name))
-        child.stop_listener()
-        # with self.sem:
-        self.__check_relys()
+        with self.sem:
+            if child not in self.children:
+                raise Exception("%s不是%s的子对象!" % (child.name, self.name))
+            child.stop_listener()
+            # with self.sem:
+            self.__check_relys()
 
     def __event_childrerun(self, child):
         """
@@ -481,24 +485,24 @@ class Basic(EventObject):
             if r not in self._children:
                 raise Exception("rely模块必须为本对象的子模块!")
         with self.sem:
-            for r in self._rely:
+            for name, r in self._rely.items():
                 if r.rely == rely_list:
-                    event_name = "%s_%s" % (self.id.lower(), r.name)
-                    if self.events[event_name].is_start:
+                    # event_name = "%s_%s" % (self.id.lower(), name)
+                    if self.events[name].is_start:
                         raise Exception("rely条件已经被触发，无法再次绑定事件!")
                     else:
-                        self.events[event_name].stop()
-                        self.on(event_name, func, data)
-                        self.events[event_name].restart()
+                        self.events[name].stop()
+                        self.on(name, func, data)
+                        self.events[name].restart()
                     return
 
             rl = Rely(*rely_list)
-            self._rely.append(rl)
             event_name = "%s_%s" % (self.id.lower(), rl.name)
             self.add_event(event_name)
             self.on(event_name, func, data)
             if self.is_start:
                 self.events[event_name].start()
+            self._rely[event_name] = rl
             # print rely_list, rl, rl.name, self.events[rl.name]
 
     def run(self):
@@ -802,8 +806,8 @@ class StepMain(Step):
                         for ifile in up.file_list:
                             if ifile["type"] == "file":
                                 tmp_dict = dict()
-                                tmp_dict["path"] = os.path.join(os.path.join(self.bind_obj.sheet.output, up.upload_path)
-                                                                , ifile["path"])
+                                tmp_dict["path"] = os.path.join(
+                                    os.path.join(self.bind_obj.sheet.output, up.upload_path), ifile["path"])
                                 tmp_dict["size"] = ifile["size"]
                                 tmp_dict["description"] = ifile["description"]
                                 tmp_dict["format"] = ifile["format"]
@@ -811,8 +815,8 @@ class StepMain(Step):
                             elif ifile["type"] == "dir":
                                 tmp_dict = dict()
                                 tmp_path = re.sub("\.$", "", ifile["path"])
-                                tmp_dict["path"] = os.path.join(os.path.join(self.bind_obj.sheet.output, up.upload_path)
-                                                                , tmp_path)
+                                tmp_dict["path"] = os.path.join(
+                                    os.path.join(self.bind_obj.sheet.output, up.upload_path), tmp_path)
                                 tmp_dict["size"] = ifile["size"]
                                 tmp_dict["description"] = ifile["description"]
                                 tmp_dict["format"] = ifile["format"]

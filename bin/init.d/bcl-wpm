@@ -1,5 +1,6 @@
 #!/bin/bash
 #
+# chkconfig: 345 96 02
 # bcl-wpm        Startup script for the Biocluster Worker Process Manager server
 #
 #
@@ -13,9 +14,9 @@ TMPDIR=/mnt/ilustre/users/sanger-dev/workspace/tmp
 
 
 #Config
-wpm_bin=${WPMD-/mnt/ilustre/users/sanger-dev/sg-users/guoquan/test.py}
+wpm_bin=$BCL_PATH/bin/wpm.py
 prog=bcl-wpm
-pidfile=${PIDFILE-/var/run/bcl-wpm.pid}
+pidfile=${PIDFILE-/var/run/bcl-wpm/wpm.pid}
 lockfile=${LOCKFILE-/var/lock/subsys/bcl-wpm}
 RETVAL=0
 STOP_TIMEOUT=${STOP_TIMEOUT-10}
@@ -34,7 +35,7 @@ export PYTHON_EGG_CACHE=$BCL_PATH/cache
 # are expected to behave here.
 start() {
         echo -n $"Starting $prog: "
-        daemon --pidfile=${pidfile} $wpm_bin $OPTIONS
+        daemon $wpm_bin -s
         RETVAL=$?
         echo
         [ $RETVAL = 0 ] && touch ${lockfile}
@@ -62,7 +63,7 @@ case "$1" in
 	stop
 	;;
   status)
-        status -p ${pidfile} $wpm_bin
+        status -p ${pidfile} ${prog}
 	RETVAL=$?
 	;;
   restart)
@@ -70,7 +71,7 @@ case "$1" in
 	start
 	;;
   condrestart|try-restart)
-	if status -p ${pidfile} $httpd >&/dev/null; then
+	if status -p ${pidfile} ${prog} >&/dev/null; then
 		stop
 		start
 	fi
