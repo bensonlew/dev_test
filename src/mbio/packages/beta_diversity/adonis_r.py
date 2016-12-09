@@ -35,7 +35,7 @@ def create_r(dis_matrix_file, group_file, output_dir, one_group, permutations=99
 
 
 def check_group_lab(lab, group, new_name='Group', new_group=None):
-    if lab.isdigit():
+    if lab[0].isdigit():
         if not new_group:
             new_group = group + '.temp'
 
