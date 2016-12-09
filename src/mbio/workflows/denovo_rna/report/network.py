@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# __author__
+# __author__: konghualei
+# last modify: 20161208
 
 """无参转录组网络共表达分析"""
 
@@ -15,7 +16,7 @@ from bson.objectid import ObjectId
 import bson.binary
 import datetime
 import types
-
+from gridfs import GridFS
 class NetworkWorkflow(Workflow):
     """
     报告中调用网络共表达分析时使用
@@ -71,7 +72,8 @@ class NetworkWorkflow(Workflow):
            ['removeGene.xls', 'xls', 'removeGene.xls']
         ]
         result_dir.add_regexp_rules([
-            [r"CytoscapeInput.*", 'txt', 'Cytoscape作图数据']
+            [r"CytoscapeInput.*", 'txt', 'Cytoscape作图数据'],
+            #[r'*.png', 'png', 'module和softpower图']
         ])
         result_dir.add_relpath_rules(relpath)
         super(NetworkWorkflow, self).end()
@@ -84,38 +86,51 @@ class NetworkWorkflow(Workflow):
         all_color = list()
         for f in network_files:
             if re.search(r'CytoscapeInput-edges*', f):
-                module_color = f.split('CytoscapeInput-edges-')[1].split('.txt')[0]
-                all_color.append(module_color)
+                module_color = re.search(r'\w+-\w+-(\w+).\w+',f).group(1)
+                if module_color:
+                    all_color.append(module_color)
+                else:
+                   raise Exception('没有获取到module颜色信息!')
                 api_network.add_network_module(network_id = self.option('network_express_id'),
                     module_path = self.output_dir + '/' + f, module_color = module_color)
             if re.search(r'all_nodes.txt', f):
                 nodes_path =  self.output_dir + '/' + f
             if re.search(r'all_edges.txt', f):
                 edges_path = self.output_dir + '/' + f
-            if re.search(r'softPower.pdf', f):
+            if re.search(r'softPower.png', f):
                 softpower_path = self.output_dir + '/' + f
-            if re.search(r'ModuleTree.pdf', f):
+            if re.search(r'ModuleTree.png', f):
                 module_path = self.output_dir + '/' + f
         api_network.add_network_detail(network_id = self.option('network_express_id'),\
                 node_path = nodes_path, edge_path = edges_path)
-        self.logger.info(all_color)
         self.update_network(table_id = self.option('network_express_id'), module_path = module_path,
-            softpower_path = softpower_path, color = all_color)
+            softpower_path = softpower_path, module= all_color)
         self.end()
 
-    def update_network(self, table_id, module_path, softpower_path, color):
+    def update_network(self, table_id, module_path, softpower_path, module):
         client = Config().mongo_client
         db_name = Config().MONGODB + '_rna'
+        print db_name
         collection = client[db_name]['sg_denovo_network']
-        with open(softpower_path, "rb") as s, open(module_path, 'rb') as m:
-            softpower_id = StringIO(s.read())
-            softpower_id = bson.binary.Binary(softpower_id.getvalue())
-            module_id = StringIO(m.read())
-            module_id = bson.binary.Binary(module_id.getvalue())
-        collection.update({'_id': ObjectId(table_id)}, {'$set': {'module': module_id, 'softpower': softpower_id, 'color': color}})
+        #with open(softpower_path, "rb") as s, open(module_path, 'rb') as m:
+            #softpower_id = StringIO(s.read())
+            #softpower_id = bson.binary.Binary(softpower_id.getvalue())
+            #module_id = StringIO(m.read())
+            #module_id = bson.binary.Binary(module_id.getvalue())
+        fs_module=GridFS(client[db_name])
+        module_id=fs_module.put(open(module_path,'r'))
+        fs_softpower=GridFS(client[db_name])
+        softpower_id=fs_softpower.put(open(softpower_path,'r'))
+        self.logger.info(softpower_id)
+        self.logger.info(module_id)
+        self.logger.info(module)
+        if not module:
+           raise Exception('module 信息不存在！')
+        collection.update({'_id': ObjectId(table_id)}, {'$set': {'module_png': ObjectId(module_id), 'softpower_png': ObjectId(softpower_id), 'module': module}})
 
     def run(self):
         self.run_network()
+        print "network run"
         super(NetworkWorkflow, self).run()
 
 def get_gene_list(diff_fpkm, fpkm_path):
