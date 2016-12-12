@@ -104,6 +104,8 @@ class FamilyAnalysisTool(Tool):
         self.logger.info("设置结果目录")
         f = 'family_analysis.Rdata'
         os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+        f1 = 'family_analysis.txt'
+        os.link(self.work_dir + '/' + f1, self.output_dir + '/' + f1)
         self.logger.info('设置文件夹路径成功')
 
     def run(self):
