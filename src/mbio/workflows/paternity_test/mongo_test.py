@@ -55,7 +55,12 @@ class PtProcessWorkflow(Workflow):
 		self.step.update()
 
 	def fastq2tab_run(self):
-		file = ['WQ2131-FC','WQ2131-F','WQ2131-M','WQ2131-S']
+		# api_read_tab = self.api.paternity_test
+		file = self.option('sample_id')
+		# if not api_read_tab.id_exist(self.option('')):
+		#
+		# else:
+		# 	print "该样本已存在于数据库中"
 		n = 0
 		for i in file:
 			fastq2tab = self.add_module("paternity_test.fastq2tab")
@@ -78,6 +83,33 @@ class PtProcessWorkflow(Workflow):
 		for tool in self.tools:
 			tool.run()
 
+	def linkdir(self, dirpath, dirname):
+		"""
+		link一个文件夹下的所有文件到本module的output目录
+		:param dirpath: 传入文件夹路径
+		:param dirname: 新的文件夹名称
+		:return:
+		"""
+		allfiles = os.listdir(dirpath)
+		newdir = os.path.join(self.output_dir, dirname)
+		if not os.path.exists(newdir):
+			os.mkdir(newdir)
+		oldfiles = [os.path.join(dirpath, i) for i in allfiles]
+		newfiles = [os.path.join(newdir, i) for i in allfiles]
+		for newfile in newfiles:
+			if os.path.exists(newfile):
+				if os.path.isfile(newfile):
+					os.remove(newfile)
+				else:
+					os.system('rm -r %s' % newfile)
+				# self.logger.info('rm -r %s' % newfile)
+		for i in range(len(allfiles)):
+			if os.path.isfile(oldfiles[i]):
+				os.link(oldfiles[i], newfiles[i])
+			elif os.path.isdir(oldfiles[i]):
+				# self.logger.info('cp -r %s %s' % (oldfiles[i], newdir))
+				os.system('cp -r %s %s' % (oldfiles[i], newdir))
+
 	def move2outputdir(self, olddir, newname, mode='link'):  # add by shenghe 20160329
 		"""
 		移动一个目录下的所有文件/文件夹到workflow输出文件夹下，如果文件夹名已存在，文件夹会被完整删除。
@@ -85,23 +117,24 @@ class PtProcessWorkflow(Workflow):
 		if not os.path.isdir(olddir):
 			raise Exception('需要移动到output目录的文件夹不存在。')
 		newdir = os.path.join(self.output_dir, newname)
-		if os.path.exists(newdir):
-			if os.path.islink(newdir):
-				os.remove(newdir)
-			else:
-				shutil.rmtree(newdir)  # 不可以删除一个链接
+		# if os.path.exists(newdir):
+		# 	if os.path.islink(newdir):
+		# 		os.remove(newdir)
+		# 	else:
+		# 		shutil.rmtree(newdir)  # 不可以删除一个链接
 		if mode == 'link':
 			# os.symlink(os.path.abspath(olddir), newdir)  # 原始路径需要时绝对路径
-			shutil.copytree(olddir, newdir, symlinks=True)
+			shutil.copyfile(olddir, newdir, symlinks=True)
 		elif mode == 'copy':
-			shutil.copytree(olddir, newdir)
+			shutil.copyfile(olddir, newdir)
 		else:
 			raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
 
 	def set_output(self, event):
 		obj = event["bind_object"]
-		self.move2outputdir(obj.output_dir + '/bam2tab', self.output_dir)
+		self.linkdir(obj.output_dir + '/bam2tab', self.output_dir)
 		api = self.api.tab_file
+
 		temp = os.listdir(self.output_dir)
 		for i in temp:
 			if re.search(r'.*.tab$', i):
