@@ -33,7 +33,7 @@ class GroupTableFile(File):
         is_empty = False
         with open(self.prop['path'], 'r') as f:
             sample = list()
-            line = f.readline().rstrip()
+            line = f.readline().rstrip()  # 将rstrip("\r\n") 全部替换为rstrip() 
             line = re.split("\t", line)
             if line[1] == "##empty_group##":
                 is_empty = True
@@ -99,7 +99,7 @@ class GroupTableFile(File):
             if self.prop['group_scheme'][i] in header:
                 my_index.append(i + 1)
         with open(self.prop['path'], 'r') as f, open(target_path, 'w') as w:
-            line = f.readline().rstrip()  # modified by sj
+            line = f.readline().rstrip()
             line = re.split("\t", line)
             new_header = list()
             for i in my_index:
