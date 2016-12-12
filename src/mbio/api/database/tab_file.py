@@ -52,4 +52,8 @@ class TabFile(Base):
 		self.bind_object.logger.info('开始调用tab表格')
 		collection = self.database['sg_pt_tab_detail']
 		result = collection.find_one({'sample_id': sample})
-		return result.count()
+		if not result:
+			self.bind_object.logger.info("样本{}不在数据库中，开始进行转tab文件并入库流程".format(sample))
+		else:
+			self.bind_object.logger.info("样本{}已存在数据库中，不进行fastq转tab流程".format(sample))
+		return result
