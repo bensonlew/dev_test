@@ -36,7 +36,7 @@ class DenovoBaseFastWorkflow(Workflow):
             {"name": "nr_blast_evalue", "type": "float", "default": 1e-5},
             {"name": "string_blast_evalue", "type": "float", "default": 1e-5},
             {"name": "kegg_blast_evalue", "type": "float", "default": 1e-5},
-            {"name": "exp_analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich,go_regulate,kegg_regulate"},
+            {"name": "exp_analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich,kegg_regulate"},
             {"name": "gene_analysis", "type": "string", "default": "orf,snp"}
         ]
         self.add_option(options)
@@ -592,7 +592,9 @@ class DenovoBaseFastWorkflow(Workflow):
                 'orf_bed': self.orf_bed,
                 'primer': self.option('primer')
             }
-            api_ssr.add_ssr_table(ssr=ssr_path + '/gene.fasta.misa', ssr_primer=primer_path, ssr_stat=ssr_path + '/gene.fasta.statistics', name=None, params=ssr_params)
+            ssr_id = api_ssr.add_ssr_table(ssr=ssr_path + '/gene.fasta.misa', ssr_primer=primer_path, ssr_stat=ssr_path + '/gene.fasta.statistics', name=None, params=ssr_params)
+            # update sg_status
+            self.update_status_api.add_denovo_status(table_id=str(ssr_id), type_name='sg_denovo_ssr')
         if event['data'] == 'snp':
             self.move2outputdir(obj.output_dir, 'Gene_structure/snp')
             api_snp = self.api.denovo_gene_structure
@@ -630,6 +632,8 @@ class DenovoBaseFastWorkflow(Workflow):
                 express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, diff_exp_dir=diff_exp_dir)
             else:
                 express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id='all', group_detail={'all': sorted(self.api_sample.sample_ids)}, control_id=control_id, diff_exp_dir=diff_exp_dir)
+            # update sg_status
+            self.update_status_api.add_denovo_status(table_id=str(express_diff_id), type_name='sg_denovo_express_diff')
             # add diff fpkm file
             param_2 = {
                 # 'express_diff_id': ,
@@ -641,7 +645,7 @@ class DenovoBaseFastWorkflow(Workflow):
             # add correlation file
             corr_api = self.api.denovo_rna_mapping
             corr_api.add_correlation_table(correlation=self.output_dir + '/Express_stat/gene_correlation/', express_id=self.express_id, detail=True, seq_type='gene')
-            corr_api.add_correlation_table(correlation=self.output_dir + '/Express_stat/transcript_correlation/', express_id=self.express_id, detail=True, seq_type='transcript')
+            corr_api.add_correlation_table(correlation=self.output_dir + '/Express_stat/tran_correlation/', express_id=self.express_id, detail=True, seq_type='transcript')
         if event['data'] == 'exp_diff':
             # set output
             self.move2outputdir(obj.output_dir, 'Diff_express')
@@ -666,6 +670,8 @@ class DenovoBaseFastWorkflow(Workflow):
                 if re.search(r'^subcluster_', f):
                     sub = f.split('_')[1]
                     api_clust.add_cluster_detail(clust_id, sub, clust_path + f)
+            # update sg_status
+            self.update_status_api.add_denovo_status(table_id=str(clust_id), type_name='sg_denovo_cluster')
             # set network
             net_path = os.path.join(self.output_dir + '/Diff_express/network/')
             net_files = os.listdir(net_path)
@@ -681,6 +687,8 @@ class DenovoBaseFastWorkflow(Workflow):
                 if re.search(r'^CytoscapeInput-edges-', f):
                     color = f.split('-edges-')[-1].split('.')[0]
                     api_network.add_network_module(net_id, net_path + f, color)
+            # update sg_status
+            self.update_status_api.add_denovo_status(table_id=str(net_id), type_name='sg_denovo_network')
             # set go rich
             go_rich_api = self.api.denovo_go_enrich
             go_rich_path = os.path.join(self.output_dir + '/Diff_express/go_rich/')
@@ -693,15 +701,20 @@ class DenovoBaseFastWorkflow(Workflow):
                         go_file = os.path.join(path1, f)
                     if re.search(r'png$', f):
                         png = os.path.join(path1, f)
-                    go_rich_api.add_go_enrich(params=None, go_graph_dir=png, go_enrich_dir=go_file)
+                go_id = go_rich_api.add_go_enrich(params=None, go_graph_dir=png, go_enrich_dir=go_file)
+                # update sg_status
+                self.update_status_api.add_denovo_status(table_id=str(go_id), type_name='sg_denovo_go_enrich')
             # set go regulate
+            go_regulate_api = self.api.denovo_go_regulate
             go_regulate_path = os.path.join(self.output_dir + '/Diff_express/go_regulate/')
             go_regulate_dirs = os.listdir(go_regulate_path)
             for d in go_regulate_dirs:
                 path2 = go_regulate_path + d
                 go_file, png = None, None
                 f = os.path.join(path2, os.listdir(path2)[0])
-                go_rich_api.add_go_regulate(params=None, go_regulate_dir=f)
+                go_regu_id = go_regulate_api.add_go_regulate(params=None, go_regulate_dir=f)
+                # update sg_status
+                self.update_status_api.add_denovo_status(table_id=str(go_regu_id), type_name='sg_denovo_go_regulate')
             # set kegg tich
             kegg_rich_api = self.api.denovo_kegg_rich
             kegg_rich_path = os.path.join(self.output_dir + '/Diff_express/kegg_rich/')
@@ -709,7 +722,9 @@ class DenovoBaseFastWorkflow(Workflow):
             for d in kegg_rich_dirs:
                 path3 = kegg_rich_path + d
                 f = os.path.join(path3, os.listdir(path3)[0])
-                kegg_rich_api.add_kegg_rich(params=None, kegg_enrich_table=f)
+                kegg_id = kegg_rich_api.add_kegg_rich(params=None, kegg_enrich_table=f)
+                # update sg_status
+                self.update_status_api.add_denovo_status(table_id=str(kegg_id), type_name='sg_denovo_kegg_enrich')
             # set kegg regulate
             kegg_regulate_api = self.api.denovo_kegg_regulate
             kegg_regulate_path = os.path.join(self.output_dir + '/Diff_express/kegg_regulate/')
@@ -718,10 +733,12 @@ class DenovoBaseFastWorkflow(Workflow):
                 path4 = kegg_regulate_path + d
                 stat_path = None
                 for f in os.listdir(path4):
-                    if re.match(r'.xls$', f):
+                    if re.search(r'.xls$', f):
                         stat_path = os.path.join(path4, f)
-                    pathway = os.path.join(path4, '/pathways/')
-                kegg_regulate_api.add_kegg_regulate(params=None, kegg_regulate_table=stat_path, pathways_dir=pathway)
+                pathway = path4 + '/pathways/'
+                kegg_regu_id = kegg_regulate_api.add_kegg_regulate(params=None, kegg_regulate_table=stat_path, pathways_dir=pathway)
+                # update sg_status
+                self.update_status_api.add_denovo_status(table_id=str(kegg_regu_id), type_name='sg_denovo_kegg_regulate')
         if event['data'] == 'annotation':
             self.move2outputdir(obj.output_dir, 'Annotation')
             # set api
@@ -795,12 +812,25 @@ class DenovoBaseFastWorkflow(Workflow):
             ["Gene_structure/orf/reads_len_info", "文件夹", "orf序列长度分布信息文件夹"],
             ['Gene_structure/ssr', "文件夹", "orf分析结果目录"],
             ["Gene_structure/ssr/misa_stat.xls", "xls", "ssr类型统计表"],
-            ['Express/', "文件夹", "表达量分析结果目录"],
-            ['Express/diff_exp', "文件夹", "表达量差异检测分析结果目录"],
-            ['Express/rsem', "文件夹", "表达量计算分析结果目录"],
-            ['Express/correlation', "文件夹", "表达量样本相关性分析结果目录"],
-            ["Express/correlation/correlation_matrix.xls", "xls", "相关系数矩阵表"],
-            ["Express/correlation/hcluster_tree_correlation_matrix.xls_average.tre", "xls", "相关系数树文件"],
+            ['Express_stat/', "文件夹", "表达量分析结果目录"],
+            ['Express_stat/diff_exp', "文件夹", "差异基因统计结果目录"],
+            ['Express_stat/rsem', "文件夹", "表达量计算分析结果目录"],
+            ['Express_stat/diff_exp/diff_fpkm', "txt", "差异基因fpkm表达量矩阵"],
+            ['Express_stat/diff_exp/diff_fpkm', "txt", "差异基因计数矩阵"],
+            ['Express_stat/gene_correlation', "文件夹", "基因表达量样本相关性分析结果目录"],
+            ['Express_stat/tran_correlation', "文件夹", "转录本表达量样本相关性分析结果目录"],
+            ["Express_stat/gene_correlation/correlation_matrix.xls", "xls", "相关系数矩阵表"],
+            ["Express_stat/gene_correlation/corr_col.tre", "树文件", "相关性分析树文件"],
+            ["Express_stat/gene_correlation/corr_row.tre", "树文件", "相关性分析树文件"],
+            ["Express_stat/gene_correlation/pca_importance.xls", "xls", "pca分析主成分解释度表"],
+            ["Express_stat/gene_correlation/pca_rotation.xls", "xls", "pca分析主成分贡献度表"],
+            ["Express_stat/gene_correlation/pca_sites.xls", "xls", "样本坐标表"],
+            ["Express_stat/tran_correlation/correlation_matrix.xls", "xls", "相关系数矩阵表"],
+            ["Express_stat/tran_correlation/corr_col.tre", "树文件", "相关性分析树文件"],
+            ["Express_stat/tran_correlation/corr_row.tre", "树文件", "相关性分析树文件"],
+            ["Express_stat/tran_correlation/pca_importance.xls", "xls", "pca分析主成分解释度表"],
+            ["Express_stat/tran_correlation/pca_rotation.xls", "xls", "pca分析主成分贡献度表"],
+            ["Express_stat/tran_correlation/pca_sites.xls", "xls", "样本坐标表"],
             ["./Annotation", "", "DENOVO_RNA结果文件目录"],
             ['/Annotation/ncbi_taxonomy/query_taxons_detail.xls', 'xls', '序列详细物种分类文件'],
             ["/Annotation/blast_nr_statistics/output_evalue.xls", "xls", "blast结果E-value统计"],
@@ -854,6 +884,29 @@ class DenovoBaseFastWorkflow(Workflow):
             ["/Annotation/anno_stat/ncbi_taxonomy/query_taxons.xls", "xls", "nr物种注释表"],
             ["/Annotation/anno_stat/all_annotation_statistics.xls", "xls", "注释统计总览表"],
             ["/Annotation/anno_stat/all_annotation.xls", "xls", "注释统计表"],
+            ['Diff_express/network', "文件夹", "差异基因网络共表达分析结果目录"],
+            ["Diff_express/network/all_edges.txt", "txt", "edges结果信息"],
+            ["Diff_express/network/all_nodes.txt ", "txt", "nodes结果信息"],
+            ["Diff_express/network/removeGene.xls ", "xls", "移除的基因信息"],
+            ["Diff_express/network/removeSample.xls ", "xls", "移除的样本信息"],
+            ["Diff_express/network/softPower.pdf", "pdf", "softpower相关信息"],
+            ["Diff_express/network/ModuleTree.pdf", "pdf", "ModuleTree图"],
+            ["Diff_express/network/eigengeneClustering.pdf", "pdf", "eigengeneClustering图"],
+            ["Diff_express/network/eigenGeneHeatmap.pdf", "pdf", "eigenGeneHeatmap图"],
+            ["Diff_express/network/networkHeatmap.pdf", "pdf", "networkHeatmap图"],
+            ["Diff_express/network/sampleClustering.pdf", "pdf", "sampleClustering图"],
+            ["Diff_express/cluster", "文件夹", "差异基因聚类分析分析结果目录"],
+            ["Diff_express/cluster/hclust/", "", "层级聚类分析结果目录"],
+            ["Diff_express/cluster/hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
+            ["Diff_express/cluster/hclust/hclust_heatmap.xls", "xls", "层级聚类热图数据"],
+            ["Diff_express/cluster/hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
+            ["Diff_express/go_rich", "文件夹", "go富集分析结果目录"],
+            ["Diff_express/go_regulate", "文件夹", "go统计分析结果目录"],
+            ["Diff_express/kegg_rich", "文件夹", "kegg富集分析结果目录"],
+            ["Diff_express/kegg_regulate", "文件夹", "kegg调控分析结果目录"],
+            ["Gene_structure/orf/pfam_domain", "txt", "Pfam比对蛋白域结果信息"],
+            ['QC_stat/clip_dir', "文件夹", "SE去接头后的fastq文件输出目录"],
+            ["QC_stat/seqprep_dir/", "文件夹", "PE去接头后fastq文件输出目录"]
         ]
         regexps = [
             [r'Assemble/.*_length\.distribut\.txt$', 'txt', '长度分布信息统计文件'],
@@ -866,8 +919,8 @@ class DenovoBaseFastWorkflow(Workflow):
             [r"Gene_structure/orf/transdecoder.cds$", "fasta", "cds序列文件"],
             [r"Gene_structure/orf/transdecoder.bed$", "bed", "orf位置信息bed格式文件"],
             [r"Express/diff_exp/.*_edgr_stat\.xls$", "xls", "edger统计结果文件"],
-            [r"Express/rsem/.*results$", "xls", "单样本rsem分析结果表"],
-            [r"Express/rsem/.*matrix$", "xls", "表达量矩阵"],
+            [r"Express_stat/rsem/.*results$", "xls", "单样本rsem分析结果表"],
+            [r"Express_stat/rsem/.*matrix$", "xls", "表达量矩阵"],
             [r"/Annotation/nrblast/.+_vs_.+\.xml", "xml", "blast比对nr输出结果，xml格式"],
             [r"/Annotation/nrblast/.+_vs_.+\.xls", "xls", "blast比对nr输出结果，表格(制表符分隔)格式"],
             [r"/Annotation/stringblast/.+_vs_.+\.xml", "xml", "blast比对string输出结果，xml格式"],
@@ -878,47 +931,14 @@ class DenovoBaseFastWorkflow(Workflow):
             [r"/Annotation/blast_nr_statistics/.*_evalue\.xls", "xls", "比对结果E-value分布图"],
             [r"/Annotation/blast_nr_statistics/.*_similar\.xls", "xls", "比对结果相似度分布图"],
             ["^/Annotation/anno_stat/ncbi_taxonomy/nr_taxon_stat", "xls", "nr物种分类统计表"],
+            [r"Diff_express/cluster/hclust/subcluster_", "xls", "子聚类热图数据"],
+            [r"Diff_express/network/CytoscapeInput.*", "txt", "Cytoscape作图数据"],
         ]
-        if self.option("search_pfam"):
-            repaths += [["Gene_structure/orf/pfam_domain", "", "Pfam比对蛋白域结果信息"]]
-        if self.option('fq_type') == 'SE':
-            repaths += [
-                ['QC_stat/clip_dir', "文件夹", "SE去接头后的fastq文件输出目录"]
-            ]
-        else:
-            repaths += [
-                ["QC_stat/seqprep_dir/", "文件夹", "PE去接头后fastq文件输出目录"]
-            ]
-        if self.exp_stat.diff_gene:
-            regexps += [
-                [r"Express/cluster/hclust/subcluster_", "xls", "子聚类热图数据"],
-                [r"Express/network/CytoscapeInput.*", "txt", "Cytoscape作图数据"]
-            ]
-            repaths += [
-                ["Express/diff_exp/diff_fpkm", "xls", "差异基因表达量表"],
-                ["Express/diff_exp/diff_count", "xls", "差异基因计数表"],
-                ['Express/network', "文件夹", "差异基因网络共表达分析结果目录"],
-                ["Express/network/all_edges.txt", "txt", "edges结果信息"],
-                ["Express/network/all_nodes.txt ", "txt", "nodes结果信息"],
-                ["Express/network/removeGene.xls ", "xls", "移除的基因信息"],
-                ["Express/network/removeSample.xls ", "xls", "移除的样本信息"],
-                ["Express/network/softPower.pdf", "pdf", "softpower相关信息"],
-                ["Express/network/ModuleTree.pdf", "pdf", "ModuleTree图"],
-                ["Express/network/eigengeneClustering.pdf", "pdf", "eigengeneClustering图"],
-                ["Express/network/eigenGeneHeatmap.pdf", "pdf", "eigenGeneHeatmap图"],
-                ["Express/network/networkHeatmap.pdf", "pdf", "networkHeatmap图"],
-                ["Express/network/sampleClustering.pdf", "pdf", "sampleClustering图"],
-                ["Express/cluster", "文件夹", "差异基因聚类分析分析结果目录"],
-                ["Express/cluster/hclust/", "", "层级聚类分析结果目录"],
-                ["Express/cluster/hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
-                ["Express/cluster/hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
-                ["Express/cluster/hclust/hclust_heatmap.xls", "xls", "层级聚类热图数据"]
-            ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
-        for i in self.get_upload_files():
-            self.logger.info('upload file:{}'.format(str(i)))
+        # for i in self.get_upload_files():
+        #     self.logger.info('upload file:{}'.format(str(i)))
         self.logger.info('denovo_base upload files end')
 
     # for test workflow
