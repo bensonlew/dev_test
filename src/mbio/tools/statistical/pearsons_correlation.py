@@ -6,6 +6,7 @@ from biocluster.core.exceptions import OptionError
 from mbio.packages.statistical.correlation import corr_heatmap
 import subprocess
 import os
+import re
 
 
 class PearsonsCorrelationAgent(Agent):
@@ -22,6 +23,9 @@ class PearsonsCorrelationAgent(Agent):
             {"name": "level", "type": "string", "default": "otu"},
             {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "envlabs", "type": "string", "default": ""},
+            {"name": "method", "type": "string", "default": "pearsonr"},
+            {"name": "env_cluster", "type": "string", "default": "average"},
+            {"name": "species_cluster", "type": "string", "default": "average"},
             {"name": "cor_table", "type": "outfile", "format": "meta.otu.group_table"},
             {"name": "pvalue_table", "type": "outfile", "format": "meta.otu.group_table"}
         ]
@@ -53,6 +57,8 @@ class PearsonsCorrelationAgent(Agent):
             raise OptionError("请选择正确的分类水平")
         if not self.option("otutable").is_set:
             raise OptionError('必须提供otu表')
+        if self.option("method") not in ["pearsonr", "spearmanr"]:
+            raise OptionError('不支持该相关系数方法')
         self.option('otutable').get_info()
         if self.option('envtable').is_set:
             self.option('envtable').get_info()
@@ -95,6 +101,7 @@ class PearsonsCorrelationTool(Tool):
         # self.cmd_path=os.path.join(self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/pearsonsCorrelation.py')
         self.env_table = self.get_new_env()
         self.real_otu = self.get_otu_table()
+        self.name_to_name = {}
 
     def get_otu_table(self):
         """
@@ -134,7 +141,9 @@ class PearsonsCorrelationTool(Tool):
         run pearsonsCorrelation.py
         """
         cmd = self.cmd_path
-        cmd += " %s %s %s %s" % (self.real_otu, self.env_table, "./pearsons_correlation_at_'%s'_level.xls" % self.option('level'), "./pearsons_pvalue_at_'%s'_level.xls" % self.option('level'))
+        cmd += " %s %s %s %s %s" % (self.real_otu, self.env_table, "./pearsons_correlation_at_'%s'_level.xls" %
+                                    self.option('level'), "./pearsons_pvalue_at_'%s'_level.xls" % self.option('level'),
+                                    self.option("method"))
         self.logger.info('运行pearsonsCorrelation.py计算correlation')
         self.logger.info(cmd)
         try:
@@ -147,8 +156,24 @@ class PearsonsCorrelationTool(Tool):
         # self.set_output()
         # self.end()
 
+    def get_name(self, table):
+        with open(table, "r") as f, open(self.work_dir + "/tem.collection.xls", "w") as w, open("name_to_name.xls", "w") as nf:
+            first_line = f.readline()
+            w.write(first_line)
+            n = 1
+            for line in f:
+                line = line.split("\t")
+                name = line[0]
+                new_name = "name"+str(n)
+                nf.write(new_name + "\t" + name + "\n")
+                self.name_to_name[new_name] = name
+                n += 1
+                new_line = new_name+"\t"+"\t".join(line[1:])
+                w.write(new_line)
+
     def run_heatmap(self):
-        corr_heatmap(self.work_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level'), "env_tree.tre", "species_tree.tre")
+        self.get_name(self.work_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level'))
+        corr_heatmap(self.work_dir + "/tem.collection.xls", "env_tree.tre", "species_tree.tre", self.option("env_cluster"), self.option("species_cluster"))
         cmd = self.r_path + " run_corr_heatmap.r"
         try:
             subprocess.check_output(cmd, shell=True)
@@ -157,6 +182,9 @@ class PearsonsCorrelationTool(Tool):
             self.logger.info('heatmap计算失败')
             self.set_error('heatmap计算失败')
         self.logger.info('生成树文件成功')
+
+    def dashrepl(self, matchobj):
+        return self.name_to_name[matchobj.groups()[0]]
 
     def set_output(self):
         newpath = self.output_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level')
@@ -172,3 +200,10 @@ class PearsonsCorrelationTool(Tool):
         os.link(self.work_dir + "/pearsons_pvalue_at_%s_level.xls" % self.option('level'),
                 self.output_dir + "/pearsons_pvalue_at_%s_level.xls" % self.option('level'))
         self.option('pvalue_table', newpath2)
+
+        species_tree_path = self.work_dir + "/species_tree.tre"
+        if os.path.exists(species_tree_path):
+            with open(species_tree_path, "r") as f, open(self.work_dir + "/final_species_tree.tre", "w") as w:
+                species_tree = f.readline().strip()
+                new_species_tree = re.sub(r"(name\d+)", self.dashrepl, species_tree)
+                w.write(new_species_tree)
