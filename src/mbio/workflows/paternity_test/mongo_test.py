@@ -18,7 +18,6 @@ class PtProcessWorkflow(Workflow):
 		self._sheet = wsheet_object
 		super(PtProcessWorkflow, self).__init__(wsheet_object)
 		options = [
-			{"name": "sample_id", "type": "string"},  # 输入F/M/S的样本ID
 			{"name": "fastq_path", "type": "string"},  # fastq所在路径
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
@@ -55,29 +54,33 @@ class PtProcessWorkflow(Workflow):
 		self.step.update()
 
 	def fastq2tab_run(self):
-		# api_read_tab = self.api.paternity_test
-		file = self.option('sample_id')
-		# if not api_read_tab.id_exist(self.option('')):
-		#
-		# else:
-		# 	print "该样本已存在于数据库中"
+		api_read_tab = self.api.tab_file
+		fastq = os.listdir(self.option('fastq_path'))
+		file = []
+		for j in fastq:
+			m = re.match('(.*)_R1.fastq.gz', j)
+			if m:
+				file.append(m.group(1))
 		n = 0
 		for i in file:
-			fastq2tab = self.add_module("paternity_test.fastq2tab")
-			self.step.add_steps('fastq2tab{}'.format(n))
-			fastq2tab.set_options({
-				"sample_id": i,
-				"fastq_path": self.option("fastq_path"),
-				"cpu_number": self.option("cpu_number"),
-				"ref_fasta": self.option("ref_fasta"),
-				"targets_bedfile": self.option("targets_bedfile"),
-			}
-			)
-			step = getattr(self.step, 'fastq2tab{}'.format(n))
-			step.start()
-			fastq2tab.on('end', self.finish_update, 'fastq2tab{}'.format(n))
-			self.tools.append(fastq2tab)
-			n += 1
+			if not api_read_tab.tab_exist(i):
+				fastq2tab = self.add_module("paternity_test.fastq2tab")
+				self.step.add_steps('fastq2tab{}'.format(n))
+				fastq2tab.set_options({
+					"sample_id": i,
+					"fastq_path": self.option("fastq_path"),
+					"cpu_number": self.option("cpu_number"),
+					"ref_fasta": self.option("ref_fasta"),
+					"targets_bedfile": self.option("targets_bedfile"),
+				}
+				)
+				step = getattr(self.step, 'fastq2tab{}'.format(n))
+				step.start()
+				fastq2tab.on('end', self.finish_update, 'fastq2tab{}'.format(n))
+				self.tools.append(fastq2tab)
+				n += 1
+			else:
+				self.logger.info('{}样本已存在于数据库'.format(i))
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output,'fastq2tab')
 		for tool in self.tools:
@@ -102,44 +105,22 @@ class PtProcessWorkflow(Workflow):
 					os.remove(newfile)
 				else:
 					os.system('rm -r %s' % newfile)
-				# self.logger.info('rm -r %s' % newfile)
 		for i in range(len(allfiles)):
 			if os.path.isfile(oldfiles[i]):
 				os.link(oldfiles[i], newfiles[i])
 			elif os.path.isdir(oldfiles[i]):
-				# self.logger.info('cp -r %s %s' % (oldfiles[i], newdir))
 				os.system('cp -r %s %s' % (oldfiles[i], newdir))
-
-	def move2outputdir(self, olddir, newname, mode='link'):  # add by shenghe 20160329
-		"""
-		移动一个目录下的所有文件/文件夹到workflow输出文件夹下，如果文件夹名已存在，文件夹会被完整删除。
-		"""
-		if not os.path.isdir(olddir):
-			raise Exception('需要移动到output目录的文件夹不存在。')
-		newdir = os.path.join(self.output_dir, newname)
-		# if os.path.exists(newdir):
-		# 	if os.path.islink(newdir):
-		# 		os.remove(newdir)
-		# 	else:
-		# 		shutil.rmtree(newdir)  # 不可以删除一个链接
-		if mode == 'link':
-			# os.symlink(os.path.abspath(olddir), newdir)  # 原始路径需要时绝对路径
-			shutil.copyfile(olddir, newdir, symlinks=True)
-		elif mode == 'copy':
-			shutil.copyfile(olddir, newdir)
-		else:
-			raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
 
 	def set_output(self, event):
 		obj = event["bind_object"]
-		self.linkdir(obj.output_dir + '/bam2tab', self.output_dir)
-		api = self.api.tab_file
-
-		temp = os.listdir(self.output_dir)
-		for i in temp:
-			if re.search(r'.*.tab$', i):
-				tab_path = self.output_dir +'/' + i
-		api.add_sg_pt_tab_detail(tab_path)
+		if event['data'] == "fastq2tab":
+			self.linkdir(obj.output_dir + '/bam2tab', self.output_dir)
+			api = self.api.tab_file
+			temp = os.listdir(self.output_dir)
+			for i in temp:
+				if re.search(r'.*.tab$', i):
+					tab_path = self.output_dir +'/' + i
+			api.add_sg_pt_tab_detail(tab_path)
 
 	def run(self):
 		self.fastq2tab_run()
