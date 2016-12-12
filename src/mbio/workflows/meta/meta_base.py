@@ -483,7 +483,8 @@ class MetaBaseWorkflow(Workflow):
             ["OtuTaxon_summary", "", "OTU物种分类综合统计目录"],
             ["OtuTaxon_summary/otu_taxon.biom", "meta.otu.biom", "OTU的biom格式文件"],
             ["OtuTaxon_summary/otu_taxon.xls", "meta.otu.otu_table", "OTU物种分类统计表"],
-            ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"],
+            ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录(absolute)"],
+            ["OtuTaxon_summary/tax_summary", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"],  # add by zhouxuan 20161129
             ["Alpha_diversity", "", "Alpha diversity文件目录"],
             ["Alpha_diversity/estimators.xls", "xls", "Alpha多样性指数表"],
             ["Beta_diversity", "", "Beta diversity文件目录"],
@@ -538,9 +539,12 @@ class MetaBaseWorkflow(Workflow):
             ["Otu/otu_phylo.tre", "graph.newick_tree", "OTU代表序列进化树"],
             ["QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "txt", "单个样本碱基质量统计文件"],
             ["QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "txt", "序列长度分布统计文件"],
-            ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
-            ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "单级物种分类统计表"],
-            ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
+            ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件(absolute)"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "单级物种分类统计表(absolute)"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表(absolute)"],
+            ["OtuTaxon_summary/tax_summary/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],  # add by zhouxuan (3 line) 20161129
+            ["OtuTaxon_summary/tax_summary/.+\.xls$", "meta.otu.biom", "单级物种分类统计表"],
+            ["OtuTaxon_summary/tax_summary/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
         ]
         for i in self.option("rarefy_indices").split(","):
             if i == "sobs":
