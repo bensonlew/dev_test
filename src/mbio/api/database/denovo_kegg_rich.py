@@ -28,7 +28,7 @@ class DenovoKeggRich(Base):
             'desc': 'kegg富集分析',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
-        collection = self._db_name['sg_denovo_kegg_enrich']
+        collection = self.db['sg_denovo_kegg_enrich']
         enrich_id = collection.insert_one(insert_data).inserted_id
         if kegg_enrich_table:
             self.add_kegg_enrich_detail(enrich_id, kegg_enrich_table)
@@ -62,7 +62,7 @@ class DenovoKeggRich(Base):
                     }
                     data_list.append(insert_data)
             try:
-                collection = self._db_name['sg_denovo_kegg_enrich_detail']
+                collection = self.db['sg_denovo_kegg_enrich_detail']
                 collection.insert_many(data_list)
             except Exception, e:
                 self.bind_object.logger.error("导入kegg富集统计表：%s信息出错:%s" % (kegg_enrich_table, e))

@@ -20,7 +20,8 @@ class KeggAnnotationAgent(Agent):
     def __init__(self, parent):
         super(KeggAnnotationAgent, self).__init__(parent)
         options = [
-            {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"}
+            {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
         ]
         self.add_option(options)
         self.step.add_steps('kegg_annotation')
@@ -78,6 +79,7 @@ class KeggAnnotationTool(Tool):
             kegg_anno.getPic(pidpath=self.work_dir + '/pid.txt', pathwaydir=self.output_dir + '/pathways')
             kegg_anno.keggLayer(pathway_table=self.output_dir + '/pathway_table.xls', layerfile=self.output_dir + '/kegg_layer.xls', taxonomyfile=self.output_dir + '/kegg_taxonomy.xls')
             self.logger.info("运行成功完成！")
+            self.option('kegg_table', self.output_dir + '/kegg_table.xls')
             self.end()
         except:
             import traceback

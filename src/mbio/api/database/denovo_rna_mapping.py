@@ -290,17 +290,20 @@ class DenovoRnaMapping(Base):
             self.bind_object.logger.info("导入冗余分析数据成功")
 
     @report_check
-    def add_correlation_table(self, correlation, name=None, params=None, express_id=None, detail=True):
+    def add_correlation_table(self, correlation, name=None, params=None, express_id=None, detail=True, seq_type=None):
         correlation_tree = glob.glob("{}/*.tre".format(correlation))
         with open(correlation_tree[0], "r") as t:
             correlation_tree = t.readline().strip()
             raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', correlation_tree)
             tree_list = [i[1] for i in raw_samp]
-        params['express_id'] = str(express_id)
+        if not params:
+            params = dict()
+            params['express_id'] = str(express_id)
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
-            "name": name if name else "correlation_origin",
+            "type": seq_type,
+            "name": name if name else "correlation_origin_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             "status": "start",
             "desc": "",
             "correlation_tree": correlation_tree,
@@ -312,6 +315,13 @@ class DenovoRnaMapping(Base):
         inserted_id = collection.insert_one(insert_data).inserted_id
         if detail:
             self.add_correlation_detail(correlation, inserted_id)
+            pca_file = os.path.join(correlation, 'pca_importance.xls')
+            pca_rotation = os.path.join(correlation, 'pca_rotation.xls')
+            site_file = os.path.join(correlation, 'pca_sites.xls')
+            self.add_correlation_detail(collection=correlation, correlation_id=inserted_id, updata_tree=True)
+            self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
+            self.add_pca_rotation(input_file=pca_rotation, db_name='sg_denovo_correlation_pca_rotation', correlation_id=inserted_id)
+            self.add_pca_rotation(input_file=site_file, db_name='sg_denovo_correlation_pca_sites', correlation_id=inserted_id)
         return inserted_id
 
     @report_check

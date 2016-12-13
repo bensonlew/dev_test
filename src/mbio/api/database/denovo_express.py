@@ -259,19 +259,18 @@ class DenovoExpress(Base):
             self.bind_object.logger.info("导入基因表达差异统计表：%s信息成功!" % diff_stat_path)
 
     @report_check
-    def add_cluster(self, params, express_id, sample_tree, gene_tree, heatmap_path, name=None):
+    def add_cluster(self, params, express_id, sample_tree=None, gene_tree=None, name=None, samples=None, genes=None):
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
                 express_id = ObjectId(express_id)
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        with open(sample_tree, 'rb') as s, open(gene_tree, 'rb') as g, open(heatmap_path, 'rb') as h:
-            sample_tree = s.readlines()[0].strip('\n')
-            gene_tree = g.readlines()[0].strip('\n')
-            samples = h.readline().strip('\n').split('\t')
-            genes = list()
-            for line in h:
-                genes.append(line.strip().split('\t')[0])
+        if gene_tree:
+            with open(gene_tree, 'rb') as g:
+                gene_tree = g.readlines()[0].strip('\n')
+        if sample_tree:
+            with open(sample_tree, 'rb') as s:
+                sample_tree = s.readlines()[0].strip('\n')
         params['diff_fpkm'] = str(express_id)
         insert_data = {
             'project_sn': project_sn,

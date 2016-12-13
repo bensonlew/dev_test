@@ -28,7 +28,7 @@ class DenovoKeggRegulate(Base):
             'desc': 'kegg调控统计分析',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
-        collection = self._db_name['sg_denovo_kegg_regulate']
+        collection = self.db['sg_denovo_kegg_regulate']
         regulate_id = collection.insert_one(insert_data).inserted_id
         if kegg_regulate_table:
             self.add_kegg_regulate_detail(regulate_id, kegg_regulate_table)
@@ -61,7 +61,7 @@ class DenovoKeggRegulate(Base):
                 }
                 data_list.append(insert_data)
             try:
-                collection = self._db_name['sg_denovo_kegg_regulate_detail']
+                collection = self.db['sg_denovo_kegg_regulate_detail']
                 collection.insert_many(data_list)
             except Exception, e:
                 self.bind_object.logger.error("导入kegg调控统计表：%s信息出错:%s" % (kegg_regulate_table, e))
@@ -78,7 +78,7 @@ class DenovoKeggRegulate(Base):
             raise Exception('pathway_dir所指定的路径:{}不存在，请检查！'.format(pathway_dir))
         data_list = []
         files = os.listdir(pathway_dir)
-        fs = gridfs.GridFS(self._db_name)
+        fs = gridfs.GridFS(self.db)
         for f in files:
             png_id = fs.put(open(os.path.join(pathway_dir, f), 'rb'))
             insert_data = {
@@ -88,7 +88,7 @@ class DenovoKeggRegulate(Base):
             }
             data_list.append(insert_data)
         try:
-            collection = self._db_name['sg_denovo_kegg_regulate_pathway']
+            collection = self.db['sg_denovo_kegg_regulate_pathway']
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入kegg调控pathway：%s信息出错:%s" % (pathway_dir, e))
