@@ -7,6 +7,9 @@ import json
 import tempfile
 import HTMLParser
 from gevent.subprocess import Popen
+from biocluster.api.file.remote import RemoteFileManager
+import random
+import datetime
 
 
 class DownloadWebPic(object):
@@ -37,11 +40,13 @@ class DownloadWebPic(object):
         if file_pic:
             web.header('Content-Type', 'application/octet-stream')
             web.header('Transfer-Encoding', 'chunked')
-            web.header('Content-disposition', 'attachment; filename={}'.format(data.file_name))
-            return open(file_pic, 'rb').read()
+            web.header('Access-Control-Allow-Origin', '*')
+            # web.header('Content-disposition', 'attachment; filename={}'.format(data.file_name))
+            # return open(file_pic, 'rb').read()
+            msg = {'success': True, 'info': file_pic}
         else:
             msg = {"success": False, "info": "生成图片文件出错".format(data.scale)}
-            return json.dumps(msg)
+        return json.dumps(msg)
 
     def _svg_convert(self):
         """
@@ -53,15 +58,55 @@ class DownloadWebPic(object):
             parser = HTMLParser.HTMLParser()
             svg_data = parser.unescape(web.input().svg_data)  # html转义
             w.write(svg_data)
-        temp_pic = temp_dir + '/temp.' + web.input().file_type
+        file_name = random_file_name() + '.' + web.input().file_type
+        temp_pic = temp_dir + '/' + file_name
         cmd = 'cairosvg {} -f {} -o {} -s {}'.format(temp_svg, web.input().file_type, temp_pic, int(web.input().scale))
         pro = Popen(cmd, shell=True)
         pro.wait()
         if pro.returncode == 0:
             print("TEMP PIC: {}".format(temp_pic))
-            return temp_pic
+            target_dir = self.upload_pic(temp_pic)
+            if target_dir:
+                return target_dir + file_name
+            else:
+                return
         else:
-            return False
+            return
+
+    def upload_pic(self, pic):
+        """
+        上传结果文件
+        """
+        target = self.create_remote_target()
+        remote = RemoteFileManager(target)
+        try:
+            remote.upload(pic)
+        except Exception as e:
+            print('UPLOAD ERROR: {}'.format(e))
+            return
+        else:
+            return target
+
+    def create_remote_target(self):
+        """
+        构建远程目录结构/位置
+        """
+        data = web.input()
+        target_dir = 'tsanger:'
+        if hasattr(data, 'client') and data.client == 'client01':
+            target_dir = 'sanger:'
+        target_dir += 'rerewrweset/report_img/download_img/'
+        # file_name = random_file_name()
+        # target = target_dir
+        print("REMOTE DIR: {}".format(target_dir))
+        return target_dir
+
+
+def random_file_name():
+    sed = 'qwertyuiopasdfghjklzxcvbnm1234567890'
+    random_value = ''.join(random.sample(sed, 4))
+    date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    return date + random_value
 
 
 
