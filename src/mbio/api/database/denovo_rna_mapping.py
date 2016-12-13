@@ -40,7 +40,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入比对结果统计信息出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入比对结果统计信息成功")
+            self.bind_object.logger.info("导入比对结果统计信息成功")
 
     @report_check
     def add_rpkm_table(self, file_path, name=None, params=None, detail=True):
@@ -89,7 +89,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入rpkm detail出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入rpkm detail成功")
+            self.bind_object.logger.info("导入rpkm detail成功")
 
     def add_rpkm_box(self, rpkm_file, rpkm_id=None):
         rpkm_plot = glob.glob("{}/*saturation.r".format(rpkm_file))
@@ -134,7 +134,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入rpkm箱线图数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入rpkm箱线图数据")
+            self.bind_object.logger.info("导入rpkm箱线图数据")
 
     @report_check
     def add_rpkm_curve(self, rpkm_file, rpkm_id=None):
@@ -187,7 +187,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入rpkm曲线数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入rpkm曲线数据成功")
+            self.bind_object.logger.info("导入rpkm曲线数据成功")
 
     @report_check
     def add_coverage_table(self, coverage, name=None, params=None, detail=True):
@@ -231,7 +231,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入rpkm曲线数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入rpkm曲线数据成功")
+            self.bind_object.logger.info("导入rpkm曲线数据成功")
 
     @report_check
     def add_duplication_table(self, dup, name=None, params=None, detail=True):
@@ -287,7 +287,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入冗余分析数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入冗余分析数据成功")
+            self.bind_object.logger.info("导入冗余分析数据成功")
 
     @report_check
     def add_correlation_table(self, correlation, name=None, params=None, express_id=None, detail=True):
@@ -350,7 +350,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入相关系数分析数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入相关系数分析数据成功")
+            self.bind_object.logger.info("导入相关系数分析数据成功")
 
     @report_check
     def add_pca(self, pca_file, correlation_id=None):
@@ -371,7 +371,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入sg_denovo_correlation_pca数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入sg_denovo_correlation_pca数据成功")
+            self.bind_object.logger.info("导入sg_denovo_correlation_pca数据成功")
 
     @report_check
     def add_pca_rotation(self, input_file, db_name, correlation_id=None):
@@ -398,4 +398,4 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入%s数据出错:%s" % db_name, e)
         else:
-            self.bind_object.logger.error("导入%s数据成功" % db_name)
+            self.bind_object.logger.info("导入%s数据成功" % db_name)
