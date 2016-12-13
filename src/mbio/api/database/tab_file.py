@@ -2,10 +2,7 @@
 # __author__ = 'moli.zhou'
 
 from biocluster.api.database.base import Base, report_check
-import re
-import datetime
-from bson.objectid import ObjectId
-from types import StringTypes
+import os
 from biocluster.config import Config
 from pymongo import MongoClient
 
@@ -22,7 +19,7 @@ class TabFile(Base):
 
 	@report_check
 	def add_sg_pt_tab_detail(self,file_path):
-		self.bind_object.logger.info("开始导入tab_detail表")
+		self.bind_object.logger.info("开始导入tab表")
 		sg_pt_tab_detail = list()
 		with open(file_path, 'r') as f:
 			for line in f:
@@ -40,7 +37,7 @@ class TabFile(Base):
 				}
 				sg_pt_tab_detail.append(insert_data)
 			try:
-				collection = self.database['sg_pt_tab_detail']
+				collection = self.database['sg_pt_tab']
 				collection.insert_many(sg_pt_tab_detail)
 			except Exception as e:
 				self.bind_object.logger.error('导入tab表格出错：{}'.format(e))
@@ -50,10 +47,25 @@ class TabFile(Base):
 	@report_check
 	def tab_exist(self, sample):
 		self.bind_object.logger.info('开始调用tab表格')
-		collection = self.database['sg_pt_tab_detail']
+		collection = self.database['sg_pt_tab']
 		result = collection.find_one({'sample_id': sample})
 		if not result:
 			self.bind_object.logger.info("样本{}不在数据库中，开始进行转tab文件并入库流程".format(sample))
 		else:
 			self.bind_object.logger.info("样本{}已存在数据库中，不进行fastq转tab流程".format(sample))
 		return result
+
+	@report_check
+	def export_tab_file(self, sample, dir):
+		file = os.path.join(dir, sample + '.tab')
+		collection = self.database['sg_pt_tab']
+		search_result = collection.find({"sample_id": sample})  # 读出来是个地址
+		if not search_result:
+			raise Exception('意外报错：没有在数据库中搜到相应sample')
+		with open(file, 'w+') as f:
+			for i in search_result:
+				f.write(i['sample_id'] + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
+				        + i['ref'] + '\t' + i['alt'] + '\t' + i['dp'] + '\t'
+				        + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
+		return file
+
