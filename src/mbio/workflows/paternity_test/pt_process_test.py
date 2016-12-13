@@ -101,6 +101,7 @@ class PtProcessWorkflow(Workflow):
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2tab')
 		for tool in self.tools:
+			tool.on('end', self.pt_analysis_run)
 			tool.run()
 
 
@@ -171,7 +172,7 @@ class PtProcessWorkflow(Workflow):
 			self.linkdir(obj.output_dir +'/family_analysis', self.output_dir)
 			self.linkdir(obj.output_dir + '/family_merge', self.output_dir)
 			api_pt = self.api.sg_paternity_test
-			file = self.output_dir + '/family_analysis.txt'
+			file = self.output_dir + '/family_joined_tab.txt'
 			api_pt.add_sg_pt_family_detail(file)
 
 		if event['data'] == "result_info":
@@ -179,13 +180,9 @@ class PtProcessWorkflow(Workflow):
 
 	def run(self):
 		self.fastq2tab_run()
-		if self.tools:
-			self.tools.on('end', self.pt_analysis_run)
-			self.pt_analysis.on('end', self.result_info_run)
-			self.result_info.on('end', self.end)
-		else:
-			self.pt_analysis.on("end", self.result_info_run)
-			self.result_info.on('end', self.end)
+		self.pt_analysis.on('end', self.result_info_run)
+		self.result_info.on('end', self.end)
+		if not self.tools:
 			self.pt_analysis_run()
 		super(PtProcessWorkflow, self).run()
 
