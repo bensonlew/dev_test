@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
-
+import re
 from biocluster.api.database.base import Base, report_check
 import os
 from biocluster.config import Config
+from bson import regex
 from pymongo import MongoClient
 
 class TabFile(Base):
@@ -69,3 +70,23 @@ class TabFile(Base):
 				        + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
 		return file
 
+	@report_check
+	def dedup_sample(self, num,dir):
+		collection = self.database['sg_pt_tab']
+		param = "WQ{}-F".format(num) + '.*'
+		sample = []
+
+		for u in collection.find({"sample_id": {"$regex": param}}):
+			sample.append(u['sample_id'])
+		sample_new = list(set(sample))
+		for k in range(len(sample_new)):
+			file_dedup = os.path.join(dir, sample_new[k] + '.tab')
+			search_result = collection.find({"sample_id": sample_new[k]})  # 读出来是个地址
+			if not search_result:
+				raise Exception('意外报错：没有在数据库中搜到相应sample')
+			with open(file_dedup, 'w+') as f:
+				for i in search_result:
+					f.write(i['sample_id'] + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
+				            + i['ref'] + '\t' + i['alt'] + '\t' + i['dp'] + '\t'
+				            + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
+			return file_dedup
