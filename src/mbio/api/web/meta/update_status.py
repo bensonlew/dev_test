@@ -102,7 +102,8 @@ class UpdateStatus(Log):
         return False
 
     def update_log(self, id_value, status, desc, create_time):
-        # id_value  {表id:表名, 表id: 表名,...}
+        print self.post_data
+        # print status
         for k in id_value:
             obj_id = k
             dbname = id_value[k]
@@ -133,66 +134,47 @@ class UpdateStatus(Log):
             if status == "start":
                 tmp_col = self.mongodb[dbname]
                 try:
-                    tb_name = tmp_col.find_one({"_id": obj_id})["name"]
+                    temp_find = tmp_col.find_one({"_id": obj_id})
+                    tb_name = temp_find["name"]
+                    temp_params = temp_find['params']
+                    submit_location = json.loads(temp_params)['submit_location']
                 except:
                     tb_name = ""
+                    temp_params = ''
+                    submit_location = ''
                 tmp_task_id = list()
                 print 'update_status task_id:', self._task_id
                 tmp_task_id = re.split("_", self._task_id)
+                assert len(tmp_task_id) == 4, "交互分析中的task_id格式,暂时要求是原id加上两次随机数，下划线分割，例如:sanger_1234_567_890;错误ID: {}".format(self._task_id)
                 tmp_task_id.pop()
                 tmp_task_id.pop()
-                print tmp_task_id
                 insert_data = {
                     "table_id": obj_id,
                     "table_name": tb_name,
                     "task_id": "_".join(tmp_task_id),
                     "type_name": dbname,
+                    "params": temp_params,
+                    "submit_location": submit_location,
                     "status": "start",
                     "is_new": "new",
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
-                print insert_data
                 collection.insert_one(insert_data)
-                print "insert into database success"
             elif status == "end":
-                print "end"
-                tmp_col = self.mongodb[dbname]
-                my_params = tmp_col.find_one({"_id": obj_id})["params"]
-                my_dict = json.loads(my_params)
-                if "submit_location" in my_dict:
-                    insert_data = {
-                        "status": status,
-                        "desc": desc,
-                        "params": my_params,
-                        "submit_location": my_dict["submit_location"],
-                        "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    }
-                else:
-                    insert_data = {
-                        "status": status,
-                        "desc": desc,
-                        "params": my_params,
-                        "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    }
-
-                collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
-                self.post_data_to_web()
-            else:
-                print "enter into else part"
                 insert_data = {
                     "status": status,
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
-                tmp_col = self.mongodb[dbname]
-                find_one = tmp_col.find_one({"_id": obj_id})
-                if 'params' in find_one:
-                    insert_data['params'] = find_one['params']
-                if find_one['params']:
-                    my_dict = json.loads(find_one['params'])
-                    if "submit_location" in my_dict:
-                        insert_data['submit_location'] = my_dict['submit_location']
+                collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
+                self.post_data_to_web()
+            else:
+                insert_data = {
+                    "status": status,
+                    "desc": desc,
+                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
                 collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
             self._mongo_client.close()
 
