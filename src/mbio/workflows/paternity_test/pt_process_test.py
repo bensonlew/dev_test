@@ -28,12 +28,14 @@ class PtProcessWorkflow(Workflow):
 			{"name": "preg_id", "type": "string"},
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
 			{"name": "ref_point", "type": "string"},  # 参考位点
+			{"name": "dedup_num", "type": "int", "default": 50},  # 查重样本数
 
 		]
 		self.add_option(options)
 		self.pt_analysis = self.add_module("paternity_test.pt_analysis")
 		self.result_info = self.add_tool("paternity_test.result_info")
 		self.tools = []
+		self.tools_dedup =[]
 		self.set_options(self._sheet.options())
 		self.step.add_steps("pt_analysis", "result_info", "retab",
 		                    "de_dup1", "de_dup2")
@@ -128,6 +130,39 @@ class PtProcessWorkflow(Workflow):
 		self.result_info.on('end', self.set_step, {'end': self.step.result_info})
 		self.result_info.run()
 
+	def dedup1_run(self):
+		api_read_tab = self.api.tab_file
+		n = 0
+		temp = re.match('WQ([1-9].*)-F.*', self.option('dad_id'))
+		num = int(temp.group(1))
+		num_list = range(num, num+self.option('dedup_num'))
+		name_list = []
+		for m in num_list:
+			x = api_read_tab.dedup_sample(m)
+			name_list.append(x)
+		for i in name_list:
+			pt_analysis_dedup1 = self.add_module("paternity_test.pt_analysis")
+			self.step.add_steps('dedup1_{}'.format(n))
+			api_read_tab.export_tab_file(i, self.output_dir)
+			pt_analysis_dedup1.set_options({
+					"dad_tab": self.output_dir +'/' + i + '.tab',  # 数据库的tab文件
+					"mom_tab": api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir),
+					"preg_tab": api_read_tab.export_tab_file(self.option('preg_id'), self.output_dir),
+					"ref_point": self.option("ref_point"),
+					"err_min": self.option("err_min")
+			}
+			)
+			step = getattr(self.step, 'dedup1_{}'.format(n))
+			step.start()
+			pt_analysis_dedup1.on('end', self.finish_update, 'dedup1_{}'.format(n))
+			self.tools_dedup.append(pt_analysis_dedup1)
+			n += 1
+		for j in range(len(self.tools_dedup)):
+			self.tools_dedup[j].on('end', self.set_output, 'dedup1')
+		self.on_rely(self.tools_dedup, self.end)
+		for tool in self.tools_dedup:
+			tool.run()
+
 	def linkdir(self, dirpath, dirname):
 		"""
 		link一个文件夹下的所有文件到本module的output目录
@@ -172,16 +207,32 @@ class PtProcessWorkflow(Workflow):
 			self.linkdir(obj.output_dir +'/family_analysis', self.output_dir)
 			self.linkdir(obj.output_dir + '/family_merge', self.output_dir)
 			api_pt = self.api.sg_paternity_test
-			file = self.output_dir + '/family_joined_tab.txt'
-			api_pt.add_sg_pt_family_detail(file)
+			results = os.listdir(obj.output_dir +'/family_analysis')
+			for f in results:
+				if re.search(r'.*family_analysis\.txt$', f):
+					api_pt.add_analysis_tab(self.output_dir+'/'+f)
+
+			result_1 = os.listdir(obj.output_dir+'/family_merge')
+			for f in result_1:
+				if re.search(r'.*family_joined_tab\.txt$', f):
+					api_pt.add_sg_pt_family_detail(self.output_dir+'/'+f)
 
 		if event['data'] == "result_info":
 			self.linkdir(obj.output_dir, self.output_dir)
 
+		if event['data'] == "dedup1":
+			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
+			# self.linkdir(obj.output_dir + '/family_merge', self.output_dir)
+			api_pt = self.api.sg_paternity_test
+			results = os.listdir(obj.output_dir + '/family_analysis')
+			for f in results:
+				if re.search(r'.*family_analysis\.txt$', f):
+					api_pt.add_analysis_tab(self.output_dir+'/'+f)
+
 	def run(self):
 		self.fastq2tab_run()
 		self.pt_analysis.on('end', self.result_info_run)
-		self.result_info.on('end', self.end)
+		self.result_info.on('end', self.dedup1_run)
 		if not self.tools:
 			self.pt_analysis_run()
 		super(PtProcessWorkflow, self).run()
