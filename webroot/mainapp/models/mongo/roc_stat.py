@@ -14,7 +14,7 @@ class RocStat(object):
         self.db = self.client[Config().MONGODB]
 
 
-    def create_roc(self, params, group_id=0, from_otu_table=0, level_id=0, name=None, method_id=None, top_n_id=0):
+    def create_roc(self, params, group_id=0, from_otu_table=0, level_id=0, name=None, method_type=None, top_n_id=0):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -37,7 +37,7 @@ class RocStat(object):
             "project_sn": project_sn,
             "task_id": task_id,
             "otu_id": from_otu_table,
-            "name": "roc_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": name if name else "roc_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "desc": desc,
             "status": "end",
