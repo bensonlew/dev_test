@@ -70,7 +70,7 @@ class FunctionPredict(Base):
                 ]
                 for i in range(1, len(line1)):
                     data += [
-                        (line1[i], line[i])
+                        (line1[i], int(line[i]))
                     ]
                 data = SON(data)
                 data_list.append(data)
@@ -87,7 +87,7 @@ class FunctionPredict(Base):
                 ]
                 for i in range(1, len(line1)):
                     data += [
-                        (line1[i], line[i])
+                        (line1[i], int(line[i]))
                     ]
                 data = SON(data)
                 data_list.append(data)
@@ -135,7 +135,7 @@ class FunctionPredict(Base):
                 ]
                 for i in range(1, len(line1)):
                     data += [
-                        (line1[i], line[i])
+                        (line1[i], int(line[i]))
                     ]
                 data = SON(data)
                 data_list.append(data)
@@ -163,7 +163,7 @@ class FunctionPredict(Base):
                 ]
                 for i in range(1, len(line1)):
                     data += [
-                        (line1[i], line[i])
+                        (line1[i], int(line[i]))
                     ]
                 data = SON(data)
                 data_list.append(data)
@@ -179,7 +179,7 @@ class FunctionPredict(Base):
                 ]
                 for i in range(1, len(line1)):
                     data += [
-                        (line1[i], line[i])
+                        (line1[i], int(line[i]))
                     ]
                 data = SON(data)
                 data_list.append(data)
@@ -199,7 +199,7 @@ class FunctionPredict(Base):
                         ]
                         for i in range(1, len(line1)):
                             data += [
-                                (line1[i], line[i])
+                                (line1[i], int(line[i]))
                             ]
                         data = SON(data)
                         data_list.append(data)
