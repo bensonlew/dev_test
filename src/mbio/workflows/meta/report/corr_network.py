@@ -4,7 +4,6 @@ from biocluster.workflow import Workflow
 import os
 from mbio.api.to_file.meta import *
 
-
 class CorrNetworkWorkflow(Workflow):
     """
     报告中进行物种相关性网络构建与分析时使用
@@ -22,7 +21,6 @@ class CorrNetworkWorkflow(Workflow):
             {"name": "method", "type": "string", "default": "pearson"},
             {"name": "coefficient", "type": "float", "default": 0.04},
             {"name": "abundance", "type": "int", "default": 50},  #设定物种总丰度值前50的物种信息
-            {"name": "update_info", "type": "string"},
             {"name": "corr_network_id", "type": "string"}
             ]
         self.add_option(options)
@@ -166,14 +164,16 @@ class CorrNetworkWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(network_attributes_path))
         if not os.path.isfile(network_degree_path):
             raise Exception("找不到报告文件:{}".format(network_degree_path))
-        print 'stat insert 1'
+
         api_corrnetwork.add_network_links_table(file_path=node_links_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_abundance_table(file_path=node_abundance_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_cluster_degree(file1_path=network_degree_path, file2_path=network_clustering_path,table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_attributes(file_path=network_attributes_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_degree_distribution(file_path=network_degree_distribution, table_id=self.option("corr_network_id"))
-        print 'stat insert 1'
+
+        corr_network_id_tab = self.option("corr_network_id")
+        self.add_return_mongo_id('sg_corr_network', corr_network_id_tab)
         self.end()
 
     def run(self):
