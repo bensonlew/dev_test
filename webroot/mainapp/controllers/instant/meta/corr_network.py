@@ -22,7 +22,7 @@ class CorrNetwork(MetaController):
         if return_info:
             return return_info
         data = web.input()
-        default_argu = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'lable', 'method', 'coefficient', 'abundance']
+        default_argu = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'lable', 'ratio_method', 'coefficient', 'abundance']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -44,7 +44,7 @@ class CorrNetwork(MetaController):
             'group_id': data.group_id,
             'group_detail': group_detail_sort(data.group_detail),
             'lable': float(data.lable),
-            'method': data.method,
+            'ratio_method': data.ratio_method,
             'coefficient': float(data.coefficient),
             'abundance': int(data.abundance),
             'submit_location': data.submit_location,
@@ -59,7 +59,7 @@ class CorrNetwork(MetaController):
             'grouptable': data.group_id,
             'group_detail': data.group_detail,
             'lable': float(data.lable),
-            'method': data.method,
+            'method': data.ratio_method,
             'level': int(data.level_id),
             'coefficient': float(data.coefficient),
             'abundance': int(data.abundance),

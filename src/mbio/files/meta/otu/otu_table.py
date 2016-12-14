@@ -235,14 +235,18 @@ class OtuTableFile(File):
         cla = re.split(';', tax)
         new_cla = list()
         #  处理uncultured和Incertae_Sedis
-        if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)$", cla[0], flags=re.I):
+        if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified|Unknown)$", cla[0], flags=re.I):  # modify by zhouxuan 2016.11.16
             pass
+        if re.search("(Incertae_Sedis|Unclassified|Unknown)", tax): # modify by zhouxuan 2016.11.29
+            re.sub(r'Incertae_Sedis', 'incertae_Sedis', tax)
+            re.sub(r'Unclassified', 'unclassified', tax)
+            re.sub(r'Unknown', 'unknown', tax)
             # raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或norank或unidentified或是分类水平缺失")
         # 先对输入的名字进行遍历， 当在某一水平上空着的时候， 补全
         # 例如在g水平空着的时候，补全成g__Unclassified
         for i in range(0, 8):
             if not re.search(LEVEL[i], tax):
-                str_ = LEVEL[i] + "Unclassified"
+                str_ = LEVEL[i] + "unclassified"
                 new_cla.append(str_)
             else:
                 new_cla.append(cla[i])
@@ -284,7 +288,7 @@ class OtuTableFile(File):
             claList.append([(tmp[0], tmp[1])])
         for i in range(1, 8):
             cla = claList[i][0][1]
-            if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)", cla, flags=re.I):
+            if re.search("(uncultured|incertae_Sedis|norank|unidentified|unclassified|unknown)", cla, flags=re.I):  # modify by zhouxuan 2016.11.16/29 大写变小写
                 j = i - 1
                 while (j >= 0):
                     last_cla = claList[j][0][1]

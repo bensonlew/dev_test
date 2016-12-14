@@ -24,7 +24,8 @@ class OtuTaxonStatAgent(Agent):
             {'name': 'taxon_file', 'type': 'infile', 'format': 'taxon.seq_taxon'},  # 输入的taxon文件
             {'name': 'otu_taxon_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 输出的biom文件
             {'name': 'otu_taxon_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出的otu表文件
-            {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'}]  # 输出的otu_taxon_dir文件夹
+            {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'}, # 输出的otu_taxon_dir(absolute)文件夹
+            {'name': 'otu_taxon_dir', 'type': 'outfile','format': 'meta.otu.tax_summary_dir'}]  # 输出的otu_taxon_dir文件夹
         self.add_option(options)
         self.step.add_steps('OtuTaxonStat')
         self.on('start', self.step_start)
@@ -57,12 +58,16 @@ class OtuTaxonStatAgent(Agent):
             [r".", "", "结果输出目录"],
             [r"otu_taxon.biom", "meta.otu.biom", "OTU表的biom格式的文件"],
             [r"otu_taxon.xls", "meta.otu.otu_table", "OTU表"],
-            [r"tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"]
+            [r"tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录(absolute)"],
+            [r"tax_summary", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"]
         ])
         result_dir.add_regexp_rules([
-            ["tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
-            ["tax_summary_a/.+\.xls$", "meta.otu.biom", "单一水平物种分类统计表"],
-            ["tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多水平物种分类统计"]
+            ["tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件(absolute)"],
+            ["tax_summary_a/.+\.xls$", "meta.otu.biom", "单一水平物种分类统计表(absolute)"],
+            ["tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多水平物种分类统计(absolute)"],
+            ["tax_summary/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
+            ["tax_summary/.+\.xls$", "meta.otu.biom", "单一水平物种分类统计表"],
+            ["tax_summary/.+\.full\.xls$", "meta.otu.biom", "多水平物种分类统计"]
         ])
         super(OtuTaxonStatAgent, self).end()
 
@@ -142,10 +147,25 @@ class OtuTaxonStatTool(Tool):
         :param biom: biom文件路径
         """
         tax_summary_a_dir = os.path.join(self.work_dir, "output", "tax_summary_a")
+        tax_summary_dir = os.path.join(self.work_dir, "output", "tax_summary")  # modify by zhouxuan 2016.11.29 (add 3 line)
+        if os.path.exists(tax_summary_dir):
+            shutil.rmtree(tax_summary_dir)
         if os.path.exists(tax_summary_a_dir):
             shutil.rmtree(tax_summary_a_dir)
         cmd = self._summarize_taxa_path + " -i " + biom + ' -o ' + tax_summary_a_dir\
             + " -L 1,2,3,4,5,6,7,8 -a "
+        cmd2 = self._summarize_taxa_path + " -i " + biom + ' -o ' + tax_summary_dir\
+            + " -L 1,2,3,4,5,6,7,8 "  # modify by zhouxuan 2016.11.29 (add 10 line)
+        create_tax_summary_ = self.add_command("create_tax_summary_", cmd2)
+        self.logger.info("开始生成tax_summary文件夹")
+        create_tax_summary_ .run()
+        self.wait(create_tax_summary_)
+        if create_tax_summary_.return_code == 0:
+            self.logger.info("tax_summary文件夹生成成功")
+        else:
+            self.logger.info("tax_summary文件夹生成失败")
+            raise Exception("tax_summary文件夹生成失败")
+
         create_tax_summary = self.add_command("create_tax_summary", cmd)
         self.logger.info("开始生成tax_summary_a文件夹")
         create_tax_summary.run()
@@ -170,6 +190,22 @@ class OtuTaxonStatTool(Tool):
                 except subprocess.CalledProcessError:
                     self.set_error("运行sum_tax.pl出错")
                     raise Exception("运行sum_tax.pl出错")
+
+        list__ = os.listdir(tax_summary_dir)  # modify by zhouxuan 2016.11.29 (add 14 line) 222
+        for my_otu_table in list__:
+            if re.search(r"txt", my_otu_table):
+                my_otu_table = os.path.join(tax_summary_dir, my_otu_table)
+                otu_basename = os.path.basename(my_otu_table)
+                otu_basename = re.sub(r'\.txt$', r'.xls', otu_basename)
+                otu_name = os.path.join(tax_summary_dir, otu_basename)
+                cmd = self._sum_tax_path + " -i " + my_otu_table + " -o " + otu_name
+                self.logger.info(cmd)
+                try:
+                    subprocess.check_call(cmd, shell=True)
+                except subprocess.CalledProcessError:
+                    self.set_error("运行sum_tax.pl出错")
+                    raise Exception("运行sum_tax.pl出错")
+
         list_ = os.listdir(tax_summary_a_dir)
         for table in list_:
             if re.search(r"txt$", table):
@@ -180,7 +216,20 @@ class OtuTaxonStatTool(Tool):
                 file_ = os.path.join(tax_summary_a_dir, table)
                 new_file = os.path.join(tax_summary_a_dir, name)
                 os.rename(file_, new_file)
-        self.logger.info("开始整理输出文件夹")
+        self.logger.info("tax_summary_a_dir开始整理输出文件夹")
+
+        list__ = os.listdir(tax_summary_dir)  # modify by zhouxuan 2016.11.29 (add 11 line) 222
+        for table in list__:
+            if re.search(r"txt$", table):
+                file_ = os.path.join(tax_summary_dir, table)
+                os.remove(file_)
+            if re.search(r"new$", table):
+                name = re.sub(r"txt\.new$", r"full.xls", table)
+                file_ = os.path.join(tax_summary_dir, table)
+                new_file = os.path.join(tax_summary_dir, name)
+                os.rename(file_, new_file)
+        self.logger.info("tax_summary_dir开始整理输出文件夹")
+
         self.rename()
 
     def rename(self):
@@ -197,6 +246,18 @@ class OtuTaxonStatTool(Tool):
             "L7": "Genus",
             "L8": "Species"
         }
+        tax_summary_dir = os.path.join(self.work_dir, "output", "tax_summary")  # modify by zhouxuan 2016.11.29 (add 11 line)
+        list__ = os.listdir(tax_summary_dir)
+        for table in list__:
+            match = re.search(r"(.+)(L\d)(.+)", table)
+            prefix = match.group(1)
+            suffix = match.group(3)
+            level = match.group(2)
+            newname = prefix + level_level[level] + suffix
+            table = os.path.join(tax_summary_dir, table)
+            newname = os.path.join(tax_summary_dir, newname)
+            os.rename(table, newname)
+
         tax_summary_a_dir = os.path.join(self.work_dir, "output", "tax_summary_a")
         list_ = os.listdir(tax_summary_a_dir)
         for table in list_:
@@ -209,6 +270,18 @@ class OtuTaxonStatTool(Tool):
             newname = os.path.join(tax_summary_a_dir, newname)
             os.rename(table, newname)
 
+        otu_taxon_otu_ = os.path.join(tax_summary_dir, "otu_taxon_otu.xls")  # modify by zhouxuan 2016.11.29 (add 11 line)
+        with open(self.option('in_otu_table').prop['path'], 'r') as r:
+            with open(otu_taxon_otu_, 'w') as w:
+                line1 = r.next()
+                if re.search(r'Constructed from biom', line1):
+                    line1 = r.next()
+                w.write(line1)
+                for line in r:
+                    line = line
+                    line = re.sub(r'\.0', '', line)
+                    w.write(line)
+
         otu_taxon_otu = os.path.join(tax_summary_a_dir, "otu_taxon_otu.xls")
         with open(self.option('in_otu_table').prop['path'], 'r') as r:
             with open(otu_taxon_otu, 'w') as w:
@@ -220,6 +293,18 @@ class OtuTaxonStatTool(Tool):
                     line = line
                     line = re.sub(r'\.0', '', line)
                     w.write(line)
+
+        biom = os.path.join(tax_summary_dir, "otu_taxon_otu.biom") # modify by zhouxuan 2016.11.29 (add 11 line)
+        cmd2 = self._biom_path + " convert -i " + otu_taxon_otu + " -o " + biom\
+            + " --table-type \"OTU table\" --to-hdf5"
+        create_taxon_biom_otu_ = self.add_command("create_taxon_otu_biom_", cmd2)
+        self.logger.info("由otu开始转化biom")
+        create_taxon_biom_otu_.run()
+        self.wait(create_taxon_biom_otu_)
+        if create_taxon_biom_otu_.return_code == 0:
+            self.logger.info("taxon_biom_otu生成成功")
+        else:
+            self.set_error("taxon_biom_otu生成失败")
 
         biom = os.path.join(tax_summary_a_dir, "otu_taxon_otu.biom")
         cmd = self._biom_path + " convert -i " + otu_taxon_otu + " -o " + biom\
@@ -239,6 +324,19 @@ class OtuTaxonStatTool(Tool):
         """
         otu_full_path = os.path.join(self.work_dir, "output", "tax_summary_a", "otu_taxon_otu.full.xls")
         with open(otu_table, 'rb') as r, open(otu_full_path, 'wb') as w:
+            line = r.next().rstrip("\r\n").split("\t")
+            line.pop(-1)
+            w.write("\t".join(line))
+            w.write("\n")
+            for line in r:
+                line = line.rstrip("\r\n").split("\t")
+                line[0] = "{}; {}".format(line[-1], line[0])
+                line.pop(-1)
+                w.write("\t".join(line))
+                w.write("\n")
+
+        otu_full_path_ = os.path.join(self.work_dir, "output", "tax_summary", "otu_taxon_otu.full.xls")  # modify by zhouxuan 2016.11.29 (add 12 line)
+        with open(otu_table, 'rb') as r, open(otu_full_path_, 'wb') as w:
             line = r.next().rstrip("\r\n").split("\t")
             line.pop(-1)
             w.write("\t".join(line))

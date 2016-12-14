@@ -17,10 +17,11 @@ class FunctionPredictWorkflow(Workflow):
         self.rpc = False
         super(FunctionPredictWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name": "otu_reps", "type": "string", "default": "none"},
             {"name": "otu_table", "type": "string", "default": "none"},
             {"name": "update_info", "type": "string"},
             {"name": "predict_id", "type": "string"},
+            {"name": "group_id", "type": "string"},
+            {"name": "group_detail", "type": "string"},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -28,9 +29,10 @@ class FunctionPredictWorkflow(Workflow):
         self.output_dir= self.function_predict.output_dir
 
     def run_function_predict(self):
+        files = self.option("otu_table").split(',')
         options = {
-            "otu_reps.fasta": self.option("otu_reps"),
-            "otu_table.xls": self.option("otu_table"),
+            "otu_reps.fasta": files[1],
+            "otu_table.xls": files[0],
             "db": "both",
         }
         self.function_predict.set_options(options)
@@ -62,7 +64,7 @@ class FunctionPredictWorkflow(Workflow):
         """
         self.logger.info("运行set_db")
         api_fun = self.api.function_predict
-        table_path = self.option("otu_table")
+        table_path = self.option("otu_table").split(',')[0]
         sample_path = self.output_dir + '/cog/cog.descrip.table.xls'
         function_path = self.output_dir + '/cog/cog.category.function.xls'
         prediction_id = self.option("predict_id")

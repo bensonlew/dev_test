@@ -41,7 +41,7 @@ class SortSamplesAgent(Agent):
         if not self.option("in_otu_table").is_set:
             raise OptionError("输入的OTU文件不能为空")
         if self.option("method"):
-            if self.option("method") not in ["", "no", "none", "No", "None", None, "average", "sum"]:
+            if self.option("method") not in ["", "no", "none", "No", "None", None, "average", "sum", "middle"]: # add middle by zhouxuan 20161205
                 raise OptionError("参数method设置错误！")
 
     def end(self):
@@ -92,6 +92,7 @@ class SortSamplesTool(Tool):
             for v in sample_group.values():
                 group_list.append(v)
                 group_list = list(set(group_list))
+                # l = len(group_list) #zx
 
             line = r.next().rstrip().split("\t")
             for i in range(len(line)):
@@ -102,17 +103,53 @@ class SortSamplesTool(Tool):
             for line in r:
                 line = line.rstrip().split("\t")
                 num = defaultdict(int)
+                middle_num = defaultdict(int) #
                 tmp = list()
+                list1 = [] # add 2 lines by zhouxuan 20161205
+                mid_num = dict()
+
                 w.write(line[0] + "\t")
                 for i in range(1, len(line)):
                     num[sample_group[index_sample[i]]] += int(line[i])
+                for m in group_list: # add 12 lines by zhouxuan 20161205
+                    for i in range(1, len(line)):
+                        if sample_group[index_sample[i]] == m:
+                            list1.append(int(line[i]))
+                            if len(list1) == group_sample_num[m]:
+                                list1.sort()
+                                yu = int(group_sample_num[m]) % 2
+                                index = int(int(group_sample_num[m]) / 2)
+                                if yu == 0:
+                                    mid_num[m] = int(round((int(list1[index-1]) + int(list1[index]))/2))
+                                    list1 = []
+                                else:
+                                    mid_num[m] = list1[index]
+                                    list1 = []
+
                 if method == "sum":
                     for g in group_list:
                         tmp.append(str(num[g]))
-                elif method == "average":
+                if method == "average":
                     for g in group_list:
                         avg = int(round(num[g] / group_sample_num[g]))
                         tmp.append(str(avg))
+                if method == "middle": # add 3 line by zhouxuan 20161205
+                    for g in group_list:
+                        tmp.append(str(mid_num[g]))
+                """
+                else :
+                    if method == "average":
+                        for g in group_list:
+                            avg = int(round(num[g] / group_sample_num[g]))
+                            tmp.append(str(avg))
+                    else method == "middle": # add 6 line by zhouxuan 20161205
+                        for g in group_list:
+                            list1.sort()
+                            index = int(round(len(line)-1 / 2))
+                            middle_num = list1[index]
+                            tmp.append(str(middle_num))
+                """
+
                 w.write("\t".join(tmp))
                 w.write("\n")
         return cat_otu_path
@@ -120,7 +157,7 @@ class SortSamplesTool(Tool):
     def run(self):
         super(SortSamplesTool, self).run()
         final_otu = self.filter_samples()
-        if self.option("method") in ["average", "sum"]:
+        if self.option("method") in ["average", "sum", "middle"]:
             final_otu = self.cat_samples(final_otu, self.option("method"))
         out_otu = os.path.join(self.output_dir, "out_otu.xls")
         shutil.copy2(final_otu, out_otu)
