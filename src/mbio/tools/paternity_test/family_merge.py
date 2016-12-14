@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = "moli.zhou"
 #last_modify:20161121
-
+import re
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -111,12 +111,12 @@ class FamilyMergeTool(Tool):
             for names in files:
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
-        f1 = 'family_joined_tab.xlsx'
-        os.link(self.work_dir + '/' + f1, self.output_dir + '/' + f1)
         f2 = 'family_joined_tab.Rdata'
         os.link(self.work_dir + '/' + f2, self.output_dir + '/' + f2)
-        f3 = 'family_joined_tab.txt'
-        os.link(self.work_dir + '/' + f3, self.output_dir + '/' + f3)
+        results = os.listdir(self.work_dir)
+        for f in results:
+            if re.search(r'.*family_joined_tab\.txt$', f):
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
         self.logger.info('设置文件夹路径成功')
 
     def run(self):
