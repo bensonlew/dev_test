@@ -6,6 +6,7 @@
 """
 from .core.function import load_class_by_path
 from .basic import Basic
+from .agent import Agent
 
 
 class Module(Basic):
@@ -39,7 +40,21 @@ class Module(Basic):
         #     return False
         childs = self.children
         for c in childs:
-            if c.id == toolid:
+            if c.id == toolid and isinstance(c, Agent):
                 return c
+            elif isinstance(c, Module):
+                tool = c.find_tool_by_id(toolid)
+                if tool:
+                    return tool
         return False
 
+    def add_module(self, path):
+        """
+        添加下属 :py:class:`biocluster.module.Module`
+
+        :param path:  :py:class:`biocluster.module.Module` 对应的自动加载path路径，请参考教程中对应的说明
+
+        """
+        module = load_class_by_path(path, tp="Module")(self)
+        self.add_child(module)
+        return module

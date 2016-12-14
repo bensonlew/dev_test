@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
-# import os
+import os
 from mbio.api.to_file.meta import *
 
 

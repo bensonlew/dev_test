@@ -27,7 +27,7 @@ class SampleExtractModule(Module):
         
     def check_options(self):
         """
-        ¼ì²é²ÎÊı
+        æ£€æŸ¥å‚æ•°
         """
         if self.option("in_fastq").format == "sequence.fastq_dir":
             # self.option("in_fastq").get_info()

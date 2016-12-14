@@ -15,13 +15,16 @@ import datetime
 import gevent
 import time
 from biocluster.api.file.remote import RemoteFileManager
+from biocluster.api.database.base import ApiManager
 import re
 import importlib
 import types
-import traceback
+# import traceback
 from .core.watcher import Watcher
 from .scheduling.job import JobManager
-from gevent.lock import BoundedSemaphore
+# from gevent.lock import BoundedSemaphore
+import traceback
+from .wpm.client import worker_client, log_client
 
 
 class Workflow(Basic):
@@ -34,10 +37,14 @@ class Workflow(Basic):
             self.debug = kwargs["debug"]
         else:
             self.debug = False
+
         super(Workflow, self).__init__(**kwargs)
+        self.action_queue = kwargs["action_queue"] if "action_queue" in kwargs.keys() else None
         self.sheet = wsheet
-        self._return_mongo_ids = []  # 在即时计算情况下，需要返回写入mongo库的主表ids，用于更新sg_status表，值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
-        self.mongodb = Config().MONGODB  # 用于即时计算时选择导入mongo数据库的名称
+        # self._return_mongo_ids = []  # 在即时计算情况下，需要返回写入mongo库的主表ids，用于更新sg_status表，
+        # 值为三个元素的字典{'collection_name': '', 'id': ObjectId(''), 'desc': ''}组成的列表
+
+        self._return_msg = []  # 需要返回给任务调用进程的值,支持常用数据类型
         self.last_update = datetime.datetime.now()
         if "parent" in kwargs.keys():
             self._parent = kwargs["parent"]
@@ -46,12 +53,12 @@ class Workflow(Basic):
 
         self.pause = False
         self._pause_time = None
-        self.USE_DB = False
+        # self.USE_DB = False
         self.__json_config()
 
         self._id = wsheet.id
         self.config = Config()
-        self.db = self.config.get_db()
+        # self.db = self.config.get_db()
         # self.db_sem = BoundedSemaphore(1)
         self._work_dir = self.__work_dir()
         self._output_path = self._work_dir + "/output"
@@ -64,14 +71,14 @@ class Workflow(Basic):
             self.step_start()
         self._logger = Wlog(self).get_logger("")
         if self.sheet.instant is True:
-            self.USE_DB = False
+            # self.USE_DB = False
             self.rpc_server = LocalServer(self)
         else:
             self.rpc_server = RPC(self)
 
     def __json_config(self):
-        if self.sheet.USE_DB is True:
-            self.USE_DB = True
+        # if self.sheet.USE_DB is True:
+        #     self.USE_DB = True
         if self.sheet.UPDATE_STATUS_API is not None:
             self.UPDATE_STATUS_API = self.sheet.UPDATE_STATUS_API
         if self.sheet.IMPORT_REPORT_DATA is True:
@@ -187,18 +194,8 @@ class Workflow(Basic):
         """
         super(Workflow, self).run()
         if self._parent is None:
-            data = {
-                "last_update": datetime.datetime.now(),
-                "pid": os.getpid(),
-                "workdir": self.work_dir,
-                "waiting": 0
-            }
-            self._update(data)
-            if self.USE_DB:
-                watcher = Watcher()
-                watcher.add(self.__update_service, 60)
-                watcher.add(self.__check_tostop, 10)
-                watcher.add(self.__check_pause, 15)
+            watcher = Watcher()
+            watcher.add(self.__check, 3)
             self.rpc_server.run()
 
     def end(self):
@@ -208,35 +205,41 @@ class Workflow(Basic):
         :return:
         """
         super(Workflow, self).end()
-        if self.sheet.instant is True:
-            self._upload_result()
-        data = {
-            "is_end": 1,
-            "end_time": datetime.datetime.now(),
-            "workdir": self.work_dir,
-            "output": self.output_dir
-        }
-        self._update(data)
+        self.end_unfinish_job()
+        self.rpc_server.close()
+        self._upload_result()
+        self._import_report_data()
         self.step.finish()
         self.step.update()
-        self.end_unfinish_job()
         self.logger.info("运行结束!")
-        self.rpc_server.close()
+        self._update("end")
 
-    @property
-    def return_mongo_ids(self):
-        return self._return_mongo_ids
+    def set_return_msg(self, msg):
+        """
+        设置返回信息给WPM，使用WorkflowManager.get_msg方法可在运行完成后获取此信息，只能获取一次
 
-    def add_return_mongo_id(self, collection_name, table_id, desc='', add_in_sg_status=True, mongodb=None):
+
+        :param msg: 需要传递的信息，支持常用数据类型
+        :return:
+        """
+        self._return_msg = msg
+
+    def add_return_mongo_id(self, collection_name, table_id, desc='', add_in_sg_status=True):
+        """
+        为了兼容旧版本,新版本请使用set_return_msg
+
+        :param collection_name:
+        :param table_id:
+        :param desc:
+        :param add_in_sg_status:
+        :return:
+        """
         return_dict = dict()
-        if not mongodb:
-            mongodb = self.mongodb
         return_dict['id'] = table_id
         return_dict['collection_name'] = collection_name
         return_dict['desc'] = desc
         return_dict['add_in_sg_status'] = add_in_sg_status
-        return_dict['mongodb'] = mongodb
-        self._return_mongo_ids.append(return_dict)
+        self._return_msg.append(return_dict)
 
     def _upload_result(self):
         """
@@ -245,185 +248,267 @@ class Workflow(Basic):
         :return:
         """
         if self._sheet.output:
-            remote_file = RemoteFileManager(self._sheet.output)
-            if remote_file.type != "local":
-                self.logger.info("上传结果%s到远程目录%s,开始复制..." % (self.output_dir, self._sheet.output))
-                # umask = os.umask(0)
-                remote_file.upload(os.path.join(self.output_dir))
-                for root, subdirs, files in os.walk("c:\\test"):
-                    for filepath in files:
-                        os.chmod(os.path.join(root, filepath), 0o777)
-                    for sub in subdirs:
-                        os.chmod(os.path.join(root, sub), 0o666)
-                # os.umask(umask)
-                self.logger.info("结果上传完成!")
+            for up in self.upload_dir:
+                target_dir = os.path.join(self.sheet.output, os.path.dirname(up.upload_path))
+                remote_file = RemoteFileManager(target_dir)
+                self.logger.info("开始上传%s到%s" % (up.path, target_dir))
+                if remote_file.type != "local":
+                    remote_file.upload(up.path)
+                self.logger.info("上传%s到%s完成" % (up.path, target_dir))
+
+    def _import_report_data(self):
+        if self.IMPORT_REPORT_DATA is True and self.IMPORT_REPORT_AFTER_END is True:
+            api_call_list = self.api.get_call_records_list()
+            if len(api_call_list) > 0:
+                self.logger.info("开始导入Report数据...")
+                api_manager = ApiManager(self, play_mod=True, debug=self.debug)
+                api_manager.load_call_records_list(api_call_list)
+                api_manager.play()
+                self.logger.info("导入Report数据结束！")
 
     def exit(self, exitcode=1, data="", terminated=False):
         """
         立即退出当前流程
 
         :param exitcode:
+        :param data:
+        :param terminated:
         :return:
         """
-        update_data = {
-            "is_error": 1,
-            "error": "程序主动退出:%s" % data,
-            "end_time": datetime.datetime.now(),
-            "is_end": 1,
-            "workdir": self.work_dir,
-            "output": self.output_dir
-        }
-        self._update(update_data)
         if terminated:
             self.step.terminated(data)
         else:
             self.step.failed(data)
-        self.step.update()
         self.end_unfinish_job()
-        self.logger.info("程序退出: %s " % data)
         self.rpc_server.close()
+        self.logger.info("程序退出: %s " % data)
+        self.step.update()
+        self._update("error", "程序主动退出:%s" % data)
         sys.exit(exitcode)
 
-    def __update_service(self):
-        """
-        每隔30s定时更新数据库last_update时间
+    # def __update_service(self):
+    #     """
+    #     每隔30s定时更新数据库last_update时间
+    #
+    #     :return:
+    #     """
+    #     # while self.is_end is False:
+    #     #     gevent.sleep(60)
+    #     if self.is_end is True:
+    #         return "exit"
+    #     self._update("online")
+    #     # with self.db_sem:
+    #     # try:
+    #     #     with self.db.transaction():
+    #     #         self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
+    #     #                       vars={'id': self._id})
+    #     # except Exception, e:
+    #     #     exstr = traceback.format_exc()
+    #     #     print exstr
+    #     #     self.logger.debug("数据库更新异常: %s" % e)
+    #     # finally:
+    #     #     self.close_db_cursor()
 
-        :return:
-        """
-        # while self.is_end is False:
-        #     gevent.sleep(60)
-        if self.is_end is True:
-            return "exit"
-        # with self.db_sem:
-        try:
-            with self.db.transaction():
-                self.db.query("UPDATE workflow SET last_update=CURRENT_TIMESTAMP where workflow_id=$id",
-                              vars={'id': self._id})
-        except Exception, e:
-            exstr = traceback.format_exc()
-            print exstr
-            self.logger.debug("数据库更新异常: %s" % e)
-        finally:
-            self.close_db_cursor()
-
-    def _update(self, data):
+    def _update(self, type, msg=None):
         """
         插入数据库，更新流程运行状态,只在后台服务调用时生效
 
-        :param data: 需要更新的数据
+        :param type: 更新信息类型
         :return:
         """
-        if self.USE_DB:
+        # if self.USE_DB:
+        #     try:
+        #         myvar = dict(id=self._id)
+        #         self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+        #     except Exception, e:
+        #         exstr = traceback.format_exc()
+        #         print exstr
+        #         self.logger.debug("数据库更新异常: %s" % e)
+        #     finally:
+        #         self.close_db_cursor()
+        if self.sheet.WPM:
             try:
-                myvar = dict(id=self._id)
-                self.db.update("workflow", vars=myvar, where="workflow_id = $id", **data)
+                worker = worker_client()
+                if type == "end":
+                    worker.set_end(self.sheet.id, self._return_msg)
+                elif type == "keepalive":
+                    worker.keep_alive(self.sheet.id)
+                elif type == "error":
+                    worker.set_error(self.sheet.id, msg)
+                elif type == "pause":
+                    worker.set_pause(self.sheet.id)
+                elif type == "stop":
+                    worker.set_top(self.sheet.id)
+                elif type == "pause_exit":
+                    worker.set_pause_exit(self.sheet.id)
+                elif type == "pause_timeout":
+                    worker.pause_timeout(self.sheet.id)
             except Exception, e:
                 exstr = traceback.format_exc()
                 print exstr
-                self.logger.debug("数据库更新异常: %s" % e)
-            finally:
-                self.close_db_cursor()
+                self.logger.error("连接WPM服务异常: %s" % e)
 
-    def __check_tostop(self):
+    def send_log(self, data):
         """
-        检查数据库的停止指令，如果收到则退出流程
+        发送API LOG信息到WPM API LOG管理器
 
+        ;:param data: 需要发送的数据
         :return:
         """
-        # while self.is_end is False:
+        if self.sheet.WPM:
+            try:
+                log = log_client()
+                log.add_log(data)
+            except Exception, e:
+                exstr = traceback.format_exc()
+                print exstr
+                self.logger.error("连接WPM服务异常: %s" % e)
+
+    def __check(self):
         if self.is_end is True:
             return "exit"
         if (datetime.datetime.now() - self.last_update).seconds > self.config.MAX_WAIT_TIME:
             self.exit(data="超过 %s s没有任何运行更新，退出运行！" % self.config.MAX_WAIT_TIME)
-        gevent.sleep(10)
-        myvar = dict(id=self._id)
+        now = datetime.datetime.now()
+        if self.pause:
+            if (now - self._pause_time).seconds > self.config.MAX_PAUSE_TIME:
+                self._update("pause_timeout")
+                self.exit(data="暂停超过规定的时间%ss,自动退出运行!" %
+                               self.config.MAX_PAUSE_TIME, terminated=True)
         try:
-            results = self.db.query("SELECT * FROM tostop "
-                                    "WHERE workflow_id=$id and done  = 0", vars={'id': self._id})
-            if isinstance(results, long) or isinstance(results, int):
-                self.close_db_cursor()
-                gevent.sleep(10)
-                return
-            if len(results) > 0:
-                data = results[0]
-                update_data = {
-                    "stoptime": datetime.datetime.now(),
-                    "done": 1
-                }
-                self.db.update("tostop", vars=myvar, where="workflow_id = $id", **update_data)
-                self.exit(data="接收到终止运行指令,%s" % data.reson, terminated=True)
+            action = self.action_queue.get_nowait()
+        except Exception:
+            pass
+        else:
+            if action == "stop":
+                self._stop()
+            elif action == "pause":
+                self._pause()
+            elif action == "exit_pause":
+                self._exit_pause()
 
-        except Exception, e:
-            exstr = traceback.format_exc()
-            print exstr
-            self.logger.info("查询数据库异常: %s" % e)
-        finally:
-            self.close_db_cursor()
+    def _stop(self):
+        self._update("stop")
+        self.exit(data="接收到终止运行指令", terminated=True)
 
-    def __check_pause(self):
-        """
-        检查暂停指令或终止暂停指令
+    def _pause(self):
+        self.pause = True
+        self._pause_time = datetime.datetime.now()
+        self.step.pause()
+        self.step.update()
+        self._update("pause")
+        self.logger.info("检测到暂停指令，暂停所有新模块运行")
 
-        :return:
-        """
-        if self.is_end is True:
-            return "exit"
-        myvar = dict(id=self._id)
-        try:
-            results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and "
-                                    "has_continue  = 0 and timeout = 0", vars={'id': self._id})
-            if isinstance(results, long) or isinstance(results, int):
-                self.close_db_cursor()
-                gevent.sleep(10)
-                return
-            if len(results) > 0:
-                data = results[0]
-                if data.has_pause == 0:
-                    self.pause = True
-                    self._pause_time = datetime.datetime.now()
-                    update_data = {
-                        "pause_time": datetime.datetime.now(),
-                        "has_pause": 1
-                    }
-                    self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
-                    self.db.query("UPDATE workflow SET paused = 1 where workflow_id=$id", vars={'id': self._id})
-                    self.step.pause()
-                    self.step.update()
-                    self.logger.info("检测到暂停指令，暂停所有新模块运行: %s" % data.reason)
-                else:
-                    if data.exit_pause == 0:
-                        now = datetime.datetime.now()
-                        if self.pause:
-                            if (now - self._pause_time).seconds > self.config.MAX_PAUSE_TIME:
-                                update_data = {
-                                    "timeout_time": datetime.datetime.now(),
-                                    "timeout": 1
-                                }
-                                self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
-                                self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
-                                              vars={'id': self._id})
-                                self.exit(data="暂停超过规定的时间%ss,自动退出运行!" %
-                                               self.config.MAX_PAUSE_TIME, terminated=True)
-                    else:
-                        if data.has_continue == 0 and data.timeout == 0:
-                            self.pause = False
-                            self._pause_time = None
-                            update_data = {
-                                    "continue_time": datetime.datetime.now(),
-                                    "has_continue": 1
-                            }
-                            self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
-                            self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
-                                          vars={'id': self._id})
-                            self.step.start()
-                            self.step.update()
-                            self.logger.info("检测到恢复运行指令，恢复所有模块运行!")
-        except Exception, e:
-            exstr = traceback.format_exc()
-            print exstr
-            self.logger.info("查询数据库异常: %s" % e)
-        finally:
-            self.close_db_cursor()
+    def _exit_pause(self):
+        self.pause = False
+        self._pause_time = None
+        self.step.start()
+        self.step.update()
+        self._update("pause_exit")
+        self.logger.info("检测到恢复运行指令，恢复所有模块运行!")
+
+
+
+    # def __check_tostop(self):
+    #     """
+    #     检查数据库的停止指令，如果收到则退出流程
+    #
+    #     :return:
+    #     """
+    #     # while self.is_end is False:
+    #     # if self.is_end is True:
+    #     #     return "exit"
+    #     # if (datetime.datetime.now() - self.last_update).seconds > self.config.MAX_WAIT_TIME:
+    #     #     self.exit(data="超过 %s s没有任何运行更新，退出运行！" % self.config.MAX_WAIT_TIME)
+    #     # gevent.sleep(10)
+    #     # myvar = dict(id=self._id)
+    #     # try:
+    #     #     results = self.db.query("SELECT * FROM tostop "
+    #     #                             "WHERE workflow_id=$id and done  = 0", vars={'id': self._id})
+    #     #     if isinstance(results, long) or isinstance(results, int):
+    #     #         self.close_db_cursor()
+    #     #         gevent.sleep(10)
+    #     #         return
+    #     #     if len(results) > 0:
+    #     #         data = results[0]
+    #     #         update_data = {
+    #     #             "stoptime": datetime.datetime.now(),
+    #     #             "done": 1
+    #     #         }
+    #     #         self.db.update("tostop", vars=myvar, where="workflow_id = $id", **update_data)
+    #     #         self.exit(data="接收到终止运行指令,%s" % data.reson, terminated=True)
+    #     #
+    #     # except Exception, e:
+    #     #     exstr = traceback.format_exc()
+    #     #     print exstr
+    #     #     self.logger.info("查询数据库异常: %s" % e)
+    #     # finally:
+    #     #     self.close_db_cursor()
+    #
+    # def __check_pause(self):
+    #     """
+    #     检查暂停指令或终止暂停指令
+    #
+    #     :return:
+    #     """
+    #     if self.is_end is True:
+    #         return "exit"
+    #     myvar = dict(id=self._id)
+    #     try:
+    #         results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id and "
+    #                                 "has_continue  = 0 and timeout = 0", vars={'id': self._id})
+    #         if isinstance(results, long) or isinstance(results, int):
+    #             self.close_db_cursor()
+    #             gevent.sleep(10)
+    #             return
+    #         if len(results) > 0:
+    #             data = results[0]
+    #             if data.has_pause == 0:
+    #                 self.pause = True
+    #                 self._pause_time = datetime.datetime.now()
+    #                 update_data = {
+    #                     "pause_time": datetime.datetime.now(),
+    #                     "has_pause": 1
+    #                 }
+    #                 self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
+    #                 self.db.query("UPDATE workflow SET paused = 1 where workflow_id=$id", vars={'id': self._id})
+    #                 self.step.pause()
+    #                 self.step.update()
+    #                 self.logger.info("检测到暂停指令，暂停所有新模块运行: %s" % data.reason)
+    #             else:
+    #                 if data.exit_pause == 0:
+    #                     now = datetime.datetime.now()
+    #                     if self.pause:
+    #                         if (now - self._pause_time).seconds > self.config.MAX_PAUSE_TIME:
+    #                             update_data = {
+    #                                 "timeout_time": datetime.datetime.now(),
+    #                                 "timeout": 1
+    #                             }
+    #                             self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
+    #                             self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
+    #                                           vars={'id': self._id})
+    #                             self.exit(data="暂停超过规定的时间%ss,自动退出运行!" %
+    #                                            self.config.MAX_PAUSE_TIME, terminated=True)
+    #                 else:
+    #                     if data.has_continue == 0 and data.timeout == 0:
+    #                         self.pause = False
+    #                         self._pause_time = None
+    #                         update_data = {
+    #                                 "continue_time": datetime.datetime.now(),
+    #                                 "has_continue": 1
+    #                         }
+    #                         self.db.update("pause", vars=myvar, where="workflow_id = $id", **update_data)
+    #                         self.db.query("UPDATE workflow SET paused = 0 where workflow_id=$id",
+    #                                       vars={'id': self._id})
+    #                         self.step.start()
+    #                         self.step.update()
+    #                         self.logger.info("检测到恢复运行指令，恢复所有模块运行!")
+    #     except Exception, e:
+    #         exstr = traceback.format_exc()
+    #         print exstr
+    #         self.logger.info("查询数据库异常: %s" % e)
+    #     finally:
+    #         self.close_db_cursor()
 
     def end_unfinish_job(self):
         """
@@ -437,6 +522,6 @@ class Workflow(Basic):
         if hasattr(self, "process_share_manager"):
             self.process_share_manager.shutdown()
 
-    def close_db_cursor(self):
-        cursor = self.db._db_cursor()
-        cursor.close()
+    # def close_db_cursor(self):
+    #     cursor = self.db._db_cursor()
+    #     cursor.close()

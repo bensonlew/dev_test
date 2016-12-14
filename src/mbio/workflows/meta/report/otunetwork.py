@@ -17,6 +17,7 @@ class OtunetworkWorkflow(Workflow):
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "level", "type": "int"},
             {"name": "grouptable", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "group_id", "type": "string"},
             {"name": "group_detail", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "network_id", "type": "string"}
@@ -51,11 +52,15 @@ class OtunetworkWorkflow(Workflow):
     def run_otunetwork(self):
         newtable = self.change_otuname(self.option('otutable').prop['path'])
         #newtable = os.path.join(self.work_dir, 'otutable1.xls')
-        options = {
-            'otutable': newtable,
-            # 'level': self.option('level'),
-            'grouptable': self.option('grouptable')
-            }
+        if self.option("group_id") == 'all':
+            options = {
+                'otutable': newtable,
+                }
+
+        else:
+            options = {
+                'otutable': newtable,
+                'grouptable': self.option('grouptable')}
 
         self.otunetwork.set_options(options)
         self.otunetwork.on('end', self.set_db)
@@ -66,14 +71,14 @@ class OtunetworkWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "OTU网络分析结果输出目录"],
-            ["./real_node_table.txt", "txt", "OTU网络节点属性表"],
-            ["./real_edge_table.txt", "txt", "OTU网络边集属性表"],
-            ["./real_dc_otu_degree.txt", "txt", "OTU网络OTU节点度分布表"],
-            ["./real_dc_sample_degree.txt", "txt", "OTU网络sample节点度分布表"],
-            ["./real_dc_sample_otu_degree.txt", "txt", "OTU网络节点度分布表"],
-            ["./network_centrality.txt", "txt", "OTU网络中心系数表"],
-            ["./network_attributes.txt", "txt", "OTU网络单值属性表"],
+            [".", "", "网络分析结果输出目录"],
+            ["./real_node_table.txt", "txt", "网络节点属性表"],
+            ["./real_edge_table.txt", "txt", "网络边的属性表"],
+            ["./real_dc_otu_degree.txt", "txt", "网络物种节点度分布表"],
+            ["./real_dc_sample_degree.txt", "txt", "网络sample节点度分布表"],
+            ["./real_dc_sample_otu_degree.txt", "txt", "网络所有节点度分布表"],
+            ["./network_centrality.txt", "txt", "网络中心系数表"],
+            ["./network_attributes.txt", "txt", "网络单值属性表"],
             ["./network_degree.txt", "txt", "OTU网络度统计总表"]
         ])
         super(OtunetworkWorkflow, self).end()
@@ -109,10 +114,10 @@ class OtunetworkWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(network_degree_path))
         print 'stat insert 1'
         api_otunetwork.add_node_table(file_path=node_table_path, table_id=self.option("network_id"))
-        api_otunetwork.add_node_table_group(file_path=node_table_path, table_id=self.option("network_id"))
+        #api_otunetwork.add_node_table_group(file_path=node_table_path, table_id=self.option("network_id"))
         api_otunetwork.add_edge_table(file_path=edge_table_path, table_id=self.option("network_id"))
         api_otunetwork.add_network_attributes(file_path=network_attributes_path, table_id=self.option("network_id"))
-        api_otunetwork.add_network_degree(file_path=network_degree_path, table_id=self.option("network_id"))
+        api_otunetwork.add_network_degree(file1_path=otu_degree_path,file2_path=sample_degree_path, file3_path=sample_otu_degree_path, table_id=self.option("network_id"))
         api_otunetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("network_id"))
         print 'stat insert 1'
         self.end()

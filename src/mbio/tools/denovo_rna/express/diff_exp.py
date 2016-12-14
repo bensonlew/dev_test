@@ -9,6 +9,7 @@ import os
 import re
 import itertools
 import shutil
+import copy
 
 
 class DiffExpAgent(Agent):
@@ -182,7 +183,8 @@ class DiffExpTool(Tool):
             shutil.rmtree(self.regulate_stat)
             os.mkdir(self.regulate_stat)
         for i in sams:
-            for afile in edger_results:
+            resluts = copy.copy(edger_results)
+            for afile in resluts:
                 if re.search(r'edgeR.DE_results$', afile):
                     if i[0] in afile and i[1] in afile:
                         # self.logger.info(afile)

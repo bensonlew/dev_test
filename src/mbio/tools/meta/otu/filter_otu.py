@@ -96,6 +96,7 @@ class FilterOtuTool(Tool):
         for line in self.otu_json:
             sp_name = line.split("\t")[0].split("; ")
             my_level = int(my_json["level_id"]) - 1
+            """
             # 当级别是9的时候，也即是OTU的时候，进行精确匹配
             if int(my_json["level_id"]) == 9:
                 if sp_name[my_level] == my_json["value"] or sp_name[my_level].lower() == my_json["value"]:
@@ -105,13 +106,19 @@ class FilterOtuTool(Tool):
                 pattern = self.LEVEL[int(my_json["level_id"])] + ".*" + j_value
                 if re.search(pattern, sp_name[my_level], re.IGNORECASE):
                     self.keep_list.append(line)
-
+            """
+            str = my_json["value"]
+            str = str.lstrip()
+            if sp_name[my_level] == str or sp_name[my_level].lower() == str:
+                self.keep_list.append(line)
+            
     def remove_species(self, my_json):
         j_value = re.sub("^\w__", "", my_json["value"])
         tmp_list = self.otu_json[:]
         for line in self.otu_json:
             sp_name = line.split("\t")[0].split("; ")
             my_level = int(my_json["level_id"]) - 1
+            """
             # 当级别是9的时候，也即是OTU的时候，进行精确匹配
             if int(my_json["level_id"]) == 9:
                 if sp_name[my_level] == my_json["value"] or sp_name[my_level].lower() == my_json["value"]:
@@ -121,6 +128,12 @@ class FilterOtuTool(Tool):
                 pattern = self.LEVEL[int(my_json["level_id"])] + ".*" + j_value
                 if re.search(pattern, sp_name[my_level], re.IGNORECASE):
                     tmp_list.remove(line)
+            """
+            # edited by sj
+            str = my_json["value"]
+            str = str.lstrip()
+            if sp_name[my_level] == str or sp_name[my_level].lower() == str:
+                self.keep_list.append(line)
         self.otu_json = tmp_list[:]
 
     def filter_samples(self, my_json):
