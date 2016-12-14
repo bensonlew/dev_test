@@ -100,13 +100,18 @@ class FileCheck(object):
                 # file_list = eval(file_list)
                 sample_list = file_obj.prop["sample"]
                 new_list = [file_list[x][0] for x in file_list.keys()]
+                new = []
+                for item in new_list:
+                    item = item.decode("unicode_escape")
+                    new.append(item)
                 print "sample list: " + str(sample_list)
-                print "new_list: " + str(new_list)
+                print "new_list: " + str(new)
                 for new_name in file_list.keys():
-                    if file_list[new_name][0] not in sample_list:
+                    item = file_list[new_name][0].decode("unicode_escape")
+                    if item not in sample_list:
                         raise FileError("分组文件中样本名与检测的样本信息不匹配")
                 for sample in sample_list:
-                    if sample not in new_list:
+                    if sample not in new:
                         raise FileError("分组文件中样本名与检测的样本信息不匹配")
             except FileError,e:
                 info = {"success":False,"info":"错误:%s" % e}
