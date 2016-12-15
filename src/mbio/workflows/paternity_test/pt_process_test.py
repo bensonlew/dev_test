@@ -102,8 +102,12 @@ class PtProcessWorkflow(Workflow):
 				self.logger.info('{}样本已存在于数据库'.format(i))
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2tab')
+		if len(self.tools) > 1:
+			self.on_rely(self.tools, self.pt_analysis_run)
+		elif len(self.tools) == 1:
+			self.tools[0].on('end', self.pt_analysis_run)
 		for tool in self.tools:
-			tool.on('end', self.pt_analysis_run)
+			# tool.on('end', self.pt_analysis_run)
 			tool.run()
 
 
@@ -139,13 +143,13 @@ class PtProcessWorkflow(Workflow):
 		name_list = []
 		for m in num_list:
 			x = api_read_tab.dedup_sample(m)
-			name_list.append(x)
+			for k in range(len(x)):
+				name_list.append(x[k])
 		for i in name_list:
 			pt_analysis_dedup1 = self.add_module("paternity_test.pt_analysis")
 			self.step.add_steps('dedup1_{}'.format(n))
-			api_read_tab.export_tab_file(i, self.output_dir)
 			pt_analysis_dedup1.set_options({
-					"dad_tab": self.output_dir +'/' + i + '.tab',  # 数据库的tab文件
+					"dad_tab": api_read_tab.export_tab_file(i, self.output_dir),  # 数据库的tab文件
 					"mom_tab": api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir),
 					"preg_tab": api_read_tab.export_tab_file(self.option('preg_id'), self.output_dir),
 					"ref_point": self.option("ref_point"),
