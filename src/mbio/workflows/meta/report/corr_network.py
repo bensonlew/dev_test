@@ -151,7 +151,7 @@ class CorrNetworkWorkflow(Workflow):
         network_attributes_path = self.output_dir + '/corr_network_calc/corr_network_attributes.txt'
         network_degree_distribution = self.output_dir + '/corr_network_calc/corr_network_degree_distribution.txt'
         if not os.path.isfile(node_links_path):
-            raise Exception("找不到报告文件:{}".format(node_links_path))
+            raise Exception("找不到报告文件:{}\n因为没有符合相应条件的边存在，请将相关系数阈值调小点，同时选择足够多的样本数目".format(node_links_path))
         if not os.path.isfile(node_abundance_path):
             raise Exception("找不到报告文件:{}".format(node_abundance_path))
         if not os.path.isfile(network_clustering_path):
