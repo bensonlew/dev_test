@@ -106,6 +106,7 @@ class RandomforestTool(Tool):
     def __init__(self, config):
         super(RandomforestTool, self).__init__(config)
         self._version = '1.0.1'
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
         self.cmd_path = self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/RandomForest_perl.pl'
         if self.option('grouptable').is_set:
             self.group_table = self.option('grouptable').prop['path']

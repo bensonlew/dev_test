@@ -25,12 +25,37 @@ def create_r(dis_matrix_file, group_file, output_dir, one_group, permutations=99
     output_dir = output_dir.rstrip('/')
     this_file_dir = os.path.dirname(os.path.realpath(__file__))
     f = Template(filename=this_file_dir + '/adonis.r')
-    content_r = f.render(dist_matrix=dis_matrix_file, group_file=group_file, output_dir=output_dir,
-                         flied=one_group, permutations=permutations)
+    lab, group = check_group_lab(one_group, group_file)
+    content_r = f.render(dist_matrix=dis_matrix_file, group_file=group, output_dir=output_dir,
+                         flied=lab, permutations=permutations)
     tempr = open(output_dir + '/temp_r.R', 'w')
     tempr.writelines([i.rstrip() + '\n' for i in content_r.split('\r\n')])
     tempr.close()
     return output_dir + '/temp_r.R'
+
+
+def check_group_lab(lab, group, new_name='Group', new_group=None):
+    if lab[0].isdigit():
+        if not new_group:
+            new_group = group + '.temp'
+
+        def rplace_group(matched):
+            return '\t' + matched.groups()[0] + '\n'
+        with open(group) as f:
+            data = f.readlines()
+            names = data[0].rstrip().split('\t')
+            new_headers = []
+            for i in names:
+                if i == lab:
+                    new_headers.append(new_name)
+                else:
+                    new_headers.append(i)
+            data[0] = '\t'.join(new_headers) + '\n'
+        with open(new_group, 'w') as w:
+            w.writelines(data)
+        return new_name, new_group
+    else:
+        return lab, group
 
 
 def run_r_script(script, delscript=True):
