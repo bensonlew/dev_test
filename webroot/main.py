@@ -34,7 +34,10 @@ from mainapp.controllers.submit.datasplit.datasplit import Datasplit
 from mainapp.controllers.submit.denovo_rna.network import Network
 from mainapp.controllers.instant.denovo_rna.get_diff_express import GetDiffExpress
 from mainapp.controllers.submit.meta.otunetwork import Otunetwork
+from mainapp.controllers.submit.meta.randomforest import Randomforest
+from mainapp.controllers.submit.meta.roc import Roc
 from mainapp.controllers.submit.denovo_rna.ssr import Ssr
+from mainapp.controllers.instant.denovo_rna.venn import Venn
 
 # web.config.debug = False
 urls = (
@@ -69,7 +72,9 @@ urls = (
     "/meta/beta/multi_analysis", "MultiAnalysis",
     "/meta/beta/anosim", "Anosim",
     "/dataexchange/download_task", "DownloadTask",
+    "/app/dataexchange/download_task", "DownloadTask",
     "/dataexchange/upload_task", "UploadTask",
+    "/app/dataexchange/upload_task", "UploadTask",
     "/denovo_rna/diff_express", "DiffExpress",
     "/denovo_rna/map_assessment", "MapAssessment",
     "/meta/mantel_test", "MantelTest",
@@ -80,7 +85,10 @@ urls = (
     "/denovo_rna/network", "Network",
     "/denovo_rna/get_diff_express", "GetDiffExpress",
     "/meta/otu_network", "Otunetwork",
-    "/denovo_rna/ssr", "Ssr"
+    "/meta/randomforest", "Randomforest",
+    "/meta/roc", "Roc",
+    "/denovo_rna/ssr", "Ssr",
+    "/denovo_rna/venn", "Venn"
 )
 
 

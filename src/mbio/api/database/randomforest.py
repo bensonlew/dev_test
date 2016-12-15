@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#-*- coding: utf-8 -*-
 # __author__ = 'zhangpeng'
 from biocluster.api.database.base import Base, report_check
 import re
@@ -11,9 +11,9 @@ import os
 from biocluster.config import Config
 
 
-class Randomforestwork(Base):
+class Randomforest(Base):
     def __init__(self, bind_object):
-        super(Randomforestwork, self).__init__(bind_object)
+        super(Randomforest, self).__init__(bind_object)
         self._db_name = Config().MONGODB
         # self.client = get_mongo_client()
 
@@ -41,7 +41,7 @@ class Randomforestwork(Base):
             data_son = SON(data)
             data_list.append(data_son)
         try:
-            collection = self.db["sg_meta_randomforest_error"]
+            collection = self.db["sg_randomforest_specimen_table"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
@@ -70,11 +70,11 @@ class Randomforestwork(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("randomforest_id", table_id), ("V1", line_data[0]), ("V2", line_data[1])]
+                    data = [("randomforest_id", table_id),("specimen_name", line_data[0]),("x", line_data[1]), ("y", line_data[2])]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
-            collection = self.db["sg_meta_randomforest_dim"]
+            collection = self.db["sg_randomforest_specimen_scatter"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
@@ -107,11 +107,12 @@ class Randomforestwork(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("randomforest_id", table_id), ("MeanDecreaseAccuracy", line_data[a2-1]), ("MeanDecreaseGini", line_data[a2])]
+                    #data = [("randomforest_id", table_id),("specimen_name","line_data[0]") ("accuracy", line_data[a2-1]), ("gini", line_data[a2])]
+                    data = [("randomforest_id", table_id), ("species_name", line_data[0]), ("accuracy", float(line_data[-2])), ("gini", float(line_data[-1]))]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
-            collection = self.db["sg_meta_randomforest_vip"]
+            collection = self.db["sg_randomforest_species_bar"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))

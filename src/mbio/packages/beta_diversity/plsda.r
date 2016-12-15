@@ -30,7 +30,17 @@ if (is.data.frame(otu_temp)){
 ############calculate plsda##########################
 library(mixOmics)
 num <- length(unique(env_factor$${group_name}))
-plsda_otu <- plsda(otu_table,env_factor$${group_name},ncomp=num,near.zero.var=T)
+normal_run <- function(){
+    print('start run plsda with maximal and near zero.');
+    plsda_otu <<- plsda(otu_table,env_factor$${group_name},ncomp=num,near.zero.var=T)
+}
+error_run <- function(e=''){
+    print('ERROR:');
+    print(e);
+    print('restart run plsda without maximal and near zero.');
+    plsda_otu <<- plsda(otu_table,env_factor$${group_name})
+}
+tryCatch(normal_run(), error=function(e){error_run(e)})
 plsda_sites<-plsda_otu$variates$X
 plsda_rotat<-plsda_otu$loadings$X
 plsda_impo<-plsda_otu$loadings$Y
