@@ -13,6 +13,7 @@ from multiprocessing.managers import BaseManager
 import traceback
 from ..core.singleton import singleton
 import datetime
+from ..core.function import hostname
 
 
 def write_log(info):
@@ -38,7 +39,7 @@ class MainServer(object):
         while True:
             if self._log_date != time.strftime('%Y%m%d', time.localtime(time.time())):
                 self._log_date = time.strftime('%Y%m%d', time.localtime(time.time()))
-                log = os.path.join(self.config.wpm_log_file, "%s.log" % self._log_date)
+                log = os.path.join(self.config.wpm_log_file, "%s.%s.log" % (self._log_date, hostname))
                 so = file(log, 'a+')
                 se = file(log, 'a+', 0)
                 os.dup2(so.fileno(), sys.stdout.fileno())

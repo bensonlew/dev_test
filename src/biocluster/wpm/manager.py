@@ -18,6 +18,7 @@ import setproctitle
 import time
 import gevent
 import sys
+from ..core.function import hostname
 
 
 @singleton
@@ -295,7 +296,7 @@ class ApiLogProcess(Process):
         while True:
             if self._log_date != time.strftime('%Y%m%d', time.localtime(time.time())):
                 self._log_date = time.strftime('%Y%m%d', time.localtime(time.time()))
-                log = os.path.join(self.config.UPDATE_LOG, "%s.log" % self._log_date)
+                log = os.path.join(self.config.UPDATE_LOG, "%s.%s.log" % (self._log_date, hostname))
                 if not os.path.exists(self.config.UPDATE_LOG):
                     os.mkdir(self.config.UPDATE_LOG)
                 so = file(log, 'a+')
