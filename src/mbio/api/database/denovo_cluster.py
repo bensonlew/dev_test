@@ -63,12 +63,12 @@ class DenovoCluster(Base):
             for line in f:
                 line = line.strip().split('\t')
                 data = [
-                    ('sub_cluster', sub),
+                    ('sub_cluster', int(sub)),
                     ('cluster_id', cluster_id),
                     ('gene_id', line[0])
                 ]
                 for i in range(len(head)):
-                    data.append((head[i], line[i + 1]))
+                    data.append((head[i], round(float(line[i + 1]), 4)))
                 data = SON(data)
                 data_list.append(data)
         try:

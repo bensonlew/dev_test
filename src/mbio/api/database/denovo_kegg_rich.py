@@ -53,10 +53,10 @@ class DenovoKeggRich(Base):
                         'term': line[0],
                         'database': line[1],
                         'id': line[2],
-                        'study_number': line[3],
-                        'backgroud_number': line[4],
-                        'pvalue': line[5],
-                        'corrected_pvalue': line[6],
+                        'study_number': int(line[3]),
+                        'backgroud_number': int(line[4]),
+                        'pvalue': round(float(line[5]), 4),
+                        'corrected_pvalue': round(float(line[6]), 4),
                         'gene_lists': line[7],
                         'hyperlink': line[8]
                     }

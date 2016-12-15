@@ -6,6 +6,7 @@ import datetime
 from bson.son import SON
 from bson.objectid import ObjectId
 import types
+import gridfs
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 
@@ -20,6 +21,7 @@ class DenovoAnnotation(Base):
         """
         level_id:分类水平，为列表,范围：[1,2,3,4,5,6,7,8]，分别对应域界门纲目科属种
         level：go层级水平，为列表，范围：[2,3,4]
+        anno_stat_dir: 无参工作流中annotation输出目录
         """
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
@@ -69,17 +71,21 @@ class DenovoAnnotation(Base):
             go_files = os.listdir(anno_stat_dir + '/anno_stat/go_stat/') + os.listdir(anno_stat_dir + '/go')
             for i in go_files:
                 if re.search(r'^gene.*level\.xls$', i):
-                    level = i.split('level.xls')[-1]
+                    level = int(i.split('level.xls')[0][-1])
                     self.add_annotation_go_graph(annotation_id=annotation_id, level=level, level_path=anno_stat_dir + '/anno_stat/go_stat/' + i, query_type='gene')
                 if re.search(r'^go.level\.xls$', i):
-                    level = i.split('level.xls')[-1]
+                    level = int(i.split('level.xls')[0][-1])
                     self.add_annotation_go_graph(annotation_id=annotation_id, level=level, level_path=anno_stat_dir + '/go/' + i, query_type='transcript')
             self.add_annotation_cog_detail(annotation_id=annotation_id, cog_path=anno_stat_dir + '/cog/cog_summary.xls', query_type='transcript')
             self.add_annotation_cog_detail(annotation_id=annotation_id, cog_path=anno_stat_dir + '/anno_stat/cog_stat/gene_cog_summary.xls', query_type='gene')
             self.add_annotation_kegg_detail(annotation_id=annotation_id, kegg_path=anno_stat_dir + '/kegg/kegg_layer.xls', gene_kegg_path=anno_stat_dir + '/anno_stat/kegg_stat/gene_kegg_layer.xls')
             self.add_annotation_query(annotation_id=annotation_id, query_path=anno_stat_dir + '/anno_stat/all_annotation.xls')
             venn_dir = anno_stat_dir + '/anno_stat/venn/'
-            self.add_venn(venn_dir=venn_dir, anno_id=annotation_id) 
+            self.add_venn(venn_dir=venn_dir, anno_id=annotation_id)
+            self.add_annotation_kegg_pathway(anno_id=annotation_id, pathway_path=anno_stat_dir + '/anno_stat/kegg_stat/gene_pathway_table.xls', png_dir=anno_stat_dir + '/anno_stat/kegg_stat/gene_pathway/', seq_type='gene')
+            self.add_annotation_kegg_pathway(anno_id=annotation_id, pathway_path=anno_stat_dir + '/kegg/pathway_table.xls', png_dir=anno_stat_dir + '/kegg/pathways/', seq_type='transcript')
+            self.add_annotation_kegg_table(anno_id=annotation_id, kegg_table_path=anno_stat_dir + '/anno_stat/kegg_stat/gene_kegg_table.xls', seq_type='gene')
+            self.add_annotation_kegg_table(anno_id=annotation_id, kegg_table_path=anno_stat_dir + '/kegg/kegg_table.xls', seq_type='transcript')
         return annotation_id
 
     @report_check
@@ -99,10 +105,10 @@ class DenovoAnnotation(Base):
                 data = [
                     ('annotation_id', annotation_id),
                     ('type', line[0]),
-                    ('transcript', line[1]),
-                    ('gene', line[2]),
-                    ('transcript_percent', line[3]),
-                    ('gene_percent', line[4]),
+                    ('transcript', int(line[1])),
+                    ('gene', int(line[2])),
+                    ('transcript_percent', round(float(line[3]), 4)),
+                    ('gene_percent', round(float(line[4]), 4)),
                 ]
                 data = SON(data)
                 data_list.append(data)
@@ -134,10 +140,10 @@ class DenovoAnnotation(Base):
                     ('annotation_id', annotation_id),
                     ('level_id', level_id),
                     ('taxon', line[0]),
-                    ('transcripts', line[1]),
-                    ('genes', line[2]),
-                    ('transcripts_percent', line[3]),
-                    ('genes_percent', line[4]),
+                    ('transcripts', int(line[1])),
+                    ('genes', int(line[2])),
+                    ('transcripts_percent', round(float(line[3]), 4)),
+                    ('genes_percent', round(float(line[4]), 4)),
                 ]
                 data = SON(data)
                 data_list.append(data)
@@ -167,11 +173,11 @@ class DenovoAnnotation(Base):
             lines2 = f2.readlines()
             for line1 in lines1[1:]:
                 line1 = line1.strip().split('\t')
-                evalue = {"key": line1[0], "value": line1[1]}
+                evalue = {"key": line1[0], "value": int(line1[1])}
                 evalue_list.append(evalue)
             for line2 in lines2[1:]:
                 line2 = line2.strip().split('\t')
-                similar = {"key": line2[0], "value": line2[1]}
+                similar = {"key": line2[0], "value": int(line2[1])}
                 similar_list.append(similar)
         data = [
             ('annotation_id', annotation_id),
@@ -186,9 +192,9 @@ class DenovoAnnotation(Base):
             collection = self.db['sg_denovo_annotation_pie']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入nr库注释作图信息evalue,similar：%s、%s出错!" % (value_path, similar_path, e))
+            self.bind_object.logger.error("导入nr库注释作图信息evalue,similar：%s、%s出错!" % (evalue_path, similar_path, e))
         else:
-            self.bind_object.logger.info("导入nr库注释作图信息evalue,similar：%s、%s成功!" % (value_path, similar_path))
+            self.bind_object.logger.info("导入nr库注释作图信息evalue,similar：%s、%s成功!" % (evalue_path, similar_path))
 
     @report_check
     def add_annotation_go_detail(self, annotation_id, go_path, query_type=None):
@@ -207,13 +213,14 @@ class DenovoAnnotation(Base):
                 line = line.strip().split('\t')
                 level2 = line[2] + '(' + line[1] + ')'
                 level3 = line[4] + '(' + line[3] + ')'
+                level4 = line[6] + '(' + line[5] + ')'
                 data = [
                     ('annotation_id', annotation_id),
                     ('level1', line[0]),
                     ('level2', level2),
                     ('level3', level3),
-                    ('level4', line[5]),
-                    ('seq_number', line[6]),
+                    ('level4', level4),
+                    ('seq_number', int(line[7])),
                 ]
                 if query_type:
                     data.append(('type', query_type))
@@ -246,15 +253,15 @@ class DenovoAnnotation(Base):
                     ('level', level),
                     ('go_name', line[1]),
                     ('parent_name', line[0]),
-                    ('num', line[3]),
-                    ('rate', line[4]),
+                    ('num', int(line[3])),
+                    ('rate', round(float(line[4]), 4)),
                     ('go_id', line[2]),
                     ('sequence', line[5]),
                 ]
                 if query_type:
                     data.append(('type', query_type))
                 data = SON(data)
-                data_list.append(data) 
+                data_list.append(data)
         try:
             collection = self.db['sg_denovo_annotation_go_graph']
             collection.insert_many(data_list)
@@ -262,10 +269,11 @@ class DenovoAnnotation(Base):
             self.bind_object.logger.error("导入go注释作图信息：%s出错!" % (level_path, e))
         else:
             self.bind_object.logger.info("导入go注释作图信息：%s成功!" % (level_path))
+
     @report_check
     def add_gos_list(self, annotation_id, gos_path, query_type=None):
-        if not isinstance(annotation_id,ObjectId):
-            if isinstance(annotation, types.StringTypes):
+        if not isinstance(annotation_id, ObjectId):
+            if isinstance(annotation_id, types.StringTypes):
                 annotation_id = ObjectId(annotation_id)
             else:
                 raise Exception('annotation_id须为ObjectId对象或其他对应的字符串！')
@@ -275,11 +283,11 @@ class DenovoAnnotation(Base):
         with open(gos_path, 'r') as f:
             lines = f.readlines()
             for line in lines:
-                line = line.strip().split('\t')                
+                line = line.strip('\n').split('\t')
                 data = [
                     ('annotation_id', annotation_id),
                     ('gene_id', line[0]),
-                    ('go_id', line[1]),                  
+                    ('go_id', line[1]),
                 ]
                 if query_type:
                     data.append(('type', query_type))
@@ -289,10 +297,10 @@ class DenovoAnnotation(Base):
                 collection = self._db_name['sg_denovo_annotation_gos_list']
                 collection.insert_many(data_list)
             except Exception, e:
-                self.bind_object.logger.error("导入cog注释信息：%s出错!" % (gos_path, e))
-          #  else:
-           #     self.bind_object.logger.info("导入cog注释信息：%s成功!" % (gos_path))
-           
+                self.bind_object.logger.error("导入gos_list注释信息：%s出错:%s" % (gos_path, e))
+            else:
+                self.bind_object.logger.info("导入gos_list注释信息：%s成功!" % (gos_path))
+
     @report_check
     def add_annotation_cog_detail(self, annotation_id, cog_path, query_type=None):
         '''
@@ -313,8 +321,8 @@ class DenovoAnnotation(Base):
                 data = [
                     ('annotation_id', annotation_id),
                     ('functional_categories', line[1]),
-                    ('cog', line[2]),
-                    ('nog', line[3]),
+                    ('cog', int(line[2])),
+                    ('nog', int(line[3])),
                     ('parent_name', line[0]),
                 ]
                 if query_type:
@@ -357,8 +365,8 @@ class DenovoAnnotation(Base):
                         data = [
                             ('annotation_id', annotation_id),
                             ('catergory', lines1[i][1]),
-                            ('transcripts_num', lines1[i][2]),
-                            ('genes_num', lines2[i][2]),
+                            ('transcripts_num', int(lines1[i][2])),
+                            ('genes_num', int(lines2[i][2])),
                         ]
                         data = SON(data)
                         data_list.append(data)
@@ -449,7 +457,7 @@ class DenovoAnnotation(Base):
         collection = self.db['sg_denovo_blast']
         blast_id = collection.insert_one(insert_data).inserted_id
         if blast_path:
-            self.add_blast_table_detail(blast_id, blast_path, gene_list) 
+            self.add_blast_table_detail(blast_id, blast_path, gene_list)
         return blast_id
 
     @report_check
@@ -533,6 +541,64 @@ class DenovoAnnotation(Base):
                 data['type'] = 'gene'
             collection = self.db['sg_denovo_annotation_venn']
             collection.insert_one(data)
+
+    def add_annotation_kegg_pathway(self, anno_id, pathway_path, png_dir, seq_type=None):
+        if not isinstance(anno_id, ObjectId):
+            if isinstance(anno_id, types.StringTypes):
+                anno_id = ObjectId(anno_id)
+            else:
+                raise Exception('anno_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(pathway_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(pathway_path))
+        if not os.path.exists(png_dir):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(png_dir))
+        data_list = []
+        with open(pathway_path, 'rb') as r:
+            r.readline()
+            for line in r:
+                line = line.strip('\n').split('\t')
+                fs = gridfs.GridFS(self.db)
+                pid = re.sub('path:', '', line[0])
+                pngid = fs.put(open(png_dir + '/' + pid + '.pdf', 'rb'))
+                insert_data = {
+                    'annotation_id': anno_id,
+                    'pathway_id': line[0],
+                    'pathway_definition': line[1],
+                    'number_of_seqs': int(line[2]),
+                    'gene_list': line[3],
+                    'pathway_png': pngid,
+                    'type': seq_type,
+                }
+                data_list.append(insert_data)
+        collection = self.db['sg_denovo_annotation_kegg_pathway']
+        collection.insert_many(data_list)
+
+    def add_annotation_kegg_table(self, anno_id, kegg_table_path, seq_type=None):
+        if not isinstance(anno_id, ObjectId):
+            if isinstance(anno_id, types.StringTypes):
+                anno_id = ObjectId(anno_id)
+            else:
+                raise Exception('anno_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(kegg_table_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(kegg_table_path))
+        with open(kegg_table_path, 'rb') as r:
+            data_list = []
+            r.readline()
+            for line in r:
+                line = line.strip('\n').strip('\t')
+                insert_data = {
+                    'annotation_id': anno_id,
+                    'query_id': line[0],
+                    'ko_id': line[1],
+                    'ko_name': line[2],
+                    'hyperlink': line[3],
+                    'paths': line[4],
+                    'type': seq_type,
+                }
+                data_list.append(insert_data)
+        collection = self.db['sg_denovo_annotation_kegg_table']
+        collection.insert_many(data_list)
+
 
 if __name__ == '__main__':  # for test
     a = DenovoAnnotation(bind_object='aaaa')

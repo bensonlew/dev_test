@@ -24,6 +24,8 @@ class DenovoBaseFastWorkflow(Workflow):
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
+            {"name": "qc_quality", "type": "int", "default": 30},  # 质量剪切中保留的最小质量值
+            {"name": "qc_length", "type": "int", "default": 50},   # 质量剪切中保留的最短序列长度
             {"name": "search_pfam", "type": "bool", "default": True},  # orf 是否比对Pfam数据库
             {"name": "primer", "type": "bool", "default": True},  # 是否设计SSR引物
             {"name": "kmer_size", "type": "int", "default": 25},
@@ -81,6 +83,10 @@ class DenovoBaseFastWorkflow(Workflow):
             raise OptionError('必须设置测序类型：PE OR SE')
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError('测序类型不在所给范围内')
+        if self.option('qc_quality') > 40 or self.option('diff_ci') < -15:
+            raise OptionError('qc_quality不在所给范围内[-15,40]')
+        if self.option('qc_length') > 150 or self.option('diff_ci') <= 0:
+            raise OptionError('qc_length不在所给范围内(0,150]')
         if self.option('diff_ci') > 1 or self.option('diff_ci') < 0:
             raise OptionError('显著性水平不在所给范围内[0,1]')
         if self.option("fq_type") == 'SE' and self.option("SS_lib_type") not in ['F', 'R', 'none']:
@@ -137,7 +143,9 @@ class DenovoBaseFastWorkflow(Workflow):
     def run_qc(self):
         self.qc.set_options({
             'fastq_dir': self.option('fastq_dir'),
-            'fq_type': self.option('fq_type')
+            'fq_type': self.option('fq_type'),
+            'quality_q': self.option('qc_quality'),
+            'length_q': self.option('qc_length')
         })
         self.qc.on('end', self.set_output, 'qc')
         self.qc.on('start', self.set_step, {'start': self.step.qcstat})
@@ -672,23 +680,6 @@ class DenovoBaseFastWorkflow(Workflow):
                     api_clust.add_cluster_detail(clust_id, sub, clust_path + f)
             # update sg_status
             self.update_status_api.add_denovo_status(table_id=str(clust_id), type_name='sg_denovo_cluster')
-            # set network
-            net_path = os.path.join(self.output_dir + '/Diff_express/network/')
-            net_files = os.listdir(net_path)
-            net_param = {
-                # diff_fpkm: ,
-                'softpower': 9,
-                'similar': 0.75,
-            }
-            api_network = self.api.denovo_network
-            net_id = api_network.add_network(net_param, self.diff_gene_id, net_path + 'softPower.pdf', net_path + 'ModuleTree.pdf')
-            api_network.add_network_detail(net_id, net_path + 'all_nodes.txt', net_path + 'all_edges.txt')
-            for f in net_files:
-                if re.search(r'^CytoscapeInput-edges-', f):
-                    color = f.split('-edges-')[-1].split('.')[0]
-                    api_network.add_network_module(net_id, net_path + f, color)
-            # update sg_status
-            self.update_status_api.add_denovo_status(table_id=str(net_id), type_name='sg_denovo_network')
             # set go rich
             go_rich_api = self.api.denovo_go_enrich
             go_rich_path = os.path.join(self.output_dir + '/Diff_express/go_rich/')
@@ -777,7 +768,7 @@ class DenovoBaseFastWorkflow(Workflow):
             self.on_rely([self.bwa, self.orf], self.run_snp)
             self.final_tools.append(self.snp)
         if self.option('exp_analysis'):
-            if ('go_rich' or 'kegg_rich' or 'go_regulate' or 'kegg_regulate') in self.option('exp_analysis'):
+            if 'go_rich' or 'kegg_rich' or 'go_regulate' or 'kegg_regulate' in self.option('exp_analysis'):
                 self.on_rely([self.exp_stat, self.annotation], self.run_exp_diff)
             else:
                 self.exp_stat.on('end', self.run_exp_diff)

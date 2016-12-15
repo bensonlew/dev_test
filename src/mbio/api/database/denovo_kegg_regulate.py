@@ -54,8 +54,8 @@ class DenovoKeggRegulate(Base):
                     'kegg_regulate_id': regulate_id,
                     'pathway_id': line[0],
                     'ko_ids': line[1],
-                    'up_numbers': line[2],
-                    'down_numbers': line[3],
+                    'up_numbers': int(line[2]),
+                    'down_numbers': int(line[3]),
                     'up_genes': line[4],
                     'down_genes': line[5],
                 }

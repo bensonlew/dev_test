@@ -12,7 +12,8 @@ from mainapp.libs.jsonencode import CJsonEncoder
 import xml.etree.ElementTree as ET
 from mainapp.config.db import get_use_api_clients, get_api_type, get_mongo_client
 import datetime
-
+import traceback
+import re
 
 class Pipeline(object):
     def __init__(self):
@@ -35,6 +36,33 @@ class Pipeline(object):
             json_obj = self.sanger_submit()
             json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
             json_obj["IMPORT_REPORT_AFTER_END"] = True
+            """
+            样本检测新
+            """
+            try:
+                if json_obj["name"] == "meta.meta_base":
+                    if json_obj["options"]["file_list"] != "null":
+                        self.db_name = Config().MONGODB
+                        self.db = self.client[self.db_name]
+                        collection = self.db["sg_seq_sample"]
+                        result = collection.find_one({"task_id": json_obj["id"]})
+                        if result:
+                            with open("/mnt/ilustre/users/sanger-dev/sg-users/shijin/log","w") as w:
+                                w.write(str(result))
+                                json_obj["options"]["workdir_sample"] = str(result["workdir_sample"])
+                        else:
+                            task_id = re.sub("tsg","tsanger",json_obj["id"])
+                            result = collection.find_one({"task_id": task_id})
+                            if result:
+                                with open("/mnt/ilustre/users/sanger-dev/sg-users/shijin/log","w") as w:
+                                    w.write(str(result["workdir_sample"]))
+                                    json_obj["options"]["workdir_sample"] = str(result["workdir_sample"])
+                            else:
+                                with open("/mnt/ilustre/users/sanger-dev/sg-users/shijin/log","w") as w:
+                                    w.write(str(json_obj["id"]))
+            except:
+                with open("/mnt/ilustre/users/sanger-dev/sg-users/shijin/log","w") as w:
+                    traceback.print_exc(file=w)
         else:
             json_obj = self.json_submit()
         json_obj["USE_DB"] = True   # 使用数据库
@@ -73,7 +101,7 @@ class Pipeline(object):
                 # add by qiuping 20162019,set the database with diff base
                 if json_obj["name"] == 'meta.meta_base':
                     self.db_name = Config().MONGODB
-                if json_obj["name"] == 'denovo.denovo_base':
+                if json_obj["name"] == 'denovo_rna.denovo_base':
                     self.db_name = Config().MONGODB + '_rna'
                     task_info['params'] = json_obj['options']
                 # end by qiuping
