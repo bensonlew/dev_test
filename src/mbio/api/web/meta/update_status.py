@@ -113,4 +113,3 @@ class UpdateStatus(Log):
                         insert_data['submit_location'] = my_dict['submit_location']
                 collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
             self._mongo_client.close()
-
