@@ -10,6 +10,7 @@ from gevent.subprocess import Popen
 from biocluster.api.file.remote import RemoteFileManager
 import random
 import datetime
+from biocluster.config import Config
 
 
 class DownloadWebPic(object):
@@ -60,7 +61,8 @@ class DownloadWebPic(object):
             w.write(svg_data)
         file_name = random_file_name() + '.' + web.input().file_type
         temp_pic = temp_dir + '/' + file_name
-        cmd = 'cairosvg {} -f {} -o {} -s {}'.format(temp_svg, web.input().file_type, temp_pic, int(web.input().scale))
+        cmd = Config().SOFTWARE_DIR + '/program/Python35/bin/'
+        cmd += 'cairosvg {} -f {} -o {} -s {}'.format(temp_svg, web.input().file_type, temp_pic, int(web.input().scale))
         pro = Popen(cmd, shell=True)
         pro.wait()
         if pro.returncode == 0:
