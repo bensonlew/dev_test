@@ -30,15 +30,17 @@ class PtProcessWorkflow(Workflow):
 			{"name": "ref_point", "type": "string"},  # 参考位点
 			{"name": "dedup_num", "type": "int", "default": 50},  # 查重样本数
 
-			{"name": "second_sample_f", "type": "string", "default": False},  # 是否重送样或二次上机
-			{"name": "second_sample_m", "type": "string","default": False},  # 是否重送样或二次上机
-			{"name": "second_sample_s", "type": "string", "default": False},  # 是否重送样或二次上机
+			{"name": "second_sample_f", "type": "bool", "default": False},  # 是否重送样或二次上机
+			{"name": "second_sample_m", "type": "bool","default": False},  # 是否重送样或二次上机
+			{"name": "second_sample_s", "type": "bool", "default": False},  # 是否重送样或二次上机
 
 		]
 		self.add_option(options)
 		self.pt_analysis = self.add_module("paternity_test.pt_analysis")
 		self.result_info = self.add_tool("paternity_test.result_info")
 		self.tools = []
+		self.tools_rename = []
+		self.tools_rename_analysis = []
 		self.tools_dedup =[]
 		self.tools_dedup_f = []
 		self.set_options(self._sheet.options())
@@ -107,18 +109,13 @@ class PtProcessWorkflow(Workflow):
 				self.logger.info('{}样本已存在于数据库'.format(i))
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2tab')
-		if len(self.tools) > 1:
-			self.on_rely(self.tools, self.pt_analysis_run)
-		elif len(self.tools) == 1:
-			self.tools[0].on('end', self.pt_analysis_run)
 		for tool in self.tools:
 			# tool.on('end', self.pt_analysis_run)
 			tool.run()
 
-
-	def pt_analysis_run(self, dad, mom ,preg):
-		if self.option('')
+	def pt_analysis_run(self):
 		api_read_tab = self.api.tab_file
+		self.pt_analysis = self.add_module("paternity_test.pt_analysis")
 		self.pt_analysis.set_options({
 			"dad_tab": api_read_tab.export_tab_file(self.option('dad_id'), self.output_dir),  # 数据库的tab文件
 			"mom_tab": api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir),
@@ -127,24 +124,84 @@ class PtProcessWorkflow(Workflow):
 			"err_min": self.option("err_min")
 		})
 		self.pt_analysis.on('end', self.set_output, 'pt_analysis')
+		self.pt_analysis.on('end', self.result_info_run)
 		self.pt_analysis.on('start', self.set_step, {'start': self.step.pt_analysis})
 		self.pt_analysis.on('end', self.set_step, {'end': self.step.pt_analysis})
 		self.pt_analysis.run()
 
-	def rename(self):
+	def rename_run(self):
 		api_read_tab = self.api.tab_file
+		dad_id = api_read_tab.export_tab_file(self.option('dad_id'), self.output_dir)
+		mom_id = api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir)
+		preg_id = api_read_tab.export_tab_file(self.option('preg_id'), self.output_dir)
 		if self.option('second_sample_f'):
-			dad_id = api_read_tab.export_tab_file(self.option('dad_id'), self.output_dir)
-			id_modified_f = self.add_tools("paternity_test.id_modified")
-			self.id_modified.set_options({
-				"sample_id": dad_id,
-				"fastq_path": self.output_dir
+			id_modified_f = self.add_tool("paternity_test.id_modified")
+			self.step.add_steps('id_modified_f')
+			id_modified_f.set_options({
+				"sample_id": dad_id
 			})
-			id_modified_f.on('end', self.set_output, 'id_modified')
-			id_modified_f.on('start', self.set_step, {'start': self.step.pt_analysis})
-			id_modified_f.on('end', self.set_step, {'end': self.step.pt_analysis})
-			id_modified_f.run()
-		if
+			# id_modified_f.on('end', self.set_output, 'id_modified_f')
+			id_modified_f.on('start', self.set_step, {'start': self.step.id_modified_f})
+			id_modified_f.on('end', self.set_step, {'end': self.step.id_modified_f})
+			self.tools_rename.append(id_modified_f)
+		if self.option('second_sample_m'):
+			id_modified_m = self.add_tool("paternity_test.id_modified")
+			self.step.add_steps('id_modified_m')
+			id_modified_m.set_options({
+				"sample_id": mom_id
+			})
+			# id_modified_m.on('end', self.set_output, 'id_modified_m')
+			id_modified_m.on('start', self.set_step, {'start': self.step.id_modified_m})
+			id_modified_m.on('end', self.set_step, {'end': self.step.id_modified_m})
+			self.tools_rename.append(id_modified_m)
+		if self.option('second_sample_s'):
+			id_modified_s = self.add_tool("paternity_test.id_modified")
+			self.step.add_steps('id_modified_s')
+			id_modified_s.set_options({
+				"sample_id": preg_id
+			})
+			# id_modified_s.on('end', self.set_output, 'id_modified_s')
+			id_modified_s.on('start', self.set_step, {'start': self.step.id_modified_s})
+			id_modified_s.on('end', self.set_step, {'end': self.step.id_modified_s})
+			self.tools_rename.append(id_modified_s)
+
+		for i in range(len(self.tools_rename)):
+			self.tools_rename[i].on('end', self.set_output, 'id_modified')
+		if len(self.tools_rename) > 1:
+			self.on_rely(self.tools_rename, self.rename_analysis_run)
+		elif len(self.tools_rename) == 1:
+			self.tools_rename[0].on('end', self.rename_analysis_run)
+		for tool in self.tools_rename:
+			tool.run()
+
+	def rename_analysis_run(self):
+		api_read_tab = self.api.tab_file
+		dad_tab = api_read_tab.export_tab_file(self.option('dad_id'), self.output_dir)
+		mom_tab = api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir)
+		preg_tab = api_read_tab.export_tab_file(self.option('preg_id'), self.output_dir)
+		if self.option('second_sample_f'):
+			dad_tab = self.output_dir + '/' + self.option('dad_id') + "_rename.tab"
+		if self.option('second_sample_m'):
+			mom_tab = self.output_dir + '/' + self.option('mom_id') + "_rename.tab"
+		if self.option('second_sample_s'):
+			preg_tab = self.output_dir + '/' + self.option('preg_id') + "_rename.tab"
+
+		pt_analysis_rename = self.add_module("paternity_test.pt_analysis")
+		self.step.add_steps('pt_analysis_rename')
+		pt_analysis_rename.set_options({
+			"dad_tab": dad_tab,  # 数据库的tab文件
+			"mom_tab": mom_tab,
+			"preg_tab": preg_tab,
+			"ref_point": self.option("ref_point"),
+			"err_min": self.option("err_min")
+		})
+		pt_analysis_rename.on('end', self.set_output, 'pt_analysis_rename')
+		pt_analysis_rename.on('end',self.result_info_run)
+		pt_analysis_rename.on('start', self.set_step, {'start': self.step.pt_analysis_rename})
+		pt_analysis_rename.on('end', self.set_step, {'end': self.step.pt_analysis_rename})
+		pt_analysis_rename.run()
+
+
 
 	def result_info_run(self):
 		self.result_info.set_options({
@@ -265,7 +322,7 @@ class PtProcessWorkflow(Workflow):
 					if not api_read_tab.tab_exist(tab_name):
 						api.add_sg_pt_tab_detail(tab_path)
 
-		if event['data'] == "pt_analysis":
+		if event['data'] == "pt_analysis" or event['data'] == "pt_analysis_rename":
 			self.linkdir(obj.output_dir +'/family_analysis', self.output_dir)
 			self.linkdir(obj.output_dir + '/family_merge', self.output_dir)
 			api_pt = self.api.sg_paternity_test
@@ -298,16 +355,45 @@ class PtProcessWorkflow(Workflow):
 				if re.search(r'.*family_analysis\.txt$', f):
 					api_pt.add_analysis_tab(self.output_dir + '/' + f)
 
+		if event['data'] == "id_modified":
+			self.linkdir(obj.output_dir, self.output_dir)
+
 	def run(self):
-		self.fastq2tab_run()
-		if self.tools:
-			self.pt_analysis.on('end', self.result_info_run)
-			self.result_info.on('end', self.dedup_run)
+		# self.fastq2tab_run()
+		# if self.tools:
+		# 	self.pt_analysis.on('end', self.result_info_run)
+		# 	self.result_info.on('end', self.dedup_run)
+		# else:
+		# 	self.pt_analysis.on('end', self.result_info_run)
+		# 	self.result_info.on('end', self.dedup_run)
+		# 	self.pt_analysis_run()
+		#
+		# if self.option('second_sample_f'):
+		# 	self.rename_run()
+		if self.option('second_sample_f') or self.option('second_sample_m') or self.option('second_sample_s'):
+			self.fastq2tab_run()
+			if self.tools:
+				if len(self.tools) > 1:
+					self.on_rely(self.tools, self.rename_run)
+				elif len(self.tools) == 1:
+					self.tools[0].on('end', self.rename_run)
+				self.result_info.on('end', self.dedup_run)
+			else:
+				self.result_info.on('end', self.dedup_run)
+				self.rename_run()
 		else:
-			self.pt_analysis.on('end', self.result_info_run)
-			self.result_info.on('end', self.dedup_run)
-			self.pt_analysis_run()
+			self.fastq2tab_run()
+			if self.tools:
+				if len(self.tools) > 1:
+					self.on_rely(self.tools, self.pt_analysis_run)
+				elif len(self.tools) == 1:
+					self.tools[0].on('end', self.pt_analysis_run)
+				self.result_info.on('end', self.dedup_run)
+			else:
+				self.result_info.on('end', self.dedup_run)
+				self.pt_analysis_run()
 		super(PtProcessWorkflow, self).run()
+
 
 
 	def end(self):
