@@ -30,9 +30,9 @@ class CorrNetworkAnalysisModule(Module):
         self.option('otutable').get_info()
         if self.option('otutable').prop['sample_num'] <= 2:
             raise OptionError('otu表的样本数目少于3，不可进行网络分析')
-        if self.option('grouptable').is_set:
-            if self.option('grouptable').prop['sample_number'] <= 2:
-                raise OptionError('分组表中的样本数目少于3，不可进行网络分析')
+        # if self.option('grouptable').is_set:
+        #     if self.option('grouptable').prop['sample_number'] <= 2:
+        #         raise OptionError('分组表中的样本数目少于3，不可进行网络分析')
         return True
 
     def set_step(self, event):

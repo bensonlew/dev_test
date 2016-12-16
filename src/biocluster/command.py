@@ -222,7 +222,8 @@ class Command(object):
         :return:
         """
         if self.cmd == self._last_run_cmd:
-            raise Exception(u"如需要重复运行命令，需要先通过set_cmd()方法修改命令参数，不能和原命令一样!")
+            self.tool.logger.info('重新运行了相同的命令')  # shenghe modified 20161215
+            # raise Exception(u"如需要重复运行命令，需要先通过set_cmd()方法修改命令参数，不能和原命令一样!")
         if self.has_run:
             if self.is_running:
                 self.kill()
