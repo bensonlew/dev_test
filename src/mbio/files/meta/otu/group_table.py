@@ -33,7 +33,7 @@ class GroupTableFile(File):
         is_empty = False
         with open(self.prop['path'], 'r') as f:
             sample = list()
-            line = f.readline().rstrip()  # 将rstrip("\r\n") 全部替换为rstrip() 
+            line = f.readline().rstrip()  # 将rstrip("\r\n") 全部替换为rstrip()
             line = re.split("\t", line)
             if line[1] == "##empty_group##":
                 is_empty = True
