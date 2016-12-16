@@ -25,61 +25,72 @@ class ClusterAnalysisWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.sort_samples = self.add_tool("meta.otu.sort_samples")
-        self.matrix = self.add_tool("meta.beta_diversity.distance_calc")
-        self.hcluster = self.add_tool('meta.beta_diversity.hcluster')
+        # self.matrix = self.add_tool("meta.beta_diversity.distance_calc") # 2016.12.1 zhouxuan
+        # self.hcluster = self.add_tool('meta.beta_diversity.hcluster')
         group_table_path = os.path.join(self.work_dir, "group_table.xls")
         self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table_path)
 
-    def check_options(self):
-        if self.option('method') not in ['average', 'single', 'complete', ""]:
-            raise OptionError('错误的层级聚类方式：%s' % self.option('method'))
+    # def check_options(self):  # 2016.12.1 zhouxuan
+    #     if self.option('method') not in ['average', 'single', 'complete', ""]:
+    #         raise OptionError('错误的层级聚类方式：%s' % self.option('method'))
 
     def run_sort_samples(self):
         self.sort_samples.set_options({
             "in_otu_table": self.option("in_otu_table"),
             "group_table": self.group_table_path
         })
-        if self.option("method") != "":
-            self.sort_samples.on("end", self.run_matrix)
-        else:
-            self.sort_samples.on("end", self.set_db)
+        # if self.option("method") != "":  # 2016.12.1 zhouxuan
+        #     self.sort_samples.on("end", self.run_matrix)
+        # else:
+        self.sort_samples.on("end", self.set_db)
+        self.output_dir = self.sort_samples.output_dir  # modify by zhouxuan 2016.11.23
         self.sort_samples.run()
 
-    def run_matrix(self):
-        trans_otu = os.path.join(self.work_dir, "otu.trans")
-        self.sort_samples.option("out_otu_table").transposition(trans_otu)
-        self.matrix.set_options({
-            "method": "bray_curtis",
-            "otutable": trans_otu
-        })
-        self.matrix.on('end', self.run_cluster)
-        self.matrix.run()
-
-    def run_cluster(self):
-        options = {
-            "dis_matrix": self.matrix.option('dis_matrix'),
-            "linkage": self.option("method")
-        }
-        self.hcluster.set_options(options)
-        self.hcluster.on('end', self.set_db)
-        self.hcluster.run()
+    # def run_matrix(self):  # 2016.12.1 zhouxuan
+    #     trans_otu = os.path.join(self.work_dir, "otu.trans")
+    #     self.sort_samples.option("out_otu_table").transposition(trans_otu)
+    #     self.matrix.set_options({
+    #         "method": "bray_curtis",
+    #         "otutable": trans_otu
+    #     })
+    #     self.matrix.on('end', self.run_cluster)
+    #     self.matrix.run()
+    #
+    # def run_cluster(self):
+    #     options = {
+    #         "dis_matrix": self.matrix.option('dis_matrix'),
+    #         "linkage": self.option("method")
+    #     }
+    #     self.hcluster.set_options(options)
+    #     self.hcluster.on('end', self.set_db)
+    #     self.hcluster.run()
 
     def set_db(self):
         self.logger.info("正在写入mongo数据库")
         newick_id = ""
-        myParams = json.loads(self.sheet.params)
-        if self.option("method") != "":
-            api_heat_cluster = self.api.heat_cluster
-            name = "heat_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            newick_id = api_heat_cluster.create_newick_table(self.sheet.params, self.option("method"), myParams["otu_id"], name)
-            self.hcluster.option("newicktree").get_info()
-            api_heat_cluster.update_newick(self.hcluster.option("newicktree").prop['path'], newick_id)
-            self.add_return_mongo_id("sg_newick_tree", newick_id, "", False)
+        # myParams = json.loads(self.sheet.params)  # 2016.12.1 zhouxuan
+        # if self.option("method") != "":
+        #     api_heat_cluster = self.api.heat_cluster
+        #     name = "heat_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        #     newick_id = api_heat_cluster.create_newick_table(self.sheet.params, self.option("method"), myParams["otu_id"], name)
+        #     self.hcluster.option("newicktree").get_info()
+        #     api_heat_cluster.update_newick(self.hcluster.option("newicktree").prop['path'], newick_id)
+        #     self.add_return_mongo_id("sg_newick_tree", newick_id, "", False)
         api_otu = self.api.cluster_analysis
         new_otu_id = api_otu.add_sg_otu(self.sheet.params, self.option("input_otu_id"), None, newick_id)
         api_otu.add_sg_otu_detail(self.sort_samples.option("out_otu_table").prop["path"], new_otu_id, self.option("input_otu_id"))
         self.add_return_mongo_id("sg_otu", new_otu_id)
         self.end()
+
+
+    def end(self):   # modify by zhouxuan 2016.11.23
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["out_otu.xls", "xls", "结果OTU表格"]
+        ])
+        super(ClusterAnalysisWorkflow, self).end()
+
 
     def run(self):
         self.run_sort_samples()
