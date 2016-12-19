@@ -46,14 +46,14 @@ class MetaBaseWorkflow(Workflow):
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
             {"name": "plsda_grouplab", "type": 'string', "default": ''},
-            {"name": "file_list", "type": "string", "default": "null"}, 
+            {"name": "file_list", "type": "string", "default": "null"},
             {"name": "raw_sequence", "type" : "infile", "format": "sequence.raw_sequence_txt"},
             {"name": "workdir_sample", "type":"string", "default":""}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.sample_extract = self.add_module("meta.sample_extract.sample_extract")
-        self.sample_check = self.add_tool("meta.sample_check")  
+        self.sample_check = self.add_tool("meta.sample_check")
         # self.info_abstract = self.add_tool("meta.lala.info_abstract")
         self.otu = self.add_tool("meta.otu.usearch_otu")
         self.phylo = self.add_tool("phylo.phylo_tree")
@@ -94,7 +94,7 @@ class MetaBaseWorkflow(Workflow):
                                                'maarjam081/AM', 'Human_HOMD',
                                                'silva128/16s_archaea', 'silva128/16s_bacteria',
                                                'silva128/18s_eukaryota', 'silva128/16s',
-                                               'greengenes135/16s', 'greengenes135/16s_archaea', 'greengenes135/16s_bacteria']:    
+                                               'greengenes135/16s', 'greengenes135/16s_archaea', 'greengenes135/16s_bacteria']:
                     # 王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA 2016.11.28增加数据库greengenes135
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
         return True
@@ -112,7 +112,7 @@ class MetaBaseWorkflow(Workflow):
         self.sample_extract.set_options(opts)
         self.sample_extract.on("start", self.set_step, {'start': self.step.sample_extract})
         self.sample_extract.run()
-        
+
     def run_samplecheck(self):  # 样本合并
         opts = {
             "file_sample_list": self.sample_extract.option("file_sample_list")
@@ -124,7 +124,7 @@ class MetaBaseWorkflow(Workflow):
         self.sample_check.set_options(opts)
         self.sample_check.on("end", self.set_output, "sample_check")
         self.sample_check.run()
-    
+
     def run_otu(self):
         opts = {
             "fasta":self.sample_check.option("otu_fasta"),
@@ -273,7 +273,7 @@ class MetaBaseWorkflow(Workflow):
             self.spname_spid = api_samples.get_spname_spid()
             """
             base_info_path = ""
-            
+
             with open(self.qc.output_dir + "/samples_info/samples_info.txt") as f:
                 f.readline()
                 for line in f:
@@ -462,6 +462,8 @@ class MetaBaseWorkflow(Workflow):
         #self.filecheck.on('end', self.run_qc)
         #self.sample_check.on('end',self.run_filecheck)
         #self.qc.on('end', self.run_otu)
+        task_info = self.api.api('task_info.task_info')
+        task_info.add_task_info()
         self.sample_extract.on("end",self.run_samplecheck)
         self.sample_check.on("end",self.run_otu)
         # self.info_abstract.on("end",self.run_otu)
@@ -474,7 +476,7 @@ class MetaBaseWorkflow(Workflow):
         #self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         self.run_sample_extract()
         super(MetaBaseWorkflow, self).run()
-        
+
 
     def send_files(self):
         repaths = [
