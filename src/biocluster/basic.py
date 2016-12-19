@@ -797,7 +797,7 @@ class StepMain(Step):
                         "task_id": workflow.sheet.id,
                         "stage_id": self.bind_obj.stage_id if self.bind_obj.stage_id else workflow.sheet.stage_id,
                         "created_ts": datetime.datetime.now(),
-                        "error": "%s" % self._error_info,
+                        "error": "%s" % str(self._error_info).replace("\'", " ").replace("\"", " "),
                         "status": self.stats,
                         "run_time": self.spend_time}}
 
