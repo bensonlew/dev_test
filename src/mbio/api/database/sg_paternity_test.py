@@ -5,10 +5,11 @@ from biocluster.api.database.base import Base, report_check
 import os
 from biocluster.config import Config
 from pymongo import MongoClient
+import gridfs
 
 class SgPaternityTest(Base):
 	'''
-	将前端需要调用的文件导入mongo数据库
+	将前端需要调用的结果文件导入mongo数据库，之结果保存的tsanger collection
 	'''
 	def __init__(self, bind_object):
 		super(SgPaternityTest, self).__init__(bind_object)
@@ -16,9 +17,13 @@ class SgPaternityTest(Base):
 		self.mongo_client = MongoClient(Config().MONGO_URI)
 		self.database = self.mongo_client['tsanger_paternity_test']
 
+	# @report_check
+	# def add_sg_pt_family(self):
+
+
 	@report_check
 	def add_sg_pt_family_detail(self,file_path):
-		self.bind_object.logger.info("开始导入tab表")
+		self.bind_object.logger.info("开始导入调试表")
 		sg_pt_family_detail = list()
 		with open(file_path, 'r') as f:
 			for line in f:
@@ -79,8 +84,77 @@ class SgPaternityTest(Base):
 				collection = self.database['sg_pt_family_detail']
 				collection.insert_many(sg_pt_family_detail)
 			except Exception as e:
-				self.bind_object.logger.error('导入tab表格出错：{}'.format(e))
+				self.bind_object.logger.error('导入调试表格出错：{}'.format(e))
 			else:
-				self.bind_object.logger.info("导入tab表格成功")
+				self.bind_object.logger.info("导入调试表格成功")
 
+	def add_pt_figure(self, output_dir):
+		self.bind_object.logger.info("图片开始导入数据库")
+		fs = gridfs.GridFS(self.database)
+		# fs = gridfs.GridFS(self.db['sg_tree_picture_file'])
+		family_fig = fs.put(open(output_dir + '/family.png', 'r'))
+		figure1 = fs.put(open(output_dir + '/fig1.png', 'r'))
+		figure2 = fs.put(open(output_dir + '/fig2.png', 'r'))
+		preg_percent = fs.put(open(output_dir + '/preg_percent.png', 'r'))
+		update_data = {
+			'family_fig': family_fig,
+			'figure1': figure1,
+			'figure2': figure2,
+			'preg_percent': preg_percent
+		}
+		collection = self.database["sg_pt_family_figure"]
+		collection.insert_one({'set': update_data})
 
+	def add_analysis_tab(self, file_path):
+		self.bind_object.logger.info("开始导入分析结果表")
+		sg_pt_family_detail = list()
+		with open(file_path, 'r') as f:
+			for line in f:
+				line = line.strip()
+				line = line.split('\t')
+				insert_data = {
+					"dad_id": line[0],
+					"test_pos_n": line[1],
+					"err_pos_n": line[2],
+					"err_rate": line[3],
+					"fq": line[4],
+					"dp": line[5],
+					"eff_rate": line[6],
+					"ineff_rate": line[7],
+					"result": line[8]
+				}
+				sg_pt_family_detail.append(insert_data)
+			try:
+				collection = self.database['sg_pt_family_detail']
+				collection.insert_many(sg_pt_family_detail)
+			except Exception as e:
+				self.bind_object.logger.error('导入分析结果表格出错：{}'.format(e))
+			else:
+				self.bind_object.logger.info("导入分析结果表格成功")
+
+	def add_info_detail(self, file_path):
+		self.bind_object.logger.info("开始导入信息分析表")
+		sg_pt_family_detail = list()
+		with open(file_path, 'r') as f:
+			for line in f:
+				line = line.strip()
+				line = line.split('\t')
+				insert_data = {
+					"dad_id": line[0],
+					"test_pos_n": line[1],
+					"err_pos_n": line[2],
+					"err_rate": line[3],
+					"fq": line[4],
+					"dp": line[5],
+					"eff_rate": line[6],
+					"ineff_rate": line[7],
+					"result": line[8]
+				}
+				sg_pt_family_detail.append(insert_data)
+			try:
+				collection = self.database['sg_pt_family_detail']
+				collection.insert_many(sg_pt_family_detail)
+			except Exception as e:
+				self.bind_object.logger.error('导入分析结果表格出错：{}'.format(e))
+			else:
+				self.bind_object.logger.info("导入分析结果表格成功")
