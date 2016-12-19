@@ -150,6 +150,22 @@ def export_fasta_path(data, option_name, dir_path, bind_obj=None):
     dir_path = gene_path
     return dir_path
 
+
+def export_kegg_table(data, option_name, dir_path, bind_obj=None):
+    kegg_path = os.path.join(dir_path, 'gene_kegg_table.xls')
+    bind_obj.logger.debug("正在导出参数%s的kegg_table文件，路径:%s" % (option_name, kegg_path))
+    with open(kegg_path, 'wb') as w:
+        w.write('#Query\tKO_ID(Gene id)\tKO_name(Gene name)\tHyperlink\tPaths\n')
+        task_id = bind_obj.sheet.id
+        anno_id = db['sg_denovo_annotation'].find_one({'task_id': task_id})['_id']
+        results = db['sg_denovo_annotation_kegg_table'].find({'$and': [{'annotation_id': anno_id}, {'type': 'gene'}]})
+        if not results:
+            raise Exception("生成kegg_table出错：annotation_id:{}在sg_denovo_annotation_kegg_table中未找到！".format(ObjectId(anno_id)))
+        for result in results:
+            w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
+    return kegg_path
+
+
 def go_enrich(data, option_name, dir_path, bind_obj=None):
     all_list = os.path.join(dir_path, "all_gene.list")
     diff_list = os.path.join(dir_path, "unigene.list")
@@ -230,4 +246,4 @@ def go_regulate(data, option_name, dir_path, bind_obj=None):
             sequence = result3['sequence']
             w.write(term_type + '\t' + term + '\t' + GO + '\t' + number + '\t' + percent + '\t' + sequence + '\n')
     paths = ','.join([diff_express, go2level])
-    return paths 
+    return paths

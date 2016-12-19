@@ -40,7 +40,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入比对结果统计信息出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入比对结果统计信息成功")
+            self.bind_object.logger.info("导入比对结果统计信息成功")
 
     @report_check
     def add_rpkm_table(self, file_path, name=None, params=None, detail=True):
@@ -89,7 +89,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入rpkm detail出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入rpkm detail成功")
+            self.bind_object.logger.info("导入rpkm detail成功")
 
     def add_rpkm_box(self, rpkm_file, rpkm_id=None):
         rpkm_plot = glob.glob("{}/*saturation.r".format(rpkm_file))
@@ -134,7 +134,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入rpkm箱线图数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入rpkm箱线图数据")
+            self.bind_object.logger.info("导入rpkm箱线图数据")
 
     @report_check
     def add_rpkm_curve(self, rpkm_file, rpkm_id=None):
@@ -187,7 +187,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入rpkm曲线数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入rpkm曲线数据成功")
+            self.bind_object.logger.info("导入rpkm曲线数据成功")
 
     @report_check
     def add_coverage_table(self, coverage, name=None, params=None, detail=True):
@@ -231,7 +231,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入rpkm曲线数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入rpkm曲线数据成功")
+            self.bind_object.logger.info("导入rpkm曲线数据成功")
 
     @report_check
     def add_duplication_table(self, dup, name=None, params=None, detail=True):
@@ -287,7 +287,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入冗余分析数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入冗余分析数据成功")
+            self.bind_object.logger.info("导入冗余分析数据成功")
 
     @report_check
     def add_correlation_table(self, correlation, name=None, params=None, express_id=None, detail=True, seq_type=None):
@@ -296,9 +296,9 @@ class DenovoRnaMapping(Base):
             correlation_tree = t.readline().strip()
             raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', correlation_tree)
             tree_list = [i[1] for i in raw_samp]
-        if not params:
-            params = dict()
-            params['express_id'] = str(express_id)
+        # if not params:
+        #     params = dict()
+        #     params['express_id'] = express_id
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
@@ -308,7 +308,7 @@ class DenovoRnaMapping(Base):
             "desc": "",
             "correlation_tree": correlation_tree,
             "tree_list": tree_list,
-            "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
+            # "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         collection = self.db["sg_denovo_correlation"]
@@ -360,7 +360,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入相关系数分析数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入相关系数分析数据成功")
+            self.bind_object.logger.info("导入相关系数分析数据成功")
 
     @report_check
     def add_pca(self, pca_file, correlation_id=None):
@@ -381,7 +381,7 @@ class DenovoRnaMapping(Base):
         except Exception, e:
             self.bind_object.logger.error("导入sg_denovo_correlation_pca数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入sg_denovo_correlation_pca数据成功")
+            self.bind_object.logger.info("导入sg_denovo_correlation_pca数据成功")
 
     @report_check
     def add_pca_rotation(self, input_file, db_name, correlation_id=None):
@@ -400,12 +400,12 @@ class DenovoRnaMapping(Base):
                     col_name: line[0]
                 }
                 for n, p in enumerate(pcas):
-                    data[p] = line[n+1]
+                    data[p] = line[n + 1]
                 data_list.append(data)
         try:
             collection = self.db[db_name]
-            result = collection.insert_many(data_list)
+            collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s数据出错:%s" % db_name, e)
         else:
-            self.bind_object.logger.error("导入%s数据成功" % db_name)
+            self.bind_object.logger.info("导入%s数据成功" % db_name)

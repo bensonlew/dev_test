@@ -17,7 +17,7 @@ class DenovoAnnotation(Base):
         self._db_name = Config().MONGODB + '_rna'
 
     @report_check
-    def add_annotation(self, name=None, params=None, anno_stat_dir=None):
+    def add_annotation(self, name=None, params=None, anno_stat_dir=None, databases='nr,kegg,cog'):
         """
         level_id:分类水平，为列表,范围：[1,2,3,4,5,6,7,8]，分别对应域界门纲目科属种
         level：go层级水平，为列表，范围：[2,3,4]
@@ -25,8 +25,6 @@ class DenovoAnnotation(Base):
         """
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        # task_id = 'test_qiu'
-        # project_sn = 'test_qiu'
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -41,51 +39,55 @@ class DenovoAnnotation(Base):
         if anno_stat_dir:
             all_stat_path = anno_stat_dir + '/anno_stat/all_annotation_statistics.xls'
             self.add_annotation_stat_detail(annotation_id=annotation_id, stat_path=all_stat_path)
-            taxon_path = anno_stat_dir + '/anno_stat/ncbi_taxonomy/'
-            for i in os.listdir(taxon_path):
-                if re.search(r'_d\.xls$', i):
-                    self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=1, taxon_path=taxon_path + i)
-                if re.search(r'_k\.xls$', i):
-                    self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=2, taxon_path=taxon_path + i)
-                if re.search(r'_p\.xls$', i):
-                    self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=3, taxon_path=taxon_path + i)
-                if re.search(r'_c\.xls$', i):
-                    self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=4, taxon_path=taxon_path + i)
-                if re.search(r'_o\.xls$', i):
-                    self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=5, taxon_path=taxon_path + i)
-                if re.search(r'_f\.xls$', i):
-                    self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=6, taxon_path=taxon_path + i)
-                if re.search(r'_g\.xls$', i):
-                    self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=7, taxon_path=taxon_path + i)
-                if re.search(r'_s\.xls$', i):
-                    # print taxon_path + i
-                    self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=8, taxon_path=taxon_path + i)
-            gene_nr_pie = anno_stat_dir + '/anno_stat/blast_nr_statistics/'
-            nr_pie = anno_stat_dir + '/blast_nr_statistics/'
-            self.add_annotation_pie(annotation_id=annotation_id, evalue_path=gene_nr_pie + 'gene_nr_evalue.xls', similar_path=gene_nr_pie + 'gene_nr_similar.xls', query_type='gene')
-            self.add_annotation_pie(annotation_id=annotation_id, evalue_path=nr_pie + 'nr_evalue.xls', similar_path=nr_pie + 'nr_similar.xls', query_type='transcript')
-            self.add_annotation_go_detail(annotation_id=annotation_id, go_path=anno_stat_dir + '/go/go1234level_statistics.xls', query_type='transcript')
-            self.add_annotation_go_detail(annotation_id=annotation_id, go_path=anno_stat_dir + '/anno_stat/go_stat/gene_go1234level_statistics.xls', query_type='gene')
-            self.add_gos_list(annotation_id=annotation_id, gos_path=anno_stat_dir + '/go/query_gos.list', query_type='transcript')
-            self.add_gos_list(annotation_id=annotation_id, gos_path=anno_stat_dir + '/anno_stat/go_stat/gene_gos.list', query_type='gene')
-            go_files = os.listdir(anno_stat_dir + '/anno_stat/go_stat/') + os.listdir(anno_stat_dir + '/go')
-            for i in go_files:
-                if re.search(r'^gene.*level\.xls$', i):
-                    level = int(i.split('level.xls')[0][-1])
-                    self.add_annotation_go_graph(annotation_id=annotation_id, level=level, level_path=anno_stat_dir + '/anno_stat/go_stat/' + i, query_type='gene')
-                if re.search(r'^go.level\.xls$', i):
-                    level = int(i.split('level.xls')[0][-1])
-                    self.add_annotation_go_graph(annotation_id=annotation_id, level=level, level_path=anno_stat_dir + '/go/' + i, query_type='transcript')
-            self.add_annotation_cog_detail(annotation_id=annotation_id, cog_path=anno_stat_dir + '/cog/cog_summary.xls', query_type='transcript')
-            self.add_annotation_cog_detail(annotation_id=annotation_id, cog_path=anno_stat_dir + '/anno_stat/cog_stat/gene_cog_summary.xls', query_type='gene')
-            self.add_annotation_kegg_detail(annotation_id=annotation_id, kegg_path=anno_stat_dir + '/kegg/kegg_layer.xls', gene_kegg_path=anno_stat_dir + '/anno_stat/kegg_stat/gene_kegg_layer.xls')
             self.add_annotation_query(annotation_id=annotation_id, query_path=anno_stat_dir + '/anno_stat/all_annotation.xls')
             venn_dir = anno_stat_dir + '/anno_stat/venn/'
             self.add_venn(venn_dir=venn_dir, anno_id=annotation_id)
-            self.add_annotation_kegg_pathway(anno_id=annotation_id, pathway_path=anno_stat_dir + '/anno_stat/kegg_stat/gene_pathway_table.xls', png_dir=anno_stat_dir + '/anno_stat/kegg_stat/gene_pathway/', seq_type='gene')
-            self.add_annotation_kegg_pathway(anno_id=annotation_id, pathway_path=anno_stat_dir + '/kegg/pathway_table.xls', png_dir=anno_stat_dir + '/kegg/pathways/', seq_type='transcript')
-            self.add_annotation_kegg_table(anno_id=annotation_id, kegg_table_path=anno_stat_dir + '/anno_stat/kegg_stat/gene_kegg_table.xls', seq_type='gene')
-            self.add_annotation_kegg_table(anno_id=annotation_id, kegg_table_path=anno_stat_dir + '/kegg/kegg_table.xls', seq_type='transcript')
+            if 'nr' in databases:
+                taxon_path = anno_stat_dir + '/anno_stat/ncbi_taxonomy/'
+                for i in os.listdir(taxon_path):
+                    if re.search(r'_d\.xls$', i):
+                        self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=1, taxon_path=taxon_path + i)
+                    if re.search(r'_k\.xls$', i):
+                        self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=2, taxon_path=taxon_path + i)
+                    if re.search(r'_p\.xls$', i):
+                        self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=3, taxon_path=taxon_path + i)
+                    if re.search(r'_c\.xls$', i):
+                        self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=4, taxon_path=taxon_path + i)
+                    if re.search(r'_o\.xls$', i):
+                        self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=5, taxon_path=taxon_path + i)
+                    if re.search(r'_f\.xls$', i):
+                        self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=6, taxon_path=taxon_path + i)
+                    if re.search(r'_g\.xls$', i):
+                        self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=7, taxon_path=taxon_path + i)
+                    if re.search(r'_s\.xls$', i):
+                        # print taxon_path + i
+                        self.add_annotation_nr_detail(annotation_id=annotation_id, level_id=8, taxon_path=taxon_path + i)
+                gene_nr_pie = anno_stat_dir + '/anno_stat/blast_nr_statistics/'
+                nr_pie = anno_stat_dir + '/blast_nr_statistics/'
+                self.add_annotation_pie(annotation_id=annotation_id, evalue_path=gene_nr_pie + 'gene_nr_evalue.xls', similar_path=gene_nr_pie + 'gene_nr_similar.xls', query_type='gene')
+                self.add_annotation_pie(annotation_id=annotation_id, evalue_path=nr_pie + 'nr_evalue.xls', similar_path=nr_pie + 'nr_similar.xls', query_type='transcript')
+            if 'go' in databases:
+                self.add_annotation_go_detail(annotation_id=annotation_id, go_path=anno_stat_dir + '/go/go1234level_statistics.xls', query_type='transcript')
+                self.add_annotation_go_detail(annotation_id=annotation_id, go_path=anno_stat_dir + '/anno_stat/go_stat/gene_go1234level_statistics.xls', query_type='gene')
+                self.add_gos_list(annotation_id=annotation_id, gos_path=anno_stat_dir + '/go/query_gos.list', query_type='transcript')
+                self.add_gos_list(annotation_id=annotation_id, gos_path=anno_stat_dir + '/anno_stat/go_stat/gene_gos.list', query_type='gene')
+                go_files = os.listdir(anno_stat_dir + '/anno_stat/go_stat/') + os.listdir(anno_stat_dir + '/go')
+                for i in go_files:
+                    if re.search(r'^gene.*level\.xls$', i):
+                        level = int(i.split('level.xls')[0][-1])
+                        self.add_annotation_go_graph(annotation_id=annotation_id, level=level, level_path=anno_stat_dir + '/anno_stat/go_stat/' + i, query_type='gene')
+                    if re.search(r'^go.level\.xls$', i):
+                        level = int(i.split('level.xls')[0][-1])
+                        self.add_annotation_go_graph(annotation_id=annotation_id, level=level, level_path=anno_stat_dir + '/go/' + i, query_type='transcript')
+            if 'cog' in databases:
+                self.add_annotation_cog_detail(annotation_id=annotation_id, cog_path=anno_stat_dir + '/cog/cog_summary.xls', query_type='transcript')
+                self.add_annotation_cog_detail(annotation_id=annotation_id, cog_path=anno_stat_dir + '/anno_stat/cog_stat/gene_cog_summary.xls', query_type='gene')
+            if 'kegg' in databases:
+                self.add_annotation_kegg_detail(annotation_id=annotation_id, kegg_path=anno_stat_dir + '/kegg/kegg_layer.xls', gene_kegg_path=anno_stat_dir + '/anno_stat/kegg_stat/gene_kegg_layer.xls')
+                self.add_annotation_kegg_pathway(anno_id=annotation_id, pathway_path=anno_stat_dir + '/anno_stat/kegg_stat/gene_pathway_table.xls', png_dir=anno_stat_dir + '/anno_stat/kegg_stat/gene_pathway/', seq_type='gene')
+                self.add_annotation_kegg_pathway(anno_id=annotation_id, pathway_path=anno_stat_dir + '/kegg/pathway_table.xls', png_dir=anno_stat_dir + '/kegg/pathways/', seq_type='transcript')
+                self.add_annotation_kegg_table(anno_id=annotation_id, kegg_table_path=anno_stat_dir + '/anno_stat/kegg_stat/gene_kegg_table.xls', seq_type='gene')
+                self.add_annotation_kegg_table(anno_id=annotation_id, kegg_table_path=anno_stat_dir + '/kegg/kegg_table.xls', seq_type='transcript')
         return annotation_id
 
     @report_check
@@ -585,7 +587,7 @@ class DenovoAnnotation(Base):
             data_list = []
             r.readline()
             for line in r:
-                line = line.strip('\n').strip('\t')
+                line = line.strip('\n').split('\t')
                 insert_data = {
                     'annotation_id': anno_id,
                     'query_id': line[0],
