@@ -47,7 +47,17 @@ class Pipeline(object):
                         collection = self.db["sg_seq_sample"]
                         id1 = re.sub("tsanger","sanger",json_obj["id"])
                         id2 = re.sub("tsanger","i-sanger",json_obj["id"])
+                        lst1 = id1.split("_")
+                        lst1.pop()
+                        lst1.pop()
+                        id1 = "_".join(lst1)
+                        lst2 = id2.split("_")
+                        lst2.pop()
+                        lst2.pop()
+                        id2 = "_".join(lst2)
                         result = collection.find_one({"task_id": id1})
+                        with open("/mnt/ilustre/users/sanger/biocluster/log/20161216/log","w") as w:
+                            w.write("str(result[\"workdir_sample\"])")
                         if result:
                             json_obj["options"]["workdir_sample"] = str(result["workdir_sample"])
                         else:

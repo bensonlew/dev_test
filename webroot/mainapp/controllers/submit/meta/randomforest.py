@@ -18,7 +18,7 @@ class Randomforest(object):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         #params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'ntree_id', 'top_number_id']
-        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id','ntree_id']
+        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id','ntree_id','task_type']
         success = []
         print data
         for param in params_name:
@@ -36,7 +36,7 @@ class Randomforest(object):
         my_param['level_id'] = int(data.level_id)
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['submit_location'] = data.submit_location
-        #my_param['task_type'] = data.task_type
+        my_param['task_type'] = data.task_type
         my_param['group_id'] = data.group_id
         my_param['ntree_id'] = int(data.ntree_id)
         #my_param['top_number_id'] = data.top_number_id

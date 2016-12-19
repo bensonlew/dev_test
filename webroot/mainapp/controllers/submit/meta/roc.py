@@ -17,7 +17,7 @@ class Roc(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'method_id', 'top_n_id']
+        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'method_type', 'top_n_id', 'task_type']
         success = []
         print data
         for param in params_name:
@@ -35,24 +35,24 @@ class Roc(object):
         my_param['level_id'] = int(data.level_id)
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['submit_location'] = data.submit_location
-        # my_param['task_type'] = data.task_type
+        my_param['task_type'] = data.task_type
         my_param['group_id'] = data.group_id
-        my_param['method_id'] = data.method_id
-        my_param['top_n_id'] = data.top_n_id
+        my_param['method_type'] = data.method_type
+        my_param['top_n_id'] = int(data.top_n_id)
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "otunetwork_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            name = "roc_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_info = Meta().get_task_info(otu_info["task_id"])
             if task_info:
                 member_id = task_info["member_id"]
             else:
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
-            roc_id = G().create_roc(params=params, group_id=data.group_id, top_n_id=data.top_n_id, method_id=data.method_id, from_otu_table=data.otu_id,name=name, level_id=data.level_id)
+            roc_id = G().create_roc(params=params, group_id=data.group_id, top_n_id=data.top_n_id, method_type=data.method_type, from_otu_table=data.otu_id,name=name, level_id=data.level_id)
             print "test"
             #print network_id
-            update_info = {str(roc_id): "sg_meta_roc"}
+            update_info = {str(roc_id): "sg_roc"}
             update_info = json.dumps(update_info)
             print update_info
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
@@ -78,7 +78,7 @@ class Roc(object):
                     "update_info": update_info,
                     "level":int(data.level_id),
                     "roc_id": str(roc_id),
-                    "method": str(data.method_id),
+                    "method": str(data.method_type),
                     "top_n": int(data.top_n_id)
                 }
             }
