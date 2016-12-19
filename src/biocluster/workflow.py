@@ -79,7 +79,7 @@ class Workflow(Basic):
     def __json_config(self):
         # if self.sheet.USE_DB is True:
         #     self.USE_DB = True
-        if self.sheet.UPDATE_STATUS_API is not None:
+        if self.sheet.STATUS_API is not None:
             self.UPDATE_STATUS_API = self.sheet.UPDATE_STATUS_API
         if self.sheet.IMPORT_REPORT_DATA is True:
             self.IMPORT_REPORT_DATA = True
