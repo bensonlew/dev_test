@@ -81,18 +81,19 @@ class ExpAnalysisModule(Module):
 
     # add by qindanhua 161201
     def correlation_run(self):
+        print self.merge_rsem.option('gene_fpkm').prop['path']
         self.gene_corr.set_options({
-                'fpkm': self.merge_rsem.output_dir + "/genes.TMM.fpkm.matrix"
-                })
+            'fpkm': self.merge_rsem.option('gene_fpkm').prop['path']
+        })
         self.tran_corr.set_options({
-                'fpkm': self.merge_rsem.output_dir + "/transcripts.TMM.fpkm.matrix"
-                })
+            'fpkm': self.merge_rsem.option('tran_fpkm').prop['path']
+        })
         self.tran_pca.set_options({
-                'otutable': self.merge_rsem.output_dir + "/transcripts.TMM.fpkm.matrix"
-                })
+            'otutable': self.merge_rsem.option('tran_fpkm').prop['path']
+        })
         self.gene_pca.set_options({
-                'otutable': self.merge_rsem.output_dir + "/genes.TMM.fpkm.matrix"
-                })
+            'otutable': self.merge_rsem.option('gene_fpkm').prop['path']
+        })
         self.gene_corr.on('end', self.set_step, {'end': self.step.gene_corr, 'start': self.step.gene_corr})
         self.tran_corr.on('end', self.set_step, {'end': self.step.tran_corr, 'start': self.step.tran_corr})
         self.tran_pca.on('end', self.set_step, {'end': self.step.tran_pca, 'start': self.step.tran_pca})
@@ -189,7 +190,6 @@ class ExpAnalysisModule(Module):
         self.diff_exp.set_options(tool_opt)
         self.diff_exp.on('end', self.set_output, 'diff_exp')
         self.diff_exp.on('end', self.set_step, {'end': self.step.diff_exp})
-        self.diff_exp.on('end', self.end)
         self.diff_exp.run()
 
     def linkdir(self, dirpath, dirname, output_dir):
@@ -260,7 +260,6 @@ class ExpAnalysisModule(Module):
         self.merge_rsem.on('end', self.diff_exp_run)
         self.merge_rsem.on('end', self.correlation_run)
         # change by qindanhua 改变end依赖对象
-        # self.diff_exp.on('end', self.end)
         self.on_rely(self.tool_lists, self.end)
 
     def end(self):

@@ -86,7 +86,7 @@ class DiffAnalysisModule(Module):
             raise OptionError("模块network相异值超出范围")
         if self.option('correct') not in ['BY', 'BH', 'None', 'QVALUE']:
             raise OptionError('多重检验校正的方法不在提供的范围内')
-        if ('cluster' or 'network' or 'kegg_rich' or 'go_rich' or 'kegg_regulate' or 'go_regulate') in self.option('analysis'):
+        if 'cluster' or 'network' or 'kegg_rich' or 'go_rich' or 'kegg_regulate' or 'go_regulate' in self.option('analysis'):
             pass
         else:
             raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))
@@ -285,7 +285,6 @@ class DiffAnalysisModule(Module):
             self.go_regulate_run()
         if 'kegg_regulate' in analysis:
             self.kegg_regulate_run()
-        print '.....tools:%s' % len(self.tools)
         if len(self.tools) != 1:
             self.on_rely(self.tools, self.end)
             print '......on rely end'
@@ -313,7 +312,6 @@ class DiffAnalysisModule(Module):
                 tool.run()
 
     def end(self):
-        print '.....start run end'
         repaths = [
             [".", "", "差异表达模块结果输出目录"],
             ["cluster", "", "cluster分析结果输出目录"],

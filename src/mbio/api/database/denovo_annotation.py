@@ -366,7 +366,8 @@ class DenovoAnnotation(Base):
                     if lines1[i][1] == lines2[i][1]:
                         data = [
                             ('annotation_id', annotation_id),
-                            ('catergory', lines1[i][1]),
+                            ('first_catergory', lines1[i][0]),
+                            ('second_catergory', lines1[i][1]),
                             ('transcripts_num', int(lines1[i][2])),
                             ('genes_num', int(lines2[i][2])),
                         ]

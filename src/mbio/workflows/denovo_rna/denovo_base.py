@@ -655,6 +655,7 @@ class DenovoBaseWorkflow(Workflow):
             self.on_rely([self.bwa, self.orf], self.run_snp)
             self.final_tools.append(self.snp)
             gene_stru.append(self.ssr)
+        self.logger.info('........gene_stru:%s' % gene_stru)
         if len(gene_stru) == 1:
             self.on('end', self.set_step, {'end': self.step.gene_structure})
         else:
