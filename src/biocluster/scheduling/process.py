@@ -33,9 +33,12 @@ class PROCESS(Job):
         super(PROCESS, self).submit()
         # self.process.start()
         self.process = gipc.start_process(local_process_run, args=(self.agent,
-                                                                   self.workflow.rpc_server.process_queue,
+                                                                   self. workflow.rpc_server.process_queue,
                                                                    self.shared_callback_action,), daemon=True)
         self.id = self.process.pid
+        if self.id:
+            self.agent.fire("runstart")
+        return self.id
 
     def delete(self):
             if self.process.is_alive():
