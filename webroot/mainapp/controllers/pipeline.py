@@ -12,6 +12,7 @@ from mainapp.libs.jsonencode import CJsonEncoder
 import xml.etree.ElementTree as ET
 from mainapp.config.db import get_use_api_clients, get_api_type, get_mongo_client
 import datetime
+import re
 
 
 class Pipeline(object):
