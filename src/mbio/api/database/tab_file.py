@@ -9,7 +9,7 @@ from pymongo import MongoClient
 
 class TabFile(Base):
 	'''
-	将生成的tab文件导入mongo数据库
+	将生成的tab文件导入mongo之ref的数据库中
 	'''
 	def __init__(self, bind_object):
 		super(TabFile, self).__init__(bind_object)
@@ -71,7 +71,7 @@ class TabFile(Base):
 		return file
 
 	@report_check
-	def dedup_sample(self, num,dir):
+	def dedup_sample(self, num):
 		collection = self.database['sg_pt_tab']
 		param = "WQ{}-F".format(num) + '.*'
 		sample = []
@@ -79,14 +79,21 @@ class TabFile(Base):
 		for u in collection.find({"sample_id": {"$regex": param}}):
 			sample.append(u['sample_id'])
 		sample_new = list(set(sample))
-		for k in range(len(sample_new)):
-			file_dedup = os.path.join(dir, sample_new[k] + '.tab')
-			search_result = collection.find({"sample_id": sample_new[k]})  # 读出来是个地址
-			if not search_result:
-				raise Exception('意外报错：没有在数据库中搜到相应sample')
-			with open(file_dedup, 'w+') as f:
-				for i in search_result:
-					f.write(i['sample_id'] + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
-				            + i['ref'] + '\t' + i['alt'] + '\t' + i['dp'] + '\t'
-				            + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
-			return file_dedup
+		# for k in range(len(sample_new)):
+		# 	search_result = collection.find({"sample_id": sample_new[k]})  # 读出来是个地址
+		# 	if not search_result:
+		# 		raise Exception('意外报错：没有在数据库中搜到相应sample')
+		return sample_new
+
+	@report_check
+	def dedup_fuzzy_sample(self, num, dad_id):
+		collection = self.database['sg_pt_tab']
+		param = "WQ[1-9]*{}[1-9]*-F".format(num)
+		sample = []
+
+		for u in collection.find({"sample_id": {"$regex": param}}):
+			if u['sample_id'] != dad_id:
+				sample.append(u['sample_id'])
+		sample_new = list(set(sample))
+		if sample_new:
+			return sample_new
