@@ -107,6 +107,28 @@ class PtProcessWorkflow(Workflow):
 				n += 1
 			else:
 				self.logger.info('{}样本已存在于数据库'.format(i))
+
+		if self.option('second_sample_f') or self.option('second_sample_m') or self.option('second_sample_s'):
+			if self.tools:
+				if len(self.tools) > 1:
+					self.on_rely(self.tools, self.rename_run)
+				elif len(self.tools) == 1:
+					self.tools[0].on('end', self.rename_run)
+				self.result_info.on('end', self.dedup_run)
+			else:
+				self.result_info.on('end', self.dedup_run)
+				self.rename_run()
+		else:
+			if self.tools:
+				if len(self.tools) > 1:
+					self.on_rely(self.tools, self.pt_analysis_run)
+				elif len(self.tools) == 1:
+					self.tools[0].on('end', self.pt_analysis_run)
+				self.result_info.on('end', self.dedup_run)
+			else:
+				self.result_info.on('end', self.dedup_run)
+				self.pt_analysis_run()
+
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2tab')
 		for tool in self.tools:
@@ -312,7 +334,7 @@ class PtProcessWorkflow(Workflow):
 		if event['data'] == "fastq2tab":
 			self.linkdir(obj.output_dir + '/bam2tab', self.output_dir)
 			api = self.api.tab_file
-			temp = os.listdir(obj.output_dir + '/bam2tab')
+			temp = os.listdir(self.output_dir)
 			api_read_tab = self.api.tab_file  # 二次判断数据库中是否存在tab文件
 			for i in temp:
 				m = re.search(r'(.*)\.mem.*tab$', i)
@@ -328,6 +350,8 @@ class PtProcessWorkflow(Workflow):
 
 		if event['data'] == "result_info":
 			self.linkdir(obj.output_dir, self.output_dir)
+			api_main = self.api.sg_paternity_test
+			api_main.add_pt_figure(obj.output_dir)
 
 		if event['data'] == "dedup":
 			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
@@ -339,28 +363,29 @@ class PtProcessWorkflow(Workflow):
 			self.linkdir(obj.output_dir, self.output_dir)
 
 	def run(self):
-		if self.option('second_sample_f') or self.option('second_sample_m') or self.option('second_sample_s'):
-			self.fastq2tab_run()
-			if self.tools:
-				if len(self.tools) > 1:
-					self.on_rely(self.tools, self.rename_run)
-				elif len(self.tools) == 1:
-					self.tools[0].on('end', self.rename_run)
-				self.result_info.on('end', self.dedup_run)
-			else:
-				self.result_info.on('end', self.dedup_run)
-				self.rename_run()
-		else:
-			self.fastq2tab_run()
-			if self.tools:
-				if len(self.tools) > 1:
-					self.on_rely(self.tools, self.pt_analysis_run)
-				elif len(self.tools) == 1:
-					self.tools[0].on('end', self.pt_analysis_run)
-				self.result_info.on('end', self.dedup_run)
-			else:
-				self.result_info.on('end', self.dedup_run)
-				self.pt_analysis_run()
+		self.fastq2tab_run()
+		# if self.option('second_sample_f') or self.option('second_sample_m') or self.option('second_sample_s'):
+		# 	self.fastq2tab_run()
+		# 	if self.tools:
+		# 		if len(self.tools) > 1:
+		# 			self.on_rely(self.tools, self.rename_run)
+		# 		elif len(self.tools) == 1:
+		# 			self.tools[0].on('end', self.rename_run)
+		# 		self.result_info.on('end', self.dedup_run)
+		# 	else:
+		# 		self.result_info.on('end', self.dedup_run)
+		# 		self.rename_run()
+		# else:
+		# 	self.fastq2tab_run()
+		# 	if self.tools:
+		# 		if len(self.tools) > 1:
+		# 			self.on_rely(self.tools, self.pt_analysis_run)
+		# 		elif len(self.tools) == 1:
+		# 			self.tools[0].on('end', self.pt_analysis_run)
+		# 		self.result_info.on('end', self.dedup_run)
+		# 	else:
+		# 		self.result_info.on('end', self.dedup_run)
+		# 		self.pt_analysis_run()
 		super(PtProcessWorkflow, self).run()
 
 
@@ -379,7 +404,6 @@ class PtProcessWorkflow(Workflow):
 				api_main.add_info_detail(self.output_dir + '/' + f)
 			if re.search(r'.*test_pos\.txt$', f):
 				api_main.add_test_pos(self.output_dir + '/' + f)
-		api_main.add_pt_figure(self.output_dir)
 
 
 		super(PtProcessWorkflow,self).end()
