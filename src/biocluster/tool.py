@@ -72,9 +72,9 @@ class Tool(object):
         self._rerun = False
         self.api = ApiManager(self)
         if self.instant:
-            self.actor = ProcessActor(self, threading.current_thread())
+            self.actor = ProcessActor(self, self.main_thread)
         else:
-            self.actor = RemoteActor(self, threading.current_thread())
+            self.actor = RemoteActor(self, self.main_thread)
 
     @property
     def remote(self):
@@ -368,11 +368,13 @@ class Tool(object):
 
         :return:
         """
+
         self.save_output()
-        self.add_state('finish')
-        self.logger.info("Tool程序运行完成")
-        self._end = True
-        self.exit_signal = True
+        with self.mutex:
+            self.add_state('finish')
+            self.logger.info("Tool程序运行完成")
+            self._end = True
+            self.exit_signal = True
 
     def exit(self, status=1):
         """
@@ -381,12 +383,19 @@ class Tool(object):
         :param status: 退出运行时的exitcode
         :return:
         """
-        self._end = True
-        self.exit_signal = True
         self.kill_all_commonds()
-        os.kill(os.getpid(), signal.SIGTERM)
+        if not self.is_end and self.main_thread.is_alive():
+            self._end = True
+            self.exit_signal = True
+            stop_thread(self.main_thread)
+            os._exit(status)
+            gevent.sleep(5)
+            os.system("kill -9 %s" % os.getpid())
+
         # if self.main_thread.is_alive():
         #     stop_thread(self.main_thread)
+        self._end = True
+        self.exit_signal = True
         sys.exit(status)
 
     def save_output(self):
@@ -423,11 +432,11 @@ class Tool(object):
         :param error_data:
         :return:
         """
-
-        self.add_state('error', error_data)
-        self.logger.info("运行出错:%s" % error_data )
-        self._end = True
-        self.exit_signal = True
+        with self.mutex:
+            self.add_state('error', error_data)
+            self.logger.info("运行出错:%s" % error_data )
+            self._end = True
+            self.exit_signal = True
 
     @staticmethod
     def set_environ(**kwargs):

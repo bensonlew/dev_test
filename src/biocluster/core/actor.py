@@ -58,8 +58,9 @@ class LocalActor(gevent.Greenlet):
         if self._agent.is_end:
             self._agent.logger.debug("已经停止运行，丢弃接收到的消息: %s " % message)
             return
+        workflow = self._agent.get_workflow()
         try:
-            if self._update is None:
+            if not workflow.sheet.instant and self._update is None:
                 self._agent.fire('runstart', message["data"])
             self._update = datetime.datetime.now()
             if (not isinstance(message, dict)) or ('state' not in message.keys()):
@@ -69,7 +70,7 @@ class LocalActor(gevent.Greenlet):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self._agent.get_workflow().exit(exitcode=1, data=e)
+            workflow.exit(exitcode=1, data=e)
 
     def _run(self):
         self._start_time = datetime.datetime.now()
@@ -216,7 +217,7 @@ class ProcessActor(RemoteActor):
         super(ProcessActor, self).__init__(tool, main_thread)
 
     def run(self):
-        self.config.KEEP_ALIVE_TIME = 0.3
+        self.config.KEEP_ALIVE_TIME = 1
         super(ProcessActor, self).run()
 
     def send_state(self, state):
