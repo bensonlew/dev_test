@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
-
+import datetime
 from biocluster.api.database.base import Base, report_check
 import os
 from biocluster.config import Config
@@ -17,9 +17,23 @@ class SgPaternityTest(Base):
 		self.mongo_client = MongoClient(Config().MONGO_URI)
 		self.database = self.mongo_client['tsanger_paternity_test']
 
-	# @report_check
-	# def add_sg_pt_family(self):
-
+	@report_check
+	def add_sg_pt_family(self,dad,mom,preg, err):
+		insert_data = {
+			"project_sn": self.bind_object.sheet.project_sn,
+			"task_id": self.bind_object.id,
+			"name": dad + '_' + mom + '_' + preg,
+			"err_min": err,
+			"status": "end",
+			"created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+		}
+		try:
+			collection = self.database['sg_pt_family_main']
+			collection.insert_one(insert_data)
+		except Exception as e:
+			self.bind_object.logger.error('导入主表出错：{}'.format(e))
+		else:
+			self.bind_object.logger.info("导入主表成功")
 
 	@report_check
 	def add_sg_pt_family_detail(self,file_path):
@@ -29,7 +43,10 @@ class SgPaternityTest(Base):
 			for line in f:
 				line = line.strip()
 				line = line.split('\t')
+				if line[0] == "chrom":
+					continue
 				insert_data = {
+					"task_id": self.bind_object.id,
 					"chrom": line[0],
 					"pos":line[1],
 					"dad_id": line[2],
@@ -91,12 +108,12 @@ class SgPaternityTest(Base):
 	def add_pt_figure(self, output_dir):
 		self.bind_object.logger.info("图片开始导入数据库")
 		fs = gridfs.GridFS(self.database)
-		# fs = gridfs.GridFS(self.db['sg_tree_picture_file'])
 		family_fig = fs.put(open(output_dir + '/family.png', 'r'))
 		figure1 = fs.put(open(output_dir + '/fig1.png', 'r'))
 		figure2 = fs.put(open(output_dir + '/fig2.png', 'r'))
 		preg_percent = fs.put(open(output_dir + '/preg_percent.png', 'r'))
 		update_data = {
+			"task_id": self.bind_object.id,
 			'family_fig': family_fig,
 			'figure1': figure1,
 			'figure2': figure2,
@@ -112,7 +129,10 @@ class SgPaternityTest(Base):
 			for line in f:
 				line = line.strip()
 				line = line.split('\t')
+				if line[0] == "dad.id":
+					continue
 				insert_data = {
+					"task_id": self.bind_object.id,
 					"dad_id": line[0],
 					"test_pos_n": line[1],
 					"err_pos_n": line[2],
@@ -125,7 +145,7 @@ class SgPaternityTest(Base):
 				}
 				sg_pt_family_detail.append(insert_data)
 			try:
-				collection = self.database['sg_pt_family_detail']
+				collection = self.database['sg_pt_analysis']
 				collection.insert_many(sg_pt_family_detail)
 			except Exception as e:
 				self.bind_object.logger.error('导入分析结果表格出错：{}'.format(e))
@@ -139,22 +159,51 @@ class SgPaternityTest(Base):
 			for line in f:
 				line = line.strip()
 				line = line.split('\t')
+				if line[0] == "bed.preg.id":
+					continue
 				insert_data = {
-					"dad_id": line[0],
-					"test_pos_n": line[1],
-					"err_pos_n": line[2],
-					"err_rate": line[3],
-					"fq": line[4],
-					"dp": line[5],
-					"eff_rate": line[6],
-					"ineff_rate": line[7],
-					"result": line[8]
+					"task_id": self.bind_object.id,
+					"preg_id": line[0],
+					"dp_preg": line[1],
+					"percent": line[2],
+					"error": line[3],
+					"s_singal": line[4],
+					"mom_id": line[5],
+					"dp_mom": line[6],
+					"mom&preg": line[7]
 				}
 				sg_pt_family_detail.append(insert_data)
 			try:
-				collection = self.database['sg_pt_family_detail']
+				collection = self.database['sg_pt_result_info']
 				collection.insert_many(sg_pt_family_detail)
 			except Exception as e:
 				self.bind_object.logger.error('导入分析结果表格出错：{}'.format(e))
 			else:
 				self.bind_object.logger.info("导入分析结果表格成功")
+
+	def add_test_pos(self, file_path):
+		self.bind_object.logger.info("开始导入位点信息表")
+		sg_pt_family_detail = list()
+		with open(file_path, 'r') as f:
+			for line in f:
+				line = line.strip()
+				line = line.split('\t')
+				if line[0] == "检测位点编号":
+					continue
+				insert_data = {
+					"task_id": self.bind_object.id,
+					"test_no": line[0],
+					"chrom": line[1],
+					"dad_geno": line[2],
+					"mom_geno": line[3],
+					"preg_geno": line[4],
+					"is_mis": line[5]
+				}
+				sg_pt_family_detail.append(insert_data)
+			try:
+				collection = self.database['sg_pt_test_pos']
+				collection.insert_many(sg_pt_family_detail)
+			except Exception as e:
+				self.bind_object.logger.error('导入位点信息表格出错：{}'.format(e))
+			else:
+				self.bind_object.logger.info("导入位点信息表格成功")
