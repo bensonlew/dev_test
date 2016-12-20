@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
-#last modified:20161213
+#last modified:20161220
 
 '''医学检验所-无创产前亲子鉴定流程'''
 from biocluster.workflow import Workflow
@@ -110,12 +110,10 @@ class PtProcessWorkflow(Workflow):
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2tab')
 		for tool in self.tools:
-			# tool.on('end', self.pt_analysis_run)
 			tool.run()
 
 	def pt_analysis_run(self):
 		api_read_tab = self.api.tab_file
-		self.pt_analysis = self.add_module("paternity_test.pt_analysis")
 		self.pt_analysis.set_options({
 			"dad_tab": api_read_tab.export_tab_file(self.option('dad_id'), self.output_dir),  # 数据库的tab文件
 			"mom_tab": api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir),
@@ -140,7 +138,6 @@ class PtProcessWorkflow(Workflow):
 			id_modified_f.set_options({
 				"sample_id": dad_id
 			})
-			# id_modified_f.on('end', self.set_output, 'id_modified_f')
 			id_modified_f.on('start', self.set_step, {'start': self.step.id_modified_f})
 			id_modified_f.on('end', self.set_step, {'end': self.step.id_modified_f})
 			self.tools_rename.append(id_modified_f)
@@ -150,7 +147,6 @@ class PtProcessWorkflow(Workflow):
 			id_modified_m.set_options({
 				"sample_id": mom_id
 			})
-			# id_modified_m.on('end', self.set_output, 'id_modified_m')
 			id_modified_m.on('start', self.set_step, {'start': self.step.id_modified_m})
 			id_modified_m.on('end', self.set_step, {'end': self.step.id_modified_m})
 			self.tools_rename.append(id_modified_m)
@@ -160,7 +156,6 @@ class PtProcessWorkflow(Workflow):
 			id_modified_s.set_options({
 				"sample_id": preg_id
 			})
-			# id_modified_s.on('end', self.set_output, 'id_modified_s')
 			id_modified_s.on('start', self.set_step, {'start': self.step.id_modified_s})
 			id_modified_s.on('end', self.set_step, {'end': self.step.id_modified_s})
 			self.tools_rename.append(id_modified_s)
@@ -217,14 +212,17 @@ class PtProcessWorkflow(Workflow):
 		n = 0
 		temp = re.match('WQ([1-9].*)-F.*', self.option('dad_id'))
 		num = int(temp.group(1))
-		num_list = range(num, num+self.option('dedup_num'))
+		num_list = range(num-self.option('dedup_num'), num+self.option('dedup_num')+1)
 		name_list = []
 		for m in num_list:
 			x = api_read_tab.dedup_sample(m)
 			if len(x): #如果库中能取到前后的样本
 				for k in range(len(x)):
 					name_list.append(x[k])
+		name_list = list(set(name_list))
 		for i in name_list:
+			if i == self.option('dad_id'):
+				continue
 			pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
 			self.step.add_steps('dedup_{}'.format(n))
 			pt_analysis_dedup.set_options({
@@ -244,8 +242,10 @@ class PtProcessWorkflow(Workflow):
 			self.tools_dedup[j].on('end', self.set_output, 'dedup')
 		if len(self.tools_dedup) > 1:
 			self.on_rely(self.tools_dedup, self.dedup_fuzzy_run)
-		else:
+		elif len(self.tools_dedup) == 1:
 			self.tools_dedup[0].on('end', self.dedup_fuzzy_run)
+		else:
+			self.dedup_fuzzy_run()
 		for tool in self.tools_dedup:
 			tool.run()
 
@@ -254,8 +254,8 @@ class PtProcessWorkflow(Workflow):
 		n = 0
 		temp = re.match('WQ([1-9].*)-F.*', self.option('dad_id'))
 		num = int(temp.group(1))
-		if api_read_tab.dedup_fuzzy_sample(num):
-			for i in api_read_tab.dedup_fuzzy_sample(num):
+		if api_read_tab.dedup_fuzzy_sample(num, self.option('dad_id')):
+			for i in api_read_tab.dedup_fuzzy_sample(num,self.option('dad_id')):
 				pt_analysis_dedup_f = self.add_module("paternity_test.pt_analysis")
 				self.step.add_steps('dedup_f_{}'.format(n))
 				pt_analysis_dedup_f.set_options({
@@ -325,51 +325,20 @@ class PtProcessWorkflow(Workflow):
 		if event['data'] == "pt_analysis" or event['data'] == "pt_analysis_rename":
 			self.linkdir(obj.output_dir +'/family_analysis', self.output_dir)
 			self.linkdir(obj.output_dir + '/family_merge', self.output_dir)
-			api_pt = self.api.sg_paternity_test
-			results = os.listdir(obj.output_dir +'/family_analysis')
-			for f in results:
-				if re.search(r'.*family_analysis\.txt$', f):
-					api_pt.add_analysis_tab(self.output_dir+'/'+f)
-
-			result_1 = os.listdir(obj.output_dir+'/family_merge')
-			for f in result_1:
-				if re.search(r'.*family_joined_tab\.txt$', f):
-					api_pt.add_sg_pt_family_detail(self.output_dir+'/'+f)
 
 		if event['data'] == "result_info":
 			self.linkdir(obj.output_dir, self.output_dir)
 
 		if event['data'] == "dedup":
 			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
-			api_pt = self.api.sg_paternity_test
-			results = os.listdir(obj.output_dir + '/family_analysis')
-			for f in results:
-				if re.search(r'.*family_analysis\.txt$', f):
-					api_pt.add_analysis_tab(self.output_dir+'/'+f)
 
 		if event['data'] == "dedup_fuzzy":
 			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
-			api_pt = self.api.sg_paternity_test
-			results = os.listdir(obj.output_dir + '/family_analysis')
-			for f in results:
-				if re.search(r'.*family_analysis\.txt$', f):
-					api_pt.add_analysis_tab(self.output_dir + '/' + f)
 
 		if event['data'] == "id_modified":
 			self.linkdir(obj.output_dir, self.output_dir)
 
 	def run(self):
-		# self.fastq2tab_run()
-		# if self.tools:
-		# 	self.pt_analysis.on('end', self.result_info_run)
-		# 	self.result_info.on('end', self.dedup_run)
-		# else:
-		# 	self.pt_analysis.on('end', self.result_info_run)
-		# 	self.result_info.on('end', self.dedup_run)
-		# 	self.pt_analysis_run()
-		#
-		# if self.option('second_sample_f'):
-		# 	self.rename_run()
 		if self.option('second_sample_f') or self.option('second_sample_m') or self.option('second_sample_s'):
 			self.fastq2tab_run()
 			if self.tools:
@@ -397,4 +366,20 @@ class PtProcessWorkflow(Workflow):
 
 
 	def end(self):
+		api_main = self.api.sg_paternity_test
+		api_main.add_sg_pt_family(self.option('dad_id'), self.option('mom_id'), self.option('preg_id'),
+		                          self.option('err_min'))
+		results = os.listdir(self.output_dir)
+		for f in results:
+			if re.search(r'.*family_analysis\.txt$', f):
+				api_main.add_analysis_tab(self.output_dir + '/' + f)
+			if re.search(r'.*family_joined_tab\.txt$', f):
+				api_main.add_sg_pt_family_detail(self.output_dir + '/' + f)
+			if re.search(r'.*info_show\.txt$', f):
+				api_main.add_info_detail(self.output_dir + '/' + f)
+			if re.search(r'.*test_pos\.txt$', f):
+				api_main.add_test_pos(self.output_dir + '/' + f)
+		api_main.add_pt_figure(self.output_dir)
+
+
 		super(PtProcessWorkflow,self).end()
