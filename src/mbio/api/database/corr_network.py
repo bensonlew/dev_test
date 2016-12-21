@@ -192,7 +192,7 @@ class CorrNetwork(Base):
             data = r.readlines()[1:]
             for line in data:
                 line = line.strip().split("\t")
-                data = [("corr_network_id", table_id), ("node_name", line[0]), ("abundance", eval(line[1]))]
+                data = [("corr_network_id", table_id), ("node_name", line[0]), ("abundance", eval(line[1])), ("phylum", line[2])]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
