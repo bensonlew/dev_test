@@ -47,7 +47,7 @@ class TabFile(Base):
 
 	@report_check
 	def tab_exist(self, sample):
-		self.bind_object.logger.info('开始调用tab表格')
+		self.bind_object.logger.info('开始检测tab表格')
 		collection = self.database['sg_pt_tab']
 		result = collection.find_one({'sample_id': sample})
 		if not result:
@@ -65,10 +65,14 @@ class TabFile(Base):
 			raise Exception('意外报错：没有在数据库中搜到相应sample')
 		with open(file, 'w+') as f:
 			for i in search_result:
-				f.write(i['sample_id'] + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
-				        + i['ref'] + '\t' + i['alt'] + '\t' + i['dp'] + '\t'
-				        + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
-		return file
+					f.write(i['sample_id'] + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
+				            + i['ref'] + '\t' + i['alt'] + '\t' + i['dp'] + '\t'
+				            + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
+		if os.path.getsize(file):
+			return file
+		else:
+			raise Exception('报错：样本数据{}的tab文件为空，可能还未下机'.format(sample))
+
 
 	@report_check
 	def dedup_sample(self, num):
@@ -79,10 +83,6 @@ class TabFile(Base):
 		for u in collection.find({"sample_id": {"$regex": param}}):
 			sample.append(u['sample_id'])
 		sample_new = list(set(sample))
-		# for k in range(len(sample_new)):
-		# 	search_result = collection.find({"sample_id": sample_new[k]})  # 读出来是个地址
-		# 	if not search_result:
-		# 		raise Exception('意外报错：没有在数据库中搜到相应sample')
 		return sample_new
 
 	@report_check
