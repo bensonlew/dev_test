@@ -88,13 +88,14 @@ class SgPaternityTest(Base):
 					"pG": line[38],
 					"pC": line[39],
 					"pT": line[40],
-					"mj_gene": line[41],
-					"is_test": line[42],
-					"is_mis": line[43],
-					"mustbe": line[44],
-					"mustnotbe": line[45],
-					"good": line[46],
-					"pi": line[47]
+					"mj_dp": line[41],
+					"mj_gene": line[42],
+					"is_test": line[43],
+					"is_mis": line[44],
+					"mustbe": line[45],
+					"mustnotbe": line[46],
+					"good": line[47],
+					"pi": line[48]
 				}
 				sg_pt_family_detail.append(insert_data)
 			try:
@@ -167,7 +168,7 @@ class SgPaternityTest(Base):
 					"dp_preg": line[1],
 					"percent": line[2],
 					"error": line[3],
-					"s_singal": line[4],
+					"s_signal": line[4],
 					"mom_id": line[5],
 					"dp_mom": line[6],
 					"mom&preg": line[7]
