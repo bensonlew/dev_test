@@ -122,6 +122,10 @@ class ResultInfoTool(Tool):
         for f in results:
             if re.search(r'.*.png$', f):
                 os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+            if re.search(r'.*info_show\.txt$', f):
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+            if re.search(r'.*test_pos\.txt$', f):
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
         self.logger.info('设置文件夹路径成功')
 
     def run(self):
