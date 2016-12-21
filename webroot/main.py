@@ -31,6 +31,8 @@ from mainapp.controllers.instant.meta.pearson_correlation import PearsonCorrelat
 from mainapp.controllers.instant.meta.plot_tree import PlotTree
 from mainapp.controllers.submit.datasplit.datasplit import Datasplit
 # from mainapp.controllers.submit.denovo_rna.cluster import Cluster
+from mainapp.controllers.instant.meta.hierarchical_clustering_heatmap import HierarchicalClusteringHeatmap
+from mainapp.controllers.instant.meta.enterotyping import Enterotyping
 from mainapp.controllers.submit.denovo_rna.network import Network
 from mainapp.controllers.instant.denovo_rna.get_diff_express import GetDiffExpress
 from mainapp.controllers.submit.meta.otunetwork import Otunetwork
@@ -75,6 +77,8 @@ urls = (
     "/dataexchange/download_task", "DownloadTask",
     "/app/dataexchange/download_task", "DownloadTask",
     "/dataexchange/upload_task", "UploadTask",
+    "/meta/hierarchical_clustering_heatmap", "HierarchicalClusteringHeatmap",
+    "/meta/enterotyping", "Enterotyping",
     "/app/dataexchange/upload_task", "UploadTask",
     "/denovo_rna/diff_express", "DiffExpress",
     "/denovo_rna/map_assessment", "MapAssessment",
