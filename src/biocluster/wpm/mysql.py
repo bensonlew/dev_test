@@ -35,9 +35,10 @@ class Mysql(object):
                                            port=int(self.config.DB_PORT), charset='utf8')
 
             return True
-        except Exception:
+        except Exception, e:
             exstr = traceback.format_exc()
             print exstr
+            print e
             return False
 
     def _re_conn(self, num=28800, stime=3):  # 重试连接总次数为1天,这里根据实际情况自己设置
@@ -47,7 +48,8 @@ class Mysql(object):
             try:
                 self.conn.ping()  # cping 校验连接是否异常
                 _status = False
-            except:
+            except Exception, e:
+                print e
                 if self._conn() is True:  # 重新连接,成功退出
                     _status = False
                     break

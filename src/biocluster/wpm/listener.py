@@ -75,9 +75,10 @@ class MainServer(object):
             m = ListenerManager(address=self.config.wpm_listen, authkey=self.config.wpm_authkey)
             s = m.get_server()
             s.serve_forever()
-        except Exception:
+        except Exception, e:
             exstr = traceback.format_exc()
             print exstr
+            print e
             sys.stdout.flush()
             sys.stderr.flush()
             self.manager_server.terminate()

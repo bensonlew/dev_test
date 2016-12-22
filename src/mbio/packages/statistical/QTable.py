@@ -27,7 +27,7 @@ class QTable:
             qTable = {}
             for j in xrange(1, len(data)):
                 lineSplit = data[j].split('\t')
-                values = [ float(x) for x in lineSplit[1:] ]
+                values = [float(x) for x in lineSplit[1:] ]
                 qTable[j + 1] = values
 
             self.qTables[CVs[i]] = qTable
