@@ -26,6 +26,7 @@ class MultiAnalysis(MetaController):
                 return json.dumps(info)
         self.task_name = 'meta.report.beta_multi_analysis'
         self.task_type = 'workflow'  # 可以不配置
+        group_detail = group_detail_sort(data.group_detail)
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
@@ -33,11 +34,12 @@ class MultiAnalysis(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type,
             'group_id': data.group_id,
-            'group_detail': group_detail_sort(data.group_detail)
+            'group_detail': group_detail
             }
         env_id = None
         env_labs = ''
         dist_method = ''
+        sample_len = sum([len(i) for i in group_detail.values()])
         if data.analysis_type == 'pca':
             if hasattr(data, 'env_id'):
                 params_json['env_id'] = data.env_id
@@ -52,6 +54,9 @@ class MultiAnalysis(MetaController):
                     info = {'success': False, 'info': '没有选择任何环境因子列'}
                     return json.dumps(info)
         elif data.analysis_type == 'pcoa' or data.analysis_type == 'nmds':
+            if sample_len < 3:
+                info = {'success': False, 'info': '样本数量少于3，不可进行此分析！'}
+                return json.dumps(info)
             if not hasattr(data, 'distance_algorithm'):
                 info = {'success': False, 'info': 'distance_algorithm参数缺少!'}
                 return json.dumps(info)

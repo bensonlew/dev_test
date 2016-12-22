@@ -11,14 +11,13 @@ import os
 from mainapp.libs.jsonencode import CJsonEncoder
 import xml.etree.ElementTree as ET
 from mainapp.config.db import get_use_api_clients, get_api_type, get_mongo_client
-import datetime
-import traceback
-import re
+from biocluster.wpm.client import worker_client
+
 
 class Pipeline(object):
     def __init__(self):
         self.client = get_mongo_client()
-        self.db_name = None
+        # self.db_name = None
         # self.db = self.client[Config().MONGODB]
 
     def GET(self):
@@ -30,90 +29,51 @@ class Pipeline(object):
     @check_format
     def POST(self):
         data = web.input()
-        print data
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        if client == "client01" or client == "client03":
-            json_obj = self.sanger_submit()
-            json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
-            json_obj["IMPORT_REPORT_AFTER_END"] = True
-            """
-            样本检测新
-            """
-            try:
-                if json_obj["name"] == "meta.meta_base":
-                    if json_obj["options"]["file_list"] != "null":
-                        self.db_name = Config().MONGODB
-                        self.db = self.client[self.db_name]
-                        collection = self.db["sg_seq_sample"]
-                        id1 = re.sub("tsanger","sanger",json_obj["id"])
-                        id2 = re.sub("tsanger","i-sanger",json_obj["id"])
-                        lst1 = id1.split("_")
-                        lst1.pop()
-                        lst1.pop()
-                        id1 = "_".join(lst1)
-                        lst2 = id2.split("_")
-                        lst2.pop()
-                        lst2.pop()
-                        id2 = "_".join(lst2)
-                        result = collection.find_one({"task_id": id1})
-                        with open("/mnt/ilustre/users/sanger/biocluster/log/20161216/log","w") as w:
-                            w.write("str(result[\"workdir_sample\"])")
-                        if result:
-                            json_obj["options"]["workdir_sample"] = str(result["workdir_sample"])
-                        else:
-                            result = collection.find_one({"task_id": id2})
+        try:
+            if client == "client01" or client == "client03":
+                json_obj = self.sanger_submit()
+                json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
+                json_obj["IMPORT_REPORT_AFTER_END"] = True
+                """样本检测新"""
+                try:
+                    if json_obj["name"] == "meta.meta_base":
+                        if json_obj["options"]["file_list"] != "null":
+                            self.db_name = Config().MONGODB
+                            self.db = self.client[self.db_name]
+                            collection = self.db["sg_seq_sample"]
+                            id1 = re.sub("sanger", "tsanger", json_obj["id"])
+                            id2 = re.sub("i-sanger", "tsanger", json_obj["id"])
+                            result = collection.find_one({"task_id": id1})
                             if result:
                                 json_obj["options"]["workdir_sample"] = str(result["workdir_sample"])
                             else:
-                                json_obj["options"]["file_list"] = "null"
-            except:
-                info = {"success": False, "info": "样本检测部分出错!"}
-                return json.dumps(info) 
-        else:
-            json_obj = self.json_submit()
-        json_obj["USE_DB"] = True   # 使用数据库
+                                result = collection.find_one({"task_id": id2})
+                                if result:
+                                    json_obj["options"]["workdir_sample"] = str(result["workdir_sample"])
+                                else:
+                                    json_obj["options"]["file_list"] = "null"
+            else:
+                json_obj = self.json_submit()
+        except Exception, e:
+            return json.dumps({"success": False, "info": str(e)})
+        if "type" not in json_obj.keys() or "id" not in json_obj.keys():
+            info = {"success": False, "info": "Json内容不正确!!"}
+            return json.dumps(info)
         if client in get_use_api_clients():
             api = get_api_type(client)
             if api:
                 json_obj["UPDATE_STATUS_API"] = api
         json_obj['client'] = client
-        if "error" in json_obj:
-            info = {"success": False, "info": json_obj["error"]}
-        if "type" not in json_obj.keys() or "id" not in json_obj.keys():
-            info = {"success": False, "info": "Json内容不正确!!"}
-            return json.dumps(info)
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(json_obj['id'])
         if len(workflow_data) > 0:
             # print workflow_data[0]
-            info = {"success": False, "info": "pipeline流程ID重复!"}
+            info = {"success": False, "info": "流程ID重复!"}
             return json.dumps(info)
         else:
-            insert_data = {"client": client,
-                           "workflow_id": json_obj['id'],
-                           "json": json.dumps(json_obj),
-                           "ip": web.ctx.ip
-                           }
-            workflow_module.add_record(insert_data)
-            # return json.dumps(json_obj)
+            worker_client().add_task(json_obj)
             info = {"success": True, "info": "添加队列成功!"}
-            if client == "client01" or client == "client03":
-                task_info = {
-                    "task_id": json_obj["id"],
-                    "member_id": json_obj["member_id"],
-                    "project_sn": json_obj['project_sn'],
-                    "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                # add by qiuping 20162019,set the database with diff base
-                if json_obj["name"] == 'meta.meta_base':
-                    self.db_name = Config().MONGODB
-                if json_obj["name"] == 'denovo.denovo_base':
-                    self.db_name = Config().MONGODB + '_rna'
-                    task_info['params'] = json_obj['options']
-                # end by qiuping
-                self.db = self.client[self.db_name]
-                collection = self.db["sg_task"]
-                collection.insert_one(task_info)
             return json.dumps(info)
 
     @staticmethod
@@ -122,6 +82,8 @@ class Pipeline(object):
         xml_data = "".join(data.content)
         root = ET.fromstring(xml_data)
         json_obj = {}
+        client = None
+        file_path = None
         if hasattr(data, "client"):
             client = data.client
         if client == "client01":
@@ -148,21 +110,21 @@ class Pipeline(object):
         json_obj['output'] = "%s/files/%s/%s/%s/%s" % (file_path, json_obj["member_id"], json_obj['project_sn'],
                                                        json_obj['id'], json_obj['stage_id'])
         option = first_stage.find("parameters")
-        print json_obj
+        # print json_obj
         json_obj['options'] = {}
         for opt in option:
             if 'type' in opt.attrib.keys():
                 if opt.attrib['type'] == "sanger":
                     if "format" in opt.attrib.keys():
-                        if "fileList" not in opt.attrib:
-                            json_obj['error'] = "tag{}里不包含fileList".format(opt.tag)
-                            return json_obj
-                        fileList = opt.attrib['fileList']
+                        file_list = ''
+                        if "fileList" in opt.attrib:
+                            file_list = opt.attrib['fileList']
                         tmp_list = [None, "none", "None", "null", 'Null', '[]', '']
-                        if fileList in tmp_list:
+                        if file_list in tmp_list:
                             json_obj['options'][opt.tag] = "%s||%s/%s" % (opt.attrib["format"], file_path, opt.text)
                         else:
-                            json_obj['options'][opt.tag] = "{}||{}/{};;{}".format(opt.attrib["format"], file_path, opt.text, fileList)
+                            json_obj['options'][opt.tag] = "{}||{}/{};;{}".format(opt.attrib["format"], file_path,
+                                                                                  opt.text, file_list)
                     else:
                         json_obj['options'][opt.tag] = "%s/%s" % (file_path, opt.text)
                 else:
@@ -173,7 +135,6 @@ class Pipeline(object):
                         json_obj['options'][opt.tag] = "%s:%s" % (opt.attrib, opt.text)
             else:
                 json_obj['options'][opt.tag] = opt.text
-                
         return json_obj
 
     @staticmethod
@@ -232,17 +193,7 @@ class PipelineState(object):
                         "state": "end",
                         "addtime": record.add_time,
                         "starttime": record.run_time,
-                        "endtime": record.end_time,
-                        "output": record.output,
-                    }
-                    return json.dumps(info, cls=CJsonEncoder)
-                elif workflow_module.last_update_seconds(data.id) > 200:
-                    info = {
-                        "success": True,
-                        "state": "offline",
-                        "addtime": record.add_time,
-                        "starttime": record.run_time,
-                        "lastupdate": record.last_update
+                        "endtime": record.end_time
                     }
                     return json.dumps(info, cls=CJsonEncoder)
                 elif record.paused == 1:
@@ -250,8 +201,7 @@ class PipelineState(object):
                         "success": True,
                         "state": "paused",
                         "addtime": record.add_time,
-                        "starttime": record.run_time,
-                        "lastupdate": record.last_update
+                        "starttime": record.run_time
                     }
                     return json.dumps(info, cls=CJsonEncoder)
                 else:
@@ -259,8 +209,7 @@ class PipelineState(object):
                         "success": True,
                         "state": "running",
                         "addtime": record.add_time,
-                        "starttime": record.run_time,
-                        "lastupdate": record.last_update
+                        "starttime": record.run_time
                     }
                     return json.dumps(info, cls=CJsonEncoder)
             else:
@@ -323,8 +272,7 @@ class PipelineStop(object):
                     return json.dumps(info)
                 else:
                     insert_data = {"client": client,
-                                   "ip": web.ctx.ip,
-                                   "reson": data.reason
+                                   "ip": web.ctx.ip
                                    }
                     if workflow_module.set_stop(data.id, insert_data):
                         info = {"success": True, "info": "操作成功！"}
