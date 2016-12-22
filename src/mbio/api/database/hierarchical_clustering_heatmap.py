@@ -76,7 +76,7 @@ class HierarchicalClusteringHeatmap(Base):
                 sample_num = line[1:]
                 classify_list = re.split(r"\s*;\s*", line[0])
                 otu_detail = dict()
-                otu_detail['otu_id'] = new_otu_id
+                otu_detail['hc_id'] = new_otu_id
                 for cf in classify_list:
                     if cf != "":
                         otu_detail[cf[0:3].lower()] = cf
