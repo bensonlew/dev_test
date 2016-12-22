@@ -5,6 +5,7 @@
 import os
 import json
 import datetime
+import re
 from biocluster.core.exceptions import OptionError
 from biocluster.workflow import Workflow
 from mainapp.models.mongo.public.meta.meta import Meta
@@ -47,7 +48,19 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
         global new_otu_file_path
         old_otu_file_path = self.option("in_otu_table").prop["path"]
         if self.option("species_number") == "all":
-            new_otu_file_path = old_otu_file_path
+            s2_file_path = os.path.join(self.work_dir,"s_otu_table.xls")
+            s1 = open(old_otu_file_path,'r')
+            contento = s1.readlines()
+            for n in contento:
+                n = n.strip("\n")
+                brr = n.strip().split(" ")
+                if brr[0] == "OTU":
+                    with open(s2_file_path, "a") as w:
+                        w.write(brr[0] + " " + brr[1] + "\n")
+                else:
+                    with open(s2_file_path, "a") as w:
+                        w.write(brr[-1] + "\n")
+            new_otu_file_path = s2_file_path
         middle_otu_file_path = os.path.join(self.work_dir, "middle_otu_table.xls")
         old_file = open(old_otu_file_path, 'r')
         content = old_file.readlines()
@@ -76,7 +89,7 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
         if self.option("species_number") != "all":
             species_nu = int(self.option("species_number"))
             if species_nu >= all:
-                new_otu_file_path = old_otu_file_path
+                new_otu_file_path = s2_file_path
             else:
                 new_otu_file_path = os.path.join(self.work_dir, "new_otu_table.xls")
                 middle_file = open(middle_otu_file_path, "r")
@@ -92,7 +105,9 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
                         line = line.strip("\n")
                         arr_2 = line.strip().split(":")
                         if arr_2[1] == str(list1[i]):
-                            linecontent_2 = arr_2[0] + "\n"
+                            f = arr_2[0].strip().split(" ")
+                            linecontent_2 = f[-1] + "\n"
+                            # linecontent_2 = arr_2[0] + "\n"
                             list2.append(list1[i])  # 为重复的sum判断做准备
                             with open(new_otu_file_path, "a") as w:
                                 w.write(linecontent_2)
@@ -104,6 +119,7 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
     def run_sort_samples(self):
         self.sort_samples.set_options({
             "in_otu_table": new_otu_file_path,
+            # "group_table": self.option("group_detail"),
             "group_table": self.group_table_path,
             "method": self.option("add_Algorithm")
         })
@@ -162,26 +178,43 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
 
 
     def set_db(self):
+        sample_tree = ""
+        species_tree = ""
+        sample_list = []
+        species_list = []
         self.logger.info("正在写入mongo数据库")
-        newick_id = ""
-        myParams = json.loads(self.sheet.params)
+        # myParams = json.loads(self.sheet.params)
         if self.option("method") != "":
-            api_heat_cluster = self.api.heat_cluster  #调用画图热图的
-            name = "heat_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            newick_id_species = api_heat_cluster.create_newick_table(self.sheet.params, self.option("method"), myParams["otu_id"], name)
-            self.hcluster.option("newicktree").get_info()
-            api_heat_cluster.update_newick(self.hcluster.option("newicktree").prop['path'], newick_id_species)
-            self.add_return_mongo_id("sg_newick_tree", newick_id_species, "", False)
+            species_tree_path = self.hcluster.option("newicktree").prop['path']
+            if os.path.exists(species_tree_path):
+                with open(species_tree_path, "r") as f:
+                    species_tree = f.readline().strip()
+                    raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', species_tree)
+                    species_list = [i[1] for i in raw_samp]
+            # api_heat_cluster = self.api.heat_cluster  #调用画图热图的
+            # name = "heat_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            # newick_id_species = api_heat_cluster.create_newick_table(self.sheet.params, self.option("method"), myParams["otu_id"], name)
+            # self.hcluster.option("newicktree").get_info()
+            # api_heat_cluster.update_newick(self.hcluster.option("newicktree").prop['path'], newick_id_species)
+            # self.add_return_mongo_id("sg_newick_tree", newick_id_species, "", False)
         if self.option("sample_method") != "":
-            api_sample_cluster = self.api.heat_cluster
-            name = "sample_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            newick_id_sample = api_sample_cluster.create_newick_table(self.sheet.params, self.option("sample_method"), myParams["otu_id"], name)
-            self.sample_hcluster.option("newicktree").get_info()
-            api_sample_cluster.update_newick(self.sample_hcluster.option("newicktree").prop['path'], newick_id_sample)
-            self.add_return_mongo_id("sg_newick_tree", newick_id_sample, "", False)
+            sample_tree_path = self.sample_hcluster.option("newicktree").prop['path']
+            if os.path.exists(sample_tree_path):
+                with open(sample_tree_path, "r") as f:
+                    sample_tree = f.readline().strip()
+                    raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', sample_tree)
+                    sample_list = [i[1] for i in raw_samp]
+
+            # api_sample_cluster = self.api.heat_cluster
+            # name = "sample_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            # newick_id_sample = api_sample_cluster.create_newick_table(self.sheet.params, self.option("sample_method"), myParams["otu_id"], name)
+            # self.sample_hcluster.option("newicktree").get_info()
+            # api_sample_cluster.update_newick(self.sample_hcluster.option("newicktree").prop['path'], newick_id_sample)
+            # self.add_return_mongo_id("sg_newick_tree", newick_id_sample, "", False)
 
         api_otu = self.api.hierarchical_clustering_heatmap
-        new_otu_id = api_otu.add_sg_hc_heatmap(self.sheet.params, self.option("input_otu_id"), None, newick_id_sample, newick_id_species)
+        new_otu_id = api_otu.add_sg_hc_heatmap(self.sheet.params, self.option("input_otu_id"), None, sample_tree = sample_tree, sample_list = sample_list, species_tree = species_tree, species_list = species_list)
+        # new_otu_id = api_otu.add_sg_hc_heatmap(self.sheet.params, self.option("input_otu_id"), None, newick_id_sample, newick_id_species)
         api_otu.add_sg_hc_heatmap_detail(self.sort_samples.option("out_otu_table").prop["path"], new_otu_id, self.option("input_otu_id"))
         self.add_return_mongo_id("sg_hc_heatmap", new_otu_id)
         self.end()
