@@ -36,6 +36,25 @@ class SgPaternityTest(Base):
 			self.bind_object.logger.info("导入主表成功")
 
 	@report_check
+	def add_pt_task_main(self, task, err_min):
+		if task is None:
+			task = self.bind_object.id
+		flow_id = task + '_' + str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
+		insert_data = {
+			"task_id": task,
+			"flow_id": flow_id,
+			"err_min": err_min,
+			"created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+		}
+		try:
+			collection = self.database['sg_pt_task_main']
+			collection.insert_one(insert_data)
+		except Exception as e:
+			self.bind_object.logger.error('导入任务主表出错：{}'.format(e))
+		else:
+			self.bind_object.logger.info("导入任务主表成功")
+
+	@report_check
 	def add_sg_pt_family_detail(self,file_path):
 		self.bind_object.logger.info("开始导入调试表")
 		sg_pt_family_detail = list()
