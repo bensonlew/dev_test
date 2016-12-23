@@ -34,7 +34,7 @@ class Otunetwork(Base):
                 line_data = line.split('\t')
                 data_list1.append(line_data)
             data = [("network_id", table_id), ("transitivity", eval(data_list1[0][1])),
-                    ("diameter", eval(data_list1[1][1])), ("average_shortest_path_length", eval(data_list1[2][1]))]
+                    ("diameter", str(data_list1[1][1])), ("average_shortest_path_length", str(data_list1[2][1]))]
             data_son = SON(data)
             data_list.append(data_son)
         try:
