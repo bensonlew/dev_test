@@ -88,7 +88,7 @@ class Lustre(RemoteFile):
                 for i_file in files:
                     i_file_path = os.path.join(root, i_file)
                     if os.path.islink(i_file_path):
-                        real_path = self._read_link(i_file_path)
+                        real_path = os.path.realpath(i_file_path)
                         if os.path.exists(real_path):
                             dir_path = os.path.join(self._full_path, rel_path)
                             if not os.path.exists(dir_path):
@@ -107,7 +107,7 @@ class Lustre(RemoteFile):
                         os.link(i_file_path, file_path)
         else:
             if os.path.islink(from_path):
-                real_path = self._read_link(from_path)
+                real_path = os.path.realpath(from_path)
                 if not os.path.exists(real_path):
                     raise Exception("源文件%s是一个无效的软链接!" % from_path)
                 os.link(real_path, os.path.join(self._full_path, os.path.basename(from_path)))
@@ -115,11 +115,11 @@ class Lustre(RemoteFile):
                 os.link(from_path, os.path.join(self._full_path, os.path.basename(from_path)))
         return os.path.join(self._full_path, os.path.basename(from_path))
 
-    def _read_link(self, path):
-        if os.path.islink(path):
-            link_path = os.readlink(path)
-            if not os.path.isabs(link_path):
-                link_path = os.path.abspath(os.path.join(os.path.dirname(path), link_path))
-            self._read_link(link_path)
-        else:
-            return os.readlink(path)
+    # def _read_link(self, path):
+    #     if os.path.islink(path):
+    #         link_path = os.readlink(path)
+    #         if not os.path.isabs(link_path):
+    #             link_path = os.path.abspath(os.path.join(os.path.dirname(path), link_path))
+    #         self._read_link(link_path)
+    #     else:
+    #         return os.readlink(path)
