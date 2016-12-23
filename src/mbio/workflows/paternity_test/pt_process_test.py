@@ -364,28 +364,6 @@ class PtProcessWorkflow(Workflow):
 
 	def run(self):
 		self.fastq2tab_run()
-		# if self.option('second_sample_f') or self.option('second_sample_m') or self.option('second_sample_s'):
-		# 	self.fastq2tab_run()
-		# 	if self.tools:
-		# 		if len(self.tools) > 1:
-		# 			self.on_rely(self.tools, self.rename_run)
-		# 		elif len(self.tools) == 1:
-		# 			self.tools[0].on('end', self.rename_run)
-		# 		self.result_info.on('end', self.dedup_run)
-		# 	else:
-		# 		self.result_info.on('end', self.dedup_run)
-		# 		self.rename_run()
-		# else:
-		# 	self.fastq2tab_run()
-		# 	if self.tools:
-		# 		if len(self.tools) > 1:
-		# 			self.on_rely(self.tools, self.pt_analysis_run)
-		# 		elif len(self.tools) == 1:
-		# 			self.tools[0].on('end', self.pt_analysis_run)
-		# 		self.result_info.on('end', self.dedup_run)
-		# 	else:
-		# 		self.result_info.on('end', self.dedup_run)
-		# 		self.pt_analysis_run()
 		super(PtProcessWorkflow, self).run()
 
 
@@ -394,6 +372,7 @@ class PtProcessWorkflow(Workflow):
 		api_main = self.api.sg_paternity_test
 		api_main.add_sg_pt_family(self.option('dad_id'), self.option('mom_id'), self.option('preg_id'),
 		                          self.option('err_min'))
+		api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
 		results = os.listdir(self.output_dir)
 		for f in results:
 			if re.search(r'.*family_analysis\.txt$', f):
