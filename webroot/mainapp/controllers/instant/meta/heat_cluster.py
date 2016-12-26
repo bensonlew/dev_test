@@ -3,6 +3,7 @@
 import web
 import json
 import re
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack
 from mainapp.models.mongo.public.meta.meta import Meta
@@ -20,6 +21,7 @@ class HeatCluster(MetaController):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
         self.task_name = 'meta.report.heat_cluster'
+        self.main_table_name = 'Heat_Cluster_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         tmp = json.loads(data.group_detail).values()
         sampleIds = list()
         for sp in tmp:

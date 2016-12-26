@@ -57,7 +57,7 @@ class Metagenomeseq(object):
             print update_info
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             print workflow_id
-            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], 'metagenomeseq')
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], name)
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
@@ -102,4 +102,3 @@ class Metagenomeseq(object):
         if len(workflow_data) > 0:
             return self.get_new_id(task_id, otu_id)
         return new_id
-

@@ -2,6 +2,7 @@
 # __author__ = 'zhouxuan'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort
 
@@ -18,7 +19,7 @@ class Enterotyping(MetaController):
                 info = {'success': False, 'info': '{}参数缺少!'.format(arg)}
                 return json.dumps(info)
         self.task_name = 'meta.report.enterotyping'
-
+        self.main_table_name = 'Enterotyping_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.options = {
             "input_otu_id": data.otu_id,
             "in_otu_table": data.otu_id,

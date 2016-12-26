@@ -24,10 +24,14 @@ class PhyloTree(Base):
     def add_phylo_tree_info(self):  # 专门用于即时计算导表的模块，不可放在metabase中使用。对应的worflow为metabase.report.plot_tree
         collection = self.db["sg_phylo_tree"]
         task_id = self.db['sg_otu'].find_one({'_id': ObjectId(self.bind_object.sheet.option('otu_id'))})["task_id"]
+        if self.bind_object.sheet.main_table_name:
+            name = self.bind_object.sheet.main_table_name
+        else:
+            name = 'tree_{}'.format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         main_data = [('project_sn', self.bind_object.sheet.project_sn),
                      ('task_id', task_id),
                      ('otu_id', ObjectId(self.bind_object.sheet.option('otu_id'))),
-                     ('name', 'tree_{}'.format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))),
+                     ('name', name),
                      ('status', 'end'),
                      ('params', self.bind_object.sheet.option('params')),
                      ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),

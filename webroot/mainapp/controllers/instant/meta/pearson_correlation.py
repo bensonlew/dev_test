@@ -2,6 +2,7 @@
 # __author__ = 'qindanhua'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import group_detail_sort
 
@@ -29,6 +30,7 @@ class PearsonCorrelation(MetaController):
         # group_detail = group_detail_sort(data.group_detail)
         self.task_name = 'meta.report.pearson_correlation'
         self.task_type = 'workflow'
+        self.main_table_name = 'Pearson_Correlation_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.options = {"otu_file": data.otu_id,
                         "otu_id": data.otu_id,
                         "level": int(data.level_id),

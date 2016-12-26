@@ -2,6 +2,7 @@
 # __author__ = 'qindanhua'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 # from mainapp.libs.param_pack import group_detail_sort
 
@@ -49,6 +50,7 @@ class MantelTest(MetaController):
 
         self.task_name = 'meta.report.mantel_test'
         self.task_type = 'workflow'
+        self.main_table_name = 'Mantel_Test_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.options = {"otu_file": data.otu_id,
                         "otu_id": data.otu_id,
                         "level": data.level_id,

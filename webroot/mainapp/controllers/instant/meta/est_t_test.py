@@ -2,6 +2,7 @@
 # __author__ = 'qindanhua'
 import web
 import json
+import datetime
 # from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.estimator import Estimator
@@ -45,6 +46,7 @@ class EstTTest(MetaController):
         # params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         self.task_name = 'meta.report.est_t_test'
         self.task_type = 'workflow'
+        self.main_table_name = 'Estimator_T-test_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.options = {"est_table": data.alpha_diversity_id,
                         "otu_id": str(data.otu_id),
                         "group_detail": data.group_detail,

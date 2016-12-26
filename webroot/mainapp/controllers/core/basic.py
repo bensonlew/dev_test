@@ -54,11 +54,15 @@ class Basic(object):
             self.task_type = 'workflow'
         if not self.task_name or not self._client or not self.options:
             return False
+        if hasattr(self, 'main_table_name'):
+            main_table_name = self.main_table_name
+        main_table_name = self.name + str(datetime.datetime.now().strftime("_%Y%m%d_%H%M%S"))
         sheet_data = {
             'id': self.id,
             'stage_id': 0,
             'name': self.task_name,  # 需要配置
             'type': self.task_type,  # 可以配置
+            'main_table_name': main_table_name,
             'client': self._client,
             'project_sn': self.projectSn,
             'USE_DB': self.USE_DB,
@@ -121,7 +125,11 @@ class Basic(object):
         else:
             raise Exception('未识别的client:{}'.format(self._client))
         self._uploadTarget = self._uploadTarget + ":rerewrweset/files/" + str(self.memberId) + '/' + str(self.projectSn) + "/" + str(self.taskId)
-        self._uploadTarget = self._uploadTarget + "/report_results/" + self.name + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        self._uploadTarget = self._uploadTarget + "/report_results/"
+        if hasattr(self, 'main_table_name'):
+            self._uploadTarget += self.main_table_name
+        else:
+            self._uploadTarget += self.name + str(datetime.datetime.now().strftime("_%Y%m%d_%H%M%S"))
         return self._uploadTarget
 
     def run(self):

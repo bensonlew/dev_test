@@ -81,7 +81,7 @@ class EstTTest(Base):
                 "task_id": task_id,
                 "otu_id": otu_id,
                 "alpha_diversity_id": from_est_id,
-                "name": name if name else "多样性指数T检验结果表",
+                "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "多样性指数T检验结果表",
                 "level_id": int(level_id),
                 "group_id": group_id,
                 "compare_column": group_name,

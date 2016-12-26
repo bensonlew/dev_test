@@ -61,7 +61,7 @@ class PanCore(Base):
             "desc": desc,
             "unique_id": self.unique_id,
             "submit_location": "otu_pan_core",
-            "name": name if name else "pan_core表格",
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "pan_core表格",
             "params": params,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }

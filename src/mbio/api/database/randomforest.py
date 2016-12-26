@@ -81,8 +81,8 @@ class Randomforest(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
-        
-        
+
+
     # @report_check
     def add_randomforest_vip(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
         if major:
@@ -96,7 +96,7 @@ class Randomforest(Base):
             else:
                 raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
-        
+
         a1 = len(file_path)
         a2 = len(file_path[0])
         with open(file_path, 'rb') as r:
@@ -120,7 +120,7 @@ class Randomforest(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
 
-    
+
 
     #@report_check
     def create_randomforest(self, params, group_id=0, from_otu_table=0, name=None, level_id=0):
@@ -142,12 +142,16 @@ class Randomforest(Base):
         project_sn = result['project_sn']
         task_id = result['task_id']
         desc = "randomforest分析"
+        if self.bind_object.sheet.main_table_name:
+            name = self.bind_object.sheet.main_table_name
+        else:
+            name = "oturandomforest_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "oturandomforest_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": name,
             "params": params,
             "level_id": level_id,
             "desc": desc,
@@ -157,4 +161,3 @@ class Randomforest(Base):
         collection = self.db["sg_meta_randomforest"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
-

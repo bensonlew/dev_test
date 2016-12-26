@@ -39,7 +39,7 @@ class ClusterAnalysis(Base):
             "project_sn": project_sn,
             'task_id': self.task_id,
             'from_id': str(from_otu_table),
-            'name': name,
+            'name': self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else name,
             "params": params,
             "newick_id": newick_id,
             'status': 'end',

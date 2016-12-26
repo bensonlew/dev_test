@@ -33,7 +33,7 @@ class FunctionPredict(Base):
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,
-            "name": name if name else "16s_function_prediction_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "16s_function_prediction_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             "params": params,
             "status": "end",
             "desc": "16s功能预测主表",

@@ -40,7 +40,7 @@ class EnterotypingDb(Base):
             "project_sn": project_sn,
             'task_id': self.task_id,
             'from_id': str(from_otu_table),
-            'name': name,
+            'name': self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else name,
             "params": params,
             'status': 'end',
             'desc': 'result after Enterotyping analysis',
@@ -148,11 +148,3 @@ class EnterotypingDb(Base):
             self.bind_object.logger.error("导入sg_enterotyping_detail_summary表格信息出错:{}".format(e))
         else:
             self.bind_object.logger.info("导入sg_enterotyping_detail_summary表格成功")
-
-
-
-
-
-
-
-
