@@ -350,8 +350,8 @@ class PtProcessWorkflow(Workflow):
 
 		if event['data'] == "result_info":
 			self.linkdir(obj.output_dir, self.output_dir)
-			api_main = self.api.sg_paternity_test
-			api_main.add_pt_figure(obj.output_dir)
+			# api_main = self.api.sg_paternity_test
+			# api_main.add_pt_figure(obj.output_dir)
 
 		if event['data'] == "dedup":
 			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
@@ -372,17 +372,19 @@ class PtProcessWorkflow(Workflow):
 		api_main = self.api.sg_paternity_test
 		api_main.add_sg_pt_family(self.option('dad_id'), self.option('mom_id'), self.option('preg_id'),
 		                          self.option('err_min'))
-		api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
+		flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
 		results = os.listdir(self.output_dir)
 		for f in results:
 			if re.search(r'.*family_analysis\.txt$', f):
-				api_main.add_analysis_tab(self.output_dir + '/' + f)
+				api_main.add_analysis_tab(self.output_dir + '/' + f, flow_id)
 			if re.search(r'.*family_joined_tab\.txt$', f):
-				api_main.add_sg_pt_family_detail(self.output_dir + '/' + f)
+				api_main.add_sg_pt_family_detail(self.output_dir + '/' + f, flow_id)
 			if re.search(r'.*info_show\.txt$', f):
-				api_main.add_info_detail(self.output_dir + '/' + f)
+				api_main.add_info_detail(self.output_dir + '/' + f, flow_id)
 			if re.search(r'.*test_pos\.txt$', f):
-				api_main.add_test_pos(self.output_dir + '/' + f)
+				api_main.add_test_pos(self.output_dir + '/' + f, flow_id)
+			if f == "family.png":
+				api_main.add_pt_figure(self.output_dir, flow_id)
 
 
 		super(PtProcessWorkflow,self).end()
