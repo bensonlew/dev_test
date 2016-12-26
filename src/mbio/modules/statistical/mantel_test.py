@@ -63,10 +63,11 @@ class MantelTestModule(Module):
             raise OptionError('必须提供环境因子表')
         else:
             self.option('factor').get_info()
-            partial_factors = self.option('partial_factor').split(',')
-            for f in partial_factors:
-                if f not in self.option('factor').prop['group_scheme']:
-                    raise OptionError('该因子不存在于环境因子表：%s' %f)
+            if self.option("partial_factor"):
+                partial_factors = self.option('partial_factor').split(',')
+                for f in partial_factors:
+                    if f not in self.option('factor').prop['group_scheme']:
+                        raise OptionError('该因子不存在于环境因子表：%s' %f)
             if self.option('factorselected'):
                 factors = self.option('factorselected').split(',')
                 for f in factors:
@@ -78,10 +79,11 @@ class MantelTestModule(Module):
             raise OptionError('otu距离矩阵计算方法不正确')
         if self.option("factormatrixtype") not in MantelTestModule.MATRIXFACTOR:
             raise OptionError('环境因子距离矩阵计算方法不正确')
-        if self.option("otumatrixtype") in ["unweighted_unifrac", "weighted_unifrac"]:
+        if "unifrac" in self.option("otumatrixtype"):
             if not self.option("newicktree").is_set:
-                raise OptionError("必须提供物种进化树")
-        self.option("newicktree").get_info()
+                raise OptionError("unifrac方法必须提供newicktree")
+        if self.option("newicktree").is_set:
+            self.option("newicktree").get_info()
 
     def otudistance_run(self):
         options = {

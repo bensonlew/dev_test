@@ -105,8 +105,8 @@ class VarscanTool(Tool):
         if self.option("bed").is_set:
             snp_stat(self.work_dir+'/pileup2snp.o', self.option("bed").prop["path"])
             os.link(self.work_dir + "/snp.xls", self.output_dir + "/snp.xls")
-            os.link(self.work_dir + "/snp_type_stat.xls", self.output_dir + "/snp_type_stat.xls")
-            os.link(self.work_dir + "/snp_position_stat.xls", self.output_dir + "/snp_position_stat.xls")
+            os.link(self.work_dir + "/snp.type.stat.xls", self.output_dir + "/snp.type.stat.xls")
+            os.link(self.work_dir + "/snp.position.stat.xls", self.output_dir + "/snp.position.stat.xls")
         else:
             os.link(self.work_dir+'/pileup2snp.o', self.output_dir+'/pileup_out.xls')
         self.logger.info("done")

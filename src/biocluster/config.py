@@ -86,6 +86,7 @@ class Config(object):
 
         # Mongo
         self.MONGO_URI = self.rcf.get("MONGO", "uri")
+        self.MONGO_BIO_URI = self.rcf.get("MONGO", "bio_uri")
         self._mongo_client = None
         self.MONGODB = self.rcf.get("MONGO", "mongodb")
 

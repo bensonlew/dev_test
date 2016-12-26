@@ -20,7 +20,7 @@ class RandomforestAgent(Agent):
         super(RandomforestAgent, self).__init__(parent)
         options = [
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
-            {"name": "level", "type": "string", "default": "otu"},
+            {"name": "level", "type": "int", "default": 9},
             {"name": "grouptable", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "ntree", "type": "int", "default": 500 },
             {"name": "problem_type", "type": "int", "default": 2 },
@@ -48,7 +48,7 @@ class RandomforestAgent(Agent):
             return self.option('otutable').get_table(self.option('level'))
         else:
             return self.option('otutable').prop['path']
-        
+
     def check_options(self):
         """
         重写参数检查
@@ -75,16 +75,17 @@ class RandomforestAgent(Agent):
         if len(table.readlines()) < 4 :
             raise OptionError('数据表信息少于3行')
         table.close()
+        #self.option(32767, self.option('otutable').prop['otu_num'])
         self.option('top_number', self.option('otutable').prop['otu_num'])
         return True
-    
+
     def set_resource(self):
         """
         设置所需资源
         """
         self._cpu = 2
         self._memory = ''
-    
+
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
@@ -100,16 +101,17 @@ class RandomforestAgent(Agent):
         print self.get_upload_files()
         super(RandomforestAgent, self).end()
 
-        
+
 class RandomforestTool(Tool):
     def __init__(self, config):
         super(RandomforestTool, self).__init__(config)
         self._version = '1.0.1'
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
         self.cmd_path = self.config.SOFTWARE_DIR + '/bioinfo/meta/scripts/RandomForest_perl.pl'
         if self.option('grouptable').is_set:
             self.group_table = self.option('grouptable').prop['path']
         self.otu_table = self.get_otu_table()
-    
+
     def get_otu_table(self):
         """
         根据调用的level参数重构otu表
@@ -120,14 +122,15 @@ class RandomforestTool(Tool):
         else:
             otu_path = self.option('otutable').prop['path']
         return otu_path
-   
+
+
     def run(self):
         """
         运行
         """
         super(RandomforestTool, self).run()
         self.run_RandomForest_perl()
-    
+
     def formattable(self, tablepath):
         with open(tablepath) as table:
             if table.read(1) == '#':
@@ -136,7 +139,7 @@ class RandomforestTool(Tool):
                     w.write(table.read())
                 return newtable
         return tablepath
-    
+
     def run_RandomForest_perl(self):
         """
         运行RandomForest.pl
@@ -148,9 +151,10 @@ class RandomforestTool(Tool):
             cmd += ' -g %s -m %s' % (self.group_table, self.group_table)
         cmd += ' -ntree %s' % (str(self.option('ntree')))
         cmd += ' -type %s' % (str(self.option('problem_type')))
-        cmd += ' -top %s' % (str(self.option('top_number')))
+        #cmd += ' -top %s' % (str(self.option('top_number')))
+        #cmd += ' -top 32767
         self.logger.info('运行RandomForest_perl.pl程序进行RandomForest计算')
-        
+
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info('生成 cmd.r 文件成功')
@@ -158,14 +162,14 @@ class RandomforestTool(Tool):
             self.logger.info('生成 cmd.r 文件失败')
             self.set_error('无法生成 cmd.r 文件')
         try:
-            subprocess.check_output(self.config.SOFTWARE_DIR + 
+            subprocess.check_output(self.config.SOFTWARE_DIR +
                                     '/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % (self.work_dir + '/RandomForest'), shell=True)
             self.logger.info('RandomForest计算成功')
         except subprocess.CalledProcessError:
             self.logger.info('RandomForest计算失败')
             self.set_error('R运行计算RandomForest失败')
         self.logger.info('运行RandomForest_perl.pl程序进行RandomForest计算完成')
-        allfiles = self.get_filesname()        
+        allfiles = self.get_filesname()
         self.linkfile(self.work_dir + '/RandomForest/' + allfiles[1], 'randomforest_mds_sites.xls')
         self.linkfile(self.work_dir + '/RandomForest/' + allfiles[2], 'randomforest_proximity_table.xls')
         self.linkfile(self.work_dir + '/RandomForest/' + allfiles[3], 'randomforest_topx_vimp.xls')
@@ -177,7 +181,7 @@ class RandomforestTool(Tool):
         else:
             self.set_error('按分组计算的文件生成出错')
         self.end()
-        
+
     def linkfile(self, oldfile, newname):
         """
         link文件到output文件夹
@@ -229,10 +233,9 @@ class RandomforestTool(Tool):
             with open(oldfile, "w") as tmp_file:
                 tmp_file.write("Sample\t")
                 for s in data:
-                    tmp_file.write(s)            
+                    tmp_file.write(s)
 
         os.link(oldfile, newpath)
-  
 
     def get_filesname(self):
         filelist = os.listdir(self.work_dir + '/RandomForest')
@@ -258,8 +261,7 @@ class RandomforestTool(Tool):
                 randomforest_predicted_answer_file = name
             elif 'randomforest_votes_probably.xls' in name:
                 randomforest_votes_probably_file = name
-        if (randomforest_mds_sites_file and randomforest_proximity_table_file and 
-            randomforest_topx_vimp_file and randomforest_vimp_table_file):
+        if (randomforest_mds_sites_file and randomforest_proximity_table_file and randomforest_topx_vimp_file and randomforest_vimp_table_file):
             if self.option('grouptable').is_set:
                 if not randomforest_confusion_table_file:
                     self.set_error('未知原因，样本分组模拟结果丢失或未生成')
@@ -273,4 +275,3 @@ class RandomforestTool(Tool):
                     randomforest_votes_probably_file]
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')
-

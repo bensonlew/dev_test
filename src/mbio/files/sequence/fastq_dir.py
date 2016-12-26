@@ -57,7 +57,7 @@ class FastqDirFile(Directory):
         self.get_info()
         self.make_work_dir(work_path)
         self.unzip_fastq()
-        self.set_property("unzip_fastqs", self.unzip_file)
+        self.set_property("unzip_fastqs", list(set(self.unzip_file)))
 
     def get_fastq_number(self):
         """
@@ -151,15 +151,17 @@ class FastqDirFile(Directory):
             for fastq in self.prop["fastq_basename"]:
                 fastq = os.path.join(self.prop['path'], fastq)
                 if re.search(r'\.(fastq|fq)\.gz', fastq):
-                    ungz_name = re.search(r'(.+)\.(fastq|fq)\.gz$').group(1)
+                    ungz_name = re.search(r'(.+)\.(fastq|fq)\.gz$', fastq).group(1)
                     new_fastq = os.path.join(self.work_dir, ungz_name + ".fastq")
                     try:
                         subprocess.check_call('gunzip -c ' + fastq + " > " + new_fastq, shell=True)
-                        self.unzip_file.append(new_fastq)
+                        if new_fastq not in self.unzip_file:
+                            self.unzip_file.append(new_fastq)
                     except subprocess.CalledProcessError:
                         raise Exception("解压缩文件失败!")
                 else:
-                    self.unzip_file.append(fastq)
+                    if fastq not in self.unzip_file:
+                        self.unzip_file.append(fastq)
             self.has_unziped = True
 
     def check(self):

@@ -12,12 +12,14 @@ from mainapp.libs.jsonencode import CJsonEncoder
 import xml.etree.ElementTree as ET
 from mainapp.config.db import get_use_api_clients, get_api_type, get_mongo_client
 import datetime
+import re
 
 
 class Pipeline(object):
     def __init__(self):
         self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+        self.db_name = None
+        # self.db = self.client[Config().MONGODB]
 
     def GET(self):
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../views/'))
@@ -34,6 +36,29 @@ class Pipeline(object):
             json_obj = self.sanger_submit()
             json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
             json_obj["IMPORT_REPORT_AFTER_END"] = True
+            """
+                样本检测新
+                """
+            try:
+                if json_obj["name"] == "meta.meta_base":
+                    if json_obj["options"]["file_list"] != "null":
+                        self.db_name = Config().MONGODB
+                        self.db = self.client[self.db_name]
+                        collection = self.db["sg_seq_sample"]
+                        id1 = re.sub("sanger", "tsanger", json_obj["id"])
+                        id2 = re.sub("i-sanger", "tsanger", json_obj["id"])
+                        result = collection.find_one({"task_id": id1})
+                        if result:
+                            json_obj["options"]["workdir_sample"] = str(result["workdir_sample"])
+                        else:
+                            result = collection.find_one({"task_id": id2})
+                            if result:
+                                json_obj["options"]["workdir_sample"] = str(result["workdir_sample"])
+                            else:
+                                json_obj["options"]["file_list"] = "null"
+            except:
+                info = {"success": False, "info": "样本检测部分出错!"}
+                return json.dumps(info)
         else:
             json_obj = self.json_submit()
         json_obj["USE_DB"] = True   # 使用数据库
@@ -69,6 +94,14 @@ class Pipeline(object):
                     "project_sn": json_obj['project_sn'],
                     "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
+                # add by qiuping 20162019,set the database with diff base
+                if json_obj["name"] == 'meta.meta_base':
+                    self.db_name = Config().MONGODB
+                if json_obj["name"] == 'denovo.denovo_base':
+                    self.db_name = Config().MONGODB + '_rna'
+                    task_info['params'] = json_obj['options']
+                # end by qiuping
+                self.db = self.client[self.db_name]
                 collection = self.db["sg_task"]
                 collection.insert_one(task_info)
             return json.dumps(info)

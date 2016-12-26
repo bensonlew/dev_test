@@ -46,10 +46,12 @@ class MetaBaseWorkflow(Workflow):
             {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "group", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
-            {"name": "plsda_grouplab", "type": 'string', "default": ''}
+            {"name": "plsda_grouplab", "type": 'string', "default": ''},
+            {"name": "file_list", "type": "string", "default": "null"}  # 待定的文件检测模块参数，暂时不使用
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
+        self.sample_check = self.add_tool("meta.sample_check")
         self.filecheck = self.add_tool("meta.filecheck.file_metabase")
         self.qc = self.add_module("meta.qc.miseq_qc")
         self.otu = self.add_tool("meta.otu.usearch_otu")
@@ -85,12 +87,29 @@ class MetaBaseWorkflow(Workflow):
                                                'silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
-                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX']:
+                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX','fgr/mrcA',
+                                               'maarjam081/AM','Human_HOMD',
+                                               'silva128/16s_archaea','silva128/16s_bacteria',
+                                               'silva128/18s_eukaryota','silva128/16s']:    #王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
         return True
 
+    def run_samplecheck(self):
+        opts = {"in_fastq": self.option("in_fastq"),
+                "file_list": self.option("file_list")       
+        }
+        self.sample_check.set_options(opts)
+        self.sample_check.run()
+
     def run_filecheck(self):
-        opts = {"in_fastq": self.option("in_fastq")}
+        # opts = {"in_fastq": self.option("in_fastq")}
+        if self.option("file_list") == "null":
+            opts = {"in_fastq": self.option("in_fastq")}
+        else:
+            if self.option("in_fastq").format == "sequence.fastq":
+                opts = {"in_fastq": self.sample_check.option("in_fastq_modified")}
+            else:
+                opts = {"in_fastq": self.sample_check.option("fastq_dir_modified")}
         if self.option("database") == "custom_mode":
             opts.update({
                 "ref_fasta": self.option("ref_fasta"),
@@ -109,9 +128,14 @@ class MetaBaseWorkflow(Workflow):
         self.filecheck.run()
 
     def run_qc(self):
-        self.qc.set_options({
-            "in_fastq": self.option("in_fastq")
-        })
+        if self.option("file_list") == "null":
+            opts = {"in_fastq": self.option("in_fastq")}
+        else:
+            if self.option("in_fastq").format == "sequence.fastq":
+                opts = {"in_fastq": self.sample_check.option("in_fastq_modified")}
+            else:                       
+                opts = {"in_fastq": self.sample_check.option("fastq_dir_modified")}
+        self.qc.set_options(opts)
         self.qc.on("end", self.set_output, "qc")
         self.qc.run()
 
@@ -152,6 +176,11 @@ class MetaBaseWorkflow(Workflow):
         self.tax.run()
 
     def run_stat(self):
+        if len(open(self.qc.output_dir + "/samples_info/samples_info.txt").readlines()) < 3:
+            self.on_rely([self.alpha, self.beta], self.end)
+        else:
+            self.stat.on('end', self.run_pan_core)
+            self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         self.stat.set_options({
             "in_otu_table": self.otu.option("otu_table"),
             "taxon_file": self.tax.option("taxon_file")
@@ -174,6 +203,8 @@ class MetaBaseWorkflow(Workflow):
         self.alpha.run()
 
     def run_beta(self):
+        if len(open(self.stat.option("otu_taxon_dir").get_table("otu")).readline().split('\t')) < 4: # 只有两个样本
+            self.option('beta_analysis', '')
         opts = {
             'analysis': 'distance,' + self.option('beta_analysis'),
             'dis_method': self.option('dis_method'),
@@ -426,15 +457,20 @@ class MetaBaseWorkflow(Workflow):
 
     def run(self):
         self.filecheck.on('end', self.run_qc)
-        self.run_filecheck()
+        self.sample_check.on('end',self.run_filecheck)
         self.qc.on('end', self.run_otu)
         self.otu.on('end', self.run_taxon)
         self.otu.on('end', self.run_phylotree)
         self.on_rely([self.tax, self.phylo], self.run_stat)
         self.stat.on('end', self.run_alpha)
         self.stat.on('end', self.run_beta)
-        self.stat.on('end', self.run_pan_core)
-        self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
+        # self.stat.on('end', self.run_pan_core)
+        # self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
+        if self.option("file_list") == "null":
+            self.run_filecheck()
+        else:
+            self.run_samplecheck()
+        # self.run_filecheck()
         super(MetaBaseWorkflow, self).run()
 
     def send_files(self):
@@ -450,7 +486,8 @@ class MetaBaseWorkflow(Workflow):
             ["OtuTaxon_summary", "", "OTU物种分类综合统计目录"],
             ["OtuTaxon_summary/otu_taxon.biom", "meta.otu.biom", "OTU的biom格式文件"],
             ["OtuTaxon_summary/otu_taxon.xls", "meta.otu.otu_table", "OTU物种分类统计表"],
-            ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"],
+            ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录(absolute)"],
+            ["OtuTaxon_summary/tax_summary", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"],  # add by zhouxuan 20161129
             ["Alpha_diversity", "", "Alpha diversity文件目录"],
             ["Alpha_diversity/estimators.xls", "xls", "Alpha多样性指数表"],
             ["Beta_diversity", "", "Beta diversity文件目录"],
@@ -505,9 +542,12 @@ class MetaBaseWorkflow(Workflow):
             ["Otu/otu_phylo.tre", "graph.newick_tree", "OTU代表序列进化树"],
             ["QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "txt", "单个样本碱基质量统计文件"],
             ["QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "txt", "序列长度分布统计文件"],
-            ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
-            ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "单级物种分类统计表"],
-            ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
+            ["OtuTaxon_summary/tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件(absolute)"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.xls$", "meta.otu.biom", "单级物种分类统计表(absolute)"],
+            ["OtuTaxon_summary/tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表(absolute)"],
+            ["OtuTaxon_summary/tax_summary/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],  # add by zhouxuan (3 line) 20161129
+            ["OtuTaxon_summary/tax_summary/.+\.xls$", "meta.otu.biom", "单级物种分类统计表"],
+            ["OtuTaxon_summary/tax_summary/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
         ]
         for i in self.option("rarefy_indices").split(","):
             if i == "sobs":

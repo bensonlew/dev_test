@@ -1,7 +1,11 @@
 ##############loadings file#########################
 otu_table <- read.table("${otu_file}",comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
+otu_table_temp <- read.table("${otu_file}",comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE, colClasses = c("character"))
+rownames(otu_table) <- row.names(otu_table_temp)
 otu_table <- t(otu_table)
 env_factor <- read.table("${env_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE)
+env_factor_temp <- read.table("${env_file}", comment.char = "",sep = "\t",row.names=1, header = TRUE, check.names=FALSE, colClasses = c("character"))
+rownames(env_factor) <- row.names(env_factor_temp)
 ##############format table##########################
 inter_samples <- sort(intersect(rownames(env_factor), rownames(otu_table)))
 env_temp <- env_factor[inter_samples, ]
@@ -26,7 +30,17 @@ if (is.data.frame(otu_temp)){
 ############calculate plsda##########################
 library(mixOmics)
 num <- length(unique(env_factor$${group_name}))
-plsda_otu <- plsda(otu_table,env_factor$${group_name},ncomp=num,near.zero.var=T)
+normal_run <- function(){
+    print('start run plsda with maximal and near zero.');
+    plsda_otu <<- plsda(otu_table,env_factor$${group_name},ncomp=num,near.zero.var=T)
+}
+error_run <- function(e=''){
+    print('ERROR:');
+    print(e);
+    print('restart run plsda without maximal and near zero.');
+    plsda_otu <<- plsda(otu_table,env_factor$${group_name})
+}
+tryCatch(normal_run(), error=function(e){error_run(e)})
 plsda_sites<-plsda_otu$variates$X
 plsda_rotat<-plsda_otu$loadings$X
 plsda_impo<-plsda_otu$loadings$Y

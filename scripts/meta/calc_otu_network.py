@@ -76,10 +76,22 @@ with open(os.path.join(outFile, 'network_degree.txt'), "w") as tmp_file:
 
 data = open(os.path.join(outFile, 'real_node_table.txt')).readlines()
 with open(os.path.join(outFile, 'real_node_table.txt'), "w") as tmp_file:
-    for i in range(len(data)):
-        for s in data[i].strip().split()[:-1]:
-            tmp_file.write(s+'\t')
-        tmp_file.write('\n')
+    #hongdong.xuan 修改于2016.11.30，解决了节点表中otu节点没有weighted_degree的问题
+    for i in range(0,len(data)):
+        tmp1 = data[i].strip().split("\t")
+        tmp_file.write(tmp1[0] + "\t" + tmp1[1] + "\t" + tmp1[2] + "\t" + tmp1[3] + "\t" + tmp1[4] + "\n")
+    # for i in range(len(data)):
+    #     for s in data[i].strip().split()[:-1]:
+    #         tmp_file.write(s+'\t')
+    #     tmp_file.write('\n')
+data = open(os.path.join(outFile, 'real_edge_table.txt')).readlines()
+with open(os.path.join(outFile, 'real_edge_table.txt'), "w") as tmp_file:
+    tmp_file.write(data[0].strip().split()[0]+"\t")
+    tmp_file.write(data[0].strip().split()[1]+"\t")
+    tmp_file.write(data[0].strip().split()[2]+"\n")
+    for i in range(1,len(data)):
+        tmp_file.write(data[i].strip()+"\n")
+
 
 """
 根据node表建立{节点名字---节点编号}的字典
@@ -176,7 +188,7 @@ for i in range(position):
 """
 
 """3计算属性表，分本3"""
-
+#hongdong.xuan 修改于2016121
 #节点度中心系数，表示节点在图中的重要性
 Degree_Centrality = networkx.degree_centrality(G)
 #节点距离中心系数，值越大表示到其他节点距离越近，中心性越高
@@ -186,7 +198,9 @@ Betweenness_Centrality = networkx.betweenness_centrality(G)
 with open(os.path.join(args["output"], "network_centrality.txt"), "w") as tmp_file:
     tmp_file.write("Node_ID\tNode_Name\tDegree_Centrality\t")
     tmp_file.write("Closeness_Centrality\tBetweenness_Centrality\n")
-    for i in range(1, len(G)+1):
+    keys = Degree_Centrality.keys()
+    #for i in range(1, len(G)+1):
+    for i in keys:
         tmp_file.write(str(i)+"\t"+node_name[i]+"\t")
         tmp_file.write(str(Degree_Centrality[i])+"\t")
         tmp_file.write(str(Closeness_Centrality[i])+"\t")
