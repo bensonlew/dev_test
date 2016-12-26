@@ -2,7 +2,7 @@
 # __author__ = 'moli.zhou'
 import datetime
 from biocluster.api.database.base import Base, report_check
-import os
+import re
 from biocluster.config import Config
 from pymongo import MongoClient
 import gridfs
@@ -19,10 +19,14 @@ class SgPaternityTest(Base):
 
 	@report_check
 	def add_sg_pt_family(self,dad,mom,preg, err):
+		family_no = re.search("WQ([1-9].*)-F", dad)
 		insert_data = {
 			"project_sn": self.bind_object.sheet.project_sn,
 			"task_id": self.bind_object.id,
-			"name": dad + '_' + mom + '_' + preg,
+			"name": family_no.group(1),
+			"dad_id": dad,
+			"mom_id": mom,
+			"preg_id": preg,
 			"err_min": err,
 			"status": "end",
 			"created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -53,9 +57,10 @@ class SgPaternityTest(Base):
 			self.bind_object.logger.error('导入任务主表出错：{}'.format(e))
 		else:
 			self.bind_object.logger.info("导入任务主表成功")
+		return flow_id
 
 	@report_check
-	def add_sg_pt_family_detail(self,file_path):
+	def add_sg_pt_family_detail(self,file_path,flow_id):
 		self.bind_object.logger.info("开始导入调试表")
 		sg_pt_family_detail = list()
 		with open(file_path, 'r') as f:
@@ -66,6 +71,7 @@ class SgPaternityTest(Base):
 					continue
 				insert_data = {
 					"task_id": self.bind_object.id,
+					"flow_id": flow_id,
 					"chrom": line[0],
 					"pos":line[1],
 					"dad_id": line[2],
@@ -125,7 +131,7 @@ class SgPaternityTest(Base):
 			else:
 				self.bind_object.logger.info("导入调试表格成功")
 
-	def add_pt_figure(self, output_dir):
+	def add_pt_figure(self, output_dir,flow_id):
 		self.bind_object.logger.info("图片开始导入数据库")
 		fs = gridfs.GridFS(self.database)
 		family_fig = fs.put(open(output_dir + '/family.png', 'r'))
@@ -134,6 +140,7 @@ class SgPaternityTest(Base):
 		preg_percent = fs.put(open(output_dir + '/preg_percent.png', 'r'))
 		update_data = {
 			"task_id": self.bind_object.id,
+			"flow_id": flow_id,
 			'family_fig': family_fig,
 			'figure1': figure1,
 			'figure2': figure2,
@@ -142,7 +149,7 @@ class SgPaternityTest(Base):
 		collection = self.database["sg_pt_family_figure"]
 		collection.insert_one({'set': update_data})
 
-	def add_analysis_tab(self, file_path):
+	def add_analysis_tab(self, file_path,flow_id):
 		self.bind_object.logger.info("开始导入分析结果表")
 		sg_pt_family_detail = list()
 		with open(file_path, 'r') as f:
@@ -153,6 +160,7 @@ class SgPaternityTest(Base):
 					continue
 				insert_data = {
 					"task_id": self.bind_object.id,
+					"flow_id": flow_id,
 					"dad_id": line[0],
 					"test_pos_n": line[1],
 					"err_pos_n": line[2],
@@ -172,7 +180,7 @@ class SgPaternityTest(Base):
 			else:
 				self.bind_object.logger.info("导入分析结果表格成功")
 
-	def add_info_detail(self, file_path):
+	def add_info_detail(self, file_path,flow_id):
 		self.bind_object.logger.info("开始导入信息分析表")
 		sg_pt_family_detail = list()
 		with open(file_path, 'r') as f:
@@ -183,6 +191,7 @@ class SgPaternityTest(Base):
 					continue
 				insert_data = {
 					"task_id": self.bind_object.id,
+					"flow_id": flow_id,
 					"preg_id": line[0],
 					"dp_preg": line[1],
 					"percent": line[2],
@@ -201,7 +210,7 @@ class SgPaternityTest(Base):
 			else:
 				self.bind_object.logger.info("导入分析结果表格成功")
 
-	def add_test_pos(self, file_path):
+	def add_test_pos(self, file_path, flow_id):
 		self.bind_object.logger.info("开始导入位点信息表")
 		sg_pt_family_detail = list()
 		with open(file_path, 'r') as f:
@@ -212,6 +221,7 @@ class SgPaternityTest(Base):
 					continue
 				insert_data = {
 					"task_id": self.bind_object.id,
+					"flow_id": flow_id,
 					"test_no": line[0],
 					"chrom": line[1],
 					"dad_geno": line[2],
