@@ -39,8 +39,9 @@ class EnterotypingDb(Base):
             # 'task_id': "ss",
             "project_sn": project_sn,
             'task_id': self.task_id,
-            'from_id': str(from_otu_table),
-            'name': self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else name,
+            # 'otu_id': "ObjectId(\"" + str(from_otu_table) + "\")",
+            'otu_id': from_otu_table,
+            'name': name,
             "params": params,
             'status': 'end',
             'desc': 'result after Enterotyping analysis',
@@ -81,9 +82,9 @@ class EnterotypingDb(Base):
             for f in data:
                 f = f.strip().split("\t")
                 if len(f) == 3:
-                    data = [("sg_enterotyping_id", id), ("name_id", name), (x, f[0]), (y, f[1]), (detail_name, f[2])]
+                    data = [("enterotyping_id", id), ("name_id", name), (x, f[0]), (y, f[1]), (detail_name, f[2])]
                 else:
-                    data = [("sg_enterotyping_id", id), ("name_id", name), (x, f[0]), (y, f[1])]
+                    data = [("enterotyping_id", id), ("name_id", name), (x, f[0]), (y, f[1])]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
@@ -107,7 +108,7 @@ class EnterotypingDb(Base):
                 sample_num = line[1:]
                 classify_list = re.split(r"\s*;\s*", line[0])
                 otu_detail = dict()
-                otu_detail['sg_enterotyping_id'] = id
+                otu_detail['enterotyping_id'] = id
                 otu_detail['name_id'] = name
                 for cf in classify_list:
                     if cf != "":
@@ -136,7 +137,7 @@ class EnterotypingDb(Base):
                 sample_num = line[1:]
                 otu_detail = dict()
                 otu_detail['enterotyping_group'] = line[0]
-                otu_detail['sg_enterotyping_id'] = id
+                otu_detail['enterotyping_id'] = id
                 otu_detail['name_id'] = name
                 for i in range(0, len(sample_num)):
                     otu_detail[new_head[i]] = sample_num[i]
@@ -148,3 +149,11 @@ class EnterotypingDb(Base):
             self.bind_object.logger.error("导入sg_enterotyping_detail_summary表格信息出错:{}".format(e))
         else:
             self.bind_object.logger.info("导入sg_enterotyping_detail_summary表格成功")
+
+
+
+
+
+
+
+
