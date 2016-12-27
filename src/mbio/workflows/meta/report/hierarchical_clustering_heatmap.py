@@ -5,6 +5,7 @@
 import os
 import json
 import datetime
+import shutil
 import re
 from biocluster.core.exceptions import OptionError
 from biocluster.workflow import Workflow
@@ -44,9 +45,11 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
             raise OptionError('错误的样本层次聚类方式：%s' % self.option('sample_method'))
         if self.option('add_Algorithm') not in ['sum', 'average', 'middle', ""]:
             raise OptionError('错误的样本求和方式：%s' % self.option('add_Algorithm'))
-        if self.option("method") != "" and self.option("species_number") != ("" and "all"):
-            if int(self.option("species_number")) == 1:
-                raise OptionError('物种聚类的个数不能为：%s' % self.option('species_number'))
+        # if (self.option("method") != "" and self.option("species_number") != ("" and "all")):
+        if self.option("method") != "" :
+            if (self.option("species_number") != "" and self.option("species_number") != "all"):
+                if int(self.option("species_number")) == 1:
+                    raise OptionError('物种聚类的个数不能为：%s' % self.option('species_number'))
         # if self.option("sample_method") != "":
         #     print(self.group_table_path)
         #     sample_n = open(self.group_table_path, "r")
@@ -143,7 +146,7 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
         list1.reverse()  # print(list1)
 
         list2 = [] # 放入sum值 为重复做准备
-        if self.option("species_number") != "all" and self.option("species_number") != "":
+        if (self.option("species_number") != "all" and self.option("species_number") != ""):
             species_nu = int(self.option("species_number"))
             if species_nu >= all:
                 new_otu_file_path = self.s2_file_path
@@ -187,7 +190,7 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
                 self.sort_samples.on("end", self.run_sample_matrix)
         else:
             self.sort_samples.on("end", self.run_matrix)
-        self.output_dir = self.sort_samples.output_dir
+        # self.output_dir = self.sort_samples.output_dir
         self.sort_samples.run()
 
     def run_matrix(self):
@@ -287,10 +290,17 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
         self.end()
 
     def end(self):
+        shutil.copy(self.sort_samples.output_dir + "/out_otu.xls", self.output_dir + "/out_otu.xls")
+        if os.path.exists(self.sample_hcluster.output_dir + "/hcluster.tre"):
+            shutil.copy(self.sample_hcluster.output_dir + "/hcluster.tre", self.output_dir + "/sample_hcluster.tre")
+        if os.path.exists(self.hcluster.output_dir + "/hcluster.tre"):
+            shutil.copy(self.hcluster.output_dir + "/hcluster.tre", self.output_dir + "/species_hcluster.tre")
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "HierarchicalClusteringHeatmap分析结果输出目录"],
-            ["./out_otu.xls", "xls", "HierarchicalClusteringHeatmap分析可视化结果数据表"]
+            ["./out_otu.xls", "xls", "HierarchicalClusteringHeatmap分析可视化结果数据表"],
+            ["./sample_hcluster.tre", "tre", "样本聚类树"],
+            ["./species_hcluster.tre", "tre", "物种聚类树"]
         ])
         super(HierarchicalClusteringHeatmapWorkflow, self).end()
 
