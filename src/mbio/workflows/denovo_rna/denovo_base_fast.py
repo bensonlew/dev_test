@@ -34,7 +34,7 @@ class DenovoBaseFastWorkflow(Workflow):
             {"name": "SS_lib_type", "type": "string", "default": 'none'},  # reads的方向，成对的reads: RF or FR; 不成对的reads: F or R，默认情况下，不设置此参数
             {"name": "exp_way", "type": "string", "default": "fpkm"},  # edger离散值
             {"name": "diff_ci", "type": "float", "default": 0.01},  # 显著性水平
-            {"name": "database", "type": "string", "default": 'nr,go,cog,kegg'},  # 默认全部四个注释
+            {"name": "database", "type": "string", "default": 'go,nr,cog,kegg'},  # 默认全部四个注释
             {"name": "nr_blast_evalue", "type": "float", "default": 1e-5},
             {"name": "string_blast_evalue", "type": "float", "default": 1e-5},
             {"name": "kegg_blast_evalue", "type": "float", "default": 1e-5},
@@ -659,81 +659,86 @@ class DenovoBaseFastWorkflow(Workflow):
             self.move2outputdir(obj.output_dir, 'Diff_express')
             # set api
             # set cluster
-            clust_path = self.output_dir + '/Diff_express/cluster/hclust/'
-            clust_files = os.listdir(clust_path)
-            clust_params = {
-                # diff_fpkm: ,
-                'log': 10,
-                'methor': 'hclust',
-                'distance': 'euclidean',
-                'sub_num': 5,
-            }
-            api_clust = self.api.denovo_cluster
-            with open(obj.cluster.work_dir + '/hc_sample_order', 'rb') as s:
-                samples = s.readlines()[0].strip('\n')
-            with open(obj.cluster.work_dir + '/hc_gene_order', 'rb') as s:
-                genes = s.readlines()[0].strip('\n')
-            clust_id = api_clust.add_cluster(params=clust_params, express_id=self.diff_gene_id, sample_tree=clust_path + 'samples_tree.txt', gene_tree=clust_path + 'genes_tree.txt', samples=samples, genes=genes)
-            for f in clust_files:
-                if re.search(r'^subcluster_', f):
-                    sub = f.split('_')[1]
-                    api_clust.add_cluster_detail(clust_id, sub, clust_path + f)
-            # update sg_status
-            self.update_status_api.add_denovo_status(table_id=str(clust_id), type_name='sg_denovo_cluster')
+            if 'cluster' in self.option('exp_analysis'):
+                clust_path = self.output_dir + '/Diff_express/cluster/hclust/'
+                clust_files = os.listdir(clust_path)
+                clust_params = {
+                    # diff_fpkm: ,
+                    'log': 10,
+                    'methor': 'hclust',
+                    'distance': 'euclidean',
+                    'sub_num': 5,
+                }
+                api_clust = self.api.denovo_cluster
+                with open(obj.cluster.work_dir + '/hc_sample_order', 'rb') as s:
+                    samples = s.readlines()[0].strip('\n')
+                with open(obj.cluster.work_dir + '/hc_gene_order', 'rb') as s:
+                    genes = s.readlines()[0].strip('\n')
+                clust_id = api_clust.add_cluster(params=clust_params, express_id=self.diff_gene_id, sample_tree=clust_path + 'samples_tree.txt', gene_tree=clust_path + 'genes_tree.txt', samples=samples, genes=genes)
+                for f in clust_files:
+                    if re.search(r'^subcluster_', f):
+                        sub = f.split('_')[1]
+                        api_clust.add_cluster_detail(clust_id, sub, clust_path + f)
+                # update sg_status
+                self.update_status_api.add_denovo_status(table_id=str(clust_id), type_name='sg_denovo_cluster')
             # set go rich
-            go_rich_api = self.api.denovo_go_enrich
-            go_rich_path = os.path.join(self.output_dir + '/Diff_express/go_rich/')
-            go_rich_dirs = os.listdir(go_rich_path)
-            for d in go_rich_dirs:
-                path1 = go_rich_path + d
-                go_file, png = None, None
-                for f in os.listdir(path1):
-                    if re.match(r'go_enrich', f):
-                        go_file = os.path.join(path1, f)
-                    if re.search(r'png$', f):
-                        png = os.path.join(path1, f)
-                go_id = go_rich_api.add_go_enrich(params=None, go_graph_dir=png, go_enrich_dir=go_file)
-                # update sg_status
-                self.update_status_api.add_denovo_status(table_id=str(go_id), type_name='sg_denovo_go_enrich')
+            if 'go_rich' in self.option('exp_analysis'):
+                go_rich_api = self.api.denovo_go_enrich
+                go_rich_path = os.path.join(self.output_dir + '/Diff_express/go_rich/')
+                go_rich_dirs = os.listdir(go_rich_path)
+                for d in go_rich_dirs:
+                    path1 = go_rich_path + d
+                    go_file, png = None, None
+                    for f in os.listdir(path1):
+                        if re.match(r'go_enrich', f):
+                            go_file = os.path.join(path1, f)
+                        if re.search(r'png$', f):
+                            png = os.path.join(path1, f)
+                    go_id = go_rich_api.add_go_enrich(params=None, go_graph_dir=png, go_enrich_dir=go_file)
+                    # update sg_status
+                    self.update_status_api.add_denovo_status(table_id=str(go_id), type_name='sg_denovo_go_enrich')
             # set go regulate
-            go_regulate_api = self.api.denovo_go_regulate
-            go_regulate_path = os.path.join(self.output_dir + '/Diff_express/go_regulate/')
-            go_regulate_dirs = os.listdir(go_regulate_path)
-            for d in go_regulate_dirs:
-                path2 = go_regulate_path + d
-                go_file, png = None, None
-                f = os.path.join(path2, os.listdir(path2)[0])
-                go_regu_id = go_regulate_api.add_go_regulate(params=None, go_regulate_dir=f)
-                # update sg_status
-                self.update_status_api.add_denovo_status(table_id=str(go_regu_id), type_name='sg_denovo_go_regulate')
+            if 'go_regulate' in self.option('exp_analysis'):
+                go_regulate_api = self.api.denovo_go_regulate
+                go_regulate_path = os.path.join(self.output_dir + '/Diff_express/go_regulate/')
+                go_regulate_dirs = os.listdir(go_regulate_path)
+                for d in go_regulate_dirs:
+                    path2 = go_regulate_path + d
+                    go_file, png = None, None
+                    f = os.path.join(path2, os.listdir(path2)[0])
+                    go_regu_id = go_regulate_api.add_go_regulate(params=None, go_regulate_dir=f)
+                    # update sg_status
+                    self.update_status_api.add_denovo_status(table_id=str(go_regu_id), type_name='sg_denovo_go_regulate')
             # set kegg tich
-            kegg_rich_api = self.api.denovo_kegg_rich
-            kegg_rich_path = os.path.join(self.output_dir + '/Diff_express/kegg_rich/')
-            kegg_rich_dirs = os.listdir(kegg_rich_path)
-            for d in kegg_rich_dirs:
-                path3 = kegg_rich_path + d
-                f = os.path.join(path3, os.listdir(path3)[0])
-                kegg_id = kegg_rich_api.add_kegg_rich(params=None, kegg_enrich_table=f)
-                # update sg_status
-                self.update_status_api.add_denovo_status(table_id=str(kegg_id), type_name='sg_denovo_kegg_enrich')
+            if 'kegg_rich' in self.option('exp_analysis'):
+                kegg_rich_api = self.api.denovo_kegg_rich
+                kegg_rich_path = os.path.join(self.output_dir + '/Diff_express/kegg_rich/')
+                kegg_rich_dirs = os.listdir(kegg_rich_path)
+                for d in kegg_rich_dirs:
+                    path3 = kegg_rich_path + d
+                    f = os.path.join(path3, os.listdir(path3)[0])
+                    kegg_id = kegg_rich_api.add_kegg_rich(params=None, kegg_enrich_table=f)
+                    # update sg_status
+                    self.update_status_api.add_denovo_status(table_id=str(kegg_id), type_name='sg_denovo_kegg_enrich')
             # set kegg regulate
-            kegg_regulate_api = self.api.denovo_kegg_regulate
-            kegg_regulate_path = os.path.join(self.output_dir + '/Diff_express/kegg_regulate/')
-            kegg_regulate_dirs = os.listdir(kegg_regulate_path)
-            for d in kegg_regulate_dirs:
-                path4 = kegg_regulate_path + d
-                stat_path = None
-                for f in os.listdir(path4):
-                    if re.search(r'.xls$', f):
-                        stat_path = os.path.join(path4, f)
-                pathway = path4 + '/pathways/'
-                kegg_regu_id = kegg_regulate_api.add_kegg_regulate(params=None, kegg_regulate_table=stat_path, pathways_dir=pathway)
-                # update sg_status
-                self.update_status_api.add_denovo_status(table_id=str(kegg_regu_id), type_name='sg_denovo_kegg_regulate')
+            if 'kegg_regulate' in self.option('exp_analysis'):
+                kegg_regulate_api = self.api.denovo_kegg_regulate
+                kegg_regulate_path = os.path.join(self.output_dir + '/Diff_express/kegg_regulate/')
+                kegg_regulate_dirs = os.listdir(kegg_regulate_path)
+                for d in kegg_regulate_dirs:
+                    path4 = kegg_regulate_path + d
+                    stat_path = None
+                    for f in os.listdir(path4):
+                        if re.search(r'.xls$', f):
+                            stat_path = os.path.join(path4, f)
+                    pathway = path4 + '/pathways/'
+                    kegg_regu_id = kegg_regulate_api.add_kegg_regulate(params=None, kegg_regulate_table=stat_path, pathways_dir=pathway)
+                    # update sg_status
+                    self.update_status_api.add_denovo_status(table_id=str(kegg_regu_id), type_name='sg_denovo_kegg_regulate')
         if event['data'] == 'annotation':
             self.move2outputdir(obj.output_dir, 'Annotation')
             # set api
-            self.api_anno.add_annotation(anno_stat_dir=obj.output_dir)
+            self.api_anno.add_annotation(anno_stat_dir=obj.output_dir, databases=self.option('database'))
         if event['data'] == 'nrblast':
             self.move2outputdir(obj.output_dir, 'Annotation/nrblast')
             blastfile = self.output_dir + '/Annotation/nrblast/' + os.listdir(self.output_dir + '/Annotation/nrblast/')[0]
@@ -748,6 +753,7 @@ class DenovoBaseFastWorkflow(Workflow):
             self.api_anno.add_blast(blast_pro='blastp', blast_db='string', e_value=self.option('string_blast_evalue'), blast_path=blastfile, gene_list=self.gene_list)
 
     def run(self):
+        self.logger.info('...options:%s' % self._options)
         self.filecheck.on('end', self.run_qc)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
@@ -757,16 +763,24 @@ class DenovoBaseFastWorkflow(Workflow):
         self.exp_stat.on('end', self.run_bam_stat)
         self.orf.on('end', self.run_orf_len)
         self.final_tools.append(self.orf_len)
+        gene_stru = [self.orf_len]
         if self.option('database'):
             self.assemble.on('end', self.run_blast)
             self.final_tools.append(self.annotation)
         if 'ssr' in self.option('gene_analysis'):
             self.orf.on('end', self.run_ssr)
             self.final_tools.append(self.ssr)
+            gene_stru.append(self.ssr)
         if 'snp' in self.option('gene_analysis'):
             self.assemble.on('end', self.run_bwa)
             self.on_rely([self.bwa, self.orf], self.run_snp)
             self.final_tools.append(self.snp)
+            gene_stru.append(self.ssr)
+        self.logger.info('........gene_stru:%s' % gene_stru)
+        if len(gene_stru) == 1:
+            self.on('end', self.set_step, {'end': self.step.gene_structure})
+        else:
+            self.on_rely(gene_stru, self.set_step, {'end': self.step.gene_structure})
         if self.option('exp_analysis'):
             if 'go_rich' or 'kegg_rich' or 'go_regulate' or 'kegg_regulate' in self.option('exp_analysis'):
                 self.on_rely([self.exp_stat, self.annotation], self.run_exp_diff)

@@ -234,13 +234,16 @@ class DenovoBaseWorkflow(Workflow):
     def run_blast(self):
         self.blast_modules = []
         self.gene_list = self.assemble.option('gene_full_name').prop['gene_list']
+        blast_lines = int(self.assemble.option('trinity_fa').prop['seq_number']) / 10
+        self.logger.info('.......blast_lines:%s' % blast_lines)
         blast_opts = {
             'query': self.assemble.option('trinity_fa'),
             'query_type': 'nucl',
             'database': None,
             'blast': 'blastx',
             'evalue': None,
-            'outfmt': 6
+            'outfmt': 6,
+            'lines': blast_lines,
         }
         if 'go' in self.option('database') or 'nr' in self.option('database'):
             self.blast_nr = self.add_module('align.blast')
@@ -477,7 +480,8 @@ class DenovoBaseWorkflow(Workflow):
                 primer_path = None
             ssr_params = {
                 'orf_bed': self.orf_bed,
-                'primer': self.option('primer')
+                'primer': self.option('primer'),
+                'submit_location': 'sg_denovo_ssr'
             }
             ssr_id = api_ssr.add_ssr_table(ssr=ssr_path + '/gene.fasta.misa', ssr_primer=primer_path, ssr_stat=ssr_path + '/gene.fasta.statistics', name=None, params=ssr_params)
             # update sg_status
@@ -514,6 +518,7 @@ class DenovoBaseWorkflow(Workflow):
                     compare_column.append('|'.join(con_exp))
             diff_param = {
                 'ci': self.option('diff_ci'),
+                'submit_location': 'sg_denovo_express_diff'
             }
             if self.option('group_table').is_set:
                 express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, diff_exp_dir=diff_exp_dir)
@@ -526,6 +531,7 @@ class DenovoBaseWorkflow(Workflow):
                 # 'express_diff_id': ,
                 'compare_list': compare_column,
                 'is_sum': True,
+                'submit_location': 'sg_denovo_express'
             }
             self.diff_gene_id = self.api_express.add_express(samples=self.samples, params=param_2, express_diff_id=express_diff_id, major=False)
             self.api_express.add_express_detail(self.diff_gene_id, diff_exp_dir + 'diff_count', diff_exp_dir + 'diff_fpkm', 'gene')
@@ -542,7 +548,7 @@ class DenovoBaseWorkflow(Workflow):
                 clust_path = self.output_dir + '/Diff_express/cluster/hclust/'
                 clust_files = os.listdir(clust_path)
                 clust_params = {
-                    # diff_fpkm: ,
+                    'submit_location': 'sg_denovo_cluster',
                     'log': 10,
                     'methor': 'hclust',
                     'distance': 'euclidean',
@@ -654,7 +660,7 @@ class DenovoBaseWorkflow(Workflow):
             self.assemble.on('end', self.run_bwa)
             self.on_rely([self.bwa, self.orf], self.run_snp)
             self.final_tools.append(self.snp)
-            gene_stru.append(self.ssr)
+            gene_stru.append(self.snp)
         self.logger.info('........gene_stru:%s' % gene_stru)
         if len(gene_stru) == 1:
             self.on('end', self.set_step, {'end': self.step.gene_structure})
