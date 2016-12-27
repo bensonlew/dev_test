@@ -244,7 +244,7 @@ class DenovoAnnoStatTool(Tool):
                         w.write(w_line + '\n')
         get_gene_go(go_result=self.option('blast2go_annot').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_blast2go.annot')
         get_gene_go(go_result=self.option('gos_list').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_gos.list')
-        go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.go_stat_path + '/gene_gos.list', '10.100.203.254', Config().DB_USER, Config().DB_PASSWD)
+        go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.go_stat_path + '/gene_gos.list', 'localhost', Config().DB_USER, Config().DB_PASSWD)
         go_cmd2 = '{} {} {}'.format(self.python_path, self.go_split, self.work_dir + '/go_detail.xls')
         go_annot_cmd = self.add_command('go_annot_cmd', go_cmd1).run()
         self.wait(go_annot_cmd)

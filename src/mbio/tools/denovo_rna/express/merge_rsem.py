@@ -77,6 +77,10 @@ class MergeRsemTool(Tool):
         self.tpm = "/bioinfo/rna/trinityrnaseq-2.2.0/util/abundance_estimates_to_matrix.pl"
         self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
         self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin:$PATH"
+        self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
+        self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
+        self.set_environ(PATH=self.r_path, R_HOME=self._r_home, LD_LIBRARY_PATH=self._LD_LIBRARY_PATH)
         self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
 
     def merge_rsem(self):
