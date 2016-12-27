@@ -17,7 +17,8 @@ class Randomforest(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'ntree_id', 'top_number_id']
+        #params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'ntree_id', 'top_number_id']
+        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id','ntree_id']
         success = []
         print data
         for param in params_name:
@@ -35,29 +36,29 @@ class Randomforest(object):
         my_param['level_id'] = int(data.level_id)
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['submit_location'] = data.submit_location
-        # my_param['task_type'] = data.task_type
+        #my_param['task_type'] = data.task_type
         my_param['group_id'] = data.group_id
-        my_param['ntree_id'] = data.ntree_id
-        my_param['top_number_id'] = data.top_number_id
+        my_param['ntree_id'] = int(data.ntree_id)
+        #my_param['top_number_id'] = data.top_number_id
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "otunetwork_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            name = "randomforest_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_info = Meta().get_task_info(otu_info["task_id"])
             if task_info:
                 member_id = task_info["member_id"]
             else:
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
-            randomforest_id = G().create_randomforest(params=params, group_id=data.group_id, top_number_id=data.top_number_id, ntree_id=data.ntree_id, from_otu_table=data.otu_id, name=name, level_id=data.level_id)
+            randomforest_id = G().create_randomforest(params=params, group_id=data.group_id, ntree_id=data.ntree_id, from_otu_table=data.otu_id, name=name, level_id=data.level_id)
             print "test"
             #print network_id
-            update_info = {str(randomforest_id): "sg_meta_randomforest"}
+            update_info = {str(randomforest_id): "sg_randomforest"}
             update_info = json.dumps(update_info)
             print update_info
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             print workflow_id
-            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], 'randomforest')
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], name)
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
@@ -79,7 +80,7 @@ class Randomforest(object):
                     "level":int(data.level_id),
                     "randomforest_id": str(randomforest_id),
                     "ntree": int(data.ntree_id),
-                    "top_number": int(data.top_number_id)
+                    #"top_number": int(data.top_number_id)
                 }
             }
             print data.level_id
@@ -104,4 +105,3 @@ class Randomforest(object):
         if len(workflow_data) > 0:
             return self.get_new_id(task_id, otu_id)
         return new_id
-

@@ -43,7 +43,7 @@ class MetaSpeciesEnv(Base):
             "task_id": task_id,
             "env_id": env_id,
             "otu_id": otu_id,
-            "name": name if name else origin_name,
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else origin_name,
             "level_id": level,
             "status": "end",
             "desc": "",

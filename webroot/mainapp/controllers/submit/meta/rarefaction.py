@@ -59,8 +59,8 @@ class Rarefaction(object):
             else:
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
-            pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
-                       str(otu_info['task_id']) + "/report_results/"
+            # pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
+                    #    str(otu_info['task_id']) + "/report_results/"
             name = "Rarefaction_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             rare_id = Estimator().add_rare_collection(data.level_id, params, data.otu_id, name)
             # print(rare_id)
@@ -68,7 +68,7 @@ class Rarefaction(object):
             update_info = json.dumps(update_info)
 
             (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info["project_sn"],
-                                                     otu_info['task_id'], "rarefaction")
+                                                     otu_info['task_id'], name)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
             # print(workflow_id)
             json_data = {

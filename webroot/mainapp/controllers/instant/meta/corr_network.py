@@ -38,6 +38,7 @@ class CorrNetwork(MetaController):
             name = "corr_network_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         self.task_name = 'meta.report.corr_network'
         self.task_type = 'workflow'
+        self.main_table_name = 'Corr_Network_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),

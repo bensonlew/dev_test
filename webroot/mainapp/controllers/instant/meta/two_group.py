@@ -2,6 +2,7 @@
 # __author__ = 'qiuping'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.group_stat import GroupStat as G
 from mainapp.libs.param_pack import group_detail_sort
@@ -22,6 +23,7 @@ class TwoGroup(MetaController):
             return json.dumps(info)
         self.task_name = 'meta.report.two_group'
         self.task_type = 'workflow'  # 可以不配置
+        self.main_table_name = 'TwoGroup_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         groupname = json.loads(data.group_detail).keys()
         groupname.sort()
         category_name = ','.join(groupname)

@@ -112,7 +112,7 @@ class Anosim(Base):
                 'task_id': task_id,
                 'otu_id': otu_id,
                 # 'level_id': int(level),
-                'name': name if name else 'anosim_origin',
+                'name': self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else 'anosim_origin',
                 'group_id': group_id,
                 'params': (json.dumps(params, sort_keys=True, separators=(',', ':'))
                            if isinstance(params, dict) else params),

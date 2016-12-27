@@ -4,6 +4,7 @@ import web
 import json
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
+import datetime
 
 
 class Anosim(MetaController):
@@ -50,6 +51,7 @@ class Anosim(MetaController):
 
         self.task_name = 'meta.report.anosim'
         self.task_type = 'workflow'  # 可以不配置
+        self.main_table_name = 'Anosim&anosim_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),

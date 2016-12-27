@@ -2,6 +2,7 @@
 # __author__ = 'shenghe'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import group_detail_sort
 
@@ -25,6 +26,7 @@ class PlotTree(MetaController):
             return json.dumps(info)
         self.task_name = 'meta.report.plot_tree'
         self.task_type = 'workflow'  # 可以不配置
+        self.main_table_name = 'Phylo_Tree_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),

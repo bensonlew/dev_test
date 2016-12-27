@@ -68,7 +68,7 @@ class BetaMultiAnalysis(Base):
                 'task_id': task_id,
                 'otu_id': otu_id,
                 'level_id': int(level),
-                'name': name if name else analysis + '_origin',
+                'name': self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else analysis + '_origin',
                 'table_type': analysis,
                 'env_id': env_id,
                 'group_id': group_id,

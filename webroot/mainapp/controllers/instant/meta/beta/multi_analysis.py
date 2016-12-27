@@ -8,6 +8,7 @@ from mainapp.libs.param_pack import group_detail_sort
 # import bson.errors.InvalidId
 import types
 from mainapp.controllers.project.meta_controller import MetaController
+import datetime
 
 
 class MultiAnalysis(MetaController):
@@ -26,6 +27,7 @@ class MultiAnalysis(MetaController):
                 return json.dumps(info)
         self.task_name = 'meta.report.beta_multi_analysis'
         self.task_type = 'workflow'  # 可以不配置
+        self.main_table_name = data.analysis_type.capitalize() + datetime.datetime.now().strftime("_%Y%m%d_%H%M%S")
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),

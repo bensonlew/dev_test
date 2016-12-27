@@ -40,6 +40,7 @@ from mainapp.controllers.submit.meta.randomforest import Randomforest
 from mainapp.controllers.submit.meta.roc import Roc
 from mainapp.controllers.submit.denovo_rna.ssr import Ssr
 from mainapp.controllers.instant.denovo_rna.venn import Venn
+from mainapp.controllers.report.download_web_pic import DownloadWebPic
 
 # web.config.debug = False
 urls = (
@@ -92,7 +93,9 @@ urls = (
     "/meta/randomforest", "Randomforest",
     "/meta/roc", "Roc",
     "/denovo_rna/ssr", "Ssr",
-    "/denovo_rna/venn", "Venn"
+    "/denovo_rna/venn", "Venn",
+    "/download/report/(png|pdf)", "DownloadWebPic"
+
 )
 
 

@@ -2,6 +2,7 @@
 # __author__ = 'xuting'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort
 
@@ -19,6 +20,7 @@ class ClusterAnalysis(MetaController):
                 info = {'success': False, 'info': '{}参数缺少!'.format(arg)}
                 return json.dumps(info)
         self.task_name = 'meta.report.cluster_analysis'
+        self.main_table_name = 'Cluster_Analysis_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         # if data.method not in ["average", "single", "complete", ""]:
         #     info = {'success': False, "info": "参数method的值为{}，应该为average，single, complete或者是''".format(data.method)}
         # modify by zhouxuan 2016.11.22

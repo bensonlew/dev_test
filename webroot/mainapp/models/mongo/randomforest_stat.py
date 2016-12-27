@@ -14,7 +14,8 @@ class RandomforestStat(object):
         self.db = self.client[Config().MONGODB]
 
 
-    def create_randomforest(self, params, group_id=0, from_otu_table=0, name=None, level_id=0, ntree_id=0, top_number_id=0):
+    #def create_randomforest(self, params, group_id=0, from_otu_table=0, name=None, level_id=0, ntree_id=0, top_number_id=0):
+    def create_randomforest(self, params, group_id=0, from_otu_table=0, name=None, level_id=0, ntree_id=0):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -38,16 +39,17 @@ class RandomforestStat(object):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "otunetwork_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            #"name":"randomforest_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": name if name else "meta_randomforest_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
-            "ntree_id":ntree_id,
-            "level_id": level_id,
+            #"ntree_id":ntree_id,
+            #"level_id": level_id,
             "desc": desc,
-            "top_number_id":top_number_id,
+            #"top_number_id":top_number_id,
             "status": "end",
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        collection = self.db["sg_meta_randomforest"]
+        collection = self.db["sg_randomforest"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 

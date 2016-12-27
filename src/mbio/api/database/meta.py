@@ -39,7 +39,7 @@ class Meta(Base):
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
-                "name": name if name else "otu_taxon_origin",
+                "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "otu_taxon_origin",
                 "from_id": from_out_table,
                 "status": "end",
                 "level_id": json.dumps([9]),

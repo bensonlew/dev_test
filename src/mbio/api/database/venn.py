@@ -48,7 +48,7 @@ class Venn(Base):
             "group_id": group_id,
             "status": "end",
             "desc": desc,
-            "name": name if name else "venn表格",
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "venn表格",
             "params": params,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }

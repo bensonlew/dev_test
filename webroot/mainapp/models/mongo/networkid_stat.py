@@ -22,7 +22,10 @@ class NetworkidStat(object):
                 raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
         if group_id != 0 and not isinstance(group_id, ObjectId):
             if isinstance(group_id, StringTypes):
-                group_id = ObjectId(group_id)
+                if group_id == 'all':
+                    pass
+                else:
+                    group_id = ObjectId(group_id)
             else:
                 raise Exception("group_detail必须为ObjectId对象或其对应的字符串!")
         if int(level_id) not in range(1, 10):
@@ -45,7 +48,7 @@ class NetworkidStat(object):
             "status": "end",
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        collection = self.db["sg_meta_otunetwork"]
+        collection = self.db["sg_network"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
 

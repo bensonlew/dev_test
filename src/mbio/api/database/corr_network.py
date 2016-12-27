@@ -192,7 +192,7 @@ class CorrNetwork(Base):
             data = r.readlines()[1:]
             for line in data:
                 line = line.strip().split("\t")
-                data = [("corr_network_id", table_id), ("node_name", line[0]), ("abundance", eval(line[1]))]
+                data = [("corr_network_id", table_id), ("node_name", line[0]), ("abundance", eval(line[1])), ("phylum", line[2])]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
@@ -229,7 +229,8 @@ class CorrNetwork(Base):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "corrnetwork_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "corrnetwork_" + \
+            datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "level_id": level_id,
             "desc": desc,
@@ -239,4 +240,3 @@ class CorrNetwork(Base):
         collection = self.db["sg_corr_network"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
-

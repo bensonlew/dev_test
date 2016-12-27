@@ -2,6 +2,7 @@
 # __author__ = 'zhouxuan'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort
 
@@ -18,6 +19,7 @@ class HierarchicalClusteringHeatmap(MetaController):
                 info = {'success': False, 'info': '{}参数缺少!'.format(arg)}
                 return json.dumps(info)
         self.task_name = 'meta.report.hierarchical_clustering_heatmap'
+        self.main_table_name = 'Hier_cluster_heatmap_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         if data.method not in ["average", "single", "complete", ""]:
             info = {'success': False, "info": "参数method的值为{}，应该为average，single或者complete".format(data.method)}
 

@@ -2,6 +2,7 @@
 # __author__ = 'qindanhua'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 
 
@@ -34,6 +35,7 @@ class Estimators(MetaController):
                 return json.dumps(info)
         self.task_name = 'meta.report.estimators'
         self.task_type = 'workflow'
+        self.main_table_name = 'Estimators_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.options = {"otu_file": data.otu_id,
                         "otu_id": data.otu_id,
                         "indices": data.index_type,

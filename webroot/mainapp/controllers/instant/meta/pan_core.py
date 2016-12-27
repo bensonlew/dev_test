@@ -2,6 +2,7 @@
 # __author__ = 'xuting'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort
 from mainapp.models.mongo.public.meta.meta import Meta
@@ -19,6 +20,7 @@ class PanCore(MetaController):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
         self.task_name = 'meta.report.pan_core'
+        self.main_table_name = 'Pan_Core_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         # data.group_detail是一个字符串，示例如下
         # {"A":["578da2fba4e1af34596b04ce","578da2fba4e1af34596b04cf","578da2fba4e1af34596b04d0"],"B":["578da2fba4e1af34596b04d1","578da2fba4e1af34596b04d3","578da2fba4e1af34596b04d5"],"C":["578da2fba4e1af34596b04d2","578da2fba4e1af34596b04d4","578da2fba4e1af34596b04d6"]}
         group_detal_dict = json.loads(data.group_detail)
@@ -26,6 +28,9 @@ class PanCore(MetaController):
         for v in group_detal_dict.values():
             for tmp in v:
                 specimen_ids.append(tmp)
+        if len(specimen_ids) < 5:
+            info = {'success': False, 'info': '样本数量少于5个,请选择更多的样本！'}
+            return json.dumps(info)
         specimen_ids = ",".join(specimen_ids)
         self.options = {
             "in_otu_table": data.otu_id,

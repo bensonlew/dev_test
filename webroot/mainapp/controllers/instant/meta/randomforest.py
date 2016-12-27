@@ -2,6 +2,7 @@
 # __author__ = 'zhangpeng'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort
 
@@ -9,7 +10,7 @@ from mainapp.libs.param_pack import param_pack, group_detail_sort
 class Randomforest(MetaController):
     def __init__(self):
         super(Randomforest,self).__init__()
-        
+
     def POST(self):
         return_info = super(Randomforest, self).POST()
         if return_info:
@@ -22,7 +23,7 @@ class Randomforest(MetaController):
                 return json.dumps(info)
         self.task_name = 'meta.report.randomforest'
         self.task_type = 'workflow'
-
+        self.main_table_name = 'Randomforest_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
         params = {
             'otu_id': data.otu_id,
@@ -43,7 +44,7 @@ class Randomforest(MetaController):
                         'group_detail': data.group_detail,
                         'params': params
                         }
-        
+
         self.to_file = ['meta.export_otu_table_by_detail(otutable)', 'meta.export_group_table_by_detail(grouptable)']
 
         self.run()

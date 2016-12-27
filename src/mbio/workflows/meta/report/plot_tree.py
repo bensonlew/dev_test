@@ -71,8 +71,8 @@ class PlotTreeWorkflow(Workflow):
                 split_i = i.strip().split('\t')
                 group[split_i[0]] = split_i[1]
             group_names = list(set(group.values()))
-            group_index = dict(zip(group_names, [[]] * len(group_names)))  # 样本index
-            group_value = dict(zip(group_names, [[]] * len(group_names)))  # 包含样本值列表
+            group_index = dict(zip(group_names, [[] for i in range(len(group_names))]))  # 样本index
+            group_value = dict(zip(group_names, [[] for i in range(len(group_names))]))  # 包含样本值列表
             all_sample = f.readline().rstrip().split('\t')[1:]
             for m, n in enumerate(all_sample):
                 group_index[group[n]].append(m + 1)
@@ -90,6 +90,7 @@ class PlotTreeWorkflow(Workflow):
                 new_line = new_name
                 for group_name in group_names:
                     new_line += '\t' + str(sum(group_value[group_name]))
+                    group_value[group_name] = []
                 w.write(new_line + '\n')
             if out_species_group_file:
                 with open(out_species_group_file, 'w') as w:
@@ -177,6 +178,7 @@ class PlotTreeWorkflow(Workflow):
             if i.name not in self.species:
                 newick_tree.prune(i.name)
                 self.logger.info('移除物种/OTU:{}'.format(i.name))
+            # newick_tree.prune(i)
         Phylo.write(newick_tree, output_file + '.temp2', 'newick')
         temp_tree = open(output_file + '.temp2').read()
 

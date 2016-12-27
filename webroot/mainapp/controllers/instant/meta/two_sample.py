@@ -2,6 +2,7 @@
 # __author__ = 'qiuping'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.group_stat import GroupStat as G
 
@@ -22,6 +23,7 @@ class TwoSample(MetaController):
             return json.dumps(info)
         self.task_name = 'meta.report.two_sample'
         self.task_type = 'workflow'  # 可以不配置
+        self.main_table_name = 'TwoSample_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = int(data.level_id)

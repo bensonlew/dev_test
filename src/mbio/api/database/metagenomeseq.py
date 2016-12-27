@@ -50,9 +50,9 @@ class Metagenomeseq(Base):
         return data_list, table_id
 
 
-        
-        
-    
+
+
+
 
     #@report_check
     def create_metagenomeseq(self, params, group_id=0, from_otu_table=0, name=None, level_id=0):
@@ -79,7 +79,7 @@ class Metagenomeseq(Base):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "metagenomeseq_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "metagenomeseq_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "level_id": level_id,
             "desc": desc,
@@ -89,4 +89,3 @@ class Metagenomeseq(Base):
         collection = self.db["sg_meta_metagenomeseq"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
-

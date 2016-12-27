@@ -22,6 +22,7 @@ if(lendata > 1){
   rownames(otu_data)<-rownames(da)
 }
 samp <- samp[which(samp %in% gsamp)]
+otu_data <- otu_data[apply(otu_data,1,function(x) (length(unique(x[which(samp %in% gsamp1)])) != 1 | length(unique(x[which(samp %in% gsamp2)])) != 1)),]
 result <- matrix(nrow = nrow(otu_data),ncol = 5)
 box_result <- matrix(nrow = nrow(otu_data),ncol = 11)
 pvalue <- 1

@@ -45,10 +45,11 @@ class FunctionPredict(object):
             else:
                 info = {"success": False, "info": "这个otu表对应的task:{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
-            predict_id = FP().add_function_predict(name=None, params=params, otu_id=data.otu_id)
+            name = "16s_function_predict_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            predict_id = FP().add_function_predict(name=name, params=params, otu_id=data.otu_id)
             update_info = {str(predict_id): "sg_16s_function_prediction"}
             update_info = json.dumps(update_info)
-            (output_dir, update_api) = GetUploadInfo(client, member_id, project_sn, task_id, '16s_function_predict')
+            (output_dir, update_api) = GetUploadInfo(client, member_id, project_sn, task_id, name)
             workflow_id = self.get_new_id(task_id, data.otu_id)
             json_data = {
                 "id": workflow_id,

@@ -48,14 +48,10 @@ class Otunetwork(object):
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
             network_id = G().create_otunetwork(params=params, group_id=data.group_id, from_otu_table=data.otu_id, name=name, level_id=data.level_id)
-            print "test"
-            print network_id
-            update_info = {str(network_id): "sg_meta_otunetwork"}
+            update_info = {str(network_id): "sg_network"}
             update_info = json.dumps(update_info)
-            print update_info
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
-            print workflow_id
-            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], 'otunetwork')
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], name)
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
@@ -74,12 +70,12 @@ class Otunetwork(object):
                     "grouptable": data.group_id,
                     "group_detail": data.group_detail,
                     "update_info": update_info,
+                    "group_id": data.group_id,
                     "level": int(data.level_id),
                     "network_id": str(network_id)
                 }
             }
-            print data.level_id
-            print json_data
+
             insert_data = {"client": client,
                            "workflow_id": workflow_id,
                            "json": json.dumps(json_data),
@@ -100,4 +96,3 @@ class Otunetwork(object):
         if len(workflow_data) > 0:
             return self.get_new_id(task_id, otu_id)
         return new_id
-

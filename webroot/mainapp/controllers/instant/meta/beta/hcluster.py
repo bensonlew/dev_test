@@ -2,6 +2,7 @@
 # __author__ = 'shenghe'
 import web
 import json
+import datetime
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
 
@@ -24,6 +25,7 @@ class Hcluster(MetaController):
                 return json.dumps(info)
         self.task_name = 'meta.report.hcluster'
         self.task_type = 'workflow'  # 可以不配置
+        self.main_table_name = 'Hcluster_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
