@@ -130,6 +130,9 @@ class CopyMongo(object):
         self.copy_main_details('sg_phylo_tree_species_categories', 'phylo_tree_id', phylo_tree_id_dict)
         self.copy_main_details('sg_phylo_tree_species_detail', 'phylo_tree_id', phylo_tree_id_dict)
 
+        self.copy_collection_with_change('sg_valid_sequence_info')
+        self.copy_collection_with_change('sg_raw_sequence_info')
+
 
 
 
@@ -137,6 +140,11 @@ class CopyMongo(object):
     def copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False):
         """
         公共模块，一般用于导入主表数据，依靠task_id进行查询，修改change_positions提供的字段，相应修改ID为新的，同时更新params中的数据ID
+
+        params collection: 主表名称
+        params change_positions: 需要替换的ID,
+            可用为specimen_id,group_id,env_id,otu_id,alpha_diversity_id,newick_tree_id,specimen_distance_id
+        params update_sg_status: 更新 sg_status表
         """
         coll = self.db[collection]
         finds = coll.find({'task_id': self._old_task_id})
@@ -254,6 +262,12 @@ class CopyMongo(object):
     def copy_main_details(self, collection, main_field, change_dict, others_position=[]):
         """
         公共模块，一般用于更新detail表，根据提供的主表id字段名，和主表新旧ID字典，进行查找，再复制替换，others_position用于更新主表ID之外其他需要更新的ID
+
+        params collection: detail表名称
+        params main_field: 主表字段名称
+        params change_dict: 主表新旧替换字典，一般来源于 copy_collection_with_change 的返回字典
+        params others_position: detail表中除了主表还需要更新的字段，
+            只能是 specimen_id,group_id,env_id,otu_id,alpha_diversity_id,newick_tree_id,specimen_distance_id
         """
         coll = self.db[collection]
         for old, new in change_dict.items():

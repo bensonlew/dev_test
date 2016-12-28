@@ -11,6 +11,10 @@ from biocluster.api.file.remote import RemoteFileManager
 import random
 import datetime
 from biocluster.config import Config
+import os
+
+
+os.environ['LD_LIBRARY_PATH'] = Config().SOFTWARE_DIR + '/program/Python35/lib:' + os.environ['LD_LIBRARY_PATH']
 
 
 class DownloadWebPic(object):

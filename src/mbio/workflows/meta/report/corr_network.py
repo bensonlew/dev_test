@@ -33,9 +33,11 @@ class CorrNetworkWorkflow(Workflow):
         :param tablepath:
         :return:
         '''
-        newtable = os.path.join(self.work_dir, 'otutable1.xls')
+        newtable = os.path.join(self.work_dir, 'otutable1.xls')   #保存只留最后的物种名字文件
+        newtable4 = os.path.join(self.work_dir, 'species_phylum.txt')  #保存物种与门对应的数据，用于在后面的物种丰度中添加门数据
         x = self.option('abundance')
         f2 = open(newtable, 'w+')
+        f4 = open(newtable4, 'w+')
         with open(tablepath, 'r') as f:
             i = 0
             for line in f:
@@ -46,13 +48,17 @@ class CorrNetworkWorkflow(Workflow):
                     line = line.strip().split('\t')
                     line_data = line[0].strip().split(' ')
                     line_he = "".join(line_data)
-                    line[0] = line_he.strip().split(";")[-1:][0]  # 输出最后一个物种名
+                    tmp1 = line_he.strip().split(";")[-1:][0]  # 输出最后一个物种名
+                    tmp2 = line_he.strip().split(";")[2]  # 输出门分类
+                    line[0] = tmp1
+                    f4.write(tmp1 + '\t' + tmp2 + "\n")
                     for i in range(0, len(line)):
                         if i == len(line) - 1:
                             f2.write("%s\n" % (line[i]))
                         else:
                             f2.write("%s\t" % (line[i]))
         f2.close()
+        f4.close()
         newtable1 = os.path.join(self.work_dir, 'species_abundance.txt')
         newtable3 = os.path.join(self.work_dir, 'otutable2.xls')
         f1 = open(newtable1, 'w+')  # 报存物种与总丰度的对应值，画网络图需要
@@ -73,10 +79,15 @@ class CorrNetworkWorkflow(Workflow):
             new_dict = dict(zip(list_otu, list_sum))
             new_dict1 = sorted(new_dict.iteritems(), key=lambda d: d[1], reverse=True)[0:int(x)]
             list_result_otu = []
-            f1.write("species" + "\t" + "abundance" + "\n")
+            f1.write("species" + "\t" + "abundance" + "\t" + "phylum" + "\n")
             for i in new_dict1:
                 list_result_otu.append(str(i[0]))
-                f1.write(str(i[0]) + "\t" + str(i[1]) + "\n")
+                with open(newtable4, "r") as x:
+                    data = x.readlines()
+                    for line in data:
+                        line = line.strip().split("\t")
+                        if str(line[0]) == str(i[0]):
+                            f1.write(str(i[0]) + "\t" + str(i[1]) + "\t" + str(line[1]) + "\n")
         with open(newtable, "r") as m:
             i = 0
             for line1 in m:
@@ -151,7 +162,7 @@ class CorrNetworkWorkflow(Workflow):
         network_attributes_path = self.output_dir + '/corr_network_calc/corr_network_attributes.txt'
         network_degree_distribution = self.output_dir + '/corr_network_calc/corr_network_degree_distribution.txt'
         if not os.path.isfile(node_links_path):
-            raise Exception("找不到报告文件:{}\n因为没有符合相应条件的边存在，请将相关系数阈值调小点，同时选择足够多的样本数目".format(node_links_path))
+            raise Exception("没有符合相应条件的物种相关关系存在，请将相关系数阈值调小点，或者请选择足够多的样本与物种，或者选择更低的分类水平！")
         if not os.path.isfile(node_abundance_path):
             raise Exception("找不到报告文件:{}".format(node_abundance_path))
         if not os.path.isfile(network_clustering_path):

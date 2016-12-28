@@ -206,13 +206,13 @@ class Workflow(Basic):
         """
         super(Workflow, self).end()
         self.end_unfinish_job()
-        self.rpc_server.close()
         self._upload_result()
         self._import_report_data()
         self.step.finish()
         self.step.update()
         self.logger.info("运行结束!")
         self._update("end")
+        self.rpc_server.close()
 
     def set_return_msg(self, msg):
         """
@@ -280,10 +280,10 @@ class Workflow(Basic):
         else:
             self.step.failed(data)
         self.end_unfinish_job()
-        self.rpc_server.close()
         self.logger.info("程序退出: %s " % data)
         self.step.update()
         self._update("error", "程序主动退出:%s" % data)
+        self.rpc_server.close()
         sys.exit(exitcode)
 
     # def __update_service(self):

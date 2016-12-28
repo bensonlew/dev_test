@@ -31,8 +31,8 @@ class Netshare(RemoteFile):
         :param to_path: 将远程文件下载到本地的路径
         :return:
         """
-        base_name = os.path.basename(self._full_path)
-        target_path = os.path.join(to_path, base_name)
+        # base_name = os.path.basename(self._full_path)
+        # target_path = os.path.join(to_path, base_name)
 
         if not os.path.exists(self._full_path):
             raise Exception("文件路径%s不存存在，请确认网络数据连接正常" % self._full_path)
@@ -45,43 +45,56 @@ class Netshare(RemoteFile):
                 source = os.path.join(self._full_path, my_dict["file_path"])  # modified by sj on 2016.10.26
                 if not os.path.exists(source):
                     raise Exception("文件{}不存在".format(source))
-                target = os.path.join(to_path, my_dict["alias"])
-                base_name1 = os.path.basename(source)
-                target_path1 = os.path.join(target, base_name1)
-                if os.path.exists(target_path1):
-                    os.remove(target_path1)
-                os.symlink(self._full_path, target_path1)
-                # shutil.copy(source, target)
+                if os.path.isdir(source):
+                    target = os.path.join(os.path.join(to_path, my_dict["alias"]), os.path.basename(source))
+                    if os.path.exists(target):
+                        if os.path.islink(target):
+                            os.remove(target)
+                        elif os.path.isdir(target):
+                            shutil.rmtree(target)
+                        else:
+                            os.remove(target)
+                    shutil.copytree(source, target, symlinks=True)
+                else:
+                    target = os.path.join(to_path, my_dict["alias"])
+                    if not os.path.exists(target):
+                        os.mkdir(target)
+                    shutil.copy(source, target)
                 return to_path
         else:
+            target_path = os.path.join(to_path, os.path.basename(self._full_path))
             if os.path.exists(target_path):
-                os.remove(target_path)
-            os.symlink(self._full_path, target_path)
-            # shutil.copy(self._full_path, to_path)
+                if os.path.islink(target_path):
+                    os.remove(target_path)
+                elif os.path.isdir(target_path):
+                    shutil.rmtree(target_path)
+                else:
+                    os.remove(target_path)
+            if os.path.isdir(self._full_path):
+                shutil.copytree(self._full_path, target_path, symlinks=False)
+            else:
+                shutil.copy(self._full_path, to_path)
             return target_path
 
     def upload(self, from_path):
         if not os.path.exists(from_path):
             raise Exception("源文件%s不存存在" % from_path)
+        basename = os.path.basename(from_path)
+        target = os.path.join(self._full_path, basename)
+        if os.path.exists(target):
+            if os.path.islink(target):
+                os.remove(target)
+            elif os.path.isdir(target):
+                shutil.rmtree(target)
+            else:
+                os.remove(target)
         if not os.path.exists(self._full_path):
             os.makedirs(self._full_path)
         if os.path.isfile(from_path):
             shutil.copy(from_path, self._full_path)
-            return os.path.join(self._full_path, os.path.basename(from_path))
+            return target
         if os.path.isdir(from_path):
-            basename = os.path.basename(from_path)
-            target = os.path.join(self._full_path, basename)
-            if os.path.exists(target):
-                flag = 1
-                while flag:
-                    try:
-                        shutil.rmtree(target)
-                    except Exception:
-                        time.sleep(2)
-                    else:
-                        flag = 0
-            # shutil.copytree(from_path, target)
-            self._copy_dir(from_path, target)
+            shutil.copytree(from_path, target, symlinks=False)
             return target
 
     # def _debug(self, str_):
@@ -89,13 +102,13 @@ class Netshare(RemoteFile):
     #         a.write(str_)
     #         a.write("\n")
 
-    def _copy_dir(self, src, dst, symlinks=False, ignore=None):
-        if not os.path.exists(dst):
-            os.makedirs(dst)
-        for item in os.listdir(src):
-            s = os.path.join(src, item)
-            d = os.path.join(dst, item)
-            if os.path.isdir(s):
-                self._copy_dir(s, d, symlinks, ignore)
-            else:
-                shutil.copy2(s, d)
+    # def _copy_dir(self, src, dst, symlinks=False, ignore=None):
+    #     if not os.path.exists(dst):
+    #         os.makedirs(dst)
+    #     for item in os.listdir(src):
+    #         s = os.path.join(src, item)
+    #         d = os.path.join(dst, item)
+    #         if os.path.isdir(s):
+    #             self._copy_dir(s, d, symlinks, ignore)
+    #         else:
+    #             shutil.copy2(s, d)

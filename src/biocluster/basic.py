@@ -425,12 +425,11 @@ class Basic(EventObject):
         """
         当有子模块完成时触发
         """
-        with self.sem:
-            if child not in self.children:
-                raise Exception("%s不是%s的子对象!" % (child.name, self.name))
-            child.stop_listener()
-            # with self.sem:
-            self.__check_relys()
+        if child not in self.children:
+            raise Exception("%s不是%s的子对象!" % (child.name, self.name))
+        child.stop_listener()
+        # with self.sem:
+        self.__check_relys()
 
     def __event_childrerun(self, child):
         """
