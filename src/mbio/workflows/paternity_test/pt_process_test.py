@@ -107,6 +107,8 @@ class PtProcessWorkflow(Workflow):
 				n += 1
 			else:
 				self.logger.info('{}样本已存在于数据库'.format(i))
+		for j in range(len(self.tools)):
+			self.tools[j].on('end', self.set_output, 'fastq2tab')
 
 		if self.option('second_sample_f') or self.option('second_sample_m') or self.option('second_sample_s'):
 			if self.tools:
@@ -129,8 +131,6 @@ class PtProcessWorkflow(Workflow):
 				self.result_info.on('end', self.dedup_run)
 				self.pt_analysis_run()
 
-		for j in range(len(self.tools)):
-			self.tools[j].on('end', self.set_output, 'fastq2tab')
 		for tool in self.tools:
 			tool.run()
 
@@ -347,6 +347,8 @@ class PtProcessWorkflow(Workflow):
 		if event['data'] == "pt_analysis" or event['data'] == "pt_analysis_rename":
 			self.linkdir(obj.output_dir +'/family_analysis', self.output_dir)
 			self.linkdir(obj.output_dir + '/family_merge', self.output_dir)
+			api_main = self.api.sg_paternity_test
+			self.flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task=None, flow_id=None)
 
 		if event['data'] == "result_info":
 			self.linkdir(obj.output_dir, self.output_dir)
@@ -371,20 +373,21 @@ class PtProcessWorkflow(Workflow):
 	def end(self):
 		api_main = self.api.sg_paternity_test
 		api_main.add_sg_pt_family(self.option('dad_id'), self.option('mom_id'), self.option('preg_id'),
-		                          self.option('err_min'))
-		flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
+		                          self.option('err_min'), self.option('ref_fasta').prop['path'], self.option('targets_bedfile'),
+		                          self.option('ref_point'))
+		# flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
 		results = os.listdir(self.output_dir)
 		for f in results:
 			if re.search(r'.*family_analysis\.txt$', f):
-				api_main.add_analysis_tab(self.output_dir + '/' + f, flow_id)
+				api_main.add_analysis_tab(self.output_dir + '/' + f, self.flow_id)
 			if re.search(r'.*family_joined_tab\.txt$', f):
-				api_main.add_sg_pt_family_detail(self.output_dir + '/' + f, flow_id)
+				api_main.add_sg_pt_family_detail(self.output_dir + '/' + f, self.flow_id)
 			if re.search(r'.*info_show\.txt$', f):
-				api_main.add_info_detail(self.output_dir + '/' + f, flow_id)
+				api_main.add_info_detail(self.output_dir + '/' + f, self.flow_id)
 			if re.search(r'.*test_pos\.txt$', f):
-				api_main.add_test_pos(self.output_dir + '/' + f, flow_id)
+				api_main.add_test_pos(self.output_dir + '/' + f, self.flow_id)
 			if f == "family.png":
-				api_main.add_pt_figure(self.output_dir, flow_id)
+				api_main.add_pt_figure(self.output_dir, self.flow_id)
 
 
 		super(PtProcessWorkflow,self).end()
