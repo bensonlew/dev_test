@@ -130,6 +130,9 @@ class CopyMongo(object):
         self.copy_main_details('sg_phylo_tree_species_categories', 'phylo_tree_id', phylo_tree_id_dict)
         self.copy_main_details('sg_phylo_tree_species_detail', 'phylo_tree_id', phylo_tree_id_dict)
 
+        self.copy_collection_with_change('sg_valid_sequence_info')
+        self.copy_collection_with_change('sg_raw_sequence_info')
+
 
 
 
