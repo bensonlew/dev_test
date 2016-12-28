@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
 import datetime
+import random
+
 from biocluster.api.database.base import Base, report_check
 import re
 from biocluster.config import Config
@@ -18,16 +20,20 @@ class SgPaternityTest(Base):
 		self.database = self.mongo_client['tsanger_paternity_test']
 
 	@report_check
-	def add_sg_pt_family(self,dad,mom,preg, err):
+	def add_sg_pt_family(self,dad,mom,preg, err,ref_fasta,targets_bedfile,ref_point):
 		family_no = re.search("WQ([1-9].*)-F", dad)
 		insert_data = {
 			"project_sn": self.bind_object.sheet.project_sn,
 			"task_id": self.bind_object.id,
+			# "member_id": self.bind_object.member_id,
 			"name": family_no.group(1),
 			"dad_id": dad,
 			"mom_id": mom,
 			"preg_id": preg,
 			"err_min": err,
+			"ref_fasta": ref_fasta,
+			"targets_bedfile": targets_bedfile,
+			"ref_point": ref_point,
 			"status": "end",
 			"created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 		}
@@ -40,10 +46,12 @@ class SgPaternityTest(Base):
 			self.bind_object.logger.info("导入主表成功")
 
 	@report_check
-	def add_pt_task_main(self, task, err_min):
+	def add_pt_task_main(self, task, err_min,flow_id):
 		if task is None:
 			task = self.bind_object.id
-		flow_id = task + '_' + str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
+		# flow_id = task + '_' + str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
+		if flow_id is None:
+			flow_id = "%s_%s_%s" % (task, random.randint(1, 10000), random.randint(1, 10000))
 		insert_data = {
 			"task_id": task,
 			"flow_id": flow_id,
