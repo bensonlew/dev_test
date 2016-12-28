@@ -24,10 +24,6 @@ class PtAnalysisModule(Module):
 		self._end_info = 0
 
 	def check_options(self):
-		"""
-         重写参数检测函数
-         :return:
-         """
 		if not self.option("dad_tab"):
 			raise OptionError("必须输入父本tab文件")
 		if not self.option("ref_point"):
@@ -68,12 +64,6 @@ class PtAnalysisModule(Module):
 		self.family_analysis.run()
 
 	def linkdir(self, dirpath, dirname):
-		"""
-        link一个文件夹下的所有文件到本module的output目录
-        :param dirpath: 传入文件夹路径
-        :param dirname: 新的文件夹名称
-        :return:
-        """
 		allfiles = os.listdir(dirpath)
 		newdir = os.path.join(self.output_dir, dirname)
 		if not os.path.exists(newdir):
