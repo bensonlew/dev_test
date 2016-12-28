@@ -93,7 +93,7 @@ class Log(object):
         self._data = data["data"]
         self.task_id = data["task_id"]
         self.api = data["api"]
-        self.update_info = data["update_info"] if "update_info" in data.keys() else None
+        self.update_info = self.data["update_info"] if "update_info" in self.data.keys() else None
         self._last_update = None
         self._response = ""
         self._response_code = 0
