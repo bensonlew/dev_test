@@ -46,6 +46,14 @@ class PanCore(Base):
             raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(str(from_otu_table)))
         project_sn = result['project_sn']
         task_id = result['task_id']
+        if self.bind_object.sheet.main_table_name:
+            name = self.bind_object.sheet.main_table_name
+            name = name.split('_')
+            if pan_core_type == 1:
+                name.pop(1)
+            else:
+                name.pop(0)
+            name = '_'.join(name)
         if pan_core_type == 1:
             desc = "正在计算pan otu表格"
         else:
@@ -61,7 +69,7 @@ class PanCore(Base):
             "desc": desc,
             "unique_id": self.unique_id,
             "submit_location": "otu_pan_core",
-            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "pan_core表格",
+            "name": name if name else "pan_core表格",
             "params": params,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
