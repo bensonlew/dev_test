@@ -56,7 +56,7 @@ class TabFile(Base):
 			self.bind_object.logger.info("样本{}已存在数据库中，不进行fastq转tab流程".format(sample))
 		return result
 
-	@report_check
+
 	def export_tab_file(self, sample, dir):
 		file = os.path.join(dir, sample + '.tab')
 		collection = self.database['sg_pt_tab']
@@ -74,7 +74,6 @@ class TabFile(Base):
 			raise Exception('报错：样本数据{}的tab文件为空，可能还未下机'.format(sample))
 
 
-	@report_check
 	def dedup_sample(self, num):
 		collection = self.database['sg_pt_tab']
 		param = "WQ{}-F".format(num) + '.*'
@@ -85,7 +84,6 @@ class TabFile(Base):
 		sample_new = list(set(sample))
 		return sample_new
 
-	@report_check
 	def dedup_fuzzy_sample(self, num, dad_id):
 		collection = self.database['sg_pt_tab']
 		param = "WQ[1-9]*{}[1-9]*-F".format(num)
