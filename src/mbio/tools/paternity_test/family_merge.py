@@ -87,6 +87,7 @@ class FamilyMergeTool(Tool):
 
         self.R_path = 'program/R-3.3.1/bin/'
         self.script_path = Config().SOFTWARE_DIR + '/bioinfo/medical/scripts/'
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
         tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {}".\
