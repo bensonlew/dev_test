@@ -172,33 +172,64 @@ class SampleExtractModule(Module):
         sample_avg = {}
         sample_min = {}
         sample_max = {}
-        with open(new_info_path,"r") as r:
-            with open(self.work_dir + "/info.txt", "w") as w:
-                w.write("#file_path\tsample\twork_dir_path\tseq_num\tbase_num\tmean_length\tmin_length\tmax_length\n")
-                r.readline()
-                for line in r: 
-                    line = line.strip()
-                    lst = line.split("\t")
-                    file_name = lst[0]
-                    sample_name = lst[1]
-                    if sample_name not in sample_lst:
-                        sample_lst.append(sample_name)
-                        sample_workdir[sample_name] = lst[2]
-                        sample_reads[sample_name] =  int(lst[3])
-                        sample_bases[sample_name] = int(lst[4])
-                        sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
-                        sample_min[sample_name] = int(lst[6])
-                        sample_max[sample_name] = int(lst[7])
-                    else:
-                        sample_workdir[sample_name] = self.dir_join(sample_workdir[sample_name],lst[2],sample_name)
-                        sample_reads[sample_name] +=  int(lst[3])
-                        sample_bases[sample_name] += int(lst[4])
-                        sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
-                        sample_min[sample_name] = min(int(lst[6]),sample_min[sample_name])
-                        sample_max[sample_name] = max(int(lst[7]),sample_max[sample_name])
-                for sample in sample_lst:
-                    w.write("-" + "\t" + sample + "\t" + sample_workdir[sample] + "\t" +str(sample_reads[sample]) + "\t" + str(sample_bases[sample]) + "\t" + str(sample_avg[sample]) + "\t" + str(sample_min[sample])\
-                    + "\t" + str(sample_max[sample]) + "\n")
+        if len(eval(self.option("workdir_sample"))) != 1:
+            with open(new_info_path,"r") as r:
+                with open(self.work_dir + "/info.txt", "w") as w:
+                    w.write("#file_path\tsample\twork_dir_path\tseq_num\tbase_num\tmean_length\tmin_length\tmax_length\n")
+                    r.readline()
+                    for line in r:
+                        line = line.strip()
+                        lst = line.split("\t")
+                        file_name = lst[0]
+                        sample_name = lst[1]
+                        if sample_name not in sample_lst:
+                            sample_lst.append(sample_name)
+                            sample_workdir[sample_name] = lst[2]
+                            sample_reads[sample_name] =  int(lst[3])
+                            sample_bases[sample_name] = int(lst[4])
+                            sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
+                            sample_min[sample_name] = int(lst[6])
+                            sample_max[sample_name] = int(lst[7])
+                        else:
+                            sample_workdir[sample_name] = self.dir_join(sample_workdir[sample_name],lst[2],sample_name)
+                            sample_reads[sample_name] +=  int(lst[3])
+                            sample_bases[sample_name] += int(lst[4])
+                            sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
+                            sample_min[sample_name] = min(int(lst[6]),sample_min[sample_name])
+                            sample_max[sample_name] = max(int(lst[7]),sample_max[sample_name])
+                    for sample in sample_lst:
+                        w.write("-" + "\t" + sample + "\t" + sample_workdir[sample] + "\t" +str(sample_reads[sample]) + "\t" + str(sample_bases[sample]) + "\t" + str(sample_avg[sample]) + "\t" + str(sample_min[sample])\
+                        + "\t" + str(sample_max[sample]) + "\n")
+        else:
+            with open(new_info_path, "r") as r:
+                with open(self.work_dir + "/info.txt", "w") as w:
+                    w.write(
+                        "#file_path\tsample\twork_dir_path\tseq_num\tbase_num\tmean_length\tmin_length\tmax_length\n")
+                    r.readline()
+                    for line in r:
+                        line = line.strip()
+                        lst = line.split("\t")
+                        file_name = lst[0]
+                        sample_name = lst[1]
+                        if sample_name not in sample_lst:
+                            sample_lst.append(sample_name)
+                            sample_workdir[sample_name] = lst[2]
+                            sample_reads[sample_name] = int(lst[3])
+                            sample_bases[sample_name] = int(lst[4])
+                            sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
+                            sample_min[sample_name] = int(lst[6])
+                            sample_max[sample_name] = int(lst[7])
+                        else:
+                            sample_reads[sample_name] += int(lst[3])
+                            sample_bases[sample_name] += int(lst[4])
+                            sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
+                            sample_min[sample_name] = min(int(lst[6]), sample_min[sample_name])
+                            sample_max[sample_name] = max(int(lst[7]), sample_max[sample_name])
+                    for sample in sample_lst:
+                        w.write("-" + "\t" + sample + "\t" + sample_workdir[sample] + "\t" + str(
+                            sample_reads[sample]) + "\t" + str(sample_bases[sample]) + "\t" + str(
+                            sample_avg[sample]) + "\t" + str(sample_min[sample]) \
+                                + "\t" + str(sample_max[sample]) + "\n")
                     #self.logger.info("end")
         self.logger.info("end")
         self.end()
