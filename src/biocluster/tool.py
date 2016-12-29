@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 
-from .core.actor import RemoteActor, ProcessActor
+from .core.actor import RemoteActor
 from .core.actor import State
 import types
 from .command import Command
@@ -17,6 +17,7 @@ import importlib
 from .core.function import stop_thread
 from .api.database.base import ApiManager
 import signal
+import inspect
 
 
 class RemoteData(object):
@@ -70,9 +71,11 @@ class Tool(object):
         self.exit_signal = False
         self._remote_data_object = RemoteData(self._remote_data)
         self._rerun = False
+        self.process_queue = None
+        self.shared_callback_action = None
         self.api = ApiManager(self)
         if self.instant:
-            self.actor = ProcessActor(self, self.main_thread)
+            self.actor = None
         else:
             self.actor = RemoteActor(self, self.main_thread)
 
@@ -245,10 +248,43 @@ class Tool(object):
         elif not name.islower():
             raise Exception("状态名称必须都为小写字母！")
         else:
-            self.mutex.acquire()
-            self._states.append(State(name, data))
-            self.mutex.release()
+            if self.instant:
+                action = self._send_local_state(State(name, data))
+                if isinstance(action, dict) and 'action' in action.keys():
+                    if action['action'] != "none":
+                        if hasattr(self, action['action'] + '_action'):
+                            func = getattr(self, action['action'] + '_action')
+                            argspec = inspect.getargspec(func)
+                            args = argspec.args
+                            if len(args) == 1:
+                                func()
+                            elif len(args) == 2:
+                                func(action['data'])
+                            else:
+                                raise Exception("action处理函数参数不能超过2个(包括self)!")
+                        else:
+                            self.logger.warn("没有为返回action %s设置处理函数!" % action['action'])
+            else:
+                self._states.append(State(name, data))
         return self
+
+    def _send_local_state(self, state):
+        msg = {"id": self.id,
+               "state": state.name,
+               "data": state.data,
+               "version": self.version
+               }
+        try:
+            self.process_queue.put(msg)
+        except Exception, e:
+            self.logger.debug("error: %s", e)
+
+        # print "Put MSG:%s" % msg
+        key = "%s" % self.version
+        action = {'action': 'none'}
+        if key in self.shared_callback_action.keys():
+            action = self.shared_callback_action.pop(key)
+        return action
 
     def run(self):
         """
@@ -256,7 +292,7 @@ class Tool(object):
 
         :return:
         """
-        if not self.config.DEBUG:
+        if not self.config.DEBUG and self.actor:
             self.actor.start()
         self._run = True
         self.logger.info("开始运行!")
@@ -370,10 +406,10 @@ class Tool(object):
         """
 
         self.save_output()
-        self.add_state('finish')
+        with self.mutex:
+            self.add_state('finish')
+            self._end = True
         self.logger.info("Tool程序运行完成")
-        self._end = True
-        self.exit_signal = True
 
     def exit(self, status=1):
         """
@@ -384,17 +420,20 @@ class Tool(object):
         """
         self.kill_all_commonds()
         if not self.is_end and self.main_thread.is_alive():
-            self._end = True
-            self.exit_signal = True
-            stop_thread(self.main_thread)
-            os._exit(status)
-            gevent.sleep(5)
-            os.system("kill -9 %s" % os.getpid())
+            with self.mutex:
+                self._end = True
+                self.exit_signal = True
+            # stop_thread(self.main_thread)
+            # os._exit(status)
+            if status > 0:
+                os.kill(os.getpid(), signal.SIGTERM)
+            sys.exit(status)
 
         # if self.main_thread.is_alive():
         #     stop_thread(self.main_thread)
-        self._end = True
-        self.exit_signal = True
+        with self.mutex:
+            self._end = True
+            self.exit_signal = True
         sys.exit(status)
 
     def save_output(self):
@@ -431,10 +470,10 @@ class Tool(object):
         :param error_data:
         :return:
         """
-        self.add_state('error', error_data)
-        self.logger.info("运行出错:%s" % error_data )
-        self._end = True
-        self.exit_signal = True
+        with self.mutex:
+            self.add_state('error', error_data)
+            self.exit_signal = True
+        self.logger.info("运行出错:%s" % error_data)
 
     @staticmethod
     def set_environ(**kwargs):
@@ -485,5 +524,3 @@ class Tool(object):
             if command.is_running:
                 self.logger.info("终止命令%s运行..." % name)
                 command.kill()
-
-
