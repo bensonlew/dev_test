@@ -367,8 +367,8 @@ class Workflow(Basic):
     def __check(self):
         if self.is_end is True:
             return "exit"
-        if (datetime.datetime.now() - self.last_update).seconds > self.config.MAX_WAIT_TIME:
-            self.exit(data="超过 %s s没有任何运行更新，退出运行！" % self.config.MAX_WAIT_TIME)
+        if (datetime.datetime.now() - self.last_update).seconds > (self.config.MAX_WAIT_TIME * 3 + 100):
+            self.exit(data="超过 %s s没有任何运行更新，退出运行！" % (self.config.MAX_WAIT_TIME * 3 + 100))
         now = datetime.datetime.now()
         if self.pause:
             if (now - self._pause_time).seconds > self.config.MAX_PAUSE_TIME:

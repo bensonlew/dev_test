@@ -105,26 +105,33 @@ class RemoteActor(threading.Thread):
         :return: None
         """
         gevent.spawn(self.check_command)
-        is_end = self._tool.is_end
-        states = self._tool.states
+        # is_end = self._tool.is_end
+        # states = self._tool.states
 
-        while (not is_end) or len(states) > 0:
-            is_end = self._tool.is_end
-            states = self._tool.states
-            exit_signal = self._tool.exit_signal
-            if exit_signal and len(states) == 0:
-                self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
-                self._tool.exit(0)
-                break
-            if not self.main_thread.is_alive() and len(states) == 0 and exit_signal is not True:
+        def is_finished():
+            with self.mutex:
+                if len(self._tool.states) > 0:
+                    return False
+                elif self._tool.is_end:
+                    return True
+                else:
+                    return False
+
+        while is_finished():
+            with self.mutex:
+                if self._tool.exit_signal and len(self._tool.states) == 0:
+                    self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
+                    self._tool.exit(0)
+                    break
+            if not self.main_thread.is_alive() and len(self._tool.states) == 0 \
+                    and self._tool.exit_signal is not True:
                 self.send_state(State('error', "检测到远程主线程异常结束"))
                 self._tool.logger.debug("检测到主线程已退出，终止运行!")
                 self._tool.exit(1)
                 break
-            if len(states) > 0:
-                self.mutex.acquire()
-                state = self._tool.states.pop(0)
-                self.mutex.release()
+            if len(self._tool.states) > 0:
+                with self.mutex:
+                    state = self._tool.states.pop(0)
                 action = self.send_state(state)
                 if isinstance(action, dict) and 'action' in action.keys():
                     if action['action'] != "none":
@@ -141,6 +148,7 @@ class RemoteActor(threading.Thread):
                         else:
                             self._tool.logger.warn("没有为返回action %s设置处理函数!" % action['action'])
                 if state.name in {"finish", "error"}:
+                    self._tool.logger.debug("state name: %s " % state.name)
                     self._tool.exit(0)
                     break
             else:
@@ -212,32 +220,32 @@ class RemoteActor(threading.Thread):
             gevent.sleep(3)
 
 
-class ProcessActor(RemoteActor):
-    def __init__(self, tool, main_thread):
-        super(ProcessActor, self).__init__(tool, main_thread)
-
-    def run(self):
-        self.config.KEEP_ALIVE_TIME = 1
-        super(ProcessActor, self).run()
-
-    def send_state(self, state):
-
-        msg = {"id": self._tool.id,
-               "state": state.name,
-               "data": state.data,
-               "version": self._tool.version
-               }
-        try:
-            # self._tool.logger.debug("put msg %s" % msg)
-            self._tool.process_queue.put(msg)
-        except Exception, e:
-            self._tool.logger.debug("error: %s", e)
-
-        # print "Put MSG:%s" % msg
-        key = "%s" % self._tool.version
-        if key in self._tool.shared_callback_action.keys():
-            action = self._tool.shared_callback_action[key]
-            del self._tool.shared_callback_action[key]
-        else:
-            action = {'action': 'none'}
-        return action
+# class ProcessActor(RemoteActor):
+#     def __init__(self, tool, main_thread):
+#         super(ProcessActor, self).__init__(tool, main_thread)
+#
+#     def run(self):
+#         self.config.KEEP_ALIVE_TIME = 1
+#         super(ProcessActor, self).run()
+#
+#     def send_state(self, state):
+#
+#         msg = {"id": self._tool.id,
+#                "state": state.name,
+#                "data": state.data,
+#                "version": self._tool.version
+#                }
+#         try:
+#             self._tool.logger.debug("put msg %s" % msg)
+#             self._tool.process_queue.put(msg)
+#         except Exception, e:
+#             self._tool.logger.debug("error: %s", e)
+#
+#         # print "Put MSG:%s" % msg
+#         key = "%s" % self._tool.version
+#         if key in self._tool.shared_callback_action.keys():
+#             action = self._tool.shared_callback_action[key]
+#             del self._tool.shared_callback_action[key]
+#         else:
+#             action = {'action': 'none'}
+#         return action
