@@ -119,6 +119,9 @@ class EnterotypingWorkflow(Workflow):
 
     def set_db(self):
         self.logger.info("正在写入mongo数据库")
+        cluster_name = []
+        for i in range(1, int(self.number)):
+            cluster_name.append(str(i) + ".cluster.txt")
         # newick_id = ""
         myParams = json.loads(self.sheet.params)
         # if self.option("method") != "":
@@ -129,7 +132,7 @@ class EnterotypingWorkflow(Workflow):
         #     api_heat_cluster.update_newick(self.hcluster.option("newicktree").prop['path'], newick_id)
         #     self.add_return_mongo_id("sg_newick_tree", newick_id, "", False)
         api_otu = self.api.enterotyping_db
-        new_id = api_otu.add_sg_enterotyping(self.sheet.params, self.option("input_otu_id"))
+        new_id = api_otu.add_sg_enterotyping(self.sheet.params, self.option("input_otu_id"), cluster_name = cluster_name)
         api_otu.add_sg_enterotyping_detail(new_id, self.enterotyping.output_dir + "/ch.txt", x = "x", y = "y", name = "ch.txt")
         api_otu.add_sg_enterotyping_detail(new_id, self.enterotyping.output_dir + "/cluster.txt",x = "sample_name", y = "enterotyping_group", name = "cluster.txt")
         api_otu.add_sg_enterotyping_detail(new_id, self.plot_enterotyping.output_dir + "/circle.txt", x = "x", y = "y", name = "circle.txt", detail_name = "circle_name")

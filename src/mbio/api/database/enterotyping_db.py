@@ -20,7 +20,7 @@ class EnterotypingDb(Base):
         self.task_id = ""
 
     @report_check
-    def add_sg_enterotyping(self, params, from_otu_table, name = None):
+    def add_sg_enterotyping(self, params, from_otu_table, name = None, cluster_name = None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -41,6 +41,7 @@ class EnterotypingDb(Base):
             'task_id': self.task_id,
             # 'otu_id': "ObjectId(\"" + str(from_otu_table) + "\")",
             'otu_id': from_otu_table,
+            'cluster_name': cluster_name,
             'name': name,
             "params": params,
             'status': 'end',
