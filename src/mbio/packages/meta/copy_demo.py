@@ -132,7 +132,7 @@ class CopyMongo(object):
 
         hc_heatmap_id_dict = self.copy_collection_with_change('sg_hc_heatmap', change_positions=['otu_id'],
                                                               update_sg_status=True)
-        self.copy_main_details('sg_hc_heatmap_detail', 'otu_id', hc_heatmap_id_dict)
+        self.copy_main_details('sg_hc_heatmap_detail', 'hc_id', hc_heatmap_id_dict)
 
         self.copy_collection_with_change('sg_valid_sequence_info')
         self.copy_collection_with_change('sg_raw_sequence_info')
