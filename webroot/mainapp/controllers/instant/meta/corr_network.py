@@ -26,10 +26,10 @@ class CorrNetwork(MetaController):
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
-                return json.dump(info)
+                return json.dumps(info)
         if int(data.level_id) not in range(1, 10):
             info = {'success': False, 'info': 'level{}不在规定范围内{}'.format(data.level_id)}
-            return json.dump(info)
+            return json.dumps(info)
         group_detail = json.loads(data.group_detail)
         if not isinstance(group_detail, dict):
             success.append("传入的group_detail不是一个字典")

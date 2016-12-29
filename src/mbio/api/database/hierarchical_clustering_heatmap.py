@@ -20,7 +20,7 @@ class HierarchicalClusteringHeatmap(Base):
         self.name_id = dict()
 
     @report_check
-    def add_sg_hc_heatmap(self, params, from_otu_table, name=None, newick_id_sample=None, newick_id_species=None):
+    def add_sg_hc_heatmap(self, params, from_otu_table, name=None, sample_tree=None, sample_list=None, species_tree=None, species_list=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -38,10 +38,15 @@ class HierarchicalClusteringHeatmap(Base):
             "project_sn": project_sn,
             'task_id': self.task_id,
             'from_id': str(from_otu_table),
+            # "project_sn": "project_sn",
+            # 'task_id': "self.task_id",
+            # 'from_id': 0,
             'name': name,
             "params": params,
-            "newick_id_sample": newick_id_sample,
-            "newick_id_species": newick_id_species,
+            "sample_tree": sample_tree,
+            "sample_list": sample_list,
+            "species_tree": species_tree,
+            "species_list": species_list,
             'status': 'end',
             'desc': 'otu table after Hierarchical Clustering Heatmap', #
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -60,7 +65,6 @@ class HierarchicalClusteringHeatmap(Base):
             else:
                 raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
         self.bind_object.logger.info("开始导入sg_otu_detail表")
-        #self._get_name_id(from_otu_id)
         insert_data = list()
         with open(file_path, 'rb') as r:
             head = r.next().strip('\r\n')   #windows换行符
@@ -72,7 +76,7 @@ class HierarchicalClusteringHeatmap(Base):
                 sample_num = line[1:]
                 classify_list = re.split(r"\s*;\s*", line[0])
                 otu_detail = dict()
-                otu_detail['otu_id'] = new_otu_id
+                otu_detail['hc_id'] = new_otu_id
                 for cf in classify_list:
                     if cf != "":
                         otu_detail[cf[0:3].lower()] = cf
@@ -87,27 +91,3 @@ class HierarchicalClusteringHeatmap(Base):
             self.bind_object.logger.error("导入sg_hc_heatmap_detail表格信息出错:{}".format(e))
         else:
             self.bind_object.logger.info("导入sg_hc_heatmap_detail表格成功")
-        # self.bind_object.logger.info("开始导入sg_otu_specimen表")
-        # insert_data = list()
-        # for sp in new_head:
-        #     my_data = dict()
-        #     my_data['otu_id'] = new_otu_id
-        #     my_data["specimen_id"] = self.name_id[sp]
-        #     insert_data.append(my_data)
-        # collection = self.db['sg_otu_specimen']
-        # collection.insert_many(insert_data)
-
-    # def _get_name_id(self, from_otu_id):
-    #     collection = self.db['sg_otu_specimen']
-    #     results = collection.find({"otu_id": from_otu_id})
-    #     if not results.count():
-    #         raise Exception("otu_id:{}未在otu_sg_specimen表里找到相应的记录".format(from_otu_id))
-    #     sp_ids = list()
-    #     for result in results:
-    #         sp_ids.append(result['specimen_id'])
-    #     collection = self.db['sg_specimen']
-    #     for id_ in sp_ids:
-    #         result = collection.find_one({"_id": id_})
-    #         if not result:
-    #             raise Exception("意外错误， id: {}在sg_otu_specimen表中找到，但未在sg_specimen表中出现")
-    #         self.name_id[result["specimen_name"]] = id_
