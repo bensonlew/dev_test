@@ -2,7 +2,6 @@
 # __author__ = 'chenyanyan'
 # last_modifiy:2016.09.26
 
-
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import shutil
@@ -10,6 +9,8 @@ import os
 import glob
 from biocluster.core.exceptions import OptionError 
 import json
+import time
+
 
 class StarAgent(Agent):
     """
@@ -18,17 +19,20 @@ class StarAgent(Agent):
 
     def __init__(self, parent):
         super(StarAgent, self).__init__(parent)
+        """
+        软件建议提供参考基因组的gtf文件，下表为已有参考基因组物种
+        """
         self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "Human", "Mouse", "Rat", "Arabidopsis", "Broomcorn",\
         "Rice", "Zeamays", "Test"]
         options = [
         
-            {"name":"ref_genome_custom", "type": "infile", "format": "sequence.fasta"}, #用户上传参考基因组文件
-            {"name":"ref_genome", "type":"string"},#参考基因组模式选项 用户自定义、选择已有生物物种
+            {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"}, #用户上传参考基因组文件
+            {"name": "ref_genome", "type":"string"},#参考基因组模式选项 用户自定义、选择已有生物物种
             #{"name":"ref_gtf", "type":"infile", "format":"ref_rna.gtf"}, 参考基因组的gtf文件 ，gtf文件和fasta文件要配套使用
-            {"name":"readFilesIN1", "type":"infile", "format":"sequence.fastq, sequence.fasta"},#双端序列文件1端
-            {"name":"readFilesIN2", "type":"infile", "format":"sequence.fastq, sequence.fasta"},#双端序列文件2端
-            {"name":"readFilesIN", "type":"infile", "format":"sequence.fastq, sequence.fasta"},#单端序列文件
-            {"name":"seq_method", "type": "string"}
+            {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},#双端序列文件1端
+            {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},#双端序列文件2端
+            {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},#单端序列文件
+            {"name": "seq_method", "type": "string"}
            
         ]
         self.add_option(options)
@@ -46,6 +50,10 @@ class StarAgent(Agent):
     
     
     def check_options(self):
+
+        """
+        检查参数设置
+        """
         if self.option("ref_genome") == "customer_mode" and not self.option("ref_genome_custom").is_set:
             raise OptionError("请上传自定义参考基因组")
             
@@ -72,13 +80,17 @@ class StarAgent(Agent):
 
     def end(self):
       
-        super(StarAgent, self).end()    
+        super(StarAgent, self).end()    #继承超类的end方法
         
 class StarTool(Tool):
 
     def __init__(self, config):
         super(StarTool, self).__init__(config)
-        self.star_path = "bioinfo/rna/star-2.5/bin/Linux_x86_64/" #设置star的路径
+        self.star_path = "bioinfo/rna/star-2.5/bin/Linux_x86_64/" #设置star的路径 
+        
+        ref_fasta = self.option('ref_genome_custom').prop["path"] #用户上传的基因组路径
+        shutil.copy(ref_fasta, self.work_dir) #将参考基因组复制到当前工作路径下
+        self.ref_fa_cp = os.path.join(self.work_dir, os.path.basename(ref_fasta))
         
         if not os.path.exists("ref_star_index2"):   #创建第二次建索引的目录文件夹
             os.mkdir("ref_star_index2")
@@ -86,11 +98,10 @@ class StarTool(Tool):
            
     def star_index1(self, genomeDir):
         """
-        step1:第一步建索引；用star建立参考基因组的索引，当用户不上传参考基因组时，该步骤省略，直接调用已有的文件（fa index_of_fa gtf 等等）
+        step1:第一步建索引；用star建立参考基因组的索引，当用户不上传参考基因组时，该步骤省略，直接调用已有的序列文件
         """
         
-        cmd = "{}STAR --runMode genomeGenerate --genomeDir {} --genomeFastaFiles {}".format(self.star_path, genomeDir, \
-        self.option("ref_genome_custom").prop["path"])  # self.work_dir/ref_star_index1 用于存放第一步建立的参考基因组索引的路径,参数为用户上传的参考基因组文件
+        cmd = "{}STAR --runMode genomeGenerate --genomeDir {} --genomeFastaFiles {}".format(self.star_path, genomeDir, self.ref_fa_cp)  # self.work_dir/ref_star_index1 用于存放第一步建立的参考基因组索引的路径,参数为用户上传的参考基因组文件
         print cmd 
         self.logger.info("使用star建立参考基因组索引")
         command = self.add_command("star_index1", cmd)
@@ -100,6 +111,7 @@ class StarTool(Tool):
             self.logger.info("成功构建参考序列索引index1！")
         else:
             self.set_error("构建索引出错!")
+        
         
             
     def star_aln1_se(self, genomeDir):
@@ -112,7 +124,7 @@ class StarTool(Tool):
         self.logger.info("使用STAR对序列进行单端mapping")
         command = self.add_command("star_aln1", cmd)
         command.run()
-        self.wait()
+        self.wait() 
         if command.return_code == 0:
             self.logger.info("单端比对第一步比对成功！")
         else:
@@ -159,11 +171,17 @@ class StarTool(Tool):
         command = self.add_command("star_aln2", cmd)
         command.run()
         self.wait()
+        """
+        import subprocess
+        import time
+        command._subprocess.returncode = 0
+        time.sleep(10)
+        """
         if command.return_code == 0:
-            self.logger.info("最终双端比对成功！")
+            self.logger.info("最终单端比对成功！")
         else:
-            self.set_error("最终双端比对出错!")
-            
+            self.set_error("最终单端比对出错!")
+         
     def star_aln2_pe(self):
         """
         step4：第四步，最终比对
@@ -175,9 +193,9 @@ class StarTool(Tool):
         command.run()
         self.wait()
         if command.return_code == 0:
-            self.logger.info("最终单端比对成功！")
+            self.logger.info("最终双端比对成功！")
         else:
-            self.set_error("最终单端比对出错!")
+            self.set_error("最终双端比对出错!")
             
     def run(self):
         """
@@ -185,19 +203,20 @@ class StarTool(Tool):
         """
         super(StarTool, self).run()
         
-        self.logger.info("在参考基因组为自定义模式下，运行star")
-        
         if self.option("ref_genome") == "customer_mode" and self.option("ref_genome_custom").is_set:#自定义模式的时候需要建索引
+            self.logger.info("在参考基因组为自定义模式下运行star！")
+                    
             ref_fa = self.option("ref_genome_custom").prop["path"]
             if not os.path.exists("ref_star_index1"):
                 os.mkdir("ref_star_index1")
             genomeDir_path1 = os.path.join(self.work_dir, "ref_star_index1")  #准备第一次建索引的路径
-            self.star_index1(genomeDir_path1)  #第一步：建索引
+            self.star_index1(genomeDir_path1)  #第一步：建索引，传入第一步索引的文件夹（此时是空文件夹）
             if self.option("seq_method") == "PE":
                 self.star_aln1_pe(genomeDir_path1)
                 sj = os.path.join(self.work_dir, "SJ.out.tab")
                 self.star_index2(ref_fa, sj)
                 self.star_aln2_pe()
+                #time.sleep(30)
                 
             else:
                 self.star_aln1_se(genomeDir_path1)
@@ -209,8 +228,10 @@ class StarTool(Tool):
 
         else: #参考基因组来自数据库
             self.logger.info("在参考基因组从数据库中选择时，运行star")
-            
-            with open("/mnt/ilustre/users/sanger-dev/sg-users/chenyanyan/refGenome/ref_genome.json","r") as f:
+            """
+            参考基因组来自数据库，加载json文件获取相应路径
+            """
+            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/scripts/ref_genome.json","r") as f:
                 dict = json.loads(f.read())
                 ref = dict[self.option("ref_genome")]["ref_index"]  #是ref_index的路径，作为参数传给比对函数
                 ref_fa = dict[self.option("ref_genome")]["ref_genome"]
@@ -225,7 +246,9 @@ class StarTool(Tool):
                 sj = os.path.join(self.work_dir, "SJ.out.tab")
                 self.star_index2(ref_fa, sj)
                 self.star_aln2_se()
-        
+        """
+        只需要生成的Sam文件
+        """
         if os.path.exists(os.path.join(self.work_dir, "Aligned.out.sam")):
             shutil.copy(os.path.join(self.work_dir, "Aligned.out.sam"), self.output_dir)
                 
@@ -234,31 +257,3 @@ class StarTool(Tool):
         
         
     
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
-

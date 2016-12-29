@@ -22,8 +22,8 @@ class GatkAgent(Agent):
         "Rice", "Zeamays", "Test"]
         options = [
             #{"name":"ref_genome_custom", "type": "infile", "format": "sequence.fasta"},
-            {"name":"ref_genome", "type":"string"},
-            {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考序列,需要在picard所建立的dict和fai文件一起
+            {"name":"ref_genome", "type":"string"},#本地参考基因组的名字，从已有列表里面选择
+            {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因组文件,需要和picard所建立的dict和samtools所建立的fai文件一起
             {"name": "input_bam", "type": "infile", "format": "align.bwa.bam"},  # bam文件类型，输入 
         ]
         self.add_option(options)
@@ -31,6 +31,7 @@ class GatkAgent(Agent):
         self.on('start', self.step_start)
         self.on('end', self.step_end)
         
+
     def step_start(self):
         self.step.gatk.start()
         self.step.update()
@@ -66,11 +67,33 @@ class GatkTool(Tool):
     """
     def __init__(self, config):
         super(GatkTool, self).__init__(config)
-        self.gatk_path = "/mnt/ilustre/users/sanger-dev/sg-users/chenyanyan/GATK3.6/"
+        self.gatk_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/"
         self.java_path = "program/sun_jdk1.8.0/bin/"
         self.samtools_path = "/bioinfo/align/samtools-1.3.1/samtools"
+        self.picard_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/" 
+    def dict(self, ref_fasta, dict_name):
         
+        """
+        使用picard对参考基因组构建字典
+        """
+
+        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar CreateSequenceDictionary R={} O={}".format(self.picard_path, ref_fasta, dict_name)
+        print cmd
+        self.logger.info("开始用picard对参考基因组构建字典")
+        command = self.add_command("dict", cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("参考基因组构建dict done!")
+        else:
+            self.set_error("构建dict过程error！")
+
+
     def samtools_faidx(self, ref_fasta):
+
+        """
+        使用samtools对参考基因组建索引
+        """
         cmd = "{} faidx {}".format(self.samtools_path, ref_fasta)
         self.logger.info("开始进行samtools建索引！")
         command = self.add_command("samtools_faidx", cmd)
@@ -84,10 +107,9 @@ class GatkTool(Tool):
         
     def gatk_split(self, ref_fasta):
         """
-        step0:
+        step0: gatk split
         """
-        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T SplitNCigarReads -R {} -I {} -o {} -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS".format(self.java_path, self.gatk_path, ref_fasta,\
-        self.option("input_bam").prop["path"], "split.bam")
+        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T SplitNCigarReads -R {} -I {} -o {} -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS".format(self.java_path, self.gatk_path, ref_fasta, self.option("input_bam").prop["path"], "split.bam")
         self.logger.info("开始进行split NCigar reads")
         command = self.add_command("splitncigarreads", cmd)
         command.run()
@@ -99,9 +121,9 @@ class GatkTool(Tool):
         
     def gatk_vc(self, ref_fasta, split_bam):
         """
-        step1：
+        step1：gatk variant calling
         """
-        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T HaplotypeCaller -R {} -I {} -dontUseSoftClippedBases -stand_call_conf 20.0 -stand_emit_conf 20.0 -o {}".format(self.java_path, self.gatk_path, ref_fasta, split_bam, "output.vcf")
+        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T HaplotypeCaller -R {} -I {} -o {}".format(self.java_path, self.gatk_path, ref_fasta, split_bam, "output.vcf")
         self.logger.info("开始进行variant calling")
         command = self.add_command("variant calling", cmd)
         command.run()
@@ -113,7 +135,7 @@ class GatkTool(Tool):
             
     def gatk_vf(self, ref_fasta, variantfile):
         """
-        step2：
+        step2：gatk variant filtering
         """
         cmd = self.config.SOFTWARE_DIR + "/"
         cmd += "{}java -jar {}GenomeAnalysisTK.jar -R {} -T VariantFiltration -V {} -window 35 -cluster 3 -filterName FS -filter 'FS > 30.0' -filterName QD -filter 'QD < 2.0' -o {}".format(self.java_path, self.gatk_path, ref_fasta, variantfile, "filtered.vcf")
@@ -130,19 +152,29 @@ class GatkTool(Tool):
         
         super(GatkTool, self).run()
         
-        if self.option("ref_genome") == "customer_mode":
+        if self.option("ref_genome") == "customer_mode" and self.option("ref_fa").is_set:
             ref = self.option("ref_fa").prop["path"]
-            self.samtools_faidx(ref)
-            ref_fai = os.path.split(ref)[-1] + ".fai" #fai文件的名
-            if os.path.exists(os.path.join(self.work_dir, ref_fai)):
-                shutil.copy(os.path.join(self.work_dir, ref_fai), os.path.split(ref)[0]) #移动建好的fai文件与参考基因组在同一目录下
-            self.gatk_split(ref)
+            shutil.copy(ref, self.work_dir) #将参考基因组移动到工作目录下
+            self.logger.info("参考基因组移动至当前工作目录下！")
+            ref_name = os.path.split(ref)[-1]
+            ref_current = os.path.join(self.work_dir, ref_name)#当前工作目录下的参考基因组的路径
+            self.logger.info(ref_current)#显示当前参考基因组路径
+            dict_name = os.path.splitext(ref_name)[0] + ".dict" #所建字典的名字，是一个字符串
+            self.logger.info("参考基因组为自定义模式的情况下建字典！")
+            self.dict(ref_current, dict_name) #参考基因组
+            self.logger.info("参考基因组字典建立完成！")
+            
+            self.samtools_faidx(ref_current)
+            #ref_fai = os.path.split(ref)[-1] + ".fai" #fai文件的名 此时samtools建好的fai文件在当前目录下，无需其他操作
+            #if os.path.exists(os.path.join(self.work_dir, ref_fai)):
+            #    shutil.copy(os.path.join(self.work_dir, ref_fai), os.path.split(ref)[0]) 
+            self.gatk_split(ref_current)
             if os.path.exists(os.path.join(self.work_dir, "split.bam")):
                 split_bam = os.path.join(self.work_dir, "split.bam")
-            self.gatk_vc(ref, split_bam)
+            self.gatk_vc(ref_current, split_bam)
             if os.path.exists(os.path.join(self.work_dir, "output.vcf")):
                 vcf_path = os.path.join(self.work_dir, "output.vcf")
-            self.gatk_vf(ref, vcf_path)
+            self.gatk_vf(ref_current, vcf_path)
         
         
                 

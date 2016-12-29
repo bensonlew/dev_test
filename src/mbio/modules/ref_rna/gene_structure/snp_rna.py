@@ -7,11 +7,12 @@ from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
 import json
+import re
 
 class SnpRnaModule(Module):
     """
-    star:比对
-    picard:处理sam文件
+    star:序列比对
+    picard:处理比对结果sam文件
     gatk：snp calling软件
     version 1.0
     author: chenyanyan
@@ -23,26 +24,23 @@ class SnpRnaModule(Module):
         "Rice","Zeamays", "Test"]
         options = [
             {"name": "ref_genome", "type": "string"}, #参考基因组类型
-            {"name":"ref_genome_custom", "type": "infile", "format": "sequence.fasta"}, #自定义参考基因组文件 
-            {"name":"readFilesIN", "type":"infile", "format":"sequence.fastq"},#用于比对的单端序列文件
-            {"name":"readFilesIN1", "type":"infile", "format":"sequence.fastq"},#单端序列
-            {"name":"readFilesIN2", "type":"infile", "format":"sequence.fastq"},#单端序列
+            {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"}, #自定义参考基因组文件 
+            {"name": "readFilesIN", "type":"infile", "format": "sequence.fastq"},#用于比对的单端序列文件
+            {"name": "readFilesIN1", "type":"infile", "format":"sequence.fastq, sequence.fasta"},#双端序列←
+            {"name": "readFilesIN2", "type":"infile", "format":"sequence.fastq, sequence.fasta"},#双端序列右
             {"name": "in_sam", "type": "infile", "format": "align.bwa.sam"},  # sam格式文件
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},#用于比对的文件夹
-            {"name":"seq_method", "type": "string"},#比对方式
+            {"name": "seq_method", "type": "string"},#比对方式
             {"name": "input_bam", "type": "infile", "format": "align.bwa.bam"} # bam格式文件,排序过的
         ]
         self.add_option(options)
-        self.samples = {}  #样本 字典 用途？？？多个样本的情况
+        self.samples = {}  
         self.fastq_files = []
-        self.end_info = 1
-        self.mapping_tools = [] #star的运行步骤
-        self.picard = []
-        self.gatk = []
-        self.ref_link = ""
-        self.step.add_steps('star')
-        self.end_times = 1
-        
+        self.mapping_tools = [] #star的tools
+        self.picards = []
+        self.gatks = []
+        self.step.add_steps('star', 'picard', 'gatk' )#添加步骤
+        self.count = 0
     def check_options(self):
         """
         检查参数
@@ -51,23 +49,7 @@ class SnpRnaModule(Module):
             raise OptionError("请选择参考基因组类型！")
         if self.option("ref_genome") == "customer_mode" and not self.option("ref_genome_custom").is_set:
             raise OptionError("请传入自定义参考序列!")
-        #if not self.option("in_sam").is_set:
-        #   raise OptionError("请提供sam输入文件")
-        #if not self.option("input_bam").is_set:
-        #   raise OptionError("请提供bam输入文件")
-
             
-    def star_finish_update(self):
-        self.star.step_end()
-        self.step.update()
-
-    def picard_finish_update(self):
-        self.picard.step_end()
-        self.step.update()
-
-    def gatk_finish_update(self):
-        self.gatk.step_end()
-        self.step.update()
         
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
@@ -75,31 +57,22 @@ class SnpRnaModule(Module):
         self.step.update()
         
     def star_multi_run(self):
-        #self.fastq_files = []
-        n = 0
-        self.logger.info("1234")
-        self.samples = self.get_list()
-        if self.option("ref_genome") != "customer_mode": #不是自定义模式,本地数据库的参考基因组
+        self.fastq_files = []
+        self.samples = self.get_list()#获取多个输入文件夹的序列路径
+        self.logger.info(len(self.samples))
+        if self.option("ref_genome") != "customer_mode": #本地数据库的参考基因组
             self.ref_name = self.option("ref_genome")
-            self.logger.info("5678")
             if self.option("seq_method") == "PE": 
-                self.logger.info("666")
                 for f in self.samples:
                     fq1 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])
                     fq2 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["r"]) 
-                    self.logger.info("fq1")
-                    star = self.add_tool('ref_rna.gene_structure.star')
-                    self.step.add_steps('star_{}'.format(n))
+                    star = self.add_tool('ref_rna.gene_structure.star') #add_tool(self, path) return agent
                     star.set_options({
                         "ref_genome": self.ref_name,
                         "readFilesIN1": fq1,
                         "readFilesIN2": fq2,
                         "seq_method": self.option("seq_method") 
-                    })
-                    
-                    step = getattr(self.step, 'star_{}'.format(n))
-                    step.start()
-                    star.on("end", self.finish_update, "star_{}".format(n))
+                    })  #set_options(options)方法在 tool.py里 options需为一个字典对对象                  
                     star.on("end", self.picard_run)
                     self.mapping_tools.append(star)
                     
@@ -107,17 +80,11 @@ class SnpRnaModule(Module):
                 for f in self.samples:
                     fq_s = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f])
                     star = self.add_tool('ref_rna.gene_structure.star')
-                    self.step.add_steps('star_{}'.format(n))
-                    star = self.add_tool('ref_rna.gene_structure.star')
-                    self.step.add_steps('star_{}'.format(n))
                     star.set_options({
                         "ref_genome": self.ref_name,
                         "readFilesIN": fq_s,
                         "seq_method": self.option("seq_method")
                     })
-                    step = getattr(self.step, 'star_{}'.format(n))
-                    step.start()
-                    star.on("end", self.finish_update, "star_{}".format(n))
                     star.on("end", self.picard_run)
                     self.mapping_tools.append(star)
         
@@ -133,59 +100,50 @@ class SnpRnaModule(Module):
                     fq1 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])
                     fq2 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["r"])
                     star = self.add_tool('ref_rna.gene_structure.star')
-                    self.step.add_steps('star_{}'.format(n))
                     star.set_options({
                         "ref_genome":"customer_mode",
-                        "ref_genome_custom": self.ref_link,
+                        "ref_genome_custom": ref_fasta,
                         "readFilesIN1": fq1,
                         "readFilesIN2": fq2,
-                        'seq_method': self.option('seq_method'),
-                        
+                        'seq_method': self.option('seq_method')
                     })
-                    step = getattr(self.step, 'star_{}'.format(n))
-                    step.start()
-                    star.on("end", self.finish_update, "star_{}".format(n))
+                 
                     star.on("end", self.picard_run)
                     self.mapping_tools.append(star)
+
             elif self.option("seq_method") == "SE":  # 如果测序方式为SE测序
                 for f in self.samples:
                     fq_s = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f])
                     star = self.add_tool('ref_rna.gene_structure.star')
-                    self.step.add_steps('star_{}'.format(n))
                     star.set_options({
                         "ref_genome":"customer_mode",
-                        "ref_genome_custom": self.ref_link,
+                        "ref_genome_custom": ref_fasta,
                         'readFilesIN': fq_s,
-                        'seq_method': self.option('seq_method'),
+                        'seq_method': self.option('seq_method')
                     })
-                    step = getattr(self.step, 'star_{}'.format(n))
-                    step.start()
-                    star.on("end", self.finish_update, "star_{}".format(n))
+                   
                     star.on("end", self.picard_run)
                     self.mapping_tools.append(star)
-        #self.on_rely(self.mapping_tools, self.end)
-        
-        if len(self.mapping_tools) == 1:
-            # self.mapping_tools[0].on("end", self.multi_samtools_run)
-            self.mapping_tools[0].run()
-        else:
-            for tool in self.mapping_tools:
-                tool.run()
+
+        self.on_rely(self.mapping_tools, self.finish_update, 'star')
+        for tool in self.mapping_tools:
+            tool.run()
+
     
     def star_single_run(self):
-        self.star = self.add_tool('ref_rna.gene_structure.star')
+        star = self.add_tool('ref_rna.gene_structure.star')
         if self.option("ref_genome") in ["customer_mode"]:  
             if self.option("seq_method") == "PE":
-                self.star.set_options({
-                    "ref_genome":"customer_mode",
+                star.set_options({
+                    "ref_genome": "customer_mode",
                     "ref_genome_custom": self.option('ref_genome_custom').prop["path"],
                     'readFilesIN1': self.option('readFilesIN1').prop["path"],
                     'readFilesIN2': self.option('readFilesIN2').prop["path"],
                     'seq_method': self.option('seq_method')
                 })
             elif self.option("seq_method") == "SE":
-                self.star.set_options({
-                    "ref_genome":"customer_mode",
+                star.set_options({
+                    "ref_genome": "customer_mode",
                     "ref_genome_custom": self.option('ref_genome_custom').prop["path"],
                     'readFilesIN': self.option('readFilesIN').prop["path"],
                     'seq_method': self.option('seq_method')
@@ -193,23 +151,22 @@ class SnpRnaModule(Module):
                     
         else:  # 本地参考基因组
             if self.option("seq_method") == "PE":  # 双端测序
-                self.star.set_options({
+                star.set_options({
                     "ref_genome": self.option("ref_genome"),
                     'readFilesIN1': self.option('readFilesIN1').prop["path"],
                     'readFilesIN2': self.option('readFilesIN2').prop["path"],
                     'seq_method': self.option('seq_method')
                 })
             elif self.option("seq_method") == "SE":  # 单端测序
-                self.star.set_options({
+                star.set_options({
                     "ref_genome":self.option("ref_genome"),
                     'readFilesIN': self.option('readFilesIN').prop["path"],
                     'seq_method': self.option('seq_method')
                 })
-        
-        self.star.step_start() # 错误信息AttributeError: 'StarAgent' object has no attribute 'step_start'
-        self.star.on("end", self.star_finish_update)
-        self.star.on("end", self.picard_run)
-        self.star.run()
+         
+        star.on("end", self.finish_update, 'star')
+        star.on("end", self.picard_run)
+        star.run()
     
     def picard_run(self, event):
         obj = event["bind_object"]
@@ -217,48 +174,32 @@ class SnpRnaModule(Module):
         f_path = os.path.join(obj.output_dir, star_output[0])
         self.logger.info(f_path) #打印出f_path的信息，是上一步输出文件的路径
         picard = self.add_tool('ref_rna.gene_structure.picard_rna')
-        self.step.add_steps('picard_{}'.format(event['data']))
+        self.picards.append(picard)
+        self.logger.info(len(self.picards))
         if self.option("ref_genome") == "customer_mode":
             ref_fasta = self.option('ref_genome_custom').prop["path"] #用户上传的基因组路径
-            self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta)#链接到当前工作目录下
-            if os.path.exists(self.ref_link):
-                os.remove(self.ref_link)
-            os.link(ref_fasta, self.ref_link) 
             picard.set_options({
-                "ref_genome_custom": self.ref_link,
+                "ref_genome_custom": ref_fasta,
                 "in_sam": f_path,
                 "ref_genome": self.option("ref_genome")
             })
-            step = getattr(self.step, 'picard_{}'.format(event["data"]))
-            step.start()
-            picard.on("end", self.finish_update, 'picard_{}'.format(event["data"]))
-            picard.on("end", self.gatk_run)
-            self.logger.info("picard is processing")
-            #picard.run()
-            self.picard.append(picard)
-            
         else:
             self.ref_name = self.option("ref_genome")
             picard.set_options({
                 "ref_genome": self.ref_name,
                 "in_sam": f_path
             })
-            step = getattr(self.step, 'picard_{}'.format(event["data"]))
-            step.start()
-            picard.on("end", self.finish_update, 'picard_{}'.format(event["data"]))
-            picard.on("end", self.gatk_run)
-            self.logger.info("picard is processing")
-            #picard.run()
-            self.picard.append(picard)
-
-        #self.on_rely(self.picard, self.end)
-        
-        if len(self.picard) == 1:
-            # self.mapping_tools[0].on("end", self.multi_samtools_run)
-            self.picard[0].run()
-        else:
-            for tool in self.picard:
-                tool.run()
+        picard.on("end", self.gatk_run)
+        if len(self.picards) == 1 and self.samples == None:
+            self.picards[0].on("end", self.finish_update, "picard")
+            
+        if len(self.picards) == len(self.samples):
+            #if len(self.picards) == 1:
+            #    self.picards[0].on('end', self.finish_update, 'picard')
+            #else:
+            self.on_rely(self.picards, self.finish_update, 'picard')
+        picard.run()
+            # 全部tool运行完成后更新信息
         
     def gatk_run(self, event): 
         obj = event["bind_object"]
@@ -268,57 +209,48 @@ class SnpRnaModule(Module):
                 f_path = os.path.join(obj.output_dir, i)
                 self.logger.info(f_path)
         gatk = self.add_tool('ref_rna.gene_structure.gatk')
-        self.step.add_steps('gatk_{}'.format(event['data']))
+        self.gatks.append(gatk)
         if self.option("ref_genome") == "customer_mode":
             ref_fasta = self.option('ref_genome_custom').prop["path"] #用户上传的基因组路径
-            self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta)
-            if os.path.exists(self.ref_link):
-                os.remove(self.ref_link)
-            os.link(ref_fasta, self.ref_link) 
             gatk.set_options({
-                "ref_fa": self.ref_link,
+                "ref_fa": ref_fasta,
                 "input_bam": f_path,
                 "ref_genome": "customer_mode"
             })
-            step = getattr(self.step, 'gatk_{}'.format(event["data"]))
-            step.start()
-            gatk.on("end", self.finish_update, 'gatk_{}'.format(event["data"]))
-            gatk.on("end", self.set_output)
-            self.logger.info("gatk is running!")
+            #gatk.on("end", self.finish_update, 'gatk')
+            #gatk.on("end", self.set_output)
+            #self.logger.info("gatk is running!")
             #gatk.run()
-            self.gatk.append(gatk)
-            
         else:
             self.ref_name = self.option("ref_genome")
             gatk.set_options({
                 "ref_genome": self.ref_name,
                 "input_bam": f_path
             })
-            step = getattr(self.step, 'gatk_{}'.format(event["data"]))
-            step.start()
-            gatk.on("end", self.finish_update, 'gatk_{}'.format(event["data"]))
-            gatk.on("end", self.set_output)
-            self.logger.info("gatk is running!")
+            #gatk.on("end", self.finish_update, 'gatk')
+            #gatk.on("end", self.set_output)
+            #self.logger.info("gatk is running!")
             #gatk.run()
-            self.gatk.append(gatk)
-
-        #self.on_rely(self.gatk, self.end)
+        if len(self.gatks) == 1 and self.samples == {}:
+            self.gatks[0].on("end", self.finish_update, "gatk")
+            self.gatks[0].on("end", self.set_output)
+            self.logger.info("gatk is running single!")
         
-        if len(self.gatk) == 1:
-            # self.mapping_tools[0].on("end", self.multi_samtools_run)
-            self.gatk[0].run()
-        else:
-            for tool in self.gatk:
-                tool.run()
+        if len(self.gatks) == len(self.samples):
+            self.on_rely(self.gatks, self.finish_update, 'gatk')
+            self.on_rely(self.gatks, self.set_output, "s")
+        gatk.run()    
 
+    """
     def rename(self, event):
         obj = event["bind_object"]
         self.logger.info("obj is "+ str(obj))
         for f in os.listdir(obj.output_dir):
             old_name = os.path.join(obj.output_dir, f)
             self.logger.info("lalala")  
-        self.end() # rename没看明白
-    
+        self.end() 
+    """
+
     def get_list(self):
         list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
         file_sample = FileSampleFile()
@@ -326,43 +258,58 @@ class SnpRnaModule(Module):
         samples = file_sample.get_list()
         return samples
     
-    def set_output(self):
-        self.logger.info("set output")
-        if self.end_times < len(self.samples):
-            self.end_times += 1
-        elif self.end_times == len(self.samples):
-            for f in os.listdir(self.output_dir):
-                f_path = os.path.join(self.output_dir, f)
-                if os.path.isdir(f_path):
-                    shutil.rmtree(f_path)
-                else:
-                    os.remove(f_path)
-            vcf_dir = os.path.join(self.output_dir, "vcf_files")
-           
-            if not os.path.exists(vcf_dir):
-                os.makedirs(vcf_dir)
-            else:
-                for f in os.listdir(vcf_dir):
-                    f_path = os.path.join(vcf_dir, f)
-                    if os.path.isdir(f_path):
-                        shutil.rmtree(f_path)
-                    else:
-                        os.remove(f_path)
-            for f in os.listdir(self.output_dir):
-                if not os.path.isdir(f):
-                    f = os.path.join(self.output_dir, f)
-                    self.logger.info("move f")
-                    shutil.move(f, vcf_dir)
+    def set_output(self, event):
+        self.logger.info("set output started!!!")
+        obj = event["bind_object"]
+        if event['data'] == 's':#多个样本
+            self.logger.info("现在是多样本分支")
+            for tool in self.gatks:
+                self.linkdir(tool.output_dir, event['data']+str(self.count), self.output_dir)
+                self.count += 1
+                self.logger.info("多样本移动文件夹完成！！！")
+        else:
+            self.logger.info("现在是单样本分支")
+            
+            for f in os.listdir(obj.output_dir):
+                f_path = os.path.join(obj.output_dir, f)
+                self.logger.info(f_path)
+                self.logger.info(f)
+                new_path = os.path.join(self.output_dir, f)
+                self.logger.info(new_path)
+                if os.path.exists(new_path):
+                    self.logger.info("现在进入文件存在分支，module的输出目录下包含文件！！！")
+                    os.remove(new_path)
+                    self.logger.info("删除文件成功！！！")
+                self.logger.info("单个样本，开始移动文件！！！现在不经过判断文件是否存在分支！！！")
+                #os.link(f_path, new_path)#单个样本：将gatk的输出结果链接到module的输出目录
+                shutil.copy(f_path, self.output_dir)
+                self.logger.info("单个样本，移动文件完成！！！")
         self.end()
-   
+           
+        self.logger.info("set output finished!!!")
+        
+    def linkdir(self, dirpath, dirname, output_dir):
+        files = os.listdir(dirpath)
+        newdir = os.path.join(output_dir, dirname)
+        if not os.path.exists(newdir):
+            os.mkdir(newdir)
+        oldfiles = [os.path.join(dirpath,i) for i in files]
+        newfiles = [os.path.join(newdir,i) for i in files]
+        for newfile in newfiles:
+            if os.path.exists(newfile):
+                os.remove(newfile)
+        for i in range(len(files)):
+            os.link(oldfiles[i], newfiles[i])
+
+        
     def run(self):
         if self.option("fastq_dir").is_set:
             self.star_multi_run()
-            self.logger.info("star multi finished!")
+            self.logger.info("star multi started!")
        
         else:
             self.star_single_run()
-            self.logger.info("star single finished!")
+            self.logger.info("star single started!")
         super(SnpRnaModule, self).run()
 
 
@@ -374,48 +321,3 @@ class SnpRnaModule(Module):
         ])
         super(SnpRnaModule, self).end()
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
