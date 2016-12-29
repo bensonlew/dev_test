@@ -24,6 +24,7 @@ class Enterotyping(MetaController):
             "input_otu_id": data.otu_id,
             "in_otu_table": data.otu_id,
             "group_detail": data.group_detail,
+            "group_id": data.group_id,
             "level": str(data.level_id),
         }
 
