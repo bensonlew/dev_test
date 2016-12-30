@@ -7,7 +7,7 @@ import random
 from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
-from mainapp.models.mongo.metagenomeseq_stat import MetagenomeseqStat as G
+from mainapp.models.mongo.meta_sourcetracker_stat import MetaSourcetrackerStat as G
 from mainapp.libs.param_pack import *
 import re
 
@@ -38,37 +38,32 @@ class MetaSourcetracker(object):
         my_param['level_id'] = int(data.level_id)
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['submit_location'] = data.submit_location
-        # my_param['task_type'] = data.task_type
+        my_param['group_low_detail'] = group_detail_sort(data.group_low_detail)
+        my_param['group_low_id'] = data.group_low_id
         my_param['group_id'] = data.group_id
-        #my_param['method_id'] = data.method_id
-        #my_param['top_n_id'] = data.top_n_id
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "metagenomeseq_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            name = "meta_sourcetracker_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_info = Meta().get_task_info(otu_info["task_id"])
             if task_info:
                 member_id = task_info["member_id"]
             else:
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
-            metagenomeseq_id = G().create_metagenomeseq(params=params, group_id=data.group_id, from_otu_table=data.otu_id,name=name, level_id=data.level_id)
-            print "test"
-            #print network_id
-            update_info = {str(metagenomeseq_id): "sg_metagenomeseq"}
+            meta_sourcetracker_id = G().create_metagenomeseq(params=params, group_id=data.group_id, from_otu_table=data.otu_id,name=name, level_id=data.level_id)
+            update_info = {str(meta_sourcetracker_id): "sg_meta_sourcetracker"}  # waiting test and modify
             update_info = json.dumps(update_info)
-            print update_info
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
-            print workflow_id
             (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], 'metagenomeseq')
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
-                "name": "meta.report.metagenomeseq",
+                "name": "meta.report.meta_sourcetracker",
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": ["meta.export_otu_table_by_detail(otu_table)", "meta.export_group_table_by_detail(group_table)"],
+                "to_file": ["meta.export_otu_table_by_detail(otu_table)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": update_api,
@@ -76,15 +71,15 @@ class MetaSourcetracker(object):
                 "output": output_dir,
                 "options": {
                     "otu_table": data.otu_id,
-                    "group_table": data.group_id,
-                    "group_detail": data.group_detail,
+                    "group_table_1": data.group_id,
+                    "group_table_2": data.group_low_id,
+                    "group_detail_1": data.group_detail,
+                    "group_detail_2": data.group_low_detail,
                     "update_info": update_info,
                     "level":int(data.level_id),
-                    "metagenomeseq_id": str(metagenomeseq_id),
+                    "meta_sourcetracker_id": str(meta_sourcetracker_id),
                 }
             }
-            print data.level_id
-            print json_data
             insert_data = {"client": client,
                            "workflow_id": workflow_id,
                            "json": json.dumps(json_data),
