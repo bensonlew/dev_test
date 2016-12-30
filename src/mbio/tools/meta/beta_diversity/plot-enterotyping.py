@@ -48,7 +48,7 @@ class PlotenterotypingAgent(Agent):
 		if not self.option('g'):
 			raise OptionError('拥有正确的分型分组信息')
 		if not self.option('s'):
-			raise OptionError('拥有正确的分型分组名称')
+			raise OptionError('输入信息量过小，不能进行正确的分型，请选择较多的样本或者较高的分类级别')
 		if not self.option('group'):
 			raise OptionError('必须输入正确的样本分组信息')
 		return True
