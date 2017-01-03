@@ -20,7 +20,7 @@ class SgPaternityTest(Base):
 		self.database = self.mongo_client['tsanger_paternity_test']
 
 	@report_check
-	def add_sg_pt_family(self,dad,mom,preg, err,ref_fasta,targets_bedfile,ref_point):
+	def add_sg_pt_family(self,dad,mom,preg, err,ref_fasta,targets_bedfile,ref_point,fastq_path):
 		family_no = re.search("WQ([1-9].*)-F", dad)
 		insert_data = {
 			"project_sn": self.bind_object.sheet.project_sn,
@@ -34,6 +34,7 @@ class SgPaternityTest(Base):
 			"ref_fasta": ref_fasta,
 			"targets_bedfile": targets_bedfile,
 			"ref_point": ref_point,
+			"fastq_path":fastq_path,
 			"status": "end",
 			"created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 		}
@@ -67,7 +68,6 @@ class SgPaternityTest(Base):
 			self.bind_object.logger.info("导入任务主表成功")
 		return flow_id
 
-	@report_check
 	def add_sg_pt_family_detail(self,file_path,flow_id):
 		self.bind_object.logger.info("开始导入调试表")
 		sg_pt_family_detail = list()
@@ -214,9 +214,9 @@ class SgPaternityTest(Base):
 				collection = self.database['sg_pt_result_info']
 				collection.insert_many(sg_pt_family_detail)
 			except Exception as e:
-				self.bind_object.logger.error('导入分析结果表格出错：{}'.format(e))
+				self.bind_object.logger.error('导入信息分析表格出错：{}'.format(e))
 			else:
-				self.bind_object.logger.info("导入分析结果表格成功")
+				self.bind_object.logger.info("导入信息分析表格成功")
 
 	def add_test_pos(self, file_path, flow_id):
 		self.bind_object.logger.info("开始导入位点信息表")
