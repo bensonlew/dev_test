@@ -18,7 +18,8 @@ class PtProcessWorkflow(Workflow):
 		self._sheet = wsheet_object
 		super(PtProcessWorkflow, self).__init__(wsheet_object)
 		options = [
-			{"name": "fastq_path", "type": "string"},  # fastq所在路径(文件夹
+			# {"name": "fastq_path", "type": "infile","format":"sequence.fastq_dir"},  # fastq所在路径(文件夹
+			{"name": "fastq_path", "type": "string"},
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
 			{"name": "targets_bedfile", "type": "string"},
@@ -374,7 +375,7 @@ class PtProcessWorkflow(Workflow):
 		api_main = self.api.sg_paternity_test
 		api_main.add_sg_pt_family(self.option('dad_id'), self.option('mom_id'), self.option('preg_id'),
 		                          self.option('err_min'), self.option('ref_fasta').prop['path'], self.option('targets_bedfile'),
-		                          self.option('ref_point'))
+		                          self.option('ref_point'),self.option('fastq_path'))
 		# flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
 		results = os.listdir(self.output_dir)
 		for f in results:
