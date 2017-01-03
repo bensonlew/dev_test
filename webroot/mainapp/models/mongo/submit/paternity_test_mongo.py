@@ -16,6 +16,9 @@ class PaternityTest(object):
 		self.mongo_client = MongoClient(Config().MONGO_URI)
 		self.database = self.mongo_client['tsanger_paternity_test']
 
+		self.mongo_client_get_tab = MongoClient(Config().MONGO_BIO_URI)
+		self.database_tab = self.mongo_client_get_tab['sanger_paternity_test']
+
 	def add_pt_task_main(self, task, err_min):
 		if task is None:
 			raise Exception('未获取到任务id')
@@ -43,6 +46,12 @@ class PaternityTest(object):
 			ref_fasta=task_info['ref_fasta'],
 			targets_bedfile=task_info['targets_bedfile'],
 			ref_point=task_info['ref_point'],
-			project_sn=task_info['project_sn']
+			project_sn=task_info['project_sn'],
+			fastq_path=task_info['fastq_path']
 		)
 		return info
+
+	def check_sample(self,sample_id):
+		collection = self.database_tab['sg_pt_tab']
+		result = collection.find_one({'sample_id': sample_id})
+		return result
