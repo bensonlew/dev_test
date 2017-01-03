@@ -43,6 +43,7 @@ class SnpRnaModule(Module):
         self.step.add_steps('star', 'picard', 'gatk')  # 添加步骤
         self.count = 0
         self.ref_name = ""
+        self.annovars = []      # add by qindanhua
 
     def check_options(self):
         """
@@ -212,7 +213,7 @@ class SnpRnaModule(Module):
         gatk = self.add_tool('ref_rna.gene_structure.gatk')
         self.gatks.append(gatk)
         if self.option("ref_genome") == "customer_mode":
-            ref_fasta = self.option('ref_genome_custom').prop["path"] #用户上传的基因组路径
+            ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
             gatk.set_options({
                 "ref_fa": ref_fasta,
                 "input_bam": f_path,
@@ -240,7 +241,23 @@ class SnpRnaModule(Module):
         if len(self.gatks) == len(self.samples):
             self.on_rely(self.gatks, self.finish_update, 'gatk')
             self.on_rely(self.gatks, self.set_output, "s")
-        gatk.run()    
+        gatk.run()
+
+    # add by qindanhua  20170103
+    def snp_anno(self, event):
+        obj = event["bind_object"]
+        gatk_output = os.listdir(obj.output_dir)
+        vcf_path = ""
+        for i in gatk_output:
+            if i.endswith(".vcf"):
+                vcf_path = os.path.join(obj.output_dir, i)
+        self.logger.info(vcf_path)
+        annovar = self.add_tool('ref_rna.gene_structure.annovar')
+        options = {"ref_genome": self.ref_name, "input_file": vcf_path}
+        if self.option("ref_genome") == "customer_mode":
+            options["ref_fa"] = self.ref_name
+        annovar.set_options(options)
+        self.annovars.append(annovar)
 
     """
     def rename(self, event):

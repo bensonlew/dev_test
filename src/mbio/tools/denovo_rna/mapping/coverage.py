@@ -68,6 +68,7 @@ class CoverageTool(Tool):
     def __init__(self, config):
         super(CoverageTool, self).__init__(config)
         self.python_path = "program/Python/bin/"
+        self.python_full_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
         self.samtools_path = "bioinfo/align/samtools-1.3.1/"
         self.bam_name = os.path.basename(self.option("bam").prop["path"]).split(".")[0]
 
@@ -94,8 +95,8 @@ class CoverageTool(Tool):
             self.set_error("运行{}过程出错".format(command.name))
 
     def coverage(self):
-        coverage_cmd = "{}geneBody_coverage.py  -i {} -l {} -r {} -o {}".\
-            format(self.python_path, self.bam_name + ".sorted.bam", self.option("min_len"), self.option("bed").prop["path"], "coverage_" + self.bam_name)
+        coverage_cmd = "{}python {}geneBody_coverage.py  -i {} -l {} -r {} -o {}".\
+            format(self.python_path, self.python_full_path, self.bam_name + ".sorted.bam", self.option("min_len"), self.option("bed").prop["path"], "coverage_" + self.bam_name)
         print(coverage_cmd)
         self.logger.info("开始运行geneBody_coverage.py脚本")
         coverage_command = self.add_command("coverage", coverage_cmd)
