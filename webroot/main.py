@@ -49,6 +49,7 @@ from mainapp.controllers.submit.meta.environmental_regression import Environment
 from mainapp.controllers.submit.denovo_rna.kegg_rich_regulate import KeggRichRegulate
 from mainapp.controllers.submit.meta.n_pca import NPca
 from mainapp.controllers.submit.paternity_test import PaternityTest
+from mainapp.controllers.pt_sample_check import SampleCheck
 
 # web.config.debug = False
 urls = (
@@ -108,7 +109,8 @@ urls = (
     "/meta/environmental_regression","EnvironmentalRegression",
     "/denovo_rna/kegg_rich_regulate", "KeggRichRegulate",
     "/meta/n_pca","NPca",
-    "/paternity_test","PaternityTest"
+    "/paternity_test","PaternityTest",
+    "/pt_sample_check","SampleCheck"
 )
 
 
