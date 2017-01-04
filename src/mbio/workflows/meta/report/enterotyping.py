@@ -31,6 +31,7 @@ class EnterotypingWorkflow(Workflow):
         self.a = ''
         self.spe_name = ''
         self.number = ''
+        # self.name = ''
         group_table_path = os.path.join(self.work_dir, "group_table.xls")
         self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table_path)
 
@@ -66,20 +67,46 @@ class EnterotypingWorkflow(Workflow):
         print(up_num)
         g = int(up_num[-1])
         print(g)
-        a = []
-        for i in range(1,g+1):
-                n = str(i)
-                a.append(n)
-        a = ','.join(a)
-        print (a)
-        self.number = g+1
-        self.a = a
+        # a = []
+        # for i in range(1,g+1):
+        #         n = str(i)
+        #         a.append(n)
+        # a = ','.join(a)
+        # print (a)
+        # self.number = g+1
+        # self.a = a
         name = os.listdir(all_path)
         file_number = len(name)-2
+        self.number = len(name)-1
+        # for i in range(1,file_number+1):  # 重算number(1,2,3,4)
+        #     n = str(i)
+        #     a.append(n)
+        # a = ','.join(a)
+        # print(a)
+        # self.a = a
+
+        name.remove("ch.txt") #1.3
+        name.remove("cluster.txt")
+        name.sort()
+        print(name)
+        bigname = name[-1]
+        bignumber = bigname.strip().split(".")
+        the_big = bignumber[0]
+        print (the_big)
+        a =[]
+        for i in range(1 , int(the_big) + 1):
+            n = str(i)
+            a.append(n)
+        a = ','.join(a)
+        print(a)
+        self.a = a
+        # self.name = name
         spe_name = []
         spe_name_re = []
-        for i in range(1,file_number+1):
-            path_c = "/" + str(i) + ".cluster.txt"
+        for i in name:
+            path_c = "/" + i
+        # for i in range(1,file_number+1):
+        #     path_c = "/" + str(i) + ".cluster.txt"
             print(all_path + path_c)
             if os.path.exists(all_path + path_c):
                 b = open(all_path + path_c, "r")
@@ -108,12 +135,10 @@ class EnterotypingWorkflow(Workflow):
         self.plot_enterotyping.set_options({
             "otu_table": self.option("in_otu_table"),
             "g": self.a,
-            "s": self.spe_name,
+            "s": self.a,
 	        # "group": self.option("group_detail")
             "group": self.group_table_path
         })
-        # trans_otu = os.path.join(self.work_dir, "otu.trans")
-        # self.sort_samples.option("out_otu_table").transposition(trans_otu)
         self.plot_enterotyping.on('end', self.set_db)
         self.plot_enterotyping.run()
 
@@ -121,26 +146,25 @@ class EnterotypingWorkflow(Workflow):
     def set_db(self):
         self.logger.info("正在写入mongo数据库")
         cluster_name = []
-        for i in range(1, int(self.number)):
-            cluster_name.append(str(i) + ".cluster.txt")
-        # newick_id = ""
+        name = os.listdir(self.enterotyping.output_dir)
+        name.remove("ch.txt")
+        name.remove("cluster.txt")
+        for i in name:
+            cluster_name.append(i)
+        # for i in range(1, int(self.number)):
+        #     cluster_name.append(str(i) + ".cluster.txt")
         myParams = json.loads(self.sheet.params)
-        # if self.option("method") != "":
-        #     api_heat_cluster = self.api.heat_cluster
-        #     name = "heat_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        #     newick_id = api_heat_cluster.create_newick_table(self.sheet.params, self.option("method"), myParams["otu_id"], name)
-        #     self.hcluster.option("newicktree").get_info()
-        #     api_heat_cluster.update_newick(self.hcluster.option("newicktree").prop['path'], newick_id)
-        #     self.add_return_mongo_id("sg_newick_tree", newick_id, "", False)
         api_otu = self.api.enterotyping_db
-        new_id = api_otu.add_sg_enterotyping(self.sheet.params, self.option("input_otu_id"), cluster_name = cluster_name)
+        new_id = api_otu.add_sg_enterotyping(self.sheet.params, self.option("input_otu_id"), cluster_name = cluster_name, spe_name = self.spe_name)
         api_otu.add_sg_enterotyping_detail(new_id, self.enterotyping.output_dir + "/ch.txt", x = "x", y = "y", name = "ch.txt")
         api_otu.add_sg_enterotyping_detail(new_id, self.enterotyping.output_dir + "/cluster.txt",x = "sample_name", y = "enterotyping_group", name = "cluster.txt")
         api_otu.add_sg_enterotyping_detail(new_id, self.plot_enterotyping.output_dir + "/circle.txt", x = "x", y = "y", name = "circle.txt", detail_name = "circle_name")
         api_otu.add_sg_enterotyping_detail(new_id, self.plot_enterotyping.output_dir + "/point.txt", x="x", y="y",
                                            name="point.txt", detail_name="sample_name")
-        for i in range(1, int(self.number)):
-            api_otu.add_sg_enterotyping_detail_cluster(new_id, self.enterotyping.output_dir + "/" + str(i) + ".cluster.txt", name = str(i) + ".cluster.txt")
+        for i in name:
+            api_otu.add_sg_enterotyping_detail_cluster(new_id, self.enterotyping.output_dir + "/" + i, name = i)
+        # for i in range(1, int(self.number)):
+        #     api_otu.add_sg_enterotyping_detail_cluster(new_id, self.enterotyping.output_dir + "/" + str(i) + ".cluster.txt", name = str(i) + ".cluster.txt")
         api_otu.add_sg_enterotyping_detail_summary(new_id, self.plot_enterotyping.output_dir + "/summary.txt",
                                                    name="summary.txt")
 
