@@ -43,9 +43,9 @@ class Basic(object):
         info = worker.add_task(self._json)
         if info["success"]:
             if self.instant:
-                self.instant_wait(worker)
+                return self.instant_wait(worker)
             else:
-                pass
+                return info
         else:
             raise Exception("任务提交失败:%s" % info["info"])
 
@@ -53,5 +53,6 @@ class Basic(object):
         end = wait(self._id)
         if end is True:
             self._return_msg = worker.get_msg(self._id)
+            return self._return_msg
         else:
             raise Exception("运行超时!")

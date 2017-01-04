@@ -458,7 +458,7 @@ class CopyMongo(object):
         return json.dumps(params, sort_keys=True, separators=(',', ':'))
 
 if __name__ == '__main__':
-    copy_task = CopyMongo('tsanger_2639', 'tsanger_2639_14', '10000485_1', 'shenghe_test')
+    copy_task = CopyMongo('i-sanger_6414', 'i-sanger_6414_1', '10004002_1', 'shenghe_test')
     copy_task.run()
     # copy_task = CopyMongo('tsg_3617', 'tsg_3617_022', '10000782_22', 'm_188_22')
     # copy_task.run()

@@ -18,6 +18,7 @@ class MetaController(object):
         self._instant = instant
         self._post_data = None
         self._sheet_data = None
+        self._return_msg = None
 
     @property
     def data(self):
@@ -27,6 +28,15 @@ class MetaController(object):
         :return:
         """
         return self._post_data
+
+    @property
+    def return_msg(self):
+        """
+        获取Post数据
+
+        :return:
+        """
+        return self._return_msg
 
     @property
     def instant(self):
@@ -51,10 +61,11 @@ class MetaController(object):
     def POST(self):
         workflow_client = Basic(data=self.sheet_data, instant=self.instant)
         try:
-            workflow_client.run()
-            return workflow_client.return_msg
+            run_info = workflow_client.run()
+            self._return_msg = workflow_client.return_msg
+            return run_info
         except Exception, e:
-            return json.dumps({"success": False, "info": "运行出错: %s" % e })
+            return {"success": False, "info": "运行出错: %s" % e }
 
     def set_sheet_data(self, name, options, main_table_name, module_type="workflow", params=None, to_file=None):
         """

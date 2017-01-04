@@ -107,14 +107,14 @@ class UpdateStatus(Log):
         for obj_id, collection_name in json.loads(self.update_info).items():
             obj_id = ObjectId(obj_id)
             collection = self.mongodb[collection_name]
-            if status == "finish":
+            if status != "start":
                 data = {
-                    "status": "end",
-                    "desc": "",
+                    "status": "end" if status == 'finish' else status,
+                    "desc": desc,
                     "created_ts": create_time
                 }
                 collection.find_one_and_update({"_id": obj_id}, {'$set': data}, upsert=True)
-            collection = self.mongodb['sg_status']
+            sg_status_col = self.mongodb['sg_status']
             if status == "start":
                 tmp_col = self.mongodb[collection_name]
                 try:
@@ -143,21 +143,21 @@ class UpdateStatus(Log):
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
-                collection.insert_one(insert_data)
+                sg_status_col.insert_one(insert_data)
             elif status == "finish":  # 只能有一次finish状态
                 insert_data = {
                     "status": 'end',
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
-                collection.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
-                                               {'$set': insert_data}, upsert=True)
+                sg_status_col.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
+                                                  {'$set': insert_data}, upsert=True)
             else:
                 insert_data = {
                     "status": status,
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
-                collection.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
-                                               {'$set': insert_data}, upsert=True)
+                sg_status_col.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
+                                                  {'$set': insert_data}, upsert=True)
             self._mongo_client.close()
