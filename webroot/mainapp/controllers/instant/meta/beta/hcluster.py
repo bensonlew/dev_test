@@ -9,8 +9,8 @@ from bson import ObjectId
 import datetime
 
 
-
 class Hcluster(MetaController):
+
     def __init__(self):
         super(Hcluster, self).__init__(instant=True)
         # super(Hcluster, self).__init__()
@@ -40,7 +40,7 @@ class Hcluster(MetaController):
             'hcluster_method': data.hcluster_method,
             'submit_location': data.submit_location,
             'task_type': data.task_type
-            }
+        }
         main_table_name = 'HHcluster_' + data.hcluster_method + \
             '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
@@ -68,11 +68,15 @@ class Hcluster(MetaController):
             'update_info': json.dumps(update_info),
             'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
             'main_id': str(main_table_id)
-            }
+        }
         to_file = 'meta.export_otu_table_by_detail(otu_table)'
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(Hcluster, self).POST()
-        print(self.return_msg)
+        task_info['content'] = {
+            'ids': {
+                'id': str(main_table_id),
+                'name': main_table_name
+                }}
         return json.dumps(task_info)
         # return json.dumps({'success': True, 'info': 'shenghe log'})

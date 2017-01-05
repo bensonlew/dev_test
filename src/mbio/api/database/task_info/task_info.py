@@ -3,6 +3,7 @@
 import datetime
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
+from bson import SON
 
 
 class TaskInfo(Base):
@@ -20,5 +21,5 @@ class TaskInfo(Base):
             ('project_sn', self.bind_object.sheet.project_sn),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         ]
-        self.db['sg_task'].insert_one(json_data)
+        self.db['sg_task'].insert_one(SON(json_data))
         self.bind_object.logger.info('任务信息导入sg_task成功。')
