@@ -18,9 +18,9 @@ class ClusterAnalysisWorkflow(Workflow):
             {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU表
             {"name": "input_otu_id", "type": "string"},  # 输入的OTU id
             {"name": "level", "type": "string", "default": "9"},  # 输入的OTU level
-            {"name": "group_detail", "type": "string"},  # 输入的group_detail 示例如下
+            {"name": "group_detail", "type": "string"}  # 输入的group_detail 示例如下
             # {"A":["578da2fba4e1af34596b04ce","578da2fba4e1af34596b04cf","578da2fba4e1af34596b04d0"],"B":["578da2fba4e1af34596b04d1","578da2fba4e1af34596b04d3","578da2fba4e1af34596b04d5"],"C":["578da2fba4e1af34596b04d2","578da2fba4e1af34596b04d4","578da2fba4e1af34596b04d6"]}
-            {"name": "method", "type": "string", "default": ""}  # 聚类方式， ""为不进行聚类
+            # {"name": "method", "type": "string", "default": ""}  # 聚类方式， ""为不进行聚类
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())

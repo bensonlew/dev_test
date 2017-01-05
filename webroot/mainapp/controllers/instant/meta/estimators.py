@@ -48,9 +48,9 @@ class Estimators(MetaController):
         # self.to_file = 'meta.export_otu_table_by_level(otu_file)'
         self.to_file = 'meta.export_otu_table_by_detail(otu_file)'
         self.run()
-        print self.returnInfo
+        # print self.returnInfo
         return_info = json.loads(self.returnInfo)
         return_info['content']["ids"]["index_types"] = index_types
-        print(return_info['content']["ids"]["index_types"])
-        print(return_info)
-        return json.dumps(return_info)
+        # print(return_info['content']["ids"]["index_types"])
+        # print(return_info)
+        # return json.dumps(return_info)

@@ -12,6 +12,7 @@ import psutil
 import threading
 import datetime
 import inspect
+import copy
 
 
 class Command(object):
@@ -120,7 +121,8 @@ class Command(object):
                     self._all_processes = [self._psutil_process]
                 chidrens = self._psutil_process.children(recursive=True)
                 chidrens.insert(0, self._psutil_process)
-                for child in self._all_processes:   # 删除已完成的进程
+                all_process = copy.copy(self._all_processes)
+                for child in all_process:   # 删除已完成的进程
                     found = False
                     for p in chidrens:
                         if p.pid == child.pid:
@@ -220,7 +222,8 @@ class Command(object):
         :return:
         """
         if self.cmd == self._last_run_cmd:
-            raise Exception(u"如需要重复运行命令，需要先通过set_cmd()方法修改命令参数，不能和原命令一样!")
+            self.tool.logger.info('重新运行了相同的命令')  # shenghe modified 20161215
+            # raise Exception(u"如需要重复运行命令，需要先通过set_cmd()方法修改命令参数，不能和原命令一样!")
         if self.has_run:
             if self.is_running:
                 self.kill()

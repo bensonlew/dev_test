@@ -11,30 +11,29 @@ from mainapp.models.mongo.public.meta.meta import Meta
 
 class HeatCluster(MetaController):
     def POST(self):
-        return_info = super(HeatCluster, self).POST()
-        if return_info:
-            return return_info
+        # return_info = super(HeatCluster, self).POST()
+        # if return_info:
+        #     return return_info
         data = web.input()
         postArgs = ['group_id', 'level_id', 'submit_location', 'group_detail', 'linkage']
         for arg in postArgs:
             if not hasattr(data, arg):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
-        self.task_name = 'meta.report.heat_cluster'
-        self.main_table_name = 'Heat_Cluster_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        task_name = 'meta.report.heat_cluster'
         tmp = json.loads(data.group_detail).values()
         sampleIds = list()
         for sp in tmp:
             sampleIds.extend(sp)
         sampleIds = map(str, sampleIds)
         sampleIds = ",".join(sampleIds)
-        self.options = {
+        options = {
             "in_otu_table": data.otu_id,
             "samples": Meta().sampleIdToName(sampleIds),
             "linkage": data.linkage,
             "level": int(data.level_id)
         }
-        self.to_file = "meta.export_otu_table_by_level(in_otu_table)"
+        to_file = "meta.export_otu_table_by_level(in_otu_table)"
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = int(data.level_id)
@@ -46,6 +45,6 @@ class HeatCluster(MetaController):
         my_param["submit_location"] = data.submit_location
         my_param["linkage"] = data.linkage
         my_param["task_type"] = data.task_type
-        self.params = param_pack(my_param)
-        self.run()
-        return self.returnInfo
+        params = param_pack(my_param)
+        self.set_sheet_data(name=task_name, options=options, to_file=to_file, params=params)
+        super(HeatCluster, self).POST()

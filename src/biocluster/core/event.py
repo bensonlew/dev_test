@@ -385,7 +385,7 @@ class EventObject(object):
         self.events = {}
         self._start = False   # 判断是否开始事件监听
         self._end = False     # 判断是否结束事件监听
-        # self.semaphore = BoundedSemaphore(1)
+        self.semaphore = BoundedSemaphore(1)
 
     @property
     def is_start(self):
@@ -473,12 +473,12 @@ class EventObject(object):
         :param data: 可选参数 将通过 **event_data['data']** 形式传递给运行函数
         :return:
         """
-        # with self.semaphore:
-        if name not in self.events.keys():
-            raise UnknownEventError(name)
-        e = self.events[name]
-        e.bind(func, self, data)
-        return self
+        with self.semaphore:
+            if name not in self.events.keys():
+                raise UnknownEventError(name)
+            e = self.events[name]
+            e.bind(func, self, data)
+            return self
 
     def fire(self, name, para=None):
         """
@@ -488,11 +488,11 @@ class EventObject(object):
        :param para:  function 需要传递给事件绑定函数的参数
        :return: none
         """
-        # with self.semaphore:
-        if name not in self.events.keys():
-            raise UnknownEventError(name)
-        e = self.events[name]
-        e.fire(para)
+        with self.semaphore:
+            if name not in self.events.keys():
+                raise UnknownEventError(name)
+            e = self.events[name]
+            e.fire(para)
 
     def start_listener(self):
         """
