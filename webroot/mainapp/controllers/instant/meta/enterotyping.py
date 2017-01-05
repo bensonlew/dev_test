@@ -24,9 +24,12 @@ class Enterotyping(MetaController):
             "input_otu_id": data.otu_id,
             "in_otu_table": data.otu_id,
             "group_detail": data.group_detail,
+            "group_id": data.group_id,
             "level": str(data.level_id),
         }
-        self.to_file = "meta.export_otu_table_by_level(in_otu_table)"    # 暂时不改动同样的方式导表
+
+        self.to_file = "meta.export_otu_table_by_detail(in_otu_table)"
+        # self.to_file = "meta.export_otu_table_by_level(in_otu_table)"    # 暂时不改动同样的方式导表
         my_param = dict()
         my_param['submit_location'] = data.submit_location
         my_param['otu_id'] = data.otu_id

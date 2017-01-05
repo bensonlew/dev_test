@@ -48,7 +48,7 @@ class PlotenterotypingAgent(Agent):
 		if not self.option('g'):
 			raise OptionError('拥有正确的分型分组信息')
 		if not self.option('s'):
-			raise OptionError('拥有正确的分型分组名称')
+			raise OptionError('输入信息量过小，不能进行正确的分型，请选择较多的样本或者较高的分类级别')
 		if not self.option('group'):
 			raise OptionError('必须输入正确的样本分组信息')
 		return True
@@ -75,6 +75,9 @@ class PlotenterotypingTool(Tool):
 		self._version = "v1"
 		self.plotenterotyping_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/meta/scripts'
 		self.perl_path = 'program/perl-5.24.0/bin/perl '
+		self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'  # 2016.12.26 by zhouxuan 3
+		self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+		self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
 
 	def run(self):
 		"""

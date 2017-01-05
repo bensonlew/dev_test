@@ -37,7 +37,7 @@ class HierarchicalClusteringHeatmap(Base):
         insert_data = {
             "project_sn": project_sn,
             'task_id': self.task_id,
-            'from_id': str(from_otu_table),
+            'otu_id': from_otu_table,
             'name': self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else name,
             "params": params,
             "sample_tree": sample_tree,
