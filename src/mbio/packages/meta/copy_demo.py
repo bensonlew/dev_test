@@ -136,6 +136,15 @@ class CopyMongo(object):
         self.copy_collection_with_change('sg_valid_sequence_info')
         self.copy_collection_with_change('sg_raw_sequence_info')
 
+        corr_network_id_dict = self.copy_collection_with_change('sg_corr_network', change_positions=['otu_id', 'group_id'],
+                                                                update_sg_status=True)
+        self.copy_main_details('sg_corr_network_centrality_node', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_distribution_node', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_abundance', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_attributes', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_link', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_node', 'corr_network_id', corr_network_id_dict)
+
 
 
 
