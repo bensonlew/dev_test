@@ -15,7 +15,7 @@ class WorkflowModel(object):
     def __init__(self, wsheet):
         """
 
-        :param process: WorkflowWorker 对象
+        :param wsheet: sheet对象
         """
         self._db = Mysql()
         self.workflow_id = wsheet.id
@@ -129,4 +129,3 @@ class ApiLogModel(object):
                  MySQLdb.escape_string(self.log_object.response), self.log_object.response_code)
         # print sql
         self._db.query(sql)
-

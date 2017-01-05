@@ -132,7 +132,8 @@ class WorkflowManager(object):
 def get_event(wid):
     try:
         event = WorkflowManager().get_event(wid)
-    except Exception:
+    except Exception, e:
+        print e
         return None
     else:
         return event
@@ -158,9 +159,10 @@ class ManagerProcess(Process):
                 wsheet = Sheet(data=json)
                 worker = WorkflowWorker(wsheet)
                 worker.start()
-            except:
+            except Exception, e:
                 exstr = traceback.format_exc()
                 print exstr
+                print e
                 sys.stdout.flush()
                 sys.stderr.flush()
                 self.process_end(json["id"])

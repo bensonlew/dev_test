@@ -370,11 +370,10 @@ class Tool(object):
         """
 
         self.save_output()
-        with self.mutex:
-            self.add_state('finish')
-            self.logger.info("Tool程序运行完成")
-            self._end = True
-            self.exit_signal = True
+        self.add_state('finish')
+        self.logger.info("Tool程序运行完成")
+        self._end = True
+        self.exit_signal = True
 
     def exit(self, status=1):
         """
@@ -432,11 +431,10 @@ class Tool(object):
         :param error_data:
         :return:
         """
-        with self.mutex:
-            self.add_state('error', error_data)
-            self.logger.info("运行出错:%s" % error_data )
-            self._end = True
-            self.exit_signal = True
+        self.add_state('error', error_data)
+        self.logger.info("运行出错:%s" % error_data )
+        self._end = True
+        self.exit_signal = True
 
     @staticmethod
     def set_environ(**kwargs):
