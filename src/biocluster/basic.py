@@ -801,7 +801,7 @@ class StepMain(Step):
                         "run_time": self.spend_time}}
 
             if self.stats == "finish":
-                if len(self.bind_obj.upload_dir) > 0:
+                if len(self.bind_obj.upload_dir) > 0 and self.bind_obj.sheet.output:
                     file_list = []
                     dir_list = []
                     for up in self.bind_obj.upload_dir:
@@ -826,7 +826,7 @@ class StepMain(Step):
                     json_obj["files"] = file_list
                     json_obj["dirs"] = dir_list
                 if "update_info" in self.bind_obj.sheet.options().keys():
-                    json_obj["update_info"] = self.bind_obj.sheet.options()
+                    json_obj["update_info"] = self.bind_obj.sheet.option('update_info')
 
             post_data = {
                 "content": json_obj

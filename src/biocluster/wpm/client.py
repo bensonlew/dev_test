@@ -36,11 +36,11 @@ def wait(wid, timeout=None):
         raise Exception("获取Event错误!")
     if timeout is None:
         timeout = config.wpm_instant_timeout
-        event.wait(timeout)
+        return event.wait(timeout)
     elif timeout == 0:
-        event.wait()
+        return event.wait()
     else:
-        event.wait(timeout)
+        return event.wait(timeout)
 
 
 def log_client():
