@@ -4,12 +4,16 @@ from mainapp.config.db import get_mongo_client
 from bson.objectid import ObjectId
 import types
 from biocluster.config import Config
+from bson import SON
 
 
 class Meta(object):
-    def __init__(self):
+    def __init__(self, db=None):
         self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+        if not db:
+            self.db = self.client[Config().MONGODB]
+        else:
+            self.db = self.client[db]
 
     def get_otu_table_info(self, otu_id):
 
@@ -27,3 +31,6 @@ class Meta(object):
         collection = self.db['sg_task']
         result = collection.find_one({"task_id": task_id})
         return result
+
+    def insert_main_table(self, collection, data):
+        return self.db[collection].insert_one(SON(data)).inserted_id

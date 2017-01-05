@@ -48,7 +48,7 @@ class WorkflowManager(object):
         model.save()
         self.queue.put(json)
         self.logger.info("接收到Workflow[%s] 请求,放入队列..." % wsheet.id)
-        return {"success": True, "info": ""}
+        return {"success": True, "info": "任务提交成功."}
 
     def get_event(self, wid):
         if wid not in self.workflows.keys():
