@@ -19,7 +19,9 @@ class MetaSourcetrackerWorkflow(Workflow):
             {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU表
             # {"name": "input_otu_id", "type": "string"},  # 输入的OTU id
             {"name": "level", "type": "string", "default": "9"},  # 输入的OTU level
-            {"name": "map_detail", "type": "string"},  # 输入的map_detail 示例如下(map文件后续导表)
+            {"name": "map_detail", "type": "infile", "format": "meta.otu.group_table"},  # 输入的map_detail 示例如下(map文件后续导表)
+            {"name": "meta_sourcetracker_id", "type": "string"}, #主表的id
+            {"name": "update_info", "type": "string"},
             {"name": "s", "type": "string", "default": "1"}  #OTU筛选参数
             # {"A":["578da2fba4e1af34596b04ce","578da2fba4e1af34596b04cf","578da2fba4e1af34596b04d0"],"B":["578da2fba4e1af34596b04d1","578da2fba4e1af34596b04d3","578da2fba4e1af34596b04d5"],"C":["578da2fba4e1af34596b04d2","578da2fba4e1af34596b04d4","578da2fba4e1af34596b04d6"]}
             # {"name": "method", "type": "string", "default": ""}  # 聚类方式， ""为不进行聚类
@@ -32,10 +34,11 @@ class MetaSourcetrackerWorkflow(Workflow):
         self.spe_name = ''
         self.number = ''
         self.qiime_table_path = ''
+        self.map_detail_path = ''
         # group_table_path = os.path.join(self.work_dir, "group_table.xls")
         # self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table_path)
 
-    def set_qiime_table(self):
+    def reset_input_table(self):
         old_otu_table_path = self.option("in_otu_table").prop['path']
         new_qiime_otu_table = os.path.join(self.work_dir, "otu_table.txt")
         with open(new_qiime_otu_table, "a") as n:
@@ -54,19 +57,19 @@ class MetaSourcetrackerWorkflow(Workflow):
                     n.write(line)
             a.close()
         self.qiime_table_path = new_qiime_otu_table
+        old_map_detail_path = self.option("map_detail").prop['path']
+        if os.path.exists(old_map_detail_path):
+            b = open(old_map_detail_path, "r")
+            content = b.readlines()
+
+        new_map_detail_path = os.path.join(self.work_dir, "map_table")
+
         self.run_meta_sourcetracker()
-    # def run_enterotyping(self):
-    #     self.enterotyping.set_options({
-    #         "otu_table": self.option("in_otu_table")
-    #         # "group_table": self.group_table_path
-    #     })
-    #     self.enterotyping.on("end", self.set_plot_options)
-    #     self.enterotyping.run()
 
     def run_meta_sourcetracker(self):
         self.meta_sourcetracker.set_options({
             "otu_table": self.qiime_table_path,
-            "map_table": self.option("map_detail"),
+            "map_table": self.map_detail_path,
             "s": self.option("s")
         })
         self.meta_sourcetracker.on('end', self.set_db)
@@ -110,5 +113,5 @@ class MetaSourcetrackerWorkflow(Workflow):
     #     super(MetaSourcetrackerWorkflow, self).end()
 
     def run(self):
-        self.set_qiime_table()
+        self.reset_input_table()
         super(MetaSourcetrackerWorkflow, self).run()
