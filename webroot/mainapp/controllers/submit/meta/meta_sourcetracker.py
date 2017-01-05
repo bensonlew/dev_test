@@ -17,7 +17,8 @@ class MetaSourcetracker(object):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'group_low_detail', 'group_low_id']
+        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'second_group_detail',
+                       'second_group_id', 's']
         success = []
         print data
         for param in params_name:
@@ -28,19 +29,35 @@ class MetaSourcetracker(object):
             info = {"success": False, "info": "level{}不在规定范围内{}".format(data.level_id)}
             return json.dumps(info)
         group_detail = json.loads(data.group_detail)
+        # if not isinstance(group_detail, dict):
+        #     success.append("传入的group_detail不是一个字典")
+        # second_group_detail = json.load(data.second_group_detail)
+        # if not isinstance(second_group_detail, dict):
+        #     success.append("传入的second_group_detail不是一个字典")
         if not isinstance(group_detail, dict):
             success.append("传入的group_detail不是一个字典")
-        group_low_detail = json.load(data.group_low_detail)
-        if not isinstance(group_low_detail, dict):
-            success.append("传入的group_low_detail不是一个字典")
+        if data.second_group_detail != '':
+            second_group_detail = json.loads(data.second_group_detail)
+            first = 0
+            second = 0
+            for i in group_detail.values():
+                first += len(i)
+            for n in second_group_detail.values():
+                second += len(n)
+            if not isinstance(second_group_detail, dict):
+                success.append("传入的second_group_detail不是一个字典")
+            if first != second:
+                success.append("二级分组与一级分组的样本数不相同，请检查！")
+        return success
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = int(data.level_id)
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['submit_location'] = data.submit_location
-        my_param['group_low_detail'] = group_detail_sort(data.group_low_detail)
-        my_param['group_low_id'] = data.group_low_id
+        my_param['second_group_detail'] = group_detail_sort(data.second_group_detail)
+        my_param['second_group_id'] = data.second_group_id
         my_param['group_id'] = data.group_id
+        my_param['s'] = data.s
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
@@ -51,11 +68,11 @@ class MetaSourcetracker(object):
             else:
                 info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
                 return json.dumps(info)
-            meta_sourcetracker_id = G().create_metagenomeseq(params=params, group_id=data.group_id, from_otu_table=data.otu_id,name=name, level_id=data.level_id)
+            meta_sourcetracker_id = G().create_meta_sourcetracker(params=params, group_id_1=data.group_id, group_id_2=data.second_group_id, from_otu_table=data.otu_id,name=name, level_id=data.level_id)
             update_info = {str(meta_sourcetracker_id): "sg_meta_sourcetracker"}  # waiting test and modify
             update_info = json.dumps(update_info)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
-            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], 'metagenomeseq')
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], 'meta_sourcetracker')
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
@@ -63,20 +80,19 @@ class MetaSourcetracker(object):
                 "type": "workflow",
                 "client": client,
                 "project_sn": otu_info["project_sn"],
-                "to_file": ["meta.export_otu_table_by_detail(otu_table)"],
+                "to_file": ["meta.export_otu_table_by_detail(otu_table)",
+                            "meta.export_cascading_table_by_detail(group_file)"],
                 "USE_DB": True,
                 "IMPORT_REPORT_DATA": True,
                 "UPDATE_STATUS_API": update_api,
                 "IMPORT_REPORT_AFTER_END": True,
                 "output": output_dir,
                 "options": {
-                    "otu_table": data.otu_id,
-                    "group_table_1": data.group_id,
-                    "group_table_2": data.group_low_id,
-                    "group_detail_1": data.group_detail,
-                    "group_detail_2": data.group_low_detail,
+                    "in_otu_table": data.otu_id,
+                    "map_detail": data.group_id,
                     "update_info": update_info,
-                    "level":int(data.level_id),
+                    "s": data.s,
+                    "level": int(data.level_id),
                     "meta_sourcetracker_id": str(meta_sourcetracker_id),
                 }
             }
