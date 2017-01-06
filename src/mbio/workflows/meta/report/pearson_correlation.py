@@ -26,6 +26,7 @@ class PearsonCorrelationWorkflow(Workflow):
             {"name": "params", "type": "string"},
             {"name": "env_file", "type": "infile", 'format': "meta.otu.group_table"},  # 输入的OTU id
             {"name": "env_id", "type": "string"},
+            {"name": "corr_id", "type": "string"},
             {"name": "env_labs", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "correlation_id", "type": "string"},
@@ -55,13 +56,9 @@ class PearsonCorrelationWorkflow(Workflow):
         self.correlation.set_options(options)
         self.correlation.on("end", self.set_db)
         self.correlation.run()
-        # self.output_dir = self.correlation.output_dir
-        # super(PearsonCorrelationWorkflow, self).run()
         
     def run(self):
         self.run_correlation()
-        # self.run_distance()
-        # self.on_rely(self.tools, self.set_db)
         super(PearsonCorrelationWorkflow, self).run()
 
     def get_name(self):
@@ -77,15 +74,7 @@ class PearsonCorrelationWorkflow(Workflow):
         """
         保存结果指数表到mongo数据库中
         """
-        self.params = eval(self.option("params"))
-        del self.params["otu_file"]
-        del self.params["env_file"]
-        level = self.params["level"]
-        del self.params["level"]
-        self.params["level_id"] = int(level)
-        group_detail = self.params["group_detail"]
-        self.params["group_detail"] = group_detail_sort(group_detail)
-        species_tree = ""
+        new_species_tree = ""
         env_tree = ""
         env_list = []
         species_list = []
@@ -115,12 +104,11 @@ class PearsonCorrelationWorkflow(Workflow):
                 print(new_species_tree)
                 # print(species_list)
                 # new_species_list = []
-        name = "correlation" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        corr_id = api_correlation.add_correlation(self.option("level"), self.option("otu_id"), self.option("env_id"),
-                                                  species_tree=new_species_tree, env_tree=env_tree, name=name,
-                                                  params=self.params, env_list=env_list, species_list=species_list)
+
+        corr_id = self.option("corr_id")
         api_correlation.add_correlation_detail(corr_path[0], "correlation", corr_id)
-        api_correlation.add_correlation_detail(pvalue_path[0], "pvalue", corr_id)
+        api_correlation.add_correlation_detail(pvalue_path[0], "pvalue", corr_id, species_tree=new_species_tree,
+                                               env_tree=env_tree, env_list=env_list, species_list=species_list)
         self.add_return_mongo_id('sg_species_env_correlation', corr_id)
         self.end()
 

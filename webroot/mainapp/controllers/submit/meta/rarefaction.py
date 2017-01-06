@@ -2,24 +2,28 @@
 # __author__ = 'qindanhua'
 import web
 import json
-from mainapp.libs.signature import check_sig
-from mainapp.models.workflow import Workflow
-from mainapp.models.mongo.meta import Meta
-from mainapp.models.mongo.estimator import Estimator
-import random
+from mainapp.controllers.project.meta_controller import MetaController
+# from mainapp.libs.signature import check_sig
+# from mainapp.models.workflow import Workflow
+# from mainapp.models.mongo.meta import Meta
+# from mainapp.models.mongo.estimator import Estimator
 import datetime
-from mainapp.libs.param_pack import GetUploadInfo
+# from mainapp.libs.param_pack import GetUploadInfo
 from mainapp.libs.param_pack import group_detail_sort
+from mainapp.models.mongo.meta import Meta
+from bson import ObjectId
 
 
-class Rarefaction(object):
+class Rarefaction(MetaController):
     """
 
     """
     ESTIMATORS = ['ace', 'bootstrap', 'chao', 'coverage', 'default', 'heip', 'invsimpson', 'jack', 'npshannon',
                   'shannon', 'shannoneven', 'simpson', 'simpsoneven', 'smithwilson', 'sobs']
 
-    @check_sig
+    def __init__(self):
+        super(Rarefaction, self).__init__(instant=False)
+
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
@@ -51,69 +55,96 @@ class Rarefaction(object):
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
 
         otu_info = Meta().get_otu_table_info(data.otu_id)
+        task_name = 'meta.report.rarefaction'
+        task_type = 'workflow'
+        meta = Meta()
 
-        if otu_info:
-            task_info = Meta().get_task_info(otu_info["task_id"])
-            if task_info:
-                member_id = task_info["member_id"]
-            else:
-                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
-                return json.dumps(info)
-            # pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
-                    #    str(otu_info['task_id']) + "/report_results/"
-            name = "Rarefaction_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            rare_id = Estimator().add_rare_collection(data.level_id, params, data.otu_id, name)
-            # print(rare_id)
-            update_info = {str(rare_id): "sg_alpha_rarefaction_curve"}
-            update_info = json.dumps(update_info)
-
-            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info["project_sn"],
-                                                     otu_info['task_id'], name)
-            workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
-            # print(workflow_id)
-            json_data = {
-                "id": workflow_id,
-                "stage_id": 0,
-                "name": "meta.report.rarefaction",
-                "type": "workflow",
-                "client": client,
-                "project_sn": otu_info["project_sn"],
-                # "to_file": "meta.export_otu_table_by_level(otu_table)",
-                "to_file": "meta.export_otu_table_by_detail(otu_table)",
-                "USE_DB": True,
-                "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": update_api,
-                "IMPORT_REPORT_AFTER_END": True,
-                "output": output_dir,
-                "options": {
-                    "update_info": update_info,
-                    "otu_id": data.otu_id,
-                    "otu_table": data.otu_id,
-                    "indices": data.index_type,
-                    "level": data.level_id,
-                    "freq": data.freq,
-                    "rare_id": str(rare_id),
-                    "group_detail": data.group_detail
-                }
-            }
-            insert_data = {"client": client,
-                           "workflow_id": workflow_id,
-                           "json": json.dumps(json_data),
-                           "ip": web.ctx.ip
-                           }
-            workflow_module = Workflow()
-            workflow_module.add_record(insert_data)
-            # return json.dumps(json_obj)
-            info = {"success": True, "info": "提交成功!"}
-            return json.dumps(info)
-        else:
+        otu_info = meta.get_otu_table_info(data.otu_id)
+        if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
+        task_info = meta.get_task_info(otu_info['task_id'])
+        main_table_name = 'Rarefaction_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        mongo_data = [
+            ('project_sn', task_info['project_sn']),
+            ('task_id', task_info['task_id']),
+            ('otu_id', ObjectId(data.otu_id)),
+            ("level_id", int(data.level_id)),
+            ('status', 'start'),
+            ('name', main_table_name),
+            ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
+        ]
+        # main_table_id = Estimator().add_rare_collection(data.level_id, params, data.otu_id, main_table_name)
+        main_table_id = meta.insert_main_table('sg_alpha_rarefaction_curve', mongo_data)
+        update_info = {str(main_table_id): 'sg_alpha_rarefaction_curve'}
 
-    def get_new_id(self, task_id, otu_id):
-        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
-        workflow_module = Workflow()
-        workflow_data = workflow_module.get_by_workflow_id(new_id)
-        if len(workflow_data) > 0:
-            return self.get_new_id(task_id, otu_id)
-        return new_id
+        options = {
+            "update_info": json.dumps(update_info),
+            "otu_id": data.otu_id,
+            "otu_table": data.otu_id,
+            "indices": data.index_type,
+            "level": data.level_id,
+            "freq": data.freq,
+            "rare_id": str(main_table_id),
+            "group_detail": data.group_detail
+                }
+
+        to_file = "meta.export_otu_table_by_detail(otu_table)"
+        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+                            module_type=task_type, to_file=to_file)
+        task_info = super(Rarefaction, self).POST()
+        print(self.return_msg)
+        return task_info
+
+        # if otu_info:
+        #     task_info = Meta().get_task_info(otu_info["task_id"])
+        #     if task_info:
+        #         member_id = task_info["member_id"]
+        #     else:
+        #         info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
+        #         return json.dumps(info)
+        #     # pre_path = "sanger:rerewrweset/files/" + str(member_id) + "/" + str(otu_info["project_sn"]) + "/" + \
+        #             #    str(otu_info['task_id']) + "/report_results/"
+        #     name = "Rarefaction_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        #     rare_id = Estimator().add_rare_collection(data.level_id, params, data.otu_id, name)
+        #     # print(rare_id)
+        #     update_info = {str(rare_id): "sg_alpha_rarefaction_curve"}
+        #     update_info = json.dumps(update_info)
+        #
+        #     (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info["project_sn"],
+        #                                              otu_info['task_id'], name)
+        #     # print(workflow_id)
+        #     json_data = {
+        #         "id": workflow_id,
+        #         "stage_id": 0,
+        #         "name": "meta.report.rarefaction",
+        #         "type": "workflow",
+        #         "client": client,
+        #         "project_sn": otu_info["project_sn"],
+        #         # "to_file": "meta.export_otu_table_by_level(otu_table)",
+        #         "to_file": "meta.export_otu_table_by_detail(otu_table)",
+        #         "USE_DB": True,
+        #         "IMPORT_REPORT_DATA": True,
+        #         "UPDATE_STATUS_API": update_api,
+        #         "IMPORT_REPORT_AFTER_END": True,
+        #         "output": output_dir,
+        #         "options": {
+        #             "update_info": update_info,
+        #             "otu_id": data.otu_id,
+        #             "otu_table": data.otu_id,
+        #             "indices": data.index_type,
+        #             "level": data.level_id,
+        #             "freq": data.freq,
+        #             "rare_id": str(rare_id),
+        #             "group_detail": data.group_detail
+        #         }
+        #     }
+        #     workflow_module = Workflow()
+        #     workflow_module.add_record(insert_data)
+        #     # return json.dumps(json_obj)
+        #     info = {"success": True, "info": "提交成功!"}
+        #     return json.dumps(info)
+        # else:
+        #     info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
+        #     return json.dumps(info)

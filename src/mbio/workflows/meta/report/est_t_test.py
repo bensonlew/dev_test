@@ -26,6 +26,7 @@ class EstTTestWorkflow(Workflow):
             {"name": "group_detail", "type": "string"},
             {"name": "est_test_method", "type": "string", "default": "student"},
             {"name": "submit_location", "type": "string"},
+            {"name": "update_info", "type": "string"},
             {"name": "task_type", "type": "string"}
             ]
         self.add_option(options)
@@ -67,18 +68,19 @@ class EstTTestWorkflow(Workflow):
         if not os.path.isdir(self.output_dir):
             raise Exception("找不到报告文件夹:{}".format(self.output_dir))
         # print(self.option("otu_id"))
-        my_param = dict()
-        my_param['alpha_diversity_id'] = self.option("est_id")
-        my_param['group_detail'] = group_detail_sort(self.option("group_detail"))
-        my_param['group_id'] = self.option("group_id")
-        my_param['submit_location'] = self.option("submit_location")
-        my_param['task_type'] = self.option("task_type")
-        my_param['otu_id'] = self.option("otu_id")
-        my_param['test_method'] = self.option("est_test_method")
-        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
+        # my_param = dict()
+        # my_param['alpha_diversity_id'] = self.option("est_id")
+        # my_param['group_detail'] = group_detail_sort(self.option("group_detail"))
+        # my_param['group_id'] = self.option("group_id")
+        # my_param['submit_location'] = self.option("submit_location")
+        # my_param['task_type'] = self.option("task_type")
+        # my_param['otu_id'] = self.option("otu_id")
+        # my_param['test_method'] = self.option("est_test_method")
+        # params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         # print(params)
-        name = "est_t_test_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        est_t_test_id = api_est_t_test.add_est_t_test_collection(params, self.option("group_id"), self.option("est_id"), name=name, group_name=self.group_name)
+        # name = "est_t_test_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        # est_t_test_id = api_est_t_test.add_est_t_test_collection(params, self.option("group_id"), self.option("est_id"), name=name, group_name=self.group_name)
+        est_t_test_id = self.option("est_t_test_id")
         for f in os.listdir(self.output_dir):
             self.logger.info(os.path.join(self.output_dir, f))
             api_est_t_test.add_est_t_test_detail(os.path.join(self.output_dir, f), est_t_test_id)
