@@ -24,7 +24,7 @@ class EstTTestWorkflow(Workflow):
             {"name": "group_id", "type": "string"},
             {"name": "est_t_test_id", "type": "string"},
             {"name": "group_detail", "type": "string"},
-            # {"name": "group_detail", "type": "string"},
+            {"name": "est_test_method", "type": "string", "default": "student"},
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"}
             ]
@@ -46,10 +46,12 @@ class EstTTestWorkflow(Workflow):
                 name_list.append(gg)
         self.group_name = ",".join(name_list)
         self.logger.info(self.group_name)
+        self.logger.info(self.option('est_test_method'))
         options = {
                 'est_input': self.option('est_table'),
                 'test': 'estimator',
-                'est_group': self.group_file_dir
+                'est_group': self.group_file_dir,
+                'est_test_method': self.option('est_test_method')
                 }
         self.est_t_test.set_options(options)
         self.est_t_test.on('end', self.set_db)
@@ -72,6 +74,7 @@ class EstTTestWorkflow(Workflow):
         my_param['submit_location'] = self.option("submit_location")
         my_param['task_type'] = self.option("task_type")
         my_param['otu_id'] = self.option("otu_id")
+        my_param['test_method'] = self.option("est_test_method")
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         # print(params)
         name = "est_t_test_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
