@@ -56,6 +56,8 @@ class EstTTest(MetaController):
                         "group_id": data.group_id,
                         "task_type": data.task_type
                         }
+        if hasattr(data, "test_method"):
+            self.options["est_test_method"] = data.test_method
         self.to_file = ["estimator.export_est_table(est_table)", "meta.export_group_table_by_detail(group_table)"]
         self.run()
         return_info = json.loads(self.returnInfo)
