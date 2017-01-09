@@ -20,7 +20,9 @@ class EnterotypingWorkflow(Workflow):
             {"name": "input_otu_id", "type": "string"},  # 输入的OTU id
             {"name": "level", "type": "string", "default": "9"},  # 输入的OTU level
             {"name": "group_id", "type": "string"},
-            {"name": "group_detail", "type": "string"}  # 输入的group_detail 示例如下
+            {"name": "group_detail", "type": "string"},  # 输入的group_detail 示例如下
+            {"name": "update_info", "type": "string"},
+            {"name": "main_id", "type": "string"}
             # {"A":["578da2fba4e1af34596b04ce","578da2fba4e1af34596b04cf","578da2fba4e1af34596b04d0"],"B":["578da2fba4e1af34596b04d1","578da2fba4e1af34596b04d3","578da2fba4e1af34596b04d5"],"C":["578da2fba4e1af34596b04d2","578da2fba4e1af34596b04d4","578da2fba4e1af34596b04d6"]}
             # {"name": "method", "type": "string", "default": ""}  # 聚类方式， ""为不进行聚类
         ]
@@ -153,25 +155,25 @@ class EnterotypingWorkflow(Workflow):
             cluster_name.append(i)
         # for i in range(1, int(self.number)):
         #     cluster_name.append(str(i) + ".cluster.txt")
-        myParams = json.loads(self.sheet.params)
+        # myParams = json.loads(self.sheet.params)
         api_otu = self.api.enterotyping_db
-        new_id = api_otu.add_sg_enterotyping(self.sheet.params, self.option("input_otu_id"), cluster_name = cluster_name, spe_name = self.spe_name)
-        api_otu.add_sg_enterotyping_detail(new_id, self.enterotyping.output_dir + "/ch.txt", x = "x", y = "y", name = "ch.txt")
-        api_otu.add_sg_enterotyping_detail(new_id, self.enterotyping.output_dir + "/cluster.txt",x = "sample_name", y = "enterotyping_group", name = "cluster.txt")
-        api_otu.add_sg_enterotyping_detail(new_id, self.plot_enterotyping.output_dir + "/circle.txt", x = "x", y = "y", name = "circle.txt", detail_name = "circle_name")
-        api_otu.add_sg_enterotyping_detail(new_id, self.plot_enterotyping.output_dir + "/point.txt", x="x", y="y",
+        # new_id = api_otu.add_sg_enterotyping(self.sheet.params, self.option("input_otu_id"), cluster_name = cluster_name, spe_name = self.spe_name)
+        api_otu.add_sg_enterotyping_detail(self.option("main_id"), self.enterotyping.output_dir + "/ch.txt", x = "x", y = "y", name = "ch.txt")
+        api_otu.add_sg_enterotyping_detail(self.option("main_id"), self.enterotyping.output_dir + "/cluster.txt",x = "sample_name", y = "enterotyping_group", name = "cluster.txt")
+        api_otu.add_sg_enterotyping_detail(self.option("main_id"), self.plot_enterotyping.output_dir + "/circle.txt", x = "x", y = "y", name = "circle.txt", detail_name = "circle_name")
+        api_otu.add_sg_enterotyping_detail(self.option("main_id"), self.plot_enterotyping.output_dir + "/point.txt", x="x", y="y",
                                            name="point.txt", detail_name="sample_name")
         for i in name:
-            api_otu.add_sg_enterotyping_detail_cluster(new_id, self.enterotyping.output_dir + "/" + i, name = i)
+            api_otu.add_sg_enterotyping_detail_cluster(self.option("main_id"), self.enterotyping.output_dir + "/" + i, name = i)
         # for i in range(1, int(self.number)):
         #     api_otu.add_sg_enterotyping_detail_cluster(new_id, self.enterotyping.output_dir + "/" + str(i) + ".cluster.txt", name = str(i) + ".cluster.txt")
-        api_otu.add_sg_enterotyping_detail_summary(new_id, self.plot_enterotyping.output_dir + "/summary.txt",
-                                                   name="summary.txt")
+        api_otu.add_sg_enterotyping_detail_summary(self.option("main_id"), self.plot_enterotyping.output_dir + "/summary.txt",
+                                                   name="summary.txt", cluster_name=cluster_name, spe_name=self.spe_name)
 
         # new_id = api_otu.add_sg_enterotyping("nnnnn", self.enterotyping.option("result_dir").prop["path"] + "/ch.txt", self.option("input_otu_id"))
         # new_otu_id = api_otu.add_sg_otu(self.sheet.params, self.option("input_otu_id"), None, newick_id)
         # api_otu.add_sg_otu_detail(self.sort_samples.option("out_otu_table").prop["path"], new_otu_id, self.option("input_otu_id"))
-        self.add_return_mongo_id("sg_enterotyping", new_id)
+        # self.add_return_mongo_id("sg_enterotyping", new_id)
         self.end()
 
     def end(self):
