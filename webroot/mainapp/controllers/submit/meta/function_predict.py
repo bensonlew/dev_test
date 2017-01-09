@@ -3,14 +3,11 @@
 
 import web
 import json
-import datetime
-#import random
+import datetime 
 from bson import ObjectId
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.meta import Meta
-#from mainapp.libs.param_pack import *
-#import re
 
 
 class FunctionPredict(MetaController):
