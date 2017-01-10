@@ -197,6 +197,8 @@ class NPca(Base):
                 #a<-len(values)
                     
                 data_temp = zip(columns,values[1:])
+                a_id = ("npca_id", table_id)
+                data_temp.append(a_id)
                 #print data_temp
                 #collection.insert_many(data_temp)
                 data_son = SON(data_temp)
