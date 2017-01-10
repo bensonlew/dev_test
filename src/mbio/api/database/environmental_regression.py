@@ -37,7 +37,7 @@ class EnvironmentalRegression(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("sample_name", line_data[0]), ("X_PCA", line_data[1]), ("Y_factor", line_data[2])]
+                    data = [("environmental_regression_id", table_id), ("sample_name", line_data[0]), ("X_PCA", line_data[1]), ("Y_factor", line_data[2])]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
@@ -70,7 +70,7 @@ class EnvironmentalRegression(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("R_2",line_data[0]),("xmin", line_data[2]), ("xmax", line_data[3]),("ymin",line_data[4]),("ymax",line_data[5]),("PCA",line_data[6]),("PCA_value",line_data[7])]
+                    data = [("environmental_regression_id", table_id), ("R_2",line_data[0]),("xmin", line_data[2]), ("xmax", line_data[3]),("ymin",line_data[4]),("ymax",line_data[5]),("PCA",line_data[6]),("PCA_value",line_data[7])]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
@@ -81,11 +81,11 @@ class EnvironmentalRegression(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
+        
+        
 
 
-
-
-
+    
 
     #@report_check
     def create_environmental_regression(self, params, group_id=0, from_otu_table=0, name=None, level_id=0):
@@ -112,7 +112,7 @@ class EnvironmentalRegression(Base):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "oturoc_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": name if name else "oturoc_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "level_id": level_id,
             "desc": desc,
@@ -122,3 +122,4 @@ class EnvironmentalRegression(Base):
         collection = self.db["sg_meta_roc"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
+

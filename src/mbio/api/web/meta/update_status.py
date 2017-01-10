@@ -1,27 +1,35 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from biocluster.wpm.log import Log
+# last_modified = shenghe
 import urllib
-from biocluster.config import Config
 import json
-from bson.objectid import ObjectId
 import datetime
 import re
 import gevent
 import urllib2
 import sys
+from bson.objectid import ObjectId
+from biocluster.wpm.log import Log
+from biocluster.config import Config
 from biocluster.core.function import CJsonEncoder
 
 
 class UpdateStatus(Log):
+    """
+    meta的web api，用于更新sg_status表并向前端发送状态信息和文件上传信息
+    一般可web api功能可从此处继承使用，需要重写__init__方法
+    """
 
     def __init__(self, data):
         super(UpdateStatus, self).__init__(data)
         self._config = Config()
-        self._client = "client03"
-        self._key = "hM4uZcGs9d"
-        self._url = "http://www.tsanger.com/api/add_file"
-        self.update_info = self.data["content"]["update_info"] if "update_info" in self.data["content"].keys() else None
+        self._client = "client01"
+        self._key = "1ZYw71APsQ"
+        self._url = "http://www.sanger.com/api/add_file"
+        if "update_info" in self.data["content"]:
+            self.update_info = self.data["content"]["update_info"]
+        else:
+            self.update_info = None
         self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
         self._mongo_client = self._config.mongo_client
         self.mongodb = self._mongo_client[Config().MONGODB]
@@ -53,8 +61,7 @@ class UpdateStatus(Log):
                 break
             try:
                 if self._success == 0:
-                    # gevent.sleep(self.config.UPDATE_RETRY_INTERVAL)
-                    gevent.sleep(3)
+                    gevent.sleep(self.config.UPDATE_RETRY_INTERVAL)
                 self._try_times += 1
                 response = self.send()
                 code = response.getcode()
