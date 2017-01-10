@@ -84,7 +84,9 @@ class NPcaAgent(Agent):
                 ["./sdmin.xls", "xls", "置信下边界"],
                 ["./rotation_mean.xls", "xls", "平均值"],
                 #["./linesdata.xls", "xls", "直线信息"],
-                ["./importance.xls", "xls", "百分率返回"]
+                #["./sitesall.xls", "xls", "所有信息"],
+                ["./importance.xls", "xls", "百分率返回"],
+                ["./sitesall.xls", "xls", "所有信息"]
                 ])
         print self.get_upload_files()
         super(NPcaAgent, self).end()
@@ -150,11 +152,12 @@ class NPcaTool(Tool):
         self.logger.info('运行n-pca.pl程序进行npca计算完成')
         allfiles = self.get_npca_filesname()
         self.linkfile(self.work_dir + '/npca/' + allfiles[0], 'sites.xls')
-        self.linkfile(self.work_dir + '/npca/' + allfiles[1], 'sd.xls')
+        self.linkfile(self.work_dir + '/npca/' + allfiles[1], 'sitesall.xls')
         self.linkfile(self.work_dir + '/npca/' + allfiles[2], 'sdmax.xls')
         self.linkfile(self.work_dir + '/npca/' + allfiles[3], 'sdmin.xls')
         self.linkfile(self.work_dir + '/npca/' + allfiles[4], 'rotation_mean.xls')
         self.linkfile(self.work_dir + '/npca/' + allfiles[5], 'importance.xls')
+        self.linkfile(self.work_dir + '/npca/' + allfiles[6], 'sd.xls')
         self.end()
 
     def linkfile(self, oldfile, newname):
@@ -171,11 +174,12 @@ class NPcaTool(Tool):
         sdmin = None
         rotation_mean = None
         importance = None
+        sitesall = None
         for name in filelist:
             if 'sites.xls' in name:
                 sites = name
-            elif 'sd.xls' in name:
-                sd = name
+            elif 'sitesall.xls' in name:
+                sitesall = name
             elif 'sdmax.xls' in name:
                 sdmax = name
             elif 'sdmin.xls' in name:
@@ -184,8 +188,10 @@ class NPcaTool(Tool):
                 rotation_mean = name
             elif 'importance.xls' in name:
                 importance = name
-        if (sites and sd and sdmax and sdmin and rotation_mean and importance):
-            return [sites, sd, sdmax, sdmin, rotation_mean, importance]
+            elif 'sd.xls' in name:
+                sd = name
+        if (sites and sitesall and sdmax and sdmin and rotation_mean and importance and sd):
+            return [sites, sitesall, sdmax, sdmin, rotation_mean, importance, sd]
         else:
             self.set_error("未知原因，metagenomeSeq计算结果丢失")
          
