@@ -38,7 +38,7 @@ class ClusterAnalysis(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type
         }
-        main_table_name = 'Cluster_Analysis_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'ClusteringAnalysis_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         newick_id = None
         mongo_data = [
             ('project_sn', task_info['project_sn']),
