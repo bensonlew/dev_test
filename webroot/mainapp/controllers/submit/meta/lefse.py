@@ -6,13 +6,17 @@ import datetime
 import random
 from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
+from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.group_stat import GroupStat as G
 from mainapp.libs.param_pack import *
 import re
 
 
-class Lefse(object):
+class Lefse(MetaController):
+    def __init__(self):
+        super(Lefse, self).__init__()
+
     @check_sig
     def POST(self):
         data = web.input()
@@ -45,65 +49,32 @@ class Lefse(object):
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "lefse_lda_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            task_info = Meta().get_task_info(otu_info["task_id"])
-            if task_info:
-                member_id = task_info["member_id"]
-            else:
-                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
-                return json.dumps(info)
+            name = "Lefse_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             lefse_id = G().create_species_difference_lefse(params, data.group_id, data.otu_id, name)
             update_info = {str(lefse_id): "sg_species_difference_lefse"}
             update_info = json.dumps(update_info)
-            workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
-            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], name)
-            json_data = {
-                "id": workflow_id,
-                "stage_id": 0,
-                "name": "meta.report.lefse",
-                "type": "workflow",
-                "client": client,
-                "project_sn": otu_info["project_sn"],
-                "to_file": ["meta.export_otu_table(otu_file)", "meta.export_cascading_table_by_detail(group_file)"],
-                "USE_DB": True,
-                "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": update_api,
-                "IMPORT_REPORT_AFTER_END": True,
-                "output": output_dir,
-                "options": {
-                    "otu_file": data.otu_id,
-                    "update_info": update_info,
-                    "group_file": data.group_id,
-                    "group_detail": data.group_detail,
-                    "second_group_detail": data.second_group_detail,
-                    "group_name": G().get_group_name(data.group_id, lefse=True, second_group=data.second_group_detail),
-                    "strict": data.strict,
-                    "lda_filter": data.lda_filter,
-                    "lefse_id": str(lefse_id),
-                    "start_level": int(data.start_level),
-                    "end_level": int(data.end_level),
-                }
+            options = {
+                "otu_file": data.otu_id,
+                "update_info": update_info,
+                "group_file": data.group_id,
+                "group_detail": data.group_detail,
+                "second_group_detail": data.second_group_detail,
+                "group_name": G().get_group_name(data.group_id, lefse=True, second_group=data.second_group_detail),
+                "strict": data.strict,
+                "lda_filter": data.lda_filter,
+                "lefse_id": str(lefse_id),
+                "start_level": int(data.start_level),
+                "end_level": int(data.end_level),
             }
-            insert_data = {"client": client,
-                           "workflow_id": workflow_id,
-                           "json": json.dumps(json_data),
-                           "ip": web.ctx.ip
-                           }
-            workflow_module = Workflow()
-            workflow_module.add_record(insert_data)
-            info = {"success": True, "info": "提交成功!"}
-            return json.dumps(info)
+            to_file = ["meta.export_otu_table(otu_file)", "meta.export_cascading_table_by_detail(group_file)"]
+            self.set_sheet_data(name='meta.report.lefse', options=options, main_table_name=name, module_type='workflow', to_file=to_file)
+            task_info = super(Lefse, self).POST()
+            task_info['content'] = {'ids': {'id': str(lefse_id), 'name': name}}
+            print task_info
+            return json.dumps(task_info)
         else:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-
-    def get_new_id(self, task_id, otu_id):
-        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
-        workflow_module = Workflow()
-        workflow_data = workflow_module.get_by_workflow_id(new_id)
-        if len(workflow_data) > 0:
-            return self.get_new_id(task_id, otu_id)
-        return new_id
 
     def check_options(self, data):
         """
