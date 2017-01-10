@@ -1,108 +1,125 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zhangpeng'
-import web
-import json
-import datetime
-import random
-from mainapp.libs.signature import check_sig
-from mainapp.models.workflow import Workflow
-from mainapp.models.mongo.meta import Meta
-from mainapp.models.mongo.environmental_regression_stat import EnvironmentalRegressionStat as G
-from mainapp.libs.param_pack import *
+from biocluster.api.database.base import Base, report_check
 import re
+from bson.objectid import ObjectId
+from types import StringTypes
+from bson.son import SON
+import gridfs
+import datetime
+import os
+from biocluster.config import Config
 
 
-class EnvironmentalRegression(object):
-    @check_sig
-    def POST(self):
-        data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'env_id', 'env_labs', 'PCAlabs_id']
-        success = []
-        print data
-        for param in params_name:
-            if not hasattr(data, param):
-                info = {"success": False, "info": "缺少%s参数!" % param}
-                return json.dumps(info)
-        if int(data.level_id) not in range(1, 10):
-            info = {"success": False, "info": "level{}不在规定范围内{}".format(data.level_id)}
-            return json.dumps(info)
-        group_detail = json.loads(data.group_detail)
-        if not isinstance(group_detail, dict):
-            success.append("传入的group_detail不是一个字典")
-        my_param = dict()
-        my_param['otu_id'] = data.otu_id
-        my_param['level_id'] = int(data.level_id)
-        my_param['group_detail'] = group_detail_sort(data.group_detail)
-        my_param['submit_location'] = data.submit_location
-        my_param['task_type'] = data.task_type
-        my_param['group_id'] = data.group_id
-        my_param['env_id'] = data.env_id
-        my_param['env_labs'] = data.env_labs
-        my_param['PCAlabs_id'] = data.PCAlabs_id
-        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        otu_info = Meta().get_otu_table_info(data.otu_id)
-        if otu_info:
-            name = "environmental_regression_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            task_info = Meta().get_task_info(otu_info["task_id"])
-            if task_info:
-                member_id = task_info["member_id"]
-            else:
-                info = {"success": False, "info": "这个otu表对应的task：{}没有member_id!".format(otu_info["task_id"])}
-                return json.dumps(info)
-            environmental_regression_id = G().create_environmental_regression(params=params, group_id=data.group_id, from_otu_table=data.otu_id,name=name, level_id=data.level_id, env_id=data.env_id)
-            print "test"
-            #print network_id
-            update_info = {str(environmental_regression_id): "sg_environmental_regression"}
-            update_info = json.dumps(update_info)
-            print update_info
-            workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
-            print workflow_id
-            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], name)
-            json_data = {
-                "id": workflow_id,
-                "stage_id": 0,
-                "name": "meta.report.environmental_regression",
-                "type": "workflow",
-                "client": client,
-                "project_sn": otu_info["project_sn"],
-                "to_file": ["meta.export_otu_table_by_detail(otu_table)", "meta.export_group_table_by_detail(group_table)","env.export_float_env(envtable)"],
-                "USE_DB": True,
-                "IMPORT_REPORT_DATA": True,
-                "UPDATE_STATUS_API": update_api,
-                "IMPORT_REPORT_AFTER_END": True,
-                "output": output_dir,
-                "options": {
-                    "otu_table": data.otu_id,
-                    "group_table": data.group_id,
-                    "group_detail": data.group_detail,
-                    "update_info": update_info,
-                    "level":int(data.level_id),
-                    "envtable":data.env_id,
-                    "env_labs":data.env_labs,
-                    "PCAlabs":data.PCAlabs_id,
-                    "environmental_regression_id": str(environmental_regression_id),
-                }
-            }
-            print data.level_id
-            print json_data
-            insert_data = {"client": client,
-                           "workflow_id": workflow_id,
-                           "json": json.dumps(json_data),
-                           "ip": web.ctx.ip
-                           }
-            workflow_module = Workflow()
-            workflow_module.add_record(insert_data)
-            info = {"success": True, "info": "提交成功!"}
-            return json.dumps(info)
+class EnvironmentalRegression(Base):
+    def __init__(self, bind_object):
+        super(EnvironmentalRegression, self).__init__(bind_object)
+        self._db_name = Config().MONGODB
+        # self.client = get_mongo_client()
+
+    @report_check
+    def add_environmental_regression_site(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
+        self.bind_object.logger.info('start insert mongo zhangpeng')
+        if major:
+            table_id = self.create_environmental_regression(self, params, group_id, from_otu_table, level_id)
         else:
-            info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
-            return json.dumps(info)
+            if not isinstance(table_id, ObjectId):
+                if isinstance(table_id, StringTypes):
+                    table_id = ObjectId(table_id)
+            else:
+                raise Exception("table_id必须为ObjectId对象或者其对应的字符串！")
+        data_list = []
+        with open(file_path, 'rb') as r:
+            i = 0
+            for line in r:
+                if i == 0:
+                    i = 1
+                else:
+                    line = line.strip('\n')
+                    line_data = line.split('\t')
+                    data = [("sample_name", line_data[0]), ("X_PCA", line_data[1]), ("Y_factor", line_data[2])]
+                    data_son = SON(data)
+                    data_list.append(data_son)
+        try:
+            collection = self.db["sg_environmental_regression_curve"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
+        else:
+            self.bind_object.logger.info("导入%s信息成功!" % file_path)
+        return data_list, table_id
 
-    def get_new_id(self, task_id, otu_id):
-        new_id = "%s_%s_%s" % (task_id, otu_id[-4:], random.randint(1, 10000))
-        workflow_module = Workflow()
-        workflow_data = workflow_module.get_by_workflow_id(new_id)
-        if len(workflow_data) > 0:
-            return self.get_new_id(task_id, otu_id)
-        return new_id
+    # @report_check
+    def add_environmental_regression_messages(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
+        if major:
+            table_id = self.create_environmental_regression(self, params, group_id, from_otu_table, level_id)
+        else:
+            if table_id is None:
+                raise Exception("major为False时需提供table_id!")
+            if not isinstance(table_id, ObjectId):
+                if isinstance(table_id, StringTypes):
+                    table_id = ObjectId(table_id)
+            else:
+                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
+        data_list = []
+        with open(file_path, 'rb') as r:
+            i = 0
+            for line in r:
+                if i == 0:
+                    i = 1
+                else:
+                    line = line.strip('\n')
+                    line_data = line.split('\t')
+                    data = [("R_2",line_data[0]),("xmin", line_data[2]), ("xmax", line_data[3]),("ymin",line_data[4]),("ymax",line_data[5]),("PCA",line_data[6]),("PCA_value",line_data[7])]
+                    data_son = SON(data)
+                    data_list.append(data_son)
+        try:
+            collection = self.db["sg_environmental_regression_line"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
+        else:
+            self.bind_object.logger.info("导入%s信息成功!" % file_path)
+        return data_list
+        
+        
+
+
+    
+
+    #@report_check
+    def create_environmental_regression(self, params, group_id=0, from_otu_table=0, name=None, level_id=0):
+        if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
+            if isinstance(from_otu_table, StringTypes):
+                from_otu_table = ObjectId(from_otu_table)
+            else:
+                raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
+        if group_id != 0 and not isinstance(group_id, ObjectId):
+            if isinstance(group_id, StringTypes):
+                group_id = ObjectId(group_id)
+            else:
+                raise Exception("group_detail必须为ObjectId对象或其对应的字符串!")
+        if level_id not in range(1, 10):
+            raise Exception("level参数%s为不在允许范围内!" % level_id)
+
+        collection = self.db["sg_otu"]  #我是不是也可以 用这个表
+        result = collection.find_one({"_id": from_otu_table})
+        project_sn = result['project_sn']
+        task_id = result['task_id']
+        desc = "roc分析"
+        insert_data = {
+            "project_sn": project_sn,
+            "task_id": task_id,
+            "otu_id": from_otu_table,
+            "group_id": group_id,
+            "name": name if name else "oturoc_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "params": params,
+            "level_id": level_id,
+            "desc": desc,
+            "status": "end",
+            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        collection = self.db["sg_meta_roc"]
+        inserted_id = collection.insert_one(insert_data).inserted_id
+        return inserted_id
+
