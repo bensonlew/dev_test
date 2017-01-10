@@ -45,7 +45,7 @@ class Roc(MetaController):
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
-            ('table_id', ObjectId(data.otu_id)),
+            ('roc_id', ObjectId(data.otu_id)),
             #('table_type', 'dist'),
             #('tree_type', 'cluster'),
             ('status', 'start'),
