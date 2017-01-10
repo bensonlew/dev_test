@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
 import web
+import random
+from ..core.basic import Basic
 from mainapp.libs.input_check import meta_check
 from mainapp.models.mongo.public.meta.meta import Meta
 from mainapp.libs.signature import check_sig
 from mainapp.models.mongo.distance_matrix import Distance
-import random
 from mainapp.models.workflow import Workflow
-# from ..core.instant import Instant
-from ..core.basic import Basic
-import json
 
 
 class MetaController(object):
@@ -71,11 +69,12 @@ class MetaController(object):
         """
         设置运行所需的Json文档
 
-        :param name:
-        :param module_type:
-        :param options:
-        :param params:
-        :param to_file:
+        :param name: workflow/module/tool相对路径
+        :param module_type: workflow/module/tool
+        :param main_table_name: 交互分析项主表名称
+        :param options: workflow/module/tool参数
+        :param params: 交互分析主表params字段
+        :param to_file: workflow/module/tool mongo数据转文件
         :return:
         """
         self._post_data = web.input()
@@ -98,7 +97,7 @@ class MetaController(object):
             'project_sn': project_sn,
             'IMPORT_REPORT_DATA': True,
             'main_table_name': main_table_name,
-            'UPDATE_STATUS_API': 'meta.update_status',
+            'UPDATE_STATUS_API': self._update_status_api(),
             'options': options  # 需要配置
         }
         if self.instant:
@@ -109,10 +108,13 @@ class MetaController(object):
             self._sheet_data["to_file"] = to_file
         if main_table_name:
             self._sheet_data["main_table_name"] = main_table_name
-        print('ShengHe Log: {}'.format(self._sheet_data))
+        print('Sheet_Data: {}'.format(self._sheet_data))
         return self._sheet_data
 
     def get_new_id(self, task_id, otu_id=None):
+        """
+        根据旧的ID生成新的workflowID，固定为旧的后面用“_”，添加两次随机数或者一次otu_id一次随机数
+        """
         if otu_id:
             new_id = "{}_{}_{}".format(task_id, otu_id[-4:], random.randint(1, 10000))
         else:
@@ -124,6 +126,9 @@ class MetaController(object):
         return new_id
 
     def _create_output_dir(self, task_id, main_table_name):
+        """
+        根据主表名称，生成结果目录名称/上传路径
+        """
         data = web.input()
         task_info = Meta().get_task_info(task_id)
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
@@ -135,3 +140,14 @@ class MetaController(object):
             '/' + str(task_info['project_sn']) + '/' + \
             task_id + '/report_results/' + main_table_name
         return target_dir
+
+    def _update_status_api(self):
+        """
+        根据client决定接口api为meta.update_status/meta.tupdate_status
+        """
+        data = web.input()
+        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        if client == 'client01':
+            return 'meta.update_status'
+        else:
+            return 'meta.tupdate_status'
