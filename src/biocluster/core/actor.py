@@ -117,7 +117,7 @@ class RemoteActor(threading.Thread):
                 else:
                     return False
 
-        while is_finished():
+        while not is_finished():
             with self.mutex:
                 if self._tool.exit_signal and len(self._tool.states) == 0:
                     self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
