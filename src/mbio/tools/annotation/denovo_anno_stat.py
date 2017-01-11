@@ -42,11 +42,13 @@ class DenovoAnnoStatAgent(Agent):
             {"name": "nr_taxons", "type": "outfile", "format": "annotation.nr.nr_taxon"},
             {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
+            {"name": "gene_kegg_anno_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
         ]
         self.add_option(options)
         self.step.add_steps("denovo_anno_stat")
         self.on('start', self.stepstart)
         self.on('end', self.stepfinish)
+        self.queue = 'BLAST2GO'  # 投递到指定的队列BLAST2GO
 
     def stepstart(self):
         self.step.denovo_anno_stat.start()
@@ -290,6 +292,7 @@ class DenovoAnnoStatTool(Tool):
                 if db == 'kegg':
                     self.movedir2output(self.kegg_stat_path, 'kegg_stat')
                     self.option('gene_kegg_table', self.output_dir + '/blast/gene_kegg.xls')
+                    self.option('gene_kegg_anno_table', self.output_dir + '/kegg_stat/gene_kegg_table.xls')
                     # venn_stat
                     self.option('kegg_xml').get_info()
                     kegg_venn = self.option('kegg_xml').prop['hit_query_list']

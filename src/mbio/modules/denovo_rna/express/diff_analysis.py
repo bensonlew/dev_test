@@ -5,6 +5,7 @@
 from biocluster.module import Module
 import os
 from biocluster.core.exceptions import OptionError
+from mbio.files.denovo_rna.express.diff_stat_table import DiffStatTableFile
 # import shutil
 
 
@@ -175,14 +176,23 @@ class DiffAnalysisModule(Module):
         self.step.go_regulate.start()
         files = os.listdir(self.option('diff_stat_dir').prop['path'])
         for f in files:
-            self.go_regulate = self.add_tool("denovo_rna.express.go_regulate")
-            self.go_regulate.set_options({
-                "diff_stat": os.path.join(self.option('diff_stat_dir').prop['path'], f),
-                "go_level_2": self.option("gene_go_level_2")
-            })
-            self.go_regulate_tool.append(self.go_regulate)
+            statfile = os.path.join(self.option('diff_stat_dir').prop['path'], f)
+            tmpfile = DiffStatTableFile()
+            tmpfile.set_path(statfile)
+            diff_gene, regulate_dict = tmpfile.get_table_info()
+            go_genes = self.option("gene_go_level_2").get_gene()
+            same_gene = list(set(diff_gene) & set(go_genes))
+            if same_gene:
+                self.go_regulate = self.add_tool("denovo_rna.express.go_regulate")
+                self.go_regulate.set_options({
+                    "diff_stat": statfile,
+                    "go_level_2": self.option("gene_go_level_2")
+                })
+                self.go_regulate_tool.append(self.go_regulate)
         if len(self.go_regulate_tool) == 1:
             self.go_regulate.on('end', self.set_output, 'go_regulate')
+        elif len(self.go_regulate_tool) == 0:
+            pass
         else:
             self.on_rely(self.go_regulate_tool, self.set_output, 'go_regulate')
         self.tools += self.go_regulate_tool

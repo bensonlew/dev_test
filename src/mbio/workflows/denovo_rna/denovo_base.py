@@ -68,6 +68,7 @@ class DenovoBaseWorkflow(Workflow):
         self.bam_path = ''  # rsem比对结果bam文件文件路径
         self.orf_bed = ''  # orf bed结果文件路径
         self.express_id = None
+        self.express_diff_id = None
         self.api_express = self.api.denovo_express
         self.api_anno = self.api.denovo_annotation
 
@@ -231,6 +232,83 @@ class DenovoBaseWorkflow(Workflow):
         self.ssr.on('end', self.set_output, 'ssr')
         self.ssr.run()
 
+    def run_blast_test(self):
+        self.blast_modules = []
+        self.gene_list = self.assemble.option('gene_full_name').prop['gene_list']
+        blast_lines = int(self.assemble.option('trinity_fa').prop['seq_number']) / 10
+        self.logger.info('.......blast_lines:%s' % blast_lines)
+        blast_opts = {
+            'query': self.assemble.option('trinity_fa'),
+            'query_type': 'nucl',
+            'database': None,
+            'blast': 'blastx',
+            'evalue': None,
+            'outfmt': 6,
+            'lines': blast_lines,
+        }
+        if 'go' in self.option('database') or 'nr' in self.option('database'):
+            self.blast_nr = self.add_module('align.blast')
+            blast_opts.update(
+                {'database': 'nr', 'evalue': self.option('nr_blast_evalue')}
+            )
+            self.blast_nr.set_options(blast_opts)
+            self.blast_modules.append(self.blast_nr)
+            self.blast_nr.on('end', self.set_output, 'nrblast')
+            # self.blast_nr.run()
+        if 'cog' in self.option('database'):
+            self.blast_string = self.add_module('align.blast')
+            blast_opts.update(
+                {'database': 'string', 'evalue': self.option('string_blast_evalue')}
+            )
+            self.blast_string.set_options(blast_opts)
+            self.blast_modules.append(self.blast_string)
+            self.blast_string.on('end', self.set_output, 'stringblast')
+            # self.blast_string.run()
+        if 'kegg' in self.option('database'):
+            self.blast_kegg = self.add_module('align.blast')
+            blast_opts.update(
+                {'database': 'kegg', 'evalue': self.option('kegg_blast_evalue')}
+            )
+            self.blast_kegg.set_options(blast_opts)
+            self.blast_modules.append(self.blast_kegg)
+            self.blast_kegg.on('end', self.set_output, 'keggblast')
+            # self.blast_kegg.run()
+        self.on_rely(self.blast_modules, self.run_annotation)
+        self.test_run(self.blast_kegg)
+        self.test_run(self.blast_nr)
+        self.test_run(self.blast_string)
+        self.blast_kegg.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast2/CatBlastout1/output/blast.xml')
+        self.blast_kegg.option('outtable', '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast2/CatBlastout/output/blast_table.xls')
+        self.blast_nr.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast/CatBlastout1/output/blast.xml')
+        self.blast_nr.option('outtable', '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast/CatBlastout/output/blast_table.xls')
+        self.blast_string.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast1/CatBlastout1/output/blast.xml')
+        self.blast_string.option('outtable', '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast1/CatBlastout/output/blast_table.xls')
+        self.test_end(self.blast_kegg)
+        self.test_end(self.blast_nr)
+        self.test_end(self.blast_string)
+
+    def test_end(self, tp):
+        if not os.listdir(tp.output_dir):
+            tp.logger.debug("输出目录%s为空,你确定已经设置了输出目录?" % tp.output_dir)
+        for option in tp._options.values():
+            if option.type == 'outfile':
+                if not option.value.is_set:
+                    tp.logger.debug("输出参数%s没有设置输出文件路径,你确定此处不需要设置?" % option.name)
+        tp.set_end()
+        tp.fire('end')
+
+    def test_run(self, tp):
+        tp.start_listener()
+        paused = False
+        workflow = tp.get_workflow()
+        while workflow.pause:
+            if not paused:
+                tp.logger.info("流程处于暂停状态，排队等待恢复运行!")
+            paused = True
+            workflow.is_wait = True
+            gevent.sleep(1)
+        tp.fire("start")
+
     def run_blast(self):
         self.blast_modules = []
         self.gene_list = self.assemble.option('gene_full_name').prop['gene_list']
@@ -371,10 +449,20 @@ class DenovoBaseWorkflow(Workflow):
             self.exp_diff.on('end', self.set_output, 'exp_diff')
             self.exp_diff.on('end', self.set_step, {'end': self.step.express})
             self.final_tools.append(self.exp_diff)
+            self.on_rely(self.final_tools, self.end)
             self.exp_diff.run()
         else:
             self.logger.info('输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略')
-        self.on_rely(self.final_tools, self.end)
+            self.set_step(event={'data': {'end': self.step.express}})
+            self.logger.info('......final_tools: %s' % self.final_tools)
+            all_end = []
+            for i in self.final_tools:
+                self.logger.info('......tool: %s is_end is %s' % (i, i.is_end))
+                all_end.append(i.is_end)
+            if all(all_end):
+                self.end()
+            else:
+                self.on_rely(self.final_tools, self.end)
 
     def move2outputdir(self, olddir, newname, mode='link'):
         """
@@ -420,9 +508,9 @@ class DenovoBaseWorkflow(Workflow):
                 raise Exception('找不到报告文件：{}'.format(qc_stat_info))
             if not os.path.exists(quality_stat):
                 raise Exception('找不到报告文件：{}'.format(quality_stat))
-            api_sample = self.api.denovo_rna_sample
-            api_sample.add_samples_info(qc_stat=qc_stat_info, qc_adapt=None, fq_type=self.option('fq_type'))
-            api_sample.add_gragh_info(quality_stat, about_qc='before')
+            # api_sample = self.api.denovo_rna_sample
+            self.api_sample.add_samples_info(qc_stat=qc_stat_info, qc_adapt=None, fq_type=self.option('fq_type'))
+            self.api_sample.add_gragh_info(quality_stat, about_qc='before')
         if event['data'] == 'qc_stat_after':
             self.move2outputdir(obj.output_dir, 'QC_stat/after_qc')
             # set api
@@ -433,7 +521,7 @@ class DenovoBaseWorkflow(Workflow):
             for f in files:
                 if not os.path.exists(f):
                     raise Exception('找不到报告文件：{}'.format(f))
-            self.api_sample.add_samples_info(qc_stat=qc_stat_info, qc_adapt=qc_adapt, fq_type=self.option('fq_type'))
+            self.sample_ids = self.api_sample.add_samples_info(qc_stat=qc_stat_info, qc_adapt=qc_adapt, fq_type=self.option('fq_type'))
             self.api_sample.add_gragh_info(quality_stat, about_qc='after')
             self.spname_spid = self.api_sample.get_spname_spid()
         if event['data'] == 'assemble':
@@ -498,7 +586,9 @@ class DenovoBaseWorkflow(Workflow):
             # set api
             # add express file and rsem result
             rsem_dir = self.output_dir + '/Express_stat/rsem/'
-            self.express_id = self.api_express.add_express(samples=self.samples, params=None, name=None, bam_path=self.bam_path, rsem_dir=rsem_dir)
+            gene_distri = self.exp_stat.merge_rsem.work_dir + '/gene_distribution.xls'
+            tran_distri = self.exp_stat.merge_rsem.work_dir + '/tran_distribution.xls'
+            self.express_id = self.api_express.add_express(samples=self.samples, params=None, name=None, bam_path=self.bam_path, rsem_dir=rsem_dir, gene_distri=gene_distri, tran_distri=tran_distri)
             # add control file and group_table
             api_control = self.api.control
             if self.option('group_table').is_set:
@@ -521,11 +611,11 @@ class DenovoBaseWorkflow(Workflow):
                 'submit_location': 'sg_denovo_express_diff'
             }
             if self.option('group_table').is_set:
-                express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, diff_exp_dir=diff_exp_dir)
+                self.express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, diff_exp_dir=diff_exp_dir)
             else:
-                express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id='all', group_detail={'all': sorted(self.api_sample.sample_ids)}, control_id=control_id, diff_exp_dir=diff_exp_dir)
+                self.express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id='all', group_detail={'all': self.sample_ids}, control_id=control_id, diff_exp_dir=diff_exp_dir)
             # update sg_status
-            self.update_status_api.add_denovo_status(table_id=str(express_diff_id), type_name='sg_denovo_express_diff')
+            self.update_status_api.add_denovo_status(table_id=str(self.express_diff_id), type_name='sg_denovo_express_diff')
             # add diff fpkm file
             param_2 = {
                 # 'express_diff_id': ,
@@ -533,8 +623,11 @@ class DenovoBaseWorkflow(Workflow):
                 'is_sum': True,
                 'submit_location': 'sg_denovo_express'
             }
-            self.diff_gene_id = self.api_express.add_express(samples=self.samples, params=param_2, express_diff_id=express_diff_id, major=False)
-            self.api_express.add_express_detail(self.diff_gene_id, diff_exp_dir + 'diff_count', diff_exp_dir + 'diff_fpkm', 'gene')
+            if not self.exp_stat.diff_gene:
+                param_2['desc'] = '数据量太小，未检测到差异基因！'
+            self.diff_gene_id = self.api_express.add_express(samples=self.samples, params=param_2, express_diff_id=self.express_diff_id, major=False)
+            if self.exp_stat.diff_gene:
+                self.api_express.add_express_detail(self.diff_gene_id, diff_exp_dir + 'diff_count', diff_exp_dir + 'diff_fpkm', 'gene')
             # add correlation file
             corr_api = self.api.denovo_rna_mapping
             corr_api.add_correlation_table(correlation=self.output_dir + '/Express_stat/gene_correlation/', express_id=self.express_id, detail=True, seq_type='gene')
@@ -574,12 +667,19 @@ class DenovoBaseWorkflow(Workflow):
                 for d in go_rich_dirs:
                     path1 = go_rich_path + d
                     go_file, png = None, None
+                    go_rich_param = {
+                        'analysis_type': 'enrich',
+                        'submit_location': 'sg_denovo_go_enrich',
+                        'pval': 0.05,
+                        'method': 'fdr',
+                        'compare': ','.join(d.split('_vs_'))
+                    }
                     for f in os.listdir(path1):
                         if re.match(r'go_enrich', f):
                             go_file = os.path.join(path1, f)
                         if re.search(r'png$', f):
                             png = os.path.join(path1, f)
-                    go_id = go_rich_api.add_go_enrich(params=None, go_graph_dir=png, go_enrich_dir=go_file)
+                    go_id = go_rich_api.add_go_enrich(params=go_rich_param, go_graph_dir=png, go_enrich_dir=go_file, express_diff_id=self.express_diff_id)
                     # update sg_status
                     self.update_status_api.add_denovo_status(table_id=str(go_id), type_name='sg_denovo_go_enrich')
             # set go regulate
@@ -588,10 +688,15 @@ class DenovoBaseWorkflow(Workflow):
                 go_regulate_path = os.path.join(self.output_dir + '/Diff_express/go_regulate/')
                 go_regulate_dirs = os.listdir(go_regulate_path)
                 for d in go_regulate_dirs:
+                    go_regu_param = {
+                        'analysis_type': 'regulate',
+                        'submit_location': 'sg_denovo_go_regulate',
+                        'compare': ','.join(d.split('_vs_'))
+                    }
                     path2 = go_regulate_path + d
                     go_file, png = None, None
                     f = os.path.join(path2, os.listdir(path2)[0])
-                    go_regu_id = go_regulate_api.add_go_regulate(params=None, go_regulate_dir=f)
+                    go_regu_id = go_regulate_api.add_go_regulate(params=go_regu_param, go_regulate_dir=f, express_diff_id=self.express_diff_id)
                     # update sg_status
                     self.update_status_api.add_denovo_status(table_id=str(go_regu_id), type_name='sg_denovo_go_regulate')
             # set kegg tich
@@ -600,9 +705,15 @@ class DenovoBaseWorkflow(Workflow):
                 kegg_rich_path = os.path.join(self.output_dir + '/Diff_express/kegg_rich/')
                 kegg_rich_dirs = os.listdir(kegg_rich_path)
                 for d in kegg_rich_dirs:
+                    kegg_rich_param = {
+                        'analysis_type': 'enrich',
+                        'submit_location': 'sg_denovo_kegg_enrich',
+                        'method': 'BH',
+                        'compare': ','.join(d.split('_vs_'))
+                    }
                     path3 = kegg_rich_path + d
                     f = os.path.join(path3, os.listdir(path3)[0])
-                    kegg_id = kegg_rich_api.add_kegg_rich(params=None, kegg_enrich_table=f)
+                    kegg_id = kegg_rich_api.add_kegg_rich(params=kegg_rich_param, kegg_enrich_table=f, express_diff_id=self.express_diff_id)
                     # update sg_status
                     self.update_status_api.add_denovo_status(table_id=str(kegg_id), type_name='sg_denovo_kegg_enrich')
             # set kegg regulate
@@ -611,13 +722,18 @@ class DenovoBaseWorkflow(Workflow):
                 kegg_regulate_path = os.path.join(self.output_dir + '/Diff_express/kegg_regulate/')
                 kegg_regulate_dirs = os.listdir(kegg_regulate_path)
                 for d in kegg_regulate_dirs:
+                    kegg_regu_param = {
+                        'analysis_type': 'regulate',
+                        'submit_location': 'sg_denovo_kegg_regulate',
+                        'compare': ','.join(d.split('_vs_'))
+                    }
                     path4 = kegg_regulate_path + d
                     stat_path = None
                     for f in os.listdir(path4):
                         if re.search(r'.xls$', f):
                             stat_path = os.path.join(path4, f)
                     pathway = path4 + '/pathways/'
-                    kegg_regu_id = kegg_regulate_api.add_kegg_regulate(params=None, kegg_regulate_table=stat_path, pathways_dir=pathway)
+                    kegg_regu_id = kegg_regulate_api.add_kegg_regulate(params=kegg_regu_param, kegg_regulate_table=stat_path, pathways_dir=pathway, express_diff_id=self.express_diff_id)
                     # update sg_status
                     self.update_status_api.add_denovo_status(table_id=str(kegg_regu_id), type_name='sg_denovo_kegg_regulate')
         if event['data'] == 'annotation':
@@ -626,15 +742,18 @@ class DenovoBaseWorkflow(Workflow):
             self.api_anno.add_annotation(anno_stat_dir=obj.output_dir, databases=self.option('database'))
         if event['data'] == 'nrblast':
             self.move2outputdir(obj.output_dir, 'Annotation/nrblast')
-            blastfile = self.output_dir + '/Annotation/nrblast/' + os.listdir(self.output_dir + '/Annotation/nrblast/')[0]
+            # blastfile = self.output_dir + '/Annotation/nrblast/' + os.listdir(self.output_dir + '/Annotation/nrblast/')[0]
+            blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast/CatBlastout/output/blast_table.xls'
             self.api_anno.add_blast(blast_pro='blastp', blast_db='nr', e_value=self.option('nr_blast_evalue'), blast_path=blastfile, gene_list=self.gene_list)
         if event['data'] == 'keggblast':
             self.move2outputdir(obj.output_dir, 'Annotation/keggblast')
-            blastfile = self.output_dir + '/Annotation/keggblast/' + os.listdir(self.output_dir + '/Annotation/keggblast/')[0]
+            blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast2/CatBlastout/output/blast_table.xls'
+            # blastfile = self.output_dir + '/Annotation/keggblast/' + os.listdir(self.output_dir + '/Annotation/keggblast/')[0]
             self.api_anno.add_blast(blast_pro='blastp', blast_db='kegg', e_value=self.option('kegg_blast_evalue'), blast_path=blastfile, gene_list=self.gene_list)
         if event['data'] == 'stringblast':
             self.move2outputdir(obj.output_dir, 'Annotation/stringblast')
-            blastfile = self.output_dir + '/Annotation/stringblast/' + os.listdir(self.output_dir + '/Annotation/stringblast/')[0]
+            blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast1/CatBlastout/output/blast_table.xls'
+            # blastfile = self.output_dir + '/Annotation/stringblast/' + os.listdir(self.output_dir + '/Annotation/stringblast/')[0]
             self.api_anno.add_blast(blast_pro='blastp', blast_db='string', e_value=self.option('string_blast_evalue'), blast_path=blastfile, gene_list=self.gene_list)
 
     def run(self):
@@ -648,9 +767,11 @@ class DenovoBaseWorkflow(Workflow):
         self.exp_stat.on('end', self.run_bam_stat)
         self.orf.on('end', self.run_orf_len)
         self.final_tools.append(self.orf_len)
+        self.final_tools.append(self.bam_stat)
         gene_stru = [self.orf_len]
         if self.option('database'):
-            self.assemble.on('end', self.run_blast)
+            self.assemble.on('end', self.run_blast_test)
+            # self.assemble.on('end', self.run_blast)
             self.final_tools.append(self.annotation)
         if 'ssr' in self.option('gene_analysis'):
             self.orf.on('end', self.run_ssr)
@@ -677,6 +798,7 @@ class DenovoBaseWorkflow(Workflow):
         super(DenovoBaseWorkflow, self).run()
 
     def end(self):
+        self.logger.info('........start run denovo base end function')
         self.send_files()
         super(DenovoBaseWorkflow, self).end()
 

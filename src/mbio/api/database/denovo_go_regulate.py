@@ -13,6 +13,7 @@ import gridfs
 from cStringIO import StringIO
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
+import json
 
 
 class DenovoGoRegulate(Base):
@@ -21,14 +22,20 @@ class DenovoGoRegulate(Base):
         self._db_name = Config().MONGODB + '_rna'
 
     @report_check
-    def add_go_regulate(self, name=None, params=None, go_regulate_dir=None):
+    def add_go_regulate(self, name=None, params=None, go_regulate_dir=None, express_diff_id=None):
+        '''
+        go_regulate_dir：go分类统计的分析结果表
+        express_diff_id: 用于工作流初始化代码截停时，更新params
+        '''
+        if express_diff_id:
+            params['express_diff_id'] = str(express_diff_id)
         project_sn = self.bind_object.sheet.project_sn
         task_id = self.bind_object.sheet.id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
             'name': name if name else 'go_enrich' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-            'params': params,
+            'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'status': 'end',
             'desc': 'go调控分析主表',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -81,6 +88,6 @@ class DenovoGoRegulate(Base):
                 collection = self.db['sg_denovo_go_regulate_detail']
                 collection.insert_many(data_list)
             except Exception, e:
-                self.bind_object.logger.error("导入go调控信息：%s出错!" % (go_regulate_dir, e))
+                self.bind_object.logger.error("导入go调控信息：%s出错:%s" % (go_regulate_dir, e))
             else:
                 self.bind_object.logger.info("导入go调控信息：%s成功!" % (go_regulate_dir))

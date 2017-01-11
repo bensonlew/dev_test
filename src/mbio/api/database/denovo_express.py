@@ -23,7 +23,7 @@ class DenovoExpress(Base):
         self._db_name = Config().MONGODB + '_rna'
 
     @report_check
-    def add_express(self, rsem_dir=None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True):
+    def add_express(self, rsem_dir=None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, gene_distri=None, tran_distri=None):
         # 参数express_diff_id只是为了插入差异基因矩阵时才用到，初始化不用
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
@@ -49,18 +49,18 @@ class DenovoExpress(Base):
                     count_path = rsem_dir + f
                     fpkm_path = rsem_dir + 'genes.counts.matrix'
                     self.add_express_detail(express_id, count_path, fpkm_path, 'gene')
-                    self.add_express_gragh(express_id, fpkm_path, 'gene')
+                    self.add_express_ditribution(express_id, gene_distri, 'gene')
                 elif re.search(r'^transcripts\.TMM', f):
                     count_path = rsem_dir + f
                     fpkm_path = rsem_dir + 'transcripts.counts.matrix'
                     self.add_express_detail(express_id, count_path, fpkm_path, 'transcript')
-                    self.add_express_gragh(express_id, fpkm_path, 'transcript')
+                    self.add_express_ditribution(express_id, tran_distri, 'transcript')
                 elif re.search(r'\.genes\.results$', f):
                     sample = f.split('.genes.results')[0]
                     file_ = rsem_dir + f
                     self.add_express_specimen_detail(express_id, file_, 'gene', sample)
                 elif re.search(r'\.isoforms\.results$', f):
-                    sample = f.split('.genes.results')[0]
+                    sample = f.split('.isoforms.results')[0]
                     file_ = rsem_dir + f
                     self.add_express_specimen_detail(express_id, file_, 'transcript', sample)
         return express_id
@@ -162,36 +162,7 @@ class DenovoExpress(Base):
             self.bind_object.logger.info("导入单样本表达量矩阵: %s信息成功!" % rsem_result)
 
     @report_check
-    def add_express_gragh(self, express_id, fpkm_path, query_type=None):
-        df = pd.read_table(fpkm_path)
-        samples = df.columns[1:]
-        data_list = []
-        for i in samples:
-            insert_data = [
-                ('express_id', express_id),
-                ('type', query_type),
-                ('specimen', i)
-            ]
-            tmp = []
-            data = df[i][df[i].apply(lambda x: x > 0)]
-            data = np.log10(data).apply(lambda x: round(x, 2))
-            count = Counter(data)
-            _sum = float(sum(count.values()))
-            for c in count:
-                tmp.append({'logfpkm': c, 'density': round((count[c] / _sum), 4)})
-            insert_data.append(('data', tmp))
-            insert_data = SON(insert_data)
-            data_list.append(insert_data)
-        try:
-            collection = self.db["sg_denovo_express_gragh"]
-            collection.insert_many(data_list)
-        except Exception, e:
-            self.bind_object.logger.error("导入表达量矩阵作图数据：%s信息出错:%s" % (fpkm_path, e))
-        else:
-            self.bind_object.logger.info("导入表达量矩阵作图数据: %s信息成功!" % fpkm_path)
-
-    @report_check
-    def add_express_diff(self, params, samples, compare_column, diff_exp_dir=None, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True, samples_detail=None):
+    def add_express_diff(self, params, samples, compare_column, diff_exp_dir=None, express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True):
         # group_id, group_detail, control_id只供denovobase初始化时更新param使用
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
@@ -211,7 +182,7 @@ class DenovoExpress(Base):
             'specimen': samples,
             'status': 'end',
             'compare_column': compare_column,
-            'group_detail': samples_detail,
+            'group_detail': group_detail,
             'express_id': express_id
         }
         collection = self.db['sg_denovo_express_diff']
@@ -260,6 +231,61 @@ class DenovoExpress(Base):
             self.bind_object.logger.error("导入基因表达差异统计表：%s信息出错:%s" % (diff_stat_path, e))
         else:
             self.bind_object.logger.info("导入基因表达差异统计表：%s信息成功!" % diff_stat_path)
+
+    @report_check
+    def add_express_ditribution(self, express_id, ditribution_path, query_type=None):
+        df = pd.read_table(ditribution_path)
+        samples = df.columns[1:]
+        data_list = []
+        logfc = df.columns[0]
+        for i in samples:
+            insert_data = [
+                ('express_id', express_id),
+                ('type', query_type),
+                ('specimen', i)
+            ]
+            data = []
+            for v in df[i].index:
+                data.append({'logfpkm': df[logfc][v], 'density': round(float(df[i][v]), 4)})
+            insert_data.append(('data', data))
+            insert_data = SON(insert_data)
+            data_list.append(insert_data)
+        try:
+            collection = self.db["sg_denovo_express_gragh"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入表达量矩阵作图数据：%s信息出错:%s" % (fpkm_path, e))
+        else:
+            self.bind_object.logger.info("导入表达量矩阵作图数据: %s信息成功!" % fpkm_path)
+
+    @report_check
+    def add_express_gragh(self, express_id, fpkm_path, query_type=None):
+        df = pd.read_table(fpkm_path)
+        samples = df.columns[1:]
+        data_list = []
+        for i in samples:
+            insert_data = [
+                ('express_id', express_id),
+                ('type', query_type),
+                ('specimen', i)
+            ]
+            tmp = []
+            data = df[i][df[i].apply(lambda x: x > 0)]
+            data = np.log10(data).apply(lambda x: round(x, 2))
+            count = Counter(data)
+            _sum = float(sum(count.values()))
+            for c in count:
+                tmp.append({'logfpkm': c, 'density': round((count[c] / _sum), 4)})
+            insert_data.append(('data', tmp))
+            insert_data = SON(insert_data)
+            data_list.append(insert_data)
+        try:
+            collection = self.db["sg_denovo_express_gragh"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入表达量矩阵作图数据：%s信息出错:%s" % (fpkm_path, e))
+        else:
+            self.bind_object.logger.info("导入表达量矩阵作图数据: %s信息成功!" % fpkm_path)
 
     # @report_check
     # def add_cluster(self, params, express_id, sample_tree=None, gene_tree=None, name=None, samples=None, genes=None):

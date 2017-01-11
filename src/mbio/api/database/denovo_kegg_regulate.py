@@ -8,6 +8,7 @@ import types
 from biocluster.config import Config
 from bson.objectid import ObjectId
 import gridfs
+import json
 
 
 class DenovoKeggRegulate(Base):
@@ -16,14 +17,20 @@ class DenovoKeggRegulate(Base):
         self._db_name = Config().MONGODB + '_rna'
 
     @report_check
-    def add_kegg_regulate(self, name=None, params=None, kegg_regulate_table=None, pathways_dir=None):
+    def add_kegg_regulate(self, name=None, params=None, kegg_regulate_table=None, pathways_dir=None, express_diff_id=None):
+        '''
+        kegg_regulate_table：kegg调控的分析结果表
+        express_diff_id: 用于工作流初始化代码截停时，更新params
+        '''
+        if express_diff_id:
+            params['express_diff_id'] = str(express_diff_id)
         project_sn = self.bind_object.sheet.project_sn
         task_id = self.bind_object.sheet.id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
             'name': name if name else 'kegg_regulate' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-            'params': params,
+            'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'status': 'end',
             'desc': 'kegg调控统计分析',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

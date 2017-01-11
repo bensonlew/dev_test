@@ -84,8 +84,8 @@ class BlastModule(Module):
                  核酸比对蛋白库只能使用blastp， 蛋白比对蛋白库只能使用blastp, 或者没有提供blast参数')
         if not isinstance(self.option('lines'), int):
             raise OptionError("行数必须为整数")
-        if self.option('lines') % 2:
-            raise OptionError("行数必须为整除2")
+        # if self.option('lines') % 2:
+        #     raise OptionError("行数必须为整除2")
         if self.option('lines') <= 0:
             raise OptionError("行数小于等于0，请重设！")
         return True
