@@ -35,17 +35,21 @@ class Estimator(Base):
         # if otu_id:
         #     if not isinstance(otu_id, ObjectId):
         #         otu_id = ObjectId(otu_id)
-        params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
-        if spname_spid:
-            group_detail = {'All': [str(i) for i in spname_spid.values()]}
-            params['group_detail'] = group_detail_sort(group_detail)
+        # params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+        # if spname_spid:
+        #     group_detail = {'All': [str(i) for i in spname_spid.values()]}
+        #     params['group_detail'] = group_detail_sort(group_detail)
         # insert major
         if major:
+            params['otu_id'] = str(otu_id)  # otu_id在再metabase中不可用
+            if spname_spid:
+                group_detail = {'All': [str(i) for i in spname_spid.values()]}
+                params['group_detail'] = group_detail_sort(group_detail)
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
                 "otu_id": otu_id,
-                "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "estimators_origin",
+                "name": name if name else "estimators_origin",
                 "level_id": level,
                 "status": "end",
                 "desc": "",

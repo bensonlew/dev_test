@@ -1,160 +1,80 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # __author__ = 'zhangpeng'
-from biocluster.api.database.base import Base, report_check
-import re
-from bson.objectid import ObjectId
-from types import StringTypes
-from bson.son import SON
-import gridfs
+import web
+import json
+from mainapp.libs.param_pack import group_detail_sort
+from mainapp.controllers.project.meta_controller import MetaController
+from mainapp.models.mongo.meta import Meta
+from bson import ObjectId
 import datetime
-import os
-from biocluster.config import Config
 
 
-class Randomforest(Base):
-    def __init__(self, bind_object):
-        super(Randomforest, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
-        # self.client = get_mongo_client()
 
-    @report_check
-    def add_randomforest_error(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
-        self.bind_object.logger.info('start insert mongo zhangpeng')
-        if major:
-            table_id = self.create_randomforest(self, params, group_id, from_otu_table, level_id)
-        else:
-            if not isinstance(table_id, ObjectId):
-                if isinstance(table_id, StringTypes):
-                    table_id = ObjectId(table_id)
-            else:
-                raise Exception("table_id必须为ObjectId对象或者其对应的字符串！")
-        data_list = []
-        data_list1 = []
-        b1 = len(file_path)
-        b2 = len(file_path[0])
-        with open(file_path, "rb") as r:
-            for line in r:
-                line = line.strip('\n')
-                line_data = line.split('\t')
-                data_list1.append(line_data)
-            data = [("randomforest_id", table_id), ("class.error", line_data[b2+1])]
-            data_son = SON(data)
-            data_list.append(data_son)
-        try:
-            collection = self.db["sg_randomforest_specimen_table"]
-            collection.insert_many(data_list)
-        except Exception, e:
-            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
-        else:
-            self.bind_object.logger.info("导入%s信息成功!" % file_path)
-        return data_list, table_id
+class Randomforest(MetaController):
+    def __init__(self):
+        super(Randomforest, self).__init__(instant=False)
+        # super(Randomforest, self).__init__()
 
-    # @report_check
-    def add_randomforest_dim(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
-        if major:
-            table_id = self.create_randomforest(self, params, group_id, from_otu_table, level_id)
-        else:
-            if table_id is None:
-                raise Exception("major为False时需提供table_id!")
-            if not isinstance(table_id, ObjectId):
-                if isinstance(table_id, StringTypes):
-                    table_id = ObjectId(table_id)
-            else:
-                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
-        data_list = []
-        with open(file_path, 'rb') as r:
-            i = 0
-            for line in r:
-                if i == 0:
-                    i = 1
-                else:
-                    line = line.strip('\n')
-                    line_data = line.split('\t')
-                    data = [("randomforest_id", table_id),("specimen_name", line_data[0]),("x", line_data[1]), ("y", line_data[2])]
-                    data_son = SON(data)
-                    data_list.append(data_son)
-        try:
-            collection = self.db["sg_randomforest_specimen_scatter"]
-            collection.insert_many(data_list)
-        except Exception, e:
-            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
-        else:
-            self.bind_object.logger.info("导入%s信息成功!" % file_path)
-        return data_list
-        
-        
-    # @report_check
-    def add_randomforest_vip(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
-        if major:
-            table_id = self.create_randomforest(self, params, group_id, from_otu_table, level_id)
-        else:
-            if table_id is None:
-                raise Exception("major为False时需提供table_id!")
-            if not isinstance(table_id, ObjectId):
-                if isinstance(table_id, StringTypes):
-                    table_id = ObjectId(table_id)
-            else:
-                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
-        data_list = []
-        
-        a1 = len(file_path)
-        a2 = len(file_path[0])
-        with open(file_path, 'rb') as r:
-            i = 0
-            for line in r:
-                if i == 0:
-                    i = 1
-                else:
-                    line = line.strip('\n')
-                    line_data = line.split('\t')
-                    #data = [("randomforest_id", table_id),("specimen_name","line_data[0]") ("accuracy", line_data[a2-1]), ("gini", line_data[a2])]
-                    data = [("randomforest_id", table_id), ("species_name", line_data[0]), ("accuracy", float(line_data[-2])), ("gini", float(line_data[-1]))]
-                    data_son = SON(data)
-                    data_list.append(data_son)
-        try:
-            collection = self.db["sg_randomforest_species_bar"]
-            collection.insert_many(data_list)
-        except Exception, e:
-            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
-        else:
-            self.bind_object.logger.info("导入%s信息成功!" % file_path)
-        return data_list
-
-    
-
-    #@report_check
-    def create_randomforest(self, params, group_id=0, from_otu_table=0, name=None, level_id=0):
-        if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
-            if isinstance(from_otu_table, StringTypes):
-                from_otu_table = ObjectId(from_otu_table)
-            else:
-                raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
-        if group_id != 0 and not isinstance(group_id, ObjectId):
-            if isinstance(group_id, StringTypes):
-                group_id = ObjectId(group_id)
-            else:
-                raise Exception("group_detail必须为ObjectId对象或其对应的字符串!")
-        if level_id not in range(1, 10):
-            raise Exception("level参数%s为不在允许范围内!" % level_id)
-
-        collection = self.db["sg_otu"]  #我是不是也可以 用这个表
-        result = collection.find_one({"_id": from_otu_table})
-        project_sn = result['project_sn']
-        task_id = result['task_id']
-        desc = "randomforest分析"
-        insert_data = {
-            "project_sn": project_sn,
-            "task_id": task_id,
-            "otu_id": from_otu_table,
-            "group_id": group_id,
-            "name": name if name else "oturandomforest_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
-            "params": params,
-            "level_id": level_id,
-            "desc": desc,
-            "status": "end",
-            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        collection = self.db["sg_meta_randomforest"]
-        inserted_id = collection.insert_one(insert_data).inserted_id
-        return inserted_id
-
+    def POST(self):
+        data = web.input()
+        default_argu = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id','ntree_id']
+        for argu in default_argu:
+            if not hasattr(data, argu):
+                info = {'success': False, 'info': '%s参数缺少!' % argu}
+                return json.dumps(info)
+        task_name = 'meta.report.randomforest'
+        task_type = 'workflow'
+        meta = Meta()
+        otu_info = meta.get_otu_table_info(data.otu_id)
+        if not otu_info:
+            info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
+            return json.dumps(info)
+        task_info = meta.get_task_info(otu_info['task_id'])
+        params_json = {
+            'otu_id': data.otu_id,
+            'level_id': int(data.level_id),
+            'group_id': data.group_id,
+            'group_detail': group_detail_sort(data.group_detail),
+            'ntree_id': data.ntree_id,
+            #'hcluster_method': data.hcluster_method,
+            'submit_location': data.submit_location,
+            'task_type': data.task_type
+            }
+        main_table_name = 'Randomforest_' + data.level_id + \
+            '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        mongo_data = [
+            ('project_sn', task_info['project_sn']),
+            ('task_id', task_info['task_id']),
+            ('otu_id', ObjectId(data.otu_id)),
+            #('table_type', 'dist'),
+            #('tree_type', 'cluster'),
+            ('status', 'start'),
+            ('desc', '正在计算'),
+            ('name', main_table_name),
+            ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            ("level_id", int(data.level_id)),
+            ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':')))
+        ]
+        main_table_id = meta.insert_main_table('sg_randomforest', mongo_data)
+        update_info = {str(main_table_id): 'sg_randomforest'}
+        options = {
+            'otutable': data.otu_id,
+            'otu_id': data.otu_id,
+            'level': int(data.level_id),
+            #'dist_method': data.distance_algorithm,
+            'ntree': data.ntree_id,
+            'grouptable': data.group_id,
+            'group_detail': data.group_detail,
+            'update_info': json.dumps(update_info),
+            #'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
+            'randomforest_id': str(main_table_id)
+            }
+        #to_file = 'meta.export_otu_table_by_detail(otu_table)'
+        to_file = ["meta.export_otu_table_by_detail(otutable)", "meta.export_group_table_by_detail(grouptable)"]
+        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+                            module_type=task_type, to_file=to_file)
+        task_info = super(Randomforest, self).POST()
+        task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
+        print(self.return_msg)
+        return json.dumps(task_info)
+        # return json.dumps({'success': True, 'info': 'shenghe log'})

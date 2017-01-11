@@ -1,6 +1,10 @@
 
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
+# last_modified = 'shenghe'
+
+import importlib
+import traceback
 from biocluster.workflow import Workflow
 from biocluster.core.function import get_clsname_form_path
 import importlib
@@ -35,13 +39,15 @@ class SingleWorkflow(Workflow):
         super(SingleWorkflow, self).run()
 
     def end(self):
-        self._upload_dir_obj = self._task.upload_dir
-        if 'pca' in self._sheet.name:
-            self.run_mongo()
+        self._upload_dir_obj = self.upload_dir
+        self.run_mongo()
         super(SingleWorkflow, self).end()
 
-    def run_mongo(self):
+    def run_mongo(self):  # shenghe 20170111 工具模块暂时使用的导表方式
         """
+        尝试执行api.database.toolapps下面的与workflow/module/tool对应目录的导表类的run方法
+
+        例如： src.mbio.tools.meta.beta_diversity.pca 结束后执行 src.mbio.api.database.toolapps.tools.meta.beta_diversity.pca
         """
         class_name = get_clsname_form_path(self._sheet.name, tp='')
         dir_name = {
@@ -58,7 +64,8 @@ class SingleWorkflow(Workflow):
             task_mongo.manager = self.api
             task_mongo.run()
             self.logger.info(self.api.get_call_records_list())
-            pass
-        except Exception:
-            print traceback.format_exc()
+        except ImportError:
             return
+        except Exception:
+            self.logger.debug('Mongo数据库导入出错: {}'.format(traceback.format_exc()))
+            self.exit(data="Mongo数据库导入出错。")

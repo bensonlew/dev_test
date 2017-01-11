@@ -43,7 +43,7 @@ class HierarchicalClusteringHeatmap(MetaController):
             "sample_method": data.sample_method,
             "add_Algorithm": data.add_Algorithm
         }
-        main_table_name = 'Hier_cluster_heatmap_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'HierClusteringHeatmap_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         # sample_tree = ""
         # sample_list = []
         # species_tree = ""

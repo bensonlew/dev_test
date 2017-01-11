@@ -44,9 +44,12 @@ tryCatch(normal_run(), error=function(e){error_run(e)})
 plsda_sites<-plsda_otu$variates$X
 plsda_rotat<-plsda_otu$loadings$X
 plsda_impo<-plsda_otu$loadings$Y
+plsda_pre<-plsda_otu$explained_variance$X
 plsda_sites_file<-paste("${output_dir}", "/plsda_sites.xls", sep='')
 plsda_rotat_file<-paste("${output_dir}", "/plsda_rotation.xls", sep='')
 plsda_impo_file<-paste("${output_dir}", "/plsda_importance.xls", sep='')
+plsda_pre_file<-paste("${output_dir}","/plsda_pre.xls", sep='')
 write.table(plsda_sites, plsda_sites_file, sep="\t", col.names = NA, quote = FALSE)
 write.table(plsda_rotat, plsda_rotat_file, sep="\t", col.names = NA, quote = FALSE)
 write.table(plsda_impo, plsda_impo_file, sep="\t", col.names = NA, quote = FALSE)
+write.table(plsda_pre, plsda_pre_file, sep="\t", col.names = NA, quote = FALSE)

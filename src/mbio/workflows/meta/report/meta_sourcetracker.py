@@ -22,14 +22,15 @@ class MetaSourcetrackerWorkflow(Workflow):
             {"name": "map_detail", "type": "infile", "format": "meta.otu.group_table"},  # 输入的map_detail 示例如下(map文件后续导表)
             {"name": "meta_sourcetracker_id", "type": "string"}, #主表的id
             {"name": "update_info", "type": "string"},
-            {"name": "s", "type": "string", "default": "1"}  #OTU筛选参数
+            {"name": "s", "type": "string", "default": "1"},  #OTU筛选参数
+            {"name": "sink", "type": "string"},
+            {"name": "source", "type": "string"}
             # {"A":["578da2fba4e1af34596b04ce","578da2fba4e1af34596b04cf","578da2fba4e1af34596b04d0"],"B":["578da2fba4e1af34596b04d1","578da2fba4e1af34596b04d3","578da2fba4e1af34596b04d5"],"C":["578da2fba4e1af34596b04d2","578da2fba4e1af34596b04d4","578da2fba4e1af34596b04d6"]}
             # {"name": "method", "type": "string", "default": ""}  # 聚类方式， ""为不进行聚类
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.meta_sourcetracker = self.add_tool("meta.beta_diversity.meta_sourcetracker")
-        # self.plot_enterotyping = self.add_tool("meta.beta_diversity.plot-enterotyping")
         self.a = ''
         self.spe_name = ''
         self.number = ''
@@ -57,7 +58,8 @@ class MetaSourcetrackerWorkflow(Workflow):
                     n.write(line)
             a.close()
         self.qiime_table_path = new_qiime_otu_table
-        old_map_detail_path = self.option("map_detail").prop['path']
+
+        old_map_detail_path = self.option("map_detail").prop['path']  # 检查group文件并根据group文件
         if os.path.exists(old_map_detail_path):
             b = open(old_map_detail_path, "r")
             content = b.readlines()
