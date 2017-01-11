@@ -7,8 +7,6 @@ import importlib
 import traceback
 from biocluster.workflow import Workflow
 from biocluster.core.function import get_clsname_form_path
-import importlib
-import traceback
 
 
 class SingleWorkflow(Workflow):
