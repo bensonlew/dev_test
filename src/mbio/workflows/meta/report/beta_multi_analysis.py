@@ -9,9 +9,6 @@ import numpy as np
 import types
 from biocluster.workflow import Workflow
 from mbio.packages.beta_diversity.filter_newick import get_level_newicktree
-from bson import ObjectId
-import json
-import datetime
 
 
 class BetaMultiAnalysisWorkflow(Workflow):

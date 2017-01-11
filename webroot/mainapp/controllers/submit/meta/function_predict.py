@@ -3,7 +3,7 @@
 
 import web
 import json
-import datetime 
+import datetime
 from bson import ObjectId
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
@@ -34,7 +34,7 @@ class FunctionPredict(MetaController):
             'task_type': data.task_type,
             'submit_location': data.submit_location
         }
-        main_table_name = "sg_16s_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = "16s_function_predict_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),

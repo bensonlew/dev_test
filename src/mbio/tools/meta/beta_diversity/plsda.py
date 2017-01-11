@@ -97,7 +97,8 @@ class PlsdaAgent(Agent):
             [".", "", "plsda分析结果目录"],
             ["./plsda_sites.xls", "xls", "样本坐标表"],
             ["./plsda_rotation.xls", "xls", "物种主成分贡献度表"],
-            ["./plsda_importance.xls", "xls", "主成分解释度表"],
+            ["./plsda_importance.xls", "xls", "主成分组别特征值表"],
+            ["./plsda_importancepre.xls", "xls", "主成分解释度表"],
         ])
         # print self.get_upload_files()
         super(PlsdaAgent, self).end()
@@ -178,6 +179,7 @@ class PlsdaTool(Tool):
                 self.linkfile(self.work_dir + '/plsda_sites.xls', 'plsda_sites.xls')
                 self.linkfile(self.work_dir + '/plsda_rotation.xls', 'plsda_rotation.xls')
                 self.linkfile(self.work_dir + '/plsda_importance.xls', 'plsda_importance.xls')
+                self.linkfile(self.work_dir + '/plsda_pre.xls', 'plsda_importancepre.xls')
                 self.logger.info('运行plsda_r.py程序计算PLSDA完成')
                 self.end()
             else:
