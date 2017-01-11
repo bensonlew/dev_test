@@ -29,7 +29,7 @@ class Rely(object):
     def __init__(self, *rely):
         with Rely.sem:
             Rely.count += 1
-            self._name = "reply%s_%s" % (Rely.count, random.randint(100, 1000))
+            self._name = "rely%s_%s" % (Rely.count, random.randint(100, 1000))
             self._relys = []
             for r in rely:
                 if not isinstance(r, Basic):
@@ -413,13 +413,13 @@ class Basic(EventObject):
             if self._rely:
                 for name, rl in self._rely.items():
                     if rl.satisfy:
-                        event_name = "%s_%s" % (self.id.lower(), name)
-                        self._rely.pop(event_name)
+                        # event_name = "%s_%s" % (self.id.lower(), name)
+                        self._rely.pop(name)
 
                         # if not self.events[event_name].is_start:
                         #     self.events[event_name].stop()
                         #     self.events[event_name].restart()
-                        self.fire(event_name, rl)
+                        self.fire(name, rl)
 
     def __event_childend(self, child):
         """
