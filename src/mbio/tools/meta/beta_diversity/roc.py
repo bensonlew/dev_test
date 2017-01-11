@@ -69,15 +69,15 @@ class RocAgent(Agent):
                 if self.option('mode') == 2:
                     if not os.path.exists(self.option('name_table')):
                         raise OptionError("Mode 2 模式下必须提供物种名列表文件")
-                os.system('cat %s | awk -F "\t" \'{ print $1 }\' > tmp.txt' %(self.gettable()))
-                otu_data = open("tmp.txt", "r").readlines()[1:]
-                os.remove('tmp.txt')
-                otu_data = map(string.rstrip, otu_data)
-                sample_data = open(self.gettable()).readline().strip().split()[1:]
-                group_data = open(self.option('group_table').prop['path']).readlines()[1:]
-                for s in group_data:
-                    if s.split()[0] not in sample_data:
-                        raise OptionError("分组表中物种%s不在OTU Table中" % s.split()[0])
+                #os.system('cat %s | awk -F "\t" \'{ print $1 }\' > tmp.txt' %(self.gettable()))
+                #otu_data = open("tmp.txt", "r").readlines()[1:]
+                #os.remove('tmp.txt')
+                #otu_data = map(string.rstrip, otu_data)
+                #sample_data = open(self.gettable()).readline().strip().split()[1:]
+                #group_data = open(self.option('group_table').prop['path']).readlines()[1:]
+                #for s in group_data:
+                    i#f s.split()[0] not in sample_data:
+                        #raise OptionError("分组表中物种%s不在OTU Table中" % s.split()[0])
                     #if s.split()[1] not in ['0','1']:
                         #raise OptionError("分组表中物种分组只能有0和1！")
 
