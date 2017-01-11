@@ -26,6 +26,7 @@ class MantelTestWorkflow(Workflow):
             {"name": "level", "type": "int"},
             {"name": "otu_id", "type": "string"},
             {"name": "env_id", "type": "string"},
+            {"name": "mantel_id", "type": "string"},
             {"name": "env_labs", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "group_id", "type": "string"},
@@ -58,35 +59,27 @@ class MantelTestWorkflow(Workflow):
         """
         保存结果指数表到mongo数据库中
         """
-        self.params = eval(self.option("params"))
-        del self.params["otu_file"]
-        del self.params["env_file"]
-        level = self.params["level"]
-        del self.params["level"]
-        self.params["level_id"] = int(level)
-        group_detail = self.params["group_detail"]
-        self.params["group_detail"] = group_detail_sort(group_detail)
-        name = "mantel_test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         api_mantel = self.api.meta_species_env
         mantel_result = glob.glob(self.output_dir + "/Discompare/*")[0]
         if self.option('units'):
             partial_matrix = glob.glob(self.output_dir + "/partial/*")[0]
             dis_matrix = glob.glob(self.output_dir + "/Otudistance/*")[0]
             fac_matrix = glob.glob(self.output_dir + "/Facdistance/*")[0]
-            name = "partial_mantel_test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            # name = "partial_mantel_test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         else:
             dis_matrix = glob.glob(self.output_dir + "/Otudistance/*")[0]
             fac_matrix = glob.glob(self.output_dir + "/Facdistance/*")[0]
 
         if not os.path.isfile(mantel_result):
             raise Exception("找不到报告文件:{}".format(mantel_result))
-        mantel_id = api_mantel.add_mantel_table(self.option('level'), self.option('otu_id'), self.option('env_id'), name=name, params=self.params)
+        # mantel_id = api_mantel.add_mantel_table(self.option('level'), self.option('otu_id'), self.option('env_id'), name=name, params=self.params)
+        mantel_id = ObjectId(self.option("mantel_id"))
         api_mantel.add_mantel_detail(mantel_result, mantel_id)
         if self.option('units'):
             api_mantel.add_mantel_matrix(partial_matrix, "partial_matrix", mantel_id)
         api_mantel.add_mantel_matrix(dis_matrix, "species_matrix", mantel_id)
         api_mantel.add_mantel_matrix(fac_matrix, "env_matrix", mantel_id)
-        self.add_return_mongo_id('sg_species_mantel_check', mantel_id)
+        # self.add_return_mongo_id('sg_species_mantel_check', mantel_id)
         self.end()
 
     def end(self):
