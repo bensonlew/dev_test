@@ -36,9 +36,9 @@ class Pca(Base):
         """
         导入表格相关信息
         """
-        ratation = self.insert_table(self.output_dir + '/pca_rotation.xls', 'PCA_物种主成分贡献度表',
-                                     'PCA分析中样本属性的贡献度统计结果，例如在OTU表的PCA分析中代表物种/OTU的贡献度')
-        importance = self.insert_table(self.output_dir + '/pca_importance.xls', 'PCA_轴贡献度', 'PCA结果坐标轴的贡献度值')
+        ratation = self.insert_table(self.output_dir + '/pca_rotation.xls', 'PCA_特征主成分贡献度表',
+                                     'PCA分析中样本特征的贡献度统计结果，例如在OTU表的PCA分析中代表物种/OTU的贡献度')
+        importance = self.insert_table(self.output_dir + '/pca_importance.xls', 'PCA_解释度表', 'PCA结果坐标轴的解释度值')
         return [ratation, importance]
 
     def insert_table(self, fp, name, desc):
