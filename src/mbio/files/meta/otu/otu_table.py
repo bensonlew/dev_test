@@ -76,12 +76,9 @@ class OtuTableFile(File):
         """
         转换为biom格式
         """
-        # biom convert -i otu_table.txt -o otu_table.biom.rev  --table-type "otu table  --to-hdf5"
-        # biom convert -i otu_taxa_table.txt -o otu_table.biom.revtax  --table-type "otu table"  --to-hdf5 --process-obs-metadata taxonomy
         cmd = self.biom_path + "biom convert -i " + self.prop['path'] + " -o " + biom_filepath + ' --table-type \"OTU table\" --to-hdf5'
         if 'metadata' not in self.prop:
             self.get_info()
-        cmd = "biom convert -i " + self.prop['path'] + " -o " + biom_filepath + ' --table-type \"OTU table\" --to-hdf5'
         if self.prop['metadata'] == "taxonomy":
             cmd += " --process-obs-metadata taxonomy"
         try:
@@ -125,6 +122,28 @@ class OtuTableFile(File):
                 line.pop()
                 line[0] = tax_info + "; " + line[0]
                 newline = "\t".join(line)
+                w.write(newline + "\n")
+
+    def behind_taxnomy(self, behind_path, otu_path=None):
+        """
+        将文件的第一列信息拆分开来，只留下otu的信息，将OTU的信息放到每一行的最后，形成taxnomy列
+        """
+        if not otu_path:
+            otu_path = self.prop["path"]
+        with open(otu_path, 'rb') as r, open(behind_path, 'wb') as w:
+            line = r.next().rstrip()
+            line = re.split("\t", line)
+            if line[-1] == "taxonomy":
+                raise Exception("文件最后一列为taxonomy，无法将taxonomy列放到最后")
+            w.write("\t".join(line) + "\ttaxonomy\n")
+            for line in r:
+                line = line.rstrip('\n')
+                line = re.split('\t', line)
+                sp = re.split("; ", line[0])
+                line.pop(0)
+                otu = sp.pop(-1)
+                taxonomy = "; ".join(sp)
+                newline = otu + "\t" + "\t".join(line) + "\t" + taxonomy
                 w.write(newline + "\n")
 
     def del_taxonomy(self, otu_path, no_tax_otu_path):
@@ -216,14 +235,18 @@ class OtuTableFile(File):
         cla = re.split(';', tax)
         new_cla = list()
         #  处理uncultured和Incertae_Sedis
-        if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)$", cla[0], flags=re.I):
+        if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified|Unknown)$", cla[0], flags=re.I):  # modify by zhouxuan 2016.11.16
             pass
+        if re.search("(Incertae_Sedis|Unclassified|Unknown)", tax): # modify by zhouxuan 2016.11.29
+            re.sub(r'Incertae_Sedis', 'incertae_Sedis', tax)
+            re.sub(r'Unclassified', 'unclassified', tax)
+            re.sub(r'Unknown', 'unknown', tax)
             # raise Exception("在域水平上的分类为uncultured或Incertae_Sedis或norank或unidentified或是分类水平缺失")
         # 先对输入的名字进行遍历， 当在某一水平上空着的时候， 补全
         # 例如在g水平空着的时候，补全成g__Unclassified
         for i in range(0, 8):
             if not re.search(LEVEL[i], tax):
-                str_ = LEVEL[i] + "Unclassified"
+                str_ = LEVEL[i] + "unclassified"
                 new_cla.append(str_)
             else:
                 new_cla.append(cla[i])
@@ -265,7 +288,7 @@ class OtuTableFile(File):
             claList.append([(tmp[0], tmp[1])])
         for i in range(1, 8):
             cla = claList[i][0][1]
-            if re.search("(uncultured|Incertae_Sedis|norank|unidentified|Unclassified)", cla, flags=re.I):
+            if re.search("(uncultured|incertae_Sedis|norank|unidentified|unclassified|unknown)", cla, flags=re.I):  # modify by zhouxuan 2016.11.16/29 大写变小写
                 j = i - 1
                 while (j >= 0):
                     last_cla = claList[j][0][1]
@@ -370,7 +393,7 @@ class OtuTableFile(File):
                 line.pop(-1)
             sample_name = line[:]
             for line in r:
-                line = line.rstrip().split()
+                line = line.rstrip().split("\t")
                 line.pop(0)
                 if self.prop["metadata"] == "taxonomy":
                     line.pop(-1)
@@ -383,3 +406,27 @@ class OtuTableFile(File):
                     min_num = sample_num[k]
                     min_sample = k
         return (min_sample, min_num)
+
+    def extract_info(self):
+        """
+        解析OTU表，将OTU表解析成一个二维字典
+        例如 dict[OTU1][sample1] = 20
+        代表sample1有20条序列在OTU1里
+        """
+        sample_name = list()
+        info_dict = defaultdict(dict)
+        self.get_info()
+        with open(self.prop['path'], 'rb') as r:
+            line = r.next().rstrip().split("\t")
+            line.pop(0)
+            if self.prop["metadata"] == "taxonomy":
+                line.pop(-1)
+            sample_name = line[:]
+            for line in r:
+                line = line.rstrip().split("\t")
+                otu_name = line.pop(0)
+                if self.prop["metadata"] == "taxonomy":
+                    line.pop(-1)
+                for i in range(len(sample_name)):
+                    info_dict[otu_name][sample_name[i]] = int(line[i])
+        return info_dict

@@ -20,7 +20,7 @@ class MapAssessmentModule(Module):
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
-            {"name": "analysis", "type": "string", "default": "satur,dup,coverage,correlation"},  # 分析类型
+            {"name": "analysis", "type": "string", "default": "saturation,duplication,stat,correlation,coverage"},  # 分析类型
             {"name": "quality_satur", "type": "int", "default": 30},  # 测序饱和度分析质量值
             {"name": "quality_dup", "type": "int", "default": 30},  # 冗余率分析质量值
             {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
@@ -35,7 +35,7 @@ class MapAssessmentModule(Module):
         self.correlation = self.add_tool('denovo_rna.mapping.correlation')
         # self.bam_stat = self.add_tool('denovo_rna.mapping.bam_stat')
         self.step.add_steps('stat', 'correlation')
-        self.analysis = ["satur", "dup", "coverage", "correlation"]
+        self.analysis = ["saturation", "duplication", "stat", "correlation", "coverage"]
 
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
@@ -54,14 +54,19 @@ class MapAssessmentModule(Module):
         """
         检查参数
         """
-        if not self.option("bed").is_set:
-            raise OptionError("请传入bed文件")
-        if not self.option("bam").is_set:
-            raise OptionError("请传入bam文件")
+        analysis = self.option("analysis").split(",")
+        for an in analysis:
+            if an in ["saturation", "coverage"]:
+                if not self.option("bed").is_set:
+                    raise OptionError("请传入bed文件")
+        for an in analysis:
+            if an in ["saturation", "duplication", "stat", "coverage"]:
+                self.files = self.get_files()
+                if not self.option("bam").is_set:
+                    raise OptionError("请传入bam文件")
         for analysis in self.option("analysis").split(","):
             if analysis not in self.analysis:
                 raise OptionError("所选质量评估分析方法不在范围内")
-        self.files = self.get_files()
 
     # def bam_stat_run(self):
     #     self.bam_stat.set_options({
@@ -78,7 +83,7 @@ class MapAssessmentModule(Module):
                 })
         self.step.stat.start()
         self.correlation.on("end", self.correlation_finish_update)
-        self.correlation.run()
+        # self.correlation.run()
         self.tools.append(self.correlation)
 
     def bam_stat_run(self):
@@ -92,7 +97,7 @@ class MapAssessmentModule(Module):
             step = getattr(self.step, 'bamStat_{}'.format(n))
             step.start()
             bam_stat.on("end", self.finish_update, 'bamStat_{}'.format(n))
-            bam_stat.run()
+            # bam_stat.run()
             self.tools.append(bam_stat)
             n += 1
 
@@ -105,15 +110,15 @@ class MapAssessmentModule(Module):
                 'bam': f,
                 "bed": self.option('bed').prop["path"],
                 "low_bound": self.option("low_bound"),
-                "up_bound": self.option("low_bound"),
+                "up_bound": self.option("up_bound"),
                 "step": self.option("step"),
                 "rpkm_cutof": self.option("rpkm_cutof"),
-                "quality_satur": self.option("quality_satur")
+                "quality": self.option("quality_satur")
                 })
             step = getattr(self.step, 'satur{}'.format(n))
             step.start()
             satur.on("end", self.finish_update, 'satur{}'.format(n))
-            satur.run()
+            # satur.run()
             self.tools.append(satur)
             n += 1
 
@@ -124,12 +129,12 @@ class MapAssessmentModule(Module):
             self.step.add_steps('dup_{}'.format(n))
             dup.set_options({
                 'bam': f,
-                "quality_dup": self.option("quality_dup")
+                "quality": self.option("quality_dup")
                 })
             step = getattr(self.step, 'dup_{}'.format(n))
             step.start()
             dup.on("end", self.finish_update, 'dup_{}'.format(n))
-            dup.run()
+            # dup.run()
             self.tools.append(dup)
             n += 1
 
@@ -146,7 +151,7 @@ class MapAssessmentModule(Module):
             step = getattr(self.step, 'coverage_{}'.format(n))
             step.start()
             coverage.on("end", self.finish_update, 'coverage_{}'.format(n))
-            coverage.run()
+            # coverage.run()
             self.tools.append(coverage)
             n += 1
 
@@ -201,7 +206,7 @@ class MapAssessmentModule(Module):
                     if os.path.exists(target):
                         os.remove(target)
                     os.link(fp, target)
-                if "correlation" in f_name:
+                if "correlation" in f_name or ".tre" in f_name:
                     target = os.path.join(self.output_dir, "correlation", f_name)
                     if os.path.exists(target):
                         os.remove(target)
@@ -217,18 +222,28 @@ class MapAssessmentModule(Module):
 
     def run(self):
         super(MapAssessmentModule, self).run()
-        self.bam_stat_run()
         analysiss = self.option("analysis").split(",")
         for m in analysiss:
-            if m == "satur":
+            # self.logger.info(m)
+            # self.logger.info(self.tools)
+            if m == "saturation":
                 self.satur_run()
-            if m == "dup":
+            if m == "duplication":
                 self.dup_run()
-            if m == "coverage":
-                self.coverage_run()
+            if m == "stat":
+                self.bam_stat_run()
             if m == "correlation" and self.option("fpkm").is_set:
                 self.correlation_run()
-        self.on_rely(self.tools, self.set_output)
+            if m == "coverage":
+                self.coverage_run()
+        # self.logger.info(self.tools)
+        if len(self.tools) > 1:
+            self.on_rely(self.tools, self.set_output)
+            for t in self.tools:
+                t.run()
+        else:
+            self.tools[0].on("end", self.set_output)
+            self.tools[0].run()
         # super(MapAssessmentModule, self).run()
 
     def end(self):

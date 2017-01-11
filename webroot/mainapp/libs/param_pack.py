@@ -75,6 +75,20 @@ def GetUploadInfo(client, member_id, project_sn, task_id, name):
         update_api = "meta.tupdate_status"
     else:
         raise Exception("未知用户:{}".format(client))
+    # strTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  # modified by hesheng 20161223 名称与主表名称统一
+    fullPath = "{}rerewrweset/files/{}/{}/{}/report_results/{}".format(head, member_id, project_sn, task_id, name)
+    return (fullPath, update_api)
+
+
+def GetUploadInfo_denovo(client, member_id, project_sn, task_id, name):
+    if client == "client01":
+        head = "sanger:"
+        update_api = "denovo.update_status"
+    elif client == "client03":
+        head = "tsanger:"
+        update_api = "denovo.tupdate_status"
+    else:
+        raise Exception("未知用户:{}".format(client))
     strTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     fullPath = "{}rerewrweset/files/{}/{}/{}/report_results/{}_{}".format(head, member_id, project_sn, task_id, name, strTime)
     return (fullPath, update_api)

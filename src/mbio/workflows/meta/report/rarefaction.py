@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
-# import os
+import os
 from mbio.api.to_file.meta import *
 
 
@@ -59,7 +59,7 @@ class RarefactionWorkflow(Workflow):
             self.logger.info(i)
             if i == "sobs":
                 result_dir.add_relpath_rules([
-                    ["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)]
+                    ["./sobs", "文件夹", "{}指数结果输出目录".format(i)]
                 ])
                 result_dir.add_regexp_rules([
                     [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]

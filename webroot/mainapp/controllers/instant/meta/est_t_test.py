@@ -2,6 +2,7 @@
 # __author__ = 'qindanhua'
 import web
 import json
+import datetime
 # from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.estimator import Estimator
@@ -45,6 +46,7 @@ class EstTTest(MetaController):
         # params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         self.task_name = 'meta.report.est_t_test'
         self.task_type = 'workflow'
+        self.main_table_name = 'Estimator_T-test_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.options = {"est_table": data.alpha_diversity_id,
                         "otu_id": str(data.otu_id),
                         "group_detail": data.group_detail,
@@ -56,4 +58,13 @@ class EstTTest(MetaController):
                         }
         self.to_file = ["estimator.export_est_table(est_table)", "meta.export_group_table_by_detail(group_table)"]
         self.run()
-        return self.returnInfo
+        return_info = json.loads(self.returnInfo)
+        # print("lllllllllllllllllll")
+        # for re in return_info:
+        #     print(re)
+        # print(return_info)
+        if not return_info["success"]:
+            return_info["info"] = "程序运行出错，请检查输入的多样性指数表是否存在异常（样本值完全相同或是存在NA值等情况）"
+        # print("lllllllllllllllllll")
+        return json.dumps(return_info)
+        # return self.returnInfo

@@ -2,8 +2,9 @@
 # __author__ = 'qindanhua'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.libs.param_pack import group_detail_sort
+# from mainapp.libs.param_pack import group_detail_sort
 
 
 class MantelTest(MetaController):
@@ -30,7 +31,7 @@ class MantelTest(MetaController):
         if return_info:
             return return_info
         data = web.input()
-        default_argu = ['otu_id', 'level_id', 'submit_location', "group_id", "partial_factor", "env_id", "otu_method", "env_method"]
+        default_argu = ['otu_id', 'level_id', 'submit_location', "group_id", "env_id", "otu_method", "env_method", "env_labs"]
 
         for argu in default_argu:
             if not hasattr(data, argu):
@@ -49,6 +50,7 @@ class MantelTest(MetaController):
 
         self.task_name = 'meta.report.mantel_test'
         self.task_type = 'workflow'
+        self.main_table_name = 'Mantel_Test_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.options = {"otu_file": data.otu_id,
                         "otu_id": data.otu_id,
                         "level": data.level_id,
@@ -60,11 +62,15 @@ class MantelTest(MetaController):
                         "env_file": data.env_id,
                         "otu_method": data.otu_method,
                         "env_method": data.env_method,
-                        "partial_factor": data.partial_factor
+                        "env_labs": data.env_labs
                         }
+        if hasattr(data, "units"):
+            self.options["units"] = data.units
         self.options["params"] = str(self.options)
-        self.to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_env_table(env_file)"]
+        self.to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
         self.run()
         # print self.returnInfo
         return_info = json.loads(self.returnInfo)
+        # if not return_info["success"]:
+        #     return_info["info"] = "程序运行出错，请检查输入的环境因子是否存在分类型环境因子"
         return json.dumps(return_info)

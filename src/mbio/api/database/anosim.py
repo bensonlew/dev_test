@@ -27,6 +27,7 @@ class Anosim(Base):
                                 update_column=True, db=self.db, comment='', stats=False,
                                 columns=None):
             collection = db[coll_name]
+            data_list = []
             with open(file_path, 'rb') as f:
                 all_lines = f.readlines()
                 if comment:
@@ -61,7 +62,14 @@ class Anosim(Base):
                         insert_data['name'] = values[0]
                     values_dict = dict(zip(columns, values[1:]))
                     insert_data = dict(insert_data, **values_dict)
-                    collection.insert_one(insert_data)
+                    data_list.append(insert_data)
+                    # collection.insert_one(insert_data)
+                try:
+                    collection.insert_many(data_list)
+                except Exception, e:
+                    self.bind_object.logger.error("导入%s数据库出错:%s" % (coll_name, e))
+                else:
+                    self.bind_object.logger.info("导入%s数据库成功!" % coll_name)
                 if update_column:
                     main_collection = db[main_coll]
                     default_column = {'specimen': 'detail_column', 'factor': 'factor_column', 'vector': 'vector_column',
@@ -103,8 +111,8 @@ class Anosim(Base):
                 'project_sn': self.bind_object.sheet.project_sn,
                 'task_id': task_id,
                 'otu_id': otu_id,
-                'level_id': int(level),
-                'name': name if name else 'anosim_origin',
+                # 'level_id': int(level),
+                'name': self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else 'anosim_origin',
                 'group_id': group_id,
                 'params': (json.dumps(params, sort_keys=True, separators=(',', ':'))
                            if isinstance(params, dict) else params),

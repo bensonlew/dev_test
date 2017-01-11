@@ -9,6 +9,7 @@ import json
 from datetime import datetime, date
 import inspect
 import ctypes
+import setproctitle
 
 
 def _async_raise(tid, exctype):
@@ -144,3 +145,12 @@ class CJsonEncoder(json.JSONEncoder):
             return obj.strftime('%Y-%m-%d')
         else:
             return json.JSONEncoder.default(self, obj)
+
+
+def change_process_tile(tile):
+    """
+    更改当前进程名称
+    :param tile: String 进程名称
+    :return:
+    """
+    setproctitle.setproctitle(tile)

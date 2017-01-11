@@ -2,6 +2,7 @@
 # __author__ = 'shenghe'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
+import pandas as pd
 import os
 import types
 import subprocess
@@ -21,6 +22,7 @@ class PcaAgent(Agent):
         options = [
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "level", "type": "string", "default": "otu"},
+            {"name": "eigenvalue", "type": "string", "default": "row"},  # column
             {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "envlabs", "type": "string", "default": ""}
         ]
@@ -52,10 +54,10 @@ class PcaAgent(Agent):
         重写参数检查
         """
         if not self.option('otutable').is_set:
-            raise OptionError('必须提供otu表')
+            raise OptionError('必须提供数据表')
         self.option('otutable').get_info()
         if self.option('otutable').prop['sample_num'] < 3:
-            raise OptionError('otu表的样本数目少于3，不可进行beta多元分析')
+            raise OptionError('列数少于3，不可进行分析')
         if self.option('envtable').is_set:
             self.option('envtable').get_info()
             if self.option('envlabs'):
@@ -82,7 +84,7 @@ class PcaAgent(Agent):
             #         raise OptionError('环境因子中存在，OTU表中的未知样本%s' % sample)
         table = open(self.gettable())
         if len(table.readlines()) < 4:
-            raise OptionError('提供的数据表信息少于3行')
+            raise OptionError('数据表少于3行，不可进行分析')
         table.close()
         return True
 
@@ -118,9 +120,8 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
 
 
     def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
-        import pandas as pd
-        T1 = pd.read_table(T1, sep='\t')
-        T2 = pd.read_table(T2, sep='\t')
+        T1 = pd.read_table(T1, sep='\t', dtype=str)
+        T2 = pd.read_table(T2, sep='\t', dtype=str)
         T1_names = list(T1.columns[1:])
         T2_names = list(T2.iloc[0:, 0])
         T1_T2 = set(T1_names) - set(T2_names)
@@ -193,13 +194,30 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         self.run_ordination()
 
     def formattable(self, tablepath):
+        this_table = ''
         with open(tablepath) as table:
             if table.read(1) == '#':
                 newtable = os.path.join(self.work_dir, 'temp_format.table')
                 with open(newtable, 'w') as w:
                     w.write(table.read())
-                return newtable
-        return tablepath
+                this_table = newtable
+        this_table = tablepath
+        if self.option('eigenvalue') != 'row':
+            newtable = this_table + '.T'
+            self.t_table(this_table, newtable)
+            return newtable
+        else:
+            return this_table
+
+    def t_table(self, table_file, new_table):
+        """
+        转换颠倒表格内容
+        """
+        with open(table_file) as f, open(new_table, 'w') as w:
+            table_list = [i.rstrip().split('\t') for i in f.readlines()]
+            table_list = map(lambda *a: '\t'.join(a) + '\n', *table_list)
+            w.writelines(table_list)
+
 
     def run_ordination(self):
         """

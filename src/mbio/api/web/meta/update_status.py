@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from biocluster.api.web.log import Log, config
-import gevent
-import urllib2
-import random
-import time
-import hashlib
+# last_modified = shenghe
 import urllib
-from biocluster.config import Config
 import json
-from bson.objectid import ObjectId
-from types import StringTypes
 import datetime
 import re
-import os
+import gevent
+import urllib2
+import sys
+from bson.objectid import ObjectId
+from biocluster.wpm.log import Log
+from biocluster.config import Config
+from biocluster.core.function import CJsonEncoder
 
 
 class UpdateStatus(Log):
+    """
+    meta的web api，用于更新sg_status表并向前端发送状态信息和文件上传信息
+    一般可web api功能可从此处继承使用，需要重写__init__方法
+    """
 
     def __init__(self, data):
         super(UpdateStatus, self).__init__(data)
@@ -24,262 +26,145 @@ class UpdateStatus(Log):
         self._client = "client01"
         self._key = "1ZYw71APsQ"
         self._url = "http://www.sanger.com/api/add_file"
-        self._task_id = self.data.task_id
-        self.db = self._config.get_db()
+        if "update_info" in self.data["content"]:
+            self.update_info = self.data["content"]["update_info"]
+        else:
+            self.update_info = None
+        self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
         self._mongo_client = self._config.mongo_client
         self.mongodb = self._mongo_client[Config().MONGODB]
-        self._sheetname = "update_info"
+
+    def get_post_data(self):
+        workflow_id = self.data["content"]["stage"]["task_id"]
+        my_id = re.split('_', workflow_id)
+        my_id.pop(-1)
+        my_id.pop(-1)
+        data = dict()
+        content = {
+            "task_id": "_".join(my_id),
+            "stage": self.data["content"]["stage"]
+        }
+        if 'files' in self.data['content']:
+            content['files'] = self.data["content"]["files"]
+        if 'dirs' in self.data['content']:
+            content['dirs'] = self.data['content']['dirs']
+        data['content'] = json.dumps(content, cls=CJsonEncoder)
+        return urllib.urlencode(data)
 
     def update(self):
-        table_id = self.get_otu_id()
+
         while True:
-            self._failed = False
-            try:
-                my_table_id = json.loads(table_id)
-            except Exception:
-                self.log("update_info:{}格式不正确".format(table_id))
-                self._success = 0
-                self._failed = True
-                self._reject = 1
-                break
-            if self._try_times >= config.UPDATE_MAX_RETRY:
-                self.log("尝试提交%s次任务成功，终止尝试！" % self._try_times)
+            if self._try_times >= self.config.UPDATE_MAX_RETRY:
+                self.logger.info("尝试提交%s次任务成功，终止尝试！" % self._try_times)
                 self._failed = True
                 self._reject = 1
                 break
             try:
                 if self._success == 0:
-                    gevent.sleep(config.UPDATE_RETRY_INTERVAL)
+                    gevent.sleep(self.config.UPDATE_RETRY_INTERVAL)
                 self._try_times += 1
-                if my_table_id:
-                    url_data = json.loads(self.data.data)
-                    statu = url_data["content"]
-                    # json_data = json.loads(statu, object_hook=date_hook)
-                    json_data = statu
-                    if "stage" in json_data.keys():
-                        status = json_data["stage"]["status"]
-                        desc = json_data["stage"]["error"]
-                        create_time = json_data["stage"]["created_ts"]
-                        self.update_log(my_table_id, status, desc, create_time)
-                    else:
-                        self._success = 0
-                        self._failed = True
-                        self._failed_times += 1
-                        self._reject = 1
-                        break
-                else:
-                    self._success = 0
-                    self._failed = True
-                    self._failed_times += 1
-                    self._reject = 1
-                    break
+                response = self.send()
+                code = response.getcode()
+                response_text = response.read()
+                self.update_status()
+                print "Return page:\n%s" % response_text
+                sys.stdout.flush()
+            except urllib2.HTTPError, e:
+                self._success = 0
+                self._failed_times += 1
+                self._response_code = e.code
+                self.logger.warning("提交失败：%s, 重试..." % e)
             except Exception, e:
                 self._success = 0
-                self._failed = True
                 self._failed_times += 1
-                self.log("提交失败: %s" % e)
+                self.logger.warning("提交失败: %s, 重试..." % e)
             else:
-                self._success = 1
-                self._failed = False
-                self.log("提交成功")
-                break
-        self._end = True
-        self.save()
-
-    def get_otu_id(self):
-        try:
-            results = self.db.query("SELECT * FROM workflow WHERE workflow_id=$id", vars={'id': self._task_id})
-            if len(results) > 0:
-                data = results[0]
-                json_str = data.json
-                json_obj = json.loads(json_str)
-                return json_obj["options"][self._sheetname]
-                # 返回mysql的workflow表的json这一列的option字段下的update_api字段下的值
-            else:
-                self.log("没有找到对应的任务:%s" % self._task_id)
-        except Exception, e:
-            self.log("任务ID查询异常: %s" % e)
-        return False
-
-    def update_log(self, id_value, status, desc, create_time):
-        # id_value  {表id:表名, 表id: 表名,...}
-        for k in id_value:
-            obj_id = k
-            dbname = id_value[k]
-            collection = self.mongodb[dbname]
-            if not isinstance(obj_id, ObjectId):
-                if isinstance(obj_id, StringTypes):
-                    obj_id = ObjectId(obj_id)
+                try:
+                    response_json = json.loads(response_text)
+                except Exception, e:
+                    self._response_code = code
+                    self._response = response_text
+                    self._success = 0
+                    self._failed_times += 1
+                    self.logger.error("提交失败: 返回数据类型不正确 %s ，重试..." %  e)
                 else:
-                    raise Exception("{}的值必须为ObjectId对象或其对应的字符串!".format(self._sheetname))
-            create_time = str(create_time)
-            if status == "finish":
-                status = "end"
-                desc = ""
-            data = {
-                "status": status,
-                "desc": desc,
-                "created_ts": create_time
-            }
-            collection.find_one_and_update({"_id": obj_id}, {'$set': data}, upsert=True)
+                    self._response_code = code
+                    self._response = response_text
+                    if response_json["success"] == "true" \
+                            or response_json["success"] is True or response_json["success"] == 1:
+                        self._success = 1
+                        self.logger.info("提交成功")
+                    else:
+                        self._success = 0
+                        self._failed_times += 1
+                        self._reject = 1
+                        self._failed = True
+                        self.logger.error("提交被拒绝，终止提交:%s" % response_json["message"])
+                    break
+        self._end = True
+        self.model.save()
+        # self.save()
 
-            # 新建或更新sg_status表
-            collection = self.mongodb['sg_status']
+    def update_status(self):
+        status = self.data["content"]["stage"]["status"]
+        desc = self.data["content"]["stage"]["error"]
+        create_time = str(self.data["content"]["stage"]["created_ts"])
+        if not self.update_info:
+            return
+        for obj_id, collection_name in json.loads(self.update_info).items():
+            obj_id = ObjectId(obj_id)
+            collection = self.mongodb[collection_name]
+            if status != "start":
+                data = {
+                    "status": "end" if status == 'finish' else status,
+                    "desc": desc,
+                    "created_ts": create_time
+                }
+                collection.find_one_and_update({"_id": obj_id}, {'$set': data}, upsert=True)
+            sg_status_col = self.mongodb['sg_status']
             if status == "start":
-                tmp_col = self.mongodb[dbname]
-                tb_name = tmp_col.find_one({"_id": obj_id})["name"]
+                tmp_col = self.mongodb[collection_name]
+                try:
+                    temp_find = tmp_col.find_one({"_id": obj_id})
+                    tb_name = temp_find["name"]
+                    temp_params = temp_find['params']
+                    submit_location = json.loads(temp_params)['submit_location']
+                except:
+                    tb_name = ""
+                    temp_params = ''
+                    submit_location = ''
                 tmp_task_id = list()
-                tmp_task_id = re.split("_", self._task_id)
+                print 'update_status task_id:', self.task_id
+                tmp_task_id = re.split("_", self.task_id)
                 tmp_task_id.pop()
                 tmp_task_id.pop()
                 insert_data = {
                     "table_id": obj_id,
                     "table_name": tb_name,
                     "task_id": "_".join(tmp_task_id),
-                    "type_name": dbname,
+                    "type_name": collection_name,
+                    "params": temp_params,
+                    "submit_location": submit_location,
                     "status": "start",
                     "is_new": "new",
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
-                collection.insert_one(insert_data)
-            elif status == "end":
-                tmp_col = self.mongodb[dbname]
-                my_params = tmp_col.find_one({"_id": obj_id})["params"]
-                my_dict = json.loads(my_params)
-                if "submit_location" in my_dict:
-                    insert_data = {
-                        "status": status,
-                        "desc": desc,
-                        "params": my_params,
-                        "submit_location": my_dict["submit_location"],
-                        "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    }
-                else:
-                    insert_data = {
-                        "status": status,
-                        "desc": desc,
-                        "params": my_params,
-                        "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    }
-
-                collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
-                self.post_data_to_web()
+                sg_status_col.insert_one(insert_data)
+            elif status == "finish":  # 只能有一次finish状态
+                insert_data = {
+                    "status": 'end',
+                    "desc": desc,
+                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                sg_status_col.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
+                                                  {'$set': insert_data}, upsert=True)
             else:
                 insert_data = {
                     "status": status,
                     "desc": desc,
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
-                collection.find_one_and_update({"table_id": obj_id, "type_name": dbname}, {'$set': insert_data}, upsert=True)
+                sg_status_col.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
+                                                  {'$set': insert_data}, upsert=True)
             self._mongo_client.close()
-
-    @property
-    def post_data(self):
-        """
-        重写post_data
-        从api_log里面读取data字段
-        """
-        data = json.loads(self.data.data)
-        return data
-
-    def _re_org_post(self, post_data):
-        my_content = post_data["content"]
-        my_stage = my_content["stage"]
-        my_upload_files = post_data["upload_files"]
-        target = my_upload_files[0]["target"]
-        files = my_upload_files[0]["files"]
-        new_files = list()
-        new_dirs = list()
-        for my_file in files:
-            if my_file["type"] == "file":
-                tmp_dict = dict()
-                tmp_dict["path"] = os.path.join(target, my_file["path"])
-                tmp_dict["size"] = my_file["size"]
-                tmp_dict["description"] = my_file["description"]
-                tmp_dict["format"] = my_file["format"]
-                new_files.append(tmp_dict)
-            elif my_file["type"] == "dir":
-                tmp_dict = dict()
-                tmpPath = re.sub("\.$", "", my_file["path"])
-                tmp_dict["path"] = os.path.join(target, tmpPath)
-                tmp_dict["size"] = my_file["size"]
-                tmp_dict["description"] = my_file["description"]
-                tmp_dict["format"] = my_file["format"]
-                new_dirs.append(tmp_dict)
-        # my_stage["files"] = new_files
-        new_content = dict()
-        new_content["files"] = new_files
-        new_content["dirs"] = new_dirs
-        my_id = my_stage["task_id"]
-        my_id = re.split('_', my_id)
-        my_id.pop(-1)
-        my_id.pop(-1)
-        new_content["task_id"] = "_".join(my_id)
-        my_data = dict()
-        my_data["content"] = json.dumps(new_content)
-        print my_data
-        return urllib.urlencode(my_data)
-
-    def post_data_to_web(self):
-        my_post_data = self._re_org_post(self.post_data)
-        self._post_data = "%s&%s" % (self.get_sig(), my_post_data)
-        try:
-            response = self.send()
-            code = response.getcode()
-            response_text = response.read()
-            print("Return page:\n%s" % response_text)
-        except urllib2.HTTPError as e:
-            self._success = 0
-            self._response_code = e.code
-            self._reject = 1
-            raise Exception("提交失败：%s" % e)
-        except Exception as e:
-            self._success = 0
-            self._reject = 1
-            raise Exception("提交失败: %s" % e)
-        else:
-            try:
-                response_json = json.loads(response_text)
-            except Exception as e:
-                self._response_code = code
-                self._response = response_text
-                self._success = 0
-                self._reject = 1
-                raise Exception("提交失败: 返回数据类型不正确 %s" % e)
-            else:
-                self._response_code = code
-                self._response = response_text
-                if response_json["success"] == "true" \
-                        or response_json["success"] is True or response_json["success"] == 1:
-                    self._success = 1
-                else:
-                    self._success = 0
-                    self._reject = 1
-                    self._failed = True
-                    raise Exception("提交被拒绝，终止提交:%s" % response_json["message"])
-
-    def get_sig(self):
-        nonce = str(random.randint(1000, 10000))
-        timestamp = str(int(time.time()))
-        x_list = [self._key, timestamp, nonce]
-        x_list.sort()
-        sha1 = hashlib.sha1()
-        map(sha1.update, x_list)
-        sig = sha1.hexdigest()
-        signature = {
-            "client": self._client,
-            "nonce": nonce,
-            "timestamp": timestamp,
-            "signature": sig
-        }
-        return urllib.urlencode(signature)
-
-
-def date_hook(json_dict):
-    for (key, value) in json_dict.items():
-        try:
-            json_dict[key] = datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-        except:
-            pass
-    return json_dict

@@ -154,3 +154,57 @@ class Sample(Base):
                 specimen_id = result["_id"]
                 break
         return specimen_id
+        
+    @report_check
+    def add_valid_sequence_info(self, valid_sequence_path):
+        self.bind_object.logger.info("add_valid_sequence_info start")
+        data_list = []
+        with open(valid_sequence_path, 'r') as f:
+            #f.readline()
+            line = f.readline()
+            line_data = line.strip().split("\t")
+            data = {
+                "project_sn": self.bind_object.sheet.project_sn,
+                "task_id": self.bind_object.sheet.id,
+                "amplified_region": line_data[0],
+                "samples": line_data[1],
+                "sequences": line_data[2],
+                "bases": line_data[3],
+                "average_length": line_data[4]
+            }
+            data_list.append(data)
+        try:
+            collection = self.db["sg_valid_sequence_info"]
+            result = collection.insert_many(data_list)
+            self.sample_table_ids = result.inserted_ids[:]
+        except Exception, e:
+            self.bind_object.logger.error("导入样品有效信息数据出错:%s" % e)
+        else:
+            self.bind_object.logger.info("导入样品有效信息数据成功:%s" % result.inserted_ids)
+    
+    @report_check
+    def add_raw_sequence_info(self, raw_sequence_path):
+        print("add_raw_sequence_info start")
+        data_list = []
+        with open(raw_sequence_path, 'r') as f:
+            f.readline()
+            line = f.readline()
+            line_data = line.strip().split("\t")
+            data = {
+                "project_sn": self.bind_object.sheet.project_sn,
+                "task_id": self.bind_object.sheet.id,
+                "amplified_region": line_data[0],
+                "insert_size": line_data[1],
+                "sequencing_length": line_data[2],
+                "raw_reads": line_data[3],
+                "total_base": line_data[4]
+            }
+            data_list.append(data)
+        try:
+            collection = self.db["sg_raw_sequence_info"]
+            result = collection.insert_many(data_list)
+            self.sample_table_ids = result.inserted_ids[:]
+        except Exception, e:
+            print("导入样品原始信息数据出错:%s" % e)
+        else:
+            print("导入样品原始信息数据成功:%s" % result.inserted_ids)

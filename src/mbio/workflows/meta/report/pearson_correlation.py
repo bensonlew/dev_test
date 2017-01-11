@@ -7,6 +7,7 @@ from mbio.api.to_file.meta import *
 import datetime
 from mbio.packages.statistical.reverse_table import reverse_table
 from mainapp.libs.param_pack import group_detail_sort
+import re
 
 
 class PearsonCorrelationWorkflow(Workflow):
@@ -25,71 +26,52 @@ class PearsonCorrelationWorkflow(Workflow):
             {"name": "params", "type": "string"},
             {"name": "env_file", "type": "infile", 'format': "meta.otu.group_table"},  # 输入的OTU id
             {"name": "env_id", "type": "string"},
+            {"name": "env_labs", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "correlation_id", "type": "string"},
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
             {"name": "group_id", "type": "string"},
+            {"name": "method", "type": "string", "default": "pearsonr"},
+            {"name": "env_cluster", "type": "string", "default": "average"},
+            {"name": "species_cluster", "type": "string", "default": "average"},
             {"name": "group_detail", "type": "string"}
             ]
         self.add_option(options)
         # print(self._sheet.options())
         self.set_options(self._sheet.options())
         self.correlation = self.add_tool('statistical.pearsons_correlation')
-        self.distance_otu = self.add_tool('meta.beta_diversity.distance_calc')
-        self.distance_env = self.add_tool('meta.beta_diversity.distance_calc')
-        self.hcluster_otu = self.add_tool('meta.beta_diversity.hcluster')
-        self.hcluster_env = self.add_tool('meta.beta_diversity.hcluster')
-        self.distance = [self.distance_otu, self.distance_env]
-        self.hcluster = [self.hcluster_otu, self.hcluster_env]
-        self.tools = [self.correlation] + self.distance + self.hcluster
         self.params = {}
+        self.name_to_name = {}
 
     def run_correlation(self):
         options = {
             'otutable': self.option('otu_file'),
-            'envtable': self.option('env_file')
+            'envtable': self.option('env_file'),
+            "method": self.option('method'),
+            "env_cluster": self.option("env_cluster"),
+            "species_cluster": self.option("species_cluster")
             }
         self.correlation.set_options(options)
+        self.correlation.on("end", self.set_db)
         self.correlation.run()
         # self.output_dir = self.correlation.output_dir
         # super(PearsonCorrelationWorkflow, self).run()
-
-    def run_distance(self):
-        # print(self.option("otu_file"))
-        otu_file = self.work_dir + "/reverse_otu.xls"
-        print(self.work_dir + "/otu_file.xls")
-        print(self.option("env_file").path)
-        reverse_table(self.work_dir + "/otu_file.xls", otu_file)
-        print(otu_file)
-        self.distance_otu.set_options({
-            "otutable": otu_file
-        })
-        self.distance_env.set_options({
-            "otutable": self.option("env_file").path
-        })
-        # self.distance_env.on('end', self.run_hcluster)
-        self.on_rely(self.distance, self.run_hcluster)
-        self.distance_env.run()
-        self.distance_otu.run()
-
-    def run_hcluster(self):
-        distance_env = glob.glob(self.distance_env.output_dir + "/*")[0]
-        distance_otu = glob.glob(self.distance_otu.output_dir + "/*")[0]
-        self.hcluster_env.set_options({
-            "dis_matrix": distance_env
-        })
-        self.hcluster_otu.set_options({
-            "dis_matrix": distance_otu
-        })
-        self.hcluster_env.run()
-        self.hcluster_otu.run()
-
+        
     def run(self):
         self.run_correlation()
-        self.run_distance()
-        self.on_rely(self.tools, self.set_db)
+        # self.run_distance()
+        # self.on_rely(self.tools, self.set_db)
         super(PearsonCorrelationWorkflow, self).run()
+
+    def get_name(self):
+        with open(self.correlation.work_dir + "/name_to_name.xls", "r") as f:
+            for line in f:
+                line = line.strip().split("\t")
+                self.name_to_name[line[0]] = line[1]
+
+    def dashrepl(self, matchobj):
+        return self.name_to_name[matchobj.groups()[0]]
 
     def set_db(self):
         """
@@ -98,23 +80,47 @@ class PearsonCorrelationWorkflow(Workflow):
         self.params = eval(self.option("params"))
         del self.params["otu_file"]
         del self.params["env_file"]
+        level = self.params["level"]
+        del self.params["level"]
+        self.params["level_id"] = int(level)
+        group_detail = self.params["group_detail"]
+        self.params["group_detail"] = group_detail_sort(group_detail)
         species_tree = ""
         env_tree = ""
+        env_list = []
+        species_list = []
         api_correlation = self.api.meta_species_env
         corr_path = glob.glob(self.correlation.output_dir+"/*correlation*")
         pvalue_path = glob.glob(self.correlation.output_dir+"/*pvalue*")
-        env_tree_path = self.hcluster_env.output_dir + "/hcluster.tre"
-        species_tree_path = self.hcluster_otu.output_dir + "/hcluster.tre"
+
+        env_tree_path = self.correlation.work_dir + "/env_tree.tre"
+        species_tree_path = self.correlation.work_dir + "/species_tree.tre"
+
+        self.get_name()
+
         if os.path.exists(env_tree_path):
             with open(env_tree_path, "r") as f:
                 env_tree = f.readline().strip()
+                raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', env_tree)
+                env_list = [i[1] for i in raw_samp]
+                # print(env_list)
         if os.path.exists(species_tree_path):
             with open(species_tree_path, "r") as f:
                 species_tree = f.readline().strip()
+                raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', species_tree)
+                # print(self.name_to_name)
+                species_list = [self.name_to_name[i[1]] for i in raw_samp]
+
+                new_species_tree = re.sub(r"(name\d+)", self.dashrepl, species_tree)
+                print(new_species_tree)
+                # print(species_list)
+                # new_species_list = []
         name = "correlation" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        corr_id = api_correlation.add_correlation(self.option("level"), self.option("otu_id"), self.option("env_id"), species_tree=species_tree, env_tree=env_tree, name=name, params=self.params)
+        corr_id = api_correlation.add_correlation(self.option("level"), self.option("otu_id"), self.option("env_id"),
+                                                  species_tree=new_species_tree, env_tree=env_tree, name=name,
+                                                  params=self.params, env_list=env_list, species_list=species_list)
         api_correlation.add_correlation_detail(corr_path[0], "correlation", corr_id)
-        api_correlation.add_correlation_detail(pvalue_path[0], "pvlue", corr_id)
+        api_correlation.add_correlation_detail(pvalue_path[0], "pvalue", corr_id)
         self.add_return_mongo_id('sg_species_env_correlation', corr_id)
         self.end()
 

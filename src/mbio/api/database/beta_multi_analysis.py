@@ -68,7 +68,7 @@ class BetaMultiAnalysis(Base):
                 'task_id': task_id,
                 'otu_id': otu_id,
                 'level_id': int(level),
-                'name': name if name else analysis + '_origin',
+                'name': self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else analysis + '_origin',
                 'table_type': analysis,
                 'env_id': env_id,
                 'group_id': group_id,
@@ -78,6 +78,14 @@ class BetaMultiAnalysis(Base):
                 'desc': '',
                 'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
+            if analysis == 'rda_cca':  # 在主表中添加必要的rda或者是cca分类信息
+                rda_files = os.listdir(dir_path.rstrip('/') + '/Rda')
+                if 'cca_sites.xls' in rda_files:
+                    insert_mongo_json['rda_cca'] = 'cca'
+                elif 'rda_sites.xls' in rda_files:
+                    insert_mongo_json['rda_cca'] = 'rda'
+                else:
+                    raise Exception('RDA/CCA分析没有生成正确的结果数据')
             multi_analysis_id = _main_collection.insert_one(insert_mongo_json).inserted_id
             main_id = multi_analysis_id
         else:

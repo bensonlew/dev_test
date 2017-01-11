@@ -40,6 +40,8 @@ class Lefse(object):
         my_param['strict'] = int(data.strict)
         my_param['submit_location'] = data.submit_location
         my_param['task_type'] = data.task_type
+        my_param['start_level'] = int(data.start_level)
+        my_param['end_level'] = int(data.end_level)
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
@@ -54,7 +56,7 @@ class Lefse(object):
             update_info = {str(lefse_id): "sg_species_difference_lefse"}
             update_info = json.dumps(update_info)
             workflow_id = self.get_new_id(otu_info["task_id"], data.otu_id)
-            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], 'lefse_lda')
+            (output_dir, update_api) = GetUploadInfo(client, member_id, otu_info['project_sn'], otu_info['task_id'], name)
             json_data = {
                 "id": workflow_id,
                 "stage_id": 0,
@@ -77,7 +79,9 @@ class Lefse(object):
                     "group_name": G().get_group_name(data.group_id, lefse=True, second_group=data.second_group_detail),
                     "strict": data.strict,
                     "lda_filter": data.lda_filter,
-                    "lefse_id": str(lefse_id)
+                    "lefse_id": str(lefse_id),
+                    "start_level": int(data.start_level),
+                    "end_level": int(data.end_level),
                 }
             }
             insert_data = {"client": client,
@@ -105,7 +109,7 @@ class Lefse(object):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict', 'second_group_detail', 'task_type', 'second_group_id']
+        params_name = ['otu_id', 'submit_location', 'group_detail', 'group_id', 'lda_filter', 'strict', 'second_group_detail', 'task_type', 'second_group_id', 'start_level', 'end_level']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
@@ -115,6 +119,10 @@ class Lefse(object):
             return json.dumps(info)
         if float(data.lda_filter) > 4.0 or float(data.lda_filter) < -4.0:
             success.append("LDA阈值不在范围内")
+        if int(data.start_level) not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+            success.append('起始分类水平不在范围内')
+        if int(data.end_level) not in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+            success.append('结束分类水平不在范围内')
         group_detail = json.loads(data.group_detail)
         if not isinstance(group_detail, dict):
             success.append("传入的group_detail不是一个字典")

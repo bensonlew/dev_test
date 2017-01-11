@@ -36,7 +36,8 @@ class SingleWorkflow(Workflow):
 
     def end(self):
         self._upload_dir_obj = self._task.upload_dir
-        self.run_mongo()
+        if 'pca' in self._sheet.name:
+            self.run_mongo()
         super(SingleWorkflow, self).end()
 
     def run_mongo(self):
@@ -56,6 +57,7 @@ class SingleWorkflow(Workflow):
             task_mongo = mongo_class(self)
             task_mongo.manager = self.api
             task_mongo.run()
+            self.logger.info(self.api.get_call_records_list())
             pass
         except Exception:
             print traceback.format_exc()

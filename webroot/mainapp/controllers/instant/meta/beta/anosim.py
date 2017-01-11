@@ -4,6 +4,7 @@ import web
 import json
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
+import datetime
 
 
 class Anosim(MetaController):
@@ -32,6 +33,9 @@ class Anosim(MetaController):
         except ValueError:
             info = {'success': False, 'info': 'permutations格式应该为数字!:%s' % data.permutations}
             return json.dumps(info)
+        if not (9 < int(data.permutations) < 10000):
+            info = {'success': False, 'info': '置换次数应该在[10-10000]之间:%s' % data.permutations}
+            return json.dumps(info)
         if len(group) < 2:
             info = {'success': False, 'info': '不可只选择一个分组'}
             return json.dumps(info)
@@ -47,6 +51,7 @@ class Anosim(MetaController):
 
         self.task_name = 'meta.report.anosim'
         self.task_type = 'workflow'  # 可以不配置
+        self.main_table_name = 'Anosim&anosim_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),

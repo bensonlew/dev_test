@@ -48,7 +48,7 @@ class Venn(Base):
             "group_id": group_id,
             "status": "end",
             "desc": desc,
-            "name": name if name else "venn表格",
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "venn表格",
             "params": params,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -70,6 +70,8 @@ class Venn(Base):
             else:
                 raise Exception("venn_id必须为ObjectId对象或其对应的字符串!")
         venn_json = self._get_venn_json(venn_path)
+        data_list = []
+        collection = self.db['sg_otu_venn_detail']
         with open(venn_path, 'rb') as r:
             count = 0
             for line in r:
@@ -85,7 +87,7 @@ class Venn(Base):
                     my_name = cla_info[-1]
                     name_list.append(my_name)
                 display_name = ",".join(name_list)
-                collection = self.db['sg_otu_venn_detail']
+                # collection = self.db['sg_otu_venn_detail']
                 tmp_name = re.sub("only", "", line[0])
                 tmp_name = re.sub(" ", "", tmp_name)
                 tmp_list = re.split("&", tmp_name)
@@ -99,8 +101,10 @@ class Venn(Base):
                     'display_count': int(self.single[tuple(tmp_list)]),
                     'venn_json': json.dumps(venn_json[count])
                 }
-                collection.insert_one(insert_data)
+                data_list.append(insert_data)
+                # collection.insert_one(insert_data)
                 count += 1
+        collection.insert_many(data_list)
         # 由于需求的变更，要在原来基础上再把几个分组的all的导入sg_otu和sg_otu_species
         # 所以要先获取到all的otu，再导入, 但是这几个的venn_detail表不用再进行导入
         otu_list = defaultdict(list)
@@ -365,3 +369,30 @@ class Venn(Base):
         # print data_list
         if len(data_list) > 0:
             collection.insert_many(data_list)
+
+    @report_check
+    def add_venn_graph(self, venn_graph_path, venn_id):
+        data_list = []
+        if not isinstance(venn_id, ObjectId):
+            if isinstance(venn_id, StringTypes):
+                venn_id = ObjectId(venn_id)
+            else:
+                raise Exception("venn_id必须为ObjectId对象或其对应的字符串!")
+        with open(venn_graph_path, "r") as f:
+            f.readline()
+            for line in f:
+                line = line.strip().split("\t")
+                insert_data = {
+                    'venn_id': venn_id,
+                    # 'otu_id': ObjectId(otu_id),
+                    'category_name': line[0],
+                    'otu_names': line[1]
+                }
+                data_list.append(insert_data)
+        try:
+            collection = self.db["sg_otu_venn_graph"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入Venn画图数据出错:%s" % e)
+        else:
+            self.bind_object.logger.error("导入Venn画图数据成功")

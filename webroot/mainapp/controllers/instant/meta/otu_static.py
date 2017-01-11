@@ -2,6 +2,7 @@
 # __author__ = 'xuting'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort
 
@@ -18,6 +19,7 @@ class OtuStatic(MetaController):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
         self.task_name = 'meta.report.otu_static'
+        self.main_table_name = 'OTU_Static_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         specimen_ids = list()
         group_detal_dict = json.loads(data.group_detail)
         for v in group_detal_dict.values():

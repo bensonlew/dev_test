@@ -7,6 +7,7 @@ import os
 from biocluster.core.exceptions import OptionError
 import glob
 import re
+import subprocess
 
 
 class SeqPrepAgent(Agent):
@@ -25,7 +26,7 @@ class SeqPrepAgent(Agent):
             {"name": "seqprep_l", "type": "outfile", "format": "sequence.fastq"},  # PE的左端输出结果
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
             {"name": "seqprep_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # fastq文件夹
-            {"name": "quality", "type": "int", "default": 20},
+            {"name": "quality", "type": "int", "default": 30},
             {"name": "length", "type": "int", "default": 30},
             {"name": "adapter_a", "type": "string", "default": "AGATCGGAAGAGCACACGTC"},
             {"name": "adapter_b", "type": "string", "default": "AGATCGGAAGAGCGTCGTGT"},
@@ -77,7 +78,8 @@ class SeqPrepTool(Tool):
     """
     def __init__(self, config):
         super(SeqPrepTool, self).__init__(config)
-        self.seqprep_path = 'bioinfo/seq/'
+        # self.seqprep_path = 'bioinfo/seq/'
+        self.seqprep_path = self.config.SOFTWARE_DIR + '/bioinfo/seq/'
         if self.option("fastq_r").is_set and self.option("fastq_l").is_set:
             self.sample_name_r = self.option("fastq_r").prop["path"].split("/")[-1]
             self.sample_name_l = self.option("fastq_l").prop["path"].split("/")[-1]
@@ -90,14 +92,23 @@ class SeqPrepTool(Tool):
                    self.option('length'), self.option("adapter_a"), self.option("adapter_b"))
         self.logger.info(cmd)
         self.logger.info("开始运行seqprep")
-        command = self.add_command("seqprep", cmd)
-        command.run()
-        self.wait(command)
-        if command.return_code == 0:
-            self.logger.info("运行seqprep完成")
-        else:
-            self.set_error("运行seqprep运行出错!")
+        try:
+            result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+            with open("seqprep.log.out", "w") as w:
+                w.write(result)
+            self.logger.info("去接头命令运行成功")
+            return True
+        except subprocess.CalledProcessError:
+            self.logger.info("去接头命令运行出错")
             return False
+        # command = self.add_command("seqprep", cmd)
+        # command.run()
+        # self.wait(command)
+        # if command.return_code == 0:
+        #     self.logger.info("运行seqprep完成")
+        # else:
+        #     self.set_error("运行seqprep运行出错!")
+        #     return False
 
     def multi_seqprep(self):
         fq_dir = self.option("fastq_dir").prop["path"]
@@ -142,7 +153,7 @@ class SeqPrepTool(Tool):
         return sample
 
     def adapter(self):
-        files = glob.glob(r'{}/*.o'.format(self.work_dir))
+        files = glob.glob(r'{}/*.log.out'.format(self.work_dir))
         total = 1
         with open("adapter.xls", "w") as w:
             w.write("sample\tadapter%\n")
@@ -157,8 +168,8 @@ class SeqPrepTool(Tool):
                             adapter = line.strip().split()[-1]
                             adap_rate = int(adapter)/int(total)
                             w.write("{}\n".format(adap_rate))
-                        if not re.match(r"Pairs Processed", line):
-                            self.set_error("运行出错!")
+                        # if not re.match(r"Pairs Processed", line):
+                        #     self.set_error("运行出错!")
 
     def set_output(self):
         """

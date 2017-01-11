@@ -43,7 +43,7 @@ class Newicktree(Base):
                 "table_id": table_id,
                 "table_type": table_type,
                 "level_id": level,
-                "name": name if name else "tree_origin",
+                "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "tree_origin",
                 "tree_type": tree_type,
                 "status": "end",
                 "params": json.dumps(params, sort_keys=True, separators=(',', ':')),

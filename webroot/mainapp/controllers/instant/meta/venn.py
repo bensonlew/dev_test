@@ -2,6 +2,7 @@
 # __author__ = 'xuting'
 import web
 import json
+import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort
 from mainapp.models.mongo.public.meta.meta import Meta
@@ -19,6 +20,7 @@ class Venn(MetaController):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
         self.task_name = 'meta.report.venn'
+        self.main_table_name = 'Venn_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         group_detal_dict = json.loads(data.group_detail)
         specimen_ids = list()
         for v in group_detal_dict.values():

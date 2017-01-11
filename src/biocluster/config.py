@@ -12,12 +12,12 @@ import struct
 import platform
 import re
 import importlib
-import web
+#import web
 # import subprocess
 from pymongo import MongoClient
 import subprocess
 
-web.config.debug = False
+# web.config.debug = False
 
 
 @singleton
@@ -62,10 +62,10 @@ class Config(object):
         self.DB_PORT = self.rcf.get("DB", "port")
 
         # service mode
-        self.SERVICE_LOG = self.rcf.get("SERVICE", "log")
-        self.SERVICE_LOOP = int(self.rcf.get("SERVICE", "loop"))
-        self.SERVICE_PROCESSES = int(self.rcf.get("SERVICE", "processes"))
-        self.SERVICE_PID = self.rcf.get("SERVICE", "pid")
+        # self.SERVICE_LOG = self.rcf.get("SERVICE", "log")
+        # self.SERVICE_LOOP = int(self.rcf.get("SERVICE", "loop"))
+        # self.SERVICE_PROCESSES = int(self.rcf.get("SERVICE", "processes"))
+        # self.SERVICE_PID = self.rcf.get("SERVICE", "pid")
 
         # SSH
         self.SSH_DEFAULT_IP = self.rcf.get("SSH", "default_ip")
@@ -77,20 +77,31 @@ class Config(object):
         self.MAX_PAUSE_TIME = self.rcf.get("PAUSE", "max_time")
 
         # API_UPDATE
-        self._update_exclude_api = None
-        self.UPDATE_FREQUENCY = int(self.rcf.get("API_UPDATE", "frequency"))
+        self.update_exclude_api = re.split('\s*,\s*', self.rcf.get("API_UPDATE", "exclude_api"))
         self.UPDATE_MAX_RETRY = int(self.rcf.get("API_UPDATE", "max_retry"))
         self.UPDATE_RETRY_INTERVAL = int(self.rcf.get("API_UPDATE", "retry_interval"))
         self.UPDATE_LOG = self.rcf.get("API_UPDATE", "log")
-        self.UPLOAD_LOG = self.rcf.get("API_UPDATE", "upload_log")
+        # self.UPLOAD_LOG = self.rcf.get("API_UPDATE", "upload_log")
 
         # Mongo
         self.MONGO_URI = self.rcf.get("MONGO", "uri")
+        self.MONGO_BIO_URI = self.rcf.get("MONGO", "bio_uri")
         self._mongo_client = None
         self.MONGODB = self.rcf.get("MONGO", "mongodb")
 
         # mysql
         self._db_client = None
+
+        # WPM
+        listen_data = re.split(":", self.rcf.get("WPM", "listen"))
+        self.wpm_listen = (listen_data[0], int(listen_data[1]))
+        self.wpm_authkey = self.rcf.get("WPM", "authkey")
+        self.wpm_user = self.rcf.get("WPM", "user")
+        log_listen_data = re.split(":", self.rcf.get("WPM", "logger_listen"))
+        self.wpm_logger_listen = (log_listen_data[0], int(log_listen_data[1]))
+        self.wpm_logger_authkey = self.rcf.get("WPM", "logger_authkey")
+        self.wpm_log_file = self.rcf.get("WPM", "log_file")
+        self.wpm_instant_timeout = int(self.rcf.get("WPM", "instant_timeout"))
 
     @property
     def mongo_client(self):
@@ -188,8 +199,11 @@ class Config(object):
     def get_db(self):
         if not self._db_client:
             if self.DB_TYPE == "mysql":
-                self._db_client = web.database(dbn=self.DB_TYPE, host=self.DB_HOST, db=self.DB_NAME, user=self.DB_USER,
-                                               passwd=self.DB_PASSWD, port=int(self.DB_PORT))
+                # self._db_client = web.database(dbn=self.DB_TYPE, host=self.DB_HOST,
+                # db=self.DB_NAME, user=self.DB_USER, passwd=self.DB_PASSWD, port=int(self.DB_PORT))
+                import MySQLdb
+                self._db_client = MySQLdb.connect(host=self.DB_HOST, user=self.DB_USER, passwd=self.DB_PASSWD,
+                                                  db=self.DB_NAME, port=int(self.DB_PORT))
         return self._db_client
 
     def get_netdata_config(self, type_name):

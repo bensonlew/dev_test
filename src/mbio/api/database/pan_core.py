@@ -4,7 +4,9 @@
 from biocluster.api.database.base import Base, report_check
 import re
 import datetime
+from random import choice
 import json
+import string
 from bson.objectid import ObjectId
 from types import StringTypes
 from biocluster.config import Config
@@ -15,6 +17,7 @@ class PanCore(Base):
     def __init__(self, bind_object):
         super(PanCore, self).__init__(bind_object)
         self._db_name = Config().MONGODB
+        self.unique_id = self.get_unique()
 
     @report_check
     def create_pan_core_table(self, pan_core_type, params, group_id, level_id, from_otu_table=0, name=None, status=None, spname_spid=None):
@@ -43,6 +46,14 @@ class PanCore(Base):
             raise Exception("无法根据传入的_id:{}在sg_otu表里找到相应的记录".format(str(from_otu_table)))
         project_sn = result['project_sn']
         task_id = result['task_id']
+        if self.bind_object.sheet.main_table_name:
+            name = self.bind_object.sheet.main_table_name
+            name = name.split('_')
+            if pan_core_type == 1:
+                name.pop(1)
+            else:
+                name.pop(0)
+            name = '_'.join(name)
         if pan_core_type == 1:
             desc = "正在计算pan otu表格"
         else:
@@ -56,6 +67,7 @@ class PanCore(Base):
             "group_id": group_id,
             "status": status,
             "desc": desc,
+            "unique_id": self.unique_id,
             "submit_location": "otu_pan_core",
             "name": name if name else "pan_core表格",
             "params": params,
@@ -86,9 +98,15 @@ class PanCore(Base):
                     my_dic["title"] = header[i]
                     my_dic["value"] = line[i]
                     value.append(my_dic)
+
+                # 应前端要求，对category_name进行修改， 从group表的All改为all
+                if line[0] in ["All", "all", "ALL"]:
+                    temp_category_name = "all"
+                else:
+                    temp_category_name = line[0]
                 insert_data = {
                     "pan_core_id": pan_core_id,
-                    "category_name": line[0],
+                    "category_name": temp_category_name,
                     "value": value
                 }
                 pan_core_detail.append(insert_data)
@@ -99,3 +117,12 @@ class PanCore(Base):
                 self.bind_object.logger.error("导入pan_core_detail表格{}信息出错:{}".format(file_path, e))
             else:
                 self.bind_object.logger.info("导入pan_core_detail表格{}成功".format(file_path))
+
+    def get_unique(self):
+        chars = string.ascii_letters + string.digits
+        unique_id = "".join([choice(chars) for i in range(10)])
+        collection = self.db["sg_otu_pan_core"]
+        result = collection.find_one({"unique_id": unique_id})
+        if result:
+            return self.get_unique()
+        return unique_id
