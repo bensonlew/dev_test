@@ -86,7 +86,8 @@ class NPcaWorkflow(Workflow):
             ["./sdmax.xls", "xls", "置信上边界"],
             ["./sdmin.xls", "xls", "置信下边界"],
             ["./rotation_mean.xls", "xls", "平均值"],
-            ["./importance.xls", "xls", "百分率返回"]
+            ["./importance.xls", "xls", "百分率返回"],
+            ["./sitesall.xls", "xls", "所有信息"]
         ])
         super(NPcaWorkflow, self).end()
 
@@ -96,6 +97,7 @@ class NPcaWorkflow(Workflow):
         datamin = self.output_dir + '/sdmin.xls'
         datamax = self.output_dir + '/sdmax.xls'
         dataimportance = self.output_dir + '/importance.xls'
+        datasitesall = self.output_dir + '/sitesall.xls'
         if not os.path.isfile(datasite):
             raise Exception("找不到报告文件:{}".format(datasite))
         if not os.path.isfile(datamin):
@@ -104,10 +106,13 @@ class NPcaWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(datamax))
         if not os.path.isfile(dataimportance):
             raise Exception("找不到报告文件:{}".format(dataimportance))
-        api_n_pca.add_n_pca_site(file_path=datasite, table_id=self.option("n_pca_id"))
-        api_n_pca.add_n_pca_min(file_path=datamin,table_id=self.option("n_pca_id"))
-        api_n_pca.add_n_pca_max(file_path=datamax,table_id=self.option("n_pca_id"))
+        if not os.path.isfile(datasitesall):
+            raise Exception("找不到报告文件:{}".format(datasiteall))
+        #api_n_pca.add_n_pca_site(file_path=datasite, table_id=self.option("n_pca_id"))
+        #api_n_pca.add_n_pca_min(file_path=datamin,table_id=self.option("n_pca_id"))
+        #api_n_pca.add_n_pca_max(file_path=datamax,table_id=self.option("n_pca_id"))
         api_n_pca.add_n_pca_importance(file_path=dataimportance, table_id=self.option("n_pca_id"))
+        api_n_pca.add_n_pca_sitesall(file_path=datasitesall, table_id=self.option("n_pca_id"))
         self.end()
 
     def run(self):
