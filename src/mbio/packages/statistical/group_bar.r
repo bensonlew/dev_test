@@ -1,4 +1,4 @@
-otu <- read.table('${inputfile}', sep = '\t',comment.char='')
+otu <- read.table('${inputfile}', sep = '\t',comment.char='', colClasses="character")
 # otu <- read.table('C:\\Users\\ping.qiu.MAJORBIO\\Desktop\\otu_file.xls', sep = '\t',comment.char='')
 sam <- t(otu[1,-1])
 otu <- otu[-1,]
@@ -6,7 +6,7 @@ rownames(otu) <- otu[,1]
 otu <- otu[,-1]
 colnames(otu) <- sam
 # group <- read.table('C:\\Users\\ping.qiu.MAJORBIO\\Desktop\\group_file_input.group.xls',sep = '\t')
-group <- read.table('${groupfile}',sep = '\t')
+group <- read.table('${groupfile}',sep = '\t', colClasses="character")
 gsamp <- group[,1]
 otu <- otu[,which(sam %in% gsamp)]
 length <- nrow(otu)

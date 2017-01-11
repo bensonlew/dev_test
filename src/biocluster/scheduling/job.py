@@ -58,9 +58,9 @@ class JobManager(object):
 
         :return: list  Job子类对象列表
         """
-        jobs = self.run_jobs
+        jobs = copy.copy(self.run_jobs)
         jobs.extend(self.queue_jobs)
-        return self.jobs
+        return jobs
 
     def get_unfinish_jobs(self):
         """
@@ -80,7 +80,7 @@ class JobManager(object):
 
          :return:  Job子类对象
         """
-        jobs = self.run_jobs
+        jobs = copy.copy(self.run_jobs)
         jobs.extend(self.queue_jobs)
         for job in jobs:
             if agent is job.agent:
@@ -114,6 +114,8 @@ class JobManager(object):
 
         :return:
         """
+        if len(self.get_all_jobs()) == 0:
+            return
         is_process = False
         for running_job in self.get_unfinish_jobs():
             if hasattr(running_job, "process"):
