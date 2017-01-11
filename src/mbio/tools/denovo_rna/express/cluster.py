@@ -108,7 +108,7 @@ class ClusterTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("运行clust_cmd成功")
         else:
-            self.logger.info("运行clust_cmd出错")
+            self.set_error("运行clust_cmd出错")
 
     def set_output(self):
         """

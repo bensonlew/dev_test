@@ -5,9 +5,13 @@ import json
 from mainapp.controllers.core.basic import Basic
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.models.mongo.denovo import Denovo
+from mainapp.controllers.project.denovo_controller import DenovoController
 
 
-class DenovoVenn(Basic):
+class DenovoVenn(DenovoController):
+    def __init__(self):
+        super(DenovoVenn, self).__init__(instant=True)
+
     def POST(self):
         data = web.input()
         self.data = data
@@ -15,38 +19,47 @@ class DenovoVenn(Basic):
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
-        self._client = data.client
-        self._mainTableId = data.express_id
         express_info = Denovo().get_main_info(data.express_id, 'sg_denovo_express')
-        if express_info:
-            self._taskId = express_info["task_id"]
-            self._projectSn = express_info["project_sn"]
-            task_info = Denovo().get_task_info(self._taskId)
-            if task_info:
-                self._memberId = task_info["member_id"]
-            else:
-                info = {"success": False, "info": "这个express_id对应的表达量矩阵对应的task：{}没有member_id!".format(express_info["task_id"])}
-                return json.dumps(info)
-        return_info = super(DenovoVenn, self).POST()
-        if return_info:
-            return return_info
+        if not express_info:
+            info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
+            return json.dumps(info)
+        self._taskId = express_info["task_id"]
+        self._projectSn = express_info["project_sn"]
         self.task_name = 'denovo_rna.report.venn'
-        self.to_file = ["denovo.export_express_matrix(express_file)", "denovo.export_group_table_by_detail(group_table)"]
         my_param = dict()
         my_param['express_id'] = data.express_id
         my_param['group_id'] = data.group_id
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param["submit_location"] = data.submit_location
-        # my_param["task_type"] = data.task_type
+        my_param["task_type"] = data.task_type
         self.params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
+        mongo_data = [
+            ('project_sn', task_info['project_sn']),
+            ('task_id', task_info['task_id']),
+            ('otu_id', ObjectId(data.otu_id)),
+            ('status', 'start'),
+            ('name', main_table_name),
+            ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            ("level_id", int(data.level_id)),
+            ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
+        ]
+        main_table_id = meta.insert_main_table('sg_species_difference_check', mongo_data)
+        print main_table_id, type(main_table_id)
+        update_info = {str(main_table_id): 'sg_species_difference_check'}
         self.options = {
             "express_file": data.express_id,
             "group_table": data.group_id,
             "express_id": str(self._mainTableId),
-            "group_detail": data.group_detail
+            "group_detail": data.group_detail,
+            "update_info": json.dumps(update_info),
+            "main_id": str(main_table_id)
         }
-        self.run()
-        return self.returnInfo
+        to_file = ["denovo.export_express_matrix(express_file)", "denovo.export_group_table_by_detail(group_table)"]
+        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type, to_file=to_file)
+        task_info = super(TwoGroup, self).POST()
+        task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
+        print(self.return_msg)
+        return json.dumps(task_info)
 
     def check_options(self, data):
         """

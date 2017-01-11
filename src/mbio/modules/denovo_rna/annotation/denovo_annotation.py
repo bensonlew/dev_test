@@ -217,7 +217,6 @@ class DenovoAnnotationModule(Module):
             raise Exception('不需要进行任何注释工作')
             self.logger.info('NEVER HERE')
 
-
     def set_output(self, event):
         obj = event['bind_object']
         if event['data'] == 'blast_stat':
@@ -233,7 +232,7 @@ class DenovoAnnotationModule(Module):
         elif event['data'] == 'anno_stat':
             self.linkdir(obj.output_dir, 'anno_stat')
             if 'kegg' in self.anno_database:
-                self.option('gene_kegg_table', obj.option('gene_kegg_table').prop['path'])
+                self.option('gene_kegg_table', obj.option('gene_kegg_anno_table').prop['path'])
             if 'go' in self.anno_database:
                 self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
                 self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])

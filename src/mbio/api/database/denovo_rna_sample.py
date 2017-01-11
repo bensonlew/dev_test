@@ -91,6 +91,8 @@ class DenovoRnaSample(Base):
             else:
                 self.bind_object.logger.info("导入样品信息数据成功")
                 self.sample_ids = result.inserted_ids
+        sample_ids = [str(i) for i in result.inserted_ids]
+        return sorted(sample_ids)
 
     @report_check
     def add_gragh_info(self, quality_stat, about_qc="before"):

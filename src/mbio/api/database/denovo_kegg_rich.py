@@ -8,6 +8,7 @@ import types
 from biocluster.config import Config
 from bson.objectid import ObjectId
 import re
+import json
 
 
 class DenovoKeggRich(Base):
@@ -16,14 +17,20 @@ class DenovoKeggRich(Base):
         self._db_name = Config().MONGODB + '_rna'
 
     @report_check
-    def add_kegg_rich(self, name=None, params=None, kegg_enrich_table=None):
+    def add_kegg_rich(self, name=None, params=None, kegg_enrich_table=None, express_diff_id=None):
+        '''
+        kegg_enrich_table：kegg富集的分析结果表
+        express_diff_id: 用于工作流初始化代码截停时，更新params
+        '''
+        if express_diff_id:
+            params['express_diff_id'] = str(express_diff_id)
         project_sn = self.bind_object.sheet.project_sn
         task_id = self.bind_object.sheet.id
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
             'name': name if name else 'kegg_enrich' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-            'params': params,
+            'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'status': 'end',
             'desc': 'kegg富集分析',
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -61,10 +68,15 @@ class DenovoKeggRich(Base):
                         'hyperlink': line[8]
                     }
                     data_list.append(insert_data)
-            try:
-                collection = self.db['sg_denovo_kegg_enrich_detail']
-                collection.insert_many(data_list)
-            except Exception, e:
-                self.bind_object.logger.error("导入kegg富集统计表：%s信息出错:%s" % (kegg_enrich_table, e))
+            if data_list:
+                try:
+                    collection = self.db['sg_denovo_kegg_enrich_detail']
+                    collection.insert_many(data_list)
+                except Exception, e:
+                    self.bind_object.logger.error("导入kegg富集统计表：%s信息出错:%s" % (kegg_enrich_table, e))
+                else:
+                    self.bind_object.logger.info("导入kegg富集统计表:%s信息成功!" % kegg_enrich_table)
             else:
-                self.bind_object.logger.info("导入kegg富集统计表:%s信息成功!" % kegg_enrich_table)
+                coll = self.db['sg_denovo_kegg_enrich']
+                coll.update({'_id': enrich_id}, {'$set': {'desc': 'no_result'}})
+                self.bind_object.logger.info("kegg富集统计表没结果：" % kegg_enrich_table)
