@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zengjing'
-# last_modify:20161201
 import web
 import json
 import random
-import types
+import datetime
 from mainapp.libs.signature import check_sig
 from mainapp.libs.param_pack import GetUploadInfo_denovo
 from biocluster.config import Config
-from mbio.api.database.denovo_express import *
+from mbio.api.database.denovo_go_enrich_regulate import *
 from mainapp.models.mongo.submit.denovo_rna.denovo_go_enrich import DenovoEnrich
 from mainapp.models.mongo.denovo import Denovo
 from mainapp.models.workflow import Workflow
@@ -26,85 +25,82 @@ class GoEnrichRegulate(object):
         data = web.input()
         client = data.client if hasattr(data, 'client') else web.ctx.env.get('HTTP_CLIENT')
         print data
-        if not hasattr(data, "analysis_type"):
-            info = {"success": False, "info": "缺少参数analysis_type!"}
-            return json.dumps(info)
-        if not hasattr(data, "express_id"):
-            info = {"success": False, "info": "缺少参数express_id!"}
-            return json.dumps(info)
+        for param in ["analysis_type", "express_diff_id", "compare", "submit_location"]:
+            if not hasattr(data, param):
+                info = {"success": False, "info": "缺少{}参数".format(param)}
+                return json.dumps(info)
         analysis_type = data.analysis_type
-        if analysis_type not in ["enrich", "regulate", "stat"]:
+        if analysis_type not in ["enrich", "regulate", "both"]:
             info = {"success": False, "info": "{}分析不存在".format(analysis_type)}
             return json.dumps(info)
-        if analysis_type in ["enrich", "stat"]:
+        if analysis_type in ["enrich", "both"]:
             for param in ["pval", "method"]:
                 if not hasattr(data, param):
                     info = {"success": False, "info": "缺少{}参数".format(param)}
-        express_info = Denovo().get_main_info(data.express_id, "sg_denovo_express")
-        if express_info:
-            task_info = Denovo().get_task_info(express_info["task_id"])
+                    return json.dumps(info)
+        express_diff_info = Denovo().get_main_info(data.express_diff_id, "sg_denovo_express_diff")
+        if express_diff_info:
+            task_info = Denovo().get_task_info(express_diff_info["task_id"])
             if task_info:
                 member_id = task_info["member_id"]
             else:
-                info = {"success": False, "info": "这个express_id对应的task:{}没有member_id".format(express_info["task_id"])}
+                info = {"success": False, "info": "这个express_diff_id对应的task:{}没有member_id".format(express_diff_info["task_id"])}
                 return json.dumps(info)
-            insert_data = self.get_insert_data(analysis_type, client, express_info, data, member_id)
+            insert_data = self.get_insert_data(client, express_diff_info, data, member_id)
             workflow_module = Workflow()
             workflow_module.add_record(insert_data)
             info = {"success": True, "info": "提交成功!"}
             return json.dumps(info)
         else:
-            info = {"success": False, "info": "表达量表id不存在！!"}
+            info = {"success": False, "info": "差异表达量表id不存在！"}
             return json.dumps(info)
 
     def get_params(self, data):
-        my_param = {'analysis_type': data.analysis_type, "express_id": data.express_id}
-        if data.analysis_type in ["enrich", "stat"]:
-            my_param["pval"] = data.pval
+        my_param = {'analysis_type': data.analysis_type, "express_diff_id": data.express_diff_id, "compare": data.compare, "submit_location": data.submit_location}
+        if data.analysis_type in ["enrich", "both"]:
+            my_param["pval"] = float(data.pval)
             my_param["method"] = data.method
         return my_param
 
-    def get_insert_data(self, analysis_type, client, express_info, data, member_id):
-        my_params = self.get_params(data)
-        params = my_params   #
-        options = {"analysis_type": data.analysis_type, "method": data.method} #express_id
-        project_sn = express_info["project_sn"]
-        task_id = express_info["task_id"]
-        if analysis_type == "regulate":
-            go_regulate_id = DenovoEnrich().add_go_regulate()
+    def get_insert_data(self, client, express_diff_info, data, member_id):
+        params = self.get_params(data)
+        analysis_type = data.analysis_type
+        name = data.compare.split(',')[0]
+        compare_name = data.compare.split(',')[1]
+        options = {"analysis_type": analysis_type, "name": name, "compare_name": compare_name, "diff_stat": data.express_diff_id}
+        project_sn = express_diff_info["project_sn"]
+        task_id = express_diff_info["task_id"]
+        to_file = ["denovo.export_diff_express(diff_stat)"]
+        if analysis_type in ["regulate", "both"]:
+            go_regulate_id = DenovoEnrich().add_go_regulate(name=None, params=params, project_sn=project_sn, task_id=task_id)
             update_info = {str(go_regulate_id): "sg_denovo_regulate", "database": self.db_name}
             update_info = json.dumps(update_info)
             options["update_info"] = update_info
             options["go_regulate_id"] = str(go_regulate_id)
-            options["regulate_file"] = data.express_id
-            options.update(my_params)
-            to_file = ["denovo.go_regulate(regulate_file)"]
-        elif analysis_type == "enrich":
-            go_enrich_id = DenovoEnrich().add_go_enrich()
+            options["go2level"] = data.express_diff_id
+            options.update(params)
+            to_file.append("denovo.export_go2level(go2level)")
+        if analysis_type in ["enrich", "both"]:
+            go_enrich_id = DenovoEnrich().add_go_enrich(name=None, params=params, project_sn=project_sn, task_id=task_id, go_graph_dir=None)
             update_info = {str(go_enrich_id): "sg_denovo_enrich", "database": self.db_name}
             update_info = json.dumps(update_info)
             options["update_info"] = update_info
             options["go_enrich_id"] = str(go_enrich_id)
             options["pval"] = data.pval
             options["method"] = data.method
-            options["enrich_file"] = data.express_id
-            options.update(my_params)
-            to_file = ["denovo.go_enrich(enrich_file)"]
-        elif analysis_type == "stat":
-            go_regulate_id = DenovoEnrich().add_go_regulate()
-            go_enrich_id = DenovoEnrich().add_go_enrich()
-            update_info = [{str(go_regulate_id): "sg_denovo_regulate", "database": self.db_name}, {str(go_enrich_id): "sg_denovo_enrich", "database": self.db_name}]
+            options["all_list"] = data.express_diff_id
+            options["go_list"] = data.express_diff_id
+            options.update(params)
+            to_file.append("denovo.export_all_gene_list(all_list)")
+            to_file.append("denovo.export_gos_list(go_list)")
+        if analysis_type == "both":
+            sort_id = DenovoEnrich().add_go_pval_sort(name=None, params=params, project_sn=project_sn, task_id=task_id)
+            update_info = [{str(go_regulate_id): "sg_denovo_regulate", "database": self.db_name}, {str(go_enrich_id): "sg_denovo_enrich", "database": self.db_name}, {str(sort_id): "sg_denovo_go_pval_sort", "database": self.db_name}]
             update_info = json.dumps(update_info)
             options["update_info"] = update_info
-            options["go_enrich_id"] = str(go_enrich_id)
-            options["go_regulate_id"] = str(go_regulate_id)
-            options["pval"] = data.pval
-            options["method"] = data.method
-            options["enrich_file"] = data.express_id
-            options["regulate_file"] = data.express_id
-            options.update(my_params)
-            to_file = ["denovo.go_enrich(enrich_file)", "denovo.go_regulate(regulate_file)"]
-        workflow_id = self.get_new_id(express_info["task_id"], data.express_id)
+            options["sort_id"] = str(sort_id)
+            options.update(params)
+        workflow_id = self.get_new_id(express_diff_info["task_id"], data.express_diff_id)
         (output_dir, update_api) = GetUploadInfo_denovo(client, member_id, project_sn, task_id, 'go_enrich_regulate')
         json_data = {
             "id": workflow_id,
