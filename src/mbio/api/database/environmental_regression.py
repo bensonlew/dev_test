@@ -37,7 +37,7 @@ class EnvironmentalRegression(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("environmental_regression_id", table_id), ("sample_name", line_data[0]), ("X_PCA", line_data[1]), ("Y_factor", line_data[2])]
+                    data = [("environmental_regression_id", table_id), ("sample_name", line_data[0].strip("\"")), ("X_PCA", line_data[1]), ("Y_factor", line_data[2])]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
@@ -70,7 +70,7 @@ class EnvironmentalRegression(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("environmental_regression_id", table_id), ("R_2",line_data[0]),("xmin", line_data[2]), ("xmax", line_data[3]),("ymin",line_data[4]),("ymax",line_data[5]),("PCA",line_data[6]),("PCA_value",line_data[7])]
+                    data = [("environmental_regression_id", table_id), ("R_2",line_data[0]),("xmin", line_data[2]), ("xmax", line_data[3]),("ymin",line_data[4]),("ymax",line_data[5]),("PCA",line_data[6].strip("\"")),("PCA_value",line_data[7])]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:

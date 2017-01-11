@@ -62,9 +62,9 @@ class FunctionPredictWorkflow(Workflow):
             [r"./KEGG/predictions_ko.L2.xls", "xls", "代谢通路level 2丰度表"],
             [r"./KEGG/predictions_ko.L2.biom", "biom", "biom格式代谢通路level 2丰度表"],
             [r"./KEGG/predictions_ko.L2.txt", "txt", "txt格式代谢通路level 2丰度表"],
-            [r"./KEGG/predictions_ko.L3.xls","xls", "代谢通路level 3丰度表"],
-            [r"./KEGG/predictions_ko.L3.biom","biom", "biom格式代谢通路level 3丰度表"],
-            [r"./KEGG/predictions_ko.L3.txt","txt", "txt格式代谢通路level 3丰度表"],
+            [r"./KEGG/predictions_ko.L3.xls", "xls", "代谢通路level 3丰度表"],
+            [r"./KEGG/predictions_ko.L3.biom", "biom", "biom格式代谢通路level 3丰度表"],
+            [r"./KEGG/predictions_ko.L3.txt", "txt", "txt格式代谢通路level 3丰度表"],
             [r"./KEGG/kegg.pathway.profile.xls", "xls", "各个样品的pathway丰度统计"],
             [r"./KEGG/kegg.enzyme.profile.xls", "xls", "各个样品的Enzyme丰度统计"],
         ])

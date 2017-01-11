@@ -195,8 +195,10 @@ class NPca(Base):
                 #insert_data['name']=values[0]
                 #values_dict = dict(zip(columns,values[1:]))
                 #a<-len(values)
-                    
-                data_temp = zip(columns,values[1:])
+                columns1 = []
+                for ka in columns:
+                    columns1.append(ka.strip("\""))
+                data_temp = zip(columns1,values[1:])
                 a_id = ("npca_id", table_id)
                 data_temp.append(a_id)
                 #print data_temp
@@ -236,7 +238,7 @@ class NPca(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("npca_id", table_id), ("newnames", line_data[1]), ("sample", line_data[2]), ("highgroup", line_data[3]), ("lowgroup", line_data[4]), ("pca_value", line_data[5]), ("pcai", line_data[6]), ("pca_max_value", line_data[7]), ("pca_min_value", line_data[8])]
+                    data = [("npca_id", table_id), ("newnames", line_data[1].strip("\"")), ("sample", line_data[2].strip("\"")), ("highgroup", line_data[3].strip("\"")), ("lowgroup", line_data[4].strip("\"")), ("pca_value", line_data[5]), ("pcai", line_data[6].strip("\"")), ("pca_max_value", line_data[7]), ("pca_min_value", line_data[8])]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
