@@ -59,7 +59,7 @@ class Estimators(MetaController):
 
         level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order",  "Family", "Genus", "Species", "OTU"]
 
-        main_table_name = level_name[int(data.level_id)-1] + '_estimators_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = level_name[int(data.level_id)-1] + 'Estimators_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -90,8 +90,13 @@ class Estimators(MetaController):
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(Estimators, self).POST()
-        print(self.return_msg)
-        return task_info
+        task_info['content'] = {
+            'ids': {
+                'id': str(main_table_id),
+                'name': main_table_name
+                }}
+
+        return json.dumps(task_info)
         # print self.returnInfo
         # return_info = json.loads(self.returnInfo)
         # return_info['content']["ids"]["index_types"] = index_types

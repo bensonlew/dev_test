@@ -56,7 +56,7 @@ class EstTTest(MetaController):
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
         task_info = meta.get_task_info(otu_info['task_id'])
-        main_table_name = 'Estimator_T-test_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'EstimatorStat_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -76,8 +76,10 @@ class EstTTest(MetaController):
             "est_id": data.alpha_diversity_id,
             "group_detail": data.group_detail,
             "est_t_test_id": str(main_table_id),
-            "est_test_method": data.test_method
+            # "est_test_method": data.test_method
                     }
+        if hasattr(data, "test_method"):
+            params_json["est_test_method"] = data.test_method
         del params_json["group_detail"]
         del params_json["test_method"]
         del params_json["alpha_diversity_id"]
@@ -86,8 +88,13 @@ class EstTTest(MetaController):
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(EstTTest, self).POST()
-        print(self.return_msg)
-        return task_info
+        task_info['content'] = {
+            'ids': {
+                'id': str(main_table_id),
+                'name': main_table_name
+                }}
+
+        return json.dumps(task_info)
         # if not return_info["success"]:
         #     return_info["info"] = "程序运行出错，请检查输入的多样性指数表是否存在异常（样本值完全相同或是存在NA值等情况）"
         # # print("lllllllllllllllllll")

@@ -73,13 +73,13 @@ class MantelTestWorkflow(Workflow):
         if not os.path.isfile(mantel_result):
             raise Exception("找不到报告文件:{}".format(mantel_result))
         # mantel_id = api_mantel.add_mantel_table(self.option('level'), self.option('otu_id'), self.option('env_id'), name=name, params=self.params)
-        mantel_id = self.option("mantel_id")
+        mantel_id = ObjectId(self.option("mantel_id"))
         api_mantel.add_mantel_detail(mantel_result, mantel_id)
         if self.option('units'):
             api_mantel.add_mantel_matrix(partial_matrix, "partial_matrix", mantel_id)
         api_mantel.add_mantel_matrix(dis_matrix, "species_matrix", mantel_id)
         api_mantel.add_mantel_matrix(fac_matrix, "env_matrix", mantel_id)
-        self.add_return_mongo_id('sg_species_mantel_check', mantel_id)
+        # self.add_return_mongo_id('sg_species_mantel_check', mantel_id)
         self.end()
 
     def end(self):

@@ -163,7 +163,7 @@ class MetaSpeciesEnv(Base):
             for line in f:
                 line = line.strip().split("\t")
                 data = {
-                    "correlation_id": correlation_id,
+                    "correlation_id": ObjectId(correlation_id),
                     "species_name": line[0],
                     "value_type": value_type
                 }

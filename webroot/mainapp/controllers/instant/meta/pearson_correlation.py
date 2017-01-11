@@ -46,20 +46,26 @@ class PearsonCorrelation(MetaController):
             "env_labs": data.env_labs
             # "method": "pearsonr"
             }
+        method_name = "Pearson"
         if hasattr(data, "method"):
             # print(data.method)
             params_json["method"] = data.method
+            if data.method == "pearsonr":
+                method_name = "Pearson"
+            else:
+                method_name = "Spearman"
         if hasattr(data, "env_cluster"):
             params_json["env_cluster"] = data.env_cluster
         if hasattr(data, "species_cluster"):
             params_json["species_cluster"] = data.species_cluster
         # self.options["params"] = str(self.options)
-        main_table_name = 'Pearson_Correlation_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = method_name + 'Correlation_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
             ('otu_id', ObjectId(data.otu_id)),
+            ("env_id", ObjectId(data.env_id)),
             ('status', 'start'),
             ('name', main_table_name),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -87,5 +93,10 @@ class PearsonCorrelation(MetaController):
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(PearsonCorrelation, self).POST()
-        print(self.return_msg)
-        return task_info
+        task_info['content'] = {
+            'ids': {
+                'id': str(main_table_id),
+                'name': main_table_name
+                }}
+
+        return json.dumps(task_info)

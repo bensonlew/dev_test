@@ -71,14 +71,15 @@ class MantelTest(MetaController):
                         }
         if hasattr(data, "units"):
             params_json["units"] = data.units
-            main_table_name = "Partial_Mantel_Test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            main_table_name = "PartialMantelTest_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         else:
-            main_table_name = 'Mantel_Test_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            main_table_name = 'MantelTest_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
             ('otu_id', ObjectId(data.otu_id)),
+            ("env_id", ObjectId(data.env_id)),
             ('status', 'start'),
             ('name', main_table_name),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -104,8 +105,14 @@ class MantelTest(MetaController):
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(MantelTest, self).POST()
-        print(self.return_msg)
-        return task_info
+        task_info['content'] = {
+            'ids': {
+                'id': str(main_table_id),
+                'name': main_table_name
+                }}
+        print("lllllllllmmmmmmmmmllllllll")
+        print(task_info)
+        return json.dumps(task_info)
 
         # print self.returnInfo
         # return_info = json.loads(self.returnInfo)

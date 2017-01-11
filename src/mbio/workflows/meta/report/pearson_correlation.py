@@ -6,7 +6,7 @@ import os
 from mbio.api.to_file.meta import *
 import datetime
 from mbio.packages.statistical.reverse_table import reverse_table
-from mainapp.libs.param_pack import group_detail_sort
+from bson import ObjectId
 import re
 
 
@@ -44,14 +44,21 @@ class PearsonCorrelationWorkflow(Workflow):
         self.correlation = self.add_tool('statistical.pearsons_correlation')
         self.params = {}
         self.name_to_name = {}
+        self.env_name = {}
 
     def run_correlation(self):
+        env_cluster = self.option("env_cluster")
+        species_cluster = self.option("species_cluster")
+        if env_cluster == "":
+            env_cluster = "average"
+        if species_cluster == "":
+            species_cluster = "average"
         options = {
             'otutable': self.option('otu_file'),
             'envtable': self.option('env_file'),
             "method": self.option('method'),
-            "env_cluster": self.option("env_cluster"),
-            "species_cluster": self.option("species_cluster")
+            "env_cluster": env_cluster,
+            "species_cluster": species_cluster
             }
         self.correlation.set_options(options)
         self.correlation.on("end", self.set_db)
@@ -66,9 +73,15 @@ class PearsonCorrelationWorkflow(Workflow):
             for line in f:
                 line = line.strip().split("\t")
                 self.name_to_name[line[0]] = line[1]
+        with open(self.correlation.work_dir + "/env_name.xls", "r") as ef:
+            self.env_name = eval(ef.readline())
+            self.logger.info(self.env_name)
 
     def dashrepl(self, matchobj):
         return self.name_to_name[matchobj.groups()[0]]
+
+    def dashrepl_env(self, matchobj):
+        return self.env_name[matchobj.groups()[0]]
 
     def set_db(self):
         """
@@ -76,6 +89,7 @@ class PearsonCorrelationWorkflow(Workflow):
         """
         new_species_tree = ""
         env_tree = ""
+        new_env_tree = ""
         env_list = []
         species_list = []
         api_correlation = self.api.meta_species_env
@@ -91,7 +105,8 @@ class PearsonCorrelationWorkflow(Workflow):
             with open(env_tree_path, "r") as f:
                 env_tree = f.readline().strip()
                 raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', env_tree)
-                env_list = [i[1] for i in raw_samp]
+                env_list = [self.env_name[i[1]] for i in raw_samp]
+                new_env_tree = re.sub(r"(colnew\d+)", self.dashrepl_env, env_tree)
                 # print(env_list)
         if os.path.exists(species_tree_path):
             with open(species_tree_path, "r") as f:
@@ -105,11 +120,11 @@ class PearsonCorrelationWorkflow(Workflow):
                 # print(species_list)
                 # new_species_list = []
 
-        corr_id = self.option("corr_id")
+        corr_id = ObjectId(self.option("corr_id"))
         api_correlation.add_correlation_detail(corr_path[0], "correlation", corr_id)
         api_correlation.add_correlation_detail(pvalue_path[0], "pvalue", corr_id, species_tree=new_species_tree,
-                                               env_tree=env_tree, env_list=env_list, species_list=species_list)
-        self.add_return_mongo_id('sg_species_env_correlation', corr_id)
+                                               env_tree=new_env_tree, env_list=env_list, species_list=species_list)
+        # self.add_return_mongo_id('sg_species_env_correlation', corr_id)
         self.end()
 
     def end(self):

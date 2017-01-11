@@ -55,7 +55,7 @@ class EstimatorsWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(est_path))
         est_id = api_estimators.add_est_table(est_path, level=self.option('level'),
                                               otu_id=self.option('otu_id'), est_id=self.option("est_id"))
-        self.add_return_mongo_id('sg_alpha_diversity', est_id)
+        # self.add_return_mongo_id('sg_alpha_diversity', est_id)
         self.end()
 
     def end(self):
