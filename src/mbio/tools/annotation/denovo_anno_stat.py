@@ -5,8 +5,8 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.packages.align.blast.xml2table import xml2table
-from mbio.packages.annonation.denovo_anno_stat.cog_stat import cog_stat
-from mbio.packages.annonation.denovo_anno_stat.nr_stat import nr_stat
+from mbio.packages.annotation.denovo_anno_stat.cog_stat import cog_stat
+from mbio.packages.annotation.denovo_anno_stat.nr_stat import nr_stat
 from mbio.packages.align.blast.blastout_statistics import *
 import os
 import re
@@ -42,11 +42,13 @@ class DenovoAnnoStatAgent(Agent):
             {"name": "nr_taxons", "type": "outfile", "format": "annotation.nr.nr_taxon"},
             {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
+            {"name": "gene_kegg_anno_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
         ]
         self.add_option(options)
         self.step.add_steps("denovo_anno_stat")
         self.on('start', self.stepstart)
         self.on('end', self.stepfinish)
+        self.queue = 'BLAST2GO'  # 投递到指定的队列BLAST2GO
 
     def stepstart(self):
         self.step.denovo_anno_stat.start()
@@ -211,9 +213,17 @@ class DenovoAnnoStatTool(Tool):
         xml2table(self.gene_kegg_xml, self.work_dir + '/blast/gene_kegg.xls')
         self.logger.info("完成筛选gene_kegg.xml、gene_kegg.xls")
         # kegg_stat
-        kegg_cmd = '{} {} {} {} {} {} {} {} {}'.format(self.python_path, self.kegg_anno, self.gene_kegg_xml, self.kegg_stat_path + '/gene_kegg_table.xls', self.kegg_stat_path + '/gene_pathway_table.xls', self.kegg_stat_path + '/gene_pid.txt', self.kegg_stat_path + '/gene_kegg_layer.xls', self.kegg_stat_path + '/gene_kegg_taxonomy.xls', gene_pathway)
-        self.add_command('kegg_stat_cmd', kegg_cmd).run()
-        self.logger.info('Start: kegg stat')
+        try:
+            kegg_anno = self.load_package('annotation.kegg.kegg_annotation')()
+            kegg_anno.pathSearch(blast_xml=self.gene_kegg_xml, kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
+            kegg_anno.pathTable(kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls', pathway_path=self.kegg_stat_path + '/gene_pathway_table.xls', pidpath=self.work_dir + '/gene_pid.txt')
+            kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway)
+            kegg_anno.keggLayer(pathway_table=self.kegg_stat_path + '/gene_pathway_table.xls', layerfile=self.kegg_stat_path + '/gene_kegg_layer.xls', taxonomyfile=self.kegg_stat_path + '/gene_kegg_taxonomy.xls')
+            self.logger.info('finish: kegg stat')
+        except:
+            import traceback
+            self.logger.info('error:{}'.format(traceback.format_exc()))
+            self.set_error("运行kegg脚本出错！")
 
     def run_go_stat(self):
         self.go_stat_path = self.work_dir + '/go_stat/'
@@ -236,7 +246,7 @@ class DenovoAnnoStatTool(Tool):
                         w.write(w_line + '\n')
         get_gene_go(go_result=self.option('blast2go_annot').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_blast2go.annot')
         get_gene_go(go_result=self.option('gos_list').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_gos.list')
-        go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.go_stat_path + '/gene_gos.list', '10.100.203.193', Config().DB_USER, Config().DB_PASSWD)
+        go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.go_stat_path + '/gene_gos.list', 'localhost', Config().DB_USER, Config().DB_PASSWD)
         go_cmd2 = '{} {} {}'.format(self.python_path, self.go_split, self.work_dir + '/go_detail.xls')
         go_annot_cmd = self.add_command('go_annot_cmd', go_cmd1).run()
         self.wait(go_annot_cmd)
@@ -282,6 +292,7 @@ class DenovoAnnoStatTool(Tool):
                 if db == 'kegg':
                     self.movedir2output(self.kegg_stat_path, 'kegg_stat')
                     self.option('gene_kegg_table', self.output_dir + '/blast/gene_kegg.xls')
+                    self.option('gene_kegg_anno_table', self.output_dir + '/kegg_stat/gene_kegg_table.xls')
                     # venn_stat
                     self.option('kegg_xml').get_info()
                     kegg_venn = self.option('kegg_xml').prop['hit_query_list']
@@ -345,13 +356,13 @@ class DenovoAnnoStatTool(Tool):
                 self.run_cog_stat()
             if db == 'nr':
                 self.run_nr_stat()
-            if db == 'kegg':
-                self.run_kegg_stat()
             if db == 'go':
                 self.run_go_stat()
-        if 'go' in self.database or 'kegg' in self.database:
+            if db == 'kegg':
+                self.run_kegg_stat()
+        if 'go' in self.database:
             self.wait()
-            self.logger.info('end: go and kegg stat')
+            self.logger.info('end: go stat')
         self.set_output()
         self.get_all_anno_stat()
         self.end()

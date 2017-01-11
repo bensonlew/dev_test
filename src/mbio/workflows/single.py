@@ -1,6 +1,10 @@
+
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 from biocluster.workflow import Workflow
+from biocluster.core.function import get_clsname_form_path
+import importlib
+import traceback
 
 
 class SingleWorkflow(Workflow):
@@ -31,5 +35,30 @@ class SingleWorkflow(Workflow):
         super(SingleWorkflow, self).run()
 
     def end(self):
-        self._upload_dir_obj = self.upload_dir
+        self._upload_dir_obj = self._task.upload_dir
+        if 'pca' in self._sheet.name:
+            self.run_mongo()
         super(SingleWorkflow, self).end()
+
+    def run_mongo(self):
+        """
+        """
+        class_name = get_clsname_form_path(self._sheet.name, tp='')
+        dir_name = {
+            "Agent": "mbio.api.database.toolapps.tools.",
+            "Tool": "mbio.api.database.toolapps.tools.",
+            "Module": "mbio.api.database.toolapps.modules.",
+            "Workflow": "mbio.api.database.toolapps.workflows."
+        }
+        mudule_name = dir_name[self._sheet.type.capitalize()] + self._sheet.name
+        try:
+            imp = importlib.import_module(mudule_name)
+            mongo_class = getattr(imp, class_name)
+            task_mongo = mongo_class(self)
+            task_mongo.manager = self.api
+            task_mongo.run()
+            self.logger.info(self.api.get_call_records_list())
+            pass
+        except Exception:
+            print traceback.format_exc()
+            return

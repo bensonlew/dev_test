@@ -26,6 +26,8 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
             {"name": "method", "type": "string", "default": ""},  # 物种层次聚类方式，默认不聚类
             {"name": "sample_method", "type": "string", "default": ""},  # 样本层次聚类方式，默认不聚类
             {"name": "add_Algorithm", "type": "string", "default": ""},  # 分组样本求和算法，默认不求和
+            {"name": "update_info", "type": "string"},
+            {"name": "main_id", "type": "string"},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -270,10 +272,13 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
                     if arr[1] not in sample_list:
                         sample_list.append(arr[1])
         api_otu = self.api.hierarchical_clustering_heatmap
-        new_otu_id = api_otu.add_sg_hc_heatmap(self.sheet.params, self.option("input_otu_id"), None, sample_tree = sample_tree, sample_list = sample_list, species_tree = species_tree, species_list = species_list)
-        # new_otu_id = api_otu.add_sg_hc_heatmap(self.sheet.params, self.option("input_otu_id"), None, newick_id_sample, newick_id_species)
-        api_otu.add_sg_hc_heatmap_detail(self.sort_samples.option("out_otu_table").prop["path"], new_otu_id, self.option("input_otu_id"))
-        self.add_return_mongo_id("sg_hc_heatmap", new_otu_id)
+        # new_otu_id = api_otu.add_sg_hc_heatmap(self.sheet.params, self.option("input_otu_id"), None,
+        #                                        sample_tree = sample_tree, sample_list = sample_list,
+        #                                        species_tree = species_tree, species_list = species_list)
+        api_otu.add_sg_hc_heatmap_detail(self.sort_samples.option("out_otu_table").prop["path"], self.option("main_id"), self.option("input_otu_id"),
+                                         sample_tree=sample_tree, sample_list=sample_list,
+                                         species_tree = species_tree, species_list = species_list)
+        # self.add_return_mongo_id("sg_hc_heatmap", self.option("main_id"))
         self.end()
 
     def end(self):

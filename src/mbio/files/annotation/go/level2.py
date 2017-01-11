@@ -42,3 +42,15 @@ class Level2File(File):
         if super(Level2File, self).check():
             self.get_info()
             return True
+
+    def get_gene(self):
+        """获取gene列表"""
+        with open(self.path) as f:
+            f.readline()
+            gene_list = []
+            for line in f:
+                line = line.strip('\n').split('\t')
+                genes = line[-1].split(';')
+                for i in genes:
+                    gene_list.append(i.split('(')[0])
+        return gene_list
