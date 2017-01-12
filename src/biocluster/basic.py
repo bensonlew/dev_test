@@ -794,7 +794,7 @@ class StepMain(Step):
                         "error": "%s" % str(self._error_info).replace("\'", " ").replace("\"", " "),
                         "status": self.stats,
                         "run_time": self.spend_time}}
-
+            self.clean_change()
             if "update_info" in self.bind_obj.sheet.options().keys():
                 json_obj["update_info"] = self.bind_obj.sheet.option('update_info')
             if self.stats == "finish":
