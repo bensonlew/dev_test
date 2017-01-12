@@ -81,7 +81,8 @@ class WorkflowWorker(Process):
                     "api": json_data["UPDATE_STATUS_API"],
                     "data": post_data
                 }
-
+                if "update_info" in self.wsheet.options().keys():
+                    data["update_info"] = self.wsheet.option('update_info')
                 log_client().add_log(data)
             worker_client().set_error(json_data["id"], error)
             self.logger.info("运行异常: %s " % error)
