@@ -19,7 +19,7 @@ class EstTTest(MetaController):
 
     def POST(self):
         data = web.input()
-        default_argu = ['alpha_diversity_id', 'group_detail', 'group_id', 'submit_location']  # 可以不要otu_id
+        default_argu = ['alpha_diversity_id', 'group_detail', 'group_id', 'submit_location', 'test_method']  # 可以不要otu_id
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -81,7 +81,8 @@ class EstTTest(MetaController):
         if hasattr(data, "test_method"):
             params_json["est_test_method"] = data.test_method
         del params_json["group_detail"]
-        del params_json["test_method"]
+        if hasattr(data, "test_method"):
+            del params_json["test_method"]
         del params_json["alpha_diversity_id"]
         options.update(params_json)
         to_file = ["estimator.export_est_table(est_table)", "meta.export_group_table_by_detail(group_table)"]
