@@ -825,12 +825,11 @@ class StepMain(Step):
                                 dir_list.append(tmp_dict)
                     json_obj["files"] = file_list
                     json_obj["dirs"] = dir_list
-                if "update_info" in self.bind_obj.sheet.options().keys():
-                    json_obj["update_info"] = self.bind_obj.sheet.option('update_info')
 
             post_data = {
                 "content": json_obj
             }
+
             for k, v in self._api_data.items():
                 post_data[k] = v
             self._api_data.clear()
@@ -839,6 +838,8 @@ class StepMain(Step):
                 "api": self.api_type,
                 "data": post_data
             }
+            if "update_info" in self.bind_obj.sheet.options().keys():
+                data["update_info"] = self.bind_obj.sheet.option('update_info')
             workflow.send_log(data)
 
         array = []

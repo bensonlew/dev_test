@@ -79,7 +79,7 @@ class WorkflowWorker(Process):
                 data = {
                     "task_id": json_data["id"],
                     "api": json_data["UPDATE_STATUS_API"],
-                    "data": json.dumps(post_data)
+                    "data": post_data
                 }
 
                 log_client().add_log(data)
