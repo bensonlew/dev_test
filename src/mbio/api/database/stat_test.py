@@ -116,6 +116,11 @@ class StatTest(Base):
     @report_check
     def add_species_difference_check_barplot(self, file_path, table_id):
         stat_info, sort_list = self.cat_files(statfile=file_path, cifiles=None)
+        if not isinstance(table_id, ObjectId):
+            if isinstance(table_id, StringTypes):
+                table_id = ObjectId(table_id)
+            else:
+                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
         for name in sort_list:
             data = [
