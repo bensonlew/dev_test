@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 from multiprocessing import Process, Queue
-from ..core.function import load_class_by_path, hostname
+from ..core.function import load_class_by_path, hostname, CJsonEncoder
 import os
 import json
 import traceback
@@ -47,7 +47,7 @@ class WorkflowWorker(Process):
 
         try:
             if self.wsheet.type == "workflow":
-                path = self.wsheet.type
+                path = self.wsheet.name
             else:
                 path = "single"
             workflow_module = load_class_by_path(path, "Workflow")
@@ -79,7 +79,7 @@ class WorkflowWorker(Process):
                 data = {
                     "task_id": json_data["id"],
                     "api": json_data["UPDATE_STATUS_API"],
-                    "data": json.dumps(post_data)
+                    "data": json.dumps(post_data, cls=CJsonEncoder)
                 }
 
                 log_client().add_log(data)

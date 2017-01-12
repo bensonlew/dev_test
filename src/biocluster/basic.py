@@ -413,13 +413,8 @@ class Basic(EventObject):
             if self._rely:
                 for name, rl in self._rely.items():
                     if rl.satisfy:
-                        event_name = "%s_%s" % (self.id.lower(), name)
-                        self._rely.pop(event_name)
-
-                        # if not self.events[event_name].is_start:
-                        #     self.events[event_name].stop()
-                        #     self.events[event_name].restart()
-                        self.fire(event_name, rl)
+                        self._rely.pop(name)
+                        self.fire(name, rl)
 
     def __event_childend(self, child):
         """
@@ -800,6 +795,8 @@ class StepMain(Step):
                         "status": self.stats,
                         "run_time": self.spend_time}}
 
+            if "update_info" in self.bind_obj.sheet.options().keys():
+                json_obj["update_info"] = self.bind_obj.sheet.option('update_info')
             if self.stats == "finish":
                 if len(self.bind_obj.upload_dir) > 0 and self.bind_obj.sheet.output:
                     file_list = []
@@ -825,8 +822,6 @@ class StepMain(Step):
                                 dir_list.append(tmp_dict)
                     json_obj["files"] = file_list
                     json_obj["dirs"] = dir_list
-                if "update_info" in self.bind_obj.sheet.options().keys():
-                    json_obj["update_info"] = self.bind_obj.sheet.option('update_info')
 
             post_data = {
                 "content": json_obj
