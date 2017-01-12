@@ -928,6 +928,10 @@ class UploadDir(object):
         if not isinstance(match_rules, list):
             raise Exception("匹配规则必须为数组!")
         for rule in match_rules:
+            if not isinstance(rule, list):
+                raise Exception("匹配规则必须为数组!")
+            if len(rule) < 3:
+                raise Exception("rule规则格式不正确!")
             self._relpath_rules.append(rule)
 
     def match(self):
