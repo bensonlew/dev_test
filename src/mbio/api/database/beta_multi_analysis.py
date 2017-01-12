@@ -20,6 +20,23 @@ class BetaMultiAnalysis(Base):
         self._db_name = Config().MONGODB
         self._tables = []  # 记录存入了哪些表格
 
+    @staticmethod
+    def get_main_table_name(analysis_type):
+        if analysis_type == 'pca':
+            return 'PCA'
+        elif analysis_type == 'pcoa':
+            return 'PCoA'
+        elif analysis_type == 'nmds':
+            return 'NMDS'
+        elif analysis_type == 'plsda':
+            return 'PLS-DA'
+        elif analysis_type == 'dbrda':
+            return 'db-RDA'
+        elif analysis_type == 'rda_cca':
+            return 'RDA/CCA'
+        else:
+            raise Exception('错误的分析类型')
+
     @report_check
     def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None,
                                        task_id=None, otu_id=None, name=None, params=None, level=9, remove=None,
@@ -68,7 +85,7 @@ class BetaMultiAnalysis(Base):
                 'task_id': task_id,
                 'otu_id': otu_id,
                 'level_id': int(level),
-                'name': self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else analysis + '_origin',
+                'name': BetaMultiAnalysis.get_main_table_name(analysis) + '_Origin',
                 'table_type': analysis,
                 'env_id': env_id,
                 'group_id': group_id,

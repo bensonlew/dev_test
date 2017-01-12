@@ -442,14 +442,14 @@ class MetaBaseWorkflow(Workflow):
         if event['data'] == "pan_core":
             self.move2outputdir(obj.output_dir, self.output_dir + "/pan_core")
             api_pan_core = self.api.pan_core
-            name = "pan_table_origin"
+            name = "Pan_Origin"
             params = {
                 "level_id": 9,
                 "group_id": "all",
                 "submit_location": "otu_pan_core"
             }
             pan_id = api_pan_core.create_pan_core_table(1, json.dumps(params), "all", 9, self.otu_id, name, "end", spname_spid=self.spname_spid)
-            name = "core_table_origin"
+            name = "Core_Origin"
             core_id = api_pan_core.create_pan_core_table(2, json.dumps(params), "all", 9, self.otu_id, name, "end", spname_spid=self.spname_spid)
             pan_path = self.pan_core.option("pan_otu_table").prop["path"]
             core_path = self.pan_core.option("core_otu_table").prop['path']

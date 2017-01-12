@@ -42,7 +42,7 @@ class UpdateStatus(Log):
         data = dict()
         content = {
             "task_id": "_".join(my_id),
-            "stage": self.data["content"]["stage"]
+            # "stage": self.data["content"]["stage"]
         }
         if 'files' in self.data['content']:
             content['files'] = self.data["content"]["files"]
