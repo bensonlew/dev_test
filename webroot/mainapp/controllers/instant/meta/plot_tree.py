@@ -46,7 +46,7 @@ class PlotTree(MetaController):
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
-            ('table_id', ObjectId(data.otu_id)),
+            ('otu_id', ObjectId(data.otu_id)),
             ('status', 'start'),
             ('desc', '正在计算'),
             ('name', main_table_name),

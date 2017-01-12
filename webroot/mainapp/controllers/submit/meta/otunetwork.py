@@ -10,8 +10,8 @@ from bson import ObjectId
 
 
 class Otunetwork(MetaController):
-    def __int__(self):
-        super(Otunetwork, self).__int__(instant=False)
+    def __init__(self):
+        super(Otunetwork, self).__init__(instant=False)
 
     def POST(self):
         data = web.input()
@@ -33,7 +33,7 @@ class Otunetwork(MetaController):
         task_name = 'meta.report.otunetwork'
         task_type = 'workflow'
         task_info = Meta().get_task_info(otu_info['task_id'])
-        main_table_name = 'Otunetwork_' + data.level_id + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'OtuNetwork_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
@@ -43,11 +43,15 @@ class Otunetwork(MetaController):
             'task_type': 'reportTask'
         }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
+        if data.group_id == 'all':
+            group__id = data.group_id
+        else:
+            group__id = ObjectId(data.group_id)
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
             ('otu_id', ObjectId(data.otu_id)),
-            ('group_id', ObjectId(data.group_id)),
+            ('group_id', group__id),
             ('status', 'start'),
             ('desc', 'otu_network分析'),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -71,11 +75,11 @@ class Otunetwork(MetaController):
                             module_type=task_type, to_file=to_file)
         task_info = super(Otunetwork, self).POST()
         # print "+++++..."
+        task_info['content'] = {
+            'ids': {
+                'id': str(main_table_id),
+                'name': main_table_name
+            }
+        }
         # print task_info
-        # task_info['content'] = {
-        #     'ids': {
-        #         'id': str(main_table_id),
-        #         'name': main_table_name
-        #     }
-        # }
         return json.dumps(task_info)

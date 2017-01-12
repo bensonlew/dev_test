@@ -53,7 +53,7 @@ class PhyloTree(Base):
         main_collection = self.db['sg_phylo_tree']
         main_collection.update_one({'_id': self.main_id},
                                    {'$set': {
-                                       'newick_tree': tree.read(),
+                                       'newicktree': tree.read(),
                                        'specimen_categories': self.specimen_categories}})
         tree.close()
         self.bind_object.logger.info('Phylo tree导入数据库完成。')
