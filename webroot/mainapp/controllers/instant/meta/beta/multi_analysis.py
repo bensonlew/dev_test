@@ -201,6 +201,6 @@ class MultiAnalysis(MetaController):
         elif analysis_type == 'dbrda':
             return 'db-RDA_' + time_now
         elif analysis_type == 'rda_cca':
-            return 'RDA/CCA_' + time_now
+            return 'RDACCA_' + time_now
         else:
             raise Exception('错误的分析类型')
