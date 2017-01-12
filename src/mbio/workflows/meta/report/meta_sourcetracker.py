@@ -31,9 +31,6 @@ class MetaSourcetrackerWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.meta_sourcetracker = self.add_tool("meta.beta_diversity.meta_sourcetracker")
-        self.a = ''
-        self.spe_name = ''
-        self.number = ''
         self.qiime_table_path = ''
         self.map_detail_path = ''
         # group_table_path = os.path.join(self.work_dir, "group_table.xls")
@@ -60,12 +57,51 @@ class MetaSourcetrackerWorkflow(Workflow):
         self.qiime_table_path = new_qiime_otu_table
 
         old_map_detail_path = self.option("map_detail").prop['path']  # 检查group文件并根据group文件
+        new_map_detail_path = os.path.join(self.work_dir, "map_table")
         if os.path.exists(old_map_detail_path):
             b = open(old_map_detail_path, "r")
             content = b.readlines()
-
-        new_map_detail_path = os.path.join(self.work_dir, "map_table")
-
+            first_dict = {}
+            second_dict = {}
+            source_sample = []
+            sink_sample = []
+            for f in content:
+                if f.startswith("#") is False:
+                    c = f.strip().split("\t")
+                    first_dict[c[0]] = c[1]
+                    if c[1] is self.option("source"):
+                        source_sample.append(c[0])
+                    elif c[1] is self.option("sink"):
+                        sink_sample.append(c[0])
+                    else:
+                        raise OptionError('错误的一级分组方案')
+                    second_dict[c[0]] = c[2]
+            b.close()
+            source_group_list = []
+            sink_group_list = []
+            all_group_list = []
+            for sample in source_sample:
+                source_group_list.append(second_dict[sample])
+                all_group_list.append(second_dict[sample])
+            for sample in sink_sample:
+                sink_group_list.append(second_dict[sample])
+                all_group_list.append(second_dict[sample])
+            source_group_list.sort()
+            sink_group_list.sort()
+            all_group_list.sort()
+            if len(source_group_list) + len(sink_group_list) is len(all_group_list):
+                with open(new_map_detail_path, "a") as m:
+                    first = "#SampleID" + "\t" + "Env" + "\t" + "SourceSink" + "\n"
+                    m.write(first)
+                    for sample in source_sample:
+                        m.write(sample + "\t" + second_dict[sample] + "\t" + "source" + "\n")
+                    for sample in sink_sample:
+                        m.write(sample + "\t" + second_dict[sample] + "\t" + "sink" + "\n")
+                self.map_detail_path = new_map_detail_path
+            else:
+                raise OptionError('错误的二级分组方案，sink组和source组的样本不能出现在同一组')
+        else:
+            raise OptionError('请输入正确的分组文件')
         self.run_meta_sourcetracker()
 
     def run_meta_sourcetracker(self):
@@ -80,39 +116,27 @@ class MetaSourcetrackerWorkflow(Workflow):
 
     def set_db(self):
         self.logger.info("正在写入mongo数据库")
-        # api_otu = self.api.enterotyping_db
-        # new_id = api_otu.add_sg_enterotyping(self.sheet.params, self.option("input_otu_id"))
-        # api_otu.add_sg_enterotyping_detail(new_id, self.enterotyping.output_dir + "/ch.txt", x = "x", y = "y", name = "ch.txt")
-        # api_otu.add_sg_enterotyping_detail(new_id, self.enterotyping.output_dir + "/cluster.txt",x = "sample_name", y = "enterotyping_group", name = "cluster.txt")
-        # api_otu.add_sg_enterotyping_detail(new_id, self.plot_enterotyping.output_dir + "/circle.txt", x = "x", y = "y", name = "circle.txt", detail_name = "circle_name")
-        # api_otu.add_sg_enterotyping_detail(new_id, self.plot_enterotyping.output_dir + "/point.txt", x="x", y="y",
-        #                                    name="point.txt", detail_name="sample_name")
-        # for i in range(1, int(self.number)):
-        #     api_otu.add_sg_enterotyping_detail_cluster(new_id, self.enterotyping.output_dir + "/" + str(i) + ".cluster.txt", name = str(i) + ".cluster.txt")
-        # api_otu.add_sg_enterotyping_detail_summary(new_id, self.plot_enterotyping.output_dir + "/summary.txt",
-        #                                            name="summary.txt")
-        # self.add_return_mongo_id("sg_enterotyping", new_id)
+        api_otu = self.api.meta_sourcetracker
+        api_otu.add_sg_sourcetracker_detail(self.option("meta_sourcetracker_id"), self.meta_sourcetracker.output_dir +
+                                            "/sink_predictions.txt", name="sink_predictions.txt")
+        api_otu.add_sg_sourcetracker_detail(self.option("meta_sourcetracker_id"), self.meta_sourcetracker.output_dir +
+                                            "/sink_predictions_stdev.txt", name="sink_predictions_stdev.txt")
         self.end()
 
-    # def end(self):
-    #     try:
-    #         shutil.copy2(self.plot_enterotyping.output_dir + "/summary.txt", self.output_dir + "/summary.txt")
-    #         shutil.copytree(self.enterotyping.output_dir, self.output_dir + "/enterotyping")
-    #     except Exception as e:
-    #         self.logger.info("summary.txt copy success{}".format(e))
-    #         self.set_error("summary.txt copy success{}".format(e))
-    #     result_dir = self.add_upload_dir(self.output_dir)
-    #     result_dir.add_relpath_rules([
-    #         [".", "", "样本菌群分型分析结果输出目录"],
-    #         ["./summary.txt", "txt", "summary数据表"],
-    #         ["./enterotyping", "dir", "分型数据文件夹"],
-    #         ["./enterotyping/ch.txt", "txt", "CH指数数据表"],
-    #         ["./enterotyping/cluster.txt", "txt", "cluster数据表"]
-    #     ])
-    #     result_dir.add_regexp_rules([
-    #         ["enterotyping/.+\cluster.txt$", "txt", "分型后各组数据表"]
-    #     ])
-    #     super(MetaSourcetrackerWorkflow, self).end()
+    def end(self):
+        try:
+            shutil.copy2(self.meta_sourcetracker.output_dir + "/sink_predictions.txt", self.output_dir + "/sink_predictions.txt")
+            shutil.copy2(self.meta_sourcetracker.output_dir + "/sink_predictions_stdev.txt", self.output_dir + "/sink_predictions_stdev.txt")
+        except Exception as e:
+            self.logger.info("sink_predictions.txt copy success{}".format(e))
+            self.set_error("sink_predictions.txt copy success{}".format(e))
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "微生物组成来源比例分析"],
+            ["./sink_predictions.txt", "txt", "相对贡献度表"],
+            ["./sink_predictions_stdev.txt", "txt", "相对贡献度标准差表"]
+        ])
+        super(MetaSourcetrackerWorkflow, self).end()
 
     def run(self):
         self.reset_input_table()

@@ -59,7 +59,7 @@ class Estimators(MetaController):
 
         level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order",  "Family", "Genus", "Species", "OTU"]
 
-        main_table_name = level_name[int(data.level_id)-1] + 'Estimators_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'Estimators' + level_name[int(data.level_id)-1] + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
