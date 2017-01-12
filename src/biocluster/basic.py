@@ -29,7 +29,7 @@ class Rely(object):
     def __init__(self, *rely):
         with Rely.sem:
             Rely.count += 1
-            self._name = "reply%s_%s" % (Rely.count, random.randint(100, 1000))
+            self._name = "rely%s_%s" % (Rely.count, random.randint(100, 1000))
             self._relys = []
             for r in rely:
                 if not isinstance(r, Basic):
@@ -794,9 +794,7 @@ class StepMain(Step):
                         "error": "%s" % str(self._error_info).replace("\'", " ").replace("\"", " "),
                         "status": self.stats,
                         "run_time": self.spend_time}}
-
-            if "update_info" in self.bind_obj.sheet.options().keys():
-                json_obj["update_info"] = self.bind_obj.sheet.option('update_info')
+            self.clean_change()
             if self.stats == "finish":
                 if len(self.bind_obj.upload_dir) > 0 and self.bind_obj.sheet.output:
                     file_list = []
@@ -826,6 +824,7 @@ class StepMain(Step):
             post_data = {
                 "content": json_obj
             }
+
             for k, v in self._api_data.items():
                 post_data[k] = v
             self._api_data.clear()
@@ -834,6 +833,8 @@ class StepMain(Step):
                 "api": self.api_type,
                 "data": post_data
             }
+            if "update_info" in self.bind_obj.sheet.options().keys():
+                data["update_info"] = self.bind_obj.sheet.option('update_info')
             workflow.send_log(data)
 
         array = []
@@ -923,6 +924,10 @@ class UploadDir(object):
         if not isinstance(match_rules, list):
             raise Exception("匹配规则必须为数组!")
         for rule in match_rules:
+            if not isinstance(rule, list):
+                raise Exception("匹配规则必须为数组!")
+            if len(rule) < 3:
+                raise Exception("rule规则格式不正确!")
             self._relpath_rules.append(rule)
 
     def match(self):

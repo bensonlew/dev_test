@@ -204,8 +204,13 @@ class ManagerProcess(Process):
             for wid, p in self.process.items():
                 if not p.is_alive():
                     p.join()
+                    try:
+                        self.process_end(wid)
+                    except Exception, e:
+                        exstr = traceback.format_exc()
+                        print exstr
+                        print e
                     self.process.pop(wid)
-                    self.process_end(wid)
 
     def _check_stop(self):
         results = self.model.find_stop()

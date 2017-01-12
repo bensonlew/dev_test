@@ -26,10 +26,6 @@ class UpdateStatus(Log):
         self._client = "client01"
         self._key = "1ZYw71APsQ"
         self._url = "http://www.sanger.com/api/add_file"
-        if "update_info" in self.data["content"]:
-            self.update_info = self.data["content"]["update_info"]
-        else:
-            self.update_info = None
         self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
         self._mongo_client = self._config.mongo_client
         self.mongodb = self._mongo_client[Config().MONGODB]

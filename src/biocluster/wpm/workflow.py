@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 from multiprocessing import Process, Queue
-from ..core.function import load_class_by_path, hostname, CJsonEncoder
+from ..core.function import load_class_by_path, hostname
 import os
 import json
 import traceback
@@ -79,9 +79,10 @@ class WorkflowWorker(Process):
                 data = {
                     "task_id": json_data["id"],
                     "api": json_data["UPDATE_STATUS_API"],
-                    "data": json.dumps(post_data, cls=CJsonEncoder)
+                    "data": post_data
                 }
-
+                if "update_info" in self.wsheet.options().keys():
+                    data["update_info"] = self.wsheet.option('update_info')
                 log_client().add_log(data)
             worker_client().set_error(json_data["id"], error)
             self.logger.info("运行异常: %s " % error)
