@@ -4,10 +4,11 @@ import web
 import random
 from ..core.basic import Basic
 from mainapp.libs.input_check import meta_check
-from mainapp.models.mongo.public.meta.meta import Meta
+from mainapp.models.mongo.meta import Meta
 from mainapp.libs.signature import check_sig
 from mainapp.models.mongo.distance_matrix import Distance
 from mainapp.models.workflow import Workflow
+from biocluster.config import Config
 
 
 class MetaController(object):
@@ -17,6 +18,7 @@ class MetaController(object):
         self._post_data = None
         self._sheet_data = None
         self._return_msg = None
+        self.mongodb = Config().MONGODB
 
     @property
     def data(self):
@@ -65,7 +67,7 @@ class MetaController(object):
         except Exception, e:
             return {"success": False, "info": "运行出错: %s" % e }
 
-    def set_sheet_data(self, name, options, main_table_name, module_type="workflow", params=None, to_file=None):
+    def set_sheet_data(self, name, options, main_table_name, module_type="workflow", params=None, to_file=None, main_id=None, collection_name=None):
         """
         设置运行所需的Json文档
 
@@ -78,12 +80,12 @@ class MetaController(object):
         :return:
         """
         self._post_data = web.input()
-        if hasattr(self.data, 'otu_id'):
-            otu_id = self.data.otu_id
-            table_info = Meta().get_otu_table_info(otu_id)
-        else:
-            distance_id = self.data.specimen_distance_id
-            table_info = Distance().get_distance_matrix_info(distance_id)
+        # added by qiuping 20170111
+        if not main_id:
+            main_id = self.data.otu_id
+            collection_name = 'sg_otu'
+        table_info = Meta(db=self.mongodb).get_main_info(main_id=main_id, collection_name=collection_name)
+        # modify end
         project_sn = table_info["project_sn"]
         task_id = table_info["task_id"]
         new_task_id = self.get_new_id(task_id)
@@ -130,7 +132,9 @@ class MetaController(object):
         根据主表名称，生成结果目录名称/上传路径
         """
         data = web.input()
-        task_info = Meta().get_task_info(task_id)
+        # modified by qiuping 20170111
+        task_info = Meta(db=self.mongodb).get_task_info(task_id)
+        # modified end
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
             target_dir = 'sanger'

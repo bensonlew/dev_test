@@ -57,3 +57,14 @@ class Meta(object):
             mySampleNames.append(result["specimen_name"])
         mySamples = ",".join(mySampleNames)
         return mySamples
+
+    def get_main_info(self, main_id, collection_name):
+        if isinstance(main_id, types.StringTypes):
+            main_id = ObjectId(main_id)
+        elif isinstance(main_id, ObjectId):
+            main_id = main_id
+        else:
+            raise Exception("输入main_id参数必须为字符串或者ObjectId类型!")
+        collection = self.db[collection_name]
+        express_info = collection.find_one({'_id': main_id})
+        return express_info

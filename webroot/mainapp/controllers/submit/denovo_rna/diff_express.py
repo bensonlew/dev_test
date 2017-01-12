@@ -9,12 +9,12 @@ from mainapp.libs.param_pack import *
 from biocluster.config import Config
 from mainapp.models.mongo.submit.denovo_rna.denovo_express import DenovoExpress
 import types
-from mainapp.models.mongo.denovo import Denovo
+from mainapp.models.mongo.meta import Meta
 from mainapp.models.workflow import Workflow
 from mainapp.controllers.project.denovo_controller import DenovoController
 
 
-class DiffExpress(object):
+class DiffExpress(DenovoController):
     def __init__(self):
         super(DiffExpress, self).__init__()
 
@@ -35,7 +35,7 @@ class DiffExpress(object):
         my_param['ci'] = data.ci
         my_param['submit_location'] = data.submit_location
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        express_info = Denovo().get_main_info(data.express_id, 'sg_denovo_express')
+        express_info = Meta(db=self.mongodb).get_main_info(data.express_id, 'sg_denovo_express')
         if express_info:
             main_table_name = "DiffExpress_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_id = express_info["task_id"]
@@ -58,7 +58,7 @@ class DiffExpress(object):
                     "group_file": data.group_id,
                     "group_detail": data.group_detail,
                 })
-            self.set_sheet_data(name='denovo_rna.report.diff_express', options=options, main_table_name=main_table_name, module_type='workflow', to_file=to_file)
+            self.set_sheet_data(name='denovo_rna.report.diff_express', options=options, main_table_name=main_table_name, module_type='workflow', to_file=to_file, main_id=diff_express_id, collection_name="sg_denovo_express_diff")
             task_info = super(DiffExpress, self).POST()
             task_info['content'] = {'ids': {'id': str(diff_express_id), 'name': main_table_name}}
             print task_info
