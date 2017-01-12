@@ -104,7 +104,6 @@ class WorkflowManager(object):
             if wid in self.event.keys():
                 self.return_msg[wid] = {"success": False, "info": error_msg}
                 self.event[wid].set()
-                self.logger.error("event %s set" % wid)
                 # self.event.pop(wid)
             self.logger.error("Workflow %s 运行出错: %s " % (wid, error_msg))
 
