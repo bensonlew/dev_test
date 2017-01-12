@@ -795,8 +795,6 @@ class StepMain(Step):
                         "status": self.stats,
                         "run_time": self.spend_time}}
             self.clean_change()
-            if "update_info" in self.bind_obj.sheet.options().keys():
-                json_obj["update_info"] = self.bind_obj.sheet.option('update_info')
             if self.stats == "finish":
                 if len(self.bind_obj.upload_dir) > 0 and self.bind_obj.sheet.output:
                     file_list = []
