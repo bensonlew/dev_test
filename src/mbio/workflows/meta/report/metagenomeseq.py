@@ -96,13 +96,13 @@ class MetagenomeseqWorkflow(Workflow):
     def set_db(self):
         api_metagenomeseq = self.api.metagenomeseq
         datadiff = self.output_dir + '/diff.xls'
-        #dataauc = self.output_dir + '/roc_auc.xls'
+        datalist = self.output_dir + '/list.xls'
         if not os.path.isfile(datadiff):
-            raise Exception("找不到报告文件:{}".format(datacurve))
-        #if not os.path.isfile(dataauc):
-            #raise Exception("找不到报告文件:{}".format(dataauc))
+            raise Exception("找不到报告文件:{}".format(datadiff))
+        if not os.path.isfile(datalist):
+            raise Exception("找不到报告文件:{}".format(datalist))
         api_metagenomeseq.add_metagenomeseq_diff(file_path=datadiff, table_id=self.option("metagenomeseq_id"))
-        #api_roc.add_roc_auc(file_path=dataauc, table_id=self.option("roc_id"))
+        api_metagenomeseq.add_metagenomeseq_list(file_path=datalist, table_id=self.option("metagenomeseq_id"))
         self.end()
 
     def run(self):

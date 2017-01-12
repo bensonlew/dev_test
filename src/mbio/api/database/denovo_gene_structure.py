@@ -67,7 +67,7 @@ class DenovoGeneStructure(Base):
         except Exception, e:
             self.bind_object.logger.error("导入ORF长度分布数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入ORF长度分布数据成功")
+            self.bind_object.logger.info("导入ORF长度分布数据成功")
 
     @report_check
     def add_orf_domain(self, domain, orf_id=None):
@@ -98,7 +98,7 @@ class DenovoGeneStructure(Base):
         except Exception, e:
             self.bind_object.logger.error("导入ORF蛋白域数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入ORF蛋白域数据成功")
+            self.bind_object.logger.info("导入ORF蛋白域数据成功")
 
     @report_check
     def add_orf_bed(self, bed, orf_id=None):
@@ -131,7 +131,7 @@ class DenovoGeneStructure(Base):
         except Exception, e:
             self.bind_object.logger.error("导入ORF预测结果数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入ORF预测结果数据成功")
+            self.bind_object.logger.info("导入ORF预测结果数据成功")
 
     @report_check
     def add_ssr_table(self, ssr, ssr_stat, ssr_primer=None, name=None, params=None):
@@ -186,7 +186,7 @@ class DenovoGeneStructure(Base):
         except Exception, e:
             self.bind_object.logger.error("导入SSR统计结果数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入SSR统计结果结果数据成功")
+            self.bind_object.logger.info("导入SSR统计结果结果数据成功")
 
     @report_check
     def add_ssr_primer(self, primer, ssr_id=None):
@@ -251,7 +251,7 @@ class DenovoGeneStructure(Base):
         except Exception, e:
             self.bind_object.logger.error("导入SSR引物结果数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入SSR引物结果结果数据成功")
+            self.bind_object.logger.info("导入SSR引物结果结果数据成功")
 
     @report_check
     def add_ssr_stat(self, ssr_stat, ssr_id=None):
@@ -294,7 +294,7 @@ class DenovoGeneStructure(Base):
         except Exception, e:
             self.bind_object.logger.error("导入SSR引物统计数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入SSR引物统计数据成功")
+            self.bind_object.logger.info("导入SSR引物统计数据成功")
 
     @report_check
     def add_snp_table(self, snp, name=None, params=None):
@@ -353,7 +353,7 @@ class DenovoGeneStructure(Base):
         except Exception, e:
             self.bind_object.logger.error("导入SSR引物统计数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入SSR引物统计数据成功")
+            self.bind_object.logger.info("导入SSR引物统计数据成功")
 
     @report_check
     def add_snp_graph(self, snp, snp_id=None):
@@ -391,4 +391,4 @@ class DenovoGeneStructure(Base):
         except Exception, e:
             self.bind_object.logger.error("导入SSR引物统计数据出错:%s" % e)
         else:
-            self.bind_object.logger.error("导入SSR引物统计数据成功")
+            self.bind_object.logger.info("导入SSR引物统计数据成功")

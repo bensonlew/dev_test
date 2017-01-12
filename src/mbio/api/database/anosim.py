@@ -91,28 +91,28 @@ class Anosim(Base):
                     'json_value': data
                     }
                 collection.insert_one(insert_data)
-        if level and level not in range(1, 10):
-            raise Exception("level参数%s为不在允许范围内!" % level)
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
-        _main_collection = self.db['sg_beta_multi_anosim']
-        if isinstance(group_id, ObjectId):
-            pass
-        elif group_id is not None:
-            group_id = ObjectId(group_id)
-        else:
-            group_id = ObjectId(self.bind_object.option('group_id'))
-        if not isinstance(otu_id, ObjectId) and otu_id is not None:
-            otu_id = ObjectId(otu_id)
-        if 'params' in self.bind_object.sheet._data:
-            params = self.bind_object.sheet.option('params')
         if main:
+            if level and level not in range(1, 10):
+                raise Exception("level参数%s为不在允许范围内!" % level)
+            if task_id is None:
+                task_id = self.bind_object.sheet.id
+            _main_collection = self.db['sg_beta_multi_anosim']
+            if isinstance(group_id, ObjectId):
+                pass
+            elif group_id is not None:
+                group_id = ObjectId(group_id)
+            else:
+                group_id = ObjectId(self.bind_object.option('group_id'))
+            if not isinstance(otu_id, ObjectId) and otu_id is not None:
+                otu_id = ObjectId(otu_id)
+            if 'params' in self.bind_object.sheet._data:
+                params = self.bind_object.sheet.option('params')
             insert_mongo_json = {
                 'project_sn': self.bind_object.sheet.project_sn,
                 'task_id': task_id,
                 'otu_id': otu_id,
                 # 'level_id': int(level),
-                'name': name if name else 'anosim_origin',
+                'name': self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else 'anosim_origin',
                 'group_id': group_id,
                 'params': (json.dumps(params, sort_keys=True, separators=(',', ':'))
                            if isinstance(params, dict) else params),

@@ -105,7 +105,7 @@ class Rarefaction(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": task_id,
             "otu_id": otu_id,
-            "name": name if name else "rarefaction_origin",
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "rarefaction_origin",
             "level_id": level,
             "status": "start",
             "desc": "",

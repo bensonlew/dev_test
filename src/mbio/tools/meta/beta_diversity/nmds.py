@@ -53,6 +53,7 @@ class NmdsAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "NMDS分析结果输出目录"],
             ["./nmds_sites.xls", "xls", "样本坐标表"],
+            ["./nmds_stress.xls", "xls", "样本特征拟合度值"],
         ])
         # print self.get_upload_files()
         super(NmdsAgent, self).end()
@@ -95,15 +96,25 @@ class NmdsTool(Tool):
         except subprocess.CalledProcessError:
             self.logger.info('nmds计算失败')
             self.set_error('R程序计算nmds失败')
+            raise Exception('R程序计算nmds失败')
         filename = None
+        stress = None
         for name in os.listdir(self.work_dir + '/nmds'):
             if 'nmds_sites.xls' in name:
                 filename = name
+            elif 'nmds_stress.xls' in name:
+                stress = name
         if not filename:
             self.set_error('未知原因sites文件没有生成')
+        if not stress:
+            self.set_error('未知原因stress文件没有生成')
         linksites = os.path.join(self.output_dir, 'nmds_sites.xls')
         if os.path.exists(linksites):
             os.remove(linksites)
         os.link(self.work_dir + '/nmds' + '/' + filename, linksites)
+        linkstress = os.path.join(self.output_dir, 'nmds_stress.xls')
+        if os.path.exists(linkstress):
+            os.remove(linkstress)
+        os.link(self.work_dir + '/nmds' + '/' + stress, linkstress)
         self.logger.info('运行ordination.pl程序计算nmds完成')
         self.end()

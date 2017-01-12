@@ -10,7 +10,6 @@ import os
 class TwoSampleWorkflow(Workflow):
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        self.rpc = False
         super(TwoSampleWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
@@ -23,7 +22,9 @@ class TwoSampleWorkflow(Workflow):
             {"name": "sample2", "type": "string"},
             {"name": "methor", "type": "string"},
             {"name": "coverage", "type": "float"},
-            {"name": "params", "type": "string"}
+            {"name": "params", "type": "string"},
+            {"name": "update_info", "type": "string"},
+            {"name": "main_id", "type": "string"},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -77,9 +78,8 @@ class TwoSampleWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(two_sample_path))
         if not os.path.isfile(ci_path):
             raise Exception("找不到报告文件:{}".format(ci_path))
-        main_id = api_two_sample.add_species_difference_check_detail(statfile=two_sample_path, cifiles=[ci_path], table_id=None, level=self.option("level"), check_type='two_sample', params=self.option("params"), group_id=None, from_otu_table=params["otu_id"], major=True, posthoc=None)
-        api_two_sample.update_species_difference_check(main_id, two_sample_path, ci_path, 'twosample')
-        self.add_return_mongo_id('sg_species_difference_check', main_id)
+        api_two_sample.add_species_difference_check_detail(statfile=two_sample_path, cifiles=[ci_path], table_id=self.option('main_id'), level=self.option("level"), check_type='two_sample', params=self.option("params"), group_id=None, from_otu_table=params["otu_id"], major=False, posthoc=None)
+        api_two_sample.update_species_difference_check(self.option('main_id'), two_sample_path, ci_path, 'twosample')
         self.end()
 
     def run(self):

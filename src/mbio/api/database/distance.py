@@ -42,7 +42,7 @@ class Distance(Base):
                 "task_id": task_id,
                 "otu_id": otu_id,
                 "level_id": level,
-                "name": name if name else "distance_origin",
+                "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "distance_origin",
                 "status": "end",
                 "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

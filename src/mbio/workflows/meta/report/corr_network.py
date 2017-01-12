@@ -21,6 +21,7 @@ class CorrNetworkWorkflow(Workflow):
             {"name": "method", "type": "string", "default": "pearson"},
             {"name": "coefficient", "type": "float", "default": 0.04},
             {"name": "abundance", "type": "int", "default": 50},  #设定物种总丰度值前50的物种信息
+            {"name": "update_info", "type": "string"},
             {"name": "corr_network_id", "type": "string"}
             ]
         self.add_option(options)

@@ -67,10 +67,11 @@ class BamStatTool(Tool):
     def __init__(self, config):
         super(BamStatTool, self).__init__(config)
         self.python_path = "program/Python/bin/"
+        self.python_full_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
         self.bam_path = self.option("bam").prop["path"]
 
     def bamstat(self, bam):
-        stat_cmd = "{}bam_stat.py -q {}  -i {}".format(self.python_path, self.option("quality"), bam)
+        stat_cmd = "{}python {}bam_stat.py -q {}  -i {}".format(self.python_path, self.python_full_path, self.option("quality"), bam)
         bam_name = bam.split("/")[-1]
         print(stat_cmd)
         self.logger.info("开始运行bam_stat.py脚本")

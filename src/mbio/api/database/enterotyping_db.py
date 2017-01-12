@@ -20,7 +20,7 @@ class EnterotypingDb(Base):
         self.task_id = ""
 
     @report_check
-    def add_sg_enterotyping(self, params, from_otu_table, name = None):
+    def add_sg_enterotyping(self, params, from_otu_table, name = None, cluster_name = None, spe_name = None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
             if isinstance(from_otu_table, StringTypes):
                 from_otu_table = ObjectId(from_otu_table)
@@ -39,7 +39,10 @@ class EnterotypingDb(Base):
             # 'task_id': "ss",
             "project_sn": project_sn,
             'task_id': self.task_id,
-            'from_id': str(from_otu_table),
+            # 'otu_id': "ObjectId(\"" + str(from_otu_table) + "\")",
+            'otu_id': from_otu_table,
+            'cluster_name': cluster_name,
+            'spe_name': spe_name,
             'name': name,
             "params": params,
             'status': 'end',
@@ -81,18 +84,22 @@ class EnterotypingDb(Base):
             for f in data:
                 f = f.strip().split("\t")
                 if len(f) == 3:
-                    data = [("sg_enterotyping_id", id), ("name_id", name), (x, f[0]), (y, f[1]), (detail_name, f[2])]
+                    data = [("enterotyping_id", ObjectId(id)), ("name_id", name), (x, f[0]), (y, f[1]), (detail_name, f[2])]
                 else:
-                    data = [("sg_enterotyping_id", id), ("name_id", name), (x, f[0]), (y, f[1])]
+                    data = [("enterotyping_id", ObjectId(id)), ("name_id", name), (x, f[0]), (y, f[1])]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
             collection = self.db["sg_enterotyping_detail"]
             collection.insert_many(data_list)
-        except Exception, e:
-            print "sg_enterotyping_detail failure{}".format(e)
+        except Exception as e:
+            self.bind_object.logger.error("导入sg_enterotyping_detail表格信息出错:{}".format(e))
         else:
-            print "sg_enterotyping_detail sucess"
+            self.bind_object.logger.info("导入sg_enterotyping_detail表格成功")
+        # except Exception, e:
+        #     print "sg_enterotyping_detail failure{}".format(e)
+        # else:
+        #     print "sg_enterotyping_detail sucess"
 
     @report_check
     def add_sg_enterotyping_detail_cluster(self, id=None, file_path=None, name = None):
@@ -107,7 +114,7 @@ class EnterotypingDb(Base):
                 sample_num = line[1:]
                 classify_list = re.split(r"\s*;\s*", line[0])
                 otu_detail = dict()
-                otu_detail['sg_enterotyping_id'] = id
+                otu_detail['enterotyping_id'] = ObjectId(id)
                 otu_detail['name_id'] = name
                 for cf in classify_list:
                     if cf != "":
@@ -124,7 +131,7 @@ class EnterotypingDb(Base):
             self.bind_object.logger.info("导入sg_enterotyping_detail_cluster表格成功")
 
     @report_check
-    def add_sg_enterotyping_detail_summary(self, id=None, file_path=None, name = None):
+    def add_sg_enterotyping_detail_summary(self, id=None, file_path=None, name=None, cluster_name=None, spe_name=None):
         insert_data = list()
         with open(file_path, 'rb') as r:
             head = r.next().strip('\r\n')  # windows换行符
@@ -136,7 +143,7 @@ class EnterotypingDb(Base):
                 sample_num = line[1:]
                 otu_detail = dict()
                 otu_detail['enterotyping_group'] = line[0]
-                otu_detail['sg_enterotyping_id'] = id
+                otu_detail['enterotyping_id'] = ObjectId(id)
                 otu_detail['name_id'] = name
                 for i in range(0, len(sample_num)):
                     otu_detail[new_head[i]] = sample_num[i]
@@ -144,6 +151,11 @@ class EnterotypingDb(Base):
         try:
             collection = self.db['sg_enterotyping_detail_summary']
             collection.insert_many(insert_data)
+            main_collection = self.db["sg_enterotyping"]
+            self.bind_object.logger.info("开始刷新主表写物种名称和cluster.txt的名称")
+            main_collection.update({"_id": ObjectId(id)},
+                                   {"$set": {"cluster_name": cluster_name,
+                                       "spe_name": spe_name}})
         except Exception as e:
             self.bind_object.logger.error("导入sg_enterotyping_detail_summary表格信息出错:{}".format(e))
         else:

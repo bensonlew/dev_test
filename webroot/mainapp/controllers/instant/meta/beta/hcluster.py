@@ -2,18 +2,17 @@
 # __author__ = 'shenghe'
 import web
 import json
+import datetime
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.meta import Meta
 from bson import ObjectId
-import datetime
 
 
 class Hcluster(MetaController):
 
     def __init__(self):
         super(Hcluster, self).__init__(instant=True)
-        # super(Hcluster, self).__init__()
 
     def POST(self):
         data = web.input()
@@ -41,7 +40,7 @@ class Hcluster(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type
         }
-        main_table_name = 'HHcluster_' + data.hcluster_method + \
+        main_table_name = 'Hcluster_' + data.hcluster_method + \
             '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
             ('project_sn', task_info['project_sn']),
