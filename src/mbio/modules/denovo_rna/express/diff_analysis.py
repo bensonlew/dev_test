@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
-# last_modify:2016.07.04
+# last_modify:2016.11.25
 
 from biocluster.module import Module
 import os
 from biocluster.core.exceptions import OptionError
+from mbio.files.denovo_rna.express.diff_stat_table import DiffStatTableFile
+# import shutil
 
 
 class DiffAnalysisModule(Module):
     def __init__(self, work_id):
         super(DiffAnalysisModule, self).__init__(work_id)
-        self.step.add_steps('cluster', 'network', 'go_rich', 'kegg_rich')
+        self.step.add_steps('cluster', 'network', 'go_rich', 'kegg_rich', 'go_regulate', 'kegg_regulate')
         options = [
-            {"name": "analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich"},  # 选择要做的分析
+            {"name": "analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich,go_regulate,kegg_regulate"},  # 选择要做的分析
             {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
             {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 全部基因名称文件
             {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 差异基因名称文件
@@ -38,6 +40,7 @@ class DiffAnalysisModule(Module):
         self.kegg_rich_tool = []
         self.go_rich_tool = []
         self.go_regulate_tool = []
+        self.kegg_regulate_tool = []
         self.tools = []
 
     def check_options(self):
@@ -46,14 +49,26 @@ class DiffAnalysisModule(Module):
             raise OptionError('缺少输入文件：diff_fpkm差异基因表达量矩阵')
         if 'network' in analysis and not self.option('diff_list'):
             raise OptionError('缺少网络分析的输入文件：diff_list差异基因文件')
-        if ('kegg_rich' or 'go_rich') in analysis and not self.option('diff_list_dir'):
-            raise OptionError('缺少富集分析的输入文件：diff_list_dir差异基因文件夹')
-        if 'kegg_rich' in analysis and not self.option('gene_kegg_table'):
-            raise OptionError('缺少输入文件：gene_kegg_table文件')
-        if 'go_rich' in analysis and (not self.option('gene_go_list') and not self.option('all_list')):
-            raise OptionError('缺少go_rich输入文件')
-        if 'go_rich' in analysis and not self.option('gene_go_level_2'):
-            raise OptionError('缺少输入文件：gene_go_level_2文件')
+        if 'go_rich' in analysis:
+            opts = ['diff_list_dir', 'all_list', 'gene_go_list']
+            for i in opts:
+                if not self._options[i]:
+                    raise OptionError('缺少go富集分析的输入文件:{}'.format(i))
+        if 'kegg_rich' in analysis:
+            opts = ['diff_list_dir', 'all_list', 'gene_kegg_table']
+            for i in opts:
+                if not self._options[i]:
+                    raise OptionError('缺少kegg富集分析的输入文件:{}'.format(i))
+        if 'kegg_regulate' in analysis:
+            opts = ['diff_list_dir', 'gene_kegg_table']
+            for i in opts:
+                if not self._options[i]:
+                    raise OptionError('缺少kegg调控分析的输入文件:{}'.format(i))
+        if 'go_regulate' in analysis:
+            opts = ['diff_list_dir', 'gene_go_level_2']
+            for i in opts:
+                if not self._options[i]:
+                    raise OptionError('缺少go调控分析的输入文件:{}'.format(i))
         if self.option("distance_method") not in ("manhattan", "euclidean"):
             raise OptionError("所选距离算法不在提供的范围内")
         if self.option('log') not in (10, 2):
@@ -72,7 +87,7 @@ class DiffAnalysisModule(Module):
             raise OptionError("模块network相异值超出范围")
         if self.option('correct') not in ['BY', 'BH', 'None', 'QVALUE']:
             raise OptionError('多重检验校正的方法不在提供的范围内')
-        if ('cluster' or 'network' or 'kegg_rich' or 'go_rich') in self.option('analysis'):
+        if 'cluster' or 'network' or 'kegg_rich' or 'go_rich' or 'kegg_regulate' or 'go_regulate' in self.option('analysis'):
             pass
         else:
             raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))
@@ -132,7 +147,6 @@ class DiffAnalysisModule(Module):
             self.kegg_rich.on('end', self.set_step, {'end': self.step.kegg_rich})
         else:
             self.on_rely(self.kegg_rich_tool, self.set_output, 'kegg_rich')
-            self.on_rely(self.kegg_rich_tool, self.set_step, {'end': self.step.kegg_rich})
         self.tools += self.kegg_rich_tool
         # for tool in self.kegg_rich_tool:
         #     tool.run()
@@ -154,25 +168,52 @@ class DiffAnalysisModule(Module):
             self.go_rich.on('end', self.set_step, {'end': self.step.go_rich})
         else:
             self.on_rely(self.go_rich_tool, self.set_output, 'go_rich')
-            self.on_rely(self.go_rich_tool, self.set_step, {'end': self.step.go_rich})
         self.tools += self.go_rich_tool
         # for tool in self.go_rich_tool:
         #     tool.run()
 
     def go_regulate_run(self):
+        self.step.go_regulate.start()
         files = os.listdir(self.option('diff_stat_dir').prop['path'])
         for f in files:
-            self.go_regulate = self.add_tool("denovo_rna.express.go_regulate")
-            self.go_regulate.set_options({
-                "diff_express": os.path.join(self.option('diff_stat_dir').prop['path'], f),
-                "go_level_2": self.option("gene_go_level_2")
-            })
-            self.go_regulate_tool.append(self.go_regulate)
+            statfile = os.path.join(self.option('diff_stat_dir').prop['path'], f)
+            tmpfile = DiffStatTableFile()
+            tmpfile.set_path(statfile)
+            diff_gene, regulate_dict = tmpfile.get_table_info()
+            go_genes = self.option("gene_go_level_2").get_gene()
+            same_gene = list(set(diff_gene) & set(go_genes))
+            if same_gene:
+                self.go_regulate = self.add_tool("denovo_rna.express.go_regulate")
+                self.go_regulate.set_options({
+                    "diff_stat": statfile,
+                    "go_level_2": self.option("gene_go_level_2")
+                })
+                self.go_regulate_tool.append(self.go_regulate)
         if len(self.go_regulate_tool) == 1:
             self.go_regulate.on('end', self.set_output, 'go_regulate')
+        elif len(self.go_regulate_tool) == 0:
+            pass
         else:
             self.on_rely(self.go_regulate_tool, self.set_output, 'go_regulate')
         self.tools += self.go_regulate_tool
+        # for tool in self.go_regulate_tool:
+        #     tool.run()
+
+    def kegg_regulate_run(self):
+        self.step.kegg_regulate.start()
+        files = os.listdir(self.option('diff_stat_dir').prop['path'])
+        for f in files:
+            self.kegg_regulate = self.add_tool("denovo_rna.express.kegg_regulate")
+            self.kegg_regulate.set_options({
+                "diff_stat": os.path.join(self.option('diff_stat_dir').prop['path'], f),
+                "kegg_table": self.option("gene_kegg_table")
+            })
+            self.kegg_regulate_tool.append(self.kegg_regulate)
+        if len(self.kegg_regulate_tool) == 1:
+            self.kegg_regulate.on('end', self.set_output, 'kegg_regulate')
+        else:
+            self.on_rely(self.kegg_regulate_tool, self.set_output, 'kegg_regulate')
+        self.tools += self.kegg_regulate_tool
         # for tool in self.go_regulate_tool:
         #     tool.run()
 
@@ -186,7 +227,8 @@ class DiffAnalysisModule(Module):
         allfiles = os.listdir(dirpath)
         newdir = os.path.join(self.output_dir, dirname)
         if not os.path.exists(newdir):
-            os.mkdir(newdir)
+            # shutil.rmtree(newdir)
+            os.makedirs(newdir)
         oldfiles = [os.path.join(dirpath, i) for i in allfiles]
         newfiles = [os.path.join(newdir, i) for i in allfiles]
         for newfile in newfiles:
@@ -207,17 +249,34 @@ class DiffAnalysisModule(Module):
         obj = event['bind_object']
         if event['data'] == 'cluster':
             self.linkdir(obj.output_dir, 'cluster')
+            print '..........clust end'
         elif event['data'] == 'network':
             self.linkdir(obj.output_dir, 'network')
+            print '..........network end'
         elif event['data'] == 'kegg_rich':
             for tool in self.kegg_rich_tool:
-                self.linkdir(tool.output_dir, 'kegg_rich')
+                dirname = 'kegg_rich/' + os.path.splitext(os.path.basename(tool.option('diff_list').path))[0]
+                self.linkdir(tool.output_dir, dirname)
+            self.set_step(event={'data': {'end': self.step.kegg_rich}})
+            print '......ke:%s....kegg_rich end' % len(self.kegg_rich_tool)
         elif event['data'] == 'go_rich':
             for tool in self.go_rich_tool:
-                self.linkdir(tool.output_dir, 'go_rich')
+                dirname = 'go_rich/' + os.path.splitext(os.path.basename(tool.option('diff_list').path))[0]
+                self.linkdir(tool.output_dir, dirname)
+            self.set_step(event={'data': {'end': self.step.go_rich}})
+            print '.......go:%s...go_rich end' % len(self.go_rich_tool)
         elif event['data'] == 'go_regulate':
             for tool in self.go_regulate_tool:
-                self.linkdir(tool.output_dir, 'go_rich')
+                dirname = 'go_regulate/' + os.path.splitext(os.path.basename(tool.option('diff_stat').path))[0].strip('_edgr_stat')
+                self.linkdir(tool.output_dir, dirname)
+            self.set_step(event={'data': {'end': self.step.go_regulate}})
+            print '......gr:%s....go_regulate end' % len(self.go_regulate_tool)
+        elif event['data'] == 'kegg_regulate':
+            for tool in self.kegg_regulate_tool:
+                dirname = 'kegg_regulate/' + os.path.splitext(os.path.basename(tool.option('diff_stat').path))[0].strip('_edgr_stat')
+                self.linkdir(tool.output_dir, dirname)
+            self.set_step(event={'data': {'end': self.step.kegg_regulate}})
+            print '.......kr:%s...kegg_regulate end' % len(self.kegg_regulate_tool)
         else:
             pass
 
@@ -232,9 +291,13 @@ class DiffAnalysisModule(Module):
             self.kegg_rich_run()
         if 'go_rich' in analysis:
             self.go_rich_run()
+        if 'go_regulate' in analysis:
             self.go_regulate_run()
+        if 'kegg_regulate' in analysis:
+            self.kegg_regulate_run()
         if len(self.tools) != 1:
             self.on_rely(self.tools, self.end)
+            print '......on rely end'
         else:
             self.tools[0].on('end', self.end)
         self.run_tools()
@@ -251,19 +314,22 @@ class DiffAnalysisModule(Module):
         if 'go_rich' in analysis:
             for tool in self.go_rich_tool:
                 tool.run()
+        if 'go_regulate' in analysis:
             for tool in self.go_regulate_tool:
+                tool.run()
+        if 'kegg_regulate' in analysis:
+            for tool in self.kegg_regulate_tool:
                 tool.run()
 
     def end(self):
         repaths = [
             [".", "", "差异表达模块结果输出目录"],
-            ["venn", "", "venn分析结果输出目录"],
             ["cluster", "", "cluster分析结果输出目录"],
             ["network", "", "network分析结果输出目录"],
             ["kegg_rich", "", "kegg_rich分析结果输出目录"],
             ["go_rich", "", "go_rich分析结果输出目录"],
             ["go_regulate", "", "go_regulate分析结果输出目录"],
-            ["venn/venn_table.xls", "xls", "venn分析结果"],
+            ["kegg_regulate", "", "kegg_regulate分析结果输出目录"],
             ["network/all_edges.txt", "txt", "edges结果信息"],
             ["network/all_nodes.txt ", "txt", "nodes结果信息"],
             ["network/removeGene.xls ", "xls", "移除的基因信息"],
@@ -274,25 +340,21 @@ class DiffAnalysisModule(Module):
             ["network/eigenGeneHeatmap.pdf", "pdf", "eigenGeneHeatmap图"],
             ["network/networkHeatmap.pdf", "pdf", "networkHeatmap图"],
             ["network/sampleClustering.pdf", "pdf", "sampleClustering图"],
-            ["go_regulate/GO_regulate.xls", "xls", "基因上下调在GO2level层级分布情况表"],
+            ["cluster/hclust", "", "hclust分析结果输出目录"],
+            ["cluster/hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
+            ["cluster/hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
+            ["cluster/hclust/hclust_heatmap.xls", "xls", "层级聚类热图数据"],
+            ["cluster/kmeans/kmeans_heatmap.xls", "xls", "层级聚类热图数据"]
         ]
-        if self.option('method') in ('both', 'hclust'):
-            repaths += [
-                ["cluster/hclust", "", "hclust分析结果输出目录"],
-                ["cluster/hclust/hc_gene_order", "txt", "按基因聚类的基因排序列表"],
-                ["cluster/hclust/hc_sample_order", "txt", "按样本聚类的样本排序列表"],
-                ["cluster/hclust/hclust_heatmap.xls", "xls", "层级聚类热图数据"]
-            ]
-        elif self.option('method') in ('both', 'kmeans'):
-            repaths += [
-                ["cluster/kmeans/kmeans_heatmap.xls", "xls", "层级聚类热图数据"]
-            ]
         regexps = [
             [r"subcluster_", "xls", "子聚类热图数据"],
             [r"network/CytoscapeInput.*", "txt", "Cytoscape作图数据"],
+            [r"go_regulate/.*?go_regulate_stat.xls$", "xls", "基因上下调在GO2level层级分布情况表"],
             [r"go_rich/go_enrich_.*", "xls", "go富集结果文件"],
             [r"go_rich/go_lineage.*", "png", "go富集有向无环图"],
-            [r"kegg_rich/.*?kegg_enrichment.xls$", "xls", "kegg富集分析结果"]
+            [r"kegg_rich/.*?kegg_enrichment.xls$", "xls", "kegg富集分析结果"],
+            [r"kegg_regulate/.*?kegg_regulate_stat.xls$", "xls", "kegg调控统计表"],
+            [r"kegg_regulate/.*?pathways$", "dir", "kegg调控统计pathway结果图片"],
         ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)

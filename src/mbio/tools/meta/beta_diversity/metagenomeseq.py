@@ -69,13 +69,14 @@ class MetagenomeseqAgent(Agent):
         设置内存和CPU
         """
         self._cpu = 2
-        self._memory = ''
+        self._memory = '20G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
                 [".", "", "Metagenomeseq分析结果目录"],
-                ["./diff.xls", "xls", "metagenomeseq受试者工作特征曲线数据"]
+                ["./diff.xls", "xls", "metagenomeseq数据"],
+                ["./list.xls", "xls", "metagenomeseq表头"]
                 ])
         print self.get_upload_files()
         super(MetagenomeseqAgent, self).end()
@@ -143,7 +144,7 @@ class MetagenomeseqTool(Tool):
         self.logger.info('运行metagenomeSeq.pl程序进行metagenomeseq计算完成')
         allfiles = self.get_metagenomeseq_filesname()
         self.linkfile(self.work_dir + '/metagenomeseq/' + allfiles[0], 'diff.xls')
-        #self.linkfile(self.work_dir + '/metagenomeseq/' + allfiles[1], 'roc_auc.xls')
+        self.linkfile(self.work_dir + '/metagenomeseq/' + allfiles[1], 'list.xls')
         self.end()
 
     def linkfile(self, oldfile, newname):
@@ -156,10 +157,13 @@ class MetagenomeseqTool(Tool):
                 tmp_file.write("taxa\tazero\tasum\tbzero\tbsum\toddsRatio\tlower\tupper\tfidherP\tadjp\tP.Value\tadj.P.Val\n")
                 for s in data:
                     tmp_file.write(s)
-        #if "aucvalue" in oldfile:
-            #data = open(oldfile).readlines()
-            #with open(oldfile, "w") as tmp_file:
-                #for i in data:
+        if "list" in oldfile:
+            data = open(oldfile).readlines()
+            with open(oldfile, "w") as tmp_file:
+                tmp_file.write("sample_a_name\tsample_b_name\tcount_a_name\tcount_b_name\n")
+                for s in data:
+                    tmp_file.write(s)
+                    #for i in data:
                     #s = i.strip().split()
                     #tmp_file.write(s[1]+"\t"+s[2]+"\n")
         os.link(oldfile, newpath)
@@ -167,14 +171,14 @@ class MetagenomeseqTool(Tool):
     def get_metagenomeseq_filesname(self):
         filelist = os.listdir(self.work_dir + '/metagenomeseq')
         diff = None
-        #roc_auc = None
+        list = None
         for name in filelist:
             if 'diff.xls' in name:
                 diff = name
-            #elif 'roc_auc.xls' in name:
-                #roc_auc = name
-        if (diff):
-            return [diff]
+            elif 'list.xls' in name:
+                list = name
+        if (diff and list):
+            return [diff,list]
         else:
             self.set_error("未知原因，metagenomeSeq计算结果丢失")
     

@@ -17,19 +17,18 @@ class DenovoCluster(Base):
         self._db_name = Config().MONGODB + '_rna'
 
     @report_check
-    def add_cluster(self, params, express_id, sample_tree, gene_tree, heatmap_path, name=None):
+    def add_cluster(self, params, express_id, sample_tree=None, gene_tree=None, name=None, samples=None, genes=None):
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
                 express_id = ObjectId(express_id)
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        with open(sample_tree, 'rb') as s, open(gene_tree, 'rb') as g, open(heatmap_path, 'rb') as h:
-            sample_tree = s.readlines()[0].strip('\n')
-            gene_tree = g.readlines()[0].strip('\n')
-            samples = h.readline().strip('\n').split('\t')
-            genes = list()
-            for line in h:
-                genes.append(line.strip().split('\t')[0])
+        if gene_tree:
+            with open(gene_tree, 'rb') as g:
+                gene_tree = g.readlines()[0].strip('\n')
+        if sample_tree:
+            with open(sample_tree, 'rb') as s:
+                sample_tree = s.readlines()[0].strip('\n')
         params['diff_fpkm'] = str(express_id)
         insert_data = {
             'project_sn': project_sn,
@@ -64,12 +63,12 @@ class DenovoCluster(Base):
             for line in f:
                 line = line.strip().split('\t')
                 data = [
-                    ('sub_cluster', sub),
+                    ('sub_cluster', int(sub)),
                     ('cluster_id', cluster_id),
                     ('gene_id', line[0])
                 ]
                 for i in range(len(head)):
-                    data.append((head[i], line[i + 1]))
+                    data.append((head[i], round(float(line[i + 1]), 4)))
                 data = SON(data)
                 data_list.append(data)
         try:

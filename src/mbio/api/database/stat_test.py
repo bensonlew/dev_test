@@ -282,7 +282,7 @@ class StatTest(Base):
                 "project_sn": project_sn,
                 "task_id": task_id,
                 "otu_id": from_otu_table,
-                "name": name if name else "difference_stat_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+                "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "DiffStatTwoSample_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
                 "level_id": int(level),
                 "params": params,
                 "desc": desc,
@@ -296,7 +296,6 @@ class StatTest(Base):
                 "task_id": task_id,
                 "otu_id": from_otu_table,
                 "group_id": group_id,
-                "name": name if name else "difference_stat_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
                 "level_id": int(level),
                 "params": params,
                 "desc": desc,
@@ -304,6 +303,10 @@ class StatTest(Base):
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "category_name": category_name
             }
+            if check_type == 'two_group':
+                insert_data['name'] = self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "DiffStatTwoGroup_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            else:
+                insert_data['name'] = self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "DiffStatMultiple_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         collection = self.db["sg_species_difference_check"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
@@ -330,7 +333,7 @@ class StatTest(Base):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "lefse_lda_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": name if name else "Lefse_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "lda_cladogram_id": "",
             "lda_png_id": "",

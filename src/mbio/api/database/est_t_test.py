@@ -25,7 +25,7 @@ class EstTTest(Base):
         return another
 
     @report_check
-    def add_est_t_test_detail(self, file_path, table_id):
+    def add_est_t_test_detail(self, file_path, table_id, group_name=None):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
                 table_id = ObjectId(table_id)
@@ -54,6 +54,8 @@ class EstTTest(Base):
         try:
             collection = self.db["sg_alpha_ttest_detail"]
             collection.insert_many(data_list)
+            collection_main = self.db["sg_alpha_ttest"]
+            collection_main.update({"_id": ObjectId(table_id)}, {"$set": {"compare_column": group_name}})
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
         else:
@@ -81,7 +83,7 @@ class EstTTest(Base):
                 "task_id": task_id,
                 "otu_id": otu_id,
                 "alpha_diversity_id": from_est_id,
-                "name": name if name else "多样性指数T检验结果表",
+                "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "多样性指数T检验结果表",
                 "level_id": int(level_id),
                 "group_id": group_id,
                 "compare_column": group_name,

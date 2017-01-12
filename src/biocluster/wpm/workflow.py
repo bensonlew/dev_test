@@ -47,7 +47,7 @@ class WorkflowWorker(Process):
 
         try:
             if self.wsheet.type == "workflow":
-                path = self.wsheet.type
+                path = self.wsheet.name
             else:
                 path = "single"
             workflow_module = load_class_by_path(path, "Workflow")

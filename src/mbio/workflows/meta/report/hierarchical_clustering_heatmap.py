@@ -5,6 +5,7 @@
 import os
 import json
 import datetime
+import shutil
 import re
 from biocluster.core.exceptions import OptionError
 from biocluster.workflow import Workflow
@@ -21,10 +22,12 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
             {"name": "level", "type": "string", "default": "9"},  # 输入的OTU level
             {"name": "group_detail", "type": "string"},  # 输入的group_detail 示例如下
             # {"A":["578da2fba4e1af34596b04ce","578da2fba4e1af34596b04cf","578da2fba4e1af34596b04d0"],"B":["578da2fba4e1af34596b04d1","578da2fba4e1af34596b04d3","578da2fba4e1af34596b04d5"],"C":["578da2fba4e1af34596b04d2","578da2fba4e1af34596b04d4","578da2fba4e1af34596b04d6"]}
-            {"name": "species_number", "type": "string", "default": "all"},  # 物种数目，默认全部物种
+            {"name": "species_number", "type": "string", "default": ""},  # 物种数目，默认全部物种
             {"name": "method", "type": "string", "default": ""},  # 物种层次聚类方式，默认不聚类
             {"name": "sample_method", "type": "string", "default": ""},  # 样本层次聚类方式，默认不聚类
             {"name": "add_Algorithm", "type": "string", "default": ""},  # 分组样本求和算法，默认不求和
+            {"name": "update_info", "type": "string"},
+            {"name": "main_id", "type": "string"},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -35,6 +38,7 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
         self.hcluster = self.add_tool('meta.beta_diversity.hcluster')
         group_table_path = os.path.join(self.work_dir, "group_table.xls")
         self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table_path)
+        self.s2_file_path = ""  #
 
     def check_options(self):
         if self.option('method') not in ['average', 'single', 'complete', ""]:
@@ -43,24 +47,82 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
             raise OptionError('错误的样本层次聚类方式：%s' % self.option('sample_method'))
         if self.option('add_Algorithm') not in ['sum', 'average', 'middle', ""]:
             raise OptionError('错误的样本求和方式：%s' % self.option('add_Algorithm'))
+        # if (self.option("method") != "" and self.option("species_number") != ("" and "all")):
+        if self.option("method") != "" :
+            if (self.option("species_number") != "" and self.option("species_number") != "all"):
+                if int(self.option("species_number")) == 1:
+                    raise OptionError('物种聚类的个数不能为：%s' % self.option('species_number'))
+        # if self.option("sample_method") != "":
+        #     print(self.group_table_path)
+        #     sample_n = open(self.group_table_path, "r")
+        #     content = sample_n.readlines()
+        #     if len(content) == 2:
+        #         raise OptionError('样本聚类的个数不能为：1' )
+        #     if self.option("add_Algorithm") != "":
+        #         sample_ = []
+        #         sample_n2 = open(self.group_table_path, "r")
+        #         content = sample_n2.readlines()
+        #         for f in content:
+        #             f = f.strip("\n")
+        #             arr = f.strip().split("\t")
+        #             if arr[0] != "#sample":
+        #                 if arr[1] not in sample_:
+        #                     sample_.append(arr[1])
+        #         if len(sample_) == 1:
+        #             raise OptionError('当计算分组丰度并且进行样本聚类的分析时,样本分组不能为1' )
 
     def get_species(self):
         global new_otu_file_path
         old_otu_file_path = self.option("in_otu_table").prop["path"]
-        if self.option("species_number") == "all":
-            s2_file_path = os.path.join(self.work_dir,"s_otu_table.xls")
-            s1 = open(old_otu_file_path,'r')
-            contento = s1.readlines()
-            for n in contento:
-                n = n.strip("\n")
-                brr = n.strip().split(" ")
-                if brr[0] == "OTU":
-                    with open(s2_file_path, "a") as w:
-                        w.write(brr[0] + " " + brr[1] + "\n")
-                else:
-                    with open(s2_file_path, "a") as w:
-                        w.write(brr[-1] + "\n")
-            new_otu_file_path = s2_file_path
+
+        if self.option("sample_method") != "":  # 判断是否能做聚类
+            print(self.group_table_path)
+            sample_n = open(self.group_table_path, "r")
+            content = sample_n.readlines()
+            if len(content) == 2:
+                raise OptionError('样本聚类的个数不能为：1' )
+            if self.option("add_Algorithm") != "":
+                sample_ = []
+                sample_n2 = open(self.group_table_path, "r")
+                content = sample_n2.readlines()
+                for f in content:
+                    f = f.strip("\n")
+                    arr = f.strip().split("\t")
+                    if arr[0] != "#sample":
+                        if arr[1] not in sample_:
+                            sample_.append(arr[1])
+                if len(sample_) == 1:
+                    raise OptionError('当计算分组丰度并且进行样本聚类的分析时,样本分组不能为1' )
+
+        # if self.option("species_number") == "all":
+        #     self.s2_file_path = os.path.join(self.work_dir, "s_otu_table.xls")
+        #     s1 = open(old_otu_file_path, 'r')
+        #     contento = s1.readlines()
+        #     for n in contento:
+        #         n = n.strip("\n")
+        #         brr = n.strip().split(" ")
+        #         if brr[0] == "OTU":
+        #             with open(self.s2_file_path, "a") as w:
+        #                 w.write(brr[0] + " " + brr[1] + "\n")
+        #         else:
+        #             with open(self.s2_file_path, "a") as w:
+        #                 w.write(brr[-1] + "\n")
+        #     new_otu_file_path = self.s2_file_path
+
+        self.s2_file_path = os.path.join(self.work_dir, "s_otu_table.xls")
+        s1 = open(old_otu_file_path, 'r')
+        contento = s1.readlines()
+        for n in contento:
+            n = n.strip("\n")
+            brr = n.strip().split(" ")
+            if brr[0] == "OTU":
+                with open(self.s2_file_path, "a") as w:
+                    w.write(brr[0] + " " + brr[1] + "\n")
+            else:
+                with open(self.s2_file_path, "a") as w:
+                    w.write(brr[-1] + "\n")
+        new_otu_file_path = self.s2_file_path
+
         middle_otu_file_path = os.path.join(self.work_dir, "middle_otu_table.xls")
         old_file = open(old_otu_file_path, 'r')
         content = old_file.readlines()
@@ -86,10 +148,10 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
         list1.reverse()  # print(list1)
 
         list2 = [] # 放入sum值 为重复做准备
-        if self.option("species_number") != "all":
+        if (self.option("species_number") != "all" and self.option("species_number") != ""):
             species_nu = int(self.option("species_number"))
             if species_nu >= all:
-                new_otu_file_path = s2_file_path
+                new_otu_file_path = self.s2_file_path
             else:
                 new_otu_file_path = os.path.join(self.work_dir, "new_otu_table.xls")
                 middle_file = open(middle_otu_file_path, "r")
@@ -130,7 +192,7 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
                 self.sort_samples.on("end", self.run_sample_matrix)
         else:
             self.sort_samples.on("end", self.run_matrix)
-        self.output_dir = self.sort_samples.output_dir
+        # self.output_dir = self.sort_samples.output_dir
         self.sort_samples.run()
 
     def run_matrix(self):
@@ -191,12 +253,6 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
                     species_tree = f.readline().strip()
                     raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', species_tree)
                     species_list = [i[1] for i in raw_samp]
-            # api_heat_cluster = self.api.heat_cluster  #调用画图热图的
-            # name = "heat_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            # newick_id_species = api_heat_cluster.create_newick_table(self.sheet.params, self.option("method"), myParams["otu_id"], name)
-            # self.hcluster.option("newicktree").get_info()
-            # api_heat_cluster.update_newick(self.hcluster.option("newicktree").prop['path'], newick_id_species)
-            # self.add_return_mongo_id("sg_newick_tree", newick_id_species, "", False)
         if self.option("sample_method") != "":
             sample_tree_path = self.sample_hcluster.option("newicktree").prop['path']
             if os.path.exists(sample_tree_path):
@@ -204,26 +260,39 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
                     sample_tree = f.readline().strip()
                     raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', sample_tree)
                     sample_list = [i[1] for i in raw_samp]
-
-            # api_sample_cluster = self.api.heat_cluster
-            # name = "sample_cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            # newick_id_sample = api_sample_cluster.create_newick_table(self.sheet.params, self.option("sample_method"), myParams["otu_id"], name)
-            # self.sample_hcluster.option("newicktree").get_info()
-            # api_sample_cluster.update_newick(self.sample_hcluster.option("newicktree").prop['path'], newick_id_sample)
-            # self.add_return_mongo_id("sg_newick_tree", newick_id_sample, "", False)
-
+        # else:
+            # if self.option("add_Algorithm") != "":
+        if (self.option("add_Algorithm") != "" and self.option("sample_method") == ""):
+            sample_name = open(self.group_table_path, "r")
+            content = sample_name.readlines()
+            for f in content:
+                f = f.strip("\n")
+                arr = f.strip().split("\t")
+                if arr[0] != "#sample":
+                    if arr[1] not in sample_list:
+                        sample_list.append(arr[1])
         api_otu = self.api.hierarchical_clustering_heatmap
-        new_otu_id = api_otu.add_sg_hc_heatmap(self.sheet.params, self.option("input_otu_id"), None, sample_tree = sample_tree, sample_list = sample_list, species_tree = species_tree, species_list = species_list)
-        # new_otu_id = api_otu.add_sg_hc_heatmap(self.sheet.params, self.option("input_otu_id"), None, newick_id_sample, newick_id_species)
-        api_otu.add_sg_hc_heatmap_detail(self.sort_samples.option("out_otu_table").prop["path"], new_otu_id, self.option("input_otu_id"))
-        self.add_return_mongo_id("sg_hc_heatmap", new_otu_id)
+        # new_otu_id = api_otu.add_sg_hc_heatmap(self.sheet.params, self.option("input_otu_id"), None,
+        #                                        sample_tree = sample_tree, sample_list = sample_list,
+        #                                        species_tree = species_tree, species_list = species_list)
+        api_otu.add_sg_hc_heatmap_detail(self.sort_samples.option("out_otu_table").prop["path"], self.option("main_id"), self.option("input_otu_id"),
+                                         sample_tree=sample_tree, sample_list=sample_list,
+                                         species_tree = species_tree, species_list = species_list)
+        # self.add_return_mongo_id("sg_hc_heatmap", self.option("main_id"))
         self.end()
 
     def end(self):
+        shutil.copy(self.sort_samples.output_dir + "/out_otu.xls", self.output_dir + "/out_otu.xls")
+        if os.path.exists(self.sample_hcluster.output_dir + "/hcluster.tre"):
+            shutil.copy(self.sample_hcluster.output_dir + "/hcluster.tre", self.output_dir + "/sample_hcluster.tre")
+        if os.path.exists(self.hcluster.output_dir + "/hcluster.tre"):
+            shutil.copy(self.hcluster.output_dir + "/hcluster.tre", self.output_dir + "/species_hcluster.tre")
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "HierarchicalClusteringHeatmap分析结果输出目录"],
-            ["./out_otu.xls", "xls", "HierarchicalClusteringHeatmap分析可视化结果数据表"]
+            ["./out_otu.xls", "xls", "HierarchicalClusteringHeatmap分析可视化结果数据表"],
+            ["./sample_hcluster.tre", "tre", "样本聚类树"],
+            ["./species_hcluster.tre", "tre", "物种聚类树"]
         ])
         super(HierarchicalClusteringHeatmapWorkflow, self).end()
 

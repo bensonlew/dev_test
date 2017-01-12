@@ -34,7 +34,7 @@ class Otunetwork(Base):
                 line_data = line.split('\t')
                 data_list1.append(line_data)
             data = [("network_id", table_id), ("transitivity", eval(data_list1[0][1])),
-                    ("diameter", eval(data_list1[1][1])), ("average_shortest_path_length", eval(data_list1[2][1]))]
+                    ("diameter", str(data_list1[1][1])), ("average_shortest_path_length", str(data_list1[2][1]))]
             data_son = SON(data)
             data_list.append(data_son)
         try:
@@ -266,7 +266,7 @@ class Otunetwork(Base):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "otunetwork_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "otunetwork_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "level_id": level_id,
             "desc": desc,
@@ -276,4 +276,3 @@ class Otunetwork(Base):
         collection = self.db["sg_network"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
-

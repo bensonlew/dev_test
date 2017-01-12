@@ -10,6 +10,7 @@ import types
 from mainapp.models.mongo.meta import Meta
 import datetime
 from mainapp.controllers.project.meta_controller import MetaController
+import datetime
 
 
 class MultiAnalysis(MetaController):
@@ -46,18 +47,18 @@ class MultiAnalysis(MetaController):
         env_id = None
         env_labs = ''
         dist_method = ''
+        group_id = data.group_id if data.group_id in ['all', 'All', 'ALL'] else ObjectId(data.group_id)
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
             ('otu_id', ObjectId(data.otu_id)),
             ('table_type', data.analysis_type),
             ('status', 'start'),
-            ('group_id', ObjectId(data.group_id)),
+            ('group_id', group_id,
             ('desc', '正在计算'),
             ('name', main_table_name),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-            ("level_id", int(data.level_id)),
-            ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':')))
+            ("level_id", int(data.level_id))
         ]
         sample_len = sum([len(i) for i in group_detail.values()])
         if data.analysis_type == 'pca':
@@ -125,7 +126,7 @@ class MultiAnalysis(MetaController):
             except ValueError:
                 info = {'success': False, 'info': 'group_detail格式不正确!:%s' % data.group_detail}
                 return json.dumps(info)
-            params_json['group_detail'] = group_detail_sort(data.group_detail)
+            # params_json['group_detail'] = group_detail_sort(data.group_detail)
             if len(group) < 2:
                 info = {'success': False, 'info': '不可只选择一个分组'}
                 return json.dumps(info)
@@ -150,18 +151,28 @@ class MultiAnalysis(MetaController):
             'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
             }
         to_file = ['meta.export_otu_table_by_detail(otu_file)']
+        mongo_data.append(('env_id', env_id))
         if env_id:
-            mongo_data.append(('env_id', env_id))
+            mongo_data.append(('env_labs', data.env_labs))
             to_file.append('env.export_env_table(env_file)')
             options['env_file'] = data.env_id
             options['env_id'] = data.env_id
+        mongo_data.append(('params', json.dumps(params_json, sort_keys=True, separators=(',', ':'))))
+        main_table_id = meta.insert_main_table('sg_beta_multi_analysis', mongo_data)
+        update_info = {str(main_table_id): 'sg_beta_multi_analysis'}
+        options['update_info'] = json.dumps(update_info)
+        options['main_id'] = str(main_table_id)
         if data.analysis_type == 'plsda':
             to_file.append('meta.export_group_table_by_detail(group_file)')
             options['group_file'] = data.group_id
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(MultiAnalysis, self).POST()
-        print(self.return_msg)
+        task_info['content'] = {
+            'ids': {
+                'id': str(main_table_id),
+                'name': main_table_name
+                }}
         return json.dumps(task_info)
 
     def check_objectid(self, in_id):
@@ -176,3 +187,10 @@ class MultiAnalysis(MetaController):
         else:
             return False
         return in_id
+
+    # @staticmethod
+    # def get_main_table_name(analysis_type, level_id, dist_method=None):
+    #     time_now =
+    #     if analysis_type == 'pca':
+    #         return 'PCA_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    #     if analysis_type = 'pcoa':
