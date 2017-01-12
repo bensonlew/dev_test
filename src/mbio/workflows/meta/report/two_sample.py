@@ -80,7 +80,6 @@ class TwoSampleWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(ci_path))
         api_two_sample.add_species_difference_check_detail(statfile=two_sample_path, cifiles=[ci_path], table_id=self.option('main_id'), level=self.option("level"), check_type='two_sample', params=self.option("params"), group_id=None, from_otu_table=params["otu_id"], major=False, posthoc=None)
         api_two_sample.update_species_difference_check(self.option('main_id'), two_sample_path, ci_path, 'twosample')
-        self.add_return_mongo_id('sg_species_difference_check', self.option('main_id'))
         self.end()
 
     def run(self):

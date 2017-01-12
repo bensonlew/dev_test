@@ -107,7 +107,6 @@ class TwoGroupWorkflow(Workflow):
         print bar_path
         api_two_group.add_species_difference_check_barplot(bar_path, self.option('main_id'))
         api_two_group.update_species_difference_check(self.option('main_id'), stat_path, ci_path, 'twogroup')
-        self.add_return_mongo_id('sg_species_difference_check', self.option('main_id'))
         self.end()
 
     def run(self):
