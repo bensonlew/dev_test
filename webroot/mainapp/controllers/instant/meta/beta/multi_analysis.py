@@ -47,13 +47,14 @@ class MultiAnalysis(MetaController):
         env_id = None
         env_labs = ''
         dist_method = ''
+        group_id = data.group_id if data.group_id in ['all', 'All', 'ALL'] else ObjectId(data.group_id)
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
             ('otu_id', ObjectId(data.otu_id)),
             ('table_type', data.analysis_type),
             ('status', 'start'),
-            ('group_id', ObjectId(data.group_id)),
+            ('group_id', group_id,
             ('desc', '正在计算'),
             ('name', main_table_name),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -150,8 +151,8 @@ class MultiAnalysis(MetaController):
             'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
             }
         to_file = ['meta.export_otu_table_by_detail(otu_file)']
+        mongo_data.append(('env_id', env_id))
         if env_id:
-            mongo_data.append(('env_id', env_id))
             mongo_data.append(('env_labs', data.env_labs))
             to_file.append('env.export_env_table(env_file)')
             options['env_file'] = data.env_id
@@ -186,3 +187,10 @@ class MultiAnalysis(MetaController):
         else:
             return False
         return in_id
+
+    # @staticmethod
+    # def get_main_table_name(analysis_type, level_id, dist_method=None):
+    #     time_now =
+    #     if analysis_type == 'pca':
+    #         return 'PCA_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    #     if analysis_type = 'pcoa':

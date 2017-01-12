@@ -59,6 +59,8 @@ class Newicktree(Base):
         else:
             if tree_id is None:
                 raise Exception("major为False时需提供tree_id!")
+            if not isinstance(tree_id, ObjectId):
+                tree_id = ObjectId(tree_id)
         # update value
         self.bind_object.logger.info('update_dist_id: {}'.format(update_dist_id))
         if update_dist_id:
