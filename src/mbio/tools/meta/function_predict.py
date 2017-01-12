@@ -11,7 +11,7 @@ import shutil
 import re
 import subprocess
 import itertools
-from mbio.packages.annonation.kegg.kegg_annotation_v1 import KeggAnnotation
+from mbio.packages.annotation.kegg.kegg_annotation_v1 import KeggAnnotation
 
 
 class FunctionPredictAgent(Agent):

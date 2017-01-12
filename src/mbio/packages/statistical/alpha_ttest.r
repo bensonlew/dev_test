@@ -27,7 +27,15 @@ for(i in 1:nrow(otu_data)){
   me2 <- mean(o2)
   sd1 <- sd(o1)
   sd2 <- sd(o2)
-  tt <- t.test(o1,o2,var.equal = TRUE,alternative = "two.side",conf.level = 0.95)
+  #tt <- t.test(o1,o2,var.equal = TRUE,alternative = "two.side",conf.level = 0.95)
+  test <- "${choose_test}"
+  if(test == "student"){
+    tt <- t.test(o1,o2,var.equal = TRUE,alternative = "two.side",conf.level = 0.95)
+  }else if(test == "welch"){
+    tt <- t.test(o1,o2,var.equal = FALSE,alternative = "two.side",conf.level = 0.95)
+  }else{
+    tt <- wilcox.test(o1,o2,alternative = "two.side",exact = F,conf.level = 0.95)
+  }
   pvalue <- c(pvalue,tt$p.value)
   result[i,] = c(rownames(otu_data)[i],me1,sd1,me2,sd2)
 }

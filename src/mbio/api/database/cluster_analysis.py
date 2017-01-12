@@ -72,7 +72,7 @@ class ClusterAnalysis(Base):
                 sample_num = line[1:]
                 classify_list = re.split(r"\s*;\s*", line[0])
                 otu_detail = dict()
-                otu_detail['otu_id'] = new_otu_id
+                otu_detail['otu_id'] = ObjectId(new_otu_id)
                 for cf in classify_list:
                     if cf != "":
                         otu_detail[cf[0:3].lower()] = cf
@@ -91,7 +91,7 @@ class ClusterAnalysis(Base):
         insert_data = list()
         for sp in new_head:
             my_data = dict()
-            my_data['otu_id'] = new_otu_id
+            my_data['otu_id'] = ObjectId(new_otu_id)
             my_data["specimen_id"] = self.name_id[sp]
             insert_data.append(my_data)
         collection = self.db['sg_otu_specimen']

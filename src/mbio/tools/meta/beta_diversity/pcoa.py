@@ -54,6 +54,7 @@ class PcoaAgent(Agent):
             [".", "", "pcoa分析结果目录"],
             ["./pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
             ["./pcoa_sites.xls", "xls", "样本坐标表"],
+            ["./pcoa_eigenvaluespre.xls", "xls", "特征解释度百分比"],
         ])
         # print self.get_upload_files()
         super(PcoaAgent, self).end()
@@ -98,14 +99,16 @@ class PcoaTool(Tool):
             self.set_error('R程序计算pcoa失败')
         allfile = self.get_filesname()
         sites_file = self.format_header(allfile[1])
-        eigenvalues = self.format_eigenvalues(allfile[0])
+        eigenvalues = self.format_eigenvalues(allfile[0], self.work_dir + '/format_eigenvalues.txt')
+        eigenvaluespre = self.format_eigenvalues(allfile[2], self.work_dir + '/format_eigenvaluespre.txt')
         self.linkfile(eigenvalues, 'pcoa_eigenvalues.xls')
+        self.linkfile(eigenvaluespre, 'pcoa_eigenvaluespre.xls')
         self.linkfile(sites_file, 'pcoa_sites.xls')
         self.logger.info('运行ordination.pl程序计算pcoa完成')
         self.end()
 
-    def format_eigenvalues(self, fp):
-        new_fp = self.work_dir + '/format_eigenvalues.txt'
+    def format_eigenvalues(self, fp, new_fp):
+        # new_fp = self.work_dir + '/format_eigenvalues.txt'
         with open(fp) as f, open(new_fp, 'w') as w:
             w.write(f.readline())
             for i in f:
@@ -151,13 +154,17 @@ class PcoaTool(Tool):
         """
         filelist = os.listdir(self.work_dir + '/pcoa')
         pcoa_eigenvalues_file = None
+        pcoa_eigenvaluespre_file = None
         pcoa_sites_file = None
         for name in filelist:
-            if 'pcoa_eigenvalues.xls' in name:
+            if name.endswith('pcoa_eigenvalues.xls'):
                 pcoa_eigenvalues_file = name
-            elif 'pcoa_sites.xls' in name:
+            elif name.endswith('pcoa_sites.xls'):
                 pcoa_sites_file = name
+            elif name.endswith('pcoa_eigenvaluespre.xls'):
+                pcoa_eigenvaluespre_file = name
         if pcoa_eigenvalues_file and pcoa_sites_file:
-            return [self.work_dir + '/pcoa/' + pcoa_eigenvalues_file, self.work_dir + '/pcoa/' + pcoa_sites_file]
+            return [self.work_dir + '/pcoa/' + pcoa_eigenvalues_file, self.work_dir + '/pcoa/' + pcoa_sites_file,
+                    self.work_dir + '/pcoa/' + pcoa_eigenvaluespre_file]
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')

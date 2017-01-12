@@ -195,14 +195,54 @@ class NPca(Base):
                 #insert_data['name']=values[0]
                 #values_dict = dict(zip(columns,values[1:]))
                 #a<-len(values)
-                    
-                data_temp = zip(columns,values[1:])
+                columns1 = []
+                for ka in columns:
+                    columns1.append(ka.strip("\""))
+                data_temp = zip(columns1,values[1:])
+                a_id = ("npca_id", table_id)
+                data_temp.append(a_id)
                 #print data_temp
                 #collection.insert_many(data_temp)
                 data_son = SON(data_temp)
                 data_list.append(data_son)
         try:
-            collection = self.db["sg_n_pca_importance"]
+            collection = self.db["sg_npca_importance"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
+        else:
+            self.bind_object.logger.info("导入%s信息成功!" % file_path)
+        return data_list
+        
+    # @report_check
+    def add_n_pca_sitesall(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
+        if major:
+            table_id = self.create_environmental_regression(self, params, group_id, from_otu_table, level_id)
+        else:
+            #if table_id is None:
+                #raise Exception("major为False时需提供table_id!")
+            if not isinstance(table_id, ObjectId):
+                if isinstance(table_id, StringTypes):
+                    table_id = ObjectId(table_id)
+            else:
+                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
+        data_list = []
+
+        a1 = len(file_path)
+        a2 = len(file_path[0])
+        with open(file_path, 'rb') as r:
+            i = 0
+            for line in r:
+                if i == 0:
+                    i = 1
+                else:
+                    line = line.strip('\n')
+                    line_data = line.split('\t')
+                    data = [("npca_id", table_id), ("newnames", line_data[1].strip("\"")), ("sample", line_data[2].strip("\"")), ("highgroup", line_data[3].strip("\"")), ("lowgroup", line_data[4].strip("\"")), ("pca_value", line_data[5]), ("pcai", line_data[6].strip("\"")), ("pca_max_value", line_data[7]), ("pca_min_value", line_data[8])]
+                    data_son = SON(data)
+                    data_list.append(data_son)
+        try:
+            collection = self.db["sg_npca_site"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
