@@ -27,7 +27,7 @@ class PanCore(MetaController):
         task_name = 'meta.report.pan_core'
         task_type = 'workflow'
         time_now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        main_table_name = 'Pan_Core_' + time_now
+        main_table_name = 'PanCore_' + time_now
         otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}

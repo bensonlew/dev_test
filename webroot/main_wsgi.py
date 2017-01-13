@@ -35,9 +35,19 @@ from mainapp.controllers.instant.meta.mantel_test import MantelTest
 from mainapp.controllers.instant.meta.hierarchical_clustering_heatmap import HierarchicalClusteringHeatmap
 from mainapp.controllers.instant.meta.enterotyping import Enterotyping
 from mainapp.controllers.submit.meta.function_predict import FunctionPredict
-
+from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
+from mainapp.controllers.submit.denovo_rna.cluster import Cluster
+from mainapp.controllers.instant.denovo_rna.denovo_venn import DenovoVenn
+from mainapp.controllers.submit.denovo_rna.go_enrich_regulate import GoEnrichRegulate
+from mainapp.controllers.submit.denovo_rna.network import Network
+from mainapp.controllers.submit.meta.meta_sourcetracker import MetaSourcetracker
 # web.config.debug = False
 urls = (
+    "/denovo_rna/network", "Network",
+    "/denovo_rna/cluster", "Cluster",
+    "/denovo_rna/diff_express", "DiffExpress",
+    "/denovo_rna/denovo_venn", "DenovoVenn",
+    "/denovo_rna/go_enrich_regulate", "GoEnrichRegulate",
     "/hello", "hello",
     "/filecheck", "FileCheck",
     "/filecheck/multi", "MultiFileCheck",
@@ -79,7 +89,8 @@ urls = (
     "/meta/mantel_test", "MantelTest",
     "/meta/hierarchical_clustering_heatmap", "HierarchicalClusteringHeatmap",
     "/meta/enterotyping", "Enterotyping",
-    "/meta/function_predict", "FunctionPredict"
+    "/meta/function_predict", "FunctionPredict",
+    "/meta/meta_sourcetracker", "MetaSourcetracker"
 )
 
 

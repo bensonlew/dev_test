@@ -9,20 +9,19 @@ from mainapp.models.mongo.meta import Meta
 
 
 class OtuSubsample(MetaController):
+
     def __init__(self):
         super(OtuSubsample, self).__init__(instant=True)
 
     def POST(self):
-        #return_info = super(OtuSubsample, self).POST()
-        #if return_info:
-         #   return return_info
         data = web.input()
-        postArgs = ['size', 'submit_location', "otu_id", "task_type", "group_detail", "group_id", "filter_json"]
+        postArgs = ['size', 'submit_location', "otu_id",
+                    "task_type", "group_detail", "group_id", "filter_json"]
         for arg in postArgs:
             if not hasattr(data, arg):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
-        
+
         meta = Meta()
         otu_info = meta.get_otu_table_info(data.otu_id)
         if not otu_info:
@@ -30,7 +29,8 @@ class OtuSubsample(MetaController):
             return json.dumps(info)
         task_info = meta.get_task_info(otu_info['task_id'])
         task_type = 'workflow'
-        main_table_name = 'OTU_taxon_analysis' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'OTUTaxonAnalysis_' + \
+            datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
         my_param = dict()
         my_param["group_id"] = data.group_id
@@ -41,7 +41,6 @@ class OtuSubsample(MetaController):
         my_param["group_detail"] = group_detail_sort(data.group_detail)
         my_param["task_type"] = data.task_type
         params = param_pack(my_param)
-        #self.run()
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -69,10 +68,11 @@ class OtuSubsample(MetaController):
             "params": params,
             'main_id': str(main_table_id)
         }
-
         to_file = "meta.export_otu_table_by_level(in_otu_table)"
         task_name = 'meta.report.otu_subsample'
-        self.set_sheet_data(name = task_name, options = options, main_table_name= main_table_name, module_type= task_type, to_file= to_file)
+        self.set_sheet_data(name=task_name, options=options,
+                            main_table_name=main_table_name, module_type=task_type, to_file=to_file)
         task_info = super(OtuSubsample, self).POST()
-        task_info['content'] = {'ids':{'id':str(main_table_id),'name':main_table_name}}
+        task_info['content'] = {
+            'ids': {'id': str(main_table_id), 'name': main_table_name}}
         return json.dumps(task_info)

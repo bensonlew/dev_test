@@ -40,7 +40,7 @@ class Hcluster(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type
         }
-        main_table_name = 'Hcluster_' + data.hcluster_method + \
+        main_table_name = 'Hcluster' + data.hcluster_method.capitalize() + \
             '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
             ('project_sn', task_info['project_sn']),

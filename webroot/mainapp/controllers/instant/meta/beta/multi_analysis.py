@@ -33,8 +33,7 @@ class MultiAnalysis(MetaController):
             return json.dumps(info)
         task_info = meta.get_task_info(otu_info['task_id'])
         group_detail = group_detail_sort(data.group_detail)
-        main_table_name = data.analysis_type.capitalize() + \
-            '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = MultiAnalysis.get_main_table_name(data.analysis_type)
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
@@ -54,7 +53,7 @@ class MultiAnalysis(MetaController):
             ('otu_id', ObjectId(data.otu_id)),
             ('table_type', data.analysis_type),
             ('status', 'start'),
-            ('group_id', group_id,
+            ('group_id', group_id),
             ('desc', '正在计算'),
             ('name', main_table_name),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -188,9 +187,20 @@ class MultiAnalysis(MetaController):
             return False
         return in_id
 
-    # @staticmethod
-    # def get_main_table_name(analysis_type, level_id, dist_method=None):
-    #     time_now =
-    #     if analysis_type == 'pca':
-    #         return 'PCA_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    #     if analysis_type = 'pcoa':
+    @staticmethod
+    def get_main_table_name(analysis_type):
+        time_now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        if analysis_type == 'pca':
+            return 'PCA_' + time_now
+        elif analysis_type == 'pcoa':
+            return 'PCoA_' + time_now
+        elif analysis_type == 'nmds':
+            return 'NMDS_' + time_now
+        elif analysis_type == 'plsda':
+            return 'PLS-DA_' + time_now
+        elif analysis_type == 'dbrda':
+            return 'db-RDA_' + time_now
+        elif analysis_type == 'rda_cca':
+            return 'RDACCA_' + time_now
+        else:
+            raise Exception('错误的分析类型')
