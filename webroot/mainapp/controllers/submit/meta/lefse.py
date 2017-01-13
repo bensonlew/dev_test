@@ -49,7 +49,7 @@ class Lefse(MetaController):
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         otu_info = Meta().get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "Lefse_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            name = "LEfSe_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             lefse_id = G().create_species_difference_lefse(params, data.group_id, data.otu_id, name)
             update_info = {str(lefse_id): "sg_species_difference_lefse"}
             update_info = json.dumps(update_info)

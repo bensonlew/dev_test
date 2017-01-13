@@ -7,6 +7,7 @@ from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.group_stat import GroupStat as G
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.models.mongo.meta import Meta
+from bson.objectid import ObjectId
 
 
 class Multiple(MetaController):
@@ -48,7 +49,7 @@ class Multiple(MetaController):
             "type": 'multiple',
             "project_sn": task_info['project_sn'],
             "task_id": task_info['task_id'],
-            "otu_id": data.otu_id,
+            "otu_id": data.otu_id if isinstance(data.otu_id, ObjectId) else ObjectId(data.otu_id),
             "group_id": data.group_id,
             "name": main_table_name,
             "level_id": int(data.level_id),

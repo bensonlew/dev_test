@@ -13,9 +13,6 @@ class HierarchicalClusteringHeatmap(MetaController):
         super(HierarchicalClusteringHeatmap, self).__init__(instant=True)
 
     def POST(self):
-        # return_info = super(HierarchicalClusteringHeatmap, self).POST()
-        # if return_info:
-        #     return return_info
         data = web.input()
         postArgs = ["otu_id", "level_id", "group_id", "group_detail", "species_number", "method", "task_type", "sample_method", "add_Algorithm"]
         for arg in postArgs:
@@ -43,21 +40,13 @@ class HierarchicalClusteringHeatmap(MetaController):
             "sample_method": data.sample_method,
             "add_Algorithm": data.add_Algorithm
         }
-        main_table_name = 'HierClusteringHeatmap_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        # sample_tree = ""
-        # sample_list = []
-        # species_tree = ""
-        # species_list = []
+        main_table_name = 'CommunityHeatmap_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
             ('otu_id', ObjectId(data.otu_id)),  # maybe ObjectId(data.otu_id)
             ('name', main_table_name),
             ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':'))),
-            # ("sample_tree", sample_tree),
-            # ("sample_list", sample_list),
-            # ("species_tree", species_tree),
-            # ("species_list", species_list),
             ('status', 'start'),
             ('desc', '正在计算'),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -88,31 +77,3 @@ class HierarchicalClusteringHeatmap(MetaController):
                 'name': main_table_name
             }}
         return json.dumps(task_info)
-
-
-
-        # self.options = {
-        #     "input_otu_id": data.otu_id,
-        #     "in_otu_table": data.otu_id,
-        #     "group_detail": data.group_detail,
-        #     "level": str(data.level_id),
-        #     "species_number": data.species_number,  # 筛选物种参数
-        #     "method": data.method,
-        #     "sample_method": data.sample_method,  # 样本聚类方式
-        #     "add_Algorithm": data.add_Algorithm   # 样本求和方式
-        # }
-        # self.to_file = "meta.export_otu_table_by_level(in_otu_table)"    # 暂时不改动同样的方式导表
-        # my_param = dict()
-        # my_param['submit_location'] = data.submit_location
-        # my_param['otu_id'] = data.otu_id
-        # my_param["level_id"] = int(data.level_id)
-        # my_param["group_id"] = data.group_id
-        # my_param['group_detail'] = group_detail_sort(data.group_detail)
-        # my_param['species_number'] = data.species_number   # 筛选物种参数
-        # my_param["method"] = data.method
-        # my_param["task_type"] = data.task_type
-        # my_param["sample_method"] = data.sample_method
-        # my_param["add_Algorithm"] = data.add_Algorithm
-        # self.params = param_pack(my_param)
-        # self.run()
-        # return self.returnInfo
