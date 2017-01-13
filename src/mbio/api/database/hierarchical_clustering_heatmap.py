@@ -90,8 +90,8 @@ class HierarchicalClusteringHeatmap(Base):
                                     {"$set": {
                                         "sample_tree": sample_tree if sample_tree else "()",
                                         "species_tree": species_tree if species_tree else "()",
-                                        "sample_list": sample_list if sample_list else "[]",
-                                        "species_list": species_list if species_list else "[]"}})
+                                        "sample_list": sample_list if sample_list else [],
+                                        "species_list": species_list if species_list else []}})
         except Exception as e:
             self.bind_object.logger.error("导入sg_hc_heatmap_detail表格信息出错:{}".format(e))
         else:
