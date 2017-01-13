@@ -99,7 +99,6 @@ class MultipleWorkflow(Workflow):
         api_multiple.add_species_difference_check_detail(statfile=stat_path, cifiles=cifiles, table_id=self.option('main_id'), level=self.option("level"), check_type='multiple', params=self.option("params"), category_name=self.option('category_name'), group_id=params["group_id"], from_otu_table=params["otu_id"], major=False, posthoc=self.option("methor"))
         api_multiple.add_species_difference_check_boxplot(boxfile_path, self.option('main_id'))
         api_multiple.add_species_difference_check_barplot(bar_path, self.option('main_id'))
-        self.add_return_mongo_id('sg_species_difference_check', self.option('main_id'))
         self.end()
 
     def run(self):

@@ -10,8 +10,8 @@ from bson import ObjectId
 
 
 class CorrNetwork(MetaController):
-    def __int__(self):
-        super(CorrNetwork, self).__int__(instant=True)
+    def __init__(self):
+        super(CorrNetwork, self).__init__(instant=True)
 
     def POST(self):
         data = web.input()
@@ -35,7 +35,7 @@ class CorrNetwork(MetaController):
         task_name = 'meta.report.corr_network'
         task_type = 'workflow'
         task_info = Meta().get_task_info(otu_info['task_id'])
-        main_table_name = 'Corr_Network_' + data.ratio_method + '_' + data.coefficient + '_' + \
+        main_table_name = 'CorrNetwork' + data.ratio_method.capitalize() + '_' + \
                           datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params_json = {
             'otu_id': data.otu_id,
@@ -49,12 +49,16 @@ class CorrNetwork(MetaController):
             'submit_location': data.submit_location,
             'task_type': 'reportTask'
         }
+        if data.group_id == 'all':
+            group__id = data.group_id
+        else:
+            group__id = ObjectId(data.group_id)
 
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
             ('otu_id', ObjectId(data.otu_id)),
-            ('group_id', ObjectId(data.group_id)),
+            ('group_id', group__id),
             ('status', 'start'),
             ('desc', 'corr_network分析'),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
