@@ -67,6 +67,10 @@ class EnterotypingTool(Tool):
 		self._version = "v1"
 		self.enterotyping_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/meta/scripts'
 		self.perl_path = 'program/perl-5.24.0/bin/perl '
+		self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'  # 2016.12.26 by zhouxuan 3
+		self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+		self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
+		# self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')  # 2016.12.26 by zhouxuan
 
 	def run(self):
 		"""

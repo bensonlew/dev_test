@@ -116,6 +116,11 @@ class StatTest(Base):
     @report_check
     def add_species_difference_check_barplot(self, file_path, table_id):
         stat_info, sort_list = self.cat_files(statfile=file_path, cifiles=None)
+        if not isinstance(table_id, ObjectId):
+            if isinstance(table_id, StringTypes):
+                table_id = ObjectId(table_id)
+            else:
+                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
         for name in sort_list:
             data = [
@@ -282,7 +287,7 @@ class StatTest(Base):
                 "project_sn": project_sn,
                 "task_id": task_id,
                 "otu_id": from_otu_table,
-                "name": name if name else "difference_stat_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+                "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "DiffStatTwoSample_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
                 "level_id": int(level),
                 "params": params,
                 "desc": desc,
@@ -296,7 +301,6 @@ class StatTest(Base):
                 "task_id": task_id,
                 "otu_id": from_otu_table,
                 "group_id": group_id,
-                "name": name if name else "difference_stat_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
                 "level_id": int(level),
                 "params": params,
                 "desc": desc,
@@ -304,6 +308,10 @@ class StatTest(Base):
                 "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "category_name": category_name
             }
+            if check_type == 'two_group':
+                insert_data['name'] = self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "DiffStatTwoGroup_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            else:
+                insert_data['name'] = self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "DiffStatMultiple_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         collection = self.db["sg_species_difference_check"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
@@ -330,7 +338,7 @@ class StatTest(Base):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "lefse_lda_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": name if name else "LEfSe_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "lda_cladogram_id": "",
             "lda_png_id": "",

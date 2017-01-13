@@ -43,7 +43,7 @@ class MetaSpeciesEnv(Base):
             "task_id": task_id,
             "env_id": env_id,
             "otu_id": otu_id,
-            "name": name if name else origin_name,
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else origin_name,
             "level_id": level,
             "status": "end",
             "desc": "",
@@ -156,14 +156,14 @@ class MetaSpeciesEnv(Base):
         return inserted_id
 
     @report_check
-    def add_correlation_detail(self, file_path, value_type, correlation_id=None):
+    def add_correlation_detail(self, file_path, value_type, correlation_id=None, species_tree=None, env_tree=None, env_list=None, species_list=None):
         data_list = []
         with open(file_path, "r") as f:
             envs = f.readline().strip().split("\t")[1:]
             for line in f:
                 line = line.strip().split("\t")
                 data = {
-                    "correlation_id": correlation_id,
+                    "correlation_id": ObjectId(correlation_id),
                     "species_name": line[0],
                     "value_type": value_type
                 }
@@ -173,6 +173,13 @@ class MetaSpeciesEnv(Base):
         try:
             collection = self.db["sg_species_env_correlation_detail"]
             collection.insert_many(data_list)
+            main_collection = self.db["sg_species_env_correlation"]
+            main_collection.update({"_id": ObjectId(correlation_id)},
+                                   {"$set": {
+                                    "env_tree": env_tree if env_tree else "()",
+                                    "species_tree": species_tree if species_tree else "()",
+                                    "env_list": env_list if env_list else "[]",
+                                    "species_list": species_list if species_list else "[]"}})
         except Exception, e:
             self.bind_object.logger.info("导入皮尔森相关系数矩阵出错:%s" % e)
         else:

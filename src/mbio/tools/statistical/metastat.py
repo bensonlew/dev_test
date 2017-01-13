@@ -72,7 +72,8 @@ class MetastatAgent(Agent):
             {"name": "chi_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'},  # 两样本计算置信区间的方法
             {"name": "fisher_methor", "type": "string", "default": 'DiffBetweenPropAsymptotic'},  # 两样本计算置信区间的方法
             {"name": "est_group", "type": "infile", "format": "meta.alpha_diversity.group_file_dir"},
-            {"name": "est_input", "type": "infile", "format": "meta.otu.otu_table"}
+            {"name": "est_input", "type": "infile", "format": "meta.otu.otu_table"},
+            {"name": "est_test_method", "type": "string", "default": "student"}  # add by qindanhua 20170105
         ]
         self.add_option(options)
         self.step.add_steps("stat_test")
@@ -361,13 +362,13 @@ class MetastatTool(Tool):
             elif test == "estimator":
                 self.run_est()
 
-    def run_est(self):
+    def run_est(self):    # modify by qindanhua 20170105 add option test method
         gfilelist = os.listdir(self.option("est_group").prop['path'])
         self.logger.info(gfilelist)
         i = 1
         for group in gfilelist:
             est_ttest(self.option('est_input').prop['path'], self.work_dir + '/est_result%s.xls' % i,
-                      os.path.join(self.option("est_group").prop['path'], group))
+                      os.path.join(self.option("est_group").prop['path'], group), self.option("est_test_method"))
             cmd = self.r_path + " run_est_ttest.r"
             self.logger.info("开始运行est_T检验")
             command = self.add_command("est_cmd{}".format(i), cmd).run()

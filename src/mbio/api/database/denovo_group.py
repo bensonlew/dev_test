@@ -18,7 +18,7 @@ class DenovoGroup(Base):
 
     @report_check
     def add_ini_group_table(self, file_path, spname_spid, task_id=None):
-        self.collection = self.db['sg_specimen_group']
+        self.collection = self.db['sg_denovo_specimen_group']
         if task_id is None:
             task_id = self.bind_object.sheet.id
 
@@ -52,9 +52,9 @@ class DenovoGroup(Base):
         try:
             inserted_id = self.collection.insert_one(insert_date).inserted_id
         except Exception as e:
-                self.bind_object.logger.error("导入sg_specimen_group表格{}失败：{}".format(file_path, e))
+                self.bind_object.logger.error("导入sg_denovo_specimen_group表格{}失败：{}".format(file_path, e))
         else:
-            self.bind_object.logger.info("导入sg_specimen_group表格{}成功".format(file_path))
+            self.bind_object.logger.info("导入sg_denovo_specimen_group表格{}成功".format(file_path))
         return inserted_id
 
     def _get_table_info(self, file_path, spname_spid):

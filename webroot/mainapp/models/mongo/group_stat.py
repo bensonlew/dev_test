@@ -82,7 +82,7 @@ class GroupStat(object):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "lefse_lda_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": name if name else "Lefse_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "lda_cladogram_id": "",
             "lda_png_id": "",

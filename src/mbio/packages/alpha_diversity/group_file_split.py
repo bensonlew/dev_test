@@ -25,7 +25,7 @@ def group_file_spilt(group_file, output_dir):
     print(two_group_name)
     n = 1
     for two in two_group_name:
-        with open('two_group_file{}'.format(n), 'wb') as rf:
+        with open(output_dir + '/two_group_file{}'.format(n), 'wb') as rf:
             rf.write(first_line)
             for detail in group_detail_list:
                 # print(detail)
@@ -34,6 +34,6 @@ def group_file_spilt(group_file, output_dir):
                         line = '{}\t{}'.format(detail[0], one)
                         # print(line)
                         rf.write('{}\n'.format(line))
-        shutil.move('two_group_file{}'.format(n), output_dir)
+        # shutil.move(output_dir + '/two_group_file{}'.format(n), output_dir)
         n += 1
     return two_group_name

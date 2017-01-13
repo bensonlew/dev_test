@@ -43,18 +43,18 @@ if ((method == "hclust") || (method == "both")){
     if(cltype=="both"){
         order_mat<-data[hc_genes$order[nrow(data):1],hc_samples$order]
         write.table(order_mat,"hclust/hclust_heatmap.xls",sep="\t",col.names=T,row.names=T,quote=F)
-        # write.table(colnames(data)[hc_samples$order],"hc_sample_order",col.names=F,row.names=F,quote=F)
-        # write.table(rownames(data)[hc_genes$order[nrow(data):1]],"hc_gene_order",col.names=F,row.names=F,quote=F)
+        write.table(colnames(data)[hc_samples$order],"hc_sample_order",col.names=F,row.names=F,quote=F)
+        write.table(rownames(data)[hc_genes$order[nrow(data):1]],"hc_gene_order",col.names=F,row.names=F,quote=F)
     }
     if(cltype=="row"){
         order_mat<-data[hc_genes$order[nrow(data):1],]
         write.table(order_mat,"hclust/hclust_heatmap.xls",sep="\t",col.names=T,row.names=T,quote=F)
-        # write.table(rownames(data)[hc_genes$order[nrow(data):1]],"hc_gene_order",col.names=F,row.names=F,quote=F)
+        write.table(rownames(data)[hc_genes$order[nrow(data):1]],"hc_gene_order",col.names=F,row.names=F,quote=F)
      }
     if(cltype=="col"){
         order_mat<-data[,hc_samples$order]
         write.table(order_mat,"hclust/hclust_heatmap.xls",sep="\t",col.names=T,row.names=T,quote=F)
-        # write.table(colnames(data)[hc_samples$order],"hc_sample_order",col.names=F,row.names=F,quote=F)
+        write.table(colnames(data)[hc_samples$order],"hc_sample_order",col.names=F,row.names=F,quote=F)
      }
 
     ####### newick tree

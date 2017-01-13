@@ -27,6 +27,8 @@ class HclusterWorkflow(Workflow):
             {"name": "level", "type": 'int', "default": 9},
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
+            {"name": "main_id", "type": "string"},
+            {"name": "update_info", "type": "string"},
             {"name": "params", "type": "string"},
             {"name": "group_detail", "type": "string"},
             {"name": "otu_id", "type": "string"},
@@ -154,7 +156,8 @@ class HclusterWorkflow(Workflow):
         shutil.copy2(newick_fath, final_newick_path)
         if not os.path.isfile(newick_fath):
             raise Exception("找不到报告文件:{}".format(newick_fath))
-        return_id = api_newick.add_tree_file(newick_fath, major=False)
+        return_id = api_newick.add_tree_file(newick_fath, major=False, tree_id=self.option('main_id'),
+                                             update_dist_id=matrix_id)
         collection.update_one({"_id": ObjectId(matrix_id)}, {'$set': {'newick_tree_id': ObjectId(return_id)}})
         self.end()
 

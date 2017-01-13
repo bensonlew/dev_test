@@ -50,12 +50,12 @@ class DenovoAssemble(Base):
                 line = line.strip().split('\t')
                 data = [
                     ('stastistic_name', line[0]),
-                    ('transcripts', line[2]),
-                    ('genes', line[1]),
+                    ('transcripts', float(line[2])),
+                    ('genes', float(line[1])),
                     ('sequence_id', sequence_id)
                 ]
                 if line[3] != '--':
-                    data += [('genes_count', line[3]), ('transcripts_count', line[4])]
+                    data += [('genes_count', int(line[3])), ('transcripts_count', int(line[4]))]
                 data = SON(data)
                 data_list.append(data)
         try:
@@ -82,12 +82,12 @@ class DenovoAssemble(Base):
                 line = line.strip().split('\t')
                 data = [
                     ('length', line[0]),
-                    ('transcripts_num', line[3]),
-                    ('genes_num', line[1]),
-                    ('transcripts_per', line[4]),
-                    ('genes_per', line[2]),
+                    ('transcripts_num', int(line[3])),
+                    ('genes_num', int(line[1])),
+                    ('transcripts_per', round(float(line[4]), 4)),
+                    ('genes_per', round(float(line[2]), 4)),
                     ('sequence_id', sequence_id),
-                    ('step', step)
+                    ('step', int(step))
                 ]
                 data = SON(data)
                 data_list.append(data)

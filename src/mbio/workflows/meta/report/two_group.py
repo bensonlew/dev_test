@@ -13,7 +13,6 @@ class TwoGroupWorkflow(Workflow):
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        self.rpc = False
         super(TwoGroupWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
@@ -28,7 +27,9 @@ class TwoGroupWorkflow(Workflow):
             {"name": "group_name", "type": "string"},
             {"name": "coverage", "type": "float"},
             {"name": "params", "type": "string"},
-            {"name": "category_name", "type": "string"}
+            {"name": "category_name", "type": "string"},
+            {"name": "update_info", "type": "string"},
+            {"name": "main_id", "type": "string"},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -101,12 +102,11 @@ class TwoGroupWorkflow(Workflow):
         if not os.path.isfile(ci_path):
             raise Exception("找不到报告文件:{}".format(ci_path))
         params = eval(self.option("params"))
-        main_id = api_two_group.add_species_difference_check_detail(statfile=stat_path, cifiles=[ci_path], table_id=None, level=self.option("level"), check_type='two_group', params=self.option("params"), category_name=self.option('category_name'), group_id=params["group_id"], from_otu_table=params["otu_id"], major=True, posthoc=None)
-        api_two_group.add_species_difference_check_boxplot(boxfile_path, main_id)
+        api_two_group.add_species_difference_check_detail(statfile=stat_path, cifiles=[ci_path], table_id=self.option('main_id'), level=self.option("level"), check_type='two_group', params=self.option("params"), category_name=self.option('category_name'), group_id=params["group_id"], from_otu_table=params["otu_id"], major=False, posthoc=None)
+        api_two_group.add_species_difference_check_boxplot(boxfile_path, self.option('main_id'))
         print bar_path
-        api_two_group.add_species_difference_check_barplot(bar_path, main_id)
-        api_two_group.update_species_difference_check(main_id, stat_path, ci_path, 'twogroup')
-        self.add_return_mongo_id('sg_species_difference_check', main_id)
+        api_two_group.add_species_difference_check_barplot(bar_path, self.option('main_id'))
+        api_two_group.update_species_difference_check(self.option('main_id'), stat_path, ci_path, 'twogroup')
         self.end()
 
     def run(self):

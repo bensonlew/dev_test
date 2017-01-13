@@ -104,7 +104,6 @@ class WorkflowManager(object):
             if wid in self.event.keys():
                 self.return_msg[wid] = {"success": False, "info": error_msg}
                 self.event[wid].set()
-                self.logger.error("event %s set" % wid)
                 # self.event.pop(wid)
             self.logger.error("Workflow %s 运行出错: %s " % (wid, error_msg))
 
@@ -204,8 +203,13 @@ class ManagerProcess(Process):
             for wid, p in self.process.items():
                 if not p.is_alive():
                     p.join()
+                    try:
+                        self.process_end(wid)
+                    except Exception, e:
+                        exstr = traceback.format_exc()
+                        print exstr
+                        print e
                     self.process.pop(wid)
-                    self.process_end(wid)
 
     def _check_stop(self):
         results = self.model.find_stop()

@@ -5,8 +5,6 @@
 
 import shutil
 import os
-import json
-import datetime
 from biocluster.workflow import Workflow
 import re
 
@@ -22,8 +20,8 @@ class PanCoreWorkflow(Workflow):
             {"name": "group_detail", "type": "string"},
             {"name": "samples", "type": "string"},
             {"name": "level", "type": "int"},
-            {"name": "pan_id", "type": "string"},
-            {"name": "core_id", "type": "string"}
+            {"name": "main_pan_id", "type": "string"},
+            {"name": "main_core_id", "type": "string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -52,17 +50,10 @@ class PanCoreWorkflow(Workflow):
         shutil.copy2(sour, dest)
         self.logger.info("正在写入mongo数据库")
         api_pan_core = self.api.pan_core
-        name = "pan_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        myParams = json.loads(self.sheet.params)
-        pan_id = api_pan_core.create_pan_core_table(1, self.sheet.params, myParams["group_id"], self.option("level"), myParams["otu_id"], name)
-        name = "core_table_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        core_id = api_pan_core.create_pan_core_table(2, self.sheet.params, myParams["group_id"], self.option("level"), myParams["otu_id"], name)
         pan_path = self.pan_core.option("pan_otu_table").prop['path']
         core_path = self.pan_core.option("core_otu_table").prop['path']
-        api_pan_core.add_pan_core_detail(pan_path, pan_id)
-        api_pan_core.add_pan_core_detail(core_path, core_id)
-        self.add_return_mongo_id('sg_otu_pan_core', pan_id)
-        self.add_return_mongo_id('sg_otu_pan_core', core_id)
+        api_pan_core.add_pan_core_detail(pan_path, self.option('main_pan_id'))
+        api_pan_core.add_pan_core_detail(core_path, self.option('main_core_id'))
         self.end()
 
     def run(self):

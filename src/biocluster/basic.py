@@ -29,7 +29,7 @@ class Rely(object):
     def __init__(self, *rely):
         with Rely.sem:
             Rely.count += 1
-            self._name = "reply%s_%s" % (Rely.count, random.randint(100, 1000))
+            self._name = "rely%s_%s" % (Rely.count, random.randint(100, 1000))
             self._relys = []
             for r in rely:
                 if not isinstance(r, Basic):
@@ -413,13 +413,8 @@ class Basic(EventObject):
             if self._rely:
                 for name, rl in self._rely.items():
                     if rl.satisfy:
-                        event_name = "%s_%s" % (self.id.lower(), name)
-                        self._rely.pop(event_name)
-
-                        # if not self.events[event_name].is_start:
-                        #     self.events[event_name].stop()
-                        #     self.events[event_name].restart()
-                        self.fire(event_name, rl)
+                        self._rely.pop(name)
+                        self.fire(name, rl)
 
     def __event_childend(self, child):
         """
@@ -799,7 +794,7 @@ class StepMain(Step):
                         "error": "%s" % str(self._error_info).replace("\'", " ").replace("\"", " "),
                         "status": self.stats,
                         "run_time": self.spend_time}}
-
+            self.clean_change()
             if self.stats == "finish":
                 if len(self.bind_obj.upload_dir) > 0 and self.bind_obj.sheet.output:
                     file_list = []
@@ -825,12 +820,11 @@ class StepMain(Step):
                                 dir_list.append(tmp_dict)
                     json_obj["files"] = file_list
                     json_obj["dirs"] = dir_list
-                if "update_info" in self.bind_obj.sheet.options().keys():
-                    json_obj["update_info"] = self.bind_obj.sheet.option('update_info')
 
             post_data = {
                 "content": json_obj
             }
+
             for k, v in self._api_data.items():
                 post_data[k] = v
             self._api_data.clear()
@@ -839,6 +833,8 @@ class StepMain(Step):
                 "api": self.api_type,
                 "data": post_data
             }
+            if "update_info" in self.bind_obj.sheet.options().keys():
+                data["update_info"] = self.bind_obj.sheet.option('update_info')
             workflow.send_log(data)
 
         array = []
@@ -928,6 +924,10 @@ class UploadDir(object):
         if not isinstance(match_rules, list):
             raise Exception("匹配规则必须为数组!")
         for rule in match_rules:
+            if not isinstance(rule, list):
+                raise Exception("匹配规则必须为数组!")
+            if len(rule) < 3:
+                raise Exception("rule规则格式不正确!")
             self._relpath_rules.append(rule)
 
     def match(self):

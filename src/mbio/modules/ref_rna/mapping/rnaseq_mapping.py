@@ -75,7 +75,7 @@ class RnaseqMappingModule(Module):
         return True
     
     def run(self):
-        super(RnaseqMappingModule,self).run()
+        # super(RnaseqMappingModule,self).run()
         self.get_opts()
         if self.option("ref_genome") == "customer_mode":
             self.tool_opts.update({
@@ -89,6 +89,7 @@ class RnaseqMappingModule(Module):
             self.tool_run("hisat")
         else:
             self.logger.info("你被选中，AT立场已展开")
+        super(RnaseqMappingModule,self).run()
         
         
     def tool_run(self,tool):

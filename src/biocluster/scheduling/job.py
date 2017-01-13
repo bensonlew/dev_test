@@ -60,7 +60,7 @@ class JobManager(object):
         """
         jobs = copy.copy(self.run_jobs)
         jobs.extend(self.queue_jobs)
-        return self.jobs
+        return jobs
 
     def get_unfinish_jobs(self):
         """
