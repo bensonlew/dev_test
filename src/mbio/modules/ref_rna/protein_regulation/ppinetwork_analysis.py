@@ -13,10 +13,11 @@ class PpinetworkAnalysisModule(Module):
         super(PpinetworkAnalysisModule, self).__init__(work_id)
         self.step.add_steps('map', 'ppinetwork_predict', 'ppinetwork_topology')
         options = [
-            {"name": "diff_exp", "type": "infile", "format": "ref_rna.protein_regulation.xls"},  # 差异基因详情表，表中含有logFC
+            {"name": "diff_exp", "type": "string"},  # 差异基因详情表，表中含有logFC
             {"name": "species", "type": "int", "default": 9606},  #设置物种
             {"name": "combine_score", "type": "int", "default": 600},  # 设定蛋白质与蛋白质之间的相互作用可能性的阈值
             {"name": "logFC", "type": "float", "default": 0.2},  # 设定logFC系数的阈值
+            {"name": "FDR", "type": "float", "default": 0.05},
             {"name": "species_list", "type": "string"}
         ]
         self.add_option(options)
@@ -26,7 +27,7 @@ class PpinetworkAnalysisModule(Module):
         self._end_info = 0
 
     def check_options(self):
-        if not self.option('diff_exp').is_set:
+        if not self.option('diff_exp'):
             raise OptionError("必须输入含有gene_id的差异基因表xls")
         if not self.option('species_list'):
             raise OptionError('必须提供物种 taxon id 表')
@@ -59,6 +60,7 @@ class PpinetworkAnalysisModule(Module):
         self.map.set_options({
             "diff_exp": self.option("diff_exp"),
             "species": self.option("species"),
+            "FDR": self.option("FDR"),
             "species_list": self.option("species_list")
         })
         self.map.on('end', self.set_output, 'map')
