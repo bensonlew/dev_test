@@ -469,8 +469,12 @@ class Basic(EventObject):
             return
         if not isinstance(rely, list):
             raise Exception("rely参数必须为list数组!")
-        if len(rely) < 2:
-            raise Exception("rely数组必须至少有2个元素!")
+        if len(rely) < 1:
+            raise Exception("rely数组必须至少有1个元素!")
+        if len(rely) == 1:
+            rely_1 = rely[0]
+            rely_1.on("end", func, data)
+            return
         rely_list = rely
         rely_list.sort()
         for r in rely_list:
