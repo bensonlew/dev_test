@@ -14,15 +14,15 @@ class SoapfuseAgent(Agent):
     基于RNA-data的基因融合分析SOAPfuse
     version v1
     author: zhouxuan 
-    last_modify: 2016.10.13
+    last_modify: 2016.11.20
     """
     def __init__(self, parent):
         super(SoapfuseAgent, self).__init__(parent)
         options = [
             {"name": "sample_data", "type": "infile", "format": "ref_rna.gene_fusion.sample_data_dir"},  # 存放样本数据的文件夹
-            {"name": "sample_list", "type": "infile", "format": "ref_rna.gene_fusion.sample_list_dir"},  # 样本信息文件夹
+            {"name": "sample_list", "type": "infile", "format": "ref_rna.gene_fusion.sample_list"},  # 样本信息文件vvvvv
 			
-            {"name": "sample_name", "type": "string"},  # 所进行分析的样本名称
+            #{"name": "sample_name", "type": "string"},  # 所进行分析的样本名称vvvvvv
 			{"name": "reads_number", "type": "int", "default" : 3}, # 支持融合的reads数目的最小值 3 5 10
 
             {"name": "fusionsotu", "type": "outfile","format":"ref_rna.gene_fusion.fusionsout_dir"}# 基因水平上的融合位点详细信息
@@ -50,9 +50,9 @@ class SoapfuseAgent(Agent):
         if not self.option('sample_data'):
             raise OptionError('必须输入样本数据文件夹，文件夹里的文件为fq.gz格式')
         if not self.option('sample_list') :
-            raise OptionError('必须输入样本信息文件夹，文件夹里的信息必须完整无误')
-        if not self.option('sample_name'):
-            raise OptionError('必须选择要分析的样本')
+            raise OptionError('必须输入样本信息文件，文件里的信息必须完整无误')
+        #if not self.option('sample_name'):vvvv
+            #raise OptionError('必须选择要分析的样本')vvvvvvv
         return True
 
     def set_resource(self):
@@ -97,24 +97,24 @@ class SoapfuseTool(Tool):
         运行soapfuse软件，基因融合的分析
         """
         if self.option('reads_number') == 3:
-            cmd = self.perl_path+self.soapfuse_path + ('SOAPfuse-RUN.pl -c /mnt/ilustre/users/sanger-dev/app/bioinfo/rna/SOAPfuse-v1.26/config/config-1.txt -fd %s -l %s -o %s' %(self.option('sample_data').prop['path'],self.option('sample_list').prop['path']+'/'+self.option('sample_name'),self.work_dir + '/'+self.option('sample_name')))
+            cmd = self.perl_path+self.soapfuse_path + ('SOAPfuse-RUN.pl -c /mnt/ilustre/users/sanger-dev/app/bioinfo/rna/SOAPfuse-v1.26/config/config-1.txt -fd %s -l %s -o %s' %(self.option('sample_data').prop['path'],self.option('sample_list').prop['path'],self.work_dir + '/OUT'))
         elif self.option('reads_number') == 5:
-            cmd = self.perl_path+self.soapfuse_path + ('SOAPfuse-RUN.pl -c /mnt/ilustre/users/sanger-dev/app/bioinfo/rna/SOAPfuse-v1.26/config/config-2.txt -fd %s -l %s -o %s' %(self.option('sample_data').prop['path'],self.option('sample_list').prop['path']+'/'+self.option('sample_name'),self.work_dir + '/'+self.option('sample_name')))
+            cmd = self.perl_path+self.soapfuse_path + ('SOAPfuse-RUN.pl -c /mnt/ilustre/users/sanger-dev/app/bioinfo/rna/SOAPfuse-v1.26/config/config-2.txt -fd %s -l %s -o %s' %(self.option('sample_data').prop['path'],self.option('sample_list').prop['path'],self.work_dir + '/OUT'))
         else:
-            cmd = self.perl_path+self.soapfuse_path + ('SOAPfuse-RUN.pl -c /mnt/ilustre/users/sanger-dev/app/bioinfo/rna/SOAPfuse-v1.26/config/config-3.txt -fd %s -l %s -o %s' %(self.option('sample_data').prop['path'],self.option('sample_list').prop['path']+'/'+self.option('sample_name'),self.work_dir + '/'+self.option('sample_name')))
+            cmd = self.perl_path+self.soapfuse_path + ('SOAPfuse-RUN.pl -c /mnt/ilustre/users/sanger-dev/app/bioinfo/rna/SOAPfuse-v1.26/config/config-3.txt -fd %s -l %s -o %s' %(self.option('sample_data').prop['path'],self.option('sample_list').prop['path'],self.work_dir + '/OUT'))
         self.logger.info('运行soapfuse软件,进行基因融合的分析')
         command = self.add_command("soapfuse_cmd", cmd).run()
         self.wait(command)
-        if os.path.exists(self.work_dir + "/" + self.option('sample_name') + "/final_fusion_genes/" + self.option('sample_name') + "/" + self.option('sample_name') + ".final.Fusion.specific.for.genes"):
-            if os.path.exists(self.work_dir + "/" + self.option('sample_name') + "/final_fusion_genes/" + self.option('sample_name') + "/" + self.option('sample_name') + ".final.Fusion.specific.for.trans"):
-                if os.path.exists(self.work_dir + "/" + self.option('sample_name') + "/final_fusion_genes/" + self.option('sample_name') + "/analysis/figures/fusions_expression"):
-                    self.logger.info("soapfuse运行成功!")
+        # if os.path.exists(self.work_dir +"/OUT/final_fusion_genes/" + self.option('sample_name') + "/" + self.option('sample_name') + ".final.Fusion.specific.for.genes"):
+        #     if os.path.exists(self.work_dir + "/" + self.option('sample_name') + "/final_fusion_genes/" + self.option('sample_name') + "/" + self.option('sample_name') + ".final.Fusion.specific.for.trans"):
+        #         if os.path.exists(self.work_dir + "/" + self.option('sample_name') + "/final_fusion_genes/" + self.option('sample_name') + "/analysis/figures/fusions_expression"):
+        #             self.logger.info("soapfuse运行成功!")
+        # else:
+        #     self.set_error("soapfuse运行出错!")
+        if command.return_code == 0:
+            self.logger.info("soapfuse运行完成!")
         else:
             self.set_error("soapfuse运行出错!")
-        #if command.return_code == 0:
-            #self.logger.info("soapfuse运行完成!")
-        #else:
-            #self.set_error("soapfuse运行出错!")
 
     def set_output(self):
             """
@@ -123,9 +123,10 @@ class SoapfuseTool(Tool):
             """
             self.logger.info("设置结果目录")
             try:
-                shutil.copy2(self.work_dir + "/" + self.option('sample_name') + "/final_fusion_genes/" + self.option('sample_name') + "/" + self.option('sample_name') + ".final.Fusion.specific.for.genes" ,self.output_dir + "/final.Fusion.specific.for.genes")
-                shutil.copy2(self.work_dir + "/" + self.option('sample_name') + "/final_fusion_genes/" + self.option('sample_name') + "/" + self.option('sample_name') + ".final.Fusion.specific.for.trans",self.output_dir + "/final.Fusion.specific.for.trans")
-                shutil.copytree(self.work_dir + "/" + self.option('sample_name') + "/final_fusion_genes/" + self.option('sample_name') + "/analysis/figures/fusions_expression" , self.output_dir + "/fusions_expression")
+                shutil.copytree(self.work_dir + "/OUT/final_fusion_genes/" ,self.output_dir + "/finalresult" )
+                # shutil.copy2(self.work_dir + "/" + self.option('sample_name') + "/final_fusion_genes/" + self.option('sample_name') + "/" + self.option('sample_name') + ".final.Fusion.specific.for.trans",self.output_dir + "/final.Fusion.specific.for.trans")
+                # shutil.copytree(self.work_dir + "/" + self.option('sample_name') + "/final_fusion_genes/" + self.option('sample_name') + "/analysis/figures/fusions_expression" , self.output_dir + "/fusions_expression")
+                self.option('fusionsotu').set_path(self.work_dir + "/OUT/final_fusion_genes/")
                 self.logger.info("设置基因融合分析结果目录成功")
 
             except Exception as e:
