@@ -150,10 +150,9 @@ class MetaSourcetrackerWorkflow(Workflow):
     def set_db(self):
         self.logger.info("正在写入mongo数据库")
         api_otu = self.api.meta_sourcetracker
-        api_otu.add_sg_sourcetracker_detail(self.option("meta_sourcetracker_id"), self.meta_sourcetracker.output_dir +
-                                            "/sink_predictions.txt", name="sink_predictions.txt")
-        api_otu.add_sg_sourcetracker_detail(self.option("meta_sourcetracker_id"), self.meta_sourcetracker.output_dir +
-                                            "/sink_predictions_stdev.txt", name="sink_predictions_stdev.txt")
+        api_otu.add_sg_sourcetracker_detail(self.option("meta_sourcetracker_id"), file_path=self.meta_sourcetracker.output_dir +
+                                            "/sink_predictions.txt", stdev_file_path=self.meta_sourcetracker.output_dir + "/sink_predictions_stdev.txt",
+                                            name_1="sink_predictions.txt", name_2="sink_predictions_stdev.txt")
         self.end()
 
     def end(self):
