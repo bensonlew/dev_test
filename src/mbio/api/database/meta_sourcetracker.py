@@ -10,12 +10,12 @@ from types import StringTypes
 from biocluster.config import Config
 
 
-class MetaSourcrtracker(Base):
+class MetaSourcetracker(Base):
     """
     微生物来源组成比例分析
     """
     def __init__(self, bind_object):
-        super(MetaSourcrtracker, self).__init__(bind_object) #
+        super(MetaSourcetracker, self).__init__(bind_object) #
         self._db_name = Config().MONGODB
         self.task_id = ""
 
