@@ -11,8 +11,8 @@ class PpinetworkTopologyAgent(Agent):
     """
     需要calc_ppi.py
     version 1.0
-    author: JieYao
-    last_modified: 2016.8.15
+    author: hongdong.xuan
+    last_modified: 2017.01.16
     """
     
     def __init__(self, parent):
