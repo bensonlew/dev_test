@@ -133,7 +133,7 @@ class FilterOtuTool(Tool):
             str = my_json["value"]
             str = str.lstrip()
             if sp_name[my_level] == str or sp_name[my_level].lower() == str:
-                self.keep_list.append(line)
+                tmp_list.remove(line)
         self.otu_json = tmp_list[:]
 
     def filter_samples(self, my_json):
