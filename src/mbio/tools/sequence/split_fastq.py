@@ -2,24 +2,55 @@
 # __author__ = 'shijin'
 
 """fq文件序列拆分"""
-
-import os
-import datetime
-import json
-import shutil
+from biocluster.agent import Agent
+from biocluster.tool import Tool
+from biocluster.core.exceptions import OptionError
 import re
-from biocluster.workflow import Workflow
 
+class SplitFastqAgent(Agent):
 
-class FastqSplitWorkflow(Workflow):
-    def __init__(self, wsheet_object):
-        self._sheet = wsheet_object
-        super(FastqSplitWorkflow, self).__init__(wsheet_object)
+    def __init__(self, parent):
+        super(SplitFastqAgent, self).__init__(parent)
         options = [
-            {"name": "in_fastq", "type": "infile", 'format': "sequence.fastq"}
+            {"name": "in_fastq", "type": "infile", "format": "sequence.fastq"}
         ]
         self.add_option(options)
-        self.set_options(self._sheet.options())
+        self.step.add_steps('split_fastq')
+        self.on('start', self.step_start)
+        self.on('end', self.step_end)
+
+    def step_start(self):
+        self.step.split_fastq.start()
+        self.step.update()
+
+    def step_end(self):
+        self.step.split_fastq.finish()
+        self.step.update()
+
+    def check_options(self):
+        """
+        检查参数是否正确
+        """
+        if not self.option("in_fastq").is_set:
+            raise OptionError("请传入fastq序列文件")
+        else:
+            return True
+
+    def set_resource(self):
+        """
+        所需资源
+        """
+        self._cpu = 2
+        self._memory = '3G'
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        super(SplitFastqAgent, self).end()
+
+class SplitFastqTool(Tool):
+
+    def __init__(self, config):
+        super(SplitFastqTool, self).__init__(config)
         self.samples = {}
 
     def run_fastq_split(self):
@@ -35,9 +66,6 @@ class FastqSplitWorkflow(Workflow):
         for sample in self.samples.values():
             sample.close_all()
         self.logger.info("全部fastq序列处理完毕")
-        # self.set_db()
-        self.end_this()
-
 
     def return_sample(self,sample_name):
         if sample_name in self.samples:
@@ -46,22 +74,10 @@ class FastqSplitWorkflow(Workflow):
         self.samples[sample_name] = sample
         return sample
 
-
-
     def run(self):
+        super(SplitFastqTool, self).run()
         self.run_fastq_split()
-        super(FastqSplitWorkflow, self).run()
-
-
-    def end_this(self):
-        """
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-            ["venn_table.xls", "xls", "Venn表格"]
-        ])
-        """
-        super(FastqSplitWorkflow, self).end()
+        self.end()
 
 class Sample(object):
     def __init__(self, name,dir):
