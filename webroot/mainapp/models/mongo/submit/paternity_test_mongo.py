@@ -5,6 +5,7 @@ import random
 
 from mainapp.config.db import get_mongo_client
 import os
+from bson import SON
 from biocluster.config import Config
 from pymongo import MongoClient
 
@@ -36,22 +37,22 @@ class PaternityTest(object):
 	def get_query_info(self,task):
 		if task is None:
 			raise Exception('未获取到任务id')
-		collection = self.database['sg_pt_family_main']
-		task_info = collection.find_one({"task_id": task})
-		#新建一个字典包含所需信息，然后返回这个字典
-		info = dict(
-			dad_id=task_info['dad_id'],
-			mom_id=task_info['mom_id'],
-			preg_id=task_info['preg_id'],
-			ref_fasta=task_info['ref_fasta'],
-			targets_bedfile=task_info['targets_bedfile'],
-			ref_point=task_info['ref_point'],
-			project_sn=task_info['project_sn'],
-			fastq_path=task_info['fastq_path']
-		)
-		return info
+		collection = self.database['sg_pt_task']
+		task_info = collection.find({"task_id": task})
+		for info in task_info:
+		# 	print i
+		# #新建一个字典包含所需信息，然后返回这个字典
+		# 	info = dict(
+		# 		dad_id=i[u'dad_id'],
+		# 		mom_id=i[u'mom_id'],
+		# 		preg_id=i[u'preg_id'],
+		# 		ref_fasta=i[u'ref_fasta'],
+		# 		targets_bedfile=i[u'targets_bedfile'],
+		# 		ref_point=i[u'ref_point'],
+		# 		project_sn=i[u'project_sn'],
+		# 		fastq_path=i[u'fastq_path']
+		# 	)
+			return info
 
-	def check_sample(self,sample_id):
-		collection = self.database_tab['sg_pt_tab']
-		result = collection.find_one({'sample_id': sample_id})
-		return result
+	def insert_main_table(self, collection,data):
+		return self.database[collection].insert_one(SON(data)).inserted_id
