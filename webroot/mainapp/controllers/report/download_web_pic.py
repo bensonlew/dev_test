@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shenghe'
-from gevent import monkey; monkey.patch_all()
+# from gevent import monkey; monkey.patch_all()
 from mainapp.libs.signature import check_sig
 import web
 import json
 import tempfile
 import HTMLParser
-from gevent.subprocess import Popen
+from subprocess import Popen
+# from gevent.subprocess import Popen
 from biocluster.api.file.remote import RemoteFileManager
 import random
 import datetime
@@ -43,14 +44,15 @@ class DownloadWebPic(object):
             return json.dumps(msg)
         file_pic = self._svg_convert()
         if file_pic:
-            web.header('Content-Type', 'application/octet-stream')
-            web.header('Transfer-Encoding', 'chunked')
-            web.header('Access-Control-Allow-Origin', '*')
+            # web.header('Content-Type', 'application/octet-stream')
+            # web.header('Transfer-Encoding', 'chunked')
+            # web.header('Access-Control-Allow-Origin', '*')
             # web.header('Content-disposition', 'attachment; filename={}'.format(data.file_name))
             # return open(file_pic, 'rb').read()
             msg = {'success': True, 'info': file_pic}
         else:
             msg = {"success": False, "info": "生成图片文件出错".format(data.scale)}
+        print(json.dumps(msg))
         return json.dumps(msg)
 
     def _svg_convert(self):

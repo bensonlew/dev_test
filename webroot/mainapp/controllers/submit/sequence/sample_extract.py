@@ -3,13 +3,14 @@
 
 import web
 import json
-import os
-import re
+from mainapp.controllers.core.basic import Basic
 import random
+import re,os
 from mainapp.libs.signature import check_sig
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.submit.sequence.sample_extract import SampleExtract as SE
 from biocluster.config import Config
+
 
 
 class SampleExtract(object):
@@ -55,7 +56,6 @@ class SampleExtract(object):
         elif data.format in ["sequence.fasta_dir", "sequence.fastq_dir"] and not os.path.isdir(rel_path):
             info = {"success": False, "info": "文件夹{}不存在".format(file_info["path"])}
             return json.dumps(info)
-
         my_params = dict()
         my_params["task_id"] = data.task_id
         my_params["file_info"] = json.loads(data.file_info)
@@ -73,7 +73,6 @@ class SampleExtract(object):
         json_obj["USE_DB"] = True
         json_obj['client'] = data.client
         json_obj["options"] = dict()
-
         # 给json文件的options字段指定输入的序列，这个option的字段可能是in_fastq或者是in_fasta
         if file_info["file_list"] in [None, "none", "None", "null", 'Null', '[]', '', []]:
             if data.format in ["sequence.fasta_dir", "sequence.fasta"]:
@@ -84,7 +83,7 @@ class SampleExtract(object):
             if data.format in ["sequence.fasta_dir", "sequence.fasta"]:
                 json_obj["options"]["in_fasta"] = "{}||{}/{};;{}".format(data.format, pre_path, suff_path, file_info["file_list"])
             elif data.format in ["sequence.fastq_dir", "sequence.fastq"]:
-                json_obj["options"]["in_fastq"] = "{}||{}/{};;{}".format(data.format, pre_path, suff_path, file_info["file_list"])
+                json_obj["options"]["in_fastq"] = "{}||{}/{};;{}".format(data.format, pre_path, suff_path, json.dumps(file_info["file_list"]))
 
         json_obj["options"]["table_id"] = str(table_id)
         update_info = json.dumps({str(table_id): "sg_seq_sample"})
@@ -94,17 +93,20 @@ class SampleExtract(object):
         elif data.client == "client03":
             update_api = "meta.tupdate_status"
         json_obj["UPDATE_STATUS_API"] = update_api
-
+        """
         workflow_module = Workflow()
-        insert_data = {
-            "client": data.client,
-            "workflow_id": json_obj['id'],
-            "json": json.dumps(json_obj),
-            "ip": web.ctx.ip
-        }
+
         workflow_module.add_record(insert_data)
         info = {"success": True, "info": "样本提取接口投递成功，正在计算中..."}
         return json.dumps(info)
+        """
+        workflow_client = Basic(data=json_obj, instant= False)
+        try:
+            run_info = workflow_client.run()
+            self._return_msg = workflow_client.return_msg
+            return json.dumps(run_info)
+        except Exception, e:
+            return json.dumps({"success": False, "info": "运行出错: %s" % e })
 
     def get_new_id(self, task_id):
         new_id = "{}_{}_{}".format(task_id, random.randint(1, 10000), random.randint(1, 10000))

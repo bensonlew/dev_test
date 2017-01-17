@@ -54,7 +54,8 @@ class SampleExtractWorkflow(Workflow):
             }
         elif self.setted_option == "fastq":
             opts = {
-                "in_fastq": self.option("in_fastq")
+                "in_fastq": self.option("in_fastq"),
+                "table_id": self.option("table_id")
             }
         self.seq_extract.set_options(opts)
         self.seq_extract.on("end", self.set_db)
