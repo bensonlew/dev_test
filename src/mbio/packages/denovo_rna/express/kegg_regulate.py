@@ -51,7 +51,7 @@ class KeggRegulate(object):
                             up_genes.append('{}({})'.format(g, ko))
                         if g in regulate_gene['down']:
                             down_genes.append('{}({})'.format(g, ko))
-                w.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(path, ';'.join(ko_ids), ';'.join(up_genes), ';'.join(down_genes), len(up_genes), len(down_genes)))
+                w.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(path, ';'.join(ko_ids), len(up_genes), len(down_genes), ';'.join(up_genes), ';'.join(down_genes)))
 
     def get_pictrue(self, path_ko, out_dir, regulate_dict=None):
             """

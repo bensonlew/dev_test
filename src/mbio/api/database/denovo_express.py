@@ -254,9 +254,9 @@ class DenovoExpress(Base):
             collection = self.db["sg_denovo_express_gragh"]
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入表达量矩阵作图数据：%s信息出错:%s" % (fpkm_path, e))
+            self.bind_object.logger.error("导入表达量矩阵作图数据：%s信息出错:%s" % (ditribution_path, e))
         else:
-            self.bind_object.logger.info("导入表达量矩阵作图数据: %s信息成功!" % fpkm_path)
+            self.bind_object.logger.info("导入表达量矩阵作图数据: %s信息成功!" % ditribution_path)
 
     @report_check
     def add_express_gragh(self, express_id, fpkm_path, query_type=None):

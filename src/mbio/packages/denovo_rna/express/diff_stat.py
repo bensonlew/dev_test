@@ -90,9 +90,9 @@ class DiffStat(object):
         with open(edgr_result, 'rb') as r, open('%s/%s_vs_%s_edgr_stat.xls' % (output, control, other), 'wb') as w:
             r.readline()
             if group_info:
-                head = "gene_id\t%s_mean_count\t%s_mean_conut\t%s_mean_fpkm\t%s_mean_fpkm\tlog2fc(%s/%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control)
+                head = "gene_id\t%s_mean_count\t%s_mean_count\t%s_mean_fpkm\t%s_mean_fpkm\tlog2fc(%s/%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control)
             else:
-                head = "gene_id\t%s_count\t%s_conut\t%s_fpkm\t%s_fpkm\tlog2fc(%s/%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control)
+                head = "gene_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc(%s/%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control)
             w.write(head)
             for line in r:
                 line = line.strip('\n').split('\t')

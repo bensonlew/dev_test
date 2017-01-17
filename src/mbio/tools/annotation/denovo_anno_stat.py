@@ -142,6 +142,8 @@ class DenovoAnnoStatTool(Tool):
     def __init__(self, config):
         super(DenovoAnnoStatTool, self).__init__(config)
         self._version = '1.0.1'
+        self.b2g_user = "biocluster102"
+        self.b2g_password = "sanger-dev-123"
         self.python_path = "/program/Python/bin/python"
         self.denovo_stat = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/denovo_stat/'
         self.go_annot = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goAnnot.py'
@@ -246,7 +248,7 @@ class DenovoAnnoStatTool(Tool):
                         w.write(w_line + '\n')
         get_gene_go(go_result=self.option('blast2go_annot').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_blast2go.annot')
         get_gene_go(go_result=self.option('gos_list').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_gos.list')
-        go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.go_stat_path + '/gene_gos.list', 'localhost', Config().DB_USER, Config().DB_PASSWD)
+        go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.go_stat_path + '/gene_gos.list', 'localhost', self.b2g_user, self.b2g_password)
         go_cmd2 = '{} {} {}'.format(self.python_path, self.go_split, self.work_dir + '/go_detail.xls')
         go_annot_cmd = self.add_command('go_annot_cmd', go_cmd1).run()
         self.wait(go_annot_cmd)

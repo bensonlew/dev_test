@@ -79,4 +79,4 @@ class DenovoKeggRich(Base):
             else:
                 coll = self.db['sg_denovo_kegg_enrich']
                 coll.update({'_id': enrich_id}, {'$set': {'desc': 'no_result'}})
-                self.bind_object.logger.info("kegg富集统计表没结果：" % kegg_enrich_table)
+                self.bind_object.logger.info("kegg富集统计表没结果：%s" % kegg_enrich_table)
