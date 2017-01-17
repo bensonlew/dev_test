@@ -41,6 +41,7 @@ from mainapp.controllers.instant.denovo_rna.denovo_venn import DenovoVenn
 from mainapp.controllers.submit.denovo_rna.go_enrich_regulate import GoEnrichRegulate
 from mainapp.controllers.submit.denovo_rna.network import Network
 from mainapp.controllers.submit.meta.meta_sourcetracker import MetaSourcetracker
+from mainapp.controllers.instant.meta.convert_level import ConvertLevel
 # web.config.debug = False
 urls = (
     "/denovo_rna/network", "Network",
@@ -59,6 +60,7 @@ urls = (
     "/pipeline/queue", "PipelineQueue",
     "/pipeline/pause", "PipelinePause",
     "/pipeline/stop_pause", "PipelineStopPause",
+    "/meta/convert_level", "ConvertLevel",
     "/meta/demo_mongodata_copy", "DemoMongodataCopy",
     "/meta/estimators", "Estimators",
     "/pipeline/stop_pause", "PipelineStopPause",
