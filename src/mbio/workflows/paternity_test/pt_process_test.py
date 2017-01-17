@@ -21,7 +21,7 @@ class PtProcessWorkflow(Workflow):
 			# {"name": "fastq_path", "type": "infile","format":"sequence.fastq_dir"},  # fastq所在路径(文件夹
 			{"name": "fastq_path", "type": "string"},
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
-			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
+			{"name": "ref_fasta", "type": "string"},  # 参考序列
 			{"name": "targets_bedfile", "type": "string"},
 
 			{"name": "dad_id", "type": "string"},  # 输入F/M/S的样本ID
@@ -59,7 +59,7 @@ class PtProcessWorkflow(Workflow):
 			raise OptionError("必须输入母本编号")
 		if not self.option("preg_id"):
 			raise OptionError("必须输入胎儿编号")
-		if not self.option("ref_fasta").is_set:
+		if not self.option("ref_fasta"):
 			raise OptionError("必须输入参考基因组的fastq文件")
 		if not self.option('fastq_path'):
 			raise OptionError('必须提供fastq文件所在的路径')
@@ -348,8 +348,8 @@ class PtProcessWorkflow(Workflow):
 		if event['data'] == "pt_analysis" or event['data'] == "pt_analysis_rename":
 			self.linkdir(obj.output_dir +'/family_analysis', self.output_dir)
 			self.linkdir(obj.output_dir + '/family_merge', self.output_dir)
-			api_main = self.api.sg_paternity_test
-			self.flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task=None, flow_id=None)
+			# api_main = self.api.sg_paternity_test
+			# self.flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task=None, flow_id=None)
 
 		if event['data'] == "result_info":
 			self.linkdir(obj.output_dir, self.output_dir)
@@ -373,11 +373,19 @@ class PtProcessWorkflow(Workflow):
 
 	def end(self):
 		api_main = self.api.sg_paternity_test
-		api_main.add_sg_pt_family(self.option('dad_id'), self.option('mom_id'), self.option('preg_id'),
-		                          self.option('err_min'), self.option('ref_fasta').prop['path'], self.option('targets_bedfile'),
+		api_read_tab = self.api.tab_file
+		results = os.listdir(self.output_dir)
+		dad_name = self.option('dad_id')+'.tab'
+		dad_other_name = self.option('dad_id') +'1.tab'
+		if dad_name in results:
+			dad = self.option('dad_id')
+		elif dad_other_name in results:
+			dad = self.option('dad_id') +'1'
+		self.task_id=api_main.add_sg_task(dad, self.option('mom_id'), self.option('preg_id'),
+		                          self.option('ref_fasta'), self.option('targets_bedfile'),
 		                          self.option('ref_point'),self.option('fastq_path'))
 		# flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
-		results = os.listdir(self.output_dir)
+		self.flow_id = api_main.add_pt_family(task_id=self.task_id,err_min=self.option("err_min"), dedup=self.option('dedup_num'))
 		for f in results:
 			if re.search(r'.*family_analysis\.txt$', f):
 				api_main.add_analysis_tab(self.output_dir + '/' + f, self.flow_id)
