@@ -7,6 +7,7 @@ from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
 import re
+from bson import ObjectId
 import json
 import shutil
 
@@ -27,7 +28,7 @@ class PtReportWorkflow(Workflow):
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
 			{"name": "ref_point", "type": "string"},  # 参考位点
 			{"name": "dedup_num", "type": "int", "default": 50},  # 查重样本数
-			{"name": "flow_id", "type": "string"},  # 查重样本数
+			{"name": "family_id", "type": "string"},  # 查重样本数
 		]
 		self.add_option(options)
 		self.pt_analysis = self.add_module("paternity_test.pt_analysis")
@@ -203,8 +204,8 @@ class PtReportWorkflow(Workflow):
 		if event['data'] == "pt_analysis":
 			self.linkdir(obj.output_dir +'/family_analysis', self.output_dir)
 			self.linkdir(obj.output_dir + '/family_merge', self.output_dir)
-			api_main = self.api.sg_paternity_test
-			self.flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task=None,flow_id=self.option('flow_id'))
+			# api_main = self.api.sg_paternity_test
+			# self.flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task=None,flow_id=self.option('flow_id'))
 
 		if event['data'] == "result_info":
 			self.linkdir(obj.output_dir, self.output_dir)
@@ -225,9 +226,11 @@ class PtReportWorkflow(Workflow):
 
 	def end(self):
 		api_main = self.api.sg_paternity_test
-		api_main.add_sg_pt_family(self.option('dad_id'), self.option('mom_id'), self.option('preg_id'),
-		                          self.option('err_min'), self.option('ref_fasta').prop['path'], self.option('targets_bedfile'),
-		                          self.option('ref_point'))
+		# self.task_id = api_main.add_sg_task(self.option('dad_id'), self.option('mom_id'), self.option('preg_id'),
+		#                                     self.option('ref_fasta'), self.option('targets_bedfile'),
+		#                                     self.option('ref_point'), self.option('fastq_path'))
+		# flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
+		self.flow_id = ObjectId(self.option('family_id'))
 		results = os.listdir(self.output_dir)
 		for f in results:
 			if re.search(r'.*family_analysis\.txt$', f):
