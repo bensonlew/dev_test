@@ -269,7 +269,7 @@ class DenovoGeneStructure(Base):
                 elif target_line:
                     line = line.strip().split('\t')
                     bar_a = line[1:12]
-                    bar_b = line[13:47]
+                    bar_b = line[12:47]
                     value_a = 0
                     value_b = 0
                     for a in bar_a:
