@@ -26,6 +26,7 @@ class SnpRnaModule(Module):
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
+            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"},  # 基因组gtf文件
             {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
             {"name": "readFilesIN1", "type": "infile", "format":"sequence.fastq, sequence.fasta"},  # 双端序列←
             {"name": "readFilesIN2", "type": "infile", "format":"sequence.fastq, sequence.fasta"},  # 双端序列右
@@ -253,9 +254,13 @@ class SnpRnaModule(Module):
                 vcf_path = os.path.join(obj.output_dir, i)
         self.logger.info(vcf_path)
         annovar = self.add_tool('ref_rna.gene_structure.annovar')
-        options = {"ref_genome": self.ref_name, "input_file": vcf_path}
+        options = {
+            "ref_genome": self.ref_name,
+            "input_file": vcf_path,
+            "ref_gtf": self.option("ref_gtf").prop["path"]
+        }
         if self.option("ref_genome") == "customer_mode":
-            options["ref_fa"] = self.ref_name
+            options["ref_fasta"] = self.ref_name
         annovar.set_options(options)
         self.annovars.append(annovar)
 
