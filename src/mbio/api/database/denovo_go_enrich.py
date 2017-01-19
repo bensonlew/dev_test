@@ -35,7 +35,7 @@ class DenovoGoEnrich(Base):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'go_enrich' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            'name': name if name else 'GOEnrich_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'status': 'end',
             'desc': 'go富集分析主表',

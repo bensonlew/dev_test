@@ -28,7 +28,7 @@ class DenovoAnnotation(Base):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'annotation_stat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'name': name if name else 'AnnotationStat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'params': params,
             'status': 'end',
             'desc': '注释概况主表',
@@ -223,6 +223,7 @@ class DenovoAnnotation(Base):
                     ('level3', level3),
                     ('level4', level4),
                     ('seq_number', int(line[7])),
+                    ('seq_list', line[8]),
                 ]
                 if query_type:
                     data.append(('type', query_type))

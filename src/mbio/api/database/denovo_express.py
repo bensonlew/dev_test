@@ -32,7 +32,7 @@ class DenovoExpress(Base):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'express_matrix_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'name': name if name else 'ExpressStat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '表达量计算主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
@@ -46,13 +46,13 @@ class DenovoExpress(Base):
             rsem_files = os.listdir(rsem_dir)
             for f in rsem_files:
                 if re.search(r'^genes\.TMM', f):
-                    count_path = rsem_dir + f
-                    fpkm_path = rsem_dir + 'genes.counts.matrix'
+                    fpkm_path = rsem_dir + f
+                    count_path = rsem_dir + 'genes.counts.matrix'
                     self.add_express_detail(express_id, count_path, fpkm_path, 'gene')
                     self.add_express_ditribution(express_id, gene_distri, 'gene')
                 elif re.search(r'^transcripts\.TMM', f):
-                    count_path = rsem_dir + f
-                    fpkm_path = rsem_dir + 'transcripts.counts.matrix'
+                    fpkm_path = rsem_dir + f
+                    count_path = rsem_dir + 'transcripts.counts.matrix'
                     self.add_express_detail(express_id, count_path, fpkm_path, 'transcript')
                     self.add_express_ditribution(express_id, tran_distri, 'transcript')
                 elif re.search(r'\.genes\.results$', f):
@@ -172,10 +172,12 @@ class DenovoExpress(Base):
             'group_detail': group_detail,
             'control_id': str(control_id)
         })  # 为更新workflow的params，因为截停
+        if group_id == 'all':
+            params['group_detail'] = {'all': group_detail}
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'gene_express_diff_stat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'name': name if name else 'ExpressDiffStat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '表达量差异检测主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
@@ -185,6 +187,8 @@ class DenovoExpress(Base):
             'group_detail': group_detail,
             'express_id': express_id
         }
+        if group_id == 'all':
+            insert_data['group_detail'] = {'all': group_detail}
         collection = self.db['sg_denovo_express_diff']
         express_diff_id = collection.insert_one(insert_data).inserted_id
         if major:

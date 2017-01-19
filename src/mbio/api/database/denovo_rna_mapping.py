@@ -314,7 +314,7 @@ class DenovoRnaMapping(Base):
         collection = self.db["sg_denovo_correlation"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         if detail:
-            self.add_correlation_detail(correlation, inserted_id)
+            # self.add_correlation_detail(correlation, inserted_id)
             pca_file = os.path.join(correlation, 'pca_importance.xls')
             pca_rotation = os.path.join(correlation, 'pca_rotation.xls')
             site_file = os.path.join(correlation, 'pca_sites.xls')

@@ -29,7 +29,7 @@ class DenovoKeggRich(Base):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'kegg_enrich' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            'name': name if name else 'KeggEnrich_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'status': 'end',
             'desc': 'kegg富集分析',
