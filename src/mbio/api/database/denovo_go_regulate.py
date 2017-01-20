@@ -61,9 +61,9 @@ class DenovoGoRegulate(Base):
             for line in lines[1:]:
                 line = line.strip().split('\t')
                 line[3] = int(line[3])
-                line[4] = float(line[4])
+                line[4] = round(float(line[4]), 6)
                 line[5] = int(line[5])
-                line[6] = float(line[6])
+                line[6] = round(float(line[6]), 6)
                 data = [
                     ('go_regulate_id', go_regulate_id),
                     ('go_type', line[0]),
