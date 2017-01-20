@@ -1,7 +1,7 @@
 ## !/mnt/ilustre/users/sanger-dev/app/program/Python/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "moli.zhou"
-#last_modify:20161123
+#last_modify:20161108
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -15,7 +15,7 @@ class TfPredictAgent(Agent):
     利用hmmer软件，进行转录因子预测
     version v1.0
     author: moli.zhou
-    last_modify: 20170120
+    last_modify: 2016.11.4
     """
     def __init__(self, parent):
         super(TfPredictAgent, self).__init__(parent)
@@ -46,6 +46,8 @@ class TfPredictAgent(Agent):
         database_list = ["PlantTFDB", "AnimalTFDB", "iTAK"]
         # if not self.option('query_amino').is_set:
         #     raise OptionError("必须输入氨基酸序列")
+        if not self.option('diff_gene_id'):
+            raise OptionError("请输入差异基因对应id关系")
         if self.option('database') not in database_list:  # species的判定有问题
             raise OptionError("database选择不正确")
         return True
@@ -76,12 +78,12 @@ class TfPredictTool(Tool):
     def __init__(self, config):
         super(TfPredictTool, self).__init__(config)
         self._version = '1.0.1'
-
         self.python_path = 'program/Python/bin/'
         self.perl_path = 'program/perl/perls/perl-5.24.0/bin/'
         self.script_path = Config().SOFTWARE_DIR + '/bioinfo/rna/scripts/'
         self.ref_path = Config().SOFTWARE_DIR + '/database/refGenome/TF/'
         self.itak_path = Config().SOFTWARE_DIR + '/bioinfo/rna/iTAK-1.6b/'
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/program/perl/perls/perl-5.24.0/lib/site_perl/5.24.0/Bio')
 
     # python phmmer_process.py 1e-180  PlantTFDB-all_TF_pep.fas test.fas planttfdb_family_vs_tfid.txt
     def run_tf(self):
