@@ -54,7 +54,7 @@ class RpkmSaturationAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = '50G'
+        self._memory = '15G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -79,16 +79,12 @@ class RpkmSaturationTool(Tool):
         self.python_full_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
         self.perl_path = "program/perl/perls/perl-5.24.0/bin/perl"
         self.plot_script = self.config.SOFTWARE_DIR + "/bioinfo/plot/scripts/saturation2plot.pl"
-        self.imagemagick_path = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/"
-        self.R_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin/"
-        self.set_environ(PATH=self.R_path)
         self.plot_cmd = []
 
     def rpkm_saturation(self, bam, out_pre):
         bam_name = bam.split("/")[-1].split(".")[0]
         out_pre = out_pre + "_" + bam_name
-        satur_cmd = "{}python {}RPKM_saturation.py -i {} -r {} -o {} -q {} -l {} -u {} -s {} -c {}"\
-            .format(self.python_path, self.python_full_path, bam, self.option("bed").prop["path"], out_pre, self.option("quality"), self.option("low_bound"), self.option("up_bound"), self.option("step"), self.option("rpkm_cutof"))
+        satur_cmd = "{} {}RPKM_saturation.py -i {} -r {} -o {} -q {} -l {} -u {} -s {} -c {}".format(self.python_path, self.python_full_path, bam, self.option("bed").prop["path"], out_pre, self.option("quality"), self.option("low_bound"), self.option("up_bound"), self.option("step"), self.option("rpkm_cutof"))
         print(satur_cmd)
         self.logger.info("开始运行RPKM_saturation.py脚本")
         satur_command = self.add_command("{}_satur".format(bam_name.lower()), satur_cmd)
@@ -129,10 +125,7 @@ class RpkmSaturationTool(Tool):
             if "saturation.r" in f:
                 satur_file.append(f)
             if "saturation.pdf" in f and "eRPKM.xls" not in f:
-                png_file = ".".join(f.split(".")[:-1]) + ".png"
-                os.system(self.imagemagick_path + "convert {} {}".format(f, png_file))
                 satur_file.append(f)
-                satur_file.append(png_file)
         # satur_file = glob.glob(r"*eRPKM.xls")
         print(satur_file)
         for f in satur_file:
