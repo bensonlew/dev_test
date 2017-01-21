@@ -75,7 +75,7 @@ class Config(object):
         self.SSH1_IP_LIST = re.split('\s*,\s*', self.rcf.get("SSH1", "ip_list"))
 
         # PAUSE
-        self.MAX_PAUSE_TIME = self.rcf.get("PAUSE", "max_time")
+        self.MAX_PAUSE_TIME = int(self.rcf.get("PAUSE", "max_time"))
 
         # API_UPDATE
         self.update_exclude_api = re.split('\s*,\s*', self.rcf.get("API_UPDATE", "exclude_api"))
