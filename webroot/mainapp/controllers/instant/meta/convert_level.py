@@ -1,29 +1,29 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
-
+# last_modify by qiuping 20170113
 
 import web
 import json
 import datetime
 import os
-from mainapp.controllers.project.meta_controller import MetaController
-from mbio.instant.to_files.export_file import export_otu_table_by_level
+from mbio.instant.to_files.export_file import ExportFile
 from biocluster.config import Config
 from bson.objectid import ObjectId
 from types import StringTypes
 import re
+from mainapp.libs.signature import check_sig
+from mainapp.libs.input_check import meta_check
 
 
-class ConvertLevel(MetaController):
+class ConvertLevel(object):
     def __init__(self):
         self._client = Config().mongo_client
         self._db_name = Config().MONGODB
         self.db = self._client[self._db_name]
 
+    @check_sig
+    @meta_check
     def POST(self):
-        return_info = super(ConvertLevel, self).POST()
-        if return_info:
-            return return_info
         data = web.input()
         postArgs = ['level_id', 'submit_location', "otu_id", "task_type"]
         for arg in postArgs:
@@ -31,7 +31,7 @@ class ConvertLevel(MetaController):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
         otu_path = os.path.join(Config().WORK_DIR, "tmp", datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S") + ".otu.xls")
-        export_otu_table_by_level(data.otu_id, otu_path, data.level_id)
+        ExportFile().export_otu_table_by_level(data.otu_id, otu_path, data.level_id)
         self.add_otu_detail(otu_path, data.otu_id, data.level_id)
         info = dict()
         info["success"] = True
