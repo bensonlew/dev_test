@@ -114,27 +114,25 @@ class GoEnrichRegulateWorkflow(Workflow):
         api_regulate = self.api.denovo_go_regulate
         api_pvalue = self.api.denovo_go_pval_sort
         go_regulate_dir, go_enrich_dir, go_sort_dir, go_graph_dir = '', '', '', ''
-        for f in os.listdir(self.output_dir):
-            if re.search(r"go_enrich_.*$", f):
-                go_enrich_dir = self.output_dir + '/' + f
-            if re.search(r"go_lineage.*$", f):
-                go_graph_dir = self.output_dir + '/' + f
-            if re.search(r"GO_regulate.xls$", f):
-                go_regulate_dir = self.output_dir + '/' + f
-            if re.search(r"go_pvalue_sort.xls$", f):
-                go_sort_dir = self.output_dir + '/' + f
         if self.option("analysis_type") == "enrich":
-            if os.path.exists(go_enrich_dir):
-                api_enrich.add_go_enrich_detail(go_enrich_id=self.option("go_enrich_id"), go_enrich_dir=go_enrich_dir)
-            #if os.path.exists(go_graph_dir):
-            #    api_enrich_reg.update_directed_graph(go_enrich_id=self.option("go_enrich_id"),
-            #                                             go_graph_dir=go_graph_dir)
+            for f in os.listdir(self.enrich_output):
+                if re.search(r"go_enrich_.*$", f):
+                    go_enrich_dir = self.enrich_output + '/' + f
+                if re.search(r"go_lineage.*$", f):
+                    go_graph_dir = self.enrich_output + '/' + f
+            api_enrich.add_go_enrich_detail(go_enrich_id=self.option("go_enrich_id"), go_enrich_dir=go_enrich_dir)
+            if os.path.exists(go_graph_dir):
+                api_enrich.update_directed_graph(go_enrich_id=self.option("go_enrich_id"), go_graph_dir=go_graph_dir)
         if self.option("analysis_type") == "regulate":
-            if os.path.exists(go_regulate_dir):
-                api_regulate.add_go_regulate_detail(go_regulate_id=self.option("go_regulate_id"), go_regulate_dir=go_regulate_dir)
+            for f in os.listdir(self.regulate_output):
+                if re.search(r"GO_regulate.xls$", f):
+                    go_regulate_dir = self.regulate_output + '/' + f
+            api_regulate.add_go_regulate_detail(go_regulate_id=self.option("go_regulate_id"), go_regulate_dir=go_regulate_dir)
         if self.option("analysis_type") == "both":
-            if os.path.exists(go_sort_dir):
-                api_pvalue.add_pvalue_detail(sort_id=self.option("sort_id"), method=self.option("method"), pval_sort=go_sort_dir)
+            for f in os.listdir(self.output_dir):
+                if re.search(r"go_pvalue_sort.xls$", f):
+                    go_sort_dir = self.output_dir + '/' + f
+            api_pvalue.add_pvalue_detail(sort_id=self.option("sort_id"), method=self.option("method"), pval_sort=go_sort_dir)
 
     def rely_fun(self):
         self.set_output()
