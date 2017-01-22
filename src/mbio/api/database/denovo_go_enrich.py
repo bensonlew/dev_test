@@ -58,6 +58,19 @@ class DenovoGoEnrich(Base):
         return go_enrich_id
 
     @report_check
+    def update_directed_graph(self, go_enrich_id, go_graph_dir):
+        collection = self.db['sg_denovo_go_enrich']
+        if go_graph_dir:
+            fs = gridfs.GridFS(self.db)
+            gra = fs.put(open(go_graph_dir, 'rb'))
+            try:
+                collection.update({"_id": ObjectId(go_enrich_id)}, {"$set": {'go_directed_graph': gra}})
+            except Exception, e:
+                self.bind_object.logger.error("导入%s信息出错：%s" % (go_graph_dir, e))
+            else:
+                self.bind_object.logger.info("导入%s信息成功！" % (go_graph_dir))
+
+    @report_check
     def add_go_enrich_detail(self, go_enrich_id, go_enrich_dir):
         if not isinstance(go_enrich_id, ObjectId):
             if isinstance(go_enrich_id, types.StringTypes):
