@@ -127,6 +127,6 @@ class KeggRichRegulate(DenovoController):
             for name in ["correct", "regulate"]:
                 if not hasattr(data, name):
                     success.append("缺少参数:%" % name)
-            if data.regulate not in ["up", "down", "up+down"]:
-                success.append("上下调选择应为up/down/up+down")
+            if data.regulate not in ["up", "down", "all"]:
+                success.append("上下调选择应为up/down/all")
         return success
