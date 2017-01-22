@@ -26,7 +26,7 @@ class GoEnrichRegulateWorkflow(Workflow):
             {"name": "go2level", "type": "string", "default": "none"},
             {"name": "pval", "type": "string", "default": "0.05"},                        # 显著性水平
             {"name": "method", "type": "string", "default": "bonferroni,sidak,holm,fdr"}, # 多重校正方法
-            {"name": "regulate", "type": "string", "default": "up+down"},
+            {"name": "regulate", "type": "string", "default": "all"},
             {"name": "go_enrich_id", "type": "string"},
             {"name": "go_regulate_id", "type": "string"},
             {"name": "sort_id", "type": "string"},
@@ -50,7 +50,7 @@ class GoEnrichRegulateWorkflow(Workflow):
             lines = f.readlines()
             for line in lines[1:]:
                 line = line.strip().split('\t')
-                if self.option("regulate") == "up+down":
+                if self.option("regulate") == "all":
                     if float(line[6]) < 0.05:
                         w.write(line[0] + '\n')
                 if self.option("regulate") == "up":
