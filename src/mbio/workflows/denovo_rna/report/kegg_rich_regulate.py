@@ -24,7 +24,7 @@ class KeggRichRegulateWorkflow(Workflow):
             {"name": "all_list", "type": "string", "default": "none"},  # gene名字文件
             {"name": "diff_stat", "type": "string", "default": "none"},
             {"name": "correct", "type": "string", "default": "BH"},  # 多重检验校正方法
-            {"name": "regulate", "type": "string", "default": "up+down"},
+            {"name": "regulate", "type": "string", "default": "all"},
             {"name": "analysis_type", "type": "string"},
             {"name": "kegg_regulate_id", "type": "string"},
             {"name": "kegg_enrich_id", "type": "string"},
@@ -48,7 +48,7 @@ class KeggRichRegulateWorkflow(Workflow):
             lines = f.readlines()
             for line in lines[1:]:
                 line = line.strip().split('\t')
-                if self.option("regulate") == "up+down":
+                if self.option("regulate") == "all":
                     if float(line[6]) < 0.05:
                         w.write(line[0] + '\n')
                 if self.option("regulate") == "up":
