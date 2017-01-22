@@ -1,126 +1,132 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zengjing'
+
 import web
 import json
-from mainapp.libs.signature import check_sig
-from mainapp.models.workflow import Workflow
+import types
 import datetime
+from mainapp.libs.signature import check_sig
+from bson.objectid import ObjectId
 from biocluster.config import Config
-from mainapp.models.mongo.denovo import Denovo
-from mainapp.libs.param_pack import GetUploadInfo_denovo
-from mbio.api.database.denovo_kegg_rich import *
-from mbio.api.database.denovo_kegg_regulate import *
-from mbio.api.database.denovo_kegg_pval_sort import *
 from mainapp.models.mongo.submit.denovo_rna.denovo_kegg_rich import DenovoKeggRich
-import random
+from mainapp.models.mongo.meta import Meta
+from mainapp.models.workflow import Workflow
+from mainapp.controllers.project.denovo_controller import DenovoController
 
 
-class KeggRichRegulate(object):
+class KeggRichRegulate(DenovoController):
     """
     kegg富集、调控接口
     """
     def __init__(self):
-        self.db_name = Config().MONGODB + '_rna'
+        super(KeggRichRegulate, self).__init__(instant=False)
 
     @check_sig
     def POST(self):
         data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        client = data.client if hasattr(data, 'client') else web.ctx.env.get('HTTP_CLIENT')
         print data
-        params_name = ["express_diff_id", "submit_location", "analysis_type", "compare"]
-        for param in params_name:
-            if not hasattr(data, param):
-                info = {"success": False, "info": "缺少%s参数!" % param}
-                return json.dumps(info)
-        if data.analysis_type not in ["enrich", "regulate", "both"]:
-            info = {"success": False, "info": "$s分析不存在" % data.analysis_type}
+        return_result = self.check_options(data)
+        if return_result:
+            info = {"success": False, "info": "+".json(return_result)}
             return json.dumps(info)
-        express_diff_info = Denovo().get_main_info(data.express_diff_id, "sg_denovo_express_diff")
-        if express_diff_info:
-            task_info = Denovo().get_task_info(express_diff_info["task_id"])
-            if task_info:
-                member_id = task_info["member_id"]
-            else:
-                info = {"success": False, "info": "这个express_diff_id对应的task: %s没有member_id!" % express_diff_info["task_id"]}
-                return json.dumps(info)
-            insert_data = self.get_insert_data(client, data, member_id, express_diff_info)   ###
-            workflow_module = Workflow()
-            workflow_module.add_record(insert_data)
-            info = {"success": True, "info": "提交成功!"}
-            return json.dumps(info)
-        else:
-            info = {"success": False, "info": "差异表达id不存在!"}
-            return json.dumps(info)
-
-    def get_params(self, data):
-        my_param = {"analysis_type": data.analysis_type, "express_diff_id": data.express_diff_id, "compare": data.compare, "submit_location": data.submit_location}
+        my_param = {'analysis_type': data.analysis_type, "express_diff_id": data.express_diff_id,
+                    "compare": data.compare, "submit_location": data.submit_location}
         if data.analysis_type in ["enrich", "both"]:
             my_param["correct"] = data.correct
-        return my_param
-
-    def get_insert_data(self, client, data, member_id, express_diff_info):
-        params = self.get_params(data)
-        analysis_type = data.analysis_type
+            my_param["regulate"] = data.regulate
+        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         name = data.compare.split(',')[0]
         compare_name = data.compare.split(',')[1]
-        options = {"analysis_type": analysis_type, "name": name, "compare_name": compare_name, "kegg_table": data.express_diff_id, "diff_stat": data.express_diff_id, "submit_location": data.submit_location}
-        project_sn = express_diff_info["project_sn"]
+        express_diff_info = Meta(db=self.mongodb).get_main_info(data.express_diff_id, "sg_denovo_express_diff")
+        if not express_diff_info:
+            info = {"success": False, "info": "express_diff_id不存在，请检查参数是否正确！"}
+            return json.dumps(info)
         task_id = express_diff_info["task_id"]
-        to_file = ["denovo.export_kegg_table(kegg_table)", "denovo.export_diff_express(diff_stat)"]
-        if analysis_type in ["enrich", "both"]:
-            rich_id = DenovoKeggRich().add_kegg_rich(name=None, params=params, project_sn=project_sn, task_id=task_id)
-            update_info = {str(rich_id): "sg_denovo_kegg_enrich", "database": self.db_name}
-            update_info = json.dumps(update_info)
-            options["update_info"] = update_info
-            options["kegg_enrich_id"] = str(rich_id)
-            options["all_list"] = data.express_diff_id
-            options["correct"] = data.correct
-            options.update(params)
-            to_file.append("denovo.export_all_gene_list(all_list)")
-        if analysis_type in ["regulate", "both"]:
-            regulate_id = DenovoKeggRich().add_kegg_regulate(name=None, params=params, project_sn=project_sn, task_id=task_id)
-            update_info = {str(regulate_id): "sg_denovo_kegg_regulate", "database": self.db_name}
-            update_info = json.dumps(update_info)
-            options["update_info"] = update_info
-            options["kegg_regulate_id"] = str(regulate_id)
-            options.update(params)
-        if analysis_type == "both":
-            sort_id = DenovoKeggRich().add_kegg_pval_sort(name=None, params=params, project_sn=project_sn, task_id=task_id)
-            update_info = [{str(rich_id): "sg_denovo_kegg_enrich", "database": self.db_name}, {str(regulate_id): "sg_denovo_kegg_regulate", "database": self.db_name}, {str(sort_id): "sg_denovo_kegg_pval_sort", "database": self.db_name}]
-            update_info = json.dumps(update_info)
-            options["update_info"] = update_info
-            options["sort_id"] = str(sort_id)
-            options.update(params)
-        workflow_id = self.get_new_id(express_diff_info["task_id"], data.express_diff_id)
-        (output_dir, update_api) = GetUploadInfo_denovo(client, member_id, project_sn, task_id, 'kegg_enrich_regulate')
-        json_data = {
-            "id": workflow_id,
-            "stage_id": 0,
-            "name": "denovo_rna.report.kegg_rich_regulate",
-            "type": "workflow",
-            "client": client,
-            "project_sn": project_sn,
-            "to_file": to_file,
-            "USE_DB": True,
-            "IMPORT_REPORT_DATA": True,
-            "UPDATA_STATUS_API": update_api,
-            "IMPORT_REPORT_AFTER_END": True,
-            "output": output_dir,
-            "options": options
-        }
-        insert_data = {
-            "client": client,
-            "workflow_id": workflow_id,
-            "json": json.dumps(json_data),
-            "ip": web.ctx.ip
-        }
-        print options
-        return insert_data
+        project_sn = express_diff_info["project_sn"]
+        if data.analysis_type == "enrich":
+            main_table_name = "KeggRich_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            kegg_enrich_id = DenovoKeggRich().add_kegg_rich(name=main_table_name, params=params, project_sn=project_sn, task_id=task_id)
+            update_info = {str(kegg_enrich_id): "sg_denovo_kegg_enrich"}
+            options = {
+                "analysis_type": data.analysis_type,
+                "update_info": json.dumps(update_info),
+                "name": name,
+                "compare_name": compare_name,
+                "kegg_enrich_id": str(kegg_enrich_id),
+                "kegg_table": data.express_diff_id,
+                "diff_stat": data.express_diff_id,
+                "all_list": data.express_diff_id,
+                "correct": data.correct,
+                "regulate": data.regulate
+            }
+            to_file = ["denovo.export_kegg_table(kegg_table)", "denovo.export_diff_express(diff_stat)", "denovo.export_all_gene_list(all_list)"]
+            self.set_sheet_data(name="denovo_rna.report.kegg_rich_regulate", options=options,
+                                main_table_name=main_table_name, module_type="workflow", to_file=to_file,
+                                main_id=kegg_enrich_id, collection_name="sg_denovo_kegg_enrich")
+        if data.analysis_type == "regulate":
+            main_table_name = "KeggRegulate_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            kegg_regulate_id = DenovoKeggRich().add_kegg_regulate(name=main_table_name, params=params, project_sn=project_sn,
+                                                            task_id=task_id)
+            update_info = {str(kegg_regulate_id): "sg_denovo_kegg_regulate"}
+            options = {
+                "analysis_type": data.analysis_type,
+                "update_info": json.dumps(update_info),
+                "name": name,
+                "compare_name": compare_name,
+                "kegg_regulate_id": str(kegg_regulate_id),
+                "kegg_table": data.express_diff_id,
+                "diff_stat": data.express_diff_id
+            }
+            to_file = ["denovo.export_kegg_table(kegg_table)", "denovo.export_diff_express(diff_stat)"]
+            self.set_sheet_data(name="denovo_rna.report.kegg_rich_regulate", options=options,
+                                main_table_name=main_table_name, module_type="workflow", to_file=to_file,
+                                main_id=kegg_regulate_id, collection_name="sg_denovo_kegg_regulate")
+        if data.analysis_type == "both":
+            main_table_name = "KeggEnrichRegulate_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            sort_id = DenovoKeggRich().add_kegg_pval_sort(name=main_table_name, params=params,
+                                                                  project_sn=project_sn,
+                                                                  task_id=task_id)
+            update_info = {str(sort_id): "sg_denovo_kegg_pvalue"}
+            options = {
+                "analysis_type": data.analysis_type,
+                "update_info": json.dumps(update_info),
+                "name": name,
+                "compare_name": compare_name,
+                "sort_id": str(sort_id),
+                "kegg_table": data.express_diff_id,
+                "diff_stat": data.express_diff_id,
+                "all_list": data.express_diff_id,
+                "correct": data.correct,
+                "regulate": data.regulate
+            }
+            to_file = ["denovo.export_kegg_table(kegg_table)", "denovo.export_diff_express(diff_stat)",
+                       "denovo.export_all_gene_list(all_list)"]
+            self.set_sheet_data(name="denovo_rna.report.kegg_rich_regulate", options=options,
+                                main_table_name=main_table_name, module_type="workflow", to_file=to_file,
+                                main_id=sort_id, collection_name="sg_denovo_kegg_pvalue")
+        task_info = super(KeggRichRegulate, self).POST()
+        return json.dumps(task_info)
 
-    def get_new_id(self, task_id, main_id):
-        new_id = "%s_%s_%s" % (task_id, main_id[-4:], random.randint(1, 10000))
-        workflow_module = Workflow()
-        workflow_data = workflow_module.get_by_workflow_id(new_id)
-        if len(workflow_data) > 0:
-            return self.get_new_id(task_id, main_id)
-        return new_id
+    def check_options(self, data):
+        """
+        检查网页端传来的参数是否正确
+        """
+        params_name = ["analysis_type", "express_diff_id", "compare", "submit_location"]
+        success = []
+        for name in params_name:
+            if not hasattr(data, name):
+                success.append("缺少参数：%" % name)
+        express_diff_id = str(data.express_diff_id)
+        if not isinstance(express_diff_id, ObjectId) and not isinstance(express_diff_id, types.StringType):
+            success.append("传入的express_diff_id:%不是一个ObjectId对象或字符串类型!" % express_diff_id)
+        analysis_type = data.analysis_type
+        if analysis_type not in ["enrich", "regulate", "both"]:
+            success.append("%分析不存在" % analysis_type)
+        if analysis_type in ["enrich", "both"]:
+            for name in ["correct", "regulate"]:
+                if not hasattr(data, name):
+                    success.append("缺少参数:%" % name)
+            if data.regulate not in ["up", "down", "up+down"]:
+                success.append("上下调选择应为up/down/up+down")
+        return success
