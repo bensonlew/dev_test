@@ -6,23 +6,24 @@ from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
 import re
 import shutil
+import math
 
 class GeneFusionModule(Module):
     """
     
     version 1.0
     author: sj
-    last_modify: 2016.11.25 by sj
+    last_modify: 2017.01.17 by zx
     """
     def __init__(self, work_id):
         super(GeneFusionModule, self).__init__(work_id)
         options = [
             {"name": "sickle_dir", "type": "infile", "format": "sequence.fastq_dir"},  # 质量剪切输出结果文件夹(包括左右段)  /mnt/ilustre/users/sanger-dev/workspace/20161110/RefrnaNoAssemble_sj_ref_rna/QualityControl/output/sickle_dir
             {"name": "seqprep_dir", "type": "infile", "format": "sequence.fastq_dir"},  # PE的去接头输出结果文件  /mnt/ilustre/users/sanger-dev/workspace/20161110/RefrnaNoAssemble_sj_ref_rna/QualityControl/output/seqprep_dir
-            {"name": "reads_number", "type": "int", "default" : 3}, # 支持融合的reads数目的最小值 3 5 10
+            {"name": "reads_number", "type": "int", "default": 3},  # 支持融合的reads数目的最小值 3 5 10
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq_dir"},  # fq文件夹 /mnt/ilustre/users/sanger-dev/sg-users/shijin/PE_test/paired_end_fq_dir
-            {"name": "fq_type", "type":"string", "default": "PE"},  # PE或SE
-            {"name": "fusion_result_dir", "type":"outfile", "format": "ref_rna.gene_fusion.fusion_result_dir"} #modify by zx 2016.11.21
+            {"name": "fq_type", "type": "string", "default": "PE"},  # PE或SE
+            {"name": "fusion_result_dir", "type": "outfile", "format": "ref_rna.gene_fusion.fusion_result_dir"} #modify by zx 2016.11.21
             #module 的输出文件夹没有设置内容 zx
         ]
         self.add_option(options)
@@ -40,13 +41,13 @@ class GeneFusionModule(Module):
         if not self.option("sickle_dir").is_set:
             raise OptionError("未检测到sickle文件夹")
         else:
-            list_path = os.path.join(self.option("sickle_dir").prop["path"],"list.txt")
+            list_path = os.path.join(self.option("sickle_dir").prop["path"], "list.txt")
             if not os.path.exists(list_path):
                 raise OptionError("未检测到list文件")
             list = FileSampleFile()
             list.set_path(list_path)
             list.get_info()
-            self.logger.info("samples number: "+ str(list.prop["sample_number"]))
+            self.logger.info("samples number: " + str(list.prop["sample_number"]))
             self.logger.info("sample names :" + str(list.prop["sample_names"]))
             self.sample_number = list.prop["sample_number"]
             self.sample_names = list.prop["sample_names"]
@@ -79,23 +80,34 @@ class GeneFusionModule(Module):
         lent = str(length_l) + "/" + str(length_r)
         return lent
     
+    # def create_list_file(self):
+    #     list_path = os.path.join(self.work_dir, "sample_list")
+    #     self.logger.info(list_path)
+    #     with open(list_path, "w") as w:
+    #         for i in range(self.sample_number):
+    #             w.write(self.sample_names[i] + "\t" + "Lib-" + chr(97 + i) + "\t" + "Run-" + chr(97+i) + "\t" + self.get_sample_length(self.sample_names[i]) + "\n")
+    #     self.logger.info("done!")
+    #     return True
+
     def create_list_file(self):
-        list_path = os.path.join(self.work_dir,"sample_list")
-        self.logger.info(list_path)
-        with open(list_path,"w") as w:
-            for i in range(self.sample_number):
-                w.write(self.sample_names[i] + "\t" + "Lib-" + chr(97 + i) + "\t" + "Run-" + chr(97+i) + "\t" + self.get_sample_length(self.sample_names[i]) + "\n")
+        for i in self.sample_names:
+            list_path = os.path.join(self.work_dir, i)
+            self.logger.info(list_path)
+            with open(list_path, "w") as w:
+                # w.write(i + "\t" + "Lib-" + chr(97 + i) + "\t" + "Run-" + chr(97+i) + "\t" + self.get_sample_length(i) + "\n")
+                w.write(i + "\t" + "Lib-a"+ "\t" + "Run-a" + "\t" + self.get_sample_length(
+                    i) + "\n")
         self.logger.info("done!")
         return True
         
     def get_gz_path(self):
-        list_path = os.path.join(self.option("fastq_dir").prop["path"],"list.txt")
+        list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
         list = FileSampleFile()
         list.set_path(list_path)
         self.gz_path = list.get_list()
         for sample in self.sample_names:
             new_path = self.gz_path[sample]["l"]
-            new_path = new_path + "_seqprep_l.gz"  # edited by sj on 20161125 
+            new_path = new_path + "_seqprep_l.gz"    #  edited by sj on 20161125
             seqprep_path = self.option("seqprep_dir").prop["path"]
             if os.path.exists(seqprep_path + "/" + new_path):
                 self.gz_path[sample]["l"] = new_path
@@ -146,21 +158,68 @@ class GeneFusionModule(Module):
         self.logger.info("create dir done")
         return True
     
+    # def tool_run(self):
+    #     opts = {
+    #         "sample_data": self.work_dir + "/" + "WHOLE_SEQ_DIR",
+    #         "sample_list": self.work_dir + "/" + "sample_list",
+    #         "reads_number": self.option("reads_number")
+    #         #"sample_name": 'ERR1464149'  # 修改 zx
+    #     }
+    #     tool = self.add_tool("ref_rna.gene_fusion.soapfuse")
+    #     tool.set_options(opts)
+    #     tool.on("end", self.get_message)  # edited by sj
+    #     print "111"
+    #     tool.run()
+
     def tool_run(self):
-        opts = {
-            "sample_data" : self.work_dir + "/" + "WHOLE_SEQ_DIR",
-            "sample_list" : self.work_dir + "/" + "sample_list",
-            "reads_number" : self.option("reads_number")
-            #"sample_name" : 'ERR1464149'  # 修改 zx
-        }
-        tool = self.add_tool("ref_rna.gene_fusion.soapfuse")
-        tool.set_options(opts)
-        tool.on("end",self.get_message)  # edited by sj
+        times = math.ceil(self.sample_number/5)
+        for i in self.sample_names:
+            tool = self.add_tool("ref_rna.gene_fusion.soapfuse")
+            self.step.add_steps('gene_fusion_{}'.format(i))
+            tool.set_options = (
+                {
+                    "sample_data": self.work_dir + "/" + "WHOLE_SEQ_DIR",
+                    "sample_list": self.work_dir + "/" + i,
+                    "reads_number": self.option("reads_number"),
+                    "sample_name": i
+                }
+            )
+            step = getattr(self.step, 'gene_fusion_{}'.format(i))
+            step.start()
+            tool.on('end', self.finish_update, 'gene_fusion_{}'.format(i))
+            self.tools.append(tool)
+        if len(self.tools) == 1:
+            self.tools[0].on('end', self.get_message)
+        elif 1 < len(self.tools) <= 5:
+            self.on_rely(self.tools, self.get_message)
+        else:
+            if times == 2:
+                self.on_rely(self.tools[0, 4], self.tools[5, -1])
+                if len(self.tools) == 6:
+                    self.tools[5].on('end', self.get_message)
+                else:
+                    self.on_rely(self.tools[5, -1], self.get_message)
+            else:
+                for i in range(0, times):
+                    self.on_rely(self.tools[i*5, i*5+4], self.tools[i*5+5, i*5+9])
+                    if i*5+9+5 >=len(self.tools):
+                        number = i
+                        break
+                self.on_rely(self.tools[number*5+5, number*5+9], self.tools[number*5+10, -1])
+                if len(self.tools) == number*5+9+2:
+                    self.tools[-1].on('end', self.get_message)
+                else:
+                    self.on_rely(self.tools[number*5+10, -1], self.get_message)
+        for tool in self.tools:
+            tool.run()
+
+
+            tool.on("end", self.get_message)  # edited by sj
         print "111"
         tool.run()
 
 
-    def finish_update(self): #修改 zx
+    def finish_update(self):  #  修改 zx
         self.step.tool.finish()
         self.step.update()
 
