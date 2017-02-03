@@ -27,7 +27,8 @@ class PearsonsCorrelationAgent(Agent):
             {"name": "env_cluster", "type": "string", "default": "average"},
             {"name": "species_cluster", "type": "string", "default": "average"},
             {"name": "cor_table", "type": "outfile", "format": "meta.otu.group_table"},
-            {"name": "pvalue_table", "type": "outfile", "format": "meta.otu.group_table"}
+            {"name": "pvalue_table", "type": "outfile", "format": "meta.otu.group_table"},
+            {"name": "top_species", "type": "string", "default": "all"},
         ]
         self.add_option(options)
         self.step.add_steps('pearsons_correlation')
@@ -71,6 +72,9 @@ class PearsonsCorrelationAgent(Agent):
                 pass
         else:
             raise OptionError('请选择环境因子表')
+        if self.option("top_species") is not "all":
+            if not re.match(r"\d", self.option("top_species")):
+                raise OptionError('请输入筛选的物种数目（按丰度排第N个）')
 
     def set_resource(self):
         """
@@ -114,6 +118,9 @@ class PearsonsCorrelationTool(Tool):
             otu_path = self.option('otutable').get_table(self.option('level'))
         else:
             otu_path = self.option('otutable').prop['path']
+        if self.option("top_species") is not "all":
+            self.get_top_specise(otu_path)
+            otu_path = self.work_dir + "/sorted_otu_file.xls"
         return otu_path
 
     def get_new_env(self):
@@ -159,7 +166,8 @@ class PearsonsCorrelationTool(Tool):
         # self.end()
 
     def get_name(self, table):
-        with open(table, "r") as f, open(self.work_dir + "/tem.collection.xls", "w") as w, open("name_to_name.xls", "w") as nf, open("env_name.xls", "w") as ew:
+        with open(table, "r") as f, open(self.work_dir + "/tem.collection.xls", "w") as w, \
+                open("name_to_name.xls", "w") as nf, open("env_name.xls", "w") as ew:
             first_line = f.readline()
             # w.write(first_line)
             col_names = first_line.strip().split("\t")
@@ -189,7 +197,8 @@ class PearsonsCorrelationTool(Tool):
         line_num = self.get_name(self.work_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level'))
         if line_num < 2:
             self.set_error('相关系数矩阵行数/物种数小于2，请尝试切换水平重新运行')
-        corr_heatmap(self.work_dir + "/tem.collection.xls", "env_tree.tre", "species_tree.tre", self.option("env_cluster"), self.option("species_cluster"))
+        corr_heatmap(self.work_dir + "/tem.collection.xls", "env_tree.tre", "species_tree.tre",
+                     self.option("env_cluster"), self.option("species_cluster"))
         cmd = self.r_path + " run_corr_heatmap.r"
         try:
             subprocess.check_output(cmd, shell=True)
@@ -233,3 +242,28 @@ class PearsonsCorrelationTool(Tool):
                 env_tree = f.readline().strip()
                 new_species_tree = re.sub(r"(colnew\d+)", self.dashrepl_env, env_tree)
                 w.write(new_species_tree)
+
+    def get_top_specise(self, otu_file):
+        specise_sum = {}
+        species_list = []
+        sorted_spe_list = []
+        total = 0
+        with open(otu_file, "r") as f:
+            f.readline()
+            for line in f:
+                line = line.strip("\n").split("\t")
+                row_sum = sum(map(float, line[1:]))
+                specise_sum[line[0]] = row_sum
+                species_list.append(line[0])
+                total += row_sum
+        sorted_species = sorted(specise_sum.items(), key=lambda item: item[1], reverse=True)
+        for s in sorted_species[:int(self.option("top_species"))]:
+            sorted_spe_list.append(s[0])
+        # print sorted_spe_list
+        with open(otu_file, "r") as f, open(self.work_dir + "/sorted_otu_file.xls", "w") as w:
+            w.write(f.readline())
+            for line in f:
+                line = line.strip("\n").split("\t")
+                if line[0] in sorted_spe_list:
+                    w.write("\t".join(line) + "\n")
+                    sorted_spe_list.remove(line[0])
