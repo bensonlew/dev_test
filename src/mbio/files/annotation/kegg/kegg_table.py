@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
 from biocluster.iofile import File
+import re
+from collections import defaultdict
 
 
 class KeggTableFile(File):
@@ -30,3 +32,22 @@ class KeggTableFile(File):
             for i in all_list:
                 if i not in self.gene_list:
                     a.write('{}\tNone\n'.format(i))
+
+    def get_pathway_koid(self):
+        '''
+        返回两个字典：
+        ko_gene:ko id对应的geneids
+        path_ko:pathway id为键，值为koid的列表；
+        '''
+        with open(self.prop['path'], 'rb') as r:
+            ko_gene = defaultdict(list)
+            path_ko = defaultdict(list)
+            r.readline()
+            for line in r:
+                line = line.strip('\n').split('\t')
+                ko_gene[line[1]].append(line[0])
+                paths = [re.sub('path:', '', i) for i in line[-1].split(';')]
+                for p in paths:
+                    if p:
+                        path_ko[p].append(line[1])
+        return ko_gene, path_ko

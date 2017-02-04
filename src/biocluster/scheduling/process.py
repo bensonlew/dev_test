@@ -36,6 +36,9 @@ class PROCESS(Job):
                                                                    self.workflow.rpc_server.process_queue,
                                                                    self.shared_callback_action,), daemon=True)
         self.id = self.process.pid
+        if self.id:
+            self.agent.fire("runstart")
+        return self.id
 
     def delete(self):
             if self.process.is_alive():

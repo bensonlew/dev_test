@@ -18,9 +18,11 @@ class ClusterAnalysisWorkflow(Workflow):
             {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU表
             {"name": "input_otu_id", "type": "string"},  # 输入的OTU id
             {"name": "level", "type": "string", "default": "9"},  # 输入的OTU level
-            {"name": "group_detail", "type": "string"},  # 输入的group_detail 示例如下
+            {"name": "update_info", "type": "string"},
+            {"name": "main_id", "type": "string"},
+            {"name": "group_detail", "type": "string"}  # 输入的group_detail 示例如下
             # {"A":["578da2fba4e1af34596b04ce","578da2fba4e1af34596b04cf","578da2fba4e1af34596b04d0"],"B":["578da2fba4e1af34596b04d1","578da2fba4e1af34596b04d3","578da2fba4e1af34596b04d5"],"C":["578da2fba4e1af34596b04d2","578da2fba4e1af34596b04d4","578da2fba4e1af34596b04d6"]}
-            {"name": "method", "type": "string", "default": ""}  # 聚类方式， ""为不进行聚类
+            # {"name": "method", "type": "string", "default": ""}  # 聚类方式， ""为不进行聚类
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -67,7 +69,7 @@ class ClusterAnalysisWorkflow(Workflow):
 
     def set_db(self):
         self.logger.info("正在写入mongo数据库")
-        newick_id = ""
+        # newick_id = ""
         # myParams = json.loads(self.sheet.params)  # 2016.12.1 zhouxuan
         # if self.option("method") != "":
         #     api_heat_cluster = self.api.heat_cluster
@@ -77,9 +79,9 @@ class ClusterAnalysisWorkflow(Workflow):
         #     api_heat_cluster.update_newick(self.hcluster.option("newicktree").prop['path'], newick_id)
         #     self.add_return_mongo_id("sg_newick_tree", newick_id, "", False)
         api_otu = self.api.cluster_analysis
-        new_otu_id = api_otu.add_sg_otu(self.sheet.params, self.option("input_otu_id"), None, newick_id)
-        api_otu.add_sg_otu_detail(self.sort_samples.option("out_otu_table").prop["path"], new_otu_id, self.option("input_otu_id"))
-        self.add_return_mongo_id("sg_otu", new_otu_id)
+        # new_otu_id = api_otu.add_sg_otu(self.sheet.params, self.option("input_otu_id"), None, newick_id)
+        api_otu.add_sg_otu_detail(self.sort_samples.option("out_otu_table").prop["path"], self.option("main_id"), self.option("input_otu_id"))
+        # self.add_return_mongo_id("sg_otu", new_otu_id)
         self.end()
 
 

@@ -21,6 +21,7 @@ class CorrNetworkWorkflow(Workflow):
             {"name": "method", "type": "string", "default": "pearson"},
             {"name": "coefficient", "type": "float", "default": 0.04},
             {"name": "abundance", "type": "int", "default": 50},  #设定物种总丰度值前50的物种信息
+            {"name": "update_info", "type": "string"},
             {"name": "corr_network_id", "type": "string"}
             ]
         self.add_option(options)
@@ -48,10 +49,10 @@ class CorrNetworkWorkflow(Workflow):
                     line = line.strip().split('\t')
                     line_data = line[0].strip().split(' ')
                     line_he = "".join(line_data)
-                    tmp1 = line_he.strip().split(";")[-1:][0]  # 输出最后一个物种名
+                    #tmp1 = line_he.strip().split(";")[-1:][0]  # 输出最后一个物种名
                     tmp2 = line_he.strip().split(";")[2]  # 输出门分类
-                    line[0] = tmp1
-                    f4.write(tmp1 + '\t' + tmp2 + "\n")
+                    line[0] = line_he
+                    f4.write(line_he + '\t' + tmp2 + "\n")
                     for i in range(0, len(line)):
                         if i == len(line) - 1:
                             f2.write("%s\n" % (line[i]))
@@ -81,13 +82,14 @@ class CorrNetworkWorkflow(Workflow):
             list_result_otu = []
             f1.write("species" + "\t" + "abundance" + "\t" + "phylum" + "\n")
             for i in new_dict1:
-                list_result_otu.append(str(i[0]))
+                if int(i[1]) != 0:
+                    list_result_otu.append(str(i[0]))
                 with open(newtable4, "r") as x:
                     data = x.readlines()
                     for line in data:
                         line = line.strip().split("\t")
-                        if str(line[0]) == str(i[0]):
-                            f1.write(str(i[0]) + "\t" + str(i[1]) + "\t" + str(line[1]) + "\n")
+                        if str(line[0]) == str(i[0]) and str(i[0]) in list_result_otu:
+                            f1.write(str(i[0]).strip().split(';')[-1:][0] + "\t" + str(i[1]) + "\t" + str(line[1]) + "\n")
         with open(newtable, "r") as m:
             i = 0
             for line1 in m:
@@ -97,6 +99,8 @@ class CorrNetworkWorkflow(Workflow):
                 else:
                     line1 = line1.strip().split("\t")
                     if line1[0] in list_result_otu:
+                        line1_data = line1[0].strip().split(';')[-1:][0]
+                        line1[0] = line1_data
                         for i in range(0, len(line1)):
                             if i == len(line1) - 1:
                                 f3.write("%s\n" % (line1[i]))
@@ -183,8 +187,8 @@ class CorrNetworkWorkflow(Workflow):
         api_corrnetwork.add_network_attributes(file_path=network_attributes_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_degree_distribution(file_path=network_degree_distribution, table_id=self.option("corr_network_id"))
 
-        corr_network_id_tab = self.option("corr_network_id")
-        self.add_return_mongo_id('sg_corr_network', corr_network_id_tab)
+        # corr_network_id_tab = self.option("corr_network_id")
+        # self.add_return_mongo_id('sg_corr_network', corr_network_id_tab)
         self.end()
 
     def run(self):

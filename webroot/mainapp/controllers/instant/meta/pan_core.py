@@ -2,25 +2,37 @@
 # __author__ = 'xuting'
 import web
 import json
+import datetime
+import string
+from random import choice
+from bson import ObjectId
+from mainapp.models.mongo.meta import Meta
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.libs.param_pack import param_pack, group_detail_sort
-from mainapp.models.mongo.public.meta.meta import Meta
+from mainapp.libs.param_pack import group_detail_sort
+# from mainapp.models.mongo.public.meta.meta import Meta
 
 
 class PanCore(MetaController):
+    def __init__(self):
+        super(PanCore, self).__init__(instant=True)
+        self.meta = Meta()
+
     def POST(self):
-        return_info = super(PanCore, self).POST()
-        if return_info:
-            return return_info
         data = web.input()
         postArgs = ['group_id', 'level_id', 'submit_location', "group_detail"]
         for arg in postArgs:
             if not hasattr(data, arg):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
-        self.task_name = 'meta.report.pan_core'
-        # data.group_detail是一个字符串，示例如下
-        # {"A":["578da2fba4e1af34596b04ce","578da2fba4e1af34596b04cf","578da2fba4e1af34596b04d0"],"B":["578da2fba4e1af34596b04d1","578da2fba4e1af34596b04d3","578da2fba4e1af34596b04d5"],"C":["578da2fba4e1af34596b04d2","578da2fba4e1af34596b04d4","578da2fba4e1af34596b04d6"]}
+        task_name = 'meta.report.pan_core'
+        task_type = 'workflow'
+        time_now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'PanCore_' + time_now
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
+        if not otu_info:
+            info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
+            return json.dumps(info)
+        task_info = self.meta.get_task_info(otu_info['task_id'])
         group_detal_dict = json.loads(data.group_detail)
         specimen_ids = list()
         for v in group_detal_dict.values():
@@ -30,21 +42,68 @@ class PanCore(MetaController):
             info = {'success': False, 'info': '样本数量少于5个,请选择更多的样本！'}
             return json.dumps(info)
         specimen_ids = ",".join(specimen_ids)
-        self.options = {
+        params_json = {
+            'otu_id': data.otu_id,
+            'level_id': int(data.level_id),
+            'group_id': data.group_id,
+            'group_detail': group_detail_sort(data.group_detail),
+            'submit_location': data.submit_location,
+            'task_type': data.task_type
+        }
+        to_file = [
+            "meta.export_otu_table_by_level(in_otu_table)", "meta.export_group_table_by_detail(group_table)"]
+        unique_id = self.get_unique()
+        mongo_data = {
+            'project_sn': task_info['project_sn'],
+            'task_id': task_info['task_id'],
+            'otu_id': ObjectId(data.otu_id),
+            'type': 1,  # pan
+            'status': 'start',
+            'desc': '正在计算Pan OTU',
+            'unique_id': unique_id,
+            'name': 'Pan_' + time_now,
+            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "level_id": int(data.level_id),
+            "params": json.dumps(params_json, sort_keys=True, separators=(',', ':'))
+        }
+        main_pan_table_id = self.meta.insert_main_table(
+            'sg_otu_pan_core', mongo_data)
+        mongo_data['type'] = 2
+        mongo_data['desc'] = '正在计算Core OTU'
+        mongo_data['name'] = 'Core_' + time_now
+        main_core_table_id = self.meta.insert_main_table(
+            'sg_otu_pan_core', mongo_data)
+        update_info = {str(main_pan_table_id): 'sg_otu_pan_core', str(
+            main_core_table_id): 'sg_otu_pan_core'}
+        options = {
             "in_otu_table": data.otu_id,
             "group_table": data.group_id,
+            'update_info': json.dumps(update_info),
             "group_detail": data.group_detail,
-            "samples": Meta().sampleIdToName(specimen_ids),
-            "level": int(data.level_id)
+            "samples": self.meta.sampleIdToName(specimen_ids),
+            "level": int(data.level_id),
+            "main_pan_id": str(main_pan_table_id),
+            "main_core_id": str(main_core_table_id)
         }
-        self.to_file = ["meta.export_otu_table_by_level(in_otu_table)", "meta.export_group_table_by_detail(group_table)"]
-        my_param = dict()
-        my_param['otu_id'] = data.otu_id
-        my_param['level_id'] = int(data.level_id)
-        my_param['group_id'] = data.group_id
-        my_param['group_detail'] = group_detail_sort(data.group_detail)
-        my_param["submit_location"] = data.submit_location
-        my_param["task_type"] = data.task_type
-        self.params = param_pack(my_param)
-        self.run()
-        return self.returnInfo
+        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+                            module_type=task_type, to_file=to_file)
+        task_info = super(PanCore, self).POST()
+        task_info['content'] = {
+            'ids': [{
+                'id': str(main_pan_table_id),
+                'name': 'Pan_' + time_now
+                }, {
+                'id': str(main_core_table_id),
+                'name': 'Core_' + time_now
+                }]
+            }
+        return json.dumps(task_info)
+
+    def get_unique(self):
+        chars = string.ascii_letters + string.digits
+        unique_id = "".join([choice(chars) for i in range(10)])
+        collection = self.meta.db["sg_otu_pan_core"]
+        result = collection.find_one({"unique_id": unique_id})
+        if result:
+            return self.meta.get_unique()
+        return unique_id

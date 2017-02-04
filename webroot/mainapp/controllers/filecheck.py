@@ -167,9 +167,11 @@ class MultiFileCheck(object):
                 if d.format == "meta.otu.group_table" and isinstance(json_obj["file_list"],(dict)):
                     print "lemon tree"    
                     result = json.loads(self.checker.check_group(d,json_obj["file_list"]))
+                    """
                 elif d.format == "sequence.fastq_dir" and not isinstance(json_obj["file_list"],(dict)):
                     info = {"success":False, "info":"fastq文件夹需进行文件检测"}
                     result = info
+                    """
                 else:
                     result = json.loads(self.checker.check(d))
                 if result["success"]:

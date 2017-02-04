@@ -96,7 +96,6 @@ class RefAssessmentModule(Module):
             # satur.run()
             self.tools.append(satur)
             n += 1
-             
 
     def dup_run(self):
         n = 0

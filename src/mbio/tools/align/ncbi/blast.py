@@ -41,6 +41,7 @@ class BlastAgent(Agent):
         self.step.add_steps('blast')
         self.on('start', self.step_start)
         self.on('end', self.step_end)
+        self.queue = 'BLAST'  # 投递到指定的队列BLAST
 
     def step_start(self):
         self.step.blast.start()
@@ -88,7 +89,7 @@ class BlastAgent(Agent):
 
     def set_resource(self):
         self._cpu = self.option('num_threads')
-        self._memory = '50G'
+        self._memory = '20G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

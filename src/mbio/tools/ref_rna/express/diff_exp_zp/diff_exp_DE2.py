@@ -9,6 +9,7 @@ import os
 import re
 import itertools
 import shutil
+import copy
 
 
 class DiffExpDe2Agent(Agent):
@@ -181,7 +182,8 @@ class DiffExpDe2Tool(Tool):
         sams = control_dict.values()
         # deseq2_file = []
         for i in sams:
-            for afile in deseq2_results:
+            results = copy.copy(deseq2_results)
+            for afile in results:
                 if re.search(r'deseq2.DE_results$', afile):
                     if i[0] in afile and i[1] in afile:
                         # self.logger.info(afile)

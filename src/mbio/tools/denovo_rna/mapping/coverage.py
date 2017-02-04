@@ -71,6 +71,8 @@ class CoverageTool(Tool):
         self.python_full_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
         self.samtools_path = "bioinfo/align/samtools-1.3.1/"
         self.bam_name = os.path.basename(self.option("bam").prop["path"]).split(".")[0]
+        self.R_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin/"
+        self.set_environ(PATH=self.R_path)
 
     def sort(self):
         cmd = "{}samtools sort -o {} {}".format(self.samtools_path, self.bam_name + ".sorted.bam", self.option("bam").prop["path"])

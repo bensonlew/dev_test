@@ -72,20 +72,21 @@ class DiffExpressWorkflow(Workflow):
             self.group_spname['all'] = self.samples
         else:
             self.group_spname = self.diff_exp.option('edger_group').get_group_spname()
+            self.samples = self.diff_exp.option('edger_group').prop['sample']
         compare_column = list()
         for f in diff_files:
             if re.search(r'_edgr_stat.xls$', f):
                 con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
                 compare_column.append('|'.join(con_exp))
                 api_diff_exp.add_express_diff_detail(group=con_exp, express_diff_id=self.option('diff_express_id'), diff_stat_path=self.output_dir + '/' + f)
-        self.update_express_diff(table_id=self.option('diff_express_id'), compare_column=compare_column, group_detail=self.group_spname)
+        self.update_express_diff(table_id=self.option('diff_express_id'), compare_column=compare_column, group_detail=self.group_spname, samples=self.samples)
         self.end()
 
-    def update_express_diff(self, table_id, compare_column, group_detail):
+    def update_express_diff(self, table_id, compare_column, group_detail, samples):
         client = Config().mongo_client
         db_name = Config().MONGODB + '_rna'
         collection = client[db_name]['sg_denovo_express_diff']
-        collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column}})
+        collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': samples}})
 
     def run(self):
         self.run_diff_exp()

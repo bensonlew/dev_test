@@ -113,8 +113,5 @@ class Sheet(object):
         :param component:
         :return: dict name/value
         """
-        if self.type == "pipeline":
-            raise Exception("pipeline类型没有参数")
-        else:
-            data = self._data['options']
-            return data
+        data = self._data['options']
+        return data

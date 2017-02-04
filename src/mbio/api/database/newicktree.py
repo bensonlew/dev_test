@@ -43,7 +43,7 @@ class Newicktree(Base):
                 "table_id": table_id,
                 "table_type": table_type,
                 "level_id": level,
-                "name": name if name else "tree_origin",
+                "name": "Tree_Origin",
                 "tree_type": tree_type,
                 "status": "end",
                 "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
@@ -59,6 +59,8 @@ class Newicktree(Base):
         else:
             if tree_id is None:
                 raise Exception("major为False时需提供tree_id!")
+            if not isinstance(tree_id, ObjectId):
+                tree_id = ObjectId(tree_id)
         # update value
         self.bind_object.logger.info('update_dist_id: {}'.format(update_dist_id))
         if update_dist_id:

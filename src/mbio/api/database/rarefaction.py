@@ -9,6 +9,7 @@ from mainapp.config.db import get_mongo_client
 import json
 from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
+import copy
 
 
 class Rarefaction(Base):
@@ -69,7 +70,8 @@ class Rarefaction(Base):
                     }
                     # print insert_data
                     rare_detail.append(insert_data)
-        for i in category_x:
+        x = copy.copy(category_x)
+        for i in x:
             if i == 'numsampled':
                 category_x.remove(i)
             else:
@@ -103,7 +105,7 @@ class Rarefaction(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": task_id,
             "otu_id": otu_id,
-            "name": name if name else "rarefaction_origin",
+            "name": name if name else "Rarefaction_Origin",
             "level_id": level,
             "status": "start",
             "desc": "",
