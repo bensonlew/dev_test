@@ -6,9 +6,8 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-# from biocluster.config import Config
+from biocluster.config import Config
 import os
-import subprocess
 import shutil
 
 class TfPredictAgent(Agent):
@@ -22,8 +21,8 @@ class TfPredictAgent(Agent):
         super(TfPredictAgent, self).__init__(parent)
         options = [#输入的参数
             {"name": "query_amino", "type": "infile", "format": "sequence.fasta"},  # 上游输入的氨基酸文件（含与差异基因的对应）
-            {"name": "database", "type": "string", "default": "iTAK"}, #还有PlantTFDB和AnimalTFDB
-            {"name": "TFPredict", "type": "string"},
+            {"name": "diff_gene_id", "type": "string"},
+            {"name": "database", "type": "string", "default": "AnimalTFDB"}, #还有PlantTFDB和AnimalTFDB
         ]
         self.add_option(options)
         self.step.add_steps("TfPredict")
@@ -47,6 +46,8 @@ class TfPredictAgent(Agent):
         database_list = ["PlantTFDB", "AnimalTFDB", "iTAK"]
         # if not self.option('query_amino').is_set:
         #     raise OptionError("必须输入氨基酸序列")
+        if not self.option('diff_gene_id'):
+            raise OptionError("请输入差异基因对应id关系")
         if self.option('database') not in database_list:  # species的判定有问题
             raise OptionError("database选择不正确")
         return True
@@ -77,29 +78,33 @@ class TfPredictTool(Tool):
     def __init__(self, config):
         super(TfPredictTool, self).__init__(config)
         self._version = '1.0.1'
-        # self.python_path = Config().SOFTWARE_DIR + '/program/Python/'
-        # self.script_path = Config().SOFTWARE_DIR + '/bioinfo/rna/scripts/'
-        # self.hmmer_path = Config().SOFTWARE_DIR + '/bioinfo/align/hmmer-3.1b2-linux-intel-x86_64/binaries/'
-        # self.ref_path = Config().SOFTWARE_DIR + '/database/refGenome/TF/plant/'
-
         self.python_path = 'program/Python/bin/'
         self.perl_path = 'program/perl/perls/perl-5.24.0/bin/'
-        self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
-        self.ref_path = '/mnt/ilustre/users/sanger-dev/app/database/refGenome/TF/'
-        self.itak_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/iTAK-1.6b/'
+        self.script_path = Config().SOFTWARE_DIR + '/bioinfo/rna/scripts/'
+        self.ref_path = Config().SOFTWARE_DIR + '/database/refGenome/TF/'
+        self.itak_path = Config().SOFTWARE_DIR + '/bioinfo/rna/iTAK-1.6b/'
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/program/perl/perls/perl-5.24.0/lib/site_perl/5.24.0/Bio')
 
     # python phmmer_process.py 1e-180  PlantTFDB-all_TF_pep.fas test.fas planttfdb_family_vs_tfid.txt
     def run_tf(self):
         if self.option("database") == 'PlantTFDB':
             ref = self.ref_path + "plant/planttfdb.hmm"
-            family = self.ref_path + "plant/family_DBD.txt"
-            tf_cmd = "{}python {}TF_process_plant.py {} {} {}".format(self.python_path,self.script_path,ref,self.option("query_amino").prop['path'],family)
+            family = self.ref_path + "plant/family_vs_DBD_plant.txt"
+            tf_cmd = "{}python {}TF_process_plant.py {} {} {} {}"\
+                .format(self.python_path,self.script_path, ref, self.option("query_amino").prop['path'],family,
+                        self.option("diff_gene_id"))
+
         elif self.option("database") == 'iTAK':
-            tf_cmd = '{}perl {}iTAK.pl {}'.format(self.perl_path, self.itak_path, self.option("query_amino").prop['path'])
+            tf_cmd = '{}python {}TF_process_iTAK.py {} {} {} {}'.\
+                format(self.python_path, self.script_path, Config().SOFTWARE_DIR+'/'+self.perl_path,self.itak_path,
+                       self.option("query_amino").prop['path'],self.option("diff_gene_id"))
+
         elif self.option('database') == 'AnimalTFDB':
             ref = self.ref_path + "animal/animaltfdb.hmm"
             family = self.ref_path + "animal/family_vs_DBD_animal_2.0.txt"
-            tf_cmd = '{}python {}TF_process_animal.py {} {} {}'.format(self.python_path,self.script_path,ref,self.option("query_amino").prop['path'],family)
+            tf_cmd = '{}python {}TF_process_animal.py {} {} {} {}'\
+                .format(self.python_path,self.script_path,ref,self.option("query_amino").prop['path'],family,
+                        self.option("diff_gene_id"))
 
         self.logger.info(tf_cmd)
         self.logger.info("开始运行TFPredict")
@@ -129,9 +134,8 @@ class TfPredictTool(Tool):
             os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
             self.logger.info('设置文件夹路径成功')
         elif self.option("database") == 'iTAK':
-            f = self.option("query_amino").prop['path'] + '_output'
-            # os.link(f, self.output_dir)
-            shutil.copytree(f, self.output_dir+'/iTAK')
+            f = 'TF_result_iTAK.txt'
+            os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
             self.logger.info('设置文件夹路径成功')
 
     def run(self):
