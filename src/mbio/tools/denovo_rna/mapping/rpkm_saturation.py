@@ -84,7 +84,8 @@ class RpkmSaturationTool(Tool):
     def rpkm_saturation(self, bam, out_pre):
         bam_name = bam.split("/")[-1].split(".")[0]
         out_pre = out_pre + "_" + bam_name
-        satur_cmd = "{} {}RPKM_saturation.py -i {} -r {} -o {} -q {} -l {} -u {} -s {} -c {}".format(self.python_path, self.python_full_path, bam, self.option("bed").prop["path"], out_pre, self.option("quality"), self.option("low_bound"), self.option("up_bound"), self.option("step"), self.option("rpkm_cutof"))
+        satur_cmd = "{}python {}RPKM_saturation.py -i {} -r {} -o {} -q {} -l {} -u {} -s {} -c {}"\
+            .format(self.python_path, self.python_full_path, bam, self.option("bed").prop["path"], out_pre, self.option("quality"), self.option("low_bound"), self.option("up_bound"), self.option("step"), self.option("rpkm_cutof"))
         print(satur_cmd)
         self.logger.info("开始运行RPKM_saturation.py脚本")
         satur_command = self.add_command("{}_satur".format(bam_name.lower()), satur_cmd)
