@@ -3,7 +3,7 @@
 import json
 import urllib
 from biocluster.wpm.log import Log
-from biocluster.core.function import CJsonEncoder
+from biocluster.core.function import CJsonEncoder, filter_error_info
 
 
 class Tsanger(Log):
@@ -19,6 +19,8 @@ class Tsanger(Log):
     @property
     def post_data(self):
         my_content = self.data["content"]
+        if 'stage' in my_content:
+            my_content['stage']['error'] = filter_error_info(my_content['stage']['error'])
         my_data = dict()
         if 'files' in my_content:
             files = my_content.pop('files')
