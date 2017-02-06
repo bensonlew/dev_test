@@ -12,25 +12,26 @@ import re
 import shutil
 import json
 
+
 class GatkAgent(Agent):
     """
     SNP工具,gatk的每一步里面的R都是fa文件和它的字典一起的，如若不是，gatk将无法正确运行
     """
     def __init__(self, parent):
         super(GatkAgent, self).__init__(parent)
-        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "Human", "Mouse", "Rat", "Arabidopsis", "Broomcorn",\
-        "Rice", "Zeamays", "Test"]
+        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "Human",
+                                "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test"]
         options = [
-            #{"name":"ref_genome_custom", "type": "infile", "format": "sequence.fasta"},
-            {"name":"ref_genome", "type":"string"},#本地参考基因组的名字，从已有列表里面选择
+            # {"name":"ref_genome_custom", "type": "infile", "format": "sequence.fasta"},
+            {"name": "ref_genome", "type": "string"},  # 本地参考基因组的名字，从已有列表里面选择
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因组文件,需要和picard所建立的dict和samtools所建立的fai文件一起
-            {"name": "input_bam", "type": "infile", "format": "align.bwa.bam"},  # bam文件类型，输入 
+            {"name": "input_bam", "type": "infile", "format": "align.bwa.bam"},  # bam文件类型，输入
+            {"name": "is_indexed", "type": "bool", "default": False},
         ]
         self.add_option(options)
         self.step.add_steps('gatk')
         self.on('start', self.step_start)
         self.on('end', self.step_end)
-        
 
     def step_start(self):
         self.step.gatk.start()
@@ -48,7 +49,6 @@ class GatkAgent(Agent):
             raise OptionError("自定义参考基因组文件未提供！")
         if not self.option("input_bam").is_set:
             raise OptionError("用于分析的bam文件未提供！")
-        
             
     def set_resource(self):
         """
@@ -60,7 +60,8 @@ class GatkAgent(Agent):
     def end(self):
       
         super(GatkAgent, self).end()    
-        
+
+
 class GatkTool(Tool):
     """
     GATK3.6
@@ -68,16 +69,17 @@ class GatkTool(Tool):
     def __init__(self, config):
         super(GatkTool, self).__init__(config)
         self.gatk_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/"
-        self.java_path = "program/sun_jdk1.8.0/bin/"
+        self.java_path = "/program/sun_jdk1.8.0/bin/"
         self.samtools_path = "/bioinfo/align/samtools-1.3.1/samtools"
-        self.picard_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/" 
+        self.picard_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/"
+
     def dict(self, ref_fasta, dict_name):
-        
         """
         使用picard对参考基因组构建字典
         """
 
-        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar CreateSequenceDictionary R={} O={}".format(self.picard_path, ref_fasta, dict_name)
+        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar CreateSequenceDictionary R={} O={}"\
+            .format(self.picard_path, ref_fasta, dict_name)
         print cmd
         self.logger.info("开始用picard对参考基因组构建字典")
         command = self.add_command("dict", cmd)
@@ -87,7 +89,6 @@ class GatkTool(Tool):
             self.logger.info("参考基因组构建dict done!")
         else:
             self.set_error("构建dict过程error！")
-
 
     def samtools_faidx(self, ref_fasta):
 
@@ -103,13 +104,14 @@ class GatkTool(Tool):
             self.logger.info("samtools建索引完成！")
         else:
             self.set_error("samtools建索引出错！")
-        
-        
+
     def gatk_split(self, ref_fasta):
         """
         step0: gatk split
         """
-        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T SplitNCigarReads -R {} -I {} -o {} -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS".format(self.java_path, self.gatk_path, ref_fasta, self.option("input_bam").prop["path"], "split.bam")
+        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T SplitNCigarReads " \
+              "-R {} -I {} -o {} -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS"\
+            .format(self.java_path, self.gatk_path, ref_fasta, self.option("input_bam").prop["path"], "split.bam")
         self.logger.info("开始进行split NCigar reads")
         command = self.add_command("splitncigarreads", cmd)
         command.run()
@@ -123,7 +125,8 @@ class GatkTool(Tool):
         """
         step1：gatk variant calling
         """
-        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T HaplotypeCaller -R {} -I {} -o {}".format(self.java_path, self.gatk_path, ref_fasta, split_bam, "output.vcf")
+        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T HaplotypeCaller -R {} -I {} -o {}"\
+            .format(self.java_path, self.gatk_path, ref_fasta, split_bam, "output.vcf")
         self.logger.info("开始进行variant calling")
         command = self.add_command("variant calling", cmd)
         command.run()
@@ -138,9 +141,10 @@ class GatkTool(Tool):
         step2：gatk variant filtering
         """
         cmd = self.config.SOFTWARE_DIR + "/"
-        cmd += "{}java -jar {}GenomeAnalysisTK.jar -R {} -T VariantFiltration -V {} -window 35 -cluster 3 -filterName FS -filter 'FS > 30.0' -filterName QD -filter 'QD < 2.0' -o {}".format(self.java_path, self.gatk_path, ref_fasta, variantfile, "filtered.vcf")
+        cmd += "{}java -jar {}GenomeAnalysisTK.jar -R {} -T VariantFiltration -V {} -window 35 -cluster 3 " \
+               "-filterName FS -filter 'FS > 30.0' -filterName QD -filter 'QD < 2.0' -o {}"\
+            .format(self.java_path, self.gatk_path, ref_fasta, variantfile, "filtered.vcf")
         self.logger.info("开始进行variant filtering")
-        
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info('variant filtering成功')
@@ -149,25 +153,28 @@ class GatkTool(Tool):
             self.set_error('无法生成vcf文件')
             
     def run(self):
-        
         super(GatkTool, self).run()
-        
         if self.option("ref_genome") == "customer_mode" and self.option("ref_fa").is_set:
             ref = self.option("ref_fa").prop["path"]
-            shutil.copy(ref, self.work_dir) #将参考基因组移动到工作目录下
+            shutil.copy(ref, self.work_dir)  # 将参考基因组移动到工作目录下
             self.logger.info("参考基因组移动至当前工作目录下！")
             ref_name = os.path.split(ref)[-1]
-            ref_current = os.path.join(self.work_dir, ref_name)#当前工作目录下的参考基因组的路径
-            self.logger.info(ref_current)#显示当前参考基因组路径
-            dict_name = os.path.splitext(ref_name)[0] + ".dict" #所建字典的名字，是一个字符串
+            ref_current = os.path.join(self.work_dir, ref_name)  # 当前工作目录下的参考基因组的路径
+            self.logger.info(ref_current)  # 显示当前参考基因组路径
+            if self.option("is_indexed") is True:
+                ref_current = ref
+            dict_name = os.path.splitext(ref_name)[0] + ".dict"   # 所建字典的名字，是一个字符串
             self.logger.info("参考基因组为自定义模式的情况下建字典！")
-            self.dict(ref_current, dict_name) #参考基因组
+            if not os.path.exists(dict_name):
+                self.dict(ref_current, dict_name)  # 参考基因组
             self.logger.info("参考基因组字典建立完成！")
-            
-            self.samtools_faidx(ref_current)
-            #ref_fai = os.path.split(ref)[-1] + ".fai" #fai文件的名 此时samtools建好的fai文件在当前目录下，无需其他操作
-            #if os.path.exists(os.path.join(self.work_dir, ref_fai)):
-            #    shutil.copy(os.path.join(self.work_dir, ref_fai), os.path.split(ref)[0]) 
+
+            ref_fai = os.path.split(ref)[-1] + ".fai"
+            if not os.path.exists(os.path.join(self.work_dir, ref_fai)):
+                self.samtools_faidx(ref_current)
+            # ref_fai = os.path.split(ref)[-1] + ".fai" #fai文件的名 此时samtools建好的fai文件在当前目录下，无需其他操作
+            # if os.path.exists(os.path.join(self.work_dir, ref_fai)):
+            # shutil.copy(os.path.join(self.work_dir, ref_fai), os.path.split(ref)[0])
             self.gatk_split(ref_current)
             if os.path.exists(os.path.join(self.work_dir, "split.bam")):
                 split_bam = os.path.join(self.work_dir, "split.bam")
@@ -175,15 +182,14 @@ class GatkTool(Tool):
             if os.path.exists(os.path.join(self.work_dir, "output.vcf")):
                 vcf_path = os.path.join(self.work_dir, "output.vcf")
             self.gatk_vf(ref_current, vcf_path)
-        
-        
-                
+
         else:
-            #ref = self.option("ref_genome")
+            # ref = self.option("ref_genome")
             self.logger.info("在参考基因组从数据库中选择时，运行star")
-            with open("/mnt/ilustre/users/sanger-dev/sg-users/chenyanyan/refGenome/ref_genome.json","r") as f:
+            ref_genome_json = self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json"
+            with open(ref_genome_json, "r") as f:
                 dict = json.loads(f.read())
-                ref = dict[self.option("ref_genome")]["ref_dict"]  #是ref_dict的路径，作为参数传给比对函数
+                ref = dict[self.option("ref_genome")]["ref_dict"]  # 是ref_dict的路径，作为参数传给比对函数
             self.gatk_split(ref)
             if os.path.exists(os.path.join(self.work_dir, "split.bam")):
                 split_bam = os.path.join(self.work_dir, "split.bam")
@@ -196,70 +202,4 @@ class GatkTool(Tool):
         for i in outputs:
             if re.match(r"filtered.vcf*", i):
                 shutil.copy(i, self.output_dir)
-     
         self.end()
-            
-    
-        
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-   
-            
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    

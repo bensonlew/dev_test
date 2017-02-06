@@ -28,8 +28,8 @@ class SnpRnaModule(Module):
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
             {"name": "ref_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"},  # 基因组gtf文件
             {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
-            {"name": "readFilesIN1", "type": "infile", "format":"sequence.fastq, sequence.fasta"},  # 双端序列←
-            {"name": "readFilesIN2", "type": "infile", "format":"sequence.fastq, sequence.fasta"},  # 双端序列右
+            {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列←
+            {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列右
             {"name": "in_sam", "type": "infile", "format": "align.bwa.sam"},  # sam格式文件
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # 用于比对的文件夹
             {"name": "seq_method", "type": "string"},  # 比对方式

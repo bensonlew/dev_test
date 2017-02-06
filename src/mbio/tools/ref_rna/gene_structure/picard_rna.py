@@ -11,23 +11,21 @@ import re
 # import subprocess
 # import glob
 
+
 class PicardRnaAgent(Agent):
     """
     samtools 处理mapping生成的bam文件软件，将传入GATK软件之前的bam文件进行一系列处理，使之符合SNP分析要求
     """
-
-
     def __init__(self, parent):
         super(PicardRnaAgent, self).__init__(parent)
         
-        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "Human", "Mouse", "Rat", "Arabidopsis", "Broomcorn",\
-        "Rice", "Zeamays", "Test"]
+        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "Human",
+                                "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test"]
         
         options = [
-        
-            {"name":"ref_genome_custom", "type": "infile", "format": "sequence.fasta"}, #用户上传参考基因组文件
-            {"name":"ref_genome", "type":"string"},#参考基因组模式选项 用户自定义、选择已有生物物种
-            {"name":"in_sam","type":"infile","format":"align.bwa.sam"} #输入用于排序的sam文件
+            {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 用户上传参考基因组文件
+            {"name": "ref_genome", "type": "string"},  # 参考基因组模式选项 用户自定义、选择已有生物物种
+            {"name": "in_sam", "type": "infile", "format": "align.bwa.sam"}  # 输入用于排序的sam文件
             # "name":"head","type":"string","default":""} 头文件信息
         ]
         self.add_option(options)
@@ -59,15 +57,15 @@ class PicardRnaAgent(Agent):
     def end(self): 
         super(PicardRnaAgent, self).end()
 
+
 class PicardRnaTool(Tool):
 
     def __init__(self, config):
         super(PicardRnaTool, self).__init__(config)
-        #self.picard_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/gene-structure/"  
-        self.picard_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure"
+        # self.picard_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/gene-structure/"
+        self.picard_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/"
 
     def addorreplacereadgroups(self):
-       
         cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar AddOrReplaceReadGroups I={} O={} SO=coordinate LB=HG19 PL=illumina PU=HG19 SM=HG19".format(self.picard_path, self.option("in_sam").prop["path"], "add_sorted.bam")
         print cmd
         self.logger.info("使用picard对sam文件进行加头和排序")
@@ -94,8 +92,7 @@ class PicardRnaTool(Tool):
             self.logger.info("sam文件MarkDuplicates完成!")
         else:
             self.set_error("sam文件MarkDuplicates出错！")
-        
-    
+
     """
     def set_output():
         
@@ -124,4 +121,3 @@ class PicardRnaTool(Tool):
                 shutil.copy(i, self.output_dir)
                 
         self.end()    
-        
