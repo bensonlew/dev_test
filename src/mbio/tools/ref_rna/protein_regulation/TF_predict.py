@@ -8,6 +8,7 @@ from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
 import os
+import sys
 import shutil
 
 class TfPredictAgent(Agent):
@@ -126,17 +127,29 @@ class TfPredictTool(Tool):
         self.logger.info("设置结果目录")
 
         if self.option("database") == 'PlantTFDB':
-            f = 'TF_result_plant.txt'
-            os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-            self.logger.info('设置文件夹路径成功')
+            f = 'TF_result.txt'
+            if os.path.exists(f):   
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+                self.logger.info('设置文件夹路径成功')
+            else:
+                self.logger.info('没有找到对应的转录因子家族')
+                sys.exit()
         elif self.option("database") == 'AnimalTFDB':
-            f = 'TF_result_animal.txt'
-            os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-            self.logger.info('设置文件夹路径成功')
+            f = 'TF_result.txt'
+            if os.path.exists(f):   
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+                self.logger.info('设置文件夹路径成功')
+            else:
+                self.logger.info('没有找到对应的转录因子家族')
+                sys.exit()
         elif self.option("database") == 'iTAK':
-            f = 'TF_result_iTAK.txt'
-            os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-            self.logger.info('设置文件夹路径成功')
+            f = 'TF_result.txt'
+           if os.path.exists(f):   
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+                self.logger.info('设置文件夹路径成功')
+            else:
+                self.logger.info('没有找到对应的转录因子家族')
+                sys.exit()
 
     def run(self):
         super(TfPredictTool, self).run()
