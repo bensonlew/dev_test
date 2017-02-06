@@ -15,7 +15,7 @@ class TfAnalysisModule(Module):
             {"name": "query_amino", "type": "infile", "format": "sequence.fasta"},  # 上游输入的氨基酸文件（含与差异基因的对应）
             {"name": "diff_gene_id", "type": "string"},
             {"name": "database", "type": "string", "default": "AnimalTFDB"},  # 还有PlantTFDB和AnimalTFDB
-            {"name": "data", "type": "infile", "format": "ref_rna.protein_regulation.txt"},  # 待统计数据
+            # {"name": "data", "type": "infile", "format": "ref_rna.protein_regulation.txt"},  # 待统计数据
             {"name": "row", "type": "int"}  # 对数据中的第几列进行统计
         ]
         self.add_option(options)
@@ -31,8 +31,8 @@ class TfAnalysisModule(Module):
             raise OptionError("请输入差异基因对应id关系")
         if self.option('database') not in database_list:  # species的判定有问题
             raise OptionError("database选择不正确")
-        if not self.option('data').is_set:
-            raise OptionError("请确认输入")
+        # if not self.option('data').is_set:
+        #     raise OptionError("请确认输入")
         if not self.option('row'):
             raise OptionError('请输入要统计的是第几列')
 
@@ -53,19 +53,18 @@ class TfAnalysisModule(Module):
         })
         self.analysis.on('start', self.set_step, {'start': self.step.tf_analysis})
         self.analysis.on('end', self.set_step, {'end': self.step.tf_analysis})
-        self.analysis.on('end', self.stastic_run)
+        self.analysis.on('end', self.set_output, 'analysis')
         self.analysis.run()
 
     def stastic_run(self):
-        diff_exp_mapped_table = os.path.join(self.work_dir, "Map/output/diff_exp_mapped.txt")
+        data = os.path.join(self.work_dir, "TfPredict/output/TF_result.txt")
         self.stastic.set_options({
-            "data": self.option("data"),
-            "row": self.option("row"),
+            "data": data,
+            "row": self.option('row'),
         })
         self.stastic.on('start', self.set_step, {'start': self.step.family_stastic})
         self.stastic.on('end', self.set_step, {'end': self.step.family_stastic})
-        self.stastic.on('end', self.set_output)
-        self.stastic.on('end', self.end)
+        self.stastic.on('end', self.set_output,'stastic')
         self.stastic.run()
 
     def linkdir(self, dirpath, dirname):
@@ -97,10 +96,14 @@ class TfAnalysisModule(Module):
 
     def set_output(self, event):
         obj = event['bind_object']
-        self.linkdir(obj.output_dir, self.output_dir)
+        if event['data'] == 'analysis' or event['data'] == 'stastic':
+            self.linkdir(obj.output_dir, self.output_dir)
+
 
     def run(self):
         super(TfAnalysisModule, self).run()
+        self.stastic.on('end',self.end)
+        self.analysis.on('end', self.stastic_run)
         self.analysis_run()
 
 
