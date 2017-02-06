@@ -5,6 +5,8 @@ from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
 import glob
+import shutil
+
 
 class RnaseqMappingModule(Module):
     """
@@ -17,16 +19,17 @@ class RnaseqMappingModule(Module):
         super(RnaseqMappingModule, self).__init__(work_id)
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组，在页面上呈现为下拉菜单中的选项
-            {"name":"ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组，用户选择customer_mode时，需要传入参考基因组
+            {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},
+            # 自定义参考基因组，用户选择customer_mode时，需要传入参考基因组
             {"name": "mapping_method", "type": "string"},  # 测序手段，分为tophat测序和hisat测序    
-            {"name":"seq_method", "type": "string"},  # 双端测序还是单端测序
+            {"name": "seq_method", "type": "string"},  # 双端测序还是单端测序
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
             {"name": "single_end_reads", "type": "infile", "format": "sequence.fastq"},  # 单端序列
-            {"name": "left_reads", "type": "infile", "format":"sequence.fastq"},  # 双端测序时，左端序列
-            {"name": "right_reads", "type": "infile", "format":"sequence.fastq"},  # 双端测序时，右端序列
-            {"name": "gff","type": "infile", "format":"ref_rna.reads_mapping.gff"},  # gff格式文件
+            {"name": "left_reads", "type": "infile", "format": "sequence.fastq"},  # 双端测序时，左端序列
+            {"name": "right_reads", "type": "infile", "format": "sequence.fastq"},  # 双端测序时，右端序列
+            {"name": "gff", "type": "infile", "format": "ref_rna.reads_mapping.gff"},  # gff格式文件
             {"name": "bam_output", "type": "outfile", "format": "ref_rna.assembly.bam_dir"},  # 输出的bam
-            {"name": "assemble_method", "type": "string","default":"None"}  # 拼接手段，None
+            {"name": "assemble_method", "type": "string", "default": "None"}  # 拼接手段，None
         ]
         self.add_option(options)
         self.samples = {}
@@ -52,25 +55,25 @@ class RnaseqMappingModule(Module):
         if not self.option("fastq_dir").is_set and self.option('seq_method') in ["PE"]:
             if self.option("single_end_reads").is_set:
                 raise OptionError("您上传的是单端测序的序列，请上传双端序列")
-            elif not (self.option("left_reads").is_set and  self.option("right_reads").is_set):
+            elif not (self.option("left_reads").is_set and self.option("right_reads").is_set):
                 raise OptionError("您漏了某端序列")
         if not self.option("fastq_dir").is_set and self.option('seq_method') == "SE":
             if not self.option("single_end_reads").is_set:
                 raise OptionError("请上传单端序列")
-            elif self.option("left_reads").is_set or  self.option("right_reads").is_set:
+            elif self.option("left_reads").is_set or self.option("right_reads").is_set:
                 raise OptionError("有单端的序列就够啦")
-        if not self.option("mapping_method") in ["tophat","hisat"]:
+        if not self.option("mapping_method") in ["tophat", "hisat"]:
             raise OptionError("tophat、hisat,选一个吧")
-        if not self.option("assemble_method") in ["cufflinks","stringtie","None"]:
+        if not self.option("assemble_method") in ["cufflinks", "stringtie", "None"]:
             raise OptionError("请选择拼接软件")
         return True
         
     def get_opts(self):
         self.tool_opts = {
-            "ref_genome":self.option("ref_genome"),
-            "mapping_method" : self.option("mapping_method"),
-            "seq_method":self.option("seq_method"),
-            "assemble_method" : self.option("assemble_method"),
+            "ref_genome": self.option("ref_genome"),
+            "mapping_method": self.option("mapping_method"),
+            "seq_method": self.option("seq_method"),
+            "assemble_method": self.option("assemble_method"),
         }
         return True
     
@@ -79,20 +82,19 @@ class RnaseqMappingModule(Module):
         self.get_opts()
         if self.option("ref_genome") == "customer_mode":
             self.tool_opts.update({
-                "ref_genome_custom" : self.option("ref_genome_custom")
+                "ref_genome_custom": self.option("ref_genome_custom")
             }) 
         if self.option("mapping_method") == "tophat":
-            self.logger.info("tophat被选中，AT立场已展开")
+            self.logger.info("tophat开始运行")
             self.tool_run("tophat")
         elif self.option("mapping_method") == "hisat":
-            self.logger.info("hisat被选中，AT立场已展开")
+            self.logger.info("hisat开始运行")
             self.tool_run("hisat")
         else:
             self.logger.info("你被选中，AT立场已展开")
-        super(RnaseqMappingModule,self).run()
+        super(RnaseqMappingModule, self).run()
         
-        
-    def tool_run(self,tool):
+    def tool_run(self, tool):
         if self.option("seq_method") == "PE":
             for f in self.samples:
                 fq_l = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])

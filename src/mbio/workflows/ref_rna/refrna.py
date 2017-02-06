@@ -71,9 +71,9 @@ class RefrnaWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.filecheck = self.add_tool("ref_rna.filecheck.filecheck_ref")  # 有参重写filecheck方法
-        self.qc = self.add_module("ref_rna.qc.quality_control")
-        self.qc_stat_before = self.add_module("ref_rna.qc.qc_stat")
-        self.qc_stat_after = self.add_module("ref_rna.qc.qc_stat")
+        self.qc = self.add_module("denovo_rna.qc.quality_control")
+        self.qc_stat_before = self.add_module("denovo_rna.qc.qc_stat")
+        self.qc_stat_after = self.add_module("denovo_rna.qc.qc_stat")
         self.mapping = self.add_module("ref_rna.mapping.rnaseq_mapping")
         self.map_qc = self.add_module("ref_rna.mapping.ref_assessment")
         self.assembly = self.add_module("ref_rna.assembly.assembly")
@@ -266,7 +266,7 @@ class RefrnaWorkflow(Workflow):
         
     def run_map_assess(self):  # 此处加上stat
         opts = {
-            "bed": bed_path,
+            "bed": "",
             "bam": self.mapping.option("bam_output")
         }
         self.map_qc.set_options(opts)
@@ -495,8 +495,12 @@ class RefrnaWorkflow(Workflow):
         首先进行filecheck，然后运行qc module，结束后运行比对模块，根据self.option("assemble_or_not")选择是否运行拼接
         :return:
         """
-        self.filecheck.on('end', self.end)
-        # self.filecheck.on('end', self.run_qc)
+        # self.filecheck.on('end', self.end)
+        self.filecheck.on('end', self.run_qc)
+        self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
+        self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
+        self.qc.on('end', self.run_mapping)
+        self.mapping.on('end', self.end)
         # self.qc.on('end', self.run_mapping)
         # self.mapping.on("end", self.run_assembly)
         # self.assembly.on("end", self.run_exp)
