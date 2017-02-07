@@ -40,10 +40,13 @@ class RefrnaWorkflow(Workflow):
             {"name": "map_assess_method", "type": "string", "default":
                 "saturation,duplication,distribution,coverage"},
             # 比对质量评估分析
+            {"name": "mate_std", "type": "int", "default": 50},  # 末端配对插入片段长度标准差
+            {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
+            {"name": "result_reserved", "type": "int", "default": 1}  # 最多保留的比对结果数目
 
             {"name": "assemble_or_not", "type": "bool", "default": True},  # 是否进行拼接
             {"name": "assemble_method", "type": "string", "default": "cufflinks"},
-            # 拼接方法，Cufflinks or Stringtie
+            # 拼接方法，Cufflinks or Stringtie or None
 
             {"name": "express_method", "type": "string", "default": "featurecounts"},
             # 表达量分析手段: Htseq, Featurecount, Kallisto, RSEM
@@ -205,8 +208,10 @@ class RefrnaWorkflow(Workflow):
             "mapping_method": self.option("seq_method").lower(),  # 比对软件
             "seq_method": self.option("fq_type"),   # PE or SE
             "fastq_dir": self.qc.option("sickle_dir"),
-            "gff": self.option("gff"),
-            "assemble_method": "stringtie"
+            "assemble_method": self.option("assemble_mehod"),
+            "mate_std": self.option("mate_std"),
+            "mid_dis": self.option("mid_dis"),
+            "result_reserved": self.option("result_reserved")
         }
         self.mapping.set_options(opts)
         self.mapping.on("end", self.set_output, "mapping")
@@ -214,39 +219,37 @@ class RefrnaWorkflow(Workflow):
      
     def run_assembly(self):
         self.logger.info("开始运行拼接步骤")
+        opts = {
+            "sample_bam_dir": self.mapping.option("bam_output"),
+            "assemble_method": self.option("assemble_method")
+        }
+        # 如果具有链特异性
+        if self.option("strand_specific"):
+            if self.option("strand_dir") == "forward":
+                strand_dir = "firststrand"
+            else:
+                strand_dir = "secondstrand"
+            opts.update = ({
+                "strand_direct": strand_dir,
+                "fr_stranded": "fr_strand"
+                })
+        else:
+            opts.update = ({
+                "fr_strand": "fr_unstrand"
+                })
+        # 如果为平台自带的参考基因组
         if self.option("ref_genome") == "customer_mode":
-            # gtf_path = self.option("gff").prop["path"][:-4] + ".gtf"
-            gtf_path = self.option("gff").gff_to_gtf()
+            gtf_path = self.filecheck.option("gtf").prop["path"]
+            ref_path = self.option("ref_genome_custom").prop["path"]
         else:
             gtf_path = ""
-        if os.path.exists(gtf_path):
-            self.logger.info("gtf存在")
-            self.logger.info("gtf的路径为:" + gtf_path)
-        # self.logger.info(self.mapping.option("bam_output"))
-        if self.option("strand_specific") != "null":
-            fr_strand = self.option("strand_dir")
-        else:
-            fr_strand = "fr-unstranded"
-        opts = {
-            "ref_gtf": gtf_path,
-            "sample_bam_dir": self.mapping.option("bam_output"),
-            "ref_fa": self.option("ref_genome_custom"),
-            "assemble_method": self.option("assemble_method"),
-            "fr_stranded": fr_strand
-        }
-        """
-        if self.option("strand_specific"):
-            if not self.option("strand_dir"):
-                if self.option("strand_dir") == "forward":
-                    strand_dir = "firststrand"
-                else:
-                    strand_dir = "secondstrand"
-                opts.update=({
-                    "strand_dir" : strand_dir
-                })
-            else:
-                raise Exception("閾剧壒寮傛�ф椂璇疯緭鍏ユ璐熼摼锛�")
-        """
+            ref_path = ""
+        opts.update = (
+            {
+                "ref_gtf": gtf_path,
+                "ref_fa": ref_path
+            }
+        )
         self.assembly.set_options(opts)
         self.assembly.on("end", self.set_output, "assembly")
         self.assembly.on('start', self.set_step, {'start': self.step.assembly})
@@ -264,34 +267,39 @@ class RefrnaWorkflow(Workflow):
         self.snp_rna.on("end", self.set_output, "snp_rna")
         self.snp_rna.run()
         
-    def run_map_assess(self):  # 此处加上stat
+    def run_map_assess(self):
+        assess_method = self.option("map_assess_method") + ",stat"
         opts = {
-            "bed": "",
-            "bam": self.mapping.option("bam_output")
+            "bam": self.mapping.option("bam_output"),
+            "analysis": assess_method
         }
+        if self.option("ref_genome") == "customer_mode":
+            bed_path = self.filecheck.option("bed").prop["path"]
+        else:
+            bed_path = ""
+        opts.update = (
+            {
+                "bed": bed_path
+            }
+        )
         self.map_qc.set_options(opts)
         self.map_qc.on("end", self.set_output, "map_qc")
         self.map_qc.run()
     
-    def run_exp(self):
-
-        self.logger.info("寮�濮嬭〃杈鹃噺鍒嗘瀽!")
-        if self.option("gtf_type") == "ref":
+    def run_exp(self, gtf_type):  # 表达量与表达差异模块
+        self.logger.info("开始运行表达量模块")
+        if gtf_type == "ref":
             if self.option("ref_genome") == "customer_mode":
-                gtf_path = self.option("gff").gff_to_gtf()
-                # gtf_path = self.option("gff").prop["path"][:-4] + ".gtf"
+                gtf_path = self.filecheck.gtf
             else:
                 gtf_path = ""
-        elif self.option("gtf_type") == "new_transcripts":
-            gtf_path = self.output_dir + "assembly/assembly_newtranscripts/new_transcripts.gtf"
-        elif self.option("gtf_type") == "new_genes":
-            gtf_path = self.output_dir + "assembly/assembly_newtranscripts/new_genes.gtf"
+        elif gtf_type == "new_transcripts":
+            gtf_path = self.assembly.work_dir + "/Assembly/output/assembly_newtranscripts/new_transcripts.gtf"
+        elif gtf_type == "new_genes":
+            gtf_path = self.assembly.work_dir + "/Assembly/output/assembly_newtranscripts/new_genes.gtf"
         else:
-            gtf_path = self.output_dir + "assembly/assembly_newtranscripts/merged.gtf" 
-        if os.path.exists(gtf_path):
-            self.logger.info("")
-            self.logger.info("" + gtf_path)
-        self.logger.info(self.mapping.option("bam_output").prop["path"])
+            gtf_path = self.assembly.work_dir + "/Assembly/output/assembly_newtranscripts/merged.gtf"
+
         opts = {
             "fq_type": self.option("fq_type"),
             "ref_gtf": gtf_path,
@@ -315,14 +323,14 @@ class RefrnaWorkflow(Workflow):
                     "strand_dir": self.option("strand_dir")
                 })
             else:
-                raise Exception("閾剧壒寮傛�ф椂璇疯緭鍏ユ璐熼摼锛�")
+                raise Exception("")
         self.exp.set_options(opts)
         self.exp.on("end", self.set_output, "express")
         self.exp.on('start', self.set_step, {'start': self.step.express})
         self.exp.on('end', self.set_step, {'end': self.step.express})
         self.exp.run()
     
-    def run_exp_diff(self):
+    def run_exp_diff(self):  # 表达差异富集分析
         if self.exp.diff_gene:
             exp_diff_opts = {
                 'diff_fpkm': self.exp.option('diff_fpkm'),
@@ -363,27 +371,10 @@ class RefrnaWorkflow(Workflow):
             self.network.on('start', self.set_step, {'start': self.step.network_analysis})
             self.network.on('end', self.set_step, {'end': self.step.network_analysis})
             self.network.run()
-    
-    def run_sample_analysis(self):
-        self.diff_fpkm = self.output_dir+"express/merge"+self.option("express_method").lower()+"_express/" \
-                                                                                               "fpkm.txt"
-        opts = {
-            "diff_fpkm": self.diff_fpkm,
-            "distance_method": self.option("distance_method"),
-            "method": self.option("cluster_method"),
-            "lognorm": self.option("lognorm")
-        }
-        self.sample_analysis.set_options(opts)
-        self.sample_analysis.on("end", self.set_output, "sample_analysis")
-        self.sample_analysis.on('start', self.set_step, {'start': self.step.sample_analysis})
-        self.sample_analysis.on('end', self.set_step, {'end': self.step.sample_analysis})
-        self.sample_analysis.run()
-    
+
     def run_altersplicing(self):
         if self.option("ref_genome") == "customer_mode":
-            # gtf_path = self.option("gff").prop["path"][:-4] + ".gtf"
-            # if not os.path.exists(gtf_path):
-            gtf_path = self.option("gff").gff_to_gtf()
+            gtf_path = self.filecheck.gtf
         else:
             gtf_path = ""
         opts = {
@@ -485,9 +476,6 @@ class RefrnaWorkflow(Workflow):
         if event['data'] == 'altersplicing':
             self.move2outputdir(obj.output_dir, 'altersplicing')
             self.logger.info("altersplicing文件移动完成")
-        if event['data'] == 'sample_analysis':
-            self.move2outputdir(obj.output_dir, 'sample_analysis')
-            self.logger.info("sample_analysis文件移动完成")
             
     def run(self):
         """
@@ -500,11 +488,16 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
-        self.mapping.on('end', self.end)
-        # self.qc.on('end', self.run_mapping)
-        # self.mapping.on("end", self.run_assembly)
-        # self.assembly.on("end", self.run_exp)
-        # self.exp.on("end", self.end)
+        # self.mapping.on('end', self.end)
+        if self.option("assemble_or_not"):
+            self.mapping.on('end', self.run_assembly)
+            self.assembly.on('end', self.end)
+            # self.assembly.on('end', self.run_exp, "ref")
+            # self.assembly.on('end', self.run_exp, "new_transcripts")
+            # self.assembly.on('end', self.run_exp, "new_genes")
+        else:
+            self.mapping.on('end', self.run_exp, "ref")
+            self.exp.on('end', self.end)
 
         # self.qc.on('end', self.run_seq_abs)
         # self.annotation.on('end', self.run_mapping)

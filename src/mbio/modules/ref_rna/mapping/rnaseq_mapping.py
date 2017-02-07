@@ -27,9 +27,11 @@ class RnaseqMappingModule(Module):
             {"name": "single_end_reads", "type": "infile", "format": "sequence.fastq"},  # 单端序列
             {"name": "left_reads", "type": "infile", "format": "sequence.fastq"},  # 双端测序时，左端序列
             {"name": "right_reads", "type": "infile", "format": "sequence.fastq"},  # 双端测序时，右端序列
-            {"name": "gff", "type": "infile", "format": "ref_rna.reads_mapping.gff"},  # gff格式文件
             {"name": "bam_output", "type": "outfile", "format": "ref_rna.assembly.bam_dir"},  # 输出的bam
-            {"name": "assemble_method", "type": "string", "default": "None"}  # 拼接手段，None
+            {"name": "assemble_method", "type": "string", "default": "None"},  # 拼接手段，None
+            {"name": "mate_std", "type": "int", "default": 50},  # 末端配对插入片段长度标准差
+            {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
+            {"name": "result_reserved", "type": "int", "default": 1}  # 最多保留的比对结果数目
         ]
         self.add_option(options)
         self.samples = {}
@@ -83,7 +85,7 @@ class RnaseqMappingModule(Module):
         if self.option("ref_genome") == "customer_mode":
             self.tool_opts.update({
                 "ref_genome_custom": self.option("ref_genome_custom")
-            }) 
+            })
         if self.option("mapping_method") == "tophat":
             self.logger.info("tophat开始运行")
             self.tool_run("tophat")
@@ -91,7 +93,8 @@ class RnaseqMappingModule(Module):
             self.logger.info("hisat开始运行")
             self.tool_run("hisat")
         else:
-            self.logger.info("你被选中，AT立场已展开")
+            self.set_error("比对软件选择错误")
+            raise Exception("比对软件选择错误,程序退出")
         super(RnaseqMappingModule, self).run()
         
     def tool_run(self, tool):
@@ -105,6 +108,12 @@ class RnaseqMappingModule(Module):
                     'right_reads': fq_r,
                     'sample': f
                 })
+                if tool == "tophat":
+                    self.tool_opts.update({
+                        "mate_std": self.option("mate_std"),
+                        "mid_dis": self.option("mid_dis"),
+                        "result_reserved": self.option("result_reserved")
+                    })
                 mapping_tool.set_options(self.tool_opts)
                 self.tools.append(mapping_tool)
 
@@ -116,6 +125,12 @@ class RnaseqMappingModule(Module):
                     'single_end_reads': fq_s,
                     'sample': f
                 })
+                if tool == "tophat":
+                    self.tool_opts.update({
+                        "mate_std": self.option("mate_std"),
+                        "mid_dis": self.option("mid_dis"),
+                        "result_reserved": self.option("result_reserved")
+                    })
                 mapping_tool.set_options(self.tool_opts)
                 self.tools.append(mapping_tool)
         self.on_rely(self.tools, self.set_output)

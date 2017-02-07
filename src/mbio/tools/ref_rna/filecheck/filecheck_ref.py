@@ -146,6 +146,7 @@ class FilecheckRefTool(Tool):
         gff_name = os.path.split(origin_gff_path)[1]
         self.logger.info("gff的名称为{}".format(gff_name))
         new_gff_path = os.path.join(self.work_dir, gff_name)
+        if
         os.link(origin_gff_path, new_gff_path)
         gff = GffFile()
         gff.set_path(new_gff_path)

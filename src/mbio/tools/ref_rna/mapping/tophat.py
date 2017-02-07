@@ -121,7 +121,7 @@ class TophatTool(Tool):
             cmd += " {} {} {}".format(index_ref, self.option("left_reads").prop['path'],
                                       self.option("right_reads").prop['path'])
         else:
-            cmd += " {} {}".format(self.cmd_path, index_ref, self.option("single_end_reads").prop['path'])
+            cmd += " {} {}".format(index_ref, self.option("single_end_reads").prop['path'])
         tophat_command = self.add_command("tophat", cmd)
         self.logger.info("开始运行tophat")
         tophat_command.run()
