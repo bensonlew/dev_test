@@ -12,7 +12,7 @@ class TfAnalysisModule(Module):
         super(TfAnalysisModule, self).__init__(work_id)
         self.step.add_steps('tf_analysis', 'family_stastic')
         options = [
-            {"name": "query_amino", "type": "infile", "format": "sequence.fasta"},  # 上游输入的氨基酸文件（含与差异基因的对应）
+            {"name": "query_amino", "type": "infile", "format": "ref_rna.protein_regulation.gene_in_fasta"},  # 上游输入的氨基酸文件（含与差异基因的对应）
             {"name": "diff_gene_id", "type": "string"},
             {"name": "database", "type": "string", "default": "AnimalTFDB"},  # 还有PlantTFDB和AnimalTFDB
             # {"name": "data", "type": "infile", "format": "ref_rna.protein_regulation.txt"},  # 待统计数据
@@ -58,14 +58,17 @@ class TfAnalysisModule(Module):
 
     def stastic_run(self):
         data = os.path.join(self.work_dir, "TfPredict/output/TF_result.txt")
-        self.stastic.set_options({
-            "data": data,
-            "row": self.option('row'),
-        })
-        self.stastic.on('start', self.set_step, {'start': self.step.family_stastic})
-        self.stastic.on('end', self.set_step, {'end': self.step.family_stastic})
-        self.stastic.on('end', self.set_output,'stastic')
-        self.stastic.run()
+        if os.path.isfile(data):
+            self.stastic.set_options({
+                "data": data,
+                "row": self.option('row'),
+            })
+            self.stastic.on('start', self.set_step, {'start': self.step.family_stastic})
+            self.stastic.on('end', self.set_step, {'end': self.step.family_stastic})
+            self.stastic.on('end', self.set_output,'stastic')
+            self.stastic.run()
+        else:
+            raise OptionError('未能预测对应转录因子家族')
 
     def linkdir(self, dirpath, dirname):
         """
@@ -102,8 +105,8 @@ class TfAnalysisModule(Module):
 
     def run(self):
         super(TfAnalysisModule, self).run()
-        self.stastic.on('end',self.end)
         self.analysis.on('end', self.stastic_run)
+        self.stastic.on('end', self.end)
         self.analysis_run()
 
 
