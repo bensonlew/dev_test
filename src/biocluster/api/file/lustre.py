@@ -23,6 +23,7 @@ class Lustre(RemoteFile):
             # self._fileList = eval(m)
             self._file_list = json.loads(tmp[1])
         self._full_path = os.path.join(self.config[type_name + "_path"], tmp[0])
+        self._type = type_name
 
     def download(self, to_path):
         """
@@ -39,21 +40,23 @@ class Lustre(RemoteFile):
             os.makedirs(to_path)
         if self._file_list:
             for my_dict in self._file_list:
-                source = os.path.join(self._full_path, my_dict["file_path"])  # modified by sj on 2016.10.26
+                m = re.match("rerewrweset",my_dict["file_path"])
+                if not m:
+                    my_dict["file_path"] = "rerewrweset/" + my_dict["file_path"]
+                source = os.path.join(self.config[self._type + "_path"], my_dict["file_path"])  # modified by sj on 2016.10.26
                 if not os.path.exists(source):
                     raise Exception("文件{}不存在".format(source))
                 target = os.path.join(to_path, my_dict["alias"])
-                base_name1 = os.path.basename(source)
-                target_path1 = os.path.join(target, base_name1)
-                if os.path.exists(target_path1):
-                    if os.path.islink(target_path1):
-                        os.remove(target_path1)
-                    elif os.path.isdir(target_path1):
-                        shutil.rmtree(target_path1)
+                if os.path.exists(target):
+                    if os.path.islink(target):
+                        os.remove(target)
+                    elif os.path.isdir(target):
+                        shutil.rmtree(target)
                     else:
-                        os.remove(target_path1)
-                os.symlink(self._full_path, target_path1)
-                return to_path
+                        os.remove(target)
+
+                os.symlink(source, target)
+            return to_path
         else:
             target_path = os.path.join(to_path, os.path.basename(self._full_path))
             if os.path.exists(target_path):

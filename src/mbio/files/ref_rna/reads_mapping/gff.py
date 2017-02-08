@@ -6,6 +6,7 @@ from biocluster.core.exceptions import FileError
 import subprocess
 import os
 
+
 class GffFile(File):
     """
     定义gff格式文件
@@ -36,14 +37,14 @@ class GffFile(File):
                             return True
                             
         else:
-            raise FileError("文件格式错误") 
-		
+            raise FileError("文件格式错误")
+
     def gff_to_gtf(self):
         """
         gff格式转gtf格式
         """
         gtf_path = os.path.split(self.prop['path'])[0]
-        gtf = os.path.join(gtf_path,os.path.split(self.prop['path'])[1] + ".gtf")
+        gtf = os.path.join(gtf_path, os.path.split(self.prop['path'])[1] + ".gtf")
         cmd = "{}gffread {} -T -o {}".format(self.gffread_path, self.prop['path'], gtf)
         try:
             subprocess.check_output(cmd, shell=True)
@@ -68,7 +69,7 @@ class GffFile(File):
 
 if __name__ == '__main__':
     a = GffFile()
-    a.set_path("/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/mapping_file/Saccharomyces_cerevisiae.R64-1-1.32.gff3")
-    a.check()
-    a.gff_to_gtf()
-    a.gtf_to_bed()    
+    # a.set_path("")
+    # a.check()
+    # a.gff_to_gtf()
+    # a.gtf_to_bed()

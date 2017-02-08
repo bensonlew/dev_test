@@ -20,7 +20,8 @@ class MetaSourcetrackerAgent(Agent):
 	def __init__(self, parent):
 		super(MetaSourcetrackerAgent, self).__init__(parent)
 		options = [
-			{"name": "otu_table", "type": "infile", "format": "meta.beta_diversity.qiime_table"},  # 输入的OTU文件
+			# {"name": "otu_table", "type": "infile", "format": "meta.beta_diversity.qiime_table"},  # 输入的OTU文件
+			{"name": "otu_table", "type": "string"},  # 输入的OTU文件,在workflow里面处理过的OTU表格路径
 			{"name": "map_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的map文件
 			{"name": "s", "type": "string"}  # 物种筛选系数
 		]
@@ -88,7 +89,9 @@ class MetaSourcetrackerTool(Tool):
 		"""
 		运行相关脚本和软件，进行微生物组成来源比例分析
 		"""
-		cmd1 = self.biom_path + (' convert -i %s -o temp.biom --table-type "OTU table" --to-hdf5' % (self.option('otu_table').prop['path']))
+		# cmd1 = self.biom_path + (' convert -i %s -o temp.biom --table-type "OTU table" --to-hdf5' % (self.option('otu_table').prop['path']))
+		cmd1 = self.biom_path + (' convert -i %s -o temp.biom --table-type "OTU table" --to-hdf5' % (self.option('otu_table')))
+
 		self.logger.info('运行biom，进行OTU转biom')
 		command1 = self.add_command("convert1_cmd", cmd1).run()
 		self.wait(command1)
