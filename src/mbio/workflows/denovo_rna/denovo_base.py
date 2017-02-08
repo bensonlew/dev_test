@@ -613,7 +613,7 @@ class DenovoBaseWorkflow(Workflow):
             if self.option('group_table').is_set:
                 self.express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, diff_exp_dir=diff_exp_dir)
             else:
-                self.express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id='all', group_detail={'all': self.sample_ids}, control_id=control_id, diff_exp_dir=diff_exp_dir)
+                self.express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id='all', group_detail=self.sample_ids, control_id=control_id, diff_exp_dir=diff_exp_dir)
             # update sg_status
             self.update_status_api.add_denovo_status(table_id=str(self.express_diff_id), type_name='sg_denovo_express_diff')
             # add diff fpkm file
