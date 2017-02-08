@@ -28,7 +28,7 @@ class PearsonsCorrelationAgent(Agent):
             {"name": "species_cluster", "type": "string", "default": "average"},
             {"name": "cor_table", "type": "outfile", "format": "meta.otu.group_table"},
             {"name": "pvalue_table", "type": "outfile", "format": "meta.otu.group_table"},
-            {"name": "top_species", "type": "string", "default": "all"},
+            {"name": "top_species", "type": "int", "default": 0},
         ]
         self.add_option(options)
         self.step.add_steps('pearsons_correlation')
@@ -72,9 +72,9 @@ class PearsonsCorrelationAgent(Agent):
                 pass
         else:
             raise OptionError('请选择环境因子表')
-        if self.option("top_species") is not "all":
-            if not re.match(r"\d", self.option("top_species")):
-                raise OptionError('请输入筛选的物种数目（按丰度排第N个）')
+        if self.option("top_species") != 0:
+            if self.option("top_species") < 2:
+                raise OptionError('至少选择两个物种')
 
     def set_resource(self):
         """
@@ -118,7 +118,7 @@ class PearsonsCorrelationTool(Tool):
             otu_path = self.option('otutable').get_table(self.option('level'))
         else:
             otu_path = self.option('otutable').prop['path']
-        if self.option("top_species") is not "all":
+        if self.option("top_species") != 0:
             self.get_top_specise(otu_path)
             otu_path = self.work_dir + "/sorted_otu_file.xls"
         return otu_path

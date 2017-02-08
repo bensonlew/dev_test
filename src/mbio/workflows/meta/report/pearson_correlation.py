@@ -37,7 +37,7 @@ class PearsonCorrelationWorkflow(Workflow):
             {"name": "env_cluster", "type": "string", "default": "average"},
             {"name": "species_cluster", "type": "string", "default": "average"},
             {"name": "group_detail", "type": "string"},
-            {"name": "top_species", "type": "string", "default": "all"}  # add new option (flit top N species)
+            {"name": "top_species", "type": "int", "default": 0}  # add new option (flit top N species)
             ]
         self.add_option(options)
         # print(self._sheet.options())

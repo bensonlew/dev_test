@@ -34,7 +34,7 @@ class Estimators(MetaController):
                 info = {"success": False, "info": "指数类型不正确{}".format(index)}
                 return json.dumps(info)
         sort_index = data.index_type.split(',')
-        sort_index.sort()
+        # sort_index.sort()
         sort_index = ','.join(sort_index)
 
         task_name = 'meta.report.estimators'
