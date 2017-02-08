@@ -6,6 +6,7 @@ from biocluster.core.exceptions import FileError
 import subprocess
 import os
 
+
 class GtfFile(File):
     """
     定义Gtf格式文件
@@ -23,8 +24,8 @@ class GtfFile(File):
         :return:
         """
         if super(GtfFile, self).check():
-            super(GtfFile,self).get_info()
-            with open(self.prop["path"],"r") as f:
+            super(GtfFile, self).get_info()
+            with open(self.prop["path"], "r") as f:
                 for line in f:
                     if line.find("#") == -1:
                         line = line.strip()
@@ -64,8 +65,6 @@ class GtfFile(File):
 
 if __name__ == '__main__':
     a = GtfFile()
-    a.set_path("/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/mapping_file/Saccharomyces_cerevisiae.R64-1-1.32.gff3.gtf")
-    a.check()
-    a.gtf_to_bed()
-   # a.gtf_to_gff()
-
+    a.set_path("")
+    # a.check()
+    # a.gtf_to_bed()

@@ -287,8 +287,8 @@ class LefseTool(Tool):
         for root, dirs, files in os.walk(self.output_dir):
             for names in files:
                 os.remove(os.path.join(root, names))
-        os.link(self.work_dir + '/lefse_LDA.cladogram.png', self.output_dir + '/lefse_LDA.cladogram.png')
-        os.link(self.work_dir + '/lefse_LDA.png', self.output_dir + '/lefse_LDA.png')
+        # os.link(self.work_dir + '/lefse_LDA.cladogram.png', self.output_dir + '/lefse_LDA.cladogram.png')
+        # os.link(self.work_dir + '/lefse_LDA.png', self.output_dir + '/lefse_LDA.png')
         os.link(self.work_dir + '/lefse_lda_head.xls', self.output_dir + '/lefse_LDA.xls')
 
     def run(self):
@@ -299,7 +299,7 @@ class LefseTool(Tool):
         self.format_input()
         self.run_format()
         self.run_lefse()
-        self.plot_res()
-        self.plot_cladogram()
+        # self.plot_res()
+        # self.plot_cladogram()
         self.set_lefse_output()
         self.end()
