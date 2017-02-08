@@ -37,6 +37,10 @@ class CorrNetworkWorkflow(Workflow):
         newtable = os.path.join(self.work_dir, 'otutable1.xls')   #保存只留最后的物种名字文件
         newtable4 = os.path.join(self.work_dir, 'species_phylum.txt')  #保存物种与门对应的数据，用于在后面的物种丰度中添加门数据
         x = self.option('abundance')
+        if x == 0:
+            x = 500
+        else:
+            pass
         f2 = open(newtable, 'w+')
         f4 = open(newtable4, 'w+')
         with open(tablepath, 'r') as f:
