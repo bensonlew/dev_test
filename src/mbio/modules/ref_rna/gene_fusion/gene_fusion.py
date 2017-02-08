@@ -90,12 +90,15 @@ class GeneFusionModule(Module):
     #     return True
 
     def create_list_file(self):
+        all_list_file_path = os.path.join(self.work_dir, "sample_list")
         for i in self.sample_names:
             list_path = os.path.join(self.work_dir, i)
             self.logger.info(list_path)
             with open(list_path, "w") as w:
-                # w.write(i + "\t" + "Lib-" + chr(97 + i) + "\t" + "Run-" + chr(97+i) + "\t" + self.get_sample_length(i) + "\n")
-                w.write(i + "\t" + "Lib-a"+ "\t" + "Run-a" + "\t" + self.get_sample_length(
+                w.write(i + "\t" + "Lib-a" + "\t" + "Run-a" + "\t" + self.get_sample_length(
+                    i) + "\n")
+            with open(all_list_file_path, "a") as f:
+                f.write(i + "\t" + "Lib-a" + "\t" + "Run-a" + "\t" + self.get_sample_length(
                     i) + "\n")
         self.logger.info("done!")
         return True
@@ -104,7 +107,9 @@ class GeneFusionModule(Module):
         list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
         list = FileSampleFile()
         list.set_path(list_path)
+        print(list_path)
         self.gz_path = list.get_list()
+        print(list.get_list())
         for sample in self.sample_names:
             new_path = self.gz_path[sample]["l"]
             new_path = new_path + "_seqprep_l.gz"    #  edited by sj on 20161125
@@ -172,51 +177,60 @@ class GeneFusionModule(Module):
     #     tool.run()
 
     def tool_run(self):
-        times = math.ceil(self.sample_number/5)
+        times = int(math.ceil(self.sample_number/5))
+        self.logger.info(times)
+        self.tools = []
+        n = 0
         for i in self.sample_names:
             tool = self.add_tool("ref_rna.gene_fusion.soapfuse")
             self.step.add_steps('gene_fusion_{}'.format(i))
+            sample_data = os.path.join(self.work_dir, "WHOLE_SEQ_DIR")
+            sample_list = os.path.join(self.work_dir, i)
             tool.set_options = (
                 {
-                    "sample_data": self.work_dir + "/" + "WHOLE_SEQ_DIR",
-                    "sample_list": self.work_dir + "/" + i,
+                    "sample_data": sample_data,
+                    "sample_list": sample_list,
                     "reads_number": self.option("reads_number"),
-                    "sample_name": i
+                    "sample_name": i,
                 }
             )
+            a = type(i)
+            print(i)
+            print(a)
             step = getattr(self.step, 'gene_fusion_{}'.format(i))
             step.start()
             tool.on('end', self.finish_update, 'gene_fusion_{}'.format(i))
             self.tools.append(tool)
+            n += 1
         if len(self.tools) == 1:
             self.tools[0].on('end', self.get_message)
         elif 1 < len(self.tools) <= 5:
             self.on_rely(self.tools, self.get_message)
         else:
-            if times == 2:
-                self.on_rely(self.tools[0, 4], self.tools[5, -1])
+            if times == 1:
+                a = self.tools[0:5]
+                b = self.tools[6:-1]
+                self.on_rely(a, b)
                 if len(self.tools) == 6:
                     self.tools[5].on('end', self.get_message)
                 else:
-                    self.on_rely(self.tools[5, -1], self.get_message)
+                    self.on_rely(self.tools[6:-1], self.get_message)
             else:
                 for i in range(0, times):
-                    self.on_rely(self.tools[i*5, i*5+4], self.tools[i*5+5, i*5+9])
-                    if i*5+9+5 >=len(self.tools):
+                    self.on_rely(self.tools[i*5:i*5+4], self.tools[i*5+5:i*5+9])
+                    if i*5+9+5 >= len(self.tools):
                         number = i
                         break
-                self.on_rely(self.tools[number*5+5, number*5+9], self.tools[number*5+10, -1])
+                self.on_rely(self.tools[number*5+5:number*5+9], self.tools[number*5+10:-1])
                 if len(self.tools) == number*5+9+2:
                     self.tools[-1].on('end', self.get_message)
                 else:
-                    self.on_rely(self.tools[number*5+10, -1], self.get_message)
-        for tool in self.tools:
+                    self.on_rely(self.tools[number*5+10:-1], self.get_message)
+        for tool in self.tools[0:5]:
             tool.run()
-
-
-            tool.on("end", self.get_message)  # edited by sj
-        print "111"
-        tool.run()
+            # tool.on("end", self.get_message)  # edited by sj
+        # print "111"
+        # tool.run()
 
 
     def finish_update(self):  #  修改 zx
@@ -245,7 +259,6 @@ class GeneFusionModule(Module):
                         brr = c.strip().split("\t")
                         if brr[0] == up_chr:
                             up_number = int(arr[3]) * int(brr[2]) / int(brr[1]) #去括号
-                            # up_number = (int(arr[3])/int(brr[1]))*int(brr[2])
                     down_name = arr[5]
                     down_chr = arr[6]
                     for c in ref_number:
@@ -278,7 +291,6 @@ class GeneFusionModule(Module):
         list_path = os.path.join(self.work_dir,"sample_list")
         self.create_dir(list_path)
         self.tool_run()
-        # self.get_message()
-    
+
     def end(self):
-        super(GeneFusionModule,self).end()
+        super(GeneFusionModule, self).end()
