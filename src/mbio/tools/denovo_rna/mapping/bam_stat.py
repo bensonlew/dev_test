@@ -80,10 +80,13 @@ class BamStatTool(Tool):
         return stat_command
 
     def multi_stat(self):
-        files = glob.glob(r"{}/.bam".format(self.bam_path))
+        files = glob.glob(r"{}/*.bam".format(self.bam_path))
+        # self.logger.info("kkkkkkk")
+        # self.logger.info(files)
         cmds = []
         for f in files:
-            # f_path = os.path.join(self.bam_path, f)
+            f_path = os.path.join(self.bam_path, f)
+            self.logger.info(f_path)
             f_cmd = self.bamstat(f)
             cmds.append(f_cmd)
         return cmds
@@ -131,6 +134,7 @@ class BamStatTool(Tool):
         """
         super(BamStatTool, self).run()
         if self.option("bam").format == "align.bwa.bam_dir":
+            self.logger.info("lllllll")
             cmds = self.multi_stat()
             self.wait()
             for cmd in cmds:

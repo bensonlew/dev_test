@@ -20,7 +20,7 @@ class MapAssessmentModule(Module):
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
-            {"name": "analysis", "type": "string", "default": "saturation,duplication,stat,correlation,distribution,coverage"},  # 分析类型
+            {"name": "analysis", "type": "string", "default": "saturation,duplication,stat,correlation,distribution,coverage,chr_stat"},  # 分析类型
             {"name": "quality_satur", "type": "int", "default": 30},  # 测序饱和度分析质量值
             {"name": "quality_dup", "type": "int", "default": 30},  # 冗余率分析质量值
             {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
@@ -35,7 +35,7 @@ class MapAssessmentModule(Module):
         self.correlation = self.add_tool('denovo_rna.mapping.correlation')
         # self.bam_stat = self.add_tool('denovo_rna.mapping.bam_stat')
         self.step.add_steps('stat', 'correlation')
-        self.analysis = ["saturation", "duplication", "stat", "correlation", "coverage", "distribution"]
+        self.analysis = ["saturation", "duplication", "stat", "correlation", "coverage", "distribution", "chr_stat"]
 
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
@@ -60,7 +60,7 @@ class MapAssessmentModule(Module):
                 if not self.option("bed").is_set:
                     raise OptionError("请传入bed文件")
         for an in analysis:
-            if an in ["saturation", "duplication", "stat", "coverage", "distribution"]:
+            if an in ["saturation", "duplication", "stat", "coverage", "distribution", "chr_stat"]:
                 self.files = self.get_files()
                 if not self.option("bam").is_set:
                     raise OptionError("请传入bam文件")
@@ -171,6 +171,21 @@ class MapAssessmentModule(Module):
             self.tools.append(distribution)
             n += 1
 
+    def chr_stat_run(self):
+        n = 0
+        for f in self.files:
+            chr_stat = self.add_tool("ref_rna.mapping.chr_distribution")
+            self.step.add_steps("chr_distribution_{}".format(n))
+            chr_stat.set_options({
+                "bam": f
+            })
+            step = getattr(self.step, "chr_distribution_{}".format(n))
+            step.start()
+            chr_stat.on("end", self.finish_update, "chr_distribution_{}".format(n))
+            # distribution.run()
+            self.tools.append(chr_stat)
+            n += 1
+
     def get_files(self):
         files = []
         if self.option("bam").format == "align.bwa.bam":
@@ -184,7 +199,7 @@ class MapAssessmentModule(Module):
     def set_output(self):
         self.logger.info("set output")
         # make dir
-        dirs = ["coverage", "dup", "satur", "correlation", "distribution"]
+        dirs = ["coverage", "dup", "satur", "correlation", "distribution", "chr_stat"]
         for f in os.listdir(self.output_dir):
             f_path = os.path.join(self.output_dir, f)
             if os.path.exists(f_path):
@@ -234,6 +249,12 @@ class MapAssessmentModule(Module):
                     if os.path.exists(target):
                         os.remove(target)
                     os.link(fp, target)
+                if "chr_stat.xls" in f_name:
+                    self.logger.info(fp)
+                    target = os.path.join(self.output_dir, "chr_stat", f_name)
+                    if os.path.exists(target):
+                        os.remove(target)
+                    os.link(fp, target)
         with open(os.path.join(self.output_dir, "bam_stat.xls"), "w") as w:
             w.write("sample\ttotal_reads\tmapped_reads\tmultiple_mapped\tuniq_mapped\n")
             for f in bam_out:
@@ -261,6 +282,9 @@ class MapAssessmentModule(Module):
                 self.coverage_run()
             if m == "distribution":
                 self.distribution_run()
+            if m == "chr_stat":
+                self.chr_stat_run()
+
         # self.logger.info(self.tools)
         if len(self.tools) > 1:
             self.on_rely(self.tools, self.set_output)
