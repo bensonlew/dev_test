@@ -15,7 +15,7 @@ class PlotTree(MetaController):
 
     def POST(self):
         data = web.input()
-        default_argu = ['otu_id', 'level_id', 'color_level_id', 'group_id', 'group_detail', 'submit_location']
+        default_argu = ['otu_id', 'level_id', 'color_level_id', 'group_id', 'group_detail', 'submit_location', 'topn']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -23,6 +23,10 @@ class PlotTree(MetaController):
         if int(data.level_id) < int(data.color_level_id):
             info = {'success': False, 'info': '颜色设置水平必须高于进化树绘制水平!'}
             return json.dumps(info)
+        if int(data.topn) < 2:
+            if int(data.topn) != 0:
+                info = {'success': False, 'info': '至少选择丰度高的物种2个及以上'}
+                return json.dumps(info)
         task_name = 'meta.report.plot_tree'
         task_type = 'workflow'  # 可以不配置
         meta = Meta()
@@ -38,7 +42,8 @@ class PlotTree(MetaController):
             'group_id': data.group_id,
             'group_detail': group_detail_sort(data.group_detail),
             'submit_location': data.submit_location,
-            'task_type': 'reportTask'
+            'task_type': 'reportTask',
+            'topn': data.topn
         }
         params = json.dumps(params, sort_keys=True, separators=(',', ':'))
         main_table_name = 'PlotTree_' + \
@@ -64,7 +69,8 @@ class PlotTree(MetaController):
                    'update_info': json.dumps(update_info),
                    'group_detail': data.group_detail,
                    'params': params,
-                   'main_id': str(main_table_id)
+                   'main_id': str(main_table_id),
+                   'topN': int(data.topn)
                    }
         to_file = ['meta.export_otu_table_by_detail(otu_table)', 'meta.export_group_table_by_detail(sample_group)']
         self.set_sheet_data(name=task_name,
