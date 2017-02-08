@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
+from __future__ import division
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 from bson.objectid import ObjectId
@@ -31,7 +32,11 @@ class DenovoRnaMapping(Base):
                     "task_id": self.bind_object.sheet.task_id,
                     "specimen_name": line[0],
                     "mapping_reads": line[1],
-                    "mapping_rate": line[2]
+                    "mapping_rate": int(line[2])/int(line[1]),
+                    "multiple_mapped": line[3],
+                    "multiple_rate": int(line[3])/int(line[1]),
+                    "uniq_mapped": line[4],
+                    "uniq_rate": int(line[4])/int(line[1])
                 }
                 data_list.append(data)
         try:
@@ -140,7 +145,7 @@ class DenovoRnaMapping(Base):
     def add_rpkm_curve(self, rpkm_file, rpkm_id=None):
         rpkm_id = ObjectId(rpkm_id)
         curve_files = glob.glob("{}/*cluster_percent.xls".format(rpkm_file))
-        rpkm_pdf = glob.glob("{}/*.png".format(rpkm_file))
+        rpkm_pdf = glob.glob("{}/*.pdf".format(rpkm_file))
         erpkm = glob.glob("{}/*.eRPKM.xls".format(rpkm_file))
         # curve_category = []
         with open(erpkm[0], "r") as f:

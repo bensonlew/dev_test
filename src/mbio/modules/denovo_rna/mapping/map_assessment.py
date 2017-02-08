@@ -20,7 +20,7 @@ class MapAssessmentModule(Module):
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
-            {"name": "analysis", "type": "string", "default": "saturation,duplication,stat,correlation,coverage"},  # 分析类型
+            {"name": "analysis", "type": "string", "default": "saturation,duplication,stat,correlation,distribution,coverage"},  # 分析类型
             {"name": "quality_satur", "type": "int", "default": 30},  # 测序饱和度分析质量值
             {"name": "quality_dup", "type": "int", "default": 30},  # 冗余率分析质量值
             {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
@@ -35,7 +35,7 @@ class MapAssessmentModule(Module):
         self.correlation = self.add_tool('denovo_rna.mapping.correlation')
         # self.bam_stat = self.add_tool('denovo_rna.mapping.bam_stat')
         self.step.add_steps('stat', 'correlation')
-        self.analysis = ["saturation", "duplication", "stat", "correlation", "coverage"]
+        self.analysis = ["saturation", "duplication", "stat", "correlation", "coverage", "distribution"]
 
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
@@ -60,7 +60,7 @@ class MapAssessmentModule(Module):
                 if not self.option("bed").is_set:
                     raise OptionError("请传入bed文件")
         for an in analysis:
-            if an in ["saturation", "duplication", "stat", "coverage"]:
+            if an in ["saturation", "duplication", "stat", "coverage", "distribution"]:
                 self.files = self.get_files()
                 if not self.option("bam").is_set:
                     raise OptionError("请传入bam文件")
@@ -155,6 +155,22 @@ class MapAssessmentModule(Module):
             self.tools.append(coverage)
             n += 1
 
+    def distribution_run(self):
+        n = 0
+        for f in self.files:
+            distribution = self.add_tool("ref_rna.mapping.reads_distribution")
+            self.step.add_steps("distribution_{}".format(n))
+            distribution.set_options({
+                "bam": f,
+                "bed": self.option("bed").prop["path"]
+            })
+            step = getattr(self.step, "distribution_{}".format(n))
+            step.start()
+            distribution.on("end", self.finish_update, "distribution_{}".format(n))
+            # distribution.run()
+            self.tools.append(distribution)
+            n += 1
+
     def get_files(self):
         files = []
         if self.option("bam").format == "align.bwa.bam":
@@ -162,12 +178,13 @@ class MapAssessmentModule(Module):
         elif self.option("bam").format == "align.bwa.bam_dir":
             for f in glob.glob(r"{}/*.bam".format(self.option("bam").prop["path"])):
                 files.append(os.path.join(self.option("bam").prop["path"], f))
+        self.logger.info(files)
         return files
 
     def set_output(self):
         self.logger.info("set output")
         # make dir
-        dirs = ["coverage", "dup", "satur", "correlation"]
+        dirs = ["coverage", "dup", "satur", "correlation", "distribution"]
         for f in os.listdir(self.output_dir):
             f_path = os.path.join(self.output_dir, f)
             if os.path.exists(f_path):
@@ -211,8 +228,14 @@ class MapAssessmentModule(Module):
                     if os.path.exists(target):
                         os.remove(target)
                     os.link(fp, target)
+                if "reads_distribution" in f_name:
+                    self.logger.info(fp)
+                    target = os.path.join(self.output_dir, "distribution", f_name)
+                    if os.path.exists(target):
+                        os.remove(target)
+                    os.link(fp, target)
         with open(os.path.join(self.output_dir, "bam_stat.xls"), "w") as w:
-            w.write("sample\tmappped_num\trate\n")
+            w.write("sample\ttotal_reads\tmapped_reads\tmultiple_mapped\tuniq_mapped\n")
             for f in bam_out:
                 with open(f, "r") as r:
                     r.readline()
@@ -236,6 +259,8 @@ class MapAssessmentModule(Module):
                 self.correlation_run()
             if m == "coverage":
                 self.coverage_run()
+            if m == "distribution":
+                self.distribution_run()
         # self.logger.info(self.tools)
         if len(self.tools) > 1:
             self.on_rely(self.tools, self.set_output)
@@ -261,7 +286,8 @@ class MapAssessmentModule(Module):
             [r".*eRPKM\.xls", "xls", "RPKM表"],
             [r".*cluster_percent\.xls", "xls", "饱和度作图数据"],
             [r".correlation_matrix*\.xls", "xls", "相关系数矩阵"],
-            [r".hcluster_tree*\.xls", "xls", "样本间相关系数树文件"]
+            [r".hcluster_tree*\.xls", "xls", "样本间相关系数树文件"],
+            [r".*distribution\.txt", "txt", "reads区域分布"]
         ])
         # print self.get_upload_files()
         super(MapAssessmentModule, self).end()

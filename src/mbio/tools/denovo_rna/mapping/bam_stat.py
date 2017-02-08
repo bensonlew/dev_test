@@ -101,11 +101,13 @@ class BamStatTool(Tool):
         file_path = glob.glob(r"*.bam_stat.o")
         print(file_path)
         with open("bam_stat.xls", "w") as w:
-            w.write("{}\t{}\t{}\n".format("sample", "mappped_num", "rate"))
+            w.write("{}\t{}\t{}\t{}\t{}\n".format("sample", "total_reads", "mappped_reads", "multiple_mapped", "uniq_mapped"))
             for fl in file_path:
                 with open(fl, "r") as f:
                     total = 0
                     unmapped = 0
+                    multiple = 0
+                    uniq = 0
                     sample_name = fl.split(".")[0]
                     print sample_name
                     for line in f:
@@ -113,9 +115,13 @@ class BamStatTool(Tool):
                             total = line.split()[2]
                         if re.match(r"Unmapped", line):
                             unmapped = line.split()[2]
+                        if re.match(r"mapq <", line):
+                            multiple = line.split()[-1]
+                        if re.match(r"mapq >", line):
+                            uniq = line.split()[-1]
                     mapped = int(total) - int(unmapped)
                     # print mapped
-                    write_line = "{}\t{}\t{}\n".format(sample_name, mapped, mapped/int(total))
+                    write_line = "{}\t{}\t{}\t{}\t{}\n".format(sample_name, total, mapped, multiple, uniq)
                     w.write(write_line)
                     # print write_line
 
