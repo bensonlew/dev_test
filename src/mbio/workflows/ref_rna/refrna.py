@@ -42,7 +42,7 @@ class RefrnaWorkflow(Workflow):
             # 比对质量评估分析
             {"name": "mate_std", "type": "int", "default": 50},  # 末端配对插入片段长度标准差
             {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
-            {"name": "result_reserved", "type": "int", "default": 1}  # 最多保留的比对结果数目
+            {"name": "result_reserved", "type": "int", "default": 1},  # 最多保留的比对结果数目
 
             {"name": "assemble_or_not", "type": "bool", "default": True},  # 是否进行拼接
             {"name": "assemble_method", "type": "string", "default": "cufflinks"},
@@ -53,10 +53,12 @@ class RefrnaWorkflow(Workflow):
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 分组文件
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},
             # 对照表
+            {"name": "diff_method", "type": "string", "default": "edgeR"},
+            # 差异表达分析方法
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
             # {"name": "sort_type", "type": "string", "default": "pos"},  # 排序方法
             {"name": "exp_analysis", "type": "string", "default": "cluster,kegg_rich,go_rich"},
-            # 差异表达分析方法,聚类分析, GO富集分析, KEGG富集分析
+            # 差异表达富集方法,聚类分析, GO富集分析, KEGG富集分析
 
             {"name": "human_or_not", "type": "bool", "default": True},  # 是否为人类基因组
             {"name": "gene_structure_analysis", "type": "string", "default": "alter-splicing,SNP"},
@@ -73,14 +75,14 @@ class RefrnaWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.filecheck = self.add_tool("ref_rna.filecheck.filecheck_ref")  # 有参重写filecheck方法
+        self.filecheck = self.add_tool("ref_rna.filecheck.filecheck_ref")
         self.qc = self.add_module("denovo_rna.qc.quality_control")
         self.qc_stat_before = self.add_module("denovo_rna.qc.qc_stat")
         self.qc_stat_after = self.add_module("denovo_rna.qc.qc_stat")
         self.mapping = self.add_module("ref_rna.mapping.rnaseq_mapping")
         self.map_qc = self.add_module("ref_rna.mapping.ref_assessment")
         self.assembly = self.add_module("ref_rna.assembly.assembly")
-        self.exp = self.add_module("ref_rna.express.express")
+        self.exp = self.add_module("ref_rna_test.express.express")  # 需要修改
         self.exp_diff = self.add_module("denovo_rna.express.diff_analysis")
         self.snp_rna = self.add_module("ref_rna.gene_structure.snp_rna")
         self.seq_abs = self.add_tool("ref_rna.annotation.transcript_abstract")
@@ -231,10 +233,10 @@ class RefrnaWorkflow(Workflow):
                 strand_dir = "secondstrand"
             opts.update = ({
                 "strand_direct": strand_dir,
-                "fr_stranded": "fr_strand"
+                "fr_strand": "fr_strand"
                 })
         else:
-            opts.update = ({
+            opts.update({
                 "fr_strand": "fr_unstrand"
                 })
         # 如果为平台自带的参考基因组
@@ -244,7 +246,7 @@ class RefrnaWorkflow(Workflow):
         else:
             gtf_path = ""
             ref_path = ""
-        opts.update = (
+        opts.update(
             {
                 "ref_gtf": gtf_path,
                 "ref_fa": ref_path
@@ -255,7 +257,7 @@ class RefrnaWorkflow(Workflow):
         self.assembly.on('start', self.set_step, {'start': self.step.assembly})
         self.assembly.on('end', self.set_step, {'end': self.step.assembly})
         self.assembly.run()
-        
+
     def run_snp(self):
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
@@ -290,40 +292,69 @@ class RefrnaWorkflow(Workflow):
         self.logger.info("开始运行表达量模块")
         if gtf_type == "ref":
             if self.option("ref_genome") == "customer_mode":
-                gtf_path = self.filecheck.gtf
+                gtf_path = self.filecheck.gtf.prop["path"]
             else:
                 gtf_path = ""
         elif gtf_type == "new_transcripts":
-            gtf_path = self.assembly.work_dir + "/Assembly/output/assembly_newtranscripts/new_transcripts.gtf"
+            gtf_path = self.assembly.output_dir + "/assembly_newtranscripts/new_transcripts.gtf"
         elif gtf_type == "new_genes":
-            gtf_path = self.assembly.work_dir + "/Assembly/output/assembly_newtranscripts/new_genes.gtf"
+            gtf_path = self.assembly.output_dir + "/assembly_newtranscripts/new_genes.gtf"
         else:
-            gtf_path = self.assembly.work_dir + "/Assembly/output/assembly_newtranscripts/merged.gtf"
-
+            gtf_path = self.assembly.output_dir + "/assembly_newtranscripts/merged.gtf"
         opts = {
             "fq_type": self.option("fq_type"),
             "ref_gtf": gtf_path,
-            "gtf_type": "ref",
+            "gtf_type": gtf_type,
             "express_method": self.option("express_method"),
-            "sort_type": "pos",
             "sample_bam": self.mapping.option("bam_output"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
-            "change_sample_name": self.option("change_sample_name"),
-            "feature_id": self.option("feature_id"),
-            "gname": "group",
-            "method": self.option("diff_method"),
+            "diff_method": self.option("diff_method"),
             "diff_ci": self.option("diff_ci"),
-            "strand_dir": "None",
+            "strand_dir": "None"
         }
         if self.option("strand_specific"):
-            if not self.option("strand_dir"):
-                opts.update({
-                    "strand_dir": self.option("strand_dir")
-                })
+            opts.update({
+                "strand_dir": self.option("strand_dir")
+            })
+        self.exp.set_options(opts)
+        self.exp.on("end", self.set_output, "express")
+        self.exp.on('start', self.set_step, {'start': self.step.express})
+        self.exp.on('end', self.set_step, {'end': self.step.express})
+        self.exp.run()
+
+    def exp_test(self, gtf_type):  # 表达量与表达差异模块
+        self.logger.info("开始运行表达量模块")
+        if gtf_type == "ref":
+            if self.option("ref_genome") == "customer_mode":
+                gtf_path = "/mnt/ilustre/users/sanger-dev/workspace/20170207/Refrna_refrna_test_01/FilecheckRef/Danio_rerio.GRCz10.85.gff3.gtf"
             else:
-                raise Exception("")
+                gtf_path = ""
+        elif gtf_type == "new_transcripts":
+            gtf_path = self.assembly.output_dir + "/assembly_newtranscripts/new_transcripts.gtf"
+        elif gtf_type == "new_genes":
+            gtf_path = self.assembly.output_dir + "/assembly_newtranscripts/new_genes.gtf"
+        else:
+            gtf_path = self.assembly.output_dir + "/assembly_newtranscripts/merged.gtf"
+        # self.logger.info("self.assembly.output_dir is " + str(self.assembly.output_dir))
+        opts = {
+            "fq_type": self.option("fq_type"),
+            "ref_gtf": gtf_path,
+            "gtf_type": gtf_type,
+            "express_method": self.option("express_method"),
+            "sample_bam": "/mnt/ilustre/users/sanger-dev/workspace/20170207/Refrna_refrna_test_01/RnaseqMapping/output",
+            "strand_specific": self.option("strand_specific"),
+            "control_file": self.option("control_file"),
+            "edger_group": self.option("group_table"),
+            "method": self.option("diff_method"),
+            "diff_ci": self.option("diff_ci"),
+            "strand_dir": self.option("strand_dir")
+        }
+        if self.option("strand_specific"):
+            opts.update({
+                "strand_dir": self.option("strand_dir")
+            })
         self.exp.set_options(opts)
         self.exp.on("end", self.set_output, "express")
         self.exp.on('start', self.set_step, {'start': self.step.express})
@@ -355,7 +386,7 @@ class RefrnaWorkflow(Workflow):
             self.exp_diff.run()
             self.final_tools.append(self.exp_diff)
         else:
-            self.logger.info("")
+            self.logger.info("输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略")
 
     def run_network(self):
         if self.option("ref_genome") != "customer_mode":
@@ -374,7 +405,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_altersplicing(self):
         if self.option("ref_genome") == "customer_mode":
-            gtf_path = self.filecheck.gtf
+            gtf_path = self.filecheck.gtf.prop["path"]
         else:
             gtf_path = ""
         opts = {
@@ -483,6 +514,8 @@ class RefrnaWorkflow(Workflow):
         首先进行filecheck，然后运行qc module，结束后运行比对模块，根据self.option("assemble_or_not")选择是否运行拼接
         :return:
         """
+        """
+        正式部分
         # self.filecheck.on('end', self.end)
         self.filecheck.on('end', self.run_qc)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
@@ -511,6 +544,15 @@ class RefrnaWorkflow(Workflow):
         # self.exp_diff.on("end",self.run_network)
         # self.on_rely([self.tf,self.network,self.sample_analysis,self.snp_rna,self.altersplicing],self.end)
         self.run_filecheck()
+        """
+        """
+        测试部分
+
+        self.assembly.on("end", self.end)
+        self.assemble_test()
+        """
+        self.exp.on("end", self.end)
+        self.exp_test("ref")
         super(RefrnaWorkflow, self).run()
         
     def end(self):
