@@ -12,10 +12,10 @@ class PtAnalysisModule(Module):
 		super(PtAnalysisModule, self).__init__(work_id)
 		self.step.add_steps('family_merge', 'family_analysis')
 		options = [
-			{"name": "dad_tab", "type": "string"},  # 输入F/M/S的样本ID
-			{"name": "mom_tab", "type": "string"},  # fastq所在路径
-			{"name": "preg_tab", "type": "string"},
-			{"name": "ref_point", "type": "string"},
+			{"name": "dad_tab", "type": "infile", "format": "paternity_test.tab"},  # 输入F/M/S的样本ID
+			{"name": "mom_tab", "type": "infile", "format": "paternity_test.tab"},  # fastq所在路径
+			{"name": "preg_tab", "type": "infile", "format": "paternity_test.tab"},
+			{"name": "ref_point", "type": "infile","format":"sequence.rda"},
 			{"name": "err_min", "type": "int", "default": 2},
 		]
 		self.add_option(options)
@@ -43,10 +43,10 @@ class PtAnalysisModule(Module):
 
 	def merge_run(self):
 		self.family_merge.set_options({
-			"dad_tab": self.option("dad_tab"),
-			"mom_tab": self.option("mom_tab"),
-			"preg_tab": self.option("preg_tab"),
-			"ref_point": self.option("ref_point"),
+			"dad_tab": self.option("dad_tab").prop['path'],
+			"mom_tab": self.option("mom_tab").prop['path'],
+			"preg_tab": self.option("preg_tab").prop['path'],
+			"ref_point": self.option("ref_point").prop['path'],
 			"err_min": self.option("err_min")
 		})
 		self.family_merge.on('end', self.set_output, 'family_merge')
