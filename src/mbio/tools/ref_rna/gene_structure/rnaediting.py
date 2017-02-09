@@ -63,9 +63,13 @@ class RnaeditingTool(Tool):
             for bam_files in os.listdir(self.option("rna_bam_dir").prop["path"]):
                 bam_list.write(os.path.join(self.option("rna_bam_dir").prop["path"], bam_files) + "\n")
 
-        cmd = 'program/Python/bin/python '
-        cmd += self.cmd_path
-        cmd += ' -rbl %s -rsf %s -tdp %s -ops %s -psl %s -nsl %s' % (os.path.join(self.work_dir, "bam_list.txt"), self.option("ref_hg19.fa").prop["path"], self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1/ToolBox.Dir', os.path.join(self.work_dir, "RNA_Editing/RDD_prefix"), self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1/PriorData/hg19.PublicSites.txt', self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1/PriorData/hg19.MES_Sites.txt')
+        cmd = 'program/Python/bin/python {} -rbl {} -rsf {} -tdp {} -ops {} -psl {} ' \
+               '-nsl {}'.format(self.cmd_path, os.path.join(self.work_dir, "bam_list.txt"),
+                                self.option("ref_hg19.fa").prop["path"],
+                                self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1/ToolBox.Dir',
+                                os.path.join(self.work_dir, "output/RDD_prefix"),
+                                self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1/TestBam.Dir/Test.Positive.txt',
+                                self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1/TestBam.Dir/Test.Negative.txt')
 
         self.logger.info('开始运行RDDpred并检测编辑位点')
         self.logger.debug(cmd)
