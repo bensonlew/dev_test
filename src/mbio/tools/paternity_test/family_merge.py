@@ -26,12 +26,12 @@ class FamilyMergeAgent(Agent):
             # {"name": "err_min",  "type": "int", "default": 2},
             # {"name": "tab_merged", "type": "outfile", "format": "Rdata"}
 
-            {"name": "dad_tab", "type": "string"},
-            {"name": "mom_tab", "type": "string"},
-            {"name": "preg_tab", "type": "string"},
-            {"name": "ref_point", "type": "string"},
+            {"name": "dad_tab", "type": "infile", "format": "paternity_test.tab"},
+            {"name": "mom_tab", "type": "infile", "format": "paternity_test.tab"},
+            {"name": "preg_tab", "type": "infile", "format": "paternity_test.tab"},
+            {"name": "ref_point", "type": "infile","format":"sequence.rda"},
             {"name": "err_min", "type": "int", "default": 2},
-            {"name": "tab_merged", "type": "string"}
+            {"name": "tab_merged", "type": "infile", "format": "paternity_test.rdata"}
         ]
         self.add_option(options)
         self.step.add_steps("Tab2family")
@@ -91,9 +91,9 @@ class FamilyMergeTool(Tool):
 
     def run_tf(self):
         tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {}".\
-            format(self.R_path,self.script_path,self.option("dad_tab"),
-                   self.option("mom_tab"),self.option("preg_tab"),
-                   self.option("err_min"),self.option("ref_point"))
+            format(self.R_path,self.script_path,self.option("dad_tab").prop['path'],
+                   self.option("mom_tab").prop['path'],self.option("preg_tab").prop['path'],
+                   self.option("err_min"),self.option("ref_point").prop['path'])
         self.logger.info(tab2family_cmd)
         self.logger.info("开始运行家系合并")
         cmd = self.add_command("tab2family_cmd", tab2family_cmd).run()
