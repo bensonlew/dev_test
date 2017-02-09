@@ -8,6 +8,7 @@ from mainapp.models.mongo.public.meta.meta import Meta
 from mainapp.libs.signature import check_sig
 from mainapp.models.mongo.distance_matrix import Distance
 from mainapp.models.workflow import Workflow
+from biocluster.core.function import filter_error_info
 
 
 class MetaController(object):
@@ -60,10 +61,11 @@ class MetaController(object):
         workflow_client = Basic(data=self.sheet_data, instant=self.instant)
         try:
             run_info = workflow_client.run()
+            run_info['info'] = filter_error_info(run_info['info'])
             self._return_msg = workflow_client.return_msg
             return run_info
         except Exception, e:
-            return {"success": False, "info": "运行出错: %s" % e }
+            return {"success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
 
     def set_sheet_data(self, name, options, main_table_name, module_type="workflow", params=None, to_file=None):
         """

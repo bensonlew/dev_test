@@ -74,7 +74,7 @@ class LogWorker(object):
                 log = api(log_data)
                 log.update()
             else:
-                self.logger.error("没有找到API模块:%s" % class_name )
+                self.logger.error("没有找到API模块:%s" % class_name)
         except Exception, e:
             exstr = traceback.format_exc()
             print(exstr)
@@ -174,7 +174,7 @@ class Log(object):
                     self._response = response_text
                     self._success = 0
                     self._failed_times += 1
-                    self.logger.error("提交失败: 返回数据类型不正确 %s ，重试..." %  e)
+                    self.logger.error("提交失败: 返回数据类型不正确 %s ，重试..." % e)
                 else:
                     self._response_code = code
                     self._response = response_text
@@ -190,6 +190,7 @@ class Log(object):
                         self.logger.error("提交被拒绝，终止提交:%s" % response_json["message"])
                     break
         self._end = True
+        print 'shenghe'
         self.model.save()
         # self.save()
 
