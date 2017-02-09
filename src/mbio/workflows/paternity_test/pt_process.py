@@ -18,17 +18,16 @@ class PtProcessWorkflow(Workflow):
 		self._sheet = wsheet_object
 		super(PtProcessWorkflow, self).__init__(wsheet_object)
 		options = [
-			# {"name": "fastq_path", "type": "infile","format":"sequence.fastq_dir"},  # fastq所在路径(文件夹
-			{"name": "fastq_path", "type": "string"},
+			{"name": "fastq_path", "type": "infile","format":"sequence.fastq_dir"},  # fastq所在路径(文件夹
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
-			{"name": "ref_fasta", "type": "string"},  # 参考序列
-			{"name": "targets_bedfile", "type": "string"},
+			{"name": "ref_fasta", "type": "infile","format":"sequence.fasta"},  # 参考序列
+			{"name": "targets_bedfile", "type": "infile","format":"denovo_rna.gene_structure.bed"},
 
 			{"name": "dad_id", "type": "string"},  # 输入F/M/S的样本ID
 			{"name": "mom_id", "type": "string"},
 			{"name": "preg_id", "type": "string"},
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
-			{"name": "ref_point", "type": "string"},  # 参考位点
+			{"name": "ref_point", "type": "infile","format":"sequence.rda"},  # 参考位点
 			{"name": "dedup_num", "type": "int", "default": 50},  # 查重样本数
 
 			{"name": "second_sample_f", "type": "bool", "default": False},  # 是否重送样或二次上机
@@ -61,7 +60,7 @@ class PtProcessWorkflow(Workflow):
 			raise OptionError("必须输入胎儿编号")
 		if not self.option("ref_fasta"):
 			raise OptionError("必须输入参考基因组的fastq文件")
-		if not self.option('fastq_path'):
+		if not self.option('fastq_path').is_set:
 			raise OptionError('必须提供fastq文件所在的路径')
 		if not self.option('targets_bedfile'):
 			raise OptionError('必须提供target_bedfile文件')
@@ -82,7 +81,7 @@ class PtProcessWorkflow(Workflow):
 
 	def fastq2tab_run(self):
 		api_read_tab = self.api.tab_file
-		fastq = os.listdir(self.option('fastq_path'))
+		fastq = os.listdir(self.option('fastq_path').prop['path'])
 		file = []
 		for j in fastq:
 			m = re.match('(.*)_R1.fastq.gz', j)
@@ -95,10 +94,10 @@ class PtProcessWorkflow(Workflow):
 				self.step.add_steps('fastq2tab{}'.format(n))
 				fastq2tab.set_options({
 					"sample_id": i,
-					"fastq_path": self.option("fastq_path"),
+					"fastq_path": self.option("fastq_path").prop['path'],
 					"cpu_number": self.option("cpu_number"),
-					"ref_fasta": self.option("ref_fasta"),
-					"targets_bedfile": self.option("targets_bedfile"),
+					"ref_fasta": self.option("ref_fasta").prop['path'],
+					"targets_bedfile": self.option("targets_bedfile").prop['path'],
 				}
 				)
 				step = getattr(self.step, 'fastq2tab{}'.format(n))
@@ -141,7 +140,7 @@ class PtProcessWorkflow(Workflow):
 			"dad_tab": api_read_tab.export_tab_file(self.option('dad_id'), self.output_dir),  # 数据库的tab文件
 			"mom_tab": api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir),
 			"preg_tab": api_read_tab.export_tab_file(self.option('preg_id'), self.output_dir),
-			"ref_point": self.option("ref_point"),
+			"ref_point": self.option("ref_point").prop['path'],
 			"err_min": self.option("err_min")
 		})
 		self.pt_analysis.on('end', self.set_output, 'pt_analysis')
@@ -210,7 +209,7 @@ class PtProcessWorkflow(Workflow):
 			"dad_tab": dad_tab,  # 数据库的tab文件
 			"mom_tab": mom_tab,
 			"preg_tab": preg_tab,
-			"ref_point": self.option("ref_point"),
+			"ref_point": self.option("ref_point").prop['path'],
 			"err_min": self.option("err_min")
 		})
 		pt_analysis_rename.on('end', self.set_output, 'pt_analysis_rename')
@@ -252,7 +251,7 @@ class PtProcessWorkflow(Workflow):
 					"dad_tab": api_read_tab.export_tab_file(i, self.output_dir),  # 数据库的tab文件
 					"mom_tab": api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir),
 					"preg_tab": api_read_tab.export_tab_file(self.option('preg_id'), self.output_dir),
-					"ref_point": self.option("ref_point"),
+					"ref_point": self.option("ref_point").prop['path'],
 					"err_min": self.option("err_min")
 			}
 			)
@@ -285,7 +284,7 @@ class PtProcessWorkflow(Workflow):
 					"dad_tab": api_read_tab.export_tab_file(i, self.output_dir),  # 数据库的tab文件
 					"mom_tab": api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir),
 					"preg_tab": api_read_tab.export_tab_file(self.option('preg_id'), self.output_dir),
-					"ref_point": self.option("ref_point"),
+					"ref_point": self.option("ref_point").prop['path'],
 					"err_min": self.option("err_min")
 				}
 				)
@@ -382,8 +381,8 @@ class PtProcessWorkflow(Workflow):
 		elif dad_other_name in results:
 			dad = self.option('dad_id') +'1'
 		self.task_id=api_main.add_sg_task(dad, self.option('mom_id'), self.option('preg_id'),
-		                          self.option('ref_fasta'), self.option('targets_bedfile'),
-		                          self.option('ref_point'),self.option('fastq_path'))
+		                          self.option('ref_fasta').prop['path'], self.option('targets_bedfile').prop['path'],
+		                          self.option('ref_point').prop['path'],self.option('fastq_path').prop['path'])
 		# flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
 		self.flow_id = api_main.add_pt_family(task_id=self.task_id,err_min=self.option("err_min"), dedup=self.option('dedup_num'))
 		for f in results:
