@@ -25,7 +25,7 @@ class ResultInfoAgent(Agent):
             # {"name": "dad_tab", "type": "infile", "format": "tab"},
             # {"name": "tab_merged", "type": "outfile", "format": "Rdata"}
 
-            {"name": "tab_merged", "type": "string"}, #format:Rdata
+            {"name": "tab_merged", "type": "infile", "format": "paternity_test.rdata"}, #format:Rdata
             # {"name": "family.png", "type": "string"},
             # {"name": "fig1.png", "type": "string"},
             # {"name": "fig2.png", "type": "string"},
@@ -90,7 +90,7 @@ class ResultInfoTool(Tool):
 
     def run_tf(self):
         plot_cmd = "{}Rscript {}plot.R {}".\
-            format(self.R_path,self.script_path,self.option("tab_merged"))
+            format(self.R_path,self.script_path,self.option("tab_merged").prop['path'])
         self.logger.info(plot_cmd)
         self.logger.info("开始运行结果信息图的绘制")
         cmd = self.add_command("plot_cmd", plot_cmd).run()
