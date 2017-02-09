@@ -4,6 +4,7 @@ from biocluster.workflow import Workflow
 from mbio.api.to_file.meta import *
 from biocluster.config import Config
 from mainapp.libs.signature import CreateSignature
+from bson.objectid import ObjectId
 import subprocess
 import urllib2
 import urllib
@@ -21,6 +22,9 @@ class MetaPipelineWorkflow(Workflow):
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
         super(MetaPipelineWorkflow, self).__init__(wsheet_object)
+        self._config = Config()
+        self._client = self._config.mongo_client
+        self.db = self._client['tsanger']
         options = [
             {"name": "otu_id", "type": "string"},
             {"name": "update_info", "type": "string"},
@@ -66,7 +70,7 @@ class MetaPipelineWorkflow(Workflow):
         print all_results
         # self.api.pipe_check_all.check_all(all_results, self.option("pipe_id"))
         # self.end()
-        gevent.spawn(self.watch_end(all_results, self.option("pipe_id")))
+        gevent.spawn(self.watch_end, all_results, self.option("pipe_id"))
 
         super(MetaPipelineWorkflow, self).run()
 
@@ -74,12 +78,37 @@ class MetaPipelineWorkflow(Workflow):
         super(MetaPipelineWorkflow, self).end()
 
     def watch_end(self, all_results, main_table_id):
+        """
+        :param all_results: 所有子分析的返回结果信息
+        :param main_table_id: 批次表的ID
+        :return:
+        """
         while True:
             time.sleep(10)
-            if self.api.pipe_check_all.check_all(all_results, main_table_id) == True:
+            if self.check_all(all_results, main_table_id):
                 self.end()
-            else:
                 break
+
+
+    def check_all(self, all_results, main_table_id):
+        collection_pipe = self.db["sg_pipe_batch"]
+        anaysis_num = []
+        for id in all_results:
+            collection = self.db["sg_network"]
+            result = collection.find_one({"_id": ObjectId(id['id'])})
+            if result and result['status'] != 'start':
+                anaysis_num.append(result['status'])
+        if len(all_results) == len(anaysis_num):
+            data = {
+                "status": "end",
+                "sub_analysis_id": all_results
+            }
+            collection_pipe.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
+            print '任务信息导入sg_pipe_batch成功。'
+            m = True
+        else:
+            m = False
+        return m
 
     def webapitest(self, method, api, name, data, client, base_url, header=None):
         """
