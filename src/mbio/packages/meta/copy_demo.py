@@ -83,7 +83,7 @@ class CopyMongo(object):
         self.copy_main_details("sg_species_mantel_check_detail", "mantel_id", mantel_id_dict)
         self.copy_main_details("sg_species_mantel_check_matrix", "mantel_id", mantel_id_dict)
 
-        venn_id_dict = self.copy_collection_with_change('sg_otu_venn', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        venn_id_dict = self.copy_collection_with_change('sg_otu_venn', change_positions=['otu_id'], update_sg_status=True)
         self.copy_main_details('sg_otu_venn_detail', 'otu_venn_id', venn_id_dict, others_position=['otu_id'])
         self.copy_main_details("sg_otu_venn_graph", 'venn_id', venn_id_dict)
 
@@ -133,11 +133,6 @@ class CopyMongo(object):
         hc_heatmap_id_dict = self.copy_collection_with_change('sg_hc_heatmap', change_positions=['otu_id'], update_sg_status=True)
         self.copy_main_details('sg_hc_heatmap_detail', 'hc_id', hc_heatmap_id_dict)
 
-        enterotyping_id_dict = self.copy_collection_with_change('sg_enterotyping', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_enterotyping_detail', 'enterotyping_id', enterotyping_id_dict)
-        self.copy_main_details('sg_enterotyping_detail_cluster', 'enterotyping_id', enterotyping_id_dict)
-        self.copy_main_details('sg_enterotyping_detail_summary', 'enterotyping_id', enterotyping_id_dict)
-
         self.copy_collection_with_change('sg_valid_sequence_info')
         self.copy_collection_with_change('sg_raw_sequence_info')
 
@@ -173,7 +168,8 @@ class CopyMongo(object):
                 i['project_sn'] = self._new_project_sn
             olds.append(str(i.pop('_id')))
             for position in change_positions:
-                i[position] = self.exchange_ObjectId(position, i[position])
+                if position in i:
+                    i[position] = self.exchange_ObjectId(position, i[position])
             if 'params' in i:
                 i['params'] = self.params_exchange(i['params'])
             news.append(i)
