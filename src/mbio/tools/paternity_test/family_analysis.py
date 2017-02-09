@@ -23,7 +23,7 @@ class FamilyAnalysisAgent(Agent):
             # {"name": "dad_tab", "type": "infile", "format": "tab"},
             # {"name": "tab_merged", "type": "outfile", "format": "Rdata"}
 
-            {"name": "tab_merged", "type": "string"}, #format:Rdata
+            {"name": "tab_merged", "type": "infile", "format": "paternity_test.rdata"}, #format:Rdata
             {"name": "analysis_result", "type": "string"}
         ]
         self.add_option(options)
@@ -84,7 +84,7 @@ class FamilyAnalysisTool(Tool):
 
     def run_tf(self):
         analysis_cmd = "{}Rscript {}data_analysis.R {}".\
-            format(self.R_path,self.script_path,self.option("tab_merged"))
+            format(self.R_path,self.script_path,self.option("tab_merged").prop['path'])
         self.logger.info(analysis_cmd)
         self.logger.info("开始运行家系的分析")
         cmd = self.add_command("analysis_cmd", analysis_cmd).run()
