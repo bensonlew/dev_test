@@ -33,7 +33,7 @@ class Pipe(MetaController):
         task_name = 'meta.report.meta_pipeline'
         task_type = 'workflow'
         task_info = Meta().get_task_info(otu_info['task_id'])
-        main_table_name = 'pipeline_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'Pipeline_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
@@ -55,15 +55,18 @@ class Pipe(MetaController):
         ]
         main_table_id = Meta().insert_main_table('sg_pipe_batch', mongo_data)
         update_info = {str(main_table_id): 'sg_pipe_batch'}
+        print "+++"
+        print json.dumps(data)
         options = {
-            "otu_id": data.otu_id,
-            "group_detail": data.group_detail,
+            "data" : json.dumps(data),
+            # "otu_id": data.otu_id,
+            # "group_detail": data.group_detail,
             "update_info": json.dumps(update_info),
-            "group_id": data.group_id,
-            "level": int(data.level_id),
+            # "group_id": data.group_id,
+            # "level": int(data.level_id),
             "pipe_id": str(main_table_id),
-            "submit_location": "otunetwork_analysis",
-            "task_type": "reportTask"
+            # "submit_location": "Pipe_analysis",
+            # "task_type": "reportTask"
         }
         # to_file = ["meta.export_otu_table_by_detail(otutable)", "meta.export_group_table_by_detail(grouptable)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
