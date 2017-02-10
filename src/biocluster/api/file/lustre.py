@@ -2,11 +2,9 @@
 # __author__ = 'guoquan'
 from .remote import RemoteFile
 from biocluster.config import Config
-import time
 import os
 import json
 import shutil
-import errno
 import re
 
 
@@ -32,18 +30,20 @@ class Lustre(RemoteFile):
         :param to_path: 将远程文件下载到本地的路径
         :return:
         """
-        if not os.path.exists(self._full_path):
-            raise Exception("文件路径%s不存存在，请确认网络数据连接正常" % self._full_path)
+        # 当为文件夹时，前端传入的文件夹为虚拟文件夹，可能不存在，检查放在只是文件的情况中 if not self._file_list
+        # shenghe 20170210
+        # if not os.path.exists(self._full_path):
+        #     raise Exception("文件路径%s不存存在，请确认网络数据连接正常" % self._full_path)
         if os.path.isfile(to_path):
             os.remove(to_path)
         if not os.path.exists(to_path):
             os.makedirs(to_path)
         if self._file_list:
             for my_dict in self._file_list:
-                m = re.match("rerewrweset",my_dict["file_path"])
-                if not m:
+                # 前端传入文件列表的路径不带有 'rerewrweset'前缀 modified by sj on 2016.10.26
+                if not re.match("rerewrweset", my_dict["file_path"]):
                     my_dict["file_path"] = "rerewrweset/" + my_dict["file_path"]
-                source = os.path.join(self.config[self._type + "_path"], my_dict["file_path"])  # modified by sj on 2016.10.26
+                source = os.path.join(self.config[self._type + "_path"], my_dict["file_path"])
                 if not os.path.exists(source):
                     raise Exception("文件{}不存在".format(source))
                 target = os.path.join(to_path, my_dict["alias"])
@@ -58,6 +58,8 @@ class Lustre(RemoteFile):
                 os.symlink(source, target)
             return to_path
         else:
+            if not os.path.exists(self._full_path):
+                raise Exception("文件路径%s不存存在，请确认网络数据连接正常" % self._full_path)
             target_path = os.path.join(to_path, os.path.basename(self._full_path))
             if os.path.exists(target_path):
                 if os.path.isdir(target_path):
