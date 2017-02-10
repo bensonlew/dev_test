@@ -240,8 +240,10 @@ class PtProcessWorkflow(Workflow):
 			x = api_read_tab.dedup_sample(m)
 			if len(x): #如果库中能取到前后的样本
 				for k in range(len(x)):
-					name_list.append(x[k])
+					if x[k] != self.option('dad_id') and x[k] != self.option('dad_id') + '1':
+						name_list.append(x[k])
 		name_list = list(set(name_list))
+		print name_list
 		for i in name_list:
 			if i == self.option('dad_id'):
 				continue
