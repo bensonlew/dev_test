@@ -53,7 +53,6 @@ class Sample(object):
         self._new_fasta_file = open(fasta_dir + '/' + self.name + '.fasta', 'w')
         self.length_dir = length_dir
 
-
     def add_new_fasta(self, seq, seq_name):
         self._new_fasta_file.write('>{}\n{}'.format(seq_name, seq))
         length = len(seq) - 1  # 减去一个回车符
@@ -87,13 +86,16 @@ class FastqSampleExtractTool(Tool):
             for line in fastq:
                 m = re.match("@(.+)_(\d+)", line)
                 if not m:
-                    raise Exception('错误的fastq')
+                    raise Exception('fastq文件格式不符合要求，第一行形式应为应为@样本名_序列号')
                 sample_name = m.group(1)
                 seq_name = m.group(2)
                 sample = self.return_sample(sample_name)
                 sample.add_new_fasta(next(fastq), seq_name)
-                next(fastq)
-                next(fastq)
+                try:
+                    next(fastq)
+                    next(fastq)
+                except:
+                    raise Exception("fastq文件缺失，请检查后几行文件是否完整")
         with open('info.txt', 'w') as info:
             info.write('#file\tsample\tworkdir\tseqs_num\tbase_num\tmean_length\tmin_length\tmax_length\n')
             for sample in self.samples.values():
