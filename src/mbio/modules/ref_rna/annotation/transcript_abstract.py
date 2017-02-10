@@ -59,7 +59,7 @@ class TranscriptAbstractTool(Tool):
     def __init__(self, config):
         super(TranscriptAbstractTool, self).__init__(config) 
         self.gffread_path = "bioinfo/rna/cufflinks-2.2.1/"
-        self.long_path = self.config.SOFTWARE_DIR +"/bioinfo/rna/scripts/"
+        self.long_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/"
         self.python_path = "program/Python/bin/"
 
     def run_gffread(self):
@@ -67,7 +67,7 @@ class TranscriptAbstractTool(Tool):
             fasta = self.option("ref_genome_custom").prop["path"]
             gff = self.option("ref_genome_gff").prop["path"]
         else:
-            with open(self.config.SOFTWARE_DIR +"/database/refGenome/scripts/ref_genome.json", "r") as a:
+            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/scripts/ref_genome.json", "r") as a:
                 dict = json.loads(a.read())
                 fasta = dict[self.option("ref_genome_custom")]["fasta"]
                 gff = dict[self.option("ref_genome")]["gff3"]
@@ -75,7 +75,9 @@ class TranscriptAbstractTool(Tool):
         self.logger.info("开始运行cufflinks的gffread，合成、提取exon")
         command = self.add_command("gffread", cmd)
         command.run()
-        self.wait()   
+        self.wait()
+        output1 = os.path.join(self.work_dir, "exon.fa")
+        self.option('query', output1)
         
     def run_long_transcript(self):
         exon_path = os.path.join(self.work_dir, "exon.fa")
@@ -91,7 +93,7 @@ class TranscriptAbstractTool(Tool):
         self.option('query', self.work_dir + '/output/output.fa')
            
     def get_gene_list(self):
-        output_path = self.work_dir + '/output/output.fa'
+        output_path = self.option("query").prop["path"]
         gene_list_path = self.work_dir + '/output/gene_list.txt'
         gene_lists = []
         with open(output_path, 'rb') as f, open(gene_list_path, 'wb') as w:
@@ -108,6 +110,5 @@ class TranscriptAbstractTool(Tool):
     def run(self):
         super(TranscriptAbstractTool, self).run()
         self.run_gffread()
-        self.run_long_transcript()
         self.get_gene_list()
         self.end()
