@@ -239,5 +239,8 @@ class Command(object):
         :return:
         """
         if self.is_running:
+            chidrens = psutil.Process(self.pid).children(recursive=True)
+            for p in chidrens:
+                p.kill()
             self._subprocess.kill()
             self._is_error = True

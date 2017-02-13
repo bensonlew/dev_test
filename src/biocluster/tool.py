@@ -73,6 +73,8 @@ class Tool(object):
         self._rerun = False
         self.process_queue = None
         self.shared_callback_action = None
+        self._has_record_commands = []
+        self.is_wait = False
         self.api = ApiManager(self)
         if self.instant:
             self.actor = None
@@ -294,6 +296,7 @@ class Tool(object):
         """
         if not self.config.DEBUG and self.actor:
             self.actor.start()
+        threading.Thread(target=self.check_command, args=(), name='thread-check-command').start()
         self._run = True
         self.logger.info("开始运行!")
 
@@ -319,6 +322,8 @@ class Tool(object):
 
         filepath = os.path.join(self.work_dir, command.name+"_resource.txt")
         while True:
+            if not self.main_thread.is_alive():
+                break
             if self.is_end or self.exit_signal:
                 break
             if not command.has_run:
@@ -364,7 +369,7 @@ class Tool(object):
                                                                      memory_rss, memory_vms, cmd))
                 except Exception, e:
                     self.logger.debug("监控资源时发生错误: %s" % e)
-                gevent.sleep(10)
+                gevent.sleep(60)
             else:
                 break
 
@@ -434,6 +439,7 @@ class Tool(object):
         with self.mutex:
             self._end = True
             self.exit_signal = True
+        self.logger.info("退出运行")
         sys.exit(status)
 
     def save_output(self):
@@ -524,3 +530,15 @@ class Tool(object):
             if command.is_running:
                 self.logger.info("终止命令%s运行..." % name)
                 command.kill()
+
+    def check_command(self):
+        while not self.is_end:
+            if not self.main_thread.is_alive():
+                break
+            if self.is_end or self.exit_signal:
+                break
+            for name, cmd in self.commands.items():
+                if name not in self._has_record_commands:
+                    gevent.spawn(self.resource_record, cmd)
+                    self._has_record_commands.append(name)
+            gevent.sleep(3)
