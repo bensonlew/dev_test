@@ -18,3 +18,13 @@ class PtController(MetaController):
             return 'pt.update_status'
         else:
             return 'pt.tupdate_status'
+
+    @check_sig
+    def POST(self):
+        workflow_client = Basic(data=self.sheet_data, instant=self.instant)
+        try:
+            run_info = workflow_client.run()
+            self._return_msg = workflow_client.return_msg
+            return run_info
+        except Exception, e:
+            return {"success": False, "info": "运行出错: %s" % e}
