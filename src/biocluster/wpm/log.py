@@ -190,7 +190,6 @@ class Log(object):
                         self.logger.error("提交被拒绝，终止提交:%s" % response_json["message"])
                     break
         self._end = True
-        print 'shenghe'
         self.model.save()
         # self.save()
 
