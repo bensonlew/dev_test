@@ -324,9 +324,10 @@ class DenovoRnaMapping(Base):
             pca_rotation = os.path.join(correlation, 'pca_rotation.xls')
             site_file = os.path.join(correlation, 'pca_sites.xls')
             self.add_correlation_detail(collection=correlation, correlation_id=inserted_id, updata_tree=True)
-            self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
-            self.add_pca_rotation(input_file=pca_rotation, db_name='sg_denovo_correlation_pca_rotation', correlation_id=inserted_id)
-            self.add_pca_rotation(input_file=site_file, db_name='sg_denovo_correlation_pca_sites', correlation_id=inserted_id)
+            if os.path.exists(pca_file):
+                self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
+                self.add_pca_rotation(input_file=pca_rotation, db_name='sg_denovo_correlation_pca_rotation', correlation_id=inserted_id)
+                self.add_pca_rotation(input_file=site_file, db_name='sg_denovo_correlation_pca_sites', correlation_id=inserted_id)
         return inserted_id
 
     @report_check

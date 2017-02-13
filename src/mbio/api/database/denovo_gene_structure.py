@@ -269,7 +269,7 @@ class DenovoGeneStructure(Base):
                 elif target_line:
                     line = line.strip().split('\t')
                     bar_a = line[1:12]
-                    bar_b = line[12:47]
+                    bar_b = line[12:-2]
                     value_a = 0
                     value_b = 0
                     for a in bar_a:
@@ -285,7 +285,7 @@ class DenovoGeneStructure(Base):
                         "ssr_type": line[0],
                         "5-15": value_a,
                         "16-51": value_b,
-                        "total": line[48]
+                        "total": line[-1]
                     }
                     data_list.append(data)
         try:
