@@ -54,8 +54,21 @@ class DenovoGoEnrich(Base):
                 self.bind_object.logger.info("导入%s信息成功！" % (go_graph_dir))
         if os.path.exists(go_enrich_dir):
             self.add_go_enrich_detail(go_enrich_id, go_enrich_dir)
-        print "add sg_denovo_go_enrich sucess!"
+        self.bind_object.logger.info("add sg_denovo_go_enrich sucess!")
         return go_enrich_id
+
+    @report_check
+    def update_directed_graph(self, go_enrich_id, go_graph_dir):
+        collection = self.db['sg_denovo_go_enrich']
+        if go_graph_dir:
+            fs = gridfs.GridFS(self.db)
+            gra = fs.put(open(go_graph_dir, 'rb'))
+            try:
+                collection.update({"_id": ObjectId(go_enrich_id)}, {"$set": {'go_directed_graph': gra}})
+            except Exception, e:
+                self.bind_object.logger.error("导入%s信息出错：%s" % (go_graph_dir, e))
+            else:
+                self.bind_object.logger.info("导入%s信息成功！" % (go_graph_dir))
 
     @report_check
     def add_go_enrich_detail(self, go_enrich_id, go_enrich_dir):
@@ -74,13 +87,9 @@ class DenovoGoEnrich(Base):
                 if float(line[8]):
                     m = re.match(r"(.+)/(.+)", line[5])
                     pop_count = int(m.group(1))
-                    line[6] = float(line[6])
+                    line[6] = round(float(line[6]), 6)
                     line[7] = int(line[7])
                     line[8] = int(line[8])
-                    line[9] = float(line[9])
-                    line[10] = float(line[10])
-                    line[11] = float(line[11])
-                    line[12] = float(line[12])
                     data = [
                         ('go_enrich_id', go_enrich_id),
                         ('go_id', line[0]),
@@ -93,24 +102,12 @@ class DenovoGoEnrich(Base):
                         ('depth', line[7]),
                         ('study_count', line[8]),
                         ('pop_count', pop_count),
-                        ('diff_genes', line[13]),
+                        ('diff_genes', line[-1]),
                     ]
                     try:
-                        data += [('p_bonferroni', line[9])]
+                        data += [('p_fdr', round(float(line[-2]), 6))]
                     except:
-                        data += [('p_bonferroni', '')]
-                    try:
-                        data += [('p_sidak', line[10])]
-                    except:
-                        data += [('p_sidak', '')]
-                    try:
-                        data += [('p_holm', line[11])]
-                    except:
-                        data += [('p_holm', '')]
-                    try:
-                        data += [('p_fdr', line[12])]
-                    except:
-                        data += [('p_fdr', '')]
+                        data += [('p_fdr', None)]
                     data = SON(data)
                     data_list.append(data)
             try:
