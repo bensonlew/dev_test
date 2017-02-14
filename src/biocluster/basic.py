@@ -547,9 +547,9 @@ class Basic(EventObject):
             raise Exception("只能添加当前工作目录的子目录: %s" % dir_path)
         for i in self._upload_dir_obj:
             if i.upload_path == rel_path:
-                # 避免不能重复添加目录的问题出现，暂时这样修改， 20161120 by shenghe
-                self.logger.info('重复添加了目录：{} ,由于避免框架错误导致重复添加，此处不做处理，只生成LOG信息,请自行区分是框架问题还是编写错误'.format(dir_path))
-                return i
+                # # 避免不能重复添加目录的问题出现，暂时这样修改， 20161120 by shenghe
+                # self.logger.info('重复添加了目录：{} ,由于避免框架错误导致重复添加，此处不做处理，只生成LOG信息,请自行区分是框架问题还是编写错误'.format(dir_path))
+                # # return i
                 raise Exception("不能重复添加目录%s!" % dir_path)
         up = UploadDir(self)
         up.path = dir_path
