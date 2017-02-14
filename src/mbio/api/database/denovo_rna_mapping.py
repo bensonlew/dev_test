@@ -29,14 +29,14 @@ class DenovoRnaMapping(Base):
                 line = line.strip().split()
                 data = {
                     "project_sn": self.bind_object.sheet.project_sn,
-                    "task_id": self.bind_object.sheet.task_id,
+                    "task_id": self.bind_object.sheet.id,
                     "specimen_name": line[0],
                     "mapping_reads": line[1],
-                    "mapping_rate": int(line[2])/int(line[1]),
+                    "mapping_rate": str(float("%0.4f" % (int(line[2])/int(line[1])))*100) + "%",
                     "multiple_mapped": line[3],
-                    "multiple_rate": int(line[3])/int(line[1]),
+                    "multiple_rate": str(float("%0.4f" % (int(line[3])/int(line[1])))*100) + "%",
                     "uniq_mapped": line[4],
-                    "uniq_rate": int(line[4])/int(line[1])
+                    "uniq_rate": str(float("%0.4f" % (int(line[4])/int(line[1])))*100) + "%"
                 }
                 data_list.append(data)
         try:

@@ -357,6 +357,11 @@ class DenovoGeneStructure(Base):
 
     @report_check
     def add_snp_graph(self, snp, snp_id=None):
+        snp_main = self.db["sg_denovo_snp"]
+        task_id = snp_main.find_one({"_id": ObjectId(snp_id)})['task_id']
+        trinity_collection = self.db["sg_denovo_sequence"]
+        trinity_id = trinity_collection.find_one({"task_id": task_id})["_id"]
+        total_base = self.db["sg_denovo_sequence_detail"].find_one({"stastistic_name": "total base num", "sequence_id": trinity_id})['genes']
         snp_pos = glob.glob("{}/*position.stat.xls".format(snp))
         snp_type = glob.glob("{}/*type.stat.xls".format(snp))
         data_list = []
@@ -381,7 +386,7 @@ class DenovoGeneStructure(Base):
                 type_value = []
                 for line in f:
                     line = line.strip().split("\t")
-                    type_value.append({"name": line[0], "value": line[1]})
+                    type_value.append({"name": line[0], "value": line[1], "freq": "%0.4f" % (int(line[1])/total_base*1000)})
                 for data in data_list:
                     if sample_name == data["specimen_name"]:
                         data["type_stat"] = type_value

@@ -36,6 +36,7 @@ class Ssr(DenovoController):
         #     primer = "true"
         # else:
         #     primer = "false"
+        print(data.sequence_id)
         main_table_name = "Ssr_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         params = {
             "sequence_id": data.sequence_id,
@@ -44,7 +45,7 @@ class Ssr(DenovoController):
             "task_type": data.task_type,
             "submit_location": data.submit_location
         }
-        params = json.dumps(params, sort_keys=True, separators=(',', ':'))
+        # params = json.dumps(params, sort_keys=True, separators=(',', ':'))
 
         sequence_info = Meta(db=self.mongodb).get_main_info(data.sequence_id, 'sg_denovo_sequence')
         if sequence_info:
@@ -54,7 +55,7 @@ class Ssr(DenovoController):
             update_info = {str(ssr_id): "sg_denovo_ssr"}
             update_info = json.dumps(update_info)
 
-            to_file = ["denovo.export_fasta_path(gene_fasta)", "denovo.export_bed_path(bed_file)"],
+            to_file = ["denovo.export_fasta_path(gene_fasta)", "denovo.export_bed_path(bed_file)"]
             options = {
                     "gene_fasta": data.sequence_id,
                     "insert_id": str(ssr_id),
