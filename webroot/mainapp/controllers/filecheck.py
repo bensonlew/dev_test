@@ -29,9 +29,9 @@ class FileCheck(object):
 
     def check(self, data):
         try:
-            # if data.format == "sequence.fastq_dir":  # sequence.fastq_dir
-            #     info = {"success": True, "info": "检测通过"}
-            #     return json.dumps(info)
+            if data.format == "sequence.fastq_dir":  # sequence.fastq_dir
+                info = {"success": True, "info": "检测通过"}
+                return json.dumps(info)
             file_obj = load_class_by_path(data.format, "File")()
             file_manager = RemoteFileManager(data.path)
             if file_manager.type != "local" and file_manager.type != "http":
