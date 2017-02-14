@@ -35,7 +35,9 @@ class Config(object):
         # tool
         self.KEEP_ALIVE_TIME = int(self.rcf.get("Tool", "keep_alive_time"))
         self.MAX_KEEP_ALIVE_TIME = int(self.rcf.get("Tool", "max_keep_alive_time"))
+        self.MAX_FIRE_KAO_TIMES = int(self.rcf.get("Tool", "max_fire_kao_times"))
         self.MAX_WAIT_TIME = int(self.rcf.get("Tool", "max_wait_time"))
+        self.MAX_FIRE_WTO_TIMES = int(self.rcf.get("Tool", "max_fire_wto_times"))
         # log
         self.LOG_LEVEL = self.rcf.get("Log", "level")
         # self.LOG_DIR = self.rcf.get("Log", "log_dir")

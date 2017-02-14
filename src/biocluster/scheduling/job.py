@@ -149,6 +149,7 @@ class Job(object):
         self.id = 0
         self._end = False
         self.submit_time = None
+        self.state = None
 
     @property
     def is_end(self):
@@ -201,3 +202,31 @@ class Job(object):
         :return:
         """
         self._end = True
+
+    def is_queue(self):
+        """
+        判断是否正在排队
+        :return:
+        """
+        pass
+
+    def is_running(self):
+        """
+        判断是否正在运行
+        :return:
+        """
+        pass
+
+    def is_error(self):
+        """
+        判断是否出现错误
+        :return:
+        """
+        pass
+
+    def is_completed(self):
+        """
+        判断任务是否完成
+        :return:
+        """
+        pass
