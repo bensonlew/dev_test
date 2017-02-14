@@ -249,6 +249,8 @@ class SampleExtractModule(Module):
 
     def dir_join(self,fdir,sdir,sample_name):
         self.logger.info(fdir)
+        if fdir == sdir:
+            return fdir
         with open(fdir + "/output/fa/" + sample_name + ".fasta","a") as a:
             with open(sdir+ "/output/fa/" + sample_name + ".fasta","r") as r:
                 for line in r:
