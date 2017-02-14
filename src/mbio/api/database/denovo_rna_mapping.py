@@ -28,7 +28,7 @@ class DenovoRnaMapping(Base):
                 line = line.strip().split()
                 data = {
                     "project_sn": self.bind_object.sheet.project_sn,
-                    "task_id": self.bind_object.sheet.task_id,
+                    "task_id": self.bind_object.sheet.id,
                     "specimen_name": line[0],
                     "mapping_reads": line[1],
                     "mapping_rate": line[2]

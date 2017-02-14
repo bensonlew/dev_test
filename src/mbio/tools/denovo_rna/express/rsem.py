@@ -112,6 +112,7 @@ class RsemTool(Tool):
             self.option('fa_build', rsem_fasta)
         else:
             self.set_error("%s运行出错!" % bowtie_cmd)
+            raise("%s运行出错!" % bowtie_cmd)
 
     def run_rsem(self, rsem_fasta):
         if self.option('fq_type') == 'SE':
@@ -124,10 +125,12 @@ class RsemTool(Tool):
         self.logger.info("开始运行_rsem_cmd")
         cmd = self.add_command("rsem_cmd", rsem_cmd).run()
         self.wait()
+        self.logger.info("....返回码为：%s" % cmd.return_code)
         if cmd.return_code == 0:
             self.logger.info("%s运行完成" % cmd)
         else:
             self.set_error("%s运行出错!" % cmd)
+            raise("%s运行出错!" % cmd)
 
     def set_output(self):
         """
