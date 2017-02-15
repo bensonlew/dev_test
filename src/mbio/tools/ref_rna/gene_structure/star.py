@@ -89,9 +89,9 @@ class StarTool(Tool):
         
         self.ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
         # if self.option("is_indexed") is False:
-        #     shutil.copy(self.ref_fasta, self.work_dir)  # 将参考基因组复制到当前工作路径下
-        #     self.ref_fa_cp = os.path.join(self.work_dir, os.path.basename(self.ref_fasta))
-        #     self.ref_fasta = self.ref_fa_cp
+        shutil.copy(self.ref_fasta, self.work_dir)  # 将参考基因组复制到当前工作路径下
+        self.ref_fa_cp = os.path.join(self.work_dir, os.path.basename(self.ref_fasta))
+        self.ref_fasta = self.ref_fa_cp
         
         if not os.path.exists("ref_star_index2"):   # 创建第二次建索引的目录文件夹
             os.mkdir("ref_star_index2")
