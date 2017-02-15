@@ -28,11 +28,12 @@ class PipeSubmitAllAgent(Agent):
     def __init__(self, parent):
         super(PipeSubmitAllAgent, self).__init__(parent)
         options = [
-            {"name": "method", "type": "string", "default": "post"},
-            {"name": "name", "type": "string"},
-            {"name": "data", "type": "string"},
-            {"name": "client", "type": "string"},
-            {"name": "base_url", "type": "string"}
+            {"name": "data", "type": "string"}
+            # {"name": "method", "type": "string", "default": "post"},
+            # {"name": "name", "type": "string"},
+            # {"name": "data", "type": "string"},
+            # {"name": "client", "type": "string"},
+            # {"name": "base_url", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("piple_submit")
@@ -53,16 +54,18 @@ class PipeSubmitAllAgent(Agent):
         重写参数检测函数
         :return:
         """
-        if not self.option("method"):
-            raise OptionError("必须输入method值（get or post）")
-        if not self.option('name'):
-            raise OptionError('必须输入参数的name')
-        if not self.option('data'):
-            raise OptionError('必须输入data')
-        if not self.option('client'):
-            raise OptionError('必须输入client')
-        if not self.option('base_url'):
-            raise OptionError('必须输入base_url')
+        # if not self.option("method"):
+        #     raise OptionError("必须输入method值（get or post）")
+        # if not self.option('name'):
+        #     raise OptionError('必须输入参数的name')
+        # if not self.option('data'):
+        #     raise OptionError('必须输入data')
+        # if not self.option('client'):
+        #     raise OptionError('必须输入client')
+        # if not self.option('base_url'):
+        #     raise OptionError('必须输入base_url')
+        if not self.option("data"):
+            raise OptionError("必须输入接口传进来的data值")
         return True
 
     def set_resource(self):
@@ -100,32 +103,83 @@ class PipeSubmitAllTool(Tool):
         # self.script_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/meta/scripts/corr_net_calc.py")
 
     def run_webapitest(self):
-        collection = self.db["sg_network"]
-        result = collection.find_one({"_id": ObjectId("589d7179a4e1af2fffc579d2")})
-        print "test mongo"
-        print result
-        print "test over"
-        api = "meta/otu_network"
-        # method = self.option("method")
-        name = self.option("name")
-        print name
-        data = self.option("data")
+        # collection = self.db["sg_network"]
+        # result = collection.find_one({"_id": ObjectId("589d7179a4e1af2fffc579d2")})
+
+        data = self.option('data')
+        print "打印出data"
         print data
-        # client = self.option("client")
-        # base_url = self.option("base_url")
-        method = "post"
-        api = "meta/otu_network"
-        client = "client03"
-        base_url = "http://10.101.203.193:9100"
-        return_page = self.webapitest(method, api, name, data, client, base_url)
-        result = json.loads(return_page)
-        result = json.loads(result)
-        print result
+        data = json.loads(data)
+        print "----"
+        print data
+        group_infos = data['group_info']
+        level_ids = data['level_id']
+        sub_analysis = data['sub_analysis']
+        otu_id = data['otu_id']
+        list2 = [] #用于存储分类水平与分组方案的所有的组合
+        for level in level_ids:
+            for group in group_infos:
+                m = {"otu_id": str(otu_id), "level_id": str(level), "group_id": group['group_id'], "group_detail": json.dumps(group['group_detail'])}
+                list2.append(m)
+        print list2
+        all_results = []  # 存储所有子分析的ids
+        for info in list2:
+            print "打印出info"
+            print info
+            for anaylsis in sub_analysis:
+                print "打印出sub_analysis"
+                print anaylsis
+                for key in anaylsis:
+                    anaylsis[key]['otu_id'] = info['otu_id']
+                    anaylsis[key]['level_id'] = info['level_id']
+                    anaylsis[key]['group_id'] = info['group_id']
+                    anaylsis[key]['group_detail'] = json.loads(info['group_detail'])
+            print "下面打印出来的是每个子分析sub_analysis添加了分组与分类水平的data值"
+            print sub_analysis
+            sub_results = [] #存储同一分类水平与分组方案所有子分析的ids
+            for m in sub_analysis:
+                name = []
+                data = []
+                submit_info = {}
+                for key in m:
+                    for key1 in m[key]:
+                        name.append(key1)
+                        data.append(m[key][key1])
+                        submit_info = {"api": m[key]['api'], "base_url": m[key]['base_url'], "client": m[key]['client'], 'method': "post"}
+                print "打印出每个分析对应的api，base_url，client，method"
+                print submit_info
+                name = ";".join(name)
+                print "打印出name值"
+                print name
+                data = ";".join(data)
+                print "打印出data值"
+                print data
+                api = submit_info['api']
+                print api
+                method = submit_info['method']
+                print method
+                client = submit_info['client']
+                print client
+                base_url = submit_info['base_url']
+                print base_url
+                return_page = self.webapitest(method, api, name, data, client, base_url)
+                result = json.loads(return_page)
+                result = json.loads(result)
+                print "打印出每个子分析的返回值"
+                print result
+                sub_results.append(result['content']['ids']) #用于导表
+                all_results.append(result['content']['ids'])
+            print "sub_results"
+            print sub_results
+            #这个位置写到组合表文件
+        print "打印出所有子分析的ids"
+        print all_results
         output_table = os.path.join(self.work_dir, "ids.txt")
         with open(output_table, "w") as w:
-            w.write(json.dumps(result['content']['ids']))
+            w.write(str(all_results))
 
 
+    # def create_
     def webapitest(self, method, api, name, data, client, base_url, header=None):
         """
         :param method: [get,post]
