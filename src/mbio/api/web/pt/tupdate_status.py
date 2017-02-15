@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
 from biocluster.config import Config
-from update_status import UpdateStatus
+from mbio.api.web.meta.update_status import UpdateStatus
 
 
 class TupdateStatus(UpdateStatus):

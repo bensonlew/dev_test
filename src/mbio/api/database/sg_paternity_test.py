@@ -49,7 +49,7 @@ class SgPaternityTest(Base):
 		return task_id
 
 	# "status": "end",
-	@report_check
+	# @report_check
 	def add_pt_family(self, task_id, err_min, dedup):
 		params = dict()
 		params['err_min'] = err_min
@@ -163,7 +163,8 @@ class SgPaternityTest(Base):
 			'preg_percent': preg_percent
 		}
 		collection = self.database["sg_pt_family_figure"]
-		collection.insert_one(update_data)
+		figure_id = collection.insert_one(update_data).inserted_id
+		return figure_id
 
 	@report_check
 	def add_analysis_tab(self, file_path,flow_id):

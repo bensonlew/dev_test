@@ -41,7 +41,7 @@ class PaternityTestNew(PtController):
             ("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         ]
         main_table_id = PT().insert_main_table('sg_pt_family', mongo_data)
-        update_info = {str(main_table_id): 'sg_family'}
+        update_info = {str(main_table_id): 'sg_report_flow'}
         update_info = json.dumps(update_info)
         options = {
             "ref_fasta": str(task_info['ref_fasta']),
