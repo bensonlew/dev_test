@@ -10,18 +10,35 @@ from types import StringTypes
 from biocluster.config import Config
 
 
-class MetaSourcrtracker(Base):
+class MetaSourcetracker(Base):
     """
     微生物来源组成比例分析
     """
     def __init__(self, bind_object):
-        super(MetaSourcrtracker, self).__init__(bind_object) #
+        super(MetaSourcetracker, self).__init__(bind_object) #
         self._db_name = Config().MONGODB
         self.task_id = ""
 
     @report_check
-    def add_sg_sourcetracker_detail(self, id=None, file_path=None, name=None):
+    def add_sg_sourcetracker_detail(self, id=None, file_path=None, stdev_file_path=None, name_1=None, name_2=None):
         insert_data = list()
+        d_dict = dict()
+        def addtwodimdict(thedict, key_a, key_b, val):
+            if key_a in thedict:
+                thedict[key_a].update({key_b: val})
+            else:
+                thedict.update({key_a: {key_b: val}})
+        with open(stdev_file_path, "rb") as s:
+            head_s = s.next().strip('\r\n')
+            head_s = re.split('\t', head_s)
+            source_name = head_s[1:]
+            for line in s:
+                line = line.rstrip("\r\n")
+                line = re.split('\t', line)
+                stdev_number = line[1:]
+                for i in range(0, len(source_name)):
+                    addtwodimdict(d_dict, line[0], source_name[i], float(stdev_number[i]))
+        print(d_dict)
         with open(file_path, 'rb') as r:
             head = r.next().strip('\r\n')  # windows换行符
             head = re.split('\t', head)
@@ -30,16 +47,16 @@ class MetaSourcrtracker(Base):
                 line = line.rstrip("\r\n")
                 line = re.split('\t', line)
                 group_num = line[1:]
-                # classify_list = re.split(r"\s*;\s*", line[0])
                 detail = dict()
                 detail['sourcetracker_id'] = ObjectId(id)
-                detail['file_name'] = name
+                detail['file_name_1'] = name_1
+                detail['file_name_2'] = name_2
                 detail['sample_name'] = line[0]
-                # for cf in classify_list:
-                #     if cf != "":
-                #         detail[cf[0:3].lower()] = cf
                 for i in range(0, len(group_num)):
-                    detail[new_head[i]] = group_num[i]
+                    detail[new_head[i]] = float(group_num[i])
+                    detail[new_head[i] + "_stdev"] = float(d_dict[line[0]][new_head[i]])
+                    detail[new_head[i] + "_h"] = float(group_num[i]) + (d_dict[line[0]][new_head[i]]*d_dict[line[0]][new_head[i]])
+                    detail[new_head[i] + "_l"] = float(group_num[i]) - (d_dict[line[0]][new_head[i]]*d_dict[line[0]][new_head[i]])
                 insert_data.append(detail)
         try:
             collection = self.db['sg_sourcetracker_detail']

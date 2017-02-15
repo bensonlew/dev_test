@@ -151,6 +151,8 @@ class BetaMultiAnalysis(Base):
                 species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_species.xls'
                 importance_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_importance.xls'
                 dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
+                plot_species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_plot_species_data.xls'  # add 2 lines by zhouxuan 20170123
+                self.insert_table_detail(plot_species_path, 'plot_species', update_id=main_id)
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
                 self.insert_table_detail(species_path, 'species', update_id=main_id, split_fullname=True)
                 self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
@@ -234,7 +236,8 @@ class BetaMultiAnalysis(Base):
                 default_column = {'specimen': 'specimen', 'factor': 'factor', 'vector': 'vector',
                                   'species': 'species', 'factor_stat': 'factor_stat',
                                   'vector_stat': 'vector_stat',
-                                  'importance': 'importance', 'dca': 'dca', 'importancepre': 'importancepre'}
+                                  'importance': 'importance', 'dca': 'dca', 'importancepre': 'importancepre',
+                                  'plot_species': 'plot_species'}
                 if table_type in default_column:
                     main_collection.update_one({'_id': update_id},
                                                {'$set': {default_column[table_type]: ','.join(columns)}},

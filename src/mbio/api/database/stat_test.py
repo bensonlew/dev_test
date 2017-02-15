@@ -116,6 +116,11 @@ class StatTest(Base):
     @report_check
     def add_species_difference_check_barplot(self, file_path, table_id):
         stat_info, sort_list = self.cat_files(statfile=file_path, cifiles=None)
+        if not isinstance(table_id, ObjectId):
+            if isinstance(table_id, StringTypes):
+                table_id = ObjectId(table_id)
+            else:
+                raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
         for name in sort_list:
             data = [
@@ -186,18 +191,25 @@ class StatTest(Base):
                     raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
         with open(file_path, 'rb') as r:
-            i = 0
+            r.readline()
+            is_use = False
             for line in r:
-                if i == 0:
-                    i = 1
-                else:
-                    line = line.strip('\n')
-                    line_data = line.split('\t')
-                    data = [("species_lefse_id", table_id), ("species_name", line_data[0]),
-                            ("category_name", line_data[2]), ("median", float(line_data[1])), ("lda", line_data[3]),
-                            ("pvalue", line_data[4])]
-                    data_son = SON(data)
-                    data_list.append(data_son)
+                line = line.strip('\n')
+                line_data = line.split('\t')
+                data = [
+                    ("species_lefse_id", table_id),
+                    ("species_name", line_data[0]),
+                    ("category_name", line_data[2]),
+                    ("median", float(line_data[1])), ("lda", line_data[3]),
+                    ("pvalue", line_data[4])
+                ]
+                data_son = SON(data)
+                data_list.append(data_son)
+                if not line_data[2] == '-':
+                    is_use = True
+        if is_use:
+            coll_main = self.db["sg_species_difference_lefse"]
+            coll_main.update({"_id": ObjectId(table_id)}, {"$set": {"lda_png_id": 'is_useful', "lda_cladogram_id": 'is_useful'}})
         try:
             collection = self.db["sg_species_difference_lefse_detail"]
             collection.insert_many(data_list)
@@ -333,7 +345,7 @@ class StatTest(Base):
             "task_id": task_id,
             "otu_id": from_otu_table,
             "group_id": group_id,
-            "name": name if name else "Lefse_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": name if name else "LEfSe_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "params": params,
             "lda_cladogram_id": "",
             "lda_png_id": "",
