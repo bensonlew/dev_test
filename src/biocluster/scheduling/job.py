@@ -47,10 +47,10 @@ class JobManager(object):
             self.run_jobs.append(job)
             if job.submit():
                 agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, job.id))
-                return job
             else:
                 agent.logger.error("任务投递失败!")
                 agent.get_workflow().exit(data="Tool %s 任务投递失败!" % agent.id)
+        return job
 
     def get_all_jobs(self):
         """
@@ -58,9 +58,9 @@ class JobManager(object):
 
         :return: list  Job子类对象列表
         """
-        jobs = self.run_jobs
+        jobs = copy.copy(self.run_jobs)
         jobs.extend(self.queue_jobs)
-        return self.jobs
+        return jobs
 
     def get_unfinish_jobs(self):
         """
@@ -80,7 +80,7 @@ class JobManager(object):
 
          :return:  Job子类对象
         """
-        jobs = self.run_jobs
+        jobs = copy.copy(self.run_jobs)
         jobs.extend(self.queue_jobs)
         for job in jobs:
             if agent is job.agent:
@@ -114,6 +114,8 @@ class JobManager(object):
 
         :return:
         """
+        if len(self.get_all_jobs()) == 0:
+            return
         is_process = False
         for running_job in self.get_unfinish_jobs():
             if hasattr(running_job, "process"):
@@ -147,6 +149,7 @@ class Job(object):
         self.id = 0
         self._end = False
         self.submit_time = None
+        self.state = None
 
     @property
     def is_end(self):
@@ -199,3 +202,31 @@ class Job(object):
         :return:
         """
         self._end = True
+
+    def is_queue(self):
+        """
+        判断是否正在排队
+        :return:
+        """
+        pass
+
+    def is_running(self):
+        """
+        判断是否正在运行
+        :return:
+        """
+        pass
+
+    def is_error(self):
+        """
+        判断是否出现错误
+        :return:
+        """
+        pass
+
+    def is_completed(self):
+        """
+        判断任务是否完成
+        :return:
+        """
+        pass

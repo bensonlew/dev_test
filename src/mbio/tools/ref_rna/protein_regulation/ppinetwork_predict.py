@@ -98,6 +98,8 @@ class PpinetworkPredictTool(Tool):
         self._version = '1.0.1'
         self.r_path = 'program/R-3.3.1/bin/Rscript'
         self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_PPI(self):
         one_cmd = self.r_path + " %sPPInetwork_predict.r %s %s %s %s %s" % (self.script_path, self.option('diff_exp_mapped').prop['path'], self.option('species'), 'PPI_result', self.option('combine_score'), self.option('logFC'))

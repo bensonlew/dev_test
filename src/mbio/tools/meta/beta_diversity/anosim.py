@@ -141,6 +141,7 @@ class AnosimTool(Tool):
                 self.linkfile(os.path.join(self.work_dir, 'adonis_results.txt'), 'adonis_results.txt')
                 self.logger.info('运行qiime:compare_categories.py计算adonis完成')
                 self.format()
+                self.new_adonis()
                 self.logger.info('整理anosim&adonis计算结果完成')
                 self.end()
             else:
@@ -159,6 +160,29 @@ class AnosimTool(Tool):
         if os.path.exists(newpath):
             os.remove(newpath)
         os.link(oldfile, newpath)
+
+    def new_adonis(self):
+        """
+        整理anosim_results.txt文件中需要导表的数据
+        add by wzy
+        :return:
+        """
+        new_adonis = open(os.path.join(self.output_dir, 'new_adonis_results.xls'), 'wb')
+        with open(os.path.join(self.output_dir, 'adonis_results.txt')) as ado:
+            new_adonis.write("#\t")
+            # for line in ado:
+            for line in ado.readlines()[9:]:
+                line = re.sub("\s", "\t", line)
+                line = re.sub("F\.Model", "F_Model", line)
+                if re.match(r'[\']', line):
+                    pass
+                else:
+                    number = line.strip().split("\t")
+                    while '' in number:
+                        number.remove('')
+                    line1 = "\t".join(number)
+                    new_adonis.write(line1 + "\n")
+        new_adonis.close()
 
     # def format(self):
     #     """
@@ -225,7 +249,7 @@ class AnosimTool(Tool):
         permu = an_line[6].strip().split('\t')[1]
         new.write('method\tstatistic\tp-value\tnumber of permutation\n')
         new.write('anosim\t%s\t%s\t%s\n' % (an_r, an_p, permu))
-        new.write('adonis\t%s\t%s\t%s\n' % (ad_r, ad_p, permu))
+        # new.write('adonis\t%s\t%s\t%s\n' % (ad_r, ad_p, permu))
         new.close()
         ad.close()
         an.close()

@@ -41,6 +41,7 @@ class BlastAgent(Agent):
         self.step.add_steps('blast')
         self.on('start', self.step_start)
         self.on('end', self.step_end)
+        self.queue = 'BLAST'  # 投递到指定的队列BLAST
 
     def step_start(self):
         self.step.blast.start()

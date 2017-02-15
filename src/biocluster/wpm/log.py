@@ -74,7 +74,7 @@ class LogWorker(object):
                 log = api(log_data)
                 log.update()
             else:
-                self.logger.error("没有找到API模块:%s" % class_name )
+                self.logger.error("没有找到API模块:%s" % class_name)
         except Exception, e:
             exstr = traceback.format_exc()
             print(exstr)
@@ -93,7 +93,7 @@ class Log(object):
         self._data = data["data"]
         self.task_id = data["task_id"]
         self.api = data["api"]
-        self.update_info = self.data["update_info"] if "update_info" in self.data.keys() else None
+        self.update_info = data["update_info"] if "update_info" in data.keys() else None
         self._last_update = None
         self._response = ""
         self._response_code = 0
@@ -174,7 +174,7 @@ class Log(object):
                     self._response = response_text
                     self._success = 0
                     self._failed_times += 1
-                    self.logger.error("提交失败: 返回数据类型不正确 %s ，重试..." %  e)
+                    self.logger.error("提交失败: 返回数据类型不正确 %s ，重试..." % e)
                 else:
                     self._response_code = code
                     self._response = response_text

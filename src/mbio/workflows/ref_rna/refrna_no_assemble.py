@@ -122,14 +122,18 @@ class RefrnaNoAssembleWorkflow(Workflow):
         self.mapping.run()
 
     def run_map_assess(self):
+        """
         if self.option("ref_genome") == "customer_mode":
             self.option("gff").gff_to_bed()
+            self.logger.info("gff转换完成！")
             bed_path = self.option("gff").prop["path"] + ".bed"
         else:
             bed_path = ""
+        """
         opts ={
-            "bed" : bed_path,
-            "bam" : self.mapping.option("bam_output")     
+            # "bed" : bed_path,
+            "bed" : "/mnt/ilustre/users/sanger-dev/sg-users/shijin/saccharomyces_cerevisiae/Saccharomyces_cerevisiae.R64-1-1.32.gff3.bed",
+            "bam" : self.mapping.option("bam_output") 
         }
         self.map_qc.set_options(opts)
         self.map_qc.on("end",self.set_output,"map_qc")
@@ -243,8 +247,8 @@ class RefrnaNoAssembleWorkflow(Workflow):
         self.filecheck.on('end', self.run_qc_stat, False)
         self.qc.on('end', self.run_qc_stat, True)
         self.qc.on('end',self.run_mapping)
-        # self.mapping.on("end",self.run_map_assess)
-        self.mapping.on("end",self.run_exp)
+        self.mapping.on("end",self.run_map_assess)  
+        # self.mapping.on("end",self.run_exp)
         self.run_filecheck()
         super(RefrnaNoAssembleWorkflow, self).run()
         

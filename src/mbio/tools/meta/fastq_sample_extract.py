@@ -2,10 +2,14 @@
 # __author__ = 'sj & hesheng'
 
 from __future__ import division
-import os, re
+import os
+import re
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from collections import defaultdict
+import resource
+
 
 class FastqSampleExtractAgent(Agent):
     """
@@ -17,7 +21,7 @@ class FastqSampleExtractAgent(Agent):
             {"name": "in_fastq", "type": "infile", "format": "sequence.fastq"},
             {"name": "file_sample_list", "type": "outfile", "format": "sequence.info_txt"},
             {"name": "out_fa", "type": "outfile", "format": "sequence.fasta_dir"},
-            {"name": "length_dir", "type":"outfile","format" : "sequence.length_dir"}
+            {"name": "length_dir", "type": "outfile", "format": "sequence.length_dir"}
         ]
         self.add_option(options)
         self.step.add_steps("sample_extract")
@@ -40,50 +44,58 @@ class FastqSampleExtractAgent(Agent):
         self._cpu = 4
         self._memory = "4G"
 
+
 class Sample(object):
     def __init__(self, name, fasta_dir='./mytest2/', length_dir='./mytest2/'):
         self.name = name
         self.total_base_num = 0
-        self.seqs_len = []
+        self.seqs_len = defaultdict(int)
         self._new_fasta_file = open(fasta_dir + '/' + self.name + '.fasta', 'w')
-        self._new_seq_len_file = open(length_dir + '/' + self.name + '.length_file', 'w')
+        self.length_dir = length_dir
 
     def add_new_fasta(self, seq, seq_name):
         self._new_fasta_file.write('>{}\n{}'.format(seq_name, seq))
         length = len(seq) - 1  # 减去一个回车符
-        self.seqs_len.append(length)
+        self.seqs_len[length] += 1
         self.total_base_num += length
 
     def get_info(self):
-        self.seqs_num = len(self.seqs_len)
+        self.seqs_num = sum(self.seqs_len.values())
         self.seqs_mean_len = self.total_base_num / self.seqs_num
-        self.seqs_min_len = min(self.seqs_len)
-        self.seqs_max_len = max(self.seqs_len)
+        self.seqs_min_len = min(self.seqs_len.keys())
+        self.seqs_max_len = max(self.seqs_len.keys())
 
     def write_len(self):
-        self._new_seq_len_file.write('\n'.join(map(str, sorted(self.seqs_len))))
+        self._new_seq_len_file = open(self.length_dir + '/' + self.name + '.length_file', 'w')
+        for length in sorted(self.seqs_len.keys()):
+            self._new_seq_len_file.write('\n'.join([str(length)] * self.seqs_len[length]) + '\n')
 
     def close_all(self):
         self._new_fasta_file.close()
         self._new_seq_len_file.close()
 
+
 class FastqSampleExtractTool(Tool):
     def __init__(self, config):
         super(FastqSampleExtractTool, self).__init__(config)
         self.samples = {}
+        self.logger.debug(resource.getrlimit(resource.RLIMIT_NOFILE))
 
-    def parse_fastq(self,f_path):
+    def parse_fastq(self, f_path):
         with open(f_path) as fastq:
             for line in fastq:
                 m = re.match("@(.+)_(\d+)", line)
                 if not m:
-                    raise Exception('错误的fastq')
+                    raise Exception('fastq文件格式不符合要求，第一行形式应为应为@样本名_序列号')
                 sample_name = m.group(1)
                 seq_name = m.group(2)
                 sample = self.return_sample(sample_name)
                 sample.add_new_fasta(next(fastq), seq_name)
-                next(fastq)
-                next(fastq)
+                try:
+                    next(fastq)
+                    next(fastq)
+                except:
+                    raise Exception("fastq文件缺失，请检查后几行文件是否完整")
         with open('info.txt', 'w') as info:
             info.write('#file\tsample\tworkdir\tseqs_num\tbase_num\tmean_length\tmin_length\tmax_length\n')
             for sample in self.samples.values():
@@ -91,15 +103,15 @@ class FastqSampleExtractTool(Tool):
                 sample.write_len()
                 sample.close_all()
                 info.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(self.option("in_fastq").prop["path"],
-                                                             sample.name,
-                                                             self.work_dir,
-                                                             sample.seqs_num,
-                                                             sample.total_base_num,
-                                                             sample.seqs_mean_len,
-                                                             sample.seqs_min_len,
-                                                             sample.seqs_max_len))
+                                                                     sample.name,
+                                                                     self.work_dir,
+                                                                     sample.seqs_num,
+                                                                     sample.total_base_num,
+                                                                     sample.seqs_mean_len,
+                                                                     sample.seqs_min_len,
+                                                                     sample.seqs_max_len))
 
-    def return_sample(self,sample_name):
+    def return_sample(self, sample_name):
         if sample_name in self.samples:
             return self.samples[sample_name]
         fasta_dir = self.output_dir + "/fa"

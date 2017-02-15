@@ -27,7 +27,7 @@ class PanCore(MetaController):
         task_name = 'meta.report.pan_core'
         task_type = 'workflow'
         time_now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        main_table_name = 'Pan_Core_' + time_now
+        main_table_name = 'PanCore_' + time_now
         otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
@@ -83,7 +83,7 @@ class PanCore(MetaController):
             "samples": self.meta.sampleIdToName(specimen_ids),
             "level": int(data.level_id),
             "main_pan_id": str(main_pan_table_id),
-            "main_pan_id": str(main_core_table_id)
+            "main_core_id": str(main_core_table_id)
         }
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type, to_file=to_file)

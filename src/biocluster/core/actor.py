@@ -30,24 +30,43 @@ class LocalActor(gevent.Greenlet):
         # self._name = agent.name + ".Actor"
         self._update = None    # 最近接受消息时间
         self._start_time = None  # 开始运行时间
-        self._keep_alive_out_fired = False
-        self._wait_time_out_fired = False
+        self._kao_fire_times = 0
+        self._has_firekaoout = False
+        self._wto_fire_times = 0
+        self._has_firewtoout = False
         self.auto_break = False  # 自动退出
         Greenlet.__init__(self)
 
     def check_time(self):
         now = datetime.datetime.now()
-        if not self._keep_alive_out_fired:
-            if self._update is not None:
-                if (now - self._update).seconds > self._config.MAX_KEEP_ALIVE_TIME:
-                    self._agent.fire('keepaliveout')
-                    self._keep_alive_out_fired = True
-        if not self._wait_time_out_fired and self._update is None:
-            if not self._agent.is_wait:
+        if self._update is not None:
+            if (now - self._update).seconds - self._kao_fire_times * self._config.MAX_KEEP_ALIVE_TIME\
+                    > self._config.MAX_KEEP_ALIVE_TIME:
+                if self._kao_fire_times >= self._config.MAX_FIRE_KAO_TIMES:
+                    if self._has_firekaoout is False:
+                        self._agent.fire("firekaoout")
+                        self._has_firekaoout = True
+                    return
+                self._agent.logger.warning("KeepAlive通信超时%s秒,第%s次触发!" %
+                                           ((self._kao_fire_times + 1) * self._config.MAX_KEEP_ALIVE_TIME,
+                                            self._kao_fire_times + 1))
+                self._agent.fire('keepaliveout')
+                self._kao_fire_times += 1
+
+        if self._update is None and (not self._agent.is_wait):
                 if self._agent.job.submit_time is not None:
-                        if (now - self._agent.job.submit_time).seconds > self._config.MAX_WAIT_TIME:
+                        if (now - self._agent.job.submit_time).seconds - \
+                                        self._wto_fire_times * self._config.MAX_WAIT_TIME > self._config.MAX_WAIT_TIME:
+                            if self._wto_fire_times >= self._config.MAX_FIRE_WTO_TIMES:
+                                if self._has_firewtoout is False:
+                                    self._agent.fire("firewtoout")
+                                    self._has_firewtoout = True
+                                return
+                            self._agent.logger.warning("等待运行超时%s秒,第%s次触发!" %
+                                                       ((self._wto_fire_times + 1) * self._config.MAX_WAIT_TIME,
+                                                        (self._wto_fire_times + 1)))
                             self._agent.fire('waittimeout')
-                            self._wait_time_out_fired = True
+                            self._wto_fire_times += 1
 
     def receive(self, message):
         """
@@ -96,7 +115,6 @@ class RemoteActor(threading.Thread):
         self.mutex = tool.mutex
         self._lost_connection_count = 0
         self.main_thread = main_thread
-        self._has_record_commands = []
 
     def run(self):
         """
@@ -104,7 +122,7 @@ class RemoteActor(threading.Thread):
 
         :return: None
         """
-        gevent.spawn(self.check_command)
+        # gevent.spawn(self.check_command)
         # is_end = self._tool.is_end
         # states = self._tool.states
 
@@ -117,7 +135,7 @@ class RemoteActor(threading.Thread):
                 else:
                     return False
 
-        while is_finished():
+        while not is_finished():
             with self.mutex:
                 if self._tool.exit_signal and len(self._tool.states) == 0:
                     self._tool.logger.debug("接收到退出信号，终止Actor信号发送!")
@@ -206,18 +224,6 @@ class RemoteActor(threading.Thread):
                 self._tool.exit(1)
             self._lost_connection_count = 0
             return result
-
-    def check_command(self):
-        while not self._tool.is_end:
-            if not self.main_thread.is_alive():
-                break
-            if self._tool.is_end or self._tool.exit_signal:
-                break
-            for name, cmd in self._tool.commands.items():
-                if name not in self._has_record_commands:
-                    gevent.spawn(self._tool.resource_record, cmd)
-                    self._has_record_commands.append(name)
-            gevent.sleep(3)
 
 
 # class ProcessActor(RemoteActor):

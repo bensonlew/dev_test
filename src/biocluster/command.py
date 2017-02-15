@@ -160,7 +160,7 @@ class Command(object):
         if not self._subprocess:
             return self
         try:
-
+            count = 0
             tmp_file = os.path.join(self.work_dir, self._name + ".o")
             with open(tmp_file, "w") as f:
                 starttime = datetime.datetime.now()
@@ -183,7 +183,11 @@ class Command(object):
                             break
                         else:
                             continue
-                    f.write(line)
+                    if count < 50000:
+                        f.write(line)
+                    if count == 50000:
+                        f.write("输出过大，后续省略...")
+                    count += 1
                     if func is not None:
                         line = line.strip()
                         func(self, line)   # check function(toolself, command, line)  single line
@@ -239,5 +243,8 @@ class Command(object):
         :return:
         """
         if self.is_running:
+            chidrens = psutil.Process(self.pid).children(recursive=True)
+            for p in chidrens:
+                p.kill()
             self._subprocess.kill()
             self._is_error = True

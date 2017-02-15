@@ -11,7 +11,7 @@ from Bio.KEGG.KGML import KGML_parser
 from Bio.Graphics.KGML_vis import KGMLCanvas
 
 
-class kegg_annotation(object):
+class KeggAnnotation(object):
     def __init__(self):
         self.mongodb = Config().mongo_client.sanger_biodb
         self.sqlitedb_path = Config().SOFTWARE_DIR + '/database/KEGG/ko/ko.db'
@@ -181,8 +181,8 @@ class kegg_annotation(object):
                         canvas.draw(out_dir + '/' + pid + '.pdf')
 
 if __name__ == '__main__':
-    # python kegg_annotation.py Trinity_vs_kegg.xml  kegg_table.xls pathway_table.xls pid.txt kegg_layer.xls kegg_taxonomy.xls ./kegg/pathway
-    kegg = kegg_annotation()
+    # python KeggAnnotation.py Trinity_vs_kegg.xml  kegg_table.xls pathway_table.xls pid.txt kegg_layer.xls kegg_taxonomy.xls ./kegg/pathway
+    kegg = KeggAnnotation()
     kegg.kegg_by_sqlite(kegg_xml=sys.argv[1], kegg_table=sys.argv[2])
     kegg.get_pathway_result(stat_info=self.stat_info, pathway=sys.argv[3], pidpath=sys.argv[4], db='sqlite')
     kegg.get_kegg_layer(pathwayfile=sys.argv[3], layerfile=sys.argv[5], taxonomyfile=sys.argv[6])

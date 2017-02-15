@@ -13,7 +13,7 @@ class RdaCcaAgent(Agent):
     脚本ordination.pl
     version v1.0
     author: shenghe
-    last_modified:2016.3.24
+    last_modified:2017.01.20
     """
 
     def __init__(self, parent):
@@ -179,6 +179,19 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                 return newtable
         return tablepath
 
+    def remove_zero_line(self, fp, new_fp):
+        """
+        去除全为0的行
+        """
+        with open(fp) as f, open(new_fp, 'w') as w:
+            w.write(f.readline())
+            for line in f:
+                data = line.strip().split('\t')[1:]
+                sum_data = sum([float(i) for i in data])
+                if not (sum_data > 0):
+                    continue
+                w.write(line)
+
     def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
         import pandas as pd
         T1 = pd.read_table(T1, sep='\t', dtype=str)
@@ -208,7 +221,8 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         self.env_table = self.work_dir + '/new_env.xls'
         if not self.create_otu_and_env_common(old_otu_table, old_env_table, self.otu_table, self.env_table):
             self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
-        tablepath = self.formattable(self.otu_table)
+        tablepath = self.work_dir + '/remove_zero_line_otu.xls'
+        self.remove_zero_line(self.formattable(self.otu_table), tablepath)
         self.env_labs = open(self.env_table, 'r').readline().strip().split('\t')[1:]
         self.logger.info(tablepath)
         cmd = self.cmd_path
