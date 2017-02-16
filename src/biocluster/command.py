@@ -156,7 +156,7 @@ class Command(object):
         args = shlex.split(command)
         try:
             self._subprocess = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                                env=os.environ)
+                                                env=os.environ, universal_newlines=True)
         except Exception, e:
             self._is_error = True
             self.tool.set_error(e)
