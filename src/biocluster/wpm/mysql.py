@@ -65,7 +65,9 @@ class Mysql(object):
             self.cursor.close()
             return result
         except MySQLdb.Error, e:
-            print "Error %d: %s" % (e.args[0], e.args[1])
+            print "Mysql Error %d: %s" % (e.args[0], e.args[1])
+            self.cursor.close()
+            self.conn.rollback()
             return False
 
     def select_limit(self, sql='', offset=0, length=20):
@@ -81,8 +83,27 @@ class Mysql(object):
             self.conn.commit()
             self.cursor.close()
             return result
-        except MySQLdb.Error:
+        except MySQLdb.Error, e:
+            print "Mysql Error: %s" % e
+            self.cursor.close()
+            self.conn.rollback()
             return False
 
     def close(self):
         self.conn.close()
+
+    def transaction(self, *sql):
+        try:
+            self._re_conn()
+            self.cursor = self.conn.cursor(MySQLdb.cursors.DictCursor)
+            self.cursor.execute("set names utf8")  # utf8 字符集
+            for s in sql:
+                self.cursor.execute(s)
+            self.cursor.close()
+            self.conn.commit()
+            return True
+        except MySQLdb.Error, e:
+            print "Mysql Error: %s" % e
+            self.cursor.close()
+            self.conn.rollback()
+            return False

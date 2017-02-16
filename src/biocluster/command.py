@@ -242,12 +242,11 @@ class Command(object):
         else:
             self._run_times = 0
 
-        if self.has_run:
-            if self.is_running:
-                self.kill()
-            self._subprocess = None
-            self._pid = ""
-            self._is_error = False
+        if self.is_running:
+            self.kill()
+        self._subprocess = None
+        self._pid = ""
+        self._is_error = False
         self.run()
         return self
 

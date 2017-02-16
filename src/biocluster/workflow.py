@@ -338,7 +338,7 @@ class Workflow(Basic):
                 elif type == "pause":
                     worker.set_pause(self.sheet.id)
                 elif type == "stop":
-                    worker.set_top(self.sheet.id)
+                    worker.set_stop(self.sheet.id)
                 elif type == "pause_exit":
                     worker.set_pause_exit(self.sheet.id)
                 elif type == "pause_timeout":
