@@ -238,7 +238,6 @@ class Command(object):
             if self._run_times > 3:
                 raise Exception("重复运行相同的命令不能超过3次！命令:%s" % self.cmd)
             self.tool.logger.info('重新运行了相同的命令')  # shenghe modified 20161215
-
         else:
             self._run_times = 0
 
