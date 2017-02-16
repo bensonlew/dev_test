@@ -44,7 +44,7 @@ class LocalActor(gevent.Greenlet):
                     > self._config.MAX_KEEP_ALIVE_TIME:
                 if self._kao_fire_times >= self._config.MAX_FIRE_KAO_TIMES:
                     if self._has_firekaoout is False:
-                        self._agent.fire("firekaoout")
+                        self._agent.fire("firekaoout", self._kao_fire_times)
                         self._has_firekaoout = True
                     return
                 self._agent.logger.warning("KeepAlive通信超时%s秒,第%s次触发!" %
@@ -59,7 +59,7 @@ class LocalActor(gevent.Greenlet):
                                         self._wto_fire_times * self._config.MAX_WAIT_TIME > self._config.MAX_WAIT_TIME:
                             if self._wto_fire_times >= self._config.MAX_FIRE_WTO_TIMES:
                                 if self._has_firewtoout is False:
-                                    self._agent.fire("firewtoout")
+                                    self._agent.fire("firewtoout", self._wto_fire_times)
                                     self._has_firewtoout = True
                                 return
                             self._agent.logger.warning("等待运行超时%s秒,第%s次触发!" %
