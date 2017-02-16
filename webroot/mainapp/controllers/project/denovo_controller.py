@@ -22,7 +22,7 @@ class DenovoController(MetaController):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
-            return 'denovo.update_status'
+            return 'denovo.denovo_update_status'
         else:
             return 'denovo.tupdate_status'
 

@@ -742,24 +742,22 @@ class DenovoBaseWorkflow(Workflow):
             self.api_anno.add_annotation(anno_stat_dir=obj.output_dir, databases=self.option('database'))
         if event['data'] == 'nrblast':
             self.move2outputdir(obj.output_dir, 'Annotation/nrblast')
-            blastfile = self.output_dir + '/Annotation/nrblast/' + os.listdir(self.output_dir + '/Annotation/nrblast/')[0]
-            # blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast/CatBlastout/output/blast_table.xls'
+            # blastfile = self.output_dir + '/Annotation/nrblast/' + os.listdir(self.output_dir + '/Annotation/nrblast/')[0]
+            blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast/CatBlastout/output/blast_table.xls'
             self.api_anno.add_blast(blast_pro='blastp', blast_db='nr', e_value=self.option('nr_blast_evalue'), blast_path=blastfile, gene_list=self.gene_list)
         if event['data'] == 'keggblast':
             self.move2outputdir(obj.output_dir, 'Annotation/keggblast')
-            # blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast2/CatBlastout/output/blast_table.xls'
-            blastfile = self.output_dir + '/Annotation/keggblast/' + os.listdir(self.output_dir + '/Annotation/keggblast/')[0]
+            blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast2/CatBlastout/output/blast_table.xls'
+            # blastfile = self.output_dir + '/Annotation/keggblast/' + os.listdir(self.output_dir + '/Annotation/keggblast/')[0]
             self.api_anno.add_blast(blast_pro='blastp', blast_db='kegg', e_value=self.option('kegg_blast_evalue'), blast_path=blastfile, gene_list=self.gene_list)
         if event['data'] == 'stringblast':
             self.move2outputdir(obj.output_dir, 'Annotation/stringblast')
-            # blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast1/CatBlastout/output/blast_table.xls'
-            blastfile = self.output_dir + '/Annotation/stringblast/' + os.listdir(self.output_dir + '/Annotation/stringblast/')[0]
+            blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast1/CatBlastout/output/blast_table.xls'
+            # blastfile = self.output_dir + '/Annotation/stringblast/' + os.listdir(self.output_dir + '/Annotation/stringblast/')[0]
             self.api_anno.add_blast(blast_pro='blastp', blast_db='string', e_value=self.option('string_blast_evalue'), blast_path=blastfile, gene_list=self.gene_list)
 
     def run(self):
         self.logger.info('...options:%s' % self._options)
-        task_info = self.api.api('task_info.denovo_task_info')
-        task_info.add_task_info()
         self.filecheck.on('end', self.run_qc)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
@@ -772,8 +770,8 @@ class DenovoBaseWorkflow(Workflow):
         self.final_tools.append(self.bam_stat)
         gene_stru = [self.orf_len]
         if self.option('database'):
-            # self.assemble.on('end', self.run_blast_test)
-            self.assemble.on('end', self.run_blast)
+            self.assemble.on('end', self.run_blast_test)
+            # self.assemble.on('end', self.run_blast)
             self.final_tools.append(self.annotation)
         if 'ssr' in self.option('gene_analysis'):
             self.orf.on('end', self.run_ssr)
