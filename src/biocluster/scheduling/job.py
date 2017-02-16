@@ -47,6 +47,7 @@ class JobManager(object):
             self.run_jobs.append(job)
             if job.submit():
                 agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, job.id))
+                agent._start_queue_time = datetime.datetime.now()
             else:
                 agent.logger.error("任务投递失败!")
                 agent.get_workflow().exit(data="Tool %s 任务投递失败!" % agent.id)
@@ -104,9 +105,13 @@ class JobManager(object):
                 mode = self.default_mode.lower()
                 if queue_job.agent.mode.lower() != "auto":
                     mode = queue_job.agent.mode.lower()
-                queue_job.submit()
-                queue_job.agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, queue_job.id))
-                self.queue_jobs.remove(queue_job)
+                if queue_job.submit():
+                    queue_job.agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, queue_job.id))
+                    self.queue_jobs.remove(queue_job)
+                    queue_job.agent._start_queue_time = datetime.datetime.now()
+                else:
+                    queue_job.agent.logger.error("任务投递失败!")
+                    queue_job.agent.get_workflow().exit(data="Tool %s 任务投递失败!" % queue_job.agent.id)
 
     def _watch_processing_jobs(self):
         """
