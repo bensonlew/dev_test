@@ -216,6 +216,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         """
         old_otu_table = self.get_otu_table()
         old_env_table = self.get_new_env()
+        otu_species_list = self.get_species_name()
         self.otu_table = self.work_dir + '/new_otu.xls'
         self.env_table = self.work_dir + '/new_env.xls'
         if not self.create_otu_and_env_common(old_otu_table, old_env_table, self.otu_table, self.env_table):
@@ -253,6 +254,11 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                     self.linkfile(self.work_dir + '/rda/' + allfiles[i], newname)
         newname = os.path.basename(allfiles[0]).split('_')[-1]
         self.linkfile(self.work_dir + '/rda/' + allfiles[0], newname)
+        if len(otu_species_list) == 0:  # 20170122 add 5 lines by zhouxuan
+            self.linkfile(self.output_dir + "/rda_species.xls", "rda_plot_species_data.xls")
+        else:
+            new_file_path = self.get_new_species_xls(otu_species_list)
+            self.linkfile(new_file_path, "rda_plot_species_data.xls")
         self.logger.info('运行ordination.pl程序计算rda/cca完成')
         self.end()
 
@@ -334,3 +340,62 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
             return [rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids]
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')
+
+    def get_species_name(self):  # 20170122 add by zhouxuan
+        """
+        判断otu表中的物种数量是否大于30 ，如果大于30，筛选出丰度在前30的物种
+        :return: 丰度为前30的物种或者 空的列表
+        """
+        otu_path = self.get_otu_table()
+        with open(otu_path,"rb") as r:
+            r = r.readlines()
+            species_number = len(r) - 1
+            if species_number <= 30:
+                return []
+            else:
+                species_dict = dict()
+                abundance_list = []
+                for line in r:
+                    # line = line.strip("\n")
+                    array = line.strip("\n").split("\t")
+                    if array[0] != "OTU ID":
+                        value = 0
+                        new_array = array[1:]
+                        for i in range(len(new_array)):
+                            value = value + int(new_array[i])
+                        species_dict[array[0]] = value
+                        abundance_list.append(value)
+                abundance_list.sort()
+                abundance_list.reverse()
+                new_abundance_list = abundance_list[0:30]
+                species_list = []
+                for key in species_dict:
+                    if species_dict[key] in new_abundance_list:
+                        species_list.append(key)
+                return species_list
+
+    def get_new_species_xls(self, otu_species_list):  # 20170122 add by zhouxuan
+        """
+        根据物种列表信息，获取新的species表格文件
+        :param otu_species_list: 物种列表信息
+        :return: 新的species文件的路径
+        """
+        old_species_table = self.output_dir + "/rda_species.xls"
+        new_species_table = self.work_dir + "rda_plot_species_data.xls"
+        with open (old_species_table, "rb") as table, open(new_species_table, "a") as w:
+            line = table.readlines()
+            for l in line:
+                content = l.strip().split("\t")
+                if content[0] == "Species":
+                    w.write('\t'.join(content) + "\n")
+                else:
+                    if content[0] in otu_species_list:
+                        w.write('\t'.join(content) + "\n")
+        return new_species_table
+
+
+
+
+
+
+
