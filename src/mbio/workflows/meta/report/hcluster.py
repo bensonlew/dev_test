@@ -27,6 +27,8 @@ class HclusterWorkflow(Workflow):
             {"name": "level", "type": 'int', "default": 9},
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
+            {"name": "main_id", "type": "string"},
+            {"name": "update_info", "type": "string"},
             {"name": "params", "type": "string"},
             {"name": "group_detail", "type": "string"},
             {"name": "otu_id", "type": "string"},
@@ -110,11 +112,7 @@ class HclusterWorkflow(Workflow):
                 'method': self.option('dist_method'),
                 'otutable': self.option('otu_table')
             }
-        print options
-        print self.option('otu_table')
-        print self.option('otu_table').path
         self.dist.set_options(options)
-        print 'dist...................'
         self.dist.on('end', self.run_hcluster)
         self.hcluster.on('end', self.set_db)
         self.dist.run()
@@ -142,27 +140,24 @@ class HclusterWorkflow(Workflow):
         shutil.copy2(matrix_path, final_matrix_path)
         if not os.path.isfile(matrix_path):
             raise Exception("找不到报告文件:{}".format(matrix_path))
+        dist_name = 'Distance_{}_{}'.format(self.option('dist_method'),
+                                            datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         matrix_id = api_distance.add_dist_table(matrix_path,
                                                 major=True,
-                                                name='Distance_{}_{}'.format(self.option('dist_method'),
-                                                                             datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+                                                name=dist_name,
                                                 level=self.option('level'),
                                                 otu_id=self.option('otu_id'),
                                                 params=params_json)
         # self.add_return_mongo_id('sg_beta_specimen_distance', matrix_id)
         api_newick = self.api.newicktree
         collection = api_newick.db["sg_beta_specimen_distance"]
-        result = collection.find_one({"_id": ObjectId(matrix_id)})
-        task_id = result['task_id']
         newick_fath = self.hcluster.output_dir + "/hcluster.tre"
         final_newick_path = os.path.join(self.output_dir, "hcluster.tre")
         shutil.copy2(newick_fath, final_newick_path)
         if not os.path.isfile(newick_fath):
             raise Exception("找不到报告文件:{}".format(newick_fath))
-        return_id = api_newick.add_tree_file(newick_fath, major=True, table_id=self.option('otu_id'),
-                                             task_id=task_id, table_type='otu', tree_type='cluster', level=self.option('level'),
-                                             name='hcluster_{}_{}'.format(self.option('hcluster_method'), datetime.datetime.now().strftime("%Y%m%d_%H%M%S")), params=params_json)
-        self.add_return_mongo_id('sg_newick_tree', return_id)
+        return_id = api_newick.add_tree_file(newick_fath, major=False, tree_id=self.option('main_id'),
+                                             update_dist_id=matrix_id)
         collection.update_one({"_id": ObjectId(matrix_id)}, {'$set': {'newick_tree_id': ObjectId(return_id)}})
         self.end()
 

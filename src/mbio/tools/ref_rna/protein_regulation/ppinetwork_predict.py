@@ -6,6 +6,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from biocluster.config import Config
 import os
 import re
 
@@ -19,7 +20,7 @@ class PpinetworkPredictAgent(Agent):
     def __init__(self, parent):
         super(PpinetworkPredictAgent, self).__init__(parent)
         options = [
-            {"name": "diff_exp_mapped", "type": "infile", "format": "ref_rna.protein_regulation.txt"},  #差异基因表达详情表
+            {"name": "diff_exp_mapped", "type": "string"},  #差异基因表达详情表
             {"name": "species", "type": "int", "default": 9606},
             {"name": "combine_score",  "type": "int", "default": 600},
             {"name": "logFC", "type": "float", "default": 0.2},
@@ -45,7 +46,7 @@ class PpinetworkPredictAgent(Agent):
         :return:
         """
         # species_list = [9606,3711,4932]
-        if not self.option('diff_exp_mapped').is_set:
+        if not self.option('diff_exp_mapped'):
             raise OptionError("必须输入含有STRINGid的差异基因表")
         if self.option('combine_score') > 1000 or self.option('combine_score') < 0:
             raise OptionError("combine_score值超出范围")
@@ -97,12 +98,13 @@ class PpinetworkPredictTool(Tool):
         super(PpinetworkPredictTool, self).__init__(config)
         self._version = '1.0.1'
         self.r_path = 'program/R-3.3.1/bin/Rscript'
-        self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
+        #self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
+        self.script_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/rna/scripts/")
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_PPI(self):
-        one_cmd = self.r_path + " %sPPInetwork_predict.r %s %s %s %s %s" % (self.script_path, self.option('diff_exp_mapped').prop['path'], self.option('species'), 'PPI_result', self.option('combine_score'), self.option('logFC'))
+        one_cmd = self.r_path + " %sPPInetwork_predict.r %s %s %s %s %s" % (self.script_path, self.option('diff_exp_mapped'), self.option('species'), 'PPI_result', self.option('combine_score'), self.option('logFC'))
         self.logger.info(one_cmd)
         self.logger.info("开始运行one_cmd")
         cmd = self.add_command("one_cmd", one_cmd).run()

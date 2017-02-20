@@ -59,7 +59,7 @@ class TranscriptAbstractTool(Tool):
     def __init__(self, config):
         super(TranscriptAbstractTool, self).__init__(config) 
         self.gffread_path = "bioinfo/rna/cufflinks-2.2.1/"
-        self.long_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/"
+        self.long_path = self.config.SOFTWARE_DIR +"/bioinfo/rna/scripts/"
         self.python_path = "program/Python/bin/"
 
     def run_gffread(self):
@@ -67,7 +67,7 @@ class TranscriptAbstractTool(Tool):
             fasta = self.option("ref_genome_custom").prop["path"]
             gff = self.option("ref_genome_gff").prop["path"]
         else:
-            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/scripts/ref_genome.json", "r") as a:
+            with open(self.config.SOFTWARE_DIR +"/database/refGenome/scripts/ref_genome.json", "r") as a:
                 dict = json.loads(a.read())
                 fasta = dict[self.option("ref_genome_custom")]["fasta"]
                 gff = dict[self.option("ref_genome")]["gff3"]

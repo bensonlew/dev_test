@@ -23,8 +23,10 @@ class PlotTreeWorkflow(Workflow):
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table"},
             {"name": "level", "type": 'int', "default": 9},
             {"name": "otu_id", "type": 'string', "default": ''},
+            {"name": "main_id", "type": 'string', "default": ''},
             {"name": "params", "type": 'string', "default": ''},
             {"name": "group_id", "type": 'string'},
+            {"name": "update_info", "type": 'string'},
             {"name": "group_detail", "type": 'string', "default": ""},
             {"name": "color_level_id", "type": 'int', "default": 0},
             {"name": "sample_group", "type": "infile", "format": "meta.otu.group_table"},
@@ -39,6 +41,8 @@ class PlotTreeWorkflow(Workflow):
             raise Exception("必须提供OTU的主表id")
 
     def run(self):
+        self.start_listener()
+        self.fire("start")
         self.species = []
         otu_format = self.work_dir + '/format_otu_table.xls'
         species_format = self.work_dir + '/species_group.xls'
@@ -55,8 +59,6 @@ class PlotTreeWorkflow(Workflow):
                 self.format_otu_table(otu_format)
         self.get_newicktree(tree_file)
 
-        self.start_listener()
-        self.fire("start")
         self.set_db()
 
     def format_group_otu_table(self, out_otu_file, out_species_group_file=None):
@@ -118,15 +120,8 @@ class PlotTreeWorkflow(Workflow):
                 os.remove(output_species)
             os.link(self.work_dir + '/species_group.xls', self.output_dir + '/species_group.xls')
         api_tree = self.api.phylo_tree
-        main_id = api_tree.add_phylo_tree_info()
-        # main_id = api_tree.add_tree_picture(self.output_dir, major=True,
-        #                                     params=json.loads(self.option('params')),
-        #                                     otu_id=self.option('otu_id'),
-        #                                     level=self.option('level'),
-        #                                     name='tree_{}'.format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
-        self.add_return_mongo_id('sg_phylo_tree', str(main_id))
+        api_tree.add_phylo_tree_info(self.option('main_id'))
         self.end()
-        pass
 
     def format_otu_table(self, out_otu_file, out_species_group_file=None):
         """
@@ -196,6 +191,8 @@ class PlotTreeWorkflow(Workflow):
 
 
     def end(self):
+        import time
+        time.sleep(10)
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "距离矩阵计算结果输出目录"],
@@ -203,6 +200,14 @@ class PlotTreeWorkflow(Workflow):
             ["phylo_tree.tre", "tree", "进化树"],
             ["species_group.xls", "txt", "物种在高层级的分类表"]
             ])
+        self._upload_result()
+        self._import_report_data()
+        self.step.finish()
+        self.step.update()
+        self.logger.info("运行结束!")
+        self._update("end")
+        self.set_end()
+        self.fire('end')
         # super(PlotTreeWorkflow, self).end()
 
 

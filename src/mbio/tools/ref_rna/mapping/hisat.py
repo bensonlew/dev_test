@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import json
 
+
 class HisatAgent(Agent):
     """
     对客户传入的参考基因组建索引，reads比对参考基因组
@@ -21,13 +22,13 @@ class HisatAgent(Agent):
     def __init__(self, parent):
         super(HisatAgent, self).__init__(parent)
         options = [
-            {"name": "ref_genome", "type": "string"}, # 参考基因组参数
-            {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"}, # 
-            {"name": "mapping_method", "type": "string"}, # 比对软件，tophat或hisat
-            {"name": "seq_method", "type": "string"}, # 测序方式，PE：单端测序，SE：双端测序
+            {"name": "ref_genome", "type": "string"},  # 参考基因组参数
+            {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},
+            {"name": "mapping_method", "type": "string"},  # 比对软件，tophat或hisat
+            {"name": "seq_method", "type": "string"},  # 测序方式，PE：单端测序，SE：双端测序
             {"name": "single_end_reads", "type": "infile", "format": "sequence.fastq"},
-            {"name": "left_reads", "type": "infile", "format":"sequence.fastq"},
-            {"name": "right_reads", "type": "infile", "format":"sequence.fastq"},
+            {"name": "left_reads", "type": "infile", "format": "sequence.fastq"},
+            {"name": "right_reads", "type": "infile", "format": "sequence.fastq"},
             {"name": "bam_output", "type": "outfile", "format": "align.bwa.bam"},
             {"name": "assemble_method", "type": "string"},
             {"name": "sample", "type": "string"}
@@ -70,7 +71,7 @@ class HisatAgent(Agent):
                     raise OptionError("请传入右端测序文件")
         if not self.option("assemble_method").is_set:
             raise OptionError("请选择拼接软件")
-        elif not self.option("assemble_method") in ["cufflinks","stringtie","None"]:
+        elif not self.option("assemble_method") in ["cufflinks", "stringtie", "None"]:
             raise OptionError("请选择拼接软件")
             
     def set_resource(self):
@@ -79,6 +80,7 @@ class HisatAgent(Agent):
         """
         self._cpu = 10
         self._memory = '100G'
+
 
 class HisatTool(Tool):
     """
@@ -96,12 +98,13 @@ class HisatTool(Tool):
         """
         if self.option("ref_genome") == "customer_mode":
             
-            cmd = "{}hisat2-build -f {} ref_index".format(self.hisat_path, self.option("ref_genome_custom").prop['path'])
+            cmd = "{}hisat2-build -f {} ref_index".format(self.hisat_path, self.
+                                                          option("ref_genome_custom").prop['path'])
             self.logger.info("开始运行hisat2-build，进行建索引")
             command = self.add_command("hisat_build", cmd)
             command.run()
         else:
-            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/ref_genome.json","r") as f:
+            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/ref_genome.json", "r") as f:
                 dict = json.loads(f.read())
                 ref = dict[self.option("ref_genome")]["ref_genome"]
                 index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
@@ -119,18 +122,28 @@ class HisatTool(Tool):
             ref_path = index_ref
         if self.option("seq_method") == "PE":
             if self.option("assemble_method") == "cufflinks":
-                cmd = "{}hisat2 -q --dta-cufflinks -x {} -1 {} -2 {} -S accepted_hits.unsorted.sam".format(self.hisat_path, ref_path, self.option("left_reads").prop["path"], self.option("right_reads").prop["path"])
+                cmd = "{}hisat2 -q --dta-cufflinks -x {} -1 {} -2 {} -S \
+                accepted_hits.unsorted.sam".\
+                    format(self.hisat_path, ref_path, self.option("left_reads").prop["path"],
+                           self.option("right_reads").prop["path"])
             elif self.option("assemble_method") == "stringtie":
-                cmd = "{}hisat2 -q --dta -x {} -1 {} -2 {} -S accepted_hits.unsorted.sam".format(self.hisat_path, ref_path, self.option("left_reads").prop["path"], self.option("right_reads").prop["path"])
+                cmd = "{}hisat2 -q --dta -x {} -1 {} -2 {} -S accepted_hits.unsorted.sam".\
+                    format(self.hisat_path, ref_path, self.option("left_reads").prop["path"],
+                           self.option("right_reads").prop["path"])
             else:
-                cmd = "{}hisat2 -q -x {} -1 {} -2 {} -S accepted_hits.unsorted.sam".format(self.hisat_path, ref_path, self.option("left_reads").prop["path"], self.option("right_reads").prop["path"])
+                cmd = "{}hisat2 -q -x {} -1 {} -2 {} -S accepted_hits.unsorted.sam".\
+                    format(self.hisat_path, ref_path, self.option("left_reads").prop["path"],
+                           self.option("right_reads").prop["path"])
         else:        
             if self.option("assemble_method") == "cufflinks":
-                cmd = "{}hisat2 -q --dta-cufflinks -x {} {} -S accepted_hits.unsorted.sam".format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
+                cmd = "{}hisat2 -q --dta-cufflinks -x {} {} -S accepted_hits.unsorted.sam".\
+                    format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
             elif self.option("assemble_method") == "stringtie":
-                cmd = "{}hisat2 -q --dta -x {} {} -S accepted_hits.unsorted.sam".format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
+                cmd = "{}hisat2 -q --dta -x {} {} -S accepted_hits.unsorted.sam".\
+                    format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
             else:
-                cmd = "{}hisat2 -q -x {} {} -S accepted_hits.unsorted.sam".format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
+                cmd = "{}hisat2 -q -x {} {} -S accepted_hits.unsorted.sam".\
+                    format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
         self.logger.info("开始运行hisat2，进行比对")
         command = self.add_command("hisat_mapping", cmd)
         command.run()
@@ -159,7 +172,7 @@ class HisatTool(Tool):
         sort_command = self.add_command("samtools_sort", sort_cmd)
         sort_command.run()
         """
-        subprocess.check_output(sort_cmd,shell=True)
+        subprocess.check_output(sort_cmd, shell=True)
         self.wait()
         """
         if sort_cmd.return_code == 0:
@@ -178,9 +191,9 @@ class HisatTool(Tool):
         pre = self.option("sample")
         if pre.find("_sickele") != -1:
             pre = pre[:-9]
-        if os.path.exists(self.output_dir +"/" + pre + ".bam"):
-            os.remove(self.output_dir +"/" + pre + ".bam")
-        os.link(output, self.output_dir +"/" + pre + ".bam")
+        if os.path.exists(self.output_dir + "/" + pre + ".bam"):
+            os.remove(self.output_dir + "/" + pre + ".bam")
+        os.link(output, self.output_dir + "/" + pre + ".bam")
         
     def run(self):
         """

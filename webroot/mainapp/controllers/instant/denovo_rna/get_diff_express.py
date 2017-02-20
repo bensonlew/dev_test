@@ -4,7 +4,6 @@ import web
 import json
 import threading
 import datetime
-import re
 from bson.son import SON
 from mainapp.libs.signature import check_sig
 from mainapp.config.db import get_mongo_client
@@ -19,6 +18,7 @@ class GetDiffExpress(object):
         self.samples = []  # 包含的样本列表
         self.diff_genes = []  # 筛选出来的差异基因
         self.params = {}
+        self.info = dict()
 
     @check_sig
     def POST(self):
@@ -30,21 +30,17 @@ class GetDiffExpress(object):
             return json.dumps(info)
         ids = data.express_diff_id
         compare_list = data.compare_list
-        compare_list = compare_list[:-1][1:]
-        compare_list = re.findall(r"\[(.+?)\,(.+?)\]", compare_list)
-        self.get_diff_exp(data.express_diff_id, compare_list, bool(data.is_sum))
-        compare_list = [sorted(list(i)) for i in compare_list]
-        compare_list.sort()
-        print compare_list
+        use_list = [i.split('|') for i in compare_list.split(',')]
+        # print compare_list
         self.params['express_diff_id'] = ids
         self.params['is_sum'] = data.is_sum
         self.params['compare_list'] = compare_list
         self.params = json.dumps(self.params, sort_keys=True, separators=(',', ':'))
-
-        info = dict()
-        info["success"] = True
-        info["info"] = "已成功完成计算"
-        return json.dumps(info)
+        print self.params
+        self.get_diff_exp(data.express_diff_id, use_list, bool(data.is_sum))
+        self.info["success"] = True
+        self.info["info"] = "已成功完成计算"
+        return json.dumps(self.info)
 
     def check_options(self, data):
         """
@@ -67,8 +63,15 @@ class GetDiffExpress(object):
         return:: diff_gene: 差异基因列表
         """
         collection = self.db['sg_denovo_express_diff_detail']
-        # print compare_group
         result = collection.find({'$and': [{'express_diff_id': ObjectId(table_id), 'name': compare_group[0], 'compare_name': compare_group[1]}]})
+        print result.count()
+        if not result.count():
+            print '....................'
+            print compare_group[0], type(compare_group[0])
+            print compare_group[1], type(compare_group[1])
+            self.info['success'] = False
+            self.info['info'] = '没有找到差异表达统计id对应的表，请检查传入的id是否正确'
+            raise Exception('没有找到差异表达统计id对应的表，请检查传入的id是否正确')
         main_collection = self.db['sg_denovo_express_diff']
         main_result = main_collection.find_one({'_id': ObjectId(table_id)})
         samples = []
@@ -77,15 +80,10 @@ class GetDiffExpress(object):
         else:
             samples += main_result['group_detail'][compare_group[0]]
             samples += main_result['group_detail'][compare_group[1]]
-
         diff_gene = []
-        if not result.count():
-            print '....................'
-            print compare_group
-            raise Exception('没有找到差异表达统计id对应的表，请检查传入的id是否正确')
         for row in result:
-            if float(row['FDR']) <= 0.05:
-                diff_gene.append(row['Gene_id'])
+            if float(row['fdr']) <= 0.05:
+                diff_gene.append(row['gene_id'])
         return (diff_gene, samples)
 
     def get_diff_exp(self, table_id, compare_list, is_sum=True):
@@ -111,8 +109,6 @@ class GetDiffExpress(object):
                 self.samples += i.sample
             diff_list = list(set(diff_list))
             self.samples = list(set(self.samples))
-            # print diff_list, len(diff_list)
-            # print self.samples
         else:
             diff_list = threads[0].diff_gene
             for i in threads[1:]:
@@ -158,6 +154,7 @@ class GetDiffExpress(object):
         sam_fpkm = []
         for sam in self.samples:
             sam_fpkm.append(sam + '_fpkm')
+        print sam_fpkm
         for row in find_result:
             if row['gene_id'] in self.diff_genes:
                 data = [

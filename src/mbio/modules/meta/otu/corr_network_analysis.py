@@ -108,7 +108,6 @@ class CorrNetworkAnalysisModule(Module):
         self.otuassociation_run()
         self.corr_network_calc.on('end', self.end)
 
-
     def end(self):
         repaths = [
             [".", "", "物种相关性网络结果输出目录"],

@@ -97,11 +97,13 @@ class PearsonsCorrelationTool(Tool):
         self.r_path = self.config.SOFTWARE_DIR + '/program/R-3.3.1/bin/Rscript'
         self.hcluster_script_path = self.config.SOFTWARE_DIR + "/bioinfo/statistical/scripts/"
         self.Rscript_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin/"
-        self.cmd_path = '{}/program/Python/bin/python {}/bioinfo/statistical/scripts/pearsonsCorrelation.py'.format(self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
+        self.cmd_path = '{}/program/Python/bin/python {}/bioinfo/statistical/scripts/pearsonsCorrelation.py'\
+            .format(self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
         # self.cmd_path=os.path.join(self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/pearsonsCorrelation.py')
         self.env_table = self.get_new_env()
         self.real_otu = self.get_otu_table()
         self.name_to_name = {}
+        self.env_name = {}
 
     def get_otu_table(self):
         """
@@ -157,10 +159,21 @@ class PearsonsCorrelationTool(Tool):
         # self.end()
 
     def get_name(self, table):
-        with open(table, "r") as f, open(self.work_dir + "/tem.collection.xls", "w") as w, open("name_to_name.xls", "w") as nf:
+        with open(table, "r") as f, open(self.work_dir + "/tem.collection.xls", "w") as w, open("name_to_name.xls", "w") as nf, open("env_name.xls", "w") as ew:
             first_line = f.readline()
-            w.write(first_line)
+            # w.write(first_line)
+            col_names = first_line.strip().split("\t")
+            w.write(col_names[0])
+            e = 1
+            for c in col_names[1:]:
+                env_new_name = "colnew"+str(e)
+                w.write("\t" + env_new_name)
+                self.env_name[env_new_name] = c
+                e += 1
             n = 1
+            w.write("\n")
+            self.logger.info(self.env_name)
+            ew.write(str(self.env_name))
             for line in f:
                 line = line.split("\t")
                 name = line[0]
@@ -170,9 +183,12 @@ class PearsonsCorrelationTool(Tool):
                 n += 1
                 new_line = new_name+"\t"+"\t".join(line[1:])
                 w.write(new_line)
+        return n
 
     def run_heatmap(self):
-        self.get_name(self.work_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level'))
+        line_num = self.get_name(self.work_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level'))
+        if line_num < 2:
+            self.set_error('相关系数矩阵行数/物种数小于2，请尝试切换水平重新运行')
         corr_heatmap(self.work_dir + "/tem.collection.xls", "env_tree.tre", "species_tree.tre", self.option("env_cluster"), self.option("species_cluster"))
         cmd = self.r_path + " run_corr_heatmap.r"
         try:
@@ -185,6 +201,9 @@ class PearsonsCorrelationTool(Tool):
 
     def dashrepl(self, matchobj):
         return self.name_to_name[matchobj.groups()[0]]
+
+    def dashrepl_env(self, matchobj):
+        return self.env_name[matchobj.groups()[0]]
 
     def set_output(self):
         newpath = self.output_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level')
@@ -206,4 +225,11 @@ class PearsonsCorrelationTool(Tool):
             with open(species_tree_path, "r") as f, open(self.work_dir + "/final_species_tree.tre", "w") as w:
                 species_tree = f.readline().strip()
                 new_species_tree = re.sub(r"(name\d+)", self.dashrepl, species_tree)
+                w.write(new_species_tree)
+
+        env_tree_path = self.work_dir + "/env_tree.tre"
+        if os.path.exists(env_tree_path):
+            with open(env_tree_path, "r") as f, open(self.work_dir + "/final_env_tree.tre", "w") as w:
+                env_tree = f.readline().strip()
+                new_species_tree = re.sub(r"(colnew\d+)", self.dashrepl_env, env_tree)
                 w.write(new_species_tree)

@@ -9,6 +9,7 @@ import os
 import re
 import itertools
 import shutil
+import copy
 
 
 class DiffExpAgent(Agent):
@@ -115,6 +116,10 @@ class DiffExpTool(Tool):
         self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
         self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
         self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
+        self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin:$PATH"
+        self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
+        self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
+        self.set_environ(PATH=self.r_path, R_HOME=self._r_home, LD_LIBRARY_PATH=self._LD_LIBRARY_PATH)
         self.restart_edger = False
         self.diff_gene = False
         self.regulate_stat = self.work_dir + '/regulate_edgrstat_result'
@@ -151,8 +156,8 @@ class DiffExpTool(Tool):
             os.mkdir(output_dir)
         for f in edger:
             if re.search(r'edgeR.DE_results$', f):
-                get_diff_list(edger_dir + f, output_dir + f.split('.')[3] + '_diff_list', self.option('diff_ci'))
-                edger_files += '%s ' % (output_dir + f.split('.')[3] + '_diff_list')
+                get_diff_list(edger_dir + f, output_dir + f.split('.')[-3], self.option('diff_ci'))
+                edger_files += '%s ' % (output_dir + f.split('.')[-3])
         os.system('cat %s> diff_lists && sort diff_lists | uniq > diff_list' % edger_files)
         os.remove('diff_lists')
 
@@ -182,7 +187,8 @@ class DiffExpTool(Tool):
             shutil.rmtree(self.regulate_stat)
             os.mkdir(self.regulate_stat)
         for i in sams:
-            for afile in edger_results:
+            resluts = copy.copy(edger_results)
+            for afile in resluts:
                 if re.search(r'edgeR.DE_results$', afile):
                     if i[0] in afile and i[1] in afile:
                         # self.logger.info(afile)

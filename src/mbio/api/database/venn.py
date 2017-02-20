@@ -48,7 +48,7 @@ class Venn(Base):
             "group_id": group_id,
             "status": "end",
             "desc": desc,
-            "name": name if name else "venn表格",
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "venn表格",
             "params": params,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -371,7 +371,7 @@ class Venn(Base):
             collection.insert_many(data_list)
 
     @report_check
-    def add_venn_graph(self, venn_graph_path, venn_id):
+    def add_venn_graph(self, venn_graph_path, venn_id, project='meta'):
         data_list = []
         if not isinstance(venn_id, ObjectId):
             if isinstance(venn_id, StringTypes):
@@ -385,14 +385,68 @@ class Venn(Base):
                 insert_data = {
                     'venn_id': venn_id,
                     # 'otu_id': ObjectId(otu_id),
-                    'category_name': line[0],
-                    'otu_names': line[1]
+                    'category_name': line[0]
                 }
+                if project == 'meta':
+                    insert_data['otu_names'] = line[1]
+                if project == 'denovo':
+                    insert_data['gene_list'] = line[1]
                 data_list.append(insert_data)
         try:
-            collection = self.db["sg_otu_venn_graph"]
+            if project == 'meta':
+                collection = self.db["sg_otu_venn_graph"]
+            if project == 'denovo':
+                collection = self.db["sg_denovo_venn_graph"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入Venn画图数据出错:%s" % e)
         else:
             self.bind_object.logger.error("导入Venn画图数据成功")
+
+    @report_check
+    def add_denovo_venn(self, express_id, venn_table=None, venn_graph_path=None, params=None):
+        self._db_name = Config().MONGODB + '_rna'
+        if not isinstance(express_id, ObjectId):
+            express_id = ObjectId(express_id)
+        insert_data = {
+            "project_sn": self.bind_object.sheet.project_sn,
+            "task_id": self.bind_object.sheet.id,
+            "express_id": str(express_id),
+            "name": "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "status": "end",
+            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "params": params
+        }
+        collection = self.db['sg_denovo_venn']
+        inserted_id = collection.insert_one(insert_data).inserted_id
+        if venn_table:
+            self.add_denovo_venn_detail(venn_table, inserted_id)
+        if venn_graph_path:
+            self.add_venn_graph(venn_graph_path=venn_graph_path, venn_id=inserted_id, project='denovo')
+        return inserted_id
+
+    @report_check
+    def add_denovo_venn_detail(self, venn_table, venn_id):
+        data_list = []
+        if not isinstance(venn_id, ObjectId):
+            if isinstance(venn_id, StringTypes):
+                venn_id = ObjectId(venn_id)
+            else:
+                raise Exception("venn_id必须为ObjectId对象或其对应的字符串!")
+        with open(venn_table, "r") as f:
+            for line in f:
+                line = line.strip('\n').split("\t")
+                insert_data = {
+                    'venn_id': venn_id,
+                    'label': line[0],
+                    'num': line[1],
+                    'gene_ids': line[2]
+                }
+                data_list.append(insert_data)
+        try:
+            collection = self.db["sg_denovo_venn_detail"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入Venn数据出错:%s" % e)
+        else:
+            self.bind_object.logger.error("导入Venn数据成功")

@@ -8,16 +8,17 @@ import socket
 import random
 import os
 from .core.singleton import singleton
-import struct
+# import struct
 import platform
 import re
 import importlib
-import web
+#import web
 # import subprocess
 from pymongo import MongoClient
 import subprocess
+from IPy import IP
 
-web.config.debug = False
+# web.config.debug = False
 
 
 @singleton
@@ -62,10 +63,10 @@ class Config(object):
         self.DB_PORT = self.rcf.get("DB", "port")
 
         # service mode
-        self.SERVICE_LOG = self.rcf.get("SERVICE", "log")
-        self.SERVICE_LOOP = int(self.rcf.get("SERVICE", "loop"))
-        self.SERVICE_PROCESSES = int(self.rcf.get("SERVICE", "processes"))
-        self.SERVICE_PID = self.rcf.get("SERVICE", "pid")
+        # self.SERVICE_LOG = self.rcf.get("SERVICE", "log")
+        # self.SERVICE_LOOP = int(self.rcf.get("SERVICE", "loop"))
+        # self.SERVICE_PROCESSES = int(self.rcf.get("SERVICE", "processes"))
+        # self.SERVICE_PID = self.rcf.get("SERVICE", "pid")
 
         # SSH
         self.SSH_DEFAULT_IP = self.rcf.get("SSH", "default_ip")
@@ -77,12 +78,11 @@ class Config(object):
         self.MAX_PAUSE_TIME = self.rcf.get("PAUSE", "max_time")
 
         # API_UPDATE
-        self._update_exclude_api = None
-        self.UPDATE_FREQUENCY = int(self.rcf.get("API_UPDATE", "frequency"))
+        self.update_exclude_api = re.split('\s*,\s*', self.rcf.get("API_UPDATE", "exclude_api"))
         self.UPDATE_MAX_RETRY = int(self.rcf.get("API_UPDATE", "max_retry"))
         self.UPDATE_RETRY_INTERVAL = int(self.rcf.get("API_UPDATE", "retry_interval"))
         self.UPDATE_LOG = self.rcf.get("API_UPDATE", "log")
-        self.UPLOAD_LOG = self.rcf.get("API_UPDATE", "upload_log")
+        # self.UPLOAD_LOG = self.rcf.get("API_UPDATE", "upload_log")
 
         # Mongo
         self.MONGO_URI = self.rcf.get("MONGO", "uri")
@@ -92,6 +92,17 @@ class Config(object):
 
         # mysql
         self._db_client = None
+
+        # WPM
+        listen_data = re.split(":", self.rcf.get("WPM", "listen"))
+        self.wpm_listen = (listen_data[0], int(listen_data[1]))
+        self.wpm_authkey = self.rcf.get("WPM", "authkey")
+        self.wpm_user = self.rcf.get("WPM", "user")
+        log_listen_data = re.split(":", self.rcf.get("WPM", "logger_listen"))
+        self.wpm_logger_listen = (log_listen_data[0], int(log_listen_data[1]))
+        self.wpm_logger_authkey = self.rcf.get("WPM", "logger_authkey")
+        self.wpm_log_file = self.rcf.get("WPM", "log_file")
+        self.wpm_instant_timeout = int(self.rcf.get("WPM", "instant_timeout"))
 
     @property
     def mongo_client(self):
@@ -109,17 +120,21 @@ class Config(object):
         """
         获取配置文件中IP列表与本机匹配的IP作为本机监听地址
         """
-        def getip(ethname):
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            fcn = importlib.import_module("fcntl")
-            return socket.inet_ntoa(fcn.ioctl(s.fileno(), 0X8915, struct.pack("256s", ethname[:15]))[20:24])
-        set_ipl_ist = self.rcf.get("Network", "ip_list")
-        ip_list = re.split('\s*,\s*', set_ipl_ist)
+        # def getip(ethname):
+        #     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        #     fcn = importlib.import_module("fcntl")
+        #     return socket.inet_ntoa(fcn.ioctl(s.fileno(), 0X8915, struct.pack("256s", ethname[:15]))[20:24])
+        # set_ipl_ist = self.rcf.get("Network", "ip_list")
+        ip_ranges = self.rcf.get("Network", "ip_range")
+        range_list = re.split('\s*,\s*', ip_ranges)
+        ip_range_lists = []
+        for rg in range_list:
+            ip_range_lists.append(IP(rg))
         if 'Windows' in platform.system():
             local_ip_list = socket.gethostbyname_ex(socket.gethostname())
             for lip in local_ip_list[2]:
-                for sip in ip_list:
-                    if lip == sip:
+                for sip in ip_range_lists:
+                    if lip in sip:
                         return lip
         if platform.system() == 'Linux' or platform.system() == 'Darwin':
             # return getip("eth1")
@@ -133,10 +148,10 @@ class Config(object):
             for ipaddr in re.finditer(ip_pattern, str(output)):
                 ip = pattern.search(ipaddr.group())
                 # print ip.group()
-                for sip in ip_list:
-                    if ip.group() == sip:
+                for sip in ip_range_lists:
+                    if ip.group() in sip:
                         return ip.group()
-        return '127.0.0.1'
+        raise Exception("内网Network网段设置错误,没有找到IP属于网段%s!" % ip_ranges)
 
     @property
     def LISTEN_PORT(self):
@@ -189,8 +204,11 @@ class Config(object):
     def get_db(self):
         if not self._db_client:
             if self.DB_TYPE == "mysql":
-                self._db_client = web.database(dbn=self.DB_TYPE, host=self.DB_HOST, db=self.DB_NAME, user=self.DB_USER,
-                                               passwd=self.DB_PASSWD, port=int(self.DB_PORT))
+                # self._db_client = web.database(dbn=self.DB_TYPE, host=self.DB_HOST,
+                # db=self.DB_NAME, user=self.DB_USER, passwd=self.DB_PASSWD, port=int(self.DB_PORT))
+                import MySQLdb
+                self._db_client = MySQLdb.connect(host=self.DB_HOST, user=self.DB_USER, passwd=self.DB_PASSWD,
+                                                  db=self.DB_NAME, port=int(self.DB_PORT))
         return self._db_client
 
     def get_netdata_config(self, type_name):

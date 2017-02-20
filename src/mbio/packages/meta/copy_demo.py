@@ -51,6 +51,7 @@ class CopyMongo(object):
 
     def run(self):
         """
+        运行执行复制特定ID数据的操作，如果有新的分析请参照下面的写法添加代码，不同分析表结构不同，所有需要手动添加。
         """
         self.copy_member_id()
         self.copy_sg_specimen()
@@ -112,12 +113,55 @@ class CopyMongo(object):
         species_difference_lefse_id_dict = self.copy_collection_with_change('sg_species_difference_lefse', change_positions=['otu_id', 'group_id'], update_sg_status=True)
         self.copy_main_details('sg_species_difference_lefse_detail', 'species_lefse_id', species_difference_lefse_id_dict)
 
-        phylo_tree_plot_id_dict = self.copy_collection_with_change('sg_tree_picture', change_positions=['otu_id'], update_sg_status=True)
+        # phylo_tree_plot_id_dict = self.copy_collection_with_change('sg_tree_picture', change_positions=['otu_id'], update_sg_status=True)
+
+        network_id_dict = self.copy_collection_with_change('sg_network', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        self.copy_main_details('sg_network_centrality_node', 'network_id', network_id_dict)
+        self.copy_main_details('sg_network_distribution_node', 'network_id', network_id_dict)
+        self.copy_main_details('sg_network_structure_attributes', 'network_id', network_id_dict)
+        self.copy_main_details('sg_network_structure_link', 'network_id', network_id_dict)
+        self.copy_main_details('sg_network_structure_node', 'network_id', network_id_dict)
+
+        randomforest_id_dict = self.copy_collection_with_change('sg_randomforest', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        self.copy_main_details('sg_randomforest_species_bar', 'randomforest_id', randomforest_id_dict)
+        self.copy_main_details('sg_randomforest_specimen_scatter', 'randomforest_id', randomforest_id_dict)
+
+        phylo_tree_id_dict = self.copy_collection_with_change('sg_phylo_tree', change_positions=['otu_id'], update_sg_status=True)
+        self.copy_main_details('sg_phylo_tree_species_categories', 'phylo_tree_id', phylo_tree_id_dict)
+        self.copy_main_details('sg_phylo_tree_species_detail', 'phylo_tree_id', phylo_tree_id_dict)
+
+        hc_heatmap_id_dict = self.copy_collection_with_change('sg_hc_heatmap', change_positions=['otu_id'], update_sg_status=True)
+        self.copy_main_details('sg_hc_heatmap_detail', 'hc_id', hc_heatmap_id_dict)
+
+        enterotyping_id_dict = self.copy_collection_with_change('sg_enterotyping', change_positions=['otu_id'], update_sg_status=True)
+        self.copy_main_details('sg_enterotyping_detail', 'enterotyping_id', enterotyping_id_dict)
+        self.copy_main_details('sg_enterotyping_detail_cluster', 'enterotyping_id', enterotyping_id_dict)
+        self.copy_main_details('sg_enterotyping_detail_summary', 'enterotyping_id', enterotyping_id_dict)
+
+        self.copy_collection_with_change('sg_valid_sequence_info')
+        self.copy_collection_with_change('sg_raw_sequence_info')
+
+        corr_network_id_dict = self.copy_collection_with_change('sg_corr_network', change_positions=['otu_id', 'group_id'],
+                                                                update_sg_status=True)
+        self.copy_main_details('sg_corr_network_centrality_node', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_distribution_node', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_abundance', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_attributes', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_link', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_node', 'corr_network_id', corr_network_id_dict)
+
+
+
 
 
     def copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False):
         """
         公共模块，一般用于导入主表数据，依靠task_id进行查询，修改change_positions提供的字段，相应修改ID为新的，同时更新params中的数据ID
+
+        params collection: 主表名称
+        params change_positions: 需要替换的ID,
+            可用为specimen_id,group_id,env_id,otu_id,alpha_diversity_id,newick_tree_id,specimen_distance_id
+        params update_sg_status: 更新 sg_status表
         """
         coll = self.db[collection]
         finds = coll.find({'task_id': self._old_task_id})
@@ -148,6 +192,11 @@ class CopyMongo(object):
         coll = self.db.sg_status
         news = []
         for index, doc in enumerate(main_docs):
+            try:
+                submit_location = json.loads(doc['params'])['submit_location']
+            except Exception:
+                print("WARNING: params参数没有submit_location字段, Doc:{}".format(doc))
+                submit_location = None
             status = {
                 "status": doc['status'],
                 "table_id": ids[index],
@@ -155,7 +204,7 @@ class CopyMongo(object):
                 "task_id": self._new_task_id,
                 "params": doc['params'],
                 "table_name": doc['name'],
-                "submit_location": json.loads(doc['params'])['submit_location'],
+                "submit_location": submit_location,
                 "type_name": collection,
                 "is_new": "new",
                 "desc": doc['desc'] if 'desc' in doc else None
@@ -230,6 +279,12 @@ class CopyMongo(object):
     def copy_main_details(self, collection, main_field, change_dict, others_position=[]):
         """
         公共模块，一般用于更新detail表，根据提供的主表id字段名，和主表新旧ID字典，进行查找，再复制替换，others_position用于更新主表ID之外其他需要更新的ID
+
+        params collection: detail表名称
+        params main_field: 主表字段名称
+        params change_dict: 主表新旧替换字典，一般来源于 copy_collection_with_change 的返回字典
+        params others_position: detail表中除了主表还需要更新的字段，
+            只能是 specimen_id,group_id,env_id,otu_id,alpha_diversity_id,newick_tree_id,specimen_distance_id
         """
         coll = self.db[collection]
         for old, new in change_dict.items():
@@ -270,7 +325,7 @@ class CopyMongo(object):
             update_dict = {}
             if 'from_id' in find:
                 update_dict['from_id'] = self.otu_id_dict[find['from_id']]
-            if 'params' in find:
+            if ('params' in find) and find['params']:
                 params = json.loads(find['params'])
                 if 'group_detail' in params:
                     for one_group in params['group_detail']:
@@ -391,7 +446,11 @@ class CopyMongo(object):
         """
         专门用于params的数据ID替换
         """
-        params = json.loads(params_str)
+        try:
+            params = json.loads(params_str)
+        except Exception:
+            print("WRANNING：非json格式的params：{}".format(params_str))
+            return params_str
         if not params:
             return None
         if 'group_detail' in params:
@@ -416,7 +475,7 @@ class CopyMongo(object):
         return json.dumps(params, sort_keys=True, separators=(',', ':'))
 
 if __name__ == '__main__':
-    copy_task = CopyMongo('tsanger_2639', 'tsanger_2639_14', '10000485_1', 'shenghe_test')
+    copy_task = CopyMongo('i-sanger_6414', 'i-sanger_6414_1', '10004002_1', 'shenghe_test')
     copy_task.run()
     # copy_task = CopyMongo('tsg_3617', 'tsg_3617_022', '10000782_22', 'm_188_22')
     # copy_task.run()

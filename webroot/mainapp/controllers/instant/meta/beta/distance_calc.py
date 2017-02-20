@@ -3,6 +3,7 @@
 import web
 import json
 from mainapp.controllers.project.meta_controller import MetaController
+import datetime
 
 
 class DistanceCalc(MetaController):
@@ -21,6 +22,7 @@ class DistanceCalc(MetaController):
                 return json.dumps(info)
         self.task_name = 'meta.report.distance_calc'
         self.task_type = 'workflow'  # 可以不配置
+        self.main_table_name = 'Distance_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.options = {'otu_file': data.otu_id,
                         'otu_id': data.otu_id,
                         'level': int(data.level_id),
