@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = '...'
+#__modified__ = 'moli.zhou'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
@@ -47,13 +48,15 @@ class RnaeditingTool(Tool):
     def __init__(self, config):
         super(RnaeditingTool, self).__init__(config)
         self._version = "1.1"
-        self.cmd_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1/RDDpred.py'
+        self.cmd_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1.Dir/RDDpred.py'
+        self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts'
         self.out_files = ["RDD_info", "RDD_output.Argument.Log", "RDD_output.Step2.Rescue.GenomicList.txt", "RDD_output.Step2.BamList.txt", "RDD_output.Step2.BamHeader.txt", "RDD_output.RDD.RawList.txt", "RDD_output.Step4.Predictor.Training.Log", "RDD_output.Step4.Attribute.Evaluation.Log", "RDD_output.Step5.Results.Summary.txt", "RDD_output.Prediction.ResultList.txt", "RDD_output.ModelDir", "RDD_output.RDDpred.results_report.txt", "RDD_output.VafList.txt"]
         self.remove_files = ["RDD_output.Step2.BamList.txt", "RDD_output.Step2.BamHeader.txt", "RDD_output.RDD.RawList.txt", "RDD_output.Step4.Predictor.Training.Log", "RDD_output.Step4.Predictor.Training.Log", "RDD_output.ModelDir", "RDD_info", "RDD_output.Step2.Rescue.GenomicList.txt", "RDD_output.Argument.Log", "RDD_output.Step4.Attribute.Evaluation.Log"]
 
     def run(self):
         super(RnaeditingTool, self).run()
         self.run_rna_editing_py()
+        self.reassign_run()
         self.end()
 
     def run_rna_editing_py(self):
@@ -66,10 +69,10 @@ class RnaeditingTool(Tool):
         cmd = 'program/Python/bin/python {} -rbl {} -rsf {} -tdp {} -ops {} -psl {} ' \
                '-nsl {}'.format(self.cmd_path, os.path.join(self.work_dir, "bam_list.txt"),
                                 self.option("ref_hg19.fa").prop["path"],
-                                self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1/ToolBox.Dir',
+                                self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1.Dir/ToolBox.Dir',
                                 os.path.join(self.work_dir, "output/RDD_prefix"),
-                                self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1/TestBam.Dir/Test.Positive.txt',
-                                self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1/TestBam.Dir/Test.Negative.txt')
+                                self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1.Dir/PriorData/hg19.PublicSites.txt',
+                                self.config.SOFTWARE_DIR + '/bioinfo/rna/RDDpred_v1.1.Dir/PriorData/hg19.MES_Sites.txt')
 
         self.logger.info('开始运行RDDpred并检测编辑位点')
         self.logger.debug(cmd)
@@ -79,10 +82,28 @@ class RnaeditingTool(Tool):
         self.wait()
         if cmd_obj.return_code == 0:
             self.logger.info('RDDpred检测完成')
+            self.result = os.path.join(self.work_dir,'output/RDD_prefix.RDDpred.results_report.txt')
         else:
             self.logger.error('RDDpred检测失败')
             self.set_error("运行RDDpred.py失败")
             raise Exception("运行RDDpred.py失败")
+
+    def reassign_run(self):
+        cmd = 'program/Python/bin/python {} {} {}'.format(os.path.join(self.script_path,'rna_edit_reassign.py'), self.result, self.output_dir)
+
+        self.logger.info('开始运行RDDpred并检测编辑位点')
+        self.logger.debug(cmd)
+
+        cmd_obj = self.add_command("reassign_cmd", cmd)
+        cmd_obj.run()
+        self.wait()
+        if cmd_obj.return_code == 0:
+            self.logger.info('重排完成')
+        else:
+            self.logger.error('重排失败')
+            self.set_error("运行rna_edit_reassign.py失败")
+            raise Exception("运行rna_edit_reassign.py失败")
+
 
     def linkfile(self, oldfile, newname):
         newpath = os.path.join(self.output_dir, newname)
