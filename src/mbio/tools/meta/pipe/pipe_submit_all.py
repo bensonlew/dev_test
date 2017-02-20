@@ -54,16 +54,6 @@ class PipeSubmitAllAgent(Agent):
         重写参数检测函数
         :return:
         """
-        # if not self.option("method"):
-        #     raise OptionError("必须输入method值（get or post）")
-        # if not self.option('name'):
-        #     raise OptionError('必须输入参数的name')
-        # if not self.option('data'):
-        #     raise OptionError('必须输入data')
-        # if not self.option('client'):
-        #     raise OptionError('必须输入client')
-        # if not self.option('base_url'):
-        #     raise OptionError('必须输入base_url')
         if not self.option("data"):
             raise OptionError("必须输入接口传进来的data值")
         return True
@@ -74,7 +64,7 @@ class PipeSubmitAllAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '200G'
+        self._memory = '50G'
 
     def end(self):
         # result_dir = self.add_upload_dir(self.output_dir)
@@ -112,40 +102,116 @@ class PipeSubmitAllTool(Tool):
         data = json.loads(data)
         print "----"
         print data
+        env_id = data['env_id']
+        env_labs = data['env_labs']
         group_infos = data['group_info']
         level_ids = data['level_id']
         sub_analysis = data['sub_analysis']
         otu_id = data['otu_id']
+        client = data['client']
+        if client == "client01":
+            base_url = 'http://bcl.i-sanger.com'
+        elif client == "client03":
+            base_url = "http://10.101.203.193:9100"
+            #base_url = "http://192.168.12.102:9090"
+        else:
+            print "***client必须是client01或者client03***"
+        print "client= %s, base_url= %s"%(client, base_url)
+        #计算抽平
+        params = {"otu_id": str(otu_id), "group_id": data['group_id'], "group_detail": data['group_detail'], "submit_location": "otu_statistic",
+                  "filter_json": data['filter_json'], "task_type": "reportTask", "size": data['size'], "level_id": "9"}
+        api_statistic = "meta/otu_subsample"
+        method = "post"
+        results_statistic = self.run_controllers(api=api_statistic, client=client, base_url=base_url, params=params, method=method)
+        results_statistic = json.loads(results_statistic)
+        otu_id = results_statistic['sub_anaylsis_id']['id']  #后面用抽平后的otu_id
+        print "打印抽平后的otu_id"
+        print otu_id
         list2 = [] #用于存储分类水平与分组方案的所有的组合
         for level in level_ids:
             for group in group_infos:
-                m = {"otu_id": str(otu_id), "level_id": str(level), "group_id": group['group_id'], "group_detail": json.dumps(group['group_detail'])}
+                m = {"otu_id": str(otu_id), "level_id": str(level), "group_id": group['group_id'], "group_detail": json.dumps(group['group_detail']),
+                     "env_id": str(env_id), "env_labs": str(env_labs)}
                 list2.append(m)
         print list2
         all_results = []  # 存储所有子分析的ids
+        #定义多样性指数与指数间差异分析的接口投递
+        anaylsis_names = []
+        for m in sub_analysis:
+            for key in m:
+                anaylsis_names.append(key)
+                if key == "alpha_diversity_index":
+                    alpha_diversity_index_data = m[key]
+                elif key == "alpha_ttest":
+                    alpha_ttest_data = m[key]
+                else:
+                    pass
+        print "\n"
+        print anaylsis_names
+        print alpha_diversity_index_data
+        print alpha_ttest_data
+        print "\n"
+        if "alpha_ttest" in anaylsis_names and "alpha_diversity_index" in anaylsis_names:
+            for n in list2:
+                alpha_diversity_index_data['otu_id'] = n['otu_id']
+                alpha_diversity_index_data['level_id'] = n['level_id']
+                alpha_diversity_index_data['group_id'] = n['group_id']
+                alpha_diversity_index_data['group_detail'] = json.loads(n['group_detail'])
+                results_alpha_diversity_index = self.run_controllers(api=alpha_diversity_index_data['api'], client=client, base_url=base_url,
+                                                         params=alpha_diversity_index_data, method=method)
+                results_alpha_diversity_index = json.loads(results_alpha_diversity_index)
+                all_results.append(results_alpha_diversity_index)
+                alpha_diversity_id = results_alpha_diversity_index['sub_anaylsis_id']['id']
+                alpha_ttest_data['otu_id'] = n['otu_id']
+                alpha_ttest_data['level_id'] = n['level_id']
+                alpha_ttest_data['group_id'] = n['group_id']
+                alpha_ttest_data['alpha_diversity_id'] = str(alpha_diversity_id)
+                alpha_ttest_data['group_detail'] = json.loads(n['group_detail'])
+                results_alpha_ttest = self.run_controllers(api=alpha_ttest_data['api'],
+                                                                     client=client, base_url=base_url,
+                                                                     params=alpha_ttest_data, method=method)
+                results_alpha_ttest = json.loads(results_alpha_ttest)
+                all_results.append(results_alpha_ttest)
+        else:
+            pass
+        #删除子分析字典中alpha_diversity_index，alpha_ttest两个分析,重构sub_analysis数组
+        new_sub_analysis = []
+        for m in sub_analysis:
+            for key in m:
+                if key == "alpha_diversity_index" or key == "alpha_ttest":
+                    pass
+                else:
+                    new_sub_analysis.append(m)
+        print "打印删除子分析字典中alpha_diversity_index，alpha_ttest两个分析,重构后的sub_analysis"
+        print new_sub_analysis
+        print len(new_sub_analysis)
+
+        #定义没有依赖的分析的通用接口投递
         for info in list2:
             print "打印出info"
             print info
-            for anaylsis in sub_analysis:
-                print "打印出sub_analysis"
+            for anaylsis in new_sub_analysis:
+                print "打印出new_sub_analysis"
                 print anaylsis
                 for key in anaylsis:
                     anaylsis[key]['otu_id'] = info['otu_id']
                     anaylsis[key]['level_id'] = info['level_id']
                     anaylsis[key]['group_id'] = info['group_id']
                     anaylsis[key]['group_detail'] = json.loads(info['group_detail'])
-            print "下面打印出来的是每个子分析sub_analysis添加了分组与分类水平的data值"
-            print sub_analysis
-            sub_results = [] #存储同一分类水平与分组方案所有子分析的ids
-            for m in sub_analysis:
+                    anaylsis[key]['env_id'] = info['env_id']
+                    anaylsis[key]['env_labs'] = info['env_labs']
+            # print "下面打印出来的是每个子分析new_sub_analysis添加了分组与分类水平的data值"
+            # print new_sub_analysis
+            for m in new_sub_analysis:
                 name = []
-                data = []
+                data = [] #用于存储子分析参数的具体数值
                 submit_info = {}
                 for key in m:
                     for key1 in m[key]:
                         name.append(key1)
                         data.append(m[key][key1])
-                        submit_info = {"api": m[key]['api'], "base_url": m[key]['base_url'], "client": m[key]['client'], 'method': "post"}
+                        # submit_info = {"api": m[key]['api'], "base_url": m[key]['base_url'], "client": m[key]['client'], 'method': "post"}
+                        submit_info = {"api": m[key]['api']}
                 print "打印出每个分析对应的api，base_url，client，method"
                 print submit_info
                 name = ";".join(name)
@@ -155,31 +221,49 @@ class PipeSubmitAllTool(Tool):
                 print "打印出data值"
                 print data
                 api = submit_info['api']
-                print api
-                method = submit_info['method']
-                print method
-                client = submit_info['client']
-                print client
-                base_url = submit_info['base_url']
-                print base_url
+                method = "post"
+                print "***api:%s, client:%s, base_url:%s"%(api, client, base_url)
                 return_page = self.webapitest(method, api, name, data, client, base_url)
                 result = json.loads(return_page)
                 result = json.loads(result)
-                print "打印出每个子分析的返回值"
-                print result
-                sub_results.append(result['content']['ids']) #用于导表
-                all_results.append(result['content']['ids'])
-            print "sub_results"
-            print sub_results
-            #这个位置写到组合表文件
+                # print "打印出每个子分析的返回值"
+                # print result
+                results = {"level_id": info['level_id'], "group_id": info['group_id'], "sub_anaylsis_id": result['content']['ids']}
+                all_results.append(results)
         print "打印出所有子分析的ids"
         print all_results
+        print len(all_results)
         output_table = os.path.join(self.work_dir, "ids.txt")
         with open(output_table, "w") as w:
             w.write(str(all_results))
 
 
-    # def create_
+    def run_controllers(self, api, client, base_url, params, method, header=None):
+        """
+        用于重构每个子分析的输入参数，（参考sub_anaylsis中的参数）并进行投递计算,注输入的参数必须是字典格式
+        params样例：{\"submit_location\": \"corrnetwork_analyse\", \"api\": \"meta/corr_network\",
+        \"task_type\": \"reportTask\",\"lable\": \"0.03\", \"ratio_method\": \"pearson\", \"coefficient\":
+        \"0.08\", \"abundance\": \"150\"}
+        :return:
+        """
+        if not isinstance(params, dict):
+            success.append("传入的params不是一个字典")
+        name = []
+        data = []
+        for key in params:
+            name.append(key)
+            data.append(params[key])
+        name = ";".join(name)
+        data = ";".join(data)
+        return_page = self.webapitest(method, api, name, data, client, base_url)
+        result = json.loads(return_page)
+        result = json.loads(result)
+        results = {"level_id": params['level_id'], "group_id": params['group_id'],
+                   "sub_anaylsis_id": result['content']['ids']}
+        return json.dumps(results)
+
+
+
     def webapitest(self, method, api, name, data, client, base_url, header=None):
         """
         :param method: [get,post]
@@ -236,8 +320,8 @@ class PipeSubmitAllTool(Tool):
                 url = "%s?%s" % (url, signature)
 
         if method == "post":
-            print("post data to url %s ...\n\n" % url)
-            print("post data:\n%s\n" % data)
+            # print("post data to url %s ...\n\n" % url)
+            # print("post data:\n%s\n" % data)
             request = urllib2.Request(url, data)
         else:
             if data:
@@ -263,22 +347,23 @@ class PipeSubmitAllTool(Tool):
         else:
             the_page = response.read()
             print("Return page:\n%s" % the_page)
+            print '\n'
             # print type(the_page)
         return json.dumps(the_page)
 
-    def set_output(self):
-        """
-        将结果文件link到output文件夹下面
-        :return:
-        """
-        for root, dirs, files in os.walk(self.output_dir):
-            for names in files:
-                os.remove(os.path.join(root, names))
-        self.logger.info("设置结果目录")
-        results = os.listdir(self.work_dir + '/' + "corr_result/")
-        for f in results:
-            os.link(self.work_dir + '/' + "corr_result/" +f, self.output_dir + "/" +f)
-        self.logger.info('设置文件夹路径成功')
+    # def set_output(self):
+    #     """
+    #     将结果文件link到output文件夹下面
+    #     :return:
+    #     """
+    #     for root, dirs, files in os.walk(self.output_dir):
+    #         for names in files:
+    #             os.remove(os.path.join(root, names))
+    #     self.logger.info("设置结果目录")
+    #     results = os.listdir(self.work_dir + '/' + "corr_result/")
+    #     for f in results:
+    #         os.link(self.work_dir + '/' + "corr_result/" +f, self.output_dir + "/" +f)
+    #     self.logger.info('设置文件夹路径成功')
 
 
     def run(self):
