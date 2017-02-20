@@ -135,8 +135,8 @@ class AnnovarTool(Tool):
         #     raise Exception("运行convert2annovar出错！")
 
     def annotate_variation(self):
-        cmd = "{}perl {}annotate_variation.pl -buildver example -dbtype refGene clean.snp.avinput ./geneomedb"\
-            .format(self.perl_path, self.annovar_path, self.option("input_file"))
+        cmd = "{}perl {}annotate_variation.pl -buildver {} -dbtype refGene clean.snp.avinput ./geneomedb"\
+            .format(self.perl_path, self.annovar_path, self.option("ref_genome"), self.option("input_file"))
         command = self.add_command("annotate_variation", cmd)
         command.run()
         self.wait(command)

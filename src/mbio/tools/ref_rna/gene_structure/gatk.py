@@ -80,6 +80,8 @@ class GatkTool(Tool):
 
         cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar CreateSequenceDictionary R={} O={}"\
             .format(self.picard_path, ref_fasta, dict_name)
+        if os.path.exists(dict_name):
+            os.remove(dict_name)
         print cmd
         self.logger.info("开始用picard对参考基因组构建字典")
         command = self.add_command("dict", cmd)
