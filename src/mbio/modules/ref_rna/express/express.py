@@ -81,16 +81,18 @@ class ExpressModule(Module):
         self.step.update()
         print self.option("ref_gtf").prop['path'],self.option("gtf_type"),self.option("strand_specific"),self.option("sample_bam").prop['path']
         print self.option('fq_type')
-        """
+
         tool_opt = {
             "ref_gtf": self.option("ref_gtf").prop['path'],
             "gtf_type": self.option("gtf_type"),
             "strand_specific": self.option("strand_specific"),
-            "cpu":10,
-            "max_memory": "100G",
             "bam": self.option("sample_bam").prop['path'],
             "fq_type": self.option('fq_type')
         }
+        if self.option("strand_specific"):
+             tool_opt.update({
+                 "strand_dir":self.option("strand_dir")
+             })
         """
         tool_opt = {
             "ref_gtf": "/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/Eukaryote/tophat2/cufflinks/merge_123456/merged.gtf",
@@ -103,7 +105,7 @@ class ExpressModule(Module):
              tool_opt.update({
                  "strand_dir":self.option("strand_dir")
              })
-        
+        """
         self.featurecounts.set_options(tool_opt)
         self.featurecounts.on('end', self.set_output, 'featurecounts')
         self.featurecounts.on('end', self.set_step, {'end': self.step.featurecounts})

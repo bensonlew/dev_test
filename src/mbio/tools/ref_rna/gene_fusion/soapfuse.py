@@ -45,6 +45,7 @@ class SoapfuseAgent(Agent):
         重写参数检测函数
         :return:
         """
+        self.logger.info(self.option('sample_name'))
         if not self.option('sample_data'):
             raise OptionError('必须输入样本数据文件夹，文件夹里的文件为fq.gz格式')
         if not self.option('sample_list') :
@@ -94,13 +95,27 @@ class SoapfuseTool(Tool):
         """
         运行soapfuse软件，为了使得分析结果能尽快得出，此处命令只能进行单个样本分析，多样本在module中设置
         """
-        cmd = self.perl_path+self.soapfuse_path + ('SOAPfuse-RUN.pl -c /mnt/ilustre/users/sanger-dev/app/bioinfo'
-                                                   '/rna/SOAPfuse-v1.26/config/config-%s.txt '
-                                                   '-fd %s -l %s -o %s' % (self.option('reads_number'),
-                                                                           self.option('sample_data').prop['path'],
-                                                                           self.option('sample_list').prop['path'],
-                                                                           self.work_dir + '/' +
-                                                                           self.option('sample_name')))
+        # cmd = self.perl_path+self.soapfuse_path + ('SOAPfuse-RUN.pl -c /mnt/ilustre/users/sanger-dev/app/bioinfo'
+        #                                            '/rna/SOAPfuse-v1.26/config/config-%s.txt '
+        #                                            '-fd %s -l %s -o %s' % (self.option('reads_number'),
+        #                                                                    self.option('sample_data').prop['path'],
+        #                                                                    self.option('sample_list').prop['path'],
+        #                                                                    self.work_dir + '/' +
+        #                                                                    str(self.option('sample_name'))))
+        # cmd = self.perl_path + self.soapfuse_path + ('SOAPfuse-RUN.pl -c /mnt/ilustre/users/sanger-dev/app/bioinfo'
+        #                                              '/rna/SOAPfuse-v1.26/config/config-%s.txt '
+        #                                              '-fd %s -l %s -o %s' % (self.option('reads_number'),
+        #                                                                      self.option('sample_data'),
+        #                                                                      self.option('sample_list'),
+        #                                                                      self.work_dir + '/' +
+        #                                                                      str(self.option('sample_name'))))
+        cmd = self.perl_path + self.soapfuse_path + ('SOAPfuse-RUN.pl -c /mnt/ilustre/users/sanger-dev/app/bioinfo'
+                                                     '/rna/SOAPfuse-v1.26/config/config-%s.txt '
+                                                     '-fd %s -l %s -o %s' % (self.option('reads_number'),
+                                                                             self.option('sample_data'),
+                                                                             self.option('sample_list'),
+                                                                             self.work_dir + '/' +
+                                                                             str(self.option('sample_name'))))
         self.logger.info('运行soapfuse软件,进行基因融合的分析')
         command = self.add_command("soapfuse_cmd", cmd).run()
         self.wait(command)

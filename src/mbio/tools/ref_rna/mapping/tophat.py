@@ -146,7 +146,7 @@ class TophatTool(Tool):
             self.logger.info("开始运行自定义模式")
             self.run_build_index_and_blast()
         else:
-            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/ref_genome.json", "r") as f:
+            with open(self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json", "r") as f:
                 dict = json.loads(f.read())
                 ref = dict[self.option("ref_genome")]["ref_genome"]
                 index_ref = os.path.join(os.path.split(ref)[0], "ref_index")

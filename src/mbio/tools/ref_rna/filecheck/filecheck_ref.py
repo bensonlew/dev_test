@@ -28,7 +28,7 @@ class FilecheckRefAgent(Agent):
             # Ensembl上下载的gff格式文件
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},
             # 有生物学重复的时候的分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"}
+            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},
             # 对照组文件，格式同分组文件
             {"name": "gtf", "type": "outfile", "format": "ref_rna.reads_mapping.gtf"},
             {"name": "bed", "type": "outfile", "format": "denovo_rna.gene_structure.bed"},
@@ -146,7 +146,6 @@ class FilecheckRefTool(Tool):
         gff_name = os.path.split(origin_gff_path)[1]
         self.logger.info("gff的名称为{}".format(gff_name))
         new_gff_path = os.path.join(self.work_dir, gff_name)
-        if
         os.link(origin_gff_path, new_gff_path)
         gff = GffFile()
         gff.set_path(new_gff_path)
