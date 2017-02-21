@@ -23,17 +23,12 @@ class PipeSubmitAllAgent(Agent):
     用于submit子分析的接口,针对的是所有的分析，后面还会有医口与农口
     version v1.0
     author: hongdongxuan
-    last_modify: 2017.02.10
+    last_modify: 2017.02.20
     """
     def __init__(self, parent):
         super(PipeSubmitAllAgent, self).__init__(parent)
         options = [
             {"name": "data", "type": "string"}
-            # {"name": "method", "type": "string", "default": "post"},
-            # {"name": "name", "type": "string"},
-            # {"name": "data", "type": "string"},
-            # {"name": "client", "type": "string"},
-            # {"name": "base_url", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("piple_submit")
@@ -67,16 +62,6 @@ class PipeSubmitAllAgent(Agent):
         self._memory = '50G'
 
     def end(self):
-        # result_dir = self.add_upload_dir(self.output_dir)
-        # result_dir.add_relpath_rules([
-        #     [".", "", "结果输出目录"],
-        #     ["corr_network_attributes.txt", "txt", "网络的单值属性表"],
-        #     ["corr_network_by_cut.txt", "txt", "相关系数筛选后网络边文件"],
-        #     ["corr_network_centrality.txt", "txt", "网络节点的中心系数表"],
-        #     ["corr_network_clustering.txt", "txt", "网络节点的聚类系数表"],
-        #     ["corr_network_degree_distribution.txt", "txt", "网络节点的度分布表"],
-        #     ["corr_network_node_degree.txt", "txt", "网络节点的度统计表"]
-        #     ])
 
         super(PipeSubmitAllAgent, self).end()
 
@@ -137,6 +122,8 @@ class PipeSubmitAllTool(Tool):
         all_results = []  # 存储所有子分析的ids
         #定义多样性指数与指数间差异分析的接口投递
         anaylsis_names = []
+        alpha_diversity_index_data = {}
+        alpha_ttest_data = {}
         for m in sub_analysis:
             for key in m:
                 anaylsis_names.append(key)
