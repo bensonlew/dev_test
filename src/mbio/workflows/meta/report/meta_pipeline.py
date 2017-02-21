@@ -5,6 +5,8 @@ from mbio.api.to_file.meta import *
 from biocluster.config import Config
 from mainapp.libs.signature import CreateSignature
 from bson.objectid import ObjectId
+from types import StringTypes
+import datetime
 import subprocess
 import urllib2
 import urllib
@@ -27,13 +29,7 @@ class MetaPipelineWorkflow(Workflow):
         self.db = self._client['tsanger']
         options = [
             {"name": "data", "type": "string"},
-            # {"name": "otu_id", "type": "string"},
             {"name": "update_info", "type": "string"},
-            # {"name": "group_id", "type": "string"},
-            # {"name": "level", "type": "int"},
-            # {"name": "submit_location", "type": "string"},
-            # {"name": "group_detail", "type": "string"},
-            # {"name": "task_type", "type": "string"},
             {"name": "pipe_id", "type": "string"}
             ]
         self.add_option(options)
@@ -41,58 +37,17 @@ class MetaPipelineWorkflow(Workflow):
         self.pipe_submit_all = self.add_tool('meta.pipe.pipe_submit_all')
 
     def run_all(self):
-        # self.python_path = '/mnt/ilustre/users/sanger-dev/app/program/Python/bin/python '
-        # self.webapitest_path = '/mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py'
-        all_data = json.loads(self.option("data"))
-        print all_data
-        print type(all_data)
-        print all_data['otu_id']
-        name_list = "otu_id;level_id;submit_location;group_detail;group_id;task_type"
-        # print name_list
-        # data_list = "57fca514a4e1af1f3872cd46;9;otunetwork_analyse;/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/controller_test/otunetwork1;57fca514a4e1af1f3872cd37;reportTask"
-        data_list = str(all_data["otu_id"]) + ";" + str(all_data['level_id']) + ";" + str(all_data["submit_location"]) + ";" + str(all_data["group_detail"]) + \
-                    ";" + str(all_data["group_id"]) + ";" + str(all_data["task_type"])
-        print data_list
-        # one_cmd = self.python_path + self.webapitest_path + ' post meta/otu_network -c client03 -b http://192.168.12.102:9100 -n '+ str(name_list) + " -d " + str(data_list)
-        # self.logger.info(one_cmd)
-        # try:
-        #     subprocess.call(one_cmd, shell = True)
-
-        # except subprocess.CalledProcessError:
-        #     raise Exception('运行异常')
-        method = "post"
-        api = "meta/otu_network"
-        client = "client03"
-        name = name_list
-        data = data_list
-        # base_url = "http://192.168.12.102:9100"
-        base_url = "http://10.101.203.193:9100"
+        """
+        运行子分析接口投递的tool
+        :return:
+        """
         options = {
-            'method': method,
-            'name': name,
-            'data': data,
-            'client': client,
-            'base_url': base_url
+            'data': self.option("data")
         }
         self.pipe_submit_all.set_options(options)
         self.pipe_submit_all.on('end', self.get_results)
         self.pipe_submit_all.run()
-        # return_page = self.webapitest(method, api, name, data, client, base_url)
-        # result = json.loads(return_page)  #return_page返回的是字符串，json.loads将字符串转为unicode，再次调用json.loads转为dict
-        # result = json.loads(result)
-        # all_results = []
-        # all_results.append(result['content']['ids'])
-        # print all_results
-        # print self.work_dir
-        # ids_path = self.work_dir + '/PipeSubmitAll/ids.txt'
-        # print ids_path
 
-        # gevent.spawn(self.wait, ids_path)
-
-
-
-        # gevent.spawn(self.watch_end, all_results, self.option("pipe_id"))
-        # super(MetaPipelineWorkflow, self).run()
 
     def get_results(self):
         """
@@ -102,15 +57,13 @@ class MetaPipelineWorkflow(Workflow):
         ids_path = self.work_dir + '/PipeSubmitAll/ids.txt'
         if not os.path.isfile(ids_path):
             raise Exception("%s 文件不存在，查看投递的tool！"%(ids_path))
-        all_results = []
         with open(ids_path, 'r') as r:
             for line in r:
-                line = line.strip("\n")
-                all_results.append(eval(line))
-            print type(eval(line))
+                all_results = line.strip("\n")
+            # print type(eval(all_results))
             print "+++++"
             print all_results
-            print "-----"
+
         gevent.spawn(self.watch_end, all_results, self.option("pipe_id"))
 
     def run(self):
@@ -124,12 +77,83 @@ class MetaPipelineWorkflow(Workflow):
     def end(self):
         super(MetaPipelineWorkflow, self).end()
 
-    def wait(self, ids_path):
-        while True:
-            time.sleep(10)
-            if os.path.isfile(ids_path):
-                self.get_results()
-                break
+    def set_db(self, all_results, main_table_id):
+        """
+        进行导表
+        :param all_results:
+        :param main_table_id:
+        :return:
+        """
+        collection_status = self.db["sg_status"]
+        collection_pipe = self.db["sg_pipe_batch"]
+        pipe_result = collection_pipe.find_one({"_id": ObjectId(main_table_id)})
+        project_sn = pipe_result['project_sn']
+        task_id = pipe_result['task_id']
+        otu_id = pipe_result['otu_id']
+        status = pipe_result['status']
+        all_data = json.loads(self.option("data"))
+        print all_data
+        all_results = eval(all_results)
+        print all_results
+        levels = all_data['level_id']
+        group_infos = all_data['group_info']
+        level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "OTU"]
+        for level in levels:
+            for group in group_infos:
+                group_id = group['group_id']
+                name = level_name[int(level)-1] + self.find_group_name(group_id).capitalize() + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                desc = level_name[int(level)-1] + "与" + self.find_group_name(group_id) + "组合结果"
+                insert_data = {
+                    "project_sn": project_sn,
+                    "task_id": task_id,
+                    "otu_id": otu_id,
+                    "pipe_batch_id": ObjectId(main_table_id),
+                    "status": status,
+                    "name": name,
+                    "desc": desc,
+                    "group_id": ObjectId(group_id),
+                    "level_id": level,
+                    "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                try:
+                    collection_pipe_main = self.db['sg_pipe_main']
+                    inserted_id = collection_pipe_main.insert_one(insert_data).inserted_id
+                except Exception:
+                    print "导入%s到sg_pipe_main失败！"%(desc)
+                else:
+                    print "耶！导入%s到sg_pipe_main成功！"%(desc)
+                print inserted_id
+                for anaylsis in all_results:
+                    if str(anaylsis['group_id']) == str(group['group_id']) and str(anaylsis['level_id']) == str(level):
+                        # print group['group_id']
+                        # print level
+                        # print self.find_group_name(str(group['group_id']))
+                        # print level_name[int(level)-1]
+                        sub_anaylsis_main_id = anaylsis['sub_anaylsis_id']['id']
+                        result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
+                        mongo_data = {
+                            "pipe_main_id": ObjectId(inserted_id),
+                            "status": result['status'],
+                            "table_id": result['table_id'],
+                            "table_name": result['table_name'],
+                            "type_name": result['type_name'],
+                            "desc": result['desc'],
+                            "time": result['time'],
+                            "params": result['params'],
+                            "submit_location": result['submit_location'],
+                            "is_new": result['is_new'],
+                            "task_id": result['task_id'],
+                            "group_name": self.find_group_name(str(group['group_id'])),
+                            "level_name": level_name[int(level)-1]
+                        }
+                        try:
+                            collection_pipe_detail = self.db['sg_pipe_detail']
+                            collection_pipe_detail.insert_one(mongo_data)
+                        except Exception:
+                            print "分类水平%s——分组方案%s，导入到sg_pipe_detail失败！"%(level_name[int(level)-1], self.find_group_name(str(group['group_id'])))
+
+        print "所有的表均导成功了yeyeye！"
+        self.end()
 
     def watch_end(self, all_results, main_table_id):
         """
@@ -141,112 +165,61 @@ class MetaPipelineWorkflow(Workflow):
         while True:
             time.sleep(10)
             if self.check_all(all_results, main_table_id):
-                self.end()
+                self.set_db(all_results, main_table_id)
+                # self.end()
                 break
 
 
     def check_all(self, all_results, main_table_id):
+        """
+        遍历所有的子分析的主表，查找子分析的状态是不是为failed或者end状态，用于判断计算是否结束
+        :param all_results:
+        :param main_table_id:
+        :return:
+        """
         collection_pipe = self.db["sg_pipe_batch"]
+        collection_status = self.db["sg_status"]
         anaysis_num = []
+        print "-------------------------------------------------------"
+        all_results = eval(all_results)
         for id in all_results:
-            collection = self.db["sg_network"]
-            result = collection.find_one({"_id": ObjectId(id['id'])})
+            sub_anaylsis_main_id = id['sub_anaylsis_id']['id']
+            result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
             if result and result['status'] != 'start':
                 anaysis_num.append(result['status'])
+            else:
+                print "sg_status中没有找到%s对应的表，该分析还在计算中，请继续等候！"%(sub_anaylsis_main_id)
         if len(all_results) == len(anaysis_num):
             data = {
-                "status": "end",
-                "sub_analysis_id": all_results
+                "status": "end"
             }
-            collection_pipe.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
-            print '任务信息导入sg_pipe_batch成功。'
+            try:
+                collection_pipe.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
+            except Exception:
+                print "sg_pipe_batch状态更新失败，请检查！"
+            else:
+                print '所有子分析均计算完成，sg_pipe_batch状态更新成功。'
             m = True
         else:
             m = False
         return m
 
-    def webapitest(self, method, api, name, data, client, base_url, header=None):
+    def find_group_name(self, group_id):
         """
-        :param method: [get,post]
-        :param api: the api address and url
-        :param name: names for data, split by \";\"
-        :param data: data or files for names, split by \";\"
-        :param client: client name
-        :param base_url: the base url of api, http://192.168.12.102:9010
-        :param header: use header to submit signature info
+        根据group_id去找grup_name
+        :param group_id:
         :return:
         """
-        if data and not name:
-            print("Error:must give the name option when the data is given!")
-            sys.exit(1)
-        if name and not data:
-            print("Error:must give the data option when the name is given!")
-            sys.exit(1)
-        datas = {}
-        if name:
-            names_list = name.split(";")
-            data_list = data.split(";")
-            for index in range(len(names_list)):
-                if index < len(data_list):
-                    if os.path.isfile(data_list[index]):
-                        with open(data_list[index], "r") as f:
-                            content = f.readlines()
-                            content = "".join(content)
-                    else:
-                        content = data_list[index]
-                    datas[names_list[index]] = content
-                else:
-                    datas[names_list[index]] = ""
-        httpHandler = urllib2.HTTPHandler(debuglevel=1)
-        httpsHandler = urllib2.HTTPSHandler(debuglevel=1)
-        opener = urllib2.build_opener(httpHandler, httpsHandler)
-
-        urllib2.install_opener(opener)
-        data = urllib.urlencode(datas)
-
-        signature_obj = CreateSignature(client)
-        signature = {
-            "client": signature_obj.client,
-            "nonce": signature_obj.nonce,
-            "timestamp": signature_obj.timestamp,
-            "signature": signature_obj.signature
-        }
-
-        signature = urllib.urlencode(signature)
-        url = "%s/%s" % (base_url, api)
-        if not header:
-            if "?" in url:
-                url = "%s&%s" % (url, signature)
+        if group_id != 0 and not isinstance(group_id, ObjectId):
+            if isinstance(group_id, StringTypes):
+                group_id = ObjectId(group_id)
             else:
-                url = "%s?%s" % (url, signature)
-
-        if method == "post":
-            print("post data to url %s ...\n\n" % url)
-            print("post data:\n%s\n" % data)
-            request = urllib2.Request(url, data)
+                raise Exception("group_id必须为ObjectId对象或其对应的字符串!")
+        collection = self.db["sg_specimen_group"]
+        result = collection.find_one({"_id": group_id})
+        if result:
+            group_name = result['group_name']
         else:
-            if data:
-                if "?" in url:
-                    url = "%s&%s" % (url, data)
-                else:
-                    url = "%s?%s" % (url, data)
-            else:
-                url = "%s%s" % (base_url, api)
-            print("get url %s ..." % url)
-            request = urllib2.Request(url)
-
-        if header:
-            request.add_header('client', signature_obj.client)
-            request.add_header('nonce', signature_obj.nonce)
-            request.add_header('timestamp', signature_obj.timestamp)
-            request.add_header('signature', signature_obj.signature)
-
-        try:
-            response = urllib2.urlopen(request)
-        except urllib2.HTTPError, e:
-            print("%s \n" % e)
-        else:
-            the_page = response.read()
-            print("Return page:\n%s" % the_page)
-            # print type(the_page)
-        return json.dumps(the_page)
+            print "没有找到group_id对应的group_name！"
+            group_name = " "
+        return str(group_name)
