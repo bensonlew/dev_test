@@ -74,8 +74,7 @@ class PipeSubmitAllTool(Tool):
         self._config = Config()
         self._client = self._config.mongo_client
         self.db = self._client['tsanger']
-        # self.python_path = 'program/Python/bin/python '
-        # self.script_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/meta/scripts/corr_net_calc.py")
+
 
     def run_webapitest(self):
         # collection = self.db["sg_network"]
@@ -90,8 +89,23 @@ class PipeSubmitAllTool(Tool):
         env_id = data['env_id']
         env_labs = data['env_labs']
         group_infos = data['group_info']
-        level_ids = data['level_id']
+        print type(group_infos)
+        print "打印出group_infos"
+        print group_infos
+        group_infos = eval(group_infos)
+        print "test group_info"
+        print group_infos
+        level_ids = []
+        level = str(data['level_id']).strip().split(",")
+        for m in level:
+            level_ids.append(m)
+        print level_ids
         sub_analysis = data['sub_analysis']
+        print sub_analysis
+        print type(sub_analysis)
+        sub_analysis = eval(sub_analysis)
+        print type(sub_analysis)
+        print sub_analysis
         otu_id = data['otu_id']
         client = data['client']
         if client == "client01":
@@ -143,7 +157,7 @@ class PipeSubmitAllTool(Tool):
                 alpha_diversity_index_data['otu_id'] = n['otu_id']
                 alpha_diversity_index_data['level_id'] = n['level_id']
                 alpha_diversity_index_data['group_id'] = n['group_id']
-                alpha_diversity_index_data['group_detail'] = json.loads(n['group_detail'])
+                alpha_diversity_index_data['group_detail'] = n['group_detail']
                 results_alpha_diversity_index = self.run_controllers(api=alpha_diversity_index_data['api'], client=client, base_url=base_url,
                                                          params=alpha_diversity_index_data, method=method)
                 results_alpha_diversity_index = json.loads(results_alpha_diversity_index)
@@ -153,12 +167,24 @@ class PipeSubmitAllTool(Tool):
                 alpha_ttest_data['level_id'] = n['level_id']
                 alpha_ttest_data['group_id'] = n['group_id']
                 alpha_ttest_data['alpha_diversity_id'] = str(alpha_diversity_id)
-                alpha_ttest_data['group_detail'] = json.loads(n['group_detail'])
+                alpha_ttest_data['group_detail'] = n['group_detail']
+                # alpha_ttest_data['group_detail'] = json.loads(n['group_detail'])
                 results_alpha_ttest = self.run_controllers(api=alpha_ttest_data['api'],
                                                                      client=client, base_url=base_url,
                                                                      params=alpha_ttest_data, method=method)
                 results_alpha_ttest = json.loads(results_alpha_ttest)
                 all_results.append(results_alpha_ttest)
+        elif "alpha_diversity_index" in anaylsis_names and "alpha_ttest" not in anaylsis_names:
+            for n in list2:
+                alpha_diversity_index_data['otu_id'] = n['otu_id']
+                alpha_diversity_index_data['level_id'] = n['level_id']
+                alpha_diversity_index_data['group_id'] = n['group_id']
+                alpha_diversity_index_data['group_detail'] = n['group_detail']
+                results_alpha_diversity_index = self.run_controllers(api=alpha_diversity_index_data['api'],
+                                                                     client=client, base_url=base_url,
+                                                                     params=alpha_diversity_index_data, method=method)
+                results_alpha_diversity_index = json.loads(results_alpha_diversity_index)
+                all_results.append(results_alpha_diversity_index)
         else:
             pass
         #删除子分析字典中alpha_diversity_index，alpha_ttest两个分析,重构sub_analysis数组
@@ -184,7 +210,7 @@ class PipeSubmitAllTool(Tool):
                     anaylsis[key]['otu_id'] = info['otu_id']
                     anaylsis[key]['level_id'] = info['level_id']
                     anaylsis[key]['group_id'] = info['group_id']
-                    anaylsis[key]['group_detail'] = json.loads(info['group_detail'])
+                    anaylsis[key]['group_detail'] = info['group_detail']
                     anaylsis[key]['env_id'] = info['env_id']
                     anaylsis[key]['env_labs'] = info['env_labs']
             # print "下面打印出来的是每个子分析new_sub_analysis添加了分组与分类水平的data值"
