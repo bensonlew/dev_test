@@ -95,11 +95,19 @@ class MetaPipelineWorkflow(Workflow):
         print all_data
         all_results = eval(all_results)
         print all_results
-        levels = all_data['level_id']
+        # level_id = all_data['level_id']
+        level = str(all_data['level_id']).strip().split(",")
+        levels = []
+        for m in level:
+            levels.append(m)
+        print levels
         group_infos = all_data['group_info']
+        group_infos = eval(group_infos)
         level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "OTU"]
         for level in levels:
             for group in group_infos:
+                # print type(group)
+                # print "test group type"
                 group_id = group['group_id']
                 name = level_name[int(level)-1] + self.find_group_name(group_id).capitalize() + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 desc = level_name[int(level)-1] + "与" + self.find_group_name(group_id) + "组合结果"
@@ -152,7 +160,7 @@ class MetaPipelineWorkflow(Workflow):
                         except Exception:
                             print "分类水平%s——分组方案%s，导入到sg_pipe_detail失败！"%(level_name[int(level)-1], self.find_group_name(str(group['group_id'])))
 
-        print "所有的表均导成功了yeyeye！"
+        print "所有的表均导成功了yeyeye！程序已经运行完成！"
         self.end()
 
     def watch_end(self, all_results, main_table_id):
