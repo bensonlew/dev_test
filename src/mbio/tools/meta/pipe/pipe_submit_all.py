@@ -134,19 +134,19 @@ class PipeSubmitAllTool(Tool):
                 list2.append(m)
         print list2
         all_results = []  # 存储所有子分析的ids
+        err_results = []  # 用于存储投递失败的分析信息
         #定义多样性指数与指数间差异分析的接口投递
         anaylsis_names = []
         alpha_diversity_index_data = {}
         alpha_ttest_data = {}
-        for m in sub_analysis:
-            for key in m:
-                anaylsis_names.append(key)
-                if key == "alpha_diversity_index":
-                    alpha_diversity_index_data = m[key]
-                elif key == "alpha_ttest":
-                    alpha_ttest_data = m[key]
-                else:
-                    pass
+        for key in sub_analysis:
+            anaylsis_names.append(key)
+            if key == "alpha_diversity_index":
+                alpha_diversity_index_data = sub_analysis[key]
+            elif key == "alpha_ttest":
+                alpha_ttest_data = sub_analysis[key]
+            else:
+                pass
         print "\n"
         print anaylsis_names
         print alpha_diversity_index_data
@@ -158,7 +158,9 @@ class PipeSubmitAllTool(Tool):
                 alpha_diversity_index_data['level_id'] = n['level_id']
                 alpha_diversity_index_data['group_id'] = n['group_id']
                 alpha_diversity_index_data['group_detail'] = n['group_detail']
-                results_alpha_diversity_index = self.run_controllers(api=alpha_diversity_index_data['api'], client=client, base_url=base_url,
+                m = "/".join(str(alpha_diversity_index_data['api']).strip().split("|"))
+                print m
+                results_alpha_diversity_index = self.run_controllers(api="/".join(str(alpha_diversity_index_data['api']).strip().split("|")), client=client, base_url=base_url,
                                                          params=alpha_diversity_index_data, method=method)
                 results_alpha_diversity_index = json.loads(results_alpha_diversity_index)
                 all_results.append(results_alpha_diversity_index)
@@ -169,7 +171,7 @@ class PipeSubmitAllTool(Tool):
                 alpha_ttest_data['alpha_diversity_id'] = str(alpha_diversity_id)
                 alpha_ttest_data['group_detail'] = n['group_detail']
                 # alpha_ttest_data['group_detail'] = json.loads(n['group_detail'])
-                results_alpha_ttest = self.run_controllers(api=alpha_ttest_data['api'],
+                results_alpha_ttest = self.run_controllers(api="/".join(str(alpha_ttest_data['api']).strip().split("|")),
                                                                      client=client, base_url=base_url,
                                                                      params=alpha_ttest_data, method=method)
                 results_alpha_ttest = json.loads(results_alpha_ttest)
@@ -180,7 +182,7 @@ class PipeSubmitAllTool(Tool):
                 alpha_diversity_index_data['level_id'] = n['level_id']
                 alpha_diversity_index_data['group_id'] = n['group_id']
                 alpha_diversity_index_data['group_detail'] = n['group_detail']
-                results_alpha_diversity_index = self.run_controllers(api=alpha_diversity_index_data['api'],
+                results_alpha_diversity_index = self.run_controllers(api="/".join(str(alpha_diversity_index_data['api']).strip().split("|")),
                                                                      client=client, base_url=base_url,
                                                                      params=alpha_diversity_index_data, method=method)
                 results_alpha_diversity_index = json.loads(results_alpha_diversity_index)
@@ -188,43 +190,38 @@ class PipeSubmitAllTool(Tool):
         else:
             pass
         #删除子分析字典中alpha_diversity_index，alpha_ttest两个分析,重构sub_analysis数组
-        new_sub_analysis = []
-        for m in sub_analysis:
-            for key in m:
-                if key == "alpha_diversity_index" or key == "alpha_ttest":
-                    pass
-                else:
-                    new_sub_analysis.append(m)
+        if sub_analysis['alpha_diversity_index']:
+            del sub_analysis['alpha_diversity_index']
+        elif sub_analysis['alpha_ttest']:
+            del sub_analysis['alpha_ttest']
+        else:
+            pass
         print "打印删除子分析字典中alpha_diversity_index，alpha_ttest两个分析,重构后的sub_analysis"
-        print new_sub_analysis
-        print len(new_sub_analysis)
-
+        print sub_analysis
+        print len(sub_analysis)
         #定义没有依赖的分析的通用接口投递
         for info in list2:
             print "打印出info"
             print info
-            for anaylsis in new_sub_analysis:
-                print "打印出new_sub_analysis"
-                print anaylsis
-                for key in anaylsis:
-                    anaylsis[key]['otu_id'] = info['otu_id']
-                    anaylsis[key]['level_id'] = info['level_id']
-                    anaylsis[key]['group_id'] = info['group_id']
-                    anaylsis[key]['group_detail'] = info['group_detail']
-                    anaylsis[key]['env_id'] = info['env_id']
-                    anaylsis[key]['env_labs'] = info['env_labs']
-            # print "下面打印出来的是每个子分析new_sub_analysis添加了分组与分类水平的data值"
-            # print new_sub_analysis
-            for m in new_sub_analysis:
+            for anaylsis in sub_analysis:
+                print "打印出sub_analysis"
+                print sub_analysis[anaylsis]
+                sub_analysis[anaylsis]['otu_id'] = info['otu_id']
+                sub_analysis[anaylsis]['level_id'] = info['level_id']
+                sub_analysis[anaylsis]['group_id'] = info['group_id']
+                sub_analysis[anaylsis]['group_detail'] = info['group_detail']
+                sub_analysis[anaylsis]['env_id'] = info['env_id']
+                sub_analysis[anaylsis]['env_labs'] = info['env_labs']
+            print "下面打印出来的是每个子分析sub_analysis添加了分组与分类水平的data值"
+            print sub_analysis
+            for key in sub_analysis:
                 name = []
-                data = [] #用于存储子分析参数的具体数值
+                data = []  # 用于存储子分析参数的具体数值
                 submit_info = {}
-                for key in m:
-                    for key1 in m[key]:
-                        name.append(key1)
-                        data.append(m[key][key1])
-                        # submit_info = {"api": m[key]['api'], "base_url": m[key]['base_url'], "client": m[key]['client'], 'method': "post"}
-                        submit_info = {"api": m[key]['api']}
+                for key1 in sub_analysis[key]:
+                    name.append(key1)
+                    data.append(sub_analysis[key][key1])
+                    submit_info = {"api": "/".join(str(sub_analysis[key]['api']).strip().split('|'))}
                 print "打印出每个分析对应的api，base_url，client，method"
                 print submit_info
                 name = ";".join(name)
@@ -241,7 +238,8 @@ class PipeSubmitAllTool(Tool):
                 result = json.loads(result)
                 # print "打印出每个子分析的返回值"
                 # print result
-                results = {"level_id": info['level_id'], "group_id": info['group_id'], "sub_anaylsis_id": result['content']['ids']}
+                results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                           "sub_anaylsis_id": result['content']['ids']}
                 all_results.append(results)
         print "打印出所有子分析的ids"
         print all_results
