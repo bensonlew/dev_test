@@ -15,14 +15,17 @@ class Pipe(MetaController):
 
     def POST(self):
         data = web.input()
-        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id']
+        print data
+        print "上面没有转json"
+        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'group_info', 'env_id', 'env_labs']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!!" % param}
                 return json.dumps(info)
-        if int(data.level_id) not in range(1, 10):
-            info = {"success": False, "info": "level{}不在规定范围内{}".format(data.level_id)}
-            return json.dumps(info)
+
+        # if int(data.level_id) not in range(1, 10):
+        #     info = {"success": False, "info": "level{}不在规定范围内{}".format(data.level_id)}
+        #     return json.dumps(info)
         group_detail = json.loads(data.group_detail)
         if not isinstance(group_detail, dict):
             success.append("传入的group_detail不是一个字典")
@@ -36,37 +39,37 @@ class Pipe(MetaController):
         main_table_name = 'Pipeline_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params_json = {
             'otu_id': data.otu_id,
-            'level_id': int(data.level_id),
+            'level_id': data.level_id,
             'group_id': data.group_id,
             'group_detail': group_detail_sort(data.group_detail),
             'submit_location': data.submit_location,
-            'task_type': 'reportTask'
+            'env_id': data.env_id,
+            'env_labs': data.env_labs,
+            'group_info': data.group_info,
+            'filter_json': data.filter_json,
+            'size': data.size,
+            'task_type': data.task_type
         }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
-            ('batch_id', main_table_name),
             ('status', 'start'),
             ('desc', 'pipe_analysis.....'),
             ('name', main_table_name),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-            ('params', params)
+            ('params', params),
+            ('submit_location', data.submit_location),
+            ('otu_id', data.otu_id)
         ]
         main_table_id = Meta().insert_main_table('sg_pipe_batch', mongo_data)
         update_info = {str(main_table_id): 'sg_pipe_batch'}
         print "+++"
         print json.dumps(data)
         options = {
-            "data" : json.dumps(data),
-            # "otu_id": data.otu_id,
-            # "group_detail": data.group_detail,
+            "data": json.dumps(data),
             "update_info": json.dumps(update_info),
-            # "group_id": data.group_id,
-            # "level": int(data.level_id),
-            "pipe_id": str(main_table_id),
-            # "submit_location": "Pipe_analysis",
-            # "task_type": "reportTask"
+            "pipe_id": str(main_table_id)
         }
         # to_file = ["meta.export_otu_table_by_detail(otutable)", "meta.export_group_table_by_detail(grouptable)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
