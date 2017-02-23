@@ -17,7 +17,6 @@ def check_auto_load_packages(parent_package):
     parent = importlib.import_module(parent_package)
     reload(parent)
     for pack_name in parent.AUTO_LOAD_SUB_PACKAGES:
-        print pack_name
         package = importlib.import_module("%s.%s" % (parent_package, pack_name))
         if hasattr(package, "PACKAGE_URL"):
             if not isinstance(package.PACKAGE_URL, types.StringTypes):
