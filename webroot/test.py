@@ -2,7 +2,7 @@
 # __author__ = 'guoquan'
 
 import web
-import mainapp.core.auto_load
+import mainapp.core.auto_load as autoload
 urls = (
     "/hello", "hello"
 )
@@ -15,5 +15,5 @@ class hello(object):
 
 if __name__ == "__main__":
     app = web.application(urls, globals())
-    mainapp.core.auto_load.register(app)
+    autoload.register(app)
     app.run()
