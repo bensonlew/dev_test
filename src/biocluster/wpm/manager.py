@@ -303,9 +303,13 @@ class ManagerProcess(Process):
     def _check(self):
         while True:
             time.sleep(10)
-            self._check_stop()
-            self._check_pause()
-            self._check_exit_pause()
+            try:
+                self._check_stop()
+                self._check_pause()
+                self._check_exit_pause()
+            except Exception, e:
+                print e
+                continue
 
     def start_thread(self):
         thread = Thread(target=self._check_process, args=(), name='thread-process_check')

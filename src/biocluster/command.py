@@ -173,6 +173,7 @@ class Command(object):
                 f.write("%s\t运行开始\n" % starttime)
                 f.flush()
                 func = None
+                last_output = []
                 if hasattr(self.tool, self.name + '_check'):
                     func = getattr(self.tool, self.name + '_check')
                     argspec = inspect.getargspec(func)
@@ -192,13 +193,20 @@ class Command(object):
                             continue
                     if count < 5000:
                         f.write(line)
-                    if count == 5000:
+                    elif count == 5000:
                         f.write("输出过大，后续省略...\n")
+                        last_output.append(line)
+                    else:
+                        last_output.append(line)
+                        if len(last_output) > 100:
+                            last_output.pop(0)
                     f.flush()
                     count += 1
                     if func is not None:
                         line = line.strip()
                         func(self, line)   # check function(toolself, command, line)  single line
+                if len(last_output) > 0:
+                    f.writelines(last_output)
                 endtime = datetime.datetime.now()
                 use_time = (endtime - starttime).seconds
                 # time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
