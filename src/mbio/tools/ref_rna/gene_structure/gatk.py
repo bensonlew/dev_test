@@ -26,7 +26,8 @@ class GatkAgent(Agent):
             {"name": "ref_genome", "type": "string"},  # 本地参考基因组的名字，从已有列表里面选择
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因组文件,需要和picard所建立的dict和samtools所建立的fai文件一起
             {"name": "input_bam", "type": "infile", "format": "align.bwa.bam"},  # bam文件类型，输入
-            {"name": "is_indexed", "type": "bool", "default": False},
+            {"name": "is_indexed", "type": "bool", "default": True},
+            # {"name": "known_vcf", "type": "string", "default": ""},
         ]
         self.add_option(options)
         self.step.add_steps('gatk')
@@ -72,6 +73,7 @@ class GatkTool(Tool):
         self.java_path = "/program/sun_jdk1.8.0/bin/"
         self.samtools_path = "/bioinfo/align/samtools-1.3.1/samtools"
         self.picard_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/"
+        self.known_vcf = "/mnt/ilustre/users/sanger-dev/sg-users/qindanhua/denovo_rna/test_file/human_ref/known.vcf"
 
     def dict(self, ref_fasta, dict_name):
         """
@@ -107,13 +109,62 @@ class GatkTool(Tool):
         else:
             self.set_error("samtools建索引出错！")
 
-    def gatk_split(self, ref_fasta):
+    # add by qindanhua 20170221
+    def realignment(self, ref_fasta):
+        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T RealignerTargetCreator -R {} -I {} -o {} -known {}"\
+            .format(self.java_path, self.gatk_path, ref_fasta, "split.bam", "realn.intervals", self.known_vcf)
+        self.logger.info("开始进行indel比对")
+        command = self.add_command("realignment", cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("indel比对完成！")
+        else:
+            self.set_error("indel比对出错！")
+
+    def indel_realn(self, ref_fasta):
+        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T IndelRealigner -R {} -I {} -o {} -targetIntervals {}"\
+            .format(self.java_path, self.gatk_path, ref_fasta, "split.bam", "indel_realn.bam", "realn.intervals")
+        self.logger.info("开始进行indel_realn")
+        command = self.add_command("indel_realn", cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("indel_realn完成！")
+        else:
+            self.set_error("indel_realn出错！")
+
+    def base_recalibrator(self, ref_fasta):
+        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T BaseRecalibrator -R {} -I {} -o {} -knownSites {}"\
+            .format(self.java_path, self.gatk_path, ref_fasta, "indel_realn.bam", "bqsr.grp", self.known_vcf)
+        self.logger.info("开始进行base_recalibrator")
+        command = self.add_command("base_recalibrator", cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("base_recalibrator完成！")
+        else:
+            self.set_error("base_recalibrator出错！")
+
+    def print_reads(self, ref_fasta):
+        cmd = "{}java -jar {}GenomeAnalysisTK.jar -T PrintReads -R {} -I {} -o {}"\
+            .format(self.java_path, self.gatk_path, ref_fasta, "indel_realn.bam", "realn.bam")
+        self.logger.info("开始进行print_reads")
+        command = self.add_command("print_reads", cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("print_reads完成！")
+        else:
+            self.set_error("print_reads出错！")
+
+    def gatk_split(self, ref_fasta, bam):
         """
         step0: gatk split
         """
         cmd = "{}java -jar {}GenomeAnalysisTK.jar -T SplitNCigarReads " \
               "-R {} -I {} -o {} -rf ReassignOneMappingQuality -RMQF 255 -RMQT 60 -U ALLOW_N_CIGAR_READS"\
-            .format(self.java_path, self.gatk_path, ref_fasta, self.option("input_bam").prop["path"], "split.bam")
+            .format(self.java_path, self.gatk_path, ref_fasta, bam, "split.bam")
         self.logger.info("开始进行split NCigar reads")
         command = self.add_command("splitncigarreads", cmd)
         command.run()
@@ -163,8 +214,8 @@ class GatkTool(Tool):
             ref_name = os.path.split(ref)[-1]
             ref_current = os.path.join(self.work_dir, ref_name)  # 当前工作目录下的参考基因组的路径
             self.logger.info(ref_current)  # 显示当前参考基因组路径
-            if self.option("is_indexed") is True:
-                ref_current = ref
+            # if self.option("is_indexed") is True:
+            ref_current = ref
             dict_name = os.path.splitext(ref_name)[0] + ".dict"   # 所建字典的名字，是一个字符串
             self.logger.info("参考基因组为自定义模式的情况下建字典！")
             if not os.path.exists(dict_name):
@@ -177,12 +228,13 @@ class GatkTool(Tool):
             # ref_fai = os.path.split(ref)[-1] + ".fai" #fai文件的名 此时samtools建好的fai文件在当前目录下，无需其他操作
             # if os.path.exists(os.path.join(self.work_dir, ref_fai)):
             # shutil.copy(os.path.join(self.work_dir, ref_fai), os.path.split(ref)[0])
-            self.gatk_split(ref_current)
-            if os.path.exists(os.path.join(self.work_dir, "split.bam")):
-                split_bam = os.path.join(self.work_dir, "split.bam")
+            self.gatk_split(ref_current, self.option("input_bam").prop["path"])
+            # self.gatk_split(ref_current, "realn.bam")
+            # if os.path.exists(os.path.join(self.work_dir, "realn.bam")):
+            split_bam = os.path.join(self.work_dir, "split.bam")
             self.gatk_vc(ref_current, split_bam)
-            if os.path.exists(os.path.join(self.work_dir, "output.vcf")):
-                vcf_path = os.path.join(self.work_dir, "output.vcf")
+            # if os.path.exists(os.path.join(self.work_dir, "output.vcf")):
+            vcf_path = os.path.join(self.work_dir, "output.vcf")
             self.gatk_vf(ref_current, vcf_path)
 
         else:
@@ -192,12 +244,20 @@ class GatkTool(Tool):
             with open(ref_genome_json, "r") as f:
                 dict = json.loads(f.read())
                 ref = dict[self.option("ref_genome")]["ref_dict"]  # 是ref_dict的路径，作为参数传给比对函数
-            self.gatk_split(ref)
-            if os.path.exists(os.path.join(self.work_dir, "split.bam")):
+                ref_current = ref
+            self.gatk_split(ref, self.option("input_bam").prop["path"])
+            if self.option("ref_genome") == "human":
+                self.realignment(ref_current)
+                self.indel_realn(ref_current)
+                self.base_recalibrator(ref_current)
+                self.print_reads(ref_current)
+                split_bam = os.path.join(self.work_dir, "realn.bam")
+            else:
+                # if os.path.exists(os.path.join(self.work_dir, "realn.bam")):
                 split_bam = os.path.join(self.work_dir, "split.bam")
             self.gatk_vc(ref, split_bam)
-            if os.path.exists(os.path.join(self.work_dir, "output.vcf")):
-                vcf_path = os.path.join(self.work_dir, "output.vcf")
+            # if os.path.exists(os.path.join(self.work_dir, "output.vcf")):
+            vcf_path = os.path.join(self.work_dir, "output.vcf")
             self.gatk_vf(ref, vcf_path)
                 
         outputs = os.listdir(os.getcwd())

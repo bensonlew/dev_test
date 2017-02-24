@@ -6,7 +6,7 @@ import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
-# import json
+import json
 # import re
 
 
@@ -21,7 +21,7 @@ class SnpRnaModule(Module):
     """
     def __init__(self, work_id):
         super(SnpRnaModule, self).__init__(work_id)
-        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "Human",
+        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "human",
                                 "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test"]
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
@@ -47,6 +47,7 @@ class SnpRnaModule(Module):
         self.annovars = []      # add by qindanhua
         self.ref_link = ''
         self.end_times = 0
+        self.ref_gft = ''
 
     def check_options(self):
         """
