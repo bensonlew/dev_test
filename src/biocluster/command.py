@@ -43,6 +43,12 @@ class Command(object):
         self._psutil_process = None
         self._all_processes = []
         self._is_error = False
+        # self.process_status = None
+        # self.check_sleep = check_sleep
+        # self.max_sleep_time = max_sleep_time
+        # self.max_run_times = max_run_times
+        self._run_times = 0
+        # self.to_rerun = False
 
     @property
     def is_error(self):
@@ -150,7 +156,7 @@ class Command(object):
         args = shlex.split(command)
         try:
             self._subprocess = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                                env=os.environ)
+                                                env=os.environ, universal_newlines=True)
         except Exception, e:
             self._is_error = True
             self.tool.set_error(e)
@@ -165,6 +171,7 @@ class Command(object):
             with open(tmp_file, "w") as f:
                 starttime = datetime.datetime.now()
                 f.write("%s\t运行开始\n" % starttime)
+                f.flush()
                 func = None
                 if hasattr(self.tool, self.name + '_check'):
                     func = getattr(self.tool, self.name + '_check')
@@ -183,10 +190,11 @@ class Command(object):
                             break
                         else:
                             continue
-                    if count < 50000:
+                    if count < 5000:
                         f.write(line)
-                    if count == 50000:
-                        f.write("输出过大，后续省略...")
+                    if count == 5000:
+                        f.write("输出过大，后续省略...\n")
+                    f.flush()
                     count += 1
                     if func is not None:
                         line = line.strip()
@@ -194,7 +202,7 @@ class Command(object):
                 endtime = datetime.datetime.now()
                 use_time = (endtime - starttime).seconds
                 # time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
-                f.write("%s\t运行结束，运行时长:%ss,exitcode:%s\n" % (endtime, use_time, self.return_code))
+                f.write("%s\n运行结束，运行时长:%ss,exitcode:%s\n" % (endtime, use_time, self.return_code))
         except IOError, e:
             self.tool.set_error("运行命令%s出错: %s" % (self.name, e))
         return self
@@ -217,6 +225,7 @@ class Command(object):
             raise Exception("你所运行的命令文件不存在，请确认!")
         thread = threading.Thread(target=self._run)
         thread.start()
+        self._run_times += 1
         return self
 
     def rerun(self):
@@ -226,14 +235,17 @@ class Command(object):
         :return:
         """
         if self.cmd == self._last_run_cmd:
+            if self._run_times > 3:
+                raise Exception("重复运行相同的命令不能超过3次！命令:%s" % self.cmd)
             self.tool.logger.info('重新运行了相同的命令')  # shenghe modified 20161215
-            # raise Exception(u"如需要重复运行命令，需要先通过set_cmd()方法修改命令参数，不能和原命令一样!")
-        if self.has_run:
-            if self.is_running:
-                self.kill()
-            self._subprocess = None
-            self._pid = ""
-            self._is_error = False
+        else:
+            self._run_times = 0
+
+        if self.is_running:
+            self.kill()
+        self._subprocess = None
+        self._pid = ""
+        self._is_error = False
         self.run()
         return self
 

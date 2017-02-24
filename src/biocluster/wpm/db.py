@@ -74,25 +74,25 @@ class WorkflowModel(object):
         return self._db.query(sql)
 
     def pause(self):
-        sql = "update pause set has_pause=1, pause_time=CURRENT_TIMESTAMP() " \
-              "where workflow_id = '%s' and has_pause=0;" % self.workflow_id
-        sql += "update workflow set paused=1 where workflow_id = '%s'" % self.workflow_id
+        sql1 = "update pause set has_pause=1, pause_time=CURRENT_TIMESTAMP() " \
+              "where workflow_id = '%s' and has_pause=0" % self.workflow_id
+        sql2 = "update workflow set paused=1 where workflow_id = '%s'" % self.workflow_id
         # print sql
-        return self._db.query(sql)
+        return self._db.transaction(sql1, sql2)
 
     def exit_pause(self):
-        sql = "update pause set has_continue=1,continue_time=CURRENT_TIMESTAMP() " \
-              "where workflow_id = '%s' and has_pause=1 and exit_pause=1 and has_continue=0;" % self.workflow_id
-        sql += "update workflow set paused=0 where workflow_id = '%s'" % self.workflow_id
+        sql1 = "update pause set has_continue=1,continue_time=CURRENT_TIMESTAMP() " \
+              "where workflow_id = '%s' and has_pause=1 and exit_pause=1 and has_continue=0" % self.workflow_id
+        sql2 = "update workflow set paused=0 where workflow_id = '%s'" % self.workflow_id
         # print sql
-        return self._db.query(sql)
+        return self._db.transaction(sql1, sql2)
 
     def pause_timeout(self):
-        sql = "update pause set timeout=1,timeout_time=CURRENT_TIMESTAMP() " \
-              "where workflow_id = '%s' and has_pause=1 and exit_pause=0 and timeout=0;" % self.workflow_id
-        sql += "update workflow set paused=0 where workflow_id = '%s'" % self.workflow_id
+        sql1 = "update pause set timeout=1,timeout_time=CURRENT_TIMESTAMP() " \
+              "where workflow_id = '%s' and has_pause=1 and exit_pause=0 and timeout=0" % self.workflow_id
+        sql2 = "update workflow set paused=0 where workflow_id = '%s'" % self.workflow_id
         # print sql
-        return self._db.query(sql)
+        return self._db.transaction(sql1, sql2)
 
 
 class CheckModel(object):

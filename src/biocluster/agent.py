@@ -88,6 +88,7 @@ class Agent(Basic):
         self._run_mode = "Auto"      # 运行模式 Auto表示由 main.conf中的 platform参数决定
         self._job_manager = JobManager()
         self._run_time = None
+        self._start_queue_time = None
         self._start_run_time = None
         self._end_run_time = None
         self._rerun_time = 0
@@ -368,7 +369,7 @@ class Agent(Basic):
         self._status = "E"
         self._end_run_time = datetime.datetime.now()
         secends = (self._end_run_time - self._start_run_time).seconds
-        self.logger.info("   任务运行结束，运行时间:%ss" % secends)
+        self.logger.info("   任务运行结束，运行耗时:%ss" % secends)
         self.job.set_end()
         self.end()
 
@@ -382,6 +383,13 @@ class Agent(Basic):
         :return: None
         """
         self.fire("error", data)
+
+    def sleeping_callback(self, data):
+        """
+
+        :return:
+        """
+        self.logger.warning("Command %s长时间处于Sleep/Zombie状态，尝试重新运行!" % data)
 
     def _agent_event_error(self, data):
         """
@@ -461,11 +469,13 @@ class Agent(Basic):
         """
         self._start_run_time = datetime.datetime.now()
         self._status = "R"
-        secends = (self._start_run_time - self._run_time).seconds
+        queue_secends = (self._start_run_time - self._start_queue_time).seconds
+        wait_secends = (self._start_queue_time - self._run_time).seconds
         if self.get_workflow().sheet.instant:
             self.logger.info("本地进程任务开始运行,PID:%s" % self.job.id)
         else:
-            self.logger.info("远程任务开始运行，任务ID:%s,远程主机:%s,:排队时间%ss" % (self.job.id, data, secends))
+            self.logger.info("远程任务开始运行，任务ID:%s,远程主机:%s,等待时间:%s, 排队时间%ss, 共%ss" %
+                             (self.job.id, data, wait_secends, queue_secends, (queue_secends+wait_secends)))
 
     def _event_firekaoout(self, times):
         self.logger.warning("KeepAlive触发超过%s次，尝试重新运行!" % times)
