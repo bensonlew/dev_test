@@ -17,7 +17,7 @@ class Pipe(MetaController):
         data = web.input()
         print data
         print "上面没有转json"
-        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'group_info', 'env_id', 'env_labs']
+        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'group_info', 'env_id', 'env_labs', 'sub_analysis']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!!" % param}
@@ -37,6 +37,12 @@ class Pipe(MetaController):
         task_type = 'workflow'
         task_info = Meta().get_task_info(otu_info['task_id'])
         main_table_name = 'Pipeline_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        all_analysis = []
+        sub_analysis_name = json.loads(data.sub_analysis)
+        for key in sub_analysis_name:
+            # print type(str(key))
+            all_analysis.append(str(key))
+        print all_analysis
         params_json = {
             'otu_id': data.otu_id,
             'level_id': data.level_id,
@@ -48,7 +54,8 @@ class Pipe(MetaController):
             'group_info': data.group_info,
             'filter_json': data.filter_json,
             'size': data.size,
-            'task_type': data.task_type
+            'task_type': data.task_type,
+            'sub_analysis': data.sub_analysis
         }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
@@ -60,7 +67,8 @@ class Pipe(MetaController):
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ('params', params),
             ('submit_location', data.submit_location),
-            ('otu_id', data.otu_id)
+            ('otu_id', ObjectId(data.otu_id)),
+            ('analysis_list', str(all_analysis))
         ]
         main_table_id = Meta().insert_main_table('sg_pipe_batch', mongo_data)
         update_info = {str(main_table_id): 'sg_pipe_batch'}
