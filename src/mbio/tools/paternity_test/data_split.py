@@ -115,7 +115,7 @@ class DataSplitTool(Tool):
 
 	def set_output(self):
 		"""
-		把拆分所得的结果文件放置在tool的output文件夹下
+		把拆分所得的结果文件放置在tool的output文件夹下按照(WQ对应亲子鉴定，WS对应产前筛查等，UNKNOWN对应暂时不确定的fastq文件)
 		:return: logger message
 		"""
 		result_dir = os.path.join(self.work_dir, "MED")
