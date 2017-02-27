@@ -19,7 +19,7 @@ class PearsonCorrelation(MetaController):
 
     def POST(self):
         data = web.input()
-        default_argu = ['otu_id', 'level_id', 'submit_location', "group_id", "env_id", "env_labs"]
+        default_argu = ['otu_id', 'level_id', 'submit_location', "group_id", "env_id", "env_labs", "top_species"]
 
         for argu in default_argu:
             if not hasattr(data, argu):
@@ -35,6 +35,7 @@ class PearsonCorrelation(MetaController):
             return json.dumps(info)
         task_info = meta.get_task_info(otu_info['task_id'])
 
+        print(data.top_species)
         params_json = {
             "otu_id": data.otu_id,
             "level_id": int(data.level_id),
@@ -58,6 +59,8 @@ class PearsonCorrelation(MetaController):
             params_json["env_cluster"] = data.env_cluster
         if hasattr(data, "species_cluster"):
             params_json["species_cluster"] = data.species_cluster
+        if hasattr(data, "top_species"):
+            params_json["top_species"] = data.top_species
         # self.options["params"] = str(self.options)
         main_table_name = method_name + 'Correlation_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -86,9 +89,9 @@ class PearsonCorrelation(MetaController):
         del params_json["level_id"]
         del params_json["group_detail"]
         options.update(params_json)
-        print("lllllloptionlllll")
+        # print("lllllloptionlllll")
         print(options)
-        print("ooooooooptionoooooo")
+        # print("ooooooooptionoooooo")
         to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type, to_file=to_file)

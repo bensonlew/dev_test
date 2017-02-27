@@ -36,7 +36,8 @@ class PearsonCorrelationWorkflow(Workflow):
             {"name": "method", "type": "string", "default": "pearsonr"},
             {"name": "env_cluster", "type": "string", "default": "average"},
             {"name": "species_cluster", "type": "string", "default": "average"},
-            {"name": "group_detail", "type": "string"}
+            {"name": "group_detail", "type": "string"},
+            {"name": "top_species", "type": "int", "default": 0}  # add new option (flit top N species)
             ]
         self.add_option(options)
         # print(self._sheet.options())
@@ -58,7 +59,8 @@ class PearsonCorrelationWorkflow(Workflow):
             'envtable': self.option('env_file'),
             "method": self.option('method'),
             "env_cluster": env_cluster,
-            "species_cluster": species_cluster
+            "species_cluster": species_cluster,
+            "top_species": self.option('top_species')
             }
         self.correlation.set_options(options)
         self.correlation.on("end", self.set_db)
