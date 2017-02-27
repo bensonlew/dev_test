@@ -92,8 +92,8 @@ class PipeSubmitAllTool(Tool):
         print type(group_infos)
         print "打印出group_infos"
         print group_infos
-        group_infos = eval(group_infos)
-        print "test group_info"
+        group_infos = json.loads(group_infos)
+        print "test group_infos"
         print group_infos
         level_ids = []
         level = str(data['level_id']).strip().split(",")
@@ -103,7 +103,7 @@ class PipeSubmitAllTool(Tool):
         sub_analysis = data['sub_analysis']
         print sub_analysis
         print type(sub_analysis)
-        sub_analysis = eval(sub_analysis)
+        sub_analysis = json.loads(sub_analysis)
         print type(sub_analysis)
         print sub_analysis
         otu_id = data['otu_id']
@@ -123,10 +123,11 @@ class PipeSubmitAllTool(Tool):
         method = "post"
         results_statistic = self.run_controllers(api=api_statistic, client=client, base_url=base_url, params=params, method=method)
         results_statistic = json.loads(results_statistic)
+        # print results_statistic
         otu_id = results_statistic['sub_anaylsis_id']['id']  #后面用抽平后的otu_id
         print "打印抽平后的otu_id"
         print otu_id
-        list2 = [] #用于存储分类水平与分组方案的所有的组合
+        list2 = [] #用于存储分类水平与分组方案的所有的组合s
         for level in level_ids:
             for group in group_infos:
                 m = {"otu_id": str(otu_id), "level_id": str(level), "group_id": group['group_id'], "group_detail": json.dumps(group['group_detail']),
@@ -140,7 +141,7 @@ class PipeSubmitAllTool(Tool):
         alpha_diversity_index_data = {}
         alpha_ttest_data = {}
         for key in sub_analysis:
-            anaylsis_names.append(key)
+            anaylsis_names.append(str(key))
             if key == "alpha_diversity_index":
                 alpha_diversity_index_data = sub_analysis[key]
             elif key == "alpha_ttest":
@@ -149,6 +150,7 @@ class PipeSubmitAllTool(Tool):
                 pass
         print "\n"
         print anaylsis_names
+        print len(anaylsis_names)
         print alpha_diversity_index_data
         print alpha_ttest_data
         print "\n"
@@ -190,9 +192,11 @@ class PipeSubmitAllTool(Tool):
         else:
             pass
         #删除子分析字典中alpha_diversity_index，alpha_ttest两个分析,重构sub_analysis数组
-        if sub_analysis['alpha_diversity_index']:
+        if "alpha_diversity_index" in anaylsis_names:
             del sub_analysis['alpha_diversity_index']
-        elif sub_analysis['alpha_ttest']:
+        else:
+            pass
+        if "alpha_ttest" in anaylsis_names:
             del sub_analysis['alpha_ttest']
         else:
             pass
@@ -204,16 +208,16 @@ class PipeSubmitAllTool(Tool):
             print "打印出info"
             print info
             for anaylsis in sub_analysis:
-                print "打印出sub_analysis"
-                print sub_analysis[anaylsis]
+                # print "打印出sub_analysis"
+                # print sub_analysis[anaylsis]
                 sub_analysis[anaylsis]['otu_id'] = info['otu_id']
                 sub_analysis[anaylsis]['level_id'] = info['level_id']
                 sub_analysis[anaylsis]['group_id'] = info['group_id']
                 sub_analysis[anaylsis]['group_detail'] = info['group_detail']
                 sub_analysis[anaylsis]['env_id'] = info['env_id']
                 sub_analysis[anaylsis]['env_labs'] = info['env_labs']
-            print "下面打印出来的是每个子分析sub_analysis添加了分组与分类水平的data值"
-            print sub_analysis
+            # print "下面打印出来的是每个子分析sub_analysis添加了分组与分类水平的data值"
+            # print sub_analysis
             for key in sub_analysis:
                 name = []
                 data = []  # 用于存储子分析参数的具体数值
@@ -221,7 +225,8 @@ class PipeSubmitAllTool(Tool):
                 for key1 in sub_analysis[key]:
                     name.append(key1)
                     data.append(sub_analysis[key][key1])
-                    submit_info = {"api": "/".join(str(sub_analysis[key]['api']).strip().split('|'))}
+                    submit_info = {"api": "/".join(str(sub_analysis[key]['api']).strip().split('|')),
+                                   "submit_location": str(sub_analysis[key]['submit_location'])}
                 print "打印出每个分析对应的api，base_url，client，method"
                 print submit_info
                 name = ";".join(name)
@@ -236,11 +241,24 @@ class PipeSubmitAllTool(Tool):
                 return_page = self.webapitest(method, api, name, data, client, base_url)
                 result = json.loads(return_page)
                 result = json.loads(result)
-                # print "打印出每个子分析的返回值"
-                # print result
-                results = {"level_id": info['level_id'], "group_id": info['group_id'],
-                           "sub_anaylsis_id": result['content']['ids']}
-                all_results.append(results)
+                if result['success'] == True:
+                    results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                           "sub_anaylsis_id": result['content']['ids'], "success": True, "submit_location": submit_info['submit_location']}
+                    all_results.append(results)
+                elif result.has_key('content') and result['success'] == False:
+                    results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                               "sub_anaylsis_id": result['content']['ids'], "success": False,
+                               "submit_location": submit_info['submit_location'], "info": result['info']}
+                    all_results.append(results)
+                elif 'content' not in result.keys() and result['success'] == False:
+                    results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                               "info": result['info'], "success": False,
+                               "submit_location": submit_info['submit_location']}
+                    all_results.append(results)
+                else:
+                    print "结果还有额外的情况出现！"
+                    pass
+
         print "打印出所有子分析的ids"
         print all_results
         print len(all_results)
@@ -254,13 +272,14 @@ class PipeSubmitAllTool(Tool):
         用于重构每个子分析的输入参数，（参考sub_anaylsis中的参数）并进行投递计算,注输入的参数必须是字典格式
         params样例：{\"submit_location\": \"corrnetwork_analyse\", \"api\": \"meta/corr_network\",
         \"task_type\": \"reportTask\",\"lable\": \"0.03\", \"ratio_method\": \"pearson\", \"coefficient\":
-        \"0.08\", \"abundance\": \"150\"}
+        \"0.08\", \"abundance\": \"150\"}  注这里面要添加level_id与group_id
         :return:
         """
         if not isinstance(params, dict):
             success.append("传入的params不是一个字典")
         name = []
         data = []
+        results = {}
         for key in params:
             name.append(key)
             data.append(params[key])
@@ -269,8 +288,23 @@ class PipeSubmitAllTool(Tool):
         return_page = self.webapitest(method, api, name, data, client, base_url)
         result = json.loads(return_page)
         result = json.loads(result)
-        results = {"level_id": params['level_id'], "group_id": params['group_id'],
-                   "sub_anaylsis_id": result['content']['ids']}
+        if result['success'] == True:
+            results = {"level_id": params['level_id'], "group_id": params['group_id'],
+                       "sub_anaylsis_id": result['content']['ids'], "success": True,
+                       "submit_location": params['submit_location']}
+        elif result.has_key('content') and result['success'] == False:
+            results = {"level_id": params['level_id'], "group_id": params['group_id'],
+                       "sub_anaylsis_id": result['content']['ids'], "success": False,
+                       "submit_location": params['submit_location'], "info": result['info']}
+        elif 'content' not in result.keys() and result['success'] == False:
+            results = {"level_id": params['level_id'], "group_id": params['group_id'],
+                       "info": result['info'], "success": False,
+                       "submit_location": params['submit_location']}
+        else:
+            print "结果还有额外的情况出现！"
+            pass
+        # results = {"level_id": params['level_id'], "group_id": params['group_id'],
+        #            "sub_anaylsis_id": result['content']['ids']}
         return json.dumps(results)
 
 
