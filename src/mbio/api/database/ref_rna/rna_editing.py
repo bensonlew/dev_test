@@ -72,3 +72,5 @@ class RnaEditing(Base):
 
 	@report_check
 	def add_editing_detail(self, file, flow_id):
+		self.bind_object.logger.info("开始转录因子细节表")
+		sg_tf = list()
