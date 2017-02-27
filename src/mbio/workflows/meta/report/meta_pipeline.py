@@ -7,10 +7,6 @@ from mainapp.libs.signature import CreateSignature
 from bson.objectid import ObjectId
 from types import StringTypes
 import datetime
-import subprocess
-import urllib2
-import urllib
-import sys
 import os
 import json
 import gevent
@@ -132,33 +128,52 @@ class MetaPipelineWorkflow(Workflow):
                     print "耶！导入%s到sg_pipe_main成功！"%(desc)
                 print inserted_id
                 for anaylsis in all_results:
-                    if str(anaylsis['group_id']) == str(group['group_id']) and str(anaylsis['level_id']) == str(level):
-                        # print group['group_id']
-                        # print level
-                        # print self.find_group_name(str(group['group_id']))
-                        # print level_name[int(level)-1]
-                        sub_anaylsis_main_id = anaylsis['sub_anaylsis_id']['id']
-                        result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
-                        mongo_data = {
-                            "pipe_main_id": ObjectId(inserted_id),
-                            "status": result['status'],
-                            "table_id": result['table_id'],
-                            "table_name": result['table_name'],
-                            "type_name": result['type_name'],
-                            "desc": result['desc'],
-                            "time": result['time'],
-                            "params": result['params'],
-                            "submit_location": result['submit_location'],
-                            "is_new": result['is_new'],
-                            "task_id": result['task_id'],
-                            "group_name": self.find_group_name(str(group['group_id'])),
-                            "level_name": level_name[int(level)-1]
-                        }
-                        try:
-                            collection_pipe_detail = self.db['sg_pipe_detail']
-                            collection_pipe_detail.insert_one(mongo_data)
-                        except Exception:
-                            print "分类水平%s——分组方案%s，导入到sg_pipe_detail失败！"%(level_name[int(level)-1], self.find_group_name(str(group['group_id'])))
+                    if 'sub_anaylsis_id' in anaylsis.keys():
+                        if str(anaylsis['group_id']) == str(group['group_id']) and str(anaylsis['level_id']) == str(level):
+                            sub_anaylsis_main_id = str(anaylsis['sub_anaylsis_id']['id'])
+                            result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
+                            mongo_data = {
+                                "pipe_main_id": ObjectId(inserted_id),
+                                "status": result['status'],
+                                "table_id": result['table_id'],
+                                "table_name": result['table_name'],
+                                "type_name": result['type_name'],
+                                "desc": result['desc'],
+                                "time": result['time'],
+                                "params": result['params'],
+                                "submit_location": result['submit_location'],
+                                "is_new": result['is_new'],
+                                "task_id": result['task_id'],
+                                "group_name": self.find_group_name(str(group['group_id'])),
+                                "level_name": level_name[int(level)-1]
+                            }
+                            try:
+                                collection_pipe_detail = self.db['sg_pipe_detail']
+                                collection_pipe_detail.insert_one(mongo_data)
+                            except Exception:
+                                print "分类水平%s——分组方案%s，导入到sg_pipe_detail失败！"%(level_name[int(level)-1], self.find_group_name(str(group['group_id'])))
+                    else:
+                        if str(anaylsis['group_id']) == str(group['group_id']) and str(anaylsis['level_id']) == str(level):
+                            mongo_data = {
+                                "pipe_main_id": ObjectId(inserted_id),
+                                "status": "failed",
+                                "table_id": "",
+                                "table_name": "",
+                                "type_name": "",
+                                "desc": anaylsis['info'],
+                                "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "params": "",
+                                "submit_location": anaylsis['submit_location'],
+                                "is_new": 'is_new',
+                                "task_id": task_id,
+                                "group_name": self.find_group_name(str(group['group_id'])),
+                                "level_name": level_name[int(level) - 1]
+                            }
+                            try:
+                                collection_pipe_detail = self.db['sg_pipe_detail']
+                                collection_pipe_detail.insert_one(mongo_data)
+                            except Exception:
+                                print "分类水平%s——分组方案%s，导入到sg_pipe_detail失败！" % (level_name[int(level) - 1], self.find_group_name(str(group['group_id'])))
 
         print "所有的表均导成功了yeyeye！程序已经运行完成！"
         self.end()
@@ -188,16 +203,25 @@ class MetaPipelineWorkflow(Workflow):
         collection_pipe = self.db["sg_pipe_batch"]
         collection_status = self.db["sg_status"]
         anaysis_num = []
+        no_table_analysis_num = []
         print "-------------------------------------------------------"
         all_results = eval(all_results)
         for id in all_results:
-            sub_anaylsis_main_id = id['sub_anaylsis_id']['id']
-            result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
-            if result and result['status'] != 'start':
-                anaysis_num.append(result['status'])
+            # print hasattr(id, 'sub_anaylsis_id')
+            # print 'sub_anaylsis_id' in id.keys()
+            if 'sub_anaylsis_id' in id.keys():
+                sub_anaylsis_main_id = str(id['sub_anaylsis_id']['id'])
+                result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
+                if result and result['status'] != 'start':
+                    anaysis_num.append(result['status'])
+                else:
+                    print "sg_status中没有找到%s对应的表，该分析还在计算中，请继续等候！"%(sub_anaylsis_main_id)
             else:
-                print "sg_status中没有找到%s对应的表，该分析还在计算中，请继续等候！"%(sub_anaylsis_main_id)
-        if len(all_results) == len(anaysis_num):
+                no_table_analysis_num.append(str(id['submit_location']))
+        print len(all_results)
+        print len(no_table_analysis_num)
+        print len(anaysis_num)
+        if len(all_results) - len(no_table_analysis_num) == len(anaysis_num):
             data = {
                 "status": "end"
             }
