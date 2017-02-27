@@ -240,11 +240,17 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                     self.linkfile(self.work_dir + '/rda/' + allfiles[i], newname)
         newname = os.path.basename(allfiles[0]).split('_')[-1]
         self.linkfile(self.work_dir + '/rda/' + allfiles[0], newname)
-        if len(otu_species_list) == 0:  # 20170122 add 5 lines by zhouxuan
-            self.linkfile(self.output_dir + "/rda_species.xls", "rda_plot_species_data.xls")
+        if len(otu_species_list) == 0:  # 20170122 add 13 lines by zhouxuan
+            if os.path.exists(self.output_dir + "/rda_species.xls"):
+                self.linkfile(self.output_dir + "/rda_species.xls", "rda_plot_species_data.xls")
+            else:
+                self.linkfile(self.output_dir + "/cca_species.xls", "cca_plot_species_data.xls")
         else:
             new_file_path = self.get_new_species_xls(otu_species_list)
-            self.linkfile(new_file_path, "rda_plot_species_data.xls")
+            if os.path.exists(self.output_dir + "/rda_species.xls"):
+                self.linkfile(new_file_path, "rda_plot_species_data.xls")
+            else:
+                self.linkfile(new_file_path, "cca_plot_species_data.xls")
         self.logger.info('运行ordination.pl程序计算rda/cca完成')
         self.end()
 
@@ -366,8 +372,12 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         :param otu_species_list: 物种列表信息
         :return: 新的species文件的路径
         """
-        old_species_table = self.output_dir + "/rda_species.xls"
-        new_species_table = self.work_dir + "rda_plot_species_data.xls"
+        if os.path.exists(self.output_dir + "/rda_species.xls"):
+            old_species_table = self.output_dir + "/rda_species.xls"
+            new_species_table = self.work_dir + "rda_plot_species_data.xls"
+        else:
+            old_species_table = self.output_dir + "/cca_species.xls"
+            new_species_table = self.work_dir + "cca_plot_species_data.xls"
         with open (old_species_table, "rb") as table, open(new_species_table, "a") as w:
             line = table.readlines()
             for l in line:
