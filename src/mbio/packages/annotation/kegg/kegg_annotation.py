@@ -47,13 +47,11 @@ class KeggAnnotation(object):
                 gid = hit.find('Hit_id').text
                 # 在数据库中寻找该gene id对应的ko信息，可能改基因并不能在数据库中查到对应的信息
                 try:
-
                     koid = self.gene_coll.find_one({"gene_id": gid})["koid"]
                     result = self.ko_coll.find_one({"ko_id": koid})
                     ko_name = result['ko_name']
                     ko_hlink = 'http://www.genome.jp/dbget-bin/www_bget?ko:' + koid
                     pids = result['pathway_id']
-
                     path = []
                     for index, i in enumerate(pids):
                         self.path[i] = result['pathway_category'][index]  # 对应pathway的definition
@@ -87,9 +85,7 @@ class KeggAnnotation(object):
         for key in path_table:
             if key:
                 pid = key.split(':')[1]
-                # print pid
                 definition = self.path[pid][2]
-                # print definition
                 koids = [i.split('(')[1][0:-1] for i in path_table[key]]
                 koid_str = ';'.join(koids)
                 pid_txt.write(pid + '\t' + koid_str + '\n')
@@ -102,7 +98,6 @@ class KeggAnnotation(object):
                     path_image = key.split(":")[1] + '.png'
                     line = key + '\t' + definition + "\t" + str(num_of_seqs) + "\t" + genes + "\t" + path_image
                     path_table_xls.write(line + '\n')
-
                 except Exception as e:
                     print e
             else:
@@ -125,13 +120,10 @@ class KeggAnnotation(object):
                 l = []
                 kgml_path = os.path.join(os.getcwd(), "pathway.kgml")
                 png_path = os.path.join(os.getcwd(), "pathway.png")
-
                 if os.path.exists(kgml_path) and os.path.exists(png_path):
                     os.remove(kgml_path)
                     os.remove(png_path)
                 with open("pathway.kgml", "w+") as k, open("pathway.png", "w+") as p:
-                    # kgml_id = colln.find_one({"pathway_id": pid})['pathway_ko_kgml']
-                    # png_id = colln.find_one({"pathway_id": pid})['pathway_ko_png']
                     result = self.png_coll.find_one({"pathway_id": pid})
                     if result:
                         kgml_id = result['pathway_ko_kgml']
@@ -144,11 +136,9 @@ class KeggAnnotation(object):
                     for degree in p_kgml.entries.values():
                         if re.search(ko, degree.name):
                             l.append(degree.id)
-
                     for n in l:
                         for graphic in p_kgml.entries[n].graphics:
                             graphic.fgcolor = '#CC0000'
-
                     canvas = KGMLCanvas(p_kgml, import_imagemap=True)
                     canvas.draw(pathwaydir + '/' + pid + '.pdf')
         print "getPic finished!!!"
@@ -157,7 +147,6 @@ class KeggAnnotation(object):
         """
         输入pathway_table.xls，获取分类信息文件
         """
-
         f = open(pathway_table)
         d = {}
         for record in islice(f, 1, None):
@@ -165,27 +154,24 @@ class KeggAnnotation(object):
             seqnum = int(iterm[2])
             pid = iterm[0].split(":")[1]
             result = self.ko_coll.find_one({"pathway_id": {"$in": [pid]}})  # 找到对应的集合
-            # print result
             if result:
-
                 pids = result["pathway_id"]  # 找到对应的pid列表
-                # print pids
+                layer = False
                 for index, i in enumerate(pids):
-                    category = result["pathway_category"][index]
-                    # [pathway_index]#找到pid对应的层级信息
-                    # print category
-                    layer_1st = category[0]  # 找到第一层
-                    layer_2nd = category[1]  # 找到第二层
-                    # print layer_1st
-                    # print layer_2nd
-                if d.has_key(layer_1st):
-                    if d[layer_1st].has_key(layer_2nd):
-                        d[layer_1st][layer_2nd] += seqnum
+                    if i == pid:
+                        category = result["pathway_category"][index]  # [pathway_index]#找到pid对应的层级信息
+                        layer_1st = category[0]  # 找到第一层
+                        layer_2nd = category[1]  # 找到第二层
+                        layer = True
+                if layer:
+                    if d.has_key(layer_1st):
+                        if d[layer_1st].has_key(layer_2nd):
+                            d[layer_1st][layer_2nd] += seqnum
+                        else:
+                            d[layer_1st][layer_2nd] = seqnum
                     else:
+                        d[layer_1st] = {}
                         d[layer_1st][layer_2nd] = seqnum
-                else:
-                    d[layer_1st] = {}
-                    d[layer_1st][layer_2nd] = seqnum
         with open(layerfile, "w+") as k, open(taxonomyfile, "w+") as t:
             for i in d:
                 n = 0
@@ -195,7 +181,6 @@ class KeggAnnotation(object):
                     k.write(line)
                     n += d[i][j]
                     doc += '--' + j + '\t' + str(d[i][j]) + '\n'
-
                 t.write(i + '\t' + str(n) + '\n')
                 t.write(doc)
 
