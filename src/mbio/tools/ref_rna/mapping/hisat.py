@@ -71,8 +71,6 @@ class HisatAgent(Agent):
                     raise OptionError("请传入右端测序文件")
         if not self.option("assemble_method").is_set:
             raise OptionError("请选择拼接软件")
-        elif not self.option("assemble_method") in ["cufflinks", "stringtie", "none"]:
-            raise OptionError("请选择拼接软件")
             
     def set_resource(self):
         """
