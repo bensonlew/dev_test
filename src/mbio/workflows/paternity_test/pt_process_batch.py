@@ -22,9 +22,6 @@ class PtProcessWorkflow(Workflow):
 			{"name": "ref_fasta", "type": "infile","format":"sequence.fasta"},  # 参考序列
 			{"name": "targets_bedfile", "type": "infile","format":"denovo_rna.gene_structure.bed"},
 
-			{"name": "dad_id", "type": "string"},  # 输入F/M/S的样本ID
-			{"name": "mom_id", "type": "string"},
-			{"name": "preg_id", "type": "string"},
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
 			{"name": "ref_point", "type": "infile","format":"sequence.rda"},  # 参考位点
 			{"name": "dedup_num", "type": "int", "default": 50},  # 查重样本数
