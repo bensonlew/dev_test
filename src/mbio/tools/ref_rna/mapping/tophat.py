@@ -16,9 +16,6 @@ class TophatAgent(Agent):
     """
     def __init__(self, parent):
         super(TophatAgent, self).__init__(parent)
-        self._ref_genome_lst = ["customer_mode","Chicken","Tilapia","Zebrafish","Cow","Pig",
-                                "Fruitfly","Human","Mouse","Rat","Arabidopsis","Broomcorn",
-                                "Rice","Zeamays","Test"]
         options = [
             {"name": "ref_genome", "type": "string"},
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},
@@ -28,7 +25,7 @@ class TophatAgent(Agent):
             {"name": "left_reads", "type": "infile", "format": "sequence.fastq"},
             {"name": "right_reads", "type": "infile", "format": "sequence.fastq"},
             {"name": "bam_output", "type": "outfile", "format": "align.bwa.bam"},
-            {"name": "assemble_method", "type": "string", "default": "None"},
+            {"name": "assemble_method", "type": "string", "default": "none"},
             {"name": "sample", "type": "string"},
             {"name": "mate_std", "type": "int", "default": 50},  # 末端配对插入片段长度标准差
             {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
@@ -49,8 +46,6 @@ class TophatAgent(Agent):
 
     def check_options(self):
         self.logger.info("开始运行check步骤")
-        if not self.option("ref_genome") in self._ref_genome_lst:
-            raise OptionError("请设置参考基因组")
         if self.option("ref_genome") == "customer_mode" and not self.option("ref_genome_custom").is_set:
             raise OptionError("请上传自定义参考基因组")
         if self.option("seq_method") == "PE":
