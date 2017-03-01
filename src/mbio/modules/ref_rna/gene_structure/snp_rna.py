@@ -21,14 +21,12 @@ class SnpRnaModule(Module):
     """
     def __init__(self, work_id):
         super(SnpRnaModule, self).__init__(work_id)
-        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "Human",
-                                "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test"]
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
             {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
-            {"name": "readFilesIN1", "type": "infile", "format":"sequence.fastq, sequence.fasta"},  # 双端序列←
-            {"name": "readFilesIN2", "type": "infile", "format":"sequence.fastq, sequence.fasta"},  # 双端序列右
+            {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列←
+            {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列右
             {"name": "in_sam", "type": "infile", "format": "align.bwa.sam"},  # sam格式文件
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # 用于比对的文件夹
             {"name": "seq_method", "type": "string"},  # 比对方式
@@ -49,8 +47,6 @@ class SnpRnaModule(Module):
         """
         检查参数
         """
-        if not self.option("ref_genome") in self._ref_genome_lst:
-            raise OptionError("请选择参考基因组类型！")
         if self.option("ref_genome") == "customer_mode" and not self.option("ref_genome_custom").is_set:
             raise OptionError("请传入自定义参考序列!")
 
