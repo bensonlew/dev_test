@@ -22,6 +22,11 @@ class TabFile(Base):
 	def add_sg_pt_tab_detail(self,file_path):
 		self.bind_object.logger.info("开始导入tab表")
 		sg_pt_tab_detail = list()
+		if "-F" in file_path:
+			analysised = "no"
+		else:
+			analysised = "None"
+
 		with open(file_path, 'r') as f:
 			for line in f:
 				line = line.strip()
@@ -34,7 +39,8 @@ class TabFile(Base):
 					"alt": line[4],
 					"dp": line[5],
 					"ref_dp": line[6],
-					"alt_dp": line[7]
+					"alt_dp": line[7],
+					"analysised": analysised
 				}
 				sg_pt_tab_detail.append(insert_data)
 			try:

@@ -16,6 +16,7 @@ class PaternityTestNew(PtController):
 
     def POST(self):
         data = web.input()
+        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         params_name = ['task_id', 'err_min', 'dedup']
         for param in params_name:
             if not hasattr(data, param):
@@ -27,7 +28,7 @@ class PaternityTestNew(PtController):
             info = {'success': False, 'info': 'task_id不存在'}
             return json.dumps(info)
         task_name = 'paternity_test.report.pt_report'
-        task_type = 'workflow'
+        # task_type = 'workflow'
         params_json = {
             'err_min': int(data.err_min),
             'dedup': int(data.dedup)
@@ -40,6 +41,8 @@ class PaternityTestNew(PtController):
             ("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         ]
         main_table_id = PT().insert_main_table('sg_pt_family', mongo_data)
+        update_info = {str(main_table_id): 'sg_report_flow'}
+        update_info = json.dumps(update_info)
         options = {
             "ref_fasta": str(task_info['ref_fasta']),
             "targets_bedfile": str(task_info['targets_bedfile']),
@@ -52,10 +55,10 @@ class PaternityTestNew(PtController):
             "err_min": int(data.err_min),
             "dedup_num": int(data.dedup),
             "family_id": str(main_table_id),
+            "update_info": update_info,
         }
-        self.set_sheet_data(name=task_name, options=options,
-                            module_type=task_type, params=params)
+        self.set_sheet_data(name=task_name, options=options,module_type='workflow', params=params)
         task_info = super(PaternityTestNew, self).POST()
         return json.dumps(task_info)
 
-# python /mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py post paternity_test_new -c client03 -b http://192.168.12.102:9091 -n "err_min;dedup;task_id" -d "3;50;pt_process_test"
+# python /mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py post paternity_test_new -c client03 -b http://192.168.12.102:9092 -n "err_min;dedup;task_id" -d "3;50;sg_6027"

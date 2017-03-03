@@ -43,9 +43,11 @@ class PtProcessWorkflow(Workflow):
 		self.tools_rename_analysis = []
 		self.tools_dedup =[]
 		self.tools_dedup_f = []
+		self.rdata = []
 		self.set_options(self._sheet.options())
 		self.step.add_steps("pt_analysis", "result_info", "retab",
 		                    "de_dup1", "de_dup2")
+		self.update_status_api = self.api.pt_update_status
 
 	def check_options(self):
 		'''
@@ -143,6 +145,7 @@ class PtProcessWorkflow(Workflow):
 			"ref_point": self.option("ref_point").prop['path'],
 			"err_min": self.option("err_min")
 		})
+		self.rdata = self.output_dir + '/family_joined_tab.Rdata'
 		self.pt_analysis.on('end', self.set_output, 'pt_analysis')
 		self.pt_analysis.on('end', self.result_info_run)
 		self.pt_analysis.on('start', self.set_step, {'start': self.step.pt_analysis})
@@ -222,7 +225,7 @@ class PtProcessWorkflow(Workflow):
 
 	def result_info_run(self):
 		self.result_info.set_options({
-			"tab_merged":  self.output_dir+'/family_joined_tab.Rdata'
+			"tab_merged":  self.rdata
 		})
 		self.result_info.on('end', self.set_output, 'result_info')
 		self.result_info.on('start', self.set_step, {'start': self.step.result_info})
@@ -389,15 +392,20 @@ class PtProcessWorkflow(Workflow):
 		self.flow_id = api_main.add_pt_family(task_id=self.task_id,err_min=self.option("err_min"), dedup=self.option('dedup_num'))
 		for f in results:
 			if re.search(r'.*family_analysis\.txt$', f):
-				api_main.add_analysis_tab(self.output_dir + '/' + f, self.flow_id)
+				self.analysis_id = api_main.add_analysis_tab(self.output_dir + '/' + f, self.flow_id)
+				self.update_status_api.add_pt_status(table_id=str(self.flow_id), type_name='sg_pt_family',collec_name='sg_pt_family_analysis')
 			if re.search(r'.*family_joined_tab\.txt$', f):
 				api_main.add_sg_pt_family_detail(self.output_dir + '/' + f, self.flow_id)
+				self.update_status_api.add_pt_status(table_id=str(self.flow_id),type_name='sg_pt_family', collec_name='sg_pt_family_detail')
 			if re.search(r'.*info_show\.txt$', f):
-				api_main.add_info_detail(self.output_dir + '/' + f, self.flow_id)
+				self.info_id = api_main.add_info_detail(self.output_dir + '/' + f, self.flow_id)
+				self.update_status_api.add_pt_status(table_id=str(self.flow_id),type_name='sg_pt_family', collec_name='sg_pt_family_result_info')
 			if re.search(r'.*test_pos\.txt$', f):
-				api_main.add_test_pos(self.output_dir + '/' + f, self.flow_id)
+				self.tpos_id = api_main.add_test_pos(self.output_dir + '/' + f, self.flow_id)
+				self.update_status_api.add_pt_status(table_id=str(self.flow_id),type_name='sg_pt_family', collec_name='sg_pt_family_test_pos')
 			if f == "family.png":
-				api_main.add_pt_figure(self.output_dir, self.flow_id)
+				self.figure_id = api_main.add_pt_figure(self.output_dir, self.flow_id)
+				self.update_status_api.add_pt_status(table_id=str(self.flow_id),type_name='sg_pt_family', collec_name='sg_pt_family_figure')
 
 
 		super(PtProcessWorkflow,self).end()

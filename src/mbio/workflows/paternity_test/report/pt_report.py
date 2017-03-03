@@ -29,11 +29,13 @@ class PtReportWorkflow(Workflow):
 			{"name": "ref_point", "type": "string"},  # 参考位点
 			{"name": "dedup_num", "type": "int", "default": 50},  # 查重样本数
 			{"name": "family_id", "type": "string"},  # 查重样本数
+			{"name": "update_info", "type": "string"}
 		]
 		self.add_option(options)
 		self.pt_analysis = self.add_module("paternity_test.pt_analysis")
 		self.result_info = self.add_tool("paternity_test.result_info")
 		self.tools = []
+		self.rdata = []
 		self.tools_rename = []
 		self.tools_rename_analysis = []
 		self.tools_dedup =[]
@@ -82,18 +84,20 @@ class PtReportWorkflow(Workflow):
 			"ref_point": self.option("ref_point"),
 			"err_min": self.option("err_min")
 		})
+		self.rdata = self.output_dir + '/family_joined_tab.Rdata'
 		self.pt_analysis.on('end', self.set_output, 'pt_analysis')
-		self.pt_analysis.on('end', self.result_info_run)
 		self.pt_analysis.on('start', self.set_step, {'start': self.step.pt_analysis})
 		self.pt_analysis.on('end', self.set_step, {'end': self.step.pt_analysis})
 		self.pt_analysis.run()
 
 	def result_info_run(self):
+		print self.output_dir
 		self.result_info.set_options({
-			"tab_merged":  self.output_dir+'/family_joined_tab.Rdata'
+			# "tab_merged":  self.output_dir+'/family_joined_tab.Rdata'
+			"tab_merged": self.rdata
 		})
 		self.result_info.on('end', self.set_output, 'result_info')
-		self.result_info.on('end', self.dedup_run)
+		
 		self.result_info.on('start', self.set_step, {'start': self.step.result_info})
 		self.result_info.on('end', self.set_step, {'end': self.step.result_info})
 		self.result_info.run()
@@ -202,6 +206,7 @@ class PtReportWorkflow(Workflow):
 		obj = event["bind_object"]
 
 		if event['data'] == "pt_analysis":
+			print obj.output_dir
 			self.linkdir(obj.output_dir +'/family_analysis', self.output_dir)
 			self.linkdir(obj.output_dir + '/family_merge', self.output_dir)
 			# api_main = self.api.sg_paternity_test
@@ -219,6 +224,8 @@ class PtReportWorkflow(Workflow):
 			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
 
 	def run(self):
+		self.pt_analysis.on('end', self.result_info_run)
+		self.result_info.on('end', self.dedup_run)
 		self.pt_analysis_run()
 		super(PtReportWorkflow, self).run()
 
