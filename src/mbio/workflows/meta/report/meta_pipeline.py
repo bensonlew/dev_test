@@ -88,10 +88,8 @@ class MetaPipelineWorkflow(Workflow):
         otu_id = pipe_result['otu_id']
         status = pipe_result['status']
         all_data = json.loads(self.option("data"))
-        print all_data
+        # print all_data
         all_results = eval(all_results)
-        print all_results
-        # level_id = all_data['level_id']
         level = str(all_data['level_id']).strip().split(",")
         levels = []
         for m in level:
@@ -134,6 +132,7 @@ class MetaPipelineWorkflow(Workflow):
                             result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
                             mongo_data = {
                                 "pipe_main_id": ObjectId(inserted_id),
+                                "pipe_batch_id": ObjectId(main_table_id),
                                 "status": result['status'],
                                 "table_id": result['table_id'],
                                 "table_name": result['table_name'],
@@ -145,6 +144,8 @@ class MetaPipelineWorkflow(Workflow):
                                 "is_new": result['is_new'],
                                 "task_id": result['task_id'],
                                 "group_name": self.find_group_name(str(group['group_id'])),
+                                "group_id": ObjectId(str(group['group_id'])),
+                                "level_id": str(level),
                                 "level_name": level_name[int(level)-1]
                             }
                             try:
@@ -156,6 +157,7 @@ class MetaPipelineWorkflow(Workflow):
                         if str(anaylsis['group_id']) == str(group['group_id']) and str(anaylsis['level_id']) == str(level):
                             mongo_data = {
                                 "pipe_main_id": ObjectId(inserted_id),
+                                "pipe_batch_id": ObjectId(main_table_id),
                                 "status": "failed",
                                 "table_id": "",
                                 "table_name": "",
@@ -164,10 +166,12 @@ class MetaPipelineWorkflow(Workflow):
                                 "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "params": "",
                                 "submit_location": anaylsis['submit_location'],
-                                "is_new": 'is_new',
+                                "is_new": 'new',
                                 "task_id": task_id,
                                 "group_name": self.find_group_name(str(group['group_id'])),
-                                "level_name": level_name[int(level) - 1]
+                                "level_name": level_name[int(level) - 1],
+                                "group_id": ObjectId(str(group['group_id'])),
+                                "level_id": str(level)
                             }
                             try:
                                 collection_pipe_detail = self.db['sg_pipe_detail']
@@ -207,8 +211,6 @@ class MetaPipelineWorkflow(Workflow):
         print "-------------------------------------------------------"
         all_results = eval(all_results)
         for id in all_results:
-            # print hasattr(id, 'sub_anaylsis_id')
-            # print 'sub_anaylsis_id' in id.keys()
             if 'sub_anaylsis_id' in id.keys():
                 sub_anaylsis_main_id = str(id['sub_anaylsis_id']['id'])
                 result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
