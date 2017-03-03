@@ -17,7 +17,7 @@ class Pipe(MetaController):
         data = web.input()
         print data
         print "上面没有转json"
-        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'group_info', 'env_id', 'env_labs', 'sub_analysis']
+        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'group_info', 'sub_analysis']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!!" % param}
@@ -43,20 +43,34 @@ class Pipe(MetaController):
             # print type(str(key))
             all_analysis.append(str(key))
         print all_analysis
-        params_json = {
-            'otu_id': data.otu_id,
-            'level_id': data.level_id,
-            'group_id': data.group_id,
-            'group_detail': group_detail_sort(data.group_detail),
-            'submit_location': data.submit_location,
-            'env_id': data.env_id,
-            'env_labs': data.env_labs,
-            'group_info': data.group_info,
-            'filter_json': data.filter_json,
-            'size': data.size,
-            'task_type': data.task_type,
-            'sub_analysis': data.sub_analysis
-        }
+        if hasattr(data, 'env_id') and hasattr(data, 'env_labs'):
+            params_json = {
+                'otu_id': data.otu_id,
+                'level_id': data.level_id,
+                'group_id': data.group_id,
+                'group_detail': group_detail_sort(data.group_detail),
+                'submit_location': data.submit_location,
+                'env_id': data.env_id,
+                'env_labs': data.env_labs,
+                'group_info': data.group_info,
+                'filter_json': data.filter_json,
+                'size': data.size,
+                'task_type': data.task_type,
+                'sub_analysis': data.sub_analysis
+            }
+        else:
+            params_json = {
+                'otu_id': data.otu_id,
+                'level_id': data.level_id,
+                'group_id': data.group_id,
+                'group_detail': group_detail_sort(data.group_detail),
+                'submit_location': data.submit_location,
+                'group_info': data.group_info,
+                'filter_json': data.filter_json,
+                'size': data.size,
+                'task_type': data.task_type,
+                'sub_analysis': data.sub_analysis
+            }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
             ('project_sn', task_info['project_sn']),
