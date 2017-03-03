@@ -15,7 +15,7 @@ class PtUpdateStatus(Base):
         self._db_name = Config().MONGODB + '_paternity_test'
 
     @report_check
-    def add_pt_status(self, table_id=None, table_name=None, type_name=None, collec_name = None,status='end', task_id=None, isnew='new', desc=None, submit_location=None, params=None):
+    def add_pt_status(self, table_id=None, table_name=None, type_name=None, status='end', task_id=None, isnew='new', desc=None, submit_location=None, params=None):
         collection = self.db["sg_status"]
         if not task_id:
             task_id = self.bind_object.sheet.id
@@ -56,7 +56,6 @@ class PtUpdateStatus(Base):
             "table_id": table_id,
             "table_name": table_name,
             "task_id": task_id,
-            "type_name": collec_name,
             "status": status,
             "is_new": isnew,
             "desc": desc,
