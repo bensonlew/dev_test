@@ -15,17 +15,47 @@ class TabFile(Base):
 		super(TabFile, self).__init__(bind_object)
 		# self._db_name = Config().MONGODB
 		self.mongo_client = MongoClient(Config().MONGO_BIO_URI)
-		self.database = self.mongo_client['sanger_paternity_test']
+		self.database = self.mongo_client['sanger_paternity_test_v2']
+
+
+	@report_check
+	def add_pt_tab(self,sample):
+		if "-F" in sample:
+			analysised = "no"
+		else:
+			analysised = "None"
+		with open(sample, 'r') as f:
+			for line in f:
+				line = line.strip()
+				line = line.split('\t')
+				if line[0] != '':
+					sample = line[0]
+					break
+			insert_data = {
+				"sample_id": sample,
+				"analysised": analysised
+			}
+			try:
+				collection = self.database['sg_pt_ref_main']
+				collection.insert_one(insert_data)
+			except Exception as e:
+				self.bind_object.logger.error('导入tab主表出错：{}'.format(e))
+			else:
+				self.bind_object.logger.info("导入tab主表成功")
+
+	def update_pt_tab(self,sample):
+		try:
+			collection = self.database['sg_pt_ref_main']
+			collection.update({"sample_id": sample}, {'$set':{"analysised": "yes"}})
+		except Exception as e:
+			self.bind_object.logger.error('更新tab主表出错：{}'.format(e))
+		else:
+			self.bind_object.logger.info("更新tab主表成功")
 
 
 	@report_check
 	def add_sg_pt_tab_detail(self,file_path):
-		self.bind_object.logger.info("开始导入tab表")
 		sg_pt_tab_detail = list()
-		if "-F" in file_path:
-			analysised = "no"
-		else:
-			analysised = "None"
 
 		with open(file_path, 'r') as f:
 			for line in f:
@@ -40,7 +70,6 @@ class TabFile(Base):
 					"dp": line[5],
 					"ref_dp": line[6],
 					"alt_dp": line[7],
-					"analysised": analysised
 				}
 				sg_pt_tab_detail.append(insert_data)
 			try:
@@ -109,3 +138,23 @@ class TabFile(Base):
 		sample_new = list(set(sample))
 		if sample_new:
 			return sample_new
+
+	def sample_qc(self, file, sample_id):
+		qc_detail = list()
+		with open(file,'r') as f:
+			for line in f:
+				line.strip()
+				line.split(":")
+				insert_data = {
+					"qc": line[0],
+					"value": line[1],
+					"sample_id":sample_id
+				}
+				qc_detail.append(insert_data)
+			try:
+				collection = self.database['sg_pt_qc']
+				collection.insert_many(qc_detail)
+			except Exception as e:
+				self.bind_object.logger.error('导入qc表格出错：{}'.format(e))
+			else:
+				self.bind_object.logger.info("导入qc表格成功")
