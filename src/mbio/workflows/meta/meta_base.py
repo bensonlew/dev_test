@@ -331,8 +331,10 @@ class MetaBaseWorkflow(Workflow):
                 raise Exception("找不到报告文件:{}".format(otu_path))
             params = {
                 "group_id": 'all',
-                "size": 0,
+                #"size": 0,
+                "size": "",   # modified by hongdongxuan 20170303
                 "submit_location": 'otu_statistic',
+                "filter_json": "[]", # add by hongdongxuan 20170303
                 "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
