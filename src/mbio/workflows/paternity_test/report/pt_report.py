@@ -76,7 +76,6 @@ class PtReportWorkflow(Workflow):
 
 	def pt_analysis_run(self):
 		api_read_tab = self.api.tab_file
-		print type(api_read_tab.export_tab_file(str(self.option('dad_id')), self.output_dir))
 		self.pt_analysis.set_options({
 			"dad_tab": api_read_tab.export_tab_file(str(self.option('dad_id')), self.output_dir),  # 数据库的tab文件
 			"mom_tab": api_read_tab.export_tab_file(str(self.option('mom_id')), self.output_dir),
@@ -84,14 +83,14 @@ class PtReportWorkflow(Workflow):
 			"ref_point": self.option("ref_point"),
 			"err_min": self.option("err_min")
 		})
-		self.rdata = self.output_dir + '/family_joined_tab.Rdata'
+		self.rdata = self.work_dir + '/PtAnalysis/output/family_merge/family_joined_tab.Rdata'
 		self.pt_analysis.on('end', self.set_output, 'pt_analysis')
 		self.pt_analysis.on('start', self.set_step, {'start': self.step.pt_analysis})
 		self.pt_analysis.on('end', self.set_step, {'end': self.step.pt_analysis})
 		self.pt_analysis.run()
 
 	def result_info_run(self):
-		print self.output_dir
+		print self.rdata
 		self.result_info.set_options({
 			# "tab_merged":  self.output_dir+'/family_joined_tab.Rdata'
 			"tab_merged": self.rdata

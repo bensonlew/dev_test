@@ -12,17 +12,11 @@ from biocluster.config import Config
 class PtUpdateStatus(Base):
     def __init__(self, bind_object):
         super(PtUpdateStatus, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_paternity_test'
+        self._db_name = Config().MONGODB + '_paternity_test_v2'
 
     @report_check
-    def add_pt_status(self, table_id=None, table_name=None, type_name=None, collec_name = None,status='end', task_id=None, isnew='new', desc=None, submit_location=None, params=None):
+    def add_pt_status(self, table_id=None, table_name=None, type_name=None, status='end', isnew='new', desc=None, submit_location=None, params=None):
         collection = self.db["sg_status"]
-        if not task_id:
-            task_id = self.bind_object.sheet.id
-        else:
-            if params is not None:
-                if not isinstance(params, dict):
-                    raise Exception('提供的参数params必须为字典')
         if isinstance(table_id, StringTypes):
             try:
                 table_id = ObjectId(table_id)
@@ -36,7 +30,7 @@ class PtUpdateStatus(Base):
             raise Exception('必须提供type_name!!!')
         if not table_name or not params:
             temp_collection = self.db[type_name]
-            tempfind = temp_collection.find_one({'_id': table_id})
+            tempfind = temp_collection.find_one({'_id': ObjectId(table_id)})
             if not tempfind:
                 raise Exception('提供的ID:%s无法在表:%s中找到' % (table_id, type_name))
             if 'name' in tempfind:
@@ -55,8 +49,6 @@ class PtUpdateStatus(Base):
         insert_data = {
             "table_id": table_id,
             "table_name": table_name,
-            "task_id": task_id,
-            "type_name": collec_name,
             "status": status,
             "is_new": isnew,
             "desc": desc,
