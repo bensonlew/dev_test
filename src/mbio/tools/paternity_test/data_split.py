@@ -7,6 +7,7 @@ from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
 import os
+import re
 
 class DataSplitAgent(Agent):
 
@@ -15,6 +16,7 @@ class DataSplitAgent(Agent):
 		功能：对医学检验所的测序数据进行拆分，区分各个数据(WQ对应亲子鉴定，WS对应产前筛查等)
 		author：zhouxuan
 		last modify: 2017.02.21
+					 2017.02.28
 		version: v1.0
 
 	"""
@@ -115,16 +117,75 @@ class DataSplitTool(Tool):
 
 	def set_output(self):
 		"""
-		把拆分所得的结果文件放置在tool的output文件夹下
+		把拆分所得的结果文件放置在tool的output文件夹下按照(WQ对应亲子鉴定，WS对应产前筛查等，undetermined对应暂时不确定的fastq文件)
 		:return: logger message
 		"""
-		result_dir = os.path.join(self.work_dir, "MED")
-		if os.path.exists(result_dir):
-			new_data_dir = os.path.join(self.output_dir, "med_data")
-			try:
-				shutil.copytree(result_dir, new_data_dir)
-			except Exception as e:
-				self.logger.info("set output failed{}".format(e))
-				self.set_error("set output failed{}".format(e))
-		else:
-			self.logger.info("no result_dir")
+		med_result_dir = os.path.join(self.work_dir, "MED")
+		if not os.path.exists(med_result_dir):
+			self.logger.info("no result_dir of data_split")
+			self.set_error("no result_dir of data_split")
+		wq_dir = os.path.join(self.output_dir, "wq_data")
+		os.mkdir(wq_dir)
+		ws_dir = os.path.join(self.output_dir, "ws_data")
+		os.mkdir(ws_dir)
+		undetermined_dir = os.path.join(self.output_dir, "undetermined_data")
+		os.mkdir(undetermined_dir)
+		undetermined_name = os.listdir(self.work_dir)
+		unknown_sample_name = []
+		unknown_sample = []
+		for i in undetermined_name:
+			detail_name = i.split(".")
+			if detail_name[-1] == "gz":
+				unknown_sample.append(i)
+				name = i.split("_")
+				if name[1] not in unknown_sample_name:
+					unknown_sample_name.append(name[1])
+		for name in unknown_sample_name:
+			for file_name in unknown_sample:
+				file_name_ = file_name.split("_")
+				if file_name_[1] == name:
+					if file_name_[3] == "R1":
+						os.system('cat {} >> {}'.format(os.path.join(self.work_dir, file_name), os.path.join(undetermined_dir, "Undetermined_" + name + "_R1.fastq.gz")))
+					else:
+						os.system('cat {} >> {}'.format(os.path.join(self.work_dir, file_name), os.path.join(undetermined_dir, "Undetermined_" + name + "_R2.fastq.gz")))
+		sample_dir_name = os.listdir(med_result_dir)
+		for dir_name in sample_dir_name:
+			med_sample = dir_name.split("_")
+			med_sample_name = med_sample[1]
+			part_of_name = med_sample_name.split("-")
+			if part_of_name[0] == "WS":
+				part_seq_name = os.listdir(os.path.join(med_result_dir, dir_name))
+				for name in part_seq_name:
+					seq_name = name.split("_")
+					if seq_name[3] == "R1":
+						os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(ws_dir, med_sample_name + "_R1.fastq.gz")))
+					else:
+						os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(ws_dir, med_sample_name + "_R2.fastq.gz")))
+			else:
+				m = re.match('WQ([1-9].*)', part_of_name[0])
+				if m:
+					part_seq_name = os.listdir(os.path.join(med_result_dir, dir_name))
+					for name in part_seq_name:
+						seq_name = name.split("_")
+						if seq_name[3] == "R1":
+							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(wq_dir, med_sample_name + "_R1.fastq.gz")))
+						else:
+							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(wq_dir, med_sample_name + "_R2.fastq.gz")))
+				else:
+					part_seq_name = os.listdir(os.path.join(med_result_dir, dir_name))
+					for name in part_seq_name:
+						seq_name = name.split("_")
+						if seq_name[3] == "R1":
+							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(undetermined_dir, med_sample_name + "_R1.fastq.gz")))
+						else:
+							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(undetermined_dir, med_sample_name + "_R2.fastq.gz")))
+
+		# if os.path.exists(result_dir):
+		# 	new_data_dir = os.path.join(self.output_dir, "med_data")
+		# 	try:
+		# 		shutil.copytree(result_dir, new_data_dir)
+		# 	except Exception as e:
+		# 		self.logger.info("set output failed{}".format(e))
+		# 		self.set_error("set output failed{}".format(e))
+		# else:
+		# 	self.logger.info("no result_dir")
