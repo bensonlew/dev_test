@@ -20,7 +20,8 @@ class SortSamplesAgent(Agent):
             {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU文件
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表
             {"name": "method", "type": "string", "default": ""},  # 样本的合并方式, ""为不进行合并
-            {"name": "out_otu_table", "type": "outfile", "format": "met a.otu.otu_table"}  # 输出的结果OTU表
+            {"name": "out_otu_table", "type": "outfile", "format": "meta.otu.otu_table"},  # 输出的结果OTU表
+            {"name": "level_otu_table", "type": "outfile", "format": "meta.otu.otu_table"}  # 输出的结果OTU表(百分比）
         ]
         self.add_option(options)
         self.step.add_steps("sort_samples")
@@ -50,7 +51,7 @@ class SortSamplesAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
             ["out_otu.xls", "xls", "结果OTU表格"],
-            # ["level_percents.xls", "xls", "结果OTU表格"]
+            ["level_otu_table.xls", "xls", "结果OTU表格(百分比）"]  # add by wangzhaoyue 2017.03.06
         ])
         super(SortSamplesAgent, self).end()
 
@@ -156,8 +157,7 @@ class SortSamplesTool(Tool):
                 w.write("\n")
         return cat_otu_path
 
-    def percent(self, origin_file, percent_file):
-        self.logger.info("开始运行百分比")
+    def percent(self, origin_file, percent_file):   # add by wangzhaoyue 2017.03.06
         tmp = np.loadtxt(origin_file, dtype=np.str, delimiter="\t")
         data = tmp[1:, 1:].astype(np.float)
         array_data = data / data.sum(0)
@@ -169,14 +169,12 @@ class SortSamplesTool(Tool):
     def run(self):
         super(SortSamplesTool, self).run()
         final_otu = self.filter_samples()
-        self.logger.info('filter success')
         if self.option("method") in ["average", "sum", "middle"]:
             final_otu = self.cat_samples(final_otu, self.option("method"))
-        self.logger.info("111")
         out_otu = os.path.join(self.output_dir, "out_otu.xls")
         shutil.copy2(final_otu, out_otu)
-        final_level_percents = os.path.join(self.output_dir, "level_percents.xls")
-        self.logger.info("222")
+        final_level_percents = os.path.join(self.output_dir, "level_otu_table.xls")
         self.percent(out_otu, final_level_percents)
+        self.option("level_otu_table").set_path(final_level_percents)   # add 3 lines by wangzhaoyue 2017.03.06
         self.option("out_otu_table").set_path(out_otu)
         self.end()
