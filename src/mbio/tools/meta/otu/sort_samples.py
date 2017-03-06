@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
-from __future__ import division
 import os
 import shutil
+import linecache
+import numpy as np
 from collections import defaultdict
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -19,7 +20,7 @@ class SortSamplesAgent(Agent):
             {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU文件
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表
             {"name": "method", "type": "string", "default": ""},  # 样本的合并方式, ""为不进行合并
-            {"name": "out_otu_table", "type": "outfile", "format": "meta.otu.otu_table"}  # 输出的结果OTU表
+            {"name": "out_otu_table", "type": "outfile", "format": "met a.otu.otu_table"}  # 输出的结果OTU表
         ]
         self.add_option(options)
         self.step.add_steps("sort_samples")
@@ -48,7 +49,8 @@ class SortSamplesAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            ["out_otu.xls", "xls", "结果OTU表格"]
+            ["out_otu.xls", "xls", "结果OTU表格"],
+            # ["level_percents.xls", "xls", "结果OTU表格"]
         ])
         super(SortSamplesAgent, self).end()
 
@@ -57,7 +59,7 @@ class SortSamplesAgent(Agent):
         设置所需的资源
         """
         self._cpu = 2
-        self._memory = "1G"
+        self._memory = "3G"
 
 
 class SortSamplesTool(Tool):
@@ -154,12 +156,27 @@ class SortSamplesTool(Tool):
                 w.write("\n")
         return cat_otu_path
 
+    def percent(self, origin_file, percent_file):
+        self.logger.info("开始运行百分比")
+        tmp = np.loadtxt(origin_file, dtype=np.str, delimiter="\t")
+        data = tmp[1:, 1:].astype(np.float)
+        array_data = data / data.sum(0)
+        array = np.c_[tmp[1:, 0], array_data]
+        array_all = np.row_stack((tmp[0, :], array))
+        s = np.char.encode(array_all, 'utf-8')
+        np.savetxt(percent_file, s, fmt='%s',  delimiter='\t', newline='\n')
+
     def run(self):
         super(SortSamplesTool, self).run()
         final_otu = self.filter_samples()
+        self.logger.info('filter success')
         if self.option("method") in ["average", "sum", "middle"]:
             final_otu = self.cat_samples(final_otu, self.option("method"))
+        self.logger.info("111")
         out_otu = os.path.join(self.output_dir, "out_otu.xls")
         shutil.copy2(final_otu, out_otu)
+        final_level_percents = os.path.join(self.output_dir, "level_percents.xls")
+        self.logger.info("222")
+        self.percent(out_otu, final_level_percents)
         self.option("out_otu_table").set_path(out_otu)
         self.end()
