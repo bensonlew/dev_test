@@ -18,7 +18,7 @@ class TabFile(Base):
 		self.database = self.mongo_client['sanger_paternity_test_v2']
 
 
-	@report_check
+	# @report_check
 	def add_pt_tab(self,sample):
 		if "-F" in sample:
 			analysised = "no"
@@ -29,10 +29,10 @@ class TabFile(Base):
 				line = line.strip()
 				line = line.split('\t')
 				if line[0] != '':
-					sample = line[0]
+					sample_name = line[0]
 					break
 			insert_data = {
-				"sample_id": sample,
+				"sample_id": sample_name,
 				"analysised": analysised
 			}
 			try:
@@ -53,7 +53,7 @@ class TabFile(Base):
 			self.bind_object.logger.info("更新tab主表成功")
 
 
-	@report_check
+	# @report_check
 	def add_sg_pt_tab_detail(self,file_path):
 		sg_pt_tab_detail = list()
 
@@ -80,7 +80,7 @@ class TabFile(Base):
 			else:
 				self.bind_object.logger.info("导入tab表格成功")
 
-	@report_check
+	# @report_check
 	def tab_exist(self, sample):
 		self.bind_object.logger.info('开始检测tab表格')
 		collection = self.database['sg_pt_ref']
