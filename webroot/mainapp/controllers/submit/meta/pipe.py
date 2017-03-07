@@ -52,11 +52,11 @@ class Pipe(MetaController):
                 'submit_location': data.submit_location,
                 'env_id': data.env_id,
                 'env_labs': data.env_labs,
-                'group_info': data.group_info,
-                'filter_json': data.filter_json,
+                'group_info': json.loads(data.group_info),
+                'filter_json': json.loads(data.filter_json),
                 'size': data.size,
                 'task_type': data.task_type,
-                'sub_analysis': data.sub_analysis
+                'sub_analysis': json.loads(data.sub_analysis)
             }
         else:
             params_json = {
@@ -65,11 +65,11 @@ class Pipe(MetaController):
                 'group_id': data.group_id,
                 'group_detail': group_detail_sort(data.group_detail),
                 'submit_location': data.submit_location,
-                'group_info': data.group_info,
-                'filter_json': data.filter_json,
+                'group_info': json.loads(data.group_info),
+                'filter_json': json.loads(data.filter_json),
                 'size': data.size,
                 'task_type': data.task_type,
-                'sub_analysis': data.sub_analysis
+                'sub_analysis': json.loads(data.sub_analysis)
             }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
