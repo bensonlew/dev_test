@@ -22,9 +22,13 @@ class SgPaternityTest(Base):
 
 	@report_check
 	def add_sg_father(self,dad,mom,preg):
-		temp_d = re.search("WQ([1-9]*)-F.*",dad)
+		temp_d = re.search("WQ([0-9]*)-F.*",dad)
+		print dad
+		print temp_d
+		print type(temp_d)
 		temp_m = re.search(".*-(M.*)", mom)
 		temp_s = re.search(".*-(S.*)",preg)
+		print type(temp_m)
 		name = dad + "-" + temp_m.group(1) + "-" + temp_s.group(1)
 
 		# "name": family_no.group(1)
