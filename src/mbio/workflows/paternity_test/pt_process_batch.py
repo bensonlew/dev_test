@@ -17,8 +17,8 @@ class PtProcessWorkflow(Workflow):
 		self._sheet = wsheet_object
 		super(PtProcessWorkflow, self).__init__(wsheet_object)
 		options = [
-			{"name": "message_table", "type": "infile", "format": "paternity_test.tab"},
-			{"name": "origin_data", "type": "infile", "format": "paternity_test.data_dir"},
+			{"name": "message_table", "type": "infile", "format": "paternity_test.tab"},  # 拆分数据需要的表格文件
+			{"name": "origin_data", "type": "infile", "format": "paternity_test.data_dir"},  # 数据拆分的输入文件夹
 
 			{"name": "fastq_path", "type": "infile","format":"sequence.fastq_dir"},  # fastq所在路径(文件夹
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
