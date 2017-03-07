@@ -133,21 +133,25 @@ class DataSplitTool(Tool):
 		undetermined_name = os.listdir(self.work_dir)
 		unknown_sample_name = []
 		unknown_sample = []
-		for i in undetermined_name:
+		for i in undetermined_name:  # Undetermined_S0_L002_R1_001.fastq.gz
 			detail_name = i.split(".")
 			if detail_name[-1] == "gz":
-				unknown_sample.append(i)
+				unknown_sample.append(i)  # Undetermined_S0_L002_R1_001.fastq.gz
 				name = i.split("_")
 				if name[1] not in unknown_sample_name:
-					unknown_sample_name.append(name[1])
+					unknown_sample_name.append(name[1])  # S0
 		for name in unknown_sample_name:
-			for file_name in unknown_sample:
+			for file_name in unknown_sample:  # file_name == Undetermined_S0_L002_R1_001.fastq.gz
 				file_name_ = file_name.split("_")
+				file_name__ = file_name.split(".")
+				new_file_name = (".").join(file_name__[0:2])
+				print(new_file_name)
 				if file_name_[1] == name:
+					os.system('gzip -d {}'.format(os.path.join(self.work_dir, file_name)))
 					if file_name_[3] == "R1":
-						os.system('cat {} >> {}'.format(os.path.join(self.work_dir, file_name), os.path.join(undetermined_dir, "Undetermined_" + name + "_R1.fastq.gz")))
+						os.system('cat {} >> {}'.format(os.path.join(self.work_dir, new_file_name), os.path.join(undetermined_dir, "Undetermined_" + name + "_R1.fastq")))
 					else:
-						os.system('cat {} >> {}'.format(os.path.join(self.work_dir, file_name), os.path.join(undetermined_dir, "Undetermined_" + name + "_R2.fastq.gz")))
+						os.system('cat {} >> {}'.format(os.path.join(self.work_dir, new_file_name), os.path.join(undetermined_dir, "Undetermined_" + name + "_R2.fastq")))
 		sample_dir_name = os.listdir(med_result_dir)
 		for dir_name in sample_dir_name:
 			med_sample = dir_name.split("_")
@@ -157,28 +161,49 @@ class DataSplitTool(Tool):
 				part_seq_name = os.listdir(os.path.join(med_result_dir, dir_name))
 				for name in part_seq_name:
 					seq_name = name.split("_")
+					seq_name_ = name.split(".")
+					new_name = (".").join(seq_name_[0:2])
+					print(new_name)
+					os.system('gzip -d {}'.format(os.path.join(med_result_dir, dir_name, name)))
 					if seq_name[3] == "R1":
-						os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(ws_dir, med_sample_name + "_R1.fastq.gz")))
+						os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(ws_dir, med_sample_name + "_R1.fastq")))
 					else:
-						os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(ws_dir, med_sample_name + "_R2.fastq.gz")))
+						os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(ws_dir, med_sample_name + "_R2.fastq")))
 			else:
 				m = re.match('WQ([1-9].*)', part_of_name[0])
 				if m:
 					part_seq_name = os.listdir(os.path.join(med_result_dir, dir_name))
 					for name in part_seq_name:
 						seq_name = name.split("_")
+						seq_name_ = name.split(".")
+						new_name = (".").join(seq_name_[0:2])
+						print(new_name)
+						os.system('gzip -d {}'.format(os.path.join(med_result_dir, dir_name, name)))
 						if seq_name[3] == "R1":
-							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(wq_dir, med_sample_name + "_R1.fastq.gz")))
+							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(wq_dir, med_sample_name + "_R1.fastq")))
 						else:
-							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(wq_dir, med_sample_name + "_R2.fastq.gz")))
+							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(wq_dir, med_sample_name + "_R2.fastq")))
 				else:
 					part_seq_name = os.listdir(os.path.join(med_result_dir, dir_name))
 					for name in part_seq_name:
 						seq_name = name.split("_")
+						seq_name_ = name.split(".")
+						new_name = (".").join(seq_name_[0:2])
+						print(new_name)
+						os.system('gzip -d {}'.format(os.path.join(med_result_dir, dir_name, name)))
 						if seq_name[3] == "R1":
-							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(undetermined_dir, med_sample_name + "_R1.fastq.gz")))
+							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(undetermined_dir, med_sample_name + "_R1.fastq")))
 						else:
-							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, name), os.path.join(undetermined_dir, med_sample_name + "_R2.fastq.gz")))
+							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(undetermined_dir, med_sample_name + "_R2.fastq")))
+		ws_name = os.listdir(ws_dir)
+		for name in ws_name:
+			os.system('gzip {}'.format(os.path.join(ws_dir, name)))
+		wq_name = os.listdir(wq_dir)
+		for name in wq_name:
+			os.system('gzip {}'.format(os.path.join(wq_dir, name)))
+		unknown_name = os.listdir(undetermined_dir)
+		for name in unknown_name:
+			os.system('gzip {}'.format(os.path.join(undetermined_dir, name)))
 
 		# if os.path.exists(result_dir):
 		# 	new_data_dir = os.path.join(self.output_dir, "med_data")
