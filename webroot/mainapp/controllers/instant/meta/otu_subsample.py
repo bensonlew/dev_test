@@ -37,7 +37,7 @@ class OtuSubsample(MetaController):
         my_param['otu_id'] = data.otu_id
         my_param["submit_location"] = data.submit_location
         my_param["size"] = data.size
-        my_param["filter_json"] = json.loads(data.filter_json)
+        my_param["filter_json"] = data.filter_json
         my_param["group_detail"] = group_detail_sort(data.group_detail)
         my_param["task_type"] = data.task_type
         params = param_pack(my_param)
