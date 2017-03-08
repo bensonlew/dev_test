@@ -176,7 +176,7 @@ class SgPaternityTest(Base):
 		preg_percent = fs.put(open(output_dir + '/preg_percent.png', 'r'))
 		update_data = {
 			# "task_id": self.bind_object.id,
-			"father_id": pt_father_id,
+			"pt_father_id": pt_father_id,
 			'family_fig': family_fig,
 			'figure1': figure1,
 			'figure2': figure2,
@@ -200,9 +200,11 @@ class SgPaternityTest(Base):
 				line = line.split('\t')
 				if line[0] == "dad.id":
 					continue
+				temp_fp = eval(line[4])
+				RCP = temp_fp / (temp_fp + 1)
 				insert_data = {
 					# "task_id": self.bind_object.id,
-					"father_id": pt_father_id,
+					"pt_father_id": pt_father_id,
 					"dad_id": line[0],
 					"test_pos_n": line[1],
 					"err_pos_n": line[2],
@@ -211,7 +213,8 @@ class SgPaternityTest(Base):
 					"dp": line[5],
 					"eff_rate": line[6],
 					"ineff_rate": line[7],
-					"result": line[8]
+					"result": line[8],
+					"rcp": float(RCP)
 				}
 				sg_pt_family_detail.append(insert_data)
 			try:
@@ -233,7 +236,7 @@ class SgPaternityTest(Base):
 					continue
 				insert_data = {
 					# "task_id": self.bind_object.id,
-					"father_id": pt_father_id,
+					"pt_father_id": pt_father_id,
 					"preg_id": line[0],
 					"dp_preg": line[1],
 					"percent": line[2],
@@ -263,7 +266,7 @@ class SgPaternityTest(Base):
 					continue
 				insert_data = {
 					# "task_id": self.bind_object.id,
-					"father_id": pt_father_id,
+					"pt_father_id": pt_father_id,
 					"test_no": line[0],
 					"chrom": line[1],
 					"dad_geno": line[2],
