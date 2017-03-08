@@ -14,7 +14,6 @@ import json
 class Signature(object):
 
     def __init__(self):
-        print "正在校验client用户与密码..."
         data = web.input()
         info = {
             "signature": data.signature if hasattr(data, "signature") else web.ctx.env.get('HTTP_SIGNATURE'),
@@ -25,7 +24,6 @@ class Signature(object):
 
         for data in info.values():
             if not data:
-                print "用户验证信息缺失.."
                 raise web.badrequest
 
         self._signature = info["signature"]
@@ -70,7 +68,6 @@ def check_sig(f):
             return f(obj)
         else:
             # raise web.unauthorized
-            print "身份验证未通过!"
             info = {"success": False, "info": "身份验证未通过!"}
             return json.dumps(info)
     return wrapper

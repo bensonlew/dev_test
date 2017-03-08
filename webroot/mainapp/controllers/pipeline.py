@@ -14,6 +14,7 @@ from mainapp.config.db import get_use_api_clients, get_api_type, get_mongo_clien
 from biocluster.wpm.client import worker_client
 import traceback
 import re
+from mainapp.libs.getip import get_ip
 
 
 class Pipeline(object):
@@ -296,7 +297,7 @@ class PipelineStop(object):
                     return json.dumps(info)
                 else:
                     insert_data = {"client": client,
-                                   "ip": web.ctx.ip
+                                   "ip": get_ip()
                                    }
                     if workflow_module.set_stop(data.id, insert_data):
                         info = {"success": True, "info": "操作成功！"}
@@ -381,7 +382,7 @@ class PipelinePause(object):
                     return json.dumps(info)
                 else:
                     insert_data = {"client": client,
-                                   "ip": web.ctx.ip
+                                   "ip": get_ip()
                                    # "reason": data.reason
                                    }
                     if workflow_module.set_pause(data.id, insert_data):
