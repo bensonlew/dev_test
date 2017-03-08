@@ -51,6 +51,20 @@ class MainServer(object):
         thread.setDaemon(True)
         thread.start()
 
+    def write_pids(self):
+        main_pid_file = self.config.wpm_pid_dir + "/wpm.pid"
+        process_pid_file = self.config.wpm_pid_dir + "/pm.pid"
+        log_pid_file = self.config.wpm_pid_dir + "/lm.pid"
+        main_pid = str(os.getpid())
+        if not os.path.exists(self.config.wpm_pid_dir):
+            os.mkdir(self.config.wpm_pid_dir)
+        with open(process_pid_file, 'w+') as f:
+            f.write('%s\n' % self.manager_server.pid)
+        with open(log_pid_file, 'w+') as f:
+            f.write('%s\n' % self.api_log_server.pid)
+        with open(main_pid_file, 'w+') as f:
+            f.write('%s\n' % main_pid)
+
     def start(self):
         # start check thread
         setproctitle.setproctitle("WPM[main server]")
@@ -66,6 +80,7 @@ class MainServer(object):
 
         # start main server
         write_log("启动WPM主服务监听...")
+        self.write_pids()
 
         class ListenerManager(BaseManager):
             pass
