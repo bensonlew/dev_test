@@ -17,15 +17,16 @@ class PaternityTestNew(PtController):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['task_id', 'err_min', 'dedup','submit_location']
+        params_name = ['father_id', 'err_min', 'dedup','submit_location']
         for param in params_name:
             if not hasattr(data, param):
                 info = {'success': False, 'info': '缺少{}参数'.format(param)}
                 return json.dumps(info)
-        task_info = PT().get_query_info(data.task_id)
-        print task_info
-        if not task_info:
-            info = {'success': False, 'info': 'task_id不存在'}
+        father_info = PT().get_query_info(data.father_id)
+        ref_info = PT().get_ref_info(data.father_id)
+        print father_info
+        if not father_info:
+            info = {'success': False, 'info': 'father_id不存在'}
             return json.dumps(info)
         task_name = 'paternity_test.report.pt_report'
         task_type = 'workflow'
@@ -38,29 +39,29 @@ class PaternityTestNew(PtController):
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
             ('params', params),
-            ('task_id', data.task_id),
+            ('father_id', data.father_id),
             ('name', 'err-' + str(data.err_min) + '_dedup-' + str(data.dedup)),
             ("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         ]
-        main_table_id = PT().insert_main_table('sg_pt_family', mongo_data)
+        main_table_id = PT().insert_main_table('sg_pt_father', mongo_data)
         update_info = {str(main_table_id): 'sg_report_flow'}
         update_info = json.dumps(update_info)
         options = {
-            "ref_fasta": str(task_info['ref_fasta']),
-            "targets_bedfile": str(task_info['targets_bedfile']),
+            "ref_fasta": str(ref_info['ref_fasta']),
+            "targets_bedfile": str(ref_info['targets_bedfile']),
 
-            "dad_id": str(task_info['dad_id']),
-            "mom_id": task_info['mom_id'],
-            "preg_id": task_info['preg_id'],
-            "ref_point": str(task_info['ref_point']),
+            "dad_id": str(father_info['dad_id']),
+            "mom_id": father_info['mom_id'],
+            "preg_id": father_info['preg_id'],
+            "ref_point": str(ref_info['ref_point']),
 
             "err_min": int(data.err_min),
             "dedup_num": int(data.dedup),
-            "family_id": str(main_table_id),
+            "pt_father_id": str(main_table_id),
             "update_info": update_info,
         }
         self.set_sheet_data(name=task_name, options=options,module_type=task_type, params=params)
         task_info = super(PaternityTestNew, self).POST()
         return json.dumps(task_info)
 
-# python /mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py post paternity_test_new -c client03 -b http://192.168.12.102:9092 -n "err_min;dedup;task_id" -d "3;50;sg_6027"
+# python /mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py post paternity_test_new -c client03 -b http://192.168.12.102:9095 -n "err_min;dedup;father_id;submit_location" -d "3;50;58bfb0dca4e1af6aa54909ca;XXX"
