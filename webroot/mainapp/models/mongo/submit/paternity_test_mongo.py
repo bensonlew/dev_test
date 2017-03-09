@@ -61,9 +61,8 @@ class PaternityTest(object):
 		if father_id is None:
 			raise Exception('未获取到father_id')
 		collection = self.database['sg_pt_ref_file']
-		task_info = collection.find({"father_id": ObjectId(father_id)})
-		for info in task_info:
-			return info
+		task_info = collection.find_one({"father_id": ObjectId(father_id)})
+		return task_info
 
 	def insert_main_table(self, collection,data):
 		return self.database[collection].insert_one(SON(data)).inserted_id
