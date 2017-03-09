@@ -220,11 +220,15 @@ class MetaPipelineWorkflow(Workflow):
         :param main_table_id: 批次表的ID
         :return:
         """
+        times = 1
         while True:
             time.sleep(10)
+            times += 10
+            print times
+            if int(times) >= 172800:
+                raise Exception("程序没有响应，超过172800s自动终止！")
             if self.check_all(all_results, main_table_id):
                 self.set_db(all_results, main_table_id)
-                # self.end()
                 break
 
 
