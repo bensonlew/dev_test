@@ -28,7 +28,7 @@ class PtReportWorkflow(Workflow):
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
 			{"name": "ref_point", "type": "string"},  # 参考位点
 			{"name": "dedup_num", "type": "int", "default": 50},  # 查重样本数
-			{"name": "family_id", "type": "string"},  # 查重样本数
+			{"name": "pt_father_id", "type": "string"},  # 查重样本数
 			{"name": "update_info", "type": "string"}
 		]
 		self.add_option(options)
@@ -232,23 +232,24 @@ class PtReportWorkflow(Workflow):
 
 	def end(self):
 		api_main = self.api.sg_paternity_test
-		# self.task_id = api_main.add_sg_task(self.option('dad_id'), self.option('mom_id'), self.option('preg_id'),
-		#                                     self.option('ref_fasta'), self.option('targets_bedfile'),
-		#                                     self.option('ref_point'), self.option('fastq_path'))
-		# flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
-		self.flow_id = ObjectId(self.option('family_id'))
 		results = os.listdir(self.output_dir)
+		# flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
+		self.pt_father_id = ObjectId(self.option("pt_father_id"))
 		for f in results:
 			if re.search(r'.*family_analysis\.txt$', f):
-				api_main.add_analysis_tab(self.output_dir + '/' + f, self.flow_id)
-			if re.search(r'.*family_joined_tab\.txt$', f):
-				api_main.add_sg_pt_family_detail(self.output_dir + '/' + f, self.flow_id)
-			if re.search(r'.*info_show\.txt$', f):
-				api_main.add_info_detail(self.output_dir + '/' + f, self.flow_id)
-			if re.search(r'.*test_pos\.txt$', f):
-				api_main.add_test_pos(self.output_dir + '/' + f, self.flow_id)
-			if f == "family.png":
-				api_main.add_pt_figure(self.output_dir, self.flow_id)
+				api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)
+			elif re.search(r'.*family_joined_tab\.txt$', f):
+				api_main.add_sg_pt_father_detail(self.output_dir + '/' + f, self.pt_father_id)
+			elif re.search(r'.*info_show\.txt$', f):
+				api_main.add_info_detail(self.output_dir + '/' + f, self.pt_father_id)
+			elif re.search(r'.*test_pos\.txt$', f):
+				api_main.add_test_pos(self.output_dir + '/' + f, self.pt_father_id)
+			elif f == "family.png":
+				api_main.add_pt_father_figure(self.output_dir, self.pt_father_id)
+
+		self.update_status_api = self.api.pt_update_status
+		self.update_status_api.add_pt_status(table_id=self.option('pt_father_id'), table_name='sg_pt_father',
+		                                     type_name='sg_pt_father')
 
 
 		super(PtReportWorkflow,self).end()
