@@ -24,7 +24,6 @@ class PaternityTestNew(PtController):
                 return json.dumps(info)
         father_info = PT().get_query_info(data.father_id)
         ref_info = PT().get_ref_info(data.father_id)
-        print father_info
         if not father_info:
             info = {'success': False, 'info': 'father_id不存在'}
             return json.dumps(info)
@@ -60,6 +59,7 @@ class PaternityTestNew(PtController):
             "pt_father_id": str(main_table_id),
             "update_info": update_info,
         }
+        print options
         self.set_sheet_data(name=task_name, options=options,module_type=task_type, params=params)
         task_info = super(PaternityTestNew, self).POST()
         return json.dumps(task_info)
