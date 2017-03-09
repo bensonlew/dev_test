@@ -10,6 +10,7 @@ from biocluster.config import Config
 from mainapp.libs.param_pack import *
 import urllib2
 import urllib
+import httplib
 import sys
 import os
 import json
@@ -78,7 +79,14 @@ class PipeSubmitAllTool(Tool):
 
 
     def run_webapitest(self):
-
+        """
+        进行参数判断后投递所有的接口，如果后面要添加新的分析，主要要添加以下几个地方的内容：
+        1）analysis_table：analysis_table中保存的是每个分析的submit_location与每个分析对应的主表名字（mongo或者controller中可以找到）
+        2）子分析分投递型的与即时型的，投递的分析要在前面重写投递的参数，即时的只要在sub_analysis这个字典中添加就ok（注意了要有每个分析的api）
+        3）参数判断的那个函数中，要根据每个子分析的controller中的参数重组格式一模一样，只有这样才能匹配上对应的params，同时要在这个函数中对应的地方写上submit_location
+        4）一键化的所有的分析，都是以submit_location来区分，所以在对接的时候要着重考虑与前端的submit_location是不是一致的。
+        :return:
+        """
         analysis_table = {"randomforest_analyse": "sg_randomforest", "sixteens_prediction": "sg_16s",
                           "species_lefse_analyse": "sg_species_difference_lefse", "alpha_rarefaction_curve":"sg_alpha_rarefaction_curve",
                           "otunetwork_analyse": "sg_network", "roc_analyse": "sg_roc",
@@ -91,7 +99,7 @@ class PipeSubmitAllTool(Tool):
                           "beta_multi_analysis_nmds":"sg_beta_multi_analysis","otu_group_analyse":"sg_otu",
                           "otu_venn":"sg_otu_venn","beta_multi_analysis_pca": "sg_beta_multi_analysis",
                           "corr_network_analyse": "sg_corr_network", "otu_pan_core": "sg_otu_pan_core",
-                          "plot_tree": "sg_phylo_tree", "beta_sample_distance_hcluster_tree": "sg_newick_tree"}
+                          "plot_tree": "sg_phylo_tree", "enterotyping": "sg_enterotyping"}
         data = self.option('data')
         print "打印出data"
         # print data
@@ -165,7 +173,10 @@ class PipeSubmitAllTool(Tool):
             api_statistic = "meta/otu_subsample"
             results_statistic = self.run_controllers(api=api_statistic, client=client, base_url=base_url, params=params, method=method)
             results_statistic = json.loads(results_statistic)
-            otu_id = results_statistic['sub_anaylsis_id']['id']  #后面用抽平后的otu_id
+            if 'sub_anaylsis_id' in results_statistic.keys():
+                otu_id = results_statistic['sub_anaylsis_id']['id']
+            else:
+                raise Exception("进行抽平或者样本筛选的过程失败，程序被终止！")
         print "打印抽平后的otu_id"
         print otu_id
         list2 = [] #用于存储分类水平与分组方案的所有的组合s
@@ -359,7 +370,10 @@ class PipeSubmitAllTool(Tool):
                                                                          params=alpha_diversity_index_data, method=method)
                     results_alpha_diversity_index = json.loads(results_alpha_diversity_index)
                     all_results.append(results_alpha_diversity_index)
-                    alpha_diversity_id = results_alpha_diversity_index['sub_anaylsis_id']['id']
+                    if 'sub_anaylsis_id' in results_alpha_diversity_index.keys():
+                        alpha_diversity_id = results_alpha_diversity_index['sub_anaylsis_id']['id']
+                    else:
+                        alpha_diversity_id = ""
                 else:
                     all_results.append(self.params_check(alpha_diversity_index_data,
                                                          analysis_table[alpha_diversity_index_data['submit_location']],
@@ -532,8 +546,8 @@ class PipeSubmitAllTool(Tool):
         if submit_location in ["beta_multi_analysis_rda_cca", "beta_multi_analysis_pca", "beta_multi_analysis_pcoa",
                                "beta_multi_analysis_nmds", "beta_multi_analysis_plsda", "beta_multi_analysis_dbrda", "otunetwork_analyse",
                                "randomforest_analyse", "otu_pan_core", "roc_analyse", "otu_group_analyse", "hc_heatmap",
-                               "beta_multi_analysis_results", "beta_multi_analysis_pearson_correlation", "otu_venn",
-                               "beta_multi_analysis_anosim", "beta_sample_distance_hcluster_tree"]:
+                               "beta_multi_analysis_pearson_correlation", "otu_venn",
+                               "beta_multi_analysis_anosim", "beta_sample_distance", "enterotyping"]:
             my_param = dict()
             for key in ever_analysis_params:
                 if key == "level_id":
@@ -613,7 +627,7 @@ class PipeSubmitAllTool(Tool):
                 else:
                     my_param[key] = ever_analysis_params[key]
             new_params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        elif submit_location in ["alpha_diversity_index"]:
+        elif submit_location in ["alpha_diversity_index", "beta_multi_analysis_results"]:
             my_param = dict()
             for key in ever_analysis_params:
                 if key == "group_detail":
@@ -781,6 +795,8 @@ class PipeSubmitAllTool(Tool):
             # print("post data to url %s ...\n\n" % url)
             # print("post data:\n%s\n" % data)
             request = urllib2.Request(url, data)
+            # print "request"
+            # print request
         else:
             if data:
                 if "?" in url:
@@ -800,10 +816,23 @@ class PipeSubmitAllTool(Tool):
 
         try:
             response = urllib2.urlopen(request)
-        except urllib2.HTTPError, e:
+            # print "controller test"
+            # print response
+        except (urllib2.HTTPError, urllib2.URLError, httplib.HTTPException), e:
             print("%s \n" % e)
-            print ("Return page: none")
-            pass
+            time.sleep(30)    #这一步一定要休眠30s 目的是为了等端口重启好
+            #这一步骤是用于处理接口投递时出现异常导致接口投递失败，当失败的时候休眠5s然后重新投递2次，badstatsline属于httplib.HTTPException异常
+            for n in range(2):
+                time.sleep(10)
+                try:
+                    response = urllib2.urlopen(request)
+                except (urllib2.HTTPError, urllib2.URLError, httplib.HTTPException), e:
+                    print("%s \n" % e)
+                    the_page = {"info": "submit failed!", "success": False}
+                else:
+                    the_page = response.read()
+                    print("Return page:\n%s" % the_page)
+                    break
         else:
             the_page = response.read()
             print("Return page:\n%s" % the_page)
@@ -817,5 +846,4 @@ class PipeSubmitAllTool(Tool):
     def run(self):
         super(PipeSubmitAllTool, self).run()
         self.run_webapitest()
-        # self.set_output()
         self.end()
