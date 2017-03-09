@@ -38,16 +38,16 @@ class PtController(MetaController):
 
     def set_sheet_data(self, name, options, module_type="workflow", params=None, to_file=None):
         self._post_data = web.input()
-        task_info = PaternityTest().get_query_info(self.data.task_id)
-        project_sn = task_info['project_sn']
-        new_task_id = self.get_new_id(self.data.task_id)
+        task_info = PaternityTest().get_query_info(self.data.father_id)
+        # project_sn = task_info['project_sn']
+        new_task_id = self.get_new_id(self.data.father_id)
         self._sheet_data = {
             'id': new_task_id,
             'stage_id': 0,
             'name': name,
             'type': module_type,
             'client': self.data.client,
-            'project_sn': project_sn,
+            # 'project_sn': project_sn,
             'IMPORT_REPORT_DATA': True,
             'UPDATE_STATUS_API': self._update_status_api(),
             'instant': False,
