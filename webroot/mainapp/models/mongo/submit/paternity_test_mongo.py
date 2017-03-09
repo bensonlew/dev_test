@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
 import datetime
-import random
+from mainapp.libs.param_pack import param_pack
 
 from mainapp.config.db import get_mongo_client
 import os
 from bson import SON
+from bson import ObjectId
 from biocluster.config import Config
 from pymongo import MongoClient
 
@@ -15,30 +16,32 @@ class PaternityTest(object):
 	'''
 	def __init__(self):
 		self.mongo_client = MongoClient(Config().MONGO_URI)
-		self.database = self.mongo_client['tsanger_paternity_test']
+		self.database = self.mongo_client['tsanger_paternity_test_v2']
 
 		self.mongo_client_get_tab = MongoClient(Config().MONGO_BIO_URI)
 		self.database_tab = self.mongo_client_get_tab['sanger_paternity_test']
 
-	def add_pt_task_main(self, task, err_min):
-		if task is None:
-			raise Exception('未获取到任务id')
-		flow_id = "%s_%s_%s" % (task, random.randint(1, 10000), random.randint(1, 10000))
+	def add_pt_father(self, father_id, err_min,dedup):
+		params = dict()
+		params['err_min'] = err_min
+		params['dedup'] = dedup
+		name = 'err-' + str(err_min) + '_dedup-' + str(dedup)
 		insert_data = {
-			"task_id": task,
-			"flow_id": flow_id,
-			"err_min": err_min,
+			"father_id": father_id,
+			"name": name,
 			"created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 		}
-		collection = self.database['sg_pt_task_main']
-		collection.insert_one(insert_data)
-		return flow_id
+		collection = self.database['sg_pt_father']
+		new_params = param_pack(params)
+		insert_data["params"] = new_params
+		pt_father_id = collection.insert_one(insert_data).inserted_id
+		return pt_father_id
 
 	def get_query_info(self,task):
 		if task is None:
-			raise Exception('未获取到任务id')
-		collection = self.database['sg_pt_task']
-		task_info = collection.find({"task_id": task})
+			raise Exception('未获取到father_id')
+		collection = self.database['sg_father']
+		task_info = collection.find({"_id": ObjectId(task)})
 		for info in task_info:
 		# 	print i
 		# #新建一个字典包含所需信息，然后返回这个字典
@@ -52,6 +55,14 @@ class PaternityTest(object):
 		# 		project_sn=i[u'project_sn'],
 		# 		fastq_path=i[u'fastq_path']
 		# 	)
+			return info
+
+	def get_ref_info(self,father_id):
+		if father_id is None:
+			raise Exception('未获取到father_id')
+		collection = self.database['sg_pt_ref_file']
+		task_info = collection.find({"father_id": ObjectId(father_id)})
+		for info in task_info:
 			return info
 
 	def insert_main_table(self, collection,data):
