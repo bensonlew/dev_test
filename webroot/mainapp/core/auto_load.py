@@ -3,14 +3,12 @@
 
 import web
 import importlib
-import os
 import types
 import re
 
 
 package_urls = dict()
 package_urls["mainapp.controllers"] = ""
-main_app = None
 
 
 def check_auto_load_packages(parent_package):
@@ -41,7 +39,6 @@ def register(app):
 def load_hook():
     check_auto_load_packages("mainapp.controllers")
     urls = dict((v.lower(), k) for k, v in package_urls.iteritems())
-    del urls[""]
     path = web.ctx.path.lower()
     path_list = re.split("/+", path)
     module_name = path_list.pop()
