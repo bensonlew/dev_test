@@ -15,8 +15,8 @@ class Pipe(MetaController):
 
     def POST(self):
         data = web.input()
-        print data
-        print "上面没有转json"
+        # print data
+        # print "上面没有转json"
         params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'group_info', 'sub_analysis']
         for param in params_name:
             if not hasattr(data, param):
@@ -42,7 +42,7 @@ class Pipe(MetaController):
         for key in sub_analysis_name:
             # print type(str(key))
             all_analysis.append(str(key))
-        print all_analysis
+        # print all_analysis
         if hasattr(data, 'env_id') and hasattr(data, 'env_labs'):
             params_json = {
                 'otu_id': data.otu_id,
@@ -86,8 +86,8 @@ class Pipe(MetaController):
         ]
         main_table_id = Meta().insert_main_table('sg_pipe_batch', mongo_data)
         update_info = {str(main_table_id): 'sg_pipe_batch'}
-        print "+++"
-        print json.dumps(data)
+        # print "+++"
+        # print json.dumps(data)
         options = {
             "data": json.dumps(data),
             "update_info": json.dumps(update_info),
