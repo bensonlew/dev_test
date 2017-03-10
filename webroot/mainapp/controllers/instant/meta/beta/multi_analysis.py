@@ -101,7 +101,7 @@ class MultiAnalysis(MetaController):
                     info = {'success': False, 'info': '没有选择任何环境因子列'}
                     return json.dumps(info)
             else:
-                info = {'success': False, 'info': 'dbrda分析缺少参数:env_id!'}
+                info = {'success': False, 'info': 'dbrda分析缺少环境因子参数!'}
                 return json.dumps(info)
         elif data.analysis_type == 'rda_cca':
             if hasattr(data, 'env_id'):
@@ -117,7 +117,7 @@ class MultiAnalysis(MetaController):
                     info = {'success': False, 'info': '没有选择任何环境因子列'}
                     return json.dumps(info)
             else:
-                info = {'success': False, 'info': 'rda_cca分析缺少参数:env_id!'}
+                info = {'success': False, 'info': 'rda_cca分析缺少环境因子参数!'}
                 return json.dumps(info)
         elif data.analysis_type == 'plsda':
             try:
