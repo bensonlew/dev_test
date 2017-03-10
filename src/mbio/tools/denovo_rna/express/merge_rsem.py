@@ -10,7 +10,7 @@ import re
 
 class MergeRsemAgent(Agent):
     """
-    调用align_and_estimate_abundance.pl脚本，运行rsem，进行表达量计算分析
+    调用abundance_estimates_to_matrix.pl脚本，将各个样本表达量结果合成表达量矩阵，其中有进行标准化等分析，并计算表达量分布图的作图数据
     version v1.0
     author: qiuping
     last_modify: 2016.06.20
@@ -18,12 +18,12 @@ class MergeRsemAgent(Agent):
     def __init__(self, parent):
         super(MergeRsemAgent, self).__init__(parent)
         options = [
-            {"name": "rsem_files", "type": "infile", "format": "denovo_rna.express.rsem_dir"},  # SE测序，包含所有样本的fq文件的文件夹
-            {"name": "tran_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "gene_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "tran_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "gene_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},
-            {"name": "exp_way", "type": "string", "default": "fpkm"}
+            {"name": "rsem_files", "type": "infile", "format": "denovo_rna.express.rsem_dir"},  # 包含所有样本的rsem结果文件的文件夹
+            {"name": "tran_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 转录本计数矩阵
+            {"name": "gene_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 基因计数矩阵
+            {"name": "tran_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 转录本表达量矩阵
+            {"name": "gene_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量矩阵
+            {"name": "exp_way", "type": "string", "default": "fpkm"}  # 表达量衡量指标
         ]
         self.add_option(options)
         self.step.add_steps("rsem")

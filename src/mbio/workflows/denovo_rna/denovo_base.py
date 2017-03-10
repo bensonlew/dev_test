@@ -643,16 +643,17 @@ class DenovoBaseWorkflow(Workflow):
                 clust_params = {
                     'submit_location': 'sg_denovo_cluster',
                     'log': 10,
-                    'methor': 'hclust',
+                    'method': 'hclust',
                     'distance': 'euclidean',
                     'sub_num': 5,
+                    'gene_list': 'all'
                 }
                 api_clust = self.api.denovo_cluster
                 with open(obj.cluster.work_dir + '/hc_sample_order', 'rb') as s:
                     samples = s.readlines()[0].strip('\n')
                 with open(obj.cluster.work_dir + '/hc_gene_order', 'rb') as s:
                     genes = s.readlines()[0].strip('\n')
-                clust_id = api_clust.add_cluster(params=clust_params, express_id=self.diff_gene_id, sample_tree=clust_path + 'samples_tree.txt', gene_tree=clust_path + 'genes_tree.txt', samples=samples, genes=genes)
+                clust_id = api_clust.add_cluster(params=clust_params, express_id=self.diff_gene_id, sample_tree=clust_path + 'samples_tree.txt', gene_tree=clust_path + 'genes_tree.txt', samples=self.samples, genes=genes)
                 for f in clust_files:
                     if re.search(r'^subcluster_', f):
                         sub = f.split('_')[1]
@@ -786,7 +787,7 @@ class DenovoBaseWorkflow(Workflow):
             gene_stru.append(self.snp)
         self.logger.info('........gene_stru:%s' % gene_stru)
         if len(gene_stru) == 1:
-            self.on('end', self.set_step, {'end': self.step.gene_structure})
+            gene_stru[0].on('end', self.set_step, {'end': self.step.gene_structure})
         else:
             self.on_rely(gene_stru, self.set_step, {'end': self.step.gene_structure})
         if self.option('exp_analysis'):

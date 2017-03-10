@@ -19,12 +19,12 @@ class RsemAgent(Agent):
         options = [
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "rsem_fa", "type": "infile", "format": "sequence.fasta"},  # trinit.fasta文件
-            {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
-            {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
-            {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件夹
+            {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件
+            {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件
+            {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件
             {"name": "fa_build", "type": "outfile", "format": "sequence.fasta"},  # trinit.fasta文件
             {"name": "only_bowtie_build", "type": "bool", "default": False},  # 为true时该tool只建索引
-            {"name": "bowtie_build_rsem", "type": "bool", "default": False}  # 为true时该tool只建索引
+            {"name": "bowtie_build_rsem", "type": "bool", "default": False}  # 为true时,建完索引后运行rsem，否则默认有bowtie2的索引，只跑rsem
         ]
         self.add_option(options)
         self.step.add_steps("rsem")

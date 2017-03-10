@@ -174,6 +174,13 @@ class AssembleTool(Tool):
         else:
             self.set_error("trinity运行出错!")
 
+    def trinity_cmd_check(self, command, line):
+        line = line.strip("\n")
+        if re.match(r"succeeded.+?completed\.$", line):
+            self.logger.debug(line)
+        else:
+            pass
+
     def set_output(self):
         """
         将结果文件link到output文件夹下面

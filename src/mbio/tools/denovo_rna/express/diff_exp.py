@@ -22,7 +22,7 @@ class DiffExpAgent(Agent):
     def __init__(self, parent):
         super(DiffExpAgent, self).__init__(parent)
         options = [
-            {"name": "count", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，基因技术矩阵
+            {"name": "count", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，基因计数矩阵
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，基因表达量矩阵
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
             {"name": "min_rowsum_counts", "type": "int", "default": 2},  # 离散值估计检验的最小计数值
