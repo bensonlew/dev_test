@@ -20,7 +20,9 @@ class PearsonCorrelation(MetaController):
     def POST(self):
         data = web.input()
         default_argu = ['otu_id', 'level_id', 'submit_location', "group_id", "env_id", "env_labs", "top_species"]
-
+        if not hasattr(data, 'env_id'):         #modified by hongdongxuan 20170310
+            info = {'success': False, 'info': '缺少环境因子参数!'}
+            return json.dumps(info)
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
