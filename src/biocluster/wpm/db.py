@@ -100,17 +100,18 @@ class CheckModel(object):
         self._db = Mysql()
 
     def find_stop(self):
-        sql = "select workflow_id from tostop where done=0"
+        sql = "select workflow_id from tostop where done=0 and time > DATE_SUB(now(),INTERVAL 1 hour)"
         # print sql
         return self._db.select(sql)
 
     def find_pause(self):
-        sql = "select workflow_id from pause where has_pause=0"
+        sql = "select workflow_id from pause where has_pause=0 and pause_time > DATE_SUB(now(),INTERVAL 1 hour)"
         # print sql
         return self._db.select(sql)
 
     def find_exit_pause(self):
-        sql = "select workflow_id from pause where has_pause=1 and exit_pause=1 and has_continue=0 and timeout=0"
+        sql = "select workflow_id from pause where has_pause=1 and exit_pause=1 and has_continue=0 and timeout=0 and " \
+              "continue_time > DATE_SUB(now(),INTERVAL 1 hour)"
         # print sql
         return self._db.select(sql)
 

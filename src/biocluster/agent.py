@@ -259,13 +259,13 @@ class Agent(Basic):
         :return:
         """
         super(Agent, self).run()
+        self._run_time = datetime.datetime.now()
         if self.get_workflow().sheet.instant:
             self._run_mode = "process"
         else:
             self.save_class_path()
             self.save_config()
         self.job = self._job_manager.add_job(self)
-        self._run_time = datetime.datetime.now()
         self._status = "Q"
         if not self.get_workflow().sheet.instant:
             self.actor.start()
@@ -486,5 +486,3 @@ class Agent(Basic):
         self.logger.warning("WaitTimeOut触发超过%s次，尝试重新运行!" % times)
         if self.parent:
             self.parent.fire("childrerun", self)
-
-
