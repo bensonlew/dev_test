@@ -117,6 +117,14 @@ class PtDatasplitWorkflow(Workflow):
 			file_name = os.listdir(obj.output_dir)
 			m = re.match('WQ(.*)', file_name[0])  # wq
 			n = re.match('WS-(.*)', file_name[0])  # ws
+			if m:
+				self.linkdir(obj.output_dir, wq_dir)
+			else:
+				if n:
+					self.linkdir(obj.output_dir, ws_dir)
+				else:
+					self.linkdir(obj.output_dir, undetermined_dir)
+			"""
 			l = re.search('Undetermined', file_name[0])  # undetermined
 			if m:
 				self.linkdir(obj.output_dir, wq_dir)
@@ -124,6 +132,7 @@ class PtDatasplitWorkflow(Workflow):
 				self.linkdir(obj.output_dir, ws_dir)
 			if l:
 				self.linkdir(obj.output_dir, undetermined_dir)
+			"""
 
 	def end(self):
 		self.logger.info("开始导表")

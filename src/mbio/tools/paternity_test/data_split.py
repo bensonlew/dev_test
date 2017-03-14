@@ -14,10 +14,8 @@ class DataSplitAgent(Agent):
 	"""
 		项目：亲子鉴定
 		功能：对医学检验所的测序数据进行拆分，区分各个数据(WQ对应亲子鉴定，WS对应产前筛查等)
-		author：zhouxuan
-		last modify: 2017.02.21
-					 2017.02.28
-					 2017.03.08
+		author：zhouxuan 2017.02.21
+		last modify: 2017.03.14
 		version: v1.0
 
 	"""
@@ -57,7 +55,7 @@ class DataSplitAgent(Agent):
 		:return:
 		"""
 		self._cpu = 10
-		self._memory = '50G'
+		self._memory = '10G'
 
 	def end(self):
 		result_dir = self.add_upload_dir(self.output_dir)
