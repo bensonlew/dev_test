@@ -103,33 +103,34 @@ class PtDatasplitWorkflow(Workflow):
 	def set_output(self, event):
 		obj = event["bind_object"]
 		if event['data'] == "data_split":
-			self.linkdir(obj.output_dir, self.output_dir)
+			self.linkdir(obj.output_dir, self.output_dir + "/data_split")
 		if event['data'] == "merge_fastq":
-			os.mkdir(os.path.join(self.output_dir, "wq_dir"))
-			os.mkdir(os.path.join(self.output_dir, "ws_dir"))
-			os.mkdir(os.path.join(self.output_dir, "undetermined_dir"))
+			wq_dir = os.path.join(self.output_dir, "wq_dir")
+			ws_dir = os.path.join(self.output_dir, "ws_dir")
+			undetermined_dir = os.path.join(self.output_dir, "undetermined_dir")
+			if not os.path.exists(wq_dir):
+				os.mkdir(wq_dir)
+			if not os.path.exists(ws_dir):
+				os.mkdir(ws_dir)
+			if not os.path.exists(undetermined_dir):
+				os.mkdir(undetermined_dir)
 			file_name = os.listdir(obj.output_dir)
 			m = re.match('WQ(.*)', file_name[0])  # wq
 			n = re.match('WS-(.*)', file_name[0])  # ws
 			l = re.search('Undetermined', file_name[0])  # undetermined
 			if m:
-				self.linkdir(obj.output_dir, os.path.join(self.output_dir, "wq_dir"))
+				self.linkdir(obj.output_dir, wq_dir)
 			if n:
-				self.linkdir(obj.output_dir, os.path.join(self.output_dir, "ws_dir"))
+				self.linkdir(obj.output_dir, ws_dir)
 			if l:
-				self.linkdir(obj.output_dir, os.path.join(self.output_dir, "undetermined_dir"))
-			# api = self.api.tab_file
-			# temp = os.listdir(self.output_dir)
-			# api_read_tab = self.api.tab_file  # 二次判断数据库中是否存在tab文件
-			# for i in temp:
-			# 	m = re.search(r'(.*)\.mem.*tab$', i)
-			# 	if m:
-			# 		tab_path = self.output_dir + '/' + i
-			# 		tab_name = m.group(1)
-			# 		if not api_read_tab.tab_exist(tab_name):
-			# 			api.add_sg_pt_tab_detail(tab_path)
+				self.linkdir(obj.output_dir, undetermined_dir)
 
 	def end(self):
+		self.logger.info("开始导表")
+		db_customer = self.api.pt_customer
+		db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
+									customer_file=self.option('family_table').prop['path'])
+		self.logger.info("导表结束，workflow运行结束")
 		super(PtDatasplitWorkflow, self).end()
 
 	def linkdir(self, dirpath, dirname):

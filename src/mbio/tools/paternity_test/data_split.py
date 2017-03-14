@@ -117,7 +117,7 @@ class DataSplitTool(Tool):
 
 	def set_output(self):
 		"""
-		将数据拆分的结果，直接存放在同一个文件夹下，按照样本分成不同的小文件夹，生成一个list文件
+		将数据拆分的结果，直接存放在同一个文件夹下，按照样本分成不同的小文件夹
 		:return:
 		"""
 		undetermined_file = os.listdir(self.work_dir)
