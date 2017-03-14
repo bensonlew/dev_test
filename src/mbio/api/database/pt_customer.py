@@ -15,8 +15,10 @@ class PtCustomer(Base):
 	def __init__(self, bind_object):
 		super(PtCustomer, self).__init__(bind_object)
 		# self._db_name = Config().MONGODB
-		self.mongo_client = MongoClient(Config().MONGO_BIO_URI)
-		self.database = self.mongo_client['sanger_paternity_test_v2']
+		# self.mongo_client = MongoClient(Config().MONGO_BIO_URI)
+		# self.database = self.mongo_client['sanger_paternity_test_v2']
+		self.mongo_client = MongoClient(Config().MONGO_URI)
+		self.database = self.mongo_client['tsanger_paternity_test_v2']
 
 
 	# @report_check
@@ -27,6 +29,7 @@ class PtCustomer(Base):
 			self.bind_object.logger.info("缺少主表id")
 		with open(customer_file, 'r') as f:
 			for line in f:
+				line = line.decode("gb2312")
 				line = line.strip()
 				line = line.split('\t')
 				insert_data = {
