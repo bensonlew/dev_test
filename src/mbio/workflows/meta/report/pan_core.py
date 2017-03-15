@@ -62,7 +62,7 @@ class PanCoreWorkflow(Workflow):
         self.option("in_otu_table").sub_otu_sample(my_sps, no_zero_otu)
         num_lines = sum(1 for line in open(no_zero_otu))
         if num_lines < 11:
-            raise Exception("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
+            raise Exception("OTU表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")   #将Otu改成了OTU modified by hongdongxuan 20170310
         self.run_pan_core(no_zero_otu)
         super(PanCoreWorkflow, self).run()
 
