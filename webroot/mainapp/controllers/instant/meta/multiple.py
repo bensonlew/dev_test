@@ -20,6 +20,10 @@ class Multiple(MetaController):
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
+        table_dict = json.loads(data.group_detail)
+        if len(table_dict) <= 2 or data.group_id == 'all':  # modified by hongdongxuan 20170313
+            info = {"success": False, "info": "该分析中分组方案的分组类别必须大于等于3！"}
+            return json.dumps(info)
         task_name = 'meta.report.multiple'
         task_type = 'workflow'  # 可以不配置
         meta = Meta()
