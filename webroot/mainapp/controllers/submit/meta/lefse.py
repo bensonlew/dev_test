@@ -86,7 +86,7 @@ class Lefse(MetaController):
             if not (hasattr(data, names)):
                 success.append("缺少参数!")
         if int(data.strict) not in [1, 0]:
-            success.append("严格性比较策略不在范围内")
+            info = {"success": False, "info": "严格性比较策略不在范围内！"}
             return json.dumps(info)
         if float(data.lda_filter) > 4.0 or float(data.lda_filter) < -4.0:
             success.append("LDA阈值不在范围内")
@@ -97,6 +97,12 @@ class Lefse(MetaController):
         group_detail = json.loads(data.group_detail)
         if not isinstance(group_detail, dict):
             success.append("传入的group_detail不是一个字典")
+        if data.group_id == 'all':     #modified by hongdongxuan 20170313
+            info = {"success": False, "info": "分组方案至少选择两个分组！"}
+            return json.dumps(info)
+        if len(group_detail) < 2:
+            info = {"success": False, "info": "请选择至少两组以上的分组!"}
+            return json.dumps(info)
         if data.second_group_detail != '':
             second_group_detail = json.loads(data.second_group_detail)
             first = 0
