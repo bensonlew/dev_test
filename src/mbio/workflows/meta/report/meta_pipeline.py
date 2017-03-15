@@ -38,7 +38,8 @@ class MetaPipelineWorkflow(Workflow):
         :return:
         """
         options = {
-            'data': self.option("data")
+            'data': self.option("data"),
+            'pipe_id': self.option("pipe_id")
         }
         self.pipe_submit_all.set_options(options)
         self.pipe_submit_all.on('end', self.get_results)
@@ -100,8 +101,8 @@ class MetaPipelineWorkflow(Workflow):
                     result_data.append(params)
             else:
                 result_data.append(id)
-        print "打印出含有pan_core results"
-        print result_data
+        # print "打印出含有pan_core results"
+        # print result_data
         all_results = result_data
         level = str(all_data['level_id']).strip().split(",")
         levels = []
@@ -280,7 +281,8 @@ class MetaPipelineWorkflow(Workflow):
         print len(anaysis_num)
         if len(all_results) - len(no_table_analysis_num) == len(anaysis_num):
             data = {
-                "status": "end"
+                "status": "end",
+                "percent": str(len(all_results)) + "/" + str(len(all_results))
             }
             try:
                 collection_pipe.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
@@ -290,6 +292,15 @@ class MetaPipelineWorkflow(Workflow):
                 print '所有子分析均计算完成，sg_pipe_batch状态更新成功。'
             m = True
         else:
+            ready_analysis_num = len(anaysis_num) + len(no_table_analysis_num)
+            percent = str(ready_analysis_num) + "/" + str(len(all_results))
+            data = {
+                "percent": percent
+            }
+            try:
+                collection_pipe.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
+            except Exception:
+                print "sg_pipe_batch进度条更新失败，请检查！"
             m = False
         return m
 
