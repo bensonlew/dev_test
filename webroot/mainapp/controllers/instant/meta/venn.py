@@ -58,6 +58,12 @@ class Venn(MetaController):
         update_info = {str(main_table_id): 'sg_otu_venn'}
 
         group_detal_dict = json.loads(data.group_detail)
+        if len(group_detal_dict) < 2:
+            info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
+            return json.dumps(info)
+        if len(group_detal_dict) > 6:
+            info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
+            return json.dumps(info)
         specimen_ids = list()
         for v in group_detal_dict.values():
             for tmp in v:
