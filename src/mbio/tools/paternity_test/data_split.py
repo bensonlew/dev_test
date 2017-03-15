@@ -101,8 +101,8 @@ class DataSplitTool(Tool):
 				with open(new_message_table, "a") as w:
 					lines = "Sample_" + line[3] + "," + line[3] + ",,,," + line[8] + "," + line[4] + "," + "\n"
 					w.write(lines)
-		cmd = "{} -i {}Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
-		      "--ignore-missing-bcl -R {} -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
+		cmd = "{} -i {}/Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
+		      "--ignore-missing-bcl -R {}/ -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
 			format(self.script_path,self.option('data_dir').prop['path'],self.work_dir,
 		           new_message_table, self.option('data_dir').prop['path'])
 		self.logger.info("start data_split")
