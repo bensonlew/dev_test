@@ -6,6 +6,8 @@ from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
 import re
+from biocluster.wpm.client import worker_client as WC
+import datetime
 import json
 import shutil
 
@@ -124,6 +126,8 @@ class PtDatasplitWorkflow(Workflow):
 					self.linkdir(obj.output_dir, ws_dir)
 				else:
 					self.linkdir(obj.output_dir, undetermined_dir)
+			self.wq_dir = wq_dir
+
 			"""
 			l = re.search('Undetermined', file_name[0])  # undetermined
 			if m:
@@ -135,11 +139,33 @@ class PtDatasplitWorkflow(Workflow):
 			"""
 
 	def end(self):
-		self.logger.info("开始导表")
+		self.logger.info("开始导表(家系表)")
 		db_customer = self.api.pt_customer
 		db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
 									customer_file=self.option('family_table').prop['path'])
-		self.logger.info("导表结束，workflow运行结束")
+		self.logger.info("导表结束(家系表)")
+		self.logger.info("给pt_batch传送数据路径")
+		data = {
+			"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+			"type": "workflow",
+			"menber_id": "sg_zml",
+			"name": "paternity_test.pt_batch",
+			"instant": False,
+			"IMPORT_REPORT_DATA": True,
+			"IMPORT_REPORT_AFTER_END": False,
+			"options": {
+				"fastq_path": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/test_sample",
+				"wq_dir": self.wq_dir,
+				"cpu_number": 8,
+				"ref_fasta": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa",
+				"targets_bedfile": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/share/pt/snp.chr.sort.3.bed",
+				"ref_point": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/targets.bed.rda",
+				"err_min": 2,
+				"dedup_num": 30
+			}
+		}
+		WC().add_task(data)
+		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
 		super(PtDatasplitWorkflow, self).end()
 
 	def linkdir(self, dirpath, dirname):
