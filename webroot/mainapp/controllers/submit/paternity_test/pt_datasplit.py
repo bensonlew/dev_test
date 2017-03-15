@@ -35,9 +35,9 @@ class PtDatasplit(PtController):
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
             ('params', params),
-            ('name', 'PtDatasplit__' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            ('name', datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             ('desc', '亲子鉴定数据拆分'),
-            ("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            ('status', 'start')
         ]
         main_table_id = PT().insert_main_table('sg_pt_datasplit', mongo_data)
         update_info = {str(main_table_id): 'sg_pt_datasplit'}

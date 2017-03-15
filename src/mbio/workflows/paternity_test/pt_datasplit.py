@@ -148,7 +148,7 @@ class PtDatasplitWorkflow(Workflow):
 		data = {
 			"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
 			"type": "workflow",
-			"menber_id": "sg_zml",
+			"member_id": "sg_zml",
 			"name": "paternity_test.pt_batch",
 			"instant": False,
 			"IMPORT_REPORT_DATA": True,
@@ -161,6 +161,7 @@ class PtDatasplitWorkflow(Workflow):
 				"targets_bedfile": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/share/pt/snp.chr.sort.3.bed",
 				"ref_point": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/targets.bed.rda",
 				"err_min": 2,
+				"batch_id": self.option('pt_data_split_id'),
 				"dedup_num": 30
 			}
 		}
