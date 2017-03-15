@@ -84,7 +84,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
                     temp_otu_file = self.option('otu_file').path + '.temp'
                     all_lines = open(otu_table, 'r').readlines()
                     if len(all_lines) < 3:
-                        raise Exception('分类水平：%s,otu表数据少于2行：%s' % (self.option('level'), len(all_lines)))
+                        raise Exception('分类水平：%s,OTU表数据少于2行：%s' % (self.option('level'), len(all_lines)))  #将Otu改成了OTU modified by hongdongxuan 20170310
                     self.logger.info(len(all_lines))
                     new_all = []
                     new_all.append(all_lines[0])
