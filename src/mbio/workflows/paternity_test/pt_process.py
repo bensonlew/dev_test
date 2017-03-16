@@ -355,8 +355,7 @@ class PtProcessWorkflow(Workflow):
 		if event['data'] == "pt_analysis" or event['data'] == "pt_analysis_rename":
 			self.linkdir(obj.output_dir +'/family_analysis', self.output_dir)
 			self.linkdir(obj.output_dir + '/family_merge', self.output_dir)
-			# api_main = self.api.sg_paternity_test
-			# self.flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task=None, flow_id=None)
+
 
 		if event['data'] == "result_info":
 			self.linkdir(obj.output_dir, self.output_dir)
@@ -383,7 +382,6 @@ class PtProcessWorkflow(Workflow):
 		api_read_tab = self.api.tab_file
 
 		results = os.listdir(self.output_dir)
-		print results
 		dad_name = self.option('dad_id')+'.tab'
 		dad_other_name = self.option('dad_id') +'1.tab'
 		if dad_name in results:
@@ -393,7 +391,7 @@ class PtProcessWorkflow(Workflow):
 
 		api_read_tab.update_pt_tab(dad)
 		self.father_id=api_main.add_sg_father(dad, self.option('mom_id'), self.option('preg_id'))
-		api_main.add_sg_ref_file(self.option('ref_fasta').prop['path'], self.option('targets_bedfile').prop['path'],
+		api_main.add_sg_ref_file(self.father_id, self.option('ref_fasta').prop['path'], self.option('targets_bedfile').prop['path'],
 		                          self.option('ref_point').prop['path'],self.option('fastq_path').prop['path'])
 		# flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
 		self.pt_father_id = api_main.add_pt_father(father_id=self.father_id,err_min=self.option("err_min"), dedup=self.option('dedup_num'))
@@ -408,7 +406,9 @@ class PtProcessWorkflow(Workflow):
 				api_main.add_test_pos(self.output_dir + '/' + f, self.pt_father_id)
 			elif f == "family.png":
 				api_main.add_pt_father_figure(self.output_dir, self.pt_father_id)
+		api_main.add_father_result(self.father_id, self.pt_father_id)
 		self.update_status_api.add_pt_status(table_id=self.pt_father_id,table_name='sg_pt_father',type_name='sg_pt_father')
+		api_main.update_sg_father(self.father_id)
 
 
 		super(PtProcessWorkflow,self).end()
