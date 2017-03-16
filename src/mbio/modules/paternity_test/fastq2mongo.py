@@ -17,7 +17,8 @@ class Fastq2mongoModule(Module):
 			{"name": "fastq_path", "type": "infile","format":"sequence.fastq_dir"},  # fastq所在路径
 			{"name": "cpu_number", "type": "int", "default": 4}, #cpu个数
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
-			{"name": "targets_bedfile", "type": "infile","format":"denovo_rna.gene_structure.bed"}  # 位点信息
+			{"name": "targets_bedfile", "type": "infile","format":"denovo_rna.gene_structure.bed"},  # 位点信息
+			{"name":"batch_id", "type": "string"}
 		]
 		self.add_option(options)
 		self.fastq2bam = self.add_tool("paternity_test.family2bam")
@@ -70,6 +71,7 @@ class Fastq2mongoModule(Module):
 		self.bam2tab.on('end', self.set_output, 'bam2tab')
 		self.bam2tab.on('start', self.set_step, {'start': self.step.bam2tab})
 		self.bam2tab.on('end', self.set_step, {'end': self.step.bam2tab})
+		self.bam2tab.on('end', self.end)
 		self.bam2tab.run()
 
 	def linkdir(self, dirpath, dirname):
@@ -117,12 +119,13 @@ class Fastq2mongoModule(Module):
 					# tab_path = self.output_dir + '/' + i
 					# tab_name = m.group(1)
 					if not api_read_tab.tab_exist(tab_name):
-						api.add_pt_tab(tab_path)
+						api.add_pt_tab(tab_path, self.option('batch_id'))
 						api.add_sg_pt_tab_detail(tab_path)
 				elif n:
 					tab_path = self.output_dir + '/bam2tab/' + i
 					tab_name = n.group(1)
 					api.sample_qc(tab_path, tab_name)
+					api.sample_qc_addition(tab_name)
 		else:
 			pass
 
@@ -130,7 +133,6 @@ class Fastq2mongoModule(Module):
 		super(Fastq2mongoModule, self).run()
 		self.fastq2bam.on('end', self.bam2tab_run)
 		self.fastq2bam_run()
-		self.bam2tab.on('end', self.end)
 
 	def end(self):
 		repaths = [
