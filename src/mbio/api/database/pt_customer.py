@@ -53,4 +53,14 @@ class PtCustomer(Base):
 					self.bind_object.logger.error('导入家系表表出错：{}'.format(e))
 				else:
 					self.bind_object.logger.info("导入家系表成功")
+		try:
+			main_collection = self.db["sg_pt_datasplit"]
+			self.bind_object.logger.info("开始刷新主表写状态")
+			main_collection.update({"_id": ObjectId(main_id)},
+									{"$set": {
+										"status": "pt_datasplit done, start pt_batch"}})
+		except Exception as e:
+			self.bind_object.logger.error("更新sg_pt_datasplit主表出错:{}".format(e))
+		else:
+			self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
 

@@ -18,7 +18,7 @@ class PtDatasplit(PtController):
         data = web.input()
         # print(data)
         # client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['message_table', 'data_dir', 'family_table', 'submit_location']
+        params_name = ['message_table', 'data_dir', 'family_table', 'submit_location', 'member_id']
         for param in params_name:
             if not hasattr(data, param):
                 info = {'success': False, 'info': '缺少{}参数'.format(param)}
@@ -30,6 +30,7 @@ class PtDatasplit(PtController):
             'data_dir': data.data_dir,
             'family_table': data.family_table,
             'submit_location': data.submit_location,
+            'member_id': data.member_id,
             'task_type': 'reportTask'
         }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
@@ -37,6 +38,7 @@ class PtDatasplit(PtController):
             ('params', params),
             ('name', datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             ('desc', '亲子鉴定数据拆分'),
+            ('member_id', data.member_id),
             ('status', 'start')
         ]
         main_table_id = PT().insert_main_table('sg_pt_datasplit', mongo_data)

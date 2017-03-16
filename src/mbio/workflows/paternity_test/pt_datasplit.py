@@ -16,14 +16,14 @@ class PtDatasplitWorkflow(Workflow):
 	名称：亲子鉴定数据拆分流程
 	作用：完成下机数据的拆分，合并以及分组(wq\ws\undetermined)
 	author：zhouxuan
-	last_modified: 2017.03.10
+	last_modified: 2017.03.16
 	"""
 	def __init__(self, wsheet_object):
 		self._sheet = wsheet_object
 		super(PtDatasplitWorkflow, self).__init__(wsheet_object)
 		options = [
 			{"name": "message_table", "type": "infile", "format": "paternity_test.tab"},  # 拆分需要的数据表
-			{"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"},  # 拆分需要的下机数据
+			{"name": "data_dir", "type": "infile", "format": "paternity_test.tab"},  # 拆分需要的下机数据压缩文件夹
 
 			{"name": "family_table", "type": "infile", "format": "paternity_test.tab"},  # 需要存入mongo里面的家系信息表
 			{"name": "pt_data_split_id", "type": "string"},
@@ -65,7 +65,7 @@ class PtDatasplitWorkflow(Workflow):
 	def run_data_split(self):
 		self.data_split.set_options({
 			"message_table": self.option('message_table'),
-			"data_dir": self.option('data_dir')
+			"data_dir": self.option('data_dir'),
 		})
 		self.data_split.on('end', self.set_output, 'data_split')
 		self.data_split.on('end', self.run_merge_fastq)
@@ -148,7 +148,6 @@ class PtDatasplitWorkflow(Workflow):
 		data = {
 			"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
 			"type": "workflow",
-			"member_id": "sg_zml",
 			"name": "paternity_test.pt_batch",
 			"instant": False,
 			"IMPORT_REPORT_DATA": True,

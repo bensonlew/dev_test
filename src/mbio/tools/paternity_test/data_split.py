@@ -15,7 +15,7 @@ class DataSplitAgent(Agent):
 		项目：亲子鉴定
 		功能：对医学检验所的测序数据进行拆分，区分各个数据(WQ对应亲子鉴定，WS对应产前筛查等)
 		author：zhouxuan 2017.02.21
-		last modify: 2017.03.14
+		last modify: 2017.03.16
 		version: v1.0
 
 	"""
@@ -23,7 +23,8 @@ class DataSplitAgent(Agent):
 		super(DataSplitAgent, self).__init__(parent)
 		options = [
 			{"name": "message_table", "type": "infile", "format": "paternity_test.tab"},
-			{"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"}
+			{"name": "data_dir", "type": "infile", "format": "paternity_test.tab"}
+			# {"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"}
 		]
 		self.add_option(options)
 		self.step.add_steps("data_split")
@@ -101,10 +102,14 @@ class DataSplitTool(Tool):
 				with open(new_message_table, "a") as w:
 					lines = "Sample_" + line[3] + "," + line[3] + ",,,," + line[8] + "," + line[4] + "," + "\n"
 					w.write(lines)
+
+		os.system('tar -zxf {} -C {}'.format(self.option('data_dir').prop['path'], self.work_dir))
+		old_data_dir = os.path.join(self.work_dir, self.option('data_dir').prop['path'].split("/")[-1].split(".")[0])
+
 		cmd = "{} -i {}/Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
 		      "--ignore-missing-bcl -R {}/ -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
-			format(self.script_path,self.option('data_dir').prop['path'],self.work_dir,
-		           new_message_table, self.option('data_dir').prop['path'])
+			format(self.script_path,old_data_dir,self.work_dir,
+		           new_message_table, old_data_dir)
 		self.logger.info("start data_split")
 		command = self.add_command("ds_cmd", cmd).run()
 		self.wait(command)
