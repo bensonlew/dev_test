@@ -10,7 +10,6 @@ import types
 from mainapp.models.mongo.meta import Meta
 import datetime
 from mainapp.controllers.project.meta_controller import MetaController
-import datetime
 
 
 class MultiAnalysis(MetaController):
