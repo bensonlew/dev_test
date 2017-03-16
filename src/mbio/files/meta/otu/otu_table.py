@@ -232,15 +232,7 @@ class OtuTableFile(File):
         }
         tax = re.sub(r'\s', '', tax)
         cla = re.split(';', tax)
-
-        def get_last_tax(cla, last):
-            """
-            无 d__ 避免无限无限循环出错
-            """
-            if re.search(r'^[kpcofgs]__(norank|unclassified|uncultured|incertae_sedis|unidentified|unknown)$', cla[last], flags=re.IGNORECASE):
-                return get_last_tax(cla, last - 1)
-            return cla[last]
-        last_tax = get_last_tax(cla, len(cla) - 1)
+        last_tax = cla[-1]
         search_norank_parent = re.search(r'^[dkpcofgs]__Unclassified_([dkpcofgs]__.+$)', last_tax, flags=re.IGNORECASE)
         if search_norank_parent:
             last_tax = search_norank_parent.groups()[0]
@@ -371,5 +363,12 @@ class OtuTableFile(File):
                     info_dict[otu_name][sample_name[i]] = int(line[i])
         return info_dict
 
+
 if __name__ == "__main__":
-    print OtuTableFile._comp_tax('d__norank;k__norank;p__norank;c__norank')
+    #print OtuTableFile._comp_tax('d__Bacteria; k__norank; p__Firmicutes; c__Erysipelotrichia; o__Erysipelotrichales; f__Erysipelotrichaceae; g__norank_f__Erysipelotrichaceae')
+    data = OtuTableFile()
+    taxon_otu = "/mnt/ilustre/users/sanger-dev/workspace/20170308/MetaBase_meta_test_nt_4444/output/OtuTaxon_summary/otu_taxon.xls"
+    taxon_otu_new = "/mnt/ilustre/users/sanger-dev/workspace/20170308/MetaBase_meta_test_nt_4444/output/OtuTaxon_summary/otu_taxon_new.xls"
+    data.set_path(taxon_otu)
+    data.get_info()
+    data.complete_taxonomy(taxon_otu,taxon_otu_new)
