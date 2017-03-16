@@ -9,6 +9,7 @@ from biocluster.config import Config
 from pymongo import MongoClient
 import gridfs
 from mainapp.libs.param_pack import param_pack
+from bson import ObjectId
 
 class SgPaternityTest(Base):
 	'''
@@ -21,19 +22,15 @@ class SgPaternityTest(Base):
 		self.database = self.mongo_client['tsanger_paternity_test_v2']
 
 	@report_check
-	def add_sg_father(self,dad,mom,preg):
+	def add_sg_father(self,dad,mom,preg,batch_id):
 		temp_d = re.search("WQ([0-9]*)-F.*",dad)
-		print dad
-		print temp_d
-		print type(temp_d)
 		temp_m = re.search(".*-(M.*)", mom)
 		temp_s = re.search(".*-(S.*)",preg)
-		print type(temp_m)
 		name = dad + "-" + temp_m.group(1) + "-" + temp_s.group(1)
 
 		# "name": family_no.group(1)
 		insert_data = {
-			"member_id": self.bind_object.sheet.member_id,
+			"batch_id":ObjectId(batch_id),
 			"dad_id": dad,
 			"mom_id": mom,
 			"preg_id": preg,
@@ -50,6 +47,44 @@ class SgPaternityTest(Base):
 		else:
 			self.bind_object.logger.info("导入家系主表成功")
 		return father_id
+
+	def add_father_result(self,father_id,pt_father_id):
+		collection_result = self.database['sg_pt_father_analysis']
+		collection = self.database['sg_father']
+		case = collection.find_one({"_id":father_id})
+		dad_id = case['dad_id']
+		result_case = collection_result.find_one({'pt_father_id':pt_father_id, "dad_id":dad_id})
+		result = result_case['result']
+
+		try:
+			collection.update({"_id": father_id}, {'$set': {"pt_father_id": pt_father_id,'result':result}})
+		except Exception as e:
+			self.bind_object.logger.error('更新father主表结果出错：{}'.format(e))
+		else:
+			self.bind_object.logger.info("更新father主表结果成功")
+
+	def add_father_qc(self, father_id, pt_father_id):
+		collection_result = self.database['sg_pt_father_result_info']
+		collection = self.database['sg_father']
+
+		result_case = collection_result.find_one({'pt_father_id': pt_father_id})
+		qc = result_case['qc']
+
+		try:
+			collection.update({"_id": father_id}, {'$set': {'qc': qc}})
+		except Exception as e:
+			self.bind_object.logger.error('更新father主表家系质控出错：{}'.format(e))
+		else:
+			self.bind_object.logger.info("更新father主表家系质控成功")
+
+	def update_sg_father(self, father_id):
+		try:
+			collection = self.database['sg_father']
+			collection.update({"_id": father_id}, {'$set': {"status": "end"}})
+		except Exception as e:
+			self.bind_object.logger.error('更新father主表状态出错：{}'.format(e))
+		else:
+			self.bind_object.logger.info("更新father主表状态成功")
 
 
 
@@ -80,16 +115,17 @@ class SgPaternityTest(Base):
 		return pt_father_id
 
 	@report_check
-	def add_sg_ref_file(self,ref_fasta,targets_bedfile,ref_point,fastq_path):
+	def add_sg_ref_file(self,father_id, ref_fasta,targets_bedfile,ref_point,fastq_path):
 		insert_data={
+			"father_id": father_id,
 			"ref_fasta": ref_fasta,
 			"targets_bedfile": targets_bedfile,
-			"ref_poins": ref_point,
+			"ref_point": ref_point,
 			"fastq_path":fastq_path,
 		}
 		try:
 			collection = self.database['sg_pt_ref_file']
-			collection.insert_one(insert_data).inserted_id
+			collection.insert_one(insert_data)
 		# collection.insert_one(insert_data)
 		except Exception as e:
 			self.bind_object.logger.error('导入参考文件表出错：{}'.format(e))
@@ -168,12 +204,12 @@ class SgPaternityTest(Base):
 				self.bind_object.logger.info("导入调试页面表格成功")
 
 	@report_check
-	def add_pt_father_figure(self, output_dir,pt_father_id):
+	def add_pt_father_figure(self, file_dir,pt_father_id):
 		fs = gridfs.GridFS(self.database)
-		family_fig = fs.put(open(output_dir + '/family.png', 'r'))
-		figure1 = fs.put(open(output_dir + '/fig1.png', 'r'))
-		figure2 = fs.put(open(output_dir + '/fig2.png', 'r'))
-		preg_percent = fs.put(open(output_dir + '/preg_percent.png', 'r'))
+		family_fig = fs.put(open(file_dir + '_family.png', 'r'))
+		figure1 = fs.put(open(file_dir + '_fig1.png', 'r'))
+		figure2 = fs.put(open(file_dir + '_fig2.png', 'r'))
+		preg_percent = fs.put(open(file_dir + '_preg_percent.png', 'r'))
 		update_data = {
 			# "task_id": self.bind_object.id,
 			"pt_father_id": pt_father_id,
@@ -202,6 +238,10 @@ class SgPaternityTest(Base):
 					continue
 				temp_fp = eval(line[4])
 				RCP = temp_fp / (temp_fp + 1)
+				if RCP > 0.5:
+					rcp_result = ">99.99%"
+				else:
+					rcp_result = "<0.01%"
 				insert_data = {
 					# "task_id": self.bind_object.id,
 					"pt_father_id": pt_father_id,
@@ -214,7 +254,7 @@ class SgPaternityTest(Base):
 					"eff_rate": line[6],
 					"ineff_rate": line[7],
 					"result": line[8],
-					"rcp": float(RCP)
+					"rcp": rcp_result
 				}
 				sg_pt_family_detail.append(insert_data)
 			try:
@@ -234,6 +274,10 @@ class SgPaternityTest(Base):
 				line = line.split('\t')
 				if line[0] == "bed.preg.id":
 					continue
+				if line[1] >= 30 and line[0] >= 4 and line[7] >= 95:
+					qc = 'qualified'
+				else:
+					qc = 'unqualified'
 				insert_data = {
 					# "task_id": self.bind_object.id,
 					"pt_father_id": pt_father_id,
@@ -244,7 +288,8 @@ class SgPaternityTest(Base):
 					"s_signal": line[4],
 					"mom_id": line[5],
 					"dp_mom": line[6],
-					"mom_preg": line[7]
+					"mom_preg": line[7],
+					"qc":qc
 				}
 				sg_pt_family_detail.append(insert_data)
 			try:
