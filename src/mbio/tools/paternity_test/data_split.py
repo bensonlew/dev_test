@@ -14,9 +14,8 @@ class DataSplitAgent(Agent):
 	"""
 		项目：亲子鉴定
 		功能：对医学检验所的测序数据进行拆分，区分各个数据(WQ对应亲子鉴定，WS对应产前筛查等)
-		author：zhouxuan
-		last modify: 2017.02.21
-					 2017.02.28
+		author：zhouxuan 2017.02.21
+		last modify: 2017.03.14
 		version: v1.0
 
 	"""
@@ -56,7 +55,7 @@ class DataSplitAgent(Agent):
 		:return:
 		"""
 		self._cpu = 10
-		self._memory = '100G'
+		self._memory = '10G'
 
 	def end(self):
 		result_dir = self.add_upload_dir(self.output_dir)
@@ -72,7 +71,6 @@ class DataSplitTool(Tool):
 	def __init__(self, config):
 		super(DataSplitTool, self).__init__(config)
 		self._version = "v1.0"
-		# self.script_path = Config().SOFTWARE_DIR + '/bioinfo/seq/bcl2fastq2-v2.17.1.14/bin/bcl2fastq'
 		self.script_path = "bioinfo/seq/bcl2fastq2-v2.17.1.14/bin/bcl2fastq"
 		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
@@ -103,8 +101,8 @@ class DataSplitTool(Tool):
 				with open(new_message_table, "a") as w:
 					lines = "Sample_" + line[3] + "," + line[3] + ",,,," + line[8] + "," + line[4] + "," + "\n"
 					w.write(lines)
-		cmd = "{} -i {}Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
-		      "--ignore-missing-bcl -R {} -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
+		cmd = "{} -i {}/Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
+		      "--ignore-missing-bcl -R {}/ -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
 			format(self.script_path,self.option('data_dir').prop['path'],self.work_dir,
 		           new_message_table, self.option('data_dir').prop['path'])
 		self.logger.info("start data_split")
@@ -117,100 +115,29 @@ class DataSplitTool(Tool):
 
 	def set_output(self):
 		"""
-		把拆分所得的结果文件放置在tool的output文件夹下按照(WQ对应亲子鉴定，WS对应产前筛查等，undetermined对应暂时不确定的fastq文件)
-		:return: logger message
+		将数据拆分的结果，直接存放在同一个文件夹下，按照样本分成不同的小文件夹
+		:return:
 		"""
-		med_result_dir = os.path.join(self.work_dir, "MED")
-		if not os.path.exists(med_result_dir):
-			self.logger.info("no result_dir of data_split")
-			self.set_error("no result_dir of data_split")
-		wq_dir = os.path.join(self.output_dir, "wq_data")
-		os.mkdir(wq_dir)
-		ws_dir = os.path.join(self.output_dir, "ws_data")
-		os.mkdir(ws_dir)
-		undetermined_dir = os.path.join(self.output_dir, "undetermined_data")
-		os.mkdir(undetermined_dir)
-		undetermined_name = os.listdir(self.work_dir)
-		unknown_sample_name = []
-		unknown_sample = []
-		for i in undetermined_name:  # Undetermined_S0_L002_R1_001.fastq.gz
-			detail_name = i.split(".")
+		undetermined_file = os.listdir(self.work_dir)
+		undetermined_sample_file = []
+		for file_name in undetermined_file:
+			detail_name = file_name.split(".")
 			if detail_name[-1] == "gz":
-				unknown_sample.append(i)  # Undetermined_S0_L002_R1_001.fastq.gz
-				name = i.split("_")
-				if name[1] not in unknown_sample_name:
-					unknown_sample_name.append(name[1])  # S0
-		for name in unknown_sample_name:
-			for file_name in unknown_sample:  # file_name == Undetermined_S0_L002_R1_001.fastq.gz
-				file_name_ = file_name.split("_")
-				file_name__ = file_name.split(".")
-				new_file_name = (".").join(file_name__[0:2])
-				print(new_file_name)
-				if file_name_[1] == name:
-					os.system('gzip -d {}'.format(os.path.join(self.work_dir, file_name)))
-					if file_name_[3] == "R1":
-						os.system('cat {} >> {}'.format(os.path.join(self.work_dir, new_file_name), os.path.join(undetermined_dir, "Undetermined_" + name + "_R1.fastq")))
-					else:
-						os.system('cat {} >> {}'.format(os.path.join(self.work_dir, new_file_name), os.path.join(undetermined_dir, "Undetermined_" + name + "_R2.fastq")))
-		sample_dir_name = os.listdir(med_result_dir)
-		for dir_name in sample_dir_name:
-			med_sample = dir_name.split("_")
-			med_sample_name = med_sample[1]
-			part_of_name = med_sample_name.split("-")
-			if part_of_name[0] == "WS":
-				part_seq_name = os.listdir(os.path.join(med_result_dir, dir_name))
-				for name in part_seq_name:
-					seq_name = name.split("_")
-					seq_name_ = name.split(".")
-					new_name = (".").join(seq_name_[0:2])
-					print(new_name)
-					os.system('gzip -d {}'.format(os.path.join(med_result_dir, dir_name, name)))
-					if seq_name[3] == "R1":
-						os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(ws_dir, med_sample_name + "_R1.fastq")))
-					else:
-						os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(ws_dir, med_sample_name + "_R2.fastq")))
+				undetermined_sample_file.append(file_name)
+		undetermined_sample_name = []
+		for name in undetermined_sample_file:
+			sample_ = name.split("_")
+			src = os.path.join(self.work_dir, name)
+			dir_name = os.path.join(self.output_dir, "Sample_Undetermined_" + sample_[1])
+			if sample_[1] not in undetermined_sample_name:
+				undetermined_sample_name.append(sample_[1])
+				os.mkdir(dir_name)
+				shutil.copy(src, dir_name)
 			else:
-				m = re.match('WQ([1-9].*)', part_of_name[0])
-				if m:
-					part_seq_name = os.listdir(os.path.join(med_result_dir, dir_name))
-					for name in part_seq_name:
-						seq_name = name.split("_")
-						seq_name_ = name.split(".")
-						new_name = (".").join(seq_name_[0:2])
-						print(new_name)
-						os.system('gzip -d {}'.format(os.path.join(med_result_dir, dir_name, name)))
-						if seq_name[3] == "R1":
-							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(wq_dir, med_sample_name + "_R1.fastq")))
-						else:
-							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(wq_dir, med_sample_name + "_R2.fastq")))
-				else:
-					part_seq_name = os.listdir(os.path.join(med_result_dir, dir_name))
-					for name in part_seq_name:
-						seq_name = name.split("_")
-						seq_name_ = name.split(".")
-						new_name = (".").join(seq_name_[0:2])
-						print(new_name)
-						os.system('gzip -d {}'.format(os.path.join(med_result_dir, dir_name, name)))
-						if seq_name[3] == "R1":
-							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(undetermined_dir, med_sample_name + "_R1.fastq")))
-						else:
-							os.system('cat {} >> {}'.format(os.path.join(med_result_dir, dir_name, new_name), os.path.join(undetermined_dir, med_sample_name + "_R2.fastq")))
-		ws_name = os.listdir(ws_dir)
-		for name in ws_name:
-			os.system('gzip {}'.format(os.path.join(ws_dir, name)))
-		wq_name = os.listdir(wq_dir)
-		for name in wq_name:
-			os.system('gzip {}'.format(os.path.join(wq_dir, name)))
-		unknown_name = os.listdir(undetermined_dir)
-		for name in unknown_name:
-			os.system('gzip {}'.format(os.path.join(undetermined_dir, name)))
-
-		# if os.path.exists(result_dir):
-		# 	new_data_dir = os.path.join(self.output_dir, "med_data")
-		# 	try:
-		# 		shutil.copytree(result_dir, new_data_dir)
-		# 	except Exception as e:
-		# 		self.logger.info("set output failed{}".format(e))
-		# 		self.set_error("set output failed{}".format(e))
-		# else:
-		# 	self.logger.info("no result_dir")
+				shutil.copy(src, dir_name)
+		med_result_dir = os.path.join(self.work_dir, "MED")
+		list_name = os.listdir(med_result_dir)
+		for name in list_name:
+			sample_dir = os.path.join(med_result_dir, name)
+			dst = os.path.join(self.output_dir, name)
+			shutil.copytree(sample_dir, dst)

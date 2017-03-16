@@ -18,6 +18,7 @@ parser.add_argument("-b", "--base_url",
                     type=str, help="the base url of api, "
                                    "default value : http://192.168.10.126/app/", default="http://192.168.10.126/app/")
 parser.add_argument("-e", "--header", action="store_true", help="use header to submit signature info")
+parser.add_argument("-fr", "--file_read", type=str, help="read the file of data or not", default="yes")
 
 args = parser.parse_args()
 
@@ -37,7 +38,7 @@ def main():
         data_list = args.data.split(";")
         for index in range(len(names_list)):
             if index < len(data_list):
-                if os.path.isfile(data_list[index]):
+                if os.path.isfile(data_list[index]) and args.file_read == "yes":
                     with open(data_list[index], "r") as f:
                         content = f.readlines()
                         content = "".join(content)

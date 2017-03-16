@@ -7,6 +7,7 @@ from mainapp.models.mongo.submit.paternity_test_mongo import PaternityTest
 from ..core.basic import Basic
 from mainapp.libs.signature import check_sig
 import json
+import random
 
 class PtController(MetaController):
     def __init__(self, instant=False):
@@ -59,3 +60,23 @@ class PtController(MetaController):
             self._sheet_data['params'] = params
         return self._sheet_data
 
+    def set_sheet_data_(self, name, options, module_type="workflow", params=None, to_file=None):
+        self._post_data = web.input()
+        new_id = 'pt_{}_{}'.format(random.randint(1000, 10000), random.randint(1, 10000))
+        print new_id
+        self._sheet_data = {
+            'id': new_id,
+            'name': name,
+            'type': module_type,
+            'client': self.data.client,
+            'IMPORT_REPORT_DATA': True,
+            'UPDATE_STATUS_API': self._update_status_api(),
+            'instant': False,
+            'options': options
+        }
+        print self._sheet_data
+        if self.instant:
+            self._sheet_data['instant'] = True
+        if params:
+            self._sheet_data['params'] = params
+        return self._sheet_data
