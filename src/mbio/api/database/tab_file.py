@@ -5,6 +5,7 @@ from biocluster.api.database.base import Base, report_check
 import os
 from biocluster.config import Config
 from bson import regex
+from bson import ObjectId
 from pymongo import MongoClient
 
 class TabFile(Base):
@@ -19,7 +20,7 @@ class TabFile(Base):
 
 
 	# @report_check
-	def add_pt_tab(self,sample):
+	def add_pt_tab(self,sample,batch_id):
 		if "-F" in sample:
 			analysised = "no"
 		else:
@@ -30,11 +31,12 @@ class TabFile(Base):
 				line = line.split('\t')
 				if line[0] != '':
 					sample_name = line[0]
-					break
-			insert_data = {
-				"sample_id": sample_name,
-				"analysised": analysised
-			}
+					insert_data = {
+						"sample_id": sample_name,
+						"analysised": analysised,
+						"batch_id": ObjectId(batch_id)
+					}
+				break
 			try:
 				collection = self.database['sg_pt_ref_main']
 				collection.insert_one(insert_data)
@@ -143,12 +145,56 @@ class TabFile(Base):
 		qc_detail = list()
 		with open(file,'r') as f:
 			for line in f:
-				line.strip()
-				line.split(":")
+				line = line.strip()
+				line = line.split(":")
+
+				if line[0] == 'dp':
+					if float(line[1]) >=40:
+						color = "green"
+					elif float(line[1]) < 30:
+						color = "red"
+					else:
+						color = "yellow"
+				elif line[0] == "num__chrY":
+					if "-F" in sample_id:
+						if float(line[1]) < 10:
+							color = 'red'
+						else:
+							color = 'green'
+					elif "-M" in sample_id:
+						if float(line[1]) >= 3:
+							color = 'red'
+						elif float(line[1]) == 0:
+							color ='green'
+						else:
+							color = "yellow"
+					elif "-S" in sample_id:
+						line[1]='/'
+						color = ''
+				elif line[0] == 'num':
+					num_M = int(line[1])/1000000
+					if "-M" in sample_id or "-F" in sample_id:
+						if num_M <3:
+							color = "red"
+						elif 3 <= num_M <=4:
+							color = 'yellow'
+						else:
+							color = 'green'
+					else:
+						if num_M <=7.5:
+							color = 'red'
+						elif num_M > 8.5:
+							color = 'green'
+						else:
+							color = 'yellow'
+				else:
+					color = ''
+
 				insert_data = {
 					"qc": line[0],
 					"value": line[1],
-					"sample_id":sample_id
+					"sample_id":sample_id,
+					"color":color
 				}
 				qc_detail.append(insert_data)
 			try:
@@ -158,3 +204,100 @@ class TabFile(Base):
 				self.bind_object.logger.error('导入qc表格出错：{}'.format(e))
 			else:
 				self.bind_object.logger.info("导入qc表格成功")
+
+	def sample_qc_addition(self,sample_id):
+		collection = self.database['sg_pt_qc']
+		insert = []
+
+		find_n_hit = collection.find_one({"sample_id":sample_id, 'qc':'n_hit'})
+		n_hit = float(find_n_hit['value'])
+		find_num = collection.find_one({"sample_id":sample_id, "qc":'num'})
+		num = float(find_num['value'])
+		ot = n_hit/num
+		if ot <= 0.015:
+			color_ot = 'red'
+		elif 0.015 < ot <= 0.025:
+			color_ot = 'yellow'
+		elif ot > 0.025:
+			color_ot = 'green'
+
+		find_n_hit_dedup = collection.find_one({"sample_id": sample_id, 'qc': 'n_hit_dedup'})
+		n_hit_dedup = float(find_n_hit_dedup['value'])
+		ot_dedup = n_hit_dedup/n_hit
+
+		if ot_dedup<=0.2:
+			color_ot_dedup = 'red'
+		elif 0.2<ot_dedup<=0.3:
+			color_ot_dedup = 'yellow'
+		elif ot_dedup >0.3:
+			color_ot_dedup = 'green'
+
+		insert_data1 = {
+			"qc":"ot",
+			"value":ot,
+			"sample_id":sample_id,
+			"color": color_ot
+		}
+		insert.append(insert_data1)
+
+		insert_data2 = {
+			"qc": "ot_dedup",
+			"value": ot_dedup,
+			"sample_id": sample_id,
+			"color": color_ot_dedup
+		}
+		insert.append(insert_data2)
+		try:
+			collection.insert_many(insert)
+		except Exception as e:
+			self.bind_object.logger.error('计算并导入ot出错：{}'.format(e))
+		else:
+			self.bind_object.logger.info("计算并导入ot成功")
+
+
+
+
+	def family_unanalysised(self):
+		family_id = []
+		collection = self.database['sg_pt_ref_main']
+		sample = collection.find({"analysised":'no'})
+		for i in sample:
+			dad_id = []
+			mom_id =[]
+			preg_id =[]
+			m = re.search(r'WQ([0-9]*)-F.*', i['sample_id'])
+			family = m.group(1)
+			dad_id.append(i['sample_id'])
+			dad_id = list(set(dad_id))
+			mom = "WQ" + family + "-M.*"
+			sample_mom = collection.find({"sample_id": {"$regex": mom}})
+			for s in sample_mom:
+				mom_id.append(s['sample_id'])
+				mom_id = list(set(mom_id))
+			preg = "WQ" +family + "-S.*"
+			sample_preg = collection.find({"sample_id": {"$regex": preg}})
+			for n in sample_preg:
+				preg_id.append(n['sample_id'])
+				preg_id = list(set(preg_id))
+
+			if sample_mom and sample_preg:
+				for dad in dad_id:
+					for mom in mom_id:
+						for preg in preg_id:
+							family_member = []
+							family_member.append(dad)
+							family_member.append(mom)
+							family_member.append(preg)
+
+							family_id.append(family_member)
+				# if dad_id not in family_id and mom_id not in family_id and preg_id not in family_id:
+				# 	family_id.append(dad_id)
+				# 	family_id.append(mom_id)
+				# 	family_id.append(preg_id)
+				# 	final.append(family_id)
+			else:
+				self.bind_object.logger.info("家系数据还未全部下机")
+				continue
+		return family_id
+
+
