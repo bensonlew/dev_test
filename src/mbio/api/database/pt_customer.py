@@ -54,7 +54,7 @@ class PtCustomer(Base):
 				else:
 					self.bind_object.logger.info("导入家系表成功")
 		try:
-			main_collection = self.db["sg_pt_datasplit"]
+			main_collection = self.database["sg_pt_datasplit"]
 			self.bind_object.logger.info("开始刷新主表写状态")
 			main_collection.update({"_id": ObjectId(main_id)},
 									{"$set": {
@@ -63,4 +63,15 @@ class PtCustomer(Base):
 			self.bind_object.logger.error("更新sg_pt_datasplit主表出错:{}".format(e))
 		else:
 			self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
+
+	def update_flow_status(self,batch_id):
+		try:
+			main_collection = self.database["sg_pt_datasplit"]
+			main_collection.update({"_id": ObjectId(batch_id)},{"$set": {"status": "end"}})
+		except Exception as e:
+			self.bind_object.logger.error("更新大流程主表状态出错:{}".format(e))
+		else:
+			self.bind_object.logger.info("更新大流程主表状态成功")
+
+
 
