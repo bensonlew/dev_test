@@ -6,6 +6,8 @@ from biocluster.config import Config
 from mainapp.libs.signature import CreateSignature
 from bson.objectid import ObjectId
 from types import StringTypes
+import urllib2
+import urllib
 import datetime
 import os
 import json
@@ -109,6 +111,14 @@ class MetaPipelineWorkflow(Workflow):
         for m in level:
             levels.append(m)
         print levels
+        min_level = int(sorted(levels)[-1])
+        print min_level
+        try:
+            first_group_id = str(all_data['first_group_id'])
+            print first_group_id
+        except:
+            first_group_id = ''
+            print "data中没有first_group_id这个字段，请仔细检查下！"
         group_infos = all_data['group_info']
         group_infos = eval(group_infos)
         level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "OTU"]
@@ -123,8 +133,8 @@ class MetaPipelineWorkflow(Workflow):
                     desc = level_name[int(level) - 1] + "与" + "All" + "组合结果"
                 else:
                     group_id = ObjectId(group_id)
-                    name = level_name[int(level)-1] + self.find_group_name(group_id).capitalize() + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                    desc = level_name[int(level)-1] + "与" + self.find_group_name(group_id) + "组合结果"
+                    name = level_name[int(level) - 1] + self.find_group_name(group_id).capitalize() + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    desc = level_name[int(level) - 1] + "与" + self.find_group_name(group_id) + "组合结果"
                 insert_data = {
                     "project_sn": project_sn,
                     "task_id": task_id,
@@ -145,6 +155,8 @@ class MetaPipelineWorkflow(Workflow):
                 else:
                     print "耶！导入%s到sg_pipe_main成功！"%(desc)
                 print inserted_id
+                if int(level) == min_level and str(group_id) == first_group_id:
+                    self.get_picture_id(pipe_main_id=inserted_id, main_table_id=main_table_id)
                 for anaylsis in all_results:
                     if 'sub_anaylsis_id' in anaylsis.keys():
                         if str(anaylsis['group_id']) == str(group['group_id']) and str(anaylsis['level_id']) == str(level):
@@ -212,6 +224,17 @@ class MetaPipelineWorkflow(Workflow):
                                 print "分类水平%s——分组方案%s，导入到sg_pipe_detail失败！" % (level_name[int(level) - 1], group_name)
 
         print "所有的表均导成功了yeyeye！程序已经运行完成！"
+        # url = "http://www.tsanger.com/report/auto_save_picture/?pipe_batch_id=" + str(main_table_id)
+        url = "www.tsg.com/report/auto_save_picture.html?pipe_batch_id=58c1114ea4e1af68d1a2d1ad"
+        print url
+        try:
+            req = urllib2.Request(url)
+            response = urllib2.urlopen(req)
+            # the_page = response.read()
+        except:
+            print "请求失败！"
+        else:
+            print "yes"
         self.end()
 
     def watch_end(self, all_results, main_table_id):
@@ -306,7 +329,7 @@ class MetaPipelineWorkflow(Workflow):
 
     def find_group_name(self, group_id):
         """
-        根据group_id去找grup_name
+        根据group_id去找group_name
         :param group_id:
         :return:
         """
@@ -323,3 +346,24 @@ class MetaPipelineWorkflow(Workflow):
             print "没有找到group_id对应的group_name！"
             group_name = " "
         return str(group_name)
+
+    def get_picture_id(self, pipe_main_id, main_table_id):
+        """
+        批量导图片时使用， 目前选取的是最低分类水平，分组方案中all后面的第一个分组
+        :param pipe_main_id:
+        :param main_table_id:
+        :return:
+        """
+        if pipe_main_id != 0 and not isinstance(pipe_main_id, ObjectId):
+            if isinstance(pipe_main_id, StringTypes):
+                pipe_main_id = ObjectId(pipe_main_id)
+            else:
+                raise Exception("pipe_main_id必须为ObjectId对象或其对应的字符串!")
+        collection = self.db["sg_pipe_batch"]
+        data = {
+            "pipe_main_id": pipe_main_id
+        }
+        try:
+            collection.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
+        except:
+            print "sg_pipe_batch中pipe_main_id更新失败，请检查！"

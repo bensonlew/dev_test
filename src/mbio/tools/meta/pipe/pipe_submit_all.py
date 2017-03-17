@@ -563,7 +563,8 @@ class PipeSubmitAllTool(Tool):
                                "beta_multi_analysis_nmds", "beta_multi_analysis_plsda", "beta_multi_analysis_dbrda", "otunetwork_analyse",
                                "randomforest_analyse", "otu_pan_core", "roc_analyse", "otu_group_analyse", "hc_heatmap",
                                "beta_multi_analysis_pearson_correlation", "otu_venn",
-                               "beta_multi_analysis_anosim", "beta_sample_distance", "enterotyping"]:
+                               "beta_multi_analysis_anosim", "beta_sample_distance", "enterotyping",
+                               "beta_multi_analysis_results"]:
             my_param = dict()
             for key in ever_analysis_params:
                 if key == "level_id":
@@ -643,7 +644,7 @@ class PipeSubmitAllTool(Tool):
                 else:
                     my_param[key] = ever_analysis_params[key]
             new_params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        elif submit_location in ["alpha_diversity_index", "beta_multi_analysis_results"]:
+        elif submit_location in ["alpha_diversity_index"]:
             my_param = dict()
             for key in ever_analysis_params:
                 if key == "group_detail":
