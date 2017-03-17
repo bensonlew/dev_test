@@ -67,7 +67,7 @@ class Group(Base):
                 line = re.split('\t', line)
                 for i in range(1, len(line)):
                     if line[0] not in spname_spid:
-                        raise Exception("意外错误,样本名{}在以导入的样本当中未找到".format(line[0]))
+                        raise Exception("分组文件或环境因子表中的样本：%s没有在fastq文件中找到".format(line[0]))
                     info_dic[(index_gpname[i], line[i])].append(str(line[0]))
         return (info_dic, scheme)
 

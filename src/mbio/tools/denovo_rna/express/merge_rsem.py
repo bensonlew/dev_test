@@ -3,8 +3,10 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from mbio.packages.denovo_rna.express.express_distribution import *
 import os
 import re
+
 
 class MergeRsemAgent(Agent):
     """
@@ -62,7 +64,7 @@ class MergeRsemAgent(Agent):
         ])
         result_dir.add_regexp_rules([
             [r"matrix$", "xls", "表达量矩阵"]
-            ])
+        ])
         super(MergeRsemAgent, self).end()
 
 
@@ -77,7 +79,12 @@ class MergeRsemTool(Tool):
         self.tpm = "/bioinfo/rna/trinityrnaseq-2.2.0/util/abundance_estimates_to_matrix.pl"
         self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
         self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin:$PATH"
+        self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
+        self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
+        self.set_environ(PATH=self.r_path, R_HOME=self._r_home, LD_LIBRARY_PATH=self._LD_LIBRARY_PATH)
         self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
+        self.r_path1 = "/program/R-3.3.1/bin/Rscript"
 
     def merge_rsem(self):
         files = os.listdir(self.option('rsem_files').prop['path'])
@@ -111,6 +118,23 @@ class MergeRsemTool(Tool):
             self.logger.info("运行merge_tran_cmd出错")
             raise Exception("运行merge_tran_cmd出错")
 
+    def get_distribution(self):
+        """获取表达量分布图的作图数据"""
+        # gene
+        distribution(rfile='./gene_distribution.r', input_matrix=self.option('gene_fpkm').prop['path'], outputfile='./gene_distribution.xls')
+        # transcript
+        distribution(rfile='./tran_distribution.r', input_matrix=self.option('tran_fpkm').prop['path'], outputfile='./tran_distribution.xls')
+        gcmd = self.r_path1 + " gene_distribution.r"
+        tcmd = self.r_path1 + " tran_distribution.r"
+        self.logger.info("开始运行表达量分布图的数据分析")
+        cmd1 = self.add_command("gene_cmd", gcmd).run()
+        cmd2 = self.add_command("tran_cmd", tcmd).run()
+        self.wait()
+        if cmd1.return_code == 0 and cmd2.return_code == 0:
+            self.logger.info("表达量分布图的数据分析成功")
+        else:
+            self.set_error("表达量分布图的数据分析出错")
+
     def set_output(self):
         """
         将结果文件link到output文件夹下面
@@ -143,4 +167,5 @@ class MergeRsemTool(Tool):
         super(MergeRsemTool, self).run()
         self.merge_rsem()
         self.set_output()
+        self.get_distribution()
         self.end()

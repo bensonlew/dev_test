@@ -78,10 +78,11 @@ class NcbiTaxonTool(Tool):
             db = 'prot'
         else:
             db = 'nucl'
-        run_gitaxon = self.result_thread(self.process_run, table, db)
-        run_gitaxon.start()
-        run_gitaxon.join()
-        if run_gitaxon.result:
+        if self.process_run(table, db):
+        # run_gitaxon = self.result_thread(self.process_run, table, db)
+        # run_gitaxon.start()
+        # run_gitaxon.join()
+        # if run_gitaxon.result:
             self.option('taxon_out', self.output_dir + '/query_taxons_detail.xls')
             self.end()
         else:

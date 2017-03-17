@@ -338,7 +338,7 @@ class Workflow(Basic):
                 elif type == "pause":
                     worker.set_pause(self.sheet.id)
                 elif type == "stop":
-                    worker.set_top(self.sheet.id)
+                    worker.set_stop(self.sheet.id)
                 elif type == "pause_exit":
                     worker.set_pause_exit(self.sheet.id)
                 elif type == "pause_timeout":
@@ -367,14 +367,15 @@ class Workflow(Basic):
     def __check(self):
         if self.is_end is True:
             return "exit"
-        if (datetime.datetime.now() - self.last_update).seconds > (self.config.MAX_WAIT_TIME * 3 + 100):
-            self.exit(data="超过 %s s没有任何运行更新，退出运行！" % (self.config.MAX_WAIT_TIME * 3 + 100))
+
         now = datetime.datetime.now()
         if self.pause:
             if (now - self._pause_time).seconds > self.config.MAX_PAUSE_TIME:
                 self._update("pause_timeout")
                 self.exit(data="暂停超过规定的时间%ss,自动退出运行!" %
                                self.config.MAX_PAUSE_TIME, terminated=True)
+        if (now - self.last_update).seconds > (self.config.MAX_WAIT_TIME * 3 + 100):
+            self.exit(data="超过 %s s没有任何运行更新，退出运行！" % (self.config.MAX_WAIT_TIME * 3 + 100))
         try:
             action = self.action_queue.get_nowait()
         except Exception:

@@ -11,7 +11,7 @@ import sys
 from bson.objectid import ObjectId
 from biocluster.wpm.log import Log
 from biocluster.config import Config
-from biocluster.core.function import CJsonEncoder
+from biocluster.core.function import CJsonEncoder, filter_error_info
 
 
 class UpdateStatus(Log):
@@ -26,10 +26,6 @@ class UpdateStatus(Log):
         self._client = "client01"
         self._key = "1ZYw71APsQ"
         self._url = "http://www.sanger.com/api/add_file"
-        if "update_info" in self.data["content"]:
-            self.update_info = self.data["content"]["update_info"]
-        else:
-            self.update_info = None
         self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
         self._mongo_client = self._config.mongo_client
         self.mongodb = self._mongo_client[Config().MONGODB]
@@ -42,7 +38,7 @@ class UpdateStatus(Log):
         data = dict()
         content = {
             "task_id": "_".join(my_id),
-            "stage": self.data["content"]["stage"]
+            # "stage": self.data["content"]["stage"]
         }
         if 'files' in self.data['content']:
             content['files'] = self.data["content"]["files"]
@@ -107,7 +103,7 @@ class UpdateStatus(Log):
 
     def update_status(self):
         status = self.data["content"]["stage"]["status"]
-        desc = self.data["content"]["stage"]["error"]
+        desc = filter_error_info(self.data["content"]["stage"]["error"])
         create_time = str(self.data["content"]["stage"]["created_ts"])
         if not self.update_info:
             return

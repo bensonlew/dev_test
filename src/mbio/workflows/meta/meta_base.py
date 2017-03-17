@@ -90,7 +90,7 @@ class MetaBaseWorkflow(Workflow):
                                                'silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
-                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX', 'fgr/mrcA',
+                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX', 'fgr/mcrA',
                                                'maarjam081/AM', 'Human_HOMD',
                                                'silva128/16s_archaea', 'silva128/16s_bacteria',
                                                'silva128/18s_eukaryota', 'silva128/16s',
@@ -331,8 +331,10 @@ class MetaBaseWorkflow(Workflow):
                 raise Exception("找不到报告文件:{}".format(otu_path))
             params = {
                 "group_id": 'all',
-                "size": 0,
+                #"size": 0,
+                "size": "",   # modified by hongdongxuan 20170303
                 "submit_location": 'otu_statistic',
+                "filter_json": "[]", # add by hongdongxuan 20170303
                 "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
@@ -442,14 +444,14 @@ class MetaBaseWorkflow(Workflow):
         if event['data'] == "pan_core":
             self.move2outputdir(obj.output_dir, self.output_dir + "/pan_core")
             api_pan_core = self.api.pan_core
-            name = "pan_table_origin"
+            name = "Pan_Origin"
             params = {
                 "level_id": 9,
                 "group_id": "all",
                 "submit_location": "otu_pan_core"
             }
             pan_id = api_pan_core.create_pan_core_table(1, json.dumps(params), "all", 9, self.otu_id, name, "end", spname_spid=self.spname_spid)
-            name = "core_table_origin"
+            name = "Core_Origin"
             core_id = api_pan_core.create_pan_core_table(2, json.dumps(params), "all", 9, self.otu_id, name, "end", spname_spid=self.spname_spid)
             pan_path = self.pan_core.option("pan_otu_table").prop["path"]
             core_path = self.pan_core.option("core_otu_table").prop['path']

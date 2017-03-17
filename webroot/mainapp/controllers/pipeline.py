@@ -12,16 +12,20 @@ from mainapp.libs.jsonencode import CJsonEncoder
 import xml.etree.ElementTree as ET
 from mainapp.config.db import get_use_api_clients, get_api_type, get_mongo_client
 from biocluster.wpm.client import worker_client
+import traceback
+import re
 
 
 class Pipeline(object):
+
     def __init__(self):
         self.client = get_mongo_client()
         # self.db_name = None
         # self.db = self.client[Config().MONGODB]
 
     def GET(self):
-        path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../views/'))
+        path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), '../views/'))
         render = web.template.render(path)
         return render.pipline(self.get_form())
 
@@ -29,30 +33,18 @@ class Pipeline(object):
     @check_format
     def POST(self):
         data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        client = data.client if hasattr(
+            data, "client") else web.ctx.env.get('HTTP_CLIENT')
         try:
             if client == "client01" or client == "client03":
                 json_obj = self.sanger_submit()
                 json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
                 json_obj["IMPORT_REPORT_AFTER_END"] = True
-                """样本检测新"""
                 try:
-                    if json_obj["name"] == "meta.meta_base":
-                        if json_obj["options"]["file_list"] != "null":
-                            self.db_name = Config().MONGODB
-                            self.db = self.client[self.db_name]
-                            collection = self.db["sg_seq_sample"]
-                            id1 = re.sub("sanger", "tsanger", json_obj["id"])
-                            id2 = re.sub("i-sanger", "tsanger", json_obj["id"])
-                            result = collection.find_one({"task_id": id1})
-                            if result:
-                                json_obj["options"]["workdir_sample"] = str(result["workdir_sample"])
-                            else:
-                                result = collection.find_one({"task_id": id2})
-                                if result:
-                                    json_obj["options"]["workdir_sample"] = str(result["workdir_sample"])
-                                else:
-                                    json_obj["options"]["file_list"] = "null"
+                    json_obj = self.meta_sample_extract(json_obj)
+                except Exception as e:
+                    print('Meta 样本检测相关错误：{}'.format(e))
+                    return json.dumps({"success": False, "info": str(e)})
             else:
                 json_obj = self.json_submit()
         except Exception, e:
@@ -75,6 +67,29 @@ class Pipeline(object):
             worker_client().add_task(json_obj)
             info = {"success": True, "info": "添加队列成功!"}
             return json.dumps(info)
+
+    def meta_sample_extract(self, json_obj):
+        """
+        Meta 检测样本信息检查
+        """
+        if json_obj["name"] == "meta.meta_base":
+            if json_obj["options"]["file_list"] != "null":
+                self.db_name = Config().MONGODB
+                self.db = self.client[self.db_name]
+                collection = self.db["sg_seq_sample"]
+                id1 = re.sub("sanger", "tsanger", json_obj["id"])
+                id2 = re.sub("i-sanger", "tsanger", json_obj["id"])
+                try:
+                    result_cursor = collection.find({"task_id": id1})
+                    result = list(result_cursor)[-1]
+                except:
+                    result_cursor = collection.find({"task_id": id2})
+                    result = list(result_cursor)[-1]
+                if result:
+                    json_obj["options"]["workdir_sample"] = str(
+                        result["workdir_sample"])
+
+        return json_obj
 
     @staticmethod
     def sanger_submit():
@@ -119,20 +134,25 @@ class Pipeline(object):
                         file_list = ''
                         if "fileList" in opt.attrib:
                             file_list = opt.attrib['fileList']
-                        tmp_list = [None, "none", "None", "null", 'Null', '[]', '']
+                        tmp_list = [None, "none", "None",
+                                    "null", 'Null', '[]', '']
                         if file_list in tmp_list:
-                            json_obj['options'][opt.tag] = "%s||%s/%s" % (opt.attrib["format"], file_path, opt.text)
+                            json_obj['options'][
+                                opt.tag] = "%s||%s/%s" % (opt.attrib["format"], file_path, opt.text)
                         else:
                             json_obj['options'][opt.tag] = "{}||{}/{};;{}".format(opt.attrib["format"], file_path,
                                                                                   opt.text, file_list)
                     else:
-                        json_obj['options'][opt.tag] = "%s/%s" % (file_path, opt.text)
+                        json_obj['options'][
+                            opt.tag] = "%s/%s" % (file_path, opt.text)
                 else:
                     if "format" in opt.attrib.keys():
                         json_obj['options'][opt.tag] = "%s||%s:%s" %\
-                                                       (opt.attrib["format"], opt.attrib["type"], opt.text)
+                                                       (opt.attrib["format"], opt.attrib[
+                                                        "type"], opt.text)
                     else:
-                        json_obj['options'][opt.tag] = "%s:%s" % (opt.attrib, opt.text)
+                        json_obj['options'][opt.tag] = "%s:%s" % (
+                            opt.attrib, opt.text)
             else:
                 json_obj['options'][opt.tag] = opt.text
         return json_obj
@@ -161,7 +181,8 @@ class PipelineState(object):
     @check_sig
     def GET(self):
         data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        client = data.client if hasattr(
+            data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if not hasattr(data, "id") or data.id.strip() == "":
             info = {"success": False, "info": "查看状态需要参数: id!"}
             return json.dumps(info)
@@ -225,7 +246,8 @@ class PipelineLog(object):
     @check_sig
     def GET(self):
         data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        client = data.client if hasattr(
+            data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if not hasattr(data, "id") or data.id.strip() == "":
             info = {"success": False, "info": "查看日志需要参数: id!"}
             return json.dumps(info)
@@ -258,7 +280,8 @@ class PipelineStop(object):
     @check_sig
     def POST(self):
         data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        client = data.client if hasattr(
+            data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if not hasattr(data, "id") or data.id.strip() == "":
             info = {"success": False, "info": "停止任务需要参数: id!"}
             return json.dumps(info)
@@ -293,7 +316,8 @@ class PipelineRunning(object):
     @check_sig
     def GET(self):
         data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        client = data.client if hasattr(
+            data, "client") else web.ctx.env.get('HTTP_CLIENT')
         workflow_module = Workflow()
         data = workflow_module.get_running(client)
         count = len(data)
@@ -311,10 +335,12 @@ class PipelineRunning(object):
 
 
 class PipelineQueue(object):
+
     @check_sig
     def GET(self):
         data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        client = data.client if hasattr(
+            data, "client") else web.ctx.env.get('HTTP_CLIENT')
         workflow_module = Workflow()
         data = workflow_module.get_queue(client)
         count = len(data)
@@ -336,7 +362,8 @@ class PipelinePause(object):
     def POST(self):
         data = web.input()
         print data
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        client = data.client if hasattr(
+            data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if not hasattr(data, "id") or data.id.strip() == "":
             info = {"success": False, "info": "暂停任务需要参数: id!"}
             return json.dumps(info)
@@ -379,7 +406,8 @@ class PipelineStopPause(object):
     def GET(self):
         data = web.input()
         print data
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        client = data.client if hasattr(
+            data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if not hasattr(data, "id") or data.id.strip() == "":
             info = {"success": False, "info": "重新开始暂停任务需要参数 id!"}
             return json.dumps(info)
@@ -405,5 +433,6 @@ class PipelineStopPause(object):
                 info = {"success": False, "info": "没有权限查看！"}
                 return json.dumps(info)
         else:
-            info = {"success": False, "info": "StopPause: 流程ID:{}不存在！".format(data.id)}
+            info = {"success": False,
+                    "info": "StopPause: 流程ID:{}不存在！".format(data.id)}
             return json.dumps(info)

@@ -27,6 +27,7 @@ class GoAnnotationAgent(Agent):
         self.step.add_steps('go_annotation')
         self.on('start', self.step_start)
         self.on('end', self.step_end)
+        self.queue = 'BLAST2GO'  # 投递到指定的队列BLAST2GO
 
     def step_start(self):
         self.step.go_annotation.start()
@@ -140,7 +141,7 @@ class GoAnnotationTool(Tool):
         cmd2 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/goAnnot.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
         cmd2 += ' %s %s %s %s' % (
-            self.work_dir + '/GO.list', '10.100.203.193', Config().DB_USER, Config().DB_PASSWD)  # 10.100.203.193
+            self.work_dir + '/GO.list', 'localhost', Config().DB_USER, Config().DB_PASSWD)  # 10.100.203.193
         self.logger.info("运行goAnnot.py")
         self.logger.info(cmd2)
         '''

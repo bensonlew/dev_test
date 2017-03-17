@@ -36,6 +36,15 @@ class Meta(object):
     def insert_main_table(self, collection, data):
         return self.db[collection].insert_one(SON(data)).inserted_id
 
+    def update_status_failed(self, collection, doc_id):
+        """
+        改特定_id主表的status状态从start为failed，主要用于特殊投递任务失败
+
+        params collection: 主表collection名称
+        params doc_id: 主表_id
+        """
+        self.db[collection].update_one({'_id': ObjectId(doc_id), "status": "start"}, {"$set": {'status': 'failed'}})
+
     def sampleIdToName(self, sampleIds):
         """
         将一个用逗号隔开的样本ID的集合转换成样本名，返回一个用逗号隔开的样本名的集合

@@ -49,7 +49,7 @@ class Estimator(Base):
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
                 "otu_id": otu_id,
-                "name": name if name else "estimators_origin",
+                "name": name if name else "Estimators_Origin",
                 "level_id": level,
                 "status": "end",
                 "desc": "",

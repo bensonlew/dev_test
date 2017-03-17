@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 # last_modified = 'shenghe'
@@ -36,7 +37,7 @@ class SingleWorkflow(Workflow):
         super(SingleWorkflow, self).run()
 
     def end(self):
-        self._upload_dir_obj = self.upload_dir
+        self._upload_dir_obj = self._task.upload_dir
         self.run_mongo()
         super(SingleWorkflow, self).end()
 

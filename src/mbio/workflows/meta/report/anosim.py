@@ -129,7 +129,7 @@ class AnosimWorkflow(Workflow):
         保存结果表到mongo数据库中
         """
         api_anosim = self.api.anosim
-        if not (os.path.isdir(self.output_dir + '/Anosim') and os.path.isdir(self.output_dir + '/Box')):
+        if not (os.path.isdir(self.output_dir + '/Anosim') and os.path.isdir(self.output_dir + '/AnosimBox')): # change by wzy
             raise Exception("找不到报告文件夹:{}".format(self.output_dir))
         api_anosim.add_beta_anosim_result(self.output_dir, main=False, main_id=self.option('main_id'))
         self.logger.info('运行self.end')

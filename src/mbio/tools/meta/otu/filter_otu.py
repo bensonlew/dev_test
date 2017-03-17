@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
+# lastmodified: shenghe # 对物种名称筛选 进行了重构
 import json
 import re
 import os
@@ -73,68 +74,87 @@ class FilterOtuTool(Tool):
         }
         self.keep_list = list()  # 处理物种筛选中的保留的逻辑
 
-    def filter_table(self):
-        my_json = json.loads(self.option("filter_json"))
-        keep_flag = 0
-        for d in my_json:
-            if d["name"] == "species_filter" and d["type"] == "keep":
-                self.keep_species(d)
-                keep_flag = 1
-        if keep_flag:
-            self.otu_json = self.keep_list[:]
-        for d in my_json:
-            if d["name"] == "species_filter" and d["type"] == "remove":
-                self.remove_species(d)
-        for d in my_json:
-            if d["name"] == "sample_filter":
-                self.filter_samples(d)
-            elif d["name"] == "reads_filter":
-                self.filter_reads(d)
+    def filter_otu_table(self):
+        """
+        筛选 OTU表中的物种，样本和reads
 
-    def keep_species(self, my_json):
-        j_value = re.sub("^\w__", "", my_json["value"])
-        for line in self.otu_json:
-            sp_name = line.split("\t")[0].split("; ")
-            my_level = int(my_json["level_id"]) - 1
-            """
-            # 当级别是9的时候，也即是OTU的时候，进行精确匹配
-            if int(my_json["level_id"]) == 9:
-                if sp_name[my_level] == my_json["value"] or sp_name[my_level].lower() == my_json["value"]:
-                    self.keep_list.append(line)
-            # 当级别不是OTU的时候, 进行模糊匹配。
+        params:
+        """
+        filter_json = json.loads(self.option("filter_json"))
+        sp_condition_keep = []
+        sp_condition_remove = []
+        sam_condition = []
+        reads_condition = []
+        for cond in filter_json:
+            if cond['name'] == "species_filter" and cond["type"] == "keep":
+                sp_condition_keep.append(cond)
+            elif cond['name'] == "species_filter" and cond["type"] == "remove":
+                sp_condition_remove.append(cond)
+            elif cond["name"] == "sample_filter":
+                sam_condition.append(cond)
+            elif cond['name'] == "reads_filter":
+                reads_condition.append(cond)
             else:
-                pattern = self.LEVEL[int(my_json["level_id"])] + ".*" + j_value
-                if re.search(pattern, sp_name[my_level], re.IGNORECASE):
-                    self.keep_list.append(line)
-            """
-            str = my_json["value"]
-            str = str.lstrip()
-            if sp_name[my_level] == str or sp_name[my_level].lower() == str:
-                self.keep_list.append(line)
-            
-    def remove_species(self, my_json):
-        j_value = re.sub("^\w__", "", my_json["value"])
-        tmp_list = self.otu_json[:]
-        for line in self.otu_json:
-            sp_name = line.split("\t")[0].split("; ")
-            my_level = int(my_json["level_id"]) - 1
-            """
-            # 当级别是9的时候，也即是OTU的时候，进行精确匹配
-            if int(my_json["level_id"]) == 9:
-                if sp_name[my_level] == my_json["value"] or sp_name[my_level].lower() == my_json["value"]:
-                    tmp_list.remove(line)
-            # 当级别不是OTU的时候, 进行模糊匹配。
+                pass
+        if sp_condition_keep:
+            self.otu_json = self.keep_species(sp_condition_keep)
+        if sp_condition_remove:
+            self.otu_json = self.remove_species(sp_condition_remove)
+        for i in sam_condition:
+            self.filter_samples(i)
+        for i in reads_condition:
+            self.filter_reads(i)
+
+
+    def keep_species(self, conditions, fuzzy=False):
+        """
+        保留特定物种的OTU, 多条件时选交集
+
+        :params conditions: 条件列表
+        :params fuzzy: 是否模糊匹配(不区分大小写)
+        :return : 筛选出来的OTU列表
+        """
+        temp_otus = []
+        for cond in conditions:
+            if not fuzzy:
+                cond['pattern'] = re.compile('^{}$'.format(cond['value'].strip()))
             else:
-                pattern = self.LEVEL[int(my_json["level_id"])] + ".*" + j_value
-                if re.search(pattern, sp_name[my_level], re.IGNORECASE):
-                    tmp_list.remove(line)
-            """
-            # edited by sj
-            str = my_json["value"]
-            str = str.lstrip()
-            if sp_name[my_level] == str or sp_name[my_level].lower() == str:
-                self.keep_list.append(line)
-        self.otu_json = tmp_list[:]
+                cond['pattern'] = re.compile('{}'.format(cond['value'].strip()), flags=re.IGNORECASE)
+        for i in self.otu_json:
+            for cond in conditions:
+                level = int(cond["level_id"]) - 1
+                sp_name = re.split(r';', (re.split(r'\t', i, maxsplit=1)[0]))
+                sp_name = sp_name[level].strip()
+                if cond['pattern'].search(sp_name):
+                    temp_otus.append(i)
+                    break
+        return temp_otus
+
+    def remove_species(self, conditions, fuzzy=False):
+        """
+        去除特定物种的OTU, 多条件时，任何条件去除即去除
+
+        :params conditions: 条件列表
+        :params fuzzy: 是否模糊匹配(不区分大小写)
+        :return : 筛选出来的OTU列表
+        """
+        temp_otus = []
+        for cond in conditions:
+            if not fuzzy:
+                cond['pattern'] = re.compile('^{}$'.format(cond['value'].strip()))
+            else:
+                cond['pattern'] = re.compile('{}'.format(cond['value'].strip()), flags=re.IGNORECASE)
+        for i in self.otu_json:
+            for cond in conditions:
+                level = int(cond["level_id"]) - 1
+                sp_name = re.split(r';', (re.split(r'\t', i, maxsplit=1)[0]))
+                sp_name = sp_name[level].strip()
+                if cond['pattern'].search(sp_name):
+                    break
+            else:
+                temp_otus.append(i)
+        return temp_otus
+
 
     def filter_samples(self, my_json):
         """
@@ -170,7 +190,7 @@ class FilterOtuTool(Tool):
 
     def run(self):
         super(FilterOtuTool, self).run()
-        self.filter_table()
+        self.filter_otu_table()
         # if len(self.otu_json) == 0:
         #    raise Exception("过滤之后的结果OTU是空的, 请查看过滤的条件是否正确！")
         with open(os.path.join(self.output_dir, "filter_otu.xls"), "wb") as w:

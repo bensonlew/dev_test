@@ -63,10 +63,13 @@ class QiimeAssignAgent(Agent):
                                                'silva119/16s_bacteria', 'silva119/16s_archaea',
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
-                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX','fgr/mrcA',
-                                               'maarjam081/AM','Human_HOMD',
-                                               'silva128/16s_archaea','silva128/16s_bacteria',
-                                               'silva128/18s_eukaryota','silva128/16s']:    #王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA
+                                               'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX', 'fgr/mcrA',
+                                               'maarjam081/AM', 'Human_HOMD',
+                                               'silva128/16s_archaea', 'silva128/16s_bacteria',
+                                               'silva128/18s_eukaryota', 'silva128/16s',
+                                               'greengenes135/16s', 'greengenes135/16s_archaea',
+                                               'greengenes135/16s_bacteria']:
+                                        # 王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA 2016.11.28增加数据库greengenes135
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
 
     def end(self):
@@ -82,7 +85,7 @@ class QiimeAssignAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 50
+        self._cpu = 16
         if self.option('database') == 'custom_mode':
             fasta_size = self.option('ref_fasta').get_size() / 1024.00 / 1024.00 / 1024.00  # 单位为G
             if fasta_size > 1.5:

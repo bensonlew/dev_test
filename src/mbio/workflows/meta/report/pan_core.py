@@ -21,7 +21,7 @@ class PanCoreWorkflow(Workflow):
             {"name": "samples", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "main_pan_id", "type": "string"},
-            {"name": "main_pan_id", "type": "string"}
+            {"name": "main_core_id", "type": "string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -53,7 +53,7 @@ class PanCoreWorkflow(Workflow):
         pan_path = self.pan_core.option("pan_otu_table").prop['path']
         core_path = self.pan_core.option("core_otu_table").prop['path']
         api_pan_core.add_pan_core_detail(pan_path, self.option('main_pan_id'))
-        api_pan_core.add_pan_core_detail(core_path, self.option('main_pan_id'))
+        api_pan_core.add_pan_core_detail(core_path, self.option('main_core_id'))
         self.end()
 
     def run(self):
