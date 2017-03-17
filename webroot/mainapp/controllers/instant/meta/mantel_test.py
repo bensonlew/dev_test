@@ -61,7 +61,7 @@ class MantelTest(MetaController):
 
         params_json = {
             "otu_id": data.otu_id,
-            "level_id": data.level_id,
+            "level_id": int(data.level_id),
             "submit_location": data.submit_location,
             "task_type": data.task_type,
             "group_detail": group_detail_sort(data.group_detail),
