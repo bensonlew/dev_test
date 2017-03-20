@@ -38,7 +38,7 @@ class PaternityTestNew(PtController):
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
             ('params', params),
-            ('father_id', data.father_id),
+            ('father_id', ObjectId(data.father_id)),
             ('name', 'err-' + str(data.err_min) + '_dedup-' + str(data.dedup)),
             ("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         ]
@@ -64,4 +64,4 @@ class PaternityTestNew(PtController):
         task_info = super(PaternityTestNew, self).POST()
         return json.dumps(task_info)
 
-# python /mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py post paternity_test_new -c client03 -b http://192.168.12.102:9095 -n "err_min;dedup;father_id;submit_location" -d "3;50;58bfb0dca4e1af6aa54909ca;XXX"
+# python /mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py post paternity_test_new -c client03 -b http://192.168.12.102:9091 -n "err_min;dedup;father_id;submit_location" -d "3;50;58ca46b9a4e1af6b57c5fd64;XXX"

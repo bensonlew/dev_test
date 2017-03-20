@@ -135,45 +135,12 @@ class PtReportWorkflow(Workflow):
 		for j in range(len(self.tools_dedup)):
 			self.tools_dedup[j].on('end', self.set_output, 'dedup')
 		if len(self.tools_dedup) > 1:
-			self.on_rely(self.tools_dedup, self.dedup_fuzzy_run)
+			self.on_rely(self.tools_dedup, self.end)
 		elif len(self.tools_dedup) == 1:
-			self.tools_dedup[0].on('end', self.dedup_fuzzy_run)
-		else:
-			self.dedup_fuzzy_run()
-		for tool in self.tools_dedup:
-			tool.run()
-
-	def dedup_fuzzy_run(self):
-		api_read_tab = self.api.tab_file
-		n = 0
-		temp = re.match('WQ([1-9].*)-F.*', self.option('dad_id'))
-		num = int(temp.group(1))
-		if api_read_tab.dedup_fuzzy_sample(num, self.option('dad_id')):
-			for i in api_read_tab.dedup_fuzzy_sample(num,self.option('dad_id')):
-				pt_analysis_dedup_f = self.add_module("paternity_test.pt_analysis")
-				self.step.add_steps('dedup_f_{}'.format(n))
-				pt_analysis_dedup_f.set_options({
-					"dad_tab": api_read_tab.export_tab_file(i, self.output_dir),  # 数据库的tab文件
-					"mom_tab": api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir),
-					"preg_tab": api_read_tab.export_tab_file(self.option('preg_id'), self.output_dir),
-					"ref_point": self.option("ref_point"),
-					"err_min": self.option("err_min")
-				}
-				)
-				step = getattr(self.step, 'dedup_f_{}'.format(n))
-				step.start()
-				pt_analysis_dedup_f.on('end', self.finish_update, 'dedup_f_{}'.format(n))
-				self.tools_dedup_f.append(pt_analysis_dedup_f)
-				n += 1
-		for j in range(len(self.tools_dedup_f)):
-			self.tools_dedup_f[j].on('end', self.set_output, 'dedup_fuzzy')
-		if len(self.tools_dedup_f) > 1:
-			self.on_rely(self.tools_dedup_f, self.end)
-		elif len(self.tools_dedup_f) == 1:
-			self.tools_dedup_f[0].on('end', self.end)
+			self.tools_dedup[0].on('end', self.end)
 		else:
 			self.end()
-		for tool in self.tools_dedup_f:
+		for tool in self.tools_dedup:
 			tool.run()
 
 	def linkdir(self, dirpath, dirname):
@@ -219,8 +186,6 @@ class PtReportWorkflow(Workflow):
 		if event['data'] == "dedup":
 			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
 
-		if event['data'] == "dedup_fuzzy":
-			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
 
 	def run(self):
 		self.pt_analysis.on('end', self.result_info_run)
@@ -232,24 +197,27 @@ class PtReportWorkflow(Workflow):
 
 	def end(self):
 		api_main = self.api.sg_paternity_test
+
 		results = os.listdir(self.output_dir)
-		# flow_id = api_main.add_pt_task_main(err_min=self.option("err_min"), task = None)
 		self.pt_father_id = ObjectId(self.option("pt_father_id"))
+		dad_id = self.option('dad_id')
+		mom_id = self.option('mom_id')
+		preg_id = self.option('preg_id')
+		dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt'
 		for f in results:
-			if re.search(r'.*family_analysis\.txt$', f):
+			if re.search(dedup, f):
 				api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)
-			elif re.search(r'.*family_joined_tab\.txt$', f):
+			elif f == dad_id + '_' + mom_id + '_' + preg_id + '_family_joined_tab.txt':
 				api_main.add_sg_pt_father_detail(self.output_dir + '/' + f, self.pt_father_id)
-			elif re.search(r'.*info_show\.txt$', f):
+			elif f == mom_id + '_' + preg_id + '_info_show.txt':
 				api_main.add_info_detail(self.output_dir + '/' + f, self.pt_father_id)
-			elif re.search(r'.*test_pos\.txt$', f):
+			elif f == dad_id + '_' + mom_id + '_' + preg_id + '_test_pos.txt':
 				api_main.add_test_pos(self.output_dir + '/' + f, self.pt_father_id)
-			elif f == "family.png":
-				api_main.add_pt_father_figure(self.output_dir, self.pt_father_id)
+			elif f == dad_id + '_' + mom_id + '_' + preg_id + '_family.png':
+				file_dir = self.output_dir + '/' + dad_id + '_' + mom_id + '_' + preg_id
+				api_main.add_pt_father_figure(file_dir, self.pt_father_id)
 
 		self.update_status_api = self.api.pt_update_status
 		self.update_status_api.add_pt_status(table_id=self.option('pt_father_id'), table_name='sg_pt_father',
 		                                     type_name='sg_pt_father')
-
-
 		super(PtReportWorkflow,self).end()
