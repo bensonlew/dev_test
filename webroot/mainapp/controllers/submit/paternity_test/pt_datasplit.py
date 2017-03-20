@@ -40,7 +40,7 @@ class PtDatasplit(PtController):
             ('desc', '亲子鉴定数据拆分'),
             ('member_id', data.member_id),
             ('status', 'start'),
-            ('time', datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
+            ('time', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         ]
         main_table_id = PT().insert_main_table('sg_pt_datasplit', mongo_data)
         update_info = {str(main_table_id): 'sg_pt_datasplit'}
@@ -52,6 +52,7 @@ class PtDatasplit(PtController):
             "update_info": json.dumps(update_info)
         }
         sheet_data = self.set_sheet_data_(name=task_name, options=options, module_type=task_type, params=params)
+        print "*********"
         print sheet_data
         task_info = super(PtDatasplit, self).POST()
         return json.dumps(task_info)

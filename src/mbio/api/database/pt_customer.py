@@ -28,11 +28,21 @@ class PtCustomer(Base):
 		if main_id == "None":
 			self.bind_object.logger.info("缺少主表id")
 		with open(customer_file, 'r') as f:
+			num = 0
 			for line in f:
-				line = line.decode("gb2312")
+				num += 1
+				if num == 1:
+					continue
+				print line
+				# line = line.decode("gb2312")
+				# line = line.decode("GB18030")
 				line = line.strip()
 				line = line.split('\t')
-				family_name = line[8] + "-" + line[5].split("-")[-1] + line[20].split("-")[-1]
+				if len(line) == 22:
+					family_name = line[8] + "-" + line[5].split("-")[-1] + "-" + line[21].split("-")[-1]
+				else:
+					family_name = line[8] + "-" + line[5].split("-")[-1] + "-S"
+				print len(line)
 				collection = self.database["sg_pt_customer"]
 				result = collection.find_one({"name": family_name})
 				if result:
@@ -43,14 +53,13 @@ class PtCustomer(Base):
 					"ask_person": line[2],
 					"mother_name": line[3],
 					"mother_type": line[4],
-					"mother_id": line[5],
+					"mom_id": line[5],
 					"father_name": line[6],
 					"father_type": line[7],
-					"father_id": line[8],
+					"dad_id": line[8],
 					"ask_time": line[9],
 					"accept_time": line[10],
 					"result_time": line[11],
-					"son_id": line[20],
 					"name": family_name
 				}
 				try:
