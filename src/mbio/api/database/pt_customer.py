@@ -32,6 +32,11 @@ class PtCustomer(Base):
 				line = line.decode("gb2312")
 				line = line.strip()
 				line = line.split('\t')
+				family_name = line[8] + "-" + line[5].split("-")[-1] + line[20].split("-")[-1]
+				collection = self.database["sg_pt_customer"]
+				result = collection.find_one({"name": family_name})
+				if result:
+					continue
 				insert_data = {
 					"pt_datasplit_id": ObjectId(main_id),
 					"pt_serial_number": line[1],
@@ -44,7 +49,9 @@ class PtCustomer(Base):
 					"father_id": line[8],
 					"ask_time": line[9],
 					"accept_time": line[10],
-					"result_time": line[11]
+					"result_time": line[11],
+					"son_id": line[20],
+					"name": family_name
 				}
 				try:
 					collection = self.database['sg_pt_customer']
@@ -54,7 +61,7 @@ class PtCustomer(Base):
 				else:
 					self.bind_object.logger.info("导入家系表成功")
 		try:
-			main_collection = self.db["sg_pt_datasplit"]
+			main_collection = self.database["sg_pt_datasplit"]
 			self.bind_object.logger.info("开始刷新主表写状态")
 			main_collection.update({"_id": ObjectId(main_id)},
 									{"$set": {
@@ -63,4 +70,15 @@ class PtCustomer(Base):
 			self.bind_object.logger.error("更新sg_pt_datasplit主表出错:{}".format(e))
 		else:
 			self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
+
+	def update_flow_status(self,batch_id):
+		try:
+			main_collection = self.database["sg_pt_datasplit"]
+			main_collection.update({"_id": ObjectId(batch_id)},{"$set": {"status": "end"}})
+		except Exception as e:
+			self.bind_object.logger.error("更新大流程主表状态出错:{}".format(e))
+		else:
+			self.bind_object.logger.info("更新大流程主表状态成功")
+
+
 

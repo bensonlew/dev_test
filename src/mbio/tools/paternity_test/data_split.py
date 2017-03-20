@@ -104,7 +104,8 @@ class DataSplitTool(Tool):
 					w.write(lines)
 
 		os.system('tar -zxf {} -C {}'.format(self.option('data_dir').prop['path'], self.work_dir))
-		old_data_dir = os.path.join(self.work_dir, self.option('data_dir').prop['path'].split("/")[-1].split(".")[0])
+		old_data_dir_1 = os.path.join(self.work_dir, self.option('data_dir').prop['path'].split("/")[-1].split(".")[0])
+		old_data_dir = ("_").join(old_data_dir_1.split("_")[0:-1])
 
 		cmd = "{} -i {}/Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
 		      "--ignore-missing-bcl -R {}/ -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
