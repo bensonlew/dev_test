@@ -80,7 +80,7 @@ class Venn(MetaController):
             "venn_id": str(main_table_id)
         }
         to_file = ["meta.export_otu_table_by_level(in_otu_table)", "meta.export_group_table_by_detail(group_table)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="Venn/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(Venn, self).POST()
         print(self.return_msg)
