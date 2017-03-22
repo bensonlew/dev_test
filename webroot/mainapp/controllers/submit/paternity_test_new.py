@@ -40,10 +40,11 @@ class PaternityTestNew(PtController):
             ('params', params),
             ('father_id', ObjectId(data.father_id)),
             ('name', 'err-' + str(data.err_min) + '_dedup-' + str(data.dedup)),
-            ("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            ("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            ("status", "start")
         ]
         main_table_id = PT().insert_main_table('sg_pt_father', mongo_data)
-        update_info = {str(main_table_id): 'sg_report_flow'}
+        update_info = {str(main_table_id): 'sg_pt_father'}
         update_info = json.dumps(update_info)
         options = {
             "ref_fasta": str(ref_info['ref_fasta']),
@@ -64,4 +65,4 @@ class PaternityTestNew(PtController):
         task_info = super(PaternityTestNew, self).POST()
         return json.dumps(task_info)
 
-# python /mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py post paternity_test_new -c client03 -b http://192.168.12.102:9091 -n "err_min;dedup;father_id;submit_location" -d "3;50;58ca46b9a4e1af6b57c5fd64;XXX"
+# python /mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py post paternity_test_new -c client03 -b http://192.168.12.102:9090 -n "err_min;dedup;father_id;submit_location" -d "3;50;58ca46b9a4e1af6b57c5fd64;XXX"
