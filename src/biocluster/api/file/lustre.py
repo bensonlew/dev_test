@@ -76,9 +76,7 @@ class Lustre(RemoteFile):
         if not os.path.exists(from_path):
             raise Exception("源文件%s不存存在" % from_path)
         # basename = os.path.basename(from_path)
-        # target = os.path.join(self._full_path, basename)
-        target = self._full_path  # modified by hongdongxuan at 20170321
-        print target
+        target = self._full_path  # 目标目录直接为上传目录，意思是不需要上传目录的的目录名  # shenghe 20170322
         if os.path.exists(target):
             if os.path.islink(target):
                 os.remove(target)
@@ -91,7 +89,8 @@ class Lustre(RemoteFile):
 
         if os.path.isdir(from_path):
             for root, dirs, files in os.walk(from_path):
-                rel_path = os.path.relpath(root, os.path.dirname(from_path))
+                # rel_path = os.path.relpath(root, os.path.dirname(from_path))
+                rel_path = os.path.relpath(root, from_path)  # 去除路径中间相对路径，直接使用文件与上传目录差  shenghe 20170322
                 for i_file in files:
                     i_file_path = os.path.join(root, i_file)
                     if os.path.islink(i_file_path):
@@ -117,13 +116,10 @@ class Lustre(RemoteFile):
                 real_path = os.path.realpath(from_path)
                 if not os.path.exists(real_path):
                     raise Exception("源文件%s是一个无效的软链接!" % from_path)
-                # os.link(real_path, os.path.join(self._full_path, os.path.basename(from_path)))
-                os.link(real_path, self._full_path)    # modified by hongdongxuan at 20170321
+                os.link(real_path, os.path.join(self._full_path, os.path.basename(from_path)))
             else:
-                # os.link(from_path, os.path.join(self._full_path, os.path.basename(from_path)))
-                os.link(from_path, self._full_path)  # modified by hongdongxuan at 20170321
-        # return os.path.join(self._full_path, os.path.basename(from_path))
-        return self._full_path   # modified by hongdongxuan at 20170321
+                os.link(from_path, os.path.join(self._full_path, os.path.basename(from_path)))
+        return os.path.join(self._full_path, os.path.basename(from_path))
 
     # def _read_link(self, path):
     #     if os.path.islink(path):
