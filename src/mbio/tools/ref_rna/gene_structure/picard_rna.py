@@ -56,30 +56,16 @@ class PicardRnaAgent(Agent):
         self._cpu = 10
         self._memory = '100G'
         
-    def end(self):
-      
-        super(PicardRnaAgent, self).end()  
-        
+    def end(self): 
+        super(PicardRnaAgent, self).end()
+
 class PicardRnaTool(Tool):
+
     def __init__(self, config):
         super(PicardRnaTool, self).__init__(config)
-        self.picard_path = "/mnt/ilustre/users/sanger-dev/sg-users/chenyanyan/"  
-    
-    def dict(self, dict_name):
-        
-        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar CreateSequenceDictionary R={} O={}".format(self.picard_path, self.option("ref_genome_custom").prop["path"], dict_name)
-        print cmd
-        self.logger.info("开始用picard对参考基因组构建字典")
-        command = self.add_command("dict", cmd)
-        command.run()
-        self.wait()
-        if command.return_code == 0:
-            self.logger.info("参考基因组构建dict done!")
-        else:
-            self.set_error("构建dict过程error！")
-        
-            
-    
+        #self.picard_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/gene-structure/"  
+        self.picard_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure"
+
     def addorreplacereadgroups(self):
        
         cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar AddOrReplaceReadGroups I={} O={} SO=coordinate LB=HG19 PL=illumina PU=HG19 SM=HG19".format(self.picard_path, self.option("in_sam").prop["path"], "add_sorted.bam")
@@ -122,16 +108,7 @@ class PicardRnaTool(Tool):
         运行
         """
         super(PicardRnaTool, self).run()
-        
-        
-        if self.option("ref_genome") == "customer_mode" and self.option("ref_genome_custom").is_set:
-            dict_name = os.path.splitext(os.path.split(self.option("ref_genome_custom").prop["path"])[-1])[0] + ".dict" #是一个字符串
-            self.logger.info("参考基因组为自定义模式的情况下建字典！")
-            self.dict(dict_name)
-            if os.path.exists(os.path.join(self.work_dir, dict_name)):       
-                shutil.copy(os.path.join(self.work_dir, dict_name), os.path.split(self.option("ref_genome_custom").prop["path"])[0])  #把生成的字典移动到和输入的fasta文件一个目录下
-                self.logger.info("开始移动字典文件")
-        
+       
         self.logger.info("运行addorreplacereadgroups")
         if self.option("in_sam").is_set:
             self.addorreplacereadgroups()
@@ -146,27 +123,5 @@ class PicardRnaTool(Tool):
             if re.match(r"dedup_add_sorted*", i):
                 shutil.copy(i, self.output_dir)
                 
-        self.end()
-    
-      
-    
-        
-        
-     
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        self.end()    
         

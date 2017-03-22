@@ -18,8 +18,10 @@ class RefAssessmentModule(Module):
         super(RefAssessmentModule, self).__init__(work_id)
         options = [
             {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
-            {"name": "bam", "type": "infile", "format": "align.bwa.bam,ref_rna.assembly.bam_dir"},  # bam格式文件,modified by sj
-            {"name": "analysis", "type": "string", "default": "saturation,duplication,stat,distribution,coverage"},  # 分析类型
+            {"name": "bam", "type": "infile", "format": "align.bwa.bam,ref_rna.assembly.bam_dir"},
+            # bam格式文件,modified by sj
+            {"name": "analysis", "type": "string", "default": "saturation,duplication,stat,distribution,\
+                                                              coverage"},  # 分析类型
             {"name": "quality_satur", "type": "int", "default": 30},  # 测序饱和度分析质量值
             {"name": "quality_dup", "type": "int", "default": 30},  # 冗余率分析质量值 
             {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
@@ -142,7 +144,7 @@ class RefAssessmentModule(Module):
             step = getattr(self.step, "distribution_{}".format(n))
             step.start()
             distribution.on("end", self.finish_update, "distribution_{}".format(n))
-           # distribution.run()
+            # distribution.run()
             self.tools.append(distribution)
             n += 1
 

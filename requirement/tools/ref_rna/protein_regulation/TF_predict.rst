@@ -36,11 +36,9 @@ hmmscan planttfdb.hmm amino.fas
      {"name": "amino", "type": "infile", "format": "fas"}, #从上游gtf文件得来的氨基酸文件
 	 {"name": "diff_exp_amino", "type": "infile", "format": "txt"}, #氨基酸与差异基因的对应关系
      {"name": "planttfdb", "type": "reference", "format": "hmm"}, #参考数据的载入，是hmm模型的格式
-     {"name": "TF_result",  "type": "outfile", "format": "xlsx"}, #预测转录因子的结果表格
-     {"name": "TF_static",  "type": "outfile", "format": "xlsx"}, #整理统计预测转录因子的表格
 
 
 运行逻辑
 ----------------------------------
 输入待比对的文件，和参考序列的hmm模型。
-暂时只提供Planttfdb上的转录因子查询。
+数据库有AnimalTFDB、PlantTFDB和iTAK

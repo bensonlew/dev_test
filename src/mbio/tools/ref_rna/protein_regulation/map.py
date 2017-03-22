@@ -1,11 +1,12 @@
 ## !/mnt/ilustre/users/sanger-dev/app/program/Python/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "hongdongxuan"
-#last_modify:20160912
+#last_modify:20170116
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from biocluster.config import Config
 import os
 import re
 
@@ -20,8 +21,9 @@ class MapAgent(Agent):
     def __init__(self, parent):
         super(MapAgent, self).__init__(parent)
         options = [
-            {"name": "diff_exp", "type": "infile", "format": "ref_rna.protein_regulation.xls"},  #差异基因表达详情表
+            {"name": "diff_exp", "type": "string"},  #差异基因表达详情表
             {"name": "species", "type": "int", "default": 9606},
+            {"name": "FDR", "type": "float", "default": 0.05},
             {"name": "species_list", "type": "string"}
         ]
         self.add_option(options)
@@ -44,7 +46,7 @@ class MapAgent(Agent):
         :return:
         """
         # species_list = [9606,3711,4932]
-        if not self.option("diff_exp").is_set:
+        if not self.option("diff_exp"):
             raise OptionError("必须输入含有gene_id的差异基因表xls")
         if not self.option('species_list'):
             raise OptionError('必须提供物种 taxon id 表')
@@ -89,12 +91,14 @@ class MapTool(Tool):
         super(MapTool, self).__init__(config)
         self._version = '1.0.1'
         self.r_path = 'program/R-3.3.1/bin/Rscript'
-        self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
+        #self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
+        self.script_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/rna/scripts/")
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_map(self):
-        one_cmd = self.r_path + " %smap.r %s %s %s" % (self.script_path, self.option('diff_exp').prop['path'], self.option('species'), 'PPI_result')
+        one_cmd = self.r_path + " %smap.r %s %s %s %s" % (self.script_path, self.option('diff_exp'),
+                                                          self.option('species'), self.option('FDR'), 'PPI_result')
         self.logger.info(one_cmd)
         self.logger.info("开始运行one_cmd")
         cmd = self.add_command("one_cmd", one_cmd).run()

@@ -81,7 +81,7 @@ class QualityControlModule(Module):
         for f in self.samples:
             fq_s = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f])
             clipper = self.add_tool('denovo_rna.qc.fastx_clipper')
-            self.step.add_steps('clipper_{}'.format(n))
+            self.step.add_steps('clipper_{}'.format(n)) 
             clipper.set_options({
                 "fastq_s": fq_s,
             })
