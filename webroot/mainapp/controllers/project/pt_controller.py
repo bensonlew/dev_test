@@ -22,7 +22,7 @@ class PtController(MetaController):
         if client == 'client01':
             return 'pt.update_status'
         else:
-            return 'pt.tupdate_status'
+            return 'pt.med_report_tupdate'
 
     # def set_sheet_data(self, *arg, **kwarg):
     #     print arg, kwarg
@@ -41,7 +41,7 @@ class PtController(MetaController):
         self._post_data = web.input()
         task_info = PaternityTest().get_query_info(self.data.father_id)
         # project_sn = task_info['project_sn']
-        new_task_id = self.get_new_id(self.data.father_id)
+        new_task_id = self.get_new_id(self.data.father_id)+"_111"
         self._sheet_data = {
             'id': new_task_id,
             'stage_id': 0,
