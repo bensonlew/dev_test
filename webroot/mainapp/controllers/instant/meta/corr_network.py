@@ -46,7 +46,8 @@ class CorrNetwork(MetaController):
         task_name = 'meta.report.corr_network'
         task_type = 'workflow'
         task_info = Meta().get_task_info(otu_info['task_id'])
-        main_table_name = 'CorrNetwork' + data.ratio_method.capitalize() + '_' + \
+        level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "OTU"]  # add by hongdongxuan 20170322
+        main_table_name = 'CorrNetwork' + data.ratio_method.capitalize() + level_name[int(data.level_id) - 1] + '_' + \
                           datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params_json = {
             'otu_id': data.otu_id,
@@ -92,7 +93,7 @@ class CorrNetwork(MetaController):
             'corr_network_id': str(main_table_id)
         }
         to_file = ["meta.export_otu_table_by_detail(otutable)", "meta.export_group_table_by_detail(grouptable)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="CorrNetwork/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(CorrNetwork, self).POST()
         task_info['content'] = {
