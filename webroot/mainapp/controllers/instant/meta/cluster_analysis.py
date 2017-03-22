@@ -38,7 +38,7 @@ class ClusterAnalysis(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type
         }
-        main_table_name = 'ClusteringAnalysis_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'CommunityBarPie_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  #modified by hongdongxuan 201703221 将ClusteringAnalysis_改为CommunityBarPie
         newick_id = None
         mongo_data = [
             ('project_sn', task_info['project_sn']),

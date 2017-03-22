@@ -75,8 +75,10 @@ class Lustre(RemoteFile):
     def upload(self, from_path):
         if not os.path.exists(from_path):
             raise Exception("源文件%s不存存在" % from_path)
-        basename = os.path.basename(from_path)
-        target = os.path.join(self._full_path, basename)
+        # basename = os.path.basename(from_path)
+        # target = os.path.join(self._full_path, basename)
+        target = self._full_path  # modified by hongdongxuan at 20170321
+        print target
         if os.path.exists(target):
             if os.path.islink(target):
                 os.remove(target)
@@ -115,10 +117,13 @@ class Lustre(RemoteFile):
                 real_path = os.path.realpath(from_path)
                 if not os.path.exists(real_path):
                     raise Exception("源文件%s是一个无效的软链接!" % from_path)
-                os.link(real_path, os.path.join(self._full_path, os.path.basename(from_path)))
+                # os.link(real_path, os.path.join(self._full_path, os.path.basename(from_path)))
+                os.link(real_path, self._full_path)    # modified by hongdongxuan at 20170321
             else:
-                os.link(from_path, os.path.join(self._full_path, os.path.basename(from_path)))
-        return os.path.join(self._full_path, os.path.basename(from_path))
+                # os.link(from_path, os.path.join(self._full_path, os.path.basename(from_path)))
+                os.link(from_path, self._full_path)  # modified by hongdongxuan at 20170321
+        # return os.path.join(self._full_path, os.path.basename(from_path))
+        return self._full_path   # modified by hongdongxuan at 20170321
 
     # def _read_link(self, path):
     #     if os.path.islink(path):

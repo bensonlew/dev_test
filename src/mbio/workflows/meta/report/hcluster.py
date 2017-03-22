@@ -164,12 +164,13 @@ class HclusterWorkflow(Workflow):
     def end(self):
         result_dir_hucluster = self.add_upload_dir(self.hcluster.output_dir)
         result_dir_hucluster.add_relpath_rules([
-            [".", "", "层次聚类结果目录"],
-            ["./hcluster.tre", "tre", "层次聚类树"]
+            [".", "", "样本层级聚类树分析结果表"],
+            # ["./hcluster.tre", "tre", "层次聚类树"]
+            ["./hcluster.tre", "tre", "层级聚类树结果表"] #modified by hongdongxuan 20170321
             ])
         result_dir_distance = self.add_upload_dir(self.dist.output_dir)
         result_dir_distance.add_relpath_rules([
-            [".", "", "距离矩阵计算结果输出目录"],
+            [".", "", "距离Heatmap分析结果表"],
         ])
         result_dir_distance.add_regexp_rules([
             [r'%s.*\.xls' % self.option('dist_method'), 'xls', '样本距离矩阵文件']

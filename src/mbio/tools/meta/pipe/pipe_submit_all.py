@@ -93,7 +93,7 @@ class PipeSubmitAllTool(Tool):
                           "species_lefse_analyse": "sg_species_difference_lefse", "alpha_rarefaction_curve":"sg_alpha_rarefaction_curve",
                           "otunetwork_analyse": "sg_network", "roc_analyse": "sg_roc",
                           "alpha_diversity_index":"sg_alpha_diversity","alpha_ttest":"sg_alpha_ttest",
-                          "beta_multi_analysis_plsda": "sg_beta_multi_analysis","beta_sample_distance": "sg_newick_tree",
+                          "beta_multi_analysis_plsda": "sg_beta_multi_analysis","beta_sample_distance_hcluster_tree": "sg_newick_tree",
                           "beta_multi_analysis_pearson_correlation":"sg_species_env_correlation","beta_multi_analysis_rda_cca": "sg_beta_multi_analysis","hc_heatmap": "sg_hc_heatmap",
                           "beta_multi_analysis_anosim": "sg_beta_multi_anosim", "species_difference_multiple": "sg_species_difference_check",
                           "beta_multi_analysis_results": "sg_species_mantel_check", "beta_multi_analysis_pcoa": "sg_beta_multi_analysis",
@@ -563,7 +563,7 @@ class PipeSubmitAllTool(Tool):
                                "beta_multi_analysis_nmds", "beta_multi_analysis_plsda", "beta_multi_analysis_dbrda", "otunetwork_analyse",
                                "randomforest_analyse", "otu_pan_core", "roc_analyse", "otu_group_analyse", "hc_heatmap",
                                "beta_multi_analysis_pearson_correlation", "otu_venn",
-                               "beta_multi_analysis_anosim", "beta_sample_distance", "enterotyping",
+                               "beta_multi_analysis_anosim", "beta_sample_distance_hcluster_tree", "enterotyping",
                                "beta_multi_analysis_results"]:
             my_param = dict()
             for key in ever_analysis_params:

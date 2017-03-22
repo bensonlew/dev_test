@@ -3,6 +3,7 @@
 from biocluster.workflow import Workflow
 import os
 from mbio.api.to_file.meta import *
+from collections import defaultdict
 
 
 class OtunetworkWorkflow(Workflow):
@@ -20,13 +21,19 @@ class OtunetworkWorkflow(Workflow):
             {"name": "group_id", "type": "string"},
             {"name": "group_detail", "type": "string"},
             {"name": "update_info", "type": "string"},
-            {"name": "network_id", "type": "string"}
-            ]
+            {"name": "network_id", "type": "string"},
+            {"name": "add_Algorithm", "type": "string", "default": ""},  # 分组样本求和算法，默认不求和
+        ]
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.otunetwork = self.add_tool('meta.otu.otunetwork')
 
     def change_otuname(self, tablepath):
+        """
+        这一步骤只是将otu名字中的空格去掉
+        :param tablepath:
+        :return:
+        """
         newtable = os.path.join(self.work_dir, 'otutable1.xls')
         f2 = open(newtable, 'w+')
         with open(tablepath, 'r') as f:
@@ -48,6 +55,80 @@ class OtunetworkWorkflow(Workflow):
         f2.close()
         return newtable
 
+    def cat_samples(self, otu, method):
+        """
+        合并同一分组的样本，可进行求和，求平均，求中位数
+        :param method:
+        :return:
+        """
+        grouptable = "O:\\Users\\hongdong.xuan\\Desktop\\Otunetwork_tsg_6592_4367_7992\\grouptable_input.group.xls"
+        cat_otu_path = "O:\\Users\\hongdong.xuan\\Desktop\\Otunetwork_tsg_6592_4367_7992\\out.xls"
+        sample_group = dict()  # 一个样本是属于哪个group的
+        index_sample = dict()  # 一个OTU表中第几列属于哪个样本
+        group_sample_num = defaultdict(int)  # 一个分组里面有多少的样本
+        cat_otu_path = os.path.join(self.work_dir, "cat_otu.xls")
+        with open(grouptable, "rb") as r:
+            line = r.next()
+            for line in r:
+                line = line.rstrip().split("\t")
+                sample_group[line[0]] = line[1]
+                group_sample_num[line[1]] += 1
+
+        with open(otu, "rb") as r, open(cat_otu_path, 'wb') as w:
+            group_list = list()
+            for v in sample_group.values():
+                group_list.append(v)
+                group_list = list(set(group_list))
+            print group_list
+            # l = len(group_list) #zx
+
+            line = r.next().rstrip().split("\t")
+            print line
+            for i in range(len(line)):
+                index_sample[i] = line[i]
+            print index_sample
+
+            w.write(index_sample[0] + "\t")
+            w.write("\t".join(group_list) + "\n")
+            for line in r:
+                line = line.rstrip().split("\t")
+                num = defaultdict(int)
+                middle_num = defaultdict(int)
+                tmp = list()
+                list1 = []
+                mid_num = dict()
+                w.write(line[0] + "\t")
+                for i in range(1, len(line)):
+                    num[sample_group[index_sample[i]]] += int(line[i])
+                for m in group_list:
+                    for i in range(1, len(line)):
+                        if sample_group[index_sample[i]] == m:
+                            list1.append(int(line[i]))
+                            if len(list1) == group_sample_num[m]:
+                                list1.sort()
+                                yu = int(group_sample_num[m]) % 2
+                                index = int(int(group_sample_num[m]) / 2)
+                                if yu == 0:
+                                    mid_num[m] = int(round((int(list1[index - 1]) + int(list1[index])) / 2))
+                                    list1 = []
+                                else:
+                                    mid_num[m] = list1[index]
+                                    list1 = []
+
+                if method == "sum":
+                    for g in group_list:
+                        tmp.append(str(num[g]))
+                if method == "average":
+                    for g in group_list:
+                        avg = int(round(num[g] / group_sample_num[g]))
+                        tmp.append(str(avg))
+                if method == "middle":
+                    for g in group_list:
+                        tmp.append(str(mid_num[g]))
+                w.write("\t".join(tmp))
+                w.write("\n")
+        return cat_otu_path
+
 
     def run_otunetwork(self):
         newtable = self.change_otuname(self.option('otutable').prop['path'])
@@ -55,7 +136,7 @@ class OtunetworkWorkflow(Workflow):
         if self.option("group_id") == 'all':
             options = {
                 'otutable': newtable,
-                }
+            }
 
         else:
             options = {
@@ -92,7 +173,7 @@ class OtunetworkWorkflow(Workflow):
         edge_table_path = self.output_dir + '/real_edge_table.txt'
         otu_degree_path = self.output_dir + '/real_dc_otu_degree.txt'
         sample_degree_path = self.output_dir + '/real_dc_sample_degree.txt'
-        sample_otu_degree_path= self.output_dir + '/real_dc_sample_otu_degree.txt'
+        sample_otu_degree_path = self.output_dir + '/real_dc_sample_otu_degree.txt'
         network_centrality_path = self.output_dir + '/network_centrality.txt'
         network_attributes_path = self.output_dir + '/network_attributes.txt'
         network_degree_path = self.output_dir + '/network_degree.txt'

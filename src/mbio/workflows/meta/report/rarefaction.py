@@ -62,7 +62,8 @@ class RarefactionWorkflow(Workflow):
                     ["./sobs", "文件夹", "{}指数结果输出目录".format(i)]
                 ])
                 result_dir.add_regexp_rules([
-                    [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                    # [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                    [r".*rarefaction\.xls", "xls", "每个样本的{}指数稀释性曲线表".format(i)]    #modified by hongdongxuan 20170321
                 ])
                 # self.logger.info("{}指数的simpleID的稀释性曲线表".format(i))
             else:
@@ -70,7 +71,7 @@ class RarefactionWorkflow(Workflow):
                     ["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)]
                 ])
                 result_dir.add_regexp_rules([
-                    [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                    [r".*{}\.xls".format(i), "xls", "每个样本的{}指数稀释性曲线表".format(i)]
                 ])
         api_rarefaction.add_rarefaction_detail(self.option('rare_id'), rare_path)
         self.end()

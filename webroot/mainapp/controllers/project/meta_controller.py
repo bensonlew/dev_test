@@ -116,7 +116,6 @@ class MetaController(object):
             'output': self._create_output_dir(task_id, main_table_name),
             'project_sn': project_sn,
             'IMPORT_REPORT_DATA': True,
-            'main_table_name': main_table_name,
             'UPDATE_STATUS_API': self._update_status_api(),
             'options': options  # 需要配置
         }
@@ -126,8 +125,8 @@ class MetaController(object):
             self._sheet_data["params"] = params
         if to_file:
             self._sheet_data["to_file"] = to_file
-        if main_table_name:
-            self._sheet_data["main_table_name"] = main_table_name
+        # if main_table_name:
+        #     self._sheet_data["main_table_name"] = main_table_name
         print('Sheet_Data: {}'.format(self._sheet_data))
         return self._sheet_data
 
@@ -148,6 +147,7 @@ class MetaController(object):
     def _create_output_dir(self, task_id, main_table_name):
         """
         根据主表名称，生成结果目录名称/上传路径
+        modified by hongdongxuan 20170320
         """
         data = web.input()
         task_info = Meta().get_task_info(task_id)
@@ -157,8 +157,8 @@ class MetaController(object):
         else:
             target_dir = 'tsanger'
         target_dir += ':rerewrweset/files/' + str(task_info['member_id']) + \
-            '/' + str(task_info['project_sn']) + '/' + \
-            task_id + '/report_results/' + main_table_name
+                      '/' + str(task_info['project_sn']) + '/' + \
+                      task_id + '/report_results/' + main_table_name
         return target_dir
 
     def _update_status_api(self):
