@@ -36,6 +36,11 @@ class PtDatasplitWorkflow(Workflow):
 		# self.step.add_steps("data_split", "merge_fastq")
 		self.update_status_api = self.api.pt_update_status
 		self.tools = []
+		self.sample_name_wq = []
+		self.sample_name_ws = []
+		self.sample_name_un = []
+		self.data_dir = ''
+		self.wq_dir = ''
 
 	def check_options(self):
 		'''
@@ -68,21 +73,31 @@ class PtDatasplitWorkflow(Workflow):
 			"data_dir": self.option('data_dir'),
 		})
 		self.data_split.on('end', self.set_output, 'data_split')
-		self.data_split.on('end', self.run_merge_fastq)
+		self.data_split.on('end', self.run_merge_fastq_wq)
 		# self.data_split.on('start', self.set_step, {'start': self.step.data_split})
 		# self.data_split.on('end', self.set_step, {'end': self.step.data_split})
 		self.data_split.run()
 
-	def run_merge_fastq(self):
-		data_dir = self.data_split.output_dir
-		sample_name = os.listdir(data_dir)
+	def run_merge_fastq_wq(self):
+		self.data_dir = self.data_split.output_dir
+		sample_name = os.listdir(self.data_dir)
+		for j in sample_name:
+			p = re.match('Sample_WQ(.*)', j)
+			q = re.match('Sample_WS-(.*)', j)
+			if p:
+				self.sample_name_wq.append(j)
+			elif q:
+				self.sample_name_ws.append(j)
+			else:
+				self.sample_name_un.append(j)
 		n = 0
-		for i in sample_name:
+		self.tools = []
+		for i in self.sample_name_wq:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			# self.step.add_steps('merge_fastq{}'.format(n))
 			merge_fastq.set_options({
 				"sample_dir_name": i,
-				"data_dir": data_dir
+				"data_dir": self.data_dir
 			})
 			# step = getattr(self.step, 'merge_fastq{}'.format(n))
 			# step.start()
@@ -92,57 +107,38 @@ class PtDatasplitWorkflow(Workflow):
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
-			self.on_rely(self.tools, self.end)
+			self.on_rely(self.tools, self.run_merge_fastq_ws)
 		else:
-			self.tool[0].on('end', self.end)
+			self.tool[0].on('end', self.run_merge_fastq_ws)
 		for tool in self.tools:
 			tool.run()
 
-	def run(self):
-		self.run_data_split()
-		super(PtDatasplitWorkflow, self).run()
+	def run_merge_fastq_ws(self):
+		self.run_wq_wf()  # 启动亲子鉴定流程和导表工作
+		n = 0
+		self.tools = []
+		for i in self.sample_name_ws:
+			merge_fastq = self.add_tool("paternity_test.merge_fastq")
+			merge_fastq.set_options({
+				"sample_dir_name": i,
+				"data_dir": self.data_dir
+			})
+			self.tools.append(merge_fastq)
+			n += 1
+		for j in range(len(self.tools)):
+			self.tools[j].on('end', self.set_output, 'merge_fastq')
+		if len(self.tools) > 1:
+			self.on_rely(self.tools, self.run_merge_fastq_un)
+		else:
+			self.tool[0].on('end', self.run_merge_fastq_un)
+		for tool in self.tools:
+			tool.run()
 
-	def set_output(self, event):
-		obj = event["bind_object"]
-		if event['data'] == "data_split":
-			self.linkdir(obj.output_dir, self.output_dir + "/data_split")
-		if event['data'] == "merge_fastq":
-			wq_dir = os.path.join(self.output_dir, "wq_dir")
-			ws_dir = os.path.join(self.output_dir, "ws_dir")
-			undetermined_dir = os.path.join(self.output_dir, "undetermined_dir")
-			if not os.path.exists(wq_dir):
-				os.mkdir(wq_dir)
-			if not os.path.exists(ws_dir):
-				os.mkdir(ws_dir)
-			if not os.path.exists(undetermined_dir):
-				os.mkdir(undetermined_dir)
-			file_name = os.listdir(obj.output_dir)
-			m = re.match('WQ(.*)', file_name[0])  # wq
-			n = re.match('WS-(.*)', file_name[0])  # ws
-			if m:
-				self.linkdir(obj.output_dir, wq_dir)
-			else:
-				if n:
-					self.linkdir(obj.output_dir, ws_dir)
-				else:
-					self.linkdir(obj.output_dir, undetermined_dir)
-			self.wq_dir = wq_dir
-
-			"""
-			l = re.search('Undetermined', file_name[0])  # undetermined
-			if m:
-				self.linkdir(obj.output_dir, wq_dir)
-			if n:
-				self.linkdir(obj.output_dir, ws_dir)
-			if l:
-				self.linkdir(obj.output_dir, undetermined_dir)
-			"""
-
-	def end(self):
+	def run_ws_wf(self):
 		self.logger.info("开始导表(家系表)")
 		db_customer = self.api.pt_customer
 		db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
-									customer_file=self.option('family_table').prop['path'])
+		                            customer_file=self.option('family_table').prop['path'])
 		self.logger.info("导表结束(家系表)")
 		self.logger.info("给pt_batch传送数据路径")
 		data = {
@@ -165,6 +161,71 @@ class PtDatasplitWorkflow(Workflow):
 		}
 		WC().add_task(data)
 		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
+
+	def run_merge_fastq_un(self):
+		n = 0
+		self.tools = []
+		for i in self.sample_name_un:
+			merge_fastq = self.add_tool("paternity_test.merge_fastq")
+			merge_fastq.set_options({
+				"sample_dir_name": i,
+				"data_dir": self.data_dir
+			})
+			self.tools.append(merge_fastq)
+			n += 1
+		for j in range(len(self.tools)):
+			self.tools[j].on('end', self.set_output, 'merge_fastq')
+		if len(self.tools) > 1:
+			self.on_rely(self.tools, self.end)
+		else:
+			self.tool[0].on('end', self.end)
+		for tool in self.tools:
+			tool.run()
+
+
+
+	def run(self):
+		self.run_data_split()
+		super(PtDatasplitWorkflow, self).run()
+
+	def set_output(self, event):
+		obj = event["bind_object"]
+		if event['data'] == "data_split":
+			self.linkdir(obj.output_dir, self.output_dir + "/data_split")
+		if event['data'] == "merge_fastq":
+			wq_dir = os.path.join(self.output_dir, "wq_dir")
+			self.wq_dir = wq_dir
+			ws_dir = os.path.join(self.output_dir, "ws_dir")
+			undetermined_dir = os.path.join(self.output_dir, "undetermined_dir")
+			if not os.path.exists(wq_dir):
+				os.mkdir(wq_dir)
+			if not os.path.exists(ws_dir):
+				os.mkdir(ws_dir)
+			if not os.path.exists(undetermined_dir):
+				os.mkdir(undetermined_dir)
+			file_name = os.listdir(obj.output_dir)
+			m = re.match('WQ(.*)', file_name[0])  # wq
+			n = re.match('WS-(.*)', file_name[0])  # ws
+			if m:
+				self.linkdir(obj.output_dir, wq_dir)
+			else:
+				if n:
+					self.linkdir(obj.output_dir, ws_dir)
+				else:
+					self.linkdir(obj.output_dir, undetermined_dir)
+
+			"""
+			l = re.search('Undetermined', file_name[0])  # undetermined
+			if m:
+				self.linkdir(obj.output_dir, wq_dir)
+			if n:
+				self.linkdir(obj.output_dir, ws_dir)
+			if l:
+				self.linkdir(obj.output_dir, undetermined_dir)
+			"""
+
+	def end(self):
+		self.logger.info("医学流程数据拆分结束")
 		super(PtDatasplitWorkflow, self).end()
 
 	def linkdir(self, dirpath, dirname):
