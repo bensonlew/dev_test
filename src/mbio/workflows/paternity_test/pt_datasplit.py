@@ -9,6 +9,7 @@ import re
 from biocluster.wpm.client import worker_client as WC
 import datetime
 import json
+from mainapp.models.mongo.submit.paternity_test_mongo import PaternityTest as PT
 import shutil
 
 class PtDatasplitWorkflow(Workflow):
@@ -82,7 +83,7 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_dir = self.data_split.output_dir
 		sample_name = os.listdir(self.data_dir)
 		for j in sample_name:
-			p = re.match('Sample_WQ(.*)', j)
+			p = re.match('Sample_WQ([0-9].*)-(.*)', j)
 			q = re.match('Sample_WS-(.*)', j)
 			if p:
 				self.sample_name_wq.append(j)
@@ -134,12 +135,13 @@ class PtDatasplitWorkflow(Workflow):
 		for tool in self.tools:
 			tool.run()
 
-	def run_ws_wf(self):
-		self.logger.info("开始导表(家系表)")
-		db_customer = self.api.pt_customer
-		db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
-		                            customer_file=self.option('family_table').prop['path'])
-		self.logger.info("导表结束(家系表)")
+		"""
+	def run_wq_wf(self):
+		# self.logger.info("开始导表(家系表)")
+		# db_customer = self.api.pt_customer
+		# db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
+		#                             customer_file=self.option('family_table').prop['path'])
+		# self.logger.info("导表结束(家系表)")
 		self.logger.info("给pt_batch传送数据路径")
 		data = {
 			"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
@@ -161,6 +163,49 @@ class PtDatasplitWorkflow(Workflow):
 		}
 		WC().add_task(data)
 		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
+		"""
+
+	def run_wq_wf(self):
+		self.logger.info("开始导表(家系表)")
+		db_customer = self.api.pt_customer
+		db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
+		                            customer_file=self.option('family_table').prop['path'])
+		self.logger.info("导表结束(家系表)")
+		self.logger.info("给pt_batch传送数据路径")
+		mongo_data = [
+			('batch_id', self.option('pt_data_split_id')),
+			("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+			("status", "start")
+		]
+		main_table_id = PT().insert_main_table('sg_father', mongo_data)
+		update_info = {str(main_table_id): 'sg_father'}
+		update_info = json.dumps(update_info)
+		data = {
+			'stage_id': 0,
+			'UPDATE_STATUS_API': self._update_status_api(),
+			"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+			"type": "workflow",
+			"name": "paternity_test.pt_batch",
+			"instant": False,
+			"IMPORT_REPORT_DATA": True,
+			"IMPORT_REPORT_AFTER_END": False,
+			"options": {
+				"fastq_path": self.wq_dir,
+				"cpu_number": 8,
+				"ref_fasta": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa",
+				"targets_bedfile": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/share/pt/snp.chr.sort.3.bed",
+				"ref_point": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/targets.bed.rda",
+				"err_min": 2,
+				"batch_id": self.option('pt_data_split_id'),
+				"dedup_num": 30,
+				"update_info": update_info
+			}
+		}
+		WC().add_task(data)
+		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
+
+	def _update_status_api(self):
+			return 'pt.med_report_tupdate'
 
 	def run_merge_fastq_un(self):
 		n = 0
@@ -204,7 +249,7 @@ class PtDatasplitWorkflow(Workflow):
 			if not os.path.exists(undetermined_dir):
 				os.mkdir(undetermined_dir)
 			file_name = os.listdir(obj.output_dir)
-			m = re.match('WQ(.*)', file_name[0])  # wq
+			m = re.match('WQ([0-9].*)-(.*)', file_name[0])  # wq
 			n = re.match('WS-(.*)', file_name[0])  # ws
 			if m:
 				self.linkdir(obj.output_dir, wq_dir)
