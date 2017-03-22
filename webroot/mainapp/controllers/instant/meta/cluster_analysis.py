@@ -64,7 +64,7 @@ class ClusterAnalysis(MetaController):
             'main_id': str(main_table_id)
         }
         to_file = "meta.export_otu_table_by_level(in_otu_table)"
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="CommunityAnalysis/" + main_table_name,
                             module_type='workflow', to_file=to_file)
         task_info = super(ClusterAnalysis, self).POST()
         task_info['content'] = {
