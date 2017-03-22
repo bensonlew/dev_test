@@ -104,7 +104,7 @@ class MantelTest(MetaController):
         del params_json["group_detail"]
         options.update(params_json)
         to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="MantelTest/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(MantelTest, self).POST()
         task_info['content'] = {
