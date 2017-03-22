@@ -8,6 +8,7 @@ from biocluster.config import Config
 import os
 from biocluster.core.exceptions import FileError
 from Bio import SeqIO
+from 
 
 
 class FastaFile(File):
@@ -18,6 +19,13 @@ class FastaFile(File):
     def __init__(self):
         super(FastaFile, self).__init__()
         self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/seq/biosquid_1.9g+cvs20050121/bin/seqstat")
+		#fasta与gff相关的属性
+		self._seq_ids = []
+		self._seq_obj = []
+		self._seq_id_len_dic = []
+		self.seq_type = ''  # 有 prot nucl两种类型
+		self._anno_gff3 = Gff3File()
+
 
 
     def get_info(self):
