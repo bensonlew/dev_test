@@ -41,8 +41,8 @@ class PtReportWorkflow(Workflow):
 		self.tools_dedup =[]
 		self.tools_dedup_f = []
 		self.set_options(self._sheet.options())
-		self.step.add_steps("pt_analysis", "result_info", "retab",
-		                    "de_dup1", "de_dup2")
+		# self.step.add_steps("pt_analysis", "result_info", "retab",
+		#                     "de_dup1", "de_dup2")
 
 	def check_options(self):
 		'''
@@ -61,17 +61,17 @@ class PtReportWorkflow(Workflow):
 			raise OptionError('必须提供target_bedfile文件')
 		return True
 
-	def set_step(self,event):
-		if 'start' in event['data'].keys():
-			event['data']['start'].start()
-		if 'end' in event['data'].keys():
-			event['data']['end'].finish()
-		self.step.update()
-
-	def finish_update(self, event):
-		step = getattr(self.step, event['data'])
-		step.finish()
-		self.step.update()
+	# def set_step(self,event):
+	# 	if 'start' in event['data'].keys():
+	# 		event['data']['start'].start()
+	# 	if 'end' in event['data'].keys():
+	# 		event['data']['end'].finish()
+	# 	self.step.update()
+	#
+	# def finish_update(self, event):
+	# 	step = getattr(self.step, event['data'])
+	# 	step.finish()
+	# 	self.step.update()
 
 
 	def pt_analysis_run(self):
@@ -85,8 +85,6 @@ class PtReportWorkflow(Workflow):
 		})
 		self.rdata = self.work_dir + '/PtAnalysis/output/family_merge/family_joined_tab.Rdata'
 		self.pt_analysis.on('end', self.set_output, 'pt_analysis')
-		self.pt_analysis.on('start', self.set_step, {'start': self.step.pt_analysis})
-		self.pt_analysis.on('end', self.set_step, {'end': self.step.pt_analysis})
 		self.pt_analysis.run()
 
 	def result_info_run(self):
@@ -96,9 +94,7 @@ class PtReportWorkflow(Workflow):
 			"tab_merged": self.rdata
 		})
 		self.result_info.on('end', self.set_output, 'result_info')
-		
-		self.result_info.on('start', self.set_step, {'start': self.step.result_info})
-		self.result_info.on('end', self.set_step, {'end': self.step.result_info})
+
 		self.result_info.run()
 
 	def dedup_run(self):
@@ -118,7 +114,7 @@ class PtReportWorkflow(Workflow):
 			if i == self.option('dad_id'):
 				continue
 			pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
-			self.step.add_steps('dedup_{}'.format(n))
+			# self.step.add_steps('dedup_{}'.format(n))
 			pt_analysis_dedup.set_options({
 					"dad_tab": api_read_tab.export_tab_file(i, self.output_dir),  # 数据库的tab文件
 					"mom_tab": api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir),
@@ -127,9 +123,9 @@ class PtReportWorkflow(Workflow):
 					"err_min": self.option("err_min")
 			}
 			)
-			step = getattr(self.step, 'dedup_{}'.format(n))
-			step.start()
-			pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
+			# step = getattr(self.step, 'dedup_{}'.format(n))
+			# step.start()
+			# pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
 			self.tools_dedup.append(pt_analysis_dedup)
 			n += 1
 		for j in range(len(self.tools_dedup)):
@@ -217,7 +213,7 @@ class PtReportWorkflow(Workflow):
 				file_dir = self.output_dir + '/' + dad_id + '_' + mom_id + '_' + preg_id
 				api_main.add_pt_father_figure(file_dir, self.pt_father_id)
 
-		self.update_status_api = self.api.pt_update_status
-		self.update_status_api.add_pt_status(table_id=self.option('pt_father_id'), table_name='sg_pt_father',
-		                                     type_name='sg_pt_father')
+		# self.update_status_api = self.api.pt_update_status
+		# self.update_status_api.add_pt_status(table_id=self.option('pt_father_id'), table_name='sg_pt_father',
+		#                                      type_name='sg_pt_father')
 		super(PtReportWorkflow,self).end()
