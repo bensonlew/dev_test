@@ -14,9 +14,11 @@ class FastaFile(File):
     """
     定义Fasta文件， 需安装seqstat工具软件
     """
+
     def __init__(self):
         super(FastaFile, self).__init__()
         self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/seq/biosquid_1.9g+cvs20050121/bin/seqstat")
+
 
     def get_info(self):
         """
@@ -111,13 +113,38 @@ class FastaFile(File):
         return True
 
 
-    # def filter(self, smin=0, smax=0):
-    #     """
-    #     根据长度范围筛选Fasta
-    #     :param start:
-    #     :param end:
-    #     :return:
-    #     """
+    def split_single_seq(self,output_dir):
+        '''
+        author： jinlinfang
+        date：20170125
+        实现将目标fasta文件分割为数个文件，
+        每个文件只包含其一条序列，且文件名为seq_name.fa,所有文件放在output_dir里
+        :param output_dir:
+        :return:
+        '''
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+        if self.check():
+            try:
+                seq_records = SeqIO.parse(self.path,'fasta')
+                for seq_record in seq_records:
+                    seq_seq = seq_record.seq
+                    seq_name = seq_record.name
+                    line= '>{}\n{}\n'.format(seq_name,seq_seq)
+                    open(os.path.join(output_dir,seq_name+'.fa'),'w').write(line)
+            except Exception:
+                raise Exception("get split fa to single seqs failed")
+
+
+
+
+        # def filter(self, smin=0, smax=0):
+        #     """
+        #     根据长度范围筛选Fasta
+        #     :param start:
+        #     :param end:
+        #     :return:
+        #     """
         #
         # def write_seq(wf, sid, seq, smin, smax):
         #     if smin > 0 and len(seq) < smin:
@@ -173,56 +200,58 @@ class FastaFile(File):
                         wf = open("%s/%s\.fa" % (output, s), 'w')
                 wf.write(line)
 
-    # def get_seq_info(self):
-    #     """
-    #     获取Fasta信息
-    #     :return: (format,type,seq_type,seq_number,bases,longest,shortest)
-    #     """
-    #     seq_type, seq_number, bases, longest, shortest = '', 0, 0, 0, 0
-    #     re_id = re.compile(r'^>(\S+)')
-    #     re_na = re.compile(r'^[atcgunATCGUN\*]+$')
-    #     re_aa = re.compile(r'^[a-zA-Z\*]+$')
-    #     error, seq = 0, ''
+                # def get_seq_info(self):
+                #     """
+                #     获取Fasta信息
+                #     :return: (format,type,seq_type,seq_number,bases,longest,shortest)
+                #     """
+                #     seq_type, seq_number, bases, longest, shortest = '', 0, 0, 0, 0
+                #     re_id = re.compile(r'^>(\S+)')
+                #     re_na = re.compile(r'^[atcgunATCGUN\*]+$')
+                #     re_aa = re.compile(r'^[a-zA-Z\*]+$')
+                #     error, seq = 0, ''
 
-    #     def cmp_length(seq, shortest, longest):
-    #         """
-    #         比较序列长度
-    #         """
-    #         if len(seq) > 0:
-    #             if len(seq) > longest:
-    #                 longest = len(seq)
-    #             if shortest == 0:
-    #                 shortest = len(seq)
-    #             elif len(seq) < shortest:
-    #                 shortest = len(seq)
-    #             else:
-    #                 pass
-    #         return (seq, shortest, longest)
-    #     with open(self.prop['path'], 'r') as f:
-    #         while 1:
-    #             line = f.readline().rstrip()
-    #             if not line:
-    #                 shortest, longest = cmp_length(seq, shortest, longest)
-    #                 break
-    #             m_id = re_id.match(line)
-    #             if m_id is not None:
-    #                 seq_number += 1
-    #                 shortest, longest = cmp_length(seq, shortest, longest)
-    #                 seq = ''
-    #             else:
-    #                 m_na = re_na.match(line)
-    #                 if m_na is not None:
-    #                     seq_type = "na"
-    #                 else:
-    #                     m_aa = re_aa.match(line)
-    #                     if m_aa is not None:
-    #                         seq_type = "aa"
-    #                     else:
-    #                         error = 1
-    #                         break
-    #                 bases += len(line)
-    #                 seq += line
-    #     if error:
-    #         return {'pass': False, "info": "文件内容不符合格式!"}
-    #     else:
-    #         return (seq_type, seq_number, bases, longest, shortest)
+                #     def cmp_length(seq, shortest, longest):
+                #         """
+                #         比较序列长度
+                #         """
+                #         if len(seq) > 0:
+                #             if len(seq) > longest:
+                #                 longest = len(seq)
+                #             if shortest == 0:
+                #                 shortest = len(seq)
+                #             elif len(seq) < shortest:
+                #                 shortest = len(seq)
+                #             else:
+                #                 pass
+                #         return (seq, shortest, longest)
+                #     with open(self.prop['path'], 'r') as f:
+                #         while 1:
+                #             line = f.readline().rstrip()
+                #             if not line:
+                #                 shortest, longest = cmp_length(seq, shortest, longest)
+                #                 break
+                #             m_id = re_id.match(line)
+                #             if m_id is not None:
+                #                 seq_number += 1
+                #                 shortest, longest = cmp_length(seq, shortest, longest)
+                #                 seq = ''
+                #             else:
+                #                 m_na = re_na.match(line)
+                #                 if m_na is not None:
+                #                     seq_type = "na"
+                #                 else:
+                #                     m_aa = re_aa.match(line)
+                #                     if m_aa is not None:
+                #                         seq_type = "aa"
+                #                     else:
+                #                         error = 1
+                #                         break
+                #                 bases += len(line)
+                #                 seq += line
+                #     if error:
+                #         return {'pass': False, "info": "文件内容不符合格式!"}
+                #     else:
+                #         return (seq_type, seq_number, bases, longest, shortest)
+
+
