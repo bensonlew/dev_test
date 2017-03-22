@@ -33,7 +33,7 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_split = self.add_tool("paternity_test.data_split")
 		self.merge_fastq = self.add_tool("paternity_test.merge_fastq")
 		self.set_options(self._sheet.options())
-		self.step.add_steps("data_split", "merge_fastq")
+		# self.step.add_steps("data_split", "merge_fastq")
 		self.update_status_api = self.api.pt_update_status
 		self.tools = []
 
@@ -50,17 +50,17 @@ class PtDatasplitWorkflow(Workflow):
 			raise OptionError("缺少家系信息表")
 		return True
 
-	def set_step(self, event):
-		if 'start' in event['data'].keys():
-			event['data']['start'].start()
-		if 'end' in event['data'].keys():
-			event['data']['end'].finish()
-		self.step.update()
+	# def set_step(self, event):
+	# 	if 'start' in event['data'].keys():
+	# 		event['data']['start'].start()
+	# 	if 'end' in event['data'].keys():
+	# 		event['data']['end'].finish()
+		# self.step.update()
 
-	def finish_update(self, event):
-		step = getattr(self.step, event['data'])
-		step.finish()
-		self.step.update()
+	# def finish_update(self, event):
+	# 	step = getattr(self.step, event['data'])
+	# 	step.finish()
+		# self.step.update()
 
 	def run_data_split(self):
 		self.data_split.set_options({
@@ -69,8 +69,8 @@ class PtDatasplitWorkflow(Workflow):
 		})
 		self.data_split.on('end', self.set_output, 'data_split')
 		self.data_split.on('end', self.run_merge_fastq)
-		self.data_split.on('start', self.set_step, {'start': self.step.data_split})
-		self.data_split.on('end', self.set_step, {'end': self.step.data_split})
+		# self.data_split.on('start', self.set_step, {'start': self.step.data_split})
+		# self.data_split.on('end', self.set_step, {'end': self.step.data_split})
 		self.data_split.run()
 
 	def run_merge_fastq(self):
@@ -79,14 +79,14 @@ class PtDatasplitWorkflow(Workflow):
 		n = 0
 		for i in sample_name:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
-			self.step.add_steps('merge_fastq{}'.format(n))
+			# self.step.add_steps('merge_fastq{}'.format(n))
 			merge_fastq.set_options({
 				"sample_dir_name": i,
 				"data_dir": data_dir
 			})
-			step = getattr(self.step, 'merge_fastq{}'.format(n))
-			step.start()
-			merge_fastq.on('end', self.finish_update, 'merge_fastq{}'.format(n))
+			# step = getattr(self.step, 'merge_fastq{}'.format(n))
+			# step.start()
+			# merge_fastq.on('end', self.finish_update, 'merge_fastq{}'.format(n))
 			self.tools.append(merge_fastq)
 			n += 1
 		for j in range(len(self.tools)):
@@ -153,8 +153,7 @@ class PtDatasplitWorkflow(Workflow):
 			"IMPORT_REPORT_DATA": True,
 			"IMPORT_REPORT_AFTER_END": False,
 			"options": {
-				"fastq_path": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/test_sample",
-				"wq_dir": self.wq_dir,
+				"fastq_path": self.wq_dir,
 				"cpu_number": 8,
 				"ref_fasta": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa",
 				"targets_bedfile": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/share/pt/snp.chr.sort.3.bed",
