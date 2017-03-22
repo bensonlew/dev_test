@@ -67,7 +67,7 @@ class Lefse(MetaController):
                 "end_level": int(data.end_level),
             }
             to_file = ["meta.export_otu_table(otu_file)", "meta.export_cascading_table_by_detail(group_file)"]
-            self.set_sheet_data(name='meta.report.lefse', options=options, main_table_name=name, module_type='workflow', to_file=to_file)
+            self.set_sheet_data(name='meta.report.lefse', options=options, main_table_name="LEfSe/" + name, module_type='workflow', to_file=to_file)
             task_info = super(Lefse, self).POST()
             task_info['content'] = {'ids': {'id': str(lefse_id), 'name': name}}
             print task_info
