@@ -35,9 +35,13 @@ class PtCustomer(Base):
 					continue
 				print line
 				# line = line.decode("gb2312")
-				# line = line.decode("GB18030")
+				line = line.decode("GB18030")
 				line = line.strip()
 				line = line.split('\t')
+				if line[1] == "":
+					break
+				if line[4] == "" or line[7] == "":
+					continue
 				if len(line) == 22:
 					family_name = line[8] + "-" + line[5].split("-")[-1] + "-" + line[21].split("-")[-1]
 				else:
