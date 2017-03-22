@@ -90,7 +90,7 @@ class ClusterAnalysisWorkflow(Workflow):
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
             ["taxa.table.xls", "xls", "各样本物种丰度结果表"],  #modified by hongdongxuan 20170321
-            ["level_otu_table.xls", "xls", "结果OTU表格(百分比）"]  #add by wangzhaoyue 2017.03.06
+            ["taxa.precents.table.xls", "xls", "各样本物种相对丰度结果表"]  #add by wangzhaoyue 2017.03.06
         ])
         super(ClusterAnalysisWorkflow, self).end()
 
