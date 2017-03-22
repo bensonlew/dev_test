@@ -78,7 +78,7 @@ class TwoGroup(MetaController):
             "main_id": str(main_table_id)
         }
         to_file = ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table_by_detail(group_file)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type, to_file=to_file)
+        self.set_sheet_data(name=task_name, options=options, main_table_name="DiffStatTwoGroup/" + main_table_name, module_type=task_type, to_file=to_file)
         task_info = super(TwoGroup, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         print(self.return_msg)
