@@ -85,7 +85,7 @@ class QiimeAssignAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 50
+        self._cpu = 16
         if self.option('database') == 'custom_mode':
             fasta_size = self.option('ref_fasta').get_size() / 1024.00 / 1024.00 / 1024.00  # 单位为G
             if fasta_size > 1.5:

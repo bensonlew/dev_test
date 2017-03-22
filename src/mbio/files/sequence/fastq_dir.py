@@ -94,6 +94,8 @@ class FastqDirFile(Directory):
             if not len(filelist):
                 raise FileError('Fastq 序列文件夹为空，请检查确认')
             for filename in filelist:
+                if os.path.isdir(filename):
+                    raise FileError('fastq文件夹中不应该存在文件夹：{}！！！'.format(filename))
                 my_fastq = FastqFile()
                 fq_path = os.path.join(self.prop['path'], filename)
                 my_fastq.set_path(fq_path)

@@ -105,6 +105,7 @@ class Config(object):
         self.wpm_logger_authkey = self.rcf.get("WPM", "logger_authkey")
         self.wpm_log_file = self.rcf.get("WPM", "log_file")
         self.wpm_instant_timeout = int(self.rcf.get("WPM", "instant_timeout"))
+        self.wpm_pid_dir = self.rcf.get("WPM", "pid_dir")
 
     @property
     def mongo_client(self):
