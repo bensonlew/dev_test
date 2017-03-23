@@ -88,8 +88,8 @@ class PanCore(MetaController):
             "main_pan_id": str(main_pan_table_id),
             "main_core_id": str(main_core_table_id)
         }
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
-                            module_type=task_type, to_file=to_file)
+        self.set_sheet_data(name=task_name, options=options, main_table_name="PanCore/" + main_table_name,
+                            module_type=task_type, to_file=to_file) # modified by hongdongxuan 20170322 在main_table_name前面加上文件输出的文件夹名
         task_info = super(PanCore, self).POST()
         task_info['content'] = {
             'ids': [{

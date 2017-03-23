@@ -73,7 +73,7 @@ class TwoSample(MetaController):
             "main_id": str(main_table_id)
         }
         to_file = "meta.export_otu_table_by_level(otu_file)"
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type, to_file=to_file)
+        self.set_sheet_data(name=task_name, options=options, main_table_name="DiffStatTwoSample/" + main_table_name, module_type=task_type, to_file=to_file)
         task_info = super(TwoSample, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         print(self.return_msg)

@@ -64,8 +64,9 @@ class PearsonCorrelation(MetaController):
         if hasattr(data, "top_species"):
             params_json["top_species"] = data.top_species
         # self.options["params"] = str(self.options)
-        main_table_name = method_name + 'Correlation_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
+        level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "OTU"]  # add by hongdongxuan 20170322
+        main_table_name = method_name + 'Correlation' + level_name[int(data.level_id) - 1] + "_" +\
+                          datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -95,7 +96,7 @@ class PearsonCorrelation(MetaController):
         print(options)
         # print("ooooooooptionoooooo")
         to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="CorrelationHeatmap/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(PearsonCorrelation, self).POST()
         task_info['content'] = {
