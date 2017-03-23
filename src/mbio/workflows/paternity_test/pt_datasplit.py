@@ -17,7 +17,7 @@ class PtDatasplitWorkflow(Workflow):
 	名称：亲子鉴定数据拆分流程
 	作用：完成下机数据的拆分，合并以及分组(wq\ws\undetermined)
 	author：zhouxuan
-	last_modified: 2017.03.16
+	last_modified: 2017.03.23
 	"""
 	def __init__(self, wsheet_object):
 		self._sheet = wsheet_object
@@ -40,8 +40,11 @@ class PtDatasplitWorkflow(Workflow):
 		self.sample_name_wq = []
 		self.sample_name_ws = []
 		self.sample_name_un = []
+		self.dir_list = []
 		self.data_dir = ''
 		self.wq_dir = ''
+		self.ws_dir = ''
+		self.undetermined_dir = ''
 
 	def check_options(self):
 		'''
@@ -203,6 +206,8 @@ class PtDatasplitWorkflow(Workflow):
 		}
 		WC().add_task(data)
 		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
+		if len(self.dir_list) != 0:
+			super(PtDatasplitWorkflow, self).end()
 
 	def _update_status_api(self):
 			return 'pt.med_report_tupdate'
@@ -227,11 +232,19 @@ class PtDatasplitWorkflow(Workflow):
 		for tool in self.tools:
 			tool.run()
 
-
-
 	def run(self):
-		self.run_data_split()
+		self.judge()
 		super(PtDatasplitWorkflow, self).run()
+
+	def judge(self):
+		file_name = self.option('data_dir').prop['path']
+		db_customer = self.api.pt_customer
+		self.dir_list = db_customer.get_wq_dir(file_name)
+		if len(self.dir_list) == 0:
+			self.run_data_split()
+		else:
+			self.wq_dir = self.dir_list[0]
+			self.run_wq_wf()
 
 	def set_output(self, event):
 		obj = event["bind_object"]
@@ -241,7 +254,9 @@ class PtDatasplitWorkflow(Workflow):
 			wq_dir = os.path.join(self.output_dir, "wq_dir")
 			self.wq_dir = wq_dir
 			ws_dir = os.path.join(self.output_dir, "ws_dir")
+			self.ws_dir = ws_dir
 			undetermined_dir = os.path.join(self.output_dir, "undetermined_dir")
+			self.undetermined_dir = undetermined_dir
 			if not os.path.exists(wq_dir):
 				os.mkdir(wq_dir)
 			if not os.path.exists(ws_dir):
@@ -271,6 +286,15 @@ class PtDatasplitWorkflow(Workflow):
 
 	def end(self):
 		self.logger.info("医学流程数据拆分结束")
+		self.logger.info("将拆分后数据路径存入mongo中")
+		mongo_data = [
+			('data_name', self.option('data_dir').prop['path']),
+			("wq_dir", self.wq_dir),
+			("ws_dir", self.ws_dir),
+			("undetermined_dir", self.undetermined_dir)
+		]
+		PT().insert_main_table('sg_med_data_dir', mongo_data)
+		self.logger.info("数据路径存入mongo结束")
 		super(PtDatasplitWorkflow, self).end()
 
 	def linkdir(self, dirpath, dirname):
