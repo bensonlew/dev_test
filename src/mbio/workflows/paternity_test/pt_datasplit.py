@@ -40,11 +40,8 @@ class PtDatasplitWorkflow(Workflow):
 		self.sample_name_wq = []
 		self.sample_name_ws = []
 		self.sample_name_un = []
-		self.dir_list = []
 		self.data_dir = ''
 		self.wq_dir = ''
-		self.ws_dir = ''
-		self.undetermined_dir = ''
 
 	def check_options(self):
 		'''
@@ -138,37 +135,7 @@ class PtDatasplitWorkflow(Workflow):
 		for tool in self.tools:
 			tool.run()
 
-		"""
-	def run_wq_wf(self):
-		# self.logger.info("开始导表(家系表)")
-		# db_customer = self.api.pt_customer
-		# db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
-		#                             customer_file=self.option('family_table').prop['path'])
-		# self.logger.info("导表结束(家系表)")
-		self.logger.info("给pt_batch传送数据路径")
-		data = {
-			"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
-			"type": "workflow",
-			"name": "paternity_test.pt_batch",
-			"instant": False,
-			"IMPORT_REPORT_DATA": True,
-			"IMPORT_REPORT_AFTER_END": False,
-			"options": {
-				"fastq_path": self.wq_dir,
-				"cpu_number": 8,
-				"ref_fasta": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa",
-				"targets_bedfile": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/share/pt/snp.chr.sort.3.bed",
-				"ref_point": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/targets.bed.rda",
-				"err_min": 2,
-				"batch_id": self.option('pt_data_split_id'),
-				"dedup_num": 30
-			}
-		}
-		WC().add_task(data)
-		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
-		"""
-
-	def run_wq_wf(self):
+	def run_wq_wf(self):  # 亲子鉴定流程
 		self.logger.info("开始导表(家系表)")
 		db_customer = self.api.pt_customer
 		db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
@@ -206,11 +173,9 @@ class PtDatasplitWorkflow(Workflow):
 		}
 		WC().add_task(data)
 		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
-		if len(self.dir_list) != 0:
-			super(PtDatasplitWorkflow, self).end()
 
 	def _update_status_api(self):
-			return 'pt.med_report_tupdate'
+		return 'pt.med_report_tupdate'
 
 	def run_merge_fastq_un(self):
 		n = 0
@@ -233,18 +198,8 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run(self):
-		self.judge()
+		self.run_data_split()
 		super(PtDatasplitWorkflow, self).run()
-
-	def judge(self):
-		file_name = self.option('data_dir').prop['path']
-		db_customer = self.api.pt_customer
-		self.dir_list = db_customer.get_wq_dir(file_name)
-		if len(self.dir_list) == 0:
-			self.run_data_split()
-		else:
-			self.wq_dir = self.dir_list[0]
-			self.run_wq_wf()
 
 	def set_output(self, event):
 		obj = event["bind_object"]
@@ -254,9 +209,7 @@ class PtDatasplitWorkflow(Workflow):
 			wq_dir = os.path.join(self.output_dir, "wq_dir")
 			self.wq_dir = wq_dir
 			ws_dir = os.path.join(self.output_dir, "ws_dir")
-			self.ws_dir = ws_dir
 			undetermined_dir = os.path.join(self.output_dir, "undetermined_dir")
-			self.undetermined_dir = undetermined_dir
 			if not os.path.exists(wq_dir):
 				os.mkdir(wq_dir)
 			if not os.path.exists(ws_dir):
@@ -274,27 +227,8 @@ class PtDatasplitWorkflow(Workflow):
 				else:
 					self.linkdir(obj.output_dir, undetermined_dir)
 
-			"""
-			l = re.search('Undetermined', file_name[0])  # undetermined
-			if m:
-				self.linkdir(obj.output_dir, wq_dir)
-			if n:
-				self.linkdir(obj.output_dir, ws_dir)
-			if l:
-				self.linkdir(obj.output_dir, undetermined_dir)
-			"""
-
 	def end(self):
 		self.logger.info("医学流程数据拆分结束")
-		self.logger.info("将拆分后数据路径存入mongo中")
-		mongo_data = [
-			('data_name', self.option('data_dir').prop['path']),
-			("wq_dir", self.wq_dir),
-			("ws_dir", self.ws_dir),
-			("undetermined_dir", self.undetermined_dir)
-		]
-		PT().insert_main_table('sg_med_data_dir', mongo_data)
-		self.logger.info("数据路径存入mongo结束")
 		super(PtDatasplitWorkflow, self).end()
 
 	def linkdir(self, dirpath, dirname):
