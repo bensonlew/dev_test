@@ -83,15 +83,19 @@ class PtCustomer(Base):
 			self.bind_object.logger.error("更新sg_pt_datasplit主表出错:{}".format(e))
 		else:
 			self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
-"""
-	def update_flow_status(self,batch_id):
-		try:
-			main_collection = self.database["sg_pt_datasplit"]
-			main_collection.update({"_id": ObjectId(batch_id)},{"$set": {"status": "end"}})
-		except Exception as e:
-			self.bind_object.logger.error("更新大流程主表状态出错:{}".format(e))
+
+	def get_wq_dir(self, file_name):
+		main_collection = self.database["sg_med_data_dir"]
+		result = main_collection.find_one({"data_name": file_name})
+		dir_list = []
+		if result:
+			dir_list.append(result["wq_dir"])
+			dir_list.append(result["ws_dir"])
+			dir_list.append(result["undetermined_dir"])
+			return dir_list
 		else:
-			self.bind_object.logger.info("更新大流程主表状态成功")
-"""
+			return dir_list
+
+
 
 
