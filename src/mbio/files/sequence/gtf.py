@@ -11,14 +11,12 @@ from file import File
 from gff3_file import Gff3File
 
 
-
-
 class GtfFile(File):
-	def __init__(self):
-		pass
-	
-	def check(self):
-		pass
-	
-	def parse(self):
-		pass
+    def __init__(self):
+        pass
+    
+    def check(self):
+        pass
+    
+    def parse(self):
+        pass
