@@ -69,6 +69,7 @@ class PtDatasplitWorkflow(Workflow):
 		# self.step.update()
 
 	def run_data_split(self):
+		self.db_customer()  # 家系表导表
 		self.data_split.set_options({
 			"message_table": self.option('message_table'),
 			"data_dir": self.option('data_dir'),
@@ -78,6 +79,15 @@ class PtDatasplitWorkflow(Workflow):
 		# self.data_split.on('start', self.set_step, {'start': self.step.data_split})
 		# self.data_split.on('end', self.set_step, {'end': self.step.data_split})
 		self.data_split.run()
+
+	def db_customer(self):
+		self.logger.info("开始导表(家系表)")
+		db_customer = self.api.pt_customer
+		db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
+		                            customer_file=self.option('family_table').prop['path'])
+		self.logger.info("导表结束(家系表)")
+		self.logger.info("导入样本类型信息")
+		db_customer.add_sample_type(self.option('message_table').prop['path'])
 
 	def run_merge_fastq_wq(self):
 		self.data_dir = self.data_split.output_dir
@@ -136,11 +146,11 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run_wq_wf(self):  # 亲子鉴定流程
-		self.logger.info("开始导表(家系表)")
-		db_customer = self.api.pt_customer
-		db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
-		                            customer_file=self.option('family_table').prop['path'])
-		self.logger.info("导表结束(家系表)")
+		# self.logger.info("开始导表(家系表)")
+		# db_customer = self.api.pt_customer
+		# db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
+		#                             customer_file=self.option('family_table').prop['path'])
+		# self.logger.info("导表结束(家系表)")
 		self.logger.info("给pt_batch传送数据路径")
 		mongo_data = [
 			('batch_id', self.option('pt_data_split_id')),

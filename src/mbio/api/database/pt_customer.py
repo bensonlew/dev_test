@@ -20,6 +20,9 @@ class PtCustomer(Base):
 		self.mongo_client = MongoClient(Config().MONGO_URI)
 		self.database = self.mongo_client['tsanger_paternity_test_v2']
 
+		self.mongo_client_ref = MongoClient(Config().MONGO_BIO_URI)
+		self.database_ref = self.mongo_client_ref['sanger_paternity_test_v2']
+
 
 	# @report_check
 	def add_pt_customer(self, main_id=None, customer_file=None):
@@ -34,15 +37,15 @@ class PtCustomer(Base):
 				if num == 1:
 					continue
 				print line
-				# line = line.decode("gb2312")
+				#line = line.decode("gb2312")
 				line = line.decode("GB18030")
 				line = line.strip()
-				line = line.split('\t')
+				line = line.split(',')
 				if line[1] == "":
 					break
 				if line[4] == "" or line[7] == "":
 					continue
-				if len(line) == 22:
+				if len(line) == 22 and line[21] != "":
 					family_name = line[8] + "-" + line[5].split("-")[-1] + "-" + line[21].split("-")[-1]
 				else:
 					family_name = line[8] + "-" + line[5].split("-")[-1] + "-S"
@@ -94,7 +97,28 @@ class PtCustomer(Base):
 			dir_list.append(result["undetermined_dir"])
 			return dir_list
 		else:
-			return dir_list
+			return
+
+	def add_sample_type(self, file):
+		insert =[]
+		with open(file,'r') as f:
+			for line in f:
+				line = line.strip()
+				line = line.split('\t')
+				if re.match('WQ[0-9]*-.*',line[3]):
+					insert_data ={
+						"type": line[2],
+						"sample_id":line[3]
+					}
+					insert.append(insert_data)
+			try:
+				collection = self.database_ref['sg_pt_ref_main']
+				collection.insert_many(insert)
+			except Exception as e:
+				self.bind_object.logger.error('导入ref类型出错：{}'.format(e))
+			else:
+				self.bind_object.logger.info("导入ref类型成功")
+
 
 
 
