@@ -289,7 +289,7 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
             shutil.copy(self.hcluster.output_dir + "/hcluster.tre", self.output_dir + "/species_hcluster.tre")
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "CommunityHeatmap分析结果输出目录"],
+            [".", "", "物种组成分析结果目录"],
             ["./out_otu.xls", "xls", "CommunityHeatmap分析可视化结果数据表"],
             ["./sample_hcluster.tre", "tre", "样本聚类树"],
             ["./species_hcluster.tre", "tre", "物种聚类树"]
