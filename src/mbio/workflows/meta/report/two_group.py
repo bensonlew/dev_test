@@ -77,7 +77,7 @@ class TwoGroupWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "物种差异两组比较结果目录"]
         ])
         result_dir.add_regexp_rules([
             [r".*_result\.xls", "xls", "物种组间差异显著性比较结果表，包括均值，标准差，p值"],
