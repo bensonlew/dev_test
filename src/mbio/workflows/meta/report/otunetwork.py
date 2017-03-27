@@ -152,7 +152,7 @@ class OtunetworkWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "网络分析结果输出目录"],
+            [".", "", "共现性网络分析结果目录"],
             ["./real_node_table.txt", "txt", "网络节点属性表"],
             ["./real_edge_table.txt", "txt", "网络边的属性表"],
             ["./real_dc_otu_degree.txt", "txt", "网络物种节点度分布表"],
