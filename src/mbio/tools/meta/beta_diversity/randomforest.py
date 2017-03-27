@@ -89,14 +89,14 @@ class RandomforestAgent(Agent):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "RandomForest分析结果输出目录"],
+            [".", "", "RandomForest分析结果目录"],
             ["./randomforest_confusion_table.xls", "xls", "RandomForest样本分组模拟结果"],
-            ["./randomforest_mds_sites.xls", "xls", "样本点坐标表"],
-            ["./randomforest_proximity_table.xls", "xls", "样本相似度临近矩阵"],
-            ["./randomforest_topx_vimp.xls", "xls", "Top-X物种分布情况统计表"],
-            ["./randomforest_vimp_table.xls", "xls", "所有物种重要度表"],
+            ["./randomforest_mds_sites.xls", "xls", "画散点图对应的维度坐标"],
+            ["./randomforest_proximity_table.xls", "xls", "样本之间的临近矩阵"],
+            ["./randomforest_topx_vimp.xls", "xls", "Top-N物种分布情况统计表"],
+            ["./randomforest_vimp_table.xls", "xls", "所有物种（变量）的重要性测量值"],
             ["./randomforest_predicted_answer.xls", "xls", "随机森林预测分组结果表"],
-            ["./randomforest_votes_probably.xls","xls", "随机森林各样本分组投票预测概率表"]
+            ["./randomforest_votes_probably.xls", "xls", "随机森林各样本分组投票预测概率表"]
         ])
         print self.get_upload_files()
         super(RandomforestAgent, self).end()
