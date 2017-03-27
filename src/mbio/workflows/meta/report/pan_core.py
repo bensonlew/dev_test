@@ -69,9 +69,9 @@ class PanCoreWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-            ["core.richness.xls", "xls", "core 表格"],
-            ["pan.richness.xls", "xls", "pan 表格"]
+            [".", "", "Pan/Core结果目录"],
+            ["core.richness.xls", "xls", "Core 表格"],
+            ["pan.richness.xls", "xls", "Pan 表格"]
         ])
         print self.get_upload_files()
         super(PanCoreWorkflow, self).end()
