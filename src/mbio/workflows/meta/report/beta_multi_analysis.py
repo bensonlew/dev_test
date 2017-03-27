@@ -173,10 +173,24 @@ class BetaMultiAnalysisWorkflow(Workflow):
         return cond, cons  # 前者不全是数字分组， 后者是全部都是数字的分组
 
     def end(self):
+        if self.option('analysis_type') == 'plsda':   #add 14 lines by hongdongxuan 20170327
+            file_name = "PLS_DA分析结果目录"
+        elif self.option('analysis_type') == 'pca':
+            file_name = "PCA分析结果目录"
+        elif self.option('analysis_type') == 'pcoa':
+            file_name = "PCoA分析结果目录"
+        elif self.option('analysis_type') == 'nmds':
+            file_name = "NMDS分析结果目录"
+        elif self.option('analysis_type') == 'dbrda':
+            file_name = "db-RDA分析结果目录"
+        elif self.option('analysis_type') == 'rda_cca':
+            file_name = "RDA_CCA分析结果目录"
+        else:
+            file_name = "Beta_diversity分析结果目录"
         repaths = [
-            [".", "", "Beta_diversity分析结果文件目录"],
+            [".", "", file_name],
             ["Distance", "", "距离矩阵计算结果输出目录"],
-            ["Dbrda", "", "db_rda分析结果目录"],
+            ["Dbrda", "", "db-RDA分析结果目录"],
             ["Dbrda/db_rda_sites.xls", "xls", "db_rda样本坐标表"],
             ["Dbrda/db_rda_species.xls", "xls", "db_rda物种坐标表"],
             ["Dbrda/db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
@@ -191,14 +205,14 @@ class BetaMultiAnalysisWorkflow(Workflow):
             ["Pca/pca_envfit_factor.xls", "xls", "哑变量环境因子坐标表"],
             ["Pca/pca_envfit_vector_scores.xls", "xls", "数量型环境因子表"],
             ["Pca/pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
-            ["Pcoa", "", "pcoa分析结果目录"],
+            ["Pcoa", "", "PCoA分析结果目录"],
             ["Pcoa/pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
             ["Pcoa/pcoa_sites.xls", "xls", "样本坐标表"],
-            ["Plsda", "", "plsda分析结果目录"],
+            ["Plsda", "", "PLS_DA分析结果目录"],
             ["Plsda/plsda_sites.xls", "xls", "样本坐标表"],
             ["Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
             ["Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
-            ["Rda", "", "rda_cca分析结果目录"],
+            ["Rda", "", "RDA_CCA分析结果目录"],
             [r'Rda/dca.xls', 'xls', 'DCA分析结果'],
             ]
         regexps = [
