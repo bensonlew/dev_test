@@ -164,7 +164,7 @@ class HclusterWorkflow(Workflow):
     def end(self):
         result_dir_hucluster = self.add_upload_dir(self.hcluster.output_dir)
         result_dir_hucluster.add_relpath_rules([
-            [".", "", "样本层级聚类树分析结果表"],
+            [".", "", "样本层级聚类分析结果目录"],
             # ["./hcluster.tre", "tre", "层次聚类树"]
             ["./hcluster.tre", "tre", "层级聚类树结果表"] #modified by hongdongxuan 20170321
             ])
