@@ -51,10 +51,10 @@ class LefseWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "lefse分析结果输出目录"],
-            ["./lefse_LDA.cladogram.png", "png", "lefse分析cladogram结果图片"],
-            ["./lefse_LDA.png", "png", "lefse分析LDA图片"],
-            ["./lefse_LDA.xls", "xls", "lefse分析lda数据表"]
+            [".", "", "LEfSe差异分析结果目录"],
+            ["./lefse_LDA.cladogram.png", "png", "LEfSe分析cladogram结果图片"],
+            ["./lefse_LDA.png", "png", "LEfSe分析LDA图片"],
+            ["./lefse_LDA.xls", "xls", "LEfSe分析lda数据表"]
         ])
         super(LefseWorkflow, self).end()
 
