@@ -106,13 +106,14 @@ class PipeSubmitAllTool(Tool):
         data = json.loads(data)
         group_infos = data['group_info']
         group_infos = json.loads(group_infos)  #这里group_infos才是dict
+        #将level_id字符串进行分割存入列表中，用于后面组合
         level_ids = []
         level = str(data['level_id']).strip().split(",")
         for m in level:
             level_ids.append(m)
-        # print level_ids
         sub_analysis = data['sub_analysis']
         sub_analysis = json.loads(sub_analysis)
+        #全局计算有多少个分析，这里有个特例，pancore，一个分析会产生两个主表
         key_list = []
         for key in sub_analysis:
             key_list.append(str(key))
@@ -218,10 +219,9 @@ class PipeSubmitAllTool(Tool):
             else:
                 pass
         print "\n"
+        #由于分析比较多，这里是将相关信息打印出来可以查错
         print anaylsis_names
         print len(anaylsis_names)
-        print alpha_diversity_index_data
-        print alpha_ttest_data
         print "\n"
 
         if "randomforest_analyse" in anaylsis_names:
@@ -379,31 +379,35 @@ class PipeSubmitAllTool(Tool):
                     results_alpha_diversity_index = self.params_check(alpha_diversity_index_data,
                                                                       analysis_table[alpha_diversity_index_data['submit_location']],
                                                                       alpha_diversity_index_data['submit_location'])
-                    print results_alpha_diversity_index
-                    print type(results_alpha_diversity_index)
-                    print "results_alpha_diversity_index1"
                     alpha_diversity_id = results_alpha_diversity_index['sub_anaylsis_id']['id']
-                    print "这里测试alpha_diversity_id"
+                    print "打印出alpha_diversity_id"
                     print alpha_diversity_id
-                alpha_ttest_data['otu_id'] = n['otu_id']
-                alpha_ttest_data['level_id'] = n['level_id']
-                alpha_ttest_data['group_id'] = n['group_id']
-                alpha_ttest_data['alpha_diversity_id'] = str(alpha_diversity_id)
-                alpha_ttest_data['group_detail'] = n['group_detail']
-                if len(self.params_check(alpha_ttest_data,
-                                         analysis_table[alpha_ttest_data['submit_location']],
-                                         alpha_ttest_data['submit_location'])) == 0:
-                    results_alpha_ttest = self.run_controllers(api="/".join(str(alpha_ttest_data['api']).strip().split("|")),
-                                                               client=client, base_url=base_url,
-                                                               params=alpha_ttest_data, method=method)
-                    results_alpha_ttest = json.loads(results_alpha_ttest)
-                    all_results.append(results_alpha_ttest)
-                    ready_analysis_num += 1
-                    self.update_status(all_analysis_num, ready_analysis_num)
+                if alpha_diversity_id:
+                    alpha_ttest_data['otu_id'] = n['otu_id']
+                    alpha_ttest_data['level_id'] = n['level_id']
+                    alpha_ttest_data['group_id'] = n['group_id']
+                    alpha_ttest_data['alpha_diversity_id'] = str(alpha_diversity_id)
+                    alpha_ttest_data['group_detail'] = n['group_detail']
+                    if len(self.params_check(alpha_ttest_data, analysis_table[alpha_ttest_data['submit_location']],
+                                             alpha_ttest_data['submit_location'])) == 0:
+                        results_alpha_ttest = self.run_controllers(api="/".join(str(alpha_ttest_data['api']).strip().split("|")),
+                                                                   client=client, base_url=base_url,
+                                                                   params=alpha_ttest_data, method=method)
+                        results_alpha_ttest = json.loads(results_alpha_ttest)
+                        all_results.append(results_alpha_ttest)
+                        ready_analysis_num += 1
+                        self.update_status(all_analysis_num, ready_analysis_num)
+                    else:
+                        all_results.append(self.params_check(alpha_ttest_data,
+                                                             analysis_table[alpha_ttest_data['submit_location']],
+                                                             alpha_ttest_data['submit_location']))
+                        ready_analysis_num += 1
+                        self.update_status(all_analysis_num, ready_analysis_num)
                 else:
-                    all_results.append(self.params_check(alpha_ttest_data,
-                                                         analysis_table[alpha_ttest_data['submit_location']],
-                                                         alpha_ttest_data['submit_location']))
+                    alpha_diversity_results = {"level_id": n['level_id'], "group_id": n['group_id'],
+                                               "info": "多样性指数分析出错，无法进行该分析！", "success": False,
+                                               "submit_location": "alpha_ttest"}
+                    all_results.append(alpha_diversity_results)
                     ready_analysis_num += 1
                     self.update_status(all_analysis_num, ready_analysis_num)
         elif "alpha_diversity_index" in anaylsis_names and "alpha_ttest" not in anaylsis_names:
@@ -515,6 +519,7 @@ class PipeSubmitAllTool(Tool):
                     api = submit_info['api']
                     method = "post"
                     print "***api:%s, client:%s, base_url:%s"%(api, client, base_url)
+                    time.sleep(60)
                     return_page = self.webapitest(method, api, name, data, client, base_url)
                     print return_page
                     result = json.loads(return_page)
@@ -557,6 +562,13 @@ class PipeSubmitAllTool(Tool):
 
 
     def params_check(self, ever_analysis_params, analysis_table, submit_location):
+        """
+        这里是进行每个分析的参数判断，如果参数一样就不进行投递。
+        :param ever_analysis_params: 每个分析的所有的参数
+        :param analysis_table: 这个分析的主表
+        :param submit_location: 该分析的submit_location，注意这个字段一定要与前端对应，所有的分析都是以此字段进行区别。
+        :return:
+        """
         if not isinstance(ever_analysis_params, dict):
             raise Exception("传入的params不是一个字典！")
         if submit_location in ["beta_multi_analysis_rda_cca", "beta_multi_analysis_pca", "beta_multi_analysis_pcoa",
@@ -729,7 +741,7 @@ class PipeSubmitAllTool(Tool):
             data.append(params[key])
         name = ";".join(name)
         data = ";".join(data)
-        time.sleep(1)
+        time.sleep(60)
         return_page = self.webapitest(method, api, name, data, client, base_url)
         print return_page
         result = json.loads(return_page)
