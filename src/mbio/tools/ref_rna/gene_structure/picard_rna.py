@@ -19,7 +19,7 @@ class PicardRnaAgent(Agent):
     def __init__(self, parent):
         super(PicardRnaAgent, self).__init__(parent)
         
-        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "Human",
+        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "pig", "Fruitfly", "human",
                                 "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test"]
         
         options = [
@@ -45,10 +45,10 @@ class PicardRnaAgent(Agent):
        
         if not self.option("in_sam").is_set:
             raise OptionError("请输入用于分析的sam文件！")
-        if self.option("ref_genome") == "customer_mode" and not self.option("ref_genome_custom").is_set:
-            raise OptionError("请输入自定义参考基因组序列文件！")
-        if not self.option("ref_genome") in self._ref_genome_lst:
-            raise OptionError("请选择参考基因组！") 
+        # if self.option("ref_genome") == "customer_mode" and not self.option("ref_genome_custom").is_set:
+        #     raise OptionError("请输入自定义参考基因组序列文件！")
+        # if not self.option("ref_genome") in self._ref_genome_lst:
+        #     raise OptionError("请选择参考基因组！")
         
     def set_resource(self):
         self._cpu = 10

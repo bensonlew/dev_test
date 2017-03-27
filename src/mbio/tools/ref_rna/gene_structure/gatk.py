@@ -19,7 +19,7 @@ class GatkAgent(Agent):
     """
     def __init__(self, parent):
         super(GatkAgent, self).__init__(parent)
-        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "Human",
+        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "pig", "Fruitfly", "Human",
                                 "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test"]
         options = [
             # {"name":"ref_genome_custom", "type": "infile", "format": "sequence.fasta"},
@@ -215,7 +215,7 @@ class GatkTool(Tool):
             ref_current = os.path.join(self.work_dir, ref_name)  # 当前工作目录下的参考基因组的路径
             self.logger.info(ref_current)  # 显示当前参考基因组路径
             # if self.option("is_indexed") is True:
-            ref_current = ref
+            # ref_current = ref_current
             dict_name = os.path.splitext(ref_name)[0] + ".dict"   # 所建字典的名字，是一个字符串
             self.logger.info("参考基因组为自定义模式的情况下建字典！")
             if not os.path.exists(dict_name):

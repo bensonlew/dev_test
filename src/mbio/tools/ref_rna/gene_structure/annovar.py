@@ -7,6 +7,7 @@ from biocluster.core.exceptions import OptionError
 import subprocess
 import shutil
 from mbio.packages.ref_rna.gene_structure.snp_anno import snp_anno
+import json
 
 
 class AnnovarAgent(Agent):
@@ -73,10 +74,23 @@ class AnnovarTool(Tool):
         self.perl_full_path = self.config.SOFTWARE_DIR + "/program/perl/perls/perl-5.24.0/bin/"
         self.annovar_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/annovar/"
         self.gtfToGenePred_path = "/bioinfo/gene-structure/annovar/"
+        self.ref_fasta = ''
+        self.ref_gtf = ''
+
+    def get_genome(self):
+        if self.option("ref_genome") == "customer_mode":
+            self.ref_fasta = self.option("ref_fasta").prop["path"]
+            self.ref_gtf = self.option("ref_gtf").prop["path"]
+        else:
+            ref_genome_json = self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json"
+            with open(ref_genome_json, "r") as f:
+                ref_dict = json.loads(f.read())
+                self.ref_fasta = ref_dict[self.option("ref_genome")]["ref_genome"]
+                self.ref_gtf = ref_dict[self.option("ref_genome")]["gtf"]
 
     def gtf_to_genepred(self):
         cmd = "{}gtfToGenePred -genePredExt {} {}.genes_refGene.tmp.txt"\
-            .format(self.gtfToGenePred_path, self.option("ref_gtf").prop["path"], self.option("ref_genome"))
+            .format(self.gtfToGenePred_path, self.ref_gtf, self.option("ref_genome"))
         command = self.add_command("gtftogenepred", cmd)
         command.run()
         self.wait(command)
@@ -99,12 +113,12 @@ class AnnovarTool(Tool):
 
     def retrieve_seq_from_fasta(self):
         cmd = "{}perl {}retrieve_seq_from_fasta.pl -format refGene -seqfile {} --outfile {}_refGeneMrna.fa " \
-              "{}_refGene.txt".format(self.perl_path, self.annovar_path, self.option("ref_fasta").prop["path"],
+              "{}_refGene.txt".format(self.perl_path, self.annovar_path, self.ref_fasta,
                                       self.option("ref_genome"), self.option("ref_genome"))
         command = self.add_command("retrieve_seq_from_fasta", cmd)
         command.run()
         self.wait(command)
-        if command.return_code == 0:
+        if command.return_code == 0 or None:
             self.logger.info("运行retrieve_seq_from_fasta完成!")
             if os.path.exists("./geneomedb"):
                 shutil.rmtree("./geneomedb")
@@ -159,6 +173,7 @@ class AnnovarTool(Tool):
 
     def run(self):
         super(AnnovarTool, self).run()
+        self.get_genome()
         self.gtf_to_genepred()
         self.retrieve_seq_from_fasta()
         self.convert2annovar()

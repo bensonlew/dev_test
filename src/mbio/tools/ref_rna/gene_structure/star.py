@@ -22,8 +22,8 @@ class StarAgent(Agent):
         """
         软件建议提供参考基因组的gtf文件，下表为已有参考基因组物种
         """
-        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "human",
-                                "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test"]
+        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "pig", "Fruitfly", "human",
+                                "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test", "test"]
         options = [
         
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 用户上传参考基因组文件
@@ -148,7 +148,7 @@ class StarTool(Tool):
         """
         step3：第三步，第二次建索引，用于最终比对
         """
-        cmd = "{}STAR --runMode genomeGenerate --runThreadN 20 --genomeDir {} --genomeFastaFiles {} --sjdbFileChrStartEnd {} --sjdbOverhang 75".format(self.star_path, self.genomeDir_path2, ref_fa, sj)
+        cmd = "{}STAR --runMode genomeGenerate --limitGenomeGenerateRAM 128000000000 --runThreadN 30 --genomeDir {} --genomeFastaFiles {} --sjdbFileChrStartEnd {} --sjdbOverhang 75".format(self.star_path, self.genomeDir_path2, ref_fa, sj)
         print cmd
         self.logger.info("根据生成的sjdb数据进行第二次建索引index2")
         command = self.add_command("star_index2", cmd)
@@ -230,14 +230,22 @@ class StarTool(Tool):
             """
             ref_genome_json = self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json"
             with open(ref_genome_json, "r") as f:
-                dict = json.loads(f.read())
-                print(dict)
-                if "human" in dict:
+                ref_dict = json.loads(f.read())
+                print(ref_dict)
+                for dd in ref_dict:
+                    print(dd)
+                if "human" in ref_dict:
                     self.logger.info("lllllllltrrrrreeee")
-                # ref = dict[self.option("ref_genome")]["ref_index"]   # 是ref_index的路径，作为参数传给比对函数
+                # ref = ref_dict[self.option("ref_genome")]["ref_index"]   # 是ref_index的路径，作为参数传给比对函数
                 # ref = os.path.join(self.work_dir, "ref_star_index1")
-                ref_fa = dict[self.option("ref_genome")]["ref_genome"]
-                ref = "/".join(ref_fa.split("/")[:-1]) + "/ref_index1"
+                ref_fa = ref_dict[self.option("ref_genome")]["ref_genome"]
+                if self.option("ref_genome") == "human":
+                    ref = "/".join(ref_fa.split("/")[:-1]) + "/ref_star_index1"
+                else:
+                    ref = os.path.join(self.work_dir, "ref_star_index1")
+                    if not os.path.exists(ref):
+                        os.mkdir(ref)
+                    self.star_index1(ref, ref_fa)
                 self.logger.info(ref_fa)
                 self.logger.info(ref)
             # if not os.path.exists(ref):

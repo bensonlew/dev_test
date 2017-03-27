@@ -21,8 +21,8 @@ class SnpRnaModule(Module):
     """
     def __init__(self, work_id):
         super(SnpRnaModule, self).__init__(work_id)
-        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "Pig", "Fruitfly", "human",
-                                "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test"]
+        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "pig", "Fruitfly", "human",
+                                "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test", "test"]
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
@@ -250,10 +250,11 @@ class SnpRnaModule(Module):
         options = {
             "ref_genome": self.ref_name,
             "input_file": vcf_path,
-            "ref_gtf": self.option("ref_gtf").prop["path"]
+            # "ref_gtf": self.option("ref_gtf").prop["path"]
         }
         if self.option("ref_genome") == "customer_mode":
             options["ref_fasta"] = self.ref_link
+            options["ref_gtf"] = self.option("ref_gtf").prop["path"]
         annovar.set_options(options)
         self.annovars.append(annovar)
         # annovar.on("end", self.finish_update, "annovar")
