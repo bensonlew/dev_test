@@ -482,11 +482,13 @@ class MetaBaseWorkflow(Workflow):
 
     def send_files(self):
         repaths = [
-            [".", "", "多样性结果文件目录"],
+            [".", "", "基础分析结果文件夹"],
             ["QC_stat", "", "样本数据统计文件目录"],
+            ["QC_stat/samples_info", "", "样本信息文件目录"], # add by hongdongxuan 20170323
             ["QC_stat/samples_info/samples_info.txt", "txt", "样本信息统计文件"],
             ["QC_stat/base_info", "", "单个样本碱基质量统计目录"],
             ["QC_stat/reads_len_info", "", "序列长度分布统计文件目录"],
+            ["QC_stat/valid_sequence.txt", "txt", "优化序列信息统计表"], # add by hongdongxuan 20170323
             ["Otu", "", "OTU聚类结果文件目录"],
             ["Tax_assign", "", "OTU对应物种分类文件目录"],
             ["Tax_assign/seqs_tax_assignments.txt", "taxon.seq_taxon", "OTU序列物种分类文件"],
@@ -510,12 +512,12 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Box", "", "距离统计和统计检验分析结果目录"],
             ["Beta_diversity/Box/Stats.xls", "xls", "分组统计检验结果"],
             ["Beta_diversity/Box/Distances.xls", "xls", "组内组间距离值统计结果"],
-            ["Beta_diversity/Distance", "", "距离矩阵计算结果输出目录"],
+            ["Beta_diversity/Distance", "", "距离矩阵计算结果目录"],
             ["Beta_diversity/Hcluster", "", "层次聚类结果目录"],
-            ["Beta_diversity/Hcluster/hcluster.tre", "graph.newick_tree", "层次聚类树"],
+            ["Beta_diversity/Hcluster/hcluster.tre", "graph.newick_tree", "层次聚类树结果表"],
             ["Beta_diversity/Nmds", "", "NMDS分析结果输出目录"],
             ["Beta_diversity/Nmds/nmds_sites.xls", "xls", "样本各维度坐标"],
-            ["Beta_diversity/Pca", "", "PCA分析结果输出目录"],
+            ["Beta_diversity/Pca", "", "PCA分析结果目录"],
             ["Beta_diversity/Pca/pca_importance.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Pca/pca_rotation.xls", "xls", "物种主成分贡献度表"],
             ["Beta_diversity/Pca/pca_sites.xls", "xls", "样本各成分轴坐标"],
@@ -523,7 +525,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Pca/pca_envfit_factor.xls", "xls", "哑变量环境因子坐标表"],
             ["Beta_diversity/Pca/pca_envfit_vector_scores.xls", "xls", "数量型环境因子表"],
             ["Beta_diversity/Pca/pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
-            ["Beta_diversity/Pcoa", "", "pcoa分析结果目录"],
+            ["Beta_diversity/Pcoa", "", "PCoA分析结果目录"],
             ["Beta_diversity/Pcoa/pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
             ["Beta_diversity/Pcoa/pcoa_sites.xls", "xls", "样本坐标表"],
             ['Beta_diversity/Rda/dca.xls', 'xls', 'DCA分析结果'],
@@ -531,7 +533,10 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Plsda/plsda_sites.xls", "xls", "样本坐标表"],
             ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
             ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
-            ["Beta_diversity/Rda", "", "rda_cca分析结果目录"]
+            ["Beta_diversity/Rda", "", "rda_cca分析结果目录"],
+            ["pan_core", "", "Pan/core分析结果目录"],     #add 3 lines by hongdongxuan 20170323
+            ["pan_core/core.richness.xls", "xls", "core 表格"],
+            ["pan_core/pan.richness.xls", "xls", "pan 表格"]
         ]
         regexps = [
             [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
@@ -543,9 +548,9 @@ class MetaBaseWorkflow(Workflow):
             [r'Beta_diversity/Rda/.+_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
             [r'Beta_diversity/Rda/.+_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
             ["Otu/otu_reps.fasta", "sequence.fasta", "OTU代表序列"],
-            ["Otu/otu_seqids.txt", "txt", "OTU代表序列名称列表"],
+            ["Otu/otu_seqids.txt", "txt", "每个OTU中包含的序列编号列表"],
             ["Otu/otu_table.biom", 'meta.otu.biom', "OTU表对应的Biom文件"],
-            ["Otu/otu_table.xls", "meta.otu.otu_table", "OTU统计表"],
+            ["Otu/otu_table.xls", "meta.otu.otu_table", "各样本OTU中序列数统计表"],
             ["Otu/otu_phylo.tre", "graph.newick_tree", "OTU代表序列进化树"],
             ["QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "txt", "单个样本碱基质量统计文件"],
             ["QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "txt", "序列长度分布统计文件"],
@@ -557,13 +562,17 @@ class MetaBaseWorkflow(Workflow):
             ["OtuTaxon_summary/tax_summary/.+\.full\.xls$", "meta.otu.biom", "多级物种分类统计表"]
         ]
         for i in self.option("rarefy_indices").split(","):
-            if i == "sobs":
-                repaths.append(["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)])
-                regexps.append([r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)])
+            if i == "sobs":  # modified by hongdongxuan 20170324
+                # repaths.append(["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)])
+                repaths.append(["./Alpha_diversity/sobs", "文件夹", "{}指数结果输出目录".format(i)])
+                # regexps.append([r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)])
+                regexps.append([r".*rarefaction\.xls", "xls", "每个样本的{}指数稀释性曲线表".format(i)])
             else:
-                repaths.append(["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)])
+                # repaths.append(["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)])
+                repaths.append(["./Alpha_diversity/{}".format(i), "文件夹", "{}指数结果输出目录".format(i)])
                 regexps.append(
-                    [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)])
+                    # [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)])
+                    [r".*{}\.xls".format(i), "xls", "每个样本的{}指数稀释性曲线表".format(i)])
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
