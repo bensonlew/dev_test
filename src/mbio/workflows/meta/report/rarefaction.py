@@ -52,9 +52,9 @@ class RarefactionWorkflow(Workflow):
         if os.path.isfile(rare_path):
             raise Exception("找不到报告文件夹:{}".format(rare_path))
         result_dir = self.add_upload_dir(self.output_dir)
-        # result_dir.add_relpath_rules([
-        #     [".", "", "结果输出目录"]
-        # ])
+        result_dir.add_relpath_rules([
+            [".", "", "稀释曲线结果目录"]
+        ])
         for i in self.option("indices").split(","):
             self.logger.info(i)
             if i == "sobs":
