@@ -282,15 +282,15 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
         self.end()
 
     def end(self):
-        shutil.copy(self.sort_samples.output_dir + "/out_otu.xls", self.output_dir + "/out_otu.xls")
+        shutil.copy(self.sort_samples.output_dir + "/taxa.table.xls", self.output_dir + "/heatmap.taxa.table.xls")
         if os.path.exists(self.sample_hcluster.output_dir + "/hcluster.tre"):
             shutil.copy(self.sample_hcluster.output_dir + "/hcluster.tre", self.output_dir + "/sample_hcluster.tre")
         if os.path.exists(self.hcluster.output_dir + "/hcluster.tre"):
             shutil.copy(self.hcluster.output_dir + "/hcluster.tre", self.output_dir + "/species_hcluster.tre")
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "物种组成分析结果目录"],
-            ["./out_otu.xls", "xls", "CommunityHeatmap分析可视化结果数据表"],
+            [".", "", "群落Heatmap分析结果输出目录"],
+            ["./heatmap.taxa.table.xls", "xls", "群落Heatmap分析可视化结果数据表"],
             ["./sample_hcluster.tre", "tre", "样本聚类树"],
             ["./species_hcluster.tre", "tre", "物种聚类树"]
         ])
