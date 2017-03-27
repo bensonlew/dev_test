@@ -87,9 +87,11 @@ class RocWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出文件目录"],
-            ["./roc_curve.xls", "xls", "坐标数据"],
-            ["./roc_auc.xls", "xls", "面积"]
+            [".", "", "ROC分析结果目录"],   #modified by hongdongxuan at 91-92 20170324
+            ["./roc_curve.xls", "xls", "ROC曲线结果表"],
+            ["./roc_auc.xls", "xls", "AUC计算结果表"],
+            ["./roc_plot_rocarea.xls", "xls", "置信区间"], # add 2 lines by hongdongxuan 20170324
+            ["./roc_table.xls", "xls", "坐标数据"]
         ])
         super(RocWorkflow, self).end()
 
