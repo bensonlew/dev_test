@@ -21,8 +21,9 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
     """
     table_path = os.path.join(dir_path, "otu_table.xls")
     rep_path = os.path.join(dir_path, "otu_reps.fasta")
+    group_path = os.path.join(dir_path, "group_detail.txt")
     bind_obj.logger.debug("正在导出OTU表格文件，路径:%s" % (table_path))
-    bind_obj.logger.debug("正在导出OTU表格文件，路径:%s" % (rep_path))
+    bind_obj.logger.debug("正在导出OTU fasta文件，路径:%s" % (rep_path))
     my_collection = db['sg_otu_specimen']
     my_results = my_collection.find({"otu_id": ObjectId(data)})
     if not my_results.count():
@@ -39,13 +40,19 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
     if not isinstance(table_dict, dict):
         raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
     sample_table = db['sg_specimen']
+    group_dict = {}
     for k in table_dict:
+        group = []
         for sp_id in table_dict[k]:
             sp = sample_table.find_one({"_id": ObjectId(sp_id)})
             if not sp:
                 raise Exception("group_detal中的样本_id:{}在样本表{}中未找到".format(sp_id, 'sg_specimen'))
             else:
                 samples.append(sp["specimen_name"])
+                group.append(sp["specimen_name"])
+        group_dict[k] = group
+    with open(group_path, "wb") as w:
+        w.write(json.dumps(group_dict))
     collection = db['sg_otu_detail']
     with open(table_path, "wb") as f, open(rep_path, "wb") as w:
         f.write("OTU ID\t%s\n" % "\t".join(samples))
@@ -57,5 +64,5 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
             line = ">%s\n" % col["otu"]
             line += col["otu_rep"]
             w.write("%s\n" % line)
-    paths = ','.join([table_path, rep_path])
+    paths = ','.join([table_path, rep_path, group_path])
     return paths

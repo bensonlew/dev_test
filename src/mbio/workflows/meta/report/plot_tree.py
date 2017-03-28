@@ -140,8 +140,8 @@ class PlotTreeWorkflow(Workflow):
                 new_name = name_split[-1].strip().replace(':', '-')
                 if new_name not in self.leaves:
                     continue
-                if sum([int(i) for i in line_split[1].strip().split('\t')]) == 0:  # hesheng 20161115 去除所有样本为0的情况，目前to_file没有相关功能，暂时添加
-                    raise Exception('存在全部物种/OTU代表序列数量都为0的情况')
+                # if sum([int(i) for i in line_split[1].strip().split('\t')]) == 0:  # hesheng 20161115 去除所有样本为0的情况，目前to_file没有相关功能，暂时添加
+                    # raise Exception('存在全部物种/OTU代表序列数量都为0的情况')
                     # continue
                 self.species.append(new_name)
                 if out_species_group_file:

@@ -75,8 +75,8 @@ class Lustre(RemoteFile):
     def upload(self, from_path):
         if not os.path.exists(from_path):
             raise Exception("源文件%s不存存在" % from_path)
-        basename = os.path.basename(from_path)
-        target = os.path.join(self._full_path, basename)
+        # basename = os.path.basename(from_path)
+        target = self._full_path  # 目标目录直接为上传目录，意思是不需要上传目录的的目录名  # shenghe 20170322
         if os.path.exists(target):
             if os.path.islink(target):
                 os.remove(target)
@@ -89,7 +89,8 @@ class Lustre(RemoteFile):
 
         if os.path.isdir(from_path):
             for root, dirs, files in os.walk(from_path):
-                rel_path = os.path.relpath(root, os.path.dirname(from_path))
+                # rel_path = os.path.relpath(root, os.path.dirname(from_path))
+                rel_path = os.path.relpath(root, from_path)  # 去除路径中间相对路径，直接使用文件与上传目录差  shenghe 20170322
                 for i_file in files:
                     i_file_path = os.path.join(root, i_file)
                     if os.path.islink(i_file_path):

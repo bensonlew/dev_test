@@ -88,6 +88,8 @@ class FastqSampleExtractTool(Tool):
                 if not m:
                     raise Exception('fastq文件格式不符合要求，第一行形式应为应为@样本名_序列号')
                 sample_name = m.group(1)
+                if sample_name.find(".") != -1:
+                    raise Exception("样本名称中含有.，请更改样本名称后再进行工作流分析")
                 seq_name = m.group(2)
                 sample = self.return_sample(sample_name)
                 sample.add_new_fasta(next(fastq), seq_name)

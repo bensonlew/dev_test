@@ -4,7 +4,7 @@ import web
 import json
 import datetime
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.libs.param_pack import param_pack, group_detail_sort
+from mainapp.libs.param_pack import param_pack, group_detail_sort, filter_json_sort
 from mainapp.models.mongo.meta import Meta
 
 
@@ -37,7 +37,7 @@ class OtuSubsample(MetaController):
         my_param['otu_id'] = data.otu_id
         my_param["submit_location"] = data.submit_location
         my_param["size"] = data.size
-        my_param["filter_json"] = data.filter_json
+        my_param["filter_json"] = filter_json_sort(data.filter_json)
         my_param["group_detail"] = group_detail_sort(data.group_detail)
         my_param["task_type"] = data.task_type
         params = param_pack(my_param)

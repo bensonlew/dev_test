@@ -87,7 +87,7 @@ class CopyMongo(object):
         self.copy_main_details('sg_otu_venn_detail', 'otu_venn_id', venn_id_dict, others_position=['otu_id'])
         self.copy_main_details("sg_otu_venn_graph", 'venn_id', venn_id_dict)
 
-        pan_core_id_dict = self.copy_collection_with_change('sg_otu_pan_core', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        pan_core_id_dict = self.copy_collection_with_change('sg_otu_pan_core', change_positions=['otu_id'], update_sg_status=True)
         self.copy_main_details('sg_otu_pan_core_detail', 'pan_core_id', pan_core_id_dict)
 
         alpha_ttest_id_dict = self.copy_collection_with_change('sg_alpha_ttest', change_positions=['alpha_diversity_id', 'otu_id', 'group_id'], update_sg_status=True)

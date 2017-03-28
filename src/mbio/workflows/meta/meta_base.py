@@ -331,8 +331,10 @@ class MetaBaseWorkflow(Workflow):
                 raise Exception("找不到报告文件:{}".format(otu_path))
             params = {
                 "group_id": 'all',
-                "size": 0,
+                #"size": 0,
+                "size": "",   # modified by hongdongxuan 20170303
                 "submit_location": 'otu_statistic',
+                "filter_json": "[]", # add by hongdongxuan 20170303
                 "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
@@ -513,6 +515,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Hcluster/hcluster.tre", "graph.newick_tree", "层次聚类树"],
             ["Beta_diversity/Nmds", "", "NMDS分析结果输出目录"],
             ["Beta_diversity/Nmds/nmds_sites.xls", "xls", "样本各维度坐标"],
+            ["Beta_diversity/Nmds/nmds_stress.xls", "xls", "样本特征拟合度值"],
             ["Beta_diversity/Pca", "", "PCA分析结果输出目录"],
             ["Beta_diversity/Pca/pca_importance.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Pca/pca_rotation.xls", "xls", "物种主成分贡献度表"],
@@ -523,12 +526,14 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Pca/pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
             ["Beta_diversity/Pcoa", "", "pcoa分析结果目录"],
             ["Beta_diversity/Pcoa/pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
+            ["Beta_diversity/Pcoa/pcoa_eigenvaluespre.xls", "xls", "特征解释度百分比"],
             ["Beta_diversity/Pcoa/pcoa_sites.xls", "xls", "样本坐标表"],
             ['Beta_diversity/Rda/dca.xls', 'xls', 'DCA分析结果'],
             ["Beta_diversity/Plsda", "", "plsda分析结果目录"],
             ["Beta_diversity/Plsda/plsda_sites.xls", "xls", "样本坐标表"],
             ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
-            ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
+            ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分组别特征值表"],
+            ["Beta_diversity/Plsda/plsda_importancepre.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Rda", "", "rda_cca分析结果目录"]
         ]
         regexps = [
