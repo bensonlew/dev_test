@@ -21,13 +21,11 @@ class CufflinksAgent(Agent):
             {"name": "sample_bam", "type": "infile", "format": "ref_rna.assembly.bam"},  # 所有样本比对之后的bam文件
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
             {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 参考基因的注释文件
-            {"name": "cpu", "type": "int", "default":10},  #cufflinks软件所分配的cpu数量
+            {"name": "cpu", "type": "int", "default": 10},  #cufflinks软件所分配的cpu数量
             {"name": "F", "type": "int", "default": 0.1},  # min-isoform-fraction
-            {"name": "fr_stranded", "type": "string","default":"fr-unstranded"},  # 是否链特异性
-            {"name": "strand_direct", "type": "string","default":"none"}, # 链特异性时选择正负链
-            {"name": "sample_gtf", "type": "outfile","format":"ref_rna.assembly.gtf"},  # 输出的转录本文件
-            {"name": "sample_genes_fpkm", "type": "outfile", "format": "ref_rna.assembly.fpkm_tracking"},  # 输出的基因表达量文件
-            {"name": "sample_isoforms_fpkm", "type": "outfile", "format": "ref_rna.assembly.fpkm_tracking"},  # 输出的转录本文件
+            {"name": "fr_stranded", "type": "string", "default": "fr-unstranded"},  # 是否链特异性
+            {"name": "strand_direct", "type": "string", "default": "none"},  # 链特异性时选择正负链
+            {"name": "sample_gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},  # 输出的转录本文件
         ]
         self.add_option(options)
         self.step.add_steps("cufflinks")
@@ -49,11 +47,11 @@ class CufflinksAgent(Agent):
         """
         if not self.option('sample_bam'):
             raise OptionError('必须输入样本文件为bam格式')
-        if not self.option('ref_fa') :
+        if not self.option('ref_fa'):
             raise OptionError('必须输入参考序列ref.fa')
         if not self.option('ref_gtf'):
             raise OptionError('必须输入参考序列ref.gtf')
-        if self.option("fr_stranded") !="fr-unstranded" and not self.option("strand_direct").is_set:
+        if self.option("fr_stranded") != "fr-unstranded" and not self.option("strand_direct").is_set:
             raise OptionError("当链特异性时必须选择正负链")
         return True
 
@@ -81,7 +79,6 @@ class CufflinksTool(Tool):
         super(CufflinksTool, self).__init__(config)
         self._version = "v1.0.1"
         self.cufflinks_path = '/bioinfo/rna/cufflinks-2.2.1/'
-        self.gtf_to_fa_path = 'bioinfo/rna/scripts/gtf_to_fasta'
 
     def run(self):
         """
@@ -98,17 +95,24 @@ class CufflinksTool(Tool):
         """
         运行cufflinks软件，进行拼接组装
         """
-        if self.option('fr_stranded') =="fr-unstranded" :
-             sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-             cmd = self.cufflinks_path + ('cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],self.option('fr_stranded')) + sample_name)+ ' %s' % (self.option('sample_bam').prop['path'])
+        cmd = ""
+        if self.option('fr_stranded') == "fr-unstranded":
+            sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
+            cmd = self.cufflinks_path + ('cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (
+                 self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],
+                 self.option('fr_stranded')) + sample_name) + ' %s' % (self.option('sample_bam').prop['path'])
         else:
-            if self.option('strand_direct')=="firststrand" :
-                 sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-                 cmd = self.cufflinks_path + ('cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],self.option('strand_direct')) + sample_name) + ' %s' % (self.option('sample_bam').prop['path'])
+            if self.option('strand_direct') == "firststrand":
+                sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
+                cmd = self.cufflinks_path + ('cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (
+                    self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],
+                    self.option('strand_direct')) + sample_name) + ' %s' % (self.option('sample_bam').prop['path'])
             else:
-                if self.option('strand_direct')=='secondstrand' :
-                     sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-                     cmd = self.cufflinks_path +( 'cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (self.option('cpu'), self.option('ref_gtf').prop['path'],self.option('ref_fa').prop['path'], self.option('strand_direct'))+ sample_name) +' %s'%(self.option('sample_bam').prop['path'])
+                if self.option('strand_direct')=='secondstrand':
+                    sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
+                    cmd = self.cufflinks_path +( 'cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (
+                        self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],
+                        self.option('strand_direct')) + sample_name) + ' %s' % (self.option('sample_bam').prop['path'])
         self.logger.info('运行cufflinks软件，进行组装拼接')
         command = self.add_command("cufflinks_cmd", cmd).run()
         self.wait(command)
@@ -122,7 +126,9 @@ class CufflinksTool(Tool):
         运行gtf_to_fasta，转录本gtf文件转fa文件
         """
         sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-        cmd = self.gtf_to_fa_path + " %s %s %s.fa" % (self.work_dir+"/" + sample_name + "/transcripts.gtf", self.option('ref_fa').prop['path'], self.work_dir + "/"+sample_name)
+        cmd = self.cufflinks_path + "gffread %s -g %s -w %s_out.fa" % (
+            self.work_dir + "/" + sample_name + "/transcripts.gtf", self.option('ref_fa').prop['path'],
+        self.work_dir + "/" + sample_name)
         self.logger.info('运行gtf_to_fasta，形成fasta文件')
         command = self.add_command("gtf_to_fa_cmd", cmd).run()
         self.wait(command)
@@ -130,8 +136,6 @@ class CufflinksTool(Tool):
             self.logger.info("gtf_to_fasta运行完成")
         else:
             self.set_error("gtf_to_fasta运行出错!")
-
-
 
     def set_output(self):
         """
@@ -141,16 +145,11 @@ class CufflinksTool(Tool):
         self.logger.info("设置结果目录")
         try:
             sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-            shutil.copy2(self.work_dir + "/" + sample_name + "/transcripts.gtf",self.output_dir + "/transcripts.gtf")
-            shutil.copy2(self.work_dir + "/" + sample_name + "/genes.fpkm_tracking", self.output_dir + "/genes.fpkm_tracking")
-            shutil.copy2(self.work_dir + "/" + sample_name + "/isoforms.fpkm_tracking", self.output_dir + "/isoforms.fpkm_tracking")
-            shutil.copy2(self.work_dir + "/" + sample_name + ".fa", self.output_dir + "/" + sample_name+ "_out.fa")
+            shutil.copy2(self.work_dir + "/" + sample_name + "/transcripts.gtf", self.output_dir + "/transcripts.gtf")
             shutil.move(self.output_dir + "/transcripts.gtf", self.output_dir + "/" + sample_name + "_out.gtf")
-            shutil.move(self.output_dir + "/genes.fpkm_tracking", self.output_dir + "/" + sample_name + "_genes.fpkm_tracking")
-            shutil.move(self.output_dir + "/isoforms.fpkm_tracking", self.output_dir + "/" + sample_name + "_isoforms.fpkm_tracking")
+            shutil.copy2(self.work_dir + "/" + sample_name + "_out.fa", self.output_dir +
+                         "/" + sample_name + "_out.fa")
             self.option('sample_gtf').set_path(self.work_dir + "/" + sample_name + "/" + "transcripts.gtf")
-            self.option('sample_genes_fpkm').set_path(self.work_dir + "/" + sample_name + "/" + "genes.fpkm_tracking")
-            self.option('sample_isoforms_fpkm').set_path(self.work_dir + "/" + sample_name + "/" + "isoforms.fpkm_tracking")
             self.logger.info("设置组装拼接分析结果目录成功")
 
         except Exception as e:
