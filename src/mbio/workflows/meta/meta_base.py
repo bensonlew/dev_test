@@ -288,9 +288,6 @@ class MetaBaseWorkflow(Workflow):
                 if not os.path.isfile(reads_len_info_path):
                     raise Exception("找不到报告文件:{}".format(base_info_path))
                 api_samples.add_reads_len_info(step, reads_len_info_path)
-            if self.option('group').is_set:
-                api_group = self.api.group
-                api_group.add_ini_group_table(self.option('group').prop["path"], self.spname_spid)
             if self.option('envtable').is_set:
                 api_env = self.api.env
                 self.env_id = str(api_env.add_env_table(self.option('envtable').prop["path"], self.spname_spid))
@@ -350,6 +347,9 @@ class MetaBaseWorkflow(Workflow):
                 os.remove(self.output_dir + '/Otu/otu_phylo.tre')
             os.link(tree_path, self.output_dir + '/Otu/otu_phylo.tre')
             api_tree.add_tree_file(tree_path, major=True, level=9, table_id=str(self.otu_id), table_type='otu', tree_type='phylo')
+            if self.option('group').is_set:
+                api_group = self.api.group
+                api_group.add_ini_group_table(self.option('group').prop["path"], self.spname_spid, sort_samples=True)
         if event['data'] == "alpha":
             self.move2outputdir(obj.output_dir, self.output_dir + "/Alpha_diversity")  # 代替cp
             # os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Alpha_diversity")

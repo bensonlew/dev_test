@@ -2,6 +2,7 @@
 # __author__ = 'xuting'
 # lastmodied = 'shenghe'  # 重构的导入方式
 
+from bson import ObjectId
 from biocluster.api.database.base import Base, report_check
 from collections import OrderedDict
 from biocluster.config import Config
@@ -40,16 +41,18 @@ class Group(Base):
         self._db_name = Config().MONGODB
 
     @report_check
-    def add_ini_group_table(self, file_path, spname_spid, task_id=None):
+    def add_ini_group_table(self, file_path, spname_spid, task_id=None, sort_samples=False):
         self.collection = self.db['sg_specimen_group']
         # 解析文件
         with open(file_path) as f:
             names = f.readline().strip()
-            names = names.split('\t')[1:]
-            groups_dict = [OrderedDict() for i in names]
+            names = names.split('\t')[1:]  # 分组方案名称
+            groups_dict = [OrderedDict() for i in names]  # 各分组方案具体内容，元素为每个分组方案的有序字典
+            samples = []  # 样本名列表
             for i in f:
                 groups = i.strip().split('\t')
                 sample = groups[0]
+                samples.append(sample)
                 for index, v in enumerate(groups[1:]):
                     if v in groups_dict[index]:
                         groups_dict[index][v].append(sample)
@@ -69,6 +72,23 @@ class Group(Base):
         for index, name in enumerate(names):
             self.insert_one_group(name, groups_dict[index])
         self.bind_object.logger.info('分组文件中的所有分组方案导入完成。')
+        if sort_samples:
+            self.bind_object.logger.info("添加分组的样本顺序到样本表中")
+            self.update_num_sgotuspecimen(spname_spid, samples)
+
+    def update_num_sgotuspecimen(self, spname_spid, samples):
+        """
+        更新sg_otu_specimen表加入一组编号字段，用于按照本分组文件排序样本。
+        :params spname_spid: 样本名对样本id的字典
+        :params samples: 样本列表
+        """
+        sg_otu_specimen = self.db.sg_otu_specimen
+        for index, name in enumerate(samples):
+            result = sg_otu_specimen.update_many({'specimen_id': ObjectId(spname_spid[name])},
+                                                 {"$set": {'order_num': index}})
+            if result.matched_count < 1:
+                raise Exception('没有正确将样本分组中的样本顺序更新到mongo数据表中')
+        self.bind_object.logger.info('样本顺序信息更新到数据库中完成。')
 
     def insert_one_group(self, group_name, group):
         data = {
