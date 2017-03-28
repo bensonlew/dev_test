@@ -31,11 +31,11 @@ class PtCustomer(Base):
 		if main_id == "None":
 			self.bind_object.logger.info("缺少主表id")
 		with open(customer_file, 'r') as f:
-			num = 0
+			# num = 0
 			for line in f:
-				num += 1
-				if num == 1:
-					continue
+				# num += 1
+				# if num == 1: #csv格式的文件没有表头 所以不需要这一句
+				# 	continue
 				print line
 				#line = line.decode("gb2312")
 				line = line.decode("GB18030")
@@ -110,7 +110,11 @@ class PtCustomer(Base):
 						"type": line[2],
 						"sample_id":line[3]
 					}
-					insert.append(insert_data)
+					collection = self.database_ref['sg_pt_ref_main']
+					if collection.find({"sample_id": line[3]}):
+						pass
+					else:
+						insert.append(insert_data)
 			try:
 				collection = self.database_ref['sg_pt_ref_main']
 				collection.insert_many(insert)
