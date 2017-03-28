@@ -42,6 +42,7 @@ class PtDatasplitWorkflow(Workflow):
 		self.sample_name_un = []
 		self.data_dir = ''
 		self.wq_dir = ''
+		self.done_wq = ''
 
 	def check_options(self):
 		'''
@@ -118,9 +119,19 @@ class PtDatasplitWorkflow(Workflow):
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
-			self.on_rely(self.tools, self.run_merge_fastq_ws)
+			if len(self.sample_name_ws) == 0 and len(self.sample_name_un) != 0:
+				self.on_rely(self.tools, self.run_merge_fastq_un)
+			elif len(self.sample_name_ws) == 0 and len(self.sample_name_un) == 0:
+				self.on_rely(self.tools, self.end)
+			else:
+				self.on_rely(self.tools, self.run_merge_fastq_ws)
 		else:
-			self.tool[0].on('end', self.run_merge_fastq_ws)
+			if len(self.sample_name_ws) == 0 and len(self.sample_name_un) != 0:
+				self.tools[0].on('end', self.run_merge_fastq_un)
+			elif len(self.sample_name_ws) == 0 and len(self.sample_name_un) == 0:
+				self.tools[0].on('end', self.end)
+			else:
+				self.tools[0].on('end', self.run_merge_fastq_ws)
 		for tool in self.tools:
 			tool.run()
 
@@ -139,9 +150,15 @@ class PtDatasplitWorkflow(Workflow):
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
-			self.on_rely(self.tools, self.run_merge_fastq_un)
+			if len(self.sample_name_un) != 0:
+				self.on_rely(self.tools, self.run_merge_fastq_un)
+			else:
+				self.on_rely(self.tools, self.end)
 		else:
-			self.tool[0].on('end', self.run_merge_fastq_un)
+			if len(self.sample_name_un) != 0:
+				self.tools[0].on('end', self.run_merge_fastq_un)
+			else:
+				self.tools[0].on('end', self.end)
 		for tool in self.tools:
 			tool.run()
 
@@ -182,12 +199,15 @@ class PtDatasplitWorkflow(Workflow):
 			}
 		}
 		WC().add_task(data)
+		self.done_wq = "true"
 		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
 
 	def _update_status_api(self):
 		return 'pt.med_report_tupdate'
 
 	def run_merge_fastq_un(self):
+		if self.done_wq != "true":
+			self.run_wq_wf()
 		n = 0
 		self.tools = []
 		for i in self.sample_name_un:
@@ -203,7 +223,7 @@ class PtDatasplitWorkflow(Workflow):
 		if len(self.tools) > 1:
 			self.on_rely(self.tools, self.end)
 		else:
-			self.tool[0].on('end', self.end)
+			self.tools[0].on('end', self.end)
 		for tool in self.tools:
 			tool.run()
 
@@ -239,6 +259,8 @@ class PtDatasplitWorkflow(Workflow):
 
 	def end(self):
 		self.logger.info("医学流程数据拆分结束")
+		if self.done_wq != "true":
+			self.run_wq_wf()
 		super(PtDatasplitWorkflow, self).end()
 
 	def linkdir(self, dirpath, dirname):
