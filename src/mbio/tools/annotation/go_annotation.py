@@ -40,7 +40,7 @@ class GoAnnotationAgent(Agent):
     def check_options(self):
         if self.option("blastout").is_set:
             '''
-            document = ET.parse(self.option("blastout").prop['path'])
+            document = ET.__parse_details(self.option("blastout").prop['path'])
             root = document.getroot()
             db = root.find('BlastOutput_db')
             if db.text == 'nr':

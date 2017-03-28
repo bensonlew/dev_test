@@ -151,7 +151,7 @@ class string2cog(object):
             c = self.sqlitedb.cursor()
             totalseq = 0  # 注释COG/NOG的序列总数
             funcount = {'COG': {}, 'NOG': {}}
-            document = ET.parse(string_xml)
+            document = ET.__parse_details(string_xml)
             root = document.getroot()
             identations = root.find('BlastOutput_iterations')
             for identation in identations.findall('Iteration'):

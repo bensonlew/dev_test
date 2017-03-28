@@ -37,6 +37,10 @@ class SequenceOntologyFile(File):
                 couple_lst.append(sub_lst)
     
     def parse(self):
+        
+        
+        
+        
         so_soup = BeautifulSoup(open(self._path).read())
         records = so_soup.find_all('td', text=re.compile(r'^(?:\[Term\]|name:|id:)'),
                                    attrs={'class': 'blob-code blob-code-inner js-file-line'})
