@@ -7,6 +7,7 @@ import web
 class RefRnaController(MetaController):
     def __init__(self, instant=False):
         super(RefRnaController, self).__init__(instant)
+        self.mongodb = Config().MONGODB + '_ref_rna'
 
     def _update_status_api(self):
         """

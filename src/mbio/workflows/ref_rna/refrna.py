@@ -599,9 +599,8 @@ class RefrnaWorkflow(Workflow):
         # self.mapping.on('end', self.end)
         self.mapping.on('end', self.run_assembly)
         # self.assembly.on('end', self.run_exp, "ref")
-        self.mapping.on("end", self.run_exp, "ref")
-        self.assembly.on("end", self.run_exp, "merged")
-        self.on_rely([self.exp_ref, self.exp_merged], self.end)
+        self.assembly.on("end", self.run_exp)
+        self.on(run_exp, self.end)
         # self.exp_ref.on("end", self.end)
         # self.exp_ref.on("end", self.end)
         # self.on_rely([self.annotation, self.exp_ref], self.exp_diff)
@@ -620,7 +619,6 @@ class RefrnaWorkflow(Workflow):
         # self.exp_diff.on("end",self.run_tf)
         # self.exp_diff.on("end",self.run_network)
         # self.on_rely([self.tf,self.network,self.sample_analysis,self.snp_rna,self.altersplicing],self.end)
-
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
         
