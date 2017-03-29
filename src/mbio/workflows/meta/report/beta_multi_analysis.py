@@ -197,6 +197,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
             ["Dbrda/db_rda_biplot.xls", "xls", "db_rda数量型环境因子坐标表"],
             ["Nmds", "", "NMDS分析结果输出目录"],
             ["Nmds/nmds_sites.xls", "xls", "样本坐标表"],
+            ["Nmds/nmds_stress.xls", "xls", "样本特征拟合度值"],
             ["Pca", "", "PCA分析结果输出目录"],
             ["Pca/pca_importance.xls", "xls", "主成分解释度表"],
             ["Pca/pca_rotation.xls", "xls", "物种主成分贡献度表"],
