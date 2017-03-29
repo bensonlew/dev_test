@@ -29,7 +29,7 @@ class MetaPipelineWorkflow(Workflow):
             {"name": "data", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "pipe_id", "type": "string"}
-            ]
+        ]
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.pipe_submit_all = self.add_tool('meta.pipe.pipe_submit_all')
@@ -59,10 +59,6 @@ class MetaPipelineWorkflow(Workflow):
         with open(ids_path, 'r') as r:
             for line in r:
                 all_results = line.strip("\n")
-            # print type(eval(all_results))
-            print "+++++"
-            print all_results
-
         gevent.spawn(self.watch_end, all_results, self.option("pipe_id"))
 
     def run(self):
@@ -91,10 +87,9 @@ class MetaPipelineWorkflow(Workflow):
         otu_id = pipe_result['otu_id']
         status = pipe_result['status']
         all_data = json.loads(self.option("data"))
-        # print all_data
         all_results = eval(all_results)
         result_data = []
-        #判断pan_core这一特例 返回的id是一个列表
+        #判断pan_core这一特例 返回的id是一个列表, 这里将这个列表拆成2部分，重组成一个字典，并存入到all_result的列表中
         for id in all_results:
             if 'sub_anaylsis_id' in id.keys() and isinstance(id['sub_anaylsis_id'], list):
                 for m in id['sub_anaylsis_id']:
@@ -103,29 +98,21 @@ class MetaPipelineWorkflow(Workflow):
                     result_data.append(params)
             else:
                 result_data.append(id)
-        # print "打印出含有pan_core results"
-        # print result_data
         all_results = result_data
         level = str(all_data['level_id']).strip().split(",")
         levels = []
         for m in level:
             levels.append(m)
-        print levels
         min_level = int(sorted(levels)[-1])
-        print min_level
         try:
             first_group_id = str(all_data['first_group_id'])
-            print first_group_id
         except:
-            first_group_id = ''
-            print "data中没有first_group_id这个字段，请仔细检查下！"
+            raise Exception("data中没有first_group_id这个字段，请仔细检查下！")
         group_infos = all_data['group_info']
         group_infos = eval(group_infos)
         level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "OTU"]
         for level in levels:
             for group in group_infos:
-                # print type(group)
-                # print "test group type"
                 group_id = group['group_id']
                 if str(group_id) == 'all':
                     group_id = 'all'
@@ -150,11 +137,10 @@ class MetaPipelineWorkflow(Workflow):
                 try:
                     collection_pipe_main = self.db['sg_pipe_main']
                     inserted_id = collection_pipe_main.insert_one(insert_data).inserted_id
-                except Exception:
-                    print "导入%s到sg_pipe_main失败！"%(desc)
+                except:
+                    raise Exception("导入%s到sg_pipe_main失败！"%(desc))
                 else:
                     print "耶！导入%s到sg_pipe_main成功！"%(desc)
-                print inserted_id
                 if int(level) == min_level and str(group_id) == first_group_id:
                     self.get_picture_id(pipe_main_id=inserted_id, main_table_id=main_table_id)
                 for anaylsis in all_results:
@@ -189,8 +175,8 @@ class MetaPipelineWorkflow(Workflow):
                             try:
                                 collection_pipe_detail = self.db['sg_pipe_detail']
                                 collection_pipe_detail.insert_one(mongo_data)
-                            except Exception:
-                                print "分类水平%s——分组方案%s，导入到sg_pipe_detail失败！"%(level_name[int(level)-1], group_name)
+                            except:
+                                raise Exception("分类水平%s——分组方案%s，导入到sg_pipe_detail失败！"%(level_name[int(level)-1], group_name))
                     else:
                         if str(anaylsis['group_id']) == str(group['group_id']) and str(anaylsis['level_id']) == str(level):
                             if str(group['group_id']) == "all":
@@ -220,21 +206,9 @@ class MetaPipelineWorkflow(Workflow):
                             try:
                                 collection_pipe_detail = self.db['sg_pipe_detail']
                                 collection_pipe_detail.insert_one(mongo_data)
-                            except Exception:
-                                print "分类水平%s——分组方案%s，导入到sg_pipe_detail失败！" % (level_name[int(level) - 1], group_name)
-
+                            except:
+                                raise Exception("分类水平%s——分组方案%s，导入到sg_pipe_detail失败！" % (level_name[int(level) - 1], group_name))
         print "所有的表均导成功了yeyeye！程序已经运行完成！"
-        # url = "http://www.tsanger.com/report/auto_save_picture/?pipe_batch_id=" + str(main_table_id)
-        url = "www.tsg.com/report/auto_save_picture.html?pipe_batch_id=58c1114ea4e1af68d1a2d1ad"
-        print url
-        try:
-            req = urllib2.Request(url)
-            response = urllib2.urlopen(req)
-            # the_page = response.read()
-        except:
-            print "请求失败！"
-        else:
-            print "yes"
         self.end()
 
     def watch_end(self, all_results, main_table_id):
@@ -278,7 +252,6 @@ class MetaPipelineWorkflow(Workflow):
                     result_data.append(params)
             else:
                 result_data.append(id)
-        # print result_data
         all_results = result_data
         for id in all_results:
             if 'sub_anaylsis_id' in id.keys():
@@ -299,9 +272,7 @@ class MetaPipelineWorkflow(Workflow):
                             print "sg_status中没有找到%s对应的表，该分析还在计算中，请继续等候！" % (sub_anaylsis_main_id)
             else:
                 no_table_analysis_num.append(str(id['submit_location']))
-        print len(all_results)
-        print len(no_table_analysis_num)
-        print len(anaysis_num)
+
         if len(all_results) - len(no_table_analysis_num) == len(anaysis_num):
             data = {
                 "status": "end",
@@ -309,8 +280,8 @@ class MetaPipelineWorkflow(Workflow):
             }
             try:
                 collection_pipe.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
-            except Exception:
-                print "sg_pipe_batch状态更新失败，请检查！"
+            except:
+                raise Exception("sg_pipe_batch状态更新失败，请检查！")
             else:
                 print '所有子分析均计算完成，sg_pipe_batch状态更新成功。'
             m = True
@@ -322,8 +293,8 @@ class MetaPipelineWorkflow(Workflow):
             }
             try:
                 collection_pipe.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
-            except Exception:
-                print "sg_pipe_batch进度条更新失败，请检查！"
+            except:
+                raise Exception("sg_pipe_batch进度条更新失败，请检查！")
             m = False
         return m
 
@@ -366,4 +337,4 @@ class MetaPipelineWorkflow(Workflow):
         try:
             collection.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
         except:
-            print "sg_pipe_batch中pipe_main_id更新失败，请检查！"
+            raise Exception("sg_pipe_batch中pipe_main_id更新失败，请检查！")
