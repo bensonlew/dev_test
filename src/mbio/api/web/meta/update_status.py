@@ -34,6 +34,7 @@ class UpdateStatus(Log):
     def get_post_data(self):
         ana_dir = {}
         report_dir_des = {}
+        n = 0
         workflow_id = self.data["content"]["stage"]["task_id"]
         my_id = re.split('_', workflow_id)
         my_id.pop(-1)
@@ -47,21 +48,21 @@ class UpdateStatus(Log):
             content['files'] = self.data["content"]["files"]
         if 'dirs' in self.data['content']:
             content['dirs'] = self.data['content']['dirs']  # add 15 lines by hongdongxuan 20170327, 遍历dirs中路径最短的进行处理
-            path_len = len(content['dirs'][0]['path'].rstrip('/').split("/"))
+            min_path_len = len(content['dirs'][0]['path'].rstrip('/').split("/"))
+            for m in content['dirs'][1:]:
+                if len(m['path'].rstrip('/').split("/")) < min_path_len:
+                    min_path_len = len(m['path'].rstrip('/').split("/"))
             for m in content['dirs']:
-                if len(m['path'].rstrip('/').split("/")) < path_len:
+                if len(m['path'].rstrip('/').split("/")) == min_path_len:
+                    n += 1
                     output_dir = os.path.dirname(m['path'].rstrip('/'))
                     ana_dir = {'path': output_dir, "size": "", "description": m['description'], "format": ""}
                     report_dir = os.path.dirname(output_dir.rstrip("/"))
-                    report_dir_des = {'path': report_dir, "size": "", "description": "\u4ea4\u4e92\u5206\u6790\u7ed3\u679c\u6587\u4ef6\u5939", "format": ""}
-                else:
-                    output_dir = os.path.dirname(content['dirs'][0]['path'].rstrip('/'))
-                    ana_dir = {'path': output_dir, "size": "", "description": content['dirs'][0]['description'],
-                               "format": ""}
-                    report_dir = os.path.dirname(output_dir.rstrip("/"))
-                    report_dir_des = {'path': report_dir, "size": "", "description": "\u4ea4\u4e92\u5206\u6790\u7ed3\u679c\u6587\u4ef6\u5939", "format": ""}
+                    report_dir_des = {'path': report_dir, "size": "", "description": "交互分析结果文件夹", "format": ""}
             content['dirs'].append(ana_dir)
             content['dirs'].append(report_dir_des)
+            if n > 1:
+                raise Exception("存在两个最短路径，请进行检查！")
         data['content'] = json.dumps(content, cls=CJsonEncoder)
         return urllib.urlencode(data)
 
