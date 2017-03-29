@@ -31,7 +31,9 @@ class MantelTest(MetaController):
     def POST(self):
         data = web.input()
         default_argu = ['otu_id', 'level_id', 'submit_location', "group_id", "env_id", "otu_method", "env_method", "env_labs"]
-
+        if not hasattr(data, 'env_id'):         #modified by hongdongxuan 20170310
+            info = {'success': False, 'info': '缺少环境因子参数!'}
+            return json.dumps(info)
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -59,7 +61,7 @@ class MantelTest(MetaController):
 
         params_json = {
             "otu_id": data.otu_id,
-            "level_id": data.level_id,
+            "level_id": int(data.level_id),
             "submit_location": data.submit_location,
             "task_type": data.task_type,
             "group_detail": group_detail_sort(data.group_detail),
@@ -102,7 +104,7 @@ class MantelTest(MetaController):
         del params_json["group_detail"]
         options.update(params_json)
         to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="MantelTest/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(MantelTest, self).POST()
         task_info['content'] = {

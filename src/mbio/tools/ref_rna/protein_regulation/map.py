@@ -1,11 +1,12 @@
 ## !/mnt/ilustre/users/sanger-dev/app/program/Python/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "hongdongxuan"
-#last_modify:20160912
+#last_modify:20170313
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from biocluster.config import Config
 import os
 import re
 
@@ -15,14 +16,13 @@ class MapAgent(Agent):
     调用map.r脚本，进行将基因ID mapping 到STRINGid
     version v1.0
     author: hongdongxuan
-    last_modify: 2016.09.12
+    last_modify: 20170313
     """
     def __init__(self, parent):
         super(MapAgent, self).__init__(parent)
         options = [
-            {"name": "diff_exp", "type": "infile", "format": "ref_rna.protein_regulation.xls"},  #差异基因表达详情表
-            {"name": "species", "type": "int", "default": 9606},
-            {"name": "species_list", "type": "string"}
+            {"name": "diff_exp_gene", "type": "infile", "format": "ref_rna.protein_regulation.txt"},  #差异基因表达详情表
+            {"name": "species", "type": "int", "default": 9606}
         ]
         self.add_option(options)
         self.step.add_steps("map")
@@ -43,22 +43,15 @@ class MapAgent(Agent):
         重写参数检测函数
         :return:
         """
-        # species_list = [9606,3711,4932]
-        if not self.option("diff_exp").is_set:
-            raise OptionError("必须输入含有gene_id的差异基因表xls")
-        if not self.option('species_list'):
-            raise OptionError('必须提供物种 taxon id 表')
-        if not os.path.exists(self.option('species_list')):
-            raise OptionError('species_list文件路径有错误')
-        with open(self.option('species_list'), "r") as f:
-            data = f.readlines()
-            species_list = []
-            for line in data:
-                temp = line.rstrip().split("\t")
-                species_list += [eval(temp[0])]
-                # print species_list
-        if self.option('species') not in species_list:
-            raise OptionError("物种不存在,请输入正确的物种taxon_id")
+        species_list = [30611, 9598, 61853, 9593, 9606, 9544, 9483, 30608, 9601, 9478, 10141, 10020, 10090, 9986, 10116,
+                        43179, 37347, 9685, 9913, 9739, 9669, 9796, 132908, 59463, 9646, 9823, 9785, 9813, 9371, 9361,
+                        28377, 9031, 13735, 9103, 59729, 8049, 31033, 8090, 8083, 69293, 99883, 8128, 7955, 13616, 9258,
+                        9305, 9315, 7897, 7757, 7719, 51511, 6239, 7227, 4932, 15368, 4513, 4641, 4533, 4538, 4555,
+                        4558, 4577, 59689, 3702, 3711, 3847, 3694, 4081, 4113, 29760, 88036, 3218, 3055, 45157]
+        if not self.option("diff_exp_gene").is_set:
+            raise OptionError("必须输入含有gene_id的差异基因列表！")
+        if int(self.option('species')) not in species_list:
+            raise OptionError("不能进行蛋白质互作分析，因为string数据库中不存在该物种的蛋白质互作组数据！")
         return True
 
     def set_resource(self):
@@ -67,7 +60,7 @@ class MapAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '100G'
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -89,12 +82,14 @@ class MapTool(Tool):
         super(MapTool, self).__init__(config)
         self._version = '1.0.1'
         self.r_path = 'program/R-3.3.1/bin/Rscript'
-        self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
+        # self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
+        self.script_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/rna/scripts/")
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_map(self):
-        one_cmd = self.r_path + " %smap.r %s %s %s" % (self.script_path, self.option('diff_exp').prop['path'], self.option('species'), 'PPI_result')
+        one_cmd = self.r_path + " %snew_map.r %s %s %s" % (self.script_path, self.option('diff_exp_gene').prop['path'],
+                                                           self.option('species'), 'PPI_result')
         self.logger.info(one_cmd)
         self.logger.info("开始运行one_cmd")
         cmd = self.add_command("one_cmd", one_cmd).run()

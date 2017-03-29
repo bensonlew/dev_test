@@ -56,7 +56,8 @@ class CorrNetworkAnalysisModule(Module):
     def corrnetworkcalc_run(self):
         lable = self.option("lable")
         method = self.option("method")
-        corr_name = "shared."+ str(lable) + "." + str(method) +".otu.corr"
+        # corr_name = "shared."+ str(lable) + "." + str(method) +".otu.corr"
+        corr_name = "shared." + str(lable) + "." + str(method) + ".corr"  # modified by hongdongxuan 20170324
         corr_table = os.path.join(self.work_dir, "OtuAssociation/output/", corr_name)
         print corr_table
         self.corr_network_calc.set_options({

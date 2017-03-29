@@ -6,6 +6,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from biocluster.config import Config
 import os
 import re
 
@@ -14,16 +15,14 @@ class PpinetworkPredictAgent(Agent):
     调用PPInetwork_predict.r脚本，进行蛋白质相互组预测
     version v1.0
     author: hongdongxuan
-    last_modify: 2016.09.13
+    last_modify: 20170314
     """
     def __init__(self, parent):
         super(PpinetworkPredictAgent, self).__init__(parent)
         options = [
             {"name": "diff_exp_mapped", "type": "infile", "format": "ref_rna.protein_regulation.txt"},  #差异基因表达详情表
             {"name": "species", "type": "int", "default": 9606},
-            {"name": "combine_score",  "type": "int", "default": 600},
-            {"name": "logFC", "type": "float", "default": 0.2},
-            {"name": "species_list", "type": "string"}
+            {"name": "combine_score", "type": "int", "default": 300} #combine_score这里是将互作组数据降序排，然后取前300组数据
         ]
         self.add_option(options)
         self.step.add_steps("Ppinetwork")
@@ -44,26 +43,17 @@ class PpinetworkPredictAgent(Agent):
         重写参数检测函数
         :return:
         """
-        # species_list = [9606,3711,4932]
+        species_list = [30611, 9598, 61853, 9593, 9606, 9544, 9483, 30608, 9601, 9478, 10141, 10020, 10090, 9986, 10116,
+                        43179, 37347, 9685, 9913, 9739, 9669, 9796, 132908, 59463, 9646, 9823, 9785, 9813, 9371, 9361,
+                        28377, 9031, 13735, 9103, 59729, 8049, 31033, 8090, 8083, 69293, 99883, 8128, 7955, 13616, 9258,
+                        9305, 9315, 7897, 7757, 7719, 51511, 6239, 7227, 4932, 15368, 4513, 4641, 4533, 4538, 4555,
+                        4558, 4577, 59689, 3702, 3711, 3847, 3694, 4081, 4113, 29760, 88036, 3218, 3055, 45157]
         if not self.option('diff_exp_mapped').is_set:
             raise OptionError("必须输入含有STRINGid的差异基因表")
-        if self.option('combine_score') > 1000 or self.option('combine_score') < 0:
-            raise OptionError("combine_score值超出范围")
-        if not self.option('species_list'):
-            raise OptionError('必须提供物种 taxon id 表')
-        if not os.path.exists(self.option('species_list')):
-            raise OptionError('species_list文件路径有错误')
-        with open(self.option('species_list'), "r") as f:
-            data = f.readlines()
-            species_list = []
-            for line in data:
-                temp = line.rstrip().split("\t")
-                species_list += [eval(temp[0])]
-                # print species_list
-        if self.option('species') not in species_list:
-            raise OptionError("物种不存在,请输入正确的物种taxon_id")
-        if self.option('logFC') > 100 or self.option('logFC') < -100:
-            raise OptionError("logFC值超出范围")
+        if not isinstance(self.option('combine_score'), int) or self.option('combine_score') < 0:
+            raise OptionError("combined_score值必须是大于0的整数！")
+        if int(self.option('species')) not in species_list:
+            raise OptionError("不能进行蛋白质互作分析，因为string数据库中不存在该物种的蛋白质互作组数据！")
         return True
 
     def set_resource(self):
@@ -72,7 +62,7 @@ class PpinetworkPredictAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '100G'
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -97,12 +87,15 @@ class PpinetworkPredictTool(Tool):
         super(PpinetworkPredictTool, self).__init__(config)
         self._version = '1.0.1'
         self.r_path = 'program/R-3.3.1/bin/Rscript'
-        self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
+        # self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
+        self.script_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/rna/scripts/")
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_PPI(self):
-        one_cmd = self.r_path + " %sPPInetwork_predict.r %s %s %s %s %s" % (self.script_path, self.option('diff_exp_mapped').prop['path'], self.option('species'), 'PPI_result', self.option('combine_score'), self.option('logFC'))
+        one_cmd = self.r_path + " %snew_PPInetwork_predict.r %s %s %s %s" % (
+            self.script_path, self.option('diff_exp_mapped').prop['path'], self.option('species'),
+            'PPI_result', self.option('combine_score'))
         self.logger.info(one_cmd)
         self.logger.info("开始运行one_cmd")
         cmd = self.add_command("one_cmd", one_cmd).run()

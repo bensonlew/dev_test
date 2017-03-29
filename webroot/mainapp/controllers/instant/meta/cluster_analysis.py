@@ -38,7 +38,7 @@ class ClusterAnalysis(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type
         }
-        main_table_name = 'ClusteringAnalysis_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'CommunityBarPie_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  #modified by hongdongxuan 201703221 将ClusteringAnalysis_改为CommunityBarPie
         newick_id = None
         mongo_data = [
             ('project_sn', task_info['project_sn']),
@@ -64,7 +64,7 @@ class ClusterAnalysis(MetaController):
             'main_id': str(main_table_id)
         }
         to_file = "meta.export_otu_table_by_level(in_otu_table)"
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="CommunityAnalysis/" + main_table_name,
                             module_type='workflow', to_file=to_file)
         task_info = super(ClusterAnalysis, self).POST()
         task_info['content'] = {

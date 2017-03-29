@@ -87,7 +87,7 @@ class RandomforestWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出文件目录"],
+            [".", "", "Randomforest分析结果目录"],
             ["./randomforest_mds_sites.xls", "xls", "坐标数据"],
             ["./randomforest_vimp_table.xls", "xls", "重要成分"],
             #["./randomforest_confusion_table.xls", "xls", "错误率"]

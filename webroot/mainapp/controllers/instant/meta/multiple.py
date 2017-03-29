@@ -20,6 +20,10 @@ class Multiple(MetaController):
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
+        table_dict = json.loads(data.group_detail)
+        if len(table_dict) <= 2 or data.group_id == 'all':  # modified by hongdongxuan 20170313
+            info = {"success": False, "info": "该分析中分组方案的分组类别必须大于等于3！"}
+            return json.dumps(info)
         task_name = 'meta.report.multiple'
         task_type = 'workflow'  # 可以不配置
         meta = Meta()
@@ -77,7 +81,7 @@ class Multiple(MetaController):
             "main_id": str(main_table_id)
         }
         to_file = ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table_by_detail(group_file)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type, to_file=to_file)
+        self.set_sheet_data(name=task_name, options=options, main_table_name="DiffStatMultiple/" + main_table_name, module_type=task_type, to_file=to_file)
         task_info = super(Multiple, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         print(self.return_msg)
