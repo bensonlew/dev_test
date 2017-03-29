@@ -22,6 +22,10 @@ class Roc(MetaController):
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
                 return json.dumps(info)
+        table_dict = json.loads(data.group_detail)
+        if len(table_dict) != 2:
+            info = {"success": False, "info": "该分析中分组方案的分组类别不等于2！"}
+            return json.dumps(info)
         task_name = 'meta.report.roc'
         task_type = 'workflow'
         meta = Meta()
