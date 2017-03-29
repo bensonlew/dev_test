@@ -20,6 +20,9 @@ class PtCustomer(Base):
 		self.mongo_client = MongoClient(Config().MONGO_URI)
 		self.database = self.mongo_client['tsanger_paternity_test_v2']
 
+		self.mongo_client_ref = MongoClient(Config().MONGO_BIO_URI)
+		self.database_ref = self.mongo_client_ref['sanger_paternity_test_v2']
+
 
 	# @report_check
 	def add_pt_customer(self, main_id=None, customer_file=None):
@@ -28,17 +31,21 @@ class PtCustomer(Base):
 		if main_id == "None":
 			self.bind_object.logger.info("缺少主表id")
 		with open(customer_file, 'r') as f:
-			num = 0
+			# num = 0
 			for line in f:
-				num += 1
-				if num == 1:
-					continue
+				# num += 1
+				# if num == 1: #csv格式的文件没有表头 所以不需要这一句
+				# 	continue
 				print line
-				# line = line.decode("gb2312")
-				# line = line.decode("GB18030")
+				#line = line.decode("gb2312")
+				line = line.decode("GB18030")
 				line = line.strip()
-				line = line.split('\t')
-				if len(line) == 22:
+				line = line.split(',')
+				if line[1] == "":
+					break
+				if line[4] == "" or line[7] == "":
+					continue
+				if len(line) == 22 and line[21] != "":
 					family_name = line[8] + "-" + line[5].split("-")[-1] + "-" + line[21].split("-")[-1]
 				else:
 					family_name = line[8] + "-" + line[5].split("-")[-1] + "-S"
@@ -74,20 +81,50 @@ class PtCustomer(Base):
 			self.bind_object.logger.info("开始刷新主表写状态")
 			main_collection.update({"_id": ObjectId(main_id)},
 									{"$set": {
-										"status": "pt_datasplit done, start pt_batch"}})
+										"desc": "pt_datasplit done, start pt_batch"}})
 		except Exception as e:
 			self.bind_object.logger.error("更新sg_pt_datasplit主表出错:{}".format(e))
 		else:
 			self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
 
-	def update_flow_status(self,batch_id):
-		try:
-			main_collection = self.database["sg_pt_datasplit"]
-			main_collection.update({"_id": ObjectId(batch_id)},{"$set": {"status": "end"}})
-		except Exception as e:
-			self.bind_object.logger.error("更新大流程主表状态出错:{}".format(e))
+	def get_wq_dir(self, file_name):
+		main_collection = self.database["sg_med_data_dir"]
+		result = main_collection.find_one({"data_name": file_name})
+		dir_list = []
+		if result:
+			dir_list.append(result["wq_dir"])
+			dir_list.append(result["ws_dir"])
+			dir_list.append(result["undetermined_dir"])
+			return dir_list
 		else:
-			self.bind_object.logger.info("更新大流程主表状态成功")
+			return
+
+	def add_sample_type(self, file):
+		insert =[]
+		with open(file,'r') as f:
+			for line in f:
+				line = line.strip()
+				line = line.split('\t')
+				if re.match('WQ[0-9]*-.*',line[3]):
+					insert_data ={
+						"type": line[2],
+						"sample_id":line[3]
+					}
+					collection = self.database_ref['sg_pt_ref_main']
+					if collection.find({"sample_id": line[3]}):
+						pass
+					else:
+						insert.append(insert_data)
+			if insert:
+				try:
+					collection = self.database_ref['sg_pt_ref_main']
+					collection.insert_many(insert)
+				except Exception as e:
+					self.bind_object.logger.error('导入ref类型出错：{}'.format(e))
+				else:
+					self.bind_object.logger.info("导入ref类型成功")
+
+
 
 
 
