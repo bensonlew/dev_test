@@ -1,7 +1,7 @@
 sanger biocluster
 =================
 
-Welcome!
+### Welcome!
 
-先去看看[WIKI](http://git.majorbio.com/sanger_bioinfo/SangerBiocluster/wikis/home) :footprints:
+## 先去看看[Wiki](http://git.majorbio.com/sanger_bioinfo/SangerBiocluster/wikis/home) :footprints:
 
