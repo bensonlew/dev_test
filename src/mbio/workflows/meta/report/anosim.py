@@ -174,6 +174,7 @@ class AnosimWorkflow(Workflow):
             ["Anosim/format_results.xls", "xls", "ANOSIM&Adonis整理结果表"],
             ["AnosimBox", "", "ANOSIM箱式图数据表"],
             ["AnosimBox/box_data.xls", "xls", "箱式图数据"],
+            ["Anosim/new_adonis_results.xls", "xls", "Adonis分析结果"],
             #["Box/Distances.xls", "xls", "组内组间距离值统计结果"],
             ["Distance", "", "距离矩阵计算结果输出目录"]
             ]
