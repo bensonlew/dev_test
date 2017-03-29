@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'sj'
+# __author__ = 'shijin'
 
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 import subprocess
 import os
-
+from biocluster.config import Config
 
 class GffFile(File):
     """
@@ -14,9 +14,9 @@ class GffFile(File):
 
     def __init__(self):
         super(GffFile, self).__init__()
-        self.gffread_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/cufflinks-2.2.1/"
-        self.bedops_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/align/bedops/bin/"
-        self.gtf2bed_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/gtf2bed.pl"
+        self.gffread_path = Config().SOFTWARE_DIR + "/bioinfo/rna/cufflinks-2.2.1/"
+        self.bedops_path = Config().SOFTWARE_DIR + "/bioinfo/align/bedops/bin/"
+        self.gtf2bed_path = Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.pl"
 
     def check(self):
         """
