@@ -36,6 +36,9 @@ class PanCore(MetaController):
         group_detal_dict = json.loads(data.group_detail)
         specimen_ids = list()
         for v in group_detal_dict.values():
+            if len(v) < 2:
+                info = {'success': False, 'info': '每个组别至少应该有两个样本！'}
+                return json.dumps(info)
             for tmp in v:
                 specimen_ids.append(tmp)
         if len(specimen_ids) < 5:

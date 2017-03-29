@@ -71,7 +71,7 @@ class TranscriptAbstractTool(Tool):
             else:
                 gff = self.option("ref_genome_gff").prop["path"]
         else:
-            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/scripts/ref_genome.json", "r") as a:
+            with open(self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json", "r") as a:
                 dict = json.loads(a.read())
                 fasta = dict[self.option("ref_genome_custom")]["fasta"]
                 gff = dict[self.option("ref_genome")]["gtf"]
@@ -91,9 +91,13 @@ class TranscriptAbstractTool(Tool):
         command.run()
         self.wait()
         output1 = os.path.join(self.work_dir, "exons.fa")
-        shutil.move(output1, "../TranscriptAbstract/output/")
+        if os.path.exists(self.output_dir + "/exons.fa"):
+            os.remove(self.output_dir + "/exons.fa")
+        shutil.move(output1, self.output_dir + "/exons.fa")
         output2 = os.path.join(self.work_dir, "the_longest_exons.fa")
-        shutil.move(output2, "../TranscriptAbstract/output/")
+        if os.path.exists(self.output_dir + "/the_longest_exons.fa"):
+            os.remove(self.output_dir + "/the_longest_exons.fa")
+        shutil.move(output2, self.output_dir + "/the_longest_exons.fa")
         self.option('query', self.work_dir + '/output/exons.fa')
 
     def get_gene_list(self):

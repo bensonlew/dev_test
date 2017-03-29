@@ -66,7 +66,6 @@ class FileCheck(object):
             info = {"success": False, "info": "文件模块错误: %s" % e}
             return json.dumps(info)
         except FileError, e:
-            file_obj = load_class_by_path(data.format, "File")()
             info = {"success": False, "info": "文件检测错误: %s" % e}
             return json.dumps(info)
         except Exception, e:
@@ -78,7 +77,7 @@ class FileCheck(object):
             info = {"success": True, "info": "检测通过"}
             return json.dumps(info)
 
-    def check_group(self,data,file_list):
+    def check_group(self, data, file_list):
         file_obj = load_class_by_path(data.format, "File")()
         file_manager = RemoteFileManager(data.path)
         if file_manager.type != "local" and file_manager.type != "http":
@@ -92,8 +91,8 @@ class FileCheck(object):
         except:
             info = {"success": False, "info": "group文件检测错误"}
             return json.dumps(info)
-        if not isinstance(file_list,(dict)):
-            info = {"success":True,"info":"检测通过"}
+        if not isinstance(file_list, (dict)):
+            info = {"success": True, "info": "检测通过"}
             return json.dumps(info)
         else:
             try:
@@ -113,13 +112,14 @@ class FileCheck(object):
                 for sample in sample_list:
                     if sample not in new:
                         raise FileError("分组文件中样本名与检测的样本信息不匹配")
-            except FileError,e:
-                info = {"success":False,"info":"错误:%s" % e}
+            except FileError as e:
+                info = {"success": False, "info": "错误:%s" % e}
                 print "group 文件的info：" + str(info)
                 return json.dumps(info)
             else:
-                info = {"success":True,"info":"检测通过"}
+                info = {"success": True, "info": "检测通过"}
                 return json.dumps(info)
+
 
 class TestData(object):
     def __init__(self):
@@ -150,7 +150,7 @@ class MultiFileCheck(object):
             info = {"success": False, "info": "content必须为Json格式!"}
             return json.dumps(info)
         else:
-            for i in ["module", "type", "files","file_list"]:
+            for i in ["module", "type", "files", "file_list"]:
                 if i not in json_obj.keys():
                     info = {"success": False, "info": "缺少参数:%s" % i}
                     return json.dumps(info)
@@ -164,14 +164,8 @@ class MultiFileCheck(object):
                 d.type = json_obj["type"]
                 d.format = f["format"]
                 d.path = f["path"]
-                if d.format == "meta.otu.group_table" and isinstance(json_obj["file_list"],(dict)):
-                    print "lemon tree"    
-                    result = json.loads(self.checker.check_group(d,json_obj["file_list"]))
-                    """
-                elif d.format == "sequence.fastq_dir" and not isinstance(json_obj["file_list"],(dict)):
-                    info = {"success":False, "info":"fastq文件夹需进行文件检测"}
-                    result = info
-                    """
+                if d.format == "meta.otu.group_table" and isinstance(json_obj["file_list"], (dict)):
+                    result = json.loads(self.checker.check_group(d, json_obj["file_list"]))
                 else:
                     result = json.loads(self.checker.check(d))
                 if result["success"]:

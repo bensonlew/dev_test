@@ -49,7 +49,7 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
             raise OptionError('错误的样本求和方式：%s' % self.option('add_Algorithm'))
         # if (self.option("method") != "" and self.option("species_number") != ("" and "all")):
         if self.option("method") != "" :
-            if (self.option("species_number") != "" and self.option("species_number") != "all"):
+            if (self.option("species_number") != "" and self.option("species_number") != "0"):
                 if int(self.option("species_number")) == 1:
                     raise OptionError('物种聚类的个数不能为：%s' % self.option('species_number'))
         # if self.option("sample_method") != "":
@@ -148,7 +148,7 @@ class HierarchicalClusteringHeatmapWorkflow(Workflow):
         list1.reverse()  # print(list1)
 
         list2 = [] # 放入sum值 为重复做准备
-        if (self.option("species_number") != "all" and self.option("species_number") != ""):
+        if (self.option("species_number") != "0" and self.option("species_number") != ""):
             species_nu = int(self.option("species_number"))
             if species_nu >= all:
                 new_otu_file_path = self.s2_file_path

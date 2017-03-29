@@ -32,23 +32,28 @@ class WorkflowManager(object):
         self.server = None
 
     def add_task(self, json):
-        if not isinstance(json, dict) or "id" not in json.keys():
-            self.logger.error("add workflow %s format error!" % json)
-            return {"success": False, "info": "json格式错误"}
-        json["WPM"] = True
-        wsheet = Sheet(data=json)
-        model = WorkflowModel(wsheet)
-        if wsheet.id in self.workflows.keys():
-            self.logger.error("Workflow %s has already run! " % wsheet.id)
-            return {"success": False, "info": "Workflow %s正在运行，不能重复添加!" % wsheet.id}
-        if model.find():
-            self.logger.error("workflow %s is already exists!" % wsheet.id)
-            return {"success": False, "info": "Workflow %s已经存在，不能重复运行!" % wsheet.id}
-        self.workflows[wsheet.id] = model
-        model.save()
-        self.queue.put(json)
-        self.logger.info("接收到Workflow[%s] 请求,放入队列..." % wsheet.id)
-        return {"success": True, "info": "任务提交成功."}
+        try:
+            if not isinstance(json, dict) or "id" not in json.keys():
+                self.logger.error("add workflow %s format error!" % json)
+                return {"success": False, "info": "json格式错误"}
+            json["WPM"] = True
+            wsheet = Sheet(data=json)
+            model = WorkflowModel(wsheet)
+            if wsheet.id in self.workflows.keys():
+                self.logger.error("Workflow %s has already run! " % wsheet.id)
+                return {"success": False, "info": "Workflow %s正在运行，不能重复添加!" % wsheet.id}
+            if model.find():
+                self.logger.error("workflow %s is already exists!" % wsheet.id)
+                return {"success": False, "info": "Workflow %s已经存在，不能重复运行!" % wsheet.id}
+            self.workflows[wsheet.id] = model
+            model.save()
+            self.queue.put(json)
+            self.logger.info("接收到Workflow[%s] 请求,放入队列..." % wsheet.id)
+            return {"success": True, "info": "任务提交成功."}
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def get_event(self, wid):
         if wid not in self.workflows.keys():
@@ -61,78 +66,138 @@ class WorkflowManager(object):
             return event
 
     def start(self, wid, pid=0):
-        if wid in self.workflows.keys():
-            self.workflows[wid].update_pid(pid)
-            self.logger.info("Workflow %s 开始运行! " % wid)
+        try:
+            if wid in self.workflows.keys():
+                self.workflows[wid].update_pid(pid)
+                self.logger.info("Workflow %s 开始运行! " % wid)
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def set_end(self, wid, msg=None):
-        if wid in self.workflows.keys():
-            self.workflows[wid].end()
-            self.workflows.pop(wid)
-            if wid in self.event.keys():
-                self.return_msg[wid] = {"success": True, "info": msg}
-                self.event[wid].set()
-                self.event.pop(wid)
-            self.logger.info("Workflow %s 运行结束! " % wid)
+        try:
+            if wid in self.workflows.keys():
+                model = self.workflows.pop(wid)
+                if model:
+                    model.end()
+                if wid in self.event.keys():
+                    self.return_msg[wid] = {"success": True, "info": msg}
+                    event = self.event.pop(wid)
+                    if event:
+                        event.set()
+                self.logger.info("Workflow %s 运行结束! " % wid)
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def process_end(self, wid):
-        if wid in self.workflows.keys():
-            error_msg = "Worker %s 进程意外结束.." % wid
-            self.workflows[wid].error(error_msg)
-            self.workflows.pop(wid)
-            if wid in self.event.keys():
-                self.return_msg[wid] = {"success": False, "info": error_msg}
-                self.event[wid].set()
-                self.event.pop(wid)
-            self.logger.error("Workflow %s 进程意外结束: %s " % (wid, error_msg))
+        try:
+            if wid in self.workflows.keys():
+                error_msg = "Worker %s 进程意外结束.." % wid
+                model = self.workflows.pop(wid)
+                if model:
+                    model.error(error_msg)
+
+                if wid in self.event.keys():
+                    self.return_msg[wid] = {"success": False, "info": error_msg}
+                    event = self.event.pop(wid)
+                    if event:
+                        event.set()
+                self.logger.error("Workflow %s 进程意外结束: %s " % (wid, error_msg))
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def get_msg(self, wid):
-        if wid in self.return_msg.keys():
-            return self.return_msg.pop(wid)
-        else:
-            return None
+        try:
+            if wid in self.return_msg.keys():
+                return self.return_msg.pop(wid)
+            else:
+                return None
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def keep_alive(self, wid):
-        if wid in self.workflows.keys():
-            self.workflows[wid].update()
-            self.logger.debug("接收到Workflow %s keepavlie信息! " % wid)
+        try:
+            if wid in self.workflows.keys():
+                self.workflows[wid].update()
+                self.logger.debug("接收到Workflow %s keepavlie信息! " % wid)
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def set_error(self, wid, error_msg):
-        if wid in self.workflows.keys():
-            self.workflows[wid].error(error_msg)
-            self.workflows.pop(wid)
-            if wid in self.event.keys():
-                self.return_msg[wid] = {"success": False, "info": error_msg}
-                self.event[wid].set()
-                # self.event.pop(wid)
-            self.logger.error("Workflow %s 运行出错: %s " % (wid, error_msg))
+        try:
+            if wid in self.workflows.keys():
+                model = self.workflows.pop(wid)
+                if model:
+                    model.error(error_msg)
+
+                if wid in self.event.keys():
+                    self.return_msg[wid] = {"success": False, "info": error_msg}
+                    event = self.event.pop(wid)
+                    if event:
+                        event.set()
+                self.logger.error("Workflow %s 运行出错: %s " % (wid, error_msg))
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def set_pause(self, wid):
-        if wid in self.workflows.keys():
-            self.workflows[wid].pause()
-            self.logger.info("Workflow %s 暂停运行..." % wid)
+        try:
+            if wid in self.workflows.keys():
+                self.workflows[wid].pause()
+                self.logger.info("Workflow %s 暂停运行..." % wid)
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def set_pause_exit(self, wid):
-        if wid in self.workflows.keys():
-            self.workflows[wid].exit_pause()
-            self.logger.info("Workflow %s 退出暂停，继续运行..." % wid)
+        try:
+            if wid in self.workflows.keys():
+                self.workflows[wid].exit_pause()
+                self.logger.info("Workflow %s 退出暂停，继续运行..." % wid)
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def pause_timeout(self, wid):
-        if wid in self.workflows.keys():
-            self.workflows[wid].pause_timeout()
-            self.logger.info("Workflow %s 暂停超时，结束运行..." % wid)
+        try:
+            if wid in self.workflows.keys():
+                self.workflows[wid].pause_timeout()
+                self.logger.info("Workflow %s 暂停超时，结束运行..." % wid)
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def set_stop(self, wid):
-        if wid in self.workflows.keys():
-            self.workflows[wid].stop()
-            self.logger.info("Workflow %s 接收中止运行指令..." % wid)
+        try:
+            if wid in self.workflows.keys():
+                self.workflows[wid].stop()
+                self.logger.info("Workflow %s 接收中止运行指令..." % wid)
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
 
 def get_event(wid):
     try:
         event = WorkflowManager().get_event(wid)
     except Exception, e:
+        exstr = traceback.format_exc()
         print e
+        print exstr
         return None
     else:
         return event
@@ -238,9 +303,13 @@ class ManagerProcess(Process):
     def _check(self):
         while True:
             time.sleep(10)
-            self._check_stop()
-            self._check_pause()
-            self._check_exit_pause()
+            try:
+                self._check_stop()
+                self._check_pause()
+                self._check_exit_pause()
+            except Exception, e:
+                print e
+                continue
 
     def start_thread(self):
         thread = Thread(target=self._check_process, args=(), name='thread-process_check')
@@ -260,36 +329,51 @@ class ApiLogManager(object):
         self.config = Config()
 
     def add_log(self, data):
-        if data["api"] in self.config.update_exclude_api:
-            self.logger.info("Worker %s  API: %s API在排除更新列表中,忽略..." % (data["task_id"], data["api"]))
-            return
-        if data["task_id"] in self._workers.keys():
-            self._workers[data["task_id"]].add_log(data)
-            self.logger.info("Worker %s  更新进度.. " % data["task_id"])
-        elif data["task_id"] in self._running_workers.keys():
-            self._running_workers[data["task_id"]].add_log(data)
-            self.logger.info("Worker %s  更新进度.. " % data["task_id"])
-        else:
-            worker = LogWorker(data["task_id"])
-            worker.add_log(data)
-            self._workers[data["task_id"]] = worker
-            self.logger.info("新Worker %s  API: %s 开始运行... " % (data["task_id"], data["api"]))
+        try:
+            if data["api"] in self.config.update_exclude_api:
+                self.logger.info("Worker %s  API: %s API在排除更新列表中,忽略..." % (data["task_id"], data["api"]))
+                return
+            if data["task_id"] in self._workers.keys():
+                self._workers[data["task_id"]].add_log(data)
+                self.logger.info("Worker %s  更新进度.. " % data["task_id"])
+            elif data["task_id"] in self._running_workers.keys():
+                self._running_workers[data["task_id"]].add_log(data)
+                self.logger.info("Worker %s  更新进度.. " % data["task_id"])
+            else:
+                worker = LogWorker(data["task_id"])
+                worker.add_log(data)
+                self._workers[data["task_id"]] = worker
+                self.logger.info("新Worker %s  API: %s 开始运行... " % (data["task_id"], data["api"]))
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def get_worker(self):
-        for wid, worker in self._workers.items():
-            self._workers.pop(wid)
-            if not worker.is_end:
-                self._running_workers[wid] = worker
-            return worker
-        return None
+        try:
+            for wid, worker in self._workers.items():
+                self._workers.pop(wid)
+                if not worker.is_end:
+                    self._running_workers[wid] = worker
+                return worker
+            return None
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
     def set_end(self, wid):
-        if wid in self._workers.keys():
-            self._workers[wid].set_end()
-        if wid in self._running_workers.keys():
-            self._running_workers[wid].set_end()
-            self._running_workers.pop(wid)
-        self.logger.info("Worker %s 运行完成." % wid)
+        try:
+            if wid in self._workers.keys():
+                self._workers[wid].set_end()
+            if wid in self._running_workers.keys():
+                self._running_workers[wid].set_end()
+                self._running_workers.pop(wid)
+            self.logger.info("Worker %s 运行完成." % wid)
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print exstr
+            self.logger.error("服务异常: %s" % e)
 
 
 class ApiLogProcess(Process):

@@ -49,6 +49,6 @@ class Env(Base):
             for line in lines[1:]:
                 values = line.rstrip().split('\t')
                 if values[0] not in name_to_id:
-                    raise Exception('样本：%s不在原始otu表的样本中' % values[0])
+                    raise Exception('分组文件或环境因子表中的样本：%s没有在fastq文件中找到' % values[0])
                 info_dic[name_to_id[values[0]]] = dict(zip(env_names, values[1:]))
             return env_names, info_dic

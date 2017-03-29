@@ -20,8 +20,8 @@ import types
 db_name = Config().MONGODB
 
 
-class otu(object):
-    def __init__(self, otu_content):
+class Otu(object):
+    def __init__(self, otu_content, samples):
         self.__level_dict = {1: 'd__', 2: 'k__', 3: 'p__', 4: 'c__', 5: 'o__', 6: 'f__', 7: 'g__', 8: 's__', 9: 'otu'}
         if isinstance(otu_content, types.DictType):
             self.__dict = otu_content
@@ -30,6 +30,7 @@ class otu(object):
                 self.__dict = json.loads(otu_content)
             except ValueError as e:
                 raise Exception('初始化参数不正确！info:%s' % e)
+        self.total_reads = self.count_samples(samples)
 
     def __getattr__(self, name):
         if name in self.__dict:
@@ -46,6 +47,8 @@ class otu(object):
             pass
         else:
             raise Exception('错误的分类水平类型,必须是数字(1-9)')
+        if level == 9:
+            return getattr(self, self.num_to_level(level))
         name_list = []
         i = 1
         while i <= level:
@@ -125,7 +128,7 @@ class otu_table(object):
         otus = []
         if results.count():
             for i in results:
-                otus.append(otu(i))
+                otus.append(Otu(i, self.samples))
             return otus
         else:
             raise Exception('没有找到OTU表对应的detail信息')
@@ -138,10 +141,10 @@ class otu_table(object):
                 remove_otu = []
                 for otu in self.otus:
                     level_name = otu.get_level_name(level)
-                    if level_otu[level_name][1] <= otu.count_samples(self.samples):
+                    if level_otu[level_name][1] <= otu.total_reads:
                         if level_otu[level_name][0]:
                             remove_otu.append(level_otu[level_name][0])
-                        level_otu[level_name] = (otu.otu, otu.count_samples(self.samples))
+                        level_otu[level_name] = (otu.otu, otu.total_reads)
                     else:
                         remove_otu.append(otu.otu)
                 level_otu = {i[1][0]: i[0] for i in level_otu.iteritems()}
@@ -151,6 +154,13 @@ class otu_table(object):
         else:
             raise Exception('错误的分类水平类型,必须是数字(1-8)')
 
+    def level_rank(self, level):
+        rank_level = defaultdict(int)
+        for otu in self.otus:
+            level_name = otu.get_level_name(level)
+            rank_level[level_name] += otu.total_reads
+        rank_species = sorted(rank_level, key=lambda x: rank_level[x], reverse=True)
+        return rank_species
 
 
 def get_origin_otu(otu_id, connecter=None, database=db_name, collection='sg_otu'):
@@ -173,6 +183,7 @@ def get_origin_otu(otu_id, connecter=None, database=db_name, collection='sg_otu'
         if not result:
             return False, 'otu_id无法找到对应的数据表'
         else:
+            ObjectId(result['from_id'])
             if result['from_id'] == otu_id:  # otu_id初始化ID为自己
                 origin_id = otu_id
                 if isinstance(origin_id, ObjectId):
@@ -201,7 +212,7 @@ def get_otu_phylo_newick(otu_id, connecter=None, database=db_name,
     elif not isinstance(otu_id, ObjectId):
         return False, '输入id参数必须为字符串或者ObjectId类型'
     collect = connecter[database][collection]
-    result = collect.find_one({'table_id': otu_id})
+    result = collect.find_one({'table_id': otu_id, "table_type": "otu", "tree_type": "phylo"})
     if not result:
         return False, '没有找到id对应的newick数据'
     else:
@@ -211,7 +222,7 @@ def get_otu_phylo_newick(otu_id, connecter=None, database=db_name,
             return False, '找到id对应数据，但是table或者tree类型不正确'
 
 
-def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, bind_obj=None):
+def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, topN=None, bind_obj=None):
     collection = get_mongo_client()[db_name]['sg_otu']
     tempdir = tempdir.rstrip('/') + '/'
     temptre = tempdir + 'temp_newick.tre'
@@ -258,6 +269,11 @@ def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, bind_
                 raise Exception('进化树依据水平过滤出错,info:%s' % e)
         else:
             raise Exception('错误的分类水平大小(1-9):%s' % level)
+        if topN:
+            rank_species = filter_otu_table.level_rank(level)
+            if len(rank_species) > topN:
+                for one in rank_species[topN:]:
+                    phylo_newick.prune(one)
         Phylo.write(phylo_newick, filter_tre, 'newick')
         phylo_newick = Phylo.read(filter_tre, 'newick')  # 一次写入和一次读取可以对进化树的格式简略化，主要是由于发现经过prune修剪的的树会出现空枝
         format_phylo_newick = phylo_newick.format('newick')  # 格式化返回字符串newick树
@@ -283,5 +299,5 @@ def _get_remove_otus(small_otus, total_otus):
     return remove_otus
 
 
-# otu_id = '573573177f8b9abb538b4569'
-# get_level_newicktree(otu_id=otu_id, level=9, tempdir='./', return_file=True)
+# otu_id = '589817e7a4e1af69eccae310'
+# get_level_newicktree(otu_id=otu_id, level=7, tempdir='./', return_file=True, topN=10)
