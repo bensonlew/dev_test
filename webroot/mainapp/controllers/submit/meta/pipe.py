@@ -15,8 +15,6 @@ class Pipe(MetaController):
 
     def POST(self):
         data = web.input()
-        # print data
-        # print "上面没有转json"
         params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'group_info', 'sub_analysis']
         for param in params_name:
             if not hasattr(data, param):
@@ -42,15 +40,11 @@ class Pipe(MetaController):
             analysis_num = len(all_analysis) + 1
         else:
             analysis_num = len(all_analysis)
-        print analysis_num
         level = str(data.level_id).strip().split(",")
         levels = []
         for m in level:
             levels.append(m)
-        print len(levels)
         group_mun = json.loads(data.group_info)
-        print type(group_mun)
-        print len(group_mun)
         if hasattr(data, 'env_id') and hasattr(data, 'env_labs'):
             params_json = {
                 'otu_id': data.otu_id,
@@ -64,6 +58,7 @@ class Pipe(MetaController):
                 'filter_json': json.loads(data.filter_json),
                 'size': data.size,
                 'task_type': data.task_type,
+                'first_group_id': data.first_group_id,
                 'sub_analysis': json.loads(data.sub_analysis)
             }
         else:
@@ -77,6 +72,7 @@ class Pipe(MetaController):
                 'filter_json': json.loads(data.filter_json),
                 'size': data.size,
                 'task_type': data.task_type,
+                'first_group_id': data.first_group_id,
                 'sub_analysis': json.loads(data.sub_analysis)
             }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
@@ -96,8 +92,6 @@ class Pipe(MetaController):
         ]
         main_table_id = Meta().insert_main_table('sg_pipe_batch', mongo_data)
         update_info = {str(main_table_id): 'sg_pipe_batch'}
-        # print "+++"
-        # print json.dumps(data)
         options = {
             "data": json.dumps(data),
             "update_info": json.dumps(update_info),
@@ -107,7 +101,6 @@ class Pipe(MetaController):
                             module_type=task_type)
         # self._sheet_data["instant"] = True #投递的接口，将workflow改为
         task_info = super(Pipe, self).POST()
-        # print "+++++..."
         task_info['content'] = {
             'ids': {
                 'id': str(main_table_id),
