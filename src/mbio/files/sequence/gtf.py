@@ -20,15 +20,20 @@ gtf:gene transefer format
 '''
 
 
-
 class GtfFile(File):
-    def __init__(self):
-        self
+    def __init__(self, fasta):  # fasta应为FastaFile对象
+        self._validate_gtf_tool = 'validate_gtf.pl'  # 此脚本
+        self._co_fasta = fasta
     
     def check(self, detail):
         
-        
         pass
+    
+    def _check_gtf_bio_content(self):
+        if self._validate_gtf_tool:
+            tmp_out_txpt = os.path.join(os.path.dirname(self.path), os.path.basename(self.path) + '_tmp_txpt.gtf')
+            validate_gtf_cmd = 'perl {} -fsm -t {} {} {}'.format(self._validate_gtf_tool, tmp_out_txpt,
+                                                                 self._co_fasta.path, )
     
     def check_basic(self):
         '''
@@ -38,14 +43,20 @@ class GtfFile(File):
         :return:
         '''
         for line in open(self.path):
-            comment_m = re.match(r'^#.+',line.strip())
-            content_m = regex.match(r'^[^#]\S*?\t+?(\S+?\t+?){7,7}gene_id\s+?\S+?;\s*transcript_id\s+?\S+?.*;$',line.strip())
-            if not (comment_m or content_m):
-                raise Exception('line  {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
-
+            comment_m = re.match(r'^#.+', line.strip())
+            content_m = regex.match(
+                r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                line.strip())
             
+            if not (comment_m or content_m):
+                raise Exception(
+                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
+            
+            if content_m:
+                pass
         
         pass
+    
     def _check_details(self):
         pass
     
