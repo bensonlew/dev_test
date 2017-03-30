@@ -49,7 +49,8 @@ class PtDatasplit(PtController):
             "data_dir": data.data_dir,
             "family_table": data.family_table,
             "pt_data_split_id": str(main_table_id),
-            "update_info": json.dumps(update_info)
+            "update_info": json.dumps(update_info),
+            "member_id": data.member_id
         }
         sheet_data = self.set_sheet_data_(name=task_name, options=options, module_type=task_type, params=params)
         print "*********"

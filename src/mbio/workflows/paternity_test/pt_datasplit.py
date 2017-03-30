@@ -10,7 +10,7 @@ from biocluster.wpm.client import worker_client as WC
 import datetime
 import json
 from mainapp.models.mongo.submit.paternity_test_mongo import PaternityTest as PT
-import shutil
+from bson import ObjectId
 
 class PtDatasplitWorkflow(Workflow):
 	"""
@@ -28,6 +28,7 @@ class PtDatasplitWorkflow(Workflow):
 
 			{"name": "family_table", "type": "infile", "format": "paternity_test.tab"},  # 需要存入mongo里面的家系信息表
 			{"name": "pt_data_split_id", "type": "string"},
+			{"name": "member_id", "type": "string"},
 			{"name": "update_info", "type": "string"}
 		]
 		self.add_option(options)
@@ -170,15 +171,17 @@ class PtDatasplitWorkflow(Workflow):
 		# self.logger.info("导表结束(家系表)")
 		self.logger.info("给pt_batch传送数据路径")
 		mongo_data = [
-			('batch_id', self.option('pt_data_split_id')),
+			('batch_id', ObjectId(self.option('pt_data_split_id'))),
+			("type", "pt"),
 			("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
 			("status", "start")
 		]
-		main_table_id = PT().insert_main_table('sg_father', mongo_data)
-		update_info = {str(main_table_id): 'sg_father'}
+		main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
+		update_info = {str(main_table_id): 'sg_analysis_status'}
 		update_info = json.dumps(update_info)
 		data = {
 			'stage_id': 0,
+			'UPDATE_STATUS_API': self._update_status_api(),
 			'UPDATE_STATUS_API': self._update_status_api(),
 			"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
 			"type": "workflow",
@@ -187,6 +190,7 @@ class PtDatasplitWorkflow(Workflow):
 			"IMPORT_REPORT_DATA": True,
 			"IMPORT_REPORT_AFTER_END": False,
 			"options": {
+				"member_id": self.option('member_id'),
 				"fastq_path": self.wq_dir,
 				"cpu_number": 8,
 				"ref_fasta": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa",
@@ -194,7 +198,7 @@ class PtDatasplitWorkflow(Workflow):
 				"ref_point": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/targets.bed.rda",
 				"err_min": 2,
 				"batch_id": self.option('pt_data_split_id'),
-				"dedup_num": 30,
+				"dedup_num": 2,
 				"update_info": update_info
 			}
 		}
