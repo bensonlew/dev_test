@@ -288,9 +288,6 @@ class MetaBaseWorkflow(Workflow):
                 if not os.path.isfile(reads_len_info_path):
                     raise Exception("找不到报告文件:{}".format(base_info_path))
                 api_samples.add_reads_len_info(step, reads_len_info_path)
-            if self.option('group').is_set:
-                api_group = self.api.group
-                api_group.add_ini_group_table(self.option('group').prop["path"], self.spname_spid)
             if self.option('envtable').is_set:
                 api_env = self.api.env
                 self.env_id = str(api_env.add_env_table(self.option('envtable').prop["path"], self.spname_spid))
@@ -350,6 +347,9 @@ class MetaBaseWorkflow(Workflow):
                 os.remove(self.output_dir + '/Otu/otu_phylo.tre')
             os.link(tree_path, self.output_dir + '/Otu/otu_phylo.tre')
             api_tree.add_tree_file(tree_path, major=True, level=9, table_id=str(self.otu_id), table_type='otu', tree_type='phylo')
+            if self.option('group').is_set:
+                api_group = self.api.group
+                api_group.add_ini_group_table(self.option('group').prop["path"], self.spname_spid, sort_samples=True)
         if event['data'] == "alpha":
             self.move2outputdir(obj.output_dir, self.output_dir + "/Alpha_diversity")  # 代替cp
             # os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Alpha_diversity")
@@ -500,11 +500,11 @@ class MetaBaseWorkflow(Workflow):
             ["Alpha_diversity", "", "Alpha diversity文件目录"],
             ["Alpha_diversity/estimators.xls", "xls", "Alpha多样性指数表"],
             ["Beta_diversity", "", "Beta diversity文件目录"],
-            ["Beta_diversity/Anosim", "", "anosim&adonis结果输出目录"],
+            ["Beta_diversity/Anosim", "", "ANOSIM&Adonis分析结果目录"],
             ["Beta_diversity/Anosim/anosim_results.txt", "txt", "anosim分析结果"],
             ["Beta_diversity/Anosim/adonis_results.txt", "txt", "adonis分析结果"],
             ["Beta_diversity/Anosim/format_results.xls", "xls", "anosim&adonis综合统计表"],
-            ["Beta_diversity/Dbrda", "", "db_rda分析结果目录"],
+            ["Beta_diversity/Dbrda", "", "db_RDA分析结果目录"],
             ["Beta_diversity/Dbrda/db_rda_sites.xls", "xls", "db_rda样本坐标表"],
             ["Beta_diversity/Dbrda/db_rda_species.xls", "xls", "db_rda物种坐标表"],
             ["Beta_diversity/Dbrda/db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
@@ -515,8 +515,9 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Distance", "", "距离矩阵计算结果目录"],
             ["Beta_diversity/Hcluster", "", "层次聚类结果目录"],
             ["Beta_diversity/Hcluster/hcluster.tre", "graph.newick_tree", "层次聚类树结果表"],
-            ["Beta_diversity/Nmds", "", "NMDS分析结果输出目录"],
+            ["Beta_diversity/Nmds", "", "NMDS分析结果目录"],
             ["Beta_diversity/Nmds/nmds_sites.xls", "xls", "样本各维度坐标"],
+            ["Beta_diversity/Nmds/nmds_stress.xls", "xls", "样本特征拟合度值"],
             ["Beta_diversity/Pca", "", "PCA分析结果目录"],
             ["Beta_diversity/Pca/pca_importance.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Pca/pca_rotation.xls", "xls", "物种主成分贡献度表"],
@@ -527,13 +528,15 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Pca/pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
             ["Beta_diversity/Pcoa", "", "PCoA分析结果目录"],
             ["Beta_diversity/Pcoa/pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
+            ["Beta_diversity/Pcoa/pcoa_eigenvaluespre.xls", "xls", "特征解释度百分比"],
             ["Beta_diversity/Pcoa/pcoa_sites.xls", "xls", "样本坐标表"],
             ['Beta_diversity/Rda/dca.xls', 'xls', 'DCA分析结果'],
-            ["Beta_diversity/Plsda", "", "plsda分析结果目录"],
+            ["Beta_diversity/Plsda", "", "PLS_DA分析结果目录"],
             ["Beta_diversity/Plsda/plsda_sites.xls", "xls", "样本坐标表"],
             ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
-            ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
-            ["Beta_diversity/Rda", "", "rda_cca分析结果目录"],
+            ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分组别特征值表"],
+            ["Beta_diversity/Plsda/plsda_importancepre.xls", "xls", "主成分解释度表"],
+            ["Beta_diversity/Rda", "", "RDA_CCA分析结果目录"],
             ["pan_core", "", "Pan/core分析结果目录"],     #add 3 lines by hongdongxuan 20170323
             ["pan_core/core.richness.xls", "xls", "core 表格"],
             ["pan_core/pan.richness.xls", "xls", "pan 表格"]

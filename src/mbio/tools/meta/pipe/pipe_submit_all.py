@@ -772,7 +772,7 @@ class PipeSubmitAllTool(Tool):
             results_statistic = self.run_controllers(api=api_statistic, client=client, base_url=base_url, params=params,
                                                      method=method)
             results_statistic = json.loads(results_statistic)
-            if 'sub_anaylsis_id' in results_statistic.keys():
+            if 'sub_anaylsis_id' in results_statistic.keys() and results_statistic['success'] == True:
                 otu_id = results_statistic['sub_anaylsis_id']['id']
             else:
                 raise Exception("进行抽平或者样本筛选的过程失败，程序被终止！")
