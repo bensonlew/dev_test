@@ -154,24 +154,44 @@ class MetaPipelineWorkflow(Workflow):
                                 group_id = ObjectId(str(group['group_id']))
                             sub_anaylsis_main_id = str(anaylsis['sub_anaylsis_id']['id'])
                             result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
-                            mongo_data = {
-                                "pipe_main_id": ObjectId(inserted_id),
-                                "pipe_batch_id": ObjectId(main_table_id),
-                                "status": result['status'],
-                                "table_id": result['table_id'],
-                                "table_name": result['table_name'],
-                                "type_name": result['type_name'],
-                                "desc": result['desc'],
-                                "time": result['time'],
-                                "params": result['params'],
-                                "submit_location": result['submit_location'],
-                                "is_new": result['is_new'],
-                                "task_id": result['task_id'],
-                                "group_name": group_name,
-                                "group_id": group_id,
-                                "level_id": str(level),
-                                "level_name": level_name[int(level)-1]
-                            }
+                            try:
+                                mongo_data = {
+                                    "pipe_main_id": ObjectId(inserted_id),
+                                    "pipe_batch_id": ObjectId(main_table_id),
+                                    "status": result['status'],
+                                    "table_id": result['table_id'],
+                                    "table_name": result['table_name'],
+                                    "type_name": result['type_name'],
+                                    "desc": result['desc'],
+                                    "time": result['time'],
+                                    "params": result['params'],
+                                    "submit_location": result['submit_location'],
+                                    "is_new": result['is_new'],
+                                    "task_id": result['task_id'],
+                                    "group_name": group_name,
+                                    "group_id": group_id,
+                                    "level_id": str(level),
+                                    "level_name": level_name[int(level)-1]
+                                }
+                            except:
+                                mongo_data = {
+                                    "pipe_main_id": ObjectId(inserted_id),
+                                    "pipe_batch_id": ObjectId(main_table_id),
+                                    "status": "failed",
+                                    "table_id": "",
+                                    "table_name": "",
+                                    "type_name": "",
+                                    "desc": result['desc'],
+                                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                    "params": "",
+                                    "submit_location": anaylsis['submit_location'],
+                                    "is_new": "new",
+                                    "task_id": task_id,
+                                    "group_name": group_name,
+                                    "group_id": group_id,
+                                    "level_id": str(level),
+                                    "level_name": level_name[int(level) - 1]
+                                }
                             try:
                                 collection_pipe_detail = self.db['sg_pipe_detail']
                                 collection_pipe_detail.insert_one(mongo_data)
