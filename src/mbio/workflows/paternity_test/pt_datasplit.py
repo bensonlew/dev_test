@@ -11,7 +11,6 @@ import datetime
 import json
 from mainapp.models.mongo.submit.paternity_test_mongo import PaternityTest as PT
 from bson import ObjectId
-# import shutila
 
 class PtDatasplitWorkflow(Workflow):
 	"""
@@ -165,11 +164,6 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run_wq_wf(self):  # 亲子鉴定流程
-		# self.logger.info("开始导表(家系表)")
-		# db_customer = self.api.pt_customer
-		# db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
-		#                             customer_file=self.option('family_table').prop['path'])
-		# self.logger.info("导表结束(家系表)")
 		self.logger.info("给pt_batch传送数据路径")
 		mongo_data = [
 			('batch_id', ObjectId(self.option('pt_data_split_id'))),
