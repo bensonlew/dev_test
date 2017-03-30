@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 # __author__ = 'shijin'
 # last_modified by shijin
-"""有参转录一键化工作流"""
+"""本地基因组注释用工作流"""
 
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError, FileError
@@ -190,9 +190,6 @@ class RefrnaWorkflow(Workflow):
         self.run_seq_abs()
         super(RefrnaWorkflow, self).run()
 
-    """
-    以下为新加入内容
-    """
     def run_blast(self):
         self.blast_modules = []
         self.gene_list = self.seq_abs.option('gene_file')
@@ -202,17 +199,16 @@ class RefrnaWorkflow(Workflow):
             'query': self.seq_abs.option('query'),
             'query_type': 'nucl',
             'database': None,
-            'blast': 'blastx',  #
+            'blast': 'blastx',
             'evalue': None,
             'outfmt': 6,
             'lines': blast_lines,
         }
         if 'go' in self.option('database') or 'nr' in self.option('database'):
-            self.blast_nr = self.add_module('align.blast')
+            self.blast_nr = self.add_module('align.diamond')
             blast_opts.update(
                 {
-                    'database': 'nr',
-                    'nr_species': "Viridiplantae",  # 植物基因组注释
+                    'database': 'plant',
                     'evalue': self.option('nr_blast_evalue')
                 }
             )
@@ -221,7 +217,7 @@ class RefrnaWorkflow(Workflow):
             self.blast_nr.on('end', self.set_output, 'nrblast')
             self.blast_nr.run()
         if 'cog' in self.option('database'):
-            self.blast_string = self.add_module('align.blast')
+            self.blast_string = self.add_module('align.diamond')
             blast_opts.update(
                 {'database': 'string', 'evalue': self.option('string_blast_evalue')}
             )
@@ -230,7 +226,7 @@ class RefrnaWorkflow(Workflow):
             self.blast_string.on('end', self.set_output, 'stringblast')
             self.blast_string.run()
         if 'kegg' in self.option('database'):
-            self.blast_kegg = self.add_module('align.blast')
+            self.blast_kegg = self.add_module('align.diamond')
             blast_opts.update(
                 {'database': 'kegg', 'evalue': self.option('kegg_blast_evalue')}
             )
@@ -238,7 +234,18 @@ class RefrnaWorkflow(Workflow):
             self.blast_modules.append(self.blast_kegg)
             self.blast_kegg.on('end', self.set_output, 'keggblast')
             self.blast_kegg.run()
-        self.on_rely(self.blast_modules, self.run_annotation)
+        self.on_rely(self.blast_modules, self.run_change_diamond)
+
+    def run_change_diamond(self):
+        opts = {
+            "nr_out": self.blast_nr.option('outxml'),
+            "kegg_out": self.blast_kegg.option('outxml'),
+            "string_out": self.blast_string.option('outxml')
+        }
+        self.change_tool = self.add_tool("align.diamond.change_diamondout")
+        self.change_tool.set_options(opts)
+        self.change_tool.on("end",self.run_annotation)
+        self.change_tool.run()
 
     def run_annotation(self):
         anno_opts = {
@@ -247,36 +254,30 @@ class RefrnaWorkflow(Workflow):
         if 'go' in self.option('database'):
             anno_opts.update({
                 'go_annot': True,
-                'blast_nr_xml': self.blast_nr.option('outxml')
+                'blast_nr_xml': self.change_tool.option('blast_nr_xml')
             })
         else:
             anno_opts.update({'go_annot': False})
         if 'nr' in self.option('database'):
             anno_opts.update({
                 'nr_annot': True,
-                'blast_nr_xml': self.blast_nr.option('outxml'),
-                'blast_nr_table': self.blast_nr.option('outtable')
+                'blast_nr_xml': self.change_tool.option('blast_nr_xml'),
             })
         else:
             anno_opts.update({'nr_annot': False})
         if 'kegg' in self.option('database'):
             anno_opts.update({
-                'blast_kegg_xml': self.blast_kegg.option('outxml'),
-                'blast_kegg_table': self.blast_kegg.option('outtable')
+                'blast_kegg_xml': self.change_tool.option('blast_kegg_xml'),
             })
         if 'cog' in self.option('database'):
             anno_opts.update({
-                'blast_string_xml': self.blast_string.option('outxml'),
-                'blast_string_table': self.blast_string.option('outtable')
+                'blast_string_xml': self.change_tool.option('blast_string_xml'),
             })
         self.logger.info('....anno_opts:%s' % anno_opts)
         self.annotation.set_options(anno_opts)
         self.annotation.on('end', self.set_output, 'annotation')
         self.annotation.on('end', self.set_step, {'end': self.step.annotation})
         self.annotation.run()
-    """
-    以上为新加入内容
-    """
 
     def run_qc_stat(self, event):
         if event['data']:
