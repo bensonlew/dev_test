@@ -10,11 +10,8 @@ from biocluster.wpm.client import worker_client as WC
 import datetime
 import json
 from mainapp.models.mongo.submit.paternity_test_mongo import PaternityTest as PT
-<<<<<<< HEAD
 from bson import ObjectId
-=======
-import shutil
->>>>>>> 5d5092aeb857dc7eaacdc2c223a5aa90bf3f314a
+# import shutila
 
 class PtDatasplitWorkflow(Workflow):
 	"""
@@ -175,7 +172,6 @@ class PtDatasplitWorkflow(Workflow):
 		# self.logger.info("导表结束(家系表)")
 		self.logger.info("给pt_batch传送数据路径")
 		mongo_data = [
-<<<<<<< HEAD
 			('batch_id', ObjectId(self.option('pt_data_split_id'))),
 			("type", "pt"),
 			("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -183,14 +179,6 @@ class PtDatasplitWorkflow(Workflow):
 		]
 		main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
 		update_info = {str(main_table_id): 'sg_analysis_status'}
-=======
-			('batch_id', self.option('pt_data_split_id')),
-			("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-			("status", "start")
-		]
-		main_table_id = PT().insert_main_table('sg_father', mongo_data)
-		update_info = {str(main_table_id): 'sg_father'}
->>>>>>> 5d5092aeb857dc7eaacdc2c223a5aa90bf3f314a
 		update_info = json.dumps(update_info)
 		data = {
 			'stage_id': 0,
@@ -202,10 +190,7 @@ class PtDatasplitWorkflow(Workflow):
 			"IMPORT_REPORT_DATA": True,
 			"IMPORT_REPORT_AFTER_END": False,
 			"options": {
-<<<<<<< HEAD
 				"member_id": self.option('member_id'),
-=======
->>>>>>> 5d5092aeb857dc7eaacdc2c223a5aa90bf3f314a
 				"fastq_path": self.wq_dir,
 				"cpu_number": 8,
 				"ref_fasta": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa",
@@ -213,11 +198,7 @@ class PtDatasplitWorkflow(Workflow):
 				"ref_point": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/targets.bed.rda",
 				"err_min": 2,
 				"batch_id": self.option('pt_data_split_id'),
-<<<<<<< HEAD
 				"dedup_num": 2,
-=======
-				"dedup_num": 30,
->>>>>>> 5d5092aeb857dc7eaacdc2c223a5aa90bf3f314a
 				"update_info": update_info
 			}
 		}
