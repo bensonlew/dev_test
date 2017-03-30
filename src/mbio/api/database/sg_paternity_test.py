@@ -35,6 +35,7 @@ class SgPaternityTest(Base):
 			"preg_id": preg,
 			"family_id": temp_d.group(1),
 			"name": name,
+			"created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 			"batch_id": ObjectId(batch_id),
 			"member_id":member_id
 		}
