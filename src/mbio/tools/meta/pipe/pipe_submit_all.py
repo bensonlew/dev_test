@@ -778,8 +778,8 @@ class PipeSubmitAllTool(Tool):
                 raise Exception("进行抽平或者样本筛选的过程失败，程序被终止！")
         return otu_id
 
-    def otunetwork_analyse(self, list2, otunetwork_analyse_data, analysis_table, ready_analysis_num, all_analysis_num, client, base_url,
-                           method, all_results):
+    def otunetwork_analyse(self, list2, otunetwork_analyse_data, analysis_table, ready_analysis_num, all_analysis_num,
+                           client, base_url, method, all_results):
         """
         :param list2: 这是所有的分组方案与分类水平进行随机组合的列表
         :param otunetwork_analyse_data: 每个子分析需要除了otu_id，group_id，group_detail参数之外的其它高级参数
@@ -790,8 +790,8 @@ class PipeSubmitAllTool(Tool):
         :param all_results:用于存储所有分析的返回的id以及表的名字，或者返回的错误信息。该列表是个全局列表
         :return: 返回的值是用于进度条计算的，返回的是投递的分析已经完成的个数
         """
-        ready_analysis_num = 0
         for n in list2:
+            ready_analysis_num = 0
             otunetwork_analyse_data['otu_id'] = n['otu_id']
             otunetwork_analyse_data['level_id'] = n['level_id']
             otunetwork_analyse_data['group_id'] = n['group_id']
@@ -822,8 +822,8 @@ class PipeSubmitAllTool(Tool):
         """
         计算ROC的程序
         """
-        ready_analysis_num = 0
         for n in list2:
+            ready_analysis_num = 0
             roc_analyse_data['otu_id'] = n['otu_id']
             roc_analyse_data['level_id'] = n['level_id']
             roc_analyse_data['group_id'] = n['group_id']
@@ -853,8 +853,8 @@ class PipeSubmitAllTool(Tool):
         """
         计算随机森林的程序
         """
-        ready_analysis_num = 0
         for n in list2:
+            ready_analysis_num = 0
             randomforest_analyse_data['otu_id'] = n['otu_id']
             randomforest_analyse_data['level_id'] = n['level_id']
             randomforest_analyse_data['group_id'] = n['group_id']
@@ -886,8 +886,8 @@ class PipeSubmitAllTool(Tool):
         """
         计算16s功能预测的程序
         """
-        ready_analysis_num = 0
         for n in list2:
+            ready_analysis_num = 0
             sixteens_prediction_data['otu_id'] = n['otu_id']
             sixteens_prediction_data['level_id'] = n['level_id']
             sixteens_prediction_data['group_id'] = n['group_id']
@@ -918,8 +918,8 @@ class PipeSubmitAllTool(Tool):
         """
         计算lefse的程序
         """
-        ready_analysis_num = 0
         for n in list2:
+            ready_analysis_num = 0
             species_lefse_analyse_data['otu_id'] = n['otu_id']
             species_lefse_analyse_data['level_id'] = n['level_id']
             species_lefse_analyse_data['group_id'] = n['group_id']
@@ -950,8 +950,8 @@ class PipeSubmitAllTool(Tool):
         """
         计算多样性指数的程序
         """
-        ready_analysis_num = 0
         for n in list2:
+            ready_analysis_num = 0  #这个要放在每个循环里面，每循环一次都要初始化
             alpha_rarefaction_curve_data['otu_id'] = n['otu_id']
             alpha_rarefaction_curve_data['level_id'] = n['level_id']
             alpha_rarefaction_curve_data['group_id'] = n['group_id']
