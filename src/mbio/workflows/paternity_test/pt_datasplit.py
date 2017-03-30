@@ -164,11 +164,6 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run_wq_wf(self):  # 亲子鉴定流程
-		# self.logger.info("开始导表(家系表)")
-		# db_customer = self.api.pt_customer
-		# db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
-		#                             customer_file=self.option('family_table').prop['path'])
-		# self.logger.info("导表结束(家系表)")
 		self.logger.info("给pt_batch传送数据路径")
 		mongo_data = [
 			('batch_id', ObjectId(self.option('pt_data_split_id'))),
@@ -181,7 +176,6 @@ class PtDatasplitWorkflow(Workflow):
 		update_info = json.dumps(update_info)
 		data = {
 			'stage_id': 0,
-			'UPDATE_STATUS_API': self._update_status_api(),
 			'UPDATE_STATUS_API': self._update_status_api(),
 			"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
 			"type": "workflow",

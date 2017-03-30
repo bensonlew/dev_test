@@ -50,6 +50,7 @@ class PtAnalysisModule(Module):
 			"err_min": self.option("err_min")
 		})
 		self.family_merge.on('end', self.set_output, 'family_merge')
+		self.family_merge.on('end', self.analysis_run)
 		self.family_merge.on('start', self.set_step, {'start': self.step.family_merge})
 		self.family_merge.on('end', self.set_step, {'end': self.step.family_merge})
 		self.family_merge.run()
@@ -59,6 +60,7 @@ class PtAnalysisModule(Module):
 			"tab_merged": self.work_dir + "/FamilyMerge/output/family_joined_tab.Rdata"
 		})
 		self.family_analysis.on('end', self.set_output, "family_analysis")
+		self.family_analysis.on('end', self.end)
 		self.family_analysis.on('start', self.set_step, {'start': self.step.family_analysis})
 		self.family_analysis.on('end', self.set_step, {'end': self.step.family_analysis})
 		self.family_analysis.run()
@@ -94,10 +96,9 @@ class PtAnalysisModule(Module):
 			pass
 
 	def run(self):
-		super(PtAnalysisModule, self).run()
-		self.family_merge.on('end', self.analysis_run)
 		self.merge_run()
-		self.family_analysis.on('end', self.end)
+		super(PtAnalysisModule, self).run()
+
 
 	def end(self):
 		repaths = [

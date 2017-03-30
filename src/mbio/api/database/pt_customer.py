@@ -115,14 +115,14 @@ class PtCustomer(Base):
 						pass
 					else:
 						insert.append(insert_data)
-			try:
-				collection = self.database_ref['sg_pt_ref_main']
-				collection.insert_many(insert)
-			except Exception as e:
-				self.bind_object.logger.error('导入ref类型出错：{}'.format(e))
-			else:
-				self.bind_object.logger.info("导入ref类型成功")
-
+			if insert:
+				try:
+					collection = self.database_ref['sg_pt_ref_main']
+					collection.insert_many(insert)
+				except Exception as e:
+					self.bind_object.logger.error('导入ref类型出错：{}'.format(e))
+				else:
+					self.bind_object.logger.info("导入ref类型成功")
 
 
 

@@ -86,7 +86,10 @@ class ResultInfoTool(Tool):
 
         self.R_path = 'program/R-3.3.1/bin/'
         self.script_path = Config().SOFTWARE_DIR + '/bioinfo/medical/scripts/'
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib')
+        # self.set_environ(PATH= self.config.SOFTWARE_DIR + '/gcc/5.4.0/stage1-x86_64-unknown-linux-gnu/libstdc++-v3/src/.libs')
 
     def run_tf(self):
         plot_cmd = "{}Rscript {}plot.R {}".\
@@ -109,17 +112,16 @@ class ResultInfoTool(Tool):
 
             if family:
                 family_name = family.group(1)
+                path_family = os.path.join(self.work_dir, family_name)
             elif fig1:
                 fig1_name = fig1.group(1)
+                path_fig1 = os.path.join(self.work_dir, fig1_name)
             elif fig2:
                 fig2_name = fig2.group(1)
+                path_fig2 = os.path.join(self.work_dir, fig2_name)
             elif percent:
                 percent_name = percent.group(1)
-
-        path_family = os.path.join(self.work_dir,family_name)
-        path_fig1 = os.path.join(self.work_dir,fig1_name)
-        path_fig2 = os.path.join(self.work_dir, fig2_name)
-        path_percent = os.path.join(self.work_dir, percent_name)
+                path_percent = os.path.join(self.work_dir, percent_name)
 
         convert_cmd = "bioinfo/medical/scripts/convert2png.sh {} {} {} {}".format(path_family,path_fig1,path_fig2,path_percent)
         self.logger.info(convert_cmd)
