@@ -536,7 +536,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
             ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分组别特征值表"],
             ["Beta_diversity/Plsda/plsda_importancepre.xls", "xls", "主成分解释度表"],
-            ["Beta_diversity/Rda", "", "rda_cca分析结果目录"]
+            ["Beta_diversity/Rda", "", "rda_cca分析结果目录"],
             ["pan_core", "", "Pan/core分析结果目录"],     #add 3 lines by hongdongxuan 20170323
             ["pan_core/core.richness.xls", "xls", "core 表格"],
             ["pan_core/pan.richness.xls", "xls", "pan 表格"]
