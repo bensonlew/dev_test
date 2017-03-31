@@ -6,10 +6,11 @@ import re, os, Bio, argparse, sys, fileinput, urllib2, logging
 import Bio
 import subprocess
 from bs4 import BeautifulSoup
-from sequence_ontology_file import SequenceOntologyFile
-from file import File
-from fasta_file import FastaFile
-from gtf_file import GtfFile
+from core.exceptions import FileError
+from sequence_ontology import SequenceOntologyFile
+from iofile import *
+from fasta import FastaFile
+from gtf import GtfFile
 
 '''
 检查gff标准：
@@ -41,10 +42,61 @@ class Gff3File(File):
         self._seq_features = set()
         self._seq_ontology = set()
         self._seq_pos = dict()
+        self._genes ={}
+        self._mrnas = {}
+        self._exons ={}
+        self._cds= {}
+        
+        '''
+        结构为{contig_id1:
+        {gene_id1:
+        {start:**,
+        end:**,
+        mrna1:
+        {exon1_:}
+         }
+         }
+         }
+        '''
+        self._feature_tree = {}  #
     
     def check(self):
+        '''
+        粗略检查gff3的格式是否符合要求
+        调用self.__parse_outline()方法
+        检查以下几个项目：
+        1. 是否为tab分隔的九列
+        
+        :return:
+        '''
         super(Gff3File, self).check()
-        self.parse()
+        self.__parse_outline()
+    
+    def check_format(self):
+        '''
+        此方法比较耗时，建议在整个流程最开始的时候检查一次即可
+        检查如此详细的目的：
+        1. 在做基因结构研究的时候  gff文件应详细到exon水平
+        2. 检查它与配套的genome_sequence.fa 的对应关系是否一致
+        细致检查gff3文件是否符合sequence ontology 的定义，调用self.__parse_details方法:
+        :return:
+        '''
+        super(Gff3File, self).check()
+        self.__parse_outline()
+        self.__parse_details()
+    
+    def __parse_outline(self):
+        '''
+        usage： 粗略检查gff文件的格式，检查的项目有
+        1.第一行为'##gff-version\s+3\S*$
+        2.
+        :return:
+        '''
+        # 检查非#开头的行是否有不为9列的行,检查输出如果非空，则认为此gff文件 这一步大概花费30秒
+        check_column_cmd = "awk '!/^#/{print $0}' %s |awk -F '\t' 'NF!=9{print NR}' " % (self.path)
+        check_column_out = subprocess.check_output(check_column_cmd, shell=True)
+        if check_column_out:
+            raise FileError('gff文件%s 有列数不为9的行：%s' % (self.path, check_column_out))
     
     # 判断
     error_format = 'Line {current_line_num}: {error_type}: {message}\n-> {line}'
@@ -72,8 +124,7 @@ class Gff3File(File):
         except AttributeError:  # no logger
             pass
     
-    def parse(self):
-        
+    def __parse_details(self):
         '''
         
         The strand of the feature. + for positive strand (relative to the landmark),
@@ -82,8 +133,9 @@ class Gff3File(File):
         In addition, ? can be used for features whose strandedness is relevant, but unknown.
         :return:
         '''
-        
+        contig_err_msg = 'contig name must escape any characters not in the set [a-zA-Z0-9.:^*$@!+_?-|]'
         valid_strand = set(('+', '-', '.', '?'))
+        
         '''
         indicating the number of bases that should be removed
         from the beginning of this feature
@@ -98,7 +150,7 @@ class Gff3File(File):
         '''
         line_no = 0
         multi_defined_feature_attributes = set(
-            ('ID', 'Name', 'Alias', 'Parent', 'Target', 'Gap', 'Derives_from', 'Note', 'Db'))
+            ['ID', 'Name', 'Alias', 'Parent', 'Target', 'Gap', 'Derives_from', 'Note', 'Db'])
         line_dic = {
             'line_type': '',
             'line_index': line_no - 1,
@@ -107,11 +159,63 @@ class Gff3File(File):
             'children': [],
             'summary': ''
         }
+        
+        # 开始读文件
+        if super(Gff3File, self).check():
+            for line in open(self.path):
+                line_no += 1
+                meta_data_match = re.match(r'^##*\s*(\S+)(\S+\s*?)*', line.rstrip())
+                if meta_data_match:
+                    meta_tag = meta_data_match.group(1)
+                    
+                    continue
+                else:
+                    if re.match(r'^\s+', line.rstrip()):
+                        self.add_line_error(line_dic, {'message': 'White chars not allowed at the start of a line',
+                                                       'error_type': 'FORMAT', 'location': ''})
+                        raise FileError('line: %s has blank char start' % (line.rstrip()))
+                    [contig, src, seq_type, start, end, score, strand, phase, attributes] = re.split(r'\t+',
+                                                                                                     line.strip())
+                    # 检查contig：must escape any characters not in the set [a-zA-Z0-9.:^*$@!+_?-|]
+                    if re.match(r'^[a-zA-Z0-9.:^*$@!+_?-|]+$', contig):
+                        raise FileError('contig name: %s in the file: %s\'s No.%dth line  is not legal.(%s)' % (
+                            contig, self.path, line_no, contig_err_msg))
+                    
+                    # 检查src:没什么要求
+                    # 检查type：
+                    
+                    
+                    # 检查start&end
+                    if not (re.match(r'^[\d]+$', start) and re.match(r'^[\d]+$', end)):
+                        raise FileError(
+                            'feature start or end must be positive integers: the {}th line start-end: {} of gff3 file {} is invalid'.format(
+                                line_no, start + '-' + end, self.path))
+                    if int(start) > int(end):
+                        raise FileError(
+                            'feature start must be <= end: the {}th line start-end: {} of gff3 file {} is invalid'.format(
+                                line_no, start + '-' + end, self.path))
+                    
+                    # 检查score，无要求
+                    # 检查strand
+                    if not re.match(r'^[\.\?\-\+]$', strand):
+                        raise FileError(
+                            'strand value must be in the char set [+-.?],but No.{}th line of file {} stand value is {}'.format(
+                                line_no, self.path, strand))
+                    # 检查 phase
+                    if not re.match(r'^[\.1230]$', phase):
+                        raise FileError('invalid phase value: {} in No.{}th line'.format(phase, line_no))
+                    if seq_type == 'CDS' and (not re.match(r'^[123]$')):
+                        raise FileError(
+                            'when the seq type is CDS, phase must make sense: in the No.{}th line of gff3 file {},it does not meet the requirments'.format(
+                                line_no, self.path))
+                    
+                    continue  # 解析结束则进入下一循环
+        
         if self.path() and super(Gff3File, self).check():
             with open(self._path) as fr:
                 for line in fr:
                     line_strip = line.strip()
-                    
+                    # 所有行都要经历的检查:1.每一行起始位置是否有空格 2.
                     # 检查每一行起始位置是否有空格，有空格则更新错误日志
                     if line_strip != line[:len(line_strip)]:
                         self.add_line_error(line_dic, {'message': 'White chars not allowed at the start of a line',
