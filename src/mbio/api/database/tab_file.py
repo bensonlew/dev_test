@@ -172,8 +172,10 @@ class TabFile(Base):
 						color = ''
 				elif line[0] == 'num':
 					num_M = int(line[1])/1000000
+					line[0] = format(line[0],',')
 					if "-M" in sample_id or "-F" in sample_id:
 						if num_M <3:
+
 							color = "red"
 						elif 3 <= num_M <=4:
 							color = 'yellow'
@@ -188,6 +190,11 @@ class TabFile(Base):
 							color = 'yellow'
 				else:
 					color = ''
+					if line[0] == "n_dedup" or line[0] == "n_mapped" or line[0]\
+							== "n_mapped_dedup" or line[0] == "n_hit" or line[0] =="n_hit_dedup":
+						line[0] = format(line[0], ',')
+					elif line[0] == "0Xcoveragerate" or line[0] == "15Xcoveragerate" or line[0] == "50Xcoveragerate":
+						line[0] = round(line[0],4)
 
 				insert_data = {
 					"qc": line[0],
@@ -212,7 +219,7 @@ class TabFile(Base):
 		n_hit = float(find_n_hit['value'])
 		find_num = collection.find_one({"sample_id":sample_id, "qc":'num'})
 		num = float(find_num['value'])
-		ot = n_hit/num
+		ot = round(n_hit/num, 4)
 		if ot <= 0.015:
 			color_ot = 'red'
 		elif 0.015 < ot <= 0.025:
@@ -222,7 +229,7 @@ class TabFile(Base):
 
 		find_n_hit_dedup = collection.find_one({"sample_id": sample_id, 'qc': 'n_hit_dedup'})
 		n_hit_dedup = float(find_n_hit_dedup['value'])
-		ot_dedup = n_hit_dedup/n_hit
+		ot_dedup = round(n_hit_dedup/n_hit,4)
 
 		if ot_dedup<=0.2:
 			color_ot_dedup = 'red'
