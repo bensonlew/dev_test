@@ -369,7 +369,7 @@ class PipeSubmitAllTool(Tool):
                     data = ";".join(data)
                     api = submit_info['api']
                     method = "post"
-                    time.sleep(60)
+                    # time.sleep(60)
                     return_page = self.webapitest(method, api, name, data, client, base_url)
                     result = json.loads(return_page)
                     result = json.loads(result)
@@ -564,7 +564,7 @@ class PipeSubmitAllTool(Tool):
             data.append(params[key])
         name = ";".join(name)
         data = ";".join(data)
-        time.sleep(60)
+        time.sleep(0.5)
         return_page = self.webapitest(method, api, name, data, client, base_url)
         result = json.loads(return_page)
         result = json.loads(result)
