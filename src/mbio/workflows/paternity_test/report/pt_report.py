@@ -83,12 +83,17 @@ class PtReportWorkflow(Workflow):
 			"ref_point": self.option("ref_point"),
 			"err_min": self.option("err_min")
 		})
-		self.rdata = self.work_dir + '/PtAnalysis/output/family_merge/family_joined_tab.Rdata'
 		self.pt_analysis.on('end', self.set_output, 'pt_analysis')
 		self.pt_analysis.run()
 
 	def result_info_run(self):
-		print self.rdata
+		results = os.listdir(self.work_dir + "/PtAnalysis/FamilyMerge/output")
+		for f in results:
+			if re.match(r'.*family_joined_tab\.Rdata$', f):
+				rdata = f
+			else:
+				print "Oops!"
+		self.rdata = self.work_dir + "/PtAnalysis/FamilyMerge/output/" + rdata
 		self.result_info.set_options({
 			# "tab_merged":  self.output_dir+'/family_joined_tab.Rdata'
 			"tab_merged": self.rdata
