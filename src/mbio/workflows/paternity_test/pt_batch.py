@@ -169,9 +169,22 @@ class PtBatchWorkflow(Workflow):
         result_info = self.add_tool("paternity_test.result_info")
         self.step.add_steps('result_info{}'.format(n))
         if int(n) == 0:
-            self.rdata = self.work_dir + '/PtAnalysis/FamilyMerge/output/family_joined_tab.Rdata'
+            results = os.listdir(self.work_dir + "/PtAnalysis/FamilyMerge/output")
+            for f in results:
+                if re.match(r'.*family_joined_tab\.Rdata$', f):
+                    rdata = f
+                else:
+                    print "Oops!"
+            self.rdata = self.work_dir + '/PtAnalysis/FamilyMerge/output/' +rdata
         else:
-            self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/family_joined_tab.Rdata'.format(n)
+            results = os.listdir(self.work_dir + "/PtAnalysis{}/FamilyMerge/output".format(n))
+            for f in results:
+                if re.match(r'.*family_joined_tab\.Rdata$', f):
+                    rdata = f
+                else:
+                    print "Oops!"
+            self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/'.format(n)+rdata
+
         result_info.set_options({
             "tab_merged":  self.rdata
         })
