@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'wangzhaoyue'
-import os
+
 from Bio import SeqIO
 import fileinput
 import re
+import os
+import subprocess
+import urllib2
+from collections import defaultdict
 
 
 def step_count(fasta_file, fasta_to_txt, group_num, step, stat_out):
@@ -156,16 +160,38 @@ def tran_exon_data(merged_gtf, trans_exon, final_file):
     count_trans_or_exons(trans_exon, final_file)
     f.close()
 
-def class_code_count(gtf_file, trans_code_file):
-    f = open(gtf_file)
-    for line in f:
-        m = re.match("#.*", line)
-        if not m:
-            detail = line.strip().split("\t")[-1]
-            code = detail.strip().split(";")[-2].strip().split('\"')[1]
-            trans_id = detail.strip().split(";")[1].split('\"')[1]
-merged_gtf1 = 'O:\\Users\\zhaoyue.wang\\Desktop\\merged.gtf'
-merged_gtf2 = 'O:\\Users\\zhaoyue.wang\\Desktop\\merged2.gtf'
-# out1 = 'O:\\Users\\zhaoyue.wang\\Desktop\\1.txt'
-# out2 = 'O:\\Users\\zhaoyue.wang\\Desktop\\2.txt'
-class_code_count(merged_gtf1)
+
+def class_code_count(gtf_file, code_num_trans):
+    txpt_cls_cmd = ' awk -F \';\' \'{printf $2\"\;\"$(NF-2)\"\\n\";}\'  %s | uniq ' % (gtf_file)
+    cls_cmd = 'awk -F \';\' \'{printf $(NF-1)"\\n";}\' %s | awk -F \'\"\' \'{printf $2"\\n";}\'|uniq |sort |uniq' % (
+    gtf_file)
+
+    txpt_cls_content = str(subprocess.check_output(txpt_cls_cmd, shell=True)).split('\n')
+    cls_content = subprocess.check_output(cls_cmd, shell=True).split('\n')
+    print(cls_content)
+
+    cls_txpt_set_dic = {}
+    for cls in cls_content:
+        cls = cls.strip()
+        if cls:
+            cls_txpt_set_dic[cls] = {'txpt_set': set(), 'count': 0}
+
+    for record in txpt_cls_content:
+        m = re.search(r'\s*transcript_id\s+\"(\S+)\";\s*class_code\s+\"(\S+)\"', record.strip())
+        if m:
+            cls = m.group(2)
+            txpt = m.group(1)
+            cls_txpt_set_dic[cls]['txpt_set'].add(txpt)
+
+    fw = open(code_num_trans, 'wb')
+    for cls in cls_txpt_set_dic.keys():
+        cls_txpt_set_dic[cls]['count'] = len(cls_txpt_set_dic[cls]['txpt_set'])
+        newline = '{}\t{}\t{}\n'.format(cls, ','.join(cls_txpt_set_dic[cls]['txpt_set']),
+                                        str(cls_txpt_set_dic[cls]['count']))
+        fw.write(newline)
+    fw.close()
+if __name__ == '__main__':
+    merged_gtf = "/mnt/ilustre/users/sanger-dev/workspace/20170331/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/merged.gtf"
+    output = "/mnt/ilustre/users/sanger-dev/workspace/20170331/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/1.txt"
+    class_code_count(merged_gtf, output)
+
