@@ -100,9 +100,9 @@ class NewTranscriptsTool(Tool):
         运行python，挑出新转录本gtf文件
         """
         cmd = self.Python_path + self.newtranscripts_gtf_path \
-            + " -tmapfile %s -transcript_file %s -o1 %snew_transcripts.gtf -o2 %snew_genes.gtf" % (
+            + " -tmapfile %s -transcript_file %s -out_new_trans %snew_transcripts.gtf -out_new_genes %snew_genes.gtf -out_old_trans %sold_trans.gtf -out_old_genes %sold_genes.gtf" % (
                 self.option('tmap').prop['path'], self.option('merged.gtf').prop['path'],
-                self.work_dir+"/", self.work_dir+"/")
+                self.work_dir+"/", self.work_dir+"/", self.work_dir+"/", self.work_dir+"/")
         self.logger.info('运行python，挑出新转录本gtf文件')
         command = self.add_command("newtranscripts_gtf_cmd", cmd).run()
         self.wait(command)
@@ -148,6 +148,7 @@ class NewTranscriptsTool(Tool):
         try:
             shutil.copy2(self.work_dir + "/new_transcripts.gtf", self.output_dir + "/new_transcripts.gtf")
             shutil.copy2(self.work_dir + "/new_genes.gtf", self.output_dir + "/new_genes.gtf")
+            shutil.copy2(self.work_dir + "/old_trans.gtf", self.output_dir + "/old_trans.gtf")
             shutil.copy2(self.work_dir + "/new_transcripts.fa", self.output_dir + "/new_transcripts.fa")
             shutil.copy2(self.work_dir + "/new_genes.fa", self.output_dir + "/new_genes.fa")
             self.option('new_trans_gtf').set_path(self.output_dir + "/new_transcripts.gtf")
