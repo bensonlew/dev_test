@@ -102,7 +102,8 @@ class RdaCcaAgent(Agent):
             [r'.*_species\.xls', 'xls', '物种坐标表'],
             [r'.*dca\.xls', 'xls', 'DCA分析结果'],
             [r'.*_biplot\.xls', 'xls', '数量型环境因子坐标表'],
-            [r'.*_centroids\.xls', 'xls', '哑变量环境因子坐标表']
+            [r'.*_centroids\.xls', 'xls', '哑变量环境因子坐标表'],
+            [r'.*_envfit\.xls', 'xls', 'p_value值和r值表']
         ])
         # print self.get_upload_files()
         super(RdaCcaAgent, self).end()
@@ -218,7 +219,8 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         old_env_table = self.get_new_env()
         otu_species_list = self.get_species_name()
         self.otu_table = self.work_dir + '/new_otu.xls'
-        self.env_table = self.work_dir + '/new_env.xls'
+        env_table = self.work_dir + '/new_env.xls'
+        self.env_labs = self.rm_(env_table)
         if not self.create_otu_and_env_common(old_otu_table, old_env_table, self.otu_table, self.env_table):
             self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
         tablepath = self.work_dir + '/remove_zero_line_otu.xls'
@@ -328,6 +330,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         rda_site = None
         rda_biplot = None
         rda_centroids = None
+        rda_envfit = None
         for name in filelist:
             if '_importance.xls' in name:
                 rda_imp = name
@@ -341,9 +344,11 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                 rda_biplot = name
             elif '_centroids.xls' in name:
                 rda_centroids = name
-        if rda_imp and rda_site and rda_spe and rda_dca and (rda_biplot or rda_centroids):
-            self.logger.info(str([rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids]))
-            return [rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids]
+            elif '_envfit.xls' in name:
+                rda_envfit = name
+        if rda_imp and rda_site and rda_spe and rda_dca and rda_envfit and (rda_biplot or rda_centroids):
+            self.logger.info(str([rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids, rda_envfit]))
+            return [rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids, rda_envfit]
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')
 
@@ -402,6 +407,20 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                     if content[0] in otu_species_list:
                         w.write('\t'.join(content) + "\n")
         return new_species_table
+
+    def rm_(self, old_file):  # add by zhouxuan 20170401
+        new_file = self.work_dir + '/new_env_.xls'
+        with open(old_file, "rb") as f, open(new_file, "a") as w:
+            content = f.readlines()
+            for r in content:
+                if r.startswith("#"):
+                    r = r.split("\t")
+                    readline = "sample" + "\t" +("\t").join(r[1:-1]) +"\n"
+                    w.write(readline)
+                else:
+                    w.write(r)
+        return new_file
+
 
 
 

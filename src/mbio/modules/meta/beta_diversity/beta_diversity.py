@@ -352,6 +352,7 @@ class BetaDiversityModule(Module):
             [r'Rda/.*_species\.xls$', 'xls', '物种坐标表'],
             [r'Rda/.*_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
             [r'Rda/.*_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
+            [r'Rda/.*_envfit\.xls$', 'xls', 'p_value值与r值表']
         ]
         # self.logger.info('shenghe:不能重复添加目录buglog。。。。。。。。。。。。。。。。')
         # self.logger.info(self.upload_dir)
