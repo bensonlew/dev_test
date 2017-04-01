@@ -95,6 +95,7 @@ class RefrnaWorkflow(Workflow):
         self.snp_rna = self.add_module("ref_rna.gene_structure.snp_rna")
         self.seq_abs = self.add_tool("ref_rna.annotation.transcript_abstract")
         self.annotation = self.add_module('denovo_rna.annotation.denovo_annotation')
+        self.change_tool = self.add_tool("align.diamond.change_diamondout")
         # self.altersplicing = self.add_tool('ref_rna.gene_structure.altersplicing.rmats')
         self.network = self.add_module("ref_rna.ppinetwork_analysis")
         self.tf = self.add_tool("ref_rna.protein_regulation.TF_predict")
@@ -186,7 +187,7 @@ class RefrnaWorkflow(Workflow):
 
     def test_run(self):
         self.seq_abs.on("end", self.run_blast)
-        self.annotation.on("end", self.end)
+        self.change_tool.on("end", self.end)
         self.run_seq_abs()
         super(RefrnaWorkflow, self).run()
 
@@ -201,14 +202,14 @@ class RefrnaWorkflow(Workflow):
             'database': None,
             'blast': 'blastx',
             'evalue': None,
-            'outfmt': 6,
+            'outfmt': 5,
             'lines': blast_lines,
         }
         if 'go' in self.option('database') or 'nr' in self.option('database'):
             self.blast_nr = self.add_module('align.diamond')
             blast_opts.update(
                 {
-                    'database': 'plant',
+                    'database': self.option("database").split(",")[-1],
                     'evalue': self.option('nr_blast_evalue')
                 }
             )
@@ -242,9 +243,9 @@ class RefrnaWorkflow(Workflow):
             "kegg_out": self.blast_kegg.option('outxml'),
             "string_out": self.blast_string.option('outxml')
         }
-        self.change_tool = self.add_tool("align.diamond.change_diamondout")
+
         self.change_tool.set_options(opts)
-        self.change_tool.on("end",self.run_annotation)
+        # self.change_tool.on("end",self.run_annotation)
         self.change_tool.run()
 
     def run_annotation(self):
