@@ -124,7 +124,14 @@ class DiamondTool(Tool):
                 # self.option('outxml', outputfile)
             self.end()
         else:
-            self.set_error("diamond运行出错!")
+            self.logger.info("重新运行diamond")
+            blast_command.rerun()
+            self.wait()
+            if blast_command.return_code == 0:
+                self.logger.info("重新运行diamond成功")
+                self.end()
+            else:
+                self.set_error("diamond运行出错!")
 
     def run(self):
         """
