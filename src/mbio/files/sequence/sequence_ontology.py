@@ -2,48 +2,68 @@
 # __author__ = fiona
 # time: 2017/3/10 18:07
 
-import re, os, Bio, argparse, sys, fileinput, urllib2
-import Bio
+from __future__ import print_function
 import subprocess
-from bs4 import BeautifulSoup
-from file import File
-from gff3_file import Gff3File
+from biocluster.iofile import *
+
+
+
+''' https://github.com/The-Sequence-Ontology/SO-Ontologies/blob/master/releases/so-xp.owl/so.obo'''
 
 
 class SequenceOntologyFile(File):
-    def __init__(self, site):
-        self._path = os.path.join(os.getcwd(), 'temp_sequence_ontology.obo')
-        self._download(site)
+    def __init__(self):
+        # self._path = os.path.join(os.getcwd(), 'temp_sequence_ontology.obo')
+        # self._download(site)
         self._items_info = dict()
-        self._items = set()
-        self._update_date = None
+        self._candidate_items = set()
+        self._properties = {}
+    
+    def check(self):
+        super(SequenceOntologyFile, self).check()
     
     def _download(self, url):
         subprocess.call('wget -c -O {} {}'.format(self._path, url), shell=True)
     
-    def __get_ele_indexes(self, lst, pattern):
-        indexes = []
-        for e in lst:
-            if re.match(pattern, e):
-                indexes.append(lst.index(e))
-        return indexes
-    
-    def __get_split_lst_by_given_indexes(self, lst, indexes):
-        sub_lst = lst[indexes[0] + 1:indexes[len(indexes) - 1]]
-        couple_lst = []
-        for i in range(len(indexes)):
-            if i > 0:
-                sub_lst = lst[indexes[i - 1]:indexes[i]]
-                couple_lst.append(sub_lst)
-    
     def parse(self):
         
+        self._candidate_items = re.split(r'\[Term\]', open(self.path).read())
+        self._candidate_items = self._candidate_items[1:len(self._candidate_items)]
+        temp = re.split(r'\n+\[[^:\s]+?\]\n+', self._candidate_items[len(self._candidate_items) - 1])
+        self._candidate_items.append(temp[0])
+    
+    def findAll(self, target_term, term_id_set=None, term_name_set=None):
         
+        if term_id_set == None:
+            term_id_set = set()
+        if term_name_set == None:
+            term_name_set = set()
+        for record in self._candidate_items:
+            item_id_m = re.search(r'id:\s+(\S+)\nname:\s+(\S+)\n(.*?\n)*is_a:\s+' + str(target_term) + '\s+!\s+(\S+)',
+                                  record)
+            if not item_id_m:
+                continue
+            else:
+                son_so_id = item_id_m.group(1).strip()
+                term_id_set.add(son_so_id)
+                son_so_name = item_id_m.group(2).strip()
+                term_name_set.add(son_so_name)
+                print(son_so_id + ": " + son_so_name)
+                term_id_set.union(self.findAll(son_so_id, term_id_set, term_name_set)[0])
+                term_name_set.union(self.findAll(son_so_id, term_id_set, term_name_set)[1])
         
-        
-        so_soup = BeautifulSoup(open(self._path).read())
-        records = so_soup.find_all('td', text=re.compile(r'^(?:\[Term\]|name:|id:)'),
-                                   attrs={'class': 'blob-code blob-code-inner js-file-line'})
-        field_pattern = re.compile(r'<td.+>\[Term\]</td>')
-        cut_indexes = self.__get_ele_indexes(records, field_pattern)
-        self.__get_split_lst_by_given_indexes(records, cut_indexes)
+        return (term_id_set, term_name_set)
+
+
+if __name__ == '__main__':
+    # so_file_path = 'F:\\temp\\SO-Ontologies-master\\so.obo'
+    so_file_path_shell = '/mnt/ilustre/users/sanger-dev/sg-users/jinlinfang/tmp/so.obo'
+    so_file = SequenceOntologyFile()
+    # so_file.set_path(so_file_path)
+    so_file.set_path(so_file_path_shell)
+    
+    so_file.parse()
+    (id_set, name_set) = so_file.findAll('SO:0000704')
+    print(len(id_set))
+    print(len(name_set))
+    print(name_set)

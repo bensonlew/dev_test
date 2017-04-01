@@ -102,20 +102,6 @@ class AssemblyModule(Module):
         self.step.gffcompare.start()
         self.step.update()
 
-    def gffcompare_run(self):
-        merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged.gtf")
-        gffcompare = self.add_tool("ref_rna.assembly.gffcompare")
-        gffcompare.set_options({
-             "merged.gtf": merged_gtf,
-             "ref_gtf": self.option('ref_gtf').prop['path'],
-         })
-        gffcompare.on('end', self.new_transcripts_run)
-        gffcompare.run()
-        self.sum_tools.append(gffcompare)
-        self.step.cuffcompare.finish()
-        self.step.new_transcripts.start()
-        self.step.update()
-
     def cufflinks_run(self):
         n = 0
         samples = os.listdir(self.option('sample_bam_dir').prop['path'])
@@ -152,25 +138,28 @@ class AssemblyModule(Module):
             "ref_fa": self.option('ref_fa').prop['path'],
             "ref_gtf": self.option('ref_gtf').prop['path'],
         })
-        cuffmerge.on('end', self.cuffcompare_run)
+        cuffmerge.on('end', self.gffcompare_run)
         cuffmerge.run()
         self.sum_tools.append(cuffmerge)
         self.step.cuffmerge.finish()
-        self.step.cuffcompare.start()
+        self.step.gffcompare.start()
         self.step.update()
 
-    def cuffcompare_run(self):
-        merged_gtf = os.path.join(self.work_dir, "Cuffmerge/output/merged.gtf")
-        cuffcompare = self.add_tool("ref_rna.assembly.cuffcompare")
-        cuffcompare.set_options({
+    def gffcompare_run(self):
+        merged_gtf = ""
+        if self.option("assemble_method") == "cufflinks":
+            merged_gtf = os.path.join(self.work_dir, "Cuffmerge/output/merged.gtf")
+        elif self.option("assemble_method") == "stringtie":
+            merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged.gtf")
+        gffcompare = self.add_tool("ref_rna.assembly.gffcompare")
+        gffcompare.set_options({
              "merged.gtf": merged_gtf,
-             "ref_fa": self.option('ref_fa').prop['path'],
              "ref_gtf": self.option('ref_gtf').prop['path'],
          })
-        cuffcompare.on('end', self.new_transcripts_run)
-        cuffcompare.run()
-        self.sum_tools.append(cuffcompare)
-        self.step.cuffcompare.finish()
+        gffcompare.on('end', self.new_transcripts_run)
+        gffcompare.run()
+        self.sum_tools.append(gffcompare)
+        self.step.gffcompare.finish()
         self.step.new_transcripts.start()
         self.step.update()
 
@@ -183,9 +172,9 @@ class AssemblyModule(Module):
         elif self.option("assemble_method") == "stringtie":
             tmap = os.path.join(self.work_dir, "StringtieMerge/output/cuffcmp.merged.gtf.tmap")
             old_merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged.gtf")
-            merged_gtf = self.work_dir + '/merged.gtf'
+            merged_gtf = os.path.join(self.work_dir, "merged.gtf")
             merged_add_code(old_merged_gtf, tmap, merged_gtf)
-            shutil.copy2(merged_gtf, old_merged_gtf)
+            os.system('cp -r %s %s' % (merged_gtf, old_merged_gtf))
         new_transcripts = self.add_tool("ref_rna.assembly.new_transcripts")
         new_transcripts.set_options({
             "tmap": tmap,
@@ -229,6 +218,7 @@ class AssemblyModule(Module):
         for tool in self.sum_tools:
             self.linkdir(tool.output_dir, 'assembly_newtranscripts')
         self.get_numberlist()
+        self.logger.info("完成统计样本中基因转录本个数")
         self.trans_stat()
         if self.option("assemble_method") == "cufflinks":
             gtf_file = 'Cufflinks'
@@ -259,33 +249,18 @@ class AssemblyModule(Module):
                 os.system('mv %s %s' % (old_dir + files, merge_dir + "/" + files))
             elif files.startswith("cuffcmp."):
                 os.system('mv %s %s' % (old_dir + files, compare_dir + "/" + files))
-            elif files.startswith("new_transcripts.") or files.startswith("new_genes."):
+            elif files.startswith("new_transcripts.") or files.startswith("new_genes.") or files.startswith("old_trans.gtf") or files.startswith("old_genes.gtf"):
                 os.system('mv %s %s' % (old_dir + files, new_transcripts_dir + "/" + files))
             elif files.endswith(".txt"):
                 os.system('mv %s %s' % (old_dir + files, statistics_dir + "/" + files))
         self.end()
 
     def run(self):
-        if self.option("assemble_method") =="cufflinks":
+        if self.option("assemble_method") == "cufflinks":
             self.cufflinks_run()
-        elif self.option("assemble_method") =="stringtie":
+        elif self.option("assemble_method") == "stringtie":
             self.stringtie_run()
         super(AssemblyModule, self).run()
-
-    def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"],
-            ["merged.gtf", "gtf", "样本合并之后的gtf文件"],
-            ["new_transcripts.gtf", "gtf", "新转录本gtf注释文件"],
-            ["new_transcripts.fa", "fa", "新转录本序列文件"],
-
-        ])
-        result_dir.add_regexp_rules([
-            ["_out.gtf", "gtf", "样本拼接之后的gtf文件"],
-            ["cuffcomp.*", "", "提取新转录本过程文件"],
-        ])
-        super(AssemblyModule, self).end()
 
     def get_list(self):
         gtffile_path = os.path.join(self.work_dir, "assembly_gtf.txt")
@@ -334,3 +309,45 @@ class AssemblyModule(Module):
                 for step in steps:
                     step_count(files, self.work_dir+"/" + f + ".txt", 10, step,
                                self.output_dir + "/assembly_newtranscripts/trans_count_stat_" + str(step) + ".txt")
+                self.logger.info("步长统计完成")
+                self.logger.info("开始统计class_code")
+            if f.endswith("merged.gtf"):
+                files = os.path.join(self.output_dir + '/assembly_newtranscripts', f)
+                code_count = os.path.join(self.output_dir + "/assembly_newtranscripts", "code_num.txt")
+                class_code_count(files, code_count)
+                if len(open(code_count).readline().split('\t')) == 3:
+                    self.logger.info("完成class_code统计")
+                else:
+                    raise Exception("class_code统计失败！")
+                self.logger.info("开始统计基因转录本外显子关系")
+                gene_trans = os.path.join(self.output_dir + "/assembly_newtranscripts", "gene_trans.txt")
+                gene_trans_final = os.path.join(self.output_dir + "/assembly_newtranscripts", "final_gene_trans.txt")
+                gene_trans_data(files, gene_trans, gene_trans_final)
+                if len(open(code_count).readline().split('\t')) == 3:
+                    self.logger.info("完成基因转录本统计")
+                else:
+                    raise Exception("基因转录本统计失败！")
+                self.logger.info("开始统计转录本外显子关系")
+                trans_exon = os.path.join(self.output_dir + "/assembly_newtranscripts", "trans_exon.txt")
+                trans_exon_final = os.path.join(self.output_dir + "/assembly_newtranscripts", "final_trans_exon.txt")
+                tran_exon_data(files, trans_exon, trans_exon_final)
+                if len(open(code_count).readline().split('\t')) == 3:
+                    self.logger.info("完成转录本外显子统计")
+                else:
+                    raise Exception("转录本外显子统计失败！")
+                self.logger.info("完成统计基因转录本外显子关系")
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [r".", "", "结果输出目录"],
+            ["merged.gtf", "gtf", "样本合并之后的gtf文件"],
+            ["new_transcripts.gtf", "gtf", "新转录本gtf注释文件"],
+            ["new_transcripts.fa", "fa", "新转录本序列文件"],
+
+        ])
+        result_dir.add_regexp_rules([
+            ["_out.gtf", "gtf", "样本拼接之后的gtf文件"],
+            ["cuffcomp.*", "", "提取新转录本过程文件"],
+        ])
+        super(AssemblyModule, self).end()
