@@ -243,8 +243,8 @@ class MetaPipelineWorkflow(Workflow):
             time.sleep(10)
             times += 10
             print times
-            if int(times) >= 172800:
-                raise Exception("程序没有响应，超过172800s自动终止！")
+            if int(times) >= 86400:
+                raise Exception("程序没有响应，超过86400s自动终止！") #48小时没有响应就终止
             if self.check_all(all_results, main_table_id):
                 self.set_db(all_results, main_table_id)
                 break
@@ -277,7 +277,10 @@ class MetaPipelineWorkflow(Workflow):
             if 'sub_anaylsis_id' in id.keys():
                 if 'id' in id['sub_anaylsis_id'].keys():
                     sub_anaylsis_main_id = str(id['sub_anaylsis_id']['id'])
-                    result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
+                    try:
+                        result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
+                    except:
+                        raise Exception("%s分析因为服务器不稳定导致%s主表状态永为start，请检查"%(id['submit_location'], sub_anaylsis_main_id)) #临时先这样排查状态不更新
                     if result and result['status'] != 'start':
                         anaysis_num.append(result['status'])
                     else:
@@ -285,7 +288,10 @@ class MetaPipelineWorkflow(Workflow):
                 elif isinstance(id['sub_anaylsis_id'], list):
                     for m in id['sub_anaylsis_id']:
                         sub_anaylsis_main_id = str(m['id'])
-                        result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
+                        try:
+                            result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
+                        except:
+                            raise Exception("%s分析因为服务器不稳定导致%s主表状态永为start，请检查"%(id['submit_location'], sub_anaylsis_main_id))
                         if result and result['status'] != 'start':
                             anaysis_num.append(result['status'])
                         else:
