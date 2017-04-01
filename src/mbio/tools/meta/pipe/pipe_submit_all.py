@@ -354,6 +354,8 @@ class PipeSubmitAllTool(Tool):
                     sub_analysis[anaylsis]['env_labs'] = info['env_labs']
                 else:
                     pass
+            gevent_data = []
+            submit_location_dict = {}
             for key in sub_analysis:
                 name = []
                 data = []  # 用于存储子分析参数的具体数值
@@ -370,25 +372,53 @@ class PipeSubmitAllTool(Tool):
                     api = submit_info['api']
                     method = "post"
                     # time.sleep(60)
-                    return_page = self.webapitest(method, api, name, data, client, base_url)
-                    result = json.loads(return_page)
-                    result = json.loads(result)
-                    ready_analysis_num += 1
-                    self.update_status(all_analysis_num, ready_analysis_num)
-                    if result['success'] == True:
-                        results = {"level_id": info['level_id'], "group_id": info['group_id'],
-                                   "sub_anaylsis_id": result['content']['ids'], "success": True,
-                                   "submit_location": submit_info['submit_location']}
-                        all_results.append(results)
-                    else:
-                        results = {"level_id": info['level_id'], "group_id": info['group_id'],
-                                   "info": result['info'], "success": False,
-                                   "submit_location": submit_info['submit_location']}
-                        all_results.append(results)
+                    submit_location_dict[str(gevent.spawn(self.webapitest, method=method, api=api, name=name, data=data, client=client, base_url=base_url))] = submit_info['submit_location']
+                    gevent_data.append(gevent.spawn(self.webapitest, method=method, api=api, name=name, data=data, client=client, base_url=base_url))
                 else:
-                    all_results.append(self.params_check(sub_analysis[key], analysis_table[sub_analysis[key]['submit_location']], sub_analysis[key]['submit_location']))
+                    all_results.append(
+                        self.params_check(sub_analysis[key], analysis_table[sub_analysis[key]['submit_location']],
+                                          sub_analysis[key]['submit_location']))
                     ready_analysis_num += 1
                     self.update_status(all_analysis_num, ready_analysis_num)
+            print "gevent_data", gevent_data
+            print "submit_location_dict", submit_location_dict
+            gevent.joinall(gevent_data)
+            for result_page in gevent_data:
+                a = str(result_page)
+                print "test", submit_location_dict[a]
+                result = json.loads(json.loads(result_page.value))
+                print result['success']
+                ready_analysis_num += 1
+                self.update_status(all_analysis_num, ready_analysis_num)
+                if result['success'] == True:
+                    results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                               "sub_anaylsis_id": result['content']['ids'], "success": True,
+                               "submit_location": submit_location_dict[str(result_page)]}
+                    all_results.append(results)
+                else:
+                    results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                               "info": result['info'], "success": False,
+                               "submit_location": submit_location_dict[str(result_page)]}
+                    all_results.append(results)
+                    # return_page = self.webapitest(method, api, name, data, client, base_url)
+                    # result = json.loads(return_page)
+                    # result = json.loads(result)
+                    # ready_analysis_num += 1
+                    # self.update_status(all_analysis_num, ready_analysis_num)
+                    # if result['success'] == True:
+                    #     results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                    #                "sub_anaylsis_id": result['content']['ids'], "success": True,
+                    #                "submit_location": submit_info['submit_location']}
+                    #     all_results.append(results)
+                    # else:
+                    #     results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                    #                "info": result['info'], "success": False,
+                    #                "submit_location": submit_info['submit_location']}
+                    #     all_results.append(results)
+                # else:
+                #     all_results.append(self.params_check(sub_analysis[key], analysis_table[sub_analysis[key]['submit_location']], sub_analysis[key]['submit_location']))
+                #     ready_analysis_num += 1
+                #     self.update_status(all_analysis_num, ready_analysis_num)
         output_table = os.path.join(self.work_dir, "ids.txt")
         with open(output_table, "w") as w:
             w.write(str(all_results))
