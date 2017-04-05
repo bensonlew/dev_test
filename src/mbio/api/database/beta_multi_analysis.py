@@ -305,6 +305,7 @@ class BetaMultiAnalysis(Base):
                 print(new_head)
                 new_head[-1] = "p_values"
                 new_head[-2] = "r"
+                self.new_head = new_head
                 for line in r:
                     line = line.rstrip("\r\n")
                     line = re.split(' ', line)
@@ -326,7 +327,13 @@ class BetaMultiAnalysis(Base):
             else:
                 self.bind_object.logger.info("导入sg_beta_multi_analysis_detail表格成功")
             self._tables.append(tabletype)
-            self.insert_main_tables(self._tables, update_id)
+            # self.insert_main_tables(self._tables, update_id)
+            main_collection = self.db['sg_beta_multi_analysis']
+            main_collection.update_one({'_id': update_id},
+                                       {'$set': {tabletype: ','.join(self.new_head)}},
+                                       upsert=False)
+
+
 
 
 
