@@ -61,7 +61,7 @@ class MetaController(object):
         if 'update_info' not in options:
             raise Exception("参数中没有 update_info 字段")
         update_info = json.loads(options['update_info'])
-        for main_id, coll in update_info:
+        for main_id, coll in update_info.iteritems():
             self.meta.update_workflow_id(coll, main_id, self._sheet_data['id'])
 
 
