@@ -325,6 +325,9 @@ class BetaMultiAnalysis(Base):
                 self.bind_object.logger.error("导入sg_beta_multi_analysis_detail表格信息出错:{}".format(e))
             else:
                 self.bind_object.logger.info("导入sg_beta_multi_analysis_detail表格成功")
+            self._tables.append(tabletype)
+            self.insert_main_tables(self._tables, update_id)
+
 
 
 
