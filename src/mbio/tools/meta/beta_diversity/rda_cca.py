@@ -219,17 +219,18 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         old_env_table = self.get_new_env()
         otu_species_list = self.get_species_name()
         self.otu_table = self.work_dir + '/new_otu.xls'
-        env_table = self.work_dir + '/new_env.xls'
-        self.env_labs = self.rm_(env_table)
+        self.env_table = self.work_dir + '/new_env.xls'
+        # self.env_table = self.rm_(env_table)
         if not self.create_otu_and_env_common(old_otu_table, old_env_table, self.otu_table, self.env_table):
             self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
         tablepath = self.work_dir + '/remove_zero_line_otu.xls'
         self.remove_zero_line(self.formattable(self.otu_table), tablepath)
         self.env_labs = open(self.env_table, 'r').readline().strip().split('\t')[1:]
+        self.env_table_ = self.rm_(self.env_table)
         self.logger.info(tablepath)
         cmd = self.cmd_path
         cmd += ' -type rdacca -community %s -environment %s -outdir %s -env_labs %s' % (
-               tablepath, self.env_table,
+               tablepath, self.env_table_,
                self.work_dir, '+'.join(self.env_labs))
         try:
             subprocess.check_output(cmd, shell=True)
@@ -245,7 +246,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
             self.logger.info('Rda/Cca计算失败')
             self.set_error('R程序计算Rda/Cca失败')
         allfiles = self.get_filesname()
-        for i in [1, 2, 3, 4, 5]:
+        for i in [1, 2, 3, 4, 5, 6]:
             if allfiles[i]:
                 newname = '_'.join(os.path.basename(allfiles[i]).split('_')[-2:])
                 if i == 4:
@@ -415,7 +416,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
             for r in content:
                 if r.startswith("#"):
                     r = r.split("\t")
-                    readline = "sample" + "\t" +("\t").join(r[1:-1]) +"\n"
+                    readline = "sample" + "\t" +("\t").join(r[1:]) +"\n"
                     w.write(readline)
                 else:
                     w.write(r)

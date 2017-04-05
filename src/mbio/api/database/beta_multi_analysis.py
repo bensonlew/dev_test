@@ -293,16 +293,30 @@ class BetaMultiAnalysis(Base):
             with open(filepath,'rb') as r:
                 head = r.next().strip('\r\n')
                 head = re.split(' ', head)
-                new_head = head
+                new_head_old = head
+                new_head =[]
+                for f in range(0, len(new_head_old)):
+                    pattern = re.compile('"(.*)"')
+                    new_head_ = pattern.findall(new_head_old[f])
+                    new_head.append(new_head_[0])
+                    # m = re.match('/\"(.*)\"/', new_head[f])
+                    # if m:
+                    #     new_head[f] = m.group(0)
+                print(new_head)
+                new_head[-1] = "p_values"
+                new_head[-2] = "r"
                 for line in r:
                     line = line.rstrip("\r\n")
                     line = re.split(' ', line)
                     content = line[1:]
+                    pattern = re.compile('"(.*)"')
+                    env_name = pattern.findall(line[0])
                     env_detail = dict()
                     for i in range(0, len(content)):
                         env_detail[new_head[i]] = content[i]
                     env_detail['multi_analysis_id'] = update_id
                     env_detail['type'] = tabletype
+                    env_detail['env'] = env_name[0]
                     insert_data.append(env_detail)
             try:
                 collection = self.db['sg_beta_multi_analysis_detail']
