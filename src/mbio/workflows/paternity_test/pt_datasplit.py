@@ -105,20 +105,22 @@ class PtDatasplitWorkflow(Workflow):
 				self.sample_name_un.append(j)
 		n = 0
 		self.tools = []
+		self.wq_dir = os.path.join(self.output_dir, "wq_dir")
 		for i in self.sample_name_wq:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			# self.step.add_steps('merge_fastq{}'.format(n))
 			merge_fastq.set_options({
 				"sample_dir_name": i,
-				"data_dir": self.data_dir
+				"data_dir": self.data_dir,
+				"result_dir": self.wq_dir,
 			})
 			# step = getattr(self.step, 'merge_fastq{}'.format(n))
 			# step.start()
 			# merge_fastq.on('end', self.finish_update, 'merge_fastq{}'.format(n))
 			self.tools.append(merge_fastq)
 			n += 1
-		for j in range(len(self.tools)):
-			self.tools[j].on('end', self.set_output, 'merge_fastq')
+		# for j in range(len(self.tools)):
+		# 	self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
 			if len(self.sample_name_ws) == 0 and len(self.sample_name_un) != 0:
 				self.on_rely(self.tools, self.run_merge_fastq_un)
@@ -140,16 +142,18 @@ class PtDatasplitWorkflow(Workflow):
 		self.run_wq_wf()  # 启动亲子鉴定流程和导表工作
 		n = 0
 		self.tools = []
+		ws_dir = os.path.join(self.output_dir, "ws_dir")
 		for i in self.sample_name_ws:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			merge_fastq.set_options({
 				"sample_dir_name": i,
-				"data_dir": self.data_dir
+				"data_dir": self.data_dir,
+				"result_dir": ws_dir
 			})
 			self.tools.append(merge_fastq)
 			n += 1
-		for j in range(len(self.tools)):
-			self.tools[j].on('end', self.set_output, 'merge_fastq')
+		# for j in range(len(self.tools)):
+		# 	self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
 			if len(self.sample_name_un) != 0:
 				self.on_rely(self.tools, self.run_merge_fastq_un)
@@ -208,16 +212,18 @@ class PtDatasplitWorkflow(Workflow):
 			self.run_wq_wf()
 		n = 0
 		self.tools = []
+		undetermined_dir = os.path.join(self.output_dir, "undetermined_dir")
 		for i in self.sample_name_un:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			merge_fastq.set_options({
 				"sample_dir_name": i,
-				"data_dir": self.data_dir
+				"data_dir": self.data_dir,
+				"result_dir": undetermined_dir
 			})
 			self.tools.append(merge_fastq)
 			n += 1
-		for j in range(len(self.tools)):
-			self.tools[j].on('end', self.set_output, 'merge_fastq')
+		# for j in range(len(self.tools)):
+		# 	self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
 			self.on_rely(self.tools, self.end)
 		else:

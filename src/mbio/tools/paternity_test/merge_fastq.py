@@ -20,7 +20,8 @@ class MergeFastqAgent(Agent):
 		super(MergeFastqAgent, self).__init__(parent)
 		options = [
 			{"name": "sample_dir_name", "type": "string"},
-			{"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"}
+			{"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"},
+			{"name": "result_dir", "type": "string"}
 		]
 		self.add_option(options)
 		self.step.add_steps("merge_fastq")
@@ -134,9 +135,11 @@ class MergeFastqTool(Tool):
 		gz_r2_file_path = self.r2_path + ".gz"
 		if os.path.exists(gz_r1_file_path):
 			shutil.copy(gz_r1_file_path, self.output_dir)
+			shutil.copy(gz_r1_file_path, self.option("result_dir"))
 		else:
 			self.set_error("no R1_fastq.gz file")
 		if os.path.exists(gz_r2_file_path):
 			shutil.copy(gz_r2_file_path, self.output_dir)
+			shutil.copy(gz_r2_file_path, self.option("result_dir"))
 		else:
 			self.set_error("no R2_fastq.gz file")
