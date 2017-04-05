@@ -7,9 +7,9 @@ import re, os, Bio, argparse, sys, fileinput, urllib2
 import Bio
 import subprocess
 from bs4 import BeautifulSoup
-from iofile import File
-from gff3 import Gff3File
-import regex
+from biocluster.iofile import File
+# from gff3 import Gff3File
+# import regex
 import logging
 from collections import defaultdict
 
@@ -73,7 +73,7 @@ class GtfFile(File):
         '''
         for line in open(self.path):
             comment_m = re.match(r'^#.+', line.strip())
-            content_m = regex.match(
+            content_m = re.match(
                 r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
             
@@ -90,11 +90,10 @@ class GtfFile(File):
         :return:
         '''
         
-        
         for line in open(self.path):
             
             comment_m = re.match(r'^#.+', line.strip())
-            content_m = regex.match(
+            content_m = re.match(
                 r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
             
@@ -117,7 +116,6 @@ class GtfFile(File):
                 strand_m = re.match(r'^[\.\?\-\+]$', strand)
                 if not (contig_m and seq_type_m and start_m and frame_m and end_m and strand_m):
                     raise Exception('line {} in gtf file {} is not legal.'.format(line.strip(), self.path))
-                
     
     def __check_hierachy(self):
         '''
@@ -125,16 +123,16 @@ class GtfFile(File):
         :return:
         '''
         for line in open(self.path):
-        
+            
             comment_m = re.match(r'^#.+', line.strip())
-            content_m = regex.match(
+            content_m = re.match(
                 r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
-        
+            
             if not (comment_m or content_m):
                 raise Exception(
                     'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
-        
+            
             if content_m:
                 contig = content_m.captures(3)[0]
                 seq_type = content_m.captures(3)[1]
@@ -148,14 +146,13 @@ class GtfFile(File):
                 end_m = re.match(r'^\d+$', end)
                 frame_m = re.match(r'^[\.120]$', frame)
                 strand_m = re.match(r'^[\.\?\-\+]$', strand)
-                
-                if gene_id:
-                
- 
-                gene_id = content_m.captures()
+                #
+                # if gene_id:
+                #
+                # gene_id = content_m.captures()
                 if not (contig_m and seq_type_m and start_m and frame_m and end_m and strand_m):
                     raise Exception('line {} in gtf file {} is not legal.'.format(line.strip(), self.path))
-                self._structure_hierachy[contig][]
+                # self._structure_hierachy[contig][]
     
     def check_gtf_for_merge(self):
         '''
