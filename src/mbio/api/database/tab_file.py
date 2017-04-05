@@ -89,7 +89,7 @@ class TabFile(Base):
 		if not result:
 			self.bind_object.logger.info("样本{}不在数据库中，开始进行转tab文件并入库流程".format(sample))
 		else:
-			self.bind_object.logger.info("样本{}已存在数据库中，不进行fastq转tab流程".format(sample))
+			self.bind_object.logger.info("样本{}已存在数据库中，或是多重实验样本".format(sample))
 		return result
 
 
@@ -172,7 +172,6 @@ class TabFile(Base):
 						color = ''
 				elif line[0] == 'num':
 					num_M = int(line[1])/1000000
-					line[0] = format(line[0],',')
 					if "-M" in sample_id or "-F" in sample_id:
 						if num_M <3:
 
@@ -191,10 +190,10 @@ class TabFile(Base):
 				else:
 					color = ''
 					if line[0] == "n_dedup" or line[0] == "n_mapped" or line[0]\
-							== "n_mapped_dedup" or line[0] == "n_hit" or line[0] =="n_hit_dedup":
-						line[0] = format(line[0], ',')
+							== "n_mapped_dedup" :
+						line[1] = format(int(line[1]), ',')
 					elif line[0] == "0Xcoveragerate" or line[0] == "15Xcoveragerate" or line[0] == "50Xcoveragerate":
-						line[0] = round(line[0],4)
+						line[1] = round(float(line[1]),4)
 
 				insert_data = {
 					"qc": line[0],
@@ -217,8 +216,12 @@ class TabFile(Base):
 
 		find_n_hit = collection.find_one({"sample_id":sample_id, 'qc':'n_hit'})
 		n_hit = float(find_n_hit['value'])
+		n_hit_new = format(n_hit,',')
+
 		find_num = collection.find_one({"sample_id":sample_id, "qc":'num'})
 		num = float(find_num['value'])
+		num_new = format(num,',')
+
 		ot = round(n_hit/num, 4)
 		if ot <= 0.015:
 			color_ot = 'red'
@@ -230,6 +233,7 @@ class TabFile(Base):
 		find_n_hit_dedup = collection.find_one({"sample_id": sample_id, 'qc': 'n_hit_dedup'})
 		n_hit_dedup = float(find_n_hit_dedup['value'])
 		ot_dedup = round(n_hit_dedup/n_hit,4)
+		n_hit_dedup_new = format(n_hit_dedup,',')
 
 		if ot_dedup<=0.2:
 			color_ot_dedup = 'red'
@@ -255,6 +259,9 @@ class TabFile(Base):
 		insert.append(insert_data2)
 		try:
 			collection.insert_many(insert)
+			collection.find_one_and_update({"sample_id":sample_id,'qc':'n_hit_dedup'},{"$set":{"value":n_hit_dedup_new}})
+			collection.find_one_and_update({"sample_id":sample_id,'qc':'n_hit'},{"$set":{"value":n_hit_new}})
+			collection.find_one_and_update({"sample_id":sample_id,'qc':'num'},{"$set":{"value":num_new}})
 		except Exception as e:
 			self.bind_object.logger.error('计算并导入ot出错：{}'.format(e))
 		else:
@@ -264,7 +271,7 @@ class TabFile(Base):
 	def family_unanalysised(self):
 		family_id = []
 		collection = self.database['sg_pt_ref_main']
-		sample = collection.find({"analysised":'no',"type":{"$regex":"(p)?pt$"}})
+		sample = collection.find({"analysised":'no',"type":'pt'})
 		for i in sample:
 			dad_id = []
 			mom_id =[]
@@ -274,7 +281,7 @@ class TabFile(Base):
 			dad_id.append(i['sample_id'])
 			dad_id = list(set(dad_id))
 			mom = "WQ" + family + "-M.*"
-			sample_mom = collection.find({"sample_id": {"$regex": mom},"analysised":"None"})
+			sample_mom = collection.find({"sample_id": {"$regex": mom},"analysised":"None", "type":"pt"})
 			for s in sample_mom:
 				mom_id.append(s['sample_id'])
 				mom_id = list(set(mom_id))
