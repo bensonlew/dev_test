@@ -19,6 +19,7 @@ class MetaController(object):
         self._post_data = None
         self._sheet_data = None
         self._return_msg = None
+        self.meta = Meta()
 
     @property
     def data(self):
@@ -56,6 +57,15 @@ class MetaController(object):
         """
         return self._sheet_data
 
+    def record_worflow_id(self, options):
+        if 'update_info' not in options:
+            raise Exception("参数中没有 update_info 字段")
+        update_info = json.loads(options['update_info'])
+        for main_id, coll in update_info:
+            self.meta.update_workflow_id(coll, main_id, self._sheet_data['id'])
+
+
+
     @check_sig
     @meta_check
     def POST(self):
@@ -77,10 +87,9 @@ class MetaController(object):
         """
         print("INFO: 任务提交出错，尝试更新主表状态为failed。")
         try:
-            meta = Meta()
             update_info = json.loads(self.sheet_data['options']['update_info'])
             for i in update_info:
-                meta.update_status_failed(update_info[i], i)
+                self.meta.update_status_failed(update_info[i], i)
                 print("INFO: 更新主表状态为failed成功: coll:{} _id:{}".format(update_info[i], i))
         except Exception as e:
             print('ERROR:尝试回滚主表状态为failed 失败:{}'.format(e))
@@ -100,7 +109,7 @@ class MetaController(object):
         self._post_data = web.input()
         if hasattr(self.data, 'otu_id'):
             otu_id = self.data.otu_id
-            table_info = Meta().get_otu_table_info(otu_id)
+            table_info = self.meta.get_otu_table_info(otu_id)
         else:
             distance_id = self.data.specimen_distance_id
             table_info = Distance().get_distance_matrix_info(distance_id)
@@ -128,6 +137,7 @@ class MetaController(object):
         # if main_table_name:
         #     self._sheet_data["main_table_name"] = main_table_name
         print('Sheet_Data: {}'.format(self._sheet_data))
+        self.record_worflow_id(options)
         return self._sheet_data
 
     def get_new_id(self, task_id, otu_id=None):
@@ -150,7 +160,7 @@ class MetaController(object):
         modified by hongdongxuan 20170320
         """
         data = web.input()
-        task_info = Meta().get_task_info(task_id)
+        task_info = self.meta.get_task_info(task_id)
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
             target_dir = 'sanger'
