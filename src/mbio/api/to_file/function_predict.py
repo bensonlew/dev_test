@@ -31,6 +31,7 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
     samples = list()
     table_dict = {}
     group_detail = bind_obj.sheet.option("group_detail")
+    group_method = bind_obj.sheet.option("group_method")
     bind_obj.logger.debug(group_detail)
     if not isinstance(group_detail, dict):
         try:
@@ -55,11 +56,45 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
         w.write(json.dumps(group_dict))
     collection = db['sg_otu_detail']
     with open(table_path, "wb") as f, open(rep_path, "wb") as w:
-        f.write("OTU ID\t%s\n" % "\t".join(samples))
+        header = "OTU ID"
+        if group_method == "":
+            header += "\t%s" % "\t".join(samples)
+        else:
+            for g in group_dict:
+                header += "\t%s" % g
+        f.write(header + "\n")
         for col in collection.find({"otu_id": ObjectId(data)}):
             table_line = "%s\t" % col["otu"]
-            for s in samples:
-                table_line += "%s\t" % col[s]
+            if group_method == "":
+                for s in samples:
+                    table_line += "%s\t" % col[s]
+            if group_method == "sum":
+                for g in group_dict:
+                    otu = 0
+                    for s in group_dict[g]:
+                        otu += col[s]
+                    table_line += "%s\t" % otu
+            if group_method == "average":
+                for g in group_dict:
+                    sample_count = 0
+                    otu = 0
+                    for s in group_dict[g]:
+                        otu += col[s]
+                        sample_count += 1
+                    table_line += "%s\t" % (float(otu)/sample_count)
+            if group_method == "middle":
+                for g in group_dict:
+                    otu_list = []
+                    otu = 0
+                    for s in group_dict[g]:
+                        otu_list.append(col[s])
+                    otu_list = sorted(otu_list)
+                    length = len(otu_list)
+                    if (length % 2) == 1:
+                        otu = otu_list[length/2]
+                    else:
+                        otu = float(otu_list[length/2] + otu_list[length/2 - 1])/2
+                    table_line += "%s\t" % otu
             f.write("%s\n" % table_line)
             line = ">%s\n" % col["otu"]
             line += col["otu_rep"]

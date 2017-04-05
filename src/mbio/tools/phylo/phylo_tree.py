@@ -51,7 +51,7 @@ class PhyloTreeAgent(Agent):
         self._cpu = 10
         total = os.path.getsize(self.option("fasta_file").prop["path"])
         total = int(math.ceil(total / (1024 * 1024 * 1024)))
-        total = int(total * 20)
+        total = int(total * 45)
         self._memory = "{}G".format(total)
 
     def end(self):
