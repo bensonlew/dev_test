@@ -139,7 +139,7 @@ class OtuTaxonStatTool(Tool):
         self.logger.info("由otu开始转化biom")
         create_taxon_biom.run()
         self.wait(create_taxon_biom)
-        if create_taxon_biom.return_code == 0 or 'None':
+        if create_taxon_biom.return_code == 0:
             self.logger.info("taxon_biom生成成功")
         else:
             self.set_error("taxon_biom生成失败")
