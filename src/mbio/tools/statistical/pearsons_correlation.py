@@ -196,7 +196,8 @@ class PearsonsCorrelationTool(Tool):
     def run_heatmap(self):
         line_num = self.get_name(self.work_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level'))
         if line_num < 2:
-            self.set_error('相关系数矩阵行数/物种数小于2，请尝试切换水平重新运行')
+            raise Exception('相关系数矩阵行数/物种数小于2，请尝试切换水平重新运行') #modified by hongdongxuan 20170406
+            # self.set_error('相关系数矩阵行数/物种数小于2，请尝试切换水平重新运行')
         corr_heatmap(self.work_dir + "/tem.collection.xls", "env_tree.tre", "species_tree.tre",
                      self.option("env_cluster"), self.option("species_cluster"))
         cmd = self.r_path + " run_corr_heatmap.r"
