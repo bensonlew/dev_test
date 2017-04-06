@@ -71,6 +71,7 @@ class Rarefaction(MetaController):
             ('otu_id', ObjectId(data.otu_id)),
             ("level_id", int(data.level_id)),
             ('status', 'start'),
+            ('desc', '正在计算'),
             ('name', main_table_name),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))

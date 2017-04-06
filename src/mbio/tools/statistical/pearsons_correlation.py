@@ -216,18 +216,18 @@ class PearsonsCorrelationTool(Tool):
         return self.env_name[matchobj.groups()[0]]
 
     def set_output(self):
-        newpath = self.output_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level')
+        newpath = self.output_dir + "/pearsons_correlation.xls"
         if os.path.exists(newpath):
             os.remove(newpath)
         os.link(self.work_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level'),
-                self.output_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level'))
+                self.output_dir + "/pearsons_correlation.xls")
         self.option('cor_table', newpath)
 
-        newpath2 = self.output_dir + "/pearsons_pvalue_at_%s_level.xls" % self.option('level')
+        newpath2 = self.output_dir + "/pearsons_pvalue.xls"
         if os.path.exists(newpath2):
             os.remove(newpath2)
         os.link(self.work_dir + "/pearsons_pvalue_at_%s_level.xls" % self.option('level'),
-                self.output_dir + "/pearsons_pvalue_at_%s_level.xls" % self.option('level'))
+                self.output_dir + "/pearsons_pvalue.xls")
         self.option('pvalue_table', newpath2)
 
         species_tree_path = self.work_dir + "/species_tree.tre"
