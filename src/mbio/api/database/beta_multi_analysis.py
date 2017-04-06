@@ -304,7 +304,7 @@ class BetaMultiAnalysis(Base):
                     #     new_head[f] = m.group(0)
                 print(new_head)
                 new_head[-1] = "p_values"
-                new_head[-2] = "r"
+                new_head[-2] = "r2"
                 self.new_head = new_head
                 for line in r:
                     line = line.rstrip("\r\n")
