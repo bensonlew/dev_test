@@ -22,6 +22,7 @@ import pymongo
 import copy
 import random
 import traceback
+import datetime
 from gevent import monkey
 from biocluster.wpm.client import worker_client, wait
 
@@ -151,14 +152,14 @@ class PipeSubmitTool(Tool):
         else:
             raise Exception("没有找到相应的类模块， 请添加：{}".format(class_name))
 
-    def get_otu_subsample_params(self, group_info):
+    def get_otu_subsample_params(self, group_detail):
         """
         """
         params = {
             'otu_id': self.web_data['otu_id'],
             'filter_json': filter_json_sort(self.web_data['filter_json']),
-            'group_id': group_info['group_id'],
-            'group_detail': group_detail_sort(group_info['group_detail']),
+            'group_id': 'all',
+            'group_detail': group_detail_sort(group_detail),
             'submit_location': 'otu_statistic',
             'task_type': 'reportTask',
             'size': self.web_data['size']
@@ -182,6 +183,16 @@ class PipeSubmitTool(Tool):
         }
         return urllib.urlencode(signature)
 
+    def pipe_main_mongo_insert(self, level, group_info):
+        insert_data = {
+            'pipe_batch_id': ObjectId(self.option('pipe_id')),
+            'level_id': int(level),
+            'group_id': ObjectId(group_info['group_id']),
+            'task_id': self.option('task_id')
+        }
+        return self.db['sg_pipe_main'].insert_one(insert_data).inserted_id
+        pass
+
     def run_webapitest(self):
         """
         进行参数判断后投递所有的接口，如果后面要添加新的分析，主要要添加以下几个地方的内容：
@@ -199,7 +210,7 @@ class PipeSubmitTool(Tool):
             "otunetwork_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_network"},
             "roc_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "top_n_id", "method_type", "submit_location"], "collection_name": "sg_roc"},
             "alpha_diversity_index": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "submit_location", "task_type"], "collection_name": "sg_alpha_diversity"},
-            "alpha_ttest": {"instant": True, "waits": ["alpha_diversity_index"], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
+            "alpha_ttest": {"instant": True, "waits": ["alpha_diversity_index", 'otu_subsample'], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
             "beta_multi_analysis_plsda": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
             "beta_sample_distance_hcluster_tree": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "hcluster_method", "task_type", "submit_location"], "collection_name": "sg_newick_tree"},
             "beta_multi_analysis_pearson_correlation": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "species_cluster", "submit_location", "method", "top_species", "env_cluster"], "collection_name": "sg_species_env_correlation"},
@@ -220,9 +231,6 @@ class PipeSubmitTool(Tool):
             "plot_tree": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "color_level_id", "submit_location", "topn"], "collection_name": "sg_phylo_tree"},
             "enterotyping": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_enterotyping"},
         }
-        # shenghe
-        # data = json.load(open('data.json'))
-        # self.web_data = data
         self.web_data = json.loads(self.option('data'))
         self.web_data['sub_analysis'] = json.loads(
             self.web_data['sub_analysis'])
@@ -231,7 +239,6 @@ class PipeSubmitTool(Tool):
             'level_id'].strip().split(',')]
         self.count_ends = 0
         self.task_client = self.web_data['client']
-        # shenghe
         # self.mysql_client_key = worker_client().get_key(self.task_client)
         self.mysql_client_key = worker_client().add_task({})
         self.mysql_client_key = 'mykey'
@@ -239,18 +246,17 @@ class PipeSubmitTool(Tool):
         # monkey.patch_ssl()
         self.signature = self.signature()
         self.task_id = self.option("task_id")
-        self.url = "http://bcl.i-sanger.com" if self.task_client == "client01" else "http://192.168.12.102:9090"
+        self.url = "http://localhost" if self.task_client == "client01" else "http://192.168.12.102:9090"
         self.all = {}
         self.all_count = 0
         sixteens_prediction_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
+        api, instant, collection_name, params = self.get_otu_subsample_params(self.web_data['group_detail'])
+        otu_subsample = SubmitOtuSubsample(self, collection_name, params, api, instant)
         for level in self.levels:
             self.all[level] = {}
             for group_info in self.group_infos:
+                pipe_main_id = self.pipe_main_mongo_insert(level, group_info)
                 pipe = {}
-                api, instant, collection_name, params = self.get_otu_subsample_params(
-                    group_info)
-                otu_subsample = SubmitOtuSubsample(
-                    self, collection_name, params, api, instant)
                 for i in self.web_data['sub_analysis']:
                     if i == 'sixteens_prediction' and sixteens_prediction_flag:
                         continue
@@ -260,9 +266,8 @@ class PipeSubmitTool(Tool):
                         group_info['group_detail'])
                     params['level_id'] = level
                     pipe[i] = self.get_class(i)(
-                        self, collection_name, params, api, instant)
+                        self, collection_name, params, api, instant, pipe_main_id)
                 pipe['otu_subsample'] = otu_subsample
-                otu_subsample.start([], timeout=6000)
                 for analysis, submit in pipe.iteritems():
                     if analysis == 'otu_subsample':
                         continue
@@ -272,6 +277,7 @@ class PipeSubmitTool(Tool):
                 self.all[level][group_info["group_id"]] = pipe
                 self.all_count += len(pipe)
                 sixteens_prediction_flag = True
+        otu_subsample.start([], timeout=6000)
 
         self.all_end = AsyncResult()
         self.all_end.get()
@@ -285,7 +291,7 @@ class PipeSubmitTool(Tool):
 class Submit(object):
     """投递对象"""
 
-    def __init__(self, bind_object, collection, params, api, instant):
+    def __init__(self, bind_object, collection, params, api, instant, pipe_main_id=None):
         """
         :params bind_object:
         :params collection:
@@ -295,6 +301,7 @@ class Submit(object):
         """
         self.workflow_id = ''  # workflow的ID
         self.task_id = bind_object.task_id
+        self.pipe_main_id = pipe_main_id
         self.api = api  # 接口url
         self.main_table_id = ''  # 主表_id
         self._params = params  # 参数
@@ -356,12 +363,19 @@ class Submit(object):
         self.run_permission()
         self.post_to_webapi()
         if 'success' in self.result and self.result['success']:
-            if isinstance(self.result['content']['ids'], list):
-                self.main_table_id = self.result['content']['ids'][0]['id']
-            else:
-                self.main_table_id = self.result['content']['ids']['id']
+            self.main_table_id = self.result['content']['ids']['id']
             if not self.instant:
-                self.check_end(ObjectId(self.main_table_id))
+                self.insert_pipe_detail(self.result['content']["ids"]['name'], self.main_table_id, "start")
+                # self.check_end(ObjectId(self.main_table_id))
+            else:
+                self.insert_pipe_detail(self.result['content']['ids']['name'], ObjectId(self.result['content']['ids']['id']), 'end')
+        elif 'success' in self.result and not self.result['success']:
+            if 'content' in self.result:
+                self.insert_pipe_detail(self.result['content']['ids']['name'], ObjectId(self.result['content']['ids']['id']), 'failed')
+            else:
+                self.insert_pipe_detail(None, None, 'failed')
+        else:
+            self.bind_object.logger.error("任务接口返回值不规范: {}".format(self.result))
         self.end_fire()
         self._end_event.set()
 
@@ -372,6 +386,30 @@ class Submit(object):
         if self.check_params():
             return self.result
         self.result = self.post()
+
+    def insert_pipe_detail(self, table_name, table_id, status):
+        group_name = self.db.find_one({'_id': ObjectId(self._params['group_id'])}, {'group_name': 1})['group_name']
+        level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[self._params['level_id']]
+        insert_data = {
+            "task_id": self.task_id,
+            "otu_id": self.bind_object.otu_id,
+            'group_name': group_name,
+            'level_name': level_name,
+            "submit_location": self._params['submit_location'],
+            'params': self.json_params,
+            'pipe_main_id': self.pipe_main_id,
+            'pipe_batch_id': self.bind_object.option('pipe_id'),
+            'table_id': table_id,
+            'status': status,
+            'desc': self.result['info'],
+            'level_id': self._params['level_id'],
+            "group_id": self._params['group_id'],
+            'type_name': self.mongo_collection,
+            'table_name': table_name,
+            'created_ts': datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        }
+        self._pipe_detail_id = self.db['sg_pipe_detail'].insert_one(insert_data).inserted_id
+
 
     def run_permission(self):
         if self.instant:
@@ -392,9 +430,8 @@ class Submit(object):
                 self.bind_object.logger.warn(
                     "任务等待时间达到上限3000s,直接运行: {}".format(self.api))
             self.bind_object.count_submit_running += 1
-        self.bind_object.logger.info("任务开始投递: {}, 当前即时任务数: {}, 投递任务数: {}".format(self.api,
-                                                                                 self.bind_object.count_instant_running,
-                                                                                 self.bind_object.count_submit_running))
+        self.bind_object.logger.info("任务开始投递: {}, 当前即时任务数: {}, 投递任务数: {}".format(
+            self.api, self.bind_object.count_instant_running, self.bind_object.count_submit_running))
 
     def url_params_format(self):
         temp_params = copy.deepcopy(self._params)
@@ -403,6 +440,9 @@ class Submit(object):
             if i in temp_params and temp_params[i]:
                 temp_params[i] = json.dumps(
                     temp_params[i], sort_keys=True, separators=(',', ':'))
+        if not self.instant:
+            temp_params['pipe_id'] = str(self.pipe_main_id)
+            temp_params['batch_id'] = str(self.bind_object.option('pipe_id'))
         return temp_params
 
     def post(self):
@@ -429,7 +469,7 @@ class Submit(object):
             else:
                 the_page = response.read()
                 return json.loads(the_page)
-        return {"info": "分析项投递失败！", "success": False}
+        return {"info": "分析项: {} 投递失败！".format(self.api), "success": False}
 
     @property
     def end_event(self):
@@ -437,7 +477,7 @@ class Submit(object):
 
     def check_end(self, id, timeout=3600):
         """
-        检查投递任务是否结束
+        检查投递任务是否结束  目前只用于特殊情况， 即参数相同，但是不由 一键化提交
         """
         for i in xrange(100):
             self.bind_object.logger.info("第 {} 次 查询数据库，检测任务({}, {}))是否完成".format(
@@ -468,8 +508,9 @@ class Submit(object):
         检查参数，发现end状态，直接放回计算完成，发现start状态，直接监控直到结束
         """
         self.waits_params_get()  # 依赖分析的参数获取
-        result = self.db[self.mongo_collection].find({'task_id': self.task_id, 'params': self.params_pack(
-            self._params), 'status': {'$in': ['end', 'start', "failed"]}})
+        self.json_params = self.params_pack(self._params)
+        result = self.db[self.mongo_collection].find({'task_id': self.task_id, 'params': self.json_params,
+                                                      'status': {'$in': ['end', 'start', "failed"]}})
         if not result.count():
             self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}, params: {}".format(
                 self.api, self.mongo_collection, self.params_pack(self._params)))
@@ -519,6 +560,31 @@ class BetaSampleDistanceHclusterTree(Submit):
 
 
 class SubmitOtuSubsample(Submit):
+    def _submit(self, waits, timeout):
+        """投递任务"""
+        for i in waits:
+            i.end_event.get(timeout=timeout)
+            if not i.success:
+                self.bind_object.rely_error(self, i)
+                return
+        self.run_permission()
+        self.post_to_webapi()
+        if 'success' in self.result and self.result['success']:
+            for i in self.result['content']['ids']:
+                self.main_table_id = ObjectId(i['id'])
+                self.insert_pipe_detail(i['name'], ObjectId(i['id']), 'end')
+        elif 'success' in self.result and not self.result['success']:
+            if 'content' in self.result:
+                for i in self.result['content']['ids']:
+                    self.main_table_id = ObjectId(i['id'])
+                    self.insert_pipe_detail(i['name'], ObjectId(i['id']), 'failed')
+            else:
+                self.insert_pipe_detail(None, None, 'failed')
+        else:
+            self.bind_object.logger.error("任务接口返回值不规范: {}".format(self.result))
+        self.end_fire()
+        self._end_event.set()
+
 
     def set_out_params(self):
         self.out_params['otu_id'] = self.result["content"]['ids']['id']
