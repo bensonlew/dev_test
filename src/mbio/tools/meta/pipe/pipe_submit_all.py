@@ -468,10 +468,10 @@ class PipeSubmitAllTool(Tool):
                     pass
                 elif key == "lda_filter" and re.search(r'\.0$', ever_analysis_params['lda_filter']):
                     my_param[key] = int(float(ever_analysis_params[key]))
-                elif key == "lda_filter" and re.search(r'\.0$', ever_analysis_params['lda_filter']):
+                elif key == "lda_filter" and re.search(r'\..*$', ever_analysis_params['lda_filter']):
                     my_param[key] = float(ever_analysis_params[key])
                 elif key == "lda_filter" and not re.search(r'\.0$', ever_analysis_params['lda_filter']) and not \
-                        re.search(r'\.0$', ever_analysis_params['lda_filter']):
+                        re.search(r'\..*$', ever_analysis_params['lda_filter']):
                     my_param[key] = int(ever_analysis_params[key])
                 else:
                     my_param[key] = ever_analysis_params[key]
@@ -485,6 +485,7 @@ class PipeSubmitAllTool(Tool):
                     my_param[key] = group_detail_sort(ever_analysis_params[key])
                 elif key == "index_type":
                     sort_index = ever_analysis_params[key].split(',')
+                    sort_index.sort()
                     sort_index = ','.join(sort_index)
                     my_param[key] = sort_index
                 elif key == "api":
