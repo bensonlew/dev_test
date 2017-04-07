@@ -106,8 +106,17 @@ class PipeSubmitTool(Tool):
         self.task_id = '_'.join(split_id)
         return self.task_id
 
+    def update_mongo_ends_count(self, ana):
+        if ana.instant:
+            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$inc': {"ends_count": 1}})
+        elif ana._params_check_end or not ana.success:
+            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$inc': {"ends_count": 1}})
+
     def one_end(self, ana):
         self.count_ends += 1
+        if not ana.instant:
+            self.logger.info('投递任务投递成功:{} 任务参数检查获取结果: {}'.format(ana.api, ana._params_check_end))
+        self.update_mongo_ends_count(ana)
         if ana.instant:
             self.count_instant_running -= 1
             self.logger.info("当前运行中的即时任务数为: {}".format(
@@ -128,7 +137,10 @@ class PipeSubmitTool(Tool):
         config = self.analysis_params[config_name]
         params = {}
         for i in config['main']:
-            params[i] = self.web_data[i]
+            if i in self.web_data:
+                params[i] = self.web_data[i]
+            else:
+                self.logger.info("没有提供参数: {}".format(i))
         sub_params = self.web_data['sub_analysis'][config_name]
         for i in config['others']:
             if i == "second_group_detail" and sub_params[i]:
@@ -235,13 +247,14 @@ class PipeSubmitTool(Tool):
         self.web_data = json.loads(self.option('data'))
         self.web_data['sub_analysis'] = json.loads(
             self.web_data['sub_analysis'])
+        self.otu_id = self.web_data['otu_id']
         self.group_infos = json.loads(self.web_data['group_info'])
         self.levels = [int(i) for i in self.web_data[
             'level_id'].strip().split(',')]
         self.count_ends = 0
         self.task_client = self.web_data['client']
         # self.mysql_client_key = worker_client().get_key(self.task_client)
-        self.mysql_client_key = worker_client().add_task({})
+        # self.mysql_client_key = worker_client().add_task({})
         self.mysql_client_key = 'mykey'
         # monkey.patch_socket(aggressive=False, dns=False)
         # monkey.patch_ssl()
@@ -251,6 +264,7 @@ class PipeSubmitTool(Tool):
         self.all = {}
         self.all_count = 0
         sixteens_prediction_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
+        lefse_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
         api, instant, collection_name, params = self.get_otu_subsample_params(self.web_data['group_detail'])
         otu_subsample = SubmitOtuSubsample(self, collection_name, params, api, instant)
         for level in self.levels:
@@ -260,6 +274,8 @@ class PipeSubmitTool(Tool):
                 pipe = {}
                 for i in self.web_data['sub_analysis']:
                     if i == 'sixteens_prediction' and sixteens_prediction_flag:
+                        continue
+                    if i == "species_lefse_analyse" and lefse_flag:
                         continue
                     api, instant, collection_name, params = self.get_params(i)
                     params['group_id'] = group_info['group_id']
@@ -276,13 +292,22 @@ class PipeSubmitTool(Tool):
                              for i in self.analysis_params[analysis]["waits"]]
                     submit.start(waits, timeout=6000)
                 self.all[level][group_info["group_id"]] = pipe
-                self.all_count += len(pipe)
-                sixteens_prediction_flag = True
+                self.all_count += (len(pipe) - 1)
+            sixteens_prediction_flag = True
+            lefse_flag = True
+        self.all_count += 1  # otu subsample 任务
+        self.update_all_count()
         otu_subsample.start([], timeout=6000)
-
         self.all_end = AsyncResult()
-        self.all_end.get()
+        try:
+            self.logger.info("所有任务计数: {}".format(self.all_count))
+            self.all_end.get()
+        except:
+            self.logger.info('所有任务已经投递结束，计数:{}，总数:{}'.format(self.count_ends, self.all_count))
         self.end()
+
+    def update_all_count(self):
+        self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$set': {"all_count": self.all_count}})
 
     def run(self):
         super(PipeSubmitTool, self).run()
@@ -316,6 +341,7 @@ class Submit(object):
         self.bind_object = bind_object  # tool对象
         self.out_params = {}  # 输出参数，单一个分析需要给其他分析提供参数时提供
         self.result = {}  # 返回结果
+        self._params_check_end = False  # 参数检查完成的任务
 
     def params_pack(self, dict_params):
         """
@@ -348,7 +374,7 @@ class Submit(object):
         """
         分析结束后的后续工作
         """
-        if self.result['success']:
+        if "success" in self.result and self.result['success']:
             self.success = True
             self.set_out_params()
         self.is_end = True
@@ -366,7 +392,8 @@ class Submit(object):
         if 'success' in self.result and self.result['success']:
             self.main_table_id = self.result['content']['ids']['id']
             if not self.instant:
-                self.insert_pipe_detail(self.result['content']["ids"]['name'], self.main_table_id, "start")
+                status = 'end' if self._params_check_end else 'start'
+                self.insert_pipe_detail(self.result['content']["ids"]['name'], self.main_table_id, status)
                 # self.check_end(ObjectId(self.main_table_id))
             else:
                 self.insert_pipe_detail(self.result['content']['ids']['name'], ObjectId(self.result['content']['ids']['id']), 'end')
@@ -385,26 +412,37 @@ class Submit(object):
         投递接口
         """
         if self.check_params():
+            self._params_check_end = True
             return self.result
         self.result = self.post()
 
     def insert_pipe_detail(self, table_name, table_id, status):
-        group_name = self.db.find_one({'_id': ObjectId(self._params['group_id'])}, {'group_name': 1})['group_name']
-        level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[self._params['level_id']]
+        if self._params['group_id'] == 'all':
+            group_id = 'all'
+            group_name = 'ALL'
+        else:
+            group_id = ObjectId(self._params['group_id'])
+            group_name = self.db['sg_specimen_group'].find_one({'_id': ObjectId(self._params['group_id'])}, {'group_name': 1})['group_name']
+        if "level_id" in self._params:
+            level_id = self._params['level_id']
+            level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[level_id]
+        else:
+            level_id = 9
+            level_name = 'OTU'
         insert_data = {
             "task_id": self.task_id,
-            "otu_id": self.bind_object.otu_id,
+            "otu_id": ObjectId(self.bind_object.otu_id),
             'group_name': group_name,
             'level_name': level_name,
             "submit_location": self._params['submit_location'],
             'params': self.json_params,
-            'pipe_main_id': self.pipe_main_id,
-            'pipe_batch_id': self.bind_object.option('pipe_id'),
-            'table_id': table_id,
+            'pipe_main_id': ObjectId(self.pipe_main_id),
+            'pipe_batch_id': ObjectId(self.bind_object.option('pipe_id')),
+            'table_id': ObjectId(table_id),
             'status': status,
             'desc': self.result['info'],
-            'level_id': self._params['level_id'],
-            "group_id": self._params['group_id'],
+            'level_id': level_id,
+            "group_id": group_id,
             'type_name': self.mongo_collection,
             'table_name': table_name,
             'created_ts': datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -442,7 +480,7 @@ class Submit(object):
                 temp_params[i] = json.dumps(
                     temp_params[i], sort_keys=True, separators=(',', ':'))
         if not self.instant:
-            temp_params['pipe_id'] = str(self.pipe_main_id)
+            # temp_params['pipe_id'] = str(self.pipe_main_id)
             temp_params['batch_id'] = str(self.bind_object.option('pipe_id'))
         return temp_params
 
@@ -466,7 +504,7 @@ class Submit(object):
             except (urllib2.HTTPError, urllib2.URLError, httplib.HTTPException, SocketError) as e:
                 self.bind_object.logger.warn(
                     "接口投递失败, 第{}次(最多三次尝试), url: {}, 错误:{}".format(i + 1, self.api, e))
-                time.sleep(50)  # 休眠50s 目的是为了等端口重启好
+                gevent.sleep(50)  # 休眠50s 目的是为了等端口重启好
             else:
                 the_page = response.read()
                 return json.loads(the_page)
@@ -527,15 +565,15 @@ class Submit(object):
                                'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
                 # self.result = {'success': True, 'main_id': lastone['_id']}
                 return self.result
-            elif lastone['status'] == 'start':
-                self.check_end(lastone['_id'])
-                self.result = {'success': True, "info": lastone['desc'],
-                               'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
-                result = self.db[self.mongo_collection].find_one(
-                    {'_id': lastone['_id']}, {'status': 1, 'desc': 1, "name": 1})
-                if result['status'] != 'end':  # 任务完成后检查状态
-                    self.result['success'] = False
-                return self.result
+            # elif lastone['status'] == 'start':
+            #     self.check_end(lastone['_id'])
+            #     self.result = {'success': True, "info": lastone['desc'],
+            #                    'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
+            #     result = self.db[self.mongo_collection].find_one(
+            #         {'_id': lastone['_id']}, {'status': 1, 'desc': 1, "name": 1})
+            #     if result['status'] != 'end':  # 任务完成后检查状态
+            #         self.result['success'] = False
+            #     return self.result
         return False
 
     def waits_params_get(self):
@@ -570,32 +608,6 @@ class BetaSampleDistanceHclusterTree(Submit):
 
 
 class SubmitOtuSubsample(Submit):
-    def _submit(self, waits, timeout):
-        """投递任务"""
-        for i in waits:
-            i.end_event.get(timeout=timeout)
-            if not i.success:
-                self.bind_object.rely_error(self, i)
-                return
-        self.run_permission()
-        self.post_to_webapi()
-        if 'success' in self.result and self.result['success']:
-            for i in self.result['content']['ids']:
-                self.main_table_id = ObjectId(i['id'])
-                self.insert_pipe_detail(i['name'], ObjectId(i['id']), 'end')
-        elif 'success' in self.result and not self.result['success']:
-            if 'content' in self.result:
-                for i in self.result['content']['ids']:
-                    self.main_table_id = ObjectId(i['id'])
-                    self.insert_pipe_detail(i['name'], ObjectId(i['id']), 'failed')
-            else:
-                self.insert_pipe_detail(None, None, 'failed')
-        else:
-            self.bind_object.logger.error("任务接口返回值不规范: {}".format(self.result))
-        self.end_fire()
-        self._end_event.set()
-
-
     def set_out_params(self):
         self.out_params['otu_id'] = self.result["content"]['ids']['id']
 
@@ -733,7 +745,39 @@ class CorrNetworkAnalyse(BetaSampleDistanceHclusterTree):
 
 
 class OtuPanCore(BetaSampleDistanceHclusterTree):
-    pass
+    def _submit(self, waits, timeout):
+        """投递任务"""
+        for i in waits:
+            i.end_event.get(timeout=timeout)
+            if not i.success:
+                self.bind_object.rely_error(self, i)
+                return
+        self.run_permission()
+        self.post_to_webapi()
+        if 'success' in self.result and self.result['success']:
+            for i in self.result['content']['ids']:
+                self.main_table_id = ObjectId(i['id'])
+                self.insert_pipe_detail(i['name'], ObjectId(i['id']), 'end')
+        elif 'success' in self.result and not self.result['success']:
+            if 'content' in self.result:
+                for i in self.result['content']['ids']:
+                    self.main_table_id = ObjectId(i['id'])
+                    self.insert_pipe_detail(i['name'], ObjectId(i['id']), 'failed')
+            else:
+                self.insert_pipe_detail(None, None, 'failed')
+        else:
+            self.bind_object.logger.error("任务接口返回值不规范: {}".format(self.result))
+        self.end_fire()
+        self._end_event.set()
+
+    def post_to_webapi(self):
+        """
+        投递接口
+        """
+        if self.check_params():
+            self.result['content']['ids'] = [self.result['content']['ids']]
+            return self.result
+        self.result = self.post()
 
 
 class PlotTree(BetaSampleDistanceHclusterTree):

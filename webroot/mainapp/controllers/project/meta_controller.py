@@ -139,13 +139,13 @@ class MetaController(object):
         """
         """
         data = web.input()
-        for i in ['meta_pipe_detail_id', "batch_id"]:
+        for i in ["batch_id"]:
             if not hasattr(data, i):
                 return
             else:
                 print "一键化投递任务{}: {}".format(i, getattr(data, i))
         update_info = json.loads(self._sheet_data["options"]['update_info'])
-        update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
+        # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
         update_info["batch_id"] = data.batch_id
         self._sheet_data['options']["update_info"] = json.dumps(update_info)
 

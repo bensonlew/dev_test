@@ -32,7 +32,7 @@ class MetaPipelineWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.pipe_submit_all = self.add_tool('meta.pipe.pipe_submit_all')
+        self.pipe_submit_all = self.add_tool('meta.pipe_submit')
         self.analysis_table = {"randomforest_analyse": "sg_randomforest", "sixteens_prediction": "sg_16s",
                                "species_lefse_analyse": "sg_species_difference_lefse",
                                "alpha_rarefaction_curve": "sg_alpha_rarefaction_curve",
@@ -61,10 +61,11 @@ class MetaPipelineWorkflow(Workflow):
         options = {
             'data': self.option("data"),
             'pipe_id': self.option("pipe_id"),
-            # 'task_id': self.get_task_id()
+            'task_id': self.get_task_id()
         }
         self.pipe_submit_all.set_options(options)
-        self.pipe_submit_all.on('end', self.get_results)
+        # self.pipe_submit_all.on('end', self.get_results)
+        self.pipe_submit_all.on('end', self.end)
         self.pipe_submit_all.run()
 
     def get_task_id(self):

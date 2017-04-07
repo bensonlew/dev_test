@@ -127,7 +127,7 @@ class UpdateStatus(Log):
         if not self.update_info:
             return
         self.update_info = json.loads(self.update_info)
-        meta_pipe_detail_id = self.update_info.pop("meta_pipe_detail_id") if 'meta_pipe_detail_id' in self.update_info else None
+        # meta_pipe_detail_id = self.update_info.pop("meta_pipe_detail_id") if 'meta_pipe_detail_id' in self.update_info else None
         batch_id = self.update_info.pop("batch_id") if 'batch_id' in self.update_info else None
         for obj_id, collection_name in self.update_info.items():
             obj_id = ObjectId(obj_id)
@@ -177,7 +177,7 @@ class UpdateStatus(Log):
                 }
                 sg_status_col.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
                                                   {'$set': insert_data}, upsert=True)
-                self.pipe_update(meta_pipe_detail_id, batch_id, status)
+                self.pipe_update(batch_id, collection_name, obj_id, "end")
             else:
                 insert_data = {
                     "status": status,
@@ -186,13 +186,17 @@ class UpdateStatus(Log):
                 }
                 sg_status_col.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
                                                   {'$set': insert_data}, upsert=True)
-                self.pipe_update(meta_pipe_detail_id, batch_id, status)
+                self.pipe_update(batch_id, collection_name, obj_id, status)
             self._mongo_client.close()
 
-    def pipe_update(self, meta_pipe_detail_id, batch_id, status):
-        if not meta_pipe_detail_id or not batch_id:
+    def pipe_update(self, batch_id, collection, _id, status):
+        if not batch_id:
+            # self.logger.info("没有batchID，无法更新相关表格")
             return
-        meta_pipe_detail_id = ObjectId(meta_pipe_detail_id)
+        self.logger.info("存在batch_id:{}, collection: {}, _id: {}, status: {}".format(batch_id, collection, _id, status))
+        # meta_pipe_detail_id = ObjectId(meta_pipe_detail_id)
         batch_id = ObjectId(batch_id)
-        self.db['sg_pipe_batch'].find_one_and_update({'_id': batch_id}, {"$inc": {"ends_count": 1}})
-        self.db['sg_pipe_detail'].find_one_and_update({'_id': meta_pipe_detail_id}, {"$set": {'status': status}})
+        self.mongodb['sg_pipe_batch'].find_one_and_update({'_id': batch_id}, {"$inc": {"ends_count": 1}})
+        # self.logger.info('更新sg_pipe_batch成功: {}'.format(result))
+        self.mongodb['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)}, {"$set": {'status': status, "desc": ""}})
+        # self.logger.info('更新sg_pipe_detail成功: {}'.format(result))
