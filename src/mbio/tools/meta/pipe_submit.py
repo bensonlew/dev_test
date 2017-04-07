@@ -26,6 +26,7 @@ import datetime
 from gevent import monkey
 from biocluster.wpm.client import worker_client, wait
 import re
+from types import StringTypes
 
 
 class PipeSubmitAgent(Agent):
@@ -203,8 +204,32 @@ class PipeSubmitTool(Tool):
             'group_id': ObjectId(group_info['group_id']),
             'task_id': self.option('task_id')
         }
-        return self.db['sg_pipe_main'].insert_one(insert_data).inserted_id
+        inserted_id = self.db['sg_pipe_main'].insert_one(insert_data).inserted_id
+        if int(level) == self.min_level and str(group_info['group_id']) == self.first_group_id:
+            self.get_picture_id(pipe_main_id=inserted_id, main_table_id=self.option('pipe_id'))
+        return inserted_id
         pass
+
+    def get_picture_id(self, pipe_main_id, main_table_id):
+        """
+        批量导图片时使用， 目前选取的是最低分类水平，分组方案中all后面的第一个分组
+        :param pipe_main_id:
+        :param main_table_id:
+        :return:
+        """
+        if pipe_main_id != 0 and not isinstance(pipe_main_id, ObjectId):
+            if isinstance(pipe_main_id, StringTypes):
+                pipe_main_id = ObjectId(pipe_main_id)
+            else:
+                raise Exception("pipe_main_id必须为ObjectId对象或其对应的字符串!")
+        collection = self.db["sg_pipe_batch"]
+        data = {
+            "pipe_main_id": pipe_main_id
+        }
+        try:
+            collection.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
+        except:
+            raise Exception("sg_pipe_batch中pipe_main_id更新失败，请检查！")
 
     def run_webapitest(self):
         """
@@ -251,6 +276,8 @@ class PipeSubmitTool(Tool):
         self.group_infos = json.loads(self.web_data['group_info'])
         self.levels = [int(i) for i in self.web_data[
             'level_id'].strip().split(',')]
+        self.min_level = int(sorted(self.levels)[-1])
+        self.first_group_id = str(self.web_data['first_group_id'])
         self.count_ends = 0
         self.task_client = self.web_data['client']
         # self.mysql_client_key = worker_client().get_key(self.task_client)
