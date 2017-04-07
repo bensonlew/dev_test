@@ -21,6 +21,7 @@ from gevent.event import AsyncResult
 import pymongo
 import copy
 import random
+import traceback
 from gevent import monkey
 from biocluster.wpm.client import worker_client, wait
 
@@ -113,7 +114,7 @@ class PipeSubmitTool(Tool):
             self.count_submit_running -= 1
             self.logger.info("当前运行中的投递任务数为: {}".format(
                 self.count_submit_running))
-        print 'END COUNT: ', self.count_ends
+        self.logger.info("END COUNT: {}".format(self.count_ends))
         if self.count_ends == self.all_count:
             self.all_end.set()
         pass
@@ -234,13 +235,14 @@ class PipeSubmitTool(Tool):
         # self.mysql_client_key = worker_client().get_key(self.task_client)
         self.mysql_client_key = worker_client().add_task({})
         self.mysql_client_key = 'mykey'
-        monkey.patch_socket(aggressive=False, dns=False)
+        # monkey.patch_socket(aggressive=False, dns=False)
         # monkey.patch_ssl()
         self.signature = self.signature()
         self.task_id = self.option("task_id")
         self.url = "http://bcl.i-sanger.com" if self.task_client == "client01" else "http://192.168.12.102:9090"
         self.all = {}
         self.all_count = 0
+        sixteens_prediction_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
         for level in self.levels:
             self.all[level] = {}
             for group_info in self.group_infos:
@@ -250,9 +252,12 @@ class PipeSubmitTool(Tool):
                 otu_subsample = SubmitOtuSubsample(
                     self, collection_name, params, api, instant)
                 for i in self.web_data['sub_analysis']:
+                    if i == 'sixteens_prediction' and sixteens_prediction_flag:
+                        continue
                     api, instant, collection_name, params = self.get_params(i)
                     params['group_id'] = group_info['group_id']
-                    params['group_detail'] = group_detail_sort(group_info['group_detail'])
+                    params['group_detail'] = group_detail_sort(
+                        group_info['group_detail'])
                     params['level_id'] = level
                     pipe[i] = self.get_class(i)(
                         self, collection_name, params, api, instant)
@@ -266,6 +271,7 @@ class PipeSubmitTool(Tool):
                     submit.start(waits, timeout=6000)
                 self.all[level][group_info["group_id"]] = pipe
                 self.all_count += len(pipe)
+                sixteens_prediction_flag = True
 
         self.all_end = AsyncResult()
         self.all_end.get()
@@ -366,7 +372,6 @@ class Submit(object):
         if self.check_params():
             return self.result
         self.result = self.post()
-        print self.result
 
     def run_permission(self):
         if self.instant:
@@ -396,7 +401,8 @@ class Submit(object):
         dumps_list = ["group_detail", "second_group_detail", "filter_json"]
         for i in dumps_list:
             if i in temp_params and temp_params[i]:
-                temp_params[i] = json.dumps(temp_params[i], sort_keys=True, separators=(',', ':'))
+                temp_params[i] = json.dumps(
+                    temp_params[i], sort_keys=True, separators=(',', ':'))
         return temp_params
 
     def post(self):
@@ -414,9 +420,9 @@ class Submit(object):
         request = urllib2.Request(url, data)
         for i in range(3):
             try:
-                response = urllib2.urlopen(request)
+                response = gevent_url_fetch(request)[1]
+                # response = urllib2.urlopen(request)
             except (urllib2.HTTPError, urllib2.URLError, httplib.HTTPException, SocketError) as e:
-                print e
                 self.bind_object.logger.warn(
                     "接口投递失败, 第{}次(最多三次尝试), url: {}, 错误:{}".format(i + 1, self.api, e))
                 time.sleep(50)  # 休眠50s 目的是为了等端口重启好
@@ -450,9 +456,11 @@ class Submit(object):
         # self.get_workflow_id()
         # try:
         #     self.bind_object.logger.info("开始向WPM服务请求等待任务: {} 结束".format(self.workflow_id))
-        #     wait(self.workflow_id, timeout=timeout)
+        #     get = gevent_url_fetch(self.bind_object.url + "/report/" + self.workflow_id)[1]
+        #     self.bind_object.logger.info("向WPM服务请求等待结果为: {}".format(get.read()))
+        #     # wait(self.workflow_id, timeout=timeout)
         # except Exception as e:
-        #     self.bind_object.logger.info("ERROR:{}".format(e))
+        #     self.bind_object.logger.info("ERROR:{}".format(traceback.format_exc()))
         #     self.bind_object.logger.info("任务等待超时: workflow_id: {}, url: {}".format(self.workflow_id, self.api))
 
     def check_params(self):
@@ -626,6 +634,29 @@ class PlotTree(BetaSampleDistanceHclusterTree):
 class Enterotyping(BetaSampleDistanceHclusterTree):
     pass
 
+
+class gevent_HTTPConnection(httplib.HTTPConnection):
+
+    def connect(self):
+        import socket
+        from gevent import socket as cosocket
+        if self.timeout is socket._GLOBAL_DEFAULT_TIMEOUT:
+            timeout = cosocket._GLOBAL_DEFAULT_TIMEOUT
+        else:
+            timeout = self.timeout
+        self.sock = cosocket.create_connection((self.host, self.port), timeout)
+
+
+class gevent_HTTPHandler(urllib2.HTTPHandler):
+
+    def http_open(self, request):
+        return self.do_open(gevent_HTTPConnection, request)
+
+
+def gevent_url_fetch(url):
+    opener = urllib2.build_opener(gevent_HTTPHandler)
+    resp = opener.open(url)
+    return resp.headers, resp
 
 if __name__ == "__main__":
     PipeSubmitTool().run_webapitest()
