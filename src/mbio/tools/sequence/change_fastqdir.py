@@ -46,6 +46,8 @@ class ChangeFastqdirAgent(Agent):
 class ChangeFastqdirTool(Tool):
     def __init__(self, config):
         super(ChangeFastqdirTool, self).__init__(config)
+        self.sample_base = config().SAMPLE_BASE
+        self.id = self._id
         self.fastq = list()
         self.samples = list()
         self.map = dict()
@@ -60,20 +62,18 @@ class ChangeFastqdirTool(Tool):
         fq_dir.get_full_info(dir_path)
         self.fastqs = fq_dir.unzip_fastqs
 
-
-
     def get_pairs(self):
-        for fq in self.fastqs:
-            fq = os.path.splitext(fq)[0]
+        for fq_full in self.fastqs:
+            fq = os.path.splitext(fq_full)[0]
             if not (fq.endswith("_1") or fq.endswith("_2")):
                 raise FileError("PE端测序文件，应以_1.fq或_2.fq结尾")
             else:
                 if fq.endswith("_1"):
                     sample = fq.strip("_1")
-                    self.map[sample]["l"] = fq
+                    self.map[sample]["l"] = fq_full
                 else:
                     sample = fq.strip("_2")
-                    self.map[sample]["r"] = fq
+                    self.map[sample]["r"] = fq_full
                 if sample not in self.samples:
                     self.samples.append(sample)
         return True
@@ -99,6 +99,18 @@ class ChangeFastqdirTool(Tool):
                 for sample in self.samples:
                     file.write(sample + "\t" + self.map[sample] + "\n")
 
+    def export2database(self):  # 将样本存放于固定的位置
+        for fq in self.fastqs:
+            fq_name = os.path.basename(fq)
+            task_dir = os.path.join(self.sample_base, self.id)
+            if os.path.exists(task_dir):
+                os.system("rm -r {}".format(task_dir))
+            else:
+                os.mkdir(task_dir)
+            new_fq = os.path.join(task_dir, fq_name)
+            os.link(fq, new_fq)
+        return True
+
     def run(self):
         """
         运行
@@ -111,4 +123,5 @@ class ChangeFastqdirTool(Tool):
         else:
             self.get_single_sample()
         self.gen_list()
+        self.export2database()
         self.end()

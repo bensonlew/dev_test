@@ -167,7 +167,9 @@ class FastqDirFile(Directory):
                         raise Exception("解压缩文件失败!")
                 else:
                     if fastq not in self.unzip_file:
-                        self.unzip_file.append(fastq)
+                        new_fastq = os.path.join(self.work_dir, os.path.basename(fastq))  # added and edited by shijin
+                        os.link(fastq, new_fastq)
+                        self.unzip_file.append(new_fastq)
             self.has_unziped = True
 
     def check(self):

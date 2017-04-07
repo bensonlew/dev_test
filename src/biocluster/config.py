@@ -28,6 +28,7 @@ class Config(object):
         self.rcf.read(os.path.dirname(os.path.realpath(__file__))+"/main.conf")
         # basic
         self.WORK_DIR = self.rcf.get("Basic", "work_dir")
+        self.SAMPLE_BASE = self.rcf.get("Basic", "samplebase_dir")
         # network
         self._listen_ip = None
         self._listen_port = None
