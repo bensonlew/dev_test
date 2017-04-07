@@ -264,7 +264,7 @@ class PipeSubmitTool(Tool):
         self.all = {}
         self.all_count = 0
         sixteens_prediction_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
-        lefse_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
+        lefse_flag = False  # lefse特殊性，没有分类水平参数
         api, instant, collection_name, params = self.get_otu_subsample_params(self.web_data['group_detail'])
         otu_subsample = SubmitOtuSubsample(self, collection_name, params, api, instant)
         for level in self.levels:
@@ -275,12 +275,11 @@ class PipeSubmitTool(Tool):
                 for i in self.web_data['sub_analysis']:
                     if i == 'sixteens_prediction' and sixteens_prediction_flag:
                         continue
-                    if i == "species_lefse_analyse" and lefse_flag:
+                    elif i == "species_lefse_analyse" and lefse_flag:
                         continue
                     api, instant, collection_name, params = self.get_params(i)
                     params['group_id'] = group_info['group_id']
-                    params['group_detail'] = group_detail_sort(
-                        group_info['group_detail'])
+                    params['group_detail'] = group_detail_sort(group_info['group_detail'])
                     params['level_id'] = level
                     pipe[i] = self.get_class(i)(
                         self, collection_name, params, api, instant, pipe_main_id)
@@ -631,12 +630,10 @@ class AlphaTtest(Submit):
         del self._params['level_id']
         return self._params
 
-
 class SixteensPrediction(BetaSampleDistanceHclusterTree):
     def set_params_type(self):
         del self._params['level_id']
         return self._params
-
 
 class SpeciesLefseAnalyse(BetaSampleDistanceHclusterTree):
     def set_params_type(self):
