@@ -25,6 +25,7 @@ import traceback
 import datetime
 from gevent import monkey
 from biocluster.wpm.client import worker_client, wait
+import re
 
 
 class PipeSubmitAgent(Agent):
@@ -210,10 +211,10 @@ class PipeSubmitTool(Tool):
             "otunetwork_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_network"},
             "roc_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "top_n_id", "method_type", "submit_location"], "collection_name": "sg_roc"},
             "alpha_diversity_index": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "submit_location", "task_type"], "collection_name": "sg_alpha_diversity"},
-            "alpha_ttest": {"instant": True, "waits": ["alpha_diversity_index", 'otu_subsample'], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
+            "alpha_ttest": {"instant": True, "waits": ["alpha_diversity_index", "otu_subsample"], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
             "beta_multi_analysis_plsda": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
             "beta_sample_distance_hcluster_tree": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "hcluster_method", "task_type", "submit_location"], "collection_name": "sg_newick_tree"},
-            "beta_multi_analysis_pearson_correlation": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "species_cluster", "submit_location", "method", "top_species", "env_cluster"], "collection_name": "sg_species_env_correlation"},
+            "beta_multi_analysis_pearson_correlation": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["task_type", "species_cluster", "submit_location", "method", "top_species", "env_cluster"], "collection_name": "sg_species_env_correlation"},
             "beta_multi_analysis_rda_cca": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
             "hc_heatmap": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "add_Algorithm", "submit_location", "sample_method", "species_number", "method"], "collection_name": "sg_hc_heatmap"},
             "beta_multi_analysis_anosim": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "permutations", "submit_location", "task_type"], "collection_name": "sg_beta_multi_anosim"},
@@ -508,6 +509,7 @@ class Submit(object):
         检查参数，发现end状态，直接放回计算完成，发现start状态，直接监控直到结束
         """
         self.waits_params_get()  # 依赖分析的参数获取
+        self.set_params_type()  # 根据每个分析的接口中对参数的打包格式，进行对应处理
         self.json_params = self.params_pack(self._params)
         result = self.db[self.mongo_collection].find({'task_id': self.task_id, 'params': self.json_params,
                                                       'status': {'$in': ['end', 'start', "failed"]}})
@@ -548,6 +550,14 @@ class Submit(object):
         在子类中重写，设置结果到out_params,方便其他分析使用
         """
         pass
+
+    def set_params_type(self):
+        """
+        在子类中重写，设置参数的格式，与每个接口中类型对应
+        :return:
+        """
+        pass
+        return self._params
 
 
 class BetaSampleDistanceHclusterTree(Submit):
@@ -596,21 +606,39 @@ class AlphaDiversityIndex(Submit):
         self.out_params['alpha_diversity_id'] = self.result[
             "content"]['ids']['id']
 
+    def waits_params_get(self):
+        self._params['otu_id'] = self.waits[0].out_params['otu_id']
+        return self._params
+
 
 class AlphaTtest(Submit):
 
     def waits_params_get(self):
-        self._params['alpha_diversity_id'] = self.waits[
-            0].out_params['alpha_diversity_id']
+        self._params['alpha_diversity_id'] = self.waits[0].out_params['alpha_diversity_id']
+        self._params['otu_id'] = self.waits[1].out_params['otu_id']
+        del self._params['level_id']
         return self._params
 
 
 class SixteensPrediction(BetaSampleDistanceHclusterTree):
-    pass
+    def set_params_type(self):
+        del self._params['level_id']
+        return self._params
 
 
 class SpeciesLefseAnalyse(BetaSampleDistanceHclusterTree):
-    pass
+    def set_params_type(self):
+        self._params['end_level'] = int(self._params['end_level'])
+        self._params['start_level'] = int(self._params['start_level'])
+        self._params['strict'] = int(self._params['strict'])
+        if re.search(r'\.0$', self._params['lda_filter']):
+            self._params['lda_filter'] = int(float(self._params['lda_filter']))
+        elif re.search(r'\..*$', self._params['lda_filter']):
+            self._params['lda_filter'] = float(self._params['lda_filter'])
+        else:
+            self._params['lda_filter'] = int(self._params['lda_filter'])
+        del self._params['level_id']
+        return self._params
 
 
 class OtunetworkAnalyse(BetaSampleDistanceHclusterTree):
@@ -618,7 +646,13 @@ class OtunetworkAnalyse(BetaSampleDistanceHclusterTree):
 
 
 class AlphaRarefactionCurve(BetaSampleDistanceHclusterTree):
-    pass
+    def set_params_type(self):
+        self._params['freq'] = int(self._params['freq'])
+        sort_index = self._params['index_type'].split(',')
+        sort_index.sort()
+        sort_index = ','.join(sort_index)
+        self._params['index_type'] = sort_index
+        return self._params
 
 
 class RandomforestAnalyse(BetaSampleDistanceHclusterTree):
@@ -650,7 +684,9 @@ class BetaMultiAnalysisAnosim(BetaSampleDistanceHclusterTree):
 
 
 class SpeciesDifferenceMultiple(BetaSampleDistanceHclusterTree):
-    pass
+    def set_params_type(self):
+        self._params['coverage'] = float(self._params['coverage'])
+        return self._params
 
 
 class BetaMultiAnalysisResults(BetaSampleDistanceHclusterTree):
@@ -666,7 +702,10 @@ class BetaMultiAnalysisDbrda(BetaSampleDistanceHclusterTree):
 
 
 class SpeciesDifferenceTwoGroup(BetaSampleDistanceHclusterTree):
-    pass
+    def set_params_type(self):
+        self._params['ci'] = float(self._params['ci'])
+        self._params['coverage'] = float(self._params['coverage'])
+        return self._params
 
 
 class BetaMultiAnalysisNmds(BetaSampleDistanceHclusterTree):
@@ -686,7 +725,11 @@ class BetaMultiAnalysisPca(BetaSampleDistanceHclusterTree):
 
 
 class CorrNetworkAnalyse(BetaSampleDistanceHclusterTree):
-    pass
+    def set_params_type(self):
+        self._params['abundance'] = int(self._params['abundance'])
+        self._params['coefficient'] = float(self._params['coefficient'])
+        self._params['lable'] = float(self._params['lable'])
+        return self._params
 
 
 class OtuPanCore(BetaSampleDistanceHclusterTree):
@@ -694,7 +737,9 @@ class OtuPanCore(BetaSampleDistanceHclusterTree):
 
 
 class PlotTree(BetaSampleDistanceHclusterTree):
-    pass
+    def set_params_type(self):
+        self._params['color_level_id'] = int(self._params['color_level_id'])
+        return self._params
 
 
 class Enterotyping(BetaSampleDistanceHclusterTree):
