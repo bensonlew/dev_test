@@ -63,17 +63,17 @@ class ChangeFastqdirTool(Tool):
         self.fastqs = fq_dir.unzip_fastqs
 
     def get_pairs(self):
-        for fq_full in self.fastqs:
-            fq = os.path.splitext(fq_full)[0]
+        for fq in self.fastqs:
+            fq = os.path.splitext(fq)[0]
             if not (fq.endswith("_1") or fq.endswith("_2")):
                 raise FileError("PE端测序文件，应以_1.fq或_2.fq结尾")
             else:
                 if fq.endswith("_1"):
                     sample = fq.strip("_1")
-                    self.map[sample]["l"] = fq_full
+                    self.map[sample]["l"] = fq
                 else:
                     sample = fq.strip("_2")
-                    self.map[sample]["r"] = fq_full
+                    self.map[sample]["r"] = fq
                 if sample not in self.samples:
                     self.samples.append(sample)
         return True
