@@ -177,7 +177,7 @@ class UpdateStatus(Log):
                 }
                 sg_status_col.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
                                                   {'$set': insert_data}, upsert=True)
-                self.pipe_update(batch_id, collection_name, obj_id, "end")
+                self.pipe_update(batch_id, collection_name, obj_id, "end", desc)
             else:
                 insert_data = {
                     "status": status,
@@ -186,10 +186,10 @@ class UpdateStatus(Log):
                 }
                 sg_status_col.find_one_and_update({"table_id": obj_id, "type_name": collection_name},
                                                   {'$set': insert_data}, upsert=True)
-                self.pipe_update(batch_id, collection_name, obj_id, status)
+                self.pipe_update(batch_id, collection_name, obj_id, status, desc)
             self._mongo_client.close()
 
-    def pipe_update(self, batch_id, collection, _id, status):
+    def pipe_update(self, batch_id, collection, _id, status, desc):
         if not batch_id:
             # self.logger.info("没有batchID，无法更新相关表格")
             return
@@ -197,6 +197,4 @@ class UpdateStatus(Log):
         # meta_pipe_detail_id = ObjectId(meta_pipe_detail_id)
         batch_id = ObjectId(batch_id)
         self.mongodb['sg_pipe_batch'].find_one_and_update({'_id': batch_id}, {"$inc": {"ends_count": 1}})
-        # self.logger.info('更新sg_pipe_batch成功: {}'.format(result))
-        self.mongodb['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)}, {"$set": {'status': status, "desc": ""}})
-        # self.logger.info('更新sg_pipe_detail成功: {}'.format(result))
+        self.mongodb['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)}, {"$set": {'status': status, "desc": desc}})
