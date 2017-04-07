@@ -551,12 +551,10 @@ class AlphaTtest(Submit):
         del self._params['level_id']
         return self._params
 
-
 class SixteensPrediction(BetaSampleDistanceHclusterTree):
     def set_params_type(self):
         del self._params['level_id']
         return self._params
-
 
 class SpeciesLefseAnalyse(BetaSampleDistanceHclusterTree):
     def set_params_type(self):
