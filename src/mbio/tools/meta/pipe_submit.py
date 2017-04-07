@@ -107,6 +107,8 @@ class PipeSubmitTool(Tool):
 
     def one_end(self, ana):
         self.count_ends += 1
+        data = {"ends_count": self.count_ends, "all_count": self.all_count}
+        self.db["sg_pipe_batch"].update({"_id": ObjectId(self.option('pipe_id'))}, {"$set": data})
         if ana.instant:
             self.count_instant_running -= 1
             self.logger.info("当前运行中的即时任务数为: {}".format(
@@ -244,6 +246,7 @@ class PipeSubmitTool(Tool):
         self.all = {}
         self.all_count = 0
         sixteens_prediction_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
+        lefse_analysis_flag = False   #lefse分析，没有分类水平
         for level in self.levels:
             self.all[level] = {}
             for group_info in self.group_infos:
@@ -255,10 +258,11 @@ class PipeSubmitTool(Tool):
                 for i in self.web_data['sub_analysis']:
                     if i == 'sixteens_prediction' and sixteens_prediction_flag:
                         continue
+                    elif i == 'species_lefse_analyse' and lefse_analysis_flag:
+                        continue
                     api, instant, collection_name, params = self.get_params(i)
                     params['group_id'] = group_info['group_id']
-                    params['group_detail'] = group_detail_sort(
-                        group_info['group_detail'])
+                    params['group_detail'] = group_detail_sort(group_info['group_detail'])
                     params['level_id'] = level
                     pipe[i] = self.get_class(i)(
                         self, collection_name, params, api, instant)
@@ -272,7 +276,8 @@ class PipeSubmitTool(Tool):
                     submit.start(waits, timeout=6000)
                 self.all[level][group_info["group_id"]] = pipe
                 self.all_count += len(pipe)
-                sixteens_prediction_flag = True
+            sixteens_prediction_flag = True
+            lefse_analysis_flag = True
 
         self.all_end = AsyncResult()
         self.all_end.get()
