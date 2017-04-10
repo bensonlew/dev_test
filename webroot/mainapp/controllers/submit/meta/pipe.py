@@ -87,7 +87,8 @@ class Pipe(MetaController):
             ('submit_location', data.submit_location),
             ('otu_id', ObjectId(data.otu_id)),
             ('analysis_list', str(all_analysis)),
-            ('percent', "0/" + str(analysis_num * len(levels) * len(group_mun))),
+            ('ends_count', 0),
+            ('all_count', 0),
             ('pipe_main_id', "none")
         ]
         main_table_id = Meta().insert_main_table('sg_pipe_batch', mongo_data)

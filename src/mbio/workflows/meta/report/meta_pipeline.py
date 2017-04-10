@@ -32,7 +32,26 @@ class MetaPipelineWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.pipe_submit_all = self.add_tool('meta.pipe.pipe_submit_all')
+        self.pipe_submit_all = self.add_tool('meta.pipe_submit')
+        self.analysis_table = {"randomforest_analyse": "sg_randomforest", "sixteens_prediction": "sg_16s",
+                               "species_lefse_analyse": "sg_species_difference_lefse",
+                               "alpha_rarefaction_curve": "sg_alpha_rarefaction_curve",
+                               "otunetwork_analyse": "sg_network", "roc_analyse": "sg_roc",
+                               "alpha_diversity_index": "sg_alpha_diversity", "alpha_ttest": "sg_alpha_ttest",
+                               "beta_multi_analysis_plsda": "sg_beta_multi_analysis",
+                               "beta_sample_distance_hcluster_tree": "sg_newick_tree",
+                               "beta_multi_analysis_pearson_correlation": "sg_species_env_correlation",
+                               "beta_multi_analysis_rda_cca": "sg_beta_multi_analysis", "hc_heatmap": "sg_hc_heatmap",
+                               "beta_multi_analysis_anosim": "sg_beta_multi_anosim",
+                               "species_difference_multiple": "sg_species_difference_check",
+                               "beta_multi_analysis_results": "sg_species_mantel_check",
+                               "beta_multi_analysis_pcoa": "sg_beta_multi_analysis",
+                               "beta_multi_analysis_dbrda": "sg_beta_multi_analysis",
+                               "species_difference_two_group": "sg_species_difference_check",
+                               "beta_multi_analysis_nmds": "sg_beta_multi_analysis", "otu_group_analyse": "sg_otu",
+                               "otu_venn": "sg_otu_venn", "beta_multi_analysis_pca": "sg_beta_multi_analysis",
+                               "corr_network_analyse": "sg_corr_network", "otu_pan_core": "sg_otu_pan_core",
+                               "plot_tree": "sg_phylo_tree", "enterotyping": "sg_enterotyping"}
 
     def run_all(self):
         """
@@ -41,12 +60,20 @@ class MetaPipelineWorkflow(Workflow):
         """
         options = {
             'data': self.option("data"),
-            'pipe_id': self.option("pipe_id")
+            'pipe_id': self.option("pipe_id"),
+            'task_id': self.get_task_id()
         }
         self.pipe_submit_all.set_options(options)
-        self.pipe_submit_all.on('end', self.get_results)
+        # self.pipe_submit_all.on('end', self.get_results)
+        self.pipe_submit_all.on('end', self.end)
         self.pipe_submit_all.run()
 
+    def get_task_id(self):
+        split_id = self._sheet.id.split('_')
+        split_id.pop()
+        split_id.pop()
+        self.task_id = '_'.join(split_id)
+        return self.task_id
 
     def get_results(self):
         """
@@ -79,7 +106,6 @@ class MetaPipelineWorkflow(Workflow):
         :param main_table_id:
         :return:
         """
-        collection_status = self.db["sg_status"]
         collection_pipe = self.db["sg_pipe_batch"]
         pipe_result = collection_pipe.find_one({"_id": ObjectId(main_table_id)})
         project_sn = pipe_result['project_sn']
@@ -153,20 +179,21 @@ class MetaPipelineWorkflow(Workflow):
                                 group_name = self.find_group_name(str(group['group_id']))
                                 group_id = ObjectId(str(group['group_id']))
                             sub_anaylsis_main_id = str(anaylsis['sub_anaylsis_id']['id'])
-                            result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
+                            collections_sub = self.db[self.analysis_table[anaylsis['submit_location']]]
+                            result = collections_sub.find_one({"_id": ObjectId(sub_anaylsis_main_id)})
                             try:
                                 mongo_data = {
                                     "pipe_main_id": ObjectId(inserted_id),
                                     "pipe_batch_id": ObjectId(main_table_id),
                                     "status": result['status'],
-                                    "table_id": result['table_id'],
-                                    "table_name": result['table_name'],
-                                    "type_name": result['type_name'],
+                                    "table_id": result['_id'],
+                                    "table_name": result['name'],
+                                    "type_name": self.analysis_table[anaylsis['submit_location']],
                                     "desc": result['desc'],
-                                    "time": result['time'],
+                                    "time": result['created_ts'],
                                     "params": result['params'],
-                                    "submit_location": result['submit_location'],
-                                    "is_new": result['is_new'],
+                                    "submit_location": anaylsis['submit_location'],
+                                    "is_new": 'is_new',
                                     "task_id": result['task_id'],
                                     "group_name": group_name,
                                     "group_id": group_id,
@@ -177,9 +204,9 @@ class MetaPipelineWorkflow(Workflow):
                                 mongo_data = {
                                     "pipe_main_id": ObjectId(inserted_id),
                                     "pipe_batch_id": ObjectId(main_table_id),
-                                    "status": "failed",
-                                    "table_id": "",
-                                    "table_name": "",
+                                    "status": result['status'],
+                                    "table_id": result['_id'],
+                                    "table_name": result['name'],
                                     "type_name": "",
                                     "desc": result['desc'],
                                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -240,7 +267,7 @@ class MetaPipelineWorkflow(Workflow):
         """
         times = 1
         while True:
-            time.sleep(10)
+            time.sleep(60)
             times += 10
             print times
             if int(times) >= 86400:
@@ -258,7 +285,6 @@ class MetaPipelineWorkflow(Workflow):
         :return:
         """
         collection_pipe = self.db["sg_pipe_batch"]
-        collection_status = self.db["sg_status"]
         anaysis_num = []
         no_table_analysis_num = []
         print "-------------------------------------------------------"
@@ -278,24 +304,26 @@ class MetaPipelineWorkflow(Workflow):
                 if 'id' in id['sub_anaylsis_id'].keys():
                     sub_anaylsis_main_id = str(id['sub_anaylsis_id']['id'])
                     try:
-                        result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
+                        collection_status = self.db[self.analysis_table[id['submit_location']]]
+                        result = collection_status.find_one({"_id": ObjectId(sub_anaylsis_main_id)}, {"status": 1})
                     except:
-                        raise Exception("%s分析因为服务器不稳定导致%s主表状态永为start，请检查"%(id['submit_location'], sub_anaylsis_main_id)) #临时先这样排查状态不更新
+                        raise Exception("%s分析没有找到%s主表对应的数据，请检查"%(id['submit_location'], sub_anaylsis_main_id)) #临时先这样排查状态不更新
                     if result and result['status'] != 'start':
                         anaysis_num.append(result['status'])
                     else:
-                        print "sg_status中没有找到%s对应的表，该分析还在计算中，请继续等候！"%(sub_anaylsis_main_id)
+                        print "没有找到%s对应的表，该分析还在计算中，请继续等候！"%(sub_anaylsis_main_id)
                 elif isinstance(id['sub_anaylsis_id'], list):
                     for m in id['sub_anaylsis_id']:
                         sub_anaylsis_main_id = str(m['id'])
                         try:
-                            result = collection_status.find_one({"table_id": ObjectId(sub_anaylsis_main_id)})
+                            collection_status = self.db[self.analysis_table[id['submit_location']]]
+                            result = collection_status.find_one({"_id": ObjectId(sub_anaylsis_main_id)}, {"status": 1})
                         except:
-                            raise Exception("%s分析因为服务器不稳定导致%s主表状态永为start，请检查"%(id['submit_location'], sub_anaylsis_main_id))
+                            raise Exception("%s分析没有找到%s主表对应的数据，请检查"%(id['submit_location'], sub_anaylsis_main_id))
                         if result and result['status'] != 'start':
                             anaysis_num.append(result['status'])
                         else:
-                            print "sg_status中没有找到%s对应的表，该分析还在计算中，请继续等候！" % (sub_anaylsis_main_id)
+                            print "没有找到%s对应的表，该分析还在计算中，请继续等候！" % (sub_anaylsis_main_id)
             else:
                 no_table_analysis_num.append(str(id['submit_location']))
 

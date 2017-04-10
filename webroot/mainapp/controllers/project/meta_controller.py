@@ -57,14 +57,6 @@ class MetaController(object):
         """
         return self._sheet_data
 
-    def record_worflow_id(self, options):
-        if 'update_info' not in options:
-            raise Exception("参数中没有 update_info 字段")
-        update_info = json.loads(options['update_info'])
-        for main_id, coll in update_info.iteritems():
-            self.meta.update_workflow_id(coll, main_id, self._sheet_data['id'])
-
-
 
     @check_sig
     @meta_check
@@ -74,10 +66,12 @@ class MetaController(object):
             run_info = workflow_client.run()
             run_info['info'] = filter_error_info(run_info['info'])
             self._return_msg = workflow_client.return_msg
+            # run_info['workflow_id'] = self.workflow_id
             return run_info
         except Exception as e:
             self.roll_back()
             return {"success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
+            # return {"workflow_id": self.workflow_id, "success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
 
     def roll_back(self):
         """
@@ -137,8 +131,24 @@ class MetaController(object):
         # if main_table_name:
         #     self._sheet_data["main_table_name"] = main_table_name
         print('Sheet_Data: {}'.format(self._sheet_data))
-        self.record_worflow_id(options)
+        self.workflow_id = new_task_id
+        self.meta_pipe()
         return self._sheet_data
+
+    def meta_pipe(self):
+        """
+        """
+        data = web.input()
+        for i in ["batch_id"]:
+            if not hasattr(data, i):
+                return
+            else:
+                print "一键化投递任务{}: {}".format(i, getattr(data, i))
+        update_info = json.loads(self._sheet_data["options"]['update_info'])
+        # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
+        update_info["batch_id"] = data.batch_id
+        self._sheet_data['options']["update_info"] = json.dumps(update_info)
+
 
     def get_new_id(self, task_id, otu_id=None):
         """
