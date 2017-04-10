@@ -103,7 +103,9 @@ class DataSplitTool(Tool):
 					lines = "Sample_" + line[3] + "," + line[3] + ",,,," + line[8] + "," + line[4] + "," + "\n"
 					w.write(lines)
 
-		os.system('tar -zxf {} -C {}'.format(self.option('data_dir').prop['path'], self.work_dir))
+		result = os.system('tar -zxf {} -C {}'.format(self.option('data_dir').prop['path'], self.work_dir))
+		if result != 0:
+			raise OptionError("压缩包解压失败，请重新投递运行！")
 		old_data_dir_1 = os.path.join(self.work_dir, self.option('data_dir').prop['path'].split("/")[-1].split(".")[0])
 		old_data_dir = ("_").join(old_data_dir_1.split("_")[0:-1])
 
