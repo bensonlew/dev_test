@@ -112,10 +112,10 @@ class FamilyMergeTool(Tool):
             for names in files:
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
-        f2 = 'family_joined_tab.Rdata'
-        os.link(self.work_dir + '/' + f2, self.output_dir + '/' + f2)
         results = os.listdir(self.work_dir)
         for f in results:
+            if re.search(r'.*family_joined_tab\.Rdata$',f):
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
             if re.search(r'.*family_joined_tab\.txt$', f):
                 os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
         self.logger.info('设置文件夹路径成功')

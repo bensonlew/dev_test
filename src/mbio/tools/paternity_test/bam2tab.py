@@ -83,6 +83,8 @@ class Bam2tabTool(Tool):
         super(Bam2tabTool, self).__init__(config)
         self._version = '1.0.1'
         self.cmd_path = "bioinfo/medical/scripts/bam2tab.sh"
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
 
     def run_Bam2tab(self):
 

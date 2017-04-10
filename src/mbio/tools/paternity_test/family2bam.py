@@ -87,6 +87,8 @@ class Family2bamTool(Tool):
         super(Family2bamTool, self).__init__(config)
         self._version = '1.0.1'
         self.cmd_path = "bioinfo/medical/scripts/"
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
 
     def run_Family2bam(self):
         fastq2bam_cmd = "{}fastq2bam.sh {} {} {} {} {}".format(self.cmd_path, self.option("fastq"), self.option("cpu_number"),

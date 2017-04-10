@@ -173,7 +173,8 @@ class PtDatasplitWorkflow(Workflow):
 			('batch_id', ObjectId(self.option('pt_data_split_id'))),
 			("type", "pt"),
 			("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-			("status", "start")
+			("status", "start"),
+			("member_id",self.option('member_id'))
 		]
 		main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
 		update_info = {str(main_table_id): 'sg_analysis_status'}
