@@ -122,6 +122,8 @@ class FunctionGeneTool(Tool):
                         reads_name_list.remove(reads_name)
                         w.write('{}'.format(line))
                         w.write('{}{}{}'.format(fq.next(), fq.next(), fq.next()))
+        if count == 0:
+            self.set_error("没有筛选出功能基因，运行失败!")
         self.logger.info("筛选功能基因reads总数为{}".format(count))
         self.logger.info("筛选功能基因完成")
 

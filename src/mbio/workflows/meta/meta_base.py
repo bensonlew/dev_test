@@ -110,12 +110,15 @@ class MetaBaseWorkflow(Workflow):
 
     # add by qindanhua run function gene tool
     def run_function_gene(self):
+        self.step.add_steps("function_gene")
         self.function_gene_tool = self.add_tool("meta.function_gene.function_gene")
         self.function_gene_tool.set_options({
             "fastq": self.option("in_fastq"),
             "function_gene": self.option("database").split("/")[1],
         })
+        self.function_gene_tool.on("start", self.set_step, {'start': self.step.function_gene})
         self.function_gene_tool.on("end", self.run_sample_extract)
+        self.function_gene_tool.on("end", self.set_step, {'end': self.step.function_gene})
         self.function_gene_tool.run()
 
     def run_sample_extract(self):
@@ -124,7 +127,7 @@ class MetaBaseWorkflow(Workflow):
             self.in_fastq_path = self.function_gene_tool.output_dir + "/fungene_reads.fastq"
         if self.option("file_list") == "null":
             opts = {
-                "in_fastq": self.in_fastq_path if self.option("if_fungene") else self.option("in_fastq")  # modify by qindanhua 判断是否输入为功能基因
+                "in_fastq": self.in_fastq_path if self.option("if_fungene") else self.option("in_fastq")  # modified by qindanhua 判断是否输入为功能基因
             }
         else:
             opts = {
