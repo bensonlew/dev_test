@@ -29,18 +29,22 @@ class Config(object):
             self._db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
         return self._db
 
-    def get_identity_db(self):
+    def get_identity_db(self, test=False):
         """
         上传、下载验证码数据库
         """
-        if not self._identity_db:
-            dbtype = self.rcf.get("IDENTITY_DB", "dbtype")
-            host = self.rcf.get("IDENTITY_DB", "host")
-            user = self.rcf.get("IDENTITY_DB", "user")
-            passwd = self.rcf.get("IDENTITY_DB", "passwd")
-            dbname = self.rcf.get("IDENTITY_DB", "db")
-            port = self.rcf.get("IDENTITY_DB", "port")
-            self._identity_db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
+        if test:
+            identity_db = 'T_IDENTITY_DB'
+        else:
+            identity_db = 'IDENTITY_DB'
+        # if not self._identity_db:
+        dbtype = self.rcf.get(identity_db, "dbtype")
+        host = self.rcf.get(identity_db, "host")
+        user = self.rcf.get(identity_db, "user")
+        passwd = self.rcf.get(identity_db, "passwd")
+        dbname = self.rcf.get(identity_db, "db")
+        port = self.rcf.get(identity_db, "port")
+        self._identity_db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
         return self._identity_db
 
     def get_record_db(self):
@@ -72,6 +76,7 @@ def get_db():
 
 DB = get_db()
 IDENTITY_DB = Config().get_identity_db()
+T_IDENTITY_DB = Config().get_identity_db(test=True)
 RECORD_DB = Config().get_record_db()
 
 
