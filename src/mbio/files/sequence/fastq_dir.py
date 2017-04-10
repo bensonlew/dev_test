@@ -168,7 +168,8 @@ class FastqDirFile(Directory):
                 else:
                     if fastq not in self.unzip_file:
                         new_fastq = os.path.join(self.work_dir, os.path.basename(fastq))  # added and edited by shijin
-                        os.link(fastq, new_fastq)
+                        if not os.path.exists(new_fastq):
+                            os.link(fastq, new_fastq)
                         self.unzip_file.append(new_fastq)
             self.has_unziped = True
 
