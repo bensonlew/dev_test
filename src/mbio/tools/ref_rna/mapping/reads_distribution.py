@@ -62,10 +62,11 @@ class ReadsDistributionAgent(Agent):
         ])
         super(ReadsDistributionAgent, self).end()
 
+
 class ReadsDistributionTool(Tool):
     def __init__(self, config):
-       super(ReadsDistributionTool, self).__init__(config)
-       self.cmd_path = "/mnt/ilustre/users/sanger-dev/app/program/Python/bin/"
+        super(ReadsDistributionTool, self).__init__(config)
+        self.cmd_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
 
     def run_reads_distribution(self):
         """
