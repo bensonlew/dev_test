@@ -42,6 +42,7 @@ class SampleBase(Base):
                     results["Q20%"] = tmp[12]
                     results["Q30"] = tmp[13]
                     results["GC"] = tmp[14]
+
         try:
             sample_id = collection.insert_one({"_id": table_id}, {'$set': results}).insert_id
             self.bind_object.logger.info("表格导入成功")
