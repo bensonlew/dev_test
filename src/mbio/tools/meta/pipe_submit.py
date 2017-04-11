@@ -145,7 +145,7 @@ class PipeSubmitTool(Tool):
         sub_params = self.web_data['sub_analysis'][config_name]
         for i in config['others']:
             if i == "second_group_detail" and sub_params[i]:
-                params[i] = sub_group_detail_sort(sub_params[i])
+                params[i] = group_detail_sort(sub_params[i])  #lefse接口中使用的是group_detail_sort
             else:
                 params[i] = sub_params[i]
         api = '/' + '/'.join(sub_params['api'].split('|'))
@@ -201,7 +201,7 @@ class PipeSubmitTool(Tool):
         insert_data = {
             'pipe_batch_id': ObjectId(self.option('pipe_id')),
             'level_id': int(level),
-            'group_id': ObjectId(group_info['group_id']),
+            'group_id': "all" if str(group_info['group_id']) == "all" else ObjectId(group_info['group_id']),
             'task_id': self.option('task_id')
         }
         inserted_id = self.db['sg_pipe_main'].insert_one(insert_data).inserted_id
@@ -234,10 +234,11 @@ class PipeSubmitTool(Tool):
     def run_webapitest(self):
         """
         进行参数判断后投递所有的接口，如果后面要添加新的分析，主要要添加以下几个地方的内容：
-        1）analysis_table：analysis_table中保存的是每个分析的submit_location与每个分析对应的主表名字（mongo或者controller中可以找到）
-        2）子分析分投递型的与即时型的，投递的分析要在前面重写投递的参数，即时的只要在sub_analysis这个字典中添加就ok（注意了要有每个分析的api）
-        3）参数判断的那个函数中，要根据每个子分析的controller中的参数重组格式一模一样，只有这样才能匹配上对应的params，同时要在这个函数中对应的地方写上submit_location
-        4）一键化的所有的分析，都是以submit_location来区分，所以在对接的时候要着重考虑与前端的submit_location是不是一致的。
+        1）analysis_params中保存的是每个分析的submit_location命名的字典，instant用于区分投递或者即时的；waits中包含的是分析之间
+        的依赖关系，是基于哪些分析的结果进行下一步计算的；main保存的是主要的参数如："env_id", "env_labs"等，other中保存的是每个
+        分析中特有的一些参数；collection_name是这个子分析对应的mongo中的主表名
+        2）定义每个分析的类，如：CorrNetworkAnalyse（该分析的submit_location驼峰命名）
+        3）一键化的所有的分析，都是以submit_location来区分，所以在对接的时候要着重考虑与前端的submit_location是不是一致的。
         :return:
         """
         self.analysis_params = {
@@ -294,9 +295,11 @@ class PipeSubmitTool(Tool):
         lefse_flag = False  # lefse特殊性，没有分类水平参数
         api, instant, collection_name, params = self.get_otu_subsample_params(self.web_data['group_detail'])
         otu_subsample = SubmitOtuSubsample(self, collection_name, params, api, instant)
+        pipe_count = 0
         for level in self.levels:
             self.all[level] = {}
             for group_info in self.group_infos:
+                pipe_count += 2
                 pipe_main_id = self.pipe_main_mongo_insert(level, group_info)
                 pipe = {}
                 for i in self.web_data['sub_analysis']:
@@ -309,7 +312,7 @@ class PipeSubmitTool(Tool):
                     params['group_detail'] = group_detail_sort(group_info['group_detail'])
                     params['level_id'] = level
                     pipe[i] = self.get_class(i)(
-                        self, collection_name, params, api, instant, pipe_main_id)
+                        self, collection_name, params, api, instant, pipe_main_id, pipe_count)
                 pipe['otu_subsample'] = otu_subsample
                 for analysis, submit in pipe.iteritems():
                     if analysis == 'otu_subsample':
@@ -343,7 +346,7 @@ class PipeSubmitTool(Tool):
 class Submit(object):
     """投递对象"""
 
-    def __init__(self, bind_object, collection, params, api, instant, pipe_main_id=None):
+    def __init__(self, bind_object, collection, params, api, instant, pipe_main_id=None, pipe_count=0):
         """
         :params bind_object:
         :params collection:
@@ -368,6 +371,7 @@ class Submit(object):
         self.out_params = {}  # 输出参数，单一个分析需要给其他分析提供参数时提供
         self.result = {}  # 返回结果
         self._params_check_end = False  # 参数检查完成的任务
+        self.pipe_count = pipe_count  #
 
     def params_pack(self, dict_params):
         """
@@ -420,7 +424,7 @@ class Submit(object):
             if not self.instant:
                 status = 'end' if self._params_check_end else 'start'
                 self.insert_pipe_detail(self.result['content']["ids"]['name'], self.main_table_id, status)
-                # self.check_end(ObjectId(self.main_table_id))
+                self.check_end(ObjectId(self.main_table_id))
             else:
                 self.insert_pipe_detail(self.result['content']['ids']['name'], ObjectId(self.result['content']['ids']['id']), 'end')
         elif 'success' in self.result and not self.result['success']:
@@ -437,43 +441,54 @@ class Submit(object):
         """
         投递接口
         """
+        gevent.sleep(self.pipe_count)
         if self.check_params():
             self._params_check_end = True
             return self.result
         self.result = self.post()
 
     def insert_pipe_detail(self, table_name, table_id, status):
-        if self._params['group_id'] == 'all':
-            group_id = 'all'
-            group_name = 'ALL'
+        """
+        导入细节表的函数，先判断下是不是otu_statistic抽平分析，如果不是才会进行导入细节表
+        :param table_name:表的名字
+        :param table_id:主表的id
+        :param status:分析的状态
+        :return:
+        """
+        if not re.match(r'^OTUTaxonAnalysis', str(table_name)):
+            if self._params['group_id'] == 'all':
+                group_id = 'all'
+                group_name = 'All'
+            else:
+                group_id = ObjectId(self._params['group_id'])
+                group_name = self.db['sg_specimen_group'].find_one({'_id': ObjectId(self._params['group_id'])}, {'group_name': 1})['group_name']
+            if "level_id" in self._params:
+                level_id = self._params['level_id']
+                level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[level_id]
+            else:
+                level_id = 9
+                level_name = "OTU"
+            insert_data = {
+                "task_id": self.task_id,
+                "otu_id": ObjectId(self.bind_object.otu_id),
+                'group_name': group_name,
+                'level_name': level_name,
+                "submit_location": self._params['submit_location'],
+                'params': self.json_params,
+                'pipe_main_id': ObjectId(self.pipe_main_id),
+                'pipe_batch_id': ObjectId(self.bind_object.option('pipe_id')),
+                'table_id': ObjectId(table_id),
+                'status': status,
+                'desc': "" if status == "end" else self.result['info'],
+                'level_id': str(level_id),
+                "group_id": group_id,
+                'type_name': self.mongo_collection,
+                'table_name': table_name,
+                'created_ts': datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            }
+            self._pipe_detail_id = self.db['sg_pipe_detail'].insert_one(insert_data).inserted_id
         else:
-            group_id = ObjectId(self._params['group_id'])
-            group_name = self.db['sg_specimen_group'].find_one({'_id': ObjectId(self._params['group_id'])}, {'group_name': 1})['group_name']
-        if "level_id" in self._params:
-            level_id = self._params['level_id']
-            level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[level_id]
-        else:
-            level_id = 9
-            level_name = 'OTU'
-        insert_data = {
-            "task_id": self.task_id,
-            "otu_id": ObjectId(self.bind_object.otu_id),
-            'group_name': group_name,
-            'level_name': level_name,
-            "submit_location": self._params['submit_location'],
-            'params': self.json_params,
-            'pipe_main_id': ObjectId(self.pipe_main_id),
-            'pipe_batch_id': ObjectId(self.bind_object.option('pipe_id')),
-            'table_id': ObjectId(table_id),
-            'status': status,
-            'desc': self.result['info'],
-            'level_id': level_id,
-            "group_id": group_id,
-            'type_name': self.mongo_collection,
-            'table_name': table_name,
-            'created_ts': datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        }
-        self._pipe_detail_id = self.db['sg_pipe_detail'].insert_one(insert_data).inserted_id
+            pass
 
 
     def run_permission(self):
@@ -545,7 +560,7 @@ class Submit(object):
         检查投递任务是否结束  目前只用于特殊情况， 即参数相同，但是不由 一键化提交
         """
         for i in xrange(100):
-            self.bind_object.logger.info("第 {} 次 查询数据库，检测任务({}, {}))是否完成".format(
+            self.bind_object.logger.info("第 {} 次 查询数据库，检测任务({}, {})是否完成".format(
                 i + 1, self.mongo_collection, self.main_table_id))
             mongo_result = self.db[self.mongo_collection].find_one(
                 {"_id": ObjectId(self.main_table_id)}, {"status": 1, "desc": 1, "name": 1})
@@ -587,8 +602,14 @@ class Submit(object):
                 self.api, lastone['status'], self.mongo_collection, lastone["_id"]))
             self.main_table_id = lastone['_id']
             if lastone['status'] == 'end':
-                self.result = {'success': True, "info": lastone['desc'],
-                               'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
+                if str(self.mongo_collection) == "sg_otu_pan_core":
+                    ids = self.find_pan_core_ids(main_table_id=self.main_table_id)
+                    self.result = {'success': True, "info": lastone['desc'],
+                                   'content': {"ids": [{'id': str(lastone['_id']), 'name': lastone["name"]},
+                                                       {'id': ids["id"], 'name': ids['name']}]}}
+                else:
+                    self.result = {'success': True, "info": lastone['desc'],
+                                   'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
                 # self.result = {'success': True, 'main_id': lastone['_id']}
                 return self.result
             # elif lastone['status'] == 'start':
@@ -601,6 +622,19 @@ class Submit(object):
             #         self.result['success'] = False
             #     return self.result
         return False
+
+    def find_pan_core_ids(self, main_table_id):
+        """
+        pan_core分析有两个主表，找core的主表id
+        :param main_table_id:
+        :return:
+        """
+        result = self.db[self.mongo_collection].find_one({"_id": ObjectId(main_table_id)})
+        result1 = self.db[self.mongo_collection].find({"unique_id": str(result['unique_id'])})
+        for m in result1:
+            if str(m["_id"]) != str(main_table_id):
+                ids = {"id": str(m["_id"]), "name": m["name"]}
+        return ids
 
     def waits_params_get(self):
         """
@@ -799,7 +833,6 @@ class OtuPanCore(BetaSampleDistanceHclusterTree):
         投递接口
         """
         if self.check_params():
-            self.result['content']['ids'] = [self.result['content']['ids']]
             return self.result
         self.result = self.post()
 
