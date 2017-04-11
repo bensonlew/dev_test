@@ -271,7 +271,7 @@ class TabFile(Base):
 	def family_unanalysised(self):
 		family_id = []
 		collection = self.database['sg_pt_ref_main']
-		sample = collection.find({"analysised":'no',"type":'pt'})
+		sample = collection.find({"analysised":'no',"type":{"$regex": "^(p)?pt"}})
 		for i in sample:
 			dad_id = []
 			mom_id =[]
@@ -281,7 +281,7 @@ class TabFile(Base):
 			dad_id.append(i['sample_id'])
 			dad_id = list(set(dad_id))
 			mom = "WQ" + family + "-M.*"
-			sample_mom = collection.find({"sample_id": {"$regex": mom},"analysised":"None", "type":"pt"})
+			sample_mom = collection.find({"sample_id": {"$regex": mom},"analysised":"None", "type":{"$regex": "^(p)?pt"}})
 			for s in sample_mom:
 				mom_id.append(s['sample_id'])
 				mom_id = list(set(mom_id))
@@ -317,5 +317,105 @@ class TabFile(Base):
 		print sample_id
 		return sample['type']
 
+	def sample_qc_dc(self, file, sample_id):
+		qc_detail = list()
+		with open(file,'r') as f:
+			for line in f:
+				line = line.strip()
+				line = line.split(":")
+
+				if line[0] == 'dp1':
+					if float(line[1]) >=50:
+						color = "green"
+					elif float(line[1]) < 30:
+						color = "red"
+					else:
+						color = "yellow"
+				elif line[0] == "num__chrY":
+					if "-F" in sample_id:
+						if float(line[1]) <= 2:
+							color = 'red'
+						else:
+							color = 'green'
+				elif line[0] == '0Xcoveragerate1':
+					if float(line[1]) <0.9:
+						color = 'red'
+					else:
+						color = 'green'
+				elif line[0] == '15Xcoveragerate1':
+					if float(line[1]) < 0.8:
+						color = 'red'
+					else:
+						color = 'green'
+				elif line[0] == '50Xcoveragerate1':
+					if float(line[1]) < 0.65:
+						color = 'red'
+					else:
+						color = 'green'
+				elif line[0] == 'num':
+					num_M = int(line[1])/1000000
+					if num_M <= 1:
+						color = "red"
+					else:
+						color = 'green'
+				else:
+					color = ''
+					if line[0] == "n_dedup" or line[0] == "n_mapped":
+						line[1] = format(int(line[1]), ',')
+					elif line[0] == "0Xcoveragerate1" or line[0] == "15Xcoveragerate1" or \
+									line[0] == "50Xcoveragerate" or line[0] == "50Xcoveragerate1" or line[0] =="100Xcoveragerate1":
+						line[1] = round(float(line[1]),4)
+
+				insert_data = {
+					"qc": line[0],
+					"value": line[1],
+					"sample_id":sample_id,
+					"color":color
+				}
+				qc_detail.append(insert_data)
+			try:
+				collection = self.database['sg_pt_qc']
+				collection.insert_many(qc_detail)
+			except Exception as e:
+				self.bind_object.logger.error('导入qc表格出错：{}'.format(e))
+			else:
+				self.bind_object.logger.info("导入qc表格成功")
+
+	def sample_qc_addition_dc(self,sample_id):
+		collection = self.database['sg_pt_qc']
+		insert = []
+
+		find_n_hit = collection.find_one({"sample_id":sample_id, 'qc':'n_hit'})
+		n_hit = float(find_n_hit['value'])
+		n_hit_new = format(n_hit,',')
+
+		find_num = collection.find_one({"sample_id":sample_id, "qc":'num'})
+		num = float(find_num['value'])
+		num_new = format(num,',')
+
+		ot = round(n_hit/num, 4)
+		if ot <= 0.025:
+			color_ot = 'red'
+		elif 0.025 < ot <= 0.08:
+			color_ot = 'yellow'
+		elif ot > 0.08:
+			color_ot = 'green'
+
+		insert_data1 = {
+			"qc":"ot",
+			"value":ot,
+			"sample_id":sample_id,
+			"color": color_ot
+		}
+		insert.append(insert_data1)
+
+		try:
+			collection.insert_many(insert)
+			collection.find_one_and_update({"sample_id":sample_id,'qc':'n_hit'},{"$set":{"value":n_hit_new}})
+			collection.find_one_and_update({"sample_id":sample_id,'qc':'num'},{"$set":{"value":num_new}})
+		except Exception as e:
+			self.bind_object.logger.error('计算并导入ot出错：{}'.format(e))
+		else:
+			self.bind_object.logger.info("计算并导入ot成功")
 
 
