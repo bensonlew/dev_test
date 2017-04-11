@@ -30,7 +30,7 @@ class OtuSubsample(MetaController):
         task_info = meta.get_task_info(otu_info['task_id'])
         task_type = 'workflow'
         main_table_name = 'OTUTaxonAnalysis_' + \
-            datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
 
         my_param = dict()
         my_param["group_id"] = data.group_id

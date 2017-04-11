@@ -92,6 +92,7 @@ class PipeSubmitTool(Tool):
         self.count_instant_running = 0
 
     def rely_error(self, ana, error_rely):
+        ana.is_end = True
         self.logger.error('依赖对象运行错误: {}'.format(error_rely.api))
         if ana.instant:
             self.count_instant_running += 1
@@ -333,6 +334,10 @@ class PipeSubmitTool(Tool):
             self.all_end.get()
         except:
             self.logger.info('所有任务已经投递结束，计数:{}，总数:{}'.format(self.count_ends, self.all_count))
+            for i in self.all:
+                for one in self.all[i].values():
+                    if not one.is_end:
+                        self.logger.info("没有结束的submit: {}, api: {}, params: {}".format(one, one.api, one._params))
         self.end()
 
     def update_all_count(self):

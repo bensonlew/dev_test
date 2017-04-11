@@ -59,7 +59,7 @@ class Estimators(MetaController):
 
         level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order",  "Family", "Genus", "Species", "OTU"]
 
-        main_table_name = 'Estimators' + level_name[int(data.level_id)-1] + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'Estimators' + level_name[int(data.level_id)-1] + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -72,7 +72,7 @@ class Estimators(MetaController):
         ]
         main_table_id = meta.insert_main_table('sg_alpha_diversity', mongo_data)
         update_info = {str(main_table_id): 'sg_alpha_diversity'}
-        
+
         options = {
             "otu_file": data.otu_id,
             "otu_id": data.otu_id,

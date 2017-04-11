@@ -38,7 +38,7 @@ class Enterotyping(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type
         }
-        main_table_name = 'Enterotyping_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'Enterotyping_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),

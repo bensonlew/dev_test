@@ -64,7 +64,7 @@ class Rarefaction(MetaController):
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
         task_info = meta.get_task_info(otu_info['task_id'])
-        main_table_name = 'Rarefaction_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'Rarefaction_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),

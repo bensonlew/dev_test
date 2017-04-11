@@ -65,8 +65,8 @@ class PearsonCorrelation(MetaController):
             params_json["top_species"] = data.top_species
         # self.options["params"] = str(self.options)
         level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "OTU"]  # add by hongdongxuan 20170322
-        main_table_name = method_name + 'Correlation' + level_name[int(data.level_id) - 1] + "_" +\
-                          datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = method_name + 'Correlation' + level_name[int(data.level_id) - 1] + "_" + \
+            datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),

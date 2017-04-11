@@ -23,7 +23,7 @@ class Randomforest(MetaController):
                 return json.dumps(info)
         self.task_name = 'meta.report.randomforest'
         self.task_type = 'workflow'
-        self.main_table_name = 'Randomforest_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.main_table_name = 'Randomforest_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
 
         params = {
             'otu_id': data.otu_id,

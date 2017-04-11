@@ -28,7 +28,7 @@ class TwoSample(MetaController):
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
         task_info = meta.get_task_info(otu_info['task_id'])
-        main_table_name = 'DiffStatTwoSample_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'DiffStatTwoSample_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = int(data.level_id)

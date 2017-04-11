@@ -33,7 +33,7 @@ class MetaSourcetracker(MetaController):
         task_name = 'meta.report.meta_sourcetracker'
         task_type = 'workflow'
         task_info = Meta().get_task_info(otu_info['task_id'])
-        main_table_name = 'MetaSourcetracker_' + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'MetaSourcetracker_' + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),

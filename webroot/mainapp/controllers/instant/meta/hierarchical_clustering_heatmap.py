@@ -40,7 +40,7 @@ class HierarchicalClusteringHeatmap(MetaController):
             "sample_method": data.sample_method,
             "add_Algorithm": data.add_Algorithm
         }
-        main_table_name = 'CommunityHeatmap_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'CommunityHeatmap_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),

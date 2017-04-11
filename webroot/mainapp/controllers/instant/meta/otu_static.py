@@ -19,7 +19,7 @@ class OtuStatic(MetaController):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
         self.task_name = 'meta.report.otu_static'
-        self.main_table_name = 'OTU_Static_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.main_table_name = 'OTU_Static_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         specimen_ids = list()
         group_detal_dict = json.loads(data.group_detail)
         for v in group_detal_dict.values():
