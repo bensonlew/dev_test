@@ -424,7 +424,7 @@ class Submit(object):
             if not self.instant:
                 status = 'end' if self._params_check_end else 'start'
                 self.insert_pipe_detail(self.result['content']["ids"]['name'], self.main_table_id, status)
-                self.check_end(ObjectId(self.main_table_id))
+                # self.check_end(ObjectId(self.main_table_id))
             else:
                 self.insert_pipe_detail(self.result['content']['ids']['name'], ObjectId(self.result['content']['ids']['id']), 'end')
         elif 'success' in self.result and not self.result['success']:
@@ -559,7 +559,7 @@ class Submit(object):
         """
         检查投递任务是否结束  目前只用于特殊情况， 即参数相同，但是不由 一键化提交
         """
-        for i in xrange(100):
+        for i in xrange(1000):
             self.bind_object.logger.info("第 {} 次 查询数据库，检测任务({}, {})是否完成".format(
                 i + 1, self.mongo_collection, self.main_table_id))
             mongo_result = self.db[self.mongo_collection].find_one(
@@ -612,15 +612,15 @@ class Submit(object):
                                    'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
                 # self.result = {'success': True, 'main_id': lastone['_id']}
                 return self.result
-            # elif lastone['status'] == 'start':
-            #     self.check_end(lastone['_id'])
-            #     self.result = {'success': True, "info": lastone['desc'],
-            #                    'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
-            #     result = self.db[self.mongo_collection].find_one(
-            #         {'_id': lastone['_id']}, {'status': 1, 'desc': 1, "name": 1})
-            #     if result['status'] != 'end':  # 任务完成后检查状态
-            #         self.result['success'] = False
-            #     return self.result
+            elif lastone['status'] == 'start':
+                self.check_end(lastone['_id'])
+                self.result = {'success': True, "info": lastone['desc'],
+                               'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
+                result = self.db[self.mongo_collection].find_one(
+                    {'_id': lastone['_id']}, {'status': 1, 'desc': 1, "name": 1})
+                if result['status'] != 'end':  # 任务完成后检查状态
+                    self.result['success'] = False
+                return self.result
         return False
 
     def find_pan_core_ids(self, main_table_id):
