@@ -60,7 +60,7 @@ class RnaCheckWorkflow(Workflow):
         sample_list = self.get_sample()
         for sample in sample_list:
             sample_id = api_sample.add_sg_test_specimen(sample, self.qc.output_dir + "/fastq_stat.xls",
-                                                        self.add_text.output_dir + "/list.txt", table_id)
+                                                        self.file_sample, table_id)
             api_sample.add_sg_test_batch_specimen(table_id, sample_id, sample)
             api_sample.add_sg_test_batch_task_specimen(table_id, sample_id, sample)
 
@@ -70,6 +70,6 @@ class RnaCheckWorkflow(Workflow):
         dir.set_path(dir_path)
         dir.check()
         sample_list = dir.prop["samples"]
+        self.file_sample = dir.prop["file_sample"]
         self.logger.info(str(sample_list))
-
         return sample_list
