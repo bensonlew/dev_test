@@ -61,7 +61,7 @@ class Bam2tabAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '200G'
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -84,7 +84,19 @@ class Bam2tabTool(Tool):
         self._version = '1.0.1'
         self.cmd_path = "bioinfo/medical/scripts/bam2tab.sh"
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/lib/ruby/gems/2.3.0/gems/bio-vcf-0.9.2/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioawk')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bwa-0.7.15/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/samblaster-0.1.22/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bedtools-2.24.0/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/sun_jdk1.8.0/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bcftools-1.3.0/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/vt-master')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/vcflib-master/bin')
 
     def run_Bam2tab(self):
 
