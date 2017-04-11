@@ -71,7 +71,7 @@ class PhyloTreeTool(Tool):
 
     def __init__(self, config):
         super(PhyloTreeTool, self).__init__(config)
-        self.clustalw2_path = 'bioinfo/align/'
+        self.clustalw2_path = self.config.SOFTWARE_DIR+'/bioinfo/align/clustalw-2.1/src/'
         self.python_path = '/program/Python/bin/'
         self.mafft_path = self.config.SOFTWARE_DIR+'/bioinfo/align/mafft-7.299-with-extensions/bin/'
         self.FastTree_path = os.path.join(self.config.SOFTWARE_DIR, "bioinfo/phylogenetic/fasttree2.1.9/FastTreeMP")
