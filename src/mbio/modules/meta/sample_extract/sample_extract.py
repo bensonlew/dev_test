@@ -12,7 +12,7 @@ class SampleExtractModule(Module):
     """
     version 1.0
     author: shijin
-    last_modify: 2016.12.27
+    last_modify: 2017.04.11
     """
     def __init__(self, work_id):
         super(SampleExtractModule, self).__init__(work_id)
@@ -170,7 +170,7 @@ class SampleExtractModule(Module):
                             for line in r:
                                 a.write(line)
                 else:
-                    shutil.copy(old_file, new_file)
+                    shutil.copy(old_file, new_file)  # 此处不能用os.link()
         for file in os.listdir(old_path + "/output/fa"):
             sample = re.match("(.+)\.fa", file).group(1)
             if sample == old_name:
@@ -184,90 +184,111 @@ class SampleExtractModule(Module):
                 else:
                     shutil.copy(old_file, new_file)
 
-    def create_info(self, new_info_path):
+    def create_info(self, old_info_path):
         sample_lst = []
-        sample_workdir = {}
+        sample_workdir = {}  # sample_workdir[sample] = [path1,path2]  edited by shijin on 20170411
+        sample_list_path = {}  # sample_list_path[sample] = sample_workdir[sample][0]
         sample_reads = {}
         sample_bases = {}
         sample_avg = {}
         sample_min = {}
         sample_max = {}
-        if len(eval(self.option("workdir_sample"))) != 1:
-            with open(new_info_path, "r") as r:
-                with open(self.work_dir + "/info.txt", "w") as w:
-                    w.write("#file_path\tsample\twork_dir_path\tseq_num\t"
-                            "base_num\tmean_length\tmin_length\tmax_length\n")
-                    r.readline()
-                    for line in r:
-                        line = line.strip()
-                        lst = line.split("\t")
-                        sample_name = lst[1]
-                        if sample_name not in sample_lst:
-                            sample_lst.append(sample_name)
-                            sample_workdir[sample_name] = lst[2]
-                            sample_reads[sample_name] = int(lst[3])
-                            sample_bases[sample_name] = int(lst[4])
-                            sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
-                            sample_min[sample_name] = int(lst[6])
-                            sample_max[sample_name] = int(lst[7])
-                        else:
-                            sample_workdir[sample_name] = self.dir_join(sample_workdir[sample_name],
-                                                                        lst[2], sample_name)
-                            sample_reads[sample_name] += int(lst[3])
-                            sample_bases[sample_name] += int(lst[4])
-                            sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
-                            sample_min[sample_name] = min(int(lst[6]), sample_min[sample_name])
-                            sample_max[sample_name] = max(int(lst[7]), sample_max[sample_name])
-                    for sample in sample_lst:
-                        w.write("-" + "\t" + sample + "\t" + sample_workdir[sample] + "\t"
-                                + str(sample_reads[sample]) + "\t" + str(sample_bases[sample]) + "\t"
-                                + str(sample_avg[sample]) + "\t" + str(sample_min[sample])
-                                + "\t" + str(sample_max[sample]) + "\n")
-        else:
-            with open(new_info_path, "r") as r:
-                with open(self.work_dir + "/info.txt", "w") as w:
-                    w.write(
-                        "#file_path\tsample\twork_dir_path\tseq_num\tbase_num\tmean_length\tmin_length\tmax_length\n")
-                    r.readline()
-                    for line in r:
-                        line = line.strip()
-                        lst = line.split("\t")
-                        sample_name = lst[1]
-                        if sample_name not in sample_lst:
-                            sample_lst.append(sample_name)
-                            sample_workdir[sample_name] = lst[2]
-                            sample_reads[sample_name] = int(lst[3])
-                            sample_bases[sample_name] = int(lst[4])
-                            sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
-                            sample_min[sample_name] = int(lst[6])
-                            sample_max[sample_name] = int(lst[7])
-                        else:
-                            sample_reads[sample_name] += int(lst[3])
-                            sample_bases[sample_name] += int(lst[4])
-                            sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
-                            sample_min[sample_name] = min(int(lst[6]), sample_min[sample_name])
-                            sample_max[sample_name] = max(int(lst[7]), sample_max[sample_name])
-                    for sample in sample_lst:
-                        w.write("-" + "\t" + sample + "\t" + sample_workdir[sample] + "\t" + str(
-                            sample_reads[sample]) + "\t" + str(sample_bases[sample]) + "\t" + str(
-                            sample_avg[sample]) + "\t" + str(sample_min[sample])
+        # if len(eval(self.option("workdir_sample"))) != 1:
+        with open(old_info_path, "r") as r:
+            with open(self.work_dir + "/info.txt", "w") as w:
+                w.write("#file_path\tsample\twork_dir_path\tseq_num\t"
+                        "base_num\tmean_length\tmin_length\tmax_length\n")
+                r.readline()
+                for line in r:
+                    line = line.strip()
+                    lst = line.split("\t")
+                    sample_name = lst[1]
+                    if sample_name not in sample_lst:
+                        sample_lst.append(sample_name)
+                        sample_workdir[sample_name] = [lst[2]]
+                        sample_reads[sample_name] = int(lst[3])
+                        sample_bases[sample_name] = int(lst[4])
+                        sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
+                        sample_min[sample_name] = int(lst[6])
+                        sample_max[sample_name] = int(lst[7])
+                    else:
+                        # sample_workdir[sample_name] = self.dir_join(sample_workdir[sample_name],
+                                                                    # lst[2], sample_name)
+                        sample_workdir[sample_name].append(lst[2])
+                        sample_reads[sample_name] += int(lst[3])
+                        sample_bases[sample_name] += int(lst[4])
+                        sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
+                        sample_min[sample_name] = min(int(lst[6]), sample_min[sample_name])
+                        sample_max[sample_name] = max(int(lst[7]), sample_max[sample_name])
+                for sample in sample_lst:
+                    sample_list_path[sample] = sample_workdir[sample][0]
+                    # w.write("-" + "\t" + sample + "\t" + sample_workdir[sample] + "\t"
+                    w.write("-" + "\t" + sample + "\t" + sample_list_path[sample] + "\t"
+                            + str(sample_reads[sample]) + "\t" + str(sample_bases[sample]) + "\t"
+                            + str(sample_avg[sample]) + "\t" + str(sample_min[sample])
                             + "\t" + str(sample_max[sample]) + "\n")
+
+        # else:
+        #     with open(new_info_path, "r") as r:
+        #         with open(self.work_dir + "/info.txt", "w") as w:
+        #             w.write(
+        #                 "#file_path\tsample\twork_dir_path\tseq_num\tbase_num\tmean_length\tmin_length\tmax_length\n")
+        #             r.readline()
+        #             for line in r:
+        #                 line = line.strip()
+        #                 lst = line.split("\t")
+        #                 sample_name = lst[1]
+        #                 if sample_name not in sample_lst:
+        #                     sample_lst.append(sample_name)
+        #                     sample_workdir[sample_name] = lst[2]
+        #                     sample_reads[sample_name] = int(lst[3])
+        #                     sample_bases[sample_name] = int(lst[4])
+        #                     sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
+        #                     sample_min[sample_name] = int(lst[6])
+        #                     sample_max[sample_name] = int(lst[7])
+        #                 else:
+        #                     sample_reads[sample_name] += int(lst[3])
+        #                     sample_bases[sample_name] += int(lst[4])
+        #                     sample_avg[sample_name] = int(sample_bases[sample_name]) / int(sample_reads[sample_name])
+        #                     sample_min[sample_name] = min(int(lst[6]), sample_min[sample_name])
+        #                     sample_max[sample_name] = max(int(lst[7]), sample_max[sample_name])
+        #             for sample in sample_lst:
+        #                 w.write("-" + "\t" + sample + "\t" + sample_workdir[sample] + "\t" + str(
+        #                     sample_reads[sample]) + "\t" + str(sample_bases[sample]) + "\t" + str(
+        #                     sample_avg[sample]) + "\t" + str(sample_min[sample])
+        #                     + "\t" + str(sample_max[sample]) + "\n")
+        self.cat_fastas(sample_workdir)
         self.logger.info("end")
         self.end()
 
-    def dir_join(self, fdir, sdir, sample_name):
-        self.logger.info(fdir)
-        if fdir == sdir:
-            return fdir
-        with open(fdir + "/output/fa/" + sample_name + ".fasta", "a") as a:
-            with open(sdir + "/output/fa/" + sample_name + ".fasta", "r") as r:
-                for line in r:
-                    a.write(line)
-        with open(fdir + "/output/length/" + sample_name + ".length_file", "a") as a:
-            with open(sdir + "/output/length/" + sample_name + ".length_file", "r") as r:
-                for line in r:
-                    a.write(line)
-        return fdir
+    # def dir_join(self, fdir, sdir, sample_name):
+    #     self.logger.info(fdir)
+    #     if fdir == sdir:
+    #         return fdir
+    #     with open(fdir + "/output/fa/" + sample_name + ".fasta", "a") as a:
+    #         with open(sdir + "/output/fa/" + sample_name + ".fasta", "r") as r:
+    #             for line in r:
+    #                 a.write(line)
+    #     with open(fdir + "/output/length/" + sample_name + ".length_file", "a") as a:
+    #         with open(sdir + "/output/length/" + sample_name + ".length_file", "r") as r:
+    #             for line in r:
+    #                 a.write(line)
+    #     return fdir
+
+    def cat_fastas(self, sample_workdir):  # sample_workdir为字典，键值为样本名，值为列表
+        for sample in sample_workdir.keys():
+            path_list = sample_workdir[sample]
+            path_unrepeat = []
+            for path in path_list:
+                path = os.path.join(path, sample + ".fasta")
+                if path not in path_unrepeat:
+                    path_unrepeat.append(path)  # 对列表进行去重，属于同一目录的样本不再进行合并
+            if len(path_unrepeat) != 1:
+                str = " ".join(path_unrepeat)
+                os.system("cat {} > tmp.fa".format(str))
+                os.system("mv tmp.fa {}".format(path_unrepeat[0]))
+                self.logger.info("来自于不同文件的样本{}，合并完成".format(sample))
+
 
     def set_sample_db(self):
         os.mkdir(Config().WORK_DIR + "/sample_data/" + self.option("table_id"))
