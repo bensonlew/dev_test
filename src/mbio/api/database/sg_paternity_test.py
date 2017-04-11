@@ -141,6 +141,24 @@ class SgPaternityTest(Base):
 				line = line.split('\t')
 				if line[0] == "chrom":
 					continue
+				if line[44] == 'Mis':
+					Mis = '错配'
+				else:
+					Mis = '-'
+
+				if line[8] == 'NA':
+					dad_rf = 'NA'
+				else:
+					dad_rf = round(float(line[8]),8)
+				if line[17] == 'NA':
+					preg_rf = 'NA'
+				else:
+					preg_rf = round(float(line[17]),8)
+				if line[26] == 'NA':
+					mom_rf = 'NA'
+				else:
+					mom_rf = round(float(line[26]),8)
+
 				insert_data = {
 					# "task_id": self.bind_object.id,
 					"pt_father_id": pt_father_id,
@@ -152,7 +170,7 @@ class SgPaternityTest(Base):
 					"dad_dp": line[5],
 					"dad_ref_dp": line[6],
 					"dad_alt_dp": line[7],
-					"dad_rf": round(line[8],8),
+					"dad_rf": dad_rf,
 					"dad_geno": line[9],
 					"dad_geno_bases": line[10],
 					"preg_id": line[11],
@@ -161,7 +179,7 @@ class SgPaternityTest(Base):
 					"preg_dp": line[14],
 					"preg_ref_dp": line[15],
 					"preg_alt_dp": line[16],
-					"preg_rf": round(line[17],8),
+					"preg_rf": preg_rf,
 					"preg_geno": line[18],
 					"preg_geno_bases": line[19],
 					"mom_id": line[20],
@@ -170,14 +188,14 @@ class SgPaternityTest(Base):
 					"mom_dp": line[23],
 					"mom_ref_dp": line[24],
 					"mom_alt_dp": line[25],
-					"mom_rf": round(line[26],8),
+					"mom_rf": mom_rf,
 					"mom_geno": line[27],
 					"mom_geno_bases": line[28],
 					"reg": line[29],
 					"from": line[30],
 					"to": line[31],
 					"rs": line[32],
-					"hapmap_rf": round(line[33],8),
+					"hapmap_rf": line[33],
 					"hapmap_geno": line[34],
 					"n": line[35],
 					"mj_ref": line[36],
@@ -188,7 +206,7 @@ class SgPaternityTest(Base):
 					"mj_dp": line[41],
 					"mj_gene": line[42],
 					"is_test": line[43],
-					"is_mis": line[44],
+					"is_mis": Mis,
 					"mustbe": line[45],
 					"mustnotbe": line[46],
 					"good": line[47],
