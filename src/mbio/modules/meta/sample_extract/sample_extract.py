@@ -108,6 +108,14 @@ class SampleExtractModule(Module):
         if self.option("file_list") == "null":
             if not os.path.exists(self.work_dir + "/info.txt"):
                 os.link(self.work_dir + "/FastqSampleExtract/info.txt", self.work_dir + "/info.txt")
+        if self.option("file_list") == "null" and self.option("table_id") == "":
+            with open(self.work_dir + "/info.txt", "r") as file:
+                file.readline()
+                for line in file:
+                    tmp = line.split("\t")
+                    sample = tmp[1]
+                    if sample.find(".") != -1:
+                        raise Exception("样本名称中带.，请更改样本名称为不带.的名称后再进行流程")
         if self.option("file_list") == "null" and self.option("table_id") != "":
             self.logger.info(self.option("table_id"))
             self.set_sample_db()
