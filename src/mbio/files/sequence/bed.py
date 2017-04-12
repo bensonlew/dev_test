@@ -11,19 +11,18 @@ from gtf import *
 class BedFile(File):
     
     def __init__(self):
+
         pass
     
     def check(self):
+        super(BedFile,self).check()
+        self._check_skechy()
+    
+    def _check_skechy(self):
+
         pass
     
-    def check_format_details(self):
-        pass
     
-    def parse_details(self):
-        pass
-    
-    def parse(self):
-        pass
     
     def to_gtf(self):
         pass

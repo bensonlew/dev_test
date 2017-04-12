@@ -3,7 +3,7 @@
 # time: 2017/3/10 18:08
 
 
-import re, os, Bio, argparse, sys, fileinput, urllib2
+import re, os, Bio, argparse, sys, fileinput, urllib2,regex
 import Bio
 import subprocess
 from bs4 import BeautifulSoup
@@ -34,35 +34,32 @@ class GtfFile(File):
         self._validate_gtf_tool = 'validate_gtf.pl'  # 此脚本
         self._co_fasta = fasta
         self._contig_info = {}
-        '''
-        {contig:{
-            gene1:{
-                txpt1:{
-                    'TSS':{start:**,end:**},
-                    'exon1':{start:**,end:**},
-                    'cds': {start:**,end:**},
-                    '3_UTR':{}
-                    },
-                txpt2:{
-                
-                }
-        '''
-        self._structure_hierachy = dict_factory()
-    
-    def check(self, detail):
+        self._txpt_gene = {}
+        # self._check_log_file = ''
+        # self._structure_hierachy = dict_factory()
+
+    def check(self):
         super(GtfFile, self).check()
+        self.__check_skechy()
+
         pass
-    
-    def __check_gtf_bio_logic(self):
+
+    def check_in_detail(self, check_log_file):
+        self.__check_skechy()
+        # self.__check_hierachy()
+        self.__check_gtf_bio_logic(check_log_file)
+
+    def __check_gtf_bio_logic(self, log_file):
         '''
         此方法使用validate_gtf.pl文件检查gtf以下内容
         :return:
         '''
         if self._validate_gtf_tool:
-            tmp_out_txpt = os.path.join(os.path.dirname(self.path), os.path.basename(self.path) + '_tmp_txpt.gtf')
-            validate_gtf_cmd = 'perl {} -fsm -t {} {} {}'.format(self._validate_gtf_tool, tmp_out_txpt,
-                                                                 self._co_fasta.path, )
-    
+            # tmp_out_txpt = os.path.join(os.path.dirname(self.path), os.path.basename(self.path) + '_tmp_txpt.gtf')
+            validate_gtf_cmd = 'perl {} -fsm  {}'.format(self._validate_gtf_tool, self.path)
+            open(log_file,'wb').write(subprocess.check_output(validate_gtf_cmd,shell=True))
+
+
     def __check_skechy(self):
         '''
         
@@ -76,12 +73,12 @@ class GtfFile(File):
             content_m = re.match(
                 r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
-            
+
             if not (comment_m or content_m):
                 raise Exception(
                     'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
-    
-    def _check_chars(self):
+
+    def _check_chars(self,merged=False):
         '''
         基本检查: 检查各个字段的字符是否符合规范
         1. tab分隔为9列
@@ -89,18 +86,16 @@ class GtfFile(File):
         3. 每一列符合他们应有的规范
         :return:
         '''
-        
+        # gene_txpt_exon_dic = defaultdict(dict)
         for line in open(self.path):
-            
-            comment_m = re.match(r'^#.+', line.strip())
-            content_m = re.match(
-                r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+            comment_m = regex.match(r'^#.+', line.strip())
+            content_m = regex.match(
+                r'^([^#]\S*?)\t+((\S+)\t+){7}((.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*)$',
                 line.strip())
-            
             if not (comment_m or content_m):
                 raise Exception(
                     'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
-            
+
             if content_m:
                 contig = content_m.captures(1)[0]
                 seq_type = content_m.captures(2)[1].strip()
@@ -114,25 +109,30 @@ class GtfFile(File):
                 end_m = re.match(r'^\d+$', end)
                 frame_m = re.match(r'^[\.120]$', frame)
                 strand_m = re.match(r'^[\.\?\-\+]$', strand)
+                desc = content_m.captures(4)[0]
+
+                if merged:
+                    merged_m = regex.match(r'^.+?class_code "\w";$',desc)
+                    if not merged_m:
+                        raise Exception('illegal merged gtf')
                 if not (contig_m and seq_type_m and start_m and frame_m and end_m and strand_m):
                     raise Exception('line {} in gtf file {} is not legal.'.format(line.strip(), self.path))
-    
+
     def __check_hierachy(self):
         '''
         包含__check_chars的功能
         :return:
         '''
         for line in open(self.path):
-            
             comment_m = re.match(r'^#.+', line.strip())
             content_m = re.match(
-                r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                r'^([^#]\S*?)\t+((\S+)\t+){7}(.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
-            
+
             if not (comment_m or content_m):
                 raise Exception(
                     'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
-            
+
             if content_m:
                 contig = content_m.captures(3)[0]
                 seq_type = content_m.captures(3)[1]
@@ -146,28 +146,45 @@ class GtfFile(File):
                 end_m = re.match(r'^\d+$', end)
                 frame_m = re.match(r'^[\.120]$', frame)
                 strand_m = re.match(r'^[\.\?\-\+]$', strand)
-                #
-                # if gene_id:
-                #
-                # gene_id = content_m.captures()
                 if not (contig_m and seq_type_m and start_m and frame_m and end_m and strand_m):
                     raise Exception('line {} in gtf file {} is not legal.'.format(line.strip(), self.path))
-                # self._structure_hierachy[contig][]
-    
+                
+                    # self._structure_hierachy[contig][]
+
     def check_gtf_for_merge(self):
         '''
         检查merged.gtf每一行的第九列
         :return:
         '''
-    
-    def parse_details(self):
-        pass
-    
-    def parse(self):
-        pass
-    
+        self._check_chars(merged=True)
+
     def to_bed(self):
+
         pass
-    
+
+
     def gtf_tbi(self):
+
         pass
+    def get_txpt_gene_dic(self):
+        
+        
+        for line in open(self.path):
+            txpt_id = ''
+            gene_id = ''
+            content_m = regex.match(
+                r'^([^#]\S*?)\t+((\S+)\t+){7}(.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                line.strip())
+            if content_m:
+                if 'transcript_id' in content_m.captures(6):
+                    txpt_id = content_m.captures(7)[0]
+                    gene_id = content_m.captures(10)[0]
+                else:
+                    txpt_id = content_m.captures(10)[0]
+                    gene_id = content_m.captures(7)[0]
+            if txpt_id:
+                self._txpt_gene[txpt_id] = gene_id
+        
+            
+            
+        
