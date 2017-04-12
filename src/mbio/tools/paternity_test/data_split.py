@@ -140,12 +140,23 @@ class DataSplitTool(Tool):
 			if sample_[1] not in undetermined_sample_name:
 				undetermined_sample_name.append(sample_[1])
 				os.mkdir(dir_name)
-				shutil.copy(src, dir_name)
+				#shutil.copy(src, dir_name)
+				os.link(src, os.path.join(dir_name, name))
 			else:
-				shutil.copy(src, dir_name)
+				#shutil.copy(src, dir_name)
+				os.link(src, os.path.join(dir_name, name))
 		med_result_dir = os.path.join(self.work_dir, "MED")
 		list_name = os.listdir(med_result_dir)
 		for name in list_name:
 			sample_dir = os.path.join(med_result_dir, name)
-			dst = os.path.join(self.output_dir, name)
-			shutil.copytree(sample_dir, dst)
+			file_name = os.listdir(sample_dir)
+			dir_name = os.path.join(self.output_dir, name)
+			if not os.path.exists(dir_name):
+				os.mkdir(dir_name)
+			for name_ in file_name:
+				dst = os.path.join(dir_name, name_)
+				src = os.path.join(sample_dir, name_)
+				os.link(src, dst)
+
+			# dst = os.path.join(self.output_dir, name)
+			# shutil.copytree(sample_dir, dst)
