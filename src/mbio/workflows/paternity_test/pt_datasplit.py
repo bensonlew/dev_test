@@ -106,6 +106,8 @@ class PtDatasplitWorkflow(Workflow):
 		n = 0
 		self.tools = []
 		self.wq_dir = os.path.join(self.output_dir, "wq_dir")
+		if not os.path.exists(self.wq_dir):
+			os.mkdir(self.wq_dir)
 		for i in self.sample_name_wq:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			# self.step.add_steps('merge_fastq{}'.format(n))
@@ -143,6 +145,8 @@ class PtDatasplitWorkflow(Workflow):
 		n = 0
 		self.tools = []
 		ws_dir = os.path.join(self.output_dir, "ws_dir")
+		if not os.path.exists(ws_dir):
+			os.mkdir(ws_dir)
 		for i in self.sample_name_ws:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			merge_fastq.set_options({
@@ -214,6 +218,8 @@ class PtDatasplitWorkflow(Workflow):
 		n = 0
 		self.tools = []
 		undetermined_dir = os.path.join(self.output_dir, "undetermined_dir")
+		if not os.path.exists(undetermined_dir):
+			os.mkdir(undetermined_dir)
 		for i in self.sample_name_un:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			merge_fastq.set_options({
@@ -292,5 +298,6 @@ class PtDatasplitWorkflow(Workflow):
 				os.link(oldfiles[i], newfiles[i])
 			elif os.path.isdir(oldfiles[i]):
 				file_name = os.listdir(oldfiles[i])
+				os.mkdir(newfiles[i])
 				for file_name_ in file_name:
-					os.link(os.path.join(oldfiles[i] + file_name_), os.path.join(newdir, file_name_))
+					os.link(os.path.join(oldfiles[i], file_name_), os.path.join(newfiles[i], file_name_))
