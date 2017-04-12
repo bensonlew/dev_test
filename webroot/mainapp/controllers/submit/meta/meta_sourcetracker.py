@@ -39,7 +39,7 @@ class MetaSourcetracker(MetaController):
         main_table_name = 'MetaSourcetracker_' + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         params_json = {
             'otu_id': data.otu_id,
-            'level_id': int(data.level_id),
+            'level_id': data.level_id,
             'group_id': data.group_id,
             'group_detail': group_detail_sort(data.group_detail),
             'second_group_id': data.second_group_id,
