@@ -45,7 +45,7 @@ class GffFile(File):
         """
         gtf_path = os.path.split(self.prop['path'])[0]
         gtf = os.path.join(gtf_path, os.path.split(self.prop['path'])[1] + ".gtf")
-        cmd = "{}gffread {} -T -o {}".format(self.gffread_path, self.prop['path'], gtf)
+        cmd = "{}gffread {} -T -O -o {}".format(self.gffread_path, self.prop['path'], gtf)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
