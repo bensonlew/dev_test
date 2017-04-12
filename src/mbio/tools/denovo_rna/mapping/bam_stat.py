@@ -104,27 +104,23 @@ class BamStatTool(Tool):
         file_path = glob.glob(r"*.bam_stat.o")
         print(file_path)
         with open("bam_stat.xls", "w") as w:
-            w.write("{}\t{}\t{}\t{}\t{}\n".format("sample", "total_reads", "mappped_reads", "multiple_mapped", "uniq_mapped"))
+            w.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format("sample", "total_reads", "mappped_reads",
+                                                                  "multiple_mapped", "uniq_mapped", "reads_up",
+                                                                  "reads_down", "no_splice", "splice"))
             for fl in file_path:
                 with open(fl, "r") as f:
-                    total = 0
-                    unmapped = 0
-                    multiple = 0
-                    uniq = 0
+                    values = []
                     sample_name = fl.split(".")[0]
-                    print sample_name
                     for line in f:
-                        if re.match(r"Total", line):
-                            total = line.split()[2]
-                        if re.match(r"Unmapped", line):
-                            unmapped = line.split()[2]
-                        if re.match(r"mapq <", line):
-                            multiple = line.split()[-1]
-                        if re.match(r"mapq >", line):
-                            uniq = line.split()[-1]
-                    mapped = int(total) - int(unmapped)
-                    # print mapped
-                    write_line = "{}\t{}\t{}\t{}\t{}\n".format(sample_name, total, mapped, multiple, uniq)
+                        if line.split():
+                            line = line.split()
+                            if line[0] in ["Total", "Unmapped", "mapq", "Reads", "Non-splice", "Splice"]:
+                                print line
+                                values.append(int(line[-1]))
+                    print values
+                    write_line = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".\
+                        format(sample_name, values[0], values[0]-values[1],
+                               values[2], values[3], values[4], values[5], values[6], values[7])
                     w.write(write_line)
                     # print write_line
 
