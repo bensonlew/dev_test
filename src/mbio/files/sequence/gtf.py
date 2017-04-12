@@ -168,7 +168,6 @@ class GtfFile(File):
         pass
     def get_txpt_gene_dic(self):
         
-        
         for line in open(self.path):
             txpt_id = ''
             gene_id = ''
