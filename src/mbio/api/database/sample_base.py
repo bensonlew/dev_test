@@ -15,7 +15,7 @@ class SampleBase(Base):
         self._db_name = "samplebase"
 
     @report_check
-    def add_sg_test_specimen(self, sample, stat_path, file_sample, table_id):
+    def add_sg_test_specimen(self, sample, stat_path, file_sample):
         """
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
@@ -25,7 +25,7 @@ class SampleBase(Base):
                 """
         collection = self.db["sg_test_batch_specimen"]
         results = {}
-        results["test_batch_id"] = ObjectId(table_id)
+        # results["test_batch_id"] = ObjectId(table_id)
         with open(stat_path, "r") as file:
             for line in file:
                 if line.startswith(sample):
@@ -61,12 +61,11 @@ class SampleBase(Base):
         results = {}
         results["test_batch_id"] = ObjectId(table_id)
         results["test_specimen_id"] = ObjectId(sample_id)
-        results["alias_name"] = sample
+        results["old_name"] = sample
+        results["new_name"] = sample
         try:
             collection.insert_one(results)
             self.bind_object.logger.info("表格导入成功")
         except Exception as e:
             self.bind_object.logger.error("表格导入出错:{}".format(e))
 
-    @report_check
-    def add_sg_test_batch_task_specimen(self, table_id, sample_id, sample):

@@ -60,9 +60,10 @@ class RnaCheckWorkflow(Workflow):
         sample_list = self.get_sample()
         for sample in sample_list:
             sample_id = api_sample.add_sg_test_specimen(sample, self.qc.output_dir + "/fastq_stat.xls",
-                                                        self.file_sample, table_id)
+                                                        # self.file_sample, table_id)
+                                                        self.file_sample)
             api_sample.add_sg_test_batch_specimen(table_id, sample_id, sample)
-            api_sample.add_sg_test_batch_task_specimen(table_id, sample_id, sample)
+            # api_sample.add_sg_test_batch_task_specimen(table_id, sample_id, sample)
 
     def get_sample(self):
         dir_path = self.add_text.option("samplebase_dir").prop["path"]
