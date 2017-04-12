@@ -279,16 +279,27 @@ class SampleExtractModule(Module):
         for sample in sample_workdir.keys():
             path_list = sample_workdir[sample]
             path_unrepeat = []
+            length_unrepeat = []
             for path in path_list:
-                path = os.path.join(path, sample + ".fasta")
+                # path = os.path.join(path, sample + ".fasta")
+                path = path + "/output/fa/" + sample + ".fasta"
                 if path not in path_unrepeat:
                     path_unrepeat.append(path)  # 对列表进行去重，属于同一目录的样本不再进行合并
             if len(path_unrepeat) != 1:
                 str = " ".join(path_unrepeat)
-                os.system("cat {} > tmp.fa".format(str))
-                os.system("mv tmp.fa {}".format(path_unrepeat[0]))
-                self.logger.info("来自于不同文件的样本{}，合并完成".format(sample))
-
+                os.system("cat {} > {}/tmp.fa".format(str, self.work_dir))
+                os.system("mv {}/tmp.fa {}".format(self.work_dir, path_unrepeat[0]))
+                self.logger.info("来自于不同文件的样本的序列文件{}，合并完成".format(sample))
+                self.logger.info(path_unrepeat[0])
+            for path in path_list:  # 对长度文件进行合并
+                path = path + "/output/length/" + sample + ".length_file"
+                if path not in length_unrepeat:
+                    length_unrepeat.append(path)
+            if len(length_unrepeat) != 1:
+                str = " ".join(length_unrepeat)
+                os.system("cat {} > {}/tmp.length".format(str, self.work_dir))
+                os.system("mv {}/tmp.length {}".format(self.work_dir, length_unrepeat[0]))
+                self.logger.info("来自于不同文件的样本的长度文件{}，合并完成".format(sample))
 
     def set_sample_db(self):
         os.mkdir(Config().WORK_DIR + "/sample_data/" + self.option("table_id"))
