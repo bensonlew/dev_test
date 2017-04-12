@@ -76,7 +76,7 @@ class PtDatasplitWorkflow(Workflow):
 			"message_table": self.option('message_table'),
 			"data_dir": self.option('data_dir'),
 		})
-		self.data_split.on('end', self.set_output, 'data_split')
+		# self.data_split.on('end', self.set_output, 'data_split')
 		self.data_split.on('end', self.run_merge_fastq_wq)
 		# self.data_split.on('start', self.set_step, {'start': self.step.data_split})
 		# self.data_split.on('end', self.set_step, {'end': self.step.data_split})
@@ -291,5 +291,6 @@ class PtDatasplitWorkflow(Workflow):
 			if os.path.isfile(oldfiles[i]):
 				os.link(oldfiles[i], newfiles[i])
 			elif os.path.isdir(oldfiles[i]):
-				os.system('cp -r %s %s' % (oldfiles[i], newdir))
-
+				file_name = os.listdir(oldfiles[i])
+				for file_name_ in file_name:
+					os.link(os.path.join(oldfiles[i] + file_name_), os.path.join(newdir, file_name_))
