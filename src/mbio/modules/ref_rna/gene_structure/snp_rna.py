@@ -79,7 +79,7 @@ class SnpRnaModule(Module):
                         "readFilesIN2": fq2,
                         "seq_method": self.option("seq_method") 
                     })   # set_options(options)方法在 tool.py里 options需为一个字典对对象
-                    star.on("end", self.picard_run)
+                    star.on("end", self.picard_run, f)
                     self.mapping_tools.append(star)
                     
             elif self.option("seq_method") == "SE":
@@ -91,7 +91,7 @@ class SnpRnaModule(Module):
                         "readFilesIN": fq_s,
                         "seq_method": self.option("seq_method")
                     })
-                    star.on("end", self.picard_run)
+                    star.on("end", self.picard_run, f)
                     self.mapping_tools.append(star)
         
         else:  # 用户上传基因组
@@ -116,7 +116,7 @@ class SnpRnaModule(Module):
                         'seq_method': self.option('seq_method')
                     })
                  
-                    star.on("end", self.picard_run)
+                    star.on("end", self.picard_run, f)
                     self.mapping_tools.append(star)
 
             elif self.option("seq_method") == "SE":  # 如果测序方式为SE测序
@@ -130,7 +130,7 @@ class SnpRnaModule(Module):
                         'seq_method': self.option('seq_method')
                     })
                    
-                    star.on("end", self.picard_run)
+                    star.on("end", self.picard_run, f)
                     self.mapping_tools.append(star)
 
         self.on_rely(self.mapping_tools, self.finish_update, 'star')
@@ -196,7 +196,7 @@ class SnpRnaModule(Module):
                 "ref_genome": self.ref_name,
                 "in_sam": f_path
             })
-        picard.on("end", self.gatk_run)
+        picard.on("end", self.gatk_run, event['data'])
         if len(self.picards) == 1 and self.samples is None:
             self.picards[0].on("end", self.finish_update, "picard")
             
@@ -231,7 +231,7 @@ class SnpRnaModule(Module):
                 "input_bam": f_path
             })
         gatk.on("end", self.finish_update, 'gatk')
-        gatk.on("end", self.snp_anno)
+        gatk.on("end", self.snp_anno, event['data'])
         self.logger.info("gatk is running!")
         gatk.run()
 
@@ -256,7 +256,7 @@ class SnpRnaModule(Module):
         annovar.set_options(options)
         self.annovars.append(annovar)
         # annovar.on("end", self.finish_update, "annovar")
-        annovar.on("end", self.set_output, "annovar")
+        annovar.on("end", self.set_output, "annovar_" + event['data'])
         annovar.run()
 
     """
@@ -279,10 +279,12 @@ class SnpRnaModule(Module):
     def set_output(self, event):
         self.logger.info("set output started!!!")
         obj = event["bind_object"]
-        if event['data'] == 'annovar':
-            if os.path.exists(self.output_dir + "/snp_anno{}.xls".format(self.end_times)):
-                os.remove(self.output_dir + "/snp_anno{}.xls".format(self.end_times))
-            os.link(obj.output_dir + "/snp_anno.xls", self.output_dir + "/snp_anno{}.xls".format(self.end_times))
+        if event['data'][:7] == 'annovar':
+            output_name = self.output_dir + "/{}.snp_anno.xls".format(event['data'].split("_")[1])
+            self.logger.info(output_name)
+            if os.path.exists(output_name):
+                os.remove(output_name)
+            os.link(obj.output_dir + "/snp_anno.xls", output_name)
             self.end_times += 1
             if self.end_times == len(self.samples):
                 self.logger.info("set output done")
