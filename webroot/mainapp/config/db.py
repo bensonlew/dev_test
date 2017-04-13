@@ -70,10 +70,6 @@ class Config(object):
 def get_db():
     return Config().get_db()
 
-DB = get_db()
-IDENTITY_DB = Config().get_identity_db()
-RECORD_DB = Config().get_record_db()
-
 
 def get_use_api_clients():
     return Config().rcf.options("API")

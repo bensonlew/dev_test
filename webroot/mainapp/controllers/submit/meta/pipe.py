@@ -3,9 +3,8 @@
 import web
 import json
 import datetime
-from mainapp.models.mongo.meta import Meta
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.libs.param_pack import *
+from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
 
 
@@ -24,13 +23,13 @@ class Pipe(MetaController):
         if not isinstance(group_detail, dict):
             info = {'success': False, 'info': '传入的group_detail不是一个字典！'}
             return json.dumps(info)
-        otu_info = Meta().get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
         task_name = 'meta.report.meta_pipeline'
         task_type = 'workflow'
-        task_info = Meta().get_task_info(otu_info['task_id'])
+        task_info = self.meta.get_task_info(otu_info['task_id'])
         main_table_name = 'Pipeline_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         all_analysis = []
         sub_analysis_name = json.loads(data.sub_analysis)
@@ -91,7 +90,7 @@ class Pipe(MetaController):
             ('all_count', 0),
             ('pipe_main_id', "none")
         ]
-        main_table_id = Meta().insert_main_table('sg_pipe_batch', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_pipe_batch', mongo_data)
         update_info = {str(main_table_id): 'sg_pipe_batch'}
         options = {
             "data": json.dumps(data),

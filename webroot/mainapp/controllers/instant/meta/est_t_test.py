@@ -3,9 +3,7 @@
 import web
 import json
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.models.mongo.estimator import Estimator
 from mainapp.libs.param_pack import group_detail_sort
-from mainapp.models.mongo.meta import Meta
 from bson import ObjectId
 import datetime
 
@@ -38,7 +36,6 @@ class EstTTest(MetaController):
 
         task_name = 'meta.report.est_t_test'
         task_type = 'workflow'
-        meta = Meta()
 
         params_json = {
             'alpha_diversity_id': data.alpha_diversity_id,
@@ -51,11 +48,11 @@ class EstTTest(MetaController):
         if hasattr(data, "test_method"):
             params_json["test_method"] = data.test_method
 
-        otu_info = meta.get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        task_info = meta.get_task_info(otu_info['task_id'])
+        task_info = self.meta.get_task_info(otu_info['task_id'])
         main_table_name = 'EstimatorStat_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
@@ -67,7 +64,7 @@ class EstTTest(MetaController):
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':')))
         ]
-        main_table_id = meta.insert_main_table('sg_alpha_ttest', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_alpha_ttest', mongo_data)
         update_info = {str(main_table_id): 'sg_alpha_ttest'}
         options = {
             "est_table": data.alpha_diversity_id,
@@ -77,7 +74,7 @@ class EstTTest(MetaController):
             "group_detail": data.group_detail,
             "est_t_test_id": str(main_table_id),
             # "est_test_method": data.test_method
-                    }
+            }
         if hasattr(data, "test_method"):
             params_json["est_test_method"] = data.test_method
         del params_json["group_detail"]

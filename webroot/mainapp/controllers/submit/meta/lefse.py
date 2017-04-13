@@ -3,13 +3,10 @@
 import web
 import json
 import datetime
-import random
 from mainapp.libs.signature import check_sig
-from mainapp.models.workflow import Workflow
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.group_stat import GroupStat as G
-from mainapp.libs.param_pack import *
+from mainapp.libs.param_pack import group_detail_sort
 import re
 
 
@@ -20,7 +17,6 @@ class Lefse(MetaController):
     @check_sig
     def POST(self):
         data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         print data
         return_result = self.check_options(data)
         if return_result:
@@ -47,7 +43,7 @@ class Lefse(MetaController):
         my_param['start_level'] = int(data.start_level)
         my_param['end_level'] = int(data.end_level)
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        otu_info = Meta().get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if otu_info:
             name = "LEfSe_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
             lefse_id = G().create_species_difference_lefse(params, data.group_id, data.otu_id, name)
@@ -97,7 +93,7 @@ class Lefse(MetaController):
         group_detail = json.loads(data.group_detail)
         if not isinstance(group_detail, dict):
             success.append("传入的group_detail不是一个字典")
-        if data.group_id == 'all':     #modified by hongdongxuan 20170313
+        if data.group_id == 'all':  # modified by hongdongxuan 20170313
             success.append("分组方案至少选择两个分组！")
         elif len(group_detail) < 2:
             success.append("请选择至少两组以上的分组方案!")

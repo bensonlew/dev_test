@@ -7,7 +7,6 @@ import datetime
 from bson import ObjectId
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.models.mongo.meta import Meta
 
 
 class FunctionPredict(MetaController):
@@ -27,11 +26,11 @@ class FunctionPredict(MetaController):
             return json.dumps(info)
         task_name = 'meta.report.function_predict'
         task_type = 'workflow'
-        otu_info = Meta().get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        task_info = Meta().get_task_info(otu_info["task_id"])
+        task_info = self.meta.get_task_info(otu_info["task_id"])
         params_json = {
             'otu_id': data.otu_id,
             'group_id': data.group_id,
@@ -51,7 +50,7 @@ class FunctionPredict(MetaController):
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ('params', json.dumps(params_json, sort_keys=True, separators=(',', ':')))
         ]
-        main_table_id = Meta().insert_main_table('sg_16s', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_16s', mongo_data)
         update_info = {str(main_table_id): 'sg_16s'}
         options = {
             "update_info": json.dumps(update_info),

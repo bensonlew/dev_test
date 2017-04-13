@@ -5,7 +5,6 @@ import json
 import datetime
 from bson import ObjectId
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.models.mongo.meta import Meta
 from mainapp.libs.param_pack import group_detail_sort
 
 
@@ -29,12 +28,11 @@ class PlotTree(MetaController):
                 return json.dumps(info)
         task_name = 'meta.report.plot_tree'
         task_type = 'workflow'  # 可以不配置
-        meta = Meta()
-        otu_info = meta.get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        task_info = meta.get_task_info(otu_info['task_id'])
+        task_info = self.meta.get_task_info(otu_info['task_id'])
         params = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
@@ -58,7 +56,7 @@ class PlotTree(MetaController):
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ("params", params)
         ]
-        main_table_id = meta.insert_main_table('sg_phylo_tree', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_phylo_tree', mongo_data)
         update_info = {str(main_table_id): 'sg_phylo_tree'}
         options = {'otu_table': data.otu_id,
                    'otu_id': data.otu_id,
