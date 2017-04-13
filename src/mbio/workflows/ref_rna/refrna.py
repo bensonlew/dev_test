@@ -18,6 +18,15 @@ class RefrnaWorkflow(Workflow):
         self._sheet = wsheet_object
         super(RefrnaWorkflow, self).__init__(wsheet_object)
         options = [
+            {"name": "workflow_type", "type":"string", "default": "transcriptome"},  # 转录组
+            {"name": "genome_status", "type": "bool", "default": True},
+            # 基因组结构完整程度，True表示基因组结构注释文件可以支持rna编辑与snp分析
+            {"name": "genome_structure_file", "type": "infile", "default": "sequence.gff, sequence.gtf"},
+
+            {"name":"sample_base", "type": "bool", "default": False},  #
+            {"name":"batch_id", "type": "string", "default": ""},  # 样本集编号
+
+
             {"name": "fq_type", "type": "string", "default": "PE"},  # PE OR SE
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq_dir"},  # Fastq文件夹
             {"name": "qc_quality", "type": "int", "default": 30},  # 质量剪切中保留的最小质量值
@@ -25,8 +34,6 @@ class RefrnaWorkflow(Workflow):
 
             {"name": "ref_genome", "type": "string", "default": "customer_mode"},  # 参考基因组
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组
-            {"name": "gff", "type": "infile", "format": "ref_rna.reads_mapping.gff"},
-            # Ensembl上下载的gff格式文件
 
             {"name": "nr_blast_evalue", "type": "float", "default": 1e-5},  # NR比对e值
             {"name": "string_blast_evalue", "type": "float", "default": 1e-5},  # String比对使用的e值
@@ -85,20 +92,15 @@ class RefrnaWorkflow(Workflow):
         self.qc_stat_before = self.add_module("denovo_rna.qc.qc_stat")
         self.qc_stat_after = self.add_module("denovo_rna.qc.qc_stat")
         self.mapping = self.add_module("ref_rna.mapping.rnaseq_mapping")
-        self.map_qc = self.add_module("ref_rna.mapping.ref_assessment")
-        self.assembly = self.add_module("ref_rna_test.assembly.assembly")
-        self.exp_ref = self.add_module("ref_rna_test.express.express")  # 需要修改
-        self.exp_new_transcripts = self.add_module("ref_rna_test.express.express")  # 需要修改
-        self.exp_new_genes = self.add_module("ref_rna_test.express.express")  # 需要修改
-        self.exp_merged = self.add_module("ref_rna_test.express.express")  # 需要修改
+        self.map_qc = self.add_module("denovo.mapping.map_assessment")
+        self.assembly = self.add_module("ref_rna.assembly.assembly")
+        self.exp = self.add_module("ref_rna.express.express")
         self.exp_diff = self.add_module("denovo_rna.express.diff_analysis")
         self.snp_rna = self.add_module("ref_rna.gene_structure.snp_rna")
         self.seq_abs = self.add_tool("ref_rna.annotation.transcript_abstract")
         self.annotation = self.add_module('denovo_rna.annotation.denovo_annotation')
-        # self.altersplicing = self.add_tool('ref_rna.gene_structure.altersplicing.rmats')
         self.network = self.add_module("ref_rna.ppinetwork_analysis")
-        self.tf = self.add_tool("ref_rna.protein_regulation.TF_predict") 
-        self.sample_analysis = self.add_tool("ref_rna.express.sample_analysis")
+        self.tf = self.add_tool("ref_rna.protein_regulation.TF_predict")
         self.step.add_steps("qcstat", "mapping", "assembly", "annotation", "exp_ref", "exp_new_transcripts",
                             "exp_new_genes", "exp_merged", "map_stat",
                             "seq_abs", "transfactor_analysis", "network_analysis", "sample_analysis",
@@ -135,7 +137,6 @@ class RefrnaWorkflow(Workflow):
         if self.option("assemble_or_not"):
             if self.option("assemble_method") not in ["cufflinks", "stringtie"]:
                 raise OptionError("拼接软件应在cufflinks和stringtie中选择")
-        # if self.option()
         return True
         
     def set_step(self, event):
@@ -190,9 +191,6 @@ class RefrnaWorkflow(Workflow):
         self.run_seq_abs()
         super(RefrnaWorkflow, self).run()
 
-    """
-    以下为新加入内容
-    """
     def run_blast(self):
         self.blast_modules = []
         self.gene_list = self.seq_abs.option('gene_file')
@@ -270,9 +268,6 @@ class RefrnaWorkflow(Workflow):
         self.annotation.on('end', self.set_output, 'annotation')
         self.annotation.on('end', self.set_step, {'end': self.step.annotation})
         self.annotation.run()
-    """
-    以上为新加入内容
-    """
 
     def run_qc_stat(self, event):
         if event['data']: 
@@ -587,38 +582,13 @@ class RefrnaWorkflow(Workflow):
         ref-rna workflow run方法
         :return:
         """
-        # self.filecheck.on('end', self.end)
         self.filecheck.on('end', self.run_qc)
-        """
-        self.filecheck.on('end', self.run_seq_abs)
-        self.seq_abs.on('end', self.run_blast)
-        """
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
-        # self.mapping.on('end', self.end)
         self.mapping.on('end', self.run_assembly)
-        # self.assembly.on('end', self.run_exp, "ref")
         self.assembly.on("end", self.run_exp)
-        self.on(run_exp, self.end)
-        # self.exp_ref.on("end", self.end)
-        # self.exp_ref.on("end", self.end)
-        # self.on_rely([self.annotation, self.exp_ref], self.exp_diff)
-        # self.exp_diff.on("end", self.end)
-
-        # self.assembly.on('end', self.run_exp, "new_transcripts")
-        # self.assembly.on('end', self.run_exp, "new_genes")
-        # self.assembly.on('end', self.run_exp, "merged")
-        # self.on_rely([self.exp_merged, self.exp_new_genes, self.exp_ref, self.exp_new_transcripts], self.end)
-        # self.qc.on('end', self.run_seq_abs)
-        # self.annotation.on('end', self.run_mapping)
-        # self.qc.on('end',self.run_snp)
-        # self.seq_abs.on("end",self.run_annotation)
-        # self.on_rely([self.exp,self.annotation],self.exp_diff)
-        # self.sample_analysis.on("end",self.end)
-        # self.exp_diff.on("end",self.run_tf)
-        # self.exp_diff.on("end",self.run_network)
-        # self.on_rely([self.tf,self.network,self.sample_analysis,self.snp_rna,self.altersplicing],self.end)
+        self.on(self.run_exp, self.end)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
         

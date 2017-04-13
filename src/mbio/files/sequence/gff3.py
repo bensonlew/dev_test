@@ -46,7 +46,13 @@ class Gff3File(File):
         self._feature_tree = {}
         self._fasta = None
 
-    def check(self, fa_file):
+    def check(self):
+        if super(Gff3File, self).check():
+            return True
+        else:
+            raise FileError("Gff3文件路径不存在")
+
+    def check_format(self, fa_file):
         self.check_lines()
         self.parse_and_check_simple_column(fa_file)
         self.check_logical()
@@ -220,13 +226,21 @@ class Gff3File(File):
 
     def to_gtf(self):
         temp_gtf = os.path.join(os.path.dirname(self._gtf), os.path.basename(self._gtf).split('.')[0]) + '_temp.gtf'
-        to_gtf_cmd = '%s -T -O  -o %s  %s' % (self._gffread_path, temp_gtf, self.path)
+        to_gtf_cmd = '%s -T -O -C -o %s  %s' % (self._gffread_path, temp_gtf, self.path)
+        # 先加上-c参数以保证组装过程不出现错误，后期修改组装模块后取消-c参数
         subprocess.call(to_gtf_cmd, shell=True)
         gtf = open(self._gtf, 'wb')
         for line in open(temp_gtf):
             newline = re.sub(r'"(\S+?):(\S+?)";', '"\g<2>";', line)
             gtf.write(newline)
         gtf.close()
+
+    def to_bed(self):
+        self.to_gtf()
+        from .gtf import GtfFile
+        gtf = GtfFile()
+        gtf.set_path(self._gtf)
+        gtf.to_bed()
 
 
 if __name__ == '__main__':

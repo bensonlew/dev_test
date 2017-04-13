@@ -3,15 +3,11 @@
 # time: 2017/3/10 18:08
 
 
-import re, os, Bio, argparse, sys, fileinput, urllib2,regex
-import Bio
+import re, Bio, urllib2, regex, os
 import subprocess
-from bs4 import BeautifulSoup
 from biocluster.iofile import File
-# from gff3 import Gff3File
-# import regex
-import logging
 from collections import defaultdict
+from biocluster.config import Config
 
 '''
 gtf:gene transefer format
@@ -30,11 +26,13 @@ def dict_factory():
 
 
 class GtfFile(File):
-    def __init__(self, fasta):  # fasta应为FastaFile对象
+    # def __init__(self, fasta):  # fasta应为FastaFile对象
+    def __init__(self):  # fasta应为FastaFile对象
         self._validate_gtf_tool = 'validate_gtf.pl'  # 此脚本
-        self._co_fasta = fasta
+        # self._co_fasta = fasta
         self._contig_info = {}
         self._txpt_gene = {}
+        self.gtf2bed_path = Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.pl"
         # self._check_log_file = ''
         # self._structure_hierachy = dict_factory()
 
@@ -58,7 +56,6 @@ class GtfFile(File):
             # tmp_out_txpt = os.path.join(os.path.dirname(self.path), os.path.basename(self.path) + '_tmp_txpt.gtf')
             validate_gtf_cmd = 'perl {} -fsm  {}'.format(self._validate_gtf_tool, self.path)
             open(log_file,'wb').write(subprocess.check_output(validate_gtf_cmd,shell=True))
-
 
     def __check_skechy(self):
         '''
@@ -159,7 +156,14 @@ class GtfFile(File):
         self._check_chars(merged=True)
 
     def to_bed(self):
-
+        bed_path = os.path.split(self.prop['path'])[0]
+        bed = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".bed")
+        cmd = "perl {} {} > {}".format(self.gtf2bed_path, self.prop["path"], bed)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError:
+            os.remove(bed)
+            raise Exception("运行出错")
         pass
 
 
