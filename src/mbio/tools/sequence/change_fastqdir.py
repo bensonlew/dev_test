@@ -5,6 +5,7 @@ from biocluster.tool import Tool
 import os
 from mbio.files.sequence.fastq_dir import FastqDirFile
 from biocluster.core.exceptions import FileError
+from biocluster.config import Config
 
 class ChangeFastqdirAgent(Agent):
     """
@@ -17,7 +18,8 @@ class ChangeFastqdirAgent(Agent):
         super(ChangeFastqdirAgent, self).__init__(parent)
         options = [
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},
-            {"name": "fq_type", "type": "string", "default": "PE"}
+            {"name": "fq_type", "type": "string", "default": "PE"},
+            {"name": "samplebase_dir", "type": "outfile", "format": "sequence.fastq_dir"}
             ]
         self.add_option(options)
         self.step.add_steps('change_fq_dir')
@@ -46,6 +48,9 @@ class ChangeFastqdirAgent(Agent):
 class ChangeFastqdirTool(Tool):
     def __init__(self, config):
         super(ChangeFastqdirTool, self).__init__(config)
+        self.sample_base = Config().SAMPLE_BASE
+        # self.id = self._id
+        self.logger.info(self._id)
         self.fastq = list()
         self.samples = list()
         self.map = dict()
@@ -58,29 +63,31 @@ class ChangeFastqdirTool(Tool):
         fq_dir = FastqDirFile()
         fq_dir.set_path(self.option("fastq_dir").prop["path"])
         fq_dir.get_full_info(dir_path)
-        self.fastqs = fq_dir.unzip_fastqs
-
-
+        self.fastqs = fq_dir.prop["unzip_fastqs"]
 
     def get_pairs(self):
-        for fq in self.fastqs:
-            fq = os.path.splitext(fq)[0]
+        for fq_full in self.fastqs:
+            fq = os.path.basename(os.path.splitext(fq_full)[0])
             if not (fq.endswith("_1") or fq.endswith("_2")):
                 raise FileError("PE端测序文件，应以_1.fq或_2.fq结尾")
             else:
                 if fq.endswith("_1"):
-                    sample = fq.strip("_1")
-                    self.map[sample]["l"] = fq
+                    sample = fq[:-2]
+                    if sample not in self.samples:
+                        self.samples.append(sample)
+                        self.map[sample] = {}
+                    self.map[sample]["l"] = os.path.basename(fq_full)
                 else:
-                    sample = fq.strip("_2")
-                    self.map[sample]["r"] = fq
-                if sample not in self.samples:
-                    self.samples.append(sample)
+                    sample = fq[:-2]
+                    if sample not in self.samples:
+                        self.samples.append(sample)
+                        self.map[sample] = {}
+                    self.map[sample]["r"] = os.path.basename(fq_full)
         return True
 
     def get_single_sample(self):
         for fq in self.fastqs:
-            sample = os.path.splitext(fq)[0]
+            sample = os.path.splitext(os.path.basename(fq))[0]
             if sample not in self.samples:
                 self.samples.append(sample)
             else:
@@ -92,12 +99,29 @@ class ChangeFastqdirTool(Tool):
         if self.option("fq_type") == "PE":
             with open(list_path, "w") as file:
                 for sample in self.samples:
-                    file.write(sample + "\t" + self.map[sample]["l"] + "\tl\n")
-                    file.write(sample + "\t" + self.map[sample]["r"] + "\tr\n")
+                    try:
+                        file.write(self.map[sample]["l"] + "\t" + sample  + "\tl\n")
+                        file.write(self.map[sample]["r"] + "\t" + sample + "\tr\n")
+                    except:
+                        self.logger.info(sample)
         else:
             with open(list_path, "w") as file:
                 for sample in self.samples:
-                    file.write(sample + "\t" + self.map[sample] + "\n")
+                    file.write(self.map[sample] + "\t" + sample + "\n")
+
+    def export2database(self):  # 将样本存放于固定的位置
+        task_dir = os.path.join(self.sample_base, self.id)
+        if os.path.exists(task_dir):
+            os.system("rm -r {}/*".format(task_dir))
+        else:
+            os.mkdir(task_dir)
+        for fq in self.fastqs:
+            fq_name = os.path.basename(fq)
+            new_fq = os.path.join(task_dir, fq_name)
+            os.link(fq, new_fq)
+        os.link(self.output_dir + "/list.txt", task_dir + "/list.txt")
+        self.option("samplebase_dir").set_path(task_dir)
+        return True
 
     def run(self):
         """
@@ -111,4 +135,5 @@ class ChangeFastqdirTool(Tool):
         else:
             self.get_single_sample()
         self.gen_list()
+        self.export2database()
         self.end()
