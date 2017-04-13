@@ -18,6 +18,7 @@ class RefrnaWorkflow(Workflow):
         self._sheet = wsheet_object
         super(RefrnaWorkflow, self).__init__(wsheet_object)
         options = [
+
             {"name": "fq_type", "type": "string", "default": "PE"},  # PE OR SE
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq_dir"},  # Fastq文件夹
             {"name": "qc_quality", "type": "int", "default": 30},  # 质量剪切中保留的最小质量值
@@ -25,8 +26,9 @@ class RefrnaWorkflow(Workflow):
 
             {"name": "ref_genome", "type": "string", "default": "customer_mode"},  # 参考基因组
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组
-            {"name": "gff", "type": "infile", "format": "ref_rna.reads_mapping.gff"},
+            {"name": "gff", "type": "infile", "format": "sequence.gff3"},
             # Ensembl上下载的gff格式文件
+            {"name": "gtf", "type": "infile", "format": "sequence.gtf"},  # gtf文件
 
             {"name": "nr_blast_evalue", "type": "float", "default": 1e-5},  # NR比对e值
             {"name": "string_blast_evalue", "type": "float", "default": 1e-5},  # String比对使用的e值
