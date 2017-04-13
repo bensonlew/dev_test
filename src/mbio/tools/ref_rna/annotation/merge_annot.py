@@ -17,8 +17,8 @@ class MergeAnnotAgent(Agent):
     def __init__(self, parent):
         super(MergeAnnotAgent, self).__init__(parent)
         options = [
-            {"name": "level2_dir", "type": "string"},
-            {"name": "gos_dir", "type": "string"},
+            {"name": "level2_dir", "type": "string", "default": None},
+            {"name": "gos_dir", "type": "string", "default": None},
             {"name": "kegg_table_dir", "type": "string", "default": None},
             {"name": "cog_table_dir", "type": "string", "default": None},
             {"name": "database", "type": "string", "default": "go,cog,kegg"},
@@ -88,14 +88,18 @@ class MergeAnnotTool(Tool):
                 gos = self.option("gos_dir").split(";")
                 self.merge(dirs=level2, merge_file="merged_go2level.xls")
                 self.merge(dirs=gos, merge_file="merged_gos.list")
+                self.option("level2", self.work_dir + "/merged_go2level.xls")
+                self.option("gos", self.work_dir + "/merged_gos.list")
                 self.logger.info("合并go注释文件完成")
             if db == "cog":
                 cog = self.option("cog_table_dir").split(";")
                 self.merge(dirs=cog, merge_file="merged_cog_table.xls")
+                self.option("cog_table", self.work_dir + "/merged_cog_table.xls")
                 self.logger.info("合并cog注释文件完成")
             if db == "kegg":
                 kegg = self.option("kegg_table_dir").split(";")
                 self.merge(dirs=kegg, merge_file="merged_kegg_table.xls")
+                self.option("kegg_table", self.work_dir + "/merged_kegg_table.xls")
                 self.logger.info("合并kegg注释文件完成")
         files = ["merged_go2level.xls", "merged_gos.list", "merged_cog_table.xls", "merged_kegg_table.xls"]
         for f in files:
