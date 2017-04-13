@@ -6,7 +6,7 @@ import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
-# import json
+import json
 # import re
 
 
@@ -21,9 +21,12 @@ class SnpRnaModule(Module):
     """
     def __init__(self, work_id):
         super(SnpRnaModule, self).__init__(work_id)
+        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "pig", "Fruitfly", "human",
+                                "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test", "test"]
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
+            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"},  # 基因组gtf文件
             {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
             {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列←
             {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列右
@@ -40,8 +43,11 @@ class SnpRnaModule(Module):
         self.gatks = []
         self.step.add_steps('star', 'picard', 'gatk')  # 添加步骤
         self.count = 0
-        self.ref_name = ""
+        self.ref_name = "ex"
         self.annovars = []      # add by qindanhua
+        self.ref_link = ''
+        self.end_times = 0
+        self.ref_gft = ''
 
     def check_options(self):
         """
@@ -61,6 +67,7 @@ class SnpRnaModule(Module):
         self.logger.info(len(self.samples))
         if self.option("ref_genome") != "customer_mode":  # 本地数据库的参考基因组
             self.ref_name = self.option("ref_genome")
+            self.logger.info(self.ref_name)
             if self.option("seq_method") == "PE": 
                 for f in self.samples:
                     fq1 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])
@@ -88,6 +95,7 @@ class SnpRnaModule(Module):
                     self.mapping_tools.append(star)
         
         else:  # 用户上传基因组
+            self.ref_name = self.option("ref_genome")
             ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
             self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta)
             if os.path.exists(self.ref_link):
@@ -96,6 +104,7 @@ class SnpRnaModule(Module):
             
             if self.option("seq_method") == "PE":  # 如果测序方式为PE测序
                 for f in self.samples:
+                    self.logger.info(f)
                     fq1 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])
                     fq2 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["r"])
                     star = self.add_tool('ref_rna.gene_structure.star')
@@ -192,9 +201,6 @@ class SnpRnaModule(Module):
             self.picards[0].on("end", self.finish_update, "picard")
             
         if len(self.picards) == len(self.samples):
-            # if len(self.picards) == 1:
-            #    self.picards[0].on('end', self.finish_update, 'picard')
-            # else:
             self.on_rely(self.picards, self.finish_update, 'picard')
         picard.run()  # 全部tool运行完成后更新信息
         
@@ -208,6 +214,9 @@ class SnpRnaModule(Module):
                 self.logger.info(f_path)
         gatk = self.add_tool('ref_rna.gene_structure.gatk')
         self.gatks.append(gatk)
+        self.logger.info("llllgatkkkkkkk")
+        self.logger.info(self.ref_name)
+        self.logger.info(self.option("ref_genome"))
         if self.option("ref_genome") == "customer_mode":
             ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
             gatk.set_options({
@@ -215,28 +224,15 @@ class SnpRnaModule(Module):
                 "input_bam": f_path,
                 "ref_genome": "customer_mode"
             })
-            # gatk.on("end", self.finish_update, 'gatk')
-            # gatk.on("end", self.set_output)
-            # self.logger.info("gatk is running!")
-            # gatk.run()
         else:
             self.ref_name = self.option("ref_genome")
             gatk.set_options({
                 "ref_genome": self.ref_name,
                 "input_bam": f_path
             })
-            # gatk.on("end", self.finish_update, 'gatk')
-            # gatk.on("end", self.set_output)
-            # self.logger.info("gatk is running!")
-            # gatk.run()
-        if len(self.gatks) == 1 and self.samples == {}:
-            self.gatks[0].on("end", self.finish_update, "gatk")
-            self.gatks[0].on("end", self.set_output)
-            self.logger.info("gatk is running single!")
-        
-        if len(self.gatks) == len(self.samples):
-            self.on_rely(self.gatks, self.finish_update, 'gatk')
-            self.on_rely(self.gatks, self.set_output, "s")
+        gatk.on("end", self.finish_update, 'gatk')
+        gatk.on("end", self.snp_anno)
+        self.logger.info("gatk is running!")
         gatk.run()
 
     # add by qindanhua  20170103
@@ -249,11 +245,19 @@ class SnpRnaModule(Module):
                 vcf_path = os.path.join(obj.output_dir, i)
         self.logger.info(vcf_path)
         annovar = self.add_tool('ref_rna.gene_structure.annovar')
-        options = {"ref_genome": self.ref_name, "input_file": vcf_path}
+        options = {
+            "ref_genome": self.ref_name,
+            "input_file": vcf_path,
+            # "ref_gtf": self.option("ref_gtf").prop["path"]
+        }
         if self.option("ref_genome") == "customer_mode":
-            options["ref_fa"] = self.ref_name
+            options["ref_fasta"] = self.ref_link
+            options["ref_gtf"] = self.option("ref_gtf").prop["path"]
         annovar.set_options(options)
         self.annovars.append(annovar)
+        # annovar.on("end", self.finish_update, "annovar")
+        annovar.on("end", self.set_output, "annovar")
+        annovar.run()
 
     """
     def rename(self, event):
@@ -275,32 +279,15 @@ class SnpRnaModule(Module):
     def set_output(self, event):
         self.logger.info("set output started!!!")
         obj = event["bind_object"]
-        if event['data'] == 's':  # 多个样本
-            self.logger.info("现在是多样本分支")
-            for tool in self.gatks:
-                self.linkdir(tool.output_dir, event['data']+str(self.count), self.output_dir)
-                self.count += 1
-                self.logger.info("多样本移动文件夹完成！！！")
-        else:
-            self.logger.info("现在是单样本分支")
-            
-            for f in os.listdir(obj.output_dir):
-                f_path = os.path.join(obj.output_dir, f)
-                self.logger.info(f_path)
-                self.logger.info(f)
-                new_path = os.path.join(self.output_dir, f)
-                self.logger.info(new_path)
-                if os.path.exists(new_path):
-                    self.logger.info("现在进入文件存在分支，module的输出目录下包含文件！！！")
-                    os.remove(new_path)
-                    self.logger.info("删除文件成功！！！")
-                self.logger.info("单个样本，开始移动文件！！！现在不经过判断文件是否存在分支！！！")
-                # os.link(f_path, new_path)#单个样本：将gatk的输出结果链接到module的输出目录
-                shutil.copy(f_path, self.output_dir)
-                self.logger.info("单个样本，移动文件完成！！！")
-        self.end()
-           
-        self.logger.info("set output finished!!!")
+        if event['data'] == 'annovar':
+            if os.path.exists(self.output_dir + "/snp_anno{}.xls".format(self.end_times)):
+                os.remove(self.output_dir + "/snp_anno{}.xls".format(self.end_times))
+            os.link(obj.output_dir + "/snp_anno.xls", self.output_dir + "/snp_anno{}.xls".format(self.end_times))
+            self.end_times += 1
+            if self.end_times == len(self.samples):
+                self.logger.info("set output done")
+                self.end()
+        # self.logger.info("set output done")
         
     def linkdir(self, dirpath, dirname, output_dir):
         files = os.listdir(dirpath)

@@ -72,6 +72,12 @@ class FastxClipperTool(Tool):
 
     def fastxclipper(self):
         fq_s_path = self.option("fastq_s").prop['path']
+        file_name = os.path.basename(fq_s_path)
+        if re.search('\.gz$', file_name) or re.search('\.gzip$', file_name):
+            self.logger.info("zzzziiiiipppppp")
+            os.system("gunzip -c {} > {}".format(fq_s_path, "unzip.fq"))
+            fq_s_path = self.work_dir + "/unzip.fq"
+            self.logger.info(fq_s_path)
         cmd = self.fastxtoolkit_path + 'fastx_clipper -i {} -a {} -Q 35 -v -l {} -o clip_s.fastq'.\
             format(fq_s_path, self.option('adapter'), self.option('length'))
         self.logger.info(cmd)
