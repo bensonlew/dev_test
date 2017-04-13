@@ -50,15 +50,12 @@ class HisatAgent(Agent):
         """
         检查参数
         """
-        if not self.option("ref_genome").is_set:
-            raise OptionError("请设置参考基因组参数")
-        else:
-            if not self.option("ref_genome_custom").is_set:
-                if self.option("ref_genome") == "customer_mode":
-                    raise OptionError("请传入自定义参考基因组")
-                else:
-                    raise OptionError("请选择平台上参考基因组") 
-        if not self.option("seq_method").is_set:
+        if not self.option("ref_genome_custom").is_set:
+            if self.option("ref_genome") == "customer_mode":
+                raise OptionError("请传入自定义参考基因组")
+            else:
+                raise OptionError("请选择平台上参考基因组")
+        if not self.option("seq_method") in ["PE", "SE"]:
             raise OptionError("请选择是双端测序还是单端测序")
         else:
             if self.option("seq_method") == "PE":
@@ -69,9 +66,7 @@ class HisatAgent(Agent):
                     raise OptionError("请传入左端测序文件")
                 if not self.option("right_reads").is_set:
                     raise OptionError("请传入右端测序文件")
-        if not self.option("assemble_method").is_set:
-            raise OptionError("请选择拼接软件")
-        elif not self.option("assemble_method") in ["cufflinks", "stringtie", "None"]:
+        if not self.option("assemble_method") in ["cufflinks", "stringtie", "none"]:
             raise OptionError("请选择拼接软件")
             
     def set_resource(self):
@@ -79,7 +74,7 @@ class HisatAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = '100G'
+        self._memory = '10G'
 
 
 class HisatTool(Tool):
@@ -89,8 +84,8 @@ class HisatTool(Tool):
     def __init__(self, config):
         super(HisatTool, self).__init__(config)
         self.hisat_path = 'bioinfo/align/hisat2/hisat2-2.0.0-beta/'
-        self.samtools_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/align/samtools-1.3.1/'
-        self.sort_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/align/samtools-1.3.1/'
+        self.samtools_path = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
+        self.sort_path = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
 
     def hisat_build(self):
         """
@@ -104,7 +99,7 @@ class HisatTool(Tool):
             command = self.add_command("hisat_build", cmd)
             command.run()
         else:
-            with open("/mnt/ilustre/users/sanger-dev/app/database/refGenome/ref_genome.json", "r") as f:
+            with open(self.config.SOFTWARE_DIR + "/database/refGenome/ref_genome.json", "r") as f:
                 dict = json.loads(f.read())
                 ref = dict[self.option("ref_genome")]["ref_genome"]
                 index_ref = os.path.join(os.path.split(ref)[0], "ref_index")

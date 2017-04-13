@@ -22,11 +22,7 @@ class StringtieAgent(Agent):
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
             {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 参考基因的注释文件
             {"name": "cpu", "type": "int", "default": 10},  # stringtie软件所分配的cpu数量
-            # {"name": "memory", "type": "string", "default": '100G'},  # stringtie软件所分配的内存，单位为GB
-            # {"name": "fr-unstranded", "type": "string"},  # 是否链特异性
-            # {"name": "fr-firststrand", "type": "string"},  # 链特异性时选择正链
-            # {"name": "fr-secondstrand", "type": "string"},  # 链特异性时选择负链
-            {"name": "sample_gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"}# 输出的gtf文件
+            {"name": "sample_gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"}  # 输出的gtf文件
         ]
         self.add_option(options)
         self.step.add_steps("stringtie")
@@ -52,9 +48,6 @@ class StringtieAgent(Agent):
             raise OptionError('必须输入参考序列ref.fa')
         if not self.option('ref_gtf'):
             raise OptionError('必须输入参考序列ref.gtf')
-        # if not self.option("fr-unstranded") and not self.option("fr-firststrand").is_set and not self.option(
-        #         "fr-secondstrand").is_set:
-        #     raise OptionError("当链特异性时必须选择正负链")
         return True
 
     def set_resource(self):
@@ -75,12 +68,13 @@ class StringtieAgent(Agent):
         ])
         super(StringtieAgent, self).end()
 
+
 class StringtieTool(Tool):
     def __init__(self, config):
         super(StringtieTool, self).__init__(config)
         self._version = "v1.0.1"
         self.stringtie_path = 'bioinfo/rna/stringtie-1.2.4/'
-        self.gtf_to_fa_path = 'bioinfo/rna/scripts/gtf_to_fasta'
+        self.gffread_path = "bioinfo/rna/cufflinks-2.2.1/"
 
     def run(self):
         """
@@ -98,7 +92,9 @@ class StringtieTool(Tool):
         运行stringtie软件，进行拼接组装
         """
         sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-        cmd = self.stringtie_path + 'stringtie %s -p %s -G %s -s %s -o ' % (self.option('sample_bam').prop['path'], self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'])+sample_name+"_out.gtf"
+        cmd = self.stringtie_path + 'stringtie %s -p %s -G %s -s %s -o ' % (
+            self.option('sample_bam').prop['path'], self.option('cpu'), self.option('ref_gtf').prop['path'],
+            self.option('ref_fa').prop['path'])+sample_name+"_out.gtf"
         self.logger.info('运行stringtie软件，进行组装拼接')
         command = self.add_command("stringtie_cmd", cmd).run()
         self.wait(command)
@@ -112,8 +108,8 @@ class StringtieTool(Tool):
         运行gtf_to_fasta，转录本gtf文件转fa文件
         """
         sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-        cmd = self.gtf_to_fa_path + " %s %s %s_out.fa" % (
-        self.work_dir +  "/"+sample_name+"_out.gtf", self.option('ref_fa').prop['path'],
+        cmd = self.gffread_path + "gffread %s -g %s -w %s_out.fa" % (
+        self.work_dir + "/"+sample_name+"_out.gtf", self.option('ref_fa').prop['path'],
         self.work_dir + "/" + sample_name)
         self.logger.info('运行gtf_to_fasta，形成fasta文件')
         command = self.add_command("gtf_to_fa_cmd", cmd).run()
@@ -134,9 +130,10 @@ class StringtieTool(Tool):
         self.logger.info("设置结果目录")
         try:
             sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-            shutil.copy2(self.work_dir + "/" + sample_name + "_out.fa", self.output_dir + "/" + sample_name + "_out.fa")
-            shutil.copy2(self.work_dir + "/"+sample_name+"_out.gtf", self.output_dir +"/"+ sample_name+"_out.gtf")
-            self.option('sample_gtf').set_path(self.work_dir +"/"+ sample_name+"_out.gtf")
+            shutil.copy2(self.work_dir + "/" + sample_name + "_out.fa", self.output_dir +
+            "/" + sample_name + "_out.fa")
+            shutil.copy2(self.work_dir + "/"+sample_name+"_out.gtf", self.output_dir + "/" + sample_name+"_out.gtf")
+            self.option('sample_gtf').set_path(self.work_dir + "/" + sample_name+"_out.gtf")
             self.logger.info("设置组装拼接分析结果目录成功")
 
         except Exception as e:

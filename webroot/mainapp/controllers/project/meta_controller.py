@@ -2,12 +2,14 @@
 # __author__ = 'xuting'
 import web
 import random
+import json
 from ..core.basic import Basic
 from mainapp.libs.input_check import meta_check
-from mainapp.models.mongo.public.meta.meta import Meta
+from mainapp.models.mongo.meta import Meta
 from mainapp.libs.signature import check_sig
 from mainapp.models.mongo.distance_matrix import Distance
 from mainapp.models.workflow import Workflow
+from biocluster.core.function import filter_error_info
 
 
 class MetaController(object):
@@ -60,10 +62,28 @@ class MetaController(object):
         workflow_client = Basic(data=self.sheet_data, instant=self.instant)
         try:
             run_info = workflow_client.run()
+            run_info['info'] = filter_error_info(run_info['info'])
             self._return_msg = workflow_client.return_msg
             return run_info
-        except Exception, e:
-            return {"success": False, "info": "运行出错: %s" % e }
+        except Exception as e:
+            self.roll_back()
+            return {"success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
+
+    def roll_back(self):
+        """
+        当任务投递失败时，如WPM服务出错时，主表写入start状态无法由API更新，此处进行更新
+
+        :return:
+        """
+        print("INFO: 任务提交出错，尝试更新主表状态为failed。")
+        try:
+            meta = Meta()
+            update_info = json.loads(self.sheet_data['options']['update_info'])
+            for i in update_info:
+                meta.update_status_failed(update_info[i], i)
+                print("INFO: 更新主表状态为failed成功: coll:{} _id:{}".format(update_info[i], i))
+        except Exception as e:
+            print('ERROR:尝试回滚主表状态为failed 失败:{}'.format(e))
 
     def set_sheet_data(self, name, options, main_table_name, module_type="workflow", params=None, to_file=None):
         """

@@ -89,7 +89,9 @@ class ClusterAnalysisWorkflow(Workflow):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            ["out_otu.xls", "xls", "结果OTU表格"]
+            ["out_otu.xls", "xls", "结果OTU表格"],
+            ["level_otu_table.xls", "xls", "结果OTU表格(百分比）"]  #add by wangzhaoyue 2017.03.06
+
         ])
         super(ClusterAnalysisWorkflow, self).end()
 

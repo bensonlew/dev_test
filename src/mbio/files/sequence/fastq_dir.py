@@ -77,6 +77,8 @@ class FastqDirFile(Directory):
             self.samples = filesample.prop["sample_names"]
             self.se_repeat = filesample.se_repeat
             self.pe_repeat = filesample.pe_repeat
+            if not len(filesample.prop["file_names"]):
+                raise FileError('Fastq 序列文件夹为空，请检查确认')
             for filename in filesample.prop["file_names"]:
                 my_fastq = FastqFile()
                 fq_path = os.path.join(self.prop['path'], filename)
@@ -89,7 +91,11 @@ class FastqDirFile(Directory):
                         self.file_sample[fq_path] = sample_name
         else:
             filelist = os.listdir(self.prop['path'])
+            if not len(filelist):
+                raise FileError('Fastq 序列文件夹为空，请检查确认')
             for filename in filelist:
+                if os.path.isdir(filename):
+                    raise FileError('fastq文件夹中不应该存在文件夹：{}！！！'.format(filename))
                 my_fastq = FastqFile()
                 fq_path = os.path.join(self.prop['path'], filename)
                 my_fastq.set_path(fq_path)
@@ -161,7 +167,10 @@ class FastqDirFile(Directory):
                         raise Exception("解压缩文件失败!")
                 else:
                     if fastq not in self.unzip_file:
-                        self.unzip_file.append(fastq)
+                        new_fastq = os.path.join(self.work_dir, os.path.basename(fastq))  # added and edited by shijin
+                        if not os.path.exists(new_fastq):
+                            os.link(fastq, new_fastq)
+                        self.unzip_file.append(new_fastq)
             self.has_unziped = True
 
     def check(self):

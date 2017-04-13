@@ -2,11 +2,9 @@
 # __author__ = 'guoquan'
 from .remote import RemoteFile
 from biocluster.config import Config
-import time
 import os
 import json
 import shutil
-import errno
 import re
 
 
@@ -32,18 +30,20 @@ class Lustre(RemoteFile):
         :param to_path: 将远程文件下载到本地的路径
         :return:
         """
-        if not os.path.exists(self._full_path):
-            raise Exception("文件路径%s不存存在，请确认网络数据连接正常" % self._full_path)
+        # 当为文件夹时，前端传入的文件夹为虚拟文件夹，可能不存在，检查放在只是文件的情况中 if not self._file_list
+        # shenghe 20170210
+        # if not os.path.exists(self._full_path):
+        #     raise Exception("文件路径%s不存存在，请确认网络数据连接正常" % self._full_path)
         if os.path.isfile(to_path):
             os.remove(to_path)
         if not os.path.exists(to_path):
             os.makedirs(to_path)
         if self._file_list:
             for my_dict in self._file_list:
-                m = re.match("rerewrweset",my_dict["file_path"])
-                if not m:
+                # 前端传入文件列表的路径不带有 'rerewrweset'前缀 modified by sj on 2016.10.26
+                if not re.match("rerewrweset", my_dict["file_path"]):
                     my_dict["file_path"] = "rerewrweset/" + my_dict["file_path"]
-                source = os.path.join(self.config[self._type + "_path"], my_dict["file_path"])  # modified by sj on 2016.10.26
+                source = os.path.join(self.config[self._type + "_path"], my_dict["file_path"])
                 if not os.path.exists(source):
                     raise Exception("文件{}不存在".format(source))
                 target = os.path.join(to_path, my_dict["alias"])
@@ -58,6 +58,8 @@ class Lustre(RemoteFile):
                 os.symlink(source, target)
             return to_path
         else:
+            if not os.path.exists(self._full_path):
+                raise Exception("文件路径%s不存存在，请确认网络数据连接正常" % self._full_path)
             target_path = os.path.join(to_path, os.path.basename(self._full_path))
             if os.path.exists(target_path):
                 if os.path.isdir(target_path):
@@ -73,8 +75,8 @@ class Lustre(RemoteFile):
     def upload(self, from_path):
         if not os.path.exists(from_path):
             raise Exception("源文件%s不存存在" % from_path)
-        basename = os.path.basename(from_path)
-        target = os.path.join(self._full_path, basename)
+        # basename = os.path.basename(from_path)
+        target = self._full_path  # 目标目录直接为上传目录，意思是不需要上传目录的的目录名  # shenghe 20170322
         if os.path.exists(target):
             if os.path.islink(target):
                 os.remove(target)
@@ -87,7 +89,8 @@ class Lustre(RemoteFile):
 
         if os.path.isdir(from_path):
             for root, dirs, files in os.walk(from_path):
-                rel_path = os.path.relpath(root, os.path.dirname(from_path))
+                # rel_path = os.path.relpath(root, os.path.dirname(from_path))
+                rel_path = os.path.relpath(root, from_path)  # 去除路径中间相对路径，直接使用文件与上传目录差  shenghe 20170322
                 for i_file in files:
                     i_file_path = os.path.join(root, i_file)
                     if os.path.islink(i_file_path):

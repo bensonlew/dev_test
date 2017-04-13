@@ -11,7 +11,7 @@ import sys
 from bson.objectid import ObjectId
 from biocluster.wpm.log import Log
 from biocluster.config import Config
-from biocluster.core.function import CJsonEncoder
+from biocluster.core.function import CJsonEncoder, filter_error_info
 
 
 class UpdateStatus(Log):
@@ -103,7 +103,7 @@ class UpdateStatus(Log):
 
     def update_status(self):
         status = self.data["content"]["stage"]["status"]
-        desc = self.data["content"]["stage"]["error"]
+        desc = filter_error_info(self.data["content"]["stage"]["error"])
         create_time = str(self.data["content"]["stage"]["created_ts"])
         if not self.update_info:
             return

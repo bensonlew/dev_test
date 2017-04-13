@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'sj'
+# __author__ = 'shijin'
 
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 import subprocess
 import os
+from biocluster.config import Config
 
 
 class GtfFile(File):
@@ -14,9 +15,9 @@ class GtfFile(File):
 
     def __init__(self):
         super(GtfFile, self).__init__()
-        self.gtf_to_gff_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/align/scripts/"
-        self.bedops_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/align/bedops/bin/"
-        self.gtf2bed_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/gtf2bed.pl"
+        self.gtf_to_gff_path =Config().SOFTWARE_DIR + "/bioinfo/align/scripts/"
+        self.bedops_path = Config().SOFTWARE_DIR +"/bioinfo/align/bedops/bin/"
+        self.gtf2bed_path = Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.pl"
 
     def check(self):
         """
@@ -30,7 +31,7 @@ class GtfFile(File):
                     if line.find("#") == -1:
                         line = line.strip()
                         lst = line.split("\t")
-                        if len(lst) != 9:   
+                        if len(lst) != 9:
                             raise FileError("文件格式错误,gtf应有9列")
                         else:
                             return True
@@ -66,5 +67,3 @@ class GtfFile(File):
 if __name__ == '__main__':
     a = GtfFile()
     a.set_path("")
-    # a.check()
-    # a.gtf_to_bed()

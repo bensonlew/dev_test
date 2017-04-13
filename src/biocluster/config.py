@@ -28,6 +28,7 @@ class Config(object):
         self.rcf.read(os.path.dirname(os.path.realpath(__file__))+"/main.conf")
         # basic
         self.WORK_DIR = self.rcf.get("Basic", "work_dir")
+        self.SAMPLE_BASE = self.rcf.get("Basic", "samplebase_dir")
         # network
         self._listen_ip = None
         self._listen_port = None
@@ -35,7 +36,9 @@ class Config(object):
         # tool
         self.KEEP_ALIVE_TIME = int(self.rcf.get("Tool", "keep_alive_time"))
         self.MAX_KEEP_ALIVE_TIME = int(self.rcf.get("Tool", "max_keep_alive_time"))
+        self.MAX_FIRE_KAO_TIMES = int(self.rcf.get("Tool", "max_fire_kao_times"))
         self.MAX_WAIT_TIME = int(self.rcf.get("Tool", "max_wait_time"))
+        self.MAX_FIRE_WTO_TIMES = int(self.rcf.get("Tool", "max_fire_wto_times"))
         # log
         self.LOG_LEVEL = self.rcf.get("Log", "level")
         # self.LOG_DIR = self.rcf.get("Log", "log_dir")
@@ -75,7 +78,7 @@ class Config(object):
         self.SSH1_IP_LIST = re.split('\s*,\s*', self.rcf.get("SSH1", "ip_list"))
 
         # PAUSE
-        self.MAX_PAUSE_TIME = self.rcf.get("PAUSE", "max_time")
+        self.MAX_PAUSE_TIME = int(self.rcf.get("PAUSE", "max_time"))
 
         # API_UPDATE
         self.update_exclude_api = re.split('\s*,\s*', self.rcf.get("API_UPDATE", "exclude_api"))
@@ -103,6 +106,7 @@ class Config(object):
         self.wpm_logger_authkey = self.rcf.get("WPM", "logger_authkey")
         self.wpm_log_file = self.rcf.get("WPM", "log_file")
         self.wpm_instant_timeout = int(self.rcf.get("WPM", "instant_timeout"))
+        self.wpm_pid_dir = self.rcf.get("WPM", "pid_dir")
 
     @property
     def mongo_client(self):

@@ -18,11 +18,12 @@ class CuffmergeAgent(Agent):
     def __init__(self, parent):
         super(CuffmergeAgent, self).__init__(parent)
         options = [
-            {"name": "assembly_GTF_list.txt", "type": "infile", "format": "ref_rna.assembly.merge_txt"},  # 所有样本比对之后的bam文件
+            {"name": "assembly_GTF_list.txt", "type": "infile", "format": "ref_rna.assembly.merge_txt"},
+            # 所有样本比对之后的bam文件
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
             {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 参考基因的注释文件
-            {"name": "cpu", "type": "int", "default":10},  #cufflinks软件所分配的cpu数
-            {"name": "merged.gtf", "type": "outfile","format":"ref_rna.assembly.gtf"},  # 输出的合并文件
+            {"name": "cpu", "type": "int", "default": 10},  # cufflinks软件所分配的cpu数
+            {"name": "merged.gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},  # 输出的合并文件
         ]
         self.add_option(options)
         self.step.add_steps("cuffmerge")
@@ -44,7 +45,7 @@ class CuffmergeAgent(Agent):
         """
         if not self.option('assembly_GTF_list.txt'):
             raise OptionError('必须输入所有样本gtf路径文件为txt格式')
-        if not self.option('ref_fa') :
+        if not self.option('ref_fa'):
             raise OptionError('必须输入参考序列ref.fa')
         if not self.option('ref_gtf'):
             raise OptionError('必须输入参考序列ref.gtf')
@@ -56,7 +57,7 @@ class CuffmergeAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = "100G"
+        self._memory = "10G"
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -74,11 +75,10 @@ class CuffmergeTool(Tool):
         super(CuffmergeTool, self).__init__(config)
         self._version = "v1.0.1"
         self.cuffmerge_path = 'bioinfo/rna/cufflinks-2.2.1/'
-        self.gtf_to_fa_path = 'bioinfo/rna/scripts/gtf_to_fasta'
         tmp = os.path.join(self.config.SOFTWARE_DIR, self.cuffmerge_path)
-        tmp = tmp + ":$PATH"
-        self.logger.debug(tmp)
-        self.set_environ(PATH=tmp)
+        tmp_new = tmp + ":$PATH"
+        self.logger.debug(tmp_new)
+        self.set_environ(PATH=tmp_new)
 
     def run(self):
         """
@@ -95,7 +95,9 @@ class CuffmergeTool(Tool):
         """
         运行cufflinks软件，进行拼接合并
         """
-        cmd = self.cuffmerge_path +('cuffmerge -p {} -g {} -s {}  -o {}merge_out'.format(self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],self.work_dir+"/")) + ' %s' % (self.option('assembly_GTF_list.txt').prop['path'])
+        cmd = self.cuffmerge_path + ('cuffmerge -p {} -g {} -s {}  -o {}merge_out'.format(
+            self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],
+            self.work_dir + "/")) + ' %s' % (self.option('assembly_GTF_list.txt').prop['path'])
         self.logger.info('运行cufflinks软件，进行拼接合并')
         command = self.add_command("cuffmerge_cmd", cmd).run()
         self.wait(command)
@@ -108,9 +110,8 @@ class CuffmergeTool(Tool):
         """
         运行gtf_to_fasta，转录本gtf文件转fa文件
         """
-        cmd = self.gtf_to_fa_path + " %s %s %smerged.fa" % (
-        self.work_dir +  "/merge_out/merged.gtf", self.option('ref_fa').prop['path'],
-        self.work_dir + "/" )
+        cmd = self.cuffmerge_path + "gffread %s -g %s -w merged.fa" % (
+        self.work_dir + "/merge_out/"+"merged.gtf", self.option('ref_fa').prop['path'])
         self.logger.info('运行gtf_to_fasta，形成fasta文件')
         command = self.add_command("gtf_to_fa_cmd", cmd).run()
         self.wait(command)
@@ -119,7 +120,6 @@ class CuffmergeTool(Tool):
         else:
             self.set_error("gtf_to_fasta运行出错!")
 
-
     def set_output(self):
         """
         将结果文件复制到output文件夹下面
@@ -127,9 +127,9 @@ class CuffmergeTool(Tool):
         """
         self.logger.info("设置结果目录")
         try:
-            shutil.copy2(self.work_dir + "/merge_out/merged.gtf",self.output_dir + "/merged.gtf")
-            shutil.copy2(self.work_dir + "/merged.fa", self.output_dir + "/merged.fa")
+            shutil.copy2(self.work_dir + "/merge_out/merged.gtf", self.output_dir + "/merged.gtf")
             self.option('merged.gtf').set_path(self.work_dir + "/" + "merge_out"+"/"+"merged.gtf")
+            shutil.copy2(self.work_dir + "/merged.fa", self.output_dir + "/merged.fa")
             self.logger.info("设置拼接合并分析结果目录成功")
 
         except Exception as e:

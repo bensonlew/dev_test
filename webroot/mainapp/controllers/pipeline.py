@@ -79,17 +79,16 @@ class Pipeline(object):
                 collection = self.db["sg_seq_sample"]
                 id1 = re.sub("sanger", "tsanger", json_obj["id"])
                 id2 = re.sub("i-sanger", "tsanger", json_obj["id"])
-                result = collection.find_one({"task_id": id1})
+                try:
+                    result_cursor = collection.find({"task_id": id1})
+                    result = list(result_cursor)[-1]
+                except:
+                    result_cursor = collection.find({"task_id": id2})
+                    result = list(result_cursor)[-1]
                 if result:
                     json_obj["options"]["workdir_sample"] = str(
                         result["workdir_sample"])
-                else:
-                    result = collection.find_one({"task_id": id2})
-                    if result:
-                        json_obj["options"]["workdir_sample"] = str(
-                            result["workdir_sample"])
-                    else:
-                        json_obj["options"]["file_list"] = "null"
+
         return json_obj
 
     @staticmethod

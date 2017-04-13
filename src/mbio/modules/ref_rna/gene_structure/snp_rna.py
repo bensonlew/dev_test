@@ -53,8 +53,6 @@ class SnpRnaModule(Module):
         """
         检查参数
         """
-        if not self.option("ref_genome") in self._ref_genome_lst:
-            raise OptionError("请选择参考基因组类型！")
         if self.option("ref_genome") == "customer_mode" and not self.option("ref_genome_custom").is_set:
             raise OptionError("请传入自定义参考序列!")
 

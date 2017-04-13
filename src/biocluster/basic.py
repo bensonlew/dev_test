@@ -547,9 +547,9 @@ class Basic(EventObject):
             raise Exception("只能添加当前工作目录的子目录: %s" % dir_path)
         for i in self._upload_dir_obj:
             if i.upload_path == rel_path:
-                # 避免不能重复添加目录的问题出现，暂时这样修改， 20161120 by shenghe
-                self.logger.info('重复添加了目录：{} ,由于避免框架错误导致重复添加，此处不做处理，只生成LOG信息,请自行区分是框架问题还是编写错误'.format(dir_path))
-                return i
+                # # 避免不能重复添加目录的问题出现，暂时这样修改， 20161120 by shenghe
+                # self.logger.info('重复添加了目录：{} ,由于避免框架错误导致重复添加，此处不做处理，只生成LOG信息,请自行区分是框架问题还是编写错误'.format(dir_path))
+                # # return i
                 raise Exception("不能重复添加目录%s!" % dir_path)
         up = UploadDir(self)
         up.path = dir_path
@@ -807,8 +807,7 @@ class StepMain(Step):
                         for ifile in up.file_list:
                             if ifile["type"] == "file":
                                 tmp_dict = dict()
-                                tmp_dict["path"] = os.path.join(
-                                    os.path.join(self.bind_obj.sheet.output, up.upload_path), ifile["path"])
+                                tmp_dict["path"] = os.path.join(self.bind_obj.sheet.output, ifile["path"])  # 远程路径直接加 文件与上传目录的相对路径  shenghe 20170322
                                 tmp_dict["size"] = ifile["size"]
                                 tmp_dict["description"] = ifile["description"]
                                 tmp_dict["format"] = ifile["format"]
@@ -816,8 +815,7 @@ class StepMain(Step):
                             elif ifile["type"] == "dir":
                                 tmp_dict = dict()
                                 tmp_path = re.sub("\.$", "", ifile["path"])
-                                tmp_dict["path"] = os.path.join(
-                                    os.path.join(self.bind_obj.sheet.output, up.upload_path), tmp_path)
+                                tmp_dict["path"] = os.path.join(self.bind_obj.sheet.output, tmp_path)    # 远程路径直接加 文件与上传目录的相对路径  shenghe 20170322
                                 tmp_dict["size"] = ifile["size"]
                                 tmp_dict["description"] = ifile["description"]
                                 tmp_dict["format"] = ifile["format"]

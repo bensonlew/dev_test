@@ -94,10 +94,7 @@ class EstTTest(MetaController):
                 'id': str(main_table_id),
                 'name': main_table_name
                 }}
-
+        print(task_info)
+        if not task_info["success"]:
+            task_info["info"] = "程序运行出错，请检查输入的多样性指数表是否存在异常（样本值完全相同或是存在NA值等情况）"
         return json.dumps(task_info)
-        # if not return_info["success"]:
-        #     return_info["info"] = "程序运行出错，请检查输入的多样性指数表是否存在异常（样本值完全相同或是存在NA值等情况）"
-        # # print("lllllllllllllllllll")
-        # return json.dumps(return_info)
-        # return self.returnInfo

@@ -6,6 +6,9 @@ from mainapp.libs.signature import check_sig
 from mainapp.controllers.pipeline import Pipeline, PipelineState, PipelineLog, PipelineStop, PipelineQueue, PipelineStopPause, PipelinePause
 from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.report.download_web_pic import DownloadWebPic
+from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
+from mainapp.controllers.instant.dataexchange.upload_task import UploadTask
+
 
 # Meta instant
 from mainapp.controllers.instant.meta.two_group import TwoGroup
@@ -68,6 +71,10 @@ urls = (
     "/pipeline/stop_pause", "PipelineStopPause",
     "/download/report/pdf", "DownloadWebPic",
     "/download/report/png", "DownloadWebPic",
+    "/dataexchange/download_task", "DownloadTask",
+    "/app/dataexchange/download_task", "DownloadTask",
+    "/dataexchange/upload_task", "UploadTask",
+    "/app/dataexchange/upload_task", "UploadTask",
 
     # Meta
     "/meta/demo_mongodata_copy", "DemoMongodataCopy",
