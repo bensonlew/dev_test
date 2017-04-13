@@ -40,8 +40,6 @@ class CorrNetwork(MetaController):
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        # if otu_info:
-        #     name = "corr_network_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         task_name = 'meta.report.corr_network'
         task_type = 'workflow'
         task_info = self.meta.get_task_info(otu_info['task_id'])

@@ -41,6 +41,14 @@ class Venn(MetaController):
         task_info = self.meta.get_task_info(otu_info['task_id'])
         main_table_name = 'Venn_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
 
+        group_detal_dict = json.loads(data.group_detail)
+        if len(group_detal_dict) < 2:
+            info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
+            return json.dumps(info)
+        if len(group_detal_dict) > 6:
+            info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
+            return json.dumps(info)
+        #接口中要将参数的判断，放在向mongo中导表的前面，因为如果没有进行判断就导表status永远为start，这样在一键化中会陷入死循环
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -55,13 +63,6 @@ class Venn(MetaController):
         main_table_id = self.meta.insert_main_table('sg_otu_venn', mongo_data)
         update_info = {str(main_table_id): 'sg_otu_venn'}
 
-        group_detal_dict = json.loads(data.group_detail)
-        if len(group_detal_dict) < 2:
-            info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
-            return json.dumps(info)
-        if len(group_detal_dict) > 6:
-            info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
-            return json.dumps(info)
         specimen_ids = list()
         for v in group_detal_dict.values():
             for tmp in v:

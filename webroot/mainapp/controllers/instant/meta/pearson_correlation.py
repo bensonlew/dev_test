@@ -46,7 +46,7 @@ class PearsonCorrelation(MetaController):
             "env_id": data.env_id,
             "env_labs": data.env_labs
             # "method": "pearsonr"
-            }
+        }
         method_name = "Pearson"
         if hasattr(data, "method"):
             # print(data.method)
@@ -86,7 +86,7 @@ class PearsonCorrelation(MetaController):
             'update_info': json.dumps(update_info),
             "group_detail": data.group_detail,
             "corr_id": str(main_table_id)
-            }
+        }
         del params_json["level_id"]
         del params_json["group_detail"]
         options.update(params_json)
