@@ -7,6 +7,7 @@ import zerorpc
 from .config import Config
 import datetime
 import gevent
+from zmq import ZMQError
 from multiprocessing import Queue
 import os
 # import gipc
@@ -47,7 +48,13 @@ class RPC(object):
         self._rpc_server = zerorpc.Server(Report(workflow))
         config = Config()
         self.endpoint = "tcp://{}:{}".format(config.LISTEN_IP, config.LISTEN_PORT)
-        self._rpc_server.bind(self.endpoint)
+        try:
+            self._rpc_server.bind(self.endpoint)
+        except ZMQError:
+            workflow.logger.info("Workflow 端口绑定失败,重新绑定,旧端口:{}".format(self.endpoint))
+            self.endpoint = "tcp://{}:{}".format(config.LISTEN_IP, config.LISTEN_PORT)
+            workflow.logger.info("新端口:{}".format(self.endpoint))
+            self._rpc_server.bind(self.endpoint)
 
     def run(self):
         """

@@ -31,7 +31,7 @@ class Pipe(MetaController):
         task_name = 'meta.report.meta_pipeline'
         task_type = 'workflow'
         task_info = Meta().get_task_info(otu_info['task_id'])
-        main_table_name = 'Pipeline_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'Pipeline_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         all_analysis = []
         sub_analysis_name = json.loads(data.sub_analysis)
         for key in sub_analysis_name:

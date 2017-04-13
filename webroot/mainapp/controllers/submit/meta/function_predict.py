@@ -40,7 +40,7 @@ class FunctionPredict(MetaController):
             'task_type': data.task_type,
             'submit_location': data.submit_location
         }
-        main_table_name = "16sFunctionPrediction_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = "16sFunctionPrediction_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),

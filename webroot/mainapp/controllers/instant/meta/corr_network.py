@@ -48,7 +48,7 @@ class CorrNetwork(MetaController):
         task_info = Meta().get_task_info(otu_info['task_id'])
         level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "OTU"]  # add by hongdongxuan 20170322
         main_table_name = 'CorrNetwork' + data.ratio_method.capitalize() + level_name[int(data.level_id) - 1] + '_' + \
-                          datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                          datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),

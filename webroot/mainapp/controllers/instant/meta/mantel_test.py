@@ -73,9 +73,9 @@ class MantelTest(MetaController):
                         }
         if hasattr(data, "units"):
             params_json["units"] = data.units
-            main_table_name = "PartialMantelTest_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            main_table_name = "PartialMantelTest_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         else:
-            main_table_name = 'MantelTest_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            main_table_name = 'MantelTest_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
 
         mongo_data = [
             ('project_sn', task_info['project_sn']),
