@@ -109,9 +109,14 @@ class PipeSubmitTool(Tool):
         return self.task_id
 
     def update_mongo_ends_count(self, ana):
+        print "ana._params_check_end", ana._params_check_end
+        print "ana.success", ana.success
+        print "ana.api", ana.api
         if ana.instant:
+            print "test1"
             self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$inc': {"ends_count": 1}})
         elif ana._params_check_end or not ana.success:
+            print "test2"
             self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$inc': {"ends_count": 1}})
 
     def one_end(self, ana):
@@ -313,7 +318,7 @@ class PipeSubmitTool(Tool):
                     params['group_detail'] = group_detail_sort(group_info['group_detail'])
                     params['level_id'] = level
                     pipe[i] = self.get_class(i)(
-                        self, collection_name, params, api, instant, pipe_main_id, pipe_count)
+                        self, collection_name, params, api, instant, pipe_main_id, pipe_count, self.min_level)
                 pipe['otu_subsample'] = otu_subsample
                 for analysis, submit in pipe.iteritems():
                     if analysis == 'otu_subsample':
@@ -351,7 +356,7 @@ class PipeSubmitTool(Tool):
 class Submit(object):
     """投递对象"""
 
-    def __init__(self, bind_object, collection, params, api, instant, pipe_main_id=None, pipe_count=0):
+    def __init__(self, bind_object, collection, params, api, instant, pipe_main_id=None, pipe_count=0, min_level=0):
         """
         :params bind_object:
         :params collection:
@@ -377,6 +382,7 @@ class Submit(object):
         self.result = {}  # 返回结果
         self._params_check_end = False  # 参数检查完成的任务
         self.pipe_count = pipe_count  #
+        self.min_level = min_level  # 所有level的数组中分类水平最低的
 
     def params_pack(self, dict_params):
         """
@@ -471,8 +477,8 @@ class Submit(object):
                 level_id = self._params['level_id']
                 level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[level_id]
             else:
-                level_id = 9
-                level_name = "OTU"
+                level_id = self.min_level
+                level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[self.min_level]
             insert_data = {
                 "task_id": self.task_id,
                 "otu_id": ObjectId(self.bind_object.otu_id),
