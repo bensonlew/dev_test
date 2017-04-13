@@ -88,7 +88,7 @@ class QualityControlModule(Module):
             step = getattr(self.step, 'clipper_{}'.format(n))
             step.start()
             clipper.on("end", self.finish_update, "clipper_{}".format(n))
-            clipper.on("end", self.rename, f)
+            # clipper.on("end", self.rename, f)
             clipper.on("end", self.adapt, f)
             clipper.on("end", self.sickle_se_run, f)
             # clipper.run()
@@ -126,7 +126,7 @@ class QualityControlModule(Module):
         # self.on_rely(self.seqprep, self.adapt_write)
         self.logger.info(self.seqprep)
         if len(self.seqprep) == 1:
-            self.seqprep[0].on(self.adapt_write)
+            self.seqprep[0].on("end", self.adapt_write)
             self.seqprep[0].run()
         else:
             self.on_rely(self.seqprep, self.adapt_write)
@@ -135,6 +135,7 @@ class QualityControlModule(Module):
 
     def sickle_se_run(self, event):
         obj = event["bind_object"]
+        os.rename(obj.output_dir + "/clip_s.fastq", obj.output_dir + "/" + event["data"] + "_clip_s.fastq")
         clip_s = os.path.join(obj.output_dir, event["data"] + "_clip_s.fastq")
         self.logger.info(clip_s)
         sickle = self.add_tool('denovo_rna.qc.sickle')
