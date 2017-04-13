@@ -47,6 +47,7 @@ class Venn(MetaController):
             ('otu_id', ObjectId(data.otu_id)),
             ('status', 'start'),
             ('name', main_table_name),
+            ('desc', 'venn分析正在计算中'),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ("level_id", int(data.level_id)),
             ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
