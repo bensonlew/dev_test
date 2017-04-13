@@ -40,7 +40,7 @@ class Roc(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type
             }
-        main_table_name = 'Roc_' + data.level_id + \
+        main_table_name = 'Roc' + \
             '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
             ('project_sn', task_info['project_sn']),
@@ -71,8 +71,8 @@ class Roc(MetaController):
             }
         #to_file = 'meta.export_otu_table_by_detail(otu_table)'
         to_file = ["meta.export_otu_table_by_detail(otu_table)", "meta.export_group_table_by_detail(group_table)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
-                            module_type=task_type, to_file=to_file)
+        self.set_sheet_data(name=task_name, options=options, main_table_name="ROC/" + main_table_name,
+                            module_type=task_type, to_file=to_file) # modified by hongdongxuan 20170322 在main_table_name前面加上文件输出的文件夹名
         task_info = super(Roc, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         print(self.return_msg)

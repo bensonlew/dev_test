@@ -78,7 +78,7 @@ class TwoGroup(MetaController):
             "main_id": str(main_table_id)
         }
         to_file = ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table_by_detail(group_file)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type, to_file=to_file)
+        self.set_sheet_data(name=task_name, options=options, main_table_name="DiffStatTwoGroup/" + main_table_name, module_type=task_type, to_file=to_file)
         task_info = super(TwoGroup, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         print(self.return_msg)
@@ -108,6 +108,8 @@ class TwoGroup(MetaController):
         if float(data.coverage) not in [0.90, 0.95, 0.98, 0.99, 0.999]:
             success.append('置信区间的置信度coverage不在范围值内')
         table_dict = json.loads(data.group_detail)
+        if len(table_dict) != 2 or data.group_id == 'all':     #modified by hongdongxuan 20170313
+            success.append("该分析中分组方案的分组类别必须等于2！")
         if not isinstance(table_dict, dict):
             success.append("传入的table_dict不是一个字典")
         return success

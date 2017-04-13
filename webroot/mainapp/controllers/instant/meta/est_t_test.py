@@ -86,8 +86,8 @@ class EstTTest(MetaController):
         del params_json["alpha_diversity_id"]
         options.update(params_json)
         to_file = ["estimator.export_est_table(est_table)", "meta.export_group_table_by_detail(group_table)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
-                            module_type=task_type, to_file=to_file)
+        self.set_sheet_data(name=task_name, options=options, main_table_name="Estimators/" + main_table_name,
+                            module_type=task_type, to_file=to_file)  # modified by hongdongxuan 20170322 在main_table_name前面加上文件输出的文件夹名
         task_info = super(EstTTest, self).POST()
         task_info['content'] = {
             'ids': {

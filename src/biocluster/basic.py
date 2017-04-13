@@ -807,8 +807,7 @@ class StepMain(Step):
                         for ifile in up.file_list:
                             if ifile["type"] == "file":
                                 tmp_dict = dict()
-                                tmp_dict["path"] = os.path.join(
-                                    os.path.join(self.bind_obj.sheet.output, up.upload_path), ifile["path"])
+                                tmp_dict["path"] = os.path.join(self.bind_obj.sheet.output, ifile["path"])  # 远程路径直接加 文件与上传目录的相对路径  shenghe 20170322
                                 tmp_dict["size"] = ifile["size"]
                                 tmp_dict["description"] = ifile["description"]
                                 tmp_dict["format"] = ifile["format"]
@@ -816,8 +815,7 @@ class StepMain(Step):
                             elif ifile["type"] == "dir":
                                 tmp_dict = dict()
                                 tmp_path = re.sub("\.$", "", ifile["path"])
-                                tmp_dict["path"] = os.path.join(
-                                    os.path.join(self.bind_obj.sheet.output, up.upload_path), tmp_path)
+                                tmp_dict["path"] = os.path.join(self.bind_obj.sheet.output, tmp_path)    # 远程路径直接加 文件与上传目录的相对路径  shenghe 20170322
                                 tmp_dict["size"] = ifile["size"]
                                 tmp_dict["description"] = ifile["description"]
                                 tmp_dict["format"] = ifile["format"]

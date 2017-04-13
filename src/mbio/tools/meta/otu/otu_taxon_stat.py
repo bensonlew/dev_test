@@ -9,13 +9,14 @@ from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
 from mbio.files.meta.otu.otu_table import OtuTableFile
+import numpy as np
 
 
 class OtuTaxonStatAgent(Agent):
     """
     version 1.0
     author: xuting
-    last_modify: 2015.11.03
+    last_modify: 2017.3.24 by zhouxuan
     """
     def __init__(self, parent):
         super(OtuTaxonStatAgent, self).__init__(parent)
@@ -25,11 +26,12 @@ class OtuTaxonStatAgent(Agent):
             {'name': 'otu_taxon_biom', 'type': 'outfile', 'format': 'meta.otu.biom'},  # 输出的biom文件
             {'name': 'otu_taxon_table', 'type': 'outfile', 'format': 'meta.otu.otu_table'},  # 输出的otu表文件
             {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'}, # 输出的otu_taxon_dir(absolute)文件夹
-            {'name': 'otu_taxon_dir', 'type': 'outfile','format': 'meta.otu.tax_summary_dir'}]  # 输出的otu_taxon_dir文件夹
+            {'name': 'otu_taxon_dir', 'type': 'outfile', 'format': 'meta.otu.tax_summary_dir'}]  # 输出的otu_taxon_dir文件夹
         self.add_option(options)
         self.step.add_steps('OtuTaxonStat')
         self.on('start', self.step_start)
         self.on('end', self.step_end)
+        self.otu_taxon_otu_r = ''
 
     def step_start(self):
         self.step.OtuTaxonStat.start()
@@ -56,18 +58,18 @@ class OtuTaxonStatAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [r".", "", "结果输出目录"],
-            [r"otu_taxon.biom", "meta.otu.biom", "OTU表的biom格式的文件"],
-            [r"otu_taxon.xls", "meta.otu.otu_table", "OTU表"],
-            [r"tax_summary_a", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录(absolute)"],
-            [r"tax_summary", "meta.otu.tax_summary_dir", "不同级别的otu表和biom表的目录"]
+            [r"otu_taxon.biom", "meta.otu.biom", "biom格式的OTU物种分类统计表"],
+            [r"otu_taxon.xls", "meta.otu.otu_table", "OTU物种分类统计表"],
+            [r"tax_summary_a", "meta.otu.tax_summary_dir", "各分类学水平样本序列数统计表"],
+            [r"tax_summary_r", "meta.otu.tax_summary_dir", "各分类学水平样本序列数相对丰度百分比统计表"]
         ])
         result_dir.add_regexp_rules([
             ["tax_summary_a/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件(absolute)"],
             ["tax_summary_a/.+\.xls$", "meta.otu.biom", "单一水平物种分类统计表(absolute)"],
             ["tax_summary_a/.+\.full\.xls$", "meta.otu.biom", "多水平物种分类统计(absolute)"],
-            ["tax_summary/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
-            ["tax_summary/.+\.xls$", "meta.otu.biom", "单一水平物种分类统计表"],
-            ["tax_summary/.+\.full\.xls$", "meta.otu.biom", "多水平物种分类统计"]
+            ["tax_summary_r/.+\.biom$", "meta.otu.biom", "OTU表的biom格式的文件"],
+            ["tax_summary_r/.+\.xls$", "meta.otu.biom", "单一水平物种分类统计表"],
+            ["tax_summary_r/.+\.full\.xls$", "meta.otu.biom", "多水平物种分类统计"]
         ])
         super(OtuTaxonStatAgent, self).end()
 
@@ -93,6 +95,7 @@ class OtuTaxonStatTool(Tool):
         self._summarize_taxa_path = "program/Python/bin/summarize_taxa.py"
         self._sum_tax_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/taxon/scripts/sum_tax.fix.pl")
         self.otu_taxon_dir = os.path.join(self.work_dir, "output", "tax_summary_a")
+
 
     def get_biom_otu(self):
         """
@@ -136,7 +139,7 @@ class OtuTaxonStatTool(Tool):
         self.logger.info("由otu开始转化biom")
         create_taxon_biom.run()
         self.wait(create_taxon_biom)
-        if create_taxon_biom.return_code == 0:
+        if create_taxon_biom.return_code == 0 or 'None':
             self.logger.info("taxon_biom生成成功")
         else:
             self.set_error("taxon_biom生成失败")
@@ -147,7 +150,7 @@ class OtuTaxonStatTool(Tool):
         :param biom: biom文件路径
         """
         tax_summary_a_dir = os.path.join(self.work_dir, "output", "tax_summary_a")
-        tax_summary_dir = os.path.join(self.work_dir, "output", "tax_summary")  # modify by zhouxuan 2016.11.29 (add 3 line)
+        tax_summary_dir = os.path.join(self.work_dir, "output", "tax_summary_r")  # modify by zhouxuan 2016.11.29 (add 3 line)
         if os.path.exists(tax_summary_dir):
             shutil.rmtree(tax_summary_dir)
         if os.path.exists(tax_summary_a_dir):
@@ -156,7 +159,7 @@ class OtuTaxonStatTool(Tool):
             + " -L 1,2,3,4,5,6,7,8 -a "
         cmd2 = self._summarize_taxa_path + " -i " + biom + ' -o ' + tax_summary_dir\
             + " -L 1,2,3,4,5,6,7,8 "  # modify by zhouxuan 2016.11.29 (add 10 line)
-        create_tax_summary_ = self.add_command("create_tax_summary_", cmd2)
+        create_tax_summary_ = self.add_command("create_tax_summary_r", cmd2)
         self.logger.info("开始生成tax_summary文件夹")
         create_tax_summary_ .run()
         self.wait(create_tax_summary_)
@@ -246,14 +249,15 @@ class OtuTaxonStatTool(Tool):
             "L7": "Genus",
             "L8": "Species"
         }
-        tax_summary_dir = os.path.join(self.work_dir, "output", "tax_summary")  # modify by zhouxuan 2016.11.29 (add 11 line)
+        tax_summary_dir = os.path.join(self.work_dir, "output", "tax_summary_r")  # modify by zhouxuan 2016.11.29 (add 11 line)
         list__ = os.listdir(tax_summary_dir)
         for table in list__:
             match = re.search(r"(.+)(L\d)(.+)", table)
             prefix = match.group(1)
             suffix = match.group(3)
             level = match.group(2)
-            newname = prefix + level_level[level] + suffix
+            newname = prefix + level_level[level] + ".percent" + suffix
+            # zhouxuan add "percent" on name of relative file 2017 0324
             table = os.path.join(tax_summary_dir, table)
             newname = os.path.join(tax_summary_dir, newname)
             os.rename(table, newname)
@@ -270,19 +274,7 @@ class OtuTaxonStatTool(Tool):
             newname = os.path.join(tax_summary_a_dir, newname)
             os.rename(table, newname)
 
-        otu_taxon_otu_ = os.path.join(tax_summary_dir, "otu_taxon_otu.xls")  # modify by zhouxuan 2016.11.29 (add 11 line)
-        with open(self.option('in_otu_table').prop['path'], 'r') as r:
-            with open(otu_taxon_otu_, 'w') as w:
-                line1 = r.next()
-                if re.search(r'Constructed from biom', line1):
-                    line1 = r.next()
-                w.write(line1)
-                for line in r:
-                    line = line
-                    line = re.sub(r'\.0', '', line)
-                    w.write(line)
-
-        otu_taxon_otu = os.path.join(tax_summary_a_dir, "otu_taxon_otu.xls")
+        otu_taxon_otu = os.path.join(tax_summary_a_dir, "otu_taxon_otu.xls")  # 获得otu序列信息表(绝对丰度表)
         with open(self.option('in_otu_table').prop['path'], 'r') as r:
             with open(otu_taxon_otu, 'w') as w:
                 line1 = r.next()
@@ -294,8 +286,13 @@ class OtuTaxonStatTool(Tool):
                     line = re.sub(r'\.0', '', line)
                     w.write(line)
 
-        biom = os.path.join(tax_summary_dir, "otu_taxon_otu.biom") # modify by zhouxuan 2016.11.29 (add 11 line)
-        cmd2 = self._biom_path + " convert -i " + otu_taxon_otu + " -o " + biom\
+        otu_taxon_otu_ = os.path.join(tax_summary_dir, "otu_taxon_otu.percent.xls")  # 相对丰度表
+        self.percent(otu_taxon_otu, otu_taxon_otu_)
+        self.otu_taxon_otu_r = otu_taxon_otu_
+
+        # modify by zhouxuan 2016.11.29 (add 11 line) otu级别相对丰度表的biom格式
+        biom2 = os.path.join(tax_summary_dir, "otu_taxon_otu.percent.biom")
+        cmd2 = self._biom_path + " convert -i " + otu_taxon_otu_ + " -o " + biom2\
             + " --table-type \"OTU table\" --to-hdf5"
         create_taxon_biom_otu_ = self.add_command("create_taxon_otu_biom_", cmd2)
         self.logger.info("由otu开始转化biom")
@@ -306,7 +303,8 @@ class OtuTaxonStatTool(Tool):
         else:
             self.set_error("taxon_biom_otu生成失败")
 
-        biom = os.path.join(tax_summary_a_dir, "otu_taxon_otu.biom")
+
+        biom = os.path.join(tax_summary_a_dir, "otu_taxon_otu.biom")  # otu绝对丰度表的biom格式文件
         cmd = self._biom_path + " convert -i " + otu_taxon_otu + " -o " + biom\
             + " --table-type \"OTU table\" --to-hdf5"
         create_taxon_biom_otu = self.add_command("create_taxon_otu_biom", cmd)
@@ -317,6 +315,15 @@ class OtuTaxonStatTool(Tool):
             self.logger.info("taxon_biom_otu生成成功")
         else:
             self.set_error("taxon_biom_otu生成失败")
+
+    def percent(self, origin_file, percent_file):
+        tmp = np.loadtxt(origin_file, dtype=np.str, delimiter="\t")
+        data = tmp[1:, 1:].astype(np.float)
+        array_data = data / data.sum(0)
+        array = np.c_[tmp[1:, 0], array_data]
+        array_all = np.row_stack((tmp[0, :], array))
+        s = np.char.encode(array_all, 'utf-8')
+        np.savetxt(percent_file, s, fmt='%s', delimiter='\t', newline='\n')
 
     def get_full_otu(self, otu_table):
         """
@@ -335,18 +342,21 @@ class OtuTaxonStatTool(Tool):
                 w.write("\t".join(line))
                 w.write("\n")
 
-        otu_full_path_ = os.path.join(self.work_dir, "output", "tax_summary", "otu_taxon_otu.full.xls")  # modify by zhouxuan 2016.11.29 (add 12 line)
-        with open(otu_table, 'rb') as r, open(otu_full_path_, 'wb') as w:
-            line = r.next().rstrip("\r\n").split("\t")
-            line.pop(-1)
-            w.write("\t".join(line))
-            w.write("\n")
-            for line in r:
-                line = line.rstrip("\r\n").split("\t")
-                line[0] = "{}; {}".format(line[-1], line[0])
-                line.pop(-1)
-                w.write("\t".join(line))
-                w.write("\n")
+        otu_full_path_r = os.path.join(self.work_dir, "output", "tax_summary_r", "otu_taxon_otu.percent.full.xls")
+        # otu_full_path_r1 = os.path.join(self.work_dir, "otu_taxon_otu.percent.half.xls")
+        self.logger.info("开始生成相对全局otu表")
+        with open(otu_full_path, 'rb') as r1, open(otu_full_path_r, 'wb') as ws, open(self.otu_taxon_otu_r, 'rb') as r2:
+            line = r1.readlines()
+            line2 = r2.readlines()
+            col = len(line)
+            self.logger.info("行数为{}".format(col))
+            for x in range(0, col):
+                if line[x].startswith("OTU ID"):
+                    ws.write(line[x])
+                else:
+                    f = line[x].rstrip("\r\n").split(";")
+                    ws.write(";".join(f[0:-1]))
+                    ws.write(";" + line2[x])
 
     def run(self):
         """

@@ -23,6 +23,7 @@ class FunctionPredictWorkflow(Workflow):
             {"name": "group_id", "type": "string", "default": "none"},
             {"name": "otu_id", "type": "string", "default": "none"},
             {"name": "group_detail", "type": "string", "default": "none"},
+            {"name": "group_method", "type": "string", "default": "none"},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())

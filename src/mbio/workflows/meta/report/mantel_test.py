@@ -85,7 +85,15 @@ class MantelTestWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "MantelTest分析结果目录"],  # add 8 lines by hongdongxuan 20170324
+            ["./Discompare", "", "Mantel_Test分析结果目录"],
+            ["./Discompare/partial_mantel_results.txt", "txt", "Mantel_Test分析结果表"],
+            ["./Facdistance", "", "环境因子矩阵结果目录"],
+            ["./Facdistance/factor_out.xls", "xls", "环境因子矩阵结果表"],
+            ["./Otudistance", "", "群落矩阵结果目录"],
+            ["./Otudistance/weighted_unifrac_otu_file.xls.xls", "xls", "群落矩阵结果表"],
+            ["./partial", "", "限制环境因子矩阵结果目录"],
+            ["./partial/factor_out.xls", "xls", "限制环境因子矩阵结果表"]
             # [".//mantel_results.txt", "txt", "mantel检验结果"]
         ])
         # print self.get_upload_files()

@@ -71,7 +71,8 @@ class OtuSubsample(MetaController):
         to_file = "meta.export_otu_table_by_level(in_otu_table)"
         task_name = 'meta.report.otu_subsample'
         self.set_sheet_data(name=task_name, options=options,
-                            main_table_name=main_table_name, module_type=task_type, to_file=to_file)
+                            main_table_name="OTUTaxonAnalysis/" + main_table_name, module_type=task_type,
+                            to_file=to_file) # modified by hongdongxuan 20170322 在main_table_name前面加上文件输出的文件夹名
         task_info = super(OtuSubsample, self).POST()
         task_info['content'] = {
             'ids': {'id': str(main_table_id), 'name': main_table_name}}
