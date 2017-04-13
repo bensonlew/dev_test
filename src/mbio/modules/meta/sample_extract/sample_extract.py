@@ -114,8 +114,8 @@ class SampleExtractModule(Module):
                 for line in file:
                     tmp = line.split("\t")
                     sample = tmp[1]
-                    if sample.find(".") != -1:
-                        raise Exception("样本名称中带.，请更改样本名称为不带.的名称后再进行流程")
+                    if sample.find(".") != -1 or sample.find(" ") != -1:
+                        raise Exception("样本名称中带.或空格，请更改样本名称为不带.和空格的名称后再进行流程")
         if self.option("file_list") == "null" and self.option("table_id") != "":
             self.logger.info(self.option("table_id"))
             self.set_sample_db()
@@ -151,8 +151,8 @@ class SampleExtractModule(Module):
             file_list = eval(self.option("file_list"))
             old_name = file_list[key][1]
             new_name = file_list[key][0]
-            if new_name.find(".") != -1:
-                raise Exception("样本名称中带.，请更改样本名称为不带.的名称后再进行流程")
+            if new_name.find(".") != -1 or  new_name.find(" ") != -1:
+                raise Exception("样本名称中带.和空格，请更改样本名称为不带.的名称后再进行流程")
         else:
             old_name = key
             new_name = key
