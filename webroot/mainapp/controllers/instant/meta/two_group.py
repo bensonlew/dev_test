@@ -6,7 +6,6 @@ import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.group_stat import GroupStat as G
 from mainapp.libs.param_pack import group_detail_sort
-from mainapp.models.mongo.meta import Meta
 from bson.objectid import ObjectId
 
 
@@ -22,13 +21,12 @@ class TwoGroup(MetaController):
             return json.dumps(info)
         task_name = 'meta.report.two_group'
         task_type = 'workflow'  # 可以不配置
-        meta = Meta()
-        otu_info = meta.get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        task_info = meta.get_task_info(otu_info['task_id'])
-        main_table_name = 'DiffStatTwoGroup_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        task_info = self.meta.get_task_info(otu_info['task_id'])
+        main_table_name = 'DiffStatTwoGroup_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         groupname = json.loads(data.group_detail).keys()
         groupname.sort()
         category_name = ','.join(groupname)
@@ -58,7 +56,7 @@ class TwoGroup(MetaController):
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "category_name": category_name
         }
-        main_table_id = meta.insert_main_table('sg_species_difference_check', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_species_difference_check', mongo_data)
         print main_table_id, type(main_table_id)
         update_info = {str(main_table_id): 'sg_species_difference_check'}
         options = {
@@ -109,7 +107,7 @@ class TwoGroup(MetaController):
             success.append('置信区间的置信度coverage不在范围值内')
         table_dict = json.loads(data.group_detail)
         if len(table_dict) != 2 or data.group_id == 'all':     #modified by hongdongxuan 20170313
-            success.append("该分析中分组方案的分组类别必须等于2！")
+            success.append("分析只适用于分组方案的分组类别数量为2的情况！")
         if not isinstance(table_dict, dict):
             success.append("传入的table_dict不是一个字典")
         return success

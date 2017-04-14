@@ -5,7 +5,6 @@ import json
 import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort
-from mainapp.models.mongo.meta import Meta   # 20170106 2 lines
 from bson import ObjectId
 
 
@@ -23,12 +22,11 @@ class Enterotyping(MetaController):
             if not hasattr(data, arg):
                 info = {'success': False, 'info': '{}参数缺少!'.format(arg)}
                 return json.dumps(info)
-        meta = Meta()  # 20170106 6 lines
-        otu_info = meta.get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        task_info = meta.get_task_info(otu_info['task_id'])
+        task_info = self.meta.get_task_info(otu_info['task_id'])
         task_name = 'meta.report.enterotyping'
         params_json = {
             'otu_id': data.otu_id,
@@ -38,7 +36,7 @@ class Enterotyping(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type
         }
-        main_table_name = 'Enterotyping_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'Enterotyping_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -51,7 +49,7 @@ class Enterotyping(MetaController):
             ("show", 0),
             ("type", "otu_Enterotyping")
         ]
-        main_table_id = meta.insert_main_table('sg_enterotyping', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_enterotyping', mongo_data)
         update_info = {str(main_table_id): 'sg_enterotyping'}
         options = {
             "input_otu_id": data.otu_id,
@@ -63,7 +61,7 @@ class Enterotyping(MetaController):
             'main_id': str(main_table_id)
         }
         to_file = "meta.export_otu_table_by_detail(in_otu_table)"
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="Enterotyping/" + main_table_name,
                             module_type='workflow', to_file=to_file)
         task_info = super(Enterotyping, self).POST()
         task_info['content'] = {

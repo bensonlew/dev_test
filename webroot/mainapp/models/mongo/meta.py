@@ -6,6 +6,7 @@ import types
 from biocluster.config import Config
 from bson import SON
 import re
+import datetime
 
 
 class Meta(object):
@@ -15,6 +16,9 @@ class Meta(object):
             self.db = self.client[Config().MONGODB]
         else:
             self.db = self.client[db]
+
+    def __del__(self):
+        self.client.close()
 
     def get_otu_table_info(self, otu_id):
 
@@ -44,6 +48,14 @@ class Meta(object):
         params doc_id: 主表_id
         """
         self.db[collection].update_one({'_id': ObjectId(doc_id), "status": "start"}, {"$set": {'status': 'failed'}})
+
+    def update_workflow_id(self, collection, main_id, workflow_id):
+        """
+        """
+        self.db.workflowid2analysisid.insert_one({'workflow_id': workflow_id,
+                                                  "main_id": ObjectId(main_id),
+                                                  'collection': collection,
+                                                  "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
 
     def sampleIdToName(self, sampleIds):
         """

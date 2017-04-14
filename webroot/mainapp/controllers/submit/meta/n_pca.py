@@ -24,12 +24,11 @@ class NPca(MetaController):
                 return json.dumps(info)
         task_name = 'meta.report.n_pca'
         task_type = 'workflow'
-        meta = Meta()
-        otu_info = meta.get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        task_info = meta.get_task_info(otu_info['task_id'])
+        task_info = self.meta.get_task_info(otu_info['task_id'])
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
@@ -41,7 +40,7 @@ class NPca(MetaController):
             'task_type': data.task_type
             }
         main_table_name = 'NPca_' + data.level_id + \
-            '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -55,7 +54,7 @@ class NPca(MetaController):
             ("level_id", int(data.level_id)),
             ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':')))
         ]
-        main_table_id = meta.insert_main_table('sg_npca', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_npca', mongo_data)
         update_info = {str(main_table_id): 'sg_npca'}
         options = {
             'otu_table': data.otu_id,

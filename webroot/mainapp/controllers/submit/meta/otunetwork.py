@@ -4,9 +4,8 @@
 import web
 import json
 import datetime
-from mainapp.models.mongo.meta import Meta
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.libs.param_pack import *
+from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
 
 
@@ -37,14 +36,14 @@ class Otunetwork(MetaController):
         if sample_num < 2:
             info = {'success': False, 'info': '样本的总个数少于2个，不能进行共现性网络分析！'}
             return json.dumps(info)
-        otu_info = Meta().get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
         task_name = 'meta.report.otunetwork'
         task_type = 'workflow'
-        task_info = Meta().get_task_info(otu_info['task_id'])
-        main_table_name = 'OTUNetwork_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        task_info = self.meta.get_task_info(otu_info['task_id'])
+        main_table_name = 'OTUNetwork_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
@@ -70,7 +69,7 @@ class Otunetwork(MetaController):
             ('params', params),
             ('name', main_table_name)
         ]
-        main_table_id = Meta().insert_main_table('sg_network', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_network', mongo_data)
         update_info = {str(main_table_id): 'sg_network'}
         options = {
             "otutable": data.otu_id,

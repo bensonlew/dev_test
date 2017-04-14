@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from mainapp.config.db import DB
+from mainapp.config.db import Config
 import web
 import datetime
 
@@ -8,7 +8,7 @@ import datetime
 class Workflow(object):
     def __init__(self):
         self.table = "workflow"
-        self.db = DB
+        self.db = Config().get_db()
 
     def get_by_workflow_id(self, wid):
         where_dict = dict(workflow_id=wid)

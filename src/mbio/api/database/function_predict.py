@@ -88,10 +88,17 @@ class FunctionPredict(Base):
                     ("catergory", line[0]),
                     ("description", line[-1]),
                 ]
+                mylist = []
+                summary = 0
                 for i in range(1, len(line1)):
                     data += [
                         (line1[i], int(line[i]))
                     ]
+                    summary += int(line[i])
+                    mylist.append(int(line[i]))
+                box = self.get_box_new(mylist)
+                data.append(("box", box))
+                data.append(("calculation", summary))
                 data = SON(data)
                 data_list.append(data)
         try:
@@ -103,7 +110,7 @@ class FunctionPredict(Base):
             self.bind_object.logger.info("导入cog功能预测%s、%s信息成功!" % (sample_path, function_path))
 
     @report_check
-    def add_cog_specimen(self, prediction_id, sample_path, table_path):
+    def add_cog_specimen(self, prediction_id, group_method, sample_path, table_path):
         if not isinstance(prediction_id, ObjectId):
             if isinstance(prediction_id, types.StringTypes):
                 prediction_id = ObjectId(prediction_id)
@@ -124,10 +131,25 @@ class FunctionPredict(Base):
                     ("cog_id", line[0]),
                     ("description", line[-1]),
                 ]
+                mylist = []
+                calculation, summary = 0, 0
                 for i in range(1, len(line1)):
                     data += [
                         (line1[i], int(line[i]))
                     ]
+                    summary += int(line[i])
+                    mylist.append(int(line[i]))
+                if group_method == "middle":
+                    my = sorted(mylist)
+                    if (len(my) % 2) == 1:
+                        calculation = my[len(my)/2]
+                    else:
+                        calculation = float(my[len(my)/2] + my[len(my)/2 - 1]) / 2
+                else:
+                    calculation = summary
+                box = self.get_box_new(mylist)
+                data.append(("box", box))
+                data.append(("calculation", calculation))
                 data = SON(data)
                 data_list.append(data)
         try:
@@ -267,3 +289,55 @@ class FunctionPredict(Base):
             self.bind_object.logger.error("导入kegg 16s 功能预测%s信息出错:%s" % (level_path, e))
         else:
             self.bind_object.logger.info("导入kegg 16s 功能预测%s信息成功!" % (level_path))
+
+    def get_box_new(self, mylist):
+        mylist = sorted(mylist)
+        length = len(mylist)
+        filter_list = []
+        out = []
+        if length > 3:
+            q1_index = 0.25 * (length + 1)
+            q2_index = 0.5 * (length + 1)
+            q3_index = 0.75 * (length + 1)
+            q1_index_int = int(q1_index)
+            q2_index_int = int(q2_index)
+            q3_index_int = int(q3_index)
+            q1 = mylist[q1_index_int - 1] + (mylist[q1_index_int] - mylist[q1_index_int - 1]) * (q1_index - q1_index_int)
+            q3 = mylist[q3_index_int - 1] + (mylist[q3_index_int] - mylist[q3_index_int - 1]) * (q3_index - q3_index_int)
+            q2 = mylist[q2_index_int - 1] + (mylist[q2_index_int] - mylist[q2_index_int - 1]) * (q2_index - q2_index_int)
+            qd = q3 - q1
+            max_limit = 1.5 * qd + q3
+            min_limit = q1 - 1.5 * qd
+            new_list = []
+            for i in mylist:
+                if i >= min_limit and i <= max_limit:
+                    new_list.append(i)
+                else:
+                    filter_list.append(i)
+            max_box = new_list[-1]
+            min_box = new_list[0]
+        elif(length == 3):
+            max_box = mylist[2]
+            min_box = mylist[0]
+            q3 = float(mylist[1] + mylist[2]) / 2
+            q2 = mylist[1]
+            q1 = float(mylist[1] + mylist[0]) / 2
+        elif(length == 2):
+            max_box = mylist[1]
+            min_box = mylist[0]
+            q2 = float(mylist[1] + mylist[0]) / 2
+            q3 = (mylist[1] + q2) / 2
+            q1 = (q2 + mylist[0]) / 2
+        elif(length == 1):
+            max_box = mylist[0]
+            min_box = mylist[0]
+            q2 = mylist[0]
+            q3 = mylist[0]
+            q1 = mylist[0]
+        out.append(min_box)
+        out.append(q1)
+        out.append(q2)
+        out.append(q3)
+        out.append(max_box)
+        out.append(filter_list)
+        return out

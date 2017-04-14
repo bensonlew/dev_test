@@ -63,16 +63,15 @@ class FunctionPredictTool(Tool):
         """
         设置软件、脚本、数据库的路径
         """
-        self.set_environ(PYTHONPATH="/mnt/ilustre/users/sanger-dev/app/bioinfo/meta/picrust-1.1.0/")
-        self.python_scripts = "/mnt/ilustre/users/sanger-dev/app/program/Python/bin/"
-        self.perl = "/mnt/ilustre/users/sanger-dev/app/program/perl/perls/perl-5.24.0/bin/perl"
-        #self.biom = "app/program/Python/bin/biom"
-        self.scripts = "/mnt/ilustre/users/sanger-dev/app/bioinfo/meta/16s_scripts/"
-        self.picrust_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/meta/picrust-1.1.0/scripts/"
-
-        #self.func_predict_files_path = ""
-        self.Fundb  = "/mnt/ilustre/users/sanger-dev/app/bioinfo/meta/16sFundb/rep_set/97_otus.fasta" #设置数据库文件路径，97_otus.fasta
+        self.set_environ(PYTHONPATH = self.config.SOFTWARE_DIR + "/bioinfo/meta/picrust-1.1.0/")
+        self.python_scripts = self.config.SOFTWARE_DIR + "/program/Python/bin/"
+        self.perl = self.config.SOFTWARE_DIR + "/program/perl/perls/perl-5.24.0/bin/perl"
+        self.scripts = self.config.SOFTWARE_DIR + "/bioinfo/meta/16s_scripts/"
+        self.picrust_path = self.config.SOFTWARE_DIR + "/bioinfo/meta/picrust-1.1.0/scripts/"
+        self.Fundb = self.config.SOFTWARE_DIR + "/bioinfo/meta/16sFundb/rep_set/97_otus.fasta"  # 设置数据库文件路径，97_otus.fasta
+        self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
         self.cmds = []
+
     def func_predict_analysis(self):
 
         keggs = []
@@ -222,7 +221,7 @@ class FunctionPredictTool(Tool):
             if os.path.exists("KEGG"):
                 shutil.rmtree("KEGG")
             os.mkdir("KEGG")
-            new_file =  open("pid.txt", "w+")
+            new_file = open("pid.txt", "w+")
             f = open("kegg.pathway.profile.xls")
             for line in itertools.islice(open("kegg.pathway.profile.xls"), 1, None):
                 pid = line.split()[0]
@@ -233,9 +232,6 @@ class FunctionPredictTool(Tool):
                 new_file.write(line)
                 new_file.write('\n')
             new_file.close()
-            #os.makedirs("output/KEGG/Pathway_pdf")
-            #pdf_dir = os.path.join(os.getcwd(), "output/KEGG/Pathway_pdf")
-            #KeggAnnotation().get_pictrue("pid.txt", pdf_dir)
             for f in os.listdir(os.getcwd()):
                 if re.match("predictions_ko.*", f):
                     shutil.move(f, "KEGG")
@@ -247,7 +243,6 @@ class FunctionPredictTool(Tool):
             KeggAnnotation().get_pictrue("pid.txt", pdf_dir)
             os.makedirs("output/KEGG/Pathway_png")
             png_dir = os.path.join(os.getcwd(), "output/KEGG/Pathway_png")
-            image_magick = '/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert'
             if os.path.exists(pdf_dir):
                 if not os.path.exists(png_dir):
                     os.mkdir(png_dir)
@@ -257,18 +252,20 @@ class FunctionPredictTool(Tool):
                         q = m.group(1)
                     fp = os.path.join(pdf_dir, f)
                     fq = png_dir + '/' + q + 'png'
-                    os.system(image_magick + ' -flatten -quality 100 -density 130 -background white ' + fp + ' ' + fq)
+                    cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + fp + ' ' + fq
+                    try:
+                        subprocess.check_output(cmd, shell=True)
+                    except subprocess.CalledProcessError:
+                        self.set_error('图片格式pdf转png出错')
         if self.option("db") == "cog" or self.option("db") == "both":
-            if os.path.exists("cog"):
-                shutil.rmtree("cog")
-            os.mkdir("cog")
+            if os.path.exists("COG"):
+                shutil.rmtree("COG")
+            os.mkdir("COG")
             for f in os.listdir(os.getcwd()):
                 if re.match("predictions_cog.*", f):
-                    shutil.move(f, "cog")
-
+                    shutil.move(f, "COG")
                 if re.match("cog.*.xls", f):
-                    shutil.move(f, "cog")
-            shutil.move("tmp-cogbox.r", "cog")
-            shutil.move("cog", self.output_dir)
+                    shutil.move(f, "COG")
+            shutil.move("COG", self.output_dir)
         self.logger.info("成功移动文件夹！")
         self.end()

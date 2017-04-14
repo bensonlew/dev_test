@@ -48,7 +48,9 @@ class MetaBaseWorkflow(Workflow):
             {"name": "plsda_grouplab", "type": 'string', "default": ''},
             {"name": "file_list", "type": "string", "default": "null"},
             {"name": "raw_sequence", "type" : "infile", "format": "sequence.raw_sequence_txt"},
-            {"name": "workdir_sample", "type":"string", "default":""}
+            {"name": "workdir_sample", "type":"string", "default":""},
+            # add by qindanhua 20170112 add function gene relative option
+            {"name": "if_fungene", "type": "bool", 'default': False}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -70,6 +72,10 @@ class MetaBaseWorkflow(Workflow):
         self.updata_status_api = self.api.meta_update_status
         self.info_path = ""
         self.work_dir_path = ""
+        # add by qindanhua 20170112 add function gene tool
+        self.function_gene_tool = None
+        self.function_gene_path = ""
+        self.in_fastq_path = ""
 
     def check_options(self):
         """
@@ -97,12 +103,31 @@ class MetaBaseWorkflow(Workflow):
                                                'greengenes135/16s', 'greengenes135/16s_archaea', 'greengenes135/16s_bacteria']:
                     # 王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA 2016.11.28增加数据库greengenes135
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
+        # add by qindanhua 20170112 check if function gene is exist
+        if self.option("if_fungene") and self.option("database").split("/")[0] != "fgr":
+            raise OptionError("不支持{}功能基因".format(self.option("database").split("/")[0]))
         return True
 
+    # add by qindanhua run function gene tool
+    def run_function_gene(self):
+        self.step.add_steps("function_gene")
+        self.function_gene_tool = self.add_tool("meta.function_gene.function_gene")
+        self.function_gene_tool.set_options({
+            "fastq": self.option("in_fastq"),
+            "function_gene": self.option("database").split("/")[1],
+        })
+        self.function_gene_tool.on("start", self.set_step, {'start': self.step.function_gene})
+        self.function_gene_tool.on("end", self.run_sample_extract)
+        self.function_gene_tool.on("end", self.set_step, {'end': self.step.function_gene})
+        self.function_gene_tool.run()
+
     def run_sample_extract(self):
+        # add 2 lines by qindanhua 20170112 将输入的fastq文件换成功能基因fastq
+        if self.option("if_fungene"):
+            self.in_fastq_path = self.function_gene_tool.output_dir + "/fungene_reads.fastq"
         if self.option("file_list") == "null":
             opts = {
-                "in_fastq": self.option("in_fastq")
+                "in_fastq": self.in_fastq_path if self.option("if_fungene") else self.option("in_fastq")  # modified by qindanhua 判断是否输入为功能基因
             }
         else:
             opts = {
@@ -355,7 +380,7 @@ class MetaBaseWorkflow(Workflow):
             # os.system('cp -r ' + obj.output_dir + ' ' + self.output_dir + "/Alpha_diversity")
             # 设置alpha多样性文件
             api_est = self.api.estimator
-            est_path = self.output_dir + "/Alpha_diversity/estimators.xls"
+            est_path = self.output_dir + "/Alpha_diversity/Estimators/estimators.xls"
             if not os.path.isfile(est_path):
                 raise Exception("找不到报告文件:{}".format(est_path))
             indice = sorted(self.option("estimate_indices").split(','))
@@ -474,11 +499,15 @@ class MetaBaseWorkflow(Workflow):
         self.on_rely([self.tax, self.phylo], self.run_stat)
         self.stat.on('end', self.run_alpha)
         self.stat.on('end', self.run_beta)
-        #self.stat.on('end', self.run_pan_core)
-        #self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
-        self.run_sample_extract()
+        # self.stat.on('end', self.run_pan_core)
+        # self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
+        # modify by qindanhua 如果筛选功能基因就先运行功能基因tool
+        if self.option("if_fungene"):
+            self.logger.info("llllllllllllll")
+            self.run_function_gene()
+        else:
+            self.run_sample_extract()
         super(MetaBaseWorkflow, self).run()
-
 
     def send_files(self):
         repaths = [
@@ -498,13 +527,13 @@ class MetaBaseWorkflow(Workflow):
             ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "各分类学水平样本序列数统计表"],
             ["OtuTaxon_summary/tax_summary_r", "meta.otu.tax_summary_dir", "各分类学水平样本序列数相对丰度百分比统计表"],  # add by zhouxuan 20161129
             ["Alpha_diversity", "", "Alpha diversity文件目录"],
-            ["Alpha_diversity/estimators.xls", "xls", "Alpha多样性指数表"],
+            ["Alpha_diversity/Estimators/estimators.xls", "xls", "Alpha多样性指数表"],
             ["Beta_diversity", "", "Beta diversity文件目录"],
-            ["Beta_diversity/Anosim", "", "anosim&adonis结果输出目录"],
+            ["Beta_diversity/Anosim", "", "ANOSIM&Adonis分析结果目录"],
             ["Beta_diversity/Anosim/anosim_results.txt", "txt", "anosim分析结果"],
             ["Beta_diversity/Anosim/adonis_results.txt", "txt", "adonis分析结果"],
             ["Beta_diversity/Anosim/format_results.xls", "xls", "anosim&adonis综合统计表"],
-            ["Beta_diversity/Dbrda", "", "db_rda分析结果目录"],
+            ["Beta_diversity/Dbrda", "", "db_RDA分析结果目录"],
             ["Beta_diversity/Dbrda/db_rda_sites.xls", "xls", "db_rda样本坐标表"],
             ["Beta_diversity/Dbrda/db_rda_species.xls", "xls", "db_rda物种坐标表"],
             ["Beta_diversity/Dbrda/db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
@@ -515,7 +544,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Distance", "", "距离矩阵计算结果目录"],
             ["Beta_diversity/Hcluster", "", "层次聚类结果目录"],
             ["Beta_diversity/Hcluster/hcluster.tre", "graph.newick_tree", "层次聚类树结果表"],
-            ["Beta_diversity/Nmds", "", "NMDS分析结果输出目录"],
+            ["Beta_diversity/Nmds", "", "NMDS分析结果目录"],
             ["Beta_diversity/Nmds/nmds_sites.xls", "xls", "样本各维度坐标"],
             ["Beta_diversity/Nmds/nmds_stress.xls", "xls", "样本特征拟合度值"],
             ["Beta_diversity/Pca", "", "PCA分析结果目录"],
@@ -531,12 +560,12 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Pcoa/pcoa_eigenvaluespre.xls", "xls", "特征解释度百分比"],
             ["Beta_diversity/Pcoa/pcoa_sites.xls", "xls", "样本坐标表"],
             ['Beta_diversity/Rda/dca.xls', 'xls', 'DCA分析结果'],
-            ["Beta_diversity/Plsda", "", "plsda分析结果目录"],
+            ["Beta_diversity/Plsda", "", "PLS_DA分析结果目录"],
             ["Beta_diversity/Plsda/plsda_sites.xls", "xls", "样本坐标表"],
             ["Beta_diversity/Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
             ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分组别特征值表"],
             ["Beta_diversity/Plsda/plsda_importancepre.xls", "xls", "主成分解释度表"],
-            ["Beta_diversity/Rda", "", "rda_cca分析结果目录"],
+            ["Beta_diversity/Rda", "", "RDA_CCA分析结果目录"],
             ["pan_core", "", "Pan/core分析结果目录"],     #add 3 lines by hongdongxuan 20170323
             ["pan_core/core.richness.xls", "xls", "core 表格"],
             ["pan_core/pan.richness.xls", "xls", "pan 表格"]
@@ -567,12 +596,12 @@ class MetaBaseWorkflow(Workflow):
         for i in self.option("rarefy_indices").split(","):
             if i == "sobs":  # modified by hongdongxuan 20170324
                 # repaths.append(["./rarefaction", "文件夹", "{}指数结果输出目录".format(i)])
-                repaths.append(["./Alpha_diversity/sobs", "文件夹", "{}指数结果输出目录".format(i)])
+                repaths.append(["./Alpha_diversity/Rarefaction/sobs", "文件夹", "{}指数结果输出目录".format(i)])
                 # regexps.append([r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)])
                 regexps.append([r".*rarefaction\.xls", "xls", "每个样本的{}指数稀释性曲线表".format(i)])
             else:
                 # repaths.append(["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)])
-                repaths.append(["./Alpha_diversity/{}".format(i), "文件夹", "{}指数结果输出目录".format(i)])
+                repaths.append(["./Alpha_diversity/Rarefaction/{}".format(i), "文件夹", "{}指数结果输出目录".format(i)])
                 regexps.append(
                     # [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)])
                     [r".*{}\.xls".format(i), "xls", "每个样本的{}指数稀释性曲线表".format(i)])

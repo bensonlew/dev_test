@@ -4,9 +4,9 @@ import web
 import json
 import datetime
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.libs.param_pack import param_pack, group_detail_sort
-from mainapp.models.mongo.meta import Meta   # 20170106 2 lines
+from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
+
 
 class HierarchicalClusteringHeatmap(MetaController):
     def __init__(self):  # 20170106 2 lines
@@ -20,14 +20,13 @@ class HierarchicalClusteringHeatmap(MetaController):
                 info = {'success': False, 'info': '{}参数缺少!'.format(arg)}
                 return json.dumps(info)
         task_name = 'meta.report.hierarchical_clustering_heatmap'
-        meta = Meta()  # 20170106 6 lines
-        otu_info = meta.get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
         if data.method not in ["average", "single", "complete", ""]:
             info = {'success': False, "info": "参数method的值为{}，应该为average，single或者complete".format(data.method)}
-        task_info = meta.get_task_info(otu_info['task_id'])
+        task_info = self.meta.get_task_info(otu_info['task_id'])
         params_json = {
             'submit_location': data.submit_location,
             'otu_id': data.otu_id,
@@ -40,7 +39,7 @@ class HierarchicalClusteringHeatmap(MetaController):
             "sample_method": data.sample_method,
             "add_Algorithm": data.add_Algorithm
         }
-        main_table_name = 'CommunityHeatmap_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'CommunityHeatmap_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -53,7 +52,7 @@ class HierarchicalClusteringHeatmap(MetaController):
             ("show", 0),
             ("type", "otu_HierarchicalClusteringHeatmap")
         ]
-        main_table_id = meta.insert_main_table('sg_hc_heatmap', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_hc_heatmap', mongo_data)
         update_info = {str(main_table_id): 'sg_hc_heatmap'}
         options = {
             "input_otu_id": data.otu_id,

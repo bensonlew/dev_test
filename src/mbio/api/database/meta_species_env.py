@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
 from biocluster.api.database.base import Base, report_check
-import os
 import datetime
 from bson.objectid import ObjectId
-from types import StringTypes
-from mainapp.config.db import get_mongo_client
 import json
 from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
@@ -15,7 +12,6 @@ class MetaSpeciesEnv(Base):
     def __init__(self, bind_object):
         super(MetaSpeciesEnv, self).__init__(bind_object)
         self._db_name = Config().MONGODB
-        self.client = get_mongo_client()
 
     @report_check
     def add_mantel_table(self, level, otu_id, env_id, task_id=None, name=None, params=None, spname_spid=None):

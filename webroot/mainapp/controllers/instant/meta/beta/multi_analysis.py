@@ -190,7 +190,7 @@ class MultiAnalysis(MetaController):
 
     @staticmethod
     def get_main_table_name(analysis_type):
-        time_now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        time_now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         if analysis_type == 'pca':
             return 'PCA_' + time_now
         elif analysis_type == 'pcoa':

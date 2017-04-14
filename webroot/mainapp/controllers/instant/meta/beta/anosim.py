@@ -50,7 +50,7 @@ class Anosim(MetaController):
 
         task_name = 'meta.report.anosim'
         task_type = 'workflow'  # 可以不配置
-        main_table_name = 'Anosim&Adonis_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'Anosim&Adonis_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         meta = Meta()
         otu_info = meta.get_otu_table_info(data.otu_id)
         if not otu_info:

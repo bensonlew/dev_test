@@ -3,9 +3,8 @@
 import web
 import json
 import datetime
-from mainapp.models.mongo.meta import Meta
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.libs.param_pack import *
+from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
 
 
@@ -15,8 +14,6 @@ class Pipe(MetaController):
 
     def POST(self):
         data = web.input()
-        # print data
-        # print "上面没有转json"
         params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'group_info', 'sub_analysis']
         for param in params_name:
             if not hasattr(data, param):
@@ -26,31 +23,18 @@ class Pipe(MetaController):
         if not isinstance(group_detail, dict):
             info = {'success': False, 'info': '传入的group_detail不是一个字典！'}
             return json.dumps(info)
-        otu_info = Meta().get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
         task_name = 'meta.report.meta_pipeline'
         task_type = 'workflow'
-        task_info = Meta().get_task_info(otu_info['task_id'])
-        main_table_name = 'Pipeline_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        task_info = self.meta.get_task_info(otu_info['task_id'])
+        main_table_name = 'Pipeline_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         all_analysis = []
         sub_analysis_name = json.loads(data.sub_analysis)
         for key in sub_analysis_name:
             all_analysis.append(str(key))
-        if "otu_pan_core" in all_analysis:
-            analysis_num = len(all_analysis) + 1
-        else:
-            analysis_num = len(all_analysis)
-        print analysis_num
-        level = str(data.level_id).strip().split(",")
-        levels = []
-        for m in level:
-            levels.append(m)
-        print len(levels)
-        group_mun = json.loads(data.group_info)
-        print type(group_mun)
-        print len(group_mun)
         if hasattr(data, 'env_id') and hasattr(data, 'env_labs'):
             params_json = {
                 'otu_id': data.otu_id,
@@ -64,6 +48,7 @@ class Pipe(MetaController):
                 'filter_json': json.loads(data.filter_json),
                 'size': data.size,
                 'task_type': data.task_type,
+                'first_group_id': data.first_group_id,
                 'sub_analysis': json.loads(data.sub_analysis)
             }
         else:
@@ -77,6 +62,7 @@ class Pipe(MetaController):
                 'filter_json': json.loads(data.filter_json),
                 'size': data.size,
                 'task_type': data.task_type,
+                'first_group_id': data.first_group_id,
                 'sub_analysis': json.loads(data.sub_analysis)
             }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
@@ -91,13 +77,12 @@ class Pipe(MetaController):
             ('submit_location', data.submit_location),
             ('otu_id', ObjectId(data.otu_id)),
             ('analysis_list', str(all_analysis)),
-            ('percent', "0/" + str(analysis_num * len(levels) * len(group_mun))),
+            ('ends_count', 0),
+            ('all_count', 0),
             ('pipe_main_id', "none")
         ]
-        main_table_id = Meta().insert_main_table('sg_pipe_batch', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_pipe_batch', mongo_data)
         update_info = {str(main_table_id): 'sg_pipe_batch'}
-        # print "+++"
-        # print json.dumps(data)
         options = {
             "data": json.dumps(data),
             "update_info": json.dumps(update_info),
@@ -107,7 +92,6 @@ class Pipe(MetaController):
                             module_type=task_type)
         # self._sheet_data["instant"] = True #投递的接口，将workflow改为
         task_info = super(Pipe, self).POST()
-        # print "+++++..."
         task_info['content'] = {
             'ids': {
                 'id': str(main_table_id),
