@@ -2,7 +2,6 @@
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
 import os
-from mbio.api.to_file.meta import *
 
 
 class RarefactionWorkflow(Workflow):
@@ -63,7 +62,7 @@ class RarefactionWorkflow(Workflow):
                 ])
                 result_dir.add_regexp_rules([
                     # [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
-                    [r".*rarefaction\.xls", "xls", "每个样本的{}指数稀释性曲线表".format(i)]    #modified by hongdongxuan 20170321
+                    [r".*rarefaction\.xls", "xls", "每个样本的{}指数稀释性曲线表".format(i)]  # modified by hongdongxuan 20170321
                 ])
                 # self.logger.info("{}指数的simpleID的稀释性曲线表".format(i))
             else:

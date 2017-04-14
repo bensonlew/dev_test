@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
-from mbio.api.to_file.meta import *
 from mbio.packages.alpha_diversity.group_file_split import group_file_spilt
-from mainapp.libs.param_pack import group_detail_sort
-import datetime
 import os
 
 
