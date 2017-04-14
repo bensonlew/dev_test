@@ -6,13 +6,21 @@ import web
 
 class ClientKey(object):
     def __init__(self, client):
-        self.db = Config().get_db()
+        self._db = None
         self.client = client
         self.table = "clientkey"
         self.key = None
         self.ipmask = None
         self.timelimit = None
         self._select()
+
+    @property
+    def db(self):
+        if self._db:
+            return self._db
+        else:
+            self._db = Config().get_db()
+            return self._db
 
     def _select(self):
         myvar = dict(client=self.client)

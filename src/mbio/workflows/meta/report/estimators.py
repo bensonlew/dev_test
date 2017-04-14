@@ -2,9 +2,6 @@
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
 import os
-from mbio.api.to_file.meta import *
-import datetime
-from mainapp.libs.param_pack import group_detail_sort
 
 
 class EstimatorsWorkflow(Workflow):

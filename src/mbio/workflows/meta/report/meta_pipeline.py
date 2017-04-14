@@ -2,6 +2,7 @@
 # __author__ = 'hongdong.xuan'
 from biocluster.workflow import Workflow
 
+
 class MetaPipelineWorkflow(Workflow):
     """
     用于meta一键化交互的计算
