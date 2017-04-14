@@ -80,6 +80,7 @@ class SnpRnaModule(Module):
                         "seq_method": self.option("seq_method") 
                     })   # set_options(options)方法在 tool.py里 options需为一个字典对对象
                     star.on("end", self.picard_run, f)
+                    self.logger.info(f)
                     self.mapping_tools.append(star)
                     
             elif self.option("seq_method") == "SE":
@@ -92,6 +93,7 @@ class SnpRnaModule(Module):
                         "seq_method": self.option("seq_method")
                     })
                     star.on("end", self.picard_run, f)
+                    self.logger.info(f)
                     self.mapping_tools.append(star)
         
         else:  # 用户上传基因组
@@ -117,6 +119,7 @@ class SnpRnaModule(Module):
                     })
                  
                     star.on("end", self.picard_run, f)
+                    self.logger.info(f)
                     self.mapping_tools.append(star)
 
             elif self.option("seq_method") == "SE":  # 如果测序方式为SE测序
@@ -131,6 +134,7 @@ class SnpRnaModule(Module):
                     })
                    
                     star.on("end", self.picard_run, f)
+                    self.logger.info(f)
                     self.mapping_tools.append(star)
 
         self.on_rely(self.mapping_tools, self.finish_update, 'star')
@@ -177,6 +181,7 @@ class SnpRnaModule(Module):
     
     def picard_run(self, event):
         obj = event["bind_object"]
+        self.logger.info(event['data'])
         star_output = os.listdir(obj.output_dir)
         f_path = os.path.join(obj.output_dir, star_output[0])
         self.logger.info(f_path)  # 打印出f_path的信息，是上一步输出文件的路径
@@ -206,6 +211,7 @@ class SnpRnaModule(Module):
         
     def gatk_run(self, event): 
         obj = event["bind_object"]
+        self.logger.info(event['data'])
         picard_output = os.listdir(obj.output_dir)
         f_path = ""
         for i in picard_output:
@@ -238,6 +244,7 @@ class SnpRnaModule(Module):
     # add by qindanhua  20170103
     def snp_anno(self, event):
         obj = event["bind_object"]
+        self.logger.info(event['data'])
         gatk_output = os.listdir(obj.output_dir)
         vcf_path = ""
         for i in gatk_output:
@@ -281,7 +288,9 @@ class SnpRnaModule(Module):
         obj = event["bind_object"]
         if event['data'][:7] == 'annovar':
             output_name = self.output_dir + "/{}.snp_anno.xls".format(event['data'].split("_")[1])
-            self.logger.info(output_name)
+            self.logger.info("llllllllllllooking for event data")
+            self.logger.info(event['data'].split("_")[1])
+            self.logger.info(event['data'].split("_")[1])
             if os.path.exists(output_name):
                 os.remove(output_name)
             os.link(obj.output_dir + "/snp_anno.xls", output_name)

@@ -6,7 +6,7 @@ import re
 def snp_anno(variant_function, exonic_variant_function, snp_stat):
     anno_dict = {}
     reads_name_list = []
-    first_write_line = ['CHROM', 'START', 'END', 'REF', 'ALT', 'ANNO', 'GENE(in or nearby)', 'MUT_type', 'MUT_info']
+    first_write_line = ['CHROM', 'START', 'END', 'REF', 'ALT', 'READS_NUM', 'ANNO', 'GENE(in or nearby)', 'MUT_type', 'MUT_info']
     with open(exonic_variant_function, "r") as ef:
         for line in ef:
             if re.match(r"#", line):
@@ -29,4 +29,4 @@ def snp_anno(variant_function, exonic_variant_function, snp_stat):
                 else:
                     MUT_type = "."
                     MUT_info = "."
-                w.write("\t".join([line[2], line[3], line[4], line[5],line[6], line[0], line[1], MUT_type, MUT_info]) + "\n")
+                w.write("\t".join([line[2], line[3], line[4], line[5],line[6], line[-1], line[0], line[1], MUT_type, MUT_info]) + "\n")
