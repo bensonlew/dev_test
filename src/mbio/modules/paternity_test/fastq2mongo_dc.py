@@ -57,7 +57,7 @@ class Fastq2mongoDcModule(Module):
 			"seq_path": self.option("fastq_path"),
 			"cpu_number": self.option("cpu_number")
 		})
-		self.fastq2bam.on('end', self.set_output, 'fastq2bam')
+		# self.fastq2bam.on('end', self.set_output, 'fastq2bam')
 		self.fastq2bam.on('start', self.set_step, {'start': self.step.fastq2bam})
 		self.fastq2bam.on('end', self.set_step, {'end': self.step.fastq2bam})
 		self.fastq2bam.run()
@@ -120,18 +120,16 @@ class Fastq2mongoDcModule(Module):
 
 	def set_output(self, event):
 		obj = event['bind_object']
-		if event['data'] == 'fastq2bam':
-			self.linkdir(obj.output_dir, 'fastq2bam')
-		elif event['data'] == 'bam2tab':
-			self.linkdir(obj.output_dir, 'bam2tab')
+		if event['data'] == 'bam2tab':
+			self.linkdir(obj.output_dir, 'fastq2tab')
 			api = self.api.tab_file
-			temp = os.listdir(self.output_dir+'/bam2tab')
+			temp = os.listdir(self.output_dir+'/fastq2tab')
 			api_read_tab = self.api.tab_file  # 二次判断数据库中是否存在tab文件
 			for i in temp:
 				m = re.search(r'(.*)\.mem.*tab$', i)
 				n = re.search(r'(.*)\.qc',i )
 				if m:
-					tab_path = self.output_dir + '/bam2tab/' + i
+					tab_path = self.output_dir + '/fastq2tab/' + i
 					tab_name = m.group(1)
 					# tab_path = self.output_dir + '/' + i
 					# tab_name = m.group(1)
@@ -139,7 +137,7 @@ class Fastq2mongoDcModule(Module):
 						api.add_pt_tab(tab_path, self.option('batch_id'))
 						api.add_sg_pt_tab_detail(tab_path)
 				elif n:
-					tab_path = self.output_dir + '/bam2tab/' + i
+					tab_path = self.output_dir + '/fastq2tab/' + i
 					tab_name = n.group(1)
 					api.sample_qc(tab_path, tab_name)
 					api.sample_qc_addition(tab_name)
