@@ -230,13 +230,21 @@ class Gff3File(File):
             newline = re.sub(r'"(\S+?):(\S+?)";', '"\g<2>";', line)
             gtf.write(newline)
         gtf.close()
-    
-    def to_bed(self):
-        self.to_gtf()
-        from .gtf import GtfFile
-        gtf = GtfFile()
-        gtf.set_path(self._gtf)
-        gtf.to_bed()
+
+    def gtf_to_bed(self):
+        """
+        gtf格式转bed格式
+        """
+        bed_path = os.path.split(self.prop['path'])[0]
+        gtf = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".gtf")
+        bed = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".bed")
+        cmd = "perl {} {} > {}".format(self.gtf2bed_path, gtf, bed)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError:
+            os.remove(bed)
+            raise Exception("运行出错")
+        return True
 
 
 if __name__ == '__main__':
