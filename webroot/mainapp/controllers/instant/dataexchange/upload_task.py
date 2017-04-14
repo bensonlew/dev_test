@@ -18,7 +18,8 @@ class UploadTask(object):
         ip = data.ip
         user = data.user
         mode = data.mode
-        info = Identity().get_target_path(code)
+        test = True if data.mode == 'tsanger' else False
+        info = Identity(test=test).get_target_path(code)
         if not info["success"]:
             info["rel_path"] = ""
             return json.dumps(info)

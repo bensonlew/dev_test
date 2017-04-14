@@ -20,7 +20,7 @@ class MetaSourcetracker(MetaController):
                 info = {"success": False, "info": "缺少%s参数!" % param}
                 return json.dumps(info)
         if int(data.level_id) not in range(1, 10):
-            info = {"success": False, "info": "level{}不在规定范围内{}".format(data.level_id)}
+            info = {"success": False, "info": "level{}不在规定范围内".format(data.level_id)}
             return json.dumps(info)
         group_detail = json.loads(data.group_detail)
         if not isinstance(group_detail, dict):
