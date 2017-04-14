@@ -3,7 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-from mbio.packages.denovo_rna.express.get_diff_matrix import *
+from mbio.packages.ref_rna.get_diff_matrix import *
 from mbio.packages.ref_rna.DE_stat import *
 import os
 import re
