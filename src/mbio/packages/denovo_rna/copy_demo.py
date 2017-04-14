@@ -7,18 +7,7 @@ from bson import ObjectId
 import json
 
 
-all_collections = ['fs.chunks', 'fs.files', 'sg_alpha_diversity', 'sg_alpha_diversity_detail', 'sg_alpha_est_t_test',
-                   'sg_alpha_est_t_test_detail', 'sg_alpha_rarefaction_curve', 'sg_alpha_rarefaction_curve_detail',
-                   'sg_alpha_ttest', 'sg_alpha_ttest_detail', 'sg_beta_multi_analysis',
-                   'sg_beta_multi_analysis_detail', 'sg_beta_multi_analysis_json_detail', 'sg_beta_multi_anosim',
-                   'sg_beta_multi_anosim_detail', 'sg_beta_specimen_distance', 'sg_beta_specimen_distance_detail',
-                   'sg_env', 'sg_env_detail', 'sg_img', 'sg_newick_tree', 'sg_otu', 'sg_otu_detail',
-                   'sg_otu_detail_level', 'sg_otu_pan_core', 'sg_otu_pan_core_detail', 'sg_otu_specimen',
-                   'sg_otu_venn', 'sg_otu_venn_detail', 'sg_result_table_params', 'sg_seq_sample',
-                   'sg_species_difference_check', 'sg_species_difference_check_boxplot',
-                   'sg_species_difference_check_ci_plot', 'sg_species_difference_check_detail',
-                   'sg_species_difference_lefse', 'sg_species_difference_lefse_detail', 'sg_specimen',
-                   'sg_specimen_group', 'sg_specimen_sequence', 'sg_specimen_step', 'sg_status', 'sg_task']
+
 
 
 
@@ -26,9 +15,10 @@ class CopyMongo(object):
     """
     需要回滚操作。。。,暂时未提供
     """
-    def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, db='tsanger'):
+    def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, db='tsanger_rna', targetdb='tsanger_ref_rna'):
         self.config = Config()
         self.db = self.config.mongo_client[db]
+        self.targetdb = self.config.mongo_client[targetdb]
         self._old_task_id = old_task_id
         self._new_task_id = new_task_id
         self._new_project_sn = new_project_sn
@@ -54,103 +44,126 @@ class CopyMongo(object):
         """
         运行执行复制特定ID数据的操作，如果有新的分析请参照下面的写法添加代码，不同分析表结构不同，所有需要手动添加。
         """
-        self.copy_member_id()
-        self.copy_sg_specimen()
-        self.copy_sg_specimen_group()
-        self.copy_collection_with_change('sg_specimen_sequence', change_positions=['specimen_id', ])
-        self.copy_collection_with_change('sg_specimen_step', change_positions=['specimen_id', ])
-        self.copy_sg_otu()
-        self.copy_collection_with_change('sg_otu_detail', change_positions=['otu_id', ])
-        self.copy_collection_with_change('sg_otu_detail_level', change_positions=['otu_id', ])
-        self.env_id_dict = self.copy_collection_with_change('sg_env')
-        self.copy_main_details('sg_env_detail', 'env_id', self.env_id_dict, others_position=['specimen_id'])
-        self.env_id_dict[None] = None
-        self.env_id_dict[''] = None
-        self._exchange_dict['env_id'] = self.env_id_dict
-        self.copy_main_details('sg_otu_specimen', 'otu_id', self.otu_id_dict, others_position=['specimen_id'])
-        self.copy_sg_newick_tree()
-        self.recopy_update_otu()
-
-        self.alpha_diversity_id_dict = self.copy_collection_with_change('sg_alpha_diversity', change_positions=['otu_id'], update_sg_status=True)
-        self._exchange_dict['alpha_diversity_id'] = self.alpha_diversity_id_dict
-        self.copy_main_details('sg_alpha_diversity_detail', 'alpha_diversity_id', self.alpha_diversity_id_dict)
-
-        corr_id_dict = self.copy_collection_with_change('sg_species_env_correlation', change_positions=['otu_id', 'env_id'], update_sg_status=True)
-        # print(corr_id_dict)
-        self.copy_main_details("sg_species_env_correlation_detail", "correlation_id", corr_id_dict)
-
-        mantel_id_dict = self.copy_collection_with_change('sg_species_mantel_check', change_positions=['otu_id', 'env_id'], update_sg_status=True)
-        # print(mantel_id_dict)
-        self.copy_main_details("sg_species_mantel_check_detail", "mantel_id", mantel_id_dict)
-        self.copy_main_details("sg_species_mantel_check_matrix", "mantel_id", mantel_id_dict)
-
-        venn_id_dict = self.copy_collection_with_change('sg_otu_venn', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_otu_venn_detail', 'otu_venn_id', venn_id_dict, others_position=['otu_id'])
-        self.copy_main_details("sg_otu_venn_graph", 'venn_id', venn_id_dict)
-
-        pan_core_id_dict = self.copy_collection_with_change('sg_otu_pan_core', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_otu_pan_core_detail', 'pan_core_id', pan_core_id_dict)
-
-        alpha_ttest_id_dict = self.copy_collection_with_change('sg_alpha_ttest', change_positions=['alpha_diversity_id', 'otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_alpha_ttest_detail', 'alpha_ttest_id', alpha_ttest_id_dict)
-
-        alpha_rarefaction_curve_id_dict = self.copy_collection_with_change('sg_alpha_rarefaction_curve', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_alpha_rarefaction_curve_detail', 'rarefaction_curve_id', alpha_rarefaction_curve_id_dict)
-
-        self.specimen_distance_id_dict = self.copy_collection_with_change('sg_beta_specimen_distance', change_positions=['otu_id', 'newick_tree_id'])
-        self._exchange_dict['specimen_distance_id'] = self.specimen_distance_id_dict
-        self.copy_main_details('sg_beta_specimen_distance_detail', 'specimen_distance_id', self.specimen_distance_id_dict)
-
-        beta_multi_analysis_id_dict = self.copy_collection_with_change('sg_beta_multi_analysis', change_positions=['env_id', 'group_id', 'otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_beta_multi_analysis_detail', 'multi_analysis_id', beta_multi_analysis_id_dict)
-
-        beta_multi_anosim_id_dict = self.copy_collection_with_change('sg_beta_multi_anosim', change_positions=['otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_beta_multi_anosim_detail', 'anosim_id', beta_multi_anosim_id_dict)
-
-        species_difference_check_id_dict = self.copy_collection_with_change('sg_species_difference_check', change_positions=['otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_species_difference_check_detail', 'species_check_id', species_difference_check_id_dict)
-        self.copy_main_details('sg_species_difference_check_boxplot', 'species_check_id', species_difference_check_id_dict)
-
-        species_difference_lefse_id_dict = self.copy_collection_with_change('sg_species_difference_lefse', change_positions=['otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_species_difference_lefse_detail', 'species_lefse_id', species_difference_lefse_id_dict)
-
-        # phylo_tree_plot_id_dict = self.copy_collection_with_change('sg_tree_picture', change_positions=['otu_id'], update_sg_status=True)
-
-        network_id_dict = self.copy_collection_with_change('sg_network', change_positions=['otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_network_centrality_node', 'network_id', network_id_dict)
-        self.copy_main_details('sg_network_distribution_node', 'network_id', network_id_dict)
-        self.copy_main_details('sg_network_structure_attributes', 'network_id', network_id_dict)
-        self.copy_main_details('sg_network_structure_link', 'network_id', network_id_dict)
-        self.copy_main_details('sg_network_structure_node', 'network_id', network_id_dict)
-
-        randomforest_id_dict = self.copy_collection_with_change('sg_randomforest', change_positions=['otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_randomforest_species_bar', 'randomforest_id', randomforest_id_dict)
-        self.copy_main_details('sg_randomforest_specimen_scatter', 'randomforest_id', randomforest_id_dict)
-
-        phylo_tree_id_dict = self.copy_collection_with_change('sg_phylo_tree', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_phylo_tree_species_categories', 'phylo_tree_id', phylo_tree_id_dict)
-        self.copy_main_details('sg_phylo_tree_species_detail', 'phylo_tree_id', phylo_tree_id_dict)
-
-        hc_heatmap_id_dict = self.copy_collection_with_change('sg_hc_heatmap', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_hc_heatmap_detail', 'hc_id', hc_heatmap_id_dict)
-
-        self.copy_collection_with_change('sg_valid_sequence_info')
-        self.copy_collection_with_change('sg_raw_sequence_info')
-
-        corr_network_id_dict = self.copy_collection_with_change('sg_corr_network', change_positions=['otu_id', 'group_id'],
-                                                                update_sg_status=True)
-        self.copy_main_details('sg_corr_network_centrality_node', 'corr_network_id', corr_network_id_dict)
-        self.copy_main_details('sg_corr_network_distribution_node', 'corr_network_id', corr_network_id_dict)
-        self.copy_main_details('sg_corr_network_structure_abundance', 'corr_network_id', corr_network_id_dict)
-        self.copy_main_details('sg_corr_network_structure_attributes', 'corr_network_id', corr_network_id_dict)
-        self.copy_main_details('sg_corr_network_structure_link', 'corr_network_id', corr_network_id_dict)
-        self.copy_main_details('sg_corr_network_structure_node', 'corr_network_id', corr_network_id_dict)
+        self.copy_member_id(collection='sg_task', targetcoll='sg_task')
+        self.copy_sg_specimen(collection="sg_denovo_specimen", targetcoll="sg_specimen")
+        self.copy_sg_specimen_group(collection="sg_denovo_specimen_group", targetcoll="sg_specimen_group")
+        self.copy_collection_with_change('sg_denovo_specimen_graphic', change_positions=['specimen_id', ])
+        self.copy_collection_with_change('sg_denovo_specimen_group_compare', targetcoll='sg_denovo_specimen_group_compare')
+        self.copy_collection_with_change('sg_denovo_specimen_mapping', targetcoll="sg_denovo_specimen_mapping")
 
 
 
+        self.anno_id_dict = self.copy_collection_with_change('sg_denovo_annotation', targetcoll="sg_annotation")
+        self.copy_main_details('sg_denovo_annotation_cog_detail', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_cog_detail")
+        self.copy_main_details('sg_denovo_annotation_go_detail', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_go_detail")
+        self.copy_main_details('sg_denovo_annotation_go_graph', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_go_graph")
+        self.copy_main_details('sg_denovo_annotation_gos_list', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_gos_list")
+        self.copy_main_details('sg_denovo_annotation_kegg_detail', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_kegg_detail")
+        self.copy_main_details('sg_denovo_annotation_kegg_pathway', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_kegg_pathway")
+        self.copy_main_details('sg_denovo_annotation_kegg_table', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_kegg_table")
+        self.copy_main_details('sg_denovo_annotation_nr_detail', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_nr_detail")
+        self.copy_main_details('sg_denovo_annotation_pie', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_pie")
+        self.copy_main_details('sg_denovo_annotation_query', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_query")
+        self.copy_main_details('sg_denovo_annotation_stat_detail', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_stat_detail")
+        self.copy_main_details('sg_denovo_annotation_venn', 'annotation_id', self.anno_id_dict, targetcoll="sg_annotation_venn")
+
+        self.blast_id_dict = self.copy_collection_with_change('sg_denovo_blast', targetcoll='sg_blast')
+        self.copy_main_details('sg_denovo_blast_table_detail', 'blast_id', self.anno_id_dict, targetcoll="sg_denovo_blast_table_detail")
 
 
-    def copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False):
+
+        # self.copy_sg_otu()
+        # self.copy_collection_with_change('sg_otu_detail', change_positions=['otu_id', ])
+        # self.copy_collection_with_change('sg_otu_detail_level', change_positions=['otu_id', ])
+        # self.env_id_dict = self.copy_collection_with_change('sg_env')
+        # self.copy_main_details('sg_env_detail', 'env_id', self.env_id_dict, others_position=['specimen_id'])
+        # self.env_id_dict[None] = None
+        # self.env_id_dict[''] = None
+        # self._exchange_dict['env_id'] = self.env_id_dict
+        # self.copy_main_details('sg_otu_specimen', 'otu_id', self.otu_id_dict, others_position=['specimen_id'])
+        # self.copy_sg_newick_tree()
+        # self.recopy_update_otu()
+        #
+        # self.alpha_diversity_id_dict = self.copy_collection_with_change('sg_alpha_diversity', change_positions=['otu_id'], update_sg_status=True)
+        # self._exchange_dict['alpha_diversity_id'] = self.alpha_diversity_id_dict
+        # self.copy_main_details('sg_alpha_diversity_detail', 'alpha_diversity_id', self.alpha_diversity_id_dict)
+        #
+        # corr_id_dict = self.copy_collection_with_change('sg_species_env_correlation', change_positions=['otu_id', 'env_id'], update_sg_status=True)
+        # # print(corr_id_dict)
+        # self.copy_main_details("sg_species_env_correlation_detail", "correlation_id", corr_id_dict)
+        #
+        # mantel_id_dict = self.copy_collection_with_change('sg_species_mantel_check', change_positions=['otu_id', 'env_id'], update_sg_status=True)
+        # # print(mantel_id_dict)
+        # self.copy_main_details("sg_species_mantel_check_detail", "mantel_id", mantel_id_dict)
+        # self.copy_main_details("sg_species_mantel_check_matrix", "mantel_id", mantel_id_dict)
+        #
+        # venn_id_dict = self.copy_collection_with_change('sg_otu_venn', change_positions=['otu_id'], update_sg_status=True)
+        # self.copy_main_details('sg_otu_venn_detail', 'otu_venn_id', venn_id_dict, others_position=['otu_id'])
+        # self.copy_main_details("sg_otu_venn_graph", 'venn_id', venn_id_dict)
+        #
+        # pan_core_id_dict = self.copy_collection_with_change('sg_otu_pan_core', change_positions=['otu_id'], update_sg_status=True)
+        # self.copy_main_details('sg_otu_pan_core_detail', 'pan_core_id', pan_core_id_dict)
+        #
+        # alpha_ttest_id_dict = self.copy_collection_with_change('sg_alpha_ttest', change_positions=['alpha_diversity_id', 'otu_id', 'group_id'], update_sg_status=True)
+        # self.copy_main_details('sg_alpha_ttest_detail', 'alpha_ttest_id', alpha_ttest_id_dict)
+        #
+        # alpha_rarefaction_curve_id_dict = self.copy_collection_with_change('sg_alpha_rarefaction_curve', change_positions=['otu_id'], update_sg_status=True)
+        # self.copy_main_details('sg_alpha_rarefaction_curve_detail', 'rarefaction_curve_id', alpha_rarefaction_curve_id_dict)
+        #
+        # self.specimen_distance_id_dict = self.copy_collection_with_change('sg_beta_specimen_distance', change_positions=['otu_id', 'newick_tree_id'])
+        # self._exchange_dict['specimen_distance_id'] = self.specimen_distance_id_dict
+        # self.copy_main_details('sg_beta_specimen_distance_detail', 'specimen_distance_id', self.specimen_distance_id_dict)
+        #
+        # beta_multi_analysis_id_dict = self.copy_collection_with_change('sg_beta_multi_analysis', change_positions=['env_id', 'group_id', 'otu_id'], update_sg_status=True)
+        # self.copy_main_details('sg_beta_multi_analysis_detail', 'multi_analysis_id', beta_multi_analysis_id_dict)
+        #
+        # beta_multi_anosim_id_dict = self.copy_collection_with_change('sg_beta_multi_anosim', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        # self.copy_main_details('sg_beta_multi_anosim_detail', 'anosim_id', beta_multi_anosim_id_dict)
+        #
+        # species_difference_check_id_dict = self.copy_collection_with_change('sg_species_difference_check', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        # self.copy_main_details('sg_species_difference_check_detail', 'species_check_id', species_difference_check_id_dict)
+        # self.copy_main_details('sg_species_difference_check_boxplot', 'species_check_id', species_difference_check_id_dict)
+        #
+        # species_difference_lefse_id_dict = self.copy_collection_with_change('sg_species_difference_lefse', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        # self.copy_main_details('sg_species_difference_lefse_detail', 'species_lefse_id', species_difference_lefse_id_dict)
+        #
+        # # phylo_tree_plot_id_dict = self.copy_collection_with_change('sg_tree_picture', change_positions=['otu_id'], update_sg_status=True)
+        #
+        # network_id_dict = self.copy_collection_with_change('sg_network', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        # self.copy_main_details('sg_network_centrality_node', 'network_id', network_id_dict)
+        # self.copy_main_details('sg_network_distribution_node', 'network_id', network_id_dict)
+        # self.copy_main_details('sg_network_structure_attributes', 'network_id', network_id_dict)
+        # self.copy_main_details('sg_network_structure_link', 'network_id', network_id_dict)
+        # self.copy_main_details('sg_network_structure_node', 'network_id', network_id_dict)
+        #
+        # randomforest_id_dict = self.copy_collection_with_change('sg_randomforest', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        # self.copy_main_details('sg_randomforest_species_bar', 'randomforest_id', randomforest_id_dict)
+        # self.copy_main_details('sg_randomforest_specimen_scatter', 'randomforest_id', randomforest_id_dict)
+        #
+        # phylo_tree_id_dict = self.copy_collection_with_change('sg_phylo_tree', change_positions=['otu_id'], update_sg_status=True)
+        # self.copy_main_details('sg_phylo_tree_species_categories', 'phylo_tree_id', phylo_tree_id_dict)
+        # self.copy_main_details('sg_phylo_tree_species_detail', 'phylo_tree_id', phylo_tree_id_dict)
+        #
+        # hc_heatmap_id_dict = self.copy_collection_with_change('sg_hc_heatmap', change_positions=['otu_id'], update_sg_status=True)
+        # self.copy_main_details('sg_hc_heatmap_detail', 'hc_id', hc_heatmap_id_dict)
+        #
+        # self.copy_collection_with_change('sg_valid_sequence_info')
+        # self.copy_collection_with_change('sg_raw_sequence_info')
+        #
+        # corr_network_id_dict = self.copy_collection_with_change('sg_corr_network', change_positions=['otu_id', 'group_id'],
+        #                                                         update_sg_status=True)
+        # self.copy_main_details('sg_corr_network_centrality_node', 'corr_network_id', corr_network_id_dict)
+        # self.copy_main_details('sg_corr_network_distribution_node', 'corr_network_id', corr_network_id_dict)
+        # self.copy_main_details('sg_corr_network_structure_abundance', 'corr_network_id', corr_network_id_dict)
+        # self.copy_main_details('sg_corr_network_structure_attributes', 'corr_network_id', corr_network_id_dict)
+        # self.copy_main_details('sg_corr_network_structure_link', 'corr_network_id', corr_network_id_dict)
+        # self.copy_main_details('sg_corr_network_structure_node', 'corr_network_id', corr_network_id_dict)
+
+
+
+
+
+    def copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False, targetcoll=None):
         """
         公共模块，一般用于导入主表数据，依靠task_id进行查询，修改change_positions提供的字段，相应修改ID为新的，同时更新params中的数据ID
 
@@ -158,8 +171,13 @@ class CopyMongo(object):
         params change_positions: 需要替换的ID,
             可用为specimen_id,group_id,env_id,otu_id,alpha_diversity_id,newick_tree_id,specimen_distance_id
         params update_sg_status: 更新 sg_status表
+        params targetcoll: 更新到特定集合， 默认与collection参数相同
         """
         coll = self.db[collection]
+        if targetcoll:
+            targetcoll = self.targetdb[targetcoll]
+        else:
+            targetcoll = self.targetdb[collection]
         finds = coll.find({'task_id': self._old_task_id})
         news = []
         olds = []
@@ -175,7 +193,7 @@ class CopyMongo(object):
                 i['params'] = self.params_exchange(i['params'])
             news.append(i)
         if news:
-            result = coll.insert_many(news)
+            result = targetcoll.insert_many(news)
             if update_sg_status:
                 self.insert_new_status(collection, news, result.inserted_ids)
             return dict(zip(olds, [str(one) for one in result.inserted_ids]))
@@ -273,7 +291,7 @@ class CopyMongo(object):
             else:
                 print 'WARNING: 环境因子主表:{}没有detail表信息，请注意数据合理性'.format(old)
 
-    def copy_main_details(self, collection, main_field, change_dict, others_position=[]):
+    def copy_main_details(self, collection, main_field, change_dict, others_position=[], targetcoll=None):
         """
         公共模块，一般用于更新detail表，根据提供的主表id字段名，和主表新旧ID字典，进行查找，再复制替换，others_position用于更新主表ID之外其他需要更新的ID
 
@@ -284,6 +302,10 @@ class CopyMongo(object):
             只能是 specimen_id,group_id,env_id,otu_id,alpha_diversity_id,newick_tree_id,specimen_distance_id
         """
         coll = self.db[collection]
+        if targetcoll:
+            targetcoll = self.targetdb[targetcoll]
+        else:
+            targetcoll = self.targetdb[collection]
         for old, new in change_dict.items():
             finds = coll.find({main_field: ObjectId(old)})
             news = []
@@ -294,7 +316,7 @@ class CopyMongo(object):
                     i[position] = self.exchange_ObjectId(position, i[position])
                 news.append(i)
             if news:
-                coll.insert_many(news)
+                targetcoll.insert_many(news)
             else:
                 print 'WARNING: 主表:{}没有detail表信息，请注意数据合理性,collection:{}'.format(old, collection)
 
@@ -356,11 +378,11 @@ class CopyMongo(object):
         else:
             raise Exception('不存在任何样本序列， 请检查数据完整性')
 
-    def copy_sg_specimen_group(self):
+    def copy_sg_specimen_group(self, collection="sg_denovo_specimen_group", targetcoll="sg_specimen_group"):
         """
         复制group表
         """
-        finds = self.db.sg_specimen_group.find({"task_id": self._old_task_id})
+        finds = self.db[collection].find({"task_id": self._old_task_id})
         news = []
         old_group_ids = []
         for i in finds:
@@ -373,7 +395,7 @@ class CopyMongo(object):
                     one.pop(sp)
             news.append(i)
         if news:
-            result = self.db.sg_specimen_group.insert_many(news)
+            result = self.targetdb[targetcoll].insert_many(news)
             self.group_id_dict = dict(zip(old_group_ids, [str(one) for one in result.inserted_ids]))
         else:
             self.group_id_dict = {}
@@ -383,11 +405,11 @@ class CopyMongo(object):
         self._exchange_dict['group_id'] = self.group_id_dict
         return self.group_id_dict
 
-    def copy_sg_specimen(self):
+    def copy_sg_specimen(self, collection="sg_denovo_specimen", targetcoll="sg_denovo_specimen"):
         """
         复制样本表
         """
-        finds = self.db.sg_specimen.find({"task_id": self._old_task_id})
+        finds = self.db[collection].find({"task_id": self._old_task_id})
         news = []
         old_specimen_ids = []
         for i in finds:
@@ -396,7 +418,7 @@ class CopyMongo(object):
             i['project_sn'] = self._new_project_sn
             news.append(i)
         if news:
-            result = self.db.sg_specimen.insert_many(news)
+            result = self.targetdb[targetcoll].insert_many(news)
         else:
             raise Exception('没有任何样本信息，请核对任务结果是否完整')
         self.specimen_id_dict = dict(zip(old_specimen_ids, [str(one) for one in result.inserted_ids]))
@@ -424,11 +446,11 @@ class CopyMongo(object):
         """
         return self._exchange_dict[key][strId]
 
-    def copy_member_id(self):
+    def copy_member_id(self, collection='sg_task', targetcoll='sg_task'):
         """
         复制sg_task的数据
         """
-        coll = self.db.sg_task
+        coll = self.db[collection]
         find = coll.find_one({'task_id': self._old_task_id})
         if not find:
             raise Exception('运行错误：找不到demo任务相关信息')
@@ -436,7 +458,7 @@ class CopyMongo(object):
         find['member_id'] = self._new_member_id
         find.pop('_id')
         find['project_sn'] = self._new_project_sn
-        coll.insert_one(find)
+        self.targetdb[targetcoll].insert_one(find)
 
 
     def params_exchange(self, params_str):
@@ -472,7 +494,7 @@ class CopyMongo(object):
         return json.dumps(params, sort_keys=True, separators=(',', ':'))
 
 if __name__ == '__main__':
-    copy_task = CopyMongo('i-sanger_6414', 'i-sanger_6414_1', '10004002_1', 'shenghe_test')
+    copy_task = CopyMongo('zengrui-sg_5919', 'tsg_1000', '10000000', 'ref_test')
     copy_task.run()
     # copy_task = CopyMongo('tsg_3617', 'tsg_3617_022', '10000782_22', 'm_188_22')
     # copy_task.run()

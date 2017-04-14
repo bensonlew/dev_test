@@ -194,7 +194,7 @@ class PlotTreeWorkflow(Workflow):
         time.sleep(10)
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "进化树计算结果输出目录"],
+            [".", "", "进化分析结果目录"],
             ["species_table.xls", "txt", "物种样本统计表"],
             ["phylo_tree.tre", "tree", "进化树"],
             ["species_group.xls", "txt", "物种在高层级的分类表"]

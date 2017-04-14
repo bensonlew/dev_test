@@ -19,6 +19,7 @@ class MetaController(object):
         self._post_data = None
         self._sheet_data = None
         self._return_msg = None
+        self.meta = Meta()
 
     @property
     def data(self):
@@ -56,6 +57,7 @@ class MetaController(object):
         """
         return self._sheet_data
 
+
     @check_sig
     @meta_check
     def POST(self):
@@ -64,10 +66,12 @@ class MetaController(object):
             run_info = workflow_client.run()
             run_info['info'] = filter_error_info(run_info['info'])
             self._return_msg = workflow_client.return_msg
+            # run_info['workflow_id'] = self.workflow_id
             return run_info
         except Exception as e:
             self.roll_back()
             return {"success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
+            # return {"workflow_id": self.workflow_id, "success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
 
     def roll_back(self):
         """
@@ -77,10 +81,9 @@ class MetaController(object):
         """
         print("INFO: 任务提交出错，尝试更新主表状态为failed。")
         try:
-            meta = Meta()
             update_info = json.loads(self.sheet_data['options']['update_info'])
             for i in update_info:
-                meta.update_status_failed(update_info[i], i)
+                self.meta.update_status_failed(update_info[i], i)
                 print("INFO: 更新主表状态为failed成功: coll:{} _id:{}".format(update_info[i], i))
         except Exception as e:
             print('ERROR:尝试回滚主表状态为failed 失败:{}'.format(e))
@@ -100,7 +103,7 @@ class MetaController(object):
         self._post_data = web.input()
         if hasattr(self.data, 'otu_id'):
             otu_id = self.data.otu_id
-            table_info = Meta().get_otu_table_info(otu_id)
+            table_info = self.meta.get_otu_table_info(otu_id)
         else:
             distance_id = self.data.specimen_distance_id
             table_info = Distance().get_distance_matrix_info(distance_id)
@@ -116,7 +119,6 @@ class MetaController(object):
             'output': self._create_output_dir(task_id, main_table_name),
             'project_sn': project_sn,
             'IMPORT_REPORT_DATA': True,
-            'main_table_name': main_table_name,
             'UPDATE_STATUS_API': self._update_status_api(),
             'options': options  # 需要配置
         }
@@ -126,10 +128,27 @@ class MetaController(object):
             self._sheet_data["params"] = params
         if to_file:
             self._sheet_data["to_file"] = to_file
-        if main_table_name:
-            self._sheet_data["main_table_name"] = main_table_name
+        # if main_table_name:
+        #     self._sheet_data["main_table_name"] = main_table_name
         print('Sheet_Data: {}'.format(self._sheet_data))
+        self.workflow_id = new_task_id
+        self.meta_pipe()
         return self._sheet_data
+
+    def meta_pipe(self):
+        """
+        """
+        data = web.input()
+        for i in ["batch_id"]:
+            if not hasattr(data, i):
+                return
+            else:
+                print "一键化投递任务{}: {}".format(i, getattr(data, i))
+        update_info = json.loads(self._sheet_data["options"]['update_info'])
+        # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
+        update_info["batch_id"] = data.batch_id
+        self._sheet_data['options']["update_info"] = json.dumps(update_info)
+
 
     def get_new_id(self, task_id, otu_id=None):
         """
@@ -148,17 +167,18 @@ class MetaController(object):
     def _create_output_dir(self, task_id, main_table_name):
         """
         根据主表名称，生成结果目录名称/上传路径
+        modified by hongdongxuan 20170320
         """
         data = web.input()
-        task_info = Meta().get_task_info(task_id)
+        task_info = self.meta.get_task_info(task_id)
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
             target_dir = 'sanger'
         else:
             target_dir = 'tsanger'
         target_dir += ':rerewrweset/files/' + str(task_info['member_id']) + \
-            '/' + str(task_info['project_sn']) + '/' + \
-            task_id + '/report_results/' + main_table_name
+                      '/' + str(task_info['project_sn']) + '/' + \
+                      task_id + '/report_results/' + main_table_name
         return target_dir
 
     def _update_status_api(self):

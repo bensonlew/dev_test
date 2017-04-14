@@ -13,3 +13,5 @@ __pycache__/
 doc/
 *.swp
 *main.conf
+.ftpconfig
+.ftpignore

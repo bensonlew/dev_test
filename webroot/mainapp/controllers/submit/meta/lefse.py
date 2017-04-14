@@ -3,13 +3,10 @@
 import web
 import json
 import datetime
-import random
 from mainapp.libs.signature import check_sig
-from mainapp.models.workflow import Workflow
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.group_stat import GroupStat as G
-from mainapp.libs.param_pack import *
+from mainapp.libs.param_pack import group_detail_sort
 import re
 
 
@@ -20,7 +17,6 @@ class Lefse(MetaController):
     @check_sig
     def POST(self):
         data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         print data
         return_result = self.check_options(data)
         if return_result:
@@ -47,9 +43,9 @@ class Lefse(MetaController):
         my_param['start_level'] = int(data.start_level)
         my_param['end_level'] = int(data.end_level)
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        otu_info = Meta().get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if otu_info:
-            name = "LEfSe_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            name = "LEfSe_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
             lefse_id = G().create_species_difference_lefse(params, data.group_id, data.otu_id, name)
             update_info = {str(lefse_id): "sg_species_difference_lefse"}
             update_info = json.dumps(update_info)
@@ -67,7 +63,7 @@ class Lefse(MetaController):
                 "end_level": int(data.end_level),
             }
             to_file = ["meta.export_otu_table(otu_file)", "meta.export_cascading_table_by_detail(group_file)"]
-            self.set_sheet_data(name='meta.report.lefse', options=options, main_table_name=name, module_type='workflow', to_file=to_file)
+            self.set_sheet_data(name='meta.report.lefse', options=options, main_table_name="LEfSe/" + name, module_type='workflow', to_file=to_file)
             task_info = super(Lefse, self).POST()
             task_info['content'] = {'ids': {'id': str(lefse_id), 'name': name}}
             print task_info
@@ -86,7 +82,7 @@ class Lefse(MetaController):
             if not (hasattr(data, names)):
                 success.append("缺少参数!")
         if int(data.strict) not in [1, 0]:
-            success.append("严格性比较策略不在范围内")
+            info = {"success": False, "info": "严格性比较策略不在范围内！"}
             return json.dumps(info)
         if float(data.lda_filter) > 4.0 or float(data.lda_filter) < -4.0:
             success.append("LDA阈值不在范围内")
@@ -97,6 +93,10 @@ class Lefse(MetaController):
         group_detail = json.loads(data.group_detail)
         if not isinstance(group_detail, dict):
             success.append("传入的group_detail不是一个字典")
+        if data.group_id == 'all':  # modified by hongdongxuan 20170313
+            success.append("分组方案至少选择两个分组！")
+        elif len(group_detail) < 2:
+            success.append("请选择至少两组以上的分组方案!")
         if data.second_group_detail != '':
             second_group_detail = json.loads(data.second_group_detail)
             first = 0

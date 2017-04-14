@@ -209,7 +209,13 @@ class ManagerProcess(Process):
         self.queue = queue
         self.config = Config()
         self.process = {}
-        self.model = CheckModel()
+        self._model = None
+
+    @property
+    def model(self):
+        if not self._model:
+            self._model = CheckModel()
+        return self._model
 
     def run(self):
         super(ManagerProcess, self).run()
@@ -406,7 +412,7 @@ class ApiLogProcess(Process):
 
     def run(self):
         super(ApiLogProcess, self).run()
-        setproctitle.setproctitle("WPM[API LOG manager]")
+        setproctitle.setproctitle("WPM[API Log Manager]")
         log_manager = ApiLogManager()
         self.start_thread(log_manager)
 

@@ -69,7 +69,7 @@ class VennWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
+            [".", "", "Venn图结果目录"],
             ["venn_table.xls", "xls", "Venn表格"]
         ])
         super(VennWorkflow, self).end()

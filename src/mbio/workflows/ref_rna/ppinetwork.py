@@ -60,7 +60,7 @@ class PpinetworkWorkflow(Workflow):
         报存分析结果到mongo数据库中
         """
         api_ppinetwork = self.api.ppinetwork
-        all_nodes_path = self.output_dir + '/ppinetwork_predict/all_nodes.txt'  #画图节点属性文件
+        # all_nodes_path = self.output_dir + '/ppinetwork_predict/all_nodes.txt'  #画图节点属性文件
         interaction_path = self.output_dir + '/ppinetwork_predict/interaction.txt' #画图的边文件
         network_stats_path = self.output_dir + '/ppinetwork_predict/network_stats.txt' #网络全局属性统计
         network_centrality_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_centrality.txt'
@@ -68,8 +68,8 @@ class PpinetworkWorkflow(Workflow):
         network_transitivity_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_transitivity.txt'
         degree_distribution_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_degree_distribution.txt'
         network_node_degree_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_node_degree.txt'
-        if not os.path.isfile(all_nodes_path):
-            raise Exception("找不到报告文件:{}".format(all_nodes_path))
+        # if not os.path.isfile(all_nodes_path):
+        #     raise Exception("找不到报告文件:{}".format(all_nodes_path))
         if not os.path.isfile(interaction_path):
             raise Exception("找不到报告文件:{}".format(interaction_path))
         if not os.path.isfile(network_stats_path):
@@ -86,7 +86,7 @@ class PpinetworkWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(network_node_degree_path))
         print 'start insert'
 
-        api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.option("ppi_id"))   #节点的属性文件（画网络图用）
+        # api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.option("ppi_id"))   #节点的属性文件（画网络图用）
         api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.option("ppi_id")) #边信息
         api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path = network_stats_path, table_id=self.option("ppi_id"))#网络全局属性
         api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.option("ppi_id")) #节点的聚类与degree，画折线图
