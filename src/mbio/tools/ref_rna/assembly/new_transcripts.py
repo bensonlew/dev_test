@@ -149,6 +149,7 @@ class NewTranscriptsTool(Tool):
             shutil.copy2(self.work_dir + "/new_transcripts.gtf", self.output_dir + "/new_transcripts.gtf")
             shutil.copy2(self.work_dir + "/new_genes.gtf", self.output_dir + "/new_genes.gtf")
             shutil.copy2(self.work_dir + "/old_trans.gtf", self.output_dir + "/old_trans.gtf")
+            shutil.copy2(self.work_dir + "/old_genes.gtf", self.output_dir + "/old_genes.gtf")
             shutil.copy2(self.work_dir + "/new_transcripts.fa", self.output_dir + "/new_transcripts.fa")
             shutil.copy2(self.work_dir + "/new_genes.fa", self.output_dir + "/new_genes.fa")
             self.option('new_trans_gtf').set_path(self.output_dir + "/new_transcripts.gtf")

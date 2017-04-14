@@ -196,7 +196,7 @@ class AssemblyModule(Module):
         :return:
         """
         allfiles = os.listdir(dirpath)
-        newdir = os.path.join(self.output_dir, dirname)
+        newdir = os.path.join(self.work_dir, dirname)
         if not os.path.exists(newdir):
             os.mkdir(newdir)
         oldfiles = [os.path.join(dirpath, i) for i in allfiles]
@@ -220,6 +220,7 @@ class AssemblyModule(Module):
         self.get_numberlist()
         self.logger.info("完成统计样本中基因转录本个数")
         self.trans_stat()
+        self.count_genes_trans_exons()
         if self.option("assemble_method") == "cufflinks":
             gtf_file = 'Cufflinks'
             merge = 'Cuffmerge'
@@ -240,19 +241,19 @@ class AssemblyModule(Module):
         os.mkdir(new_transcripts_dir)
         statistics_dir = os.path.join(self.output_dir, statistics)
         os.mkdir(statistics_dir)
-        old_dir = self.output_dir + '/assembly_newtranscripts/'
+        old_dir = self.work_dir + '/assembly_newtranscripts/'
         for files in os.listdir(old_dir):
             self.logger.info(files)
             if files.endswith("_out.gtf") or files.endswith("_out.fa"):
-                os.system('mv %s %s' % (old_dir + files, gtf_dir + "/" + files))
+                os.system('cp %s %s' % (old_dir + files, gtf_dir + "/" + files))
             elif files.endswith("merged.gtf") or files.endswith("merged.fa"):
-                os.system('mv %s %s' % (old_dir + files, merge_dir + "/" + files))
+                os.system('cp %s %s' % (old_dir + files, merge_dir + "/" + files))
             elif files.startswith("cuffcmp."):
-                os.system('mv %s %s' % (old_dir + files, compare_dir + "/" + files))
-            elif files.startswith("new_transcripts.") or files.startswith("new_genes.") or files.startswith("old_trans.gtf") or files.startswith("old_genes.gtf"):
-                os.system('mv %s %s' % (old_dir + files, new_transcripts_dir + "/" + files))
+                os.system('cp %s %s' % (old_dir + files, compare_dir + "/" + files))
             elif files.endswith(".txt"):
-                os.system('mv %s %s' % (old_dir + files, statistics_dir + "/" + files))
+                os.system('cp %s %s' % (old_dir + files, statistics_dir + "/" + files))
+            elif files.startswith("new_transcripts.") or files.startswith("new_genes.") or files.startswith("old_trans.gtf") or files.startswith("old_genes.gtf"):
+                os.system('cp %s %s' % (old_dir + files, new_transcripts_dir + "/" + files))
         self.end()
 
     def run(self):
@@ -275,13 +276,13 @@ class AssemblyModule(Module):
 
     def get_numberlist(self):
         file_list = []
-        numberlist_path = os.path.join(self.output_dir, "number_list.txt")
+        numberlist_path = os.path.join(self.work_dir, "number_list.txt")
         with open(numberlist_path, "w+") as w:
-            a = os.listdir(self.output_dir+'/assembly_newtranscripts')
+            a = os.listdir(self.work_dir+'/assembly_newtranscripts')
             for f in a:
                 file_list.append(f)
                 if f.endswith("_out.gtf") or f.endswith("merged.gtf"):
-                    files = os.path.join(self.output_dir+'/assembly_newtranscripts', f)
+                    files = os.path.join(self.work_dir+'/assembly_newtranscripts', f)
                     r = open(files)
                     list1 = set("")
                     list2 = set("")
@@ -301,53 +302,105 @@ class AssemblyModule(Module):
                     r.close()
 
     def trans_stat(self):
-        all_file = os.listdir(self.output_dir+'/assembly_newtranscripts')
+        all_file = os.listdir(self.work_dir+'/assembly_newtranscripts')
         for f in all_file:
             if f.endswith("merged.fa"):
-                files = os.path.join(self.output_dir + '/assembly_newtranscripts', f)
+                files = os.path.join(self.work_dir + '/assembly_newtranscripts', f)
                 steps = [200, 300, 600, 1000]
                 for step in steps:
                     step_count(files, self.work_dir+"/" + f + ".txt", 10, step,
-                               self.output_dir + "/assembly_newtranscripts/trans_count_stat_" + str(step) + ".txt")
+                               self.work_dir + "/assembly_newtranscripts/trans_count_stat_" + str(step) + ".txt")
                 self.logger.info("步长统计完成")
                 self.logger.info("开始统计class_code")
             if f.endswith("merged.gtf"):
-                files = os.path.join(self.output_dir + '/assembly_newtranscripts', f)
-                code_count = os.path.join(self.output_dir + "/assembly_newtranscripts", "code_num.txt")
+                files = os.path.join(self.work_dir + '/assembly_newtranscripts', f)
+                code_count = os.path.join(self.work_dir + "/assembly_newtranscripts", "code_num.txt")
                 class_code_count(files, code_count)
                 if len(open(code_count).readline().split('\t')) == 3:
                     self.logger.info("完成class_code统计")
                 else:
                     raise Exception("class_code统计失败！")
-                self.logger.info("开始统计基因转录本外显子关系")
-                gene_trans = os.path.join(self.output_dir + "/assembly_newtranscripts", "gene_trans.txt")
-                gene_trans_final = os.path.join(self.output_dir + "/assembly_newtranscripts", "final_gene_trans.txt")
-                gene_trans_data(files, gene_trans, gene_trans_final)
-                if len(open(code_count).readline().split('\t')) == 3:
-                    self.logger.info("完成基因转录本统计")
-                else:
-                    raise Exception("基因转录本统计失败！")
-                self.logger.info("开始统计转录本外显子关系")
-                trans_exon = os.path.join(self.output_dir + "/assembly_newtranscripts", "trans_exon.txt")
-                trans_exon_final = os.path.join(self.output_dir + "/assembly_newtranscripts", "final_trans_exon.txt")
-                tran_exon_data(files, trans_exon, trans_exon_final)
-                if len(open(code_count).readline().split('\t')) == 3:
-                    self.logger.info("完成转录本外显子统计")
-                else:
-                    raise Exception("转录本外显子统计失败！")
-                self.logger.info("完成统计基因转录本外显子关系")
+        self.logger.info("开始统计基因转录本外显子关系")
+
+    def count_genes_trans_exons(self):
+        all_file = os.listdir(self.work_dir + '/assembly_newtranscripts')
+        for f in all_file:
+            if f.endswith("old_genes.gtf") or f.endswith("old_trans.gtf") or f.endswith("new_genes.gtf") or f.endswith("new_transcripts.gtf"):
+                files = os.path.join(self.work_dir + '/assembly_newtranscripts', f)
+                gene_trans = os.path.join(self.work_dir, f + ".trans")
+                trans_exon = os.path.join(self.work_dir, f + ".exon")
+                gene_trans_exon(files, self.option("assemble_method"), gene_trans, trans_exon)
+                # count_trans_or_exons(gene_trans, final_trans_file)
+                # count_trans_or_exons(trans_exon, final_exon_file)
+        gtf_files = os.listdir(self.work_dir)
+        for f in gtf_files:
+            if f.endswith('old_genes.gtf.trans') or f.endswith('new_genes.gtf.trans') or f.endswith('new_transcripts.gtf.exon') or f.endswith('old_trans.gtf.exon'):
+                files = os.path.join(self.work_dir, f)
+                steps = [1, 5, 10, 20]
+                for step in steps:
+                    middle_txt = os.path.join(self.work_dir, f + "_" + str(step) + ".txt")
+                    final_txt = os.path.join(self.work_dir + '/assembly_newtranscripts', f + "_" + str(step) + ".txt")
+                    count_trans_or_exons(files, step, middle_txt, final_txt)
+        self.logger.info("完成统计基因转录本外显子关系")
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"],
-            ["merged.gtf", "gtf", "样本合并之后的gtf文件"],
-            ["new_transcripts.gtf", "gtf", "新转录本gtf注释文件"],
-            ["new_transcripts.fa", "fa", "新转录本序列文件"],
+        if self.option("assemble_method") == "stringtie":
+            result_dir.add_relpath_rules([
+                [r".", "", "结果输出目录"],
+                ["Stringtie", "", "拼接后的各样本文件夹"],
+                ["StringtieMerge", "", "拼接组装合并之后结果文件夹"],
+                ["StringtieMerge/merged.gtf", "gtf", "样本合并之后的注释文件"],
+                ["StringtieMerge/merged.fa", "fasta", "样本合并之后的序列文件"],
+                ["Gffcompare", "", "进行新转录本预测后的结果文件夹"],
+                ["Gffcompare/cuffcmp.annotated.gtf", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.refmap", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.tmap", "", "进行新转录本预测后的结果文件"],
+                ["NewTranscripts", "", "新转录本结果文件夹"],
+                ["NewTranscripts/new_transcripts.gtf", "gtf", "新转录本注释文件"],
+                ["NewTranscripts/new_transcripts.fa", "fa", "新转录本序列文件"],
+                ["NewTranscripts/new_genes.gtf", "gtf", "新基因注释文件"],
+                ["NewTranscripts/new_genes.fa", "fa", "新基因序列文件"],
+                ["NewTranscripts/old_trans.gtf", "gtf", "已知转录本注释文件"],
+                ["NewTranscripts/old_genes.gtf", "gtf", "已知基因注释文件"],
+                ["Statistics", "", "统计信息的结果文件夹"],
+                ["Statistics/code_num.txt", "txt", "class_code统计文件"],
+            ])
+            result_dir.add_regexp_rules([
+                [r"Stringtie/.*_out\.gtf$", "gtf", "样本拼接之后的注释文件"],
+                [r"Stringtie/.*_out\.fa$", "fasta", "样本拼接之后序列文件"],
+                [r"Statistics/trans_count_stat_.*\.txt$", "txt", "新转录本步长统计文件"],
+                [r"Statistics/old_.*\.txt$", "txt", "统计结果文件"],
+                [r"Statistics/new_.*\.txt$", "txt", "统计结果文件"],
 
-        ])
-        result_dir.add_regexp_rules([
-            ["_out.gtf", "gtf", "样本拼接之后的gtf文件"],
-            ["cuffcomp.*", "", "提取新转录本过程文件"],
-        ])
+            ])
+        if self.option("assemble_method") == "cufflinks":
+            result_dir.add_relpath_rules([
+                [r".", "", "结果输出目录"],
+                ["Cufflinks", "", "拼接后的各样本文件夹"],
+                ["Cuffmerge", "", "拼接组装合并之后结果文件夹"],
+                ["Cuffmerge/merged.gtf", "gtf", "样本合并之后的注释文件"],
+                ["Cuffmerge/merged.fa", "fasta", "样本合并之后的序列文件"],
+                ["Gffcompare", "", "进行新转录本预测后的结果文件夹"],
+                ["Gffcompare/cuffcmp.annotated.gtf", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.refmap", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.tmap", "", "进行新转录本预测后的结果文件"],
+                ["NewTranscripts", "", "新转录本结果文件夹"],
+                ["NewTranscripts/new_transcripts.gtf", "gtf", "新转录本注释文件"],
+                ["NewTranscripts/new_transcripts.fa", "fa", "新转录本序列文件"],
+                ["NewTranscripts/new_genes.gtf", "gtf", "新基因注释文件"],
+                ["NewTranscripts/new_genes.fa", "fa", "新基因序列文件"],
+                ["NewTranscripts/old_trans.gtf", "gtf", "已知转录本注释文件"],
+                ["NewTranscripts/old_genes.gtf", "gtf", "已知基因注释文件"],
+                ["Statistics", "", "统计信息的结果文件夹"],
+                ["Statistics/code_num.txt", "txt", "class_code统计文件"],
+            ])
+            result_dir.add_regexp_rules([
+                [r"Cufflinks/.*_out\.gtf$", "gtf", "样本拼接之后的注释文件"],
+                [r"Cufflinks/.*_out\.fa$", "fasta", "样本拼接之后序列文件"],
+                [r"Statistics/trans_count_stat_.*\.txt$", "txt", "新转录本步长统计文件"],
+                [r"Statistics/old_.*\.txt$", "txt", "统计结果文件"],
+                [r"Statistics/new_.*\.txt$", "txt", "统计结果文件"],
+
+            ])
         super(AssemblyModule, self).end()

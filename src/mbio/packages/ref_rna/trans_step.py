@@ -23,7 +23,7 @@ def step_count(fasta_file, fasta_to_txt, group_num, step, stat_out):
     """
     with open(fasta_to_txt, "w") as f:
         for seq_record in SeqIO.parse(fasta_file, "fasta"):
-            ID = seq_record.description.strip().split(" ")[1]
+            ID = seq_record.description.strip().split(" ")[0]
             new_trans_list = ID + "\t" + str(len(seq_record)) + "\n"
             f.write(new_trans_list)
     with open(fasta_to_txt, "r") as r, open(stat_out, "a") as w:
@@ -88,35 +88,110 @@ def merged_add_code(trans_file, tmap_file, new_trans):
     fw.close()
 
 
-def tran_exon_data(merged_gtf, gene_trans_file, trans_exon_file):
-    fw1 = open(gene_trans_file, 'w')
-    fw2 = open(trans_exon_file, 'w')
+def count_trans_or_exons(input_file, step, count_file, final_files):
+    """
+    统计对应关系的信息
+    :param input_file:第一列：基因id，第二列：长度
+    :param step:步长，范围内的求和
+    :param count_file:第一列：基因（转录本）对应的转录本（外显子）的个数，第二列：这样的基因（转录本）有多少个，第三列：list,分别是哪些基因（转录本）id
+    :param final_files:合并之后的count_file
+    """
+    f1 = open(count_file, 'w')
+    f2 = open(final_files, 'w')
+    dic = {}
+    group = 0
+    list_set = set()
+    for line in fileinput.input(input_file):
+        lines = line.strip().split("\t")
+        dic[lines[0]] = lines[1]
+        list_set.add(int(lines[1]))
+    sort_set = list(list_set)
+    for i in sorted(sort_set):
+        value = 0
+        ids_list = []
+        for key in dic.keys():
+            if int(dic[key]) == i:
+                value += 1
+                ids_list.append(key)
+            else:
+                pass
+        if int(step) == 1:
+            new_line = str(i) + "\t" + str(value) + "\t" + str(ids_list) + "\n"
+            f1.write(new_line)
+            f2.write(new_line)
+        else:
+            new_line = str(i) + "\t" + str(value) + "\t" + str(ids_list) + "\n"
+            f1.write(new_line)
+    f1.close()
+    if int(step) != 1:
+        max_num = sorted(sort_set)[-1]
+        group = max_num/step
+        mod = max_num % step
+        if mod != 0:
+            group += 1
+        else:
+            pass
+    for n in range(group):
+        f3 = open(count_file, 'r+')
+        final_value = 0
+        final_ids = []
+        for line in f3:
+            num = line.strip().split("\t")[0]
+            value = line.strip().split("\t")[1]
+            id_s = line.strip().split("\t")[2]
+            ids_list = id_s.strip("[").strip("]").strip("'").split(",")
+            if (int(num) > (n * step)) and (int(num) <= ((n + 1) * step)):
+                final_value += int(value)
+                for id_num in ids_list:
+                    final_ids.append(id_num)
+        area_line = str(n * step) + "~" + str((n + 1) * step) + "\t" + str(final_value) + "\t" + str(final_ids) + "\n"
+        f2.write(area_line)
+        f3.close()
+    f2.close()
+
+
+def gene_trans_exon(merged_gtf, method, gene_trans_file, trans_exon_file):
+    fw1 = open(gene_trans_file, 'w+')
+    fw2 = open(trans_exon_file, 'w+')
+    gene_set_dic = defaultdict(set)
     gene_dic = defaultdict(int)
     trans_dic = defaultdict(int)
     for line in fileinput.input(merged_gtf):
-        m = regex.search(r'^[^#]\S*\t(\S+\t){7}.*?gene_id\s+\"(\S+)\";\s+transcript_id\s+\"(\S+)\";*', line)
+        m = regex.search(r'^[^#]\S*\t(\S+\t){7}.*?gene_id\s+\"(\S+)\";.*\s+transcript_id\s+\"(\S+)\";*', line)
         if m:
             seq_type = m.captures(1)[1]
             txpt_id = m.captures(3)[0]
             gene_id = m.captures(2)[0]
-            gene_dic[gene_id] += 1
-            if seq_type.split("\t")[0] == "exon":
+            if str(method) == "stringtie":
+                if seq_type.split("\t")[0] == "exon":
+                    trans_dic[txpt_id] += 1
+            elif str(method) == "cufflinks":
                 trans_dic[txpt_id] += 1
-    for key in gene_dic.keys():
+            gene_set_dic[gene_id].add(txpt_id)
+    for key in gene_set_dic.keys():
+        gene_dic[key] = len(gene_set_dic[key])
         gene_line = key + "\t" + str(gene_dic[key]) + "\n"
         fw1.write(gene_line)
     for key in trans_dic.keys():
         trans_line = key + "\t" + str(trans_dic[key]) + "\n"
         fw2.write(trans_line)
+    fw1.close()
+    fw2.close()
 
 
 def class_code_count(gtf_file, code_num_trans):
-    txpt_cls_cmd = ' awk -F \';\' \'{printf $2\"\;\"$(NF-1)\"\\n\";}\'  %s | uniq ' % (gtf_file)
-    cls_cmd = 'awk -F \';\' \'{printf $(NF-1)"\\n";}\' %s | awk -F \'\"\' \'{printf $2"\\n";}\'|uniq |sort |uniq' % (
-    gtf_file)
-
-    txpt_cls_content = str(subprocess.check_output(txpt_cls_cmd, shell=True)).split('\n')
-    cls_content = subprocess.check_output(cls_cmd, shell=True).split('\n')
+    f = open(gtf_file, "rb")
+    txpt_cls_content = []
+    cls_content = set()
+    for line in f:
+        m = re.match("#.*", line)
+        if not m:
+            nine_line = line.strip().split("\t")[-1]
+            n = re.search(r'\s+transcript_id\s+\"(\S+)\";.*\s+class_code\s+\"(\S+)\";*', nine_line)
+            if n:
+                cls_content.add(n.group(2))
+                new_line = 'transcript_id "' + n.group(1) + '";\t class_code "' + n.group(2) + '"\n'
+                txpt_cls_content.append(new_line)
 
     cls_txpt_set_dic = {}
     for cls in cls_content:
@@ -138,12 +213,22 @@ def class_code_count(gtf_file, code_num_trans):
                                         str(cls_txpt_set_dic[cls]['count']))
         fw.write(newline)
     fw.close()
-# if __name__ == '__main__':
-#     # merged_gtf = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/merged.gtf"
-#     # output1 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/1.txt"
-#     # output2 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/2.txt"
-#     # tran_exon_data(merged_gtf, output1, output2)
-#     merged_gtf = "O:\\Users\\zhaoyue.wang\\Desktop\\merged.gtf"
-#     output3 = "O:\\Users\\zhaoyue.wang\\Desktop\\1.txt"
-#     output4 = "O:\\Users\\zhaoyue.wang\\Desktop\\2.txt"
-#     tran_exon_data(merged_gtf, output3, output4)
+if __name__ == '__main__':
+#     merged_gtf = '/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_cufflinks/Assembly/output/Cuffmerge/merged.gtf'
+#     old_genes_gtf = "/mnt/ilustre/users/sanger-dev/workspace/20170407/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/NewTranscripts/old_genes.gtf"
+#     new_genes_gtf = "/mnt/ilustre/users/sanger-dev/workspace/20170407/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/NewTranscripts/old_genes.gtf"
+#     output1 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_cufflinks/Assembly/output/Cuffmerge/1.txt"
+#     output2 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/2.txt"
+#     output3 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/3.txt"
+#     output4 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/4.txt"
+#     class_code_count(merged_gtf, output1)
+    merged_gtf = "O:\\Users\\zhaoyue.wang\\Desktop\\merged1.gtf"
+    output1 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/1.txt"
+    output2 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/2.txt"
+    output3 = "O:\\Users\\zhaoyue.wang\\Desktop\\3.txt"
+    output4 = "O:\\Users\\zhaoyue.wang\\Desktop\\4.txt"
+    gene_trans_exon(merged_gtf, "stringtie", output3, output4)
+    # gene_trans_exon(merged_gtf, output1, output2)
+    # gtf_file = "O:\\Users\\zhaoyue.wang\\Desktop\\old_trans.gtf.trans"
+    # gtf_files = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/assembly_newtranscripts/old_trans.gtf.trans"
+    # count_trans_or_exons(gtf_files, 5, output1, output2)
