@@ -15,7 +15,6 @@ class NPca(Base):
     def __init__(self, bind_object):
         super(NPca, self).__init__(bind_object)
         self._db_name = Config().MONGODB
-        # self.client = get_mongo_client()
 
     @report_check
     def add_environmental_regression_site(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
@@ -68,12 +67,12 @@ class NPca(Base):
                 values = line.rstrip().split('\t')
                 #insert_data = {
                     #'n_pca_id':updata_id,
-                    #'type':table_type                
+                    #'type':table_type
                 #}
                 #insert_data['name']=values[0]
                 #values_dict = dict(zip(columns,values[1:]))
                 #a<-len(values)
-                    
+
                 data_temp = zip(columns,values[1:])
                 #print data_temp
                 #collection.insert_many(data_temp)
@@ -87,8 +86,8 @@ class NPca(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
-        
-        
+
+
 
 
     # @report_check
@@ -110,12 +109,12 @@ class NPca(Base):
                 values = line.rstrip().split('\t')
                 #insert_data = {
                     #'n_pca_id':updata_id,
-                    #'type':table_type                
+                    #'type':table_type
                 #}
                 #insert_data['name']=values[0]
                 #values_dict = dict(zip(columns,values[1:]))
                 #a<-len(values)
-                    
+
                 data_temp = zip(columns,values[1:])
                 #print data_temp
                 #collection.insert_many(data_temp)
@@ -129,8 +128,8 @@ class NPca(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
-    
-    
+
+
     # @report_check
     def add_n_pca_min(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
         if major:
@@ -150,12 +149,12 @@ class NPca(Base):
                 values = line.rstrip().split('\t')
                 #insert_data = {
                     #'n_pca_id':updata_id,
-                    #'type':table_type                
+                    #'type':table_type
                 #}
                 #insert_data['name']=values[0]
                 #values_dict = dict(zip(columns,values[1:]))
                 #a<-len(values)
-                    
+
                 data_temp = zip(columns,values[1:])
                 #print data_temp
                 #collection.insert_many(data_temp)
@@ -169,8 +168,8 @@ class NPca(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
-    
-    
+
+
     # @report_check
     def add_n_pca_importance(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
         if major:
@@ -190,7 +189,7 @@ class NPca(Base):
                 values = line.rstrip().split('\t')
                 #insert_data = {
                     #'n_pca_id':updata_id,
-                    #'type':table_type                
+                    #'type':table_type
                 #}
                 #insert_data['name']=values[0]
                 #values_dict = dict(zip(columns,values[1:]))
@@ -213,7 +212,7 @@ class NPca(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
-        
+
     # @report_check
     def add_n_pca_sitesall(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
         if major:
@@ -249,8 +248,8 @@ class NPca(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
-    
-    
+
+
     #@report_check
     def create_environmental_regression(self, params, group_id=0, from_otu_table=0, name=None, level_id=0):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):
@@ -286,4 +285,3 @@ class NPca(Base):
         collection = self.db["sg_meta_roc"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
-
