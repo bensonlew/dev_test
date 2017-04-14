@@ -2,7 +2,7 @@
 # __author__ = 'xuanhongdong'
 from biocluster.workflow import Workflow
 import os
-from mbio.api.to_file.meta import *
+
 
 class CorrNetworkWorkflow(Workflow):
     """
@@ -37,6 +37,10 @@ class CorrNetworkWorkflow(Workflow):
         newtable = os.path.join(self.work_dir, 'otutable1.xls')   #保存只留最后的物种名字文件
         newtable4 = os.path.join(self.work_dir, 'species_phylum.txt')  #保存物种与门对应的数据，用于在后面的物种丰度中添加门数据
         x = self.option('abundance')
+        if x == 0:
+            x = 500
+        else:
+            pass
         f2 = open(newtable, 'w+')
         f4 = open(newtable4, 'w+')
         with open(tablepath, 'r') as f:
@@ -49,10 +53,10 @@ class CorrNetworkWorkflow(Workflow):
                     line = line.strip().split('\t')
                     line_data = line[0].strip().split(' ')
                     line_he = "".join(line_data)
-                    tmp1 = line_he.strip().split(";")[-1:][0]  # 输出最后一个物种名
+                    #tmp1 = line_he.strip().split(";")[-1:][0]  # 输出最后一个物种名
                     tmp2 = line_he.strip().split(";")[2]  # 输出门分类
-                    line[0] = tmp1
-                    f4.write(tmp1 + '\t' + tmp2 + "\n")
+                    line[0] = line_he
+                    f4.write(line_he + '\t' + tmp2 + "\n")
                     for i in range(0, len(line)):
                         if i == len(line) - 1:
                             f2.write("%s\n" % (line[i]))
@@ -82,13 +86,14 @@ class CorrNetworkWorkflow(Workflow):
             list_result_otu = []
             f1.write("species" + "\t" + "abundance" + "\t" + "phylum" + "\n")
             for i in new_dict1:
-                list_result_otu.append(str(i[0]))
+                if int(i[1]) != 0:
+                    list_result_otu.append(str(i[0]))
                 with open(newtable4, "r") as x:
                     data = x.readlines()
                     for line in data:
                         line = line.strip().split("\t")
-                        if str(line[0]) == str(i[0]):
-                            f1.write(str(i[0]) + "\t" + str(i[1]) + "\t" + str(line[1]) + "\n")
+                        if str(line[0]) == str(i[0]) and str(i[0]) in list_result_otu:
+                            f1.write(str(i[0]).strip().split(';')[-1:][0] + "\t" + str(i[1]) + "\t" + str(line[1]) + "\n")
         with open(newtable, "r") as m:
             i = 0
             for line1 in m:
@@ -98,6 +103,8 @@ class CorrNetworkWorkflow(Workflow):
                 else:
                     line1 = line1.strip().split("\t")
                     if line1[0] in list_result_otu:
+                        line1_data = line1[0].strip().split(';')[-1:][0]
+                        line1[0] = line1_data
                         for i in range(0, len(line1)):
                             if i == len(line1) - 1:
                                 f3.write("%s\n" % (line1[i]))
@@ -126,7 +133,9 @@ class CorrNetworkWorkflow(Workflow):
 
     def end(self):
         repaths = [
-            [".", "", "物种相关性网络结果输出目录"],
+            [".", "", "物种相关性网络分析结果目录"],
+            ["./otu_association", "", "物种相关性计算结果输出目录"],
+            ["./corr_network_calc", "", "物种相关性网络分析结果输出目录"],
             ["./otu_association/shared.txt", "txt", "shared文件"],
             ["./corr_network_calc/corr_network_attributes.txt", "txt", "网络的单值属性表"],
             ["./corr_network_calc/corr_network_by_cut.txt", "txt", "相关系数筛选后网络边文件"],
@@ -136,7 +145,7 @@ class CorrNetworkWorkflow(Workflow):
             ["./corr_network_calc/corr_network_node_degree.txt", "txt", "网络节点的度统计表"]
         ]
         regexps = [
-            [r"./otu_association/*\.otu\.corr", "corr", "物种相似性网络边文件"]
+            [r"^otu_association/shared", "corr", "物种相似性网络边文件"]
         ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
@@ -179,13 +188,13 @@ class CorrNetworkWorkflow(Workflow):
 
         api_corrnetwork.add_network_links_table(file_path=node_links_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_abundance_table(file_path=node_abundance_path, table_id=self.option("corr_network_id"))
-        api_corrnetwork.add_network_cluster_degree(file1_path=network_degree_path, file2_path=network_clustering_path,table_id=self.option("corr_network_id"))
+        api_corrnetwork.add_network_cluster_degree(file1_path=network_degree_path, file2_path=network_clustering_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_attributes(file_path=network_attributes_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_degree_distribution(file_path=network_degree_distribution, table_id=self.option("corr_network_id"))
 
-        corr_network_id_tab = self.option("corr_network_id")
-        self.add_return_mongo_id('sg_corr_network', corr_network_id_tab)
+        # corr_network_id_tab = self.option("corr_network_id")
+        # self.add_return_mongo_id('sg_corr_network', corr_network_id_tab)
         self.end()
 
     def run(self):

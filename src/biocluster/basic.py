@@ -29,7 +29,7 @@ class Rely(object):
     def __init__(self, *rely):
         with Rely.sem:
             Rely.count += 1
-            self._name = "reply%s_%s" % (Rely.count, random.randint(100, 1000))
+            self._name = "rely%s_%s" % (Rely.count, random.randint(100, 1000))
             self._relys = []
             for r in rely:
                 if not isinstance(r, Basic):
@@ -413,13 +413,8 @@ class Basic(EventObject):
             if self._rely:
                 for name, rl in self._rely.items():
                     if rl.satisfy:
-                        event_name = "%s_%s" % (self.id.lower(), name)
-                        self._rely.pop(event_name)
-
-                        # if not self.events[event_name].is_start:
-                        #     self.events[event_name].stop()
-                        #     self.events[event_name].restart()
-                        self.fire(event_name, rl)
+                        self._rely.pop(name)
+                        self.fire(name, rl)
 
     def __event_childend(self, child):
         """
@@ -474,8 +469,12 @@ class Basic(EventObject):
             return
         if not isinstance(rely, list):
             raise Exception("rely参数必须为list数组!")
-        if len(rely) < 2:
-            raise Exception("rely数组必须至少有2个元素!")
+        if len(rely) < 1:
+            raise Exception("rely数组必须至少有1个元素!")
+        if len(rely) == 1:
+            rely_1 = rely[0]
+            rely_1.on("end", func, data)
+            return
         rely_list = rely
         rely_list.sort()
         for r in rely_list:
@@ -548,9 +547,9 @@ class Basic(EventObject):
             raise Exception("只能添加当前工作目录的子目录: %s" % dir_path)
         for i in self._upload_dir_obj:
             if i.upload_path == rel_path:
-                # 避免不能重复添加目录的问题出现，暂时这样修改， 20161120 by shenghe
-                self.logger.info('重复添加了目录：{} ,由于避免框架错误导致重复添加，此处不做处理，只生成LOG信息,请自行区分是框架问题还是编写错误'.format(dir_path))
-                return i
+                # # 避免不能重复添加目录的问题出现，暂时这样修改， 20161120 by shenghe
+                # self.logger.info('重复添加了目录：{} ,由于避免框架错误导致重复添加，此处不做处理，只生成LOG信息,请自行区分是框架问题还是编写错误'.format(dir_path))
+                # # return i
                 raise Exception("不能重复添加目录%s!" % dir_path)
         up = UploadDir(self)
         up.path = dir_path
@@ -799,7 +798,7 @@ class StepMain(Step):
                         "error": "%s" % str(self._error_info).replace("\'", " ").replace("\"", " "),
                         "status": self.stats,
                         "run_time": self.spend_time}}
-
+            self.clean_change()
             if self.stats == "finish":
                 if len(self.bind_obj.upload_dir) > 0 and self.bind_obj.sheet.output:
                     file_list = []
@@ -808,8 +807,7 @@ class StepMain(Step):
                         for ifile in up.file_list:
                             if ifile["type"] == "file":
                                 tmp_dict = dict()
-                                tmp_dict["path"] = os.path.join(
-                                    os.path.join(self.bind_obj.sheet.output, up.upload_path), ifile["path"])
+                                tmp_dict["path"] = os.path.join(self.bind_obj.sheet.output, ifile["path"])  # 远程路径直接加 文件与上传目录的相对路径  shenghe 20170322
                                 tmp_dict["size"] = ifile["size"]
                                 tmp_dict["description"] = ifile["description"]
                                 tmp_dict["format"] = ifile["format"]
@@ -817,20 +815,18 @@ class StepMain(Step):
                             elif ifile["type"] == "dir":
                                 tmp_dict = dict()
                                 tmp_path = re.sub("\.$", "", ifile["path"])
-                                tmp_dict["path"] = os.path.join(
-                                    os.path.join(self.bind_obj.sheet.output, up.upload_path), tmp_path)
+                                tmp_dict["path"] = os.path.join(self.bind_obj.sheet.output, tmp_path)    # 远程路径直接加 文件与上传目录的相对路径  shenghe 20170322
                                 tmp_dict["size"] = ifile["size"]
                                 tmp_dict["description"] = ifile["description"]
                                 tmp_dict["format"] = ifile["format"]
                                 dir_list.append(tmp_dict)
                     json_obj["files"] = file_list
                     json_obj["dirs"] = dir_list
-                if "update_info" in self.bind_obj.sheet.options().keys():
-                    json_obj["update_info"] = self.bind_obj.sheet.option('update_info')
 
             post_data = {
                 "content": json_obj
             }
+
             for k, v in self._api_data.items():
                 post_data[k] = v
             self._api_data.clear()
@@ -839,6 +835,8 @@ class StepMain(Step):
                 "api": self.api_type,
                 "data": post_data
             }
+            if "update_info" in self.bind_obj.sheet.options().keys():
+                data["update_info"] = self.bind_obj.sheet.option('update_info')
             workflow.send_log(data)
 
         array = []
@@ -928,6 +926,10 @@ class UploadDir(object):
         if not isinstance(match_rules, list):
             raise Exception("匹配规则必须为数组!")
         for rule in match_rules:
+            if not isinstance(rule, list):
+                raise Exception("匹配规则必须为数组!")
+            if len(rule) < 3:
+                raise Exception("rule规则格式不正确!")
             self._relpath_rules.append(rule)
 
     def match(self):

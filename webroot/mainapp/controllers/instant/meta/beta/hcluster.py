@@ -40,8 +40,8 @@ class Hcluster(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type
         }
-        main_table_name = 'Hcluster_' + data.hcluster_method + \
-            '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'Hcluster' + data.hcluster_method.capitalize() + \
+            '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -69,7 +69,7 @@ class Hcluster(MetaController):
             'main_id': str(main_table_id)
         }
         to_file = 'meta.export_otu_table_by_detail(otu_table)'
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="HclusterAnalysis/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(Hcluster, self).POST()
         task_info['content'] = {

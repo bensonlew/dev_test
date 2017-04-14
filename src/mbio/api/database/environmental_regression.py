@@ -1,27 +1,25 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zhangpeng'
 from biocluster.api.database.base import Base, report_check
-import re
 from bson.objectid import ObjectId
 from types import StringTypes
 from bson.son import SON
-import gridfs
 import datetime
-import os
 from biocluster.config import Config
 
 
 class EnvironmentalRegression(Base):
+
     def __init__(self, bind_object):
         super(EnvironmentalRegression, self).__init__(bind_object)
         self._db_name = Config().MONGODB
-        # self.client = get_mongo_client()
 
     @report_check
-    def add_environmental_regression_site(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
+    def add_environmental_regression_site(self, file_path, table_id=None, group_id=None, from_otu_table=None, level_id=None, major=False):
         self.bind_object.logger.info('start insert mongo zhangpeng')
         if major:
-            table_id = self.create_environmental_regression(self, params, group_id, from_otu_table, level_id)
+            table_id = self.create_environmental_regression(
+                self, params, group_id, from_otu_table, level_id)
         else:
             if not isinstance(table_id, ObjectId):
                 if isinstance(table_id, StringTypes):
@@ -37,7 +35,8 @@ class EnvironmentalRegression(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("environmental_regression_id", table_id), ("sample_name", line_data[0].strip("\"")), ("X_PCA", line_data[1]), ("Y_factor", line_data[2])]
+                    data = [("environmental_regression_id", table_id), ("sample_name", line_data[
+                        0].strip("\"")), ("X_PCA", line_data[1]), ("Y_factor", line_data[2])]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
@@ -50,9 +49,10 @@ class EnvironmentalRegression(Base):
         return data_list, table_id
 
     # @report_check
-    def add_environmental_regression_messages(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
+    def add_environmental_regression_messages(self, file_path, table_id=None, group_id=None, from_otu_table=None, level_id=None, major=False):
         if major:
-            table_id = self.create_environmental_regression(self, params, group_id, from_otu_table, level_id)
+            table_id = self.create_environmental_regression(
+                self, params, group_id, from_otu_table, level_id)
         else:
             if table_id is None:
                 raise Exception("major为False时需提供table_id!")
@@ -70,7 +70,8 @@ class EnvironmentalRegression(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("environmental_regression_id", table_id), ("R_2",line_data[0]),("xmin", line_data[2]), ("xmax", line_data[3]),("ymin",line_data[4]),("ymax",line_data[5]),("PCA",line_data[6].strip("\"")),("PCA_value",line_data[7])]
+                    data = [("environmental_regression_id", table_id), ("R_2", line_data[0]), ("xmin", line_data[2]), ("xmax", line_data[
+                        3]), ("ymin", line_data[4]), ("ymax", line_data[5]), ("PCA", line_data[6].strip("\"")), ("PCA_value", line_data[7])]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
@@ -81,11 +82,6 @@ class EnvironmentalRegression(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
-        
-        
-
-
-    
 
     #@report_check
     def create_environmental_regression(self, params, group_id=0, from_otu_table=0, name=None, level_id=0):
@@ -102,7 +98,7 @@ class EnvironmentalRegression(Base):
         if level_id not in range(1, 10):
             raise Exception("level参数%s为不在允许范围内!" % level_id)
 
-        collection = self.db["sg_otu"]  #我是不是也可以 用这个表
+        collection = self.db["sg_otu"]  # 我是不是也可以 用这个表
         result = collection.find_one({"_id": from_otu_table})
         project_sn = result['project_sn']
         task_id = result['task_id']
@@ -122,4 +118,3 @@ class EnvironmentalRegression(Base):
         collection = self.db["sg_meta_roc"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
-

@@ -13,7 +13,7 @@ class RdaCcaAgent(Agent):
     脚本ordination.pl
     version v1.0
     author: shenghe
-    last_modified:2016.3.24
+    last_modified:2017.01.20
     """
 
     def __init__(self, parent):
@@ -102,7 +102,8 @@ class RdaCcaAgent(Agent):
             [r'.*_species\.xls', 'xls', '物种坐标表'],
             [r'.*dca\.xls', 'xls', 'DCA分析结果'],
             [r'.*_biplot\.xls', 'xls', '数量型环境因子坐标表'],
-            [r'.*_centroids\.xls', 'xls', '哑变量环境因子坐标表']
+            [r'.*_centroids\.xls', 'xls', '哑变量环境因子坐标表'],
+            [r'.*_envfit\.xls', 'xls', 'p_value值和r值表']
         ])
         # print self.get_upload_files()
         super(RdaCcaAgent, self).end()
@@ -179,6 +180,19 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                 return newtable
         return tablepath
 
+    def remove_zero_line(self, fp, new_fp):
+        """
+        去除全为0的行
+        """
+        with open(fp) as f, open(new_fp, 'w') as w:
+            w.write(f.readline())
+            for line in f:
+                data = line.strip().split('\t')[1:]
+                sum_data = sum([float(i) for i in data])
+                if not (sum_data > 0):
+                    continue
+                w.write(line)
+
     def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
         import pandas as pd
         T1 = pd.read_table(T1, sep='\t', dtype=str)
@@ -203,16 +217,20 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         """
         old_otu_table = self.get_otu_table()
         old_env_table = self.get_new_env()
+        otu_species_list = self.get_species_name()
         self.otu_table = self.work_dir + '/new_otu.xls'
         self.env_table = self.work_dir + '/new_env.xls'
+        # self.env_table = self.rm_(env_table)
         if not self.create_otu_and_env_common(old_otu_table, old_env_table, self.otu_table, self.env_table):
             self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
-        tablepath = self.formattable(self.otu_table)
+        tablepath = self.work_dir + '/remove_zero_line_otu.xls'
+        self.remove_zero_line(self.formattable(self.otu_table), tablepath)
         self.env_labs = open(self.env_table, 'r').readline().strip().split('\t')[1:]
+        self.env_table_ = self.rm_(self.env_table)
         self.logger.info(tablepath)
         cmd = self.cmd_path
         cmd += ' -type rdacca -community %s -environment %s -outdir %s -env_labs %s' % (
-               tablepath, self.env_table,
+               tablepath, self.env_table_,
                self.work_dir, '+'.join(self.env_labs))
         try:
             subprocess.check_output(cmd, shell=True)
@@ -228,7 +246,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
             self.logger.info('Rda/Cca计算失败')
             self.set_error('R程序计算Rda/Cca失败')
         allfiles = self.get_filesname()
-        for i in [1, 2, 3, 4, 5]:
+        for i in [1, 2, 3, 4, 5, 6]:
             if allfiles[i]:
                 newname = '_'.join(os.path.basename(allfiles[i]).split('_')[-2:])
                 if i == 4:
@@ -239,6 +257,17 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                     self.linkfile(self.work_dir + '/rda/' + allfiles[i], newname)
         newname = os.path.basename(allfiles[0]).split('_')[-1]
         self.linkfile(self.work_dir + '/rda/' + allfiles[0], newname)
+        if len(otu_species_list) == 0:  # 20170122 add 13 lines by zhouxuan
+            if os.path.exists(self.output_dir + "/rda_species.xls"):
+                self.linkfile(self.output_dir + "/rda_species.xls", "rda_plot_species_data.xls")
+            else:
+                self.linkfile(self.output_dir + "/cca_species.xls", "cca_plot_species_data.xls")
+        else:
+            new_file_path = self.get_new_species_xls(otu_species_list)
+            if os.path.exists(self.output_dir + "/rda_species.xls"):
+                self.linkfile(new_file_path, "rda_plot_species_data.xls")
+            else:
+                self.linkfile(new_file_path, "cca_plot_species_data.xls")
         self.logger.info('运行ordination.pl程序计算rda/cca完成')
         self.end()
 
@@ -302,6 +331,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         rda_site = None
         rda_biplot = None
         rda_centroids = None
+        rda_envfit = None
         for name in filelist:
             if '_importance.xls' in name:
                 rda_imp = name
@@ -315,8 +345,87 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                 rda_biplot = name
             elif '_centroids.xls' in name:
                 rda_centroids = name
-        if rda_imp and rda_site and rda_spe and rda_dca and (rda_biplot or rda_centroids):
-            self.logger.info(str([rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids]))
-            return [rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids]
+            elif '_envfit.xls' in name:
+                rda_envfit = name
+        if rda_imp and rda_site and rda_spe and rda_dca and rda_envfit and (rda_biplot or rda_centroids):
+            self.logger.info(str([rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids, rda_envfit]))
+            return [rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids, rda_envfit]
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')
+
+    def get_species_name(self):  # 20170122 add by zhouxuan
+        """
+        判断otu表中的物种数量是否大于30 ，如果大于30，筛选出丰度在前30的物种
+        :return: 丰度为前30的物种或者 空的列表
+        """
+        otu_path = self.get_otu_table()
+        with open(otu_path,"rb") as r:
+            r = r.readlines()
+            species_number = len(r) - 1
+            if species_number <= 30:
+                return []
+            else:
+                species_dict = dict()
+                abundance_list = []
+                for line in r:
+                    # line = line.strip("\n")
+                    array = line.strip("\n").split("\t")
+                    if array[0] != "OTU ID":
+                        value = 0
+                        new_array = array[1:]
+                        for i in range(len(new_array)):
+                            value = value + int(new_array[i])
+                        species_dict[array[0]] = value
+                        abundance_list.append(value)
+                abundance_list.sort()
+                abundance_list.reverse()
+                new_abundance_list = abundance_list[0:30]
+                species_list = []
+                for key in species_dict:
+                    if species_dict[key] in new_abundance_list:
+                        species_list.append(key)
+                return species_list
+
+    def get_new_species_xls(self, otu_species_list):  # 20170122 add by zhouxuan
+        """
+        根据物种列表信息，获取新的species表格文件
+        :param otu_species_list: 物种列表信息
+        :return: 新的species文件的路径
+        """
+        if os.path.exists(self.output_dir + "/rda_species.xls"):
+            old_species_table = self.output_dir + "/rda_species.xls"
+            new_species_table = self.work_dir + "rda_plot_species_data.xls"
+        else:
+            old_species_table = self.output_dir + "/cca_species.xls"
+            new_species_table = self.work_dir + "cca_plot_species_data.xls"
+        with open (old_species_table, "rb") as table, open(new_species_table, "a") as w:
+            line = table.readlines()
+            for l in line:
+                content = l.strip().split("\t")
+                if content[0] == "Species":
+                    w.write('\t'.join(content) + "\n")
+                else:
+                    if content[0] in otu_species_list:
+                        w.write('\t'.join(content) + "\n")
+        return new_species_table
+
+    def rm_(self, old_file):  # add by zhouxuan 20170401
+        new_file = self.work_dir + '/new_env_.xls'
+        with open(old_file, "rb") as f, open(new_file, "a") as w:
+            content = f.readlines()
+            for r in content:
+                if r.startswith("#"):
+                    r = r.split("\t")
+                    readline = "sample" + "\t" +("\t").join(r[1:]) +"\n"
+                    w.write(readline)
+                else:
+                    w.write(r)
+        return new_file
+
+
+
+
+
+
+
+

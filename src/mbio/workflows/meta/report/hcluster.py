@@ -156,21 +156,18 @@ class HclusterWorkflow(Workflow):
         shutil.copy2(newick_fath, final_newick_path)
         if not os.path.isfile(newick_fath):
             raise Exception("找不到报告文件:{}".format(newick_fath))
-        return_id = api_newick.add_tree_file(newick_fath, major=False, tree_id=self.option('main_id'))
+        return_id = api_newick.add_tree_file(newick_fath, major=False, tree_id=self.option('main_id'),
+                                             update_dist_id=matrix_id)
         collection.update_one({"_id": ObjectId(matrix_id)}, {'$set': {'newick_tree_id': ObjectId(return_id)}})
         self.end()
 
     def end(self):
-        result_dir_hucluster = self.add_upload_dir(self.hcluster.output_dir)
+        result_dir_hucluster = self.add_upload_dir(self.output_dir)
         result_dir_hucluster.add_relpath_rules([
-            [".", "", "层次聚类结果目录"],
-            ["./hcluster.tre", "tre", "层次聚类树"]
+            [".", "", "样本层级聚类分析结果目录"],
+            ["./hcluster.tre", "tre", "层级聚类树结果表"]  # modified by hongdongxuan 20170321
             ])
-        result_dir_distance = self.add_upload_dir(self.dist.output_dir)
-        result_dir_distance.add_relpath_rules([
-            [".", "", "距离矩阵计算结果输出目录"],
-        ])
-        result_dir_distance.add_regexp_rules([
+        result_dir_hucluster.add_regexp_rules([
             [r'%s.*\.xls' % self.option('dist_method'), 'xls', '样本距离矩阵文件']
         ])
         super(HclusterWorkflow, self).end()

@@ -1,16 +1,11 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zengjing'
 # last_modify:20161205
-import pymongo
 import os
-import re
 import datetime
 from bson.son import SON
 from bson.objectid import ObjectId
 import types
-import bson.binary
-import gridfs
-from cStringIO import StringIO
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 import json

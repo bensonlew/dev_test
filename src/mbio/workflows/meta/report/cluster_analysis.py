@@ -88,8 +88,9 @@ class ClusterAnalysisWorkflow(Workflow):
     def end(self):   # modify by zhouxuan 2016.11.23
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-            ["out_otu.xls", "xls", "结果OTU表格"]
+            [".", "", "物种组成分析结果目录"],
+            ["taxa.table.xls", "xls", "各样本物种丰度结果表"],  #modified by hongdongxuan 20170321
+            ["taxa.precents.table.xls", "xls", "各样本物种相对丰度结果表"]  #add by wangzhaoyue 2017.03.06
         ])
         super(ClusterAnalysisWorkflow, self).end()
 

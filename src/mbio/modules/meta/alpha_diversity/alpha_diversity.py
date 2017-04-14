@@ -3,6 +3,7 @@
 
 import os
 import shutil
+import glob
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 
@@ -89,39 +90,49 @@ class AlphaDiversityModule(Module):
                 shutil.rmtree(os.path.join(self.output_dir, names))
             for f in files:
                 os.remove(os.path.join(self.output_dir, f))
+        esti_path = self.output_dir + "/Estimators"
+        rare_path = self.output_dir + "/Rarefaction"
+        if not os.path.exists(rare_path):
+            os.mkdir(rare_path)
+        if not os.path.exists(esti_path):
+            os.mkdir(esti_path)
         estimators = self.work_dir + '/Estimators/output/estimators.xls'
-        # rarefaction = self.work_dir + '/Rarefaction/output/rarefaction/'
-        os.link(estimators, self.output_dir + '/estimators.xls')
+        os.link(estimators, esti_path + '/estimators.xls')
+        for single in glob.glob(self.estimators.work_dir + "/*.summary"):
+            # print(single)
+            if os.path.exists(single):
+                os.link(single, esti_path + '/' + os.path.basename(single))
         # os.system('cp -r %s %s' % (rarefaction, self.output_dir))
         for estimators in self.option('rarefy_indices').split(','):
             est_path = self.work_dir + '/Rarefaction/output/%s/' % estimators
-            os.system('cp -r %s %s' % (est_path, self.output_dir))
+            os.system('cp -r %s %s' % (est_path, rare_path))
         # self.option('estimators').set_path(self.output_dir+'/estimators')
         # self.option('rarefaction').set_path(self.output_dir+'/rarefaction')
         self.logger.info('done')
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            ["./estimators.xls", "xls", "alpha多样性指数表"]
+            ["./Estimators/estimators.xls", "xls", "alpha多样性指数表"],
+            ["./Rarefaction", "文件夹", "稀释性曲线输出目录"]
         ])
-        for i in self.option("rarefy_indices").split(","):
-            self.logger.info(i)
-            if i == "sobs":
-                result_dir.add_relpath_rules([
-                    ["./sobs", "文件夹", "{}指数结果输出目录".format(i)]
-                ])
-                result_dir.add_regexp_rules([
-                    [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
-                ])
-                # self.logger.info("{}指数的simpleID的稀释性曲线表".format(i))
-            else:
-                result_dir.add_relpath_rules([
-                    ["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)]
-                ])
-                result_dir.add_regexp_rules([
-                    [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
-                ])
-        print self.get_upload_files()
+        # for i in self.option("rarefy_indices").split(","):
+        #     # self.logger.info(i)
+        #     if i == "sobs":
+        #         result_dir.add_relpath_rules([
+        #             ["./sobs", "文件夹", "{}指数结果输出目录".format(i)]
+        #         ])
+        #         result_dir.add_regexp_rules([
+        #             [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+        #         ])
+        #         # self.logger.info("{}指数的simpleID的稀释性曲线表".format(i))
+        #     else:
+        #         result_dir.add_relpath_rules([
+        #             ["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)]
+        #         ])
+        #         result_dir.add_regexp_rules([
+        #             [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+        #         ])
+        # print self.get_upload_files()
         self.end()
 
     def run(self):

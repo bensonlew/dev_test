@@ -118,8 +118,13 @@ class OtuAssociationTool(Tool):
         self.logger.info("设置结果目录")
         results = os.listdir(self.work_dir + '/')
         for f in results:
-            if re.search(r'shared\.*', f):
+            if re.search(r'.*\.corr$', f):  # modified by hongdongxuan 20170324
+                # os.link(self.work_dir + '/' + f, self.output_dir + "/" + f)
+                os.link(self.work_dir + '/' + f, self.output_dir + "/shared.0.03." + self.option('method') + ".corr")
+            elif str(f) == "shared.txt":
                 os.link(self.work_dir + '/' + f, self.output_dir + "/" + f)
+            else:
+                pass
         self.logger.info('设置文件夹路径成功')
 
 

@@ -64,21 +64,21 @@ class PlsdaAgent(Agent):
             else:
                 pass
             if not self.option('otutable').is_set:
-                raise OptionError('没有提供otu表')
+                raise OptionError('没有提供OTU表')
             real_otu = self.gettable()
             real_otu.get_info()
             if real_otu.prop['sample_num'] < 2:
-                raise OptionError('otu表的样本数目少于2，不可进行beta多元分析')
+                raise OptionError('OTU表的样本数目少于2，不可进行beta多元分析')   #将Otu改成OTU modified by hongdongxuan 20170310
             otu_samplelist = open(real_otu.path).readline().strip().split('\t')[1:]
             group_collection = set(self.option('group').prop['sample'])
             collection = group_collection & set(otu_samplelist)
             if group_collection == collection:
                 pass
             else:
-                raise OptionError('group文件中存在otu表中不存在的样本')
+                raise OptionError('group文件中存在OTU表中不存在的样本')
             table = open(real_otu.path)
             if len(table.readlines()) < 4:
-                raise OptionError('提供的otu表数据表信息少于3行')
+                raise OptionError('提供的OTU表数据表信息少于3行')
             table.close()
         else:
             raise OptionError('没有提供分组信息表')
@@ -128,13 +128,13 @@ class PlsdaTool(Tool):
 
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):
-            raise Exception('过滤otu表样本的样本名称应为列表')
+            raise Exception('过滤OTU表样本的样本名称应为列表')
         try:
             with open(otu_path, 'rb') as f, open(newfile, 'wb') as w:
                 one_line = f.readline()
                 all_samples = one_line.rstrip().split('\t')[1:]
                 if not ((set(all_samples) & set(filter_samples)) == set(filter_samples)):
-                    raise Exception('提供的过滤样本存在otu表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
+                    raise Exception('提供的过滤样本存在OTU表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
                 if len(all_samples) == len(filter_samples):
                     return otu_path
                 samples_index = [all_samples.index(i) + 1 for i in filter_samples]

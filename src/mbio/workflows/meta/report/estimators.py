@@ -2,9 +2,6 @@
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
 import os
-from mbio.api.to_file.meta import *
-import datetime
-from mainapp.libs.param_pack import group_detail_sort
 
 
 class EstimatorsWorkflow(Workflow):
@@ -61,7 +58,7 @@ class EstimatorsWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            # [".", "", "结果输出目录"],
+            [".", "", "多样性指数结果目录"],
             ["./estimators.xls", "xls", "alpha多样性指数表"]
         ])
         # print self.get_upload_files()

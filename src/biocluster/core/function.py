@@ -154,3 +154,15 @@ def change_process_tile(tile):
     :return:
     """
     setproctitle.setproctitle(tile)
+
+
+def filter_error_info(info):
+    """
+    过滤返回前端的错误信息，避免出现系统工作路径等敏感信息
+    hesheng 20170204
+
+    :param info: String 错误信息
+    :return:
+    """
+    suberror = re.compile(r'/.+/.+/.+/')
+    return suberror.sub('', str(info))

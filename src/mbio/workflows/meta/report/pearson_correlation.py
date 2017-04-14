@@ -3,9 +3,6 @@
 from biocluster.workflow import Workflow
 import glob
 import os
-from mbio.api.to_file.meta import *
-import datetime
-from mbio.packages.statistical.reverse_table import reverse_table
 from bson import ObjectId
 import re
 
@@ -36,7 +33,8 @@ class PearsonCorrelationWorkflow(Workflow):
             {"name": "method", "type": "string", "default": "pearsonr"},
             {"name": "env_cluster", "type": "string", "default": "average"},
             {"name": "species_cluster", "type": "string", "default": "average"},
-            {"name": "group_detail", "type": "string"}
+            {"name": "group_detail", "type": "string"},
+            {"name": "top_species", "type": "int", "default": 0}  # add new option (flit top N species)
             ]
         self.add_option(options)
         # print(self._sheet.options())
@@ -58,12 +56,13 @@ class PearsonCorrelationWorkflow(Workflow):
             'envtable': self.option('env_file'),
             "method": self.option('method'),
             "env_cluster": env_cluster,
-            "species_cluster": species_cluster
+            "species_cluster": species_cluster,
+            "top_species": self.option('top_species')
             }
         self.correlation.set_options(options)
         self.correlation.on("end", self.set_db)
         self.correlation.run()
-        
+
     def run(self):
         self.run_correlation()
         super(PearsonCorrelationWorkflow, self).run()
@@ -130,7 +129,9 @@ class PearsonCorrelationWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.correlation.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "相关性Heatmap分析结果目录"],   # add 2 lines by hongdongxuan 20170324
+            ["./pearsons_correlation_at_otu_level.xls", "xls", "相关性系数表"],
+            ["./pearsons_pvalue_at_otu_level.xls", "xls", "相关性P值"]
             # ["./mantel_results.txt", "txt", "mantel检验结果"]
         ])
         # print self.get_upload_files()

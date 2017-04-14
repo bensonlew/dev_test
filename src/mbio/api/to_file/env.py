@@ -1,19 +1,12 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shenghe'
 import os
-# import copy
-# import json
 from biocluster.config import Config
 from bson.objectid import ObjectId
-# from collections import defaultdict
-import re
-
-
-client = Config().mongo_client
-db = client[Config().MONGODB]
 
 
 def export_env_table(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB]
     file_path = os.path.join(dir_path, '%s_input_env.xls' % option_name)
     bind_obj.logger.debug('正在导出参数%s的环境因子表为文件，路径:%s' % (option_name, file_path))
     collection_main = db['sg_env']
@@ -41,7 +34,15 @@ def export_env_table(data, option_name, dir_path, bind_obj=None):
     return file_path
 
 
+def export_env_table_by_detail(data, option_name, dir_path, bind_obj=None):
+    """
+    env_labs group_detail必须存在options中，依据这两个值筛选环境因子和样本
+    """
+    pass
+
+
 def export_float_env(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB]
     file_path = os.path.join(dir_path, '%s_input_env.xls' % option_name)
     bind_obj.logger.debug('正在导出参数%s的环境因子表为文件，路径:%s' % (option_name, file_path))
     collection_main = db['sg_env']

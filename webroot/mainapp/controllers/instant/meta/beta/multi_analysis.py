@@ -10,7 +10,6 @@ import types
 from mainapp.models.mongo.meta import Meta
 import datetime
 from mainapp.controllers.project.meta_controller import MetaController
-import datetime
 
 
 class MultiAnalysis(MetaController):
@@ -33,8 +32,7 @@ class MultiAnalysis(MetaController):
             return json.dumps(info)
         task_info = meta.get_task_info(otu_info['task_id'])
         group_detail = group_detail_sort(data.group_detail)
-        main_table_name = data.analysis_type.capitalize() + \
-            '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = MultiAnalysis.get_main_table_name(data.analysis_type)
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
@@ -47,13 +45,14 @@ class MultiAnalysis(MetaController):
         env_id = None
         env_labs = ''
         dist_method = ''
+        group_id = data.group_id if data.group_id in ['all', 'All', 'ALL'] else ObjectId(data.group_id)
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
             ('otu_id', ObjectId(data.otu_id)),
             ('table_type', data.analysis_type),
             ('status', 'start'),
-            ('group_id', ObjectId(data.group_id)),
+            ('group_id', group_id),
             ('desc', '正在计算'),
             ('name', main_table_name),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -101,7 +100,8 @@ class MultiAnalysis(MetaController):
                     info = {'success': False, 'info': '没有选择任何环境因子列'}
                     return json.dumps(info)
             else:
-                info = {'success': False, 'info': 'dbrda分析缺少参数:env_id!'}
+                # info = {'success': False, 'info': 'dbrda分析缺少参数:env_id!'}
+                info = {'success': False, 'info': 'dbrda分析缺少环境因子参数!'}  #modified by hongdongxuan 20170310
                 return json.dumps(info)
         elif data.analysis_type == 'rda_cca':
             if hasattr(data, 'env_id'):
@@ -117,7 +117,8 @@ class MultiAnalysis(MetaController):
                     info = {'success': False, 'info': '没有选择任何环境因子列'}
                     return json.dumps(info)
             else:
-                info = {'success': False, 'info': 'rda_cca分析缺少参数:env_id!'}
+                # info = {'success': False, 'info': 'rda_cca分析缺少参数:env_id!'}
+                info = {'success': False, 'info': 'rda_cca分析缺少环境因子参数!'}  #modified by hongdongxuan 20170310
                 return json.dumps(info)
         elif data.analysis_type == 'plsda':
             try:
@@ -150,8 +151,8 @@ class MultiAnalysis(MetaController):
             'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
             }
         to_file = ['meta.export_otu_table_by_detail(otu_file)']
+        mongo_data.append(('env_id', env_id))
         if env_id:
-            mongo_data.append(('env_id', env_id))
             mongo_data.append(('env_labs', data.env_labs))
             to_file.append('env.export_env_table(env_file)')
             options['env_file'] = data.env_id
@@ -164,8 +165,8 @@ class MultiAnalysis(MetaController):
         if data.analysis_type == 'plsda':
             to_file.append('meta.export_group_table_by_detail(group_file)')
             options['group_file'] = data.group_id
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
-                            module_type=task_type, to_file=to_file)
+        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name.strip().split("_")[0] + '/' + main_table_name,
+                            module_type=task_type, to_file=to_file) # modified by hongdongxuan 20170322 在main_table_name前面加上文件输出的文件夹名
         task_info = super(MultiAnalysis, self).POST()
         task_info['content'] = {
             'ids': {
@@ -186,3 +187,21 @@ class MultiAnalysis(MetaController):
         else:
             return False
         return in_id
+
+    @staticmethod
+    def get_main_table_name(analysis_type):
+        time_now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        if analysis_type == 'pca':
+            return 'PCA_' + time_now
+        elif analysis_type == 'pcoa':
+            return 'PCoA_' + time_now
+        elif analysis_type == 'nmds':
+            return 'NMDS_' + time_now
+        elif analysis_type == 'plsda':
+            return 'PLS-DA_' + time_now
+        elif analysis_type == 'dbrda':
+            return 'db-RDA_' + time_now
+        elif analysis_type == 'rda_cca':
+            return 'RDACCA_' + time_now
+        else:
+            raise Exception('错误的分析类型')

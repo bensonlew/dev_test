@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from mainapp.config.db import DB
+from mainapp.config.db import Config
 import web
 import datetime
 
@@ -8,7 +8,7 @@ import datetime
 class Workflow(object):
     def __init__(self):
         self.table = "workflow"
-        self.db = DB
+        self.db = Config().get_db()
 
     def get_by_workflow_id(self, wid):
         where_dict = dict(workflow_id=wid)
@@ -56,6 +56,10 @@ class Workflow(object):
                 self.db.update("pause", vars={'id': wid}, where="workflow_id = $id", **insert_data)
             else:
                 self.db.insert("pause", workflow_id=wid, **insert_data)
+            insert_workflow_data = {
+                "paused": 1
+            }
+            self.db.update("workflow", vars={"id": wid}, where="workflow_id = $id", **insert_workflow_data)
         except:
             return False
         else:
@@ -70,6 +74,10 @@ class Workflow(object):
                     "exit_pause_time": datetime.datetime.now()
                 }
                 self.db.update("pause", vars={'id': wid}, where="workflow_id = $id", **update_data)
+            insert_workflow_data = {
+                "paused": 0
+            }
+            self.db.update("workflow", vars={"id": wid}, where="workflow_id = $id", **insert_workflow_data)
         except:
             return False
         else:

@@ -21,7 +21,7 @@ class PanCoreWorkflow(Workflow):
             {"name": "samples", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "main_pan_id", "type": "string"},
-            {"name": "main_pan_id", "type": "string"}
+            {"name": "main_core_id", "type": "string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -53,7 +53,7 @@ class PanCoreWorkflow(Workflow):
         pan_path = self.pan_core.option("pan_otu_table").prop['path']
         core_path = self.pan_core.option("core_otu_table").prop['path']
         api_pan_core.add_pan_core_detail(pan_path, self.option('main_pan_id'))
-        api_pan_core.add_pan_core_detail(core_path, self.option('main_pan_id'))
+        api_pan_core.add_pan_core_detail(core_path, self.option('main_core_id'))
         self.end()
 
     def run(self):
@@ -62,16 +62,16 @@ class PanCoreWorkflow(Workflow):
         self.option("in_otu_table").sub_otu_sample(my_sps, no_zero_otu)
         num_lines = sum(1 for line in open(no_zero_otu))
         if num_lines < 11:
-            raise Exception("Otu表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")
+            raise Exception("OTU表里的OTU数目小于10个！请更换OTU表或者选择更低级别的分类水平！")   #将Otu改成了OTU modified by hongdongxuan 20170310
         self.run_pan_core(no_zero_otu)
         super(PanCoreWorkflow, self).run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-            ["core.richness.xls", "xls", "core 表格"],
-            ["pan.richness.xls", "xls", "pan 表格"]
+            [".", "", "Pan/Core结果目录"],
+            ["core.richness.xls", "xls", "Core 表格"],
+            ["pan.richness.xls", "xls", "Pan 表格"]
         ])
         print self.get_upload_files()
         super(PanCoreWorkflow, self).end()

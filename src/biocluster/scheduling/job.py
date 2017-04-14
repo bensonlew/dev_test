@@ -47,10 +47,11 @@ class JobManager(object):
             self.run_jobs.append(job)
             if job.submit():
                 agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, job.id))
-                return job
+                agent._start_queue_time = datetime.datetime.now()
             else:
                 agent.logger.error("任务投递失败!")
                 agent.get_workflow().exit(data="Tool %s 任务投递失败!" % agent.id)
+        return job
 
     def get_all_jobs(self):
         """
@@ -104,9 +105,13 @@ class JobManager(object):
                 mode = self.default_mode.lower()
                 if queue_job.agent.mode.lower() != "auto":
                     mode = queue_job.agent.mode.lower()
-                queue_job.submit()
-                queue_job.agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, queue_job.id))
-                self.queue_jobs.remove(queue_job)
+                if queue_job.submit():
+                    queue_job.agent.logger.info("任务投递成功,任务类型%s , ID: %s!" % (mode, queue_job.id))
+                    self.queue_jobs.remove(queue_job)
+                    queue_job.agent._start_queue_time = datetime.datetime.now()
+                else:
+                    queue_job.agent.logger.error("任务投递失败!")
+                    queue_job.agent.get_workflow().exit(data="Tool %s 任务投递失败!" % queue_job.agent.id)
 
     def _watch_processing_jobs(self):
         """
@@ -149,6 +154,7 @@ class Job(object):
         self.id = 0
         self._end = False
         self.submit_time = None
+        self.state = ""
 
     @property
     def is_end(self):
@@ -201,3 +207,31 @@ class Job(object):
         :return:
         """
         self._end = True
+
+    def is_queue(self):
+        """
+        判断是否正在排队
+        :return:
+        """
+        pass
+
+    def is_running(self):
+        """
+        判断是否正在运行
+        :return:
+        """
+        pass
+
+    def is_error(self):
+        """
+        判断是否出现错误
+        :return:
+        """
+        pass
+
+    def is_completed(self):
+        """
+        判断任务是否完成
+        :return:
+        """
+        pass

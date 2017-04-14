@@ -16,6 +16,14 @@ def param_pack(param):
     return params
 
 
+def filter_json_sort(filter_detail):
+    filters = json.loads(filter_detail)
+    temp = []
+    for i in filters:
+        temp.append(OrderedDict(sorted(i.items(), key=lambda t: t[0])))
+    return temp
+
+
 def sub_group_detail_sort(detail):
     table_list = json.loads(detail)
     result_list = []

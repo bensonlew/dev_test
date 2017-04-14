@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
 
-from Bio.KEGG.REST import *
 from Bio.KEGG.KGML import KGML_parser
 from Bio.Graphics.KGML_vis import KGMLCanvas
 from biocluster.config import Config
-import pymongo
 import gridfs
 import re
 import os
@@ -13,7 +11,7 @@ import os
 
 class KeggRegulate(object):
     def __init__(self):
-        self.mong_db = pymongo.MongoClient(Config().MONGO_BIO_URI).sanger_biodb
+        self.mong_db = Config().biodb_mongo_client.sanger_biodb
         # self.pathway_pic = Config().SOFTWARE_DIR + '/database/KEGG/pathway_map2/'
 
     def get_kgml_and_png(self, pathway_id, kgml_path, png_path):
