@@ -329,7 +329,7 @@ class AssemblyModule(Module):
                 files = os.path.join(self.work_dir + '/assembly_newtranscripts', f)
                 gene_trans = os.path.join(self.work_dir, f + ".trans")
                 trans_exon = os.path.join(self.work_dir, f + ".exon")
-                gene_trans_exon(files, gene_trans, trans_exon)
+                gene_trans_exon(files, self.option("assemble_method"), gene_trans, trans_exon)
                 # count_trans_or_exons(gene_trans, final_trans_file)
                 # count_trans_or_exons(trans_exon, final_exon_file)
         gtf_files = os.listdir(self.work_dir)
@@ -345,15 +345,62 @@ class AssemblyModule(Module):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [r".", "", "结果输出目录"],
-            ["merged.gtf", "gtf", "样本合并之后的gtf文件"],
-            ["new_transcripts.gtf", "gtf", "新转录本gtf注释文件"],
-            ["new_transcripts.fa", "fa", "新转录本序列文件"],
+        if self.option("assemble_method") == "stringtie":
+            result_dir.add_relpath_rules([
+                [r".", "", "结果输出目录"],
+                ["Stringtie", "", "拼接后的各样本文件夹"],
+                ["StringtieMerge", "", "拼接组装合并之后结果文件夹"],
+                ["StringtieMerge/merged.gtf", "gtf", "样本合并之后的注释文件"],
+                ["StringtieMerge/merged.fa", "fasta", "样本合并之后的序列文件"],
+                ["Gffcompare", "", "进行新转录本预测后的结果文件夹"],
+                ["Gffcompare/cuffcmp.annotated.gtf", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.refmap", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.tmap", "", "进行新转录本预测后的结果文件"],
+                ["NewTranscripts", "", "新转录本结果文件夹"],
+                ["NewTranscripts/new_transcripts.gtf", "gtf", "新转录本注释文件"],
+                ["NewTranscripts/new_transcripts.fa", "fa", "新转录本序列文件"],
+                ["NewTranscripts/new_genes.gtf", "gtf", "新基因注释文件"],
+                ["NewTranscripts/new_genes.fa", "fa", "新基因序列文件"],
+                ["NewTranscripts/old_trans.gtf", "gtf", "已知转录本注释文件"],
+                ["NewTranscripts/old_genes.gtf", "gtf", "已知基因注释文件"],
+                ["Statistics", "", "统计信息的结果文件夹"],
+                ["Statistics/code_num.txt", "txt", "class_code统计文件"],
+            ])
+            result_dir.add_regexp_rules([
+                [r"Stringtie/.*_out\.gtf$", "gtf", "样本拼接之后的注释文件"],
+                [r"Stringtie/.*_out\.fa$", "fasta", "样本拼接之后序列文件"],
+                [r"Statistics/trans_count_stat_.*\.txt$", "txt", "新转录本步长统计文件"],
+                [r"Statistics/old_.*\.txt$", "txt", "统计结果文件"],
+                [r"Statistics/new_.*\.txt$", "txt", "统计结果文件"],
 
-        ])
-        result_dir.add_regexp_rules([
-            ["_out.gtf", "gtf", "样本拼接之后的gtf文件"],
-            ["cuffcomp.*", "", "提取新转录本过程文件"],
-        ])
+            ])
+        if self.option("assemble_method") == "cufflinks":
+            result_dir.add_relpath_rules([
+                [r".", "", "结果输出目录"],
+                ["Cufflinks", "", "拼接后的各样本文件夹"],
+                ["Cuffmerge", "", "拼接组装合并之后结果文件夹"],
+                ["Cuffmerge/merged.gtf", "gtf", "样本合并之后的注释文件"],
+                ["Cuffmerge/merged.fa", "fasta", "样本合并之后的序列文件"],
+                ["Gffcompare", "", "进行新转录本预测后的结果文件夹"],
+                ["Gffcompare/cuffcmp.annotated.gtf", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.refmap", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.tmap", "", "进行新转录本预测后的结果文件"],
+                ["NewTranscripts", "", "新转录本结果文件夹"],
+                ["NewTranscripts/new_transcripts.gtf", "gtf", "新转录本注释文件"],
+                ["NewTranscripts/new_transcripts.fa", "fa", "新转录本序列文件"],
+                ["NewTranscripts/new_genes.gtf", "gtf", "新基因注释文件"],
+                ["NewTranscripts/new_genes.fa", "fa", "新基因序列文件"],
+                ["NewTranscripts/old_trans.gtf", "gtf", "已知转录本注释文件"],
+                ["NewTranscripts/old_genes.gtf", "gtf", "已知基因注释文件"],
+                ["Statistics", "", "统计信息的结果文件夹"],
+                ["Statistics/code_num.txt", "txt", "class_code统计文件"],
+            ])
+            result_dir.add_regexp_rules([
+                [r"Cufflinks/.*_out\.gtf$", "gtf", "样本拼接之后的注释文件"],
+                [r"Cufflinks/.*_out\.fa$", "fasta", "样本拼接之后序列文件"],
+                [r"Statistics/trans_count_stat_.*\.txt$", "txt", "新转录本步长统计文件"],
+                [r"Statistics/old_.*\.txt$", "txt", "统计结果文件"],
+                [r"Statistics/new_.*\.txt$", "txt", "统计结果文件"],
+
+            ])
         super(AssemblyModule, self).end()
