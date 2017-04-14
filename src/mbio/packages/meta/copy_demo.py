@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'sheng.he'
 # lastmodied: 20160921
-from mainapp.config.db import get_mongo_client
+from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
 import json
@@ -27,7 +27,8 @@ class CopyMongo(object):
     需要回滚操作。。。,暂时未提供
     """
     def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, db='tsanger'):
-        self.db = get_mongo_client()[db]
+        self.config = Config()
+        self.db = self.config.mongo_client[db]
         self._old_task_id = old_task_id
         self._new_task_id = new_task_id
         self._new_project_sn = new_project_sn

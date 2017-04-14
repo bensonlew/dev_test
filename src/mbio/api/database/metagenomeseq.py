@@ -15,7 +15,6 @@ class Metagenomeseq(Base):
     def __init__(self, bind_object):
         super(Metagenomeseq, self).__init__(bind_object)
         self._db_name = Config().MONGODB
-        # self.client = get_mongo_client()
 
     @report_check
     def add_metagenomeseq_diff(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
@@ -80,7 +79,7 @@ class Metagenomeseq(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功！"% file_path)
         return data_list, table_id
-                
+
 
 
 
