@@ -5,6 +5,7 @@ import os
 import re
 import glob
 from mbio.packages.beta_diversity.filter_newick import get_level_newicktree
+from bson.objectid import ObjectId
 
 
 class MantelTestWorkflow(Workflow):
@@ -37,7 +38,7 @@ class MantelTestWorkflow(Workflow):
             {"name": "partialmatrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "dis_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "fac_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
-            ]
+        ]
         self.add_option(options)
         # print(self._sheet.options())
         self.set_options(self._sheet.options())
