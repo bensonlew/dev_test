@@ -8,7 +8,7 @@ import re
 import types
 from biocluster.workflow import Workflow
 from bson import ObjectId
-from mbio.packages.beta_diversity.filter_newick import *
+from mbio.packages.beta_diversity.filter_newick import get_level_newicktree
 import datetime
 
 
@@ -25,14 +25,11 @@ class AnosimWorkflow(Workflow):
             {"name": "method", "type": "string", "default": 'bray_curtis'},
             {"name": "update_info", "type": "string"},
             {"name": "otu_id", "type": "string"},
+            {"name": "main_id", "type": "string"},
             {"name": "level", "type": "int"},
-            {"name": "anosim_id", "type": "string"},
-            {"name": "group_id", "type": "string"},
             {"name": "group_file", "type": "infile", 'format': 'meta.otu.group_table'},
             {"name": "group_detail", "type": "string"},
-            {"name": "permutations", "type": "int", "default": 999},
-            {"name": "samples", "type": "string", 'default': ''},
-            {"name": "params", "type": "string", "default": ''},
+            {"name": "permutations", "type": "int", "default": 999}
             ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -132,16 +129,9 @@ class AnosimWorkflow(Workflow):
         保存结果表到mongo数据库中
         """
         api_anosim = self.api.anosim
-        collection = api_anosim.db["sg_otu"]
-        result = collection.find_one({"_id": ObjectId(self.option('otu_id'))})
-        task_id = result['task_id']
-        # matrix_path = self.output_dir + '/' + os.listdir(self.output_dir)[0]
-        if not (os.path.isdir(self.output_dir + '/Anosim') and os.path.isdir(self.output_dir + '/Box')):
+        if not (os.path.isdir(self.output_dir + '/Anosim') and os.path.isdir(self.output_dir + '/AnosimBox')): # change by wzy
             raise Exception("找不到报告文件夹:{}".format(self.output_dir))
-        main_id = api_anosim.add_beta_anosim_result(self.output_dir, main=True, task_id=task_id,
-                                                    otu_id=self.option('otu_id'),
-                                                    name="anosim&adonis_{}".format(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
-        self.add_return_mongo_id('sg_beta_multi_anosim', main_id)
+        api_anosim.add_beta_anosim_result(self.output_dir, main=False, main_id=self.option('main_id'))
         self.logger.info('运行self.end')
         self.end()
 
@@ -177,14 +167,15 @@ class AnosimWorkflow(Workflow):
 
     def end(self):
         repaths = [
-            [".", "", "Beta_diversity分析结果文件目录"],
-            ["Anosim", "", "anosim&adonis结果输出目录"],
-            ["Anosim/anosim_results.txt", "txt", "anosim分析结果"],
-            ["Anosim/adonis_results.txt", "txt", "adonis分析结果"],
-            ["Anosim/format_results.xls", "xls", "anosim&adonis整理结果表"],
-            ["Box", "", "距离统计和统计检验分析结果目录"],
-            ["Box/Stats.xls", "xls", "分组统计检验结果"],
-            ["Box/Distances.xls", "xls", "组内组间距离值统计结果"],
+            [".", "", "ANOSIM&Adonis分析结果目录"],
+            ["Anosim", "", "ANOSIM&Adonis结果输出目录"],
+            ["Anosim/anosim_results.txt", "txt", "ANOSIM分析结果"],
+            ["Anosim/adonis_results.txt", "txt", "Adonis分析结果"],
+            ["Anosim/format_results.xls", "xls", "ANOSIM&Adonis整理结果表"],
+            ["AnosimBox", "", "ANOSIM箱式图数据表"],
+            ["AnosimBox/box_data.xls", "xls", "箱式图数据"],
+            ["Anosim/new_adonis_results.xls", "xls", "Adonis分析结果"],
+            #["Box/Distances.xls", "xls", "组内组间距离值统计结果"],
             ["Distance", "", "距离矩阵计算结果输出目录"]
             ]
         regexps = [

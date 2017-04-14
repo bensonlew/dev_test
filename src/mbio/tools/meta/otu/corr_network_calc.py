@@ -90,8 +90,10 @@ class CorrNetworkCalcTool(Tool):
         self.wait(cmd)
         if cmd.return_code == 0:
             self.logger.info("运行networkcalc成功")
+            return True
         else:
-            self.logger.info("运行networkcalc出错")
+            self.set_error("运行networkcalc出错")
+            return False
 
     def set_output(self):
         """
@@ -110,6 +112,6 @@ class CorrNetworkCalcTool(Tool):
 
     def run(self):
         super(CorrNetworkCalcTool, self).run()
-        self.run_CorrNetworkCalc()
-        self.set_output()
-        self.end()
+        if self.run_CorrNetworkCalc():
+            self.set_output()
+            self.end()

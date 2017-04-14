@@ -45,7 +45,7 @@ class FastqStatAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '5G'  # 待测试
 
 
 class FastqStatTool(Tool):
@@ -55,15 +55,15 @@ class FastqStatTool(Tool):
 
     def __init__(self, config):
         super(FastqStatTool, self).__init__(config)
-        self.fastxtoolkit_path = 'bioinfo/seq/fastxtoolkit/'
+        self.fastxtoolkit_path = '/bioinfo/seq/fastx_toolkit_0.0.14'
 
     def fastxtoolkit(self):
         """
         运行fastxtoolkit软件里的fastx_quality_stats工具统计fastq文件碱基质量等信息
         :return:
         """
-        cmd = '%sbin/fastx_quality_stats -i %s  -o %s' % (self.fastxtoolkit_path,
-                                                          self.option('fastq').prop['path'], 'fastq_stat.xls')
+        cmd = '%s/fastx_quality_stats -i %s  -o %s' % (self.fastxtoolkit_path,
+                                                       self.option('fastq').prop['path'], 'fastq_stat.xls')
         print self.config.SOFTWARE_DIR + cmd
         self.logger.info('开始统计fastq文件信息')
         try:
@@ -71,7 +71,8 @@ class FastqStatTool(Tool):
             self.logger.info("统计完成")
             return True
         except subprocess.CalledProcessError:
-            self.logger.info("统计过程出现错误")
+            self.set_error("统计过程出现错误")
+            raise Exception("统计过程出现错误")
             return False
 
     def set_output(self):
@@ -82,7 +83,8 @@ class FastqStatTool(Tool):
         self.logger.info("set output")
         for f in os.listdir(self.output_dir):
             os.remove(os.path.join(self.output_dir, f))
-        os.link(self.work_dir+'/fastq_stat.xls', self.output_dir+'/fastq_stat.xls')
+        os.link(self.work_dir + '/fastq_stat.xls',
+                self.output_dir + '/fastq_stat.xls')
         self.logger.info("done")
 
     def run(self):

@@ -249,7 +249,8 @@ class Workflow(Basic):
         """
         if self._sheet.output:
             for up in self.upload_dir:
-                target_dir = os.path.join(self.sheet.output, os.path.dirname(up.upload_path))
+                # target_dir = os.path.join(self.sheet.output, os.path.dirname(up.upload_path))
+                target_dir = self.sheet.output  # 去掉target目录加上了上传相对路径的路径差 即 上传目录 与工作目录的路径差
                 remote_file = RemoteFileManager(target_dir)
                 self.logger.info("开始上传%s到%s" % (up.path, target_dir))
                 if remote_file.type != "local":
@@ -338,7 +339,7 @@ class Workflow(Basic):
                 elif type == "pause":
                     worker.set_pause(self.sheet.id)
                 elif type == "stop":
-                    worker.set_top(self.sheet.id)
+                    worker.set_stop(self.sheet.id)
                 elif type == "pause_exit":
                     worker.set_pause_exit(self.sheet.id)
                 elif type == "pause_timeout":
@@ -367,14 +368,15 @@ class Workflow(Basic):
     def __check(self):
         if self.is_end is True:
             return "exit"
-        if (datetime.datetime.now() - self.last_update).seconds > self.config.MAX_WAIT_TIME:
-            self.exit(data="超过 %s s没有任何运行更新，退出运行！" % self.config.MAX_WAIT_TIME)
+
         now = datetime.datetime.now()
         if self.pause:
             if (now - self._pause_time).seconds > self.config.MAX_PAUSE_TIME:
                 self._update("pause_timeout")
                 self.exit(data="暂停超过规定的时间%ss,自动退出运行!" %
                                self.config.MAX_PAUSE_TIME, terminated=True)
+        if (now - self.last_update).seconds > (self.config.MAX_WAIT_TIME * 3 + 100):
+            self.exit(data="超过 %s s没有任何运行更新，退出运行！" % (self.config.MAX_WAIT_TIME * 3 + 100))
         try:
             action = self.action_queue.get_nowait()
         except Exception:

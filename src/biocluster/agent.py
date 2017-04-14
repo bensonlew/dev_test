@@ -13,6 +13,7 @@ from .core.function import get_classpath_by_object, load_class_by_path
 import datetime
 import types
 import inspect
+import gevent
 
 
 class PickleConfig(object):
@@ -69,10 +70,14 @@ class Agent(Basic):
         self._default_callback_action = {'action': 'none'}
         self._callback_action = {}
         self._status = "W"                # W 等待 Q 排队 R 运行 E 完成
-        self.add_event('keepaliveout')   # 保持连接超时
+        self.add_event('keepaliveout', loop=True)   # 保持连接超时
         self.on('keepaliveout', self._event_keepaliveout)
-        self.add_event('waittimeout')    # 等待超时
+        self.add_event('waittimeout', loop=True)    # 等待超时
         self.on('waittimeout', self._event_waittimeout)
+        self.add_event('firekaoout')  # keepaliveout超过最大次数
+        self.on('firekaoout', self._event_firekaoout)
+        self.add_event('firewtoout')  # waittimeout超过最大次数
+        self.on('firewtoout', self._event_firewtoout)
         self.add_event('runstart')       # 远端开始运行
         self.on("runstart", self._event_runstart)
         self.on("error", self._agent_event_error)
@@ -83,6 +88,7 @@ class Agent(Basic):
         self._run_mode = "Auto"      # 运行模式 Auto表示由 main.conf中的 platform参数决定
         self._job_manager = JobManager()
         self._run_time = None
+        self._start_queue_time = None
         self._start_run_time = None
         self._end_run_time = None
         self._rerun_time = 0
@@ -253,13 +259,13 @@ class Agent(Basic):
         :return:
         """
         super(Agent, self).run()
+        self._run_time = datetime.datetime.now()
         if self.get_workflow().sheet.instant:
             self._run_mode = "process"
         else:
             self.save_class_path()
             self.save_config()
         self.job = self._job_manager.add_job(self)
-        self._run_time = datetime.datetime.now()
         self._status = "Q"
         if not self.get_workflow().sheet.instant:
             self.actor.start()
@@ -363,7 +369,7 @@ class Agent(Basic):
         self._status = "E"
         self._end_run_time = datetime.datetime.now()
         secends = (self._end_run_time - self._start_run_time).seconds
-        self.logger.info("   任务运行结束，运行时间:%ss" % secends)
+        self.logger.info("   任务运行结束，运行耗时:%ss" % secends)
         self.job.set_end()
         self.end()
 
@@ -377,6 +383,13 @@ class Agent(Basic):
         :return: None
         """
         self.fire("error", data)
+
+    def sleeping_callback(self, data):
+        """
+
+        :return:
+        """
+        self.logger.warning("Command %s长时间处于Sleep/Zombie状态，尝试重新运行!" % data)
 
     def _agent_event_error(self, data):
         """
@@ -397,9 +410,24 @@ class Agent(Basic):
 
         :return:
         """
-        self.logger.error("远程Tool连接超时，尝试重新运行!")
-        if self.parent:
-            self.parent.fire("childrerun", self)
+        self.job.check_state()
+        if self.job.is_error():
+            self.logger.error("远程任务运行出错，准备重新运行!")
+            if self.parent:
+                self.parent.fire("childrerun", self)
+        elif self.job.is_running():
+            self.logger.error("远程任务正在运行，但是未能更新状态，稍后重新检测!")
+        elif self.job.is_completed():
+            self.logger.error("远程任务已结束，但是未正常更新状态，一分钟后重新检测!")
+            gevent.sleep(60)
+            if not self.job.is_end:
+                self.logger.error("远程任务已结束，但是仍然未能更新状态，尝试重新运行!")
+                if self.parent:
+                    self.parent.fire("childrerun", self)
+        else:
+            self.logger.error("远程任务状态未知: %s ，尝试重新运行!" % self.job.state)
+            if self.parent:
+                self.parent.fire("childrerun", self)
 
     def _event_waittimeout(self):
         """
@@ -410,9 +438,28 @@ class Agent(Basic):
 
         :return:
         """
-        self.logger.error("远程任务超过规定时间未能运行，尝试删除任务重新运行!")
-        if self.parent:
-            self.parent.fire("childrerun", self)
+        self.job.check_state()
+        if self.job.is_queue():
+            self.logger.error("当前任务正在排队，继续等待...")
+        elif self.job.is_error():
+            self.logger.error("远程任务运行出错，准备重新运行!")
+            if self.parent:
+                self.parent.fire("childrerun", self)
+        elif self.job.is_running():
+            self.logger.error("远程任务已开始运行，等待1分钟后重新开始查询状态!")
+            gevent.sleep(60)
+            if not self._start_run_time:
+                self.logger.error("远程任务已开始运行，但是未正常更新状态，尝试重新运行!")
+                if self.parent:
+                    self.parent.fire("childrerun", self)
+        elif self.job.is_completed():
+            self.logger.error("远程任务已结束，但是未正常更新状态，尝试重新运行!")
+            if self.parent:
+                self.parent.fire("childrerun", self)
+        else:
+            self.logger.error("远程任务状态未知: %s ，尝试重新运行!" % self.job.state)
+            if self.parent:
+                self.parent.fire("childrerun", self)
 
     def _event_runstart(self, data):
         """
@@ -422,8 +469,20 @@ class Agent(Basic):
         """
         self._start_run_time = datetime.datetime.now()
         self._status = "R"
-        secends = (self._start_run_time - self._run_time).seconds
+        queue_secends = (self._start_run_time - self._start_queue_time).seconds
+        wait_secends = (self._start_queue_time - self._run_time).seconds
         if self.get_workflow().sheet.instant:
             self.logger.info("本地进程任务开始运行,PID:%s" % self.job.id)
         else:
-            self.logger.info("远程任务开始运行，任务ID:%s,远程主机:%s,:排队时间%ss" % (self.job.id, data, secends))
+            self.logger.info("远程任务开始运行，任务ID:%s,远程主机:%s,等待时间:%s, 排队时间%ss, 共%ss" %
+                             (self.job.id, data, wait_secends, queue_secends, (queue_secends+wait_secends)))
+
+    def _event_firekaoout(self, times):
+        self.logger.warning("KeepAlive触发超过%s次，尝试重新运行!" % times)
+        if self.parent:
+            self.parent.fire("childrerun", self)
+
+    def _event_firewtoout(self, times):
+        self.logger.warning("WaitTimeOut触发超过%s次，尝试重新运行!" % times)
+        if self.parent:
+            self.parent.fire("childrerun", self)

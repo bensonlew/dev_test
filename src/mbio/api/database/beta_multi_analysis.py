@@ -20,6 +20,23 @@ class BetaMultiAnalysis(Base):
         self._db_name = Config().MONGODB
         self._tables = []  # 记录存入了哪些表格
 
+    @staticmethod
+    def get_main_table_name(analysis_type):
+        if analysis_type == 'pca':
+            return 'PCA'
+        elif analysis_type == 'pcoa':
+            return 'PCoA'
+        elif analysis_type == 'nmds':
+            return 'NMDS'
+        elif analysis_type == 'plsda':
+            return 'PLS-DA'
+        elif analysis_type == 'dbrda':
+            return 'db-RDA'
+        elif analysis_type == 'rda_cca':
+            return 'RDA/CCA'
+        else:
+            raise Exception('错误的分析类型')
+
     @report_check
     def add_beta_multi_analysis_result(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None,
                                        task_id=None, otu_id=None, name=None, params=None, level=9, remove=None,
@@ -68,7 +85,7 @@ class BetaMultiAnalysis(Base):
                 'task_id': task_id,
                 'otu_id': otu_id,
                 'level_id': int(level),
-                'name': name if name else analysis + '_origin',
+                'name': BetaMultiAnalysis.get_main_table_name(analysis) + '_Origin',
                 'table_type': analysis,
                 'env_id': env_id,
                 'group_id': group_id,
@@ -122,10 +139,14 @@ class BetaMultiAnalysis(Base):
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
                 importance_path = dir_path.rstrip('/') + '/Pcoa/pcoa_eigenvalues.xls'
                 self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+                importance_pre_path = dir_path.rstrip('/') + '/Pcoa/pcoa_eigenvaluespre.xls'
+                self.insert_table_detail(importance_pre_path, 'importancepre', update_id=main_id)
                 self.bind_object.logger.info('beta_diversity:PCoA分析结果导入数据库完成.')
             elif analysis == 'nmds':
                 site_path = dir_path.rstrip('/') + '/Nmds/nmds_sites.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id, colls=['NMDS1', 'NMDS2'])  # 这里暂且只有两个轴，故只写两个，后面如果修改进行多维NMDS，结果应该有多列，此种方式应该进行修改
+                nmds_stress = float(open(dir_path.rstrip('/') + '/Nmds/nmds_stress.xls').readlines()[1])
+                _main_collection.update_one({'_id': main_id}, {'$set': {'nmds_stress': nmds_stress}})
                 self.bind_object.logger.info('beta_diversity:NMDS分析结果导入数据库完成.')
             elif analysis == 'dbrda':
                 site_path = dir_path.rstrip('/') + '/Dbrda/db_rda_sites.xls'
@@ -147,6 +168,10 @@ class BetaMultiAnalysis(Base):
                 species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_species.xls'
                 importance_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_importance.xls'
                 dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
+                plot_species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_plot_species_data.xls'  # add 4 lines by zhouxuan 20170123 20170401
+                envfit_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_envfit.xls'
+                self.insert_envfit_table(envfit_path, 'envfit', update_id=main_id)
+                self.insert_table_detail(plot_species_path, 'plot_species', update_id=main_id)
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
                 self.insert_table_detail(species_path, 'species', update_id=main_id, split_fullname=True)
                 self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
@@ -163,9 +188,11 @@ class BetaMultiAnalysis(Base):
                 site_path = dir_path.rstrip('/') + '/Plsda/plsda_sites.xls'
                 rotation_path = dir_path.rstrip('/') + '/Plsda/plsda_rotation.xls'
                 importance_path = dir_path.rstrip('/') + '/Plsda/plsda_importance.xls'
+                importance_pre_path = dir_path.rstrip('/') + '/Plsda/plsda_importancepre.xls'
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id, remove_key_blank=True)
                 self.insert_table_detail(rotation_path, 'species', update_id=main_id, remove_key_blank=True, split_fullname=True)
                 self.insert_table_detail(importance_path, 'importance', update_id=main_id, remove_key_blank=True)
+                self.insert_table_detail(importance_pre_path, 'importancepre', update_id=main_id, colls=['proportion_variance'])
                 self.bind_object.logger.info('beta_diversity:PLSDA分析结果导入数据库完成.')
             else:
                 raise Exception('提供的analysis：%s不存在' % analysis)
@@ -228,7 +255,8 @@ class BetaMultiAnalysis(Base):
                 default_column = {'specimen': 'specimen', 'factor': 'factor', 'vector': 'vector',
                                   'species': 'species', 'factor_stat': 'factor_stat',
                                   'vector_stat': 'vector_stat',
-                                  'importance': 'importance', 'dca': 'dca'}
+                                  'importance': 'importance', 'dca': 'dca', 'importancepre': 'importancepre',
+                                  'plot_species': 'plot_species'}
                 if table_type in default_column:
                     main_collection.update_one({'_id': update_id},
                                                {'$set': {default_column[table_type]: ','.join(columns)}},
@@ -257,3 +285,137 @@ class BetaMultiAnalysis(Base):
         main_collection.update_one({'_id': update_id},
                                    {'$set': {'tables': ','.join(tables)}},
                                    upsert=False)
+
+    def insert_envfit_table(self, filepath, tabletype, update_id):
+            """
+			"""
+            insert_data = []
+            with open(filepath,'rb') as r:
+                head = r.next().strip('\r\n')
+                head = re.split(' ', head)
+                new_head_old = head
+                new_head =[]
+                for f in range(0, len(new_head_old)):
+                    pattern = re.compile('"(.*)"')
+                    new_head_ = pattern.findall(new_head_old[f])
+                    new_head.append(new_head_[0])
+                    # m = re.match('/\"(.*)\"/', new_head[f])
+                    # if m:
+                    #     new_head[f] = m.group(0)
+                print(new_head)
+                new_head[-1] = "p_values"
+                new_head[-2] = "r2"
+                self.new_head = new_head
+                for line in r:
+                    line = line.rstrip("\r\n")
+                    line = re.split(' ', line)
+                    content = line[1:]
+                    pattern = re.compile('"(.*)"')
+                    env_name = pattern.findall(line[0])
+                    env_detail = dict()
+                    for i in range(0, len(content)):
+                        env_detail[new_head[i]] = content[i]
+                    env_detail['multi_analysis_id'] = update_id
+                    env_detail['type'] = tabletype
+                    env_detail['env'] = env_name[0]
+                    insert_data.append(env_detail)
+            try:
+                collection = self.db['sg_beta_multi_analysis_detail']
+                collection.insert_many(insert_data)
+            except Exception as e:
+                self.bind_object.logger.error("导入sg_beta_multi_analysis_detail表格信息出错:{}".format(e))
+            else:
+                self.bind_object.logger.info("导入sg_beta_multi_analysis_detail表格成功")
+            self._tables.append(tabletype)
+            # self.insert_main_tables(self._tables, update_id)
+            main_collection = self.db['sg_beta_multi_analysis']
+            main_collection.update_one({'_id': update_id},
+                                       {'$set': {tabletype: ','.join(self.new_head)}},
+                                       upsert=False)
+
+
+
+
+
+
+
+
+    # @report_check
+    # def add_beta_multi_analysis_result_for_api(self, dir_path, analysis, main_id):
+    #     if analysis == 'pca':
+    #         site_path = dir_path.rstrip('/') + '/Pca/pca_sites.xls'
+    #         rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation.xls'
+    #         importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
+    #         self.insert_table_detail(site_path, 'specimen', update_id=main_id)
+    #         self.insert_table_detail(rotation_path, 'species', update_id=main_id, split_fullname=True)
+    #         self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
+    #         if result['env_id']:
+    #             filelist = os.listdir(dir_path.rstrip('/') + '/Pca')
+    #             if 'pca_envfit_factor_scores.xls' in filelist:
+    #                 env_fac_path = dir_path.rstrip('/') + '/Pca/pca_envfit_factor_scores.xls'
+    #                 env_fac_pr_path = dir_path.rstrip('/') + '/Pca/pca_envfit_factor.xls'
+    #                 self.insert_table_detail(env_fac_path, 'factor', update_id=main_id)
+    #                 self.insert_table_detail(env_fac_pr_path, 'factor_stat', update_id=main_id)
+    #             if 'pca_envfit_vector_scores.xls' in filelist:
+    #                 env_vec_path = dir_path.rstrip('/') + '/Pca/pca_envfit_vector_scores.xls'
+    #                 env_vec_pr_path = dir_path.rstrip('/') + '/Pca/pca_envfit_vector.xls'
+    #                 self.insert_table_detail(env_vec_path, 'vector', update_id=main_id)
+    #                 self.insert_table_detail(env_vec_pr_path, 'vector_stat', update_id=main_id)
+    #         else:
+    #             pass
+    #         self.bind_object.logger.info('beta_diversity:PCA分析结果导入数据库完成.')
+    #     elif analysis == 'pcoa':
+    #         site_path = dir_path.rstrip('/') + '/Pcoa/pcoa_sites.xls'
+    #         self.insert_table_detail(site_path, 'specimen', update_id=main_id)
+    #         importance_path = dir_path.rstrip('/') + '/Pcoa/pcoa_eigenvalues.xls'
+    #         self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+    #         self.bind_object.logger.info('beta_diversity:PCoA分析结果导入数据库完成.')
+    #     elif analysis == 'nmds':
+    #         site_path = dir_path.rstrip('/') + '/Nmds/nmds_sites.xls'
+    #         self.insert_table_detail(site_path, 'specimen', update_id=main_id, colls=['NMDS1', 'NMDS2'])  # 这里暂且只有两个轴，故只写两个，后面如果修改进行多维NMDS，结果应该有多列，此种方式应该进行修改
+    #         self.bind_object.logger.info('beta_diversity:NMDS分析结果导入数据库完成.')
+    #     elif analysis == 'dbrda':
+    #         site_path = dir_path.rstrip('/') + '/Dbrda/db_rda_sites.xls'
+    #         self.insert_table_detail(site_path, 'specimen', update_id=main_id)
+    #         filelist = os.listdir(dir_path.rstrip('/') + '/Dbrda')
+    #         if 'db_rda_centroids.xls' in filelist:
+    #             env_fac_path = dir_path.rstrip('/') + '/Dbrda/db_rda_centroids.xls'
+    #             self.insert_table_detail(env_fac_path, 'factor', update_id=main_id)
+    #         if 'db_rda_biplot.xls' in filelist:
+    #             env_vec_path = dir_path.rstrip('/') + '/Dbrda/db_rda_biplot.xls'
+    #             self.insert_table_detail(env_vec_path, 'vector', update_id=main_id)
+    #         self.bind_object.logger.info('beta_diversity:db_RDA分析结果导入数据库完成.')
+    #     elif analysis == 'rda_cca':
+    #         if 'rda' in os.listdir(dir_path.rstrip('/') + '/Rda/')[1]:
+    #             rda_cca = 'rda'
+    #         else:
+    #             rda_cca = 'cca'
+    #         site_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_sites.xls'
+    #         species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_species.xls'
+    #         importance_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_importance.xls'
+    #         dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
+    #         self.insert_table_detail(site_path, 'specimen', update_id=main_id)
+    #         self.insert_table_detail(species_path, 'species', update_id=main_id, split_fullname=True)
+    #         self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
+    #         self.insert_table_detail(dca_path, 'dca', update_id=main_id)
+    #         filelist = os.listdir(dir_path.rstrip('/') + '/Rda')
+    #         if (rda_cca + '_centroids.xls') in filelist:
+    #             env_fac_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_centroids.xls'
+    #             self.insert_table_detail(env_fac_path, 'factor', update_id=main_id)
+    #         if (rda_cca + '_biplot.xls') in filelist:
+    #             env_vec_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_biplot.xls'
+    #             self.insert_table_detail(env_vec_path, 'vector', update_id=main_id, fileter_biplot=remove)
+    #         self.bind_object.logger.info('beta_diversity:RDA/CCA分析结果导入数据库完成.')
+    #     elif analysis == 'plsda':
+    #         site_path = dir_path.rstrip('/') + '/Plsda/plsda_sites.xls'
+    #         rotation_path = dir_path.rstrip('/') + '/Plsda/plsda_rotation.xls'
+    #         importance_path = dir_path.rstrip('/') + '/Plsda/plsda_importance.xls'
+    #         self.insert_table_detail(site_path, 'specimen', update_id=main_id, remove_key_blank=True)
+    #         self.insert_table_detail(rotation_path, 'species', update_id=main_id, remove_key_blank=True, split_fullname=True)
+    #         self.insert_table_detail(importance_path, 'importance', update_id=main_id, remove_key_blank=True)
+    #         self.bind_object.logger.info('beta_diversity:PLSDA分析结果导入数据库完成.')
+    #     else:
+    #         raise Exception('提供的analysis：%s不存在' % analysis)
+    #         self.bind_object.logger.info('beta_diversity:PLSDA分析结果导入数据库完成.')
+    #     self.insert_main_tables(self._tables, update_id=main_id)
+    #     return main_id

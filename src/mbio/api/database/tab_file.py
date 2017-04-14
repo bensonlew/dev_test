@@ -89,7 +89,7 @@ class TabFile(Base):
 		if not result:
 			self.bind_object.logger.info("样本{}不在数据库中，开始进行转tab文件并入库流程".format(sample))
 		else:
-			self.bind_object.logger.info("样本{}已存在数据库中，或是多重实验样本".format(sample))
+			self.bind_object.logger.info("样本{}已存在数据库中".format(sample))
 		return result
 
 
@@ -113,6 +113,7 @@ class TabFile(Base):
 				            + i['ref'] + '\t' + i['alt'] + '\t' + i['dp'] + '\t'
 				            + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
 		if os.path.getsize(file):
+			# pass
 			return file
 		else:
 			raise Exception('报错：样本数据{}的tab文件为空，可能还未下机'.format(sample))
@@ -271,7 +272,7 @@ class TabFile(Base):
 	def family_unanalysised(self):
 		family_id = []
 		collection = self.database['sg_pt_ref_main']
-		sample = collection.find({"analysised":'no',"type":{"$regex": "^(p)?pt"}})
+		sample = collection.find({"analysised":'no'})
 		for i in sample:
 			dad_id = []
 			mom_id =[]
@@ -281,7 +282,7 @@ class TabFile(Base):
 			dad_id.append(i['sample_id'])
 			dad_id = list(set(dad_id))
 			mom = "WQ" + family + "-M.*"
-			sample_mom = collection.find({"sample_id": {"$regex": mom},"analysised":"None", "type":{"$regex": "^(p)?pt"}})
+			sample_mom = collection.find({"sample_id": {"$regex": mom},"analysised":"None"})
 			for s in sample_mom:
 				mom_id.append(s['sample_id'])
 				mom_id = list(set(mom_id))
@@ -314,7 +315,6 @@ class TabFile(Base):
 	def type(self,sample_id):
 		collection = self.database['sg_pt_ref_main']
 		sample = collection.find_one({"sample_id": sample_id})
-		print sample_id
 		return sample['type']
 
 	def sample_qc_dc(self, file, sample_id):

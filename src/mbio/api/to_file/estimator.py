@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
 import os
-from pymongo import MongoClient
 from biocluster.config import Config
 from bson.objectid import ObjectId
 import json
 
 
-client = MongoClient(Config().MONGO_URI)
-db = client[Config().MONGODB]
-
-
 def export_est_table(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB]
     est_path = os.path.join(dir_path, "%s_input.estimators.xls" % option_name)
     # file_path = os.path.join(dir_path, "%s_input.est_for_t.xls" % option_name)
     # cmd_path = os.path.join(dir_path, "cmd.r")

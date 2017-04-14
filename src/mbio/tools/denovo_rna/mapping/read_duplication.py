@@ -69,11 +69,12 @@ class ReadDuplicationTool(Tool):
     def __init__(self, config):
         super(ReadDuplicationTool, self).__init__(config)
         self.python_path = "program/Python/bin/"
+        self.python_full_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
 
     def duplication(self, bam, out_pre):
         bam_name = bam.split("/")[-1]
         out_pre = out_pre + "_" + bam_name
-        dup_cmd = "{}read_duplication.py -i {} -o {} -q {}".format(self.python_path, bam, out_pre, self.option("quality"))
+        dup_cmd = "{}python {}read_duplication.py -i {} -o {} -q {}".format(self.python_path, self.python_full_path, bam, out_pre, self.option("quality"))
         print(dup_cmd)
         self.logger.info("开始运行read_duplication.py脚本")
         dup_command = self.add_command("{}_dup".format(bam_name.lower()), dup_cmd)

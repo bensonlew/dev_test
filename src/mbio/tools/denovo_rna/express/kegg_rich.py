@@ -11,14 +11,14 @@ class KeggRichAgent(Agent):
     Kegg富集分析
     version v1.0.1
     author: qiuping
-    last_modify: 2016.08.09
+    last_modify: 2016.11.23
     """
     def __init__(self, parent):
         super(KeggRichAgent, self).__init__(parent)
         options = [
             {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},  # 只含有基因的kegg table结果文件
             {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # gene名字文件
-            {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 两两样本/分组的差异基因文件
+            {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "correct", "type": "string", "default": "BH"}  # 多重检验校正方法
         ]
         self.add_option(options)
@@ -75,6 +75,10 @@ class KeggRichTool(Tool):
         self.kobas = '/bioinfo/annotation/kobas-2.1.1/src/kobas/scripts/'
         self.kobas_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/kobas-2.1.1/src/'
         self.set_environ(PYTHONPATH=self.kobas_path)
+        self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin:$PATH"
+        self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
+        self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
+        self.set_environ(PATH=self.r_path, R_HOME=self._r_home, LD_LIBRARY_PATH=self._LD_LIBRARY_PATH)
         self.python = '/program/Python/bin/'
         self.all_list = self.option('all_list').prop['gene_list']
         self.diff_list = self.option('diff_list').prop['gene_list']
@@ -100,7 +104,7 @@ class KeggRichTool(Tool):
             self.logger.info("kegg富集第一步运行出错:{}".format(e))
 
     def run_identify(self):
-        kofile = os.path.basename(self.option('diff_list').prop['path'])
+        kofile = os.path.splitext(os.path.basename(self.option('diff_list').prop['path']))[0]
         cmd_2 = self.python + 'python {}identify.py -f {} -n {} -b {} -o {}.kegg_enrichment.xls'.format(self.config.SOFTWARE_DIR + self.kobas, self.work_dir + '/kofile', self.option('correct'), self.work_dir + '/all_kofile', kofile)
         self.logger.info('开始运行kegg富集第二步：进行kegg富集分析')
         command_2 = self.add_command("cmd_2", cmd_2).run()
@@ -108,6 +112,7 @@ class KeggRichTool(Tool):
         if command_2.return_code == 0:
             self.logger.info("kegg富集分析运行完成")
             self.set_output(kofile + '.kegg_enrichment.xls')
+            self.end()
         else:
             self.set_error("kegg富集分析运行出错!")
 
@@ -123,7 +128,6 @@ class KeggRichTool(Tool):
         try:
             os.link(linkfile, self.output_dir + '/{}'.format(linkfile))
             self.logger.info("设置kegg富集分析结果目录成功")
-            self.end()
         except Exception as e:
             self.logger.info("设置kegg富集分析结果目录失败{}".format(e))
             self.set_error("设置kegg富集分析结果目录失败{}".format(e))

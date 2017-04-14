@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 # last_modified = shenghe
-# last_modified = moli.zhou
+# last_modified = zhouxuan
 import urllib
 import json
 import datetime
@@ -31,8 +31,8 @@ class UpdateStatus(Log):
         self._mongo_client = self._config.mongo_client
         self.mongodb = self._mongo_client[Config().MONGODB+'_paternity_test_v2']
 
-    def update(self):
-        self.update_status()
+    def update(self, update_info):
+        self.update_status(update_info)
 
     def update_status(self):
         status = self.data["content"]["stage"]["status"]

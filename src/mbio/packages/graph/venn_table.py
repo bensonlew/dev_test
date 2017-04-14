@@ -112,7 +112,7 @@ def venn_graph(otu_table, group_table, output):
             line = line.strip().split("\t")
             for n, s in enumerate(samples):
                 for gp in group:
-                    if int(line[n+1]) == 0:
+                    if float(line[n+1]) == 0:
                         continue
                     elif s in group[gp]:
                         sets[gp].add(line[0].split("; ")[-1])

@@ -24,7 +24,11 @@ class OtuSubsampleWorkflow(Workflow):
             {"name": "size", "type": "string", "default": "min"},
             {"name": "group_detail", "type": "string"},
             {"name": "level", "type": "string", "default": "9"},
-            {"name": "output_otu_id", "type": "string"}  # 结果的otu id
+            {"name": "output_otu_id", "type": "string"},  # 结果的otu id
+            {"name": "update_info", "type": 'string'},
+            {"name": "main_id", "type": 'string', "default": ''},
+            {"name": "params", "type": 'string', "default": ''},
+            {"name": "group_id", "type": 'string'},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -94,23 +98,24 @@ class OtuSubsampleWorkflow(Workflow):
         else:
             shutil.copy2(self.sort_samples.option("out_otu_table").prop["path"], final_file)
         api_otu = self.api.sub_sample
-        output_otu_id = api_otu.add_sg_otu(self.sheet.params, self.option("size"), self.option("input_otu_id"))
+        # output_otu_id = api_otu.add_sg_otu(self.sheet.params, self.option("size"), self.option("input_otu_id"))
         if not os.path.isfile(final_file):
             raise Exception("找不到报告文件:{}".format(final_file))
         self.logger.info("开始讲信息导入sg_otu_detail表和sg_otu_specimen表中")
-        api_otu.add_sg_otu_detail(final_file, self.option("input_otu_id"), output_otu_id)
-        api_otu.add_sg_otu_detail_level(final_file, output_otu_id, self.option("level"))
-        self.add_return_mongo_id("sg_otu", output_otu_id)
+        api_otu.add_sg_otu_detail(final_file, self.option("input_otu_id"), self.option('main_id'))
+        api_otu.add_sg_otu_detail_level(final_file, self.option('main_id'), self.option("level"))
+        self.add_return_mongo_id("sg_otu", self.option('main_id'))
         self.end()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "OTU分类统计结果目录"],
+            ["./otu_taxon.subsample.xls", "xls", "抽平后的OTU表格"]  # add by hongdongxuan 20170324
         ])
-        result_dir.add_regexp_rules([
-            ['\.subsample\.', 'meta.otu.otu_table', "抽平后的otu表格"]
-        ])
+        # result_dir.add_regexp_rules([
+        #     ['\.subsample\.', 'meta.otu.otu_table', "抽平后的otu表格"]   # modified by hongdongxuan 20170324
+        # ])
         super(OtuSubsampleWorkflow, self).end()
 
     def run(self):

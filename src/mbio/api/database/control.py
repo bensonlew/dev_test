@@ -6,7 +6,6 @@ from biocluster.config import Config
 import os
 from bson.objectid import ObjectId
 import types
-from collections import OrderedDict
 
 
 class Control(Base):
@@ -30,13 +29,15 @@ class Control(Base):
             raise Exception('control_file所指定的路径不存在，请检查！')
         project_sn = self.bind_object.sheet.project_sn
         task_id = self.bind_object.sheet.id
-        control_info = dict()
+        control_info = list()
         with open(control_file, 'rb') as c:
             scheme_name = c.readline().strip('\n').split()[1]
             for line in c:
                 line = line.strip('\n').split()
-                control_info[line[0]] = line[1]
-        control_info = OrderedDict(sorted(control_info.items(), key=lambda t: t[0]))
+                tmp = {}
+                tmp[line[0]] = line[1]
+                control_info.append(tmp)
+        control_info.sort()
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,

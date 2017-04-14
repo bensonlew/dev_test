@@ -33,13 +33,13 @@ class Meta(Base):
             if spname_spid and params:
                 group_detail = {'All': [str(i) for i in spname_spid.values()]}
                 params['group_detail'] = group_detail_sort(group_detail)
-                params['level_id'] = 9
+                #params['level_id'] = 9  # modified by hongdongxuan 20170303
             if task_id is None:
                 task_id = self.bind_object.sheet.id
             insert_data = {
                 "project_sn": self.bind_object.sheet.project_sn,
                 "task_id": task_id,
-                "name": name if name else "otu_taxon_origin",
+                "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "otu_taxon_origin",
                 "from_id": from_out_table,
                 "status": "end",
                 "level_id": json.dumps([9]),

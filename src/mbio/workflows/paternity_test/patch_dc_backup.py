@@ -216,9 +216,9 @@ class PatchDcBackupWorkflow(Workflow):
 					print "Oops!"
 			self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/'.format(n) + rdata
 			self.father_sample = rdata.split('_')[0]
-
 		print '************'
 		print self.father
+		print self.dedup_list
 		if self.father_sample in self.father:
 			q = self.father.index(self.father_sample)
 			result_info.on('end', self.dedup_run, q)

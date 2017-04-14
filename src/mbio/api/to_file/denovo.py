@@ -9,11 +9,8 @@ import re
 from types import StringTypes
 
 
-client = Config().mongo_client
-db = client[Config().MONGODB + '_rna']
-
-
 def export_express_matrix(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_rna"]
     fpkm_path = os.path.join(dir_path, "%s_fpkm.matrix" % option_name)
     count_path = os.path.join(dir_path, "%s_count.matrix" % option_name)
     bind_obj.logger.debug("正在导出计数矩阵:%s；fpkm矩阵:%s" % (count_path, fpkm_path))
@@ -46,6 +43,7 @@ def export_express_matrix(data, option_name, dir_path, bind_obj=None):
 
 
 def export_control_file(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_rna"]
     file_path = os.path.join(dir_path, '{}.txt'.format(option_name))
     bind_obj.logger.debug("正在导出计数矩阵:%s" % file_path)
     collection = db['sg_denovo_control']
@@ -64,7 +62,7 @@ def export_control_file(data, option_name, dir_path, bind_obj=None):
     with open(file_path, 'wb') as w:
         w.write('#control\t{}\n'.format(result['scheme_name']))
         for i in control_detail:
-            w.write('{}\t{}\n'.format(i, control_detail[i]))
+            w.write('{}\t{}\n'.format(i.keys()[0], i.values()[0]))
     return file_path
 
 
@@ -73,6 +71,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     按分组的详细信息获取group表
     使用时确保你的workflow的option里group_detal这个字段
     """
+    db = Config().mongo_client[Config().MONGODB + "_rna"]
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
     if data in ["all", "All", "ALL"]:
@@ -81,7 +80,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
         return file_path
     data = _get_objectid(data)
     group_detail = bind_obj.sheet.option('group_detail')
-    group_table = db['sg_specimen_group']
+    group_table = db['sg_denovo_specimen_group']
     if not isinstance(group_detail, dict):
         try:
             table_dict = json.loads(group_detail)
@@ -91,11 +90,11 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
         raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
     group_schema = group_table.find_one({"_id": ObjectId(data)})
     if not group_schema:
-        raise Exception("无法根据传入的group_id:{}在sg_specimen_group表里找到相应的记录".format(data))
+        raise Exception("无法根据传入的group_id:{}在sg_denovo_specimen_group表里找到相应的记录".format(data))
     schema_name = re.sub("\s", "_", group_schema["group_name"])  # 将分组方案名的空格替换成下划线
     with open(file_path, "wb") as f:
         f.write("#sample\t" + schema_name + "\n")
-    sample_table_name = 'sg_specimen'
+    sample_table_name = 'sg_denovo_specimen'
     sample_table = db[sample_table_name]
     with open(file_path, "ab") as f:
         for k in table_dict:
@@ -122,6 +121,7 @@ def _get_objectid(data):
 
 
 def export_bam_path(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_rna"]
     my_collection = db['sg_denovo_express']
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
@@ -132,6 +132,7 @@ def export_bam_path(data, option_name, dir_path, bind_obj=None):
 
 
 def export_bed_path(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_rna"]
     my_collection = db['sg_denovo_orf']
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
@@ -142,6 +143,7 @@ def export_bed_path(data, option_name, dir_path, bind_obj=None):
 
 
 def export_fasta_path(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_rna"]
     my_collection = db['sg_denovo_sequence']
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
@@ -149,3 +151,105 @@ def export_fasta_path(data, option_name, dir_path, bind_obj=None):
     gene_path = my_result['gene_path']
     dir_path = gene_path
     return dir_path
+
+
+def export_kegg_table(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_rna"]
+    kegg_path = os.path.join(dir_path, 'gene_kegg_table.xls')
+    bind_obj.logger.debug("正在导出参数%s的kegg_table文件，路径:%s" % (option_name, kegg_path))
+    with open(kegg_path, 'wb') as w:
+        w.write('#Query\tKO_ID(Gene id)\tKO_name(Gene name)\tHyperlink\tPaths\n')
+        task_id = bind_obj.sheet.id
+        anno_id = db['sg_denovo_annotation'].find_one({'task_id': task_id})['_id']
+        results = db['sg_denovo_annotation_kegg_table'].find({'$and': [{'annotation_id': anno_id}, {'type': 'gene'}]})
+        if not results:
+            raise Exception("生成kegg_table出错：annotation_id:{}在sg_denovo_annotation_kegg_table中未找到！".format(ObjectId(anno_id)))
+        for result in results:
+            w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
+    return kegg_path
+
+
+def go_enrich(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_rna"]
+    all_list = os.path.join(dir_path, "all_gene.list")
+    diff_list = os.path.join(dir_path, "unigene.list")
+    gos_list = os.path.join(dir_path, "unigene_gos.list")
+    collection = db["sg_denovo_express_detail"]
+    my_collection = db["sg_denovo_express"]
+    results = collection.find({"$and": [{"express_id": ObjectId(data)}, {"type": "gene"}]})
+    my_result = my_collection.find_one({"_id": ObjectId(data)})
+    task_id = my_result["task_id"]
+    if not my_result:
+        raise Exception("意外错误，expree_id:{}在sg_denovo_express中未找到!".format(ObjectId(data)))
+    with open(all_list, "wb") as w1, open(diff_list, "wb") as w2:
+        for result in results:
+            gene_id = result["gene_id"]
+            w1.write(gene_id + "\n")
+        collection1 = db["sg_denovo_express_diff"]
+        results1 = collection1.find({"express_id": ObjectId(data)})
+        # results1 = collection1.find_one({"express_id": data})
+        for result1 in results1:
+            express_diff_id = result1["_id"]
+            collection2 = db["sg_denovo_express_diff_detail"]
+            results2 = collection2.find({"express_diff_id": express_diff_id})
+            for result2 in results2:
+                gene_id = result2["gene_id"]
+                w2.write(gene_id + "\n")
+    my_collection1 = db["sg_denovo_annotation"]
+    my_result1 = my_collection1.find_one({"task_id": task_id})
+    annotation_id = my_result1["_id"]
+    if not my_result1:
+        raise Exception("意外错误，annotation_id:{}在sg_denovo_annotation中未找到！".format(annotation_id))
+    collection3 = db["sg_denovo_annotation_gos_list"]
+    results3 = collection3.find({"annotation_id": ObjectId(annotation_id)})
+    with open(gos_list, "wb") as w4:
+        for result3 in results3:
+            gene_id = result3["gene_id"]
+            go_list = result3["go_id"]
+            w4.write(gene_id + "\t" + go_list + "\n")
+    paths = ','.join([all_list, diff_list, gos_list])
+    return paths
+
+
+def go_regulate(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_rna"]
+    diff_express = os.path.join(dir_path, "diff.exp.xls")
+    go2level = os.path.join(dir_path, "go2level.xls")
+    my_collection = db["sg_denovo_express"]
+    my_result = my_collection.find_one({"_id": ObjectId(data)})
+    task_id = my_result["task_id"]
+    if not my_result:
+        raise Exception("意外错误，expree_id:{}在sg_denovo_express中未找到!".format(ObjectId(data)))
+    with open(diff_express, 'wb') as w:
+        w.write('seq_id\tE20_1_count\tE20_2_count\tP1_1_count\tP1_2_count\tE20_1_fpkm\tE20_2_fpkm\tP1_1_fpkm\tP1_2_fpkm\tE20_mean_fpkm\tP1_mean_fpkm\tlogFC(P1/E20)\tPvalue\tFDR\tSignificant\tRegulate\n')
+        collection1 = db["sg_denovo_express_diff"]
+        # results1 = collection1.find({"express_id": ObjectId(data)})
+        results1 = collection1.find({"express_id": ObjectId("583ceba958e7b77d4c60d984")})
+        for result1 in results1:
+            express_diff_id = result1["_id"]
+            collection2 = db["sg_denovo_express_diff_detail"]
+            results2 = collection2.find({"express_diff_id": express_diff_id})
+            for result2 in results2:
+                gene_id = result2["gene_id"]
+                significant = result2['significant']
+                regulate = result2['regulate']
+                w.write(gene_id + '\t''\t''\t''\t''\t''\t''\t''\t''\t''\t''\t''\t''\t''\t' + significant + '\t' + regulate + '\n')
+    my_collection1 = db["sg_denovo_annotation"]
+    my_result1 = my_collection1.find_one({"task_id": task_id})
+    annotation_id = my_result1["_id"]
+    if not my_result1:
+        raise Exception("意外错误，annotation_id:{}在sg_denovo_annotation中未找到！".format(annotation_id))
+    collection3 = db["sg_denovo_annotation_go_graph"]
+    results3 = collection3.find({"$and": [{"annotation_id": annotation_id}, {"type": "gene"}, {"level": 2}]})
+    with open(go2level, "wb") as w:
+        w.write("term_type\tterm\tGO\tnumber\tpercent\tsequence\n")
+        for result3 in results3:
+            term_type = result3['parent_name']
+            term = result3['go_name']
+            GO = result3['go_id']
+            number = result3['num']
+            percent = result3['rate']
+            sequence = result3['sequence']
+            w.write(term_type + '\t' + term + '\t' + GO + '\t' + number + '\t' + percent + '\t' + sequence + '\n')
+    paths = ','.join([diff_express, go2level])
+    return paths

@@ -13,7 +13,6 @@ class MultipleWorkflow(Workflow):
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        self.rpc = False
         super(MultipleWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "otu_file", "type": "infile", 'format': "meta.otu.otu_table"},
@@ -28,8 +27,9 @@ class MultipleWorkflow(Workflow):
             {"name": "group_name", "type": "string"},
             {"name": "methor", "type": "string"},
             {"name": "coverage", "type": "float"},
-            {"name": "category_name", "type": "string"}
-
+            {"name": "category_name", "type": "string"},
+            {"name": "update_info", "type": "string"},
+            {"name": "main_id", "type": "string"},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -65,7 +65,7 @@ class MultipleWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "物种差异多组比较结果目录"]
         ])
         result_dir.add_regexp_rules([
             [r".*_result\.xls", "xls", "物种组间差异显著性比较结果表，包括均值，标准差，p值"],
@@ -96,10 +96,9 @@ class MultipleWorkflow(Workflow):
                     if not os.path.isfile(ci_path):
                         raise Exception("找不到报告文件:{}".format(ci_path))
                     cifiles.append(ci_path)
-        main_id = api_multiple.add_species_difference_check_detail(statfile=stat_path, cifiles=cifiles, table_id=None, level=self.option("level"), check_type='multiple', params=self.option("params"), category_name=self.option('category_name'), group_id=params["group_id"], from_otu_table=params["otu_id"], major=True, posthoc=self.option("methor"))
-        api_multiple.add_species_difference_check_boxplot(boxfile_path, main_id)
-        api_multiple.add_species_difference_check_barplot(bar_path, main_id)
-        self.add_return_mongo_id('sg_species_difference_check', main_id)
+        api_multiple.add_species_difference_check_detail(statfile=stat_path, cifiles=cifiles, table_id=self.option('main_id'), level=self.option("level"), check_type='multiple', params=self.option("params"), category_name=self.option('category_name'), group_id=params["group_id"], from_otu_table=params["otu_id"], major=False, posthoc=self.option("methor"))
+        api_multiple.add_species_difference_check_boxplot(boxfile_path, self.option('main_id'))
+        api_multiple.add_species_difference_check_barplot(bar_path, self.option('main_id'))
         self.end()
 
     def run(self):
