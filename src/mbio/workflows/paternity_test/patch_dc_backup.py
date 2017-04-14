@@ -216,9 +216,6 @@ class PatchDcBackupWorkflow(Workflow):
 					print "Oops!"
 			self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/'.format(n) + rdata
 			self.father_sample = rdata.split('_')[0]
-		print '************'
-		print self.father
-		print self.dedup_list
 		if self.father_sample in self.father:
 			q = self.father.index(self.father_sample)
 			result_info.on('end', self.dedup_run, q)
@@ -239,14 +236,20 @@ class PatchDcBackupWorkflow(Workflow):
 		q = event['data']
 		name_list = self.dedup_list[q]
 		self.tools_dedup = []
+		family = self.father[q].split('-')[0]
 		for i in name_list:
 			pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
 			self.step.add_steps('dedup_{}'.format(n))
+			print '22222222222222'
+			print self.output_dir + '/'+ i + '.tab'
+			print self.output_dir + '/' + family + '-M.tab'
+			print self.output_dir +'/' +  family + '-S.tab'
 			pt_analysis_dedup.set_options({
 				"dad_tab": self.output_dir + '/'+ i + '.tab',  # 数据库的tab文件
-				"mom_tab": self.output_dir + '/' + self.family_id[q][1] + '.tab',
-				"preg_tab": self.output_dir +'/' +  self.family_id[q][2] + '.tab',
+				"mom_tab": self.output_dir + '/' + family + '-M.tab',
+				"preg_tab": self.output_dir +'/' +  family + '-S.tab',
 				"ref_point": self.option("ref_point"),
+				"err_min": self.option("err_min")
 			}
 			)
 			step = getattr(self.step, 'dedup_{}'.format(n))
@@ -268,6 +271,8 @@ class PatchDcBackupWorkflow(Workflow):
 		# else:
 		#     self.end()
 
+		print '************'
+		print self.list_2D(self.tool)
 		if self.list_2D(self.tool):
 			if len(self.tool[x]) > 1:
 				self.on_rely(self.tool[x], self.end)
