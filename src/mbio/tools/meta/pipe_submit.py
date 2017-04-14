@@ -109,9 +109,9 @@ class PipeSubmitTool(Tool):
         return self.task_id
 
     def update_mongo_ends_count(self, ana):
-        print "ana._params_check_end", ana._params_check_end
-        print "ana.success", ana.success
-        print "ana.api", ana.api
+        # print "ana._params_check_end", ana._params_check_end
+        # print "ana.success", ana.success
+        # print "ana.api", ana.api
         if ana.instant:
             print "test1"
             self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$inc': {"ends_count": 1}})
@@ -341,8 +341,9 @@ class PipeSubmitTool(Tool):
             self.logger.info('所有任务已经投递结束，计数:{}，总数:{}'.format(self.count_ends, self.all_count))
             for i in self.all:
                 for one in self.all[i].values():
-                    if not one.is_end:
-                        self.logger.info("没有结束的submit: {}, api: {}, params: {}".format(one, one.api, one._params))
+                    for key in one.values():
+                        if not key.is_end:
+                            self.logger.info("没有结束的submit: {}, api: {}, params: {}".format(key, key.api, key._params))
         self.end()
 
     def update_all_count(self):
