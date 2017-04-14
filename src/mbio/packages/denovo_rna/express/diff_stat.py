@@ -90,14 +90,15 @@ class DiffStat(object):
         with open(edgr_result, 'rb') as r, open('%s/%s_vs_%s_edgr_stat.xls' % (output, control, other), 'wb') as w:
             r.readline()
             if group_info:
-                head = "gene_id\t%s_mean_count\t%s_mean_count\t%s_mean_fpkm\t%s_mean_fpkm\tlog2fc(%s/%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control)
+                head = "gene_id\t%s_mean_count\t%s_mean_count\t%s_mean_fpkm\t%s_mean_fpkm\tlog2fc(%s/%s)\tlogCPM(%s*%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control,other, control)
             else:
-                head = "gene_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc(%s/%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control)
+                head = "gene_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc(%s/%s)\tlogCPM(%s*%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control,other, control)
             w.write(head)
             for line in r:
                 line = line.strip('\n').split('\t')
                 gene = line[0]
                 pvalue = float(line[-2])
+                logCPM = float(line[-3])
                 fdr = float(line[-1])
                 counts = express_info[gene].counts
                 fpkms = express_info[gene].fpkms
@@ -111,8 +112,9 @@ class DiffStat(object):
                     control_fpkm = express_info[gene].fpkms[control]
                     other_count = express_info[gene].counts[other]
                     other_fpkm = express_info[gene].fpkms[other]
-                lfc = (other_fpkm + 0.1) / (control_fpkm + 0.1)
-                logfc = round(math.log(lfc, 2), 3)
+                #lfc = (other_fpkm + 0.1) / (control_fpkm + 0.1)
+                #logfc = round(math.log(lfc, 2), 3)
+                logfc = float(line[-4])
                 if regulate:
                     if logfc > fc:
                         reg = 'up'
@@ -127,7 +129,7 @@ class DiffStat(object):
                     sig = 'yes'
                 else:
                     sig = 'no'
-                w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, control_count, other_count, control_fpkm, other_fpkm, logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg))
+                w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, control_count, other_count, control_fpkm, other_fpkm, '%0.4g' %logfc,'%0.4g' %logCMP, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg))
 
 # a = DiffStat()
 # a.get_express_info('/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/MergeRsem/genes.counts.matrix', '/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/MergeRsem/genes.TMM.fpkm.matrix')
