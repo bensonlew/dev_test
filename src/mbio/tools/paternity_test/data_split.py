@@ -103,10 +103,17 @@ class DataSplitTool(Tool):
 					lines = "Sample_" + line[3] + "," + line[3] + ",,,," + line[8] + "," + line[4] + "," + "\n"
 					w.write(lines)
 
-		os.system('tar -zxf {} -C {}'.format(self.option('data_dir').prop['path'], self.work_dir))
+		result = os.system('tar -zxf {} -C {}'.format(self.option('data_dir').prop['path'], self.work_dir))
+		if result != 0:
+			raise OptionError("压缩包解压失败，请重新投递运行！")
 		old_data_dir_1 = os.path.join(self.work_dir, self.option('data_dir').prop['path'].split("/")[-1].split(".")[0])
-		old_data_dir = ("_").join(old_data_dir_1.split("_")[0:-1])
-
+		p = re.search('([0-9]+)$', old_data_dir_1)
+		if p:
+			old_data_dir = ("_").join(old_data_dir_1.split("_")[0:-1])
+		else:
+			old_data_dir = old_data_dir_1
+		if not os.path.exists(old_data_dir):
+			self.set_error("下机数据文件夹路径不正确，请设置正确的路径。")
 		cmd = "{} -i {}/Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
 		      "--ignore-missing-bcl -R {}/ -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
 			format(self.script_path,old_data_dir,self.work_dir,
@@ -138,12 +145,23 @@ class DataSplitTool(Tool):
 			if sample_[1] not in undetermined_sample_name:
 				undetermined_sample_name.append(sample_[1])
 				os.mkdir(dir_name)
-				shutil.copy(src, dir_name)
+				#shutil.copy(src, dir_name)
+				os.link(src, os.path.join(dir_name, name))
 			else:
-				shutil.copy(src, dir_name)
+				#shutil.copy(src, dir_name)
+				os.link(src, os.path.join(dir_name, name))
 		med_result_dir = os.path.join(self.work_dir, "MED")
 		list_name = os.listdir(med_result_dir)
 		for name in list_name:
 			sample_dir = os.path.join(med_result_dir, name)
-			dst = os.path.join(self.output_dir, name)
-			shutil.copytree(sample_dir, dst)
+			file_name = os.listdir(sample_dir)
+			dir_name = os.path.join(self.output_dir, name)
+			if not os.path.exists(dir_name):
+				os.mkdir(dir_name)
+			for name_ in file_name:
+				dst = os.path.join(dir_name, name_)
+				src = os.path.join(sample_dir, name_)
+				os.link(src, dst)
+
+			# dst = os.path.join(self.output_dir, name)
+			# shutil.copytree(sample_dir, dst)

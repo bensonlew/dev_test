@@ -32,14 +32,13 @@ class TabFile(Base):
 				if line[0] != '':
 					sample_name = line[0]
 					insert_data = {
-						"sample_id": sample_name,
 						"analysised": analysised,
 						"batch_id": ObjectId(batch_id)
 					}
 				break
 			try:
 				collection = self.database['sg_pt_ref_main']
-				collection.insert_one(insert_data)
+				collection.find_one_and_update({"sample_id": sample_name},{'$set':insert_data})
 			except Exception as e:
 				self.bind_object.logger.error('导入tab主表出错：{}'.format(e))
 			else:
@@ -255,12 +254,10 @@ class TabFile(Base):
 			self.bind_object.logger.info("计算并导入ot成功")
 
 
-
-
 	def family_unanalysised(self):
 		family_id = []
 		collection = self.database['sg_pt_ref_main']
-		sample = collection.find({"analysised":'no'})
+		sample = collection.find({"analysised":'no',"type":{"$regex":"(p)?pt$"}})
 		for i in sample:
 			dad_id = []
 			mom_id =[]
@@ -270,12 +267,12 @@ class TabFile(Base):
 			dad_id.append(i['sample_id'])
 			dad_id = list(set(dad_id))
 			mom = "WQ" + family + "-M.*"
-			sample_mom = collection.find({"sample_id": {"$regex": mom}})
+			sample_mom = collection.find({"sample_id": {"$regex": mom},"analysised":"None"})
 			for s in sample_mom:
 				mom_id.append(s['sample_id'])
 				mom_id = list(set(mom_id))
 			preg = "WQ" +family + "-S.*"
-			sample_preg = collection.find({"sample_id": {"$regex": preg}})
+			sample_preg = collection.find({"sample_id": {"$regex": preg},"analysised":"None"})
 			for n in sample_preg:
 				preg_id.append(n['sample_id'])
 				preg_id = list(set(preg_id))
@@ -299,5 +296,12 @@ class TabFile(Base):
 				self.bind_object.logger.info("家系数据还未全部下机")
 				continue
 		return family_id
+
+	def type(self,sample_id):
+		collection = self.database['sg_pt_ref_main']
+		sample = collection.find_one({"sample_id": sample_id})
+		print sample_id
+		return sample['type']
+
 
 

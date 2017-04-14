@@ -22,7 +22,7 @@ class SgPaternityTest(Base):
 		self.database = self.mongo_client['tsanger_paternity_test_v2']
 
 	@report_check
-	def add_sg_father(self,dad,mom,preg,batch_id):
+	def add_sg_father(self,dad,mom,preg,batch_id,member_id):
 		temp_d = re.search("WQ([0-9]*)-F.*",dad)
 		temp_m = re.search(".*-(M.*)", mom)
 		temp_s = re.search(".*-(S.*)",preg)
@@ -30,14 +30,14 @@ class SgPaternityTest(Base):
 
 		# "name": family_no.group(1)
 		insert_data = {
-			"batch_id":ObjectId(batch_id),
 			"dad_id": dad,
 			"mom_id": mom,
 			"preg_id": preg,
-			"created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 			"family_id": temp_d.group(1),
-			"status":'start',
-			"name": name
+			"name": name,
+			"created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+			"batch_id": ObjectId(batch_id),
+			"member_id":member_id
 		}
 		try:
 			collection = self.database['sg_father']
@@ -77,14 +77,14 @@ class SgPaternityTest(Base):
 		else:
 			self.bind_object.logger.info("更新father主表家系质控成功")
 
-	def update_sg_father(self, father_id):
+	def update_sg_pt_father(self, pt_father_id):
 		try:
-			collection = self.database['sg_father']
-			collection.update({"_id": father_id}, {'$set': {"status": "end"}})
+			collection = self.database['sg_pt_father']
+			collection.update({"_id": pt_father_id}, {'$set': {"status": "end"}})
 		except Exception as e:
-			self.bind_object.logger.error('更新father主表状态出错：{}'.format(e))
+			self.bind_object.logger.error('更新pt_father主表状态出错：{}'.format(e))
 		else:
-			self.bind_object.logger.info("更新father主表状态成功")
+			self.bind_object.logger.info("更新pt_father主表状态成功")
 
 
 
@@ -98,7 +98,7 @@ class SgPaternityTest(Base):
 		insert_data = {
 			"father_id": father_id,
 			"name": name,
-			"created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+			"status": "start"
 		}
 
 		collection = self.database['sg_pt_father']

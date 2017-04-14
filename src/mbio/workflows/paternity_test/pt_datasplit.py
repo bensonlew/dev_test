@@ -10,7 +10,7 @@ from biocluster.wpm.client import worker_client as WC
 import datetime
 import json
 from mainapp.models.mongo.submit.paternity_test_mongo import PaternityTest as PT
-import shutil
+from bson import ObjectId
 
 class PtDatasplitWorkflow(Workflow):
 	"""
@@ -28,6 +28,7 @@ class PtDatasplitWorkflow(Workflow):
 
 			{"name": "family_table", "type": "infile", "format": "paternity_test.tab"},  # 需要存入mongo里面的家系信息表
 			{"name": "pt_data_split_id", "type": "string"},
+			{"name": "member_id", "type": "string"},
 			{"name": "update_info", "type": "string"}
 		]
 		self.add_option(options)
@@ -75,7 +76,7 @@ class PtDatasplitWorkflow(Workflow):
 			"message_table": self.option('message_table'),
 			"data_dir": self.option('data_dir'),
 		})
-		self.data_split.on('end', self.set_output, 'data_split')
+		# self.data_split.on('end', self.set_output, 'data_split')
 		self.data_split.on('end', self.run_merge_fastq_wq)
 		# self.data_split.on('start', self.set_step, {'start': self.step.data_split})
 		# self.data_split.on('end', self.set_step, {'end': self.step.data_split})
@@ -104,20 +105,24 @@ class PtDatasplitWorkflow(Workflow):
 				self.sample_name_un.append(j)
 		n = 0
 		self.tools = []
+		self.wq_dir = os.path.join(self.output_dir, "wq_dir")
+		if not os.path.exists(self.wq_dir):
+			os.mkdir(self.wq_dir)
 		for i in self.sample_name_wq:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			# self.step.add_steps('merge_fastq{}'.format(n))
 			merge_fastq.set_options({
 				"sample_dir_name": i,
-				"data_dir": self.data_dir
+				"data_dir": self.data_dir,
+				"result_dir": self.wq_dir,
 			})
 			# step = getattr(self.step, 'merge_fastq{}'.format(n))
 			# step.start()
 			# merge_fastq.on('end', self.finish_update, 'merge_fastq{}'.format(n))
 			self.tools.append(merge_fastq)
 			n += 1
-		for j in range(len(self.tools)):
-			self.tools[j].on('end', self.set_output, 'merge_fastq')
+		# for j in range(len(self.tools)):
+		# 	self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
 			if len(self.sample_name_ws) == 0 and len(self.sample_name_un) != 0:
 				self.on_rely(self.tools, self.run_merge_fastq_un)
@@ -139,16 +144,20 @@ class PtDatasplitWorkflow(Workflow):
 		self.run_wq_wf()  # 启动亲子鉴定流程和导表工作
 		n = 0
 		self.tools = []
+		ws_dir = os.path.join(self.output_dir, "ws_dir")
+		if not os.path.exists(ws_dir):
+			os.mkdir(ws_dir)
 		for i in self.sample_name_ws:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			merge_fastq.set_options({
 				"sample_dir_name": i,
-				"data_dir": self.data_dir
+				"data_dir": self.data_dir,
+				"result_dir": ws_dir
 			})
 			self.tools.append(merge_fastq)
 			n += 1
-		for j in range(len(self.tools)):
-			self.tools[j].on('end', self.set_output, 'merge_fastq')
+		# for j in range(len(self.tools)):
+		# 	self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
 			if len(self.sample_name_un) != 0:
 				self.on_rely(self.tools, self.run_merge_fastq_un)
@@ -163,19 +172,16 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run_wq_wf(self):  # 亲子鉴定流程
-		# self.logger.info("开始导表(家系表)")
-		# db_customer = self.api.pt_customer
-		# db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
-		#                             customer_file=self.option('family_table').prop['path'])
-		# self.logger.info("导表结束(家系表)")
 		self.logger.info("给pt_batch传送数据路径")
 		mongo_data = [
-			('batch_id', self.option('pt_data_split_id')),
+			('batch_id', ObjectId(self.option('pt_data_split_id'))),
+			("type", "pt"),
 			("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-			("status", "start")
+			("status", "start"),
+			("member_id",self.option('member_id'))
 		]
-		main_table_id = PT().insert_main_table('sg_father', mongo_data)
-		update_info = {str(main_table_id): 'sg_father'}
+		main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
+		update_info = {str(main_table_id): 'sg_analysis_status'}
 		update_info = json.dumps(update_info)
 		data = {
 			'stage_id': 0,
@@ -187,6 +193,7 @@ class PtDatasplitWorkflow(Workflow):
 			"IMPORT_REPORT_DATA": True,
 			"IMPORT_REPORT_AFTER_END": False,
 			"options": {
+				"member_id": self.option('member_id'),
 				"fastq_path": self.wq_dir,
 				"cpu_number": 8,
 				"ref_fasta": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa",
@@ -194,7 +201,7 @@ class PtDatasplitWorkflow(Workflow):
 				"ref_point": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/targets.bed.rda",
 				"err_min": 2,
 				"batch_id": self.option('pt_data_split_id'),
-				"dedup_num": 30,
+				"dedup_num": 2,
 				"update_info": update_info
 			}
 		}
@@ -210,16 +217,20 @@ class PtDatasplitWorkflow(Workflow):
 			self.run_wq_wf()
 		n = 0
 		self.tools = []
+		undetermined_dir = os.path.join(self.output_dir, "undetermined_dir")
+		if not os.path.exists(undetermined_dir):
+			os.mkdir(undetermined_dir)
 		for i in self.sample_name_un:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			merge_fastq.set_options({
 				"sample_dir_name": i,
-				"data_dir": self.data_dir
+				"data_dir": self.data_dir,
+				"result_dir": undetermined_dir
 			})
 			self.tools.append(merge_fastq)
 			n += 1
-		for j in range(len(self.tools)):
-			self.tools[j].on('end', self.set_output, 'merge_fastq')
+		# for j in range(len(self.tools)):
+		# 	self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
 			self.on_rely(self.tools, self.end)
 		else:
@@ -286,5 +297,7 @@ class PtDatasplitWorkflow(Workflow):
 			if os.path.isfile(oldfiles[i]):
 				os.link(oldfiles[i], newfiles[i])
 			elif os.path.isdir(oldfiles[i]):
-				os.system('cp -r %s %s' % (oldfiles[i], newdir))
-
+				file_name = os.listdir(oldfiles[i])
+				os.mkdir(newfiles[i])
+				for file_name_ in file_name:
+					os.link(os.path.join(oldfiles[i], file_name_), os.path.join(newfiles[i], file_name_))

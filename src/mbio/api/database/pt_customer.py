@@ -45,10 +45,11 @@ class PtCustomer(Base):
 					break
 				if line[4] == "" or line[7] == "":
 					continue
+
 				if len(line) == 22 and line[21] != "":
-					family_name = line[8] + "-" + line[5].split("-")[-1] + "-" + line[21].split("-")[-1]
+					family_name = "WQ" + line[8].split("-")[1] +"-"+ line[8].split("-")[-1] + "-" + line[5].split("-")[-1] + "-" + line[21].split("-")[-1]
 				else:
-					family_name = line[8] + "-" + line[5].split("-")[-1] + "-S"
+					family_name = "WQ" + line[8].split("-")[1] +"-"+ line[8].split("-")[-1] + "-" + line[5].split("-")[-1] + "-S"
 				print len(line)
 				collection = self.database["sg_pt_customer"]
 				result = collection.find_one({"name": family_name})
@@ -111,18 +112,20 @@ class PtCustomer(Base):
 						"sample_id":line[3]
 					}
 					collection = self.database_ref['sg_pt_ref_main']
-					if collection.find({"sample_id": line[3]}):
+					if collection.find_one({"sample_id": line[3]}):
 						pass
 					else:
 						insert.append(insert_data)
-			try:
-				collection = self.database_ref['sg_pt_ref_main']
-				collection.insert_many(insert)
-			except Exception as e:
-				self.bind_object.logger.error('导入ref类型出错：{}'.format(e))
+			if insert:
+				try:
+					collection = self.database_ref['sg_pt_ref_main']
+					collection.insert_many(insert)
+				except Exception as e:
+					self.bind_object.logger.error('导入ref类型出错：{}'.format(e))
+				else:
+					self.bind_object.logger.info("导入ref类型成功")
 			else:
-				self.bind_object.logger.info("导入ref类型成功")
-
+				self.bind_object.logger.info("没有插入样本信息")
 
 
 

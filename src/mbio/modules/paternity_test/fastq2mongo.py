@@ -50,9 +50,9 @@ class Fastq2mongoModule(Module):
 	def fastq2bam_run(self):
 		self.fastq2bam.set_options({
 			"fastq": self.option("sample_id"),
-			"ref_fasta": self.option("ref_fasta").prop['path'],
-			"targets_bedfile": self.option("targets_bedfile").prop['path'],
-			"seq_path": self.option("fastq_path").prop['path'],
+			"ref_fasta": self.option("ref_fasta"),
+			"targets_bedfile": self.option("targets_bedfile"),
+			"seq_path": self.option("fastq_path"),
 			"cpu_number": self.option("cpu_number")
 		})
 		self.fastq2bam.on('end', self.set_output, 'fastq2bam')
@@ -65,8 +65,8 @@ class Fastq2mongoModule(Module):
 		self.bam2tab.set_options({
 			"sample_id": self.option("sample_id"),
 			"bam_dir": bam_dir,
-			"ref_fasta": self.option("ref_fasta").prop['path'],
-			"targets_bedfile": self.option("targets_bedfile").prop['path']
+			"ref_fasta": self.option("ref_fasta"),
+			"targets_bedfile": self.option("targets_bedfile")
 		})
 		self.bam2tab.on('end', self.set_output, 'bam2tab')
 		self.bam2tab.on('start', self.set_step, {'start': self.step.bam2tab})
