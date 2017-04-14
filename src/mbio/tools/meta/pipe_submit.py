@@ -21,10 +21,7 @@ from gevent.event import AsyncResult
 import pymongo
 import copy
 import random
-import traceback
 import datetime
-from gevent import monkey
-from biocluster.wpm.client import worker_client, wait
 import re
 from types import StringTypes
 
@@ -113,11 +110,11 @@ class PipeSubmitTool(Tool):
         # print "ana.success", ana.success
         # print "ana.api", ana.api
         if ana.instant:
-            print "test1"
-            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$inc': {"ends_count": 1}})
+            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+                                                         {'$inc': {"ends_count": 1}})
         elif ana._params_check_end or not ana.success:
-            print "test2"
-            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$inc': {"ends_count": 1}})
+            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+                                                         {'$inc': {"ends_count": 1}})
 
     def one_end(self, ana):
         self.count_ends += 1
@@ -151,7 +148,7 @@ class PipeSubmitTool(Tool):
         sub_params = self.web_data['sub_analysis'][config_name]
         for i in config['others']:
             if i == "second_group_detail" and sub_params[i]:
-                params[i] = group_detail_sort(sub_params[i])  #lefse接口中使用的是group_detail_sort
+                params[i] = group_detail_sort(sub_params[i])  # lefse接口中使用的是group_detail_sort
             else:
                 params[i] = sub_params[i]
         api = '/' + '/'.join(sub_params['api'].split('|'))
@@ -347,7 +344,8 @@ class PipeSubmitTool(Tool):
         self.end()
 
     def update_all_count(self):
-        self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$set': {"all_count": self.all_count}})
+        self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+                                                     {'$set': {"all_count": self.all_count}})
 
     def run(self):
         super(PipeSubmitTool, self).run()
@@ -438,10 +436,12 @@ class Submit(object):
                 self.insert_pipe_detail(self.result['content']["ids"]['name'], self.main_table_id, status)
                 # self.check_end(ObjectId(self.main_table_id))
             else:
-                self.insert_pipe_detail(self.result['content']['ids']['name'], ObjectId(self.result['content']['ids']['id']), 'end')
+                self.insert_pipe_detail(self.result['content']['ids']['name'],
+                                        ObjectId(self.result['content']['ids']['id']), 'end')
         elif 'success' in self.result and not self.result['success']:
             if 'content' in self.result:
-                self.insert_pipe_detail(self.result['content']['ids']['name'], ObjectId(self.result['content']['ids']['id']), 'failed')
+                self.insert_pipe_detail(self.result['content']['ids']['name'],
+                                        ObjectId(self.result['content']['ids']['id']), 'failed')
             else:
                 self.insert_pipe_detail(None, None, 'failed')
         else:
@@ -473,13 +473,16 @@ class Submit(object):
                 group_name = 'All'
             else:
                 group_id = ObjectId(self._params['group_id'])
-                group_name = self.db['sg_specimen_group'].find_one({'_id': ObjectId(self._params['group_id'])}, {'group_name': 1})['group_name']
+                group_name = self.db['sg_specimen_group'].find_one({'_id': ObjectId(self._params['group_id'])},
+                                                                   {'group_name': 1})['group_name']
             if "level_id" in self._params:
                 level_id = self._params['level_id']
-                level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[level_id]
+                level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus',
+                              8: 'Species', 9: "OTU"}[level_id]
             else:
                 level_id = self.min_level
-                level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[self.min_level]
+                level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus',
+                              8: 'Species', 9: "OTU"}[self.min_level]
             insert_data = {
                 "task_id": self.task_id,
                 "otu_id": ObjectId(self.bind_object.otu_id),
@@ -703,10 +706,12 @@ class AlphaTtest(Submit):
         del self._params['level_id']
         return self._params
 
+
 class SixteensPrediction(BetaSampleDistanceHclusterTree):
     def set_params_type(self):
         del self._params['level_id']
         return self._params
+
 
 class SpeciesLefseAnalyse(BetaSampleDistanceHclusterTree):
     def set_params_type(self):
@@ -882,5 +887,5 @@ def gevent_url_fetch(url):
     resp = opener.open(url)
     return resp.headers, resp
 
-if __name__ == "__main__":
-    PipeSubmitTool().run_webapitest()
+# if __name__ == "__main__":
+#     PipeSubmitTool().run_webapitest()
