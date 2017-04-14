@@ -116,6 +116,8 @@ class SampleExtractModule(Module):
                     sample = tmp[1]
                     if sample.find(".") != -1 or sample.find(" ") != -1:
                         raise Exception("样本名称中带.或空格，请更改样本名称为不带.和空格的名称后再进行流程")
+                    if sample == "OUT" or sample == "IN":
+                        raise Exception("样本名称不能为IN与OUT")
         if self.option("file_list") == "null" and self.option("table_id") != "":
             self.logger.info(self.option("table_id"))
             self.set_sample_db()
@@ -123,6 +125,12 @@ class SampleExtractModule(Module):
                                                      self.option("table_id") + "/info.txt")
         else:
             self.option("file_sample_list").set_path(self.work_dir + "/info.txt")
+        with open(self.option("file_sample_list").prop["path"], "r") as file:
+            file.readline()
+            try:
+                next(file)
+            except:
+                raise Exception("样本检测没有找到样本，请重新检查文件的改名信息")
         super(SampleExtractModule, self).end()
 
     def info_rename(self, old_info_path, new_info_path):
@@ -151,8 +159,10 @@ class SampleExtractModule(Module):
             file_list = eval(self.option("file_list"))
             old_name = file_list[key][1]
             new_name = file_list[key][0]
-            if new_name.find(".") != -1 or  new_name.find(" ") != -1:
+            if new_name.find(".") != -1 or new_name.find(" ") != -1:
                 raise Exception("样本名称中带.和空格，请更改样本名称为不带.的名称后再进行流程")
+            if new_name == "OUT" or new_name == "IN":
+                raise Exception("样本名称不能为IN与OUT")
         else:
             old_name = key
             new_name = key
