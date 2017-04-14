@@ -30,7 +30,7 @@ class ConvertLevel(object):
             if not hasattr(data, arg):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
-        otu_path = os.path.join(Config().WORK_DIR, "tmp", datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S") + ".otu.xls")
+        otu_path = os.path.join(Config().WORK_DIR, "tmp", datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3] + ".otu.xls")
         ExportFile().export_otu_table_by_level(data.otu_id, otu_path, data.level_id)
         self.add_otu_detail(otu_path, data.otu_id, data.level_id)
         info = dict()

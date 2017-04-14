@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from mainapp.config.db import DB
+from mainapp.config.db import Config
 import web
 
 
 class ClientKey(object):
     def __init__(self, client):
-        self.db = DB
+        self.db = Config().get_db()
         self.client = client
         self.table = "clientkey"
         self.key = None

@@ -110,11 +110,12 @@ class OtuSubsampleWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "OTU分类统计结果目录"],
+            ["./otu_taxon.subsample.xls", "xls", "抽平后的OTU表格"]  # add by hongdongxuan 20170324
         ])
-        result_dir.add_regexp_rules([
-            ['\.subsample\.', 'meta.otu.otu_table', "抽平后的otu表格"]
-        ])
+        # result_dir.add_regexp_rules([
+        #     ['\.subsample\.', 'meta.otu.otu_table', "抽平后的otu表格"]   # modified by hongdongxuan 20170324
+        # ])
         super(OtuSubsampleWorkflow, self).end()
 
     def run(self):

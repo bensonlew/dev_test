@@ -146,6 +146,7 @@ class QiimeAssignTool(Tool):
                 prop_file = self.work_dir + '/RDP_trained/Classifier.properties'
             else:
                 self.set_error('trainer运行出错')
+                return
             if max_memory > 60:
                 max_memory = 24  # 当训练的库文件增加，classifier适当增加，经验设定给后续classifier使用
         else:

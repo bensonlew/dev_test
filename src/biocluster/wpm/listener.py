@@ -67,7 +67,7 @@ class MainServer(object):
 
     def start(self):
         # start check thread
-        setproctitle.setproctitle("WPM[main server]")
+        setproctitle.setproctitle("WPM[Main Server]")
         self.start_thread()
         time.sleep(2)
         # start process manager

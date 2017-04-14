@@ -50,7 +50,7 @@ class Anosim(MetaController):
 
         task_name = 'meta.report.anosim'
         task_type = 'workflow'  # 可以不配置
-        main_table_name = 'Anosim&Adonis_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        main_table_name = 'Anosim&Adonis_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         meta = Meta()
         otu_info = meta.get_otu_table_info(data.otu_id)
         if not otu_info:
@@ -92,7 +92,7 @@ class Anosim(MetaController):
             }
         to_file = ['meta.export_otu_table_by_level(otu_file)',
                    'meta.export_group_table_by_detail(group_file)']
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="Anosim&Adonis/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(Anosim, self).POST()
         task_info['content'] = {
