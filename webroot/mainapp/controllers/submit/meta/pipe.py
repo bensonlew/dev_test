@@ -35,15 +35,6 @@ class Pipe(MetaController):
         sub_analysis_name = json.loads(data.sub_analysis)
         for key in sub_analysis_name:
             all_analysis.append(str(key))
-        if "otu_pan_core" in all_analysis:
-            analysis_num = len(all_analysis) + 1
-        else:
-            analysis_num = len(all_analysis)
-        level = str(data.level_id).strip().split(",")
-        levels = []
-        for m in level:
-            levels.append(m)
-        group_mun = json.loads(data.group_info)
         if hasattr(data, 'env_id') and hasattr(data, 'env_labs'):
             params_json = {
                 'otu_id': data.otu_id,

@@ -68,7 +68,7 @@ class MantelTest(MetaController):
             "otu_method": data.otu_method,
             "env_method": data.env_method,
             "env_labs": data.env_labs
-                        }
+        }
         if hasattr(data, "units"):
             params_json["units"] = data.units
             main_table_name = "PartialMantelTest_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
@@ -96,7 +96,7 @@ class MantelTest(MetaController):
                 "level": data.level_id,
                 "group_detail": data.group_detail,
                 "mantel_id": str(main_table_id)
-                    }
+        }
 
         del params_json["level_id"]
         del params_json["group_detail"]
@@ -109,7 +109,7 @@ class MantelTest(MetaController):
             'ids': {
                 'id': str(main_table_id),
                 'name': main_table_name
-                }}
+            }}
         print(task_info)
         return json.dumps(task_info)
 
