@@ -107,8 +107,13 @@ class DataSplitTool(Tool):
 		if result != 0:
 			raise OptionError("压缩包解压失败，请重新投递运行！")
 		old_data_dir_1 = os.path.join(self.work_dir, self.option('data_dir').prop['path'].split("/")[-1].split(".")[0])
-		old_data_dir = ("_").join(old_data_dir_1.split("_")[0:-1])
-
+		p = re.search('([0-9]+)$', old_data_dir_1)
+		if p:
+			old_data_dir = ("_").join(old_data_dir_1.split("_")[0:-1])
+		else:
+			old_data_dir = old_data_dir_1
+		if not os.path.exists(old_data_dir):
+			self.set_error("下机数据文件夹路径不正确，请设置正确的路径。")
 		cmd = "{} -i {}/Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
 		      "--ignore-missing-bcl -R {}/ -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
 			format(self.script_path,old_data_dir,self.work_dir,
