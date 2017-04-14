@@ -61,7 +61,7 @@ def mul_group_test(inputfile, outputfile, boxfile, groupfile, choose_test, mul_t
         rfile.write("%s" % mul_test)
 
 
-def est_ttest(inputfile, outputfile, groupfile):
+def est_ttest(inputfile, outputfile, groupfile, choose_test):
     """
     生成并运行R脚本，进行alpha指数T检验分析
     :param inputfile: 输入的某一水平的多样性指数表
@@ -69,7 +69,7 @@ def est_ttest(inputfile, outputfile, groupfile):
     :param outputfile: 输出的结果文件
     """
     f = Template(filename=this_file_dir + '/alpha_ttest.r')
-    mul_test = f.render(inputfile=inputfile, outputfile=outputfile, groupfile=groupfile)
+    mul_test = f.render(inputfile=inputfile, outputfile=outputfile, groupfile=groupfile, choose_test=choose_test)
     with open("run_est_ttest.r", 'w') as rfile:
         rfile.write("%s" % mul_test)
 

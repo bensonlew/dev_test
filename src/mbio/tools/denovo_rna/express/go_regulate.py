@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = "shenghe"
-#last_modify:20160809
+# last_modify:20160809
 
 import os
 from biocluster.agent import Agent
@@ -18,7 +18,7 @@ class GoRegulateAgent(Agent):
     def __init__(self, parent):
         super(GoRegulateAgent, self).__init__(parent)
         options = [
-            {"name": "diff_express", "type": "infile", "format": "denovo_rna.express.express_matrix"},
+            {"name": "diff_stat", "type": "infile", "format": "denovo_rna.express.diff_stat_table"},
             {"name": "go_level_2", "type": "infile", "format": "annotation.go.level2"}
         ]
         self.add_option(options)
@@ -57,7 +57,7 @@ class GoRegulateAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
             ["GO_regulate.xls", "xls", "基因上下调在GO2level层级分布情况表"],
-            ])
+        ])
         super(GoRegulateAgent, self).end()
 
 
@@ -70,7 +70,7 @@ class GoRegulateTool(Tool):
     def run_go_regulate(self):
         try:
             self.logger.info(self.output_dir + '/GO_regulate.xls')
-            GO_level_2_regulate(self.option('diff_express').path, self.option('go_level_2').path, self.output_dir + '/GO_regulate.xls')
+            GO_level_2_regulate(self.option('diff_stat').path, self.option('go_level_2').path, self.output_dir + '/GO_regulate.xls')
             self.end()
         except Exception:
             self.set_error('计算错误')

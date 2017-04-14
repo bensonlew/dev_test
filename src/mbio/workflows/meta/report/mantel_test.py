@@ -4,9 +4,7 @@ from biocluster.workflow import Workflow
 import os
 import re
 import glob
-from mbio.api.to_file.meta import *
-import datetime
-from mainapp.libs.param_pack import group_detail_sort
+from bson import ObjectId
 from mbio.packages.beta_diversity.filter_newick import get_level_newicktree
 
 
@@ -26,6 +24,7 @@ class MantelTestWorkflow(Workflow):
             {"name": "level", "type": "int"},
             {"name": "otu_id", "type": "string"},
             {"name": "env_id", "type": "string"},
+            {"name": "mantel_id", "type": "string"},
             {"name": "env_labs", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "group_id", "type": "string"},
@@ -58,41 +57,41 @@ class MantelTestWorkflow(Workflow):
         """
         保存结果指数表到mongo数据库中
         """
-        self.params = eval(self.option("params"))
-        del self.params["otu_file"]
-        del self.params["env_file"]
-        level = self.params["level"]
-        del self.params["level"]
-        self.params["level_id"] = int(level)
-        group_detail = self.params["group_detail"]
-        self.params["group_detail"] = group_detail_sort(group_detail)
-        name = "mantel_test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         api_mantel = self.api.meta_species_env
         mantel_result = glob.glob(self.output_dir + "/Discompare/*")[0]
         if self.option('units'):
             partial_matrix = glob.glob(self.output_dir + "/partial/*")[0]
             dis_matrix = glob.glob(self.output_dir + "/Otudistance/*")[0]
             fac_matrix = glob.glob(self.output_dir + "/Facdistance/*")[0]
-            name = "partial_mantel_test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            # name = "partial_mantel_test" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         else:
             dis_matrix = glob.glob(self.output_dir + "/Otudistance/*")[0]
             fac_matrix = glob.glob(self.output_dir + "/Facdistance/*")[0]
 
         if not os.path.isfile(mantel_result):
             raise Exception("找不到报告文件:{}".format(mantel_result))
-        mantel_id = api_mantel.add_mantel_table(self.option('level'), self.option('otu_id'), self.option('env_id'), name=name, params=self.params)
+        # mantel_id = api_mantel.add_mantel_table(self.option('level'), self.option('otu_id'), self.option('env_id'), name=name, params=self.params)
+        mantel_id = ObjectId(self.option("mantel_id"))
         api_mantel.add_mantel_detail(mantel_result, mantel_id)
         if self.option('units'):
             api_mantel.add_mantel_matrix(partial_matrix, "partial_matrix", mantel_id)
         api_mantel.add_mantel_matrix(dis_matrix, "species_matrix", mantel_id)
         api_mantel.add_mantel_matrix(fac_matrix, "env_matrix", mantel_id)
-        self.add_return_mongo_id('sg_species_mantel_check', mantel_id)
+        # self.add_return_mongo_id('sg_species_mantel_check', mantel_id)
         self.end()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "MantelTest分析结果目录"],  # add 8 lines by hongdongxuan 20170324
+            ["./Discompare", "", "Mantel_Test分析结果目录"],
+            ["./Discompare/partial_mantel_results.txt", "txt", "Mantel_Test分析结果表"],
+            ["./Facdistance", "", "环境因子矩阵结果目录"],
+            ["./Facdistance/factor_out.xls", "xls", "环境因子矩阵结果表"],
+            ["./Otudistance", "", "群落矩阵结果目录"],
+            ["./Otudistance/weighted_unifrac_otu_file.xls.xls", "xls", "群落矩阵结果表"],
+            ["./partial", "", "限制环境因子矩阵结果目录"],
+            ["./partial/factor_out.xls", "xls", "限制环境因子矩阵结果表"]
             # [".//mantel_results.txt", "txt", "mantel检验结果"]
         ])
         # print self.get_upload_files()
@@ -107,11 +106,8 @@ class MantelTestWorkflow(Workflow):
             'otumatrixtype': self.option('otu_method'),
             'factormatrixtype': self.option('env_method')
             }
-        print("llllll")
-        print(self.option('units'))
         if self.option('units'):
             options['partial_factor'] = self.option('units')
-        print("lhhhhhhhhhhhh")
         if 'unifrac' in self.option('otu_method'):  # sanger_bioinfo/src/mbio/workflows/meta/report/distance_calc.py中的解释
             if self.option('level') != 9:
                 newicktree = get_level_newicktree(self.option('otu_id'), level=self.option('level'),

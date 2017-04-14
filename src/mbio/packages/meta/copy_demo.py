@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'sheng.he'
 # lastmodied: 20160921
-from mainapp.config.db import get_mongo_client
+from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
 import json
@@ -27,7 +27,8 @@ class CopyMongo(object):
     需要回滚操作。。。,暂时未提供
     """
     def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, db='tsanger'):
-        self.db = get_mongo_client()[db]
+        self.config = Config()
+        self.db = self.config.mongo_client[db]
         self._old_task_id = old_task_id
         self._new_task_id = new_task_id
         self._new_project_sn = new_project_sn
@@ -83,11 +84,11 @@ class CopyMongo(object):
         self.copy_main_details("sg_species_mantel_check_detail", "mantel_id", mantel_id_dict)
         self.copy_main_details("sg_species_mantel_check_matrix", "mantel_id", mantel_id_dict)
 
-        venn_id_dict = self.copy_collection_with_change('sg_otu_venn', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        venn_id_dict = self.copy_collection_with_change('sg_otu_venn', change_positions=['otu_id'], update_sg_status=True)
         self.copy_main_details('sg_otu_venn_detail', 'otu_venn_id', venn_id_dict, others_position=['otu_id'])
         self.copy_main_details("sg_otu_venn_graph", 'venn_id', venn_id_dict)
 
-        pan_core_id_dict = self.copy_collection_with_change('sg_otu_pan_core', change_positions=['otu_id', 'group_id'], update_sg_status=True)
+        pan_core_id_dict = self.copy_collection_with_change('sg_otu_pan_core', change_positions=['otu_id'], update_sg_status=True)
         self.copy_main_details('sg_otu_pan_core_detail', 'pan_core_id', pan_core_id_dict)
 
         alpha_ttest_id_dict = self.copy_collection_with_change('sg_alpha_ttest', change_positions=['alpha_diversity_id', 'otu_id', 'group_id'], update_sg_status=True)
@@ -130,6 +131,21 @@ class CopyMongo(object):
         self.copy_main_details('sg_phylo_tree_species_categories', 'phylo_tree_id', phylo_tree_id_dict)
         self.copy_main_details('sg_phylo_tree_species_detail', 'phylo_tree_id', phylo_tree_id_dict)
 
+        hc_heatmap_id_dict = self.copy_collection_with_change('sg_hc_heatmap', change_positions=['otu_id'], update_sg_status=True)
+        self.copy_main_details('sg_hc_heatmap_detail', 'hc_id', hc_heatmap_id_dict)
+
+        self.copy_collection_with_change('sg_valid_sequence_info')
+        self.copy_collection_with_change('sg_raw_sequence_info')
+
+        corr_network_id_dict = self.copy_collection_with_change('sg_corr_network', change_positions=['otu_id', 'group_id'],
+                                                                update_sg_status=True)
+        self.copy_main_details('sg_corr_network_centrality_node', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_distribution_node', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_abundance', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_attributes', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_link', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_structure_node', 'corr_network_id', corr_network_id_dict)
+
 
 
 
@@ -153,7 +169,8 @@ class CopyMongo(object):
                 i['project_sn'] = self._new_project_sn
             olds.append(str(i.pop('_id')))
             for position in change_positions:
-                i[position] = self.exchange_ObjectId(position, i[position])
+                if position in i:
+                    i[position] = self.exchange_ObjectId(position, i[position])
             if 'params' in i:
                 i['params'] = self.params_exchange(i['params'])
             news.append(i)
@@ -455,7 +472,7 @@ class CopyMongo(object):
         return json.dumps(params, sort_keys=True, separators=(',', ':'))
 
 if __name__ == '__main__':
-    copy_task = CopyMongo('tsanger_2639', 'tsanger_2639_14', '10000485_1', 'shenghe_test')
+    copy_task = CopyMongo('i-sanger_6414', 'i-sanger_6414_1', '10004002_1', 'shenghe_test')
     copy_task.run()
     # copy_task = CopyMongo('tsg_3617', 'tsg_3617_022', '10000782_22', 'm_188_22')
     # copy_task.run()

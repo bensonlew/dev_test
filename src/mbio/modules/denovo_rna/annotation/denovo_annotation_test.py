@@ -2,7 +2,7 @@
 from __future__ import division
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-from mbio.packages.annonation.denovo_anno_stat.all_annotation_stat import *
+from mbio.packages.annotation.denovo_anno_stat.all_annotation_stat import *
 import os
 import shutil
 

@@ -2,9 +2,6 @@
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
 import os
-from mbio.api.to_file.meta import *
-import datetime
-from mainapp.libs.param_pack import group_detail_sort
 
 
 class EstimatorsWorkflow(Workflow):
@@ -49,37 +46,19 @@ class EstimatorsWorkflow(Workflow):
         """
         保存结果指数表到mongo数据库中
         """
-        level_name = ["Domain", "Kingdom", "Phylum", "Class", "Order",  "Family", "Genus", "Species", "OTU"]
-        level_index = self.option("level")-1
-        # print(level_index)
-        # print(level_name[level_index])
         api_estimators = self.api.estimator
         est_path = self.output_dir+"/estimators.xls"
-        name = "{}_".format(level_name[level_index]) + "estimators" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         if not os.path.isfile(est_path):
             raise Exception("找不到报告文件:{}".format(est_path))
-        sort_index = self.option('indices').split(',')
-        sort_index.sort()
-        sort_index = ','.join(sort_index)
-        group_detail = group_detail_sort(self.option("group_detail"))
-        params_json = {
-            'otu_id': self.option('otu_id'),
-            'level_id': self.option('level'),
-            'index_type': sort_index,
-            "submit_location": self.option("submit_location"),
-            "task_type": self.option("task_type"),
-            "group_id": self.option("group_id"),
-            "group_detail": group_detail
-            }
-        est_id = api_estimators.add_est_table(est_path, major=True, level=self.option('level'),
-                                              otu_id=self.option('otu_id'), params=params_json, name=name)
-        self.add_return_mongo_id('sg_alpha_diversity', est_id)
+        est_id = api_estimators.add_est_table(est_path, level=self.option('level'),
+                                              otu_id=self.option('otu_id'), est_id=self.option("est_id"))
+        # self.add_return_mongo_id('sg_alpha_diversity', est_id)
         self.end()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            # [".", "", "结果输出目录"],
+            [".", "", "多样性指数结果目录"],
             ["./estimators.xls", "xls", "alpha多样性指数表"]
         ])
         # print self.get_upload_files()

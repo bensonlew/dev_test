@@ -2,7 +2,6 @@
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
 import os
-from mbio.api.to_file.meta import *
 
 
 class RarefactionWorkflow(Workflow):
@@ -52,9 +51,9 @@ class RarefactionWorkflow(Workflow):
         if os.path.isfile(rare_path):
             raise Exception("找不到报告文件夹:{}".format(rare_path))
         result_dir = self.add_upload_dir(self.output_dir)
-        # result_dir.add_relpath_rules([
-        #     [".", "", "结果输出目录"]
-        # ])
+        result_dir.add_relpath_rules([
+            [".", "", "稀释曲线结果目录"]
+        ])
         for i in self.option("indices").split(","):
             self.logger.info(i)
             if i == "sobs":
@@ -62,7 +61,8 @@ class RarefactionWorkflow(Workflow):
                     ["./sobs", "文件夹", "{}指数结果输出目录".format(i)]
                 ])
                 result_dir.add_regexp_rules([
-                    [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                    # [r".*rarefaction\.xls", "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                    [r".*rarefaction\.xls", "xls", "每个样本的{}指数稀释性曲线表".format(i)]  # modified by hongdongxuan 20170321
                 ])
                 # self.logger.info("{}指数的simpleID的稀释性曲线表".format(i))
             else:
@@ -70,7 +70,7 @@ class RarefactionWorkflow(Workflow):
                     ["./{}".format(i), "文件夹", "{}指数结果输出目录".format(i)]
                 ])
                 result_dir.add_regexp_rules([
-                    [r".*{}\.xls".format(i), "xls", "{}指数的simpleID的稀释性曲线表".format(i)]
+                    [r".*{}\.xls".format(i), "xls", "每个样本的{}指数稀释性曲线表".format(i)]
                 ])
         api_rarefaction.add_rarefaction_detail(self.option('rare_id'), rare_path)
         self.end()

@@ -36,7 +36,7 @@ class HeatCluster(Base):
             "status": "end",
             "table_id": from_otu_table,
             "desc": desc,
-            "name": name if name else "cluster_newick",
+            "name": self.bind_object.sheet.main_table_name if self.bind_object.sheet.main_table_name else "cluster_newick",
             "params": params,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }

@@ -3,10 +3,7 @@
 from biocluster.workflow import Workflow
 import glob
 import os
-from mbio.api.to_file.meta import *
-import datetime
-from mbio.packages.statistical.reverse_table import reverse_table
-from mainapp.libs.param_pack import group_detail_sort
+from bson import ObjectId
 import re
 
 
@@ -26,6 +23,7 @@ class PearsonCorrelationWorkflow(Workflow):
             {"name": "params", "type": "string"},
             {"name": "env_file", "type": "infile", 'format': "meta.otu.group_table"},  # 输入的OTU id
             {"name": "env_id", "type": "string"},
+            {"name": "corr_id", "type": "string"},
             {"name": "env_labs", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "correlation_id", "type": "string"},
@@ -35,7 +33,8 @@ class PearsonCorrelationWorkflow(Workflow):
             {"name": "method", "type": "string", "default": "pearsonr"},
             {"name": "env_cluster", "type": "string", "default": "average"},
             {"name": "species_cluster", "type": "string", "default": "average"},
-            {"name": "group_detail", "type": "string"}
+            {"name": "group_detail", "type": "string"},
+            {"name": "top_species", "type": "int", "default": 0}  # add new option (flit top N species)
             ]
         self.add_option(options)
         # print(self._sheet.options())
@@ -43,25 +42,29 @@ class PearsonCorrelationWorkflow(Workflow):
         self.correlation = self.add_tool('statistical.pearsons_correlation')
         self.params = {}
         self.name_to_name = {}
+        self.env_name = {}
 
     def run_correlation(self):
+        env_cluster = self.option("env_cluster")
+        species_cluster = self.option("species_cluster")
+        if env_cluster == "":
+            env_cluster = "average"
+        if species_cluster == "":
+            species_cluster = "average"
         options = {
             'otutable': self.option('otu_file'),
             'envtable': self.option('env_file'),
             "method": self.option('method'),
-            "env_cluster": self.option("env_cluster"),
-            "species_cluster": self.option("species_cluster")
+            "env_cluster": env_cluster,
+            "species_cluster": species_cluster,
+            "top_species": self.option('top_species')
             }
         self.correlation.set_options(options)
         self.correlation.on("end", self.set_db)
         self.correlation.run()
-        # self.output_dir = self.correlation.output_dir
-        # super(PearsonCorrelationWorkflow, self).run()
-        
+
     def run(self):
         self.run_correlation()
-        # self.run_distance()
-        # self.on_rely(self.tools, self.set_db)
         super(PearsonCorrelationWorkflow, self).run()
 
     def get_name(self):
@@ -69,24 +72,23 @@ class PearsonCorrelationWorkflow(Workflow):
             for line in f:
                 line = line.strip().split("\t")
                 self.name_to_name[line[0]] = line[1]
+        with open(self.correlation.work_dir + "/env_name.xls", "r") as ef:
+            self.env_name = eval(ef.readline())
+            self.logger.info(self.env_name)
 
     def dashrepl(self, matchobj):
         return self.name_to_name[matchobj.groups()[0]]
+
+    def dashrepl_env(self, matchobj):
+        return self.env_name[matchobj.groups()[0]]
 
     def set_db(self):
         """
         保存结果指数表到mongo数据库中
         """
-        self.params = eval(self.option("params"))
-        del self.params["otu_file"]
-        del self.params["env_file"]
-        level = self.params["level"]
-        del self.params["level"]
-        self.params["level_id"] = int(level)
-        group_detail = self.params["group_detail"]
-        self.params["group_detail"] = group_detail_sort(group_detail)
-        species_tree = ""
+        new_species_tree = ""
         env_tree = ""
+        new_env_tree = ""
         env_list = []
         species_list = []
         api_correlation = self.api.meta_species_env
@@ -102,7 +104,8 @@ class PearsonCorrelationWorkflow(Workflow):
             with open(env_tree_path, "r") as f:
                 env_tree = f.readline().strip()
                 raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', env_tree)
-                env_list = [i[1] for i in raw_samp]
+                env_list = [self.env_name[i[1]] for i in raw_samp]
+                new_env_tree = re.sub(r"(colnew\d+)", self.dashrepl_env, env_tree)
                 # print(env_list)
         if os.path.exists(species_tree_path):
             with open(species_tree_path, "r") as f:
@@ -115,19 +118,20 @@ class PearsonCorrelationWorkflow(Workflow):
                 print(new_species_tree)
                 # print(species_list)
                 # new_species_list = []
-        name = "correlation" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        corr_id = api_correlation.add_correlation(self.option("level"), self.option("otu_id"), self.option("env_id"),
-                                                  species_tree=new_species_tree, env_tree=env_tree, name=name,
-                                                  params=self.params, env_list=env_list, species_list=species_list)
+
+        corr_id = ObjectId(self.option("corr_id"))
         api_correlation.add_correlation_detail(corr_path[0], "correlation", corr_id)
-        api_correlation.add_correlation_detail(pvalue_path[0], "pvalue", corr_id)
-        self.add_return_mongo_id('sg_species_env_correlation', corr_id)
+        api_correlation.add_correlation_detail(pvalue_path[0], "pvalue", corr_id, species_tree=new_species_tree,
+                                               env_tree=new_env_tree, env_list=env_list, species_list=species_list)
+        # self.add_return_mongo_id('sg_species_env_correlation', corr_id)
         self.end()
 
     def end(self):
         result_dir = self.add_upload_dir(self.correlation.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "相关性Heatmap分析结果目录"],   # add 2 lines by hongdongxuan 20170324
+            ["./pearsons_correlation_at_otu_level.xls", "xls", "相关性系数表"],
+            ["./pearsons_pvalue_at_otu_level.xls", "xls", "相关性P值"]
             # ["./mantel_results.txt", "txt", "mantel检验结果"]
         ])
         # print self.get_upload_files()

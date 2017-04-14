@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
-from mbio.api.to_file.meta import *
 from mbio.packages.alpha_diversity.group_file_split import group_file_spilt
-from mainapp.libs.param_pack import group_detail_sort
-import datetime
+import os
 
 
 class EstTTestWorkflow(Workflow):
@@ -24,8 +22,9 @@ class EstTTestWorkflow(Workflow):
             {"name": "group_id", "type": "string"},
             {"name": "est_t_test_id", "type": "string"},
             {"name": "group_detail", "type": "string"},
-            # {"name": "group_detail", "type": "string"},
+            {"name": "est_test_method", "type": "string", "default": "student"},
             {"name": "submit_location", "type": "string"},
+            {"name": "update_info", "type": "string"},
             {"name": "task_type", "type": "string"}
             ]
         self.add_option(options)
@@ -46,10 +45,12 @@ class EstTTestWorkflow(Workflow):
                 name_list.append(gg)
         self.group_name = ",".join(name_list)
         self.logger.info(self.group_name)
+        self.logger.info(self.option('est_test_method'))
         options = {
                 'est_input': self.option('est_table'),
                 'test': 'estimator',
-                'est_group': self.group_file_dir
+                'est_group': self.group_file_dir,
+                'est_test_method': self.option('est_test_method')
                 }
         self.est_t_test.set_options(options)
         self.est_t_test.on('end', self.set_db)
@@ -65,27 +66,29 @@ class EstTTestWorkflow(Workflow):
         if not os.path.isdir(self.output_dir):
             raise Exception("找不到报告文件夹:{}".format(self.output_dir))
         # print(self.option("otu_id"))
-        my_param = dict()
-        my_param['alpha_diversity_id'] = self.option("est_id")
-        my_param['group_detail'] = group_detail_sort(self.option("group_detail"))
-        my_param['group_id'] = self.option("group_id")
-        my_param['submit_location'] = self.option("submit_location")
-        my_param['task_type'] = self.option("task_type")
-        my_param['otu_id'] = self.option("otu_id")
-        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
+        # my_param = dict()
+        # my_param['alpha_diversity_id'] = self.option("est_id")
+        # my_param['group_detail'] = group_detail_sort(self.option("group_detail"))
+        # my_param['group_id'] = self.option("group_id")
+        # my_param['submit_location'] = self.option("submit_location")
+        # my_param['task_type'] = self.option("task_type")
+        # my_param['otu_id'] = self.option("otu_id")
+        # my_param['test_method'] = self.option("est_test_method")
+        # params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         # print(params)
-        name = "est_t_test_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        est_t_test_id = api_est_t_test.add_est_t_test_collection(params, self.option("group_id"), self.option("est_id"), name=name, group_name=self.group_name)
+        # name = "est_t_test_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        # est_t_test_id = api_est_t_test.add_est_t_test_collection(params, self.option("group_id"), self.option("est_id"), name=name, group_name=self.group_name)
+        est_t_test_id = self.option("est_t_test_id")
         for f in os.listdir(self.output_dir):
             self.logger.info(os.path.join(self.output_dir, f))
-            api_est_t_test.add_est_t_test_detail(os.path.join(self.output_dir, f), est_t_test_id)
-        self.add_return_mongo_id('sg_alpha_ttest', est_t_test_id)
+            api_est_t_test.add_est_t_test_detail(os.path.join(self.output_dir, f), est_t_test_id, group_name=self.group_name)
+        # self.add_return_mongo_id('sg_alpha_ttest', est_t_test_id)
         self.end()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "多样性指数结果目录"]
         ])
         result_dir.add_regexp_rules([
             [r".*\.xls", "", "alpha多样性指数T检验结果表"]
