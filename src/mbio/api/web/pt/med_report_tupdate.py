@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
-from pymongo import MongoClient
 import json
 import datetime
-import re
 from bson.objectid import ObjectId
-from biocluster.wpm.log import Log
 from biocluster.config import Config
-from biocluster.core.function import CJsonEncoder, filter_error_info
+from biocluster.core.function import filter_error_info
 from mbio.api.web.meta.update_status import UpdateStatus
 
 
