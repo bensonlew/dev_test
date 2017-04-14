@@ -81,14 +81,12 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
         if replicates is None:
             count_dict = read_matrix(countfile, control, other)
             fpkm_dict = read_matrix(fpkmfile, control, other)
-            #w.write("Gene_id\t%s_count\t%s_conut\t%s_fpkm\t%s_fpkm\tLog2FC(%s/%s)\tPvalue\tFDR\tSignificant\tRegulate\n" % (control, other, control, other, other, control))
-            w.write("seq_id\t%s_count\t%s_conut\t%s_fpkm\t%s_fpkm\tLog2FC(%s/%s)\tPvalue\tFDR\tSignificant\tRegulate\n" % (control, other, control, other, other,         control))
+            w.write("Gene_id\t%s_count\t%s_conut\t%s_fpkm\t%s_fpkm\tLog2FC(%s/%s)\tPvalue\tFDR\tSignificant\tRegulate\n" % (control, other, control, other, other, control))
         else:
             count_dict, group_sample = read_matrix(countfile, control, other, replicates)
             fpkm_dict, group_sample = read_matrix(fpkmfile, control, other, replicates)
             fpkm_mean = mean_fpkm(count_dict, fpkm_dict)
             head = "Gene_id\t"
-            #head = "seq_id\t"
             for sam in group_sample:
                 head += "%s_count\t%s_fpkm\t" % (sam, sam)
             head += "%s_mean_fpkm\t%s_mean_fpkm\tLog2FC(%s/%s)\tPvalue\tFDR\tSignificant\tRegulate\n" % (control, other, other, control)

@@ -153,34 +153,23 @@ def count_trans_or_exons(input_file, step, count_file, final_files):
 def gene_trans_exon(merged_gtf, method, gene_trans_file, trans_exon_file):
     fw1 = open(gene_trans_file, 'w+')
     fw2 = open(trans_exon_file, 'w+')
+    gene_set_dic = defaultdict(set)
     gene_dic = defaultdict(int)
     trans_dic = defaultdict(int)
-    gene_set = set()
-    tup_list = []
     for line in fileinput.input(merged_gtf):
         m = regex.search(r'^[^#]\S*\t(\S+\t){7}.*?gene_id\s+\"(\S+)\";.*\s+transcript_id\s+\"(\S+)\";*', line)
         if m:
             seq_type = m.captures(1)[1]
             txpt_id = m.captures(3)[0]
             gene_id = m.captures(2)[0]
-            gene_set.add(gene_id)
-            tup_list.append((gene_id,txpt_id))
             if str(method) == "stringtie":
-                if seq_type.split("\t")[0] == "transcript":
-                    gene_dic[gene_id] += 1
                 if seq_type.split("\t")[0] == "exon":
                     trans_dic[txpt_id] += 1
             elif str(method) == "cufflinks":
-                gene_dic[gene_id] += 1
                 trans_dic[txpt_id] += 1
-    # for gene_id in gene_set:
-    #     new_list = []
-    #     for n in tup_list:
-    #         print n[0]
-    #         if str(n[0]) == str(n):
-    #             new_list.append(n[1])
-    #     gene_dic[gene_id] = len(new_list)
-    for key in gene_dic.keys():
+            gene_set_dic[gene_id].add(txpt_id)
+    for key in gene_set_dic.keys():
+        gene_dic[key] = len(gene_set_dic[key])
         gene_line = key + "\t" + str(gene_dic[key]) + "\n"
         fw1.write(gene_line)
     for key in trans_dic.keys():
@@ -224,7 +213,7 @@ def class_code_count(gtf_file, code_num_trans):
                                         str(cls_txpt_set_dic[cls]['count']))
         fw.write(newline)
     fw.close()
-# if __name__ == '__main__':
+if __name__ == '__main__':
 #     merged_gtf = '/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_cufflinks/Assembly/output/Cuffmerge/merged.gtf'
 #     old_genes_gtf = "/mnt/ilustre/users/sanger-dev/workspace/20170407/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/NewTranscripts/old_genes.gtf"
 #     new_genes_gtf = "/mnt/ilustre/users/sanger-dev/workspace/20170407/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/NewTranscripts/old_genes.gtf"
@@ -233,12 +222,12 @@ def class_code_count(gtf_file, code_num_trans):
 #     output3 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/3.txt"
 #     output4 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/4.txt"
 #     class_code_count(merged_gtf, output1)
-merged_gtf = "O:\\Users\\zhaoyue.wang\\Desktop\\merged.gtf"
-output1 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/1.txt"
-output2 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/2.txt"
-output3 = "O:\\Users\\zhaoyue.wang\\Desktop\\3.txt"
-output4 = "O:\\Users\\zhaoyue.wang\\Desktop\\4.txt"
-gene_trans_exon(merged_gtf, "cufflinks", output3, output4)
+    merged_gtf = "O:\\Users\\zhaoyue.wang\\Desktop\\merged1.gtf"
+    output1 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/1.txt"
+    output2 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/2.txt"
+    output3 = "O:\\Users\\zhaoyue.wang\\Desktop\\3.txt"
+    output4 = "O:\\Users\\zhaoyue.wang\\Desktop\\4.txt"
+    gene_trans_exon(merged_gtf, "stringtie", output3, output4)
     # gene_trans_exon(merged_gtf, output1, output2)
     # gtf_file = "O:\\Users\\zhaoyue.wang\\Desktop\\old_trans.gtf.trans"
     # gtf_files = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/assembly_newtranscripts/old_trans.gtf.trans"
