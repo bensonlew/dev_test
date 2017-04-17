@@ -45,14 +45,15 @@ class VennWorkflow(Workflow):
         shutil.copy2(sour, dest)
         self.logger.info("正在往数据库里插入sg_otu_venn_detail表")
         api_venn = self.api.venn
-        myParams = json.loads(self.sheet.params)
-        name = "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        venn_id = api_venn.create_venn_table(self.sheet.params, myParams["group_id"], self.option("level"), self.option("otu_id"), name)
+        # myParams = json.loads(self.sheet.params)
+        # name = "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # venn_id = api_venn.create_venn_table(self.sheet.params, myParams["group_id"], self.option("level"), self.option("otu_id"), name)
+        venn_id = self.option("venn_id")
         venn_path = os.path.join(self.venn.work_dir, "venn_table.xls")
         venn_graph_path = os.path.join(self.venn.work_dir, "venn_graph.xls")
         api_venn.add_venn_detail(venn_path, venn_id, self.option("otu_id"), self.option("level"))
         api_venn.add_venn_graph(venn_graph_path, venn_id)
-        self.add_return_mongo_id("sg_otu_venn", venn_id)
+        # self.add_return_mongo_id("sg_otu_venn", venn_id)
         self.end()
 
     def run(self):
@@ -68,7 +69,7 @@ class VennWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
+            [".", "", "Venn图结果目录"],
             ["venn_table.xls", "xls", "Venn表格"]
         ])
         super(VennWorkflow, self).end()

@@ -73,6 +73,8 @@ class FastaDirFile(Directory):
         count = 0
         self.fastas = list()
         self.fastas_full = list()
+        if not len(filelist):
+            raise FileError('Fasta 序列文件夹为空，请检查确认')
         for file_ in filelist:
             if re.search(r'\.(fasta|fa)$', file_):
                 count += 1

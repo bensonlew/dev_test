@@ -9,9 +9,6 @@ import numpy as np
 import types
 from biocluster.workflow import Workflow
 from mbio.packages.beta_diversity.filter_newick import get_level_newicktree
-from bson import ObjectId
-import json
-import datetime
 
 
 class BetaMultiAnalysisWorkflow(Workflow):
@@ -28,6 +25,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
             {"name": "dist_method", "type": "string", "default": 'bray_curtis'},
             {"name": "update_info", "type": "string"},
             {"name": "otu_id", "type": "string"},
+            {"name": "main_id", "type": "string"},
             {"name": "level", "type": "int"},
             {"name": "multi_analysis_id", "type": "string"},
             {"name": "env_file", "type": "infile", "format": "meta.otu.group_table"},
@@ -86,7 +84,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
                     temp_otu_file = self.option('otu_file').path + '.temp'
                     all_lines = open(otu_table, 'r').readlines()
                     if len(all_lines) < 3:
-                        raise Exception('分类水平：%s,otu表数据少于2行：%s' % (self.option('level'), len(all_lines)))
+                        raise Exception('分类水平：%s,OTU表数据少于2行：%s' % (self.option('level'), len(all_lines)))  #将Otu改成了OTU modified by hongdongxuan 20170310
                     self.logger.info(len(all_lines))
                     new_all = []
                     new_all.append(all_lines[0])
@@ -132,9 +130,6 @@ class BetaMultiAnalysisWorkflow(Workflow):
         保存结果距离矩阵表到mongo数据库中
         """
         api_multi = self.api.beta_multi_analysis
-        collection = api_multi.db["sg_otu"]
-        result = collection.find_one({"_id": ObjectId(self.option('otu_id'))})
-        task_id = result['task_id']
         dir_path = self.output_dir
         cond, cons = [], []
         if self.option('env_file').is_set:
@@ -144,14 +139,11 @@ class BetaMultiAnalysisWorkflow(Workflow):
         if not os.path.isdir(dir_path):
             raise Exception("找不到报告文件夹:{}".format(dir_path))
 
-        main_id = api_multi.add_beta_multi_analysis_result(dir_path, self.option('analysis_type'),
-                                                           main=True, task_id=task_id,
-                                                           name='{}_{}'.format(self.option('analysis_type'),
-                                                           datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
-                                                           level=self.option('level'),
-                                                           remove=cond, params=json.loads(self.option('params')),
-                                                           )
-        self.add_return_mongo_id('sg_beta_multi_analysis', main_id)
+        api_multi.add_beta_multi_analysis_result(dir_path, self.option('analysis_type'),
+                                                 main=False,
+                                                 remove=cond,
+                                                 main_id=str(self.option('main_id'))
+                                                 )
         self.logger.info('运行self.end')
         self.end()
 
@@ -181,16 +173,31 @@ class BetaMultiAnalysisWorkflow(Workflow):
         return cond, cons  # 前者不全是数字分组， 后者是全部都是数字的分组
 
     def end(self):
+        if self.option('analysis_type') == 'plsda':   #add 14 lines by hongdongxuan 20170327
+            file_name = "PLS_DA分析结果目录"
+        elif self.option('analysis_type') == 'pca':
+            file_name = "PCA分析结果目录"
+        elif self.option('analysis_type') == 'pcoa':
+            file_name = "PCoA分析结果目录"
+        elif self.option('analysis_type') == 'nmds':
+            file_name = "NMDS分析结果目录"
+        elif self.option('analysis_type') == 'dbrda':
+            file_name = "db-RDA分析结果目录"
+        elif self.option('analysis_type') == 'rda_cca':
+            file_name = "RDA_CCA分析结果目录"
+        else:
+            file_name = "Beta_diversity分析结果目录"
         repaths = [
-            [".", "", "Beta_diversity分析结果文件目录"],
+            [".", "", file_name],
             ["Distance", "", "距离矩阵计算结果输出目录"],
-            ["Dbrda", "", "db_rda分析结果目录"],
+            ["Dbrda", "", "db-RDA分析结果目录"],
             ["Dbrda/db_rda_sites.xls", "xls", "db_rda样本坐标表"],
             ["Dbrda/db_rda_species.xls", "xls", "db_rda物种坐标表"],
             ["Dbrda/db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
             ["Dbrda/db_rda_biplot.xls", "xls", "db_rda数量型环境因子坐标表"],
             ["Nmds", "", "NMDS分析结果输出目录"],
             ["Nmds/nmds_sites.xls", "xls", "样本坐标表"],
+            ["Nmds/nmds_stress.xls", "xls", "样本特征拟合度值"],
             ["Pca", "", "PCA分析结果输出目录"],
             ["Pca/pca_importance.xls", "xls", "主成分解释度表"],
             ["Pca/pca_rotation.xls", "xls", "物种主成分贡献度表"],
@@ -199,14 +206,16 @@ class BetaMultiAnalysisWorkflow(Workflow):
             ["Pca/pca_envfit_factor.xls", "xls", "哑变量环境因子坐标表"],
             ["Pca/pca_envfit_vector_scores.xls", "xls", "数量型环境因子表"],
             ["Pca/pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
-            ["Pcoa", "", "pcoa分析结果目录"],
+            ["Pcoa", "", "PCoA分析结果目录"],
             ["Pcoa/pcoa_eigenvalues.xls", "xls", "矩阵特征值"],
+            ["Pcoa/pcoa_eigenvaluespre.xls", "xls", "特征解释度百分比"],
             ["Pcoa/pcoa_sites.xls", "xls", "样本坐标表"],
-            ["Plsda", "", "plsda分析结果目录"],
+            ["Plsda", "", "PLS_DA分析结果目录"],
             ["Plsda/plsda_sites.xls", "xls", "样本坐标表"],
             ["Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
-            ["Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
-            ["Rda", "", "rda_cca分析结果目录"],
+            ["Plsda/plsda_importance.xls", "xls", "主成分组别特征值表"],
+            ["Plsda/plsda_importancepre.xls", "xls", "主成分解释度表"],
+            ["Rda", "", "RDA_CCA分析结果目录"],
             [r'Rda/dca.xls', 'xls', 'DCA分析结果'],
             ]
         regexps = [
@@ -216,6 +225,7 @@ class BetaMultiAnalysisWorkflow(Workflow):
             [r'Rda/.*_species\.xls$', 'xls', '物种坐标表'],
             [r'Rda/.*_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
             [r'Rda/.*_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
+            [r'Rda/.*_envfit\.xls$', 'xls', 'p_value值与r值表'],
             ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)

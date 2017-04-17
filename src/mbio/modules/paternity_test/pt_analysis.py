@@ -19,8 +19,6 @@ class PtAnalysisModule(Module):
             {"name": "err_min", "type": "int", "default": 2},
         ]
         self.add_option(options)
-        self.family_merge = self.add_tool("paternity_test.family_merge")
-        self.family_analysis = self.add_tool("paternity_test.family_analysis")
         self._end_info = 0
 
     def check_options(self):
@@ -42,6 +40,7 @@ class PtAnalysisModule(Module):
         self.step.update()
 
     def merge_run(self):
+        self.family_merge = self.add_tool("paternity_test.family_merge")
         self.family_merge.set_options({
             "dad_tab": self.option("dad_tab"),
             "mom_tab": self.option("mom_tab"),
@@ -56,6 +55,7 @@ class PtAnalysisModule(Module):
         self.family_merge.run()
 
     def analysis_run(self):
+        self.family_analysis = self.add_tool("paternity_test.family_analysis")
         results = os.listdir(self.work_dir+"/FamilyMerge/output")
         for f in results:
             if re.match(r'.*family_joined_tab\.Rdata$', f):

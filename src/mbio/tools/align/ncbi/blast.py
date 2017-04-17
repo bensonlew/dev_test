@@ -20,12 +20,13 @@ class BlastAgent(Agent):
                                      'prot': ['blastx']},
                             'prot': {'nucl': [],
                                      'prot': ['blastp']}}
-        self._database_type = {'nt': 'nucl', 'nr': 'prot', 'kegg': 'prot', 'swissprot': 'prot', 'string': 'prot'}
+        self._database_type = {'nt': 'nucl', 'nr': 'prot', 'kegg': 'prot', 'swissprot': 'prot', 'string': 'prot', 'archaea': 'prot', 'viruses': 'prot', 'fungi': 'prot', 'viridiplantae': 'prot', 'eukaryota_other': 'prot', 'eukaryota': 'prot', 'craniata': 'prot', 'bacteria': 'prot'}
         options = [
             {"name": "query", "type": "infile", "format": "sequence.fasta"},  # 输入文件
             {"name": "query_type", "type": "string"},  # 输入的查询序列的格式，为nucl或者prot
             {"name": "database", "type": "string", "default": "nr"},
-            # 比对数据库 nt nr string swissprot kegg customer_mode
+            # 比对数据库 nt nr string swissprot kegg customer_mode 
+            {"name": "nr_species", "type": "string"}, # nr分类物种模式：Archaea Viruses Fungi Viridiplantae Eukaryota_other Eukaryota Craniata Bacteria
             {"name": "outfmt", "type": "int", "default": 5},  # 输出格式，数字遵从blast+
             {"name": "blast", "type": "string"},  # 设定blast程序有blastn，blastx，blastp，tblastn，此处需要严格警告使用者必须选择正确的比对程序
             {"name": "reference", "type": "infile", "format": "sequence.fasta"},  # 参考序列  选择customer时启用
@@ -41,6 +42,7 @@ class BlastAgent(Agent):
         self.step.add_steps('blast')
         self.on('start', self.step_start)
         self.on('end', self.step_end)
+        self.queue = 'BLAST'  # 投递到指定的队列BLAST
 
     def step_start(self):
         self.step.blast.start()
@@ -70,7 +72,7 @@ class BlastAgent(Agent):
                     raise OptionError(
                         '文件检查发现参考序列为:{}, 而说明的文件类型为:{}'.format(
                             self._fasta_type[self.option('reference').prop['seq_type'], self.option('reference_type')]))
-        elif self.option("database").lower() not in ["nt", "nr", "string", 'kegg', 'swissprot']:
+        elif self.option("database").lower() not in ["nt", "nr", "string", 'kegg', 'swissprot', 'archaea', 'viruses', 'fungi', 'viridiplantae', 'eukaryota_other', 'eukaryota', 'craniata', 'bacteria']:
             raise OptionError("数据库%s不被支持" % self.option("database"))
         else:
             self.option('reference_type', self._database_type[self.option("database").lower()])
@@ -88,7 +90,7 @@ class BlastAgent(Agent):
 
     def set_resource(self):
         self._cpu = self.option('num_threads')
-        self._memory = '50G'
+        self._memory = '20G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -110,8 +112,16 @@ class BlastTool(Tool):
     def __init__(self, config):
         super(BlastTool, self).__init__(config)
         self._version = "2.3.0"
-        self.db_path = os.path.join(self.config.SOFTWARE_DIR, "database/align/ncbi/db")
-        self.cmd_path = "/bioinfo/align/ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
+        if self.option("database") in ['nt', 'string', 'swissprot', 'kegg']:
+            self.db_path = os.path.join(self.config.SOFTWARE_DIR, "database/align/ncbi/db")
+        elif self.option("database") == "nr":   # add 6 lines by khl 20170217
+            if not self.option("nr_species"):
+               self.db_path = os.path.join(self.config.SOFTWARE_DIR, 'database/align/ncbi/db/nr_db_20160623/nr')
+            else:
+               self.db_path = os.path.join(self.config.SOFTWARE_DIR, 'database/align/ncbi/db/nr_db_20160623/{}'.format(self.option('nr_species')))
+               self.logger.info(self.db_path)
+        self.logger.info(self.option("nr_species"))
+        self.cmd_path = "bioinfo/align/ncbi-blast-2.3.0+/bin"   # 执行程序路径必须相对于 self.config.SOFTWARE_DIR
         self.set_environ(BLASTDB=self.db_path)
 
     def run_makedb_and_blast(self):
@@ -189,4 +199,11 @@ class BlastTool(Tool):
         if self.option("database") == 'customer_mode':
             self.run_makedb_and_blast()
         else:
-            self.run_blast(self.option("database"))
+            if self.option("database")=="nr":
+                 if not self.option("nr_species"):
+                      self.run_blast(self.option("database"))
+                 else:
+                      self.run_blast(self.option("nr_species"))
+            else:
+                   self.run_blast(self.option("database"))
+

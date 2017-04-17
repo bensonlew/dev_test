@@ -6,6 +6,7 @@ import os
 from upload_task import UploadTask
 
 
+
 parser = argparse.ArgumentParser(description="根据验证码，上传一个文件夹至某一个项目下")
 parser.add_argument("-c", "--identity_code", help="验证码", required=True)
 parser.add_argument("-l", "--file_list", help="文件列表, 用于描述文件的信息, 以及是否允许让客户直接下载", required=True)

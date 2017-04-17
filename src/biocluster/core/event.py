@@ -5,11 +5,11 @@ import gevent
 import types
 from gevent.event import AsyncResult
 import inspect
-from gevent.lock import BoundedSemaphore
-import socket
+# from gevent.lock import BoundedSemaphore
+# import socket
 from .exceptions import EventStopError, UnknownEventError
 import traceback
-import copy
+from datetime import datetime
 
 
 class EventHandler(object):
@@ -53,6 +53,8 @@ class EventHandler(object):
 
         def waiter():
             para = self._event.get()
+            start = datetime.now()
+            bindobject.logger.debug("Event %s , Function %s 开始执行..." % (self.name, func.func_name))
             argspec = inspect.getargspec(func)
             args = argspec.args
             try:
@@ -83,6 +85,9 @@ class EventHandler(object):
                 print exstr
                 if hasattr(bindobject, "get_workflow"):
                     bindobject.get_workflow().exit(exitcode=1, data=e)
+            end = datetime.now()
+            bindobject.logger.debug("Event %s, Function %s 执行完毕，耗时%s s。" % (self.name, func.func_name,
+                                    (end - start).seconds))
         return waiter
 
     def bind(self, func, bindobject, data=None):
@@ -200,7 +205,7 @@ class LoopEventHandler(object):
         # self._raw_handler = EventHandler(name)
         self._loop_handlers = []
         self._start = False
-        self.sem = BoundedSemaphore()
+        # self.sem = BoundedSemaphore()
         self._fire_count = 0
         self._bind_list = []
 
@@ -269,16 +274,15 @@ class LoopEventHandler(object):
         :param para: 可选参数，触发事件时传递给事件绑定函数的参数 默认值:None
         """
         if self.is_start:
-            with self.sem:
-                # handler = copy.deepcopy(self._raw_handler)
-                self._fire_count += 1
-                name = "%s[%s]" % (self.name, self._fire_count)
-                handler = EventHandler(name)
-                for bind_para in self._bind_list:
-                    handler.bind(*bind_para)
-                self._loop_handlers.append(handler)
-                handler.start()
-                handler.fire(para)
+            # handler = copy.deepcopy(self._raw_handler)
+            self._fire_count += 1
+            name = "%s[%s]" % (self.name, self._fire_count)
+            handler = EventHandler(name)
+            for bind_para in self._bind_list:
+                handler.bind(*bind_para)
+            self._loop_handlers.append(handler)
+            handler.start()
+            handler.fire(para)
         else:
             raise EventStopError(self.name)
 
@@ -385,7 +389,7 @@ class EventObject(object):
         self.events = {}
         self._start = False   # 判断是否开始事件监听
         self._end = False     # 判断是否结束事件监听
-        self.semaphore = BoundedSemaphore(1)
+        # self.semaphore = BoundedSemaphore(1)
 
     @property
     def is_start(self):
@@ -473,12 +477,12 @@ class EventObject(object):
         :param data: 可选参数 将通过 **event_data['data']** 形式传递给运行函数
         :return:
         """
-        with self.semaphore:
-            if name not in self.events.keys():
-                raise UnknownEventError(name)
-            e = self.events[name]
-            e.bind(func, self, data)
-            return self
+        # with self.semaphore:
+        if name not in self.events.keys():
+            raise UnknownEventError(name)
+        e = self.events[name]
+        e.bind(func, self, data)
+        return self
 
     def fire(self, name, para=None):
         """
@@ -488,11 +492,11 @@ class EventObject(object):
        :param para:  function 需要传递给事件绑定函数的参数
        :return: none
         """
-        with self.semaphore:
-            if name not in self.events.keys():
-                raise UnknownEventError(name)
-            e = self.events[name]
-            e.fire(para)
+        # with self.semaphore:
+        if name not in self.events.keys():
+            raise UnknownEventError(name)
+        e = self.events[name]
+        e.fire(para)
 
     def start_listener(self):
         """

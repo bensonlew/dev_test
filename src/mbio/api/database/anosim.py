@@ -21,6 +21,7 @@ class Anosim(Base):
     @report_check
     def add_beta_anosim_result(self, dir_path, main_id=None, main=False, group_id=None,
                                task_id=None, otu_id=None, name=None, params=None, level=9):
+
         def insert_table_detail(file_path, table_type, update_id,
                                 coll_name='sg_beta_multi_anosim_detail',
                                 main_coll='sg_beta_multi_anosim',
@@ -91,28 +92,29 @@ class Anosim(Base):
                     'json_value': data
                     }
                 collection.insert_one(insert_data)
-        if level and level not in range(1, 10):
-            raise Exception("level参数%s为不在允许范围内!" % level)
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
         _main_collection = self.db['sg_beta_multi_anosim']
-        if isinstance(group_id, ObjectId):
-            pass
-        elif group_id is not None:
-            group_id = ObjectId(group_id)
-        else:
-            group_id = ObjectId(self.bind_object.option('group_id'))
-        if not isinstance(otu_id, ObjectId) and otu_id is not None:
-            otu_id = ObjectId(otu_id)
-        if 'params' in self.bind_object.sheet._data:
-            params = self.bind_object.sheet.option('params')
+
         if main:
+            if level and level not in range(1, 10):
+                raise Exception("level参数%s为不在允许范围内!" % level)
+            if task_id is None:
+                task_id = self.bind_object.sheet.id
+            if isinstance(group_id, ObjectId):
+                pass
+            elif group_id is not None:
+                group_id = ObjectId(group_id)
+            else:
+                group_id = ObjectId(self.bind_object.option('group_id'))
+            if not isinstance(otu_id, ObjectId) and otu_id is not None:
+                otu_id = ObjectId(otu_id)
+            if 'params' in self.bind_object.sheet._data:
+                params = self.bind_object.sheet.option('params')
             insert_mongo_json = {
                 'project_sn': self.bind_object.sheet.project_sn,
                 'task_id': task_id,
                 'otu_id': otu_id,
                 # 'level_id': int(level),
-                'name': name if name else 'anosim_origin',
+                'name': 'Anosim&Adonis_Origin',
                 'group_id': group_id,
                 'params': (json.dumps(params, sort_keys=True, separators=(',', ':'))
                            if isinstance(params, dict) else params),
@@ -130,15 +132,18 @@ class Anosim(Base):
         result = _main_collection.find_one({'_id': main_id})
         if result:
             anosim_path = dir_path.rstrip('/') + '/Anosim/format_results.xls'
-            box_path = dir_path.rstrip('/') + '/Box/Distances.xls'
-            stats_path = dir_path.rstrip('/') + '/Box/Stats.xls'
+            adonis_path = dir_path.rstrip('/') + '/Anosim/new_adonis_results.xls'
+            box_path = dir_path.rstrip('/') + '/AnosimBox/box_data.xls'
+            # stats_path = dir_path.rstrip('/') + '/Box/Stats.xls'
             insert_table_detail(anosim_path, 'anosim', update_id=main_id, update_column=False,
                                 columns=['statistic', 'pvalue', 'permutation_number'])
+            insert_table_detail(adonis_path, 'adonis', update_id=main_id, update_column=False,
+                                columns=['Df', 'Sums_Of_Sqs', 'Mean_Sqs',  'F_Model', 'R2', 'Pr'])
             insert_table_detail(box_path, 'box', update_id=main_id, update_column=False)
-            insert_table_detail(stats_path, 'stats', update_id=main_id, comment='#', stats=True,
-                                update_column=False, columns=['group2', 't_statistic',
-                                                              'param_pvalue', 'param_correct_pvalue',
-                                                              'nonparam_pvalue', 'nonparam_correct_pvalue'])
+            # insert_table_detail(stats_path, 'stats', update_id=main_id, comment='#', stats=True,
+            #                     update_column=False, columns=['group2', 't_statistic',
+            #                                                   'param_pvalue', 'param_correct_pvalue',
+            #                                                   'nonparam_pvalue', 'nonparam_correct_pvalue'])
         else:
             raise Exception('提供的_id：%s在sg_beta_multi_anosim中无法找到表' % str(main_id))
         if main:

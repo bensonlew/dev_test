@@ -104,8 +104,39 @@ class SLURM(Job):
         cmd = "scontrol show job {}".format(self.id)
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         text = process.communicate()[0]
-        m = re.search(r"JobState = (\w+)", text)
+        m = re.search(r"JobState=(\w+)", text)
         if m:
-            return m.group(1)
+            self.state = m.group(1)
+            return self.state
         else:
             return False
+
+    def is_queue(self):
+        # https://slurm.schedmd.com/squeue.html
+        if re.match(r"PENDING|CONFIGURING|PD|CF", self.state, re.IGNORECASE):
+            self.agent.logger.error("检测任务当前状态为:%s，正在排队" % self.state)
+            return True
+        return False
+
+    def is_running(self):
+        # https://slurm.schedmd.com/squeue.html
+        if re.match(r"RUNNING|COMPLETING|R|CG", self.state, re.IGNORECASE):
+            self.agent.logger.error("检测任务当前状态为:%s，正在运行中 " % self.state)
+            return True
+        return False
+
+    def is_error(self):
+        # https://slurm.schedmd.com/squeue.html
+        if re.match(r"BOOT_FAIL|BF|CANCELLED|CA|FAILED|F|NODE_FAIL|NF|PREEMPTED|PR|STOPPED|ST"
+                    r"|SUSPENDED|S|TIMEOUT|TO", self.state, re.IGNORECASE):
+            self.agent.logger.error("检测任务当前状态为:%s，运行出现错误 " % self.state)
+            return True
+        return False
+
+    def is_completed(self):
+        # https://slurm.schedmd.com/squeue.html
+        if re.match(r"COMPLETED|CD|SPECIAL_EXIT|SE", self.state, re.IGNORECASE):
+            self.agent.logger.error("检测任务当前状态为:%s，运行已经完成 " % self.state)
+            return True
+        return False
+

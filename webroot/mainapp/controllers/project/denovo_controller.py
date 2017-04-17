@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
 import web
-import random
 from ..core.basic import Basic
 from mainapp.libs.signature import check_sig
-from mainapp.models.workflow import Workflow
 from meta_controller import MetaController
 from biocluster.config import Config
 

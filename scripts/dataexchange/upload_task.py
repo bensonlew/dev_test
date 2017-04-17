@@ -48,17 +48,11 @@ class UploadTask(Basic):
         return self._upload_url
 
     def get_url(self, mode, port):
-        if mode == "sanger":
-            self._url = "http://192.168.12.101:{}/app/dataexchange/upload_task".format(port)
-        elif mode == "tsanger":
-            self._url = "http://192.168.12.102:{}/app/dataexchange/upload_task".format(port)
+        self._url = "http://192.168.12.101:{}/app/dataexchange/upload_task".format(port)
         return self._url  # 前置的接口地址，用于验证和获取上传文件的路径
 
     def get_upload_url(self, mode):
-        if mode == "sanger":
-            self._upload_url = "http://192.168.12.101/upload.php"
-        if mode == "tsanger":
-            self._upload_url = "http://192.168.12.102/upload.php"
+        self._upload_url = "http://192.168.12.101/upload.php"
         return self._upload_url  # 接受文件的接口地址，php
 
     def get_post_url(self, mode):

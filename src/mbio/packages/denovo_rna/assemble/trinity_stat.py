@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
-# last_modify_date:2016.04.08
+# last_modify_date:2016.12.16
 
 from Bio import SeqIO
 import numpy as np
@@ -89,15 +89,20 @@ def stat_info(trinity_info, gene_path, stat_path, len_dir_path, length, full_nam
         tran_len_stat = len_stat(tran_len, tran_base_num)
         gene_GC_per = float(gene_GC_num) / gene_base_num * 100
         tran_GC_per = float(tran_GC_num) / tran_base_num * 100
-        s.write('\tunigenes\ttranscripts\tgene_count\ttranscript_count\ntotal seq num\t%s\t%s\t--\t--\ntotal base num\t%s\t%s\t--\t--\npercent GC\t%s\t%s\t--\t--\nlargest transcript\t%s\t%s\t%s\t%s\nsmallest transcript\t%s\t%s\t%s\t%s\naverage length\t%s\t%s\t%s\t%s\nN50\t%s\t%s\t%s\t%s\nN90\t%s\t%s\t%s\t%s' % (gene_seq_num, tran_seq_num, gene_base_num, tran_base_num, '%0.4g' % gene_GC_per, '%0.4g' % tran_GC_per, gene_len_stat['max'][0], tran_len_stat['max'][0], gene_len_stat['max'][1], tran_len_stat['max'][1], gene_len_stat['min'][0], tran_len_stat['min'][0], gene_len_stat['min'][1], tran_len_stat['min'][1], gene_len_stat['average'][0], tran_len_stat['average'][0], gene_len_stat['average'][1], tran_len_stat['average'][1], gene_len_stat['N50'][0], tran_len_stat['N50'][0], gene_len_stat['N50'][1], tran_len_stat['N50'][1], gene_len_stat['N90'][0], tran_len_stat['N90'][0], gene_len_stat['N90'][1], tran_len_stat['N90'][1]))
+        s.write('\tgenes\ttranscripts\tgene_count\ttranscript_count\ntotal seq num\t%s\t%s\t--\t--\ntotal base num\t%s\t%s\t--\t--\npercent GC\t%s\t%s\t--\t--\nlargest transcript\t%s\t%s\t%s\t%s\nsmallest transcript\t%s\t%s\t%s\t%s\naverage length\t%s\t%s\t%s\t%s\nN50\t%s\t%s\t%s\t%s\nN90\t%s\t%s\t%s\t%s' % (gene_seq_num, tran_seq_num, gene_base_num, tran_base_num, '%0.4g' % gene_GC_per, '%0.4g' % tran_GC_per, gene_len_stat['max'][0], tran_len_stat['max'][0], gene_len_stat['max'][1], tran_len_stat['max'][1], gene_len_stat['min'][0], tran_len_stat['min'][0], gene_len_stat['min'][1], tran_len_stat['min'][1], gene_len_stat['average'][0], tran_len_stat['average'][0], gene_len_stat['average'][1], tran_len_stat['average'][1], gene_len_stat['N50'][0], tran_len_stat['N50'][0], gene_len_stat['N50'][1], tran_len_stat['N50'][1], gene_len_stat['N90'][0], tran_len_stat['N90'][0], gene_len_stat['N90'][1], tran_len_stat['N90'][1]))
         for one in gene_len_distri:
             one = int(one)
             with open("{}/{}_length.distribut.txt".format(len_dir_path, one), "wb") as l:
-                l.write('length\tunigene_num\tunigene_per\ttranscript_num\ttranscript_per\n')
+                l.write('length\tgene_num\tgene_per\ttranscript_num\ttranscript_per\n')
                 start = 1
-                for i in range(one, gene_len_stat['max'][0] + one, one):
+                steps = sorted(gene_len_distri[one].keys())
+                for i in steps:
                     l.write('{}-{}\t{}\t{}\t{}\t{}\n'.format(start, i, gene_len_distri[one][i], '%0.4g' % (gene_len_distri[one][i] * 100.0 / gene_seq_num), tran_len_distri[one][i], '%0.4g' % (tran_len_distri[one][i] * 100.0 / tran_seq_num)))
-                    start += i
+                    start = i + 1
+                # start = 1
+                # for i in range(one, gene_len_stat['max'][0] + one, one):
+                #     l.write('{}-{}\t{}\t{}\t{}\t{}\n'.format(start, i, gene_len_distri[one][i], '%0.4g' % (gene_len_distri[one][i] * 100.0 / gene_seq_num), tran_len_distri[one][i], '%0.4g' % (tran_len_distri[one][i] * 100.0 / tran_seq_num)))
+                #     start += i
     return True
 
 
@@ -143,3 +148,6 @@ def len_stat(len_list, base_num):
         }
     )
     return stat_list
+
+# a = get_trinity_info('C:\Users\ping.qiu.MAJORBIO\Desktop\output\\Trinity.fasta')
+# stat_info(a, 'C:\Users\ping.qiu.MAJORBIO\Desktop\output\\gene.fasta', 'C:\Users\ping.qiu.MAJORBIO\Desktop\output\\trinity.fasta.stat.xls', 'C:\Users\ping.qiu.MAJORBIO\Desktop\output', '100,200,400', 'C:\Users\ping.qiu.MAJORBIO\Desktop\output\\gene_full_name.txt')

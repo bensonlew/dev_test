@@ -103,6 +103,20 @@ class BetaDiversityModule(Module):
         self.tools['anosim'].on('end', self.set_output, 'anosim')
         self.tools['anosim'].run()
 
+    def anosim_box_run(self):
+        """
+        add by wangzhaoyue 20170204
+        :return:
+        """
+        self.tools['anosim_box'].set_options({
+            'dis_matrix': self.matrix.option('dis_matrix'),
+            'grouplab': self.option('grouplab') if self.option('grouplab') else self.option('anosim_grouplab'),
+            'group': self.option('group'),
+            'permutations': self.option('permutations')
+        })
+        self.tools['anosim_box'].on('end', self.set_output, 'anosim_box')
+        self.tools['anosim_box'].run()
+
     def box_run(self, rely_obj):
         self.logger.info("box run iiiiiiiiiiiiiiiiiiiiiiing")
         self.tools['box'].set_options({
@@ -190,6 +204,8 @@ class BetaDiversityModule(Module):
             self.linkdir(obj.output_dir, 'Anosim')
         elif event['data'] == 'box':
             self.linkdir(obj.output_dir, 'Box')
+        elif event['data'] == 'anosim_box':
+            self.linkdir(obj.output_dir, 'AnosimBox')  # add by wzy
         elif event['data'] == 'dbrda':
             self.linkdir(obj.output_dir, 'Dbrda')
         elif event['data'] == 'pcoa':
@@ -229,9 +245,11 @@ class BetaDiversityModule(Module):
         if 'anosim' in self.option('analysis'):
             self.tools['anosim'] = self.add_tool('meta.beta_diversity.anosim')
             self.matrix.on('end', self.anosim_run)
-            self.tools['box'] = self.add_tool(
-                'meta.beta_diversity.distance_box')
-            self.matrix.on('end', self.box_run)
+            self.tools['anosim_box'] = self.add_tool('meta.beta_diversity.anosim_box')
+            self.matrix.on('end', self.anosim_box_run)
+            # self.tools['box'] = self.add_tool(
+            #     'meta.beta_diversity.distance_box')
+            # self.matrix.on('end', self.box_run)  # change by wzy
         if 'pcoa' in self.option('analysis'):
             self.tools['pcoa'] = self.add_tool('meta.beta_diversity.pcoa')
             self.matrix.on('end', self.pcoa_run)
@@ -334,6 +352,7 @@ class BetaDiversityModule(Module):
             [r'Rda/.*_species\.xls$', 'xls', '物种坐标表'],
             [r'Rda/.*_biplot\.xls$', 'xls', '数量型环境因子坐标表'],
             [r'Rda/.*_centroids\.xls$', 'xls', '哑变量环境因子坐标表'],
+            [r'Rda/.*_envfit\.xls$', 'xls', 'p_value值与r值表']
         ]
         # self.logger.info('shenghe:不能重复添加目录buglog。。。。。。。。。。。。。。。。')
         # self.logger.info(self.upload_dir)

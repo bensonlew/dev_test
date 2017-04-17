@@ -51,10 +51,10 @@ class LefseWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "lefse分析结果输出目录"],
-            ["./lefse_LDA.cladogram.png", "png", "lefse分析cladogram结果图片"],
-            ["./lefse_LDA.png", "png", "lefse分析LDA图片"],
-            ["./lefse_LDA.xls", "xls", "lefse分析lda数据表"]
+            [".", "", "LEfSe差异分析结果目录"],
+            ["./lefse_LDA.cladogram.png", "png", "LEfSe分析cladogram结果图片"],
+            ["./lefse_LDA.png", "png", "LEfSe分析LDA图片"],
+            ["./lefse_LDA.xls", "xls", "LEfSe分析lda数据表"]
         ])
         super(LefseWorkflow, self).end()
 
@@ -64,16 +64,16 @@ class LefseWorkflow(Workflow):
         """
         api_lefse = self.api.stat_test
         lefse_path = self.output_dir + '/lefse_LDA.xls'
-        lda_png_path = self.output_dir + '/lefse_LDA.png'
-        lda_cladogram_path = self.output_dir + '/lefse_LDA.cladogram.png'
+        # lda_png_path = self.output_dir + '/lefse_LDA.png'
+        # lda_cladogram_path = self.output_dir + '/lefse_LDA.cladogram.png'
         if not os.path.isfile(lefse_path):
             raise Exception("找不到报告文件:{}".format(lefse_path))
-        if not os.path.isfile(lda_png_path):
-            raise Exception("找不到报告文件:{}".format(lda_png_path))
-        if not os.path.isfile(lda_cladogram_path):
-            raise Exception("找不到报告文件:{}".format(lda_cladogram_path))
+        # if not os.path.isfile(lda_png_path):
+        #     raise Exception("找不到报告文件:{}".format(lda_png_path))
+        # if not os.path.isfile(lda_cladogram_path):
+        #     raise Exception("找不到报告文件:{}".format(lda_cladogram_path))
         api_lefse.add_species_difference_lefse_detail(file_path=lefse_path, table_id=self.option("lefse_id"))
-        api_lefse.update_species_difference_lefse(lda_png_path, lda_cladogram_path, self.option("lefse_id"))
+        # api_lefse.update_species_difference_lefse(lda_png_path, lda_cladogram_path, self.option("lefse_id"))
         self.end()
 
     def run(self):

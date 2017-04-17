@@ -64,21 +64,21 @@ class PlsdaAgent(Agent):
             else:
                 pass
             if not self.option('otutable').is_set:
-                raise OptionError('没有提供otu表')
+                raise OptionError('没有提供OTU表')
             real_otu = self.gettable()
             real_otu.get_info()
             if real_otu.prop['sample_num'] < 2:
-                raise OptionError('otu表的样本数目少于2，不可进行beta多元分析')
+                raise OptionError('OTU表的样本数目少于2，不可进行beta多元分析')   #将Otu改成OTU modified by hongdongxuan 20170310
             otu_samplelist = open(real_otu.path).readline().strip().split('\t')[1:]
             group_collection = set(self.option('group').prop['sample'])
             collection = group_collection & set(otu_samplelist)
             if group_collection == collection:
                 pass
             else:
-                raise OptionError('group文件中存在otu表中不存在的样本')
+                raise OptionError('group文件中存在OTU表中不存在的样本')
             table = open(real_otu.path)
             if len(table.readlines()) < 4:
-                raise OptionError('提供的otu表数据表信息少于3行')
+                raise OptionError('提供的OTU表数据表信息少于3行')
             table.close()
         else:
             raise OptionError('没有提供分组信息表')
@@ -97,7 +97,8 @@ class PlsdaAgent(Agent):
             [".", "", "plsda分析结果目录"],
             ["./plsda_sites.xls", "xls", "样本坐标表"],
             ["./plsda_rotation.xls", "xls", "物种主成分贡献度表"],
-            ["./plsda_importance.xls", "xls", "主成分解释度表"],
+            ["./plsda_importance.xls", "xls", "主成分组别特征值表"],
+            ["./plsda_importancepre.xls", "xls", "主成分解释度表"],
         ])
         # print self.get_upload_files()
         super(PlsdaAgent, self).end()
@@ -127,13 +128,13 @@ class PlsdaTool(Tool):
 
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):
-            raise Exception('过滤otu表样本的样本名称应为列表')
+            raise Exception('过滤OTU表样本的样本名称应为列表')
         try:
             with open(otu_path, 'rb') as f, open(newfile, 'wb') as w:
                 one_line = f.readline()
                 all_samples = one_line.rstrip().split('\t')[1:]
                 if not ((set(all_samples) & set(filter_samples)) == set(filter_samples)):
-                    raise Exception('提供的过滤样本存在otu表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
+                    raise Exception('提供的过滤样本存在OTU表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
                 if len(all_samples) == len(filter_samples):
                     return otu_path
                 samples_index = [all_samples.index(i) + 1 for i in filter_samples]
@@ -178,6 +179,7 @@ class PlsdaTool(Tool):
                 self.linkfile(self.work_dir + '/plsda_sites.xls', 'plsda_sites.xls')
                 self.linkfile(self.work_dir + '/plsda_rotation.xls', 'plsda_rotation.xls')
                 self.linkfile(self.work_dir + '/plsda_importance.xls', 'plsda_importance.xls')
+                self.linkfile(self.work_dir + '/plsda_pre.xls', 'plsda_importancepre.xls')
                 self.logger.info('运行plsda_r.py程序计算PLSDA完成')
                 self.end()
             else:

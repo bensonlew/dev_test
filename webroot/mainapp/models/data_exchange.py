@@ -4,7 +4,7 @@ import web
 import datetime
 import json
 import re
-from mainapp.config.db import DB, IDENTITY_DB, get_mongo_client, RECORD_DB
+from mainapp.config.db import DB, IDENTITY_DB, T_IDENTITY_DB, get_mongo_client, RECORD_DB
 from biocluster.config import Config
 
 
@@ -12,8 +12,13 @@ class Identity(object):
     """
     验证发送过来的验证码
     """
-    def __init__(self):
-        self.identity_db = IDENTITY_DB
+    def __init__(self, test=False):
+        if test:
+            self.identity_db = T_IDENTITY_DB
+            print "T_IDENTITY_DB", self.identity_db
+        else:
+            self.identity_db = IDENTITY_DB
+            print "IDENTITY_DB", self.identity_db
         self.record_db = RECORD_DB
 
     def get_task_id(self, code):

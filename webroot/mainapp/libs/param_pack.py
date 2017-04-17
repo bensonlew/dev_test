@@ -16,6 +16,14 @@ def param_pack(param):
     return params
 
 
+def filter_json_sort(filter_detail):
+    filters = json.loads(filter_detail)
+    temp = []
+    for i in filters:
+        temp.append(OrderedDict(sorted(i.items(), key=lambda t: t[0])))
+    return temp
+
+
 def sub_group_detail_sort(detail):
     table_list = json.loads(detail)
     result_list = []
@@ -75,8 +83,8 @@ def GetUploadInfo(client, member_id, project_sn, task_id, name):
         update_api = "meta.tupdate_status"
     else:
         raise Exception("未知用户:{}".format(client))
-    strTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    fullPath = "{}rerewrweset/files/{}/{}/{}/report_results/{}_{}".format(head, member_id, project_sn, task_id, name, strTime)
+    # strTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  # modified by hesheng 20161223 名称与主表名称统一
+    fullPath = "{}rerewrweset/files/{}/{}/{}/report_results/{}".format(head, member_id, project_sn, task_id, name)
     return (fullPath, update_api)
 
 

@@ -61,7 +61,7 @@ class ResultInfoAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 10
+        self._cpu = 6
         self._memory = '50G'
 
     def end(self):

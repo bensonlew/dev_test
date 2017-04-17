@@ -47,7 +47,7 @@ class WorkflowWorker(Process):
 
         try:
             if self.wsheet.type == "workflow":
-                path = self.wsheet.type
+                path = self.wsheet.name
             else:
                 path = "single"
             workflow_module = load_class_by_path(path, "Workflow")
@@ -79,9 +79,10 @@ class WorkflowWorker(Process):
                 data = {
                     "task_id": json_data["id"],
                     "api": json_data["UPDATE_STATUS_API"],
-                    "data": json.dumps(post_data)
+                    "data": post_data
                 }
-
+                if "update_info" in self.wsheet.options().keys():
+                    data["update_info"] = self.wsheet.option('update_info')
                 log_client().add_log(data)
             worker_client().set_error(json_data["id"], error)
             self.logger.info("运行异常: %s " % error)
