@@ -18,9 +18,9 @@ class GffcompareAgent(Agent):
     def __init__(self, parent):
         super(GffcompareAgent, self).__init__(parent)
         options = [
-            {"name": "merged.gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 拼接合并之后的转录本文件
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 参考基因的注释文件
-            {"name": "cuff.gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},
+            {"name": "merged_gtf", "type": "infile", "format": "sequence.gtf"},  # 拼接合并之后的转录本文件
+            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因的注释文件
+            {"name": "cuff_gtf", "type": "outfile", "format": "sequence.gtf"},
         ]
         self.add_option(options)
         self.step.add_steps("gffcompare")
@@ -40,7 +40,7 @@ class GffcompareAgent(Agent):
         重写参数检测函数
         :return:
         """
-        if not self.option('merged.gtf'):
+        if not self.option('merged_gtf'):
             raise OptionError('必须输入所有样本拼接合并后gtf文件')
         if not self.option('ref_gtf'):
             raise OptionError('必须输入参考序列ref.gtf')
@@ -90,7 +90,7 @@ class GffcompareTool(Tool):
         运行gffcompare软件进行新转录本预测
         """
         cmd = self.gffcompare_path + 'gffcompare  {} -o {}cuffcmp -r {} '.format(
-            self.option('merged.gtf').prop['path'], self.work_dir+"/", self.option('ref_gtf').prop['path'])
+            self.option('merged_gtf').prop['path'], self.work_dir+"/", self.option('ref_gtf').prop['path'])
         self.logger.info('运行gffcompare软件，进行比较')
         command = self.add_command("gffcompare_cmd", cmd).run()
         self.wait(command)
@@ -107,7 +107,7 @@ class GffcompareTool(Tool):
         self.logger.info("设置结果目录")
         try:
             shutil.copy2(self.work_dir + "/cuffcmp.annotated.gtf", self.output_dir + "/cuffcmp.annotated.gtf")
-            self.option('cuff.gtf').set_path(self.output_dir + "/cuffcmp.annotated.gtf")
+            self.option('cuff_gtf').set_path(self.output_dir + "/cuffcmp.annotated.gtf")
             self.logger.info("设置拼接比较结果目录成功")
         except Exception as e:
             self.logger.info("设置拼接比较分析结果目录失败{}".format(e))

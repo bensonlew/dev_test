@@ -231,14 +231,13 @@ class Gff3File(File):
             gtf.write(newline)
         gtf.close()
 
-    def gtf_to_bed(self):
+    def gtf_to_bed(self, gtf_path):
         """
         gtf格式转bed格式
         """
-        bed_path = os.path.split(self.prop['path'])[0]
-        gtf = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".gtf")
-        bed = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".bed")
-        cmd = "perl {} {} > {}".format(self.gtf2bed_path, gtf, bed)
+        bed_path = os.path.split(gtf_path)[0]
+        bed = os.path.join(bed_path, os.path.split(gtf_path)[1] + ".bed")
+        cmd = "perl {} {} > {}".format(self.gtf2bed_path, gtf_path, bed)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:

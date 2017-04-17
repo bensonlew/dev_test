@@ -19,12 +19,11 @@ class TranscriptAbstractAgent(Agent):
     def __init__(self, parent):
         super(TranscriptAbstractAgent, self).__init__(parent)
         options = [
-            {"name": "ref_genome", "type": "string"},                                             # 参考基因组参数，若为customer_mode时，客户传入参考基因组文件，否则选择平台上的
-            {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},          # 参考基因组fasta文件
-            {"name": "ref_genome_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"},  # 参考基因组gtf文件
-            {"name": "ref_genome_gff", "type": "infile", "format": "ref_rna.reads_mapping.gff"},  # 参考基因组gff文件
-            {"name": "query", "type": "outfile", "format": "sequence.fasta"},                     # 输出做注释的转录本序列
-            {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"}    # 输出最长转录本
+            {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 参考基因组fasta文件
+            {"name": "ref_genome_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因组gtf文件
+            {"name": "ref_genome_gff", "type": "infile", "format": "sequence.gff3"},  # 参考基因组gff文件
+            {"name": "query", "type": "outfile", "format": "sequence.fasta"},  # 输出做注释的转录本序列
+            {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"}  # 输出最长转录本
         ]
         self.add_option(options)
         self.step.add_steps("Transcript")
@@ -40,8 +39,6 @@ class TranscriptAbstractAgent(Agent):
         self.step.update()
 
     def check_option(self):
-        if not self.option("ref_genome").is_set:
-            raise OptionError("请设置参考基因组参数")
         if not self.option("ref_genome_custom").is_set:
             raise OptionError("请设置参考基因组custom文件")
         if self.option("ref_genome_gtf").is_set or self.option("ref_genome_gff").is_set:
@@ -64,18 +61,9 @@ class TranscriptAbstractTool(Tool):
         self.python_path = "program/Python/bin/"
 
     def run_gffread(self):
-        if self.option("ref_genome") == "customer_mode":
-            fasta = self.option("ref_genome_custom").prop["path"]
-            if self.option("ref_genome_gtf").is_set:
-                gff = self.option("ref_genome_gtf").prop["path"]
-            else:
-                gff = self.option("ref_genome_gff").prop["path"]
-        else:
-            with open(self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json", "r") as a:
-                dict = json.loads(a.read())
-                fasta = dict[self.option("ref_genome_custom")]["fasta"]
-                gff = dict[self.option("ref_genome")]["gtf"]
-        cmd = "{}gffread {} -g {} -w exons.fa".format(self.gffread_path, gff, fasta)
+        fasta = self.option("ref_genome_custom").prop["path"]  # 统一按自定义方式传参考基因组
+        gtf = self.option("ref_genome_gtf").prop["path"]
+        cmd = "{}gffread {} -g {} -w exons.fa".format(self.gffread_path, gtf, fasta)
         self.logger.info("开始运行cufflinks的gffread，合成、提取exons")
         command = self.add_command("gffread", cmd)
         command.run()

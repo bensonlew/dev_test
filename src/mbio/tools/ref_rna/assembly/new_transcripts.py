@@ -20,9 +20,9 @@ class NewTranscriptsAgent(Agent):
         options = [
             {"name": "tmap", "type": "infile", "format": "ref_rna.assembly.tmap"},  # compare后的tmap文件
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
-            {"name": "merged.gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 拼接后的注释文件
-            {"name": "new_trans_gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},  # 新转录本注释文件
-            {"name": "new_genes_gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},  # 新基因gtf文件
+            {"name": "merged_gtf", "type": "infile", "format": "sequence.gtf"},  # 拼接后的注释文件
+            {"name": "new_trans_gtf", "type": "outfile", "format": "sequence.gtf"},  # 新转录本注释文件
+            {"name": "new_genes_gtf", "type": "outfile", "format": "sequence.gtf"},  # 新基因gtf文件
             {"name": "new_trans_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本注释文件
             {"name": "new_genes_fa", "type": "outfile", "format": "sequence.fasta"}  # 新基因注释文件
         ]
@@ -48,8 +48,8 @@ class NewTranscriptsAgent(Agent):
             raise OptionError('必须输入compare后tmap文件')
         if not self.option('ref_fa'):
             raise OptionError('必须输入参考序列ref.fa')
-        if not self.option('merged.gtf'):
-            raise OptionError('必须输入参考序列merged.gtf')
+        if not self.option('merged_gtf'):
+            raise OptionError('必须输入参考序列merged_gtf')
         return True
 
     def set_resource(self):
@@ -101,7 +101,7 @@ class NewTranscriptsTool(Tool):
         """
         cmd = self.Python_path + self.newtranscripts_gtf_path \
             + " -tmapfile %s -transcript_file %s -out_new_trans %snew_transcripts.gtf -out_new_genes %snew_genes.gtf -out_old_trans %sold_trans.gtf -out_old_genes %sold_genes.gtf" % (
-                self.option('tmap').prop['path'], self.option('merged.gtf').prop['path'],
+                self.option('tmap').prop['path'], self.option('merged_gtf').prop['path'],
                 self.work_dir+"/", self.work_dir+"/", self.work_dir+"/", self.work_dir+"/")
         self.logger.info('运行python，挑出新转录本gtf文件')
         command = self.add_command("newtranscripts_gtf_cmd", cmd).run()

@@ -21,13 +21,18 @@ class RefrnaWorkflow(Workflow):
             {"name": "workflow_type", "type":"string", "default": "transcriptome"},  # 转录组
             {"name": "genome_status", "type": "bool", "default": True},
             # 基因组结构完整程度，True表示基因组结构注释文件可以支持rna编辑与snp分析
-            {"name": "assemble_not", "type": "bool", "default": True},
-            {"name": "genome_structure_file", "type": "infile", "default": "sequence.gff, sequence.gtf"},
+            {"name": "assemble_or_not", "type": "bool", "default": True},
+            {"name": "blast_method", "type" :"string", "default": "diamond"},
+            {"name": "genome_structure_file", "type": "infile", "default": "sequence.gff3, sequence.gtf"},
             # 基因组结构注释文件，可上传gff3或gtf
             {"name": "strand_specific", "type": "bool", "default": False},
             # 当为PE测序时，是否有链特异性, 默认是False, 无特异性
             {"name": "strand_dir", "type": "string", "default": "None"},
             # 当链特异性时为True时，正义链为forward，反义链为reverse
+            {"name": "is_duplicate", "type":"bool", "default": True},  # 是否有生物学重复
+            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 分组文件
+            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},
+            # 对照表
 
             {"name":"sample_base", "type": "bool", "default": False},  # 是否使用样本库
             {"name":"batch_id", "type": "string", "default": ""},  # 样本集编号
@@ -56,15 +61,13 @@ class RefrnaWorkflow(Workflow):
             {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
             {"name": "result_reserved", "type": "int", "default": 1},  # 最多保留的比对结果数目
 
-            {"name": "assemble_or_not", "type": "bool", "default": True},  # 是否进行拼接
             {"name": "assemble_method", "type": "string", "default": "cufflinks"},
             # 拼接方法，Cufflinks or Stringtie or None
 
-            {"name": "express_method", "type": "string", "default": "featurecounts"},
+            {"name": "express_method", "type": "string", "default": "rsem"},
             # 表达量分析手段: Htseq, Featurecount, Kallisto, RSEM
-            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},
-            # 对照表
+            {"name": "exp_way", "type": "string", "default": "fpkm"}, #默认选择fpkm进行表达量的计算
+
             {"name": "diff_method", "type": "string", "default": "edgeR"},
             # 差异表达分析方法
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
@@ -90,10 +93,12 @@ class RefrnaWorkflow(Workflow):
         self.json_path = self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json"
         self.json_dict = self.get_json()
         self.filecheck = self.add_tool("ref_rna.filecheck.filecheck_ref")
+        self.gs = self.add_tool("ref_rna.gene_structure.genome_structure")
         self.qc = self.add_module("denovo_rna.qc.quality_control")
         self.qc_stat_before = self.add_module("denovo_rna.qc.qc_stat")
         self.qc_stat_after = self.add_module("denovo_rna.qc.qc_stat")
         self.mapping = self.add_module("ref_rna.mapping.rnaseq_mapping")
+        self.altersplicing = self.add_module("ref_rna.gene_structure.rmats")
         self.map_qc = self.add_module("denovo.mapping.map_assessment")
         self.assembly = self.add_module("ref_rna.assembly.assembly")
         self.exp = self.add_module("ref_rna.express.express")
@@ -159,12 +164,27 @@ class RefrnaWorkflow(Workflow):
             'fq_type': self.option('fq_type'),
             'control_file': self.option('control_file')
         }
-        if self.option('ref_genome') == "customer_mode":
-            opts.update({'gff': self.option('gff')})
+        if self.option('genome_structure_file')._format == "sequence.gff3":
+            self.gff = self.option('genome_structure_file').prop["path"]
+            opts.update({
+                "gff": self.gff
+            })
+        else:
+            opts.update({
+                "in_gtf": self.option('genome_structure_file').prop["path"]
+            })
         if self.option('group_table').is_set:
             opts.update({'group_table': self.option('group_table')})
         self.filecheck.set_options(opts)
         self.filecheck.run()
+
+    def run_gs(self):
+        opts = {
+            "in_fasta": self.json_dict["ref_genome"],
+            "in_gtf": self.filecheck.option("gtf")
+        }
+        self.gs.set_options(opts)
+        self.gs.run()
 
     def run_qc(self):
         self.qc.set_options({
@@ -179,8 +199,7 @@ class RefrnaWorkflow(Workflow):
     def run_seq_abs(self):
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome": self.option("ref_genome"),
-            "ref_genome_gff": self.option("gff")
+            "ref_genome_gtf": self.filecheck.option("gtf")
         }
         self.seq_abs.set_options(opts)
         self.seq_abs.on('start', self.set_step, {'start': self.step.seq_abs})
@@ -192,6 +211,63 @@ class RefrnaWorkflow(Workflow):
         self.annotation.on("end", self.end)
         self.run_seq_abs()
         super(RefrnaWorkflow, self).run()
+
+    def run_diamond(self):
+        self.blast_modules = []
+        self.gene_list = self.seq_abs.option('gene_file')
+        blast_lines = int(self.seq_abs.option('query').prop['seq_number']) / 10
+        self.logger.info('.......blast_lines:%s' % blast_lines)
+        blast_opts = {
+            'query': self.seq_abs.option('query'),
+            'query_type': 'nucl',
+            'database': None,
+            'blast': 'blastx',
+            'evalue': None,
+            'outfmt': 5,
+            'lines': blast_lines,
+        }
+        if 'go' in self.option('database') or 'nr' in self.option('database'):
+            self.blast_nr = self.add_module('align.diamond')
+            blast_opts.update(
+                {
+                    'database': self.option("database").split(",")[-1],
+                    'evalue': self.option('nr_blast_evalue')
+                }
+            )
+            self.blast_nr.set_options(blast_opts)
+            self.blast_modules.append(self.blast_nr)
+            self.blast_nr.on('end', self.set_output, 'nrblast')
+            self.blast_nr.run()
+        if 'cog' in self.option('database'):
+            self.blast_string = self.add_module('align.diamond')
+            blast_opts.update(
+                {'database': 'string', 'evalue': self.option('string_blast_evalue')}
+            )
+            self.blast_string.set_options(blast_opts)
+            self.blast_modules.append(self.blast_string)
+            self.blast_string.on('end', self.set_output, 'stringblast')
+            self.blast_string.run()
+        if 'kegg' in self.option('database'):
+            self.blast_kegg = self.add_module('align.diamond')
+            blast_opts.update(
+                {'database': 'kegg', 'evalue': self.option('kegg_blast_evalue')}
+            )
+            self.blast_kegg.set_options(blast_opts)
+            self.blast_modules.append(self.blast_kegg)
+            self.blast_kegg.on('end', self.set_output, 'keggblast')
+            self.blast_kegg.run()
+        self.on_rely(self.blast_modules, self.run_change_diamond)
+
+    def run_change_diamond(self):
+        self.change_tool = self.add_tool("align.diamond.change_diamondout")
+        opts = {
+            "nr_out": self.blast_nr.option('outxml'),
+            "kegg_out": self.blast_kegg.option('outxml'),
+            "string_out": self.blast_string.option('outxml')
+        }
+        self.change_tool.set_options(opts)
+        self.change_tool.on("end",self.run_diamond_annotation)
+        self.change_tool.run()
 
     def run_blast(self):
         self.blast_modules = []
@@ -234,9 +310,9 @@ class RefrnaWorkflow(Workflow):
             self.blast_modules.append(self.blast_kegg)
             self.blast_kegg.on('end', self.set_output, 'keggblast')
             self.blast_kegg.run()
-        self.on_rely(self.blast_modules, self.run_annotation)
+        self.on_rely(self.blast_modules, self.run_blast_annotation)
 
-    def run_annotation(self):
+    def run_blast_annotation(self):
         anno_opts = {
             'gene_file': self.seq_abs.option('gene_file'),
         }
@@ -271,6 +347,38 @@ class RefrnaWorkflow(Workflow):
         self.annotation.on('end', self.set_step, {'end': self.step.annotation})
         self.annotation.run()
 
+    def run_diamond_annotation(self):
+        anno_opts = {
+            'gene_file': self.seq_abs.option('gene_file'),
+        }
+        if 'go' in self.option('database'):
+            anno_opts.update({
+                'go_annot': True,
+                'blast_nr_xml': self.change_tool.option('blast_nr_xml')
+            })
+        else:
+            anno_opts.update({'go_annot': False})
+        if 'nr' in self.option('database'):
+            anno_opts.update({
+                'nr_annot': True,
+                'blast_nr_xml': self.change_tool.option('blast_nr_xml'),
+            })
+        else:
+            anno_opts.update({'nr_annot': False})
+        if 'kegg' in self.option('database'):
+            anno_opts.update({
+                'blast_kegg_xml': self.change_tool.option('blast_kegg_xml'),
+            })
+        if 'cog' in self.option('database'):
+            anno_opts.update({
+                'blast_string_xml': self.change_tool.option('blast_string_xml'),
+            })
+        self.logger.info('....anno_opts:%s' % anno_opts)
+        self.annotation.set_options(anno_opts)
+        self.annotation.on('end', self.set_output, 'annotation')
+        self.annotation.on('end', self.set_step, {'end': self.step.annotation})
+        self.annotation.run()
+
     def run_qc_stat(self, event):
         if event['data']: 
             self.qc_stat_after.set_options({
@@ -290,9 +398,13 @@ class RefrnaWorkflow(Workflow):
             self.qc_stat_before.run()
             
     def run_mapping(self):
+        if self.option("ref_genome") != "customer_mode":
+            self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
+        else:
+            self.ref_genome = self.option("ref_genome_custom").prop["path"]
         opts = {
-            "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome": self.option("ref_genome"),
+            "ref_genome_custom": "customer_mode",
+            "ref_genome": self.ref_genome,
             "mapping_method": self.option("seq_method").lower(),  # 比对软件
             "seq_method": self.option("fq_type"),   # PE or SE
             "fastq_dir": self.qc.option("sickle_dir"),
@@ -321,17 +433,14 @@ class RefrnaWorkflow(Workflow):
                 "strand_direct": strand_dir,
                 "fr_stranded": "fr-stranded"
                 })
+            self.lib_type = "fr-stranded"
         else:
             opts.update({
                 "fr_stranded": "fr-unstranded"
                 })
-        # 如果为平台自带的参考基因组
-        if self.option("ref_genome") == "customer_mode":
-            gtf_path = self.filecheck.option("gtf").prop["path"]
-            ref_path = self.option("ref_genome_custom").prop["path"]
-        else:
-            gtf_path = ""
-            ref_path = ""
+            self.lib_type = "fr-unstranded"
+        gtf_path = self.filecheck.option("gtf").prop["path"]
+        ref_path = self.ref_genome
         opts.update(
             {
                 "ref_gtf": gtf_path,
@@ -346,8 +455,9 @@ class RefrnaWorkflow(Workflow):
 
     def run_snp(self):
         opts = {
-            "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome": self.option("ref_genome"),
+            "ref_genome_custom": "customer_mode",
+            "ref_genome": self.ref_genome,
+            "ref_gtf": self.filecheck.option("gtf"),
             "seq_method": self.option("fq_type"),
             "fastq_dir": self.qc.option("sickle_dir")
         }
@@ -359,40 +469,19 @@ class RefrnaWorkflow(Workflow):
         assess_method = self.option("map_assess_method") + ",stat"
         opts = {
             "bam": self.mapping.option("bam_output"),
-            "analysis": assess_method
+            "analysis": assess_method,
+            "bed": self.filecheck.option("bed").prop["path"]
         }
-        if self.option("ref_genome") == "customer_mode":
-            bed_path = self.filecheck.option("bed").prop["path"]
-        else:
-            bed_path = ""
-        opts.update = (
-            {
-                "bed": bed_path
-            }
-        )
         self.map_qc.set_options(opts)
         self.map_qc.on("end", self.set_output, "map_qc")
         self.map_qc.run()
     
-    def run_exp(self, event):  # 表达量与表达差异模块
-        gtf_type = event["data"]
+    def run_exp(self):  # 表达量与表达差异模块
         self.logger.info("开始运行表达量模块")
-        if gtf_type == "ref":
-            if self.option("ref_genome") == "customer_mode":
-                gtf_path = self.filecheck.option("gtf").prop["path"]
-            else:
-                gtf_path = ""
-        elif gtf_type == "new_transcripts":
-            gtf_path = self.assembly.output_dir + "/assembly_newtranscripts/new_transcripts.gtf"
-        elif gtf_type == "new_genes":
-            gtf_path = self.assembly.output_dir + "/assembly_newtranscripts/new_genes.gtf"
-        else:
-            gtf_path = self.assembly.output_dir + "/assembly_newtranscripts/merged.gtf"
         opts = {
             "fq_type": self.option("fq_type"),
-            "ref_gtf": gtf_path,
-            "gtf_type": gtf_type,
-            "express_method": self.option("express_method"),
+            "ref_gtf": self.filecheck.option("gtf"),
+            "merged_gtf": self.assembly.
             "sample_bam": self.mapping.option("bam_output"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
@@ -466,16 +555,13 @@ class RefrnaWorkflow(Workflow):
             self.network.run()
 
     def run_altersplicing(self):
-        if self.option("ref_genome") == "customer_mode":
-            gtf_path = self.filecheck.option("gtf").prop["path"]
-        else:
-            gtf_path = ""
+        gtf_path = self.filecheck.option("gtf").prop["path"]
         opts = {
-            "sequencing_library_type": self.option("sequencing_library_type"),
-            "whether_to_find_novel_splice_sites": self.option("whether_to_find_novel_splice_sites"),
-            "genome_annotation_file": gtf_path,
+            "sample_bam_dir": self.mapping.option("bam_output"),
+            "lib_type": self.lib_type,
+            "ref_gtf": gtf_path,
             "group_table": self.option("group_table"),
-            "control_file": self.option("control_file")
+            "rmats_control": self.option("control_file")
         }
         if self.option("fq_type") == "PE":
             opts.update({"sequencing_type": "paired"})
@@ -585,11 +671,21 @@ class RefrnaWorkflow(Workflow):
         :return:
         """
         self.filecheck.on('end', self.run_qc)
+        self.filecheck.on('end', self.run_seq_abs)
+        if self.option("blast_method") == "diamond":  # 此处添加go_upload、kegg_upload脚本
+            self.seq_abs.on('end', self.run_diamond)
+        else:
+            self.seq_abs.on('end', self.run_blast)
+        self.filecheck.on("end", self.run_gs)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
-        self.mapping.on('end', self.run_assembly)
+        self.qc.on('end', self.run_snp)
+        self.mapping.on("end", self.run_altersplicing)
+        self.mapping.on('end', self.run_assembly)  # 此处需要修改
+        self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp)
+        self.on(self.run_exp, self.end)
         self.on(self.run_exp, self.end)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()

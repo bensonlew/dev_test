@@ -4,8 +4,9 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.files.sequence.fastq import FastqFile
-from mbio.files.ref_rna.reads_mapping.gff import GffFile
+from mbio.files.squence.gff3 import Gff3File
 from mbio.files.sequence.file_sample import FileSampleFile
+from biocluster.config import Config
 import os
 import re
 
@@ -30,6 +31,7 @@ class FilecheckRefAgent(Agent):
             # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},
             # 对照组文件，格式同分组文件
+            {"name": "in_gtf", "type": "infile", "format": "sequence.gtf"},
             {"name": "gtf", "type": "outfile", "format": "sequence.gtf"},
             {"name": "bed", "type": "outfile", "format": "denovo_rna.gene_structure.bed"},
             {"name": "genome_status", "type": "bool", "default": True}
@@ -152,16 +154,19 @@ class FilecheckRefTool(Tool):
             self.logger.info("gff的名称为{}".format(gff_name))
             new_gff_path = os.path.join(self.work_dir, gff_name)
             os.link(origin_gff_path, new_gff_path)
-            gff = GffFile()
+            gff = Gff3File()
             gff.set_path(new_gff_path)
-            gff.gff_to_gtf()
+            gff.set_gtf_file(new_gff_path + ".gtf")
+            gff.set_gffread_path(Config() + "/app/bioinfo/rna/cufflinks-2.2.1/gffread")
+            gff.to_gtf()
             self.logger.info("转换gff文件为gtf文件完成")
-            gff.gtf_to_bed()
+            gff.gtf_to_bed(new_gff_path + ".gtf")
             self.logger.info("转换gtf文件为bed文件完成")
             self.option("gtf").set_path(new_gff_path + ".gtf")
-            self.option("bed").set_path(new_gff_path + ".bed")
+            self.option("bed").set_path(self.option("gtf").prop["path"] + ".bed")
         else:
-            gtf = self.option("gtf").prop["path"]
+            gtf = self.option("in_gtf").prop["path"]
+            self.option("gtf").set_path(gtf)
             gtf.to_bed()
             self.option("bed").set_path(os.path.split(gtf)[1] + ".bed")
 
@@ -174,18 +179,18 @@ class FilecheckRefTool(Tool):
         if self.option("gff").is_set:
             yn = self.option("gff").check_format()
         else:
-            yn = self.option("gtf").check_format()
+            yn = self.option("in_gtf").check_format()
         if yn:
             self.logger.info("基因组结构完整，可以进行snp分析和rna编辑")
-            self.option("genome_status").set_value(True)
+            self.option("genome_status", True)
         else:
             self.logger.info("基因组结构不完整，不可以进行snp分析和rna编辑")
-            self.option("genome_status").set_value(False)
+            self.option("genome_status", False)
 
     def run(self):
-            super(FilecheckRefTool, self).run()
-            if self.option("ref_genome") == "customer_mode":
-                self.transform_gff()
-                self.check_fasta()
-                self.check_genome_status()
-            self.end()
+        super(FilecheckRefTool, self).run()
+        self.check_genome_status()
+        self.transform_gff()
+        self.check_fasta()
+        self.check_control()
+        self.end()

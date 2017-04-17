@@ -23,9 +23,9 @@ class ExpressModule(Module):
         super(ExpressModule,self).__init__(work_id)
         options=[
             {"name": "fq_type", "type": "string", "default": "PE"},  # PE OR SE
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf, ref_rna.reads_mapping.gff"},  # 参考基因组的gtf文件
-            {"name": "merged_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"}, #拼接生成的merged.gtf文件
-            {"name": "cmp_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"}, #gttcompare生成的annotated.gtf文件
+            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因组的gtf文件
+            {"name": "merged_gtf", "type": "infile", "format": "sequence.gtf"}, #拼接生成的merged.gtf文件
+            {"name": "cmp_gtf", "type": "infile", "format": "sequence.gtf"}, #gttcompare生成的annotated.gtf文件
             {"name": "sample_bam", "type": "infile", "format": "ref_rna.assembly.bam_dir"},  # 所有样本的bam文件夹 适用于featureCoutns软件
             {"name": "fastq_dir", "type":"infile", "format":"sequence.fastq, sequence.fastq_dir"}, #所有样本的fastq_dir文件夹，适用于rsem, kallisto软件
             {"name": "ref_genome", "type": "string"}, # 参考基因组参数
