@@ -19,7 +19,7 @@ class RmatsBamAgent(Agent):
     last_modify: 2017.1.13
 
     '''
-
+    
     def __init__(self, parent):
         super(RmatsBamAgent, self).__init__(parent)  # agent实例初始化
         '''
@@ -38,16 +38,17 @@ class RmatsBamAgent(Agent):
                    {"name": "B_group_bam", "type": "string", "default": None},  # 一定要设置
                    {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 一定要设置
                    {"name": "novel_as", "type": "int", "default": 1},  # 是否发现新的AS事件，默认为是
-                   {"name": "lib_type", "type": "string", "default": "fr-unstranded"},#建库类型
+                   {"name": "lib_type", "type": "string", "default": "fr-unstranded"},  # 建库类型
                    {"name": "as_diff", "type": "float", "default": 0.05},
                    {"name": "output_dir", "type": "string", "default": self.output_dir},  # agent默认输出目录
+                   {"name": "keep_temp", "type": "int", "default": 0}
                    ]
-
+        
         self.add_option(options)
         self.step.add_steps('rmats_bam')
         self.on('start', self.step_start)
         self.on('end', self.step_end)
-
+    
     def check_options(self):
         """
         重写参数检查
@@ -83,17 +84,17 @@ class RmatsBamAgent(Agent):
             raise OptionError('差异剪接假设检验的置信度p应该: 0=< p <1')
         if self.option('lib_type') not in ('fr-unstranded', 'fr-firststrand', 'fr-secondstrand'):
             raise OptionError('rMATS识别的建库类型只可设置为fr-unstranded或fr-firststrand或fr-secondstrand')
-        if self.option('seq_type')  not in ('paired', 'single'):
+        if self.option('seq_type') not in ('paired', 'single'):
             raise OptionError('rMATS识别的测序读长类型只可为paired（双端测序）或single（单端测序）')
-
+    
     def step_start(self):
         self.step.rmats_bam.start()  # Ste
         self.step.update()
-
+    
     def step_end(self):
         self.step.rmats_bam.finish()
         self.step.update()
-
+    
     def set_resource(self):
         '''
         所需资源
@@ -101,7 +102,7 @@ class RmatsBamAgent(Agent):
         '''
         self._cpu = 10
         self._memory = '100G'
-
+    
     def end(self):
         """
         agent结束后一些文件的操作
@@ -119,7 +120,7 @@ class RmatsBamAgent(Agent):
             ["config.txt", "txt", "软件运行配置信息"],
             ["summary.txt", "txt", "rMATS结果总结文件"],
         ])
-
+        
         super(RmatsBamAgent, self).end()
 
 
@@ -127,25 +128,34 @@ class RmatsBamTool(Tool):
     '''
     version 1.0
     '''
-
+    
     def __init__(self, config):
         super(RmatsBamTool, self).__init__(config)
         self._version = "v3.2.5"
         self.script_path = self.config.SOFTWARE_DIR + "/bioinfo/rna/rMATS.3.2.5/RNASeq-MATS.py "
         self.Python_path = 'program/Python/bin/python'
-
+    
     def run_rmats(self):
         """
         运行rmats
         :return:
         """
-        cmd = "{} {}  -b1 {} -b2 {} -gtf {} -o {} rmats_out -t {}  -len {}  -novelSS {}  -analysis {} -c {}  -libType {}".format(
-            self.Python_path, self.script_path, self.option('A_group_bam'),
-            self.option('B_group_bam'), self.option('ref_gtf').prop["path"], self.output_dir,
-            self.option('seq_type'), self.option('read_length'),
-            self.option('novel_as'), self.option('analysis_mode'),
-            self.option('as_diff'),
-            self.option('lib_type'))
+        if not self.option('keep_temp'):
+            cmd = "{} {}  -b1 {} -b2 {} -gtf {} -o {} rmats_out -t {}  -len {}  -novelSS {}  -analysis {} -c {}  -libType {}".format(
+                self.Python_path, self.script_path, self.option('A_group_bam'),
+                self.option('B_group_bam'), self.option('ref_gtf').prop["path"], self.output_dir,
+                self.option('seq_type'), self.option('read_length'),
+                self.option('novel_as'), self.option('analysis_mode'),
+                self.option('as_diff'),
+                self.option('lib_type'))
+        else:
+            cmd = "{} {}  -b1 {} -b2 {} -gtf {} -o {} rmats_out -t {}  -len {}  -novelSS {}  -analysis {} -c {}  -libType {} -keepTemp ".format(
+                self.Python_path, self.script_path, self.option('A_group_bam'),
+                self.option('B_group_bam'), self.option('ref_gtf').prop["path"], self.output_dir,
+                self.option('seq_type'), self.option('read_length'),
+                self.option('novel_as'), self.option('analysis_mode'),
+                self.option('as_diff'),
+                self.option('lib_type'))
         self.logger.info('开始运行rmats')
         command = self.add_command("rmats_cmd", cmd).run()
         self.wait(command)
@@ -153,7 +163,7 @@ class RmatsBamTool(Tool):
             self.logger.info("rmats运行完成")
         else:
             self.set_error("rmats运行出错!")
-
+    
     def run(self):
         """
         运行rmats，输入文件为bam格式
@@ -163,7 +173,7 @@ class RmatsBamTool(Tool):
         self.run_rmats()
         # self.set_output()
         self.end()
-
+    
     def set_output(self):
         """
         将结果文件复制到结果文件夹中
@@ -172,12 +182,12 @@ class RmatsBamTool(Tool):
         """
         self.logger.info("开始设置rmats结果目录")
         try:
-            shutil.copytree(self.work_dir+"/ASevents", self.output_dir+"/ASevents")
+            shutil.copytree(self.work_dir + "/ASevents", self.output_dir + "/ASevents")
             shutil.copytree(self.work_dir + "/MATS_output", self.output_dir + "/MATS_output")
             shutil.copy2(self.work_dir + "/commands.txt", self.output_dir + "/commands.txt")
             shutil.copy2(self.work_dir + "/config.txt", self.output_dir + "config.txt")
             shutil.copy2(self.work_dir + "/summary.txt", self.output_dir + "/summary.txt")
-
+        
         except Exception as e:
             self.logger.info("设置rmats结果目录失败：{}".format(e))
             self.set_error("设置rmats结果目录失败：{}".format(e))
