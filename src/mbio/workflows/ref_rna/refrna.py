@@ -88,7 +88,7 @@ class RefrnaWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.json_path = self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json"
-        self.json = self.get_json()
+        self.json_dict = self.get_json()
         self.filecheck = self.add_tool("ref_rna.filecheck.filecheck_ref")
         self.qc = self.add_module("denovo_rna.qc.quality_control")
         self.qc_stat_before = self.add_module("denovo_rna.qc.qc_stat")
