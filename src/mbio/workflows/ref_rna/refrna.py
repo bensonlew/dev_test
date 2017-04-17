@@ -21,9 +21,15 @@ class RefrnaWorkflow(Workflow):
             {"name": "workflow_type", "type":"string", "default": "transcriptome"},  # 转录组
             {"name": "genome_status", "type": "bool", "default": True},
             # 基因组结构完整程度，True表示基因组结构注释文件可以支持rna编辑与snp分析
+            {"name": "assemble_not", "type": "bool", "default": True},
             {"name": "genome_structure_file", "type": "infile", "default": "sequence.gff, sequence.gtf"},
+            # 基因组结构注释文件，可上传gff3或gtf
+            {"name": "strand_specific", "type": "bool", "default": False},
+            # 当为PE测序时，是否有链特异性, 默认是False, 无特异性
+            {"name": "strand_dir", "type": "string", "default": "None"},
+            # 当链特异性时为True时，正义链为forward，反义链为reverse
 
-            {"name":"sample_base", "type": "bool", "default": False},  #
+            {"name":"sample_base", "type": "bool", "default": False},  # 是否使用样本库
             {"name":"batch_id", "type": "string", "default": ""},  # 样本集编号
 
 
@@ -42,11 +48,7 @@ class RefrnaWorkflow(Workflow):
             {"name": "database", "type": "string", "default": 'go,nr,cog,kegg,swissprot'},
             # 全部五个注释
 
-            {"name": "seq_method", "type": "string", "default": "Hisat"},  # 比对方法，Tophat or Hisat
-            {"name": "strand_specific", "type": "bool", "default": False},
-            # 当为PE测序时，是否有链特异性, 默认是False, 无特异性
-            {"name": "strand_dir", "type": "string", "default": "None"},
-            # 当链特异性时为True时，正义链为forward，反义链为reverse
+            {"name": "seq_method", "type": "string", "default": "Tophat"},  # 比对方法，Tophat or Hisat
             {"name": "map_assess_method", "type": "string", "default":
                 "saturation,duplication,distribution,coverage"},
             # 比对质量评估分析
