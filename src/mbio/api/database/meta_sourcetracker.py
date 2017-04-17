@@ -56,8 +56,9 @@ class MetaSourcetracker(Base):
                     # detail[new_head[i]] = float(group_num[i])
                     detail[new_head[i] + "_mean"] = float(group_num[i])
                     detail[new_head[i] + "_stdev"] = float(d_dict[line[0]][new_head[i]])
-                    detail[new_head[i] + "_h"] = float(group_num[i]) + (d_dict[line[0]][new_head[i]]*d_dict[line[0]][new_head[i]])
-                    detail[new_head[i] + "_l"] = float(group_num[i]) - (d_dict[line[0]][new_head[i]]*d_dict[line[0]][new_head[i]])
+                    detail[new_head[i] + "_stdev_plot"] = float(d_dict[line[0]][new_head[i]]*d_dict[line[0]][new_head[i]])
+                    # detail[new_head[i] + "_h"] = float(group_num[i]) + (d_dict[line[0]][new_head[i]]*d_dict[line[0]][new_head[i]])
+                    # detail[new_head[i] + "_l"] = float(group_num[i]) - (d_dict[line[0]][new_head[i]]*d_dict[line[0]][new_head[i]])
                 insert_data.append(detail)
         try:
             collection = self.db['sg_sourcetracker_detail']
