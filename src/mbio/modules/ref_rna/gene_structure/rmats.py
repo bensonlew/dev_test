@@ -36,6 +36,7 @@ class RmatsModule(Module):
             {"name": "novel_as", "type": "int", "default": 1},  # 是否发现新的AS事件，默认为是
             {"name": "lib_type", "type": "string", "default": "fr-unstranded"},  # 建库类型
             {"name": "as_diff", "type": "float", "default": 0.05},
+            {"name": "keep_temp", "type": "int", "default": 0}
         ]
 
         self.add_option(options)
@@ -135,6 +136,7 @@ class RmatsModule(Module):
                 "lib_type": self.option('lib_type'),
                 "as_diff": self.option('as_diff'),
                 "output_dir": rmats_bam.output_dir,
+                "keep_temp": self.option('keep_temp')
             })
 
             step = getattr(self.step, 'rmats_bam_{}'.format(n))
