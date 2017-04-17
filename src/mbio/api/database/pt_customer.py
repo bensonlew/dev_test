@@ -41,12 +41,14 @@ class PtCustomer(Base):
 				line = line.decode("GB18030")
 				line = line.strip()
 				line = line.split(',')
+				if line[0] == "序号":  # 去表头
+					continue
 				if line[1] == "":
 					break
 				if line[4] == "" or line[7] == "":
 					continue
 
-				if len(line) == 22 and line[21] != "":
+				if len(line) >= 22 and line[21] != "":
 					family_name = "WQ" + line[8].split("-")[1] +"-"+ line[8].split("-")[-1] + "-" + line[5].split("-")[-1] + "-" + line[21].split("-")[-1]
 				else:
 					family_name = "WQ" + line[8].split("-")[1] +"-"+ line[8].split("-")[-1] + "-" + line[5].split("-")[-1] + "-S"
