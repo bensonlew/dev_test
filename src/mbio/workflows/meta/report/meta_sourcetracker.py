@@ -61,7 +61,7 @@ class MetaSourcetrackerWorkflow(Workflow):
                 if line[0] not in samples:
                     samples.append(line[0])
                 else:
-                    raise OptionError('sink组和source组中不能存在同一个样本')
+                    raise OptionError('sink组和source组中不能存在同一个样本 {}'.format(line[0]))
                 if line[2] == 'sink':
                     k.write(line[0] + "\t" + line[1] + "\n")
                     if line[1] not in sink_label:
