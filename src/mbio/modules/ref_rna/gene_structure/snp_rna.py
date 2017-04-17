@@ -287,10 +287,10 @@ class SnpRnaModule(Module):
         self.logger.info("set output started!!!")
         obj = event["bind_object"]
         if event['data'][:7] == 'annovar':
-            output_name = self.output_dir + "/{}.snp_anno.xls".format(event['data'].split("_")[1])
+            output_name = self.output_dir + "/" + "{}.snp_anno.xls".format(event['data'].split("_")[1])
             self.logger.info("llllllllllllooking for event data")
             self.logger.info(event['data'].split("_")[1])
-            self.logger.info(event['data'].split("_")[1])
+            self.logger.info(output_name)
             if os.path.exists(output_name):
                 os.remove(output_name)
             os.link(obj.output_dir + "/snp_anno.xls", output_name)
