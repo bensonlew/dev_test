@@ -245,6 +245,7 @@ class PipeSubmitTool(Tool):
         分析中特有的一些参数；collection_name是这个子分析对应的mongo中的主表名
         2）定义每个分析的类，如：CorrNetworkAnalyse（该分析的submit_location驼峰命名）
         3）一键化的所有的分析，都是以submit_location来区分，所以在对接的时候要着重考虑与前端的submit_location是不是一致的。
+        4)所有任务都被设置为投递任务，但是，被依赖的任务必须设置为即时的。
         :return:
         """
         self.analysis_params = {
@@ -255,26 +256,26 @@ class PipeSubmitTool(Tool):
             "otunetwork_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_network"},
             "roc_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "top_n_id", "method_type", "submit_location"], "collection_name": "sg_roc"},
             "alpha_diversity_index": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "submit_location", "task_type"], "collection_name": "sg_alpha_diversity"},
-            "alpha_ttest": {"instant": True, "waits": ["alpha_diversity_index", "otu_subsample"], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
-            "beta_multi_analysis_plsda": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
-            "beta_sample_distance_hcluster_tree": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "hcluster_method", "task_type", "submit_location"], "collection_name": "sg_newick_tree"},
-            "beta_multi_analysis_pearson_correlation": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["task_type", "species_cluster", "submit_location", "method", "top_species", "env_cluster"], "collection_name": "sg_species_env_correlation"},
-            "beta_multi_analysis_rda_cca": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
-            "hc_heatmap": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "add_Algorithm", "submit_location", "sample_method", "species_number", "method"], "collection_name": "sg_hc_heatmap"},
-            "beta_multi_analysis_anosim": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "permutations", "submit_location", "task_type"], "collection_name": "sg_beta_multi_anosim"},
-            "species_difference_multiple": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "correction", "methor", "submit_location", "coverage", "test"], "collection_name": "sg_species_difference_check"},
-            "beta_multi_analysis_results": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["otu_method", "env_method", "submit_location", "task_type"], "collection_name": "sg_species_mantel_check"},
-            "beta_multi_analysis_pcoa": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
-            "beta_multi_analysis_dbrda": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
-            "species_difference_two_group": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["ci", "task_type", "correction", "methor", "submit_location", "coverage", "test", "type"], "collection_name": "sg_species_difference_check"},
-            "beta_multi_analysis_nmds": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
-            "otu_group_analyse": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu"},
-            "otu_venn": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu_venn"},
-            "beta_multi_analysis_pca": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
-            "corr_network_analyse": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["abundance", "coefficient", "ratio_method", "lable", "submit_location", "task_type"], "collection_name": "sg_corr_network"},
-            "otu_pan_core": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu_pan_core"},
-            "plot_tree": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "color_level_id", "submit_location", "topn"], "collection_name": "sg_phylo_tree"},
-            "enterotyping": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_enterotyping"},
+            "alpha_ttest": {"instant": False, "waits": ["alpha_diversity_index", "otu_subsample"], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
+            "beta_multi_analysis_plsda": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
+            "beta_sample_distance_hcluster_tree": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "hcluster_method", "task_type", "submit_location"], "collection_name": "sg_newick_tree"},
+            "beta_multi_analysis_pearson_correlation": {"instant": False, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["task_type", "species_cluster", "submit_location", "method", "top_species", "env_cluster"], "collection_name": "sg_species_env_correlation"},
+            "beta_multi_analysis_rda_cca": {"instant": False, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
+            "hc_heatmap": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "add_Algorithm", "submit_location", "sample_method", "species_number", "method"], "collection_name": "sg_hc_heatmap"},
+            "beta_multi_analysis_anosim": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "permutations", "submit_location", "task_type"], "collection_name": "sg_beta_multi_anosim"},
+            "species_difference_multiple": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "correction", "methor", "submit_location", "coverage", "test"], "collection_name": "sg_species_difference_check"},
+            "beta_multi_analysis_results": {"instant": False, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["otu_method", "env_method", "submit_location", "task_type"], "collection_name": "sg_species_mantel_check"},
+            "beta_multi_analysis_pcoa": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
+            "beta_multi_analysis_dbrda": {"instant": False, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
+            "species_difference_two_group": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["ci", "task_type", "correction", "methor", "submit_location", "coverage", "test", "type"], "collection_name": "sg_species_difference_check"},
+            "beta_multi_analysis_nmds": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
+            "otu_group_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu"},
+            "otu_venn": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu_venn"},
+            "beta_multi_analysis_pca": {"instant": False, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
+            "corr_network_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["abundance", "coefficient", "ratio_method", "lable", "submit_location", "task_type"], "collection_name": "sg_corr_network"},
+            "otu_pan_core": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu_pan_core"},
+            "plot_tree": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "color_level_id", "submit_location", "topn"], "collection_name": "sg_phylo_tree"},
+            "enterotyping": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_enterotyping"},
         }
         self.web_data = json.loads(self.option('data'))
         self.web_data['sub_analysis'] = json.loads(
