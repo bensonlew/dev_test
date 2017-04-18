@@ -89,6 +89,7 @@ class ResultInfoTool(Tool):
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/ImageMagick-7.0.3-7/bin')
         # self.set_environ(PATH= self.config.SOFTWARE_DIR + '/gcc/5.4.0/stage1-x86_64-unknown-linux-gnu/libstdc++-v3/src/.libs')
 
     def run_tf(self):
