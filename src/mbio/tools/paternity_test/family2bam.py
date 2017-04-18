@@ -99,7 +99,7 @@ class Family2bamTool(Tool):
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bedtools-2.24.0/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/sun_jdk1.8.0/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bcftools-1.3.0/bin')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/picard-tools-2.2.4/')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/picard-tools-2.2.4')
 
 
 
