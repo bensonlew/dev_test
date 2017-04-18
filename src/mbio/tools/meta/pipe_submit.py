@@ -113,8 +113,13 @@ class PipeSubmitTool(Tool):
             self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
                                                          {'$inc': {"ends_count": 1}})
         elif ana._params_check_end or not ana.success:
+            if ana._params['submit_location'] == "otu_pan_core":
+                inc = 2
+            else:
+                inc = 1
             self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
-                                                         {'$inc': {"ends_count": 1}})
+                                                         {'$inc': {"ends_count": inc}})
+
 
     def one_end(self, ana):
         self.count_ends += 1
