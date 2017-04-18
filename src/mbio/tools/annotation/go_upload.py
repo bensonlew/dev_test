@@ -77,7 +77,7 @@ class GoUploadTool(Tool):
         self.run_annotation()
 
     def run_annotation(self):
-        gos_list = self.option("gos_list_upload").get_transcript_anno(outdir=self.work_dir + "/query_gos.list")
+        self.option("gos_list_upload").get_transcript_anno(outdir=self.work_dir + "/query_gos.list")
         cmd = '%s %s %s %s %s %s' % (self.python, self.goAnnot, self.work_dir + "/query_gos.list", 'localhost', self.b2g_user, self.b2g_password)  # 10.100.203.193
         if os.path.exists(self.output_dir + '/query_gos.list'):
             os.remove(self.output_dir + '/query_gos.list')

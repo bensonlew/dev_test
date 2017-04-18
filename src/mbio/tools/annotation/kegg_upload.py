@@ -75,6 +75,7 @@ class KeggUploadTool(Tool):
         else:
             taxonomy = None
         self.option("kos_list_upload").get_transcript_anno(outdir=self.work_dir + "/kegg.list")
+        self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
         try:
             kegg_anno = self.load_package('annotation.kegg.kegg_annotation')()
             kegg_anno.pathSearch_upload(kegg_ids=self.work_dir + "/kegg.list", kegg_table=self.output_dir + '/kegg_table.xls', taxonomy=taxonomy)

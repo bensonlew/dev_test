@@ -24,6 +24,7 @@ sequence_ontology_file_url = 'https://github.com/The-Sequence-Ontology/SO-Ontolo
 
 class Gff3File(File):
     def __init__(self):
+        super(Gff3File, self).__init__()
         self._properties = {}
         self._contigs = set()
         self._pos_set = set()
@@ -46,9 +47,10 @@ class Gff3File(File):
         super(Gff3File, self).check()
     
     def check_format(self, fasta_file, so_file):
-        self.check_lines()
-        self.parse_and_check_column(fasta_file, so_file)
+        # self.check_lines()
+        self.parse_and_check_column(fasta_file, so_file)  # memory error
         self.check_logical()
+        return True
     
     def parse_and_check_column(self, fa_file, so_file):
         contig_cmd = 'grep -v \'^#\' %s |awk -F \'\\t\' \'{print $1}\' |uniq| sort  -n -r | uniq' % self.path
@@ -88,7 +90,7 @@ class Gff3File(File):
     def attrs_format_check(self):
         for attr_record in self._attrs_record_set:
             if not re.match(r'^(.+?=.+?;)+.+?=.+?;*$', attr_record.strip()):
-                raise Exception('column 9 must match the format: tag=value')
+                raise FileError('column 9 must match the format: tag=value')
     
     def type_id_check(self, content):
         type_id_dic = defaultdict(int)
@@ -100,7 +102,7 @@ class Gff3File(File):
                 continue
         for count in type_id_dic.values():
             if count > 1:
-                raise Exception('ID must be Uniq among same seq types')
+                raise FileError('ID must be Uniq among same seq types')
     
     def parent_relation_check(self, content):
         type_relation_set = set()
@@ -113,7 +115,7 @@ class Gff3File(File):
     def check_contigs(self):
         for contig in self._contigs:
             if (not re.match(r'^[a-zA-Z0-9\.:^*$@!+_?-|]+$', contig)) or contig.startswith('>'):
-                raise Exception('contig 错误')
+                raise FileError('contig 错误')
             else:
                 continue
         return True
@@ -123,25 +125,25 @@ class Gff3File(File):
         for pos in self._pos_set:
             [contig, start, end] = re.split(r'[:-]', pos)
             if not (re.match(r'^\d+$', start) and re.match(r'^\d+$', end)):
-                raise Exception('illegal pos format')
+                raise FileError('illegal pos format')
             if int(start) > int(end):
-                raise Exception('{} record illegal pos in gff file {}'.format(pos, self.path))
+                raise FileError('{} record illegal pos in gff file {}'.format(pos, self.path))
             end = int(end)
             if end > self._contig_boundary_dic[contig][1]:
                 self._contig_boundary_dic[contig][1] = end
         self.set_fasta_file(fa_path)
         contig_len_dic = self._fasta.get_contig_len()
         if self._contigs != set(contig_len_dic.keys()):
-            raise Exception('gff3 and fasta file contigs id set not agreed')
+            raise FileError('gff3 and fasta file contigs id set not agreed')
         for contig in contig_len_dic.keys():
             if contig_len_dic[contig] < self._contig_boundary_dic[contig][0]:
-                raise Exception('illogical seq length ')
+                raise FileError('illogical seq length ')
     
     def check_seq_types(self, target_term, so_file):
         (id_set, name_set) = self.get_so_set(so_file, target_term, 'is_a')
         illegal_term_set = self._seq_type_set - id_set.union(name_set)
         if illegal_term_set:
-            raise Exception('illegal seq types')
+            raise FileError('illegal seq types')
         return True
     
     def parse_directives(self):
@@ -165,11 +167,11 @@ class Gff3File(File):
                 continue
             else:
                 if not regex.match(r'^[^#]\S+\t(.+?\t){7}(.+?=.+?;)*(.+?=.+?)*', line.strip()):
-                    raise Exception('有不合格的行')
+                    raise FileError('有不合格的行')
     
     def set_so_file(self, value):
         if not os.path.isfile(value):
-            raise Exception('so file does not exist')
+            raise FileError('so file does not exist')
         self._so_file = SequenceOntologyFile()
         self._so_file.set_path(value)
         return self._so_file
@@ -187,9 +189,9 @@ class Gff3File(File):
     
     def get_so_set(self, so_f, target_term_id, relation):
         if not re.match(r'^SO:\d+$', target_term_id):
-            raise Exception('illegal input so id')
+            raise FileError('illegal input so id')
         if not os.path.isfile(so_f):
-            raise Exception('so file does not exist')
+            raise FileError('so file does not exist')
         so_file = SequenceOntologyFile()
         so_file.set_path(so_f)
         so_file.parse()
@@ -198,19 +200,19 @@ class Gff3File(File):
     def check_strand(self):
         for strand in self._strand_set:
             if not re.match(r'^[\.\?\-\+]$', strand):
-                raise Exception('illegal strand value')
+                raise FileError('illegal strand value')
     
     def check_phase(self):
         for phase in self._phase_set:
             if not re.match(r'^[\.120]$', phase):
-                raise Exception('illegal phase value')
+                raise FileError('illegal phase value')
     
     def phase_logical_check(self):
         cds_phase_cmd = 'grep -v \'^#\' %s |awk -F \'\\t\' \'$3~/CDS|cds/{print $8}\' |uniq | sort |uniq' % self.path
         cds_phase_set = set(
             [phase.strip() for phase in subprocess.check_output(cds_phase_cmd, shell=True).strip().split('\n')])
         if cds_phase_set & {0, 1, 2} != cds_phase_set:
-            raise Exception('illogical phase value')
+            raise FileError('illogical phase value')
     
     def get_genbank_assembly_id(self):
         if self._parse_status:
@@ -242,7 +244,7 @@ class Gff3File(File):
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
             os.remove(bed)
-            raise Exception("运行出错")
+            raise FileError("运行出错")
         return True
 
 

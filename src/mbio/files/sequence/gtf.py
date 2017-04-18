@@ -8,6 +8,7 @@ import subprocess
 from biocluster.iofile import File
 from collections import defaultdict
 from biocluster.config import Config
+from biocluster.core.exceptions import FileError
 
 '''
 gtf:gene transefer format
@@ -28,6 +29,7 @@ def dict_factory():
 class GtfFile(File):
     # def __init__(self, fasta):  # fasta应为FastaFile对象
     def __init__(self):  # fasta应为FastaFile对象
+        super(GtfFile, self).__init__()
         self._validate_gtf_tool = 'validate_gtf.pl'  # 此脚本
         # self._co_fasta = fasta
         self._contig_info = {}
@@ -60,10 +62,10 @@ class GtfFile(File):
                 line.strip())
             if content_m:
                 if not {content_m.captures(6)[0], content_m.captures(9)[0]} == {'transcript_id','gene_id'}:
-                    raise Exception('第9列必须有转录本id和基因id记录')
+                    raise FileError('第9列必须有转录本id和基因id记录')
                 continue
             if not (comment_m or content_m):
-                raise Exception(
+                raise FileError(
                     'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
     
     def check_in_detail(self, check_log_file):
@@ -81,7 +83,7 @@ class GtfFile(File):
             validate_gtf_cmd = 'perl {} -fsm  {}'.format(self._validate_gtf_tool, self.path)
             open(log_file, 'wb').write(subprocess.check_output(validate_gtf_cmd, shell=True))
         else:
-            raise Exception('')
+            raise FileError('')
     
     def _check_chars(self, merged=False):
         '''
@@ -98,7 +100,7 @@ class GtfFile(File):
                 r'^([^#]\S*?)\t+((\S+)\t+){7}((.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*)$',
                 line.strip())
             if not (comment_m or content_m):
-                raise Exception(
+                raise FileError(
                     'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
             
             if content_m:
@@ -119,9 +121,9 @@ class GtfFile(File):
                 if merged:
                     merged_m = regex.match(r'^.+?class_code "\w";$', desc)
                     if not merged_m:
-                        raise Exception('illegal merged gtf')
+                        raise FileError('illegal merged gtf')
                 if not (contig_m and seq_type_m and start_m and frame_m and end_m and strand_m):
-                    raise Exception('line {} in gtf file {} is not legal.'.format(line.strip(), self.path))
+                    raise FileError('line {} in gtf file {} is not legal.'.format(line.strip(), self.path))
     
     def __check_hierachy(self):
         '''
@@ -135,7 +137,7 @@ class GtfFile(File):
                 line.strip())
             
             if not (comment_m or content_m):
-                raise Exception(
+                raise FileError(
                     'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
             
             if content_m:
@@ -152,7 +154,7 @@ class GtfFile(File):
                 frame_m = re.match(r'^[\.120]$', frame)
                 strand_m = re.match(r'^[\.\?\-\+]$', strand)
                 if not (contig_m and seq_type_m and start_m and frame_m and end_m and strand_m):
-                    raise Exception('line {} in gtf file {} is not legal.'.format(line.strip(), self.path))
+                    raise FileError('line {} in gtf file {} is not legal.'.format(line.strip(), self.path))
                     
                     # self._structure_hierachy[contig][]
     
@@ -171,7 +173,7 @@ class GtfFile(File):
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
             os.remove(bed)
-            raise Exception("运行出错")
+            raise FileError("运行出错")
         pass
     
     def gtf_tbi(self):

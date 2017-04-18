@@ -23,13 +23,13 @@ class RefrnaWorkflow(Workflow):
             # 基因组结构完整程度，True表示基因组结构注释文件可以支持rna编辑与snp分析
             {"name": "assemble_or_not", "type": "bool", "default": True},
             {"name": "blast_method", "type" :"string", "default": "diamond"},
-            {"name": "genome_structure_file", "type": "infile", "default": "sequence.gff3, sequence.gtf"},
+            {"name": "genome_structure_file", "type": "infile", "format": "sequence.gtf, sequence.gff3"},
             # 基因组结构注释文件，可上传gff3或gtf
             {"name": "strand_specific", "type": "bool", "default": False},
             # 当为PE测序时，是否有链特异性, 默认是False, 无特异性
             {"name": "strand_dir", "type": "string", "default": "None"},
             # 当链特异性时为True时，正义链为forward，反义链为reverse
-            {"name": "is_duplicate", "type":"bool", "default": True},  # 是否有生物学重复
+            {"name": "is_duplicate", "type": "bool", "default": True},  # 是否有生物学重复
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 分组文件
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},
             # 对照表
@@ -103,7 +103,8 @@ class RefrnaWorkflow(Workflow):
         self.qc_stat_after = self.add_module("denovo_rna.qc.qc_stat")
         self.mapping = self.add_module("ref_rna.mapping.rnaseq_mapping")
         self.altersplicing = self.add_module("ref_rna.gene_structure.rmats")
-        self.map_qc = self.add_module("denovo.mapping.map_assessment")
+        self.map_qc = self.add_module("denovo_rna.mapping.map_assessment")
+        self.map_gene = self.add_module("ref_rna.mapping.rnaseq_mapping")
         self.assembly = self.add_module("ref_rna.assembly.assembly")
         self.exp = self.add_module("ref_rna.express.express")
         self.exp_diff_trans = self.add_module("denovo_rna.express.diff_analysis")
@@ -113,7 +114,7 @@ class RefrnaWorkflow(Workflow):
         self.new_abs = self.add_tool("ref_rna.annotation.transcript_abstract")
         self.annotation = self.add_module('ref_rna.annotation.ref_annotation')
         self.new_annotation = self.add_module('ref_rna.annotation.ref_annotation')
-        self.network = self.add_module("ref_rna.ppinetwork_analysis")
+        self.network = self.add_module("ref_rna.protein_regulation.ppinetwork_analysis")
         self.tf = self.add_tool("ref_rna.protein_regulation.TF_predict")
         self.merge_trans_annot = self.add_tool("ref_rna.annotation.merge_annot")
         self.merge_gene_annot = self.add_tool("ref_rna.annotation.merge_annot")
@@ -132,6 +133,11 @@ class RefrnaWorkflow(Workflow):
         """
         检查选项
         """
+        if not self.option("ref_genome") == "customer_mode":
+            if not self.option("genome_structure_file").is_set:
+                raise OptionError("未设置gff文件或gtf文件")
+            if not self.option("ref_genome_custom").is_set:
+                raise OptionError("未设置fa文件")
         if not self.option("fq_type") in ["PE", "SE"]:
             raise OptionError("fq序列类型应为PE或SE")
         if not self.option("qc_quality") > 0 and not self.option("qc_quality") < 42:
@@ -172,17 +178,27 @@ class RefrnaWorkflow(Workflow):
         opts = {
             'fastq_dir': self.option('fastq_dir'),
             'fq_type': self.option('fq_type'),
-            'control_file': self.option('control_file')
+            'control_file': self.option('control_file'),
         }
-        if self.option('genome_structure_file')._format == "sequence.gff3":
-            self.gff = self.option('genome_structure_file').prop["path"]
-            opts.update({
-                "gff": self.gff
-            })
+        if self.option("ref_genome") == "customer_mode":  # 如果是自定义模式,须用户上传基因组
+            # self.logger.info(dir(self.option('genome_structure_file')))
+            if self.option('genome_structure_file').format == "sequence.gff3":
+                self.gff = self.option('genome_structure_file').prop["path"]
+                opts.update({
+                    "gff": self.gff,
+                    "ref_genome_custom": self.option("ref_genome_custom")
+                })
+            else:
+                opts.update({
+                    "in_gtf": self.option('genome_structure_file').prop["path"],
+                    "ref_genome_custom": self.option("ref_genome_custom")
+                })
         else:
+            self.gff = self.json_dict[self.option("ref_genome")]["gff"]
             opts.update({
-                "in_gtf": self.option('genome_structure_file').prop["path"]
-            })
+                    "gff": self.gff,
+                    "ref_genome_custom": self.json[self.option("ref_genome")]["ref_genome"]
+                })
         if self.option('group_table').is_set:
             opts.update({'group_table': self.option('group_table')})
         self.filecheck.set_options(opts)
@@ -223,12 +239,6 @@ class RefrnaWorkflow(Workflow):
         self.seq_abs.on('start', self.set_step, {'start': self.step.seq_abs})
         self.seq_abs.on('end', self.set_step, {'end': self.step.seq_abs})
         self.seq_abs.run()
-
-    def test_run(self):
-        self.seq_abs.on("end", self.run_blast)
-        self.annotation.on("end", self.end)
-        self.run_seq_abs()
-        super(RefrnaWorkflow, self).run()
 
     def run_diamond(self):
         self.blast_modules = []
@@ -309,7 +319,7 @@ class RefrnaWorkflow(Workflow):
             'database': None,
             'blast': 'blastx',
             'evalue': None,
-            'outfmt': 6,
+            'outfmt': 5,
             'lines': blast_lines,
         }
         if 'go' in self.geno_database:
@@ -377,12 +387,24 @@ class RefrnaWorkflow(Workflow):
                 'blast_nr_table': self.blast_nr.option('outtable')
             })
         else:
-            anno_opts.update({'nr_annot': False})
+            anno_opts.update(
+                {
+                    'nr_annot': False,
+                    'gos_list_upload':self.option("go_upload_file")
+                 }
+            )
         if 'kegg' in self.geno_database:
             anno_opts.update({
                 'blast_kegg_xml': self.blast_kegg.option('outxml'),
                 'blast_kegg_table': self.blast_kegg.option('outtable')
             })
+        else:
+            anno_opts.update(
+                {
+                    'nr_annot': False,
+                    'kos_list_upload':self.option("kegg_upload_file")
+                 }
+            )
         if 'cog' in self.geno_database:
             anno_opts.update({
                 'blast_string_xml': self.blast_string.option('outxml'),
@@ -392,7 +414,6 @@ class RefrnaWorkflow(Workflow):
         self.annotation.set_options(anno_opts)
         self.annotation.on('end', self.set_output, 'annotation')
         self.annotation.on('end', self.set_step, {'end': self.step.annotation})
-        self.final_tools.append(self.annotation)
         self.annotation.run()
 
     def run_diamond_annotation(self):
@@ -412,11 +433,23 @@ class RefrnaWorkflow(Workflow):
                 'blast_nr_xml': self.change_tool_before.option('blast_nr_xml'),
             })
         else:
-            anno_opts.update({'nr_annot': False})
+            anno_opts.update(
+                {
+                    'nr_annot': False,
+                    'gos_list_upload':self.option("go_upload_file")
+                 }
+            )
         if 'kegg' in self.geno_database:
             anno_opts.update({
-                'blast_kegg_xml': self.change_tool_before.option('blast_kegg_xml'),
+                'blast_kegg_xml': self.change_tool_before.option('blast_kegg_xml')
             })
+        else:
+            anno_opts.update(
+                {
+                    'nr_annot': False,
+                    'kos_list_upload':self.option("kegg_upload_file")
+                 }
+            )
         if 'cog' in self.geno_database:
             anno_opts.update({
                 'blast_string_xml': self.change_tool_before.option('blast_string_xml'),
@@ -425,7 +458,6 @@ class RefrnaWorkflow(Workflow):
         self.annotation.set_options(anno_opts)
         self.annotation.on('end', self.set_output, 'annotation')
         self.annotation.on('end', self.set_step, {'end': self.step.annotation})
-        self.final_tools.append(self.annotation)
         self.annotation.run()
 
     def run_qc_stat(self, event):
@@ -445,7 +477,23 @@ class RefrnaWorkflow(Workflow):
         else:
             self.qc_stat_before.on('end', self.set_output, 'qc_stat_before')
             self.qc_stat_before.run()
-            
+
+    def run_map_gene(self):
+        opts = {
+            "ref_genome_custom": "customer_mode",
+            "ref_genome": self.seq_abs.option("query"),
+            "mapping_method": self.option("seq_method").lower(),  # 比对软件
+            "seq_method": self.option("fq_type"),   # PE or SE
+            "fastq_dir": self.qc.option("sickle_dir"),
+            "assemble_method": self.option("assemble_method"),
+            "mate_std": self.option("mate_std"),
+            "mid_dis": self.option("mid_dis"),
+            "result_reserved": self.option("result_reserved")
+        }
+        self.map_gene.set_options(opts)
+        self.map_gene.on("end", self.set_output, "map_gene")
+        self.map_gene.run()
+
     def run_mapping(self):
         if self.option("ref_genome") != "customer_mode":
             self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
@@ -470,7 +518,9 @@ class RefrnaWorkflow(Workflow):
         self.logger.info("开始运行拼接步骤")
         opts = {
             "sample_bam_dir": self.mapping.option("bam_output"),
-            "assemble_method": self.option("assemble_method")
+            "assemble_method": self.option("assemble_method"),
+            "ref_gtf": self.filecheck.option("gtf"),
+            "ref_fa": self.ref_genome
         }
         # 如果具有链特异性
         if self.option("strand_specific"):
@@ -488,15 +538,6 @@ class RefrnaWorkflow(Workflow):
                 "fr_stranded": "fr-unstranded"
                 })
             self.lib_type = "fr-unstranded"
-        gtf_path = self.filecheck.option("gtf").prop["path"]
-        self.logger.info(self.ref_genome)  # 输出参考基因组位置
-        ref_path = self.ref_genome
-        opts.update(
-            {
-                "ref_gtf": gtf_path,
-                "ref_fa": ref_path
-            }
-        )
         self.assembly.set_options(opts)
         self.assembly.on("end", self.set_output, "assembly")
         self.assembly.on('start', self.set_step, {'start': self.step.assembly})
@@ -633,7 +674,7 @@ class RefrnaWorkflow(Workflow):
             })
         self.logger.info('....anno_opts:%s' % anno_opts)
         self.new_annotation.set_options(anno_opts)
-        self.new_annotation.on('end', self.set_output, 'annotation')
+        self.new_annotation.on('end', self.set_output, 'new_annotation')
         self.new_annotation.on('end', self.set_step, {'end': self.step.annotation})
         self.new_annotation.run()
 
@@ -665,22 +706,25 @@ class RefrnaWorkflow(Workflow):
             })
         self.logger.info('....anno_opts:%s' % anno_opts)
         self.new_annotation.set_options(anno_opts)
-        self.new_annotation.on('end', self.set_output, 'annotation')
+        self.new_annotation.on('end', self.set_output, 'new_annotation')
         self.new_annotation.on('end', self.set_step, {'end': self.step.annotation})
         self.new_annotation.run()
 
     def run_snp(self):
-        opts = {
-            "ref_genome_custom": "customer_mode",
-            "ref_genome": self.ref_genome,
-            "ref_gtf": self.filecheck.option("gtf"),
-            "seq_method": self.option("fq_type"),
-            "fastq_dir": self.qc.option("sickle_dir")
-        }
-        self.snp_rna.set_options(opts)
-        self.snp_rna.on("end", self.set_output, "snp_rna")
-        self.final_tools.append(self.snp_rna)
-        self.snp_rna.run()
+        if not self.filecheck.option("genome_status"):
+            self.logger.info("基因组结构不完整")
+            self.snp_rna.fire("end")
+        else:
+            opts = {
+                "ref_genome_custom": "customer_mode",
+                "ref_genome": self.ref_genome,
+                "ref_gtf": self.filecheck.option("gtf"),
+                "seq_method": self.option("fq_type"),
+                "fastq_dir": self.qc.option("sickle_dir")
+            }
+            self.snp_rna.set_options(opts)
+            self.snp_rna.on("end", self.set_output, "snp_rna")
+            self.snp_rna.run()
         
     def run_map_assess(self):
         assess_method = self.option("map_assess_method") + ",stat"
@@ -728,30 +772,32 @@ class RefrnaWorkflow(Workflow):
             self.network.on("end", self.set_output, "network_analysis")
             self.network.on('start', self.set_step, {'start': self.step.network_analysis})
             self.network.on('end', self.set_step, {'end': self.step.network_analysis})
-            self.final_tools.append(self.network)
             self.network.run()
         else:
             self.network.fire("end")
 
     def run_altersplicing(self):
-        gtf_path = self.filecheck.option("gtf").prop["path"]
-        opts = {
-            "sample_bam_dir": self.mapping.option("bam_output"),
-            "lib_type": self.lib_type,
-            "ref_gtf": gtf_path,
-            "group_table": self.option("group_table"),
-            "rmats_control": self.option("control_file")
-        }
-        if self.option("fq_type") == "PE":
-            opts.update({"sequencing_type": "paired"})
+        if not self.filecheck.option("genome_status"):
+            self.logger.info("基因组结构不完整")
+            self.altersplicing.fire("end")
         else:
-            opts.update({"sequencing_type": "single"})
-        self.altersplicing.set_options(opts)
-        self.altersplicing.on("end", self.set_output, "altersplicing")
-        self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
-        self.altersplicing.on('end', self.set_step, {'end': self.step.altersplicing})
-        self.final_tools.append(self.altersplicing)
-        self.altersplicing.run()
+            gtf_path = self.filecheck.option("gtf").prop["path"]
+            opts = {
+                "sample_bam_dir": self.mapping.option("bam_output"),
+                "lib_type": self.lib_type,
+                "ref_gtf": gtf_path,
+                "group_table": self.option("group_table"),
+                "rmats_control": self.option("control_file")
+            }
+            if self.option("fq_type") == "PE":
+                opts.update({"sequencing_type": "paired"})
+            else:
+                opts.update({"sequencing_type": "single"})
+            self.altersplicing.set_options(opts)
+            self.altersplicing.on("end", self.set_output, "altersplicing")
+            self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
+            self.altersplicing.on('end', self.set_step, {'end': self.step.altersplicing})
+            self.altersplicing.run()
 
     def run_tf(self):
         if self.option("ref_genome") != "customer_mode":
@@ -763,7 +809,6 @@ class RefrnaWorkflow(Workflow):
             self.tf.on("end", self.set_output, "tf")
             self.tf.on('start', self.set_step, {'start': self.step.transfactor_analysis})
             self.tf.on('end', self.set_step, {'end': self.step.transfactor_analysis})
-            self.final_tools.append(self.tf)
             self.tf.run()
         else:
             self.tf.fire("end")
@@ -774,7 +819,7 @@ class RefrnaWorkflow(Workflow):
             gos_dir1_gene = self.annotation.work_dir + "/RefAnnoStat/go_stat/gene_gos.list"
         else:
             gos_dir1_trans = self.go_upload.output_dir + "/query_gos.list"
-            gos_dir1_gene = self.go_upload.output_dir + ""  # 黑人问号
+            gos_dir1_gene = self.annotation.option("gene_go_list").prop["path"]
         gos_dir2_trans = self.new_annotation.work_dir + "/GoAnotation/ouptut/query_gos.list"
         gos_dir2_gene = self.new_annotation.work_dir + "/RefAnnoStat/go_stat/gene_gos.list"
         if not self.option("go_upload_file").is_set:
@@ -782,7 +827,7 @@ class RefrnaWorkflow(Workflow):
             kegg_table_dir1_gene = self.annotation.work_dir + "/RefAnnoStat/kegg_stat/gene_kegg_table.xls"
         else:
             kegg_table_dir1_trans = self.kegg_upload.output_dir + "/kegg_table.xls"
-            kegg_table_dir1_gene = self.kegg_upload.output_dir + "/kegg_table.xls"  # 黑人问号
+            kegg_table_dir1_gene = self.annotation.option("gene_kegg_table").prop["path"]
         kegg_table_dir2_trans = self.new_annotation.work_dir + "/KeggAnnotation/output/kegg_table.xls"
         kegg_table_dir2_gene = self.new_annotation.work_dir + "/RefAnnoStat/kegg_stat/gene_kegg_table.xls"
         cog_table_dir1_trans = self.annotation.work_dir + "/String2cogv9/output/cog_table.xls"
@@ -842,7 +887,6 @@ class RefrnaWorkflow(Workflow):
             self.exp_diff_trans.set_options(exp_diff_opts)
             self.exp_diff_trans.on('end', self.set_output, 'exp_diff_trans')
             self.exp_diff_trans.run()
-            self.final_tools.append(self.exp_diff_trans)
         else:
             self.logger.info("输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略")
 
@@ -876,7 +920,6 @@ class RefrnaWorkflow(Workflow):
             self.exp_diff_gene.set_options(exp_diff_opts)
             self.exp_diff_gene.on('end', self.set_output, 'exp_diff_gene')
             self.exp_diff_gene.run()
-            self.final_tools.append(self.exp_diff_gene)
         else:
             self.logger.info("输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略")
         
@@ -930,7 +973,7 @@ class RefrnaWorkflow(Workflow):
         if event['data'] == 'assembly':
             self.move2outputdir(obj.output_dir, 'assembly')
             self.logger.info('assembly are done')
-        if event['data'] == 'express':
+        if event['data'] == 'exp':
             self.move2outputdir(obj.output_dir, 'express')
             self.logger.info('express文件移动完成')
         if event['data'] == 'exp_diff_gene':
@@ -951,10 +994,33 @@ class RefrnaWorkflow(Workflow):
         if event['data'] == 'annotation':
             self.move2outputdir(obj.output_dir, 'annotation')
             self.logger.info("annotation文件移动完成")
+        if event['data'] == 'new_annotation':
+            self.move2outputdir(obj.output_dir, 'new_annotation')
+            self.logger.info("新转录本与新基因annotation文件移动完成")
         if event['data'] == 'altersplicing':
             self.move2outputdir(obj.output_dir, 'altersplicing')
             self.logger.info("altersplicing文件移动完成")
-        if event["data"] == ""
+        if event["data"] == "new_keggblast":
+            self.move2outputdir(obj.output_dir, 'new_keggblast')
+            self.logger.info("new_keggblast文件移动完成")
+        if event["data"] == "new_stringblast":
+            self.move2outputdir(obj.output_dir, 'new_stringblast')
+            self.logger.info("new_stringblast文件移动完成")
+        if event["data"] == "new_nrblast":
+            self.move2outputdir(obj.output_dir, 'new_nrblast')
+            self.logger.info("new_nrblast文件移动完成")
+        if event["data"] == "keggblast":
+            self.move2outputdir(obj.output_dir, 'keggblast')
+            self.logger.info("keggblast文件移动完成")
+        if event["data"] == "stringblast":
+            self.move2outputdir(obj.output_dir, 'stringblast')
+            self.logger.info("stringblast文件移动完成")
+        if event["data"] == "nrblast":
+            self.move2outputdir(obj.output_dir, 'nrblast')
+            self.logger.info("nrblast文件移动完成")
+        if event["data"] == "map_gene":
+            self.move2outputdir(obj.output_dir, 'map_gene')
+            self.logger.info("map_gene文件移动完成")
             
     def run(self):
         """
@@ -984,6 +1050,7 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
         self.qc.on('end', self.run_snp)
+        self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
         self.mapping.on("end", self.run_altersplicing)
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
@@ -991,7 +1058,49 @@ class RefrnaWorkflow(Workflow):
         self.assembly.on("end", self.run_new_abs)
         self.exp.on("end", self.run_tf)
         self.exp.on("end", self.run_network)
-        self.on_rely(self.final_tools, self.end)
+        self.on_rely([self.snp_rna, self.network, self.altersplicing, self.tf, self.exp_diff_gene,
+                      self.exp_diff_trans], self.end)
+        self.run_filecheck()
+        super(RefrnaWorkflow, self).run()
+
+    def test_run(self):
+        """
+        ref-rna workflow test_run方法
+        :return:
+        """
+        self.filecheck.on('end', self.run_qc)
+        self.filecheck.on('end', self.run_seq_abs)
+        # if self.option("blast_method") == "diamond":
+        #     self.seq_abs.on('end', self.run_diamond)
+        #     self.new_abs.on("end", self.run_new_diamond)
+        # else:
+        #     self.seq_abs.on('end', self.run_blast)
+        #     self.new_abs.on("end", self.run_new_blast)
+        # self.module_before_merge = [self.new_annotation, self.annotation]
+        # if self.option("go_upload_file").is_set:
+        #     self.filecheck.on('end', self.run_go_upload)
+        #     self.module_before_merge.append(self.go_upload)
+        # if self.option("kegg_upload_file").is_set:
+        #     self.filecheck.on('end', self.run_kegg_upload)
+        #     self.module_before_merge.append(self.kegg_upload)
+        # self.on_rely(self.module_before_merge, self.run_merge_annot)
+        # self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        # self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
+        self.filecheck.on("end", self.run_gs)
+        self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
+        self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
+        self.qc.on('end', self.run_mapping)
+        self.qc.on('end', self.run_snp)
+        self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
+        self.mapping.on("end", self.run_altersplicing)
+        self.mapping.on('end', self.run_assembly)
+        self.mapping.on('end', self.run_map_assess)
+        self.assembly.on("end", self.run_exp)
+        self.assembly.on("end", self.run_new_abs)
+        self.exp.on("end", self.run_tf)
+        self.exp.on("end", self.run_network)
+        self.on_rely([self.snp_rna, self.network, self.altersplicing, self.tf, self.exp_diff_gene,
+                      self.exp_diff_trans], self.end)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
         
