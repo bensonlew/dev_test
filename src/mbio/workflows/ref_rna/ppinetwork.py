@@ -42,7 +42,7 @@ class PpinetworkWorkflow(Workflow):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "PPI网络分析结果输出目录"],
-            ["./map/diff_exp_mapped.txt", "txt", "含有STRINGid的差异基因文件"],
+            ["./ppinetwork_map/diff_exp_mapped.txt", "txt", "含有STRINGid的差异基因文件"],
             ["./ppinetwork_predict/all_nodes.txt", "txt", "node结果信息"],
             ["./ppinetwork_predict/network_stats.txt", "txt", "网络统计结果信息"],
             ["./ppinetwork_predict/interaction.txt", "txt", "edges结果文件信息"],
