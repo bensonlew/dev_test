@@ -16,14 +16,14 @@ class MergeAnnotAgent(Agent):
     def __init__(self, parent):
         super(MergeAnnotAgent, self).__init__(parent)
         options = [
-            {"name": "gos_dir", "type": "string", "default": None},
+            {"name": "gos_dir", "type": "string", "default": None},  # 文件，以；分割
             {"name": "kegg_table_dir", "type": "string", "default": None},
             {"name": "cog_table_dir", "type": "string", "default": None},
             {"name": "database", "type": "string", "default": "go,cog,kegg"},
             {"name": "go2level_out", "type": "outfile", "format": "annotation.go.level2"},
             {"name": "golist_out", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
-            {"name": "cog_table", "type": "outfile", "format": "annotation.cog.cog_table"},
+            {"name": "cog_table", "type": "outfile", "format": "annotation.cog.cog_table"}
         ]
         self.add_option(options)
         self.step.add_steps("merge_annot")
@@ -90,7 +90,7 @@ class MergeAnnotTool(Tool):
             if db == "go":
                 gos = self.option("gos_dir").split(";")
                 self.merge(dirs=gos, merge_file="gos.list")
-                self.option("golist_out", self.work_dir + "/gos.list")
+                self.option("golist_out", self.work_dir + "/query_gos.list")
                 self.run_go_anno()
                 self.option("go2level_out", self.work_dir + "/go2level.xls")
                 self.logger.info("合并go注释文件完成")
@@ -104,7 +104,7 @@ class MergeAnnotTool(Tool):
                 self.merge(dirs=kegg, merge_file="kegg_table.xls")
                 self.option("kegg_table", self.work_dir + "/kegg_table.xls")
                 self.logger.info("合并kegg注释文件完成")
-        files = ["go2level.xls", "gos.list", "cog_table.xls", "kegg_table.xls"]
+        files = ["go2level.xls", "query_gos.list", "cog_table.xls", "kegg_table.xls"]
         for f in files:
             if os.path.exists(f):
                 linkfile = os.path.join(self.output_dir, f)
