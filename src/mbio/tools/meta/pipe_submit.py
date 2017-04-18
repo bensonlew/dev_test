@@ -252,7 +252,7 @@ class PipeSubmitTool(Tool):
             "alpha_rarefaction_curve": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "freq", "submit_location", "task_type"], "collection_name": "sg_alpha_rarefaction_curve"},
             "otunetwork_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_network"},
             "roc_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "top_n_id", "method_type", "submit_location"], "collection_name": "sg_roc"},
-            "alpha_diversity_index": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "submit_location", "task_type"], "collection_name": "sg_alpha_diversity"},
+            "alpha_diversity_index": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "submit_location", "task_type"], "collection_name": "sg_alpha_diversity"},
             "alpha_ttest": {"instant": False, "waits": ["alpha_diversity_index", "otu_subsample"], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
             "beta_multi_analysis_plsda": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
             "beta_sample_distance_hcluster_tree": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "hcluster_method", "task_type", "submit_location"], "collection_name": "sg_newick_tree"},
@@ -632,15 +632,8 @@ class Submit(object):
                 self.api, lastone['status'], self.mongo_collection, lastone["_id"]))
             self.main_table_id = lastone['_id']
             if lastone['status'] == 'end':
-                if str(self.mongo_collection) == "sg_otu_pan_core":
-                    ids = self.find_pan_core_ids(main_table_id=self.main_table_id)
-                    self.result = {'success': True, "info": lastone['desc'],
-                                   'content': {"ids": [{'id': str(lastone['_id']), 'name': lastone["name"]},
-                                                       {'id': ids["id"], 'name': ids['name']}]}}
-                else:
-                    self.result = {'success': True, "info": lastone['desc'],
-                                   'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
-                # self.result = {'success': True, 'main_id': lastone['_id']}
+                self.result = {'success': True, "info": lastone['desc'],
+                               'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
                 return self.result
             elif lastone['status'] == 'start':
                 self.check_end(lastone['_id'])
@@ -652,19 +645,6 @@ class Submit(object):
                     self.result['success'] = False
                 return self.result
         return False
-
-    def find_pan_core_ids(self, main_table_id):
-        """
-        pan_core分析有两个主表，找core的主表id
-        :param main_table_id:
-        :return:
-        """
-        result = self.db[self.mongo_collection].find_one({"_id": ObjectId(main_table_id)})
-        result1 = self.db[self.mongo_collection].find({"unique_id": str(result['unique_id'])})
-        for m in result1:
-            if str(m["_id"]) != str(main_table_id):
-                ids = {"id": str(m["_id"]), "name": m["name"]}
-        return ids
 
     def waits_params_get(self):
         """
@@ -865,6 +845,41 @@ class OtuPanCore(BetaSampleDistanceHclusterTree):
         self.end_fire()
         self._end_event.set()
 
+    def check_params(self):
+        """
+        检查参数，发现end状态，直接放回计算完成，发现start状态，直接监控直到结束
+        """
+        self.waits_params_get()  # 依赖分析的参数获取
+        self.set_params_type()  # 根据每个分析的接口中对参数的打包格式，进行对应处理
+        self.json_params = self.params_pack(self._params)
+        result = self.db[self.mongo_collection].find({'task_id': self.task_id, 'params': self.json_params,
+                                                      'status': {'$in': ['end', 'start', "failed"]}})
+        if not result.count():
+            self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}, params: {}".format(
+                self.api, self.mongo_collection, self.params_pack(self._params)))
+            return False
+        else:
+            lastone = result.sort('created_ts', pymongo.DESCENDING)[0]
+            self.bind_object.logger.info("参数比对找到已经运行的结果: 任务: {}, 状态: {}, collection: {}, _id: {}".format(
+                self.api, lastone['status'], self.mongo_collection, lastone["_id"]))
+            self.main_table_id = lastone['_id']
+            if lastone['status'] == 'end':
+                ids = self.find_pan_core_ids(main_table_id=self.main_table_id)
+                self.result = {'success': True, "info": lastone['desc'],
+                               'content': {"ids": [{'id': str(lastone['_id']), 'name': lastone["name"]},
+                                                   {'id': ids["id"], 'name': ids['name']}]}}
+                return self.result
+            elif lastone['status'] == 'start':
+                self.check_end(lastone['_id'])
+                self.result = {'success': True, "info": lastone['desc'],
+                               'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
+                result = self.db[self.mongo_collection].find_one(
+                    {'_id': lastone['_id']}, {'status': 1, 'desc': 1, "name": 1})
+                if result['status'] != 'end':  # 任务完成后检查状态
+                    self.result['success'] = False
+                return self.result
+        return False
+
     def post_to_webapi(self):
         """
         投递接口
@@ -872,6 +887,19 @@ class OtuPanCore(BetaSampleDistanceHclusterTree):
         if self.check_params():
             return self.result
         self.result = self.post()
+
+    def find_pan_core_ids(self, main_table_id):
+        """
+        pan_core分析有两个主表，找core的主表id
+        :param main_table_id:
+        :return:
+        """
+        result = self.db[self.mongo_collection].find_one({"_id": ObjectId(main_table_id)})
+        result1 = self.db[self.mongo_collection].find({"unique_id": str(result['unique_id'])})
+        for m in result1:
+            if str(m["_id"]) != str(main_table_id):
+                ids = {"id": str(m["_id"]), "name": m["name"]}
+        return ids
 
 
 class PlotTree(BetaSampleDistanceHclusterTree):
