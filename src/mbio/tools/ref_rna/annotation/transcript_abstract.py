@@ -4,11 +4,9 @@
 import os
 import shutil
 import re
-import json
 from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-
 
 class TranscriptAbstractAgent(Agent):
     """

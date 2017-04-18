@@ -4,7 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.files.sequence.fastq import FastqFile
-from mbio.files.squence.gff3 import Gff3File
+from mbio.files.sequence.gff3 import Gff3File
 from mbio.files.sequence.file_sample import FileSampleFile
 from biocluster.config import Config
 import os
@@ -25,6 +25,7 @@ class FilecheckRefAgent(Agent):
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "ref_genome", "type": "string", "default": "customer_mode"},  # 参考基因组
+            {"name": "ref_genome_custom", "type":"infile", "format": "sequence.fasta"},
             {"name": "gff", "type": "infile", "format": "sequence.gff3"},
             # Ensembl上下载的gff格式文件
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},
@@ -69,7 +70,7 @@ class FilecheckRefAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = "10G"
 
 
 class FilecheckRefTool(Tool):
@@ -153,6 +154,8 @@ class FilecheckRefTool(Tool):
             gff_name = os.path.split(origin_gff_path)[1]
             self.logger.info("gff的名称为{}".format(gff_name))
             new_gff_path = os.path.join(self.work_dir, gff_name)
+            if os.path.exists(new_gff_path):
+                os.remove(new_gff_path)
             os.link(origin_gff_path, new_gff_path)
             gff = Gff3File()
             gff.set_path(new_gff_path)
@@ -177,7 +180,8 @@ class FilecheckRefTool(Tool):
     def check_genome_status(self):
         self.logger.info("正在对是否支持snp分析和rna编辑分析进行检测")
         if self.option("gff").is_set:
-            yn = self.option("gff").check_format()
+            yn = self.option("gff").check_format(self.option("ref_genome_custom").prop["path"],
+                                                 Config().SOFTWARE_DIR + "/bioinfo/seq/so.obo")
         else:
             yn = self.option("in_gtf").check_format()
         if yn:
