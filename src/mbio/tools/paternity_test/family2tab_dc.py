@@ -101,7 +101,7 @@ class Family2tabDcTool(Tool):
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bcftools-1.3.0/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/vt-master')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/vcflib-master/bin')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/picard-tools-2.2.4/')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/picard-tools-2.2.4')
 
 
     def run_Family2tab(self):
