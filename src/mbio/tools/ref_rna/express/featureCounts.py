@@ -10,7 +10,7 @@ import re
 
 
 class FeaturecountsAgent(Agent):
-
+    """featurecounts 软件计算基因的表达量，支持bam文件夹格式的输入"""
     def __init__(self, parent):
         super(FeaturecountsAgent, self).__init__(parent)
         options = [
