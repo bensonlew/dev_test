@@ -3,7 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-from mbio.packages.ref_rna.get_diff_matrix import *
+from mbio.packages.ref_rna.express.get_diff_matrix import *
 from mbio.packages.ref_rna.express.diff_stat import * # 更改统计脚本位置
 import os
 import re
