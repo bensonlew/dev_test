@@ -122,7 +122,10 @@ class PipeSubmitTool(Tool):
 
 
     def one_end(self, ana):
-        self.count_ends += 1
+        if ana._params['submit_location'] == "otu_pan_core":  # pancore 分析默认两个主表，一次结束 加 2
+            self.count_ends += 2
+        else:
+            self.count_ends += 1
         if not ana.instant:
             self.logger.info('投递任务投递成功:{} 任务参数检查获取结果: {}'.format(ana.api, ana._params_check_end))
         self.update_mongo_ends_count(ana)
@@ -872,14 +875,6 @@ class OtuPanCore(BetaSampleDistanceHclusterTree):
             self.bind_object.logger.error("任务接口返回值不规范: {}".format(self.result))
         self.end_fire()
         self._end_event.set()
-
-    def post_to_webapi(self):
-        """
-        投递接口
-        """
-        if self.check_params():
-            return self.result
-        self.result = self.post()
 
 
 class PlotTree(BetaSampleDistanceHclusterTree):
