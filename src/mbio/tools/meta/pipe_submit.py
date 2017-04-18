@@ -106,23 +106,26 @@ class PipeSubmitTool(Tool):
         return self.task_id
 
     def update_mongo_ends_count(self, ana):
-        # print "ana._params_check_end", ana._params_check_end
-        # print "ana.success", ana.success
-        # print "ana.api", ana.api
         if ana.instant:
+            self.logger.info("api: {} END_COUNT+1".format(ana.api))
             self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
                                                          {'$inc': {"ends_count": 1}})
         elif ana._params_check_end or not ana.success:
-            if ana._params['submit_location'] == "otu_pan_core":
+            if ana._params['submit_location'] == "otu_pan_core":  # pancore 分析默认两个主表，一次结束 加 2
                 inc = 2
+                self.all_count -= 1  # pancore分析在初始化时默认在all_counts上 + 1，此处非投递结束，不由web/api更新也只算作一个
             else:
                 inc = 1
+            self.logger.info("api: {} END_COUNT+{}".format(ana.api, inc))
             self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
                                                          {'$inc': {"ends_count": inc}})
 
 
     def one_end(self, ana):
-        self.count_ends += 1
+        if ana._params['submit_location'] == "otu_pan_core":  # pancore 分析默认两个主表，一次结束 加 2
+            self.count_ends += 2
+        else:
+            self.count_ends += 1
         if not ana.instant:
             self.logger.info('投递任务投递成功:{} 任务参数检查获取结果: {}'.format(ana.api, ana._params_check_end))
         self.update_mongo_ends_count(ana)
@@ -822,6 +825,9 @@ class CorrNetworkAnalyse(BetaSampleDistanceHclusterTree):
 class OtuPanCore(BetaSampleDistanceHclusterTree):
 
     def __init__(self, *args, **kwargs):
+        """
+        pancore有两个主表，需要做额外的处理，例如，算作两个分析，all_counts + 1
+        """
         super(BetaSampleDistanceHclusterTree, self).__init__(*args, **kwargs)
         self.bind_object.all_count += 1
 
@@ -849,6 +855,7 @@ class OtuPanCore(BetaSampleDistanceHclusterTree):
             self.bind_object.logger.error("任务接口返回值不规范: {}".format(self.result))
         self.end_fire()
         self._end_event.set()
+
 
     def check_params(self):
         """
