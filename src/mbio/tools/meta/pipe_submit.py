@@ -821,6 +821,11 @@ class CorrNetworkAnalyse(BetaSampleDistanceHclusterTree):
 
 
 class OtuPanCore(BetaSampleDistanceHclusterTree):
+
+    def __init__(self, *args, **kwargs):
+        super(BetaSampleDistanceHclusterTree, self).__init__(*args, **kwargs)
+        self.bind_object.all_count += 1
+
     def _submit(self, waits, timeout):
         """投递任务"""
         for i in waits:
