@@ -484,6 +484,12 @@ class Submit(object):
                 level_id = self.min_level
                 level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus',
                               8: 'Species', 9: "OTU"}[self.min_level]
+
+            if re.match(r'^16sFunctionPrediction|^LEfSe', str(table_name)):
+                pipe_main_id = self.get_main_id(self.bind_object.option('pipe_id'), group_id, level_id)
+            else:
+                pipe_main_id = self.pipe_main_id
+
             insert_data = {
                 "task_id": self.task_id,
                 "otu_id": ObjectId(self.bind_object.otu_id),
@@ -491,7 +497,7 @@ class Submit(object):
                 'level_name': level_name,
                 "submit_location": self._params['submit_location'],
                 'params': self.json_params,
-                'pipe_main_id': ObjectId(self.pipe_main_id),
+                'pipe_main_id': ObjectId(pipe_main_id),
                 'pipe_batch_id': ObjectId(self.bind_object.option('pipe_id')),
                 'table_id': ObjectId(table_id),
                 'status': status,
@@ -506,6 +512,14 @@ class Submit(object):
         else:
             pass
 
+    def get_main_id(self, pipe_id, group_id, level_id):
+        """
+        特殊用途，16s与lefse两个分析的pipe_main_id,要去查表获取
+        :return:
+        """
+        mongo_result = self.db['sg_pipe_main'].find_one({"pipe_batch_id": ObjectId(pipe_id),
+                                                         "group_id": ObjectId(group_id), "level_id": int(level_id)})["_id"]
+        return mongo_result
 
     def run_permission(self):
         if self.instant:
