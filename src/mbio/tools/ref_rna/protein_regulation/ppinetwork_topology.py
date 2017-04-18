@@ -7,12 +7,13 @@ import types
 import subprocess
 from biocluster.core.exceptions import OptionError
 
+
 class PpinetworkTopologyAgent(Agent):
     """
     需要calc_ppi.py
     version 1.0
     author: hongdong.xuan
-    last_modified: 2017.01.16
+    last_modified: 2017.04.18
     """
     
     def __init__(self, parent):
@@ -20,7 +21,7 @@ class PpinetworkTopologyAgent(Agent):
         options = [
             {"name": "ppitable", "type": "string"},
             {"name": "combine_score", "type": "int", "default": 600}
-            ]
+        ]
         self.add_option(options)
         self.step.add_steps('PpinetworkAnalysis')
         self.on('start', self.step_start)
@@ -44,15 +45,11 @@ class PpinetworkTopologyAgent(Agent):
             raise OptionError("combine_score值超出范围")
         if not os.path.exists(self.option('ppitable')):
             raise OptionError('PPI网络表路径错误')
-        ppi_list = open( self.option('ppitable'), "r").readline().strip().split("\t")
+        ppi_list = open(self.option('ppitable'), "r").readline().strip().split("\t")
         if "combined_score" not in ppi_list:
             raise OptionError("PPI网络表缺少结合分数")
         if ("from" not in ppi_list) or ("to" not in ppi_list):
             raise OptionError("PPI网络缺少相互作用蛋白信息")
-        #:  
-        #    eval(self.option('cut'))
-        #except:
-        #    raise OptionError("Cut参数值异常，无法转换")
         return True
     
     def set_resource(self):
@@ -72,7 +69,7 @@ class PpinetworkTopologyAgent(Agent):
                 ["./protein_interaction_network_by_cut.txt", "txt", "combined_score值约束后的PPI网络"],
                 ["./protein_interaction_network_degree_distribution.txt", "txt", "PPI网络度分布表"],
                 ["./protein_interaction_network_node_degree.txt", "txt", "PPI网络节点度属性表"]
-                ])
+        ])
         print self.get_upload_files()
         super(PpinetworkTopologyAgent, self).end()
         
@@ -83,7 +80,10 @@ class PpinetworkTopologyTool(Tool):
         self._version = "1.0.1"
         self.cmd_path = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/calc_ppi.py"
         self.ppi_table = self.option('ppitable')        
-        self.out_files = ['protein_interaction_network_centrality.txt', 'protein_interaction_network_clustering.txt', 'protein_interaction_network_transitivity.txt', 'protein_interaction_network_by_cut.txt', 'protein_interaction_network_degree_distribution.txt',  'protein_interaction_network_node_degree.txt']
+        self.out_files = ['protein_interaction_network_centrality.txt', 'protein_interaction_network_clustering.txt',
+                          'protein_interaction_network_transitivity.txt', 'protein_interaction_network_by_cut.txt',
+                          'protein_interaction_network_degree_distribution.txt',
+                          'protein_interaction_network_node_degree.txt']
 
     def run(self):
         """
@@ -99,9 +99,9 @@ class PpinetworkTopologyTool(Tool):
         real_ppi_table = self.ppi_table        
         cmd = self.config.SOFTWARE_DIR + '/program/Python/bin/python '
         cmd += self.cmd_path
-        cmd += " -i %s -o %s " %(real_ppi_table, self.work_dir + '/PPI_result')
+        cmd += " -i %s -o %s " % (real_ppi_table, self.work_dir + '/PPI_result')
         if self.option('combine_score'):
-            cmd += " -c %s" %(self.option('combine_score'))
+            cmd += " -c %s" % (self.option('combine_score'))
         print cmd
         self.logger.info("开始运行calc_ppi.py")
 
@@ -131,7 +131,7 @@ class PpinetworkTopologyTool(Tool):
     def get_filesname(self):
         filelist = os.listdir(self.work_dir + '/PPI_result')
         files_status = [None, None, None, None, None, None]
-        for paths,d,filelist in os.walk(self.work_dir + '/PPI_result'):
+        for paths, d, filelist in os.walk(self.work_dir + '/PPI_result'):
             for filename in filelist:
                 name = os.path.join(paths, filename)
                 for i in range(len(self.out_files)):

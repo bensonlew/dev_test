@@ -1,7 +1,7 @@
 ## !/mnt/ilustre/users/sanger-dev/app/program/Python/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "hongdongxuan"
-#last_modify:20170313
+#last_modify:20170418
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -11,17 +11,17 @@ import os
 import re
 
 
-class MapAgent(Agent):
+class PpinetworkMapAgent(Agent):
     """
     调用map.r脚本，进行将基因ID mapping 到STRINGid
     version v1.0
     author: hongdongxuan
-    last_modify: 20170313
+    last_modify: 20170418
     """
     def __init__(self, parent):
-        super(MapAgent, self).__init__(parent)
+        super(PpinetworkMapAgent, self).__init__(parent)
         options = [
-            {"name": "diff_exp_gene", "type": "infile", "format": "ref_rna.protein_regulation.txt"},  #差异基因表达详情表
+            {"name": "diff_exp_gene", "type": "infile", "format": "ref_rna.protein_regulation.txt"},
             {"name": "species", "type": "int", "default": 9606}
         ]
         self.add_option(options)
@@ -66,23 +66,22 @@ class MapAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-                    ])
+        ])
         result_dir.add_regexp_rules([
             ["diff_exp_mapped.txt", "txt", "含有STRINGid结果信息"],
 
         ])
-        super(MapAgent, self).end()
+        super(PpinetworkMapAgent, self).end()
 
 
-class MapTool(Tool):
+class PpinetworkMapTool(Tool):
     """
     将基因ID mapping 到STRINGid tool
     """
     def __init__(self, config):
-        super(MapTool, self).__init__(config)
+        super(PpinetworkMapTool, self).__init__(config)
         self._version = '1.0.1'
         self.r_path = 'program/R-3.3.1/bin/Rscript'
-        # self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
         self.script_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/rna/scripts/")
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
@@ -118,7 +117,7 @@ class MapTool(Tool):
 
 
     def run(self):
-        super(MapTool, self).run()
+        super(PpinetworkMapTool, self).run()
         self.run_map()
         self.set_output()
         self.end()
