@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-# __author__
+# __author__: konghualei 20170418
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
