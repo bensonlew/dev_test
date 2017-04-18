@@ -66,7 +66,7 @@ class ExpressModule(Module):
         if self.option("express_method").lower() == 'rsem' or self.option("express_method").lower()=='kallisto':
             self.trans_corr = self.add_tool("denovo_rna.mapping.correlation")
             self.trans_pca = self.add_tool("meta.beta_diversity.pca")
-            self.trans_diffRexp = self.add_tool("ref_rna.express.diff_Rexp")
+            self.trans_diffRexp = self.add_tool("ref_rna.express.diff_exp")
         self.tool_lists = []
         self.samples = []
         self.sumtool = []
