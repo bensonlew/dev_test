@@ -303,8 +303,8 @@ class MetastatAgent(Agent):
         设置所需资源
         :return:
         """
-        self._cpu = 10
-        self._memory = ''
+        self._cpu = 2
+        self._memory = '4G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

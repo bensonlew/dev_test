@@ -149,6 +149,7 @@ class MetaController(object):
         # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
         update_info["batch_id"] = data.batch_id
         self._sheet_data['options']["update_info"] = json.dumps(update_info)
+        self._sheet_data["instant"] = False
 
 
     def get_new_id(self, task_id, otu_id=None):
