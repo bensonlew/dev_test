@@ -21,9 +21,9 @@ class StringtieMergeAgent(Agent):
             {"name": "assembly_GTF_list.txt", "type": "infile", "format": "ref_rna.assembly.merge_txt"},
             # 所有样本比对之后的bam文件路径列表
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 参考基因的注释文件
+            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因的注释文件
             {"name": "cpu", "type": "int", "default": 10},  # stringtie软件所分配的cpu数
-            {"name": "merged.gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},  # 输出的合并文件
+            {"name": "merged_gtf", "type": "outfile", "format": "sequence.gtf"},  # 输出的合并文件
         ]
         self.add_option(options)
         self.step.add_steps("stringtie_merge")
@@ -65,7 +65,7 @@ class StringtieMergeAgent(Agent):
             [".", "", "结果输出目录"],
         ])
         result_dir.add_regexp_rules([
-            ["merged.gtf", "gtf", "样本合并之后的gtf文件"]
+            ["merged_gtf", "gtf", "样本合并之后的gtf文件"]
         ])
         super(StringtieMergeAgent, self).end()
 
@@ -96,7 +96,7 @@ class StringtieMergeTool(Tool):
         """
         运行stringtie软件，进行拼接合并
         """
-        cmd = self.stringtie_merge_path + 'stringtie --merge {} -p {} -G {} -s {} -o {}merged.gtf ' .format(
+        cmd = self.stringtie_merge_path + 'stringtie --merge {} -p {} -G {} -s {} -o {}merged_gtf ' .format(
             self.option('assembly_GTF_list.txt').prop['path'], self.option('cpu'), self.option('ref_gtf').prop['path'],
             self.option('ref_fa').prop['path'], self.work_dir+"/")
         self.logger.info('运行stringtie软件，进行拼接合并')
@@ -112,7 +112,7 @@ class StringtieMergeTool(Tool):
         运行gtf_to_fasta，转录本gtf文件转fa文件
         """
         cmd = self.gffread_path + "gffread %s -g %s -w merged.fa" % (
-        self.work_dir + "/"+"merged.gtf", self.option('ref_fa').prop['path'])
+        self.work_dir + "/"+"merged_gtf", self.option('ref_fa').prop['path'])
         self.logger.info('运行gtf_to_fasta，形成fasta文件')
         command = self.add_command("gtf_to_fa_cmd", cmd).run()
         self.wait(command)
@@ -128,8 +128,8 @@ class StringtieMergeTool(Tool):
         """
         self.logger.info("设置结果目录")
         try:
-            shutil.copy2(self.work_dir + "/merged.gtf", self.output_dir + "/merged.gtf")
-            self.option('merged.gtf').set_path(self.work_dir + "/merged.gtf")
+            shutil.copy2(self.work_dir + "/merged_gtf", self.output_dir + "/merged_gtf")
+            self.option('merged_gtf').set_path(self.work_dir + "/merged_gtf")
             shutil.copy2(self.work_dir + "/merged.fa", self.output_dir + "/merged.fa")
             self.logger.info("设置拼接合并分析结果目录成功")
 

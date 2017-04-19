@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-# __author__
+# __author__: konghualei 20170418
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -10,7 +10,7 @@ import re
 
 
 class FeaturecountsAgent(Agent):
-
+    """featurecounts 软件计算基因的表达量，支持bam文件夹格式的输入"""
     def __init__(self, parent):
         super(FeaturecountsAgent, self).__init__(parent)
         options = [

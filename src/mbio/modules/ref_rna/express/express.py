@@ -23,9 +23,9 @@ class ExpressModule(Module):
         super(ExpressModule,self).__init__(work_id)
         options=[
             {"name": "fq_type", "type": "string", "default": "PE"},  # PE OR SE
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf, ref_rna.reads_mapping.gff"},  # 参考基因组的gtf文件
-            {"name": "merged_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"}, #拼接生成的merged.gtf文件
-            {"name": "cmp_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"}, #gttcompare生成的annotated.gtf文件
+            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因组的gtf文件
+            {"name": "merged_gtf", "type": "infile", "format": "sequence.gtf"}, #拼接生成的merged.gtf文件
+            {"name": "cmp_gtf", "type": "infile", "format": "sequence.gtf"}, #gttcompare生成的annotated.gtf文件
             {"name": "sample_bam", "type": "infile", "format": "ref_rna.assembly.bam_dir"},  # 所有样本的bam文件夹 适用于featureCoutns软件
             {"name": "fastq_dir", "type":"infile", "format":"sequence.fastq, sequence.fastq_dir"}, #所有样本的fastq_dir文件夹，适用于rsem, kallisto软件
             {"name": "ref_genome", "type": "string"}, # 参考基因组参数
@@ -62,11 +62,11 @@ class ExpressModule(Module):
         if self.option('express_method').lower() == 'featurecounts' or self.option("express_method").lower()=='rsem':
             self.genes_corr = self.add_tool("denovo_rna.mapping.correlation")
             self.genes_pca = self.add_tool("meta.beta_diversity.pca")
-            self.genes_diffRexp = self.add_tool("ref_rna.express.diff_Rexp")
+            self.genes_diffRexp = self.add_tool("ref_rna.express.diff_exp")
         if self.option("express_method").lower() == 'rsem' or self.option("express_method").lower()=='kallisto':
             self.trans_corr = self.add_tool("denovo_rna.mapping.correlation")
             self.trans_pca = self.add_tool("meta.beta_diversity.pca")
-            self.trans_diffRexp = self.add_tool("ref_rna.express.diff_Rexp")
+            self.trans_diffRexp = self.add_tool("ref_rna.express.diff_exp")
         self.tool_lists = []
         self.samples = []
         self.sumtool = []

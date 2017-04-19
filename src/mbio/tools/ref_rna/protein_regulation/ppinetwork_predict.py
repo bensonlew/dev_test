@@ -1,7 +1,7 @@
 ## !/mnt/ilustre/users/sanger-dev/app/program/Python/bin/python
 # -*- coding: utf-8 -*-
 # __author__ = "hongdongxuan"
-#last_modify:20160913
+#last_modify:20170418
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -10,12 +10,13 @@ from biocluster.config import Config
 import os
 import re
 
+
 class PpinetworkPredictAgent(Agent):
     """
     调用PPInetwork_predict.r脚本，进行蛋白质相互组预测
     version v1.0
     author: hongdongxuan
-    last_modify: 20170314
+    last_modify: 220170418
     """
     def __init__(self, parent):
         super(PpinetworkPredictAgent, self).__init__(parent)
@@ -36,7 +37,6 @@ class PpinetworkPredictAgent(Agent):
     def stepfinish(self):
         self.step.Ppinetwork.finish()
         self.step.update()
-
 
     def check_options(self):
         """
@@ -68,13 +68,11 @@ class PpinetworkPredictAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            #["interaction.txt", "txt", "edges结果信息"],
-            #["all_nodes.txt ", "txt", "nodes结果信息"],
         ])
         result_dir.add_regexp_rules([
             ["interaction.txt", "txt", "edges结果信息"],
             ["all_nodes.txt ", "txt", "nodes属性结果信息"],
-            ["network_stats.txt", "txt", "网络统计结果信息"],
+            ["network_stats.txt", "txt", "网络统计结果信息"]
         ])
         super(PpinetworkPredictAgent, self).end()
 
@@ -87,7 +85,6 @@ class PpinetworkPredictTool(Tool):
         super(PpinetworkPredictTool, self).__init__(config)
         self._version = '1.0.1'
         self.r_path = 'program/R-3.3.1/bin/Rscript'
-        # self.script_path = '/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/'
         self.script_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/rna/scripts/")
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
@@ -103,7 +100,8 @@ class PpinetworkPredictTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("运行one_cmd成功")
         else:
-            self.logger.info("运行one_cmd出错")
+            self.set_error("运行one_cmd出错")
+            # self.logger.info("运行one_cmd出错")
 
     def set_output(self):
         """

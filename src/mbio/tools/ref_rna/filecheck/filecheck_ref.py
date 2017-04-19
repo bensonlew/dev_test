@@ -4,8 +4,9 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.files.sequence.fastq import FastqFile
-from mbio.files.ref_rna.reads_mapping.gff import GffFile
+from mbio.files.sequence.gff3 import Gff3File
 from mbio.files.sequence.file_sample import FileSampleFile
+from biocluster.config import Config
 import os
 import re
 
@@ -24,14 +25,17 @@ class FilecheckRefAgent(Agent):
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "ref_genome", "type": "string", "default": "customer_mode"},  # 参考基因组
-            {"name": "gff", "type": "infile", "format": "ref_rna.reads_mapping.gff"},
+            {"name": "ref_genome_custom", "type":"infile", "format": "sequence.fasta"},
+            {"name": "gff", "type": "infile", "format": "sequence.gff3"},
             # Ensembl上下载的gff格式文件
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},
             # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},
             # 对照组文件，格式同分组文件
-            {"name": "gtf", "type": "outfile", "format": "ref_rna.reads_mapping.gtf"},
+            {"name": "in_gtf", "type": "infile", "format": "sequence.gtf"},
+            {"name": "gtf", "type": "outfile", "format": "sequence.gtf"},
             {"name": "bed", "type": "outfile", "format": "denovo_rna.gene_structure.bed"},
+            {"name": "genome_status", "type": "bool", "default": True}
         ]
         self.add_option(options)
         self.step.add_steps("file_check")
@@ -57,13 +61,16 @@ class FilecheckRefAgent(Agent):
             raise OptionError("必须设置测序类型：PE or SE")
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError("测试类型只能是PE或者SE")
+        if not self.option("gff").is_set:
+            if not self.option("gtf").is_set:
+                raise OptionError("gff和gtf中必须有一个作为参数传入")
 
     def set_resource(self):
         """
         设置所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = "10G"
 
 
 class FilecheckRefTool(Tool):
@@ -142,31 +149,57 @@ class FilecheckRefTool(Tool):
 
     def transform_gff(self):
         self.logger.info("正在转换gff文件为gtf文件与bed文件")
-        origin_gff_path = self.option("gff").prop["path"]
-        gff_name = os.path.split(origin_gff_path)[1]
-        self.logger.info("gff的名称为{}".format(gff_name))
-        new_gff_path = os.path.join(self.work_dir, gff_name)
-        os.link(origin_gff_path, new_gff_path)
-        gff = GffFile()
-        gff.set_path(new_gff_path)
-        gff.gff_to_gtf()
-        self.logger.info("转换gff文件为gtf文件完成")
-        gff.gtf_to_bed()
-        self.logger.info("转换gtf文件为bed文件完成")
-        self.option("gtf").set_path(new_gff_path + ".gtf")
-        self.option("bed").set_path(new_gff_path + ".bed")
-        # pass
+        if self.option("gff").is_set:
+            origin_gff_path = self.option("gff").prop["path"]
+            gff_name = os.path.split(origin_gff_path)[1]
+            self.logger.info("gff的名称为{}".format(gff_name))
+            new_gff_path = os.path.join(self.work_dir, gff_name)
+            if os.path.exists(new_gff_path):
+                os.remove(new_gff_path)
+            os.link(origin_gff_path, new_gff_path)
+            gff = Gff3File()
+            gff.set_path(new_gff_path)
+            gff.set_gtf_file(new_gff_path + ".gtf")
+            if os.path.exists(new_gff_path + ".gtf"):
+                os.remove(new_gff_path + ".gtf")
+            gff.set_gffread_path(Config().SOFTWARE_DIR + "/bioinfo/rna/cufflinks-2.2.1/gffread")
+            gff.to_gtf()
+            if os.path.exists(new_gff_path + ".gtf.bed"):
+                os.remove(new_gff_path + ".gtf.bed")
+            self.logger.info("转换gff文件为gtf文件完成")
+            gff.set_gtf2bed_path(Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.pl")
+            gff.gtf_to_bed(new_gff_path + ".gtf")
+            self.logger.info("转换gtf文件为bed文件完成")
+            self.option("gtf").set_path(new_gff_path + ".gtf")
+            self.option("bed").set_path(self.option("gtf").prop["path"] + ".bed")
+        else:
+            gtf = self.option("in_gtf").prop["path"]
+            self.option("gtf").set_path(gtf)
+            gtf.to_bed()
+            self.option("bed").set_path(os.path.split(gtf)[1] + ".bed")
 
     def check_fasta(self):
         self.logger.info("对fasta文件进行检查略过")
         pass
 
+    def check_genome_status(self):
+        self.logger.info("正在对是否支持snp分析和rna编辑分析进行检测")
+        if self.option("gff").is_set:
+            yn = self.option("gff").check_format(self.option("ref_genome_custom").prop["path"],
+                                                 Config().SOFTWARE_DIR + "/bioinfo/seq/so.obo")
+        else:
+            yn = self.option("in_gtf").check_format()
+        if yn:
+            self.logger.info("基因组结构完整，可以进行snp分析和rna编辑")
+            self.option("genome_status", True)
+        else:
+            self.logger.info("基因组结构不完整，不可以进行snp分析和rna编辑")
+            self.option("genome_status", False)
+
     def run(self):
-            super(FilecheckRefTool, self).run()
-            # self.check_fastq()
-            if self.option("ref_genome") == "customer_mode":
-                self.transform_gff()
-                self.check_fasta()
-            # self.check_group()
-            # self.check_control()
-            self.end()
+        super(FilecheckRefTool, self).run()
+        # self.check_genome_status()
+        self.transform_gff()
+        self.check_fasta()
+        self.check_control()
+        self.end()

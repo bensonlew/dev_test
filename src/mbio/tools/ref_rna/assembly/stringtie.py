@@ -20,9 +20,9 @@ class StringtieAgent(Agent):
         options = [
             {"name": "sample_bam", "type": "infile", "format": "ref_rna.assembly.bam"},  # 所有样本比对之后的bam文件
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 参考基因的注释文件
+            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因的注释文件
             {"name": "cpu", "type": "int", "default": 10},  # stringtie软件所分配的cpu数量
-            {"name": "sample_gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"}  # 输出的gtf文件
+            {"name": "sample_gtf", "type": "outfile", "format": "sequence.gtf"}  # 输出的gtf文件
         ]
         self.add_option(options)
         self.step.add_steps("stringtie")
