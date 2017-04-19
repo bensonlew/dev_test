@@ -23,7 +23,7 @@ class DataSplitAgent(Agent):
 		super(DataSplitAgent, self).__init__(parent)
 		options = [
 			{"name": "message_table", "type": "infile", "format": "paternity_test.tab"},
-			{"name": "data_dir", "type": "infile", "format": "paternity_test.tab"}
+			{"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"}
 			# {"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"}
 		]
 		self.add_option(options)
@@ -56,7 +56,7 @@ class DataSplitAgent(Agent):
 		:return:
 		"""
 		self._cpu = 10
-		self._memory = '10G'
+		self._memory = '20G'
 
 	def end(self):
 		result_dir = self.add_upload_dir(self.output_dir)
@@ -74,6 +74,7 @@ class DataSplitTool(Tool):
 		self._version = "v1.0"
 		self.script_path = "bioinfo/seq/bcl2fastq2-v2.17.1.14/bin/bcl2fastq"
 		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
+		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
 
 	def run(self):
 		"""
@@ -102,7 +103,8 @@ class DataSplitTool(Tool):
 				with open(new_message_table, "a") as w:
 					lines = "Sample_" + line[3] + "," + line[3] + ",,,," + line[8] + "," + line[4] + "," + "\n"
 					w.write(lines)
-
+		"""
+		当上传为压缩包时用下面的代码获取文件夹路径
 		result = os.system('tar -zxf {} -C {}'.format(self.option('data_dir').prop['path'], self.work_dir))
 		if result != 0:
 			raise OptionError("压缩包解压失败，请重新投递运行！")
@@ -114,6 +116,8 @@ class DataSplitTool(Tool):
 			old_data_dir = old_data_dir_1
 		if not os.path.exists(old_data_dir):
 			self.set_error("下机数据文件夹路径不正确，请设置正确的路径。")
+		"""
+		old_data_dir = self.option('data_dir').prop['path']
 		cmd = "{} -i {}/Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
 		      "--ignore-missing-bcl -R {}/ -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
 			format(self.script_path,old_data_dir,self.work_dir,
