@@ -161,6 +161,7 @@ class PatchDcBackupWorkflow(Workflow):
 			else:
 				self.father.append(self.family_id[p][0])
 				self.dedup_list.append(name_list)
+				self.tool.append([])
 
 		for i in range(len(self.family_id)):
 			dad_id = self.family_id[i][0]
@@ -189,7 +190,7 @@ class PatchDcBackupWorkflow(Workflow):
 		for j in range(len(self.tools_analysis)):
 			self.tools_analysis[j].on('end', self.set_output, 'pt_analysis')
 			self.tools_analysis[j].on('end', self.result_info_run, j)
-			self.tool.append([])
+			# self.tool.append([])
 
 		for t in self.tools_analysis:
 			t.run()
@@ -240,10 +241,6 @@ class PatchDcBackupWorkflow(Workflow):
 		for i in name_list:
 			pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
 			self.step.add_steps('dedup_{}'.format(n))
-			print '22222222222222'
-			print self.output_dir + '/'+ i + '.tab'
-			print self.output_dir + '/' + family + '-M.tab'
-			print self.output_dir +'/' +  family + '-S.tab'
 			pt_analysis_dedup.set_options({
 				"dad_tab": self.output_dir + '/'+ i + '.tab',  # 数据库的tab文件
 				"mom_tab": self.output_dir + '/' + family + '-M.tab',
@@ -271,8 +268,6 @@ class PatchDcBackupWorkflow(Workflow):
 		# else:
 		#     self.end()
 
-		print '************'
-		print self.list_2D(self.tool)
 		if self.list_2D(self.tool):
 			if len(self.tool[x]) > 1:
 				self.on_rely(self.tool[x], self.end)
