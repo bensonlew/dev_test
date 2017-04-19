@@ -299,7 +299,7 @@ class PipeSubmitTool(Tool):
         # monkey.patch_ssl()
         self.signature = self.signature()
         self.task_id = self.option("task_id")
-        self.url = "http://localhost" if self.task_client == "client01" else "http://192.168.12.102:9090"
+        self.url = "http://bcl.sanger.com" if self.task_client == "client01" else "http://bcl.tsanger.com"
         self.all = {}
         self.all_count = 0
         sixteens_prediction_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
