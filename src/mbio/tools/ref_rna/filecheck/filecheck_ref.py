@@ -160,9 +160,14 @@ class FilecheckRefTool(Tool):
             gff = Gff3File()
             gff.set_path(new_gff_path)
             gff.set_gtf_file(new_gff_path + ".gtf")
-            gff.set_gffread_path(Config() + "/app/bioinfo/rna/cufflinks-2.2.1/gffread")
+            if os.path.exists(new_gff_path + ".gtf"):
+                os.remove(new_gff_path + ".gtf")
+            gff.set_gffread_path(Config().SOFTWARE_DIR + "/bioinfo/rna/cufflinks-2.2.1/gffread")
             gff.to_gtf()
+            if os.path.exists(new_gff_path + ".gtf.bed"):
+                os.remove(new_gff_path + ".gtf.bed")
             self.logger.info("转换gff文件为gtf文件完成")
+            gff.set_gtf2bed_path(Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.pl")
             gff.gtf_to_bed(new_gff_path + ".gtf")
             self.logger.info("转换gtf文件为bed文件完成")
             self.option("gtf").set_path(new_gff_path + ".gtf")
@@ -193,7 +198,7 @@ class FilecheckRefTool(Tool):
 
     def run(self):
         super(FilecheckRefTool, self).run()
-        self.check_genome_status()
+        # self.check_genome_status()
         self.transform_gff()
         self.check_fasta()
         self.check_control()

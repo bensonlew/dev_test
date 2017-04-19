@@ -480,8 +480,8 @@ class RefrnaWorkflow(Workflow):
 
     def run_map_gene(self):
         opts = {
-            "ref_genome_custom": "customer_mode",
-            "ref_genome": self.seq_abs.option("query"),
+            "ref_genome_custom": self.seq_abs.option("query"),
+            "ref_genome": "customer_mode",
             "mapping_method": self.option("seq_method").lower(),  # 比对软件
             "seq_method": self.option("fq_type"),   # PE or SE
             "fastq_dir": self.qc.option("sickle_dir"),
@@ -500,8 +500,8 @@ class RefrnaWorkflow(Workflow):
         else:
             self.ref_genome = self.option("ref_genome_custom").prop["path"]
         opts = {
-            "ref_genome_custom": "customer_mode",
-            "ref_genome": self.ref_genome,
+            "ref_genome_custom": self.ref_genome,
+            "ref_genome": "customer_mode",
             "mapping_method": self.option("seq_method").lower(),  # 比对软件
             "seq_method": self.option("fq_type"),   # PE or SE
             "fastq_dir": self.qc.option("sickle_dir"),
@@ -715,9 +715,13 @@ class RefrnaWorkflow(Workflow):
             self.logger.info("基因组结构不完整")
             self.snp_rna.fire("end")
         else:
+            if self.option("ref_genome") != "customer_mode":
+                ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
+            else:
+                ref_genome = self.option("ref_genome_custom").prop["path"]
             opts = {
-                "ref_genome_custom": "customer_mode",
-                "ref_genome": self.ref_genome,
+                "ref_genome_custom": ref_genome,
+                "ref_genome":  "customer_mode",
                 "ref_gtf": self.filecheck.option("gtf"),
                 "seq_method": self.option("fq_type"),
                 "fastq_dir": self.qc.option("sickle_dir")
@@ -1101,6 +1105,7 @@ class RefrnaWorkflow(Workflow):
         self.exp.on("end", self.run_network)
         self.on_rely([self.snp_rna, self.network, self.altersplicing, self.tf, self.exp_diff_gene,
                       self.exp_diff_trans], self.end)
+        #self.on_rely([self.gs, self.seq_abs], self.end)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
         
