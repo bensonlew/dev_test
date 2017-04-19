@@ -310,7 +310,7 @@ class PipeSubmitTool(Tool):
         for level in self.levels:
             self.all[level] = {}
             for group_info in self.group_infos:
-                pipe_count += 2
+                pipe_count += 1
                 pipe_main_id = self.pipe_main_mongo_insert(level, group_info)
                 pipe = {}
                 for i in self.web_data['sub_analysis']:
@@ -330,6 +330,7 @@ class PipeSubmitTool(Tool):
                         continue
                     waits = [pipe[i]
                              for i in self.analysis_params[analysis]["waits"]]
+                    gevent.sleep(3)
                     submit.start(waits, timeout=6000)
                 self.all[level][group_info["group_id"]] = pipe
                 self.all_count += (len(pipe) - 1)
@@ -461,7 +462,9 @@ class Submit(object):
         """
         投递接口
         """
-        gevent.sleep(self.pipe_count)
+        if not self.instant:
+            gevent.sleep(self.pipe_count * self.bind_object.sub_analysis_len +
+                         random.randint(0, self.bind_object.sub_analysis_len))
         if self.check_params():
             self._params_check_end = True
             return self.result
