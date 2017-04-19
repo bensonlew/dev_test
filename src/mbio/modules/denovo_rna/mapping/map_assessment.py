@@ -158,7 +158,7 @@ class MapAssessmentModule(Module):
     def distribution_run(self):
         n = 0
         for f in self.files:
-            distribution = self.add_tool("ref_rna.mapping.reads_distribution")
+            distribution = self.add_tool("ref_rna.mapping.bam_readsdistribution")
             self.step.add_steps("distribution_{}".format(n))
             distribution.set_options({
                 "bam": f,

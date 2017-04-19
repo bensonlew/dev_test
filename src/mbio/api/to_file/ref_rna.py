@@ -10,44 +10,89 @@ from types import StringTypes
 
 
 client = Config().mongo_client
-db = client[Config().MONGODB + '_ref_rna']
+# db = client[Config().MONGODB + '_ref_rna']
+
+
+def export_gene_list(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    gene_list_path = os.path.join(dir_path, "%s_gene.list" % option_name)
+    bind_obj.logger.debug("正在导出基因集")
+    collection = db['sg_geneset_detail']
+    main_collection = db['sg_geneset']
+    my_result = main_collection.find_one({'_id': ObjectId(data)})
+    if not my_result:
+        raise Exception("意外错误，geneset_id:{}在sg_geneset中未找到！".format(ObjectId(data)))
+    results = collection.find({"geneset_id": ObjectId(data)})
+    with open(gene_list_path, "wb") as f:
+        for result in results:
+            gene_id = result['gene_name']
+            f.write(gene_id + "\n")
+    return gene_list_path
+
+
+def export_go_list(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    go_list = os.path.join(dir_path, "GO.list")
+    bind_obj.logger.debug("正在导出%sgo列表:%s" % (option_name, go_list))
+    geneset_collection = db["sg_geneset"]
+    task_id = geneset_collection.find_one({"_id": ObjectId(data)})["task_id"]
+    my_result = db["sg_annotation_go"].find_one({"task_id": task_id})
+    go_id = my_result["_id"]
+    if not my_result:
+        raise Exception("意外错误，annotation_go_id:{}在sg_annotation_go中未找到！".format(go_id))
+    collection = db["sg_annotation_go_list"]
+    results = collection.find({"go_id": ObjectId(go_id)})
+    if not results:
+        raise Exception("生成gos_list出错：annotation_id:{}在sg_annotation_gos_list中未找到！".format(ObjectId(go_id)))
+    with open(go_list, "wb") as w:
+        for result in results:
+            gene_id = result["gene_id"]
+            go_list = result["gos_list"]
+            w.write(gene_id + "\t" + go_list + "\n")
+    return go_list
+
 
 def export_kegg_table(data, option_name, dir_path, bind_obj=None):
-    geneset_id = data
-    col = db["sg_geneset"]
-    result = col.find_one({"_id":ObjectId(geneset_id)})
-    type = result["type"]
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     kegg_path = os.path.join(dir_path, 'gene_kegg_table.xls')
     bind_obj.logger.debug("正在导出参数%s的kegg_table文件，路径:%s" % (option_name, kegg_path))
+    geneset_collection = db["sg_geneset"]
+    geneset_result = geneset_collection.find_one({"_id": ObjectId(data)})
+    task_id = geneset_result["task_id"]
+    geneset_type = geneset_result["type"]
+    my_result = db["sg_annotation_kegg"].find_one({"task_id": task_id})
+    kegg_id = my_result["_id"]
+    if not my_result:
+        raise Exception("意外错误，annotation_kegg_id:{}在sg_annotation_kegg中未找到！".format(kegg_id))
     with open(kegg_path, 'wb') as w:
         w.write('#Query\tKO_ID(Gene id)\tKO_name(Gene name)\tHyperlink\tPaths\n')
-        task_id = bind_obj.sheet.id
-        anno_id = db['sg_annotation'].find_one({'task_id': task_id})
-        results = db['sg_annotation_kegg_table'].find({'$and': [{'annotation_id': anno_id}, {'type': type}]})
+        results = db['sg_annotation_kegg_table'].find({'$and': [{'kegg_id': kegg_id}, {'type': geneset_type}]})
         if not results:
-            raise Exception("生成kegg_table出错：annotation_id:{}在sg_annotation_kegg_table中未找到！".format(ObjectId(anno_id)))
+            raise Exception("生成kegg_table出错：kegg_id:{}在sg_annotation_kegg_table中未找到！".format(ObjectId(kegg_id)))
         for result in results:
-            w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'],
-                                                  result['hyperlink'], result['paths']))
+            w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
     return kegg_path
 
-def export_all_gene_list(data, option_name, dir_path, bind_obj=None):  # 需要修改
+
+def export_all_list(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     all_list = os.path.join(dir_path, "all_gene.list")
-    bind_obj.logger.debug("正在导出所有基因列表:%s" % all_list)
-    par_collection = db["sg_denovo_express_diff"]
-    express_id = par_collection.find_one({"_id": ObjectId(data)})["express_id"]
-    collection = db["sg_denovo_express_detail"]
-    my_collection = db["sg_denovo_express"]
-    results = collection.find({"$and": [{"express_id": ObjectId(express_id)}, {"type": "gene"}]})
-    my_result = my_collection.find_one({"_id": ObjectId(express_id)})
+    bind_obj.logger.debug("正在导出所有基因")
+    collection = db['sg_geneset_detail']
+    main_collection = db['sg_geneset']
+    my_result = main_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
-        raise Exception("意外错误，expree_id:{}在sg_denovo_express中未找到!".format(ObjectId(express_id)))
-    with open(all_list, "wb") as w:
+        raise Exception("意外错误，geneset_id:{}在sg_geneset中未找到！".format(ObjectId(data)))
+    results = collection.find({"geneset_id": ObjectId(data)})
+    with open(all_list, "wb") as f:
         for result in results:
-            w.write(result["gene_id"] + "\n")
+            gene_id = result['gene_name']
+            f.write(gene_id + "\n")
     return all_list
 
+
 def export_diff_express(data, option_name, dir_path, bind_obj=None):  # 需要修改
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     name = bind_obj.sheet.option("name")
     compare_name = bind_obj.sheet.option("compare_name")
     diff_express = os.path.join(dir_path, "%s_vs_%s.diff.exp.xls" % (name, compare_name))
@@ -87,3 +132,72 @@ def export_diff_express(data, option_name, dir_path, bind_obj=None):  # 需要�
             w.write(gene_id + '\t' + str(name_count) + '\t' + str(compare_count) + '\t' + str(name_fpkm) + '\t' + str(compare_fpkm) + '\t' + str(log) + '\t' + str(pval) + '\t' + str(fdr) +
 '\t' + significant + '\t' + regulate + '\n')
     return diff_express
+
+
+def export_cog_class(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    cog_path = os.path.join(dir_path, 'cog_class_table.xls')
+    bind_obj.logger.debug("正在导出")
+    genesets, table_title, task_id = get_geneset_detail(data)
+    cog_collection = db["sg_annotation_cog"]
+    cog_detail_collection = db["sg_annotation_cog_detail"]
+    cog_id = cog_collection.find_one({"task_id": task_id})["_id"]
+    cog_results = cog_detail_collection.find({'cog_id': cog_id})
+    print table_title
+    with open(cog_path, "wb") as w:
+        w.write("Type\tFunctional Categoris\t" + "\t".join(table_title) + "\n")
+        for cr in cog_results:
+            kog_list = set(cr["kog_list"].split(";"))
+            nog_list = set(cr["nog_list"].split(";"))
+            cog_list = set(cr["cog_list"].split(";"))
+            # print kog_list
+            write_line_key = cr["type"] + "\t" + cr["function_categories"]
+            write_line = {write_line_key: []}
+            for gt in genesets:
+                kog_count = list(kog_list & genesets[gt][1])
+                nog_count = list(nog_list & genesets[gt][1])
+                cog_count = list(cog_list & genesets[gt][1])
+                if len(kog_count) + len(nog_count) + len(cog_count) == 0:
+                    if len(write_line[write_line_key]) > 0:
+                        print "lllll"
+                        write_line[write_line_key].append(str(len(cog_count)))
+                        write_line[write_line_key].append(str(len(nog_count)))
+                        write_line[write_line_key].append(str(len(kog_count)))
+                    continue
+                else:
+                    write_line[write_line_key].append(str(len(cog_count)))
+                    write_line[write_line_key].append(str(len(nog_count)))
+                    write_line[write_line_key].append(str(len(kog_count)))
+
+            if len(write_line[write_line_key]) > 0:
+                w.write(write_line_key + "\t" + "\t".join(write_line[write_line_key]) + "\n")
+    return cog_path
+
+
+def get_geneset_detail(data):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    geneset_collection = db["sg_geneset"]
+    genesets = {}
+    table_title = []
+    print data.split(",")
+    task_id = ""
+    for geneset_id in data.split(","):
+        # geneset_id = ObjectId(geneset_id)
+        geneset_result = geneset_collection.find_one({"_id": ObjectId(geneset_id)})
+        if not geneset_result:
+            raise Exception("意外错误:未找到基因集_id为{}的基因集信息".format(geneset_id))
+        task_id = geneset_result["task_id"]
+        geneset_type = geneset_result["type"]
+        geneset_name = geneset_result["name"]
+        table_title.append(geneset_name + "_COG")
+        table_title.append(geneset_name + "_NOG")
+        table_title.append(geneset_name + "_KOG")
+        genesets[geneset_name] = [geneset_type]
+        geneset_names = set()
+        collection = db['sg_geneset_detail']
+        results = collection.find({"geneset_id": ObjectId(geneset_id)})
+        for result in results:
+            gene_id = result['gene_name']
+            geneset_names.add(gene_id)
+        genesets[geneset_name].append(geneset_names)
+    return genesets, table_title, task_id
