@@ -8,15 +8,15 @@ from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
 
 
-class QualityControlModule(Module):
+class HiseqQcModule(Module):
     """
-    denovoRNA数据指控模块
+    hiseq数据指控模块，主要调用seqprep、sickle软件做质量剪切与去接头
     version 1.0
     author: qindanhua
     last_modify: 2016.07.25
     """
     def __init__(self, work_id):
-        super(QualityControlModule, self).__init__(work_id)
+        super(HiseqQcModule, self).__init__(work_id)
         options = [
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"},  # PE OR SE
@@ -300,7 +300,7 @@ class QualityControlModule(Module):
             self.clipper_run()
         for eve in self.events.values():
             self.logger.info('{}'.format(eve.is_start))
-        super(QualityControlModule, self).run()
+        super(HiseqQcModule, self).run()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -316,4 +316,4 @@ class QualityControlModule(Module):
                 [r"./clip_dir/", "文件夹", "SE去接头后fastq文件输出目录"],
                 [r"./sickle_dir/", "文件夹", "质量剪切后fastq文件输出目录"]
             ])
-        super(QualityControlModule, self).end()
+        super(HiseqQcModule, self).end()

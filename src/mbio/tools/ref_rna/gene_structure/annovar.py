@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# __author__ = 'qindanhua'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
@@ -15,7 +16,7 @@ class AnnovarAgent(Agent):
     Annovar:用对处理vcf格式文件/注释突变信息
     version 1.0
     author: qindanhua
-    last_modify: 2016.12.30///the last working day of 2016!!!!
+    last_modify: 2016.12.30
     """
 
     def __init__(self, parent):

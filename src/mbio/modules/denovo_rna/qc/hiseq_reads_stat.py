@@ -9,15 +9,15 @@ from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
 
 
-class QcStatModule(Module):
+class HiseqReadsStatModule(Module):
     """
-    denovoRNA数据指控模块
+    对hiseq的PE或者SE测序数据做统计，包括GC含量，总reads数目等
     version 1.0
     author: qindanhua
     last_modify: 2016.07.26
     """
     def __init__(self, work_id):
-        super(QcStatModule, self).__init__(work_id)
+        super(HiseqReadsStatModule, self).__init__(work_id)
         options = [
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
             {"name": "fq_type", "type": "string"},  # PE OR SE
@@ -185,7 +185,7 @@ class QcStatModule(Module):
         self.on_rely(self.tools, self.set_output)
         self.logger.info('{}'.format(self.events))
         # self.logger.info(self.tools)
-        super(QcStatModule, self).run()
+        super(HiseqReadsStatModule, self).run()
         for eve in self.events.values():
             self.logger.info('{}'.format(eve.is_start))
 
@@ -270,4 +270,4 @@ class QcStatModule(Module):
         # self.logger.info(self._parent)
         # self.logger.info(self._parent.events['childend'].is_start)
         # self.logger.info(self.events['childend'].is_start)
-        super(QcStatModule, self).end()
+        super(HiseqReadsStatModule, self).end()
