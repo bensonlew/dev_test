@@ -892,14 +892,6 @@ class OtuPanCore(BetaSampleDistanceHclusterTree):
                 return self.result
         return False
 
-    def post_to_webapi(self):
-        """
-        投递接口
-        """
-        if self.check_params():
-            return self.result
-        self.result = self.post()
-
     def find_pan_core_ids(self, main_table_id):
         """
         pan_core分析有两个主表，找core的主表id
