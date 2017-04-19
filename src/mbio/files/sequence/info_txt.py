@@ -13,7 +13,9 @@ class InfoTxtFile(File):
 
     def __init__(self):
         super(InfoTxtFile, self).__init__()
-        self.workdir_path = []  
+        # self.workdir_path = []
+        self.sample_path = []
+        self.length_path = []
 
     def check(self):
         """
@@ -37,9 +39,14 @@ class InfoTxtFile(File):
                 if len(lst) != 8:
                     raise FileError("文件格式错误，原始序列文件应有5列")
                 else:
-                    path = line.split("\t")[2]
-                    if path not in self.workdir_path:
-                        self.workdir_path.append(path)
+                    # path = line.split("\t")[2]
+                    path = lst[2]
+                    # if path not in self.workdir_path:
+                    #     self.workdir_path.append(path)
+                    sample = path + "/output/fa/" + lst[1] + ".fasta"
+                    length = path + "/output/length/" + lst[1] + ".length_file"
+                    self.sample_path.append(sample)
+                    self.length_path.append(length)
         return True
 
             

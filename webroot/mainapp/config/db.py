@@ -16,6 +16,7 @@ class Config(object):
         self._db = None
         self._identity_db = None
         self._mongo_client = None
+        self._biodb_mongo_client = None
         self._record_db = None
 
     def get_db(self):
@@ -63,9 +64,15 @@ class Config(object):
 
     def get_mongo_client(self):
         if not self._mongo_client:
-            uri = Config().rcf.get("MONGO", "uri")
+            uri = self.rcf.get("MONGO", "uri")
             self._mongo_client = MongoClient(uri)
         return self._mongo_client
+
+    def get_biodb_mongo_client(self):
+        if not self._biodb_mongo_client:
+            uri = self.rcf.ger("MONGO", "bio_uri")
+            self._biodb_mongo_client = MongoClient(uri)
+        return self._biodb_mongo_client
 
     def get_work_dir(self):
         return self.rcf.get("Basic", "work_dir")

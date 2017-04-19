@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
 import xml.etree.ElementTree as ET
-import pymongo
 from biocluster.config import Config
 import re
-from Bio import SeqIO
-from Bio.KEGG.REST import *
 from Bio.KEGG.KGML import KGML_parser
 from Bio.Graphics.KGML_vis import KGMLCanvas
 import collections
 from itertools import islice
 import gridfs
-from IPython.display import Image, HTML
-from pymongo import MongoClient
 import os
 import sys
 
@@ -21,7 +16,7 @@ class KeggAnnotation(object):
         """
         设置数据库，连接到mongod数据库，kegg_ko,kegg_gene,kegg_pathway_png三个collections
         """
-        self.client = MongoClient(Config().MONGO_BIO_URI)
+        self.client = Config().biodb_mongo_client
         self.mongodb = self.client.sanger_biodb
         self.gene_coll = self.mongodb.kegg_gene
         self.ko_coll = self.mongodb.kegg_ko
