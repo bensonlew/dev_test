@@ -4,10 +4,11 @@
 from meta_controller import MetaController
 import web
 
+
 class RefRnaController(MetaController):
     def __init__(self, instant=False):
         super(RefRnaController, self).__init__(instant)
-        self.mongodb = Config().MONGODB + '_ref_rna'
+        # self.mongodb = Config().MONGODB + '_ref_rna'
 
     def _update_status_api(self):
         """
@@ -16,6 +17,6 @@ class RefRnaController(MetaController):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
-            return 'ref-rna.update_status'
+            return 'ref_rna.update_status'
         else:
-            return 'ref-rna.tupdate_status'
+            return 'ref_rna.tupdate_status'
