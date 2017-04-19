@@ -13,10 +13,16 @@ class Base(object):
     def __init__(self, bind_object):
         self._bind_object = bind_object
         self._config = Config()
-        self._client = self._config.mongo_client
         self._db_name = "test"
         self._db = None
         self.manager = None
+
+    def __del__(self):
+        self._client.close()
+
+    @property
+    def _client(self):
+        return self._config.mongo_client
 
     @property
     def bind_object(self):

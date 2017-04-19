@@ -154,7 +154,7 @@ class Job(object):
         self.id = 0
         self._end = False
         self.submit_time = None
-        self.state = None
+        self.state = ""
 
     @property
     def is_end(self):
