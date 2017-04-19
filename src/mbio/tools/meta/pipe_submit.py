@@ -284,6 +284,7 @@ class PipeSubmitTool(Tool):
         self.web_data = json.loads(self.option('data'))
         self.web_data['sub_analysis'] = json.loads(
             self.web_data['sub_analysis'])
+        self.sub_analysis_len = len(self.web_data['sub_analysis'])
         self.otu_id = self.web_data['otu_id']
         self.group_infos = json.loads(self.web_data['group_info'])
         self.levels = [int(i) for i in self.web_data[
@@ -310,7 +311,6 @@ class PipeSubmitTool(Tool):
         for level in self.levels:
             self.all[level] = {}
             for group_info in self.group_infos:
-                pipe_count += 1
                 pipe_main_id = self.pipe_main_mongo_insert(level, group_info)
                 pipe = {}
                 for i in self.web_data['sub_analysis']:
@@ -330,10 +330,10 @@ class PipeSubmitTool(Tool):
                         continue
                     waits = [pipe[i]
                              for i in self.analysis_params[analysis]["waits"]]
-                    gevent.sleep(3)
                     submit.start(waits, timeout=6000)
                 self.all[level][group_info["group_id"]] = pipe
                 self.all_count += (len(pipe) - 1)
+                pipe_count += 1
             sixteens_prediction_flag = True
             lefse_flag = True
         self.all_count += 1  # otu subsample 任务
@@ -463,8 +463,10 @@ class Submit(object):
         投递接口
         """
         if not self.instant:
-            gevent.sleep(self.pipe_count * self.bind_object.sub_analysis_len +
-                         random.randint(0, self.bind_object.sub_analysis_len))
+            wait_time = self.pipe_count * self.bind_object.sub_analysis_len + random.randint(0, self.bind_object.sub_analysis_len)
+            self.bind_object.logger.info("等待时间%s" % (wait_time))
+            gevent.sleep(wait_time)
+
         if self.check_params():
             self._params_check_end = True
             return self.result
@@ -633,8 +635,8 @@ class Submit(object):
         result = self.db[self.mongo_collection].find({'task_id': self.task_id, 'params': self.json_params,
                                                       'status': {'$in': ['end', 'start', "failed"]}})
         if not result.count():
-            self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}, params: {}".format(
-                self.api, self.mongo_collection, self.params_pack(self._params)))
+            self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}".format(
+                self.api, self.mongo_collection))
             return False
         else:
             lastone = result.sort('created_ts', pymongo.DESCENDING)[0]
