@@ -1,24 +1,23 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuanhongdong'
-# last_modify:20170315
+# last_modify:20170418
 
 from biocluster.module import Module
 import os
-import types
 from biocluster.core.exceptions import OptionError
 
 
 class PpinetworkAnalysisModule(Module):
     def __init__(self, work_id):
         super(PpinetworkAnalysisModule, self).__init__(work_id)
-        self.step.add_steps('map', 'ppinetwork_predict', 'ppinetwork_topology')
+        self.step.add_steps('ppinetwork_map', 'ppinetwork_predict', 'ppinetwork_topology')
         options = [
             {"name": "diff_exp_gene", "type": "infile", "format": "ref_rna.protein_regulation.txt"},
             {"name": "species", "type": "int", "default": 9606},
             {"name": "combine_score", "type": "int", "default": 300}
         ]
         self.add_option(options)
-        self.map = self.add_tool("ref_rna.protein_regulation.map")
+        self.ppinetwork_map = self.add_tool("ref_rna.protein_regulation.ppinetwork_map")
         self.ppinetwork_predict = self.add_tool("ref_rna.protein_regulation.ppinetwork_predict")
         self.ppinetwork_topology = self.add_tool("ref_rna.protein_regulation.ppinetwork_topology")
         self._end_info = 0
@@ -45,18 +44,18 @@ class PpinetworkAnalysisModule(Module):
         self.step.update()
 
     def map_run(self):
-        self.map.set_options({
+        self.ppinetwork_map.set_options({
             "diff_exp_gene": self.option("diff_exp_gene"),
             "species": self.option("species")
         })
-        self.map.on('end', self.set_output, 'map')
-        self.map.on('start', self.set_step, {'start': self.step.map})
-        self.map.on('end', self.set_step, {'end': self.step.map})
-        self.map.on('end', self.ppinetwork_predict_run)
-        self.map.run()
+        self.ppinetwork_map.on('end', self.set_output, 'ppinetwork_map')
+        self.ppinetwork_map.on('start', self.set_step, {'start': self.step.ppinetwork_map})
+        self.ppinetwork_map.on('end', self.set_step, {'end': self.step.ppinetwork_map})
+        self.ppinetwork_map.on('end', self.ppinetwork_predict_run)
+        self.ppinetwork_map.run()
 
     def ppinetwork_predict_run(self):
-        diff_exp_mapped_table = os.path.join(self.work_dir, "Map/output/diff_exp_mapped.txt")
+        diff_exp_mapped_table = os.path.join(self.work_dir, "PpinetworkMap/output/diff_exp_mapped.txt")
         line = open(diff_exp_mapped_table, "r").readlines()[1:]
         if not line:
             raise Exception("基因集中的基因不能匹配到string数据库中id，请您确认基因id为Ensemble或者Entrez GeneID！")
@@ -110,8 +109,8 @@ class PpinetworkAnalysisModule(Module):
 
     def set_output(self, event):
         obj = event['bind_object']
-        if event['data'] == 'map':
-            self.linkdir(obj.output_dir, 'map')
+        if event['data'] == 'ppinetwork_map':
+            self.linkdir(obj.output_dir, 'ppinetwork_map')
         elif event['data'] == 'ppinetwork_predict':
             self.linkdir(obj.output_dir, 'ppinetwork_predict')
         elif event['data'] == 'ppinetwork_topology':
