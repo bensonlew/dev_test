@@ -113,7 +113,6 @@ class PipeSubmitTool(Tool):
         elif ana._params_check_end or not ana.success:
             if ana._params['submit_location'] == "otu_pan_core":  # pancore 分析默认两个主表，一次结束 加 2
                 inc = 2
-                self.all_count -= 1  # pancore分析在初始化时默认在all_counts上 + 1，此处非投递结束，不由web/api更新也只算作一个
             else:
                 inc = 1
             self.logger.info("api: {} END_COUNT+{}".format(ana.api, inc))
