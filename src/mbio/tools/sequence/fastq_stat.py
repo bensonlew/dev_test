@@ -1,94 +1,123 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# __author__ = 'qindanhua'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-import os
 from biocluster.core.exceptions import OptionError
-import subprocess
+import os
 
 
 class FastqStatAgent(Agent):
     """
-    fastx_quality_stats:用于统计fastq文件中各个碱基数目，质量等信息
+    用于做fastq序列基本信息统计的工具
     version 1.0
     author: qindanhua
-    last_modify: 2016.01.06
+    last_modify: 2016.06.23
     """
 
     def __init__(self, parent):
         super(FastqStatAgent, self).__init__(parent)
         options = [
-            {"name": "fastq", "type": "infile", "format": "sequence.fastq"}
+            {"name": "fastq", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"},  # fastq文件夹
+            {"name": "fq_type", "type": "string"}
         ]
         self.add_option(options)
-        self.step.add_steps('fastxtoolkit')
+        self.step.add_steps('fastq_stat')
         self.on('start', self.step_start)
         self.on('end', self.step_end)
 
     def step_start(self):
-        self.step.fastxtoolkit.start()
+        self.step.fastq_stat.start()
         self.step.update()
 
     def step_end(self):
-        self.step.fastxtoolkit.finish()
+        self.step.fastq_stat.finish()
         self.step.update()
 
     def check_options(self):
         """
-        检查参数是否正确
+        检测参数是否正确
         """
-        if not self.option("fastq").is_set:
-            raise OptionError("请传入OTU代表序列文件")
+        if self.option('fq_type') not in ['PE', 'SE']:
+            raise OptionError("请说明序列类型，PE or SE?")
 
     def set_resource(self):
         """
         所需资源
         """
         self._cpu = 10
-        self._memory = '5G'  # 待测试
+        self._memory = '50G'
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+            ["./fastq_stat.xls", "xls", "fastq信息统计表"]
+        ])
+        super(FastqStatAgent, self).end()
 
 
 class FastqStatTool(Tool):
     """
     version 1.0
     """
-
     def __init__(self, config):
         super(FastqStatTool, self).__init__(config)
-        self.fastxtoolkit_path = '/bioinfo/seq/fastx_toolkit_0.0.14'
+        self.FastqStat_path = self.config.SOFTWARE_DIR + "/bioinfo/seq/scripts/FastqStat.jar"
+        self.fastq_name = self.option("fastq").prop["path"].split("/")[-1]
+        self.java_path = "program/sun_jdk1.8.0/bin/"
 
-    def fastxtoolkit(self):
-        """
-        运行fastxtoolkit软件里的fastx_quality_stats工具统计fastq文件碱基质量等信息
-        :return:
-        """
-        cmd = '%s/fastx_quality_stats -i %s  -o %s' % (self.fastxtoolkit_path,
-                                                       self.option('fastq').prop['path'], 'fastq_stat.xls')
-        print self.config.SOFTWARE_DIR + cmd
-        self.logger.info('开始统计fastq文件信息')
-        try:
-            subprocess.check_output(self.config.SOFTWARE_DIR + cmd, shell=True)
-            self.logger.info("统计完成")
-            return True
-        except subprocess.CalledProcessError:
-            self.set_error("统计过程出现错误")
-            raise Exception("统计过程出现错误")
+    def fastq_stat(self):
+        self.get_list_file()
+        cmd = "{}java -jar {} -i {} -t {}".format(self.java_path, self.FastqStat_path, "fq_list_for_FastqStat", 10)
+        self.logger.info(cmd)
+        self.logger.info("开始运行FastqStat.jar")
+        command = self.add_command("fastqstat", cmd)
+        command.run()
+        self.wait(command)
+        if command.return_code == 0:
+            self.logger.info("运行FastqStat.jar完成")
+            self.set_output()
+        else:
+            self.set_error("运行FastqStat.jar运行出错!")
             return False
 
+    def get_list_file(self):
+        if self.option("fastq").format == "sequence.fastq":
+            with open("fq_list_for_FastqStat", "wb") as w:
+                w.write("{}\t{}".format(self.fastq_name, self.option("fastq").prop["path"]))
+        elif self.option("fastq").format == "sequence.fastq_dir":
+            sample_file = {}
+            fq_dir = self.option("fastq").prop["path"]
+            list_info = os.path.join(fq_dir, "list.txt")
+            with open(list_info, "rb") as l, open("fq_list_for_FastqStat", "wb") as w:
+                for line in l:
+                    line = line.strip().split()
+                    if line[1] not in sample_file:
+                        sample_file[line[1]] = [line[0]]
+                    else:
+                        sample_file[line[1]].append(line[0])
+                self.logger.info(sample_file)
+                for i in sample_file:
+                    # print os.path.join(fq_dir, sample_file[i][0])
+                    if len(sample_file[i]) == 2:
+                        w.write("{}\t{}\t{}\n".format(i, os.path.join(fq_dir, sample_file[i][0]), os.path.join(fq_dir, sample_file[i][1])))
+                    elif len(sample_file[i]) == 1:
+                        w.write("{}\t{}\n".format(i, os.path.join(fq_dir, sample_file[i][0])))
+
     def set_output(self):
-        """
-        设置输出文件路径
-        :return:
-        """
         self.logger.info("set output")
-        for f in os.listdir(self.output_dir):
-            os.remove(os.path.join(self.output_dir, f))
-        os.link(self.work_dir + '/fastq_stat.xls',
-                self.output_dir + '/fastq_stat.xls')
+        os.system('rm -rf '+self.output_dir)
+        os.system('mkdir '+self.output_dir)
+        os.link(self.work_dir+'/fastqstat.o', self.output_dir+'/{}_fastq_stat.xls'.format(self.fastq_name))
+        os.system("sed -i '1d' {}".format(self.output_dir+'/{}_fastq_stat.xls'.format(self.fastq_name)))
+        os.system("sed -i '$d' {}".format(self.output_dir+'/{}_fastq_stat.xls'.format(self.fastq_name)))
         self.logger.info("done")
+        self.end()
 
     def run(self):
+        """
+        运行
+        """
         super(FastqStatTool, self).run()
-        self.fastxtoolkit()
-        self.set_output()
-        self.end()
+        self.fastq_stat()
+        # self.set_output()

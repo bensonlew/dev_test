@@ -21,7 +21,7 @@ class AssemblyModule(Module):
         options = [
             {"name": "sample_bam_dir", "type": "infile", "format": "ref_rna.assembly.bam_dir"},  # 所有样本的bam文件夹
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 参考基因的注释文件
+            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因的注释文件
             {"name": "assembly_GTF_list.txt", "type": "infile", "format": "ref_rna.assembly.merge_txt"},
             # 所有样本比对之后的bam文件路径列表
             {"name": "cpu", "type": "int", "default": 10},  # 软件所分配的cpu数量

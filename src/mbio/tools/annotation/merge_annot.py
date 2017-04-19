@@ -82,14 +82,14 @@ class MergeAnnotTool(Tool):
         self.b2g_user = "biocluster102"
         self.b2g_password = "sanger-dev-123"
         self.python = self.config.SOFTWARE_DIR + "/program/Python/bin/python"
-        self.goAnnot = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goAnnot2.py"
+        self.goAnnot = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goAnnot.py"
         self.goSplit = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goSplit.py"
 
     def run_merge(self):
         for db in self.database:
             if db == "go":
                 gos = self.option("gos_dir").split(";")
-                self.merge(dirs=gos, merge_file="gos.list")
+                self.merge(dirs=gos, merge_file="query_gos.list")
                 self.option("golist_out", self.work_dir + "/query_gos.list")
                 self.run_go_anno()
                 self.option("go2level_out", self.work_dir + "/go2level.xls")
@@ -132,20 +132,6 @@ class MergeAnnotTool(Tool):
 
     def merge(self, dirs, merge_file):
         filt = []
-        for path in dirs:
-            if os.path.exists(path):
-                with open(path, "rb") as f:
-                    lines = f.readlines()
-                    for line in lines:
-                        if line not in filt:
-                            filt.append(line)
-            else:
-                self.set_error("{}文件不存在".format(path))
-        with open(merge_file, "wb") as w:
-            for line in filt:
-                w.write(line)
-
-    def go_merge(self, dirs, merge_file):
         for path in dirs:
             if os.path.exists(path):
                 with open(path, "rb") as f:
