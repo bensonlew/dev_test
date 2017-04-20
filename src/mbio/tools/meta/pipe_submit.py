@@ -522,6 +522,26 @@ class Submit(object):
                 'created_ts': datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             }
             self._pipe_detail_id = self.db['sg_pipe_detail'].insert_one(insert_data).inserted_id
+        elif str(status) == "failed":
+            insert_data = {
+                "task_id": self.task_id,
+                "otu_id": ObjectId(self.bind_object.otu_id),
+                'group_name': "",
+                'level_name': "",
+                "submit_location": self._params['submit_location'],
+                'params': self.json_params,
+                'pipe_main_id': ObjectId(self.pipe_main_id),
+                'pipe_batch_id': ObjectId(self.bind_object.option('pipe_id')),
+                'table_id': ObjectId(table_id),
+                'status': "failed",
+                'desc': str(self.result['info']) + ", 因为OtuSubsample分析计算失败，后面的依赖分析都不能进行，请重新设定基本参数，再次尝试！",
+                'level_id': "",
+                "group_id": "",
+                'type_name': self.mongo_collection,
+                'table_name': table_name,
+                'created_ts': datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            }
+            self._pipe_detail_id = self.db['sg_pipe_detail'].insert_one(insert_data).inserted_id
         else:
             pass
 
