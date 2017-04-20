@@ -8,7 +8,7 @@ import subprocess
 from biocluster.iofile import File
 from collections import defaultdict
 from biocluster.config import Config
-from biocluster.coregex.exceptions import FileError
+
 
 '''
 gtf:gene transefer format
