@@ -36,7 +36,7 @@ class RmatsBamAgent(Agent):
                    {"name": "read_length", "type": "int", "default": 150},
                    {"name": "A_group_bam", "type": "string", "default": None},  # 一定要设置
                    {"name": "B_group_bam", "type": "string", "default": None},  # 一定要设置
-                   {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 一定要设置
+                   {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 一定要设置
                    {"name": "novel_as", "type": "int", "default": 1},  # 是否发现新的AS事件，默认为是
                    {"name": "lib_type", "type": "string", "default": "fr-unstranded"},  # 建库类型
                    {"name": "as_diff", "type": "float", "default": 0.05},
