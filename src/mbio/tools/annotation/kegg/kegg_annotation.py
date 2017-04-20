@@ -21,6 +21,7 @@ class KeggAnnotationAgent(Agent):
         super(KeggAnnotationAgent, self).__init__(parent)
         options = [
             {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
         ]
         self.add_option(options)
@@ -39,8 +40,8 @@ class KeggAnnotationAgent(Agent):
     def check_options(self):
         if not self.option("blastout").is_set:
             raise OptionError("必须提供BLAST结果文件")
-        else:
-            pass
+        if self.option("taxonomy") not in ["Animals", "Plants", "Fungi", "Protists", "Archaea", "Bacteria", None]:
+            raise OptionError("物种类别必须为Animals/Plants/Fungi/Protists/Archaea/Bacteria/None")
 
     def set_resource(self):
         self._cpu = 10
@@ -65,6 +66,7 @@ class KeggAnnotationTool(Tool):
     def __init__(self, config):
         super(KeggAnnotationTool, self).__init__(config)
         self._version = "2.0"
+        self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
 
     def run(self):
         super(KeggAnnotationTool, self).run()
@@ -72,9 +74,13 @@ class KeggAnnotationTool(Tool):
 
     def kegg_annotation(self):
         self.logger.info("运行kegg注释脚本")
+        if self.option("taxonomy"):
+            taxonomy = self.taxonomy_path
+        else:
+            taxonomy = None
         try:
-            kegg_anno = self.load_package('annotation.kegg.kegg_annotation')()
-            kegg_anno.pathSearch(blast_xml=self.option('blastout').prop['path'], kegg_table=self.output_dir + '/kegg_table.xls')
+            kegg_anno = self.load_package('annotation.kegg_annotation')()
+            kegg_anno.pathSearch(blast_xml=self.option('blastout').prop['path'], kegg_table=self.output_dir + '/kegg_table.xls', taxonomy=taxonomy)
             kegg_anno.pathTable(kegg_table=self.output_dir + '/kegg_table.xls', pathway_path=self.output_dir + '/pathway_table.xls', pidpath=self.work_dir + '/pid.txt')
             kegg_anno.getPic(pidpath=self.work_dir + '/pid.txt', pathwaydir=self.output_dir + '/pathways')
             kegg_anno.keggLayer(pathway_table=self.output_dir + '/pathway_table.xls', layerfile=self.output_dir + '/kegg_layer.xls', taxonomyfile=self.output_dir + '/kegg_taxonomy.xls')
