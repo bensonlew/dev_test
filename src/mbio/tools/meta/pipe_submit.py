@@ -434,6 +434,7 @@ class Submit(object):
         for i in waits:
             i.end_event.get(timeout=timeout)
             if not i.success:
+                self._end_event.set()
                 self.bind_object.rely_error(self, i)
                 return
         self.run_permission()
