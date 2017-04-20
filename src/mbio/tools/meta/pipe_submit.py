@@ -534,7 +534,7 @@ class Submit(object):
                 'pipe_batch_id': ObjectId(self.bind_object.option('pipe_id')),
                 'table_id': ObjectId(table_id),
                 'status': "failed",
-                'desc': str(self.result['info']) + ", 因为OtuSubsample分析计算失败，后面的依赖分析都不能进行，请重新设定基本参数，再次尝试！",
+                'desc': "因为OtuSubsample分析计算失败，后面的依赖分析都不能进行，请重新设定基本参数，再次尝试，(" + str(self.result['info']) + ")",
                 'level_id': "",
                 "group_id": "",
                 'type_name': self.mongo_collection,
