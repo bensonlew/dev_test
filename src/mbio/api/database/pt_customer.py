@@ -14,14 +14,15 @@ class PtCustomer(Base):
 	'''
 	def __init__(self, bind_object):
 		super(PtCustomer, self).__init__(bind_object)
-		# self._db_name = Config().MONGODB
-		# self.mongo_client = MongoClient(Config().MONGO_BIO_URI)
-		# self.database = self.mongo_client['sanger_paternity_test_v2']
-		self.mongo_client = MongoClient(Config().MONGO_URI)
-		self.database = self.mongo_client['tsanger_paternity_test_v2']
+		# self.mongo_client = MongoClient(Config().MONGO_URI)
+		# self.database = self.mongo_client['tsanger_paternity_test_v2']
+		self.mongo_client = Config().mongo_client
+        self.database = self.mongo_client['tsanger_paternity_test_v2']
 
-		self.mongo_client_ref = MongoClient(Config().MONGO_BIO_URI)
-		self.database_ref = self.mongo_client_ref['sanger_paternity_test_v2']
+		# self.mongo_client_ref = MongoClient(Config().MONGO_BIO_URI)
+		# self.database_ref = self.mongo_client_ref['sanger_paternity_test_v2']
+		self.mongo_client_ref = Config().biodb_mongo_client
+        self.database_ref = self.mongo_client_ref['sanger_paternity_test_v2']
 
 
 	# @report_check
