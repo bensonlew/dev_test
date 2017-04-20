@@ -22,7 +22,7 @@ class AnnoWorkflow(Workflow):
             {"name": "kegg_out", "type": "infile", 'format': "align.blast.blast_xml"},
             {"name": "string_out", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "database", "type": "string", "format": "go,nr,cog,kegg"},
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"}
+            {"name": "gene_file", "type": "infile", "format": "rna.gene_list"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
