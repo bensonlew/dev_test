@@ -109,8 +109,8 @@ class GtfFile(File):
                 seq_type = content_m.captures(2)[1].strip()
                 start = content_m.captures(2)[2].strip()
                 end = content_m.captures(2)[3].strip()
-                frame = content_m.captures(2)[5].strip()
-                strand = content_m.captures(2)[6].strip()
+                frame = content_m.captures(2)[6].strip()
+                strand = content_m.captures(2)[5].strip()
                 contig_m = regex.match(r'^[\w.:^*$@!+?-|]+$', contig)  # contig的字符必须在[\w.:^*$@!+?-|]之内
                 seq_type_m = check_seq_type(seq_type)  # seq_type必须在SO term集合之内
                 start_m = regex.match(r'^\d+$', start)
