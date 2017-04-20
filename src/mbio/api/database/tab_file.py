@@ -6,7 +6,6 @@ import os
 from biocluster.config import Config
 from bson import regex
 from bson import ObjectId
-from pymongo import MongoClient
 
 class TabFile(Base):
 	'''
@@ -15,8 +14,10 @@ class TabFile(Base):
 	def __init__(self, bind_object):
 		super(TabFile, self).__init__(bind_object)
 		# self._db_name = Config().MONGODB
-		self.mongo_client = MongoClient(Config().MONGO_BIO_URI)
-		self.database = self.mongo_client['sanger_paternity_test_v2']
+		# self.mongo_client = MongoClient(Config().MONGO_BIO_URI)
+		# self.database = self.mongo_client['sanger_paternity_test_v2']
+		self.mongo_client = Config().biodb_mongo_client
+        self.database = self.mongo_client['sanger_paternity_test_v2']
 
 
 	# @report_check
