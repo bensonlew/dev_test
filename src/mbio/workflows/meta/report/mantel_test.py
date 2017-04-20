@@ -4,10 +4,9 @@ from biocluster.workflow import Workflow
 import os
 import re
 import glob
-from mbio.api.to_file.meta import *
-import datetime
-from mainapp.libs.param_pack import group_detail_sort
+from bson import ObjectId
 from mbio.packages.beta_diversity.filter_newick import get_level_newicktree
+from bson.objectid import ObjectId
 
 
 class MantelTestWorkflow(Workflow):
@@ -40,7 +39,7 @@ class MantelTestWorkflow(Workflow):
             {"name": "partialmatrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "dis_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
             {"name": "fac_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"}
-            ]
+        ]
         self.add_option(options)
         # print(self._sheet.options())
         self.set_options(self._sheet.options())
@@ -108,11 +107,8 @@ class MantelTestWorkflow(Workflow):
             'otumatrixtype': self.option('otu_method'),
             'factormatrixtype': self.option('env_method')
             }
-        print("llllll")
-        print(self.option('units'))
         if self.option('units'):
             options['partial_factor'] = self.option('units')
-        print("lhhhhhhhhhhhh")
         if 'unifrac' in self.option('otu_method'):  # sanger_bioinfo/src/mbio/workflows/meta/report/distance_calc.py中的解释
             if self.option('level') != 9:
                 newicktree = get_level_newicktree(self.option('otu_id'), level=self.option('level'),

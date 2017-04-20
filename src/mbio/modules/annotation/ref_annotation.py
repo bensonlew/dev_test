@@ -26,8 +26,8 @@ class RefAnnotationModule(Module):
             {"name": "pfam_domain", "type": "infile", "format": "annotation.kegg.kegg_list"},
             {"name": "gos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},   # 客户上传go注释文件
             {"name": "kos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},  # 客户上传kegg注释文件
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
-            {"name": "ref_genome_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"},  # 参考基因组gtf文件，将参考基因组转录本ID替换成gene ID
+            {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
+            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件，将参考基因组转录本ID替换成gene ID
             {"name": "sequence_type", "type": "string", "default": "new"},  # 进行注释的序列的类型，参考基因组（ref）/新序列（new），为ref时，必须有参数ref_genome_gtf
             {"name": "anno_statistics", "type": "bool", "default": True},
             {"name": "go_annot", "type": "bool", "default": True},

@@ -23,15 +23,18 @@ def worker_client():
     return worker
 
 
-def event_client(wid):
+def event_client(*wid):
     WorkerManager.register("get_event")
     wpm_manager = WorkerManager(address=config.wpm_listen, authkey=config.wpm_authkey)
     wpm_manager.connect()
-    return wpm_manager.get_event(wid)
+    return wpm_manager.get_event(*wid)
 
 
 def wait(wid, timeout=None):
-    event = event_client(wid)
+    if isinstance(wid, list) or isinstance(wid, tuple):
+        event = event_client(*wid)
+    else:
+        event = event_client(wid)
     if str(event) == "None":
         raise Exception("获取Event错误!")
     if timeout is None:

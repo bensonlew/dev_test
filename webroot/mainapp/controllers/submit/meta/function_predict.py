@@ -22,7 +22,7 @@ class FunctionPredict(MetaController):
                 info = {"success": False, "info": "缺少参数%s!" % argu}
                 return json.dumps(info)
         if data.group_method not in ["", "sum", "average", "middle"]:
-            info = {"success": False, "info": "对分组样本计算方式:%s错误!" % group_method}
+            info = {"success": False, "info": "对分组样本计算方式:%s错误!" % data.group_method}
             return json.dumps(info)
         task_name = 'meta.report.function_predict'
         task_type = 'workflow'
@@ -60,7 +60,7 @@ class FunctionPredict(MetaController):
             "predict_id": str(main_table_id)
         }
         to_file = ["function_predict.export_otu_table_by_detail(otu_table)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name="FunctionPrediction/" + main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="16sFunctionPrediction/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(FunctionPredict, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
