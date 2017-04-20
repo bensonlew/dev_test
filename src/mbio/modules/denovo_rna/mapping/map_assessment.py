@@ -89,7 +89,7 @@ class MapAssessmentModule(Module):
     def bam_stat_run(self):
         n = 0
         for f in self.files:
-            bam_stat = self.add_tool('denovo_rna.mapping.bam_stat')
+            bam_stat = self.add_tool('gene_structure.bam_stat')
             self.step.add_steps('bamStat_{}'.format(n))
             bam_stat.set_options({
                 'bam': f
@@ -158,7 +158,7 @@ class MapAssessmentModule(Module):
     def distribution_run(self):
         n = 0
         for f in self.files:
-            distribution = self.add_tool("ref_rna.mapping.bam_readsdistribution")
+            distribution = self.add_tool("gene_structure.bam_readsdistribution")
             self.step.add_steps("distribution_{}".format(n))
             distribution.set_options({
                 "bam": f,
@@ -174,7 +174,7 @@ class MapAssessmentModule(Module):
     def chr_stat_run(self):
         n = 0
         for f in self.files:
-            chr_stat = self.add_tool("ref_rna.mapping.chr_distribution")
+            chr_stat = self.add_tool("gene_structure.chr_distribution")
             self.step.add_steps("chr_distribution_{}".format(n))
             chr_stat.set_options({
                 "bam": f

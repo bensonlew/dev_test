@@ -138,7 +138,7 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     cog_path = os.path.join(dir_path, 'cog_class_table.xls')
     bind_obj.logger.debug("正在导出")
-    genesets, table_title, task_id = get_geneset_detail(data)
+    genesets, table_title, task_id, geneset_type = get_geneset_detail(data)
     cog_collection = db["sg_annotation_cog"]
     cog_detail_collection = db["sg_annotation_cog_detail"]
     cog_id = cog_collection.find_one({"task_id": task_id})["_id"]
@@ -159,7 +159,6 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
                 cog_count = list(cog_list & genesets[gt][1])
                 if len(kog_count) + len(nog_count) + len(cog_count) == 0:
                     if len(write_line[write_line_key]) > 0:
-                        print "lllll"
                         write_line[write_line_key].append(str(len(cog_count)))
                         write_line[write_line_key].append(str(len(nog_count)))
                         write_line[write_line_key].append(str(len(kog_count)))
@@ -181,6 +180,7 @@ def get_geneset_detail(data):
     table_title = []
     print data.split(",")
     task_id = ""
+    geneset_type = "gene"
     for geneset_id in data.split(","):
         # geneset_id = ObjectId(geneset_id)
         geneset_result = geneset_collection.find_one({"_id": ObjectId(geneset_id)})
@@ -200,4 +200,43 @@ def get_geneset_detail(data):
             gene_id = result['gene_name']
             geneset_names.add(gene_id)
         genesets[geneset_name].append(geneset_names)
-    return genesets, table_title, task_id
+    return genesets, table_title, task_id, geneset_type
+
+
+def export_go_class(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    go_path = os.path.join(dir_path, 'go_class_table.xls')
+    print("正在导出")
+    genesets, table_title, task_id, seq_type = get_geneset_detail(data)
+    print seq_type
+    go_collection = db["sg_annotation_go"]
+    go_level_collection = db["sg_annotation_go_level"]
+    go_id = go_collection.find_one({"task_id": task_id})["_id"]
+    go_results = go_level_collection.find({'go_id': go_id, "level": 2})
+    # go_results = go_level_collection.find({'go_id': go_id, "level": 2, "anno_type": seq_type})
+    # print table_title
+    new_table_title = []
+    for tt in table_title:
+        new_table_title.append(tt + " num")
+        new_table_title.append(tt + " percent")
+    print new_table_title
+    with open(go_path, "wb") as w:
+        w.write("Term type\tTerm\tGO\t" + "\t".join(new_table_title) + "\n")
+        for gr in go_results:
+            seq_list = set(gr["seq_list"].split(";"))
+            write_line = {}
+            for gt in genesets:
+                go_count = list(seq_list & genesets[gt][1])
+                # print len(go_count)
+                if not len(go_count) == 0:
+                    print gr["term_type"]
+                    write_line[gt] = str(len(go_count))
+            if len(write_line):
+                w.write("{}\t{}\t{}\t".format(gr["parent_name"], gr["term_type"], gr["go"]))
+                for tt in table_title:
+                    print tt
+                    w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t")
+                print write_line
+                # w.write("\t".join(write_line[write_line_key]))
+                w.write("\n")
+    return go_path

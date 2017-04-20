@@ -532,12 +532,10 @@ class RefrnaWorkflow(Workflow):
                 "strand_direct": strand_dir,
                 "fr_stranded": "fr-stranded"
                 })
-            self.lib_type = "fr-stranded"
         else:
             opts.update({
                 "fr_stranded": "fr-unstranded"
                 })
-            self.lib_type = "fr-unstranded"
         self.assembly.set_options(opts)
         self.assembly.on("end", self.set_output, "assembly")
         self.assembly.on('start', self.set_step, {'start': self.step.assembly})
@@ -731,9 +729,10 @@ class RefrnaWorkflow(Workflow):
             self.snp_rna.run()
         
     def run_map_assess(self):
-        assess_method = self.option("map_assess_method") + ",stat"
+        # assess_method = self.option("map_assess_method") + ",stat"
+        assess_method = "saturation,duplication,coverage,stat"
         opts = {
-            "bam": self.mapping.option("bam_output"),
+            "bam": self.mapping.option("bam_output").prop["path"],
             "analysis": assess_method,
             "bed": self.filecheck.option("bed").prop["path"]
         }
@@ -785,10 +784,14 @@ class RefrnaWorkflow(Workflow):
             self.logger.info("基因组结构不完整")
             self.altersplicing.fire("end")
         else:
+            if self.option("strand_specific"):
+                lib_type = "fr-firststrand"
+            else:
+                lib_type = "fr-unstranded"
             gtf_path = self.filecheck.option("gtf").prop["path"]
             opts = {
                 "sample_bam_dir": self.mapping.option("bam_output"),
-                "lib_type": self.lib_type,
+                "lib_type": lib_type,
                 "ref_gtf": gtf_path,
                 "group_table": self.option("group_table"),
                 "rmats_control": self.option("control_file")
