@@ -22,7 +22,7 @@ class FunctionPredict(MetaController):
                 info = {"success": False, "info": "缺少参数%s!" % argu}
                 return json.dumps(info)
         if data.group_method not in ["", "sum", "average", "middle"]:
-            info = {"success": False, "info": "对分组样本计算方式:%s错误!" % group_method}
+            info = {"success": False, "info": "对分组样本计算方式:%s错误!" % data.group_method}
             return json.dumps(info)
         task_name = 'meta.report.function_predict'
         task_type = 'workflow'
