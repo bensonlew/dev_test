@@ -5,7 +5,6 @@ import json
 import datetime
 from bson import ObjectId
 from mainapp.controllers.core.basic import Basic
-from mainapp.models.mongo.ref_rna import RefRna
 from mainapp.controllers.project.ref_rna_controller import RefRnaController
 
 
@@ -15,7 +14,7 @@ class GenesetEnrich(RefRnaController):
 
     def POST(self):
         data = web.input()
-        default_argu = ['geneset_id', 'geneset_type', 'submit_location', 'anno_type', 'method', 'annotation_id']
+        default_argu = ['geneset_id', 'geneset_type', 'submit_location', 'anno_type', 'method']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -33,11 +32,11 @@ class GenesetEnrich(RefRnaController):
             "annotation_id": data.annotation_id
         }
         # 判断传入的基因集id是否存在
-        geneset_info = RefRna().get_main_info(data.geneset_id, 'sg_geneset')
+        geneset_info = self.ref_rna.get_main_info(data.geneset_id, 'sg_geneset')
         if not geneset_info:
             info = {"success": False, "info": "geneset不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        task_info = RefRna().get_task_info(geneset_info['task_id'])
+        task_info = self.ref_rna.get_task_info(geneset_info['task_id'])
 
         if data.anno_type == "go":
             table_name = "Go"
@@ -53,7 +52,7 @@ class GenesetEnrich(RefRnaController):
             info = {'success': False, 'info': '不支持该富集分子!'}
             return json.dumps(info)
 
-        main_table_name = 'Geneset_' + table_name + "_Enrich" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        main_table_name = 'Geneset' + table_name + "Enrich" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
 
         mongo_data = [
             ('project_sn', task_info['project_sn']),
@@ -63,7 +62,7 @@ class GenesetEnrich(RefRnaController):
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':')))
         ]
-        main_table_id = self.meta.insert_main_table(collection_name, mongo_data)
+        main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
         update_info = {str(main_table_id): collection_name}
 
         options = {
@@ -84,8 +83,8 @@ class GenesetEnrich(RefRnaController):
         print(options)
         # to_file = 'ref_rna.export_otu_table_by_detail(otu_file)'
 
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
-                            module_type=task_type, to_file=to_file)
+        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
+                            to_file=to_file, task_id=task_info["task_id"], project_sn=task_info["project_sn"])
         task_info = super(GenesetEnrich, self).POST()
         task_info['content'] = {
             'ids': {

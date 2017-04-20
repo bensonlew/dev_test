@@ -147,9 +147,9 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
     with open(cog_path, "wb") as w:
         w.write("Type\tFunctional Categoris\t" + "\t".join(table_title) + "\n")
         for cr in cog_results:
-            kog_list = set(cr["kog_list"].split(";"))
-            nog_list = set(cr["nog_list"].split(";"))
-            cog_list = set(cr["cog_list"].split(";"))
+            kog_list = set(cr["kog_list"].split(";") if cr["kog_list"] else [])
+            nog_list = set(cr["nog_list"].split(";") if cr["kog_list"] else [])
+            cog_list = set(cr["cog_list"].split(";") if cr["kog_list"] else [])
             # print kog_list
             # write_line_key = cr["type"] + "\t" + cr["function_categories"]
             write_line = {}
@@ -159,7 +159,7 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
                 cog_count = list(cog_list & genesets[gt][1])
                 if not len(kog_count) + len(nog_count) + len(cog_count) == 0:
                     write_line[gt] = [str(len(cog_count)), str(len(nog_count)), str(len(kog_count))]
-            if len(write_line):
+            if len(write_line) > 0:
                 w.write("{}\t{}\t".format(cr["type"], cr["function_categories"]))
                 for tt in table_title:
                     w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\t0\t")
@@ -184,9 +184,7 @@ def get_geneset_detail(data):
         task_id = geneset_result["task_id"]
         geneset_type = geneset_result["type"]
         geneset_name = geneset_result["name"]
-        table_title.append(geneset_name + "_COG")
-        table_title.append(geneset_name + "_NOG")
-        table_title.append(geneset_name + "_KOG")
+        table_title.append(geneset_name)
         genesets[geneset_name] = [geneset_type]
         geneset_names = set()
         collection = db['sg_geneset_detail']
@@ -224,14 +222,13 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
                 go_count = list(seq_list & genesets[gt][1])
                 # print len(go_count)
                 if not len(go_count) == 0:
-                    print gr["term_type"]
                     write_line[gt] = str(len(go_count))
             if len(write_line):
                 w.write("{}\t{}\t{}\t".format(gr["parent_name"], gr["term_type"], gr["go"]))
                 for tt in table_title:
                     print tt
                     w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t")
-                print write_line
+                # print write_line
                 # w.write("\t".join(write_line[write_line_key]))
                 w.write("\n")
     return go_path

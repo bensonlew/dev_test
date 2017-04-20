@@ -78,9 +78,7 @@ class GenesetClass(RefRnaController):
             "anno_type": data.anno_type,
             }
         options.update(option)
-        print(options)
-        # to_file = 'ref_rna.export_otu_table_by_detail(otu_file)'
-
+        # print(options)
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
                             to_file=to_file, project_sn=task_info['project_sn'], task_id=task_info['task_id'])
 

@@ -42,12 +42,16 @@ class GenesetClassWorkflow(Workflow):
         """
         保存结果指数表到mongo数据库中
         """
-        api_geneset = self.ref_rna_geneset
+        api_geneset = self.api.ref_rna_geneset
         self.logger.info("wooooooooorkflowinfoooooooo")
-        output_file = self.option("geneset_cog")
-        if not os.path.isfile(output_file):
-            raise Exception("找不到报告文件:{}".format(output_file))
-        api_geneset.add_geneset_cog_detail(output_file, self.option("main_table_id"))
+        if self.option("anno_type") == "cog":
+            output_file = self.option("geneset_cog")
+            api_geneset.add_geneset_cog_detail(output_file, self.option("main_table_id"))
+        elif self.option("anno_type") == "go":
+            output_file = self.option("geneset_go")
+        else:
+            output_file = self.option("geneset_kegg")
+        # api_geneset.add_geneset_cog_detail(output_file, self.option("main_table_id"))
         os.link(output_file, self.output_dir + "/" + os.path.basename(output_file))
         print(output_file)
         self.end()
