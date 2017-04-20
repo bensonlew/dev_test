@@ -137,17 +137,19 @@ class MetaController(object):
 
     def meta_pipe(self):
         """
+        一键化分析特殊处理
         """
         data = web.input()
         for i in ["batch_id"]:
             if not hasattr(data, i):
                 return
-            else:
-                print "一键化投递任务{}: {}".format(i, getattr(data, i))
+        print "一键化投递任务{}: {}".format(i, getattr(data, i))
+        self._instant = False
         update_info = json.loads(self._sheet_data["options"]['update_info'])
         # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
         update_info["batch_id"] = data.batch_id
         self._sheet_data['options']["update_info"] = json.dumps(update_info)
+        self._sheet_data["instant"] = False
 
 
     def get_new_id(self, task_id, otu_id=None):

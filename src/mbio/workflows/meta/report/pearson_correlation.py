@@ -3,9 +3,6 @@
 from biocluster.workflow import Workflow
 import glob
 import os
-from mbio.api.to_file.meta import *
-import datetime
-from mbio.packages.statistical.reverse_table import reverse_table
 from bson import ObjectId
 import re
 
@@ -65,7 +62,7 @@ class PearsonCorrelationWorkflow(Workflow):
         self.correlation.set_options(options)
         self.correlation.on("end", self.set_db)
         self.correlation.run()
-        
+
     def run(self):
         self.run_correlation()
         super(PearsonCorrelationWorkflow, self).run()

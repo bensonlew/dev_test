@@ -25,14 +25,14 @@ class RmatsModule(Module):
     def __init__(self, work_id):
         super(RmatsModule, self).__init__(work_id)
         options = [
-            {"name": "sample_bam_dir", "type": "infile", "format": "ref_rna.assembly.bam_dir"},
-            {"name": "rmats_control", "type": "infile", "format": "denovo_rna.express.control_table"},
-            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "sample_bam_dir", "type": "infile", "format": "align.bwa.bam_dir"},
+            {"name": "rmats_control", "type": "infile", "format": "sample.control_table"},
+            {"name": "group_table", "type": "infile", "format": "sample.group_table"},
             {"name": "gname", "type": "string", "default": "group"},  # 分组方案名称
             {"name": "seq_type", "type": "string", "default": "paired"},  # 两个选项：'paired'  or ’single‘
             {"name": "analysis_mode", "type": "string", "default": "P"},
             {"name": "read_length", "type": "int", "default": 150},
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 一定要设置
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 一定要设置
             {"name": "novel_as", "type": "int", "default": 1},  # 是否发现新的AS事件，默认为是
             {"name": "lib_type", "type": "string", "default": "fr-unstranded"},  # 建库类型
             {"name": "as_diff", "type": "float", "default": 0.05},
@@ -122,7 +122,7 @@ class RmatsModule(Module):
         vs_group_path_pair_lst = self.get_group_str()
         n = 0
         for vs_pair in vs_group_path_pair_lst:
-            rmats_bam = self.add_tool('ref_rna.gene_structure.rmats_bam')
+            rmats_bam = self.add_tool('gene_structure.rmats_bam')
             n = n + 1
             self.step.add_steps('rmats_bam_{}'.format(n))
             rmats_bam.set_options({
