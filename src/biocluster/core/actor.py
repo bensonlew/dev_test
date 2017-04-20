@@ -56,7 +56,7 @@ class LocalActor(gevent.Greenlet):
         if self._update is None and (not self._agent.is_wait):
                 if self._agent.job.submit_time is not None:
                         if (now - self._agent.job.submit_time).seconds - \
-                                        self._wto_fire_times * self._config.MAX_WAIT_TIME > self._config.MAX_WAIT_TIME:
+                                self._wto_fire_times * self._config.MAX_WAIT_TIME > self._config.MAX_WAIT_TIME:
                             if self._wto_fire_times >= self._config.MAX_FIRE_WTO_TIMES:
                                 if self._has_firewtoout is False:
                                     self._agent.fire("firewtoout", self._wto_fire_times)
@@ -202,11 +202,14 @@ class RemoteActor(threading.Thread):
                }
         client = None
         try:
+            self._tool.logger.debug("发送消息%s" % msg)
             client = zerorpc.Client()
             client.connect(self.config.endpoint)
             result = client.report(msg)
             client.close()
         except Exception, e:
+            if client:
+                client.close()
             self._lost_connection_count += 1
             if self._lost_connection_count >= 10:
                 self._tool.logger.error("网络连接出现错误，尝试10次仍然无法连接，即将退出运行:%s" % e)
@@ -214,11 +217,10 @@ class RemoteActor(threading.Thread):
                 self._tool.exit(1)
             else:
                 self._tool.logger.error("网络连接出现错误，将重新尝试连接:%s" % e)
-                if client:
-                    client.close()
                 gevent.sleep(3)
                 self.send_state(state)
         else:
+            self._tool.logger.debug("返回消息%s" % result)
             if not isinstance(result, dict):
                 self._tool.logger.error("接收到异常信息，退出运行!")
                 self._tool.exit(1)
