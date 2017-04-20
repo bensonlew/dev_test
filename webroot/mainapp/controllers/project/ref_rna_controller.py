@@ -13,8 +13,8 @@ from biocluster.config import Config
 class RefRnaController(MetaController):
     def __init__(self, instant=False):
         super(RefRnaController, self).__init__(instant)
-        self.mongodb = Config().MONGODB + '_ref_rna'
-        self.ref_rna = Meta(self.mongodb)
+        self.meta = RefRna()
+        self.ref_rna = self.meta
 
     def _update_status_api(self):
         """
@@ -27,7 +27,7 @@ class RefRnaController(MetaController):
         else:
             return 'ref_rna.tupdate_status'
 
-    def set_sheet_data(self, name, options, main_table_name, module_type="workflow", params=None, to_file=None):
+    def set_sheet_data(self, name, options, main_table_name, task_id, project_sn, module_type="workflow", params=None, to_file=None):
         """
         设置运行所需的Json文档
 
@@ -40,12 +40,14 @@ class RefRnaController(MetaController):
         :return:
         """
         self._post_data = web.input()
-        if hasattr(self._post_data, "geneset_id"):
-            table_info = RefRna().get_main_info(self._post_data["geneset_id"].split(",")[0], "sg_geneset")
-        if hasattr(self._post_data, "express_id"):
-            table_info = RefRna().get_main_info(self._post_data["express_id"], "sg_express")
-        project_sn = table_info["project_sn"]
-        task_id = table_info["task_id"]
+        # if hasattr(self._post_data, "geneset_id"):
+        #     table_info = RefRna().get_main_info(self._post_data["geneset_id"].split(",")[0], "sg_geneset")
+        # if hasattr(self._post_data, "express_id"):
+        #     table_info = RefRna().get_main_info(self._post_data["express_id"], "sg_express")
+        # project_sn = table_info["project_sn"]
+        # task_id = table_info["task_id"]
+        # print("llllllll")
+        # print(task_id)
         new_task_id = self.get_new_id(task_id)
         self._sheet_data = {
             'id': new_task_id,

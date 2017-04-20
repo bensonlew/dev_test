@@ -5,14 +5,14 @@ from bson.objectid import ObjectId
 import types
 from biocluster.config import Config
 from mainapp.models.workflow import Workflow
+from mainapp.models.mongo.meta import Meta
 import random
 
 
-class RefRna(object):
+class RefRna(Meta):
     def __init__(self):
-        self.client = get_mongo_client()
         self.db_name = Config().MONGODB + '_ref_rna'
-        self.db = self.client[self.db_name]
+        super(RefRna, self).__init__(db=self.db_name)
 
     def get_new_id(self, task_id, main_id):
         new_id = "%s_%s_%s" % (task_id, main_id[-4:], random.randint(1, 10000))
@@ -33,7 +33,3 @@ class RefRna(object):
         main_info = collection.find_one({'_id': main_id})
         return main_info
 
-    def get_task_info(self, task_id):
-        sg_task = self.db['sg_task']
-        result = sg_task.find_one({'task_id': task_id})
-        return result
