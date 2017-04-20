@@ -550,8 +550,12 @@ class Submit(object):
         特殊用途，16s与lefse两个分析的pipe_main_id,要去查表获取
         :return:
         """
+        if group_id == 'all':
+            group_id = 'all'
+        else:
+            group_id = ObjectId(group_id)
         mongo_result = self.db['sg_pipe_main'].find_one({"pipe_batch_id": ObjectId(pipe_id),
-                                                         "group_id": ObjectId(group_id), "level_id": int(level_id)})["_id"]
+                                                         "group_id": group_id, "level_id": int(level_id)})["_id"]
         return mongo_result
 
     def run_permission(self):
