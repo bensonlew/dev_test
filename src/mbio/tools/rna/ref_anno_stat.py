@@ -41,9 +41,9 @@ class RefAnnoStatAgent(Agent):
             {"name": "cog_list", "type": "infile", "format": "annotation.cog.cog_list"},
             {"name": "cog_table", "type": "infile", "format": "annotation.cog.cog_table"},
             {"name": "pfam_domain", "type": "infile", "format": "annotation.kegg.kegg_list"},
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
+            {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
             {"name": "swissprot_xml", "type": "infile", "format": "align.blast.blast_xml"},
-            {"name": "ref_genome_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"},  # 参考基因组gtf文件，将参考基因组转录本ID替换成gene ID
+            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件，将参考基因组转录本ID替换成gene ID
             {"name": "sequence_type", "type": "string", "default": "new"},  # 进行注释的序列的类型，参考基因组（ref）/新序列（new），为ref时，必须有参数ref_genome_gtf
             {"name": "database", "type": "string", "default": "nr,go,cog,pfam,kegg,swissprot"},
             {"name": "gene_nr_table", "type": "outfile", "format": "align.blast.blast_table"},

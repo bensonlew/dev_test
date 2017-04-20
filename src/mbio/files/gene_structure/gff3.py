@@ -37,6 +37,7 @@ class Gff3File(File):
         self._gtf = ''  # gff3的配套gtf路径
         self._gffread_path = ''
         self._seq_pos = dict()
+        self.check_parent = False
         self._genes = {}
         self._mrnas = {}
         self._exons = {}
@@ -237,9 +238,12 @@ class Gff3File(File):
         gtf = open(self._gtf, 'wb')
         for line in open(temp_gtf):
             newline = regex.sub(r'"(\S+?):(\S+?)";', '"\g<2>";', line)
-            tmp = newline.strip().split("\t")[-1].split(";")
-            if len(tmp) == 1:
-                print newline
+            tmp = newline.strip().split("\t")[-1]
+            if "gene_id" not in tmp:
+                m = re.match("transcript_id \"(.+)\";", tmp)
+                if m:
+                    gene_id = self.get_parent(m.group(1))
+                    newline = newline.strip() + " gene_id \"" + gene_id + "\";\n"
             gtf.write(newline)
         gtf.close()
 
@@ -258,7 +262,23 @@ class Gff3File(File):
         return True
 
     def get_parent(self, transcript):
-        pass
+        if not self.check_parent:
+            self.get_transcript_dict()
+        gene_id = self._genes[transcript]
+        return gene_id
+
+    def get_transcript_dict(self):
+        if not self.check_parent:
+            self.transcripts = []
+            with open(self.prop["path"], "r") as file:
+                for line in file:
+                    tmp = line.strip().split("\t")[-1]
+                    m = re.match("ID=transcript:(.+);Parent=gene:(.+?);", tmp)
+                    if m:
+                        if m.group(1) not in self.transcripts:
+                            self.transcripts.append(m.group(1))
+                            self._genes[m.group(1)] = m.group(2)
+            self.check_parent = True
 
 
 if __name__ == '__main__':
