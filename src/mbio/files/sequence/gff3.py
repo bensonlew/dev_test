@@ -10,7 +10,7 @@ import subprocess
 from sequence_ontology import SequenceOntologyFile
 from collections import defaultdict
 from biocluster.iofile import File
-from biocluster.core.exceptions import FileError
+from biocluster.coregex.exceptions import FileError
 from biocluster.config import Config
 from fasta import FastaFile
 
@@ -89,13 +89,13 @@ class Gff3File(File):
     
     def attrs_format_check(self):
         for attr_record in self._attrs_record_set:
-            if not re.match(r'^(.+?=.+?;)+.+?=.+?;*$', attr_record.strip()):
+            if not regex.match(r'^(.+?=.+?;)+.+?=.+?;*$', attr_record.strip()):
                 raise FileError('column 9 must match the format: tag=value')
     
     def type_id_check(self, content):
         type_id_dic = defaultdict(int)
         for line in content:
-            m = re.search(r'(\S+)\t.*?ID=([^;=\"\'\t,]+)?', line.strip())
+            m = regex.search(r'(\S+)\t.*?ID=([^;=\"\'\t,]+)?', line.strip())
             if m:
                 type_id_dic[(m.group(1), m.group(2))] += 1
             else:
@@ -107,14 +107,14 @@ class Gff3File(File):
     def parent_relation_check(self, content):
         type_relation_set = set()
         for record in content:
-            m = re.search(r'(\S+)\t.*?Parent=([^;=\"\'\t,:]+)?:([^;=\"\'\t,:]+)?;', record)
+            m = regex.search(r'(\S+)\t.*?Parent=([^;=\"\'\t,:]+)?:([^;=\"\'\t,:]+)?;', record)
             type_relation_set.add((m.group(1), m.group(2)))
         for type_pair in type_relation_set:
             self.check_seq_types_relation(type_pair[0], type_pair[1])
     
     def check_contigs(self):
         for contig in self._contigs:
-            if (not re.match(r'^[a-zA-Z0-9\.:^*$@!+_?-|]+$', contig)) or contig.startswith('>'):
+            if (not regex.match(r'^[a-zA-Z0-9\.:^*$@!+_?-|]+$', contig)) or contig.startswith('>'):
                 raise FileError('contig 错误')
             else:
                 continue
@@ -123,8 +123,8 @@ class Gff3File(File):
     def pos_check(self, fa_path):
         self._contig_boundary_dic = dict.fromkeys(self._contigs, (0, 0))  # 注意gff文件的pos起点
         for pos in self._pos_set:
-            [contig, start, end] = re.split(r'[:-]', pos)
-            if not (re.match(r'^\d+$', start) and re.match(r'^\d+$', end)):
+            [contig, start, end] = regex.split(r'[:-]', pos)
+            if not (regex.match(r'^\d+$', start) and regex.match(r'^\d+$', end)):
                 raise FileError('illegal pos format')
             if int(start) > int(end):
                 raise FileError('{} record illegal pos in gff file {}'.format(pos, self.path))
@@ -151,7 +151,7 @@ class Gff3File(File):
         directives_content = [record.strip() for record in
                               subprocess.check_output(directives_cmd, shell=True).strip().split('\n')]
         for record in directives_content:
-            v_m = re.match(r'^##gff-version\s+(\S+)$', record)
+            v_m = regex.match(r'^##gff-version\s+(\S+)$', record)
             if v_m:
                 self._version = v_m.group(1)
                 continue
@@ -163,7 +163,7 @@ class Gff3File(File):
     
     def check_lines(self):
         for line in open(self.path):
-            if re.match(r'^#', line) or re.match(r'^$', line.strip()):
+            if regex.match(r'^#', line) or regex.match(r'^$', line.strip()):
                 continue
             else:
                 if not regex.match(r'^[^#]\S+\t(.+?\t){7}(.+?=.+?;)*(.+?=.+?)*', line.strip()):
@@ -191,7 +191,7 @@ class Gff3File(File):
         self._fasta.set_path(fa)
     
     def get_so_set(self, so_f, target_term_id, relation):
-        if not re.match(r'^SO:\d+$', target_term_id):
+        if not regex.match(r'^SO:\d+$', target_term_id):
             raise FileError('illegal input so id')
         if not os.path.isfile(so_f):
             raise FileError('so file does not exist')
@@ -202,12 +202,12 @@ class Gff3File(File):
     
     def check_strand(self):
         for strand in self._strand_set:
-            if not re.match(r'^[\.\?\-\+]$', strand):
+            if not regex.match(r'^[\.\?\-\+]$', strand):
                 raise FileError('illegal strand value')
     
     def check_phase(self):
         for phase in self._phase_set:
-            if not re.match(r'^[\.120]$', phase):
+            if not regex.match(r'^[\.120]$', phase):
                 raise FileError('illegal phase value')
     
     def phase_logical_check(self):
@@ -220,8 +220,8 @@ class Gff3File(File):
     def get_genbank_assembly_id(self):
         if self._parse_status:
             for item in self._build_info_dic.keys():
-                info_macth = re.match(r'NCBI:(\S+)', self._build_info_dic[item])
-                if re.match(r'.*genome-build-accession.*', item) and info_macth:
+                info_macth = regex.match(r'NCBI:(\S+)', self._build_info_dic[item])
+                if regex.match(r'.*genome-build-accession.*', item) and info_macth:
                     self._genbank_assembly_id = info_macth.group(1)
             return self._genbank_assembly_id
     
@@ -236,7 +236,7 @@ class Gff3File(File):
             raise FileError("运行出错")
         gtf = open(self._gtf, 'wb')
         for line in open(temp_gtf):
-            newline = re.sub(r'"(\S+?):(\S+?)";', '"\g<2>";', line)
+            newline = regex.sub(r'"(\S+?):(\S+?)";', '"\g<2>";', line)
             gtf.write(newline)
         gtf.close()
 

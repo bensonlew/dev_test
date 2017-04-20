@@ -8,7 +8,7 @@ import subprocess
 from biocluster.iofile import File
 from collections import defaultdict
 from biocluster.config import Config
-from biocluster.core.exceptions import FileError
+from biocluster.coregex.exceptions import FileError
 
 '''
 gtf:gene transefer format
@@ -56,8 +56,8 @@ class GtfFile(File):
         :return:
         '''
         for line in open(self.path):
-            comment_m = re.match(r'^#.+', line.strip())
-            content_m = re.match(
+            comment_m = regex.match(r'^#.+', line.strip())
+            content_m = regex.match(
                 r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
             if content_m:
@@ -110,12 +110,12 @@ class GtfFile(File):
                 end = content_m.captures(2)[3].strip()
                 frame = content_m.captures(2)[5].strip()
                 strand = content_m.captures(2)[6].strip()
-                contig_m = re.match(r'^[\w.:^*$@!+?-|]+$', contig)  # contig的字符必须在[\w.:^*$@!+?-|]之内
+                contig_m = regex.match(r'^[\w.:^*$@!+?-|]+$', contig)  # contig的字符必须在[\w.:^*$@!+?-|]之内
                 seq_type_m = check_seq_type(seq_type)  # seq_type必须在SO term集合之内
-                start_m = re.match(r'^\d+$', start)
-                end_m = re.match(r'^\d+$', end)
-                frame_m = re.match(r'^[\.120]$', frame)
-                strand_m = re.match(r'^[\.\?\-\+]$', strand)
+                start_m = regex.match(r'^\d+$', start)
+                end_m = regex.match(r'^\d+$', end)
+                frame_m = regex.match(r'^[\.120]$', frame)
+                strand_m = regex.match(r'^[\.\?\-\+]$', strand)
                 desc = content_m.captures(4)[0]
                 
                 if merged:
@@ -131,7 +131,7 @@ class GtfFile(File):
         :return:
         '''
         for line in open(self.path):
-            comment_m = re.match(r'^#.+', line.strip())
+            comment_m = regex.match(r'^#.+', line.strip())
             content_m = regex.match(
                 r'^([^#]\S*?)\t+((\S+)\t+){7}(.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
@@ -147,12 +147,12 @@ class GtfFile(File):
                 end = content_m.captures(3)[3]
                 frame = content_m.captures(3)[5]
                 strand = content_m.captures(3)[6]
-                contig_m = re.match(r'^[\w.:^*$@!+?-|]+$', contig)  # contig的字符必须在[\w.:^*$@!+?-|]之内
+                contig_m = regex.match(r'^[\w.:^*$@!+?-|]+$', contig)  # contig的字符必须在[\w.:^*$@!+?-|]之内
                 seq_type_m = check_seq_type(seq_type)  #
-                start_m = re.match(r'^\d+$', start)
-                end_m = re.match(r'^\d+$', end)
-                frame_m = re.match(r'^[\.120]$', frame)
-                strand_m = re.match(r'^[\.\?\-\+]$', strand)
+                start_m = regex.match(r'^\d+$', start)
+                end_m = regex.match(r'^\d+$', end)
+                frame_m = regex.match(r'^[\.120]$', frame)
+                strand_m = regex.match(r'^[\.\?\-\+]$', strand)
                 if not (contig_m and seq_type_m and start_m and frame_m and end_m and strand_m):
                     raise FileError('line {} in gtf file {} is not legal.'.format(line.strip(), self.path))
                     
