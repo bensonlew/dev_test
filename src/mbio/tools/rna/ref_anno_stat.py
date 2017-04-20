@@ -5,9 +5,10 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.packages.align.blast.xml2table import xml2table
-from mbio.packages.annotation.denovo_anno_stat.cog_stat import cog_stat
-from mbio.packages.annotation.denovo_anno_stat.nr_stat import nr_stat
+from mbio.packages.annotation.cog_stat import cog_stat
+from mbio.packages.annotation.nr_stat import nr_stat
 from mbio.packages.align.blast.blastout_statistics import *
+from mbio.packages.annotation.transcript_gene import transcript_gene
 import os
 import re
 import shutil
@@ -32,17 +33,18 @@ class RefAnnoStatAgent(Agent):
             {"name": "nr_xml", "type": "infile", "format": "align.blast.blast_xml"},  # blast比对到nr库的xml结果文件
             {"name": "nr_taxon_details", "type": "infile", "format": "annotation.nr.nr_taxon"},
             {"name": "blast2go_annot", "type": "infile", "format": "annotation.go.blast2go_annot"},
-            {"name": "gos_list", "type": "infile", "format": "annotation.go.go_list"},
-            {"name": "gene_go_list", "type": "infile", "format": "annotation.go.go_list"},
+            {"name": "gos_list", "type": "infile", "format": "annotation.go.go_list"},  # go注释tool的结果文件
+            {"name": "gos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},   # 客户上传go注释文件,用blast2go_annot、gos_list或gos_list_upload进行go注统计
             {"name": "kegg_xml", "type": "infile", "format": "align.blast.blast_xml"},
-            {"name": "kos_list", "type": "infile", "format": "annotation.kegg.kegg_list"},
-            {"name": "gene_kos_list", "type": "infile", "format": "annotation.kegg.kegg_list"},
+            {"name": "kos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},  # 客户上传kegg注释文件,kegg_xml或kos_list_upload进行kegg注释统计
             {"name": "string_xml", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "cog_list", "type": "infile", "format": "annotation.cog.cog_list"},
             {"name": "cog_table", "type": "infile", "format": "annotation.cog.cog_table"},
             {"name": "pfam_domain", "type": "infile", "format": "annotation.kegg.kegg_list"},
             {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},
             {"name": "swissprot_xml", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "ref_genome_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"},  # 参考基因组gtf文件，将参考基因组转录本ID替换成gene ID
+            {"name": "sequence_type", "type": "string", "default": "new"},  # 进行注释的序列的类型，参考基因组（ref）/新序列（new），为ref时，必须有参数ref_genome_gtf
             {"name": "database", "type": "string", "default": "nr,go,cog,pfam,kegg,swissprot"},
             {"name": "gene_nr_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "gene_string_table", "type": "outfile", "format": "align.blast.blast_table"},
@@ -50,6 +52,7 @@ class RefAnnoStatAgent(Agent):
             {"name": "gene_swissprot_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "nr_taxons", "type": "outfile", "format": "annotation.nr.nr_taxon"},
             {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
+            {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "gene_kegg_anno_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
             {"name": "gene_pfam_domain", "type": "outfile", "format": "annotation.kegg.kegg_list"},
         ]
@@ -75,13 +78,21 @@ class RefAnnoStatAgent(Agent):
         self.anno_database = set(self.option('database').split(','))
         if len(self.anno_database) < 1:
             raise OptionError('至少选择一种注释库')
+        if self.option("sequence_type") == "ref":
+            for i in self.anno_database:
+                if i in ["go", "cog", "kegg"]:
+                    if not self.option("ref_genome_gtf").is_set:
+                        raise OptionError("缺失参考基因组gtf文件")
         for i in self.anno_database:
             if i not in ['nr', 'go', 'cog', 'pfam', 'kegg', 'swissprot']:
                 raise OptionError('需要注释的数据库不在支持范围内[nr, go, cog, pfam, kegg, swissprot]:{}'.format(i))
-            if i == 'go' and not self.option('gos_list').is_set:
-                raise OptionError('缺少go注释转录本的输入文件')
-                if not self.option('blast2go_annot').is_set or not self.option('gene_go_list').is_set:
-                    raise OptionError('缺少go注释的输入文件：anno文件或基因注释文件')
+            if i == 'go':
+                if self.option('gos_list').is_set and self.option('blast2go_annot').is_set:
+                    pass
+                elif self.option('gos_list_upload').is_set:
+                    pass
+                else:
+                    raise OptionError('缺少go注释的输入文件')
             if i == 'cog' and not self.option('string_xml').is_set and not self.option('cog_list').is_set and not self.option('cog_table').is_set:
                 raise OptionError('缺少cog注释的输入文件')
             if i == 'nr' and not self.option('nr_xml').is_set and not self.option('nr_taxon_details').is_set:
@@ -89,9 +100,12 @@ class RefAnnoStatAgent(Agent):
             if i == "pfam" and not self.option('pfam_domain').is_set:
                 raise OptionError('缺少pfam注释的输入文件')
             if i == 'kegg':
-                if not self.option('kegg_xml').is_set:
-                    if not self.option("kos_list").is_set and not self.option("gene_kos_list").is_set:
-                        raise OptionError('缺少kegg注释的输入文件kos_list和gene_kos_list或kegg_xml')
+                if self.option('kegg_xml').is_set:
+                    pass
+                elif self.option('kos_list_upload').is_set:
+                    pass
+                else:
+                    raise OptionError('缺少kegg注释的输入文件')
             if i == 'swissprot' and not self.option('swissprot_xml').is_set:
                 raise OptionError('缺少swissprot注释的输入文件')
         if not self.option('gene_file').is_set:
@@ -128,9 +142,6 @@ class RefAnnoStatAgent(Agent):
             ["/blast/gene_swissprot.xls", "xls", "基因序列blast比对到swissprot注释结果table"], # 6
             ["/cog_stat/gene_cog_list.xls", "xls", "基因序列cog_list统计结果"],
             ["/cog_stat/gene_cog_summary.xls", "xls", "基因序列cog_summary统计结果"],
-            ["/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
-            ["/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
-            ["/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
             ["/cog_stat/gene_cog_table.xls", "xls", "基因序列cog_table统计结果"],
             ["/pfam_stat/gene_pfam_domain", "", "基因序列pfam_domain统计结果"],
             ["/go_stat/gene_blast2go.annot", "annot", "Go annotation based on blast output of gene"],
@@ -176,7 +187,7 @@ class RefAnnoStatTool(Tool):
         self.b2g_password = "sanger-dev-123"
         self.python_path = "/program/Python/bin/python"
         self.denovo_stat = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/denovo_stat/'
-        self.go_annot = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goAnnot2.py'
+        self.go_annot = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goAnnot.py'
         self.go_split = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goSplit.py'
         self.kegg_anno = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
         self.cog = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
@@ -193,6 +204,10 @@ class RefAnnoStatTool(Tool):
             os.makedirs(self.work_dir + i)
         if not os.path.exists(self.output_dir + '/venn'):
             os.makedirs(self.output_dir + '/venn')
+        if self.option("sequence_type") == "ref":
+            tran_gene = transcript_gene().get_gene_transcript(gtf_path=self.option("ref_genome_gtf").prop["path"])
+            self.tran_gene = tran_gene[0]
+            self.tran_list = tran_gene[1]
         self.database = self.option('database').split(',')
         self.gene_anno_list = {}  # 注释到的基因序列名字
         self.anno_list = {}  # 注释到的转录本序列名字
@@ -227,6 +242,8 @@ class RefAnnoStatTool(Tool):
         # 筛选gene_string.xml、gene_string.xls
         self.logger.info("开始筛选gene_string.xml、gene_string.xls")
         self.option('string_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_string_xml, trinity_mode=True)
+        if self.option("sequence_type") == "ref":
+            transcript_gene().get_gene_blast_xml(tran_list= self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_string_xml, gene_xml_path=self.gene_string_xml)
         xml2table(self.gene_string_xml, self.work_dir + '/blast/gene_string.xls')
         self.logger.info("完成筛选gene_string.xml、gene_string.xls")
         # cog stat
@@ -270,31 +287,25 @@ class RefAnnoStatTool(Tool):
             # 筛选gene_kegg.xml、gene_kegg.xls
             self.logger.info("开始筛选gene_kegg.xml、gene_kegg.xls")
             self.option('kegg_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_kegg_xml, trinity_mode=True)
+            if self.option("sequence_type") == "ref":
+                transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_kegg_xml, gene_xml_path=self.gene_kegg_xml)
             xml2table(self.gene_kegg_xml, self.work_dir + '/blast/gene_kegg.xls')
             self.logger.info("完成筛选gene_kegg.xml、gene_kegg.xls")
-            try:
-                kegg_anno = self.load_package('annotation.kegg.kegg_annotation')()
+        try:
+            kegg_anno = self.load_package('annotation.kegg_annotation')()
+            if self.option("kegg_xml").is_set:
                 kegg_anno.pathSearch(blast_xml=self.gene_kegg_xml, kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
-                kegg_anno.pathTable(kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls', pathway_path=self.kegg_stat_path + '/gene_pathway_table.xls', pidpath=self.work_dir + '/gene_pid.txt')
-                kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway)
-                kegg_anno.keggLayer(pathway_table=self.kegg_stat_path + '/gene_pathway_table.xls', layerfile=self.kegg_stat_path + '/gene_kegg_layer.xls', taxonomyfile=self.kegg_stat_path + '/gene_kegg_taxonomy.xls')
-                self.logger.info('finish: kegg stat')
-            except:
-                import traceback
-                self.logger.info('error:{}'.format(traceback.format_exc()))
-                self.set_error("运行kegg脚本出错！")
-        else:
-            try:
-                kegg_anno = self.load_package('annotation.kegg.kegg_annotation_update')()
-                kegg_anno.pathSearch(kegg_ids=self.option('gene_kos_list').prop['path'], kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
-                kegg_anno.pathTable(kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls', pathway_path=self.kegg_stat_path + '/gene_pathway_table.xls', pidpath=self.work_dir + '/gene_pid.txt')
-                kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway)
-                kegg_anno.keggLayer(pathway_table=self.kegg_stat_path + '/gene_pathway_table.xls', layerfile=self.kegg_stat_path + '/gene_kegg_layer.xls', taxonomyfile=self.kegg_stat_path + '/gene_kegg_taxonomy.xls')
-                self.logger.info('finish: kegg stat')
-            except:
-                import traceback
-                self.logger.info('error:{}'.format(traceback.format_exc()))
-                self.set_error("运行kegg脚本出错！")
+            else:
+                self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
+                kegg_anno.pathSearch_upload(kegg_ids=self.work_dir + "/gene_kegg.list", kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
+            kegg_anno.pathTable(kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls', pathway_path=self.kegg_stat_path + '/gene_pathway_table.xls', pidpath=self.work_dir + '/gene_pid.txt')
+            kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway)
+            kegg_anno.keggLayer(pathway_table=self.kegg_stat_path + '/gene_pathway_table.xls', layerfile=self.kegg_stat_path + '/gene_kegg_layer.xls', taxonomyfile=self.kegg_stat_path + '/gene_kegg_taxonomy.xls')
+            self.logger.info('finish: kegg stat')
+        except:
+            import traceback
+            self.logger.info('error:{}'.format(traceback.format_exc()))
+            self.set_error("运行kegg脚本出错！")
 
     def run_go_stat(self):
         self.go_stat_path = self.work_dir + '/go_stat/'
@@ -315,16 +326,18 @@ class RefAnnoStatTool(Tool):
                         line[0] = name
                         w_line = '\t'.join(line)
                         w.write(w_line + '\n')
-        if self.option('gene_go_list').is_set:
-            with open(self.option('gene_go_list').prop['path'], 'rb') as f, open('go_stat/gene_gos.list', 'wb') as w:
-                for line in f:
-                    line = line.strip('\n').split('\t')
-                    w.write(line[0] + '\t' + line[1] + '\n')
-        if self.option('blast2go_annot').is_set and self.option('gos_list').is_set:
+        if self.option("blast2go_annot").is_set and self.option("gos_list").is_set:
             get_gene_go(go_result=self.option('blast2go_annot').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_blast2go.annot')
             get_gene_go(go_result=self.option('gos_list').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_gos.list')
-        self.option("gene_go_list", self.work_dir + '/go_stat/gene_gos.list')
-        go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.option('gene_go_list').prop['path'], 'localhost', self.b2g_user, self.b2g_password)
+            if self.option("sequence_type") == "ref":
+                transcript_gene().get_gene_go_list(tran_list=self.tran_list, tran_gene=self.tran_gene, go_list=self.go_stat_path + '/gene_blast2go.annot', gene_go_list=self.go_stat_path + '/gene_blast2go.annot')
+                transcript_gene().get_gene_go_list(tran_list=self.tran_list, tran_gene=self.tran_gene, go_list=self.go_stat_path + '/gene_gos.list', gene_go_list=self.go_stat_path + '/gene_gos.list')
+        else:
+            self.option("gos_list_upload").get_transcript_anno(outdir=self.work_dir + "/query_gos.list")
+            self.option("gos_list_upload").get_gene_anno(outdir=self.go_stat_path + '/gene_gos.list')
+            self.option("gos_list", self.work_dir + "/query_gos.list")
+        self.option("gene_go_list", self.go_stat_path + '/gene_gos.list')
+        go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.go_stat_path + '/gene_gos.list', 'localhost', self.b2g_user, self.b2g_password)
         go_cmd2 = '{} {} {}'.format(self.python_path, self.go_split, self.work_dir + '/go_detail.xls')
         go_annot_cmd = self.add_command('go_annot_cmd', go_cmd1).run()
         self.wait(go_annot_cmd)
@@ -396,8 +409,9 @@ class RefAnnoStatTool(Tool):
                         kegg_venn = self.option('kegg_xml').prop['hit_query_list']
                         kegg_gene_venn = self.option('gene_kegg_table').prop['query_list']
                     else:
-                        kegg_venn = self.list_num(self.option("kos_list").prop["path"])
-                        kegg_gene_venn = self.list_num(self.option("gene_kos_list").prop["path"])
+                        self.option("kos_list_upload").get_transcript_anno(outdir=self.work_dir + "/kegg.list")
+                        kegg_venn = self.list_num(self.work_dir + "/kegg.list")
+                        kegg_gene_venn = self.list_num(self.work_dir + "/gene_kegg.list")
                     self.option('gene_kegg_anno_table', self.output_dir + '/kegg_stat/gene_kegg_table.xls')
                     self.get_venn(venn_list=kegg_venn, output=self.output_dir + '/venn/kegg_venn.txt')
                     self.get_venn(venn_list=kegg_gene_venn, output=self.output_dir + '/venn/gene_kegg_venn.txt')
