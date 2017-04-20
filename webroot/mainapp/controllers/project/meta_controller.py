@@ -19,11 +19,8 @@ class MetaController(object):
         self._post_data = None
         self._sheet_data = None
         self._return_msg = None
-<<<<<<< HEAD
-        self.mongodb = Config().MONGODB
-=======
         self.meta = Meta()
->>>>>>> master
+
 
     @property
     def data(self):
@@ -75,9 +72,6 @@ class MetaController(object):
         except Exception as e:
             self.roll_back()
             return {"success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
-<<<<<<< HEAD
-=======
-            # return {"workflow_id": self.workflow_id, "success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
 
     def roll_back(self):
         """
@@ -93,7 +87,6 @@ class MetaController(object):
                 print("INFO: 更新主表状态为failed成功: coll:{} _id:{}".format(update_info[i], i))
         except Exception as e:
             print('ERROR:尝试回滚主表状态为failed 失败:{}'.format(e))
->>>>>>> master
 
     def roll_back(self):
         """
@@ -111,7 +104,7 @@ class MetaController(object):
         except Exception as e:
             print('ERROR:尝试回滚主表状态为failed 失败:{}'.format(e))
 
-    def set_sheet_data(self, name, options, main_table_name, module_type="workflow", params=None, to_file=None, main_id=None, collection_name=None):
+    def set_sheet_data(self, name, options, main_table_name, module_type="workflow", params=None, to_file=None):
         """
         设置运行所需的Json文档
 
@@ -124,21 +117,12 @@ class MetaController(object):
         :return:
         """
         self._post_data = web.input()
-<<<<<<< HEAD
-        # added by qiuping 20170111
-        if not main_id:
-            main_id = self.data.otu_id
-            collection_name = 'sg_otu'
-        table_info = Meta(db=self.mongodb).get_main_info(main_id=main_id, collection_name=collection_name)
-        # modify end
-=======
         if hasattr(self.data, 'otu_id'):
             otu_id = self.data.otu_id
             table_info = self.meta.get_otu_table_info(otu_id)
         else:
             distance_id = self.data.specimen_distance_id
             table_info = Distance().get_distance_matrix_info(distance_id)
->>>>>>> master
         project_sn = table_info["project_sn"]
         task_id = table_info["task_id"]
         new_task_id = self.get_new_id(task_id)
@@ -202,13 +186,7 @@ class MetaController(object):
         modified by hongdongxuan 20170320
         """
         data = web.input()
-<<<<<<< HEAD
-        # modified by qiuping 20170111
-        task_info = Meta(db=self.mongodb).get_task_info(task_id)
-        # modified end
-=======
         task_info = self.meta.get_task_info(task_id)
->>>>>>> master
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
             target_dir = 'sanger'

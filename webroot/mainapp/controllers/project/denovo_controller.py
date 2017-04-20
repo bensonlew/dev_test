@@ -14,6 +14,7 @@ class DenovoController(MetaController):
     def __init__(self, instant=False):
         super(DenovoController, self).__init__(instant)
         self.mongodb = Config().MONGODB + '_rna'
+        self.denovo = Meta(self.mongodb)
 
     def _update_status_api(self):
         """
