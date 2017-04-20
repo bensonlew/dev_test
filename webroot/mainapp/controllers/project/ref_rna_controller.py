@@ -27,6 +27,16 @@ class RefRnaController(MetaController):
         else:
             return 'ref_rna.tupdate_status'
 
+    @check_sig
+    def POST(self):
+        workflow_client = Basic(data=self.sheet_data, instant=self.instant)
+        try:
+            run_info = workflow_client.run()
+            self._return_msg = workflow_client.return_msg
+            return run_info
+        except Exception, e:
+            return {"success": False, "info": "运行出错: %s" % e }
+
     def set_sheet_data(self, name, options, main_table_name, task_id, project_sn, module_type="workflow", params=None, to_file=None):
         """
         设置运行所需的Json文档

@@ -151,25 +151,20 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
             nog_list = set(cr["nog_list"].split(";"))
             cog_list = set(cr["cog_list"].split(";"))
             # print kog_list
-            write_line_key = cr["type"] + "\t" + cr["function_categories"]
-            write_line = {write_line_key: []}
+            # write_line_key = cr["type"] + "\t" + cr["function_categories"]
+            write_line = {}
             for gt in genesets:
                 kog_count = list(kog_list & genesets[gt][1])
                 nog_count = list(nog_list & genesets[gt][1])
                 cog_count = list(cog_list & genesets[gt][1])
-                if len(kog_count) + len(nog_count) + len(cog_count) == 0:
-                    if len(write_line[write_line_key]) > 0:
-                        write_line[write_line_key].append(str(len(cog_count)))
-                        write_line[write_line_key].append(str(len(nog_count)))
-                        write_line[write_line_key].append(str(len(kog_count)))
-                    continue
-                else:
-                    write_line[write_line_key].append(str(len(cog_count)))
-                    write_line[write_line_key].append(str(len(nog_count)))
-                    write_line[write_line_key].append(str(len(kog_count)))
-
-            if len(write_line[write_line_key]) > 0:
-                w.write(write_line_key + "\t" + "\t".join(write_line[write_line_key]) + "\n")
+                if not len(kog_count) + len(nog_count) + len(cog_count) == 0:
+                    write_line[gt] = [str(len(cog_count)), str(len(nog_count)), str(len(kog_count))]
+            if len(write_line):
+                w.write("{}\t{}\t".format(cr["type"], cr["function_categories"]))
+                for tt in table_title:
+                    w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\t0\t")
+                # print write_line
+                w.write("\n")
     return cog_path
 
 

@@ -4,6 +4,7 @@ import web
 import json
 import datetime
 from mainapp.controllers.project.ref_rna_controller import RefRnaController
+from mbio.api.to_file.ref_rna import *
 
 
 class GenesetClass(RefRnaController):
@@ -54,7 +55,7 @@ class GenesetClass(RefRnaController):
             info = {'success': False, 'info': '不支持的功能分类!'}
             return json.dumps(info)
 
-        main_table_name = 'Geneset_' + table_name + "_Class" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        main_table_name = 'Geneset' + table_name + "Class_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
 
         mongo_data = [
             ('project_sn', task_info['project_sn']),
@@ -77,11 +78,14 @@ class GenesetClass(RefRnaController):
             "anno_type": data.anno_type,
             }
         options.update(option)
+        print(options)
         # to_file = 'ref_rna.export_otu_table_by_detail(otu_file)'
 
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
-                            to_file=to_file, project_sn=task_info['project_sn'], task_id=task_info['task_id'],)
+                            to_file=to_file, project_sn=task_info['project_sn'], task_id=task_info['task_id'])
+
         task_info = super(GenesetClass, self).POST()
+
         task_info['content'] = {
             'ids': {
                 'id': str(main_table_id),

@@ -20,7 +20,7 @@ class GenesetClassWorkflow(Workflow):
             {"name": "geneset_go", "type": "string"},
             {"name": "geneset_cog", "type": "string"},
             {"name": "geneset_kegg", "type": "string"},
-            {"name": "kegg_table", "type": "infile"},
+            {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},
             {"name": "anno_type", "type": "string"},
             {"name": "geneset_type", "type": "string"},
             {"name": "update_info", "type": "string"},
@@ -36,25 +36,36 @@ class GenesetClassWorkflow(Workflow):
 
     def run(self):
         self.set_db()
-        super(GenesetClassWorkflow, self).run()
+        # super(GenesetClassWorkflow, self).run()
 
     def set_db(self):
         """
         保存结果指数表到mongo数据库中
         """
-        # api_geneset = self.api.geneset
+        api_geneset = self.ref_rna_geneset
+        self.logger.info("wooooooooorkflowinfoooooooo")
         output_file = self.option("geneset_cog")
         if not os.path.isfile(output_file):
             raise Exception("找不到报告文件:{}".format(output_file))
+        api_geneset.add_geneset_cog_detail(output_file, self.option("main_table_id"))
+        os.link(output_file, self.output_dir + "/" + os.path.basename(output_file))
         print(output_file)
         self.end()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        # result_dir.add_relpath_rules([
-        #     [".", "", "多样性指数结果目录"],
-        #     ["./estimators.xls", "xls", "alpha多样性指数表"]
-        # ])
+        result_dir.add_relpath_rules([
+            [".", "", "基因集功能分类结果目录"],
+            # ["./estimators.xls", "xls", "alpha多样性指数表"]
+        ])
         # print self.get_upload_files()
-        super(GenesetClassWorkflow, self).end()
+        self._upload_result()
+        self._import_report_data()
+        self.step.finish()
+        self.step.update()
+        self.logger.info("运行结束!")
+        self._update("end")
+        self.set_end()
+        self.fire('end')
+        # super(GenesetClassWorkflow, self).end()
 
