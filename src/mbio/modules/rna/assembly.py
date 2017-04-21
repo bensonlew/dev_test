@@ -29,8 +29,6 @@ class AssemblyModule(Module):
             {"name": "strand_direct", "type": "string", "default": "none"},  # 链特异性时选择正负链
             {"name": "assemble_method", "type": "string", "default": "cufflinks"},  # 选择拼接软件
             {"name": "sample_gtf", "type": "outfile", "format": "gene_structure.gtf"},# 输出的gtf文件
-            {"name": "sample_genes_fpkm", "type": "outfile", "format": "ref_rna.assembly.fpkm_tracking"},  # 输出的基因表达量文件
-            {"name": "sample_isoforms_fpkm", "type": "outfile", "format": "ref_rna.assembly.fpkm_tracking"},  # 输出的转录本文件
             {"name": "merged.gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的合并文件
             {"name": "tmap", "type": "outfile", "format": "assembly.tmap"},  # compare后的tmap文件
             {"name": "refmap", "type": "outfile", "format": "assembly.tmap"},  # compare后的refmap文件
