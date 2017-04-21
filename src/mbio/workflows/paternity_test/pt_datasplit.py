@@ -24,7 +24,7 @@ class PtDatasplitWorkflow(Workflow):
 		super(PtDatasplitWorkflow, self).__init__(wsheet_object)
 		options = [
 			{"name": "message_table", "type": "infile", "format": "paternity_test.tab"},  # 拆分需要的数据表
-			{"name": "data_dir", "type": "infile", "format": "paternity_test.tab"},  # 拆分需要的下机数据压缩文件夹
+			{"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"},  # 拆分需要的下机数据压缩文件夹
 
 			{"name": "family_table", "type": "infile", "format": "paternity_test.tab"},  # 需要存入mongo里面的家系信息表
 			{"name": "pt_data_split_id", "type": "string"},
@@ -93,6 +93,7 @@ class PtDatasplitWorkflow(Workflow):
 
 	def run_merge_fastq_wq(self):
 		self.data_dir = self.data_split.output_dir
+		# self.data_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170418/PtDatasplit_pt_2140_9221/DataSplit/output"
 		sample_name = os.listdir(self.data_dir)
 		for j in sample_name:
 			p = re.match('Sample_WQ([0-9].*)-(.*)', j)
@@ -108,19 +109,33 @@ class PtDatasplitWorkflow(Workflow):
 		self.wq_dir = os.path.join(self.output_dir, "wq_dir")
 		if not os.path.exists(self.wq_dir):
 			os.mkdir(self.wq_dir)
+		sample = []
+		m = 0
+		all = len(self.sample_name_wq)
+		p = 0
 		for i in self.sample_name_wq:
-			merge_fastq = self.add_tool("paternity_test.merge_fastq")
-			# self.step.add_steps('merge_fastq{}'.format(n))
-			merge_fastq.set_options({
-				"sample_dir_name": i,
-				"data_dir": self.data_dir,
-				"result_dir": self.wq_dir,
-			})
-			# step = getattr(self.step, 'merge_fastq{}'.format(n))
-			# step.start()
-			# merge_fastq.on('end', self.finish_update, 'merge_fastq{}'.format(n))
-			self.tools.append(merge_fastq)
-			n += 1
+			sample.append(i)
+			m += 1
+			p += 1
+			if m <= 4 and p < all:
+				continue
+			else:
+				sample = (",").join(sample)
+				merge_fastq = self.add_tool("paternity_test.merge_fastq")
+				# self.step.add_steps('merge_fastq{}'.format(n))
+				merge_fastq.set_options({
+					"sample_dir_name": sample,
+					"data_dir": self.data_dir,
+					"result_dir": self.wq_dir,
+				})
+				# step = getattr(self.step, 'merge_fastq{}'.format(n))
+				# step.start()
+				# merge_fastq.on('end', self.finish_update, 'merge_fastq{}'.format(n))
+				self.tools.append(merge_fastq)
+				n += 1
+				sample = []
+				m = 0
+				continue
 		# for j in range(len(self.tools)):
 		# 	self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
@@ -240,6 +255,7 @@ class PtDatasplitWorkflow(Workflow):
 
 	def run(self):
 		self.run_data_split()
+		# self.run_merge_fastq_wq()
 		super(PtDatasplitWorkflow, self).run()
 
 	def set_output(self, event):
