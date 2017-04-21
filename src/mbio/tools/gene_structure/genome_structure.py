@@ -15,9 +15,9 @@ class GenomeStructureAgent(Agent):
     def __init__(self, parent):
         super(GenomeStructureAgent, self).__init__(parent)
         options = [
-            {"name": "in_fasta", "type": "infile", "format": "sequence.fasta"},
-            {"name": "in_gff", "type": "infile", "format": "sequence.gff3"},
-            {"name": "in_gtf", "type": "infile", "format":"sequence.gtf"}
+            {"name": "in_fasta", "type": "infile", "format": "gene_structure.fasta"},
+            {"name": "in_gff", "type": "infile", "format": "gene_structure.gff3"},
+            {"name": "in_gtf", "type": "infile", "format":"gene_structure.gtf"}
         ]
         self.add_option(options)
         self.step.add_steps("genome_structure")
