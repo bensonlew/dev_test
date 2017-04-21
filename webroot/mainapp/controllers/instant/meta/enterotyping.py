@@ -23,6 +23,9 @@ class Enterotyping(MetaController):
                 info = {'success': False, 'info': '{}参数缺少!'.format(arg)}
                 return json.dumps(info)
         otu_info = self.meta.get_otu_table_info(data.otu_id)
+        if int(data.level_id) in [1]:
+            info = {'success': False, 'info': '样本量或物种分类过低，不能进行菌群分型分析！'}
+            return json.dumps(info)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
