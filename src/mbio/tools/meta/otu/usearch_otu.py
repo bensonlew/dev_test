@@ -214,12 +214,13 @@ class UsearchOtuTool(Tool):
                     self.wait()
                     if command.return_code == 0:
                         self.logger.info("重新运行cmd" + str(i) + "完成")
-                        self.set_error('何胜bug测试，故意报错，如果出现，请删除此句，以及下一句：break')
-                        break
+                    elif command.return_code is None:
+                        self.logger.info("cmd" + str(i) + "重新运行返回码仍然为None")
                     else:
-                        self.set_error("cmd" + str(i) + "重新运行出错!***何胜bug测试，如果出现，请删除星号内文字***")
-                        self.logger.info('Rerun Return Code: {}'.format(command.return_code))
+                        self.set_error("cmd" + str(i) + "运行出错!")
+                        self.logger.info('Run Return Code: {}'.format(command.return_code))
                         break
+
                 else:
                     self.set_error("cmd" + str(i) + "运行出错!")
                     self.logger.info('Run Return Code: {}'.format(command.return_code))
