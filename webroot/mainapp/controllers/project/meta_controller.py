@@ -10,7 +10,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.models.mongo.distance_matrix import Distance
 from mainapp.models.workflow import Workflow
 from biocluster.core.function import filter_error_info
-
+from biocluster.config import Config
 
 class MetaController(object):
 
@@ -19,6 +19,7 @@ class MetaController(object):
         self._post_data = None
         self._sheet_data = None
         self._return_msg = None
+        self.mongodb = Config().MONGODB
         self.meta = Meta()
 
     @property
@@ -66,12 +67,10 @@ class MetaController(object):
             run_info = workflow_client.run()
             run_info['info'] = filter_error_info(run_info['info'])
             self._return_msg = workflow_client.return_msg
-            # run_info['workflow_id'] = self.workflow_id
             return run_info
         except Exception as e:
             self.roll_back()
             return {"success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
-            # return {"workflow_id": self.workflow_id, "success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
 
     def roll_back(self):
         """
@@ -88,7 +87,7 @@ class MetaController(object):
         except Exception as e:
             print('ERROR:尝试回滚主表状态为failed 失败:{}'.format(e))
 
-    def set_sheet_data(self, name, options, main_table_name, module_type="workflow", params=None, to_file=None):
+    def set_sheet_data(self, name, options, main_table_name, module_type="workflow", params=None, to_file=None, main_id=None, collection_name=None):
         """
         设置运行所需的Json文档
 
@@ -101,12 +100,11 @@ class MetaController(object):
         :return:
         """
         self._post_data = web.input()
-        if hasattr(self.data, 'otu_id'):
-            otu_id = self.data.otu_id
-            table_info = self.meta.get_otu_table_info(otu_id)
-        else:
-            distance_id = self.data.specimen_distance_id
-            table_info = Distance().get_distance_matrix_info(distance_id)
+        if not main_id:
+            main_id = self.data.otu_id
+            collection_name = 'sg_otu'
+        table_info = Meta(db=self.mongodb).get_main_info(main_id=main_id, collection_name=collection_name)
+        print table_info
         project_sn = table_info["project_sn"]
         task_id = table_info["task_id"]
         new_task_id = self.get_new_id(task_id)
@@ -128,8 +126,6 @@ class MetaController(object):
             self._sheet_data["params"] = params
         if to_file:
             self._sheet_data["to_file"] = to_file
-        # if main_table_name:
-        #     self._sheet_data["main_table_name"] = main_table_name
         print('Sheet_Data: {}'.format(self._sheet_data))
         self.workflow_id = new_task_id
         self.meta_pipe()
@@ -169,6 +165,7 @@ class MetaController(object):
     def _create_output_dir(self, task_id, main_table_name):
         """
         根据主表名称，生成结果目录名称/上传路径
+
         modified by hongdongxuan 20170320
         """
         data = web.input()

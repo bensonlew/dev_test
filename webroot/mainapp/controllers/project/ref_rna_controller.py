@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'qiuping'
+# __author__ = 'moli.zhou'
 import web
+import random
 from ..core.basic import Basic
 from mainapp.libs.signature import check_sig
+from mainapp.models.workflow import Workflow
 from meta_controller import MetaController
 from biocluster.config import Config
 
 
-class DenovoController(MetaController):
+class RefRnaController(MetaController):
     def __init__(self, instant=False):
-        super(DenovoController, self).__init__(instant)
-        self.mongodb = Config().MONGODB + '_rna'
+        super(RefRnaController, self).__init__(instant)
+        self.mongodb = Config().MONGODB + '_ref_rna'
 
     def _update_status_api(self):
         """
@@ -19,13 +21,13 @@ class DenovoController(MetaController):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
-            return 'denovo.denovo_update_status'
+            return 'ref.update_status'
         else:
-            return 'denovo.tupdate_status'
+            return 'ref.tupdate_status'
 
     def set_sheet_data(self, *arg, **kwarg):
         print arg, kwarg
-        super(DenovoController, self).set_sheet_data(*arg, **kwarg)
+        super(RefRnaController, self).set_sheet_data(*arg, **kwarg)
 
     @check_sig
     def POST(self):
