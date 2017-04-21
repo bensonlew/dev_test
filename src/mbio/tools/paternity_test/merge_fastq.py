@@ -86,7 +86,7 @@ class MergeFastqTool(Tool):
 		# self.sample = self.option("sample_dir_name").split(",")
 		# for i in self.sample:
 		self.run_mf()
-		#self.set_output()
+		self.set_output()
 		self.end()
 
 	def run_mf(self):
