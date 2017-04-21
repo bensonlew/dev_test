@@ -13,15 +13,15 @@ class PpinetworkWorkflow(Workflow):
         self._sheet = wsheet_object
         super(PpinetworkWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name": "diff_exp_gene", "type": "infile", "format": "ref_rna.protein_regulation.txt"},  #基因列表
-            {"name": "species", "type": "int", "default": 9606},  # 设置物种
-            {"name": "combine_score", "type": "int", "default": 300},# 设定蛋白质与蛋白质之间的相互作用可能性值前300个互作组
+            {"name": "diff_exp_gene", "type": "infile", "format": "rna.ppi"},  # 基因列表
+            {"name": "species", "type": "int", "default": 9606},
+            {"name": "combine_score", "type": "int", "default": 300},  # 设定蛋白质间的相互作用可能性值前300个互作组
             {"name": "update_info", "type": "string"},
             {"name": "ppi_id", "type": "string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.ppinetwork = self.add_module('ref_rna.protein_regulation.ppinetwork_analysis')
+        self.ppinetwork = self.add_module('protein_regulation.ppinetwork_analysis')
 
 
     def run_ppinetwork(self):
@@ -41,10 +41,14 @@ class PpinetworkWorkflow(Workflow):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "PPI网络分析结果输出目录"],
-            ["./ppinetwork_map/diff_exp_mapped.txt", "txt", "含有STRINGid的差异基因文件"],
-            ["./ppinetwork_predict/all_nodes.txt", "txt", "node结果信息"],
-            ["./ppinetwork_predict/network_stats.txt", "txt", "网络统计结果信息"],
-            ["./ppinetwork_predict/interaction.txt", "txt", "edges结果文件信息"],
+            ["./ppinetwork_map", "", "基因id比对到string数据库文件目录"],
+            ["./ppinetwork_predict", "", "蛋白质相互作用组预测文件目录"],
+            ["./ppinetwork_topology", "", "蛋白质互作网络拓扑属性文件目录"],
+            ["./ppinetwork_map/diff_exp_mapped.txt", "txt", "含有STRINGid的差异基因列表"],
+            ["./ppinetwork_predict/all_nodes.txt", "txt", "PPI网络节点信息列表"],
+            ["./ppinetwork_predict/network_stats.txt", "txt", "PPI网络统计结果表"],
+            ["./ppinetwork_predict/interaction.txt", "txt", "PPI网络边信息列表"],
+            ["./ppinetwork_predict/gene_protein.txt", "txt", "基因id与蛋白质对应表"],
             ["./ppinetwork_topology/protein_interaction_network_centrality.txt", "txt", "PPI网络中心系数表"],
             ["./ppinetwork_topology/protein_interaction_network_clustering.txt", "txt", "PPI网络节点聚类系数表"],
             ["./ppinetwork_topology/protein_interaction_network_transitivity.txt", "txt", "PPI网络传递性"],
@@ -59,16 +63,16 @@ class PpinetworkWorkflow(Workflow):
         报存分析结果到mongo数据库中
         """
         api_ppinetwork = self.api.ppinetwork
-        # all_nodes_path = self.output_dir + '/ppinetwork_predict/all_nodes.txt'  #画图节点属性文件
-        interaction_path = self.output_dir + '/ppinetwork_predict/interaction.txt' #画图的边文件
-        network_stats_path = self.output_dir + '/ppinetwork_predict/network_stats.txt' #网络全局属性统计
+        all_nodes_path = self.output_dir + '/ppinetwork_predict/all_nodes.txt'   # 画图节点属性文件
+        interaction_path = self.output_dir + '/ppinetwork_predict/interaction.txt'  # 画图的边文件
+        network_stats_path = self.output_dir + '/ppinetwork_predict/network_stats.txt'  # 网络全局属性统计
         network_centrality_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_centrality.txt'
         network_clustering_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_clustering.txt'
         network_transitivity_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_transitivity.txt'
         degree_distribution_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_degree_distribution.txt'
         network_node_degree_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_node_degree.txt'
-        # if not os.path.isfile(all_nodes_path):
-        #     raise Exception("找不到报告文件:{}".format(all_nodes_path))
+        if not os.path.isfile(all_nodes_path):
+            raise Exception("找不到报告文件:{}".format(all_nodes_path))
         if not os.path.isfile(interaction_path):
             raise Exception("找不到报告文件:{}".format(interaction_path))
         if not os.path.isfile(network_stats_path):
@@ -85,12 +89,12 @@ class PpinetworkWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(network_node_degree_path))
         print 'start insert'
 
-        # api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.option("ppi_id"))   #节点的属性文件（画网络图用）
-        api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.option("ppi_id")) #边信息
+        api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.option("ppi_id"))   #节点的属性文件（画网络图用）
+        api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.option("ppi_id"))  # 边信息
         api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path = network_stats_path, table_id=self.option("ppi_id"))#网络全局属性
         api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.option("ppi_id")) #节点的聚类与degree，画折线图
-        api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("ppi_id")) #中心信息
-        api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.option("ppi_id")) #度分布
+        api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("ppi_id"))  # 中心信息
+        api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.option("ppi_id"))  # 度分布
         print 'end insert'
         self.end()
 

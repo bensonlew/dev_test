@@ -21,7 +21,7 @@ class PpinetworkPredictAgent(Agent):
     def __init__(self, parent):
         super(PpinetworkPredictAgent, self).__init__(parent)
         options = [
-            {"name": "diff_exp_mapped", "type": "infile", "format": "ref_rna.protein_regulation.txt"},  #差异基因表达详情表
+            {"name": "diff_exp_mapped", "type": "string"},
             {"name": "species", "type": "int", "default": 9606},
             {"name": "combine_score", "type": "int", "default": 300} #combine_score这里是将互作组数据降序排，然后取前300组数据
         ]
@@ -48,7 +48,7 @@ class PpinetworkPredictAgent(Agent):
                         28377, 9031, 13735, 9103, 59729, 8049, 31033, 8090, 8083, 69293, 99883, 8128, 7955, 13616, 9258,
                         9305, 9315, 7897, 7757, 7719, 51511, 6239, 7227, 4932, 15368, 4513, 4641, 4533, 4538, 4555,
                         4558, 4577, 59689, 3702, 3711, 3847, 3694, 4081, 4113, 29760, 88036, 3218, 3055, 45157]
-        if not self.option('diff_exp_mapped').is_set:
+        if not self.option('diff_exp_mapped'):
             raise OptionError("必须输入含有STRINGid的差异基因表")
         if not isinstance(self.option('combine_score'), int) or self.option('combine_score') < 0:
             raise OptionError("combined_score值必须是大于0的整数！")
@@ -91,7 +91,7 @@ class PpinetworkPredictTool(Tool):
 
     def run_PPI(self):
         one_cmd = self.r_path + " %snew_PPInetwork_predict.r %s %s %s %s" % (
-            self.script_path, self.option('diff_exp_mapped').prop['path'], self.option('species'),
+            self.script_path, self.option('diff_exp_mapped'), self.option('species'),
             'PPI_result', self.option('combine_score'))
         self.logger.info(one_cmd)
         self.logger.info("开始运行one_cmd")

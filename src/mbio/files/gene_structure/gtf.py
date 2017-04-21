@@ -58,7 +58,7 @@ class GtfFile(File):
         for line in open(self.path):
             comment_m = regex.match(r'^#.+', line.strip())
             content_m = regex.match(
-                r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                r'^([^#]\S*?)\t+((\S+)\t+){7,7}((\btranscript_id\b|\bgene_id\b)\s+?\"(\S+?)\");.*((\btranscript_id\b|\bgene_id\b)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
             if content_m:
                 if not {content_m.captures(5)[0], content_m.captures(8)[0]} == {'transcript_id', 'gene_id'}:
@@ -109,8 +109,8 @@ class GtfFile(File):
                 seq_type = content_m.captures(2)[1].strip()
                 start = content_m.captures(2)[2].strip()
                 end = content_m.captures(2)[3].strip()
-                frame = content_m.captures(2)[5].strip()
-                strand = content_m.captures(2)[6].strip()
+                frame = content_m.captures(2)[6].strip()
+                strand = content_m.captures(2)[5].strip()
                 contig_m = regex.match(r'^[\w.:^*$@!+?-|]+$', contig)  # contig的字符必须在[\w.:^*$@!+?-|]之内
                 seq_type_m = check_seq_type(seq_type)  # seq_type必须在SO term集合之内
                 start_m = regex.match(r'^\d+$', start)
