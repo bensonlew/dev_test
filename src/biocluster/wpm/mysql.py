@@ -156,12 +156,6 @@ class Mysql(object):
         """
         return self.query(sql, param)
 
-    def begin(self):
-        """
-        @summary: 开启事务
-        """
-        self._conn.autocommit(0)
-
     def end(self, option='commit'):
         """
         @summary: 结束事务
@@ -170,14 +164,3 @@ class Mysql(object):
             self._conn.commit()
         else:
             self._conn.rollback()
-
-    def dispose(self, is_end=1):
-        """
-        @summary: 释放连接池资源
-        """
-        if is_end == 1:
-            self.end('commit')
-        else:
-            self.end('rollback')
-        self._cursor.close()
-        self._conn.close()
