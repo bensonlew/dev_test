@@ -22,6 +22,7 @@ class MetaController(object):
         self.mongodb = Config().MONGODB
         self.meta = Meta()
 
+
     @property
     def data(self):
         """

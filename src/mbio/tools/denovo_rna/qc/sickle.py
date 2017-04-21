@@ -109,7 +109,7 @@ class SickleTool(Tool):
         command = self.add_command("sickle", cmd)
         command.run()
         self.wait(command)
-        if command.return_code == 0:
+        if command.return_code == 0 or None:
             self.logger.info("运行sickle完成")
             # self.set_output()
         else:

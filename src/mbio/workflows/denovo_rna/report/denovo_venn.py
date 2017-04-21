@@ -17,6 +17,8 @@ class DenovoVennWorkflow(Workflow):
             {"name": "group_table", "type": "infile", 'format': "meta.otu.group_table"},
             {"name": "express_id", "type": "string"},
             {"name": "group_detail", "type": "string"},
+            {"name": "update_info", "type": "string"},
+            {"name": "main_id", "type": "string"},
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -39,9 +41,8 @@ class DenovoVennWorkflow(Workflow):
         shutil.copy2(sour, dest)
         self.logger.info("正在往数据库里插入sg_otu_venn_detail表")
         api_venn = self.api.venn
-        myParams = self.sheet.params
-        venn_id = api_venn.add_denovo_venn(express_id=self.option('express_id'), venn_table=self.output_dir + '/venn_table.xls', venn_graph_path=self.venn.work_dir + '/venn_graph.xls', params=myParams)
-        self.add_return_mongo_id(collection_name="sg_denovo_venn", table_id=venn_id, mongodb=self.mongodb)
+        api_venn.add_denovo_venn_detail(venn_table=self.output_dir + '/venn_table.xls', venn_id=self.option('main_id'))
+        api_venn.add_venn_graph(venn_graph_path=self.venn.work_dir + '/venn_graph.xls', venn_id=self.option('main_id'), project='denovo')
         self.end()
 
     def run(self):
