@@ -258,7 +258,7 @@ class GtfFile(File):
                 else:
                     w.write(line + "\n")
         w.close()
-        
+
 
 if __name__ == "__main__":
     gtf = GtfFile()

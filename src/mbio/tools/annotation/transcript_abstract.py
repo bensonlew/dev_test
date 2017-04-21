@@ -66,8 +66,8 @@ class TranscriptAbstractTool(Tool):
         command = self.add_command("gffread", cmd)
         command.run()
         self.wait()
-        output1 = os.path.join(self.work_dir, "exons.fa")
-        self.option('query', output1)
+        # output1 = os.path.join(self.work_dir, "exons.fa")
+        # self.option('query', output1)
 
     def run_long_transcript(self):
         exon_path = os.path.join(self.work_dir, "exons.fa")

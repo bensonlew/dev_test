@@ -23,7 +23,7 @@ class RefrnaWorkflow(Workflow):
             # 基因组结构完整程度，True表示基因组结构注释文件可以支持rna编辑与snp分析
             {"name": "assemble_or_not", "type": "bool", "default": True},
             {"name": "blast_method", "type" :"string", "default": "diamond"},
-            {"name": "genome_structure_file", "type": "infile", "format": "sequence.gtf, sequence.gff3"},
+            {"name": "genome_structure_file", "type": "infile", "format": "gene_structure.gtf, gene_structure.gff3"},
             # 基因组结构注释文件，可上传gff3或gtf
             {"name": "strand_specific", "type": "bool", "default": False},
             # 当为PE测序时，是否有链特异性, 默认是False, 无特异性
@@ -182,7 +182,7 @@ class RefrnaWorkflow(Workflow):
         }
         if self.option("ref_genome") == "customer_mode":  # 如果是自定义模式,须用户上传基因组
             # self.logger.info(dir(self.option('genome_structure_file')))
-            if self.option('genome_structure_file').format == "sequence.gff3":
+            if self.option('genome_structure_file').format == "gene_structure.gff3":
                 self.gff = self.option('genome_structure_file').prop["path"]
                 opts.update({
                     "gff": self.gff,
@@ -461,6 +461,7 @@ class RefrnaWorkflow(Workflow):
         self.annotation.run()
 
     def run_qc_stat(self, event):
+
         if event['data']: 
             self.qc_stat_after.set_options({
                 'fastq_dir': self.qc.option('sickle_dir'),

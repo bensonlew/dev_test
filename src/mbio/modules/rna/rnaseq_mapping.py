@@ -102,7 +102,7 @@ class RnaseqMappingModule(Module):
             for f in self.samples:
                 fq_l = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])
                 fq_r = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["r"])
-                mapping_tool = self.add_tool('ref_rna.mapping.' + tool)
+                mapping_tool = self.add_tool('align.' + tool)
                 self.tool_opts.update({
                     'left_reads': fq_l,
                     'right_reads': fq_r,
@@ -120,7 +120,7 @@ class RnaseqMappingModule(Module):
         else:
             for f in self.samples:
                 fq_s = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f])
-                mapping_tool = self.add_tool('ref_rna.mapping.' + tool)
+                mapping_tool = self.add_tool('align.' + tool)
                 self.tool_opts.update({
                     'single_end_reads': fq_s,
                     'sample': f
