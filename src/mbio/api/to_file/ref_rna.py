@@ -80,10 +80,11 @@ def export_all_list(data, option_name, dir_path, bind_obj=None):
     bind_obj.logger.debug("正在导出所有基因")
     collection = db['sg_geneset_detail']
     main_collection = db['sg_geneset']
-    my_result = main_collection.find_one({'_id': ObjectId(data)})
+    my_result = main_collection.find_one({'task_id': data, "type": "background"})
+    print my_result["_id"]
     if not my_result:
-        raise Exception("意外错误，geneset_id:{}在sg_geneset中未找到！".format(ObjectId(data)))
-    results = collection.find({"geneset_id": ObjectId(data)})
+        raise Exception("意外错误，task_id:{}的背景基因在sg_geneset中未找到！".format(data))
+    results = collection.find({"geneset_id": ObjectId(my_result["_id"])})
     with open(all_list, "wb") as f:
         for result in results:
             gene_id = result['gene_name']

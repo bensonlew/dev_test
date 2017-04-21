@@ -29,7 +29,7 @@ class GenesetEnrich(RefRnaController):
             "geneset_id": data.geneset_id,
             "anno_type": data.anno_type,
             "method": data.method,
-            "annotation_id": data.annotation_id
+            # "annotation_id": data.annotation_id
         }
         # 判断传入的基因集id是否存在
         geneset_info = self.ref_rna.get_main_info(data.geneset_id, 'sg_geneset')
@@ -41,12 +41,12 @@ class GenesetEnrich(RefRnaController):
         if data.anno_type == "go":
             table_name = "Go"
             collection_name = "sg_geneset_go_enrich"
-            to_file = ['ref_rna.export_gene_list(diff_list)', 'ref_rna.export_all_list(all_list)', 'export_go_list(go_list)']
+            to_file = ['ref_rna.export_gene_list(genset_list)', 'ref_rna.export_all_list(all_list)', 'ref_rna.export_go_list(go_list)']
             infile = {"go_list": data.geneset_id}
         elif data.anno_type == "kegg":
             table_name = "Kegg"
             collection_name = "sg_geneset_kegg_enrich"
-            to_file = ['ref_rna.export_gene_list(diff_list)', 'ref_rna.export_all_list(all_list)', 'export_kegg_table(kegg_table)']
+            to_file = ['ref_rna.export_gene_list(genset_list)', 'ref_rna.export_all_list(all_list)', 'ref_rna.export_kegg_table(kegg_table)']
             infile = {"kegg_table": data.geneset_id}
         else:
             info = {'success': False, 'info': '不支持该富集分子!'}
@@ -70,13 +70,13 @@ class GenesetEnrich(RefRnaController):
             "task_type": data.task_type,
             'update_info': json.dumps(update_info),
             "main_table_id": str(main_table_id),
-            "geneset_id": data.geneset_id,
+            # "geneset_id": data.geneset_id,
             "geneset_type": data.geneset_type,
             "anno_type": data.anno_type,
             "method": data.method,
-            "annotation_id": data.annotation_id,
-            "diff_list": data.geneset_id,
-            "all_list": data.geneset_id
+            # "annotation_id": data.annotation_id,
+            "genset_list": data.geneset_id,
+            "all_list": task_info['task_id']
             }
         options.update(infile)
         print("lllllllll")

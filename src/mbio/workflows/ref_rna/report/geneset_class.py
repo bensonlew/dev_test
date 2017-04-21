@@ -10,7 +10,7 @@ from bson.objectid import ObjectId
 
 class GenesetClassWorkflow(Workflow):
     """
-    报告中调用组间差异性分析检验时使用
+    基因集功能分类分析
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
