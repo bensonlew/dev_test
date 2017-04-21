@@ -15,7 +15,7 @@ class DataSplitAgent(Agent):
 		项目：亲子鉴定
 		功能：对医学检验所的测序数据进行拆分，区分各个数据(WQ对应亲子鉴定，WS对应产前筛查等)
 		author：zhouxuan 2017.02.21
-		last modify: 2017.03.16
+		last modify: 2017.04.21
 		version: v1.0
 
 	"""
@@ -23,7 +23,8 @@ class DataSplitAgent(Agent):
 		super(DataSplitAgent, self).__init__(parent)
 		options = [
 			{"name": "message_table", "type": "infile", "format": "paternity_test.tab"},
-			{"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"}
+			{"name": "data_dir", "type": "string"},
+			# {"name": "data_dir", "type": "infile", "format": "paternity_test.tab"}
 			# {"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"}
 		]
 		self.add_option(options)
@@ -55,8 +56,8 @@ class DataSplitAgent(Agent):
 		设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
 		:return:
 		"""
-		self._cpu = 10
-		self._memory = '20G'
+		self._cpu = 50
+		self._memory = '100G'
 
 	def end(self):
 		result_dir = self.add_upload_dir(self.output_dir)
@@ -72,7 +73,7 @@ class DataSplitTool(Tool):
 	def __init__(self, config):
 		super(DataSplitTool, self).__init__(config)
 		self._version = "v1.0"
-		self.script_path = "bioinfo/seq/bcl2fastq2-v2.17.1.14/bin/bcl2fastq"
+		self.script_path = "bioinfo/medical/bcl2fastq-2.17/bin/bcl2fastq"
 		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
 		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
 
@@ -117,10 +118,17 @@ class DataSplitTool(Tool):
 		if not os.path.exists(old_data_dir):
 			self.set_error("下机数据文件夹路径不正确，请设置正确的路径。")
 		"""
-		old_data_dir = self.option('data_dir').prop['path']
-		cmd = "{} -i {}/Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
-		      "--ignore-missing-bcl -R {}/ -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
-			format(self.script_path,old_data_dir,self.work_dir,
+		#old_data_dir = self.option('data_dir')
+
+		index = self.option('data_dir').split(":")[0]
+		name = Config().get_netdata_config(index)
+		old_data_dir = name[index + "_path"] + "/" + self.option('data_dir').split(":")[1]
+		if not os.path.exists(old_data_dir):
+			self.set_error("下机数据文件夹路径不正确，请设置正确的路径。")
+			raise Exception("下机数据文件夹路径不正确，请设置正确的路径。")
+		cmd = "{} -i {}Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
+		      "--ignore-missing-bcl -R {} -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
+			format(self.script_path,old_data_dir,self.output_dir,
 		           new_message_table, old_data_dir)
 		self.logger.info("start data_split")
 		command = self.add_command("ds_cmd", cmd).run()
@@ -129,13 +137,14 @@ class DataSplitTool(Tool):
 			self.logger.info("data_split done")
 		else:
 			self.set_error("data_split error")
+			raise Exception("data_split error")
 
 	def set_output(self):
 		"""
 		将数据拆分的结果，直接存放在同一个文件夹下，按照样本分成不同的小文件夹
 		:return:
 		"""
-		undetermined_file = os.listdir(self.work_dir)
+		undetermined_file = os.listdir(self.output_dir)
 		undetermined_sample_file = []
 		for file_name in undetermined_file:
 			detail_name = file_name.split(".")
@@ -144,16 +153,15 @@ class DataSplitTool(Tool):
 		undetermined_sample_name = []
 		for name in undetermined_sample_file:
 			sample_ = name.split("_")
-			src = os.path.join(self.work_dir, name)
-			dir_name = os.path.join(self.output_dir, "Sample_Undetermined_" + sample_[1])
+			src = os.path.join(self.output_dir, name)
+			dir_name = os.path.join(self.output_dir + "/MED", "Sample_Undetermined_" + sample_[1])
 			if sample_[1] not in undetermined_sample_name:
 				undetermined_sample_name.append(sample_[1])
 				os.mkdir(dir_name)
-				#shutil.copy(src, dir_name)
 				os.link(src, os.path.join(dir_name, name))
 			else:
-				#shutil.copy(src, dir_name)
 				os.link(src, os.path.join(dir_name, name))
+		"""
 		med_result_dir = os.path.join(self.work_dir, "MED")
 		list_name = os.listdir(med_result_dir)
 		for name in list_name:
@@ -166,6 +174,4 @@ class DataSplitTool(Tool):
 				dst = os.path.join(dir_name, name_)
 				src = os.path.join(sample_dir, name_)
 				os.link(src, dst)
-
-			# dst = os.path.join(self.output_dir, name)
-			# shutil.copytree(sample_dir, dst)
+		"""
