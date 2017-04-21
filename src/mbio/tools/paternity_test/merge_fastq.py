@@ -102,7 +102,7 @@ class MergeFastqTool(Tool):
 				r2_list.append(p)
 		r1_list.sort()
 		r2_list.sort()
-		sample_name_ = name.split("_")
+		sample_name_ = self.option('sample_dir_name').split("_")
 		self.new_name = ("_").join(sample_name_[1:])
 		self.r1_path = os.path.join(file_path, self.new_name + "_R1.fastq")
 		self.r2_path = os.path.join(file_path, self.new_name + "_R2.fastq")
