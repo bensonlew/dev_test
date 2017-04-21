@@ -2,11 +2,13 @@
 # __author__ = 'sj'
 
 from __future__ import division
-import os,re
+import os
+import re
+import shutil
 from Bio import SeqIO
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-from biocluster.core.exceptions import OptionError
+# from biocluster.core.exceptions import OptionError
 from collections import defaultdict
 
 class SampleCheckAgent(Agent):
@@ -47,33 +49,38 @@ class SampleCheckTool(Tool):
         self.longest = ""
         self.allowed_step = [20, 50, 100, 200]
     
-    def cat_fastas_dir(self,path_list):
+    def cat_fastas_dir(self, sample_list):
         cat_fasta = self.work_dir + "/cat_meta.fasta"
         if os.path.exists(cat_fasta):
             os.remove(cat_fasta)
         os.mknod(cat_fasta)
-        for path in path_list:
-            path += "/output/fa"
-            for fasta in os.listdir(path):
-                fasta = os.path.join(path,fasta)
-                basename = os.path.basename(fasta)
+        # for path in path_list:
+        for path in sample_list:
+        #     # path += "/output/fa"
+        #     for fasta in os.listdir(path):
+        #         fasta = os.path.join(path,fasta)
+        #         basename = os.path.basename(fasta)
                 # self.logger.info(basename)
                 # self.logger.info(fasta)
                 # break
-                sample_name = re.search(r'(.+)\.(fasta|fa)$', basename).group(1)
-                with open(cat_fasta, "a") as f:
-                    for seq in SeqIO.parse(fasta, "fasta"):
-                        new_id = str(sample_name) + '_' + str(seq.id)
-                        f.write('>' + new_id + "\n")
-                        f.write(str(seq.seq) + "\n")
+            basename = os.path.basename(path)
+            sample_name = re.search(r'(.+)\.(fasta|fa)$', basename).group(1)
+            with open(cat_fasta, "a") as f:
+                # for seq in SeqIO.parse(fasta, "fasta"):
+                for seq in SeqIO.parse(path, "fasta"):
+                    new_id = str(sample_name) + '_' + str(seq.id)
+                    f.write('>' + new_id + "\n")
+                    f.write(str(seq.seq) + "\n")
         self.option("otu_fasta").set_path(cat_fasta)
         return cat_fasta
 
     def run(self):
         super(SampleCheckTool, self).run()
         self.option("file_sample_list").get_info()
-        self.cat_fastas_dir(self.option("file_sample_list").workdir_path)
-        self._create_reads_len_info(self.option("file_sample_list").workdir_path)
+        # self.cat_fastas_dir(self.option("file_sample_list").workdir_path)
+        # self._create_reads_len_info(self.option("file_sample_list").workdir_path)
+        self.cat_fastas_dir(self.option("file_sample_list").sample_path)
+        self._create_reads_len_info(self.option("file_sample_list").length_path)
         self.sample_info(self.option("file_sample_list").prop["path"])
         if self.option("raw_sequence").is_set:
             self.sequence_statistics()
@@ -81,7 +88,7 @@ class SampleCheckTool(Tool):
             self.valid_statistics()
         self.end()
     
-    def _create_reads_len_info(self,workdir_path):
+    def _create_reads_len_info(self, length_list):
         """
         生成4个reads_len_info文件
         """
@@ -117,11 +124,13 @@ class SampleCheckTool(Tool):
             self._len_stat(fasta)
             self.logger.info(str(fasta) + " 的长度分布统计完毕")
         """
-        for path in workdir_path:
-            path = path + "/output/length"
-            for file in os.listdir(path):
-                file = os.path.join(path,file)
-                self._len_stat(file)
+        # for path in workdir_path:
+        #     path = path + "/output/length"
+        #     for file in os.listdir(path):
+        #         file = os.path.join(path,file)
+        #         self._len_stat(file)
+        for path in length_list:
+            self._len_stat(path)
 
     def _write_head(self, step):
         """

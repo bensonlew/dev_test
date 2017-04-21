@@ -4,7 +4,6 @@
 import xml.etree.ElementTree as ET
 import sqlite3
 from biocluster.config import Config
-import pymongo
 
 
 class string2cog(object):
@@ -12,8 +11,8 @@ class string2cog(object):
         self.mongodb = Config().mongo_client.sanger_biodb
         self.sqlitedb_path = Config().SOFTWARE_DIR + '/database/COG/cog_temporary_new_index_id.db'
         self.sqlitedb = sqlite3.connect(self.sqlitedb_path)
-        self.cog_string = pymongo.MongoClient('mongodb://10.100.200.129:27017').sanger_biodb.COG_String  # 修改（连接mongo数据库COG_String; 2016.11.15; zengjing）
-        self.cog = pymongo.MongoClient('mongodb://10.100.200.129:27017').sanger_biodb.COG  # 修改（连接mongo数据库COG；2016.11.15；zengjing）
+        self.cog_string = Config().biodb_mongo_client.sanger_biodb.COG_String  # 修改（连接mongo数据库COG_String; 2016.11.15; zengjing）
+        self.cog = Config().biodb_mongo_client.sanger_biodb.COG  # 修改（连接mongo数据库COG；2016.11.15；zengjing）
         self.func_type = {
             'INFORMATION STORAGE AND PROCESSING': sorted(['J', 'A', 'K', 'L', 'B']),
             'CELLULAR PROCESSES AND SIGNALING': sorted(['D', 'Y', 'V', 'T', 'M', 'N', 'Z', 'W', 'U', 'O']),

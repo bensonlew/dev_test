@@ -11,21 +11,16 @@ from .core.singleton import singleton
 # import struct
 import platform
 import re
-import importlib
-#import web
-# import subprocess
 from pymongo import MongoClient
 import subprocess
 from IPy import IP
-
-# web.config.debug = False
 
 
 @singleton
 class Config(object):
     def __init__(self):
         self.rcf = ConfigParser.RawConfigParser()
-        self.rcf.read(os.path.dirname(os.path.realpath(__file__))+"/main.conf")
+        self.rcf.read(os.path.dirname(os.path.realpath(__file__)) + "/main.conf")
         # basic
         self.WORK_DIR = self.rcf.get("Basic", "work_dir")
         # network
@@ -90,6 +85,7 @@ class Config(object):
         self.MONGO_URI = self.rcf.get("MONGO", "uri")
         self.MONGO_BIO_URI = self.rcf.get("MONGO", "bio_uri")
         self._mongo_client = None
+        self._biodb_mongo_client = None
         self.MONGODB = self.rcf.get("MONGO", "mongodb")
 
         # mysql
@@ -110,8 +106,14 @@ class Config(object):
     @property
     def mongo_client(self):
         if not self._mongo_client:
-            self._mongo_client = MongoClient(self.MONGO_URI)
+            self._mongo_client = MongoClient(self.MONGO_URI, maxPoolSize=2)
         return self._mongo_client
+
+    @property
+    def biodb_mongo_client(self):
+        if not self._biodb_mongo_client:
+            self._biodb_mongo_client = MongoClient(self.MONGO_BIO_URI, maxPoolSize=2)
+        return self._biodb_mongo_client
 
     @property
     def LISTEN_IP(self):
@@ -172,7 +174,7 @@ class Config(object):
         start_port = self.rcf.get("Network", "start_port")
         end_port = self.rcf.get("Network", "end_port")
         ip = self.LISTEN_IP
-        lpt = random.randint(int(start_port), int(end_port)+1)
+        lpt = random.randint(int(start_port), int(end_port) + 1)
         # nm = nmap.PortScanner()
         # while 1:
         #     x = random.randint(int(start_port), int(end_port)+1)
@@ -199,7 +201,7 @@ class Config(object):
             ss.connect((ip, int(lpt)))
             ss.shutdown(2)
             ss.close()
-        except:
+        except socket.error:
             return lpt
         else:
             return self.get_listen_port()

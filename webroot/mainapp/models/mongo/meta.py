@@ -17,6 +17,9 @@ class Meta(object):
         else:
             self.db = self.client[db]
 
+    def __del__(self):
+        self.client.close()
+
     def get_otu_table_info(self, otu_id):
 
         if isinstance(otu_id, types.StringTypes):

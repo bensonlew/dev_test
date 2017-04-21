@@ -5,7 +5,6 @@ import json
 import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort
-from mainapp.models.mongo.meta import Meta   # 20170106 2 lines
 from bson import ObjectId
 
 
@@ -24,12 +23,11 @@ class ClusterAnalysis(MetaController):
                 info = {'success': False, 'info': '{}参数缺少!'.format(arg)}
                 return json.dumps(info)
         task_name = 'meta.report.cluster_analysis'
-        meta = Meta()  # 20170106 6 lines
-        otu_info = meta.get_otu_table_info(data.otu_id)
+        otu_info = self.meta.get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        task_info = meta.get_task_info(otu_info['task_id'])
+        task_info = self.meta.get_task_info(otu_info['task_id'])
         params_json = {
             'otu_id': data.otu_id,
             'level_id': int(data.level_id),
@@ -38,7 +36,7 @@ class ClusterAnalysis(MetaController):
             'submit_location': data.submit_location,
             'task_type': data.task_type
         }
-        main_table_name = 'CommunityBarPie_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  #modified by hongdongxuan 201703221 将ClusteringAnalysis_改为CommunityBarPie
+        main_table_name = 'CommunityBarPie_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]  #modified by hongdongxuan 201703221 将ClusteringAnalysis_改为CommunityBarPie
         newick_id = None
         mongo_data = [
             ('project_sn', task_info['project_sn']),
@@ -53,7 +51,7 @@ class ClusterAnalysis(MetaController):
             ("show", 0),
             ("type", "otu_group_analyse")
         ]
-        main_table_id = meta.insert_main_table('sg_otu', mongo_data)
+        main_table_id = self.meta.insert_main_table('sg_otu', mongo_data)
         update_info = {str(main_table_id): 'sg_otu'}
         options = {
             "input_otu_id": data.otu_id,

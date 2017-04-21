@@ -10,11 +10,9 @@ from bson.objectid import ObjectId
 from collections import defaultdict
 
 
-client = Config().mongo_client
-db = client[Config().MONGODB]
-
-
 def export_otu_table(data, option_name, dir_path, bind_obj=None):
+    client = Config().mongo_client
+    db = client[Config().MONGODB]
     file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     collection = db['sg_otu_specimen']
@@ -41,6 +39,7 @@ def export_otu_table(data, option_name, dir_path, bind_obj=None):
                     line += "%s; " % col[cls]
             line += col["s__"]
             f.write("%s\n" % line)
+    client.close()
     return file_path
 
 
@@ -49,6 +48,8 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
     按等级获取OTU表
     使用时确保你的workflow的option里level这个字段
     """
+    client = Config().mongo_client
+    db = client[Config().MONGODB]
     file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     collection = db['sg_otu_specimen']
@@ -91,6 +92,7 @@ def export_otu_table_by_level(data, option_name, dir_path, bind_obj=None):
                 line += "\t" + str(name_dic[k][s])
             line += "\n"
             f.write(line)
+    client.close()
     return file_path
 
 
@@ -182,6 +184,8 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
     按group_id 和 组名获取group表
     使用时确保你的workflow的option里category_name这个字段
     """
+    client = Config().mongo_client
+    db = client[Config().MONGODB]
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
     if data in ["all", "All", "ALL"]:
@@ -223,6 +227,7 @@ def export_group_table(data, option_name, dir_path, bind_obj=None):
     with open(file_path, "ab") as f:
         for pair in sample_name:
             f.write("{}\t{}\n".format(pair[0], pair[1]))
+    client.close()
     return file_path
 
 
@@ -266,6 +271,8 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     按分组的详细信息获取group表
     使用时确保你的workflow的option里group_detal这个字段
     """
+    client = Config().mongo_client
+    db = client[Config().MONGODB]
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
     if data in ["all", "All", "ALL"]:
@@ -300,6 +307,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
                 else:
                     sp_name = sp["specimen_name"]
                 f.write("{}\t{}\n".format(sp_name, k))
+    client.close()
     return file_path
 
 
@@ -308,6 +316,8 @@ def export_cascading_table_by_detail(data, option_name, dir_path, bind_obj=None)
     根据group_detail生成group表或者二级group表
     使用时确保你的workflow的option里group_detail这个字段
     """
+    client = Config().mongo_client
+    db = client[Config().MONGODB]
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
     data = _get_objectid(data)
@@ -338,6 +348,7 @@ def export_cascading_table_by_detail(data, option_name, dir_path, bind_obj=None)
     sample_table_name = 'sg_specimen'
     sample_table = db[sample_table_name]
     _write_cascading_table(table_list, sample_table, file_path, sample_table_name)
+    client.close()
     return file_path
 
 
@@ -398,6 +409,8 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
     按等级与分组信息(group_detail)获取OTU表
     使用时确保你的workflow的option里level与group_detail这个字段
     """
+    client = Config().mongo_client
+    db = client[Config().MONGODB]
     file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     bind_obj.logger.debug(data)
@@ -449,6 +462,7 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
                 line += "\t" + str(name_dic[k][s])
             line += "\n"
             f.write(line)
+    client.close()
     return file_path
 
 
@@ -457,6 +471,8 @@ def export_otu_table_without_zero(data, option_name, dir_path, bind_obj=None):
     按等级与分组信息(group_detail)获取OTU表
     使用时确保你的workflow的option里level与group_detail这个字段
     """
+    client = Config().mongo_client
+    db = client[Config().MONGODB]
     file_path = os.path.join(dir_path, "%s.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的OTU表格为文件，路径:%s" % (option_name, file_path))
     bind_obj.logger.debug(data)
@@ -512,4 +528,5 @@ def export_otu_table_without_zero(data, option_name, dir_path, bind_obj=None):
                 continue
             else:
                 f.write(line)
+    client.close()
     return file_path

@@ -16,6 +16,7 @@ class Config(object):
         self._db = None
         self._identity_db = None
         self._mongo_client = None
+        self._biodb_mongo_client = None
         self._record_db = None
 
     def get_db(self):
@@ -29,18 +30,22 @@ class Config(object):
             self._db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
         return self._db
 
-    def get_identity_db(self):
+    def get_identity_db(self, test=False):
         """
         上传、下载验证码数据库
         """
-        if not self._identity_db:
-            dbtype = self.rcf.get("IDENTITY_DB", "dbtype")
-            host = self.rcf.get("IDENTITY_DB", "host")
-            user = self.rcf.get("IDENTITY_DB", "user")
-            passwd = self.rcf.get("IDENTITY_DB", "passwd")
-            dbname = self.rcf.get("IDENTITY_DB", "db")
-            port = self.rcf.get("IDENTITY_DB", "port")
-            self._identity_db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
+        if test:
+            identity_db = 'T_IDENTITY_DB'
+        else:
+            identity_db = 'IDENTITY_DB'
+        # if not self._identity_db:
+        dbtype = self.rcf.get(identity_db, "dbtype")
+        host = self.rcf.get(identity_db, "host")
+        user = self.rcf.get(identity_db, "user")
+        passwd = self.rcf.get(identity_db, "passwd")
+        dbname = self.rcf.get(identity_db, "db")
+        port = self.rcf.get(identity_db, "port")
+        self._identity_db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
         return self._identity_db
 
     def get_record_db(self):
@@ -59,9 +64,15 @@ class Config(object):
 
     def get_mongo_client(self):
         if not self._mongo_client:
-            uri = Config().rcf.get("MONGO", "uri")
+            uri = self.rcf.get("MONGO", "uri")
             self._mongo_client = MongoClient(uri)
         return self._mongo_client
+
+    def get_biodb_mongo_client(self):
+        if not self._biodb_mongo_client:
+            uri = self.rcf.ger("MONGO", "bio_uri")
+            self._biodb_mongo_client = MongoClient(uri)
+        return self._biodb_mongo_client
 
     def get_work_dir(self):
         return self.rcf.get("Basic", "work_dir")
@@ -69,10 +80,6 @@ class Config(object):
 
 def get_db():
     return Config().get_db()
-
-DB = get_db()
-IDENTITY_DB = Config().get_identity_db()
-RECORD_DB = Config().get_record_db()
 
 
 def get_use_api_clients():

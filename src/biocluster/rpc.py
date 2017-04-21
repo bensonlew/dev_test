@@ -8,7 +8,6 @@ from .config import Config
 import datetime
 import gevent
 from multiprocessing import Queue
-import os
 # import gipc
 
 
@@ -46,7 +45,10 @@ class RPC(object):
     def __init__(self, workflow):
         self._rpc_server = zerorpc.Server(Report(workflow))
         config = Config()
-        self.endpoint = "tcp://{}:{}".format(config.LISTEN_IP, config.LISTEN_PORT)
+        if workflow.sheet.endpoint:
+            self.endpoint = workflow.sheet.endpoint
+        else:
+            self.endpoint = "tcp://{}:{}".format(config.LISTEN_IP, config.LISTEN_PORT)
         self._rpc_server.bind(self.endpoint)
 
     def run(self):

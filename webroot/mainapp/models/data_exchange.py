@@ -4,17 +4,22 @@ import web
 import datetime
 import json
 import re
-from mainapp.config.db import DB, IDENTITY_DB, get_mongo_client, RECORD_DB
-from biocluster.config import Config
+from mainapp.config.db import Config
+# from biocluster.config import Config
 
 
 class Identity(object):
     """
     验证发送过来的验证码
     """
-    def __init__(self):
-        self.identity_db = IDENTITY_DB
-        self.record_db = RECORD_DB
+    def __init__(self, test=False):
+        if test:
+            self.identity_db = Config().get_identity_db(test=True)
+            print "T_IDENTITY_DB", self.identity_db
+        else:
+            self.identity_db = Config().get_identity_db()
+            print "IDENTITY_DB", self.identity_db
+        self.record_db = Config().get_record_db()
 
     def get_task_id(self, code):
         """
@@ -69,9 +74,9 @@ class Download(object):
     """
     def __init__(self):
         self.table = "workflow"
-        self.db = DB
-        self.client = get_mongo_client()
-        self.mongodb = self.client[Config().MONGODB]
+        self.db = Config().get_db()
+        self.client = Config().get_mongo_client()
+        self.mongodb = self.client[Config().rcf.get("MONGO", "mongodb")]
 
     def get_path_by_workflow_id(self, wid):
         """
