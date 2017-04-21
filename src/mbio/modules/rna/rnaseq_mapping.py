@@ -27,7 +27,7 @@ class RnaseqMappingModule(Module):
             {"name": "single_end_reads", "type": "infile", "format": "sequence.fastq"},  # 单端序列
             {"name": "left_reads", "type": "infile", "format": "sequence.fastq"},  # 双端测序时，左端序列
             {"name": "right_reads", "type": "infile", "format": "sequence.fastq"},  # 双端测序时，右端序列
-            {"name": "bam_output", "type": "outfile", "format": "ref_rna.assembly.bam_dir"},  # 输出的bam
+            {"name": "bam_output", "type": "outfile", "format": "align.bwa.bam_dir"},  # 输出的bam
             {"name": "assemble_method", "type": "string", "default": "None"},  # 拼接手段，None
             {"name": "mate_std", "type": "int", "default": 50},  # 末端配对插入片段长度标准差
             {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
