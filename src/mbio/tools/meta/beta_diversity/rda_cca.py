@@ -6,7 +6,7 @@ import os
 import types
 import subprocess
 from biocluster.core.exceptions import OptionError
-
+import re
 
 class RdaCcaAgent(Agent):
     """
@@ -220,18 +220,19 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         otu_species_list = self.get_species_name()
         self.otu_table = self.work_dir + '/new_otu.xls'
         self.env_table = self.work_dir + '/new_env.xls'
-        # self.env_table = self.rm_(env_table)
         if not self.create_otu_and_env_common(old_otu_table, old_env_table, self.otu_table, self.env_table):
             self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
         tablepath = self.work_dir + '/remove_zero_line_otu.xls'
         self.remove_zero_line(self.formattable(self.otu_table), tablepath)
         self.env_labs = open(self.env_table, 'r').readline().strip().split('\t')[1:]
-        self.env_table_ = self.rm_(self.env_table)
+        # self.env_table_ = self.rm_(self.env_table)
+        envfit = self.env_type()
         self.logger.info(tablepath)
         cmd = self.cmd_path
-        cmd += ' -type rdacca -community %s -environment %s -outdir %s -env_labs %s' % (
-               tablepath, self.env_table_,
-               self.work_dir, '+'.join(self.env_labs))
+        cmd += ' -type rdacca -community %s -environment %s -outdir %s -env_labs %s -envfit %s' % (
+               tablepath, self.env_table,
+               self.work_dir, '+'.join(self.env_labs), envfit)
+        self.logger.info(cmd)
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info('生成 cmd.r 文件成功')
@@ -347,7 +348,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                 rda_centroids = name
             elif '_envfit.xls' in name:
                 rda_envfit = name
-        if rda_imp and rda_site and rda_spe and rda_dca and rda_envfit and (rda_biplot or rda_centroids):
+        if rda_imp and rda_site and rda_spe and rda_dca and (rda_biplot or rda_centroids) or rda_envfit:
             self.logger.info(str([rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids, rda_envfit]))
             return [rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids, rda_envfit]
         else:
@@ -409,18 +410,52 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                         w.write('\t'.join(content) + "\n")
         return new_species_table
 
-    def rm_(self, old_file):  # add by zhouxuan 20170401
-        new_file = self.work_dir + '/new_env_.xls'
-        with open(old_file, "rb") as f, open(new_file, "a") as w:
+    def env_type(self):
+        """
+        判断环境因子表中是否存在分类型环境因子
+        :param env_table:被判断的环境因子表
+        :return:如果存在分类型环境因子返回“F”,不存在时返回“T”
+        """
+        file_path = self.env_table
+        result_list = []
+        with open(file_path, "rb") as f:
             content = f.readlines()
-            for r in content:
-                if r.startswith("#"):
-                    r = r.split("\t")
-                    readline = "sample" + "\t" +("\t").join(r[1:]) +"\n"
-                    w.write(readline)
+            judge_content = content[1].split("\t")[1:]  # 根据环境因子表的第一行数据进行判定
+            for r in judge_content:
+                num = r.split(".")  # 分隔小数
+                ppp = ''
+                for m in num:
+                    Q = re.match('-(.*)', m)  # 解决负数问题
+                    if Q:  # 去掉负号
+                        m = Q.group(1)
+                    print m
+                    p = re.match('[0-9](.*)', m)
+                    if p:
+                        pass
+                    else:
+                        ppp = "1"
+                        break
+                if ppp == "1":
+                    result_list.append("False")
                 else:
-                    w.write(r)
-        return new_file
+                    result_list.append("True")
+        if "False" in result_list:
+            return "F"
+        else:
+            return "T"
+
+    # def rm_(self, old_file):  # add by zhouxuan 20170401
+    #     new_file = self.work_dir + '/new_env_.xls'
+    #     with open(old_file, "rb") as f, open(new_file, "a") as w:
+    #         content = f.readlines()
+    #         for r in content:
+    #             if r.startswith("#"):
+    #                 r = r.split("\t")
+    #                 readline = "sample" + "\t" +("\t").join(r[1:]) +"\n"
+    #                 w.write(readline)
+    #             else:
+    #                 w.write(r)
+    #     return new_file
 
 
 

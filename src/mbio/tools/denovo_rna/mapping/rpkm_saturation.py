@@ -127,7 +127,6 @@ class RpkmSaturationTool(Tool):
                 satur_file.append(f)
             if "saturation.pdf" in f and "eRPKM.xls" not in f:
                 satur_file.append(f)
-        # satur_file = glob.glob(r"*eRPKM.xls")
         print(satur_file)
         for f in satur_file:
             output_dir = os.path.join(self.output_dir, f)

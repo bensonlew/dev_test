@@ -81,7 +81,7 @@ class HiseqQcModule(Module):
         for f in self.samples:
             fq_s = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f])
             clipper = self.add_tool('denovo_rna.qc.fastx_clipper')
-            self.step.add_steps('clipper_{}'.format(n)) 
+            self.step.add_steps('clipper_{}'.format(n))
             clipper.set_options({
                 "fastq_s": fq_s,
             })
@@ -135,7 +135,8 @@ class HiseqQcModule(Module):
 
     def sickle_se_run(self, event):
         obj = event["bind_object"]
-        os.rename(obj.output_dir + "/clip_s.fastq", obj.output_dir + "/" + event["data"] + "_clip_s.fastq")
+        os.rename(os.path.join(obj.output_dir, "clip_s.fastq"), os.path.join(obj.output_dir, event["data"] +
+                                                                             "_clip_s.fastq"))
         clip_s = os.path.join(obj.output_dir, event["data"] + "_clip_s.fastq")
         self.logger.info(clip_s)
         sickle = self.add_tool('denovo_rna.qc.sickle')

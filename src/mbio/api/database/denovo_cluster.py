@@ -33,7 +33,7 @@ class DenovoCluster(Base):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'cluster_table_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'name': name if name else 'Cluster_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '差异基因聚类分析主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),

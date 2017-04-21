@@ -62,7 +62,7 @@ class ClusterWorkflow(Workflow):
         """
         保存结果表到mongo数据库中
         """
-        api_cluster = self.api.denovo_express  # #不确定,增加一个database
+        api_cluster = self.api.denovo_cluster  # #不确定,增加一个database 
         if self.option("cluster_method") == "hclust":
             hclust_path = os.path.join(self.output_dir, "hclust")
             sub_clusters = os.listdir(hclust_path)

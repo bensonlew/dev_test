@@ -8,7 +8,15 @@ import datetime
 class Workflow(object):
     def __init__(self):
         self.table = "workflow"
-        self.db = Config().get_db()
+        self._db = None
+
+    @property
+    def db(self):
+        if self._db:
+            return self._db
+        else:
+            self._db = Config().get_db()
+            return self._db
 
     def get_by_workflow_id(self, wid):
         where_dict = dict(workflow_id=wid)

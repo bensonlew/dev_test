@@ -4,10 +4,10 @@ from biocluster.config import Config
 from mbio.api.web.meta.update_status import UpdateStatus
 
 
-class UpdateStatus(UpdateStatus):
+class DenovoUpdateStatus(UpdateStatus):
 
     def __init__(self, data):
-        super(UpdateStatus, self).__init__(data)
+        super(DenovoUpdateStatus, self).__init__(data)
         self._config = Config()
         self._client = "client01"
         self._key = "1ZYw71APsQ"
