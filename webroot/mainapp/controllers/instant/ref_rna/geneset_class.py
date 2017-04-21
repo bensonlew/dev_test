@@ -3,11 +3,8 @@
 import web
 import json
 import datetime
-from bson import ObjectId
-from mainapp.controllers.core.basic import Basic
-from mainapp.models.mongo.ref_rna import RefRna
 from mainapp.controllers.project.ref_rna_controller import RefRnaController
-from mainapp.models.mongo.meta import Meta
+from mbio.api.to_file.ref_rna import *
 
 
 class GenesetClass(RefRnaController):
@@ -24,7 +21,6 @@ class GenesetClass(RefRnaController):
 
         task_name = 'ref_rna.report.geneset_class'
         task_type = 'workflow'
-        ref_rna = Meta(db=self.mongodb)
         params_json = {
             "submit_location": data.submit_location,
             "task_type": data.task_type,
@@ -32,12 +28,13 @@ class GenesetClass(RefRnaController):
             "anno_type": data.anno_type
         }
         # 判断传入的基因集id是否存在
+        geneset_info = {}
         for geneset in data.geneset_id.split(","):
-            geneset_info = RefRna().get_main_info(geneset, 'sg_geneset')
+            geneset_info = self.ref_rna.get_main_info(geneset, 'sg_geneset')
             if not geneset_info:
                 info = {"success": False, "info": "geneset不存在，请确认参数是否正确！!"}
                 return json.dumps(info)
-            task_info = RefRna().get_task_info(geneset_info['task_id'])
+        task_info = self.ref_rna.get_task_info(geneset_info['task_id'])
 
         if data.anno_type == "go":
             table_name = "Go"
@@ -58,7 +55,7 @@ class GenesetClass(RefRnaController):
             info = {'success': False, 'info': '不支持的功能分类!'}
             return json.dumps(info)
 
-        main_table_name = 'Geneset_' + table_name + "_Class" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        main_table_name = 'Geneset' + table_name + "Class_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
 
         mongo_data = [
             ('project_sn', task_info['project_sn']),
@@ -68,7 +65,7 @@ class GenesetClass(RefRnaController):
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':')))
         ]
-        main_table_id = ref_rna.insert_main_table(collection_name, mongo_data)
+        main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
         update_info = {str(main_table_id): collection_name}
 
         options = {
@@ -81,11 +78,12 @@ class GenesetClass(RefRnaController):
             "anno_type": data.anno_type,
             }
         options.update(option)
-        # to_file = 'ref_rna.export_otu_table_by_detail(otu_file)'
+        # print(options)
+        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
+                            to_file=to_file, project_sn=task_info['project_sn'], task_id=task_info['task_id'])
 
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
-                            module_type=task_type, to_file=to_file)
         task_info = super(GenesetClass, self).POST()
+
         task_info['content'] = {
             'ids': {
                 'id': str(main_table_id),
@@ -93,4 +91,3 @@ class GenesetClass(RefRnaController):
                 }}
 
         return json.dumps(task_info)
-

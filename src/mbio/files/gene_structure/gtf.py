@@ -58,7 +58,7 @@ class GtfFile(File):
         for line in open(self.path):
             comment_m = regex.match(r'^#.+', line.strip())
             content_m = regex.match(
-                r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                r'^([^#]\S*?)\t+((\S+)\t+){7,7}((\btranscript_id\b|\bgene_id\b)\s+?\"(\S+?)\");.*((\btranscript_id\b|\bgene_id\b)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
             if content_m:
                 if not {content_m.captures(5)[0], content_m.captures(8)[0]} == {'transcript_id', 'gene_id'}:
