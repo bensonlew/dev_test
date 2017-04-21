@@ -24,7 +24,7 @@ class Bam2tabAgent(Agent):
             {"name": "sample_id", "type": "string"}, #输入F/M/S的样本ID
             {"name": "bam_dir", "type": "string"},  #bam文件路径
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
-            {"name": "targets_bedfile", "type": "infile","format":"denovo_rna.gene_structure.bed"} #位点信息
+            {"name": "targets_bedfile", "type": "infile","format":"sequence.rda"} #位点信息
         ]
         self.add_option(options)
         self.step.add_steps("Bam2tab")
