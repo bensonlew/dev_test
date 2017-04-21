@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 import web
+import mainapp.core.auto_load as autoload
 from biocluster.core.function import hostname
 from mainapp.libs.signature import check_sig
 from mainapp.controllers.pipeline import Pipeline, PipelineState, PipelineLog, PipelineStop, PipelineQueue, PipelineStopPause, PipelinePause
@@ -125,5 +126,6 @@ class hello(object):
     def GET(self):
         return "%s %s" % (hostname, web.ctx.homedomain)
 
-
-application = web.application(urls, globals()).wsgifunc()
+app = web.application(urls, globals())
+autoload.register(app)
+application = app.wsgifunc()

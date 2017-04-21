@@ -2,6 +2,7 @@
 # __author__ = 'hongdongxuan'
 # time: 2017.04.20
 
+
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 
@@ -26,3 +27,4 @@ class PpiFile(File):
 #     a = PpiFile()
 #     a.set_path("/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/test/9606.txt")
 #     a.check()
+

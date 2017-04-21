@@ -21,10 +21,7 @@ from gevent.event import AsyncResult
 import pymongo
 import copy
 import random
-import traceback
 import datetime
-from gevent import monkey
-from biocluster.wpm.client import worker_client, wait
 import re
 from types import StringTypes
 
@@ -109,18 +106,25 @@ class PipeSubmitTool(Tool):
         return self.task_id
 
     def update_mongo_ends_count(self, ana):
-        print "ana._params_check_end", ana._params_check_end
-        print "ana.success", ana.success
-        print "ana.api", ana.api
         if ana.instant:
-            print "test1"
-            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$inc': {"ends_count": 1}})
+            self.logger.info("api: {} END_COUNT+1".format(ana.api))
+            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+                                                         {'$inc': {"ends_count": 1}})
         elif ana._params_check_end or not ana.success:
-            print "test2"
-            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$inc': {"ends_count": 1}})
+            if ana._params['submit_location'] == "otu_pan_core":  # pancore 分析默认两个主表，一次结束 加 2
+                inc = 2
+            else:
+                inc = 1
+            self.logger.info("api: {} END_COUNT+{}".format(ana.api, inc))
+            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+                                                         {'$inc': {"ends_count": inc}})
+
 
     def one_end(self, ana):
-        self.count_ends += 1
+        if ana._params['submit_location'] == "otu_pan_core":  # pancore 分析默认两个主表，一次结束 加 2
+            self.count_ends += 2
+        else:
+            self.count_ends += 1
         if not ana.instant:
             self.logger.info('投递任务投递成功:{} 任务参数检查获取结果: {}'.format(ana.api, ana._params_check_end))
         self.update_mongo_ends_count(ana)
@@ -151,7 +155,7 @@ class PipeSubmitTool(Tool):
         sub_params = self.web_data['sub_analysis'][config_name]
         for i in config['others']:
             if i == "second_group_detail" and sub_params[i]:
-                params[i] = group_detail_sort(sub_params[i])  #lefse接口中使用的是group_detail_sort
+                params[i] = group_detail_sort(sub_params[i])  # lefse接口中使用的是group_detail_sort
             else:
                 params[i] = sub_params[i]
         api = '/' + '/'.join(sub_params['api'].split('|'))
@@ -245,6 +249,7 @@ class PipeSubmitTool(Tool):
         分析中特有的一些参数；collection_name是这个子分析对应的mongo中的主表名
         2）定义每个分析的类，如：CorrNetworkAnalyse（该分析的submit_location驼峰命名）
         3）一键化的所有的分析，都是以submit_location来区分，所以在对接的时候要着重考虑与前端的submit_location是不是一致的。
+        4)所有任务都被设置为投递任务，但是，被依赖的任务必须设置为即时的。
         :return:
         """
         self.analysis_params = {
@@ -255,30 +260,31 @@ class PipeSubmitTool(Tool):
             "otunetwork_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_network"},
             "roc_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "top_n_id", "method_type", "submit_location"], "collection_name": "sg_roc"},
             "alpha_diversity_index": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "submit_location", "task_type"], "collection_name": "sg_alpha_diversity"},
-            "alpha_ttest": {"instant": True, "waits": ["alpha_diversity_index", "otu_subsample"], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
-            "beta_multi_analysis_plsda": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
-            "beta_sample_distance_hcluster_tree": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "hcluster_method", "task_type", "submit_location"], "collection_name": "sg_newick_tree"},
-            "beta_multi_analysis_pearson_correlation": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["task_type", "species_cluster", "submit_location", "method", "top_species", "env_cluster"], "collection_name": "sg_species_env_correlation"},
-            "beta_multi_analysis_rda_cca": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
-            "hc_heatmap": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "add_Algorithm", "submit_location", "sample_method", "species_number", "method"], "collection_name": "sg_hc_heatmap"},
-            "beta_multi_analysis_anosim": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "permutations", "submit_location", "task_type"], "collection_name": "sg_beta_multi_anosim"},
-            "species_difference_multiple": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "correction", "methor", "submit_location", "coverage", "test"], "collection_name": "sg_species_difference_check"},
-            "beta_multi_analysis_results": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["otu_method", "env_method", "submit_location", "task_type"], "collection_name": "sg_species_mantel_check"},
-            "beta_multi_analysis_pcoa": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
-            "beta_multi_analysis_dbrda": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
-            "species_difference_two_group": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["ci", "task_type", "correction", "methor", "submit_location", "coverage", "test", "type"], "collection_name": "sg_species_difference_check"},
-            "beta_multi_analysis_nmds": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
-            "otu_group_analyse": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu"},
-            "otu_venn": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu_venn"},
-            "beta_multi_analysis_pca": {"instant": True, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
-            "corr_network_analyse": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["abundance", "coefficient", "ratio_method", "lable", "submit_location", "task_type"], "collection_name": "sg_corr_network"},
-            "otu_pan_core": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu_pan_core"},
-            "plot_tree": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "color_level_id", "submit_location", "topn"], "collection_name": "sg_phylo_tree"},
-            "enterotyping": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_enterotyping"},
+            "alpha_ttest": {"instant": False, "waits": ["alpha_diversity_index", "otu_subsample"], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
+            "beta_multi_analysis_plsda": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
+            "beta_sample_distance_hcluster_tree": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "hcluster_method", "task_type", "submit_location"], "collection_name": "sg_newick_tree"},
+            "beta_multi_analysis_pearson_correlation": {"instant": False, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["task_type", "species_cluster", "submit_location", "method", "top_species", "env_cluster"], "collection_name": "sg_species_env_correlation"},
+            "beta_multi_analysis_rda_cca": {"instant": False, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
+            "hc_heatmap": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "add_Algorithm", "submit_location", "sample_method", "species_number", "method"], "collection_name": "sg_hc_heatmap"},
+            "beta_multi_analysis_anosim": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "permutations", "submit_location", "task_type"], "collection_name": "sg_beta_multi_anosim"},
+            "species_difference_multiple": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "correction", "methor", "submit_location", "coverage", "test"], "collection_name": "sg_species_difference_check"},
+            "beta_multi_analysis_results": {"instant": False, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["otu_method", "env_method", "submit_location", "task_type"], "collection_name": "sg_species_mantel_check"},
+            "beta_multi_analysis_pcoa": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
+            "beta_multi_analysis_dbrda": {"instant": False, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
+            "species_difference_two_group": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["ci", "task_type", "correction", "methor", "submit_location", "coverage", "test", "type"], "collection_name": "sg_species_difference_check"},
+            "beta_multi_analysis_nmds": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "distance_algorithm", "submit_location", "task_type"], "collection_name": "sg_beta_multi_analysis"},
+            "otu_group_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu"},
+            "otu_venn": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu_venn"},
+            "beta_multi_analysis_pca": {"instant": False, "waits": ["otu_subsample"], "main": ["env_id", "env_labs"], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
+            "corr_network_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["abundance", "coefficient", "ratio_method", "lable", "submit_location", "task_type"], "collection_name": "sg_corr_network"},
+            "otu_pan_core": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_otu_pan_core"},
+            "plot_tree": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "color_level_id", "submit_location", "topn"], "collection_name": "sg_phylo_tree"},
+            "enterotyping": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_enterotyping"},
         }
         self.web_data = json.loads(self.option('data'))
         self.web_data['sub_analysis'] = json.loads(
             self.web_data['sub_analysis'])
+        self.sub_analysis_len = len(self.web_data['sub_analysis'])
         self.otu_id = self.web_data['otu_id']
         self.group_infos = json.loads(self.web_data['group_info'])
         self.levels = [int(i) for i in self.web_data[
@@ -294,7 +300,7 @@ class PipeSubmitTool(Tool):
         # monkey.patch_ssl()
         self.signature = self.signature()
         self.task_id = self.option("task_id")
-        self.url = "http://localhost" if self.task_client == "client01" else "http://192.168.12.102:9090"
+        self.url = "http://bcl.sanger.com" if self.task_client == "client01" else "http://bcl.tsanger.com"
         self.all = {}
         self.all_count = 0
         sixteens_prediction_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
@@ -305,7 +311,6 @@ class PipeSubmitTool(Tool):
         for level in self.levels:
             self.all[level] = {}
             for group_info in self.group_infos:
-                pipe_count += 2
                 pipe_main_id = self.pipe_main_mongo_insert(level, group_info)
                 pipe = {}
                 for i in self.web_data['sub_analysis']:
@@ -328,6 +333,7 @@ class PipeSubmitTool(Tool):
                     submit.start(waits, timeout=6000)
                 self.all[level][group_info["group_id"]] = pipe
                 self.all_count += (len(pipe) - 1)
+                pipe_count += 1
             sixteens_prediction_flag = True
             lefse_flag = True
         self.all_count += 1  # otu subsample 任务
@@ -341,12 +347,14 @@ class PipeSubmitTool(Tool):
             self.logger.info('所有任务已经投递结束，计数:{}，总数:{}'.format(self.count_ends, self.all_count))
             for i in self.all:
                 for one in self.all[i].values():
-                    if not one.is_end:
-                        self.logger.info("没有结束的submit: {}, api: {}, params: {}".format(one, one.api, one._params))
+                    for key in one.values():
+                        if not key.is_end:
+                            self.logger.info("没有结束的submit: {}, api: {}, params: {}".format(key, key.api, key._params))
         self.end()
 
     def update_all_count(self):
-        self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))}, {'$set': {"all_count": self.all_count}})
+        self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+                                                     {'$set': {"all_count": self.all_count}})
 
     def run(self):
         super(PipeSubmitTool, self).run()
@@ -426,6 +434,7 @@ class Submit(object):
         for i in waits:
             i.end_event.get(timeout=timeout)
             if not i.success:
+                self._end_event.set()
                 self.bind_object.rely_error(self, i)
                 return
         self.run_permission()
@@ -437,10 +446,12 @@ class Submit(object):
                 self.insert_pipe_detail(self.result['content']["ids"]['name'], self.main_table_id, status)
                 # self.check_end(ObjectId(self.main_table_id))
             else:
-                self.insert_pipe_detail(self.result['content']['ids']['name'], ObjectId(self.result['content']['ids']['id']), 'end')
+                self.insert_pipe_detail(self.result['content']['ids']['name'],
+                                        ObjectId(self.result['content']['ids']['id']), 'end')
         elif 'success' in self.result and not self.result['success']:
             if 'content' in self.result:
-                self.insert_pipe_detail(self.result['content']['ids']['name'], ObjectId(self.result['content']['ids']['id']), 'failed')
+                self.insert_pipe_detail(self.result['content']['ids']['name'],
+                                        ObjectId(self.result['content']['ids']['id']), 'failed')
             else:
                 self.insert_pipe_detail(None, None, 'failed')
         else:
@@ -452,7 +463,11 @@ class Submit(object):
         """
         投递接口
         """
-        gevent.sleep(self.pipe_count)
+        if not self.instant:
+            wait_time = self.pipe_count * self.bind_object.sub_analysis_len + random.randint(0, self.bind_object.sub_analysis_len)
+            self.bind_object.logger.info("等待时间%s" % (wait_time))
+            gevent.sleep(wait_time)
+
         if self.check_params():
             self._params_check_end = True
             return self.result
@@ -472,13 +487,22 @@ class Submit(object):
                 group_name = 'All'
             else:
                 group_id = ObjectId(self._params['group_id'])
-                group_name = self.db['sg_specimen_group'].find_one({'_id': ObjectId(self._params['group_id'])}, {'group_name': 1})['group_name']
+                group_name = self.db['sg_specimen_group'].find_one({'_id': ObjectId(self._params['group_id'])},
+                                                                   {'group_name': 1})['group_name']
             if "level_id" in self._params:
                 level_id = self._params['level_id']
-                level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[level_id]
+                level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus',
+                              8: 'Species', 9: "OTU"}[level_id]
             else:
                 level_id = self.min_level
-                level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus', 8: 'Species', 9: "OTU"}[self.min_level]
+                level_name = {1: 'Domain', 2: 'Kingdom', 3: 'Phylum', 4: 'Class', 5: 'Order', 6: 'Family', 7: 'Genus',
+                              8: 'Species', 9: "OTU"}[self.min_level]
+
+            if re.match(r'^16sFunctionPrediction|^LEfSe', str(table_name)):
+                pipe_main_id = self.get_main_id(self.bind_object.option('pipe_id'), group_id, level_id)
+            else:
+                pipe_main_id = self.pipe_main_id
+
             insert_data = {
                 "task_id": self.task_id,
                 "otu_id": ObjectId(self.bind_object.otu_id),
@@ -486,7 +510,7 @@ class Submit(object):
                 'level_name': level_name,
                 "submit_location": self._params['submit_location'],
                 'params': self.json_params,
-                'pipe_main_id': ObjectId(self.pipe_main_id),
+                'pipe_main_id': ObjectId(pipe_main_id),
                 'pipe_batch_id': ObjectId(self.bind_object.option('pipe_id')),
                 'table_id': ObjectId(table_id),
                 'status': status,
@@ -498,9 +522,41 @@ class Submit(object):
                 'created_ts': datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             }
             self._pipe_detail_id = self.db['sg_pipe_detail'].insert_one(insert_data).inserted_id
+        elif str(status) == "failed":
+            insert_data = {
+                "task_id": self.task_id,
+                "otu_id": ObjectId(self.bind_object.otu_id),
+                'group_name': "",
+                'level_name': "",
+                "submit_location": self._params['submit_location'],
+                'params': self.json_params,
+                'pipe_main_id': ObjectId(self.pipe_main_id),
+                'pipe_batch_id': ObjectId(self.bind_object.option('pipe_id')),
+                'table_id': ObjectId(table_id),
+                'status': "failed",
+                'desc': "因为OtuSubsample分析计算失败，后面的依赖分析都不能进行，请重新设定基本参数，再次尝试，(" + str(self.result['info']) + ")",
+                'level_id': "",
+                "group_id": "",
+                'type_name': self.mongo_collection,
+                'table_name': table_name,
+                'created_ts': datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            }
+            self._pipe_detail_id = self.db['sg_pipe_detail'].insert_one(insert_data).inserted_id
         else:
             pass
 
+    def get_main_id(self, pipe_id, group_id, level_id):
+        """
+        特殊用途，16s与lefse两个分析的pipe_main_id,要去查表获取
+        :return:
+        """
+        if group_id == 'all':
+            group_id = 'all'
+        else:
+            group_id = ObjectId(group_id)
+        mongo_result = self.db['sg_pipe_main'].find_one({"pipe_batch_id": ObjectId(pipe_id),
+                                                         "group_id": group_id, "level_id": int(level_id)})["_id"]
+        return mongo_result
 
     def run_permission(self):
         if self.instant:
@@ -604,8 +660,8 @@ class Submit(object):
         result = self.db[self.mongo_collection].find({'task_id': self.task_id, 'params': self.json_params,
                                                       'status': {'$in': ['end', 'start', "failed"]}})
         if not result.count():
-            self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}, params: {}".format(
-                self.api, self.mongo_collection, self.params_pack(self._params)))
+            self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}".format(
+                self.api, self.mongo_collection))
             return False
         else:
             lastone = result.sort('created_ts', pymongo.DESCENDING)[0]
@@ -613,15 +669,8 @@ class Submit(object):
                 self.api, lastone['status'], self.mongo_collection, lastone["_id"]))
             self.main_table_id = lastone['_id']
             if lastone['status'] == 'end':
-                if str(self.mongo_collection) == "sg_otu_pan_core":
-                    ids = self.find_pan_core_ids(main_table_id=self.main_table_id)
-                    self.result = {'success': True, "info": lastone['desc'],
-                                   'content': {"ids": [{'id': str(lastone['_id']), 'name': lastone["name"]},
-                                                       {'id': ids["id"], 'name': ids['name']}]}}
-                else:
-                    self.result = {'success': True, "info": lastone['desc'],
-                                   'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
-                # self.result = {'success': True, 'main_id': lastone['_id']}
+                self.result = {'success': True, "info": lastone['desc'],
+                               'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
                 return self.result
             elif lastone['status'] == 'start':
                 self.check_end(lastone['_id'])
@@ -633,19 +682,6 @@ class Submit(object):
                     self.result['success'] = False
                 return self.result
         return False
-
-    def find_pan_core_ids(self, main_table_id):
-        """
-        pan_core分析有两个主表，找core的主表id
-        :param main_table_id:
-        :return:
-        """
-        result = self.db[self.mongo_collection].find_one({"_id": ObjectId(main_table_id)})
-        result1 = self.db[self.mongo_collection].find({"unique_id": str(result['unique_id'])})
-        for m in result1:
-            if str(m["_id"]) != str(main_table_id):
-                ids = {"id": str(m["_id"]), "name": m["name"]}
-        return ids
 
     def waits_params_get(self):
         """
@@ -702,10 +738,12 @@ class AlphaTtest(Submit):
         del self._params['level_id']
         return self._params
 
+
 class SixteensPrediction(BetaSampleDistanceHclusterTree):
     def set_params_type(self):
         del self._params['level_id']
         return self._params
+
 
 class SpeciesLefseAnalyse(BetaSampleDistanceHclusterTree):
     def set_params_type(self):
@@ -814,6 +852,14 @@ class CorrNetworkAnalyse(BetaSampleDistanceHclusterTree):
 
 
 class OtuPanCore(BetaSampleDistanceHclusterTree):
+
+    def __init__(self, *args, **kwargs):
+        """
+        pancore有两个主表，需要做额外的处理，例如，算作两个分析，all_counts + 1
+        """
+        super(BetaSampleDistanceHclusterTree, self).__init__(*args, **kwargs)
+        self.bind_object.all_count += 1
+
     def _submit(self, waits, timeout):
         """投递任务"""
         for i in waits:
@@ -839,13 +885,54 @@ class OtuPanCore(BetaSampleDistanceHclusterTree):
         self.end_fire()
         self._end_event.set()
 
-    def post_to_webapi(self):
+
+    def check_params(self):
         """
-        投递接口
+        检查参数，发现end状态，直接放回计算完成，发现start状态，直接监控直到结束
         """
-        if self.check_params():
-            return self.result
-        self.result = self.post()
+        self.waits_params_get()  # 依赖分析的参数获取
+        self.set_params_type()  # 根据每个分析的接口中对参数的打包格式，进行对应处理
+        self.json_params = self.params_pack(self._params)
+        result = self.db[self.mongo_collection].find({'task_id': self.task_id, 'params': self.json_params,
+                                                      'status': {'$in': ['end', 'start', "failed"]}})
+        if not result.count():
+            self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}, params: {}".format(
+                self.api, self.mongo_collection, self.params_pack(self._params)))
+            return False
+        else:
+            lastone = result.sort('created_ts', pymongo.DESCENDING)[0]
+            self.bind_object.logger.info("参数比对找到已经运行的结果: 任务: {}, 状态: {}, collection: {}, _id: {}".format(
+                self.api, lastone['status'], self.mongo_collection, lastone["_id"]))
+            self.main_table_id = lastone['_id']
+            if lastone['status'] == 'end':
+                ids = self.find_pan_core_ids(main_table_id=self.main_table_id)
+                self.result = {'success': True, "info": lastone['desc'],
+                               'content': {"ids": [{'id': str(lastone['_id']), 'name': lastone["name"]},
+                                                   {'id': ids["id"], 'name': ids['name']}]}}
+                return self.result
+            elif lastone['status'] == 'start':
+                self.check_end(lastone['_id'])
+                self.result = {'success': True, "info": lastone['desc'],
+                               'content': {"ids": {'id': str(lastone['_id']), 'name': lastone["name"]}}}
+                result = self.db[self.mongo_collection].find_one(
+                    {'_id': lastone['_id']}, {'status': 1, 'desc': 1, "name": 1})
+                if result['status'] != 'end':  # 任务完成后检查状态
+                    self.result['success'] = False
+                return self.result
+        return False
+
+    def find_pan_core_ids(self, main_table_id):
+        """
+        pan_core分析有两个主表，找core的主表id
+        :param main_table_id:
+        :return:
+        """
+        result = self.db[self.mongo_collection].find_one({"_id": ObjectId(main_table_id)})
+        result1 = self.db[self.mongo_collection].find({"unique_id": str(result['unique_id'])})
+        for m in result1:
+            if str(m["_id"]) != str(main_table_id):
+                ids = {"id": str(m["_id"]), "name": m["name"]}
+        return ids
 
 
 class PlotTree(BetaSampleDistanceHclusterTree):
@@ -881,5 +968,5 @@ def gevent_url_fetch(url):
     resp = opener.open(url)
     return resp.headers, resp
 
-if __name__ == "__main__":
-    PipeSubmitTool().run_webapitest()
+# if __name__ == "__main__":
+#     PipeSubmitTool().run_webapitest()

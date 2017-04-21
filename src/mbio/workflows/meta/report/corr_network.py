@@ -2,7 +2,7 @@
 # __author__ = 'xuanhongdong'
 from biocluster.workflow import Workflow
 import os
-from mbio.api.to_file.meta import *
+
 
 class CorrNetworkWorkflow(Workflow):
     """
@@ -188,7 +188,7 @@ class CorrNetworkWorkflow(Workflow):
 
         api_corrnetwork.add_network_links_table(file_path=node_links_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_abundance_table(file_path=node_abundance_path, table_id=self.option("corr_network_id"))
-        api_corrnetwork.add_network_cluster_degree(file1_path=network_degree_path, file2_path=network_clustering_path,table_id=self.option("corr_network_id"))
+        api_corrnetwork.add_network_cluster_degree(file1_path=network_degree_path, file2_path=network_clustering_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_attributes(file_path=network_attributes_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_degree_distribution(file_path=network_degree_distribution, table_id=self.option("corr_network_id"))

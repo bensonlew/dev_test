@@ -8,7 +8,7 @@ import subprocess
 from biocluster.iofile import File
 from collections import defaultdict
 from biocluster.config import Config
-from biocluster.coregex.exceptions import FileError
+from biocluster.core.exceptions import FileError
 
 '''
 gtf:gene transefer format
@@ -61,12 +61,13 @@ class GtfFile(File):
                 r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
             if content_m:
-                if not {content_m.captures(6)[0], content_m.captures(9)[0]} == {'transcript_id','gene_id'}:
-                    raise FileError('第9列必须有转录本id和基因id记录')
+                if not {content_m.captures(5)[0], content_m.captures(8)[0]} == {'transcript_id', 'gene_id'}:
+                    raise FileError('line error: {} 第9列必须有转录本id和基因id记录'.format(line.strip()))
                 continue
             if not (comment_m or content_m):
                 raise FileError(
-                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
+                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) '.format(
+                        line.strip(), self.path))
     
     def check_in_detail(self, check_log_file):
         self.__check_skechy()
@@ -108,8 +109,8 @@ class GtfFile(File):
                 seq_type = content_m.captures(2)[1].strip()
                 start = content_m.captures(2)[2].strip()
                 end = content_m.captures(2)[3].strip()
-                frame = content_m.captures(2)[5].strip()
-                strand = content_m.captures(2)[6].strip()
+                frame = content_m.captures(2)[6].strip()
+                strand = content_m.captures(2)[5].strip()
                 contig_m = regex.match(r'^[\w.:^*$@!+?-|]+$', contig)  # contig的字符必须在[\w.:^*$@!+?-|]之内
                 seq_type_m = check_seq_type(seq_type)  # seq_type必须在SO term集合之内
                 start_m = regex.match(r'^\d+$', start)
@@ -136,9 +137,10 @@ class GtfFile(File):
                 r'^([^#]\S*?)\t+((\S+)\t+){7}(.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
             
-            if not (comment_m or content_m):
+            if not (comment_m or content_m or regex.match(r'^$', line.strip())):
                 raise FileError(
-                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
+                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) '.format(
+                        line.strip(), self.path))
             
             if content_m:
                 contig = content_m.captures(3)[0]

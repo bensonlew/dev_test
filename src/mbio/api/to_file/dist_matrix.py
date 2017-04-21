@@ -2,17 +2,12 @@
 # __author__ = 'shenghe'
 import os
 import copy
-# import json
 from biocluster.config import Config
 from bson.objectid import ObjectId
-# from collections import defaultdict
-
-
-client = Config().mongo_client
-db = client[Config().MONGODB]
 
 
 def export_distance_matrix(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB]
     file_path = os.path.join(dir_path, "%s_input.matrix.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的距离矩阵为文件，路径:%s" % (option_name, file_path))
     collection = db['sg_beta_specimen_distance_detail']
