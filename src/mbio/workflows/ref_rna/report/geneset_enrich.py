@@ -31,8 +31,8 @@ class GenesetEnrichWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.tool = self.add_tool("rna.go_enrich") if self.option("anno_type") == "go" else self.add_tool("rna.kegg_rich")
-        self.output_dir = self.tool.output_dir
+        self.enrich_tool = self.add_tool("rna.go_enrich") if self.option("anno_type") == "go" else self.add_tool("rna.kegg_rich")
+        self.output_dir = self.enrich_tool.output_dir
         # self.group_spname = dict()
 
     def run(self):
@@ -51,9 +51,9 @@ class GenesetEnrichWorkflow(Workflow):
                 # "pval": self.option("pval"),
                 "method": self.option("method"),
             }
-        self.tool.set_options(options)
-        self.tool.on('end', self.set_db)
-        self.tool.run()
+        self.enrich_tool.set_options(options)
+        self.enrich_tool.on('end', self.set_db)
+        self.enrich_tool.run()
         super(GenesetEnrichWorkflow, self).run()
 
     def set_db(self):
