@@ -17,7 +17,7 @@ class Fastq2mongoDcModule(Module):
 			{"name": "fastq_path", "type": "infile","format":"sequence.fastq_dir"},  # fastq所在路径
 			{"name": "cpu_number", "type": "int", "default": 4}, #cpu个数
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
-			{"name": "targets_bedfile", "type": "infile","format":"denovo_rna.gene_structure.bed"},  # 位点信息
+			{"name": "targets_bedfile", "type": "infile","format":"sequence.rda"},  # 位点信息
 			{"name":"batch_id", "type": "string"},
 			{"name":"type","type":"string","default":'pt'}
 		]
