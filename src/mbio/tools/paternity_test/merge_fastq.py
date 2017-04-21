@@ -82,15 +82,15 @@ class MergeFastqTool(Tool):
 		:return:
 		"""
 		super(MergeFastqTool, self).run()
-		self.logger.info(self.option("sample_dir_name"))
-		self.sample = self.option("sample_dir_name").split(",")
-		for i in self.sample:
-			self.run_mf(i)
+		# self.logger.info(self.option("sample_dir_name"))
+		# self.sample = self.option("sample_dir_name").split(",")
+		# for i in self.sample:
+		self.run_mf()
 		#self.set_output()
 		self.end()
 
-	def run_mf(self, name):
-		file_path = os.path.join(self.option("data_dir").prop['path'], name)
+	def run_mf(self):
+		file_path = os.path.join(self.option("data_dir").prop['path'], self.option('sample_dir_name'))
 		file_name = os.listdir(file_path)
 		r1_list = []
 		r2_list = []
@@ -118,10 +118,10 @@ class MergeFastqTool(Tool):
 		os.system('zcat {} {} {} {} >> {}'.format(r2_path[0], r2_path[1], r2_path[2], r2_path[3], self.r2_path))
 		os.system('gzip {}'.format(self.r1_path))
 		os.system('gzip {}'.format(self.r2_path))
-		gz_r1_file_path = self.r1_path + ".gz"
-		gz_r2_file_path = self.r2_path + ".gz"
-		os.link(gz_r1_file_path, self.option("result_dir") + '/' + self.new_name + "_R1.fastq.gz")
-		os.link(gz_r2_file_path, self.option("result_dir") + '/' + self.new_name + "_R2.fastq.gz")
+		# gz_r1_file_path = self.r1_path + ".gz"
+		# gz_r2_file_path = self.r2_path + ".gz"
+		# os.link(gz_r1_file_path, self.option("result_dir") + '/' + self.new_name + "_R1.fastq.gz")
+		# os.link(gz_r2_file_path, self.option("result_dir") + '/' + self.new_name + "_R2.fastq.gz")
 
 	def set_output(self):
 		"""
@@ -134,9 +134,11 @@ class MergeFastqTool(Tool):
 			os.link(gz_r1_file_path, self.output_dir + '/' + self.new_name + "_R1.fastq.gz")
 			os.link(gz_r1_file_path, self.option("result_dir") + '/' + self.new_name + "_R1.fastq.gz")
 		else:
-			self.set_error("no R1_fastq.gz file")
+			self.set_error("no {}_R1_fastq.gz file".format(self.new_name))
+			raise Exception("no {}_R1_fastq.gz file".format(self.new_name))
 		if os.path.exists(gz_r2_file_path):
 			os.link(gz_r2_file_path, self.output_dir + '/' + self.new_name + "_R2.fastq.gz")
 			os.link(gz_r2_file_path, self.option("result_dir") + '/' + self.new_name + "_R2.fastq.gz")
 		else:
-			self.set_error("no R2_fastq.gz file")
+			self.set_error("no {}_R2_fastq.gz file".format(self.new_name))
+			raise Exception("no {}_R2_fastq.gz file".format(self.new_name))
