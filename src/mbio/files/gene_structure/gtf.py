@@ -25,6 +25,20 @@ def check_seq_type(seq_type):
 def dict_factory():
     return defaultdict(dict_factory)
 
+def get_gene_list(gtf):
+    gene_list = {}
+    with open(gtf, "r") as file:
+        for line in file:
+            line = line.strip()
+            tmp = line.split("\t")
+            m = re.match("\s.transcript_id\s\"(.+)\";\s.gene_id\s.\"(.+)\"?;", tmp[-1])
+            if m:
+                transcript_id = m.group(1)
+                gene_id = m.group(2)
+                if transcript_id not in gene_list.keys():
+                    gene_list[transcript_id] = gene_id
+    return gene_list
+
 
 class GtfFile(File):
     # def __init__(self, fasta):  # fasta应为FastaFile对象
@@ -198,3 +212,12 @@ class GtfFile(File):
                     gene_id = content_m.captures(7)[0]
             if txpt_id:
                 self._txpt_gene[txpt_id] = gene_id
+
+    def gtf_patch(self, gtf):
+        get_gene_list(gtf)
+        temp_gtf = os.path.split(self.prop["path"])[0] + "tmp.gtf"
+        with open(self.prop["path"], "r") as file:
+            for line in file:
+                tmp = line.split("\t")
+                if tmp[-1].find("gene_id") == -1:
+                    print line
