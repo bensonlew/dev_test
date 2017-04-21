@@ -168,7 +168,7 @@ class SampleCheckTool(Tool):
         self.step_100 = defaultdict(int)
         self.step_200 = defaultdict(int)
         """
-        for seq in SeqIO.parse(fasta, "fasta"):
+        for seq in SeqIO.__parse_details(fasta, "fasta"):
             len_ = len(seq.seq)
         """
         with open(file,"r") as r:

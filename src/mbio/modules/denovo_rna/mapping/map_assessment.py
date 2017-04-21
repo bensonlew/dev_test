@@ -17,10 +17,10 @@ class MapAssessmentModule(Module):
     def __init__(self, work_id):
         super(MapAssessmentModule, self).__init__(work_id)
         options = [
-            {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
+            {"name": "bed", "type": "infile", "format": "gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
-            {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
-            {"name": "analysis", "type": "string", "default": "saturation,duplication,stat,correlation,distribution,coverage,chr_stat"},  # 分析类型
+            {"name": "fpkm", "type": "infile", "format": "rna.express_matrix"},  # 基因表达量表
+            {"name": "analysis", "type": "string", "default": "saturation,stat,distribution,coverage,chr_stat"},  # 分析类型
             {"name": "quality_satur", "type": "int", "default": 30},  # 测序饱和度分析质量值
             {"name": "quality_dup", "type": "int", "default": 30},  # 冗余率分析质量值
             {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
@@ -89,7 +89,7 @@ class MapAssessmentModule(Module):
     def bam_stat_run(self):
         n = 0
         for f in self.files:
-            bam_stat = self.add_tool('denovo_rna.mapping.bam_stat')
+            bam_stat = self.add_tool('gene_structure.bam_stat')
             self.step.add_steps('bamStat_{}'.format(n))
             bam_stat.set_options({
                 'bam': f
@@ -158,7 +158,7 @@ class MapAssessmentModule(Module):
     def distribution_run(self):
         n = 0
         for f in self.files:
-            distribution = self.add_tool("ref_rna.mapping.reads_distribution")
+            distribution = self.add_tool("gene_structure.bam_readsdistribution")
             self.step.add_steps("distribution_{}".format(n))
             distribution.set_options({
                 "bam": f,
@@ -174,7 +174,7 @@ class MapAssessmentModule(Module):
     def chr_stat_run(self):
         n = 0
         for f in self.files:
-            chr_stat = self.add_tool("ref_rna.mapping.chr_distribution")
+            chr_stat = self.add_tool("gene_structure.chr_distribution")
             self.step.add_steps("chr_distribution_{}".format(n))
             chr_stat.set_options({
                 "bam": f
