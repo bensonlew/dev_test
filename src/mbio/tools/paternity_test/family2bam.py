@@ -25,7 +25,7 @@ class Family2bamAgent(Agent):
         options = [
             {"name": "fastq", "type": "string"},  #输入F/M/S的fastq文件的样本名,fastq_gz_dir/WQ235F
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"}, #hg38.chromosomal_assembly/ref.fa
-            {"name": "targets_bedfile","type": "infile","format":"denovo_rna.gene_structure.bed"},
+            {"name": "targets_bedfile","type": "infile","format":"sequence.rda"},
             {"name": "seq_path", "type": "infile","format":"sequence.fastq_dir"}, #fastq所在路径
             {"name": "cpu_number", "type": "int", "default": 4}
         ]
@@ -100,12 +100,18 @@ class Family2bamTool(Tool):
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/sun_jdk1.8.0/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bcftools-1.3.0/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/picard-tools-2.2.4')
+        self.picard_path = self.config.SOFTWARE_DIR + '/bioinfo/medical/picard-tools-2.2.4/picard.jar'
+        self.java_path = self.config.SOFTWARE_DIR + '/program/sun_jdk1.8.0/bin/java'
 
 
 
     def run_Family2bam(self):
-        fastq2bam_cmd = "{}fastq2bam.sh {} {} {} {} {}".format(self.cmd_path, self.option("fastq"), self.option("cpu_number"),
-                            self.option("ref_fasta").prop["path"], self.option("seq_path").prop['path'], self.option("targets_bedfile").prop['path'])
+        fastq2bam_cmd = "{}fastq2bam.sh {} {} {} {} {} {} {}".format(self.cmd_path, self.option("fastq"), self.option("cpu_number"),
+                            self.option("ref_fasta").prop["path"], self.option("seq_path").prop['path'], self.option("targets_bedfile").prop['path']
+                            ,self.picard_path,self.java_path)
+        # fastq2bam_cmd = "{}fastq2bam.sh {} {} {} {} {}".format(self.cmd_path, self.option("fastq"), self.option("cpu_number"),
+        #                     self.option("ref_fasta").prop["path"], self.option("seq_path").prop['path'], self.option("targets_bedfile").prop['path'])
+
         self.logger.info(fastq2bam_cmd)
         self.logger.info("开始运行转bam文件")
         cmd = self.add_command("fastq2bam_cmd", fastq2bam_cmd).run()
