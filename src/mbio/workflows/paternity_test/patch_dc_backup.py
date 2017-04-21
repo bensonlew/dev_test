@@ -25,7 +25,7 @@ class PatchDcBackupWorkflow(Workflow):
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},  # fastq所在路径(文件夹
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
-			{"name": "targets_bedfile", "type": "infile", "format": "denovo_rna.gene_structure.bed"},
+			{"name": "targets_bedfile", "type": "infile", "format": "sequence.rda"},
 
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
 			{"name": "ref_point", "type": "infile", "format": "sequence.rda"},  # 参考位点
@@ -140,6 +140,8 @@ class PatchDcBackupWorkflow(Workflow):
 		self.num_list = []
 		self.dedup_list = []
 		self.father = []
+		self.preg =[]
+		self.mother = []
 		for p in range(len(self.family_id)):
 			temp = re.match('WQ([1-9].*)-F.*', self.family_id[p][0])
 			num = int(temp.group(1))
@@ -160,6 +162,8 @@ class PatchDcBackupWorkflow(Workflow):
 				pass
 			else:
 				self.father.append(self.family_id[p][0])
+				self.mother.append(self.family_id[p][1])
+				self.preg.append(self.family_id[p][2])
 				self.dedup_list.append(name_list)
 				self.tool.append([])
 
@@ -237,14 +241,16 @@ class PatchDcBackupWorkflow(Workflow):
 		q = event['data']
 		name_list = self.dedup_list[q]
 		self.tools_dedup = []
-		family = self.father[q].split('-')[0]
+		# family = self.father[q].split('-')[0]
 		for i in name_list:
 			pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
 			self.step.add_steps('dedup_{}'.format(n))
+			print '************'
+			print self.mother[q]
 			pt_analysis_dedup.set_options({
 				"dad_tab": self.output_dir + '/'+ i + '.tab',  # 数据库的tab文件
-				"mom_tab": self.output_dir + '/' + family + '-M.tab',
-				"preg_tab": self.output_dir +'/' +  family + '-S.tab',
+				"mom_tab": self.output_dir + '/' + self.mother[q] +'.tab',
+				"preg_tab": self.output_dir +'/' + self.preg[q]+'.tab',
 				"ref_point": self.option("ref_point"),
 				"err_min": self.option("err_min")
 			}
