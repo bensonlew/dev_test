@@ -798,9 +798,9 @@ class RefrnaWorkflow(Workflow):
                 "rmats_control": self.option("control_file")
             }
             if self.option("fq_type") == "PE":
-                opts.update({"sequencing_type": "paired"})
+                opts.update({"seq_type": "paired"})
             else:
-                opts.update({"sequencing_type": "single"})
+                opts.update({"seq_type": "single"})
             self.altersplicing.set_options(opts)
             self.altersplicing.on("end", self.set_output, "altersplicing")
             self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
