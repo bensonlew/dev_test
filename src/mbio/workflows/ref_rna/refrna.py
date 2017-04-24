@@ -288,7 +288,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_change_diamond(self, event):
         if event["data"]:
-            self.change_tool_before = self.add_tool("align.diamond.change_diamondout")
+            self.change_tool_before = self.add_tool("align.change_diamondout")
             opts = {
                 "nr_out": self.blast_nr.option('outxml'),
                 "kegg_out": self.blast_kegg.option('outxml'),
@@ -298,7 +298,7 @@ class RefrnaWorkflow(Workflow):
             self.change_tool_before.on("end",self.run_diamond_annotation)
             self.change_tool_before.run()
         else:
-            self.change_tool_after = self.add_tool("align.diamond.change_diamondout")
+            self.change_tool_after = self.add_tool("align.change_diamondout")
             opts = {
                 "nr_out": self.new_blast_nr.option('outxml'),
                 "kegg_out": self.new_blast_kegg.option('outxml'),

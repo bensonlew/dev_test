@@ -28,13 +28,13 @@ class AssemblyModule(Module):
             {"name": "fr_stranded", "type": "string", "default": "fr-unstranded"},  # 是否链特异性
             {"name": "strand_direct", "type": "string", "default": "none"},  # 链特异性时选择正负链
             {"name": "assemble_method", "type": "string", "default": "cufflinks"},  # 选择拼接软件
-            {"name": "sample_gtf", "type": "outfile", "format": "gene_structure.gtf"},# 输出的gtf文件
-            {"name": "merged.gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的合并文件
-            {"name": "tmap", "type": "outfile", "format": "assembly.tmap"},  # compare后的tmap文件
-            {"name": "refmap", "type": "outfile", "format": "assembly.tmap"},  # compare后的refmap文件
-            {"name": "combined.gtf", "type": "outfile", "format": "gene_structure.gtf"},  # compare后的combined.gtf文件
-            {"name": "new_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新转录本注释文件
-            {"name": "new_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本注释文件
+            # {"name": "sample_gtf", "type": "outfile", "format": "gene_structure.gtf"},# 输出的gtf文件
+            # {"name": "merged.gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的合并文件
+            # {"name": "tmap", "type": "outfile", "format": "assembly.tmap"},  # compare后的tmap文件
+            # {"name": "refmap", "type": "outfile", "format": "assembly.tmap"},  # compare后的refmap文件
+            # {"name": "combined.gtf", "type": "outfile", "format": "gene_structure.gtf"},  # compare后的combined.gtf文件
+            # {"name": "new_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新转录本注释文件
+            # {"name": "new_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本注释文件
         ]
         self.add_option(options)
         self.tools=[]
