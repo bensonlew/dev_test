@@ -9,7 +9,7 @@ import re
 from mbio.files.sequence.file_sample import FileSampleFile
 
 
-class AssemblyModule(Module):
+class RefrnaAssembleModule(Module):
     """
     拼接以及新转录本预测
     version v1.0.1
@@ -17,7 +17,7 @@ class AssemblyModule(Module):
     last_modify: 2016.09.09
     """
     def __init__(self, work_id):
-        super(AssemblyModule, self).__init__(work_id)
+        super(RefrnaAssembleModule, self).__init__(work_id)
         options = [
             {"name": "sample_bam_dir", "type": "infile", "format": "align.bwa.bam_dir"},  # 所有样本的bam文件夹
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
@@ -261,7 +261,7 @@ class AssemblyModule(Module):
             self.cufflinks_run()
         elif self.option("assemble_method") == "stringtie":
             self.stringtie_run()
-        super(AssemblyModule, self).run()
+        super(RefrnaAssembleModule, self).run()
 
     def get_list(self):
         gtffile_path = os.path.join(self.work_dir, "assembly_gtf.txt")
@@ -403,4 +403,4 @@ class AssemblyModule(Module):
                 [r"Statistics/new_.*\.txt$", "txt", "统计结果文件"],
 
             ])
-        super(AssemblyModule, self).end()
+        super(RefrnaAssembleModule, self).end()
