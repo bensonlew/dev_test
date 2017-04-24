@@ -7,7 +7,6 @@ import re
 import shutil
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-from biocluster.config import Config
 
 
 class SampleRenameAgent(Agent):
@@ -44,7 +43,7 @@ class SampleRenameAgent(Agent):
 
 class SampleRenameTool(Tool):
     def __init__(self, config):
-        pass
+        super(SampleRenameTool, self).__init__(config)
     
     def run(self):
         super(SampleRenameTool, self).run()
