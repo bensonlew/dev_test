@@ -18,12 +18,12 @@ class StringtieMergeAgent(Agent):
     def __init__(self, parent):
         super(StringtieMergeAgent, self).__init__(parent)
         options = [
-            {"name": "assembly_GTF_list.txt", "type": "infile", "format": "ref_rna.assembly.merge_txt"},
+            {"name": "assembly_GTF_list.txt", "type": "infile", "format": "assembly.merge_txt"},
             # 所有样本比对之后的bam文件路径列表
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
-            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因的注释文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因的注释文件
             {"name": "cpu", "type": "int", "default": 10},  # stringtie软件所分配的cpu数
-            {"name": "merged_gtf", "type": "outfile", "format": "sequence.gtf"},  # 输出的合并文件
+            {"name": "merged_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的合并文件
         ]
         self.add_option(options)
         self.step.add_steps("stringtie_merge")

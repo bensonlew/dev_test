@@ -22,11 +22,12 @@ class RefAssembly(object):
 #         self._db_name = Config().MONGODB + '_ref_rna'
 
     # @report_check
-    def add_assembly_result(self, name=None, params=None, all_gtf_path=None, merged_path=None,
-                            old_gene_trans_file_1=None,old_gene_trans_file_5=None,old_gene_trans_file_10=None,old_gene_trans_file_20=None,
-                            old_trans_exon_file_1=None,old_trans_exon_file_5=None,old_trans_exon_file_10=None,old_trans_exon_file_20=None,
-                            new_gene_trans_file_1=None,new_gene_trans_file_5=None,new_gene_trans_file_10=None,new_gene_trans_file_20=None,
-                            new_trans_exon_file_1=None,new_trans_exon_file_5=None,new_trans_exon_file_10=None,new_trans_exon_file_20=None):
+    # def add_assembly_result(self, name=None, params=None, all_gtf_path=None, merged_path=None,
+    #                         old_gene_trans_file_1=None,old_gene_trans_file_5=None,old_gene_trans_file_10=None,old_gene_trans_file_20=None,
+    #                         old_trans_exon_file_1=None,old_trans_exon_file_5=None,old_trans_exon_file_10=None,old_trans_exon_file_20=None,
+    #                         new_gene_trans_file_1=None,new_gene_trans_file_5=None,new_gene_trans_file_10=None,new_gene_trans_file_20=None,
+    #                         new_trans_exon_file_1=None,new_trans_exon_file_5=None,new_trans_exon_file_10=None,new_trans_exon_file_20=None):
+    def add_assembly_result(self, name=None, params=None, all_gtf_path=None, merged_path=None):
         # task_id = self.bind_object.sheet.id
         # project_sn = self.bind_object.sheet.project_sn
         task_id = "tsg_1000"
@@ -69,12 +70,14 @@ class RefAssembly(object):
             'seq_type': ["i", "j", "o", "u", "x"],
             'merge_path': merged_list,
             'Sample_gtf_path': all_gtf_path,
+            "type_of_trans_or_genes": ["old_gene", "old_trans", "new_gene", "new_trans"],
+            "step_of_trans_or_genes": [1, 5, 10, 20],
 
         }
         collection = self.db['sg_transcripts']
         transcript_id = collection.insert_one(insert_data).inserted_id
-        for i in range(len(files_list)):
-            collection.update({'_id': ObjectId(transcript_id)}, {'$set': {name_list[i]: dic[i]}})
+        # for i in range(len(files_list)):
+        #     collection.update({'_id': ObjectId(transcript_id)}, {'$set': {name_list[i]: dic[i]}})
         return transcript_id
 
     def add_transcripts_step(self, transcript_id, Statistics_path):
@@ -120,6 +123,53 @@ class RefAssembly(object):
             print ("成功")
             # self.bind_object.logger.info("导入步长%s信息成功!" % (Statistics_path))
 
+    def add_transcripts_relations(self, transcript_id, Statistics_path):
+
+        if not isinstance(transcript_id, ObjectId):
+            if isinstance(transcript_id, types.StringTypes):
+                transcript_id = ObjectId(transcript_id)
+            else:
+                raise Exception('transcript_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(Statistics_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(Statistics_path))
+        relation_files = os.listdir(Statistics_path)
+        dic = {}
+        data_list = []
+        name_list = []
+        for files in relation_files:
+            m = re.search(r'(\S+)\.gtf\..+_(\S+)\.txt', files)
+            if m:
+                names = m.group(1)
+                steps = m.group(2)
+                name_list.append(names)
+                files_with_path = Statistics_path + "/" + files
+                with open(files_with_path, "r") as fr:
+                    dic[(names, steps)] = []
+                    for line in fr:
+                        gene_trans_dic = dict()
+                        lines = line.strip().split("\t")
+                        gene_trans_dic[lines[0]] = lines[1]
+                        dic[(names, steps)].append(gene_trans_dic)
+                    data = [
+                        ('transcripts_id', transcript_id),
+                        ('type_of_trans_or_genes', names),
+                        ('step_of_trans_or_genes', int(steps)),
+                        ('data_list', dic[(names, steps)]),
+                    ]
+                    data = SON(data)
+                    data_list.append(data)
+        try:
+            collection = self.db['sg_transcripts_relations']
+            collection.insert_many(data_list)
+            collection = self.db['sg_transcripts']
+            collection.update({'_id': ObjectId(transcript_id)}, {'$set': {'type_of_trans_or_genes': name_list}})
+        except Exception:
+            print ("失败")
+            # self.bind_object.logger.error("导入class_code信息：%s失败!" % (code_file))
+        else:
+            print ("成功")
+            # self.bind_object.logger.info("导入class_code信息：%s成功!" % (code_file))
+
     def add_transcripts_seq_type(self, transcript_id, code_file):
         if not isinstance(transcript_id, ObjectId):
             if isinstance(transcript_id, types.StringTypes):
@@ -147,7 +197,7 @@ class RefAssembly(object):
             collection = self.db['sg_transcripts_seq_type']
             collection.insert_many(data_list)
             collection = self.db['sg_transcripts']
-            collection.update({'_id': ObjectId(transcript_id)},  {'$set':{'seq_type': code_list}})
+            collection.update({'_id': ObjectId(transcript_id)}, {'$set': {'seq_type': code_list}})
         except Exception:
             print ("失败")
             # self.bind_object.logger.error("导入class_code信息：%s失败!" % (code_file))
@@ -179,24 +229,26 @@ if __name__ == "__main__":
     new_trans_exon_file_10 = '/mnt/ilustre/users/sanger-dev/workspace/20170411/Single_assembly_module_tophat_stringtie_zebra_2/Assembly/output/Statistics/new_transcripts.gtf.exon_10.txt'
     new_trans_exon_file_20 = '/mnt/ilustre/users/sanger-dev/workspace/20170411/Single_assembly_module_tophat_stringtie_zebra_2/Assembly/output/Statistics/new_transcripts.gtf.exon_20.txt'
 
-    transcript_id = a.add_assembly_result(all_gtf_path=all_gtf_path, merged_path=merged_path,
-                                          old_gene_trans_file_1=old_gene_trans_file_1,
-                                          old_gene_trans_file_5=old_gene_trans_file_5,
-                                          old_gene_trans_file_10=old_gene_trans_file_10,
-                                          old_gene_trans_file_20=old_gene_trans_file_20,
-                                          old_trans_exon_file_1=old_trans_exon_file_1,
-                                          old_trans_exon_file_5=old_trans_exon_file_5,
-                                          old_trans_exon_file_10=old_trans_exon_file_10,
-                                          old_trans_exon_file_20=old_trans_exon_file_20,
-                                          new_gene_trans_file_1=new_gene_trans_file_1,
-                                          new_gene_trans_file_5=new_gene_trans_file_5,
-                                          new_gene_trans_file_10=new_gene_trans_file_10,
-                                          new_gene_trans_file_20=new_gene_trans_file_20,
-                                          new_trans_exon_file_1=new_trans_exon_file_1,
-                                          new_trans_exon_file_5=new_trans_exon_file_5,
-                                          new_trans_exon_file_10=new_trans_exon_file_10,
-                                          new_trans_exon_file_20=new_trans_exon_file_20)
+    # transcript_id = a.add_assembly_result(all_gtf_path=all_gtf_path, merged_path=merged_path,
+    #                                       old_gene_trans_file_1=old_gene_trans_file_1,
+    #                                       old_gene_trans_file_5=old_gene_trans_file_5,
+    #                                       old_gene_trans_file_10=old_gene_trans_file_10,
+    #                                       old_gene_trans_file_20=old_gene_trans_file_20,
+    #                                       old_trans_exon_file_1=old_trans_exon_file_1,
+    #                                       old_trans_exon_file_5=old_trans_exon_file_5,
+    #                                       old_trans_exon_file_10=old_trans_exon_file_10,
+    #                                       old_trans_exon_file_20=old_trans_exon_file_20,
+    #                                       new_gene_trans_file_1=new_gene_trans_file_1,
+    #                                       new_gene_trans_file_5=new_gene_trans_file_5,
+    #                                       new_gene_trans_file_10=new_gene_trans_file_10,
+    #                                       new_gene_trans_file_20=new_gene_trans_file_20,
+    #                                       new_trans_exon_file_1=new_trans_exon_file_1,
+    #                                       new_trans_exon_file_5=new_trans_exon_file_5,
+    #                                       new_trans_exon_file_10=new_trans_exon_file_10,
+    #                                       new_trans_exon_file_20=new_trans_exon_file_20)
+    transcript_id = a.add_assembly_result(all_gtf_path=all_gtf_path, merged_path=merged_path)
     Statistics_path = '/mnt/ilustre/users/sanger-dev/workspace/20170411/Single_assembly_module_tophat_stringtie_zebra_2/Assembly/output/Statistics'
     a.add_transcripts_step(transcript_id=transcript_id, Statistics_path=Statistics_path)
+    a.add_transcripts_relations(transcript_id=transcript_id, Statistics_path=Statistics_path)
     code_files = '/mnt/ilustre/users/sanger-dev/workspace/20170411/Single_assembly_module_tophat_stringtie_zebra_2/Assembly/output/Statistics/code_num.txt'
     a.add_transcripts_seq_type(transcript_id=transcript_id, code_file=code_files)
