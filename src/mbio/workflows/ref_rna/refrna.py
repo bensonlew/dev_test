@@ -23,15 +23,15 @@ class RefrnaWorkflow(Workflow):
             # 基因组结构完整程度，True表示基因组结构注释文件可以支持rna编辑与snp分析
             {"name": "assemble_or_not", "type": "bool", "default": True},
             {"name": "blast_method", "type" :"string", "default": "diamond"},
-            {"name": "genome_structure_file", "type": "infile", "format": "sequence.gtf, sequence.gff3"},
+            {"name": "genome_structure_file", "type": "infile", "format": "gene_structure.gtf, gene_structure.gff3"},
             # 基因组结构注释文件，可上传gff3或gtf
             {"name": "strand_specific", "type": "bool", "default": False},
             # 当为PE测序时，是否有链特异性, 默认是False, 无特异性
             {"name": "strand_dir", "type": "string", "default": "None"},
             # 当链特异性时为True时，正义链为forward，反义链为reverse
             {"name": "is_duplicate", "type": "bool", "default": True},  # 是否有生物学重复
-            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},
+            {"name": "group_table", "type": "infile", "format": "sample.group_table"},  # 分组文件
+            {"name": "control_file", "type": "infile", "format": "sample.control_table"},
             # 对照表
 
             {"name": "sample_base", "type": "bool", "default": False},  # 是否使用样本库
@@ -96,28 +96,28 @@ class RefrnaWorkflow(Workflow):
         self.set_options(self._sheet.options())
         self.json_path = self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json"
         self.json_dict = self.get_json()
-        self.filecheck = self.add_tool("ref_rna.filecheck.filecheck_ref")
-        self.gs = self.add_tool("ref_rna.gene_structure.genome_structure")
-        self.qc = self.add_module("denovo_rna.qc.quality_control")
-        self.qc_stat_before = self.add_module("denovo_rna.qc.qc_stat")
-        self.qc_stat_after = self.add_module("denovo_rna.qc.qc_stat")
-        self.mapping = self.add_module("ref_rna.mapping.rnaseq_mapping")
-        self.altersplicing = self.add_module("ref_rna.gene_structure.rmats")
+        self.filecheck = self.add_tool("rna.filecheck_ref")
+        self.gs = self.add_tool("gene_structure.genome_structure")
+        self.qc = self.add_module("sequence.hiseq_qc")
+        self.qc_stat_before = self.add_module("sequence.hiseq_reads_stat")
+        self.qc_stat_after = self.add_module("sequence.hiseq_reads_stat")
+        self.mapping = self.add_module("rna.rnaseq_mapping")
+        self.altersplicing = self.add_module("gene_structure.rmats")
         self.map_qc = self.add_module("denovo_rna.mapping.map_assessment")
-        self.map_gene = self.add_module("ref_rna.mapping.rnaseq_mapping")
-        self.assembly = self.add_module("ref_rna.assembly.assembly")
-        self.exp = self.add_module("ref_rna.express.express")
+        self.map_gene = self.add_module("rna.rnaseq_mapping")
+        self.assembly = self.add_module("rna.assembly")
+        self.exp = self.add_module("rna.express")
         self.exp_diff_trans = self.add_module("denovo_rna.express.diff_analysis")
         self.exp_diff_gene = self.add_module("denovo_rna.express.diff_analysis")
-        self.snp_rna = self.add_module("ref_rna.gene_structure.snp_rna")
-        self.seq_abs = self.add_tool("ref_rna.annotation.transcript_abstract")
-        self.new_abs = self.add_tool("ref_rna.annotation.transcript_abstract")
-        self.annotation = self.add_module('ref_rna.annotation.ref_annotation')
-        self.new_annotation = self.add_module('ref_rna.annotation.ref_annotation')
-        self.network = self.add_module("ref_rna.protein_regulation.ppinetwork_analysis")
-        self.tf = self.add_tool("ref_rna.protein_regulation.TF_predict")
-        self.merge_trans_annot = self.add_tool("ref_rna.annotation.merge_annot")
-        self.merge_gene_annot = self.add_tool("ref_rna.annotation.merge_annot")
+        self.snp_rna = self.add_module("gene_structure.snp_rna")
+        self.seq_abs = self.add_tool("annotation.transcript_abstract")
+        self.new_abs = self.add_tool("annotation.transcript_abstract")
+        self.annotation = self.add_module('annotation.ref_annotation')
+        self.new_annotation = self.add_module('annotation.ref_annotation')
+        self.network = self.add_module("protein_regulation.ppinetwork_analysis")
+        self.tf = self.add_tool("protein_regulation.TF_predict")
+        self.merge_trans_annot = self.add_tool("annotation.merge_annot")
+        self.merge_gene_annot = self.add_tool("annotation.merge_annot")
         self.ref_genome = ""
         self.geno_database = ["cog"]  # 用于参考基因组提取出的序列的注释
         if not self.option("go_upload_file").is_set:
@@ -182,7 +182,7 @@ class RefrnaWorkflow(Workflow):
         }
         if self.option("ref_genome") == "customer_mode":  # 如果是自定义模式,须用户上传基因组
             # self.logger.info(dir(self.option('genome_structure_file')))
-            if self.option('genome_structure_file').format == "sequence.gff3":
+            if self.option('genome_structure_file').format == "gene_structure.gff3":
                 self.gff = self.option('genome_structure_file').prop["path"]
                 opts.update({
                     "gff": self.gff,
@@ -461,6 +461,7 @@ class RefrnaWorkflow(Workflow):
         self.annotation.run()
 
     def run_qc_stat(self, event):
+
         if event['data']: 
             self.qc_stat_after.set_options({
                 'fastq_dir': self.qc.option('sickle_dir'),

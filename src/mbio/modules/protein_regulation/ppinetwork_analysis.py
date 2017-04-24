@@ -12,14 +12,14 @@ class PpinetworkAnalysisModule(Module):
         super(PpinetworkAnalysisModule, self).__init__(work_id)
         self.step.add_steps('ppinetwork_map', 'ppinetwork_predict', 'ppinetwork_topology')
         options = [
-            {"name": "diff_exp_gene", "type": "infile", "format": "ref_rna.protein_regulation.txt"},
+            {"name": "diff_exp_gene", "type": "infile", "format": "rna.ppi"},
             {"name": "species", "type": "int", "default": 9606},
             {"name": "combine_score", "type": "int", "default": 300}
         ]
         self.add_option(options)
-        self.ppinetwork_map = self.add_tool("ref_rna.protein_regulation.ppinetwork_map")
-        self.ppinetwork_predict = self.add_tool("ref_rna.protein_regulation.ppinetwork_predict")
-        self.ppinetwork_topology = self.add_tool("ref_rna.protein_regulation.ppinetwork_topology")
+        self.ppinetwork_map = self.add_tool("protein_regulation.ppinetwork_map")
+        self.ppinetwork_predict = self.add_tool("protein_regulation.ppinetwork_predict")
+        self.ppinetwork_topology = self.add_tool("protein_regulation.ppinetwork_topology")
         self._end_info = 0
 
     def check_options(self):

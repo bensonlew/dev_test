@@ -62,7 +62,7 @@ class SLURM(Job):
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         text = process.communicate()[0]
         if re.match(r'Maximum number', text):
-            self.agent.logger.warn("到达最大任务书，30秒后尝试再次投递!")
+            self.agent.logger.warn("到达最大任务数，30秒后尝试再次投递!")
             gevent.sleep(30)
             self.submit()
         else:

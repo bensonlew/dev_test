@@ -52,11 +52,11 @@ else:
 
     def kill_sub_service(signum, frame):
         write_log("关闭进程管理器...")
-        os.system("kill -9 %s" % server.manager_server.pid)
+        os.system("kill %s" % server.manager_server.pid)
         if os.path.exists(process_pid_file):
             os.remove(process_pid_file)
         write_log("关闭API LOG监听...")
-        os.system("kill -9 %s" % server.api_log_server.pid)
+        os.system("kill %s" % server.api_log_server.pid)
         if os.path.exists(log_pid_file):
             os.remove(log_pid_file)
         write_log("关闭WPM主服务监听...")

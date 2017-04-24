@@ -8,7 +8,7 @@ from biocluster.config import Config
 import os
 import re
 import shutil
-from mbio.packages.denovo_rna.express.sort_pval import *
+from mbio.packages.denovo_rna.express.pvalue_sort import *
 
 
 class GoEnrichRegulateWorkflow(Workflow):
@@ -26,6 +26,7 @@ class GoEnrichRegulateWorkflow(Workflow):
             {"name": "go2level", "type": "string", "default": "none"},
             {"name": "pval", "type": "string", "default": "0.05"},                        # 显著性水平
             {"name": "method", "type": "string", "default": "bonferroni,sidak,holm,fdr"}, # 多重校正方法
+            {"name": "regulate", "type": "string", "default": "all"},
             {"name": "go_enrich_id", "type": "string"},
             {"name": "go_regulate_id", "type": "string"},
             {"name": "sort_id", "type": "string"},
@@ -34,7 +35,6 @@ class GoEnrichRegulateWorkflow(Workflow):
             {"name": "express_diff_id", "type": "string"},
             {"name": "name", "type": "string"},
             {"name": "compare_name", "type": "string"},
-            {"name": "compare", "type": "string"},
             {"name": "submit_location", "type": "string"},
         ]
         self.add_option(options)
@@ -50,8 +50,15 @@ class GoEnrichRegulateWorkflow(Workflow):
             lines = f.readlines()
             for line in lines[1:]:
                 line = line.strip().split('\t')
-                if float(line[6]) < 0.05:
-                    w.write(line[0] + '\n')
+                if self.option("regulate") == "all":
+                    if float(line[6]) < 0.05:
+                        w.write(line[0] + '\n')
+                if self.option("regulate") == "up":
+                    if float(line[6]) < 0.05 and line[9] == "up":
+                        w.write(line[0] + '\n')
+                if self.option("regulate") == "down":
+                    if float(line[6]) < 0.05 and line[9] == "down":
+                        w.write(line[0] + '\n')
         options = {
             "diff_list": diff_list,
             "all_list": self.option("all_list"),
@@ -93,37 +100,44 @@ class GoEnrichRegulateWorkflow(Workflow):
                 enrich_path = os.path.join(self.output_dir, f)
             if re.search(r"GO_regulate.*$", f):
                 regulate_path = os.path.join(self.output_dir, f)
-        stat_path = os.path.join(self.output_dir, 'go_pval_sort.xls')
+        stat_path = os.path.join(self.output_dir, 'enrich_regulate_stat.xls')
+        pvalue_path = os.path.join(self.output_dir, 'go_pvalue_sort.xls')
         if os.path.exists(enrich_path) and os.path.exists(regulate_path):
-            go_sort_pval(method=method, enrich_path=enrich_path, regulate_path=regulate_path, stat_path=stat_path)
+            go_sort_pval(enrich_path=enrich_path, regulate_path=regulate_path, stat_path=stat_path, pvalue_path=pvalue_path)
 
     def set_db(self):
         """
         保存结果表到mongo数据库中
         """
         self.logger.info("set_db")
-        api_enrich_reg = self.api.denovo_go_enrich_regulate
+        api_enrich = self.api.denovo_go_enrich
+        api_regulate = self.api.denovo_go_regulate
+        api_pvalue = self.api.denovo_go_pval_sort
         go_regulate_dir, go_enrich_dir, go_sort_dir, go_graph_dir = '', '', '', ''
-        for f in os.listdir(self.output_dir):
-            if re.search(r"go_enrich_.*$", f):
-                go_enrich_dir = self.output_dir + '/' + f
-            if re.search(r"go_lineage.*$", f):
-                go_graph_dir = self.output_dir + '/' + f
-            if re.search(r"GO_regulate.xls$", f):
-                go_regulate_dir = self.output_dir + '/' + f
-            if re.search(r"enrich_regulate_stat.xls$", f):
-                go_sort_dir = self.output_dir + '/' + f
-        if os.path.exists(go_enrich_dir):
-            api_enrich_reg.add_go_enrich_detail(go_enrich_id=self.option("go_enrich_id"), go_enrich_dir=go_enrich_dir)
-            #api_enrich_reg.add_go_enrich(name=None, params=params,  go_graph_dir=go_graph_dir, go_enrich_dir=go_enrich_dir)
-        if os.path.exists(go_regulate_dir):
-            api_enrich_reg.add_go_regulate_detail(go_regulate_id=self.option("go_regulate_id"), go_regulate_dir=go_regulate_dir)
-            #api_enrich_reg.add_go_regulate(name=None, params=params, go_regulate_dir=go_regulate_dir)
-        if os.path.exists(go_sort_dir):
-            api_enrich_reg.add_go_pval_sort_detail(sort_id=self.option("sort_id"), method=self.option("method"), go_pval_sort=go_sort_dir)
-            #api_enrich_reg.add_go_pval_sort(name=None, params=params, method=method, go_pval_sort=go_sort_dir)
-        if os.path.exists(go_graph_dir):
-            api_enrich_reg.update_directed_graph(go_enrich_id=self.option("go_enrich_id"), go_graph_dir=go_graph_dir)
+        if self.option("analysis_type") == "enrich":
+            for f in os.listdir(self.enrich_output):
+                if re.search(r"go_enrich_.*$", f):
+                    go_enrich_dir = self.enrich_output + '/' + f
+                if re.search(r"go_lineage.*$", f):
+                    go_graph_dir = self.enrich_output + '/' + f
+            api_enrich.add_go_enrich_detail(go_enrich_id=self.option("go_enrich_id"), go_enrich_dir=go_enrich_dir)
+            if os.path.exists(go_graph_dir):
+                api_enrich.update_directed_graph(go_enrich_id=self.option("go_enrich_id"), go_graph_dir=go_graph_dir)
+        if self.option("analysis_type") == "regulate":
+            for f in os.listdir(self.regulate_output):
+                if re.search(r"GO_regulate.xls$", f):
+                    go_regulate_dir = self.regulate_output + '/' + f
+            api_regulate.add_go_regulate_detail(go_regulate_id=self.option("go_regulate_id"), go_regulate_dir=go_regulate_dir)
+        if self.option("analysis_type") == "both":
+            for f in os.listdir(self.output_dir):
+                if re.search(r"go_pvalue_sort.xls$", f):
+                    go_sort_dir = self.output_dir + '/' + f
+            api_pvalue.add_pvalue_detail(sort_id=self.option("sort_id"), method=self.option("method"), pval_sort=go_sort_dir)
+
+    def rely_fun(self):
+        self.set_output()
+        self.pval_sort()
+        self.set_db()
         self.end()
 
     def run(self):
@@ -136,27 +150,25 @@ class GoEnrichRegulateWorkflow(Workflow):
             self.go_regulate.on("end", self.set_db)
             self.run_go_regulate()
         if self.option("analysis_type") == "both":
-            self.on_rely([self.go_enrich, self.go_regulate], self.set_output)
-            self.on_rely([self.go_enrich, self.go_regulate], self.pval_sort)
-            self.on_rely([self.go_enrich, self.go_regulate], self.set_db)
+            self.on_rely([self.go_enrich, self.go_regulate], self.rely_fun)
             self.run_go_enrich()
             self.run_go_regulate()
         super(GoEnrichRegulateWorkflow, self).run()
 
-    def end(self):    #########
+    def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         relpath = [
             [".", "", "结果输出目录"],
             [r"go_enrich_.*", "xls", "go富集结果文件"],
             [r"go_lineage.*", "png", "go富集有向无环图"],
             ["GO_regulate", "xls", "基因上下调在GO2level层级分布情况表"],
-            ["enrich_regulate_stat", "xls", "go富集调控统计表"]
+            ["go_pvalue_sort", "xls", "go富集调控统计排序表"]
         ]
         result_dir.add_regexp_rules([
             [r"go_enrich_.*", "xls", "go富集结果文件"],
             [r"GO_regulate.xls", "xls", "上下调基因go注释"],
             [r"go_lineage.*", "png", "go富集有向无环图"],
-            ["enrich_regulate_stat", "xls", "go富集调控统计表"]
+            ["go_pvalue_sort", "xls", "go富集调控统计排序表"]
         ])
         result_dir.add_relpath_rules(relpath)
         super(GoEnrichRegulateWorkflow, self).end()

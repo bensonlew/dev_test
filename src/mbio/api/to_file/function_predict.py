@@ -1,17 +1,9 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zengjing'
 import os
-import re
 import json
-from types import StringTypes
 from biocluster.config import Config
 from bson.objectid import ObjectId
-from collections import defaultdict
-import pymongo
-
-
-client = Config().mongo_client
-db = client[Config().MONGODB]
 
 
 def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
@@ -19,6 +11,7 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
     按分组信息(group_detail)获取OTU表
     使用时确保你的workflow的option里group_detail这个字段
     """
+    db = Config().mongo_client[Config().MONGODB]
     table_path = os.path.join(dir_path, "otu_table.xls")
     rep_path = os.path.join(dir_path, "otu_reps.fasta")
     group_path = os.path.join(dir_path, "group_detail.txt")
@@ -37,9 +30,11 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
         try:
             table_dict = json.loads(group_detail)
         except Exception:
-            raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+            raise Exception(
+                "生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
     if not isinstance(table_dict, dict):
-        raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+        raise Exception(
+            "生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
     sample_table = db['sg_specimen']
     group_dict = {}
     for k in table_dict:
@@ -47,7 +42,8 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
         for sp_id in table_dict[k]:
             sp = sample_table.find_one({"_id": ObjectId(sp_id)})
             if not sp:
-                raise Exception("group_detal中的样本_id:{}在样本表{}中未找到".format(sp_id, 'sg_specimen'))
+                raise Exception(
+                    "group_detal中的样本_id:{}在样本表{}中未找到".format(sp_id, 'sg_specimen'))
             else:
                 samples.append(sp["specimen_name"])
                 group.append(sp["specimen_name"])
@@ -81,7 +77,7 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
                     for s in group_dict[g]:
                         otu += col[s]
                         sample_count += 1
-                    table_line += "%s\t" % (float(otu)/sample_count)
+                    table_line += "%s\t" % (float(otu) / sample_count)
             if group_method == "middle":
                 for g in group_dict:
                     otu_list = []
@@ -91,9 +87,10 @@ def export_otu_table_by_detail(data, option_name, dir_path, bind_obj=None):
                     otu_list = sorted(otu_list)
                     length = len(otu_list)
                     if (length % 2) == 1:
-                        otu = otu_list[length/2]
+                        otu = otu_list[length / 2]
                     else:
-                        otu = float(otu_list[length/2] + otu_list[length/2 - 1])/2
+                        otu = float(otu_list[length / 2] +
+                                    otu_list[length / 2 - 1]) / 2
                     table_line += "%s\t" % otu
             f.write("%s\n" % table_line)
             line = ">%s\n" % col["otu"]

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
-# last_modify_date:2016.12.16
+# last_modify_date:2017.02.14
 
 from Bio import SeqIO
 import numpy as np
@@ -95,14 +95,24 @@ def stat_info(trinity_info, gene_path, stat_path, len_dir_path, length, full_nam
             with open("{}/{}_length.distribut.txt".format(len_dir_path, one), "wb") as l:
                 l.write('length\tgene_num\tgene_per\ttranscript_num\ttranscript_per\n')
                 start = 1
-                steps = sorted(gene_len_distri[one].keys())
-                for i in steps:
-                    l.write('{}-{}\t{}\t{}\t{}\t{}\n'.format(start, i, gene_len_distri[one][i], '%0.4g' % (gene_len_distri[one][i] * 100.0 / gene_seq_num), tran_len_distri[one][i], '%0.4g' % (tran_len_distri[one][i] * 100.0 / tran_seq_num)))
+                gene_steps = sorted(gene_len_distri[one].keys())
+                tran_steps = sorted(tran_len_distri[one].keys())
+                for i in range(one, tran_steps[-1] + 1, one):
+                    if i in tran_steps:
+                        tnum = tran_len_distri[one][i]
+                        tper = '%0.4g' % (tran_len_distri[one][i] * 100.0 / tran_seq_num)
+                    else:
+                        tnum = 0
+                        tper = 0
+                    if i in gene_steps:
+                        gnum = gene_len_distri[one][i]
+                        gper = '%0.4g' % (gene_len_distri[one][i] * 100.0 / gene_seq_num)
+                    else:
+                        gnum = 0
+                        gper = 0
+                        # l.write('{}-{}\t{}\t{}\t{}\t{}\n'.format(start, i, gene_len_distri[one][i], '%0.4g' % (gene_len_distri[one][i] * 100.0 / gene_seq_num), tran_len_distri[one][i], '%0.4g' % (tran_len_distri[one][i] * 100.0 / tran_seq_num)))
+                    l.write('{}-{}\t{}\t{}\t{}\t{}\n'.format(start, i, gnum, gper, tnum, tper))
                     start = i + 1
-                # start = 1
-                # for i in range(one, gene_len_stat['max'][0] + one, one):
-                #     l.write('{}-{}\t{}\t{}\t{}\t{}\n'.format(start, i, gene_len_distri[one][i], '%0.4g' % (gene_len_distri[one][i] * 100.0 / gene_seq_num), tran_len_distri[one][i], '%0.4g' % (tran_len_distri[one][i] * 100.0 / tran_seq_num)))
-                #     start += i
     return True
 
 
@@ -150,4 +160,4 @@ def len_stat(len_list, base_num):
     return stat_list
 
 # a = get_trinity_info('C:\Users\ping.qiu.MAJORBIO\Desktop\output\\Trinity.fasta')
-# stat_info(a, 'C:\Users\ping.qiu.MAJORBIO\Desktop\output\\gene.fasta', 'C:\Users\ping.qiu.MAJORBIO\Desktop\output\\trinity.fasta.stat.xls', 'C:\Users\ping.qiu.MAJORBIO\Desktop\output', '100,200,400', 'C:\Users\ping.qiu.MAJORBIO\Desktop\output\\gene_full_name.txt')
+# stat_info(a, 'C:\Users\ping.qiu.MAJORBIO\Desktop\output\\gene.fasta', 'C:\Users\ping.qiu.MAJORBIO\Desktop\output\\trinity.fasta.stat.xls', 'C:\Users\ping.qiu.MAJORBIO\Desktop\output', '100,400', 'C:\Users\ping.qiu.MAJORBIO\Desktop\output\\gene_full_name.txt')

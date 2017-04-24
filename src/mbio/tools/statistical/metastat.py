@@ -303,8 +303,8 @@ class MetastatAgent(Agent):
         设置所需资源
         :return:
         """
-        self._cpu = 10
-        self._memory = ''
+        self._cpu = 2
+        self._memory = '4G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -374,7 +374,7 @@ class MetastatTool(Tool):
             command = self.add_command("est_cmd{}".format(i), cmd).run()
             i += 1
             self.wait(command)
-            if command.return_code == 0:
+            if command.return_code == 0 or command.return_code is None:
                 self.logger.info("est_ttest运行完成")
             else:
                 self.set_error("est_ttest运行出错!")

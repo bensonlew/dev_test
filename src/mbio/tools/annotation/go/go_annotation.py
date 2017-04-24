@@ -65,6 +65,8 @@ class GoAnnotationAgent(Agent):
             ["./blast2go.annot", "annot", "Go annotation based on blast output"],
             ["./query_gos.list", "list", "Merged Go annotation"],
             ["./go1234level_statistics.xls", "xls", "Go annotation on 4 levels"],
+            ["./go123level_statistics.xls", "xls", "Go annotation on 3 levels"],
+            ["./go12level_statistics.xls", "xls", "Go annotation on 2 levels"],
             ["./go2level.xls", "xls", "Go annotation on level 2"],
             ["./go3level.xls", "xls", "Go annotation on level 3"],
             ["./go4level.xls", "xls", "Go annotation on level 4"]
@@ -77,6 +79,8 @@ class GoAnnotationTool(Tool):
     def __init__(self, config):
         super(GoAnnotationTool, self).__init__(config)
         self._version = "1.0"
+        self.b2g_user = "biocluster102"
+        self.b2g_password = "sanger-dev-123"
 
     def run(self):
         super(GoAnnotationTool, self).run()
@@ -88,8 +92,6 @@ class GoAnnotationTool(Tool):
         cmd = '/program/sun_jdk1.8.0/bin/java -Xmx15g -cp ' + self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/*:'
         cmd += self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/ext/*: es.blast2go.prog.B2GAnnotPipe'
         cmd += ' -in {} -prop {}/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out {}'.format(self.blast_nr_out, self.config.SOFTWARE_DIR, self.work_dir + '/blast2go')
-        # cmd = "java -Xmx500m -cp /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/*:/mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/ext/*:\
-        #  es.blast2go.prog.B2GAnnotPipe -in %s -prop /mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out %s" % (self.option("blastout").prop['path'], self.work_dir + '/blast2go')
         self.logger.info('运行b2g程序')
         self.logger.info(cmd)
         b2g = self.add_command('b2g', cmd)
@@ -115,13 +117,6 @@ class GoAnnotationTool(Tool):
         # Config.DB_HOST,Config.DB_USER,Config.DB_PASSWD
         self.logger.info("运行mergeGO.py")
         self.logger.info(cmd1)
-
-        # gomerge_command=self.add_command('gomerge',cmd1)
-        # gomerge_command.run()
-        # self.wait()
-
-        # if gomerge_command.return_code==0:
-        # self.logger.info("运行mergeGO.py完成")
         try:
             subprocess.check_output(cmd1, shell=True)
             if os.path.exists(self.output_dir + '/GO.list'):
@@ -131,8 +126,6 @@ class GoAnnotationTool(Tool):
             os.link(self.work_dir + '/GO.list',
                     self.output_dir + '/query_gos.list')
             self.option('golist_out', self.output_dir + '/query_gos.list')
-            # self.run_annotation
-        # else:
         except subprocess.CalledProcessError:
             self.set_error('运行mergeGO.py出错')
         self.run_annotation()
@@ -141,24 +134,18 @@ class GoAnnotationTool(Tool):
         cmd2 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/goAnnot.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
         cmd2 += ' %s %s %s %s' % (
-            self.work_dir + '/GO.list', 'localhost', Config().DB_USER, Config().DB_PASSWD)  # 10.100.203.193
+            self.work_dir + '/GO.list', 'localhost', self.b2g_user, self.b2g_password)  # 10.100.203.193
         self.logger.info("运行goAnnot.py")
         self.logger.info(cmd2)
-        '''
-        annotation_command=self.add_command('annotation',cmd2)
-        annotation_command.run()
-        self.wait()
-        if annotation_command.return_code==0:
-        '''
         try:
             subprocess.check_output(cmd2, shell=True)
             self.logger.info("运行goAnnot.py完成")
-            if os.path.exists(self.output_dir + '/go1234level_statistics.xls'):
-                os.remove(self.output_dir + '/go1234level_statistics.xls')
-            os.link(self.work_dir + '/go1234level_statistics.xls',
-                    self.output_dir + '/go1234level_statistics.xls')
-            # self.end()
-            # self.run_gosplit
+            outfiles = ['go1234level_statistics.xls', 'go123level_statistics.xls', 'go12level_statistics.xls']
+            for item in outfiles:
+                linkfile = self.output_dir + '/' + item
+                if os.path.exists(linkfile):
+                    os.remove(linkfile)
+                os.link(self.work_dir + '/' + item, linkfile)
         except subprocess.CalledProcessError:
             self.set_error("运行goAnnot.py出错")
         self.run_gosplit()
@@ -169,17 +156,10 @@ class GoAnnotationTool(Tool):
         cmd3 += ' %s' % self.work_dir + '/go_detail.xls'
         self.logger.info("运行goSplit.py")
         self.logger.info(cmd3)
-        '''
-        split_command=self.add_command('split',cmd3)
-        split_command.run()
-        self.wait()
-        if split_command.return_code==0:
-        '''
         try:
             subprocess.check_output(cmd3, shell=True)
             self.logger.info("运行goSplit.py完成")
             outfiles = ['go2level.xls', 'go3level.xls', 'go4level.xls']
-            # linkfile
             for item in outfiles:
                 linkfile = self.output_dir + '/' + item
                 if os.path.exists(linkfile):

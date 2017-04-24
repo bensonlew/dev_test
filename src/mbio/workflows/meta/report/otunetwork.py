@@ -2,7 +2,6 @@
 # __author__ = 'xuanhongdong'
 from biocluster.workflow import Workflow
 import os
-from mbio.api.to_file.meta import *
 from collections import defaultdict
 
 

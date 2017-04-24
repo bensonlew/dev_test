@@ -18,10 +18,10 @@ class TranscriptAbstractAgent(Agent):
         super(TranscriptAbstractAgent, self).__init__(parent)
         options = [
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 参考基因组fasta文件
-            {"name": "ref_genome_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因组gtf文件
-            {"name": "ref_genome_gff", "type": "infile", "format": "sequence.gff3"},  # 参考基因组gff文件
+            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件
+            {"name": "ref_genome_gff", "type": "infile", "format": "gene_structure.gff3"},  # 参考基因组gff文件
             {"name": "query", "type": "outfile", "format": "sequence.fasta"},  # 输出做注释的转录本序列
-            {"name": "gene_file", "type": "outfile", "format": "denovo_rna.express.gene_list"}  # 输出最长转录本
+            {"name": "gene_file", "type": "outfile", "format": "rna.gene_list"}  # 输出最长转录本
         ]
         self.add_option(options)
         self.step.add_steps("Transcript")
@@ -66,8 +66,8 @@ class TranscriptAbstractTool(Tool):
         command = self.add_command("gffread", cmd)
         command.run()
         self.wait()
-        output1 = os.path.join(self.work_dir, "exons.fa")
-        self.option('query', output1)
+        # output1 = os.path.join(self.work_dir, "exons.fa")
+        # self.option('query', output1)
 
     def run_long_transcript(self):
         exon_path = os.path.join(self.work_dir, "exons.fa")

@@ -19,7 +19,7 @@ class MapAssessmentModule(Module):
         options = [
             {"name": "bed", "type": "infile", "format": "gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
-            {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 基因表达量表
+            {"name": "fpkm", "type": "infile", "format": "rna.express_matrix"},  # 基因表达量表
             {"name": "analysis", "type": "string", "default": "saturation,stat,distribution,coverage,chr_stat"},  # 分析类型
             {"name": "quality_satur", "type": "int", "default": 30},  # 测序饱和度分析质量值
             {"name": "quality_dup", "type": "int", "default": 30},  # 冗余率分析质量值

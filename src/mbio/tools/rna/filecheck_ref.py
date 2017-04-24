@@ -4,7 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.files.sequence.fastq import FastqFile
-from mbio.files.sequence.gff3 import Gff3File
+from mbio.files.gene_structure.gff3 import Gff3File
 from mbio.files.sequence.file_sample import FileSampleFile
 from biocluster.config import Config
 import os
@@ -26,15 +26,15 @@ class FilecheckRefAgent(Agent):
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "ref_genome", "type": "string", "default": "customer_mode"},  # 参考基因组
             {"name": "ref_genome_custom", "type":"infile", "format": "sequence.fasta"},
-            {"name": "gff", "type": "infile", "format": "sequence.gff3"},
+            {"name": "gff", "type": "infile", "format": "gene_structure.gff3"},
             # Ensembl上下载的gff格式文件
-            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "group_table", "type": "infile", "format": "sample.group_table"},
             # 有生物学重复的时候的分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},
+            {"name": "control_file", "type": "infile", "format": "sample.control_table"},
             # 对照组文件，格式同分组文件
-            {"name": "in_gtf", "type": "infile", "format": "sequence.gtf"},
-            {"name": "gtf", "type": "outfile", "format": "sequence.gtf"},
-            {"name": "bed", "type": "outfile", "format": "denovo_rna.gene_structure.bed"},
+            {"name": "in_gtf", "type": "infile", "format": "gene_structure.gtf"},
+            {"name": "gtf", "type": "outfile", "format": "gene_structure.gtf"},
+            {"name": "bed", "type": "outfile", "format": "gene_structure.bed"},
             {"name": "genome_status", "type": "bool", "default": True}
         ]
         self.add_option(options)
@@ -62,7 +62,7 @@ class FilecheckRefAgent(Agent):
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError("测试类型只能是PE或者SE")
         if not self.option("gff").is_set:
-            if not self.option("gtf").is_set:
+            if not self.option("in_gtf").is_set:
                 raise OptionError("gff和gtf中必须有一个作为参数传入")
 
     def set_resource(self):

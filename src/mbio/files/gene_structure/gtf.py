@@ -8,7 +8,7 @@ import subprocess
 from biocluster.iofile import File
 from collections import defaultdict
 from biocluster.config import Config
-from biocluster.coregex.exceptions import FileError
+from biocluster.core.exceptions import FileError
 
 '''
 gtf:gene transefer format
@@ -24,6 +24,21 @@ def check_seq_type(seq_type):
 
 def dict_factory():
     return defaultdict(dict_factory)
+
+def get_gene_list(gtf):
+    gene_list = {}
+    with open(gtf, "r") as file:
+        for line in file:
+            line = line.strip()
+            tmp = line.split("\t")
+            # print tmp[-1]
+            m = re.match("transcript_id \"(.+)\";\sgene_id \"(.+?)\";", tmp[-1])
+            if m:
+                transcript_id = m.group(1)
+                gene_id = m.group(2)
+                if transcript_id not in gene_list.keys():
+                    gene_list[transcript_id] = gene_id
+    return gene_list
 
 
 class GtfFile(File):
@@ -58,15 +73,16 @@ class GtfFile(File):
         for line in open(self.path):
             comment_m = regex.match(r'^#.+', line.strip())
             content_m = regex.match(
-                r'^([^#]\S*?)\t+((\S+)\t+){7,7}((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                r'^([^#]\S*?)\t+((\S+)\t+){7,7}((\btranscript_id\b|\bgene_id\b)\s+?\"(\S+?)\");.*((\btranscript_id\b|\bgene_id\b)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
             if content_m:
-                if not {content_m.captures(6)[0], content_m.captures(9)[0]} == {'transcript_id','gene_id'}:
-                    raise FileError('第9列必须有转录本id和基因id记录')
+                if not {content_m.captures(5)[0], content_m.captures(8)[0]} == {'transcript_id', 'gene_id'}:
+                    raise FileError('line error: {} 第9列必须有转录本id和基因id记录'.format(line.strip()))
                 continue
             if not (comment_m or content_m):
                 raise FileError(
-                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
+                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) '.format(
+                        line.strip(), self.path))
     
     def check_in_detail(self, check_log_file):
         self.__check_skechy()
@@ -108,8 +124,8 @@ class GtfFile(File):
                 seq_type = content_m.captures(2)[1].strip()
                 start = content_m.captures(2)[2].strip()
                 end = content_m.captures(2)[3].strip()
-                frame = content_m.captures(2)[5].strip()
-                strand = content_m.captures(2)[6].strip()
+                frame = content_m.captures(2)[6].strip()
+                strand = content_m.captures(2)[5].strip()
                 contig_m = regex.match(r'^[\w.:^*$@!+?-|]+$', contig)  # contig的字符必须在[\w.:^*$@!+?-|]之内
                 seq_type_m = check_seq_type(seq_type)  # seq_type必须在SO term集合之内
                 start_m = regex.match(r'^\d+$', start)
@@ -136,9 +152,10 @@ class GtfFile(File):
                 r'^([^#]\S*?)\t+((\S+)\t+){7}(.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
                 line.strip())
             
-            if not (comment_m or content_m):
+            if not (comment_m or content_m or regex.match(r'^$', line.strip())):
                 raise FileError(
-                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
+                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) '.format(
+                        line.strip(), self.path))
             
             if content_m:
                 contig = content_m.captures(3)[0]
@@ -196,3 +213,54 @@ class GtfFile(File):
                     gene_id = content_m.captures(7)[0]
             if txpt_id:
                 self._txpt_gene[txpt_id] = gene_id
+
+    def gtf_patch(self, gtf):
+        gene_list = {}
+        with open(gtf, "r") as file:
+            for line in file:
+                line = line.strip()
+                tmp = line.split("\t")
+                m = re.match("transcript_id \"(.+)\";\sgene_id \"(.+?)\";", tmp[-1])
+                if m:
+                    transcript_id = m.group(1)
+                    gene_id = m.group(2)
+                    if transcript_id not in gene_list.keys():
+                        gene_list[transcript_id] = gene_id
+        temp_gtf = os.path.split(self.prop["path"])[0] + "/tmp.gtf"
+        w = open(temp_gtf, "w")
+        with open(self.prop["path"], "r") as file:
+            for line in file:
+                line = line.strip()
+                tmp = line.split("\t")
+                if tmp[-1].find("gene_id") == -1:
+                    m = re.match("transcript_id \"(.+?)\";", tmp[-1])
+                    if m:
+                        t_id = m.group(1)
+                        if gene_id in gene_list.keys():
+                            gene_id = gene_list[t_id]
+                        elif re.match("transcript:(.+)", t_id):
+                            t_id =  re.match("transcript:(.+)", t_id).group(1)
+                            if t_id in gene_list.keys():
+                                gene_id = gene_list[t_id]
+                        else:
+                            gene_id = t_id
+                        lst = tmp[-1].split(";")
+                        new_list = []
+                        for item in lst:
+                            new_list.append(item)
+                            if item.startswith("transcript_id"):
+                                new_list.append(" gene_id \"" + gene_id +"\"")
+                        tmp[-1] = ";".join(new_list)
+                        new_line = "\t".join(tmp)
+                        w.write(new_line + "\n")
+                elif tmp[-1].find("transcript_id") == -1:
+                    self.logger.info("there is no transcript id in {}".format(line))
+                else:
+                    w.write(line + "\n")
+        w.close()
+
+
+if __name__ == "__main__":
+    gtf = GtfFile()
+    gtf.set_path("/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/assembly_newtranscripts/merged.gtf")
+    gtf.gtf_patch("/mnt/ilustre/users/sanger-dev/workspace/20170210/Refrna_refrna_test_01/FilecheckRef/Danio_rerio.GRCz10.85.gff3.gtf")

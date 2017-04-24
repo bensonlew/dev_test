@@ -17,8 +17,8 @@ class KeggRichAgent(Agent):
         super(KeggRichAgent, self).__init__(parent)
         options = [
             {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},  # 只含有基因的kegg table结果文件
-            {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # gene名字文件
-            {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
+            {"name": "all_list", "type": "infile", "format": "rna.gene_list"},  # gene名字文件
+            {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},
             {"name": "correct", "type": "string", "default": "BH"}  # 多重检验校正方法
         ]
         self.add_option(options)

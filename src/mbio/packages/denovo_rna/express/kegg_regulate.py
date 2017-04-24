@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
 
-from Bio.KEGG.REST import *
 from Bio.KEGG.KGML import KGML_parser
 from Bio.Graphics.KGML_vis import KGMLCanvas
 from biocluster.config import Config
-import pymongo
 import gridfs
 import re
 import os
@@ -13,7 +11,7 @@ import os
 
 class KeggRegulate(object):
     def __init__(self):
-        self.mong_db = pymongo.MongoClient(Config().MONGO_BIO_URI).sanger_biodb
+        self.mong_db = Config().biodb_mongo_client.sanger_biodb
         # self.pathway_pic = Config().SOFTWARE_DIR + '/database/KEGG/pathway_map2/'
 
     def get_kgml_and_png(self, pathway_id, kgml_path, png_path):
@@ -51,7 +49,7 @@ class KeggRegulate(object):
                             up_genes.append('{}({})'.format(g, ko))
                         if g in regulate_gene['down']:
                             down_genes.append('{}({})'.format(g, ko))
-                w.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(path, ';'.join(ko_ids), ';'.join(up_genes), ';'.join(down_genes), len(up_genes), len(down_genes)))
+                w.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(path, ';'.join(ko_ids), len(up_genes), len(down_genes), ';'.join(up_genes), ';'.join(down_genes)))
 
     def get_pictrue(self, path_ko, out_dir, regulate_dict=None):
             """

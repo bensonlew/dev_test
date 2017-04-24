@@ -81,7 +81,7 @@ def stat_edger(edgr_result, countfile, fpkmfile, control, other, output, replica
         if replicates is None:
             count_dict = read_matrix(countfile, control, other)
             fpkm_dict = read_matrix(fpkmfile, control, other)
-            w.write("gene_id\t%s_count\t%s_conut\t%s_fpkm\t%s_fpkm\tlog2fc(%s/%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control))
+            w.write("gene_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc(%s/%s)\tpvalue\tfdr\tsignificant\tregulate\n" % (control, other, control, other, other, control))
         else:
             count_dict, group_sample = read_matrix(countfile, control, other, replicates)
             fpkm_dict, group_sample = read_matrix(fpkmfile, control, other, replicates)

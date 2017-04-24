@@ -75,6 +75,7 @@ class DistanceMatrixFile(File):
             # 父类check方法检查文件路径是否设置，文件是否存在，文件是否为空
             self.get_info()
             dist_dict = dict()
+            all_values = []
             with open(self.path, 'r') as f:
                 head = f.readline().rstrip().split('\t')
                 head_len = len(head)
@@ -86,12 +87,17 @@ class DistanceMatrixFile(File):
                     else:
                         raise FileError('矩阵每行数据量格式不正确')
                     values = dict(zip(head, all_nums[1:]))
+                    all_values.extend(all_nums[1:])
                     dist_dict[all_nums[0]] = values
                 for samp1 in head:
                     for samp2 in head:
                         # print dist_dict[samp2][samp1], dist_dict[samp1][samp2]
                         if dist_dict[samp1][samp2] != dist_dict[samp2][samp1]:
                             raise FileError('矩阵数据不对称')
+                all_values = [float(i) for i in all_values]
+                all_plus = sum(all_values)
+                if all_plus == 0:
+                    raise FileError('所有距离矩阵值全部为零')
             if len(self.prop['samp_list']) != len(set(self.prop['samp_list'])):
                 raise FileError('存在重复的样本名')
             return True

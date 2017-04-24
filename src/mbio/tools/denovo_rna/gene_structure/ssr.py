@@ -93,7 +93,7 @@ class SsrTool(Tool):
         command = self.add_command("misa", cmd)
         command.run()
         self.wait()
-        if command.return_code == 0:
+        if command.return_code == 0 or None:
             self.logger.info("运行misa结束！")
             if self.option("bed").is_set:
                 self.logger.info("统计ssr位置信息")

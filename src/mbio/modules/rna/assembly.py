@@ -19,23 +19,21 @@ class AssemblyModule(Module):
     def __init__(self,work_id):
         super(AssemblyModule,self).__init__(work_id)
         options = [
-            {"name": "sample_bam_dir", "type": "infile","format":"ref_rna.assembly.bam_dir"},  # 所有样本的bam文件夹
-            {"name": "sample_bam", "type": "infile", "format": "ref_rna.assembly.bam"},  # 所有样本比对之后的bam文件
+            {"name": "sample_bam_dir", "type": "infile","format":"align.bwa.bam_dir"},  # 所有样本的bam文件夹
+            {"name": "sample_bam", "type": "infile", "format": "align.bwa.bam"},  # 所有样本比对之后的bam文件
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.assembly.gtf"},  # 参考基因的注释文件
-            {"name": "assembly_GTF_list.txt", "type": "infile", "format": "ref_rna.assembly.merge_txt"},  # 所有样本比对之后的bam文件路径列表
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因的注释文件
+            {"name": "assembly_GTF_list.txt", "type": "infile", "format": "assembly.merge_txt"},  # 所有样本比对之后的bam文件路径列表
             {"name": "cpu", "type": "int", "default": 10},  # 软件所分配的cpu数量
             {"name": "fr_stranded", "type": "string", "default": "fr-unstranded"},  # 是否链特异性
             {"name": "strand_direct", "type": "string", "default": "none"},  # 链特异性时选择正负链
             {"name": "assemble_method", "type": "string", "default": "cufflinks"},  # 选择拼接软件
-            {"name": "sample_gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},# 输出的gtf文件
-            {"name": "sample_genes_fpkm", "type": "outfile", "format": "ref_rna.assembly.fpkm_tracking"},  # 输出的基因表达量文件
-            {"name": "sample_isoforms_fpkm", "type": "outfile", "format": "ref_rna.assembly.fpkm_tracking"},  # 输出的转录本文件
-            {"name": "merged.gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},  # 输出的合并文件
-            {"name": "tmap", "type": "outfile", "format": "ref_rna.assembly.tmap"},  # compare后的tmap文件
-            {"name": "refmap", "type": "outfile", "format": "ref_rna.assembly.tmap"},  # compare后的refmap文件
-            {"name": "combined.gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},  # compare后的combined.gtf文件
-            {"name": "new_gtf", "type": "outfile", "format": "ref_rna.assembly.gtf"},  # 新转录本注释文件
+            {"name": "sample_gtf", "type": "outfile", "format": "gene_structure.gtf"},# 输出的gtf文件
+            {"name": "merged.gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的合并文件
+            {"name": "tmap", "type": "outfile", "format": "assembly.tmap"},  # compare后的tmap文件
+            {"name": "refmap", "type": "outfile", "format": "assembly.tmap"},  # compare后的refmap文件
+            {"name": "combined.gtf", "type": "outfile", "format": "gene_structure.gtf"},  # compare后的combined.gtf文件
+            {"name": "new_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新转录本注释文件
             {"name": "new_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本注释文件
         ]
         self.add_option(options)

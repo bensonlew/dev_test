@@ -19,8 +19,8 @@ class NetworkAgent(Agent):
     def __init__(self, parent):
         super(NetworkAgent, self).__init__(parent)
         options = [
-            {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，差异基因表达量矩阵
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 差异基因名称文件
+            {"name": "diff_fpkm", "type": "infile", "format": "rna.express_matrix"},  # 输入文件，差异基因表达量矩阵
+            {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},  # 差异基因名称文件
             {"name": "softpower", "type": "int", "default": 9},
             {"name": "dissimilarity", "type": "float", "default": 0.25},
             {"name": "module", "type": "float", "default": 0.1},
@@ -123,6 +123,22 @@ class NetworkTool(Tool):
         else:
             self.logger.info("运行two_cmd出错")
 
+    def convert_pdf_to_png(self, olds, news):
+        self.image_magick = '/program/ImageMagick/bin/convert'
+        convert_commands = []
+        for index, i in enumerate(olds):
+             cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + i + ' ' + news[index]
+             command = self.add_command('convert_{}'.format(index), cmd)
+             command.run()
+             convert_commands.append(command)
+             self.wait()
+             for i in convert_commands:
+                  if i.return_code == 0:
+                      pass
+                  else:
+                      return False
+        return True
+ 
     def set_output(self):
         """
         将结果文件link到output文件夹下面
@@ -142,8 +158,15 @@ class NetworkTool(Tool):
             self.logger.info('设置文件夹路径成功')
         except Exception as e:
             self.logger.info("设置network分析结果目录失败{}".format(e))
-
-
+        pdf_path = [self.output_dir+"/softPower.pdf", self.output_dir+"/ModuleTree.pdf"]
+        png_path = [self.output_dir+"/softPower.png", self.output_dir+"/ModuleTree.png"]
+        info = self.convert_pdf_to_png(pdf_path, png_path)
+        if info:
+            self.logger.info("pdf转png文件成功！")
+        else:
+            raise Exception("pdf转png文件失败！")
+        
+        
 
     def run(self):
         super(NetworkTool, self).run()

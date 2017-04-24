@@ -4,8 +4,9 @@
 import web
 import json
 import datetime
+from mainapp.models.mongo.meta import Meta
 from mainapp.controllers.project.meta_controller import MetaController
-from mainapp.libs.param_pack import group_detail_sort
+from mainapp.libs.param_pack import *
 from bson import ObjectId
 
 
@@ -69,7 +70,7 @@ class Otunetwork(MetaController):
             ('params', params),
             ('name', main_table_name)
         ]
-        main_table_id = self.meta.insert_main_table('sg_network', mongo_data)
+        main_table_id = Meta().insert_main_table('sg_network', mongo_data)
         update_info = {str(main_table_id): 'sg_network'}
         options = {
             "otutable": data.otu_id,
