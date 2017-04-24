@@ -97,11 +97,12 @@ class MetaBaseWorkflow(Workflow):
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
                                                'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX', 'fgr/mcrA',
+                                               'fgr/amoA_archaea', 'fgr/amoA_bacteria',
                                                'maarjam081/AM', 'Human_HOMD',
                                                'silva128/16s_archaea', 'silva128/16s_bacteria',
                                                'silva128/18s_eukaryota', 'silva128/16s',
                                                'greengenes135/16s', 'greengenes135/16s_archaea', 'greengenes135/16s_bacteria']:
-                    # 王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA 2016.11.28增加数据库greengenes135
+                    # add by wzy 2016.11.14 silva128,2016.11.23 mrcA,2016.11.28,greengenes135,20170424,amoA(a,b)
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
         # add by qindanhua 20170112 check if function gene is exist
         if self.option("if_fungene") and self.option("database").split("/")[0] != "fgr":
@@ -112,9 +113,15 @@ class MetaBaseWorkflow(Workflow):
     def run_function_gene(self):
         self.step.add_steps("function_gene")
         self.function_gene_tool = self.add_tool("meta.function_gene.function_gene")
+        tax_name = self.option("database").split("/")[1]
+        if tax_name =='amoA_archaea':
+            tax_name = 'amoA_AOA'
+        elif tax_name == 'amoA_bacteria':
+            tax_name = 'amoA_AOB'
+        # change by wzy,20170424
         self.function_gene_tool.set_options({
             "fastq": self.option("in_fastq"),
-            "function_gene": self.option("database").split("/")[1],
+            "function_gene": tax_name,
         })
         self.function_gene_tool.on("start", self.set_step, {'start': self.step.function_gene})
         self.function_gene_tool.on("end", self.run_sample_extract)
