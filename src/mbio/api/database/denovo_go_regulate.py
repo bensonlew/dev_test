@@ -1,16 +1,11 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zengjing'
 # last_modify:20161205
-import pymongo
 import os
-import re
 import datetime
 from bson.son import SON
 from bson.objectid import ObjectId
 import types
-import bson.binary
-import gridfs
-from cStringIO import StringIO
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 import json
@@ -34,7 +29,7 @@ class DenovoGoRegulate(Base):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'go_enrich' + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            'name': name if name else 'GoRegulate_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'status': 'end',
             'desc': 'go调控分析主表',
@@ -61,9 +56,9 @@ class DenovoGoRegulate(Base):
             for line in lines[1:]:
                 line = line.strip().split('\t')
                 line[3] = int(line[3])
-                line[4] = float(line[4])
+                line[4] = round(float(line[4]), 6)
                 line[5] = int(line[5])
-                line[6] = float(line[6])
+                line[6] = round(float(line[6]), 6)
                 data = [
                     ('go_regulate_id', go_regulate_id),
                     ('go_type', line[0]),

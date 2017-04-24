@@ -168,7 +168,10 @@ class BetaMultiAnalysis(Base):
                 species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_species.xls'
                 importance_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_importance.xls'
                 dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
-                plot_species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_plot_species_data.xls'  # add 2 lines by zhouxuan 20170123
+                plot_species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_plot_species_data.xls'  # add 4 lines by zhouxuan 20170123 20170401
+                envfit_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_envfit.xls'
+                if os.path.exists(envfit_path):
+                    self.insert_envfit_table(envfit_path, 'envfit', update_id=main_id)
                 self.insert_table_detail(plot_species_path, 'plot_species', update_id=main_id)
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
                 self.insert_table_detail(species_path, 'species', update_id=main_id, split_fullname=True)
@@ -283,6 +286,60 @@ class BetaMultiAnalysis(Base):
         main_collection.update_one({'_id': update_id},
                                    {'$set': {'tables': ','.join(tables)}},
                                    upsert=False)
+
+    def insert_envfit_table(self, filepath, tabletype, update_id):
+            """
+			"""
+            insert_data = []
+            with open(filepath,'rb') as r:
+                head = r.next().strip('\r\n')
+                head = re.split(' ', head)
+                new_head_old = head
+                new_head =[]
+                for f in range(0, len(new_head_old)):
+                    pattern = re.compile('"(.*)"')
+                    new_head_ = pattern.findall(new_head_old[f])
+                    new_head.append(new_head_[0])
+                    # m = re.match('/\"(.*)\"/', new_head[f])
+                    # if m:
+                    #     new_head[f] = m.group(0)
+                print(new_head)
+                new_head[-1] = "p_values"
+                new_head[-2] = "r2"
+                self.new_head = new_head
+                for line in r:
+                    line = line.rstrip("\r\n")
+                    line = re.split(' ', line)
+                    content = line[1:]
+                    pattern = re.compile('"(.*)"')
+                    env_name = pattern.findall(line[0])
+                    env_detail = dict()
+                    for i in range(0, len(content)):
+                        env_detail[new_head[i]] = content[i]
+                    env_detail['multi_analysis_id'] = update_id
+                    env_detail['type'] = tabletype
+                    env_detail['env'] = env_name[0]
+                    insert_data.append(env_detail)
+            try:
+                collection = self.db['sg_beta_multi_analysis_detail']
+                collection.insert_many(insert_data)
+            except Exception as e:
+                self.bind_object.logger.error("导入sg_beta_multi_analysis_detail表格信息出错:{}".format(e))
+            else:
+                self.bind_object.logger.info("导入sg_beta_multi_analysis_detail表格成功")
+            self._tables.append(tabletype)
+            # self.insert_main_tables(self._tables, update_id)
+            main_collection = self.db['sg_beta_multi_analysis']
+            main_collection.update_one({'_id': update_id},
+                                       {'$set': {tabletype: ','.join(self.new_head)}},
+                                       upsert=False)
+
+
+
+
+
+
+
 
     # @report_check
     # def add_beta_multi_analysis_result_for_api(self, dir_path, analysis, main_id):

@@ -3,9 +3,6 @@
 from biocluster.workflow import Workflow
 import glob
 import os
-from mbio.api.to_file.meta import *
-import datetime
-from mbio.packages.statistical.reverse_table import reverse_table
 from bson import ObjectId
 import re
 
@@ -65,7 +62,7 @@ class PearsonCorrelationWorkflow(Workflow):
         self.correlation.set_options(options)
         self.correlation.on("end", self.set_db)
         self.correlation.run()
-        
+
     def run(self):
         self.run_correlation()
         super(PearsonCorrelationWorkflow, self).run()
@@ -132,7 +129,9 @@ class PearsonCorrelationWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.correlation.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "相关性Heatmap分析结果目录"],   # add 2 lines by hongdongxuan 20170324
+            ["./pearsons_correlation_at_otu_level.xls", "xls", "相关性系数表"],
+            ["./pearsons_pvalue_at_otu_level.xls", "xls", "相关性P值"]
             # ["./mantel_results.txt", "txt", "mantel检验结果"]
         ])
         # print self.get_upload_files()

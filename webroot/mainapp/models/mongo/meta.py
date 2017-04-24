@@ -6,6 +6,7 @@ import types
 from biocluster.config import Config
 from bson import SON
 import re
+import datetime
 
 
 class Meta(object):
@@ -15,6 +16,9 @@ class Meta(object):
             self.db = self.client[Config().MONGODB]
         else:
             self.db = self.client[db]
+
+    def __del__(self):
+        self.client.close()
 
     def get_otu_table_info(self, otu_id):
 
@@ -45,6 +49,14 @@ class Meta(object):
         """
         self.db[collection].update_one({'_id': ObjectId(doc_id), "status": "start"}, {"$set": {'status': 'failed'}})
 
+    def update_workflow_id(self, collection, main_id, workflow_id):
+        """
+        """
+        self.db.workflowid2analysisid.insert_one({'workflow_id': workflow_id,
+                                                  "main_id": ObjectId(main_id),
+                                                  'collection': collection,
+                                                  "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+
     def sampleIdToName(self, sampleIds):
         """
         将一个用逗号隔开的样本ID的集合转换成样本名，返回一个用逗号隔开的样本名的集合
@@ -66,3 +78,14 @@ class Meta(object):
             mySampleNames.append(result["specimen_name"])
         mySamples = ",".join(mySampleNames)
         return mySamples
+
+    def get_main_info(self, main_id, collection_name):
+        if isinstance(main_id, types.StringTypes):
+            main_id = ObjectId(main_id)
+        elif isinstance(main_id, ObjectId):
+            main_id = main_id
+        else:
+            raise Exception("输入main_id参数必须为字符串或者ObjectId类型!")
+        collection = self.db[collection_name]
+        express_info = collection.find_one({'_id': main_id})
+        return express_info

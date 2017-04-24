@@ -6,7 +6,7 @@ import os
 import types
 import subprocess
 from biocluster.core.exceptions import OptionError
-
+import re
 
 class RdaCcaAgent(Agent):
     """
@@ -102,7 +102,8 @@ class RdaCcaAgent(Agent):
             [r'.*_species\.xls', 'xls', '物种坐标表'],
             [r'.*dca\.xls', 'xls', 'DCA分析结果'],
             [r'.*_biplot\.xls', 'xls', '数量型环境因子坐标表'],
-            [r'.*_centroids\.xls', 'xls', '哑变量环境因子坐标表']
+            [r'.*_centroids\.xls', 'xls', '哑变量环境因子坐标表'],
+            [r'.*_envfit\.xls', 'xls', 'p_value值和r值表']
         ])
         # print self.get_upload_files()
         super(RdaCcaAgent, self).end()
@@ -224,11 +225,14 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         tablepath = self.work_dir + '/remove_zero_line_otu.xls'
         self.remove_zero_line(self.formattable(self.otu_table), tablepath)
         self.env_labs = open(self.env_table, 'r').readline().strip().split('\t')[1:]
+        # self.env_table_ = self.rm_(self.env_table)
+        envfit = self.env_type()
         self.logger.info(tablepath)
         cmd = self.cmd_path
-        cmd += ' -type rdacca -community %s -environment %s -outdir %s -env_labs %s' % (
+        cmd += ' -type rdacca -community %s -environment %s -outdir %s -env_labs %s -envfit %s' % (
                tablepath, self.env_table,
-               self.work_dir, '+'.join(self.env_labs))
+               self.work_dir, '+'.join(self.env_labs), envfit)
+        self.logger.info(cmd)
         try:
             subprocess.check_output(cmd, shell=True)
             self.logger.info('生成 cmd.r 文件成功')
@@ -243,7 +247,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
             self.logger.info('Rda/Cca计算失败')
             self.set_error('R程序计算Rda/Cca失败')
         allfiles = self.get_filesname()
-        for i in [1, 2, 3, 4, 5]:
+        for i in [1, 2, 3, 4, 5, 6]:
             if allfiles[i]:
                 newname = '_'.join(os.path.basename(allfiles[i]).split('_')[-2:])
                 if i == 4:
@@ -254,11 +258,17 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                     self.linkfile(self.work_dir + '/rda/' + allfiles[i], newname)
         newname = os.path.basename(allfiles[0]).split('_')[-1]
         self.linkfile(self.work_dir + '/rda/' + allfiles[0], newname)
-        if len(otu_species_list) == 0:  # 20170122 add 5 lines by zhouxuan
-            self.linkfile(self.output_dir + "/rda_species.xls", "rda_plot_species_data.xls")
+        if len(otu_species_list) == 0:  # 20170122 add 13 lines by zhouxuan
+            if os.path.exists(self.output_dir + "/rda_species.xls"):
+                self.linkfile(self.output_dir + "/rda_species.xls", "rda_plot_species_data.xls")
+            else:
+                self.linkfile(self.output_dir + "/cca_species.xls", "cca_plot_species_data.xls")
         else:
             new_file_path = self.get_new_species_xls(otu_species_list)
-            self.linkfile(new_file_path, "rda_plot_species_data.xls")
+            if os.path.exists(self.output_dir + "/rda_species.xls"):
+                self.linkfile(new_file_path, "rda_plot_species_data.xls")
+            else:
+                self.linkfile(new_file_path, "cca_plot_species_data.xls")
         self.logger.info('运行ordination.pl程序计算rda/cca完成')
         self.end()
 
@@ -322,6 +332,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         rda_site = None
         rda_biplot = None
         rda_centroids = None
+        rda_envfit = None
         for name in filelist:
             if '_importance.xls' in name:
                 rda_imp = name
@@ -335,9 +346,11 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                 rda_biplot = name
             elif '_centroids.xls' in name:
                 rda_centroids = name
-        if rda_imp and rda_site and rda_spe and rda_dca and (rda_biplot or rda_centroids):
-            self.logger.info(str([rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids]))
-            return [rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids]
+            elif '_envfit.xls' in name:
+                rda_envfit = name
+        if rda_imp and rda_site and rda_spe and rda_dca and (rda_biplot or rda_centroids) or rda_envfit:
+            self.logger.info(str([rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids, rda_envfit]))
+            return [rda_dca, rda_imp, rda_spe, rda_site, rda_biplot, rda_centroids, rda_envfit]
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')
 
@@ -380,8 +393,12 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         :param otu_species_list: 物种列表信息
         :return: 新的species文件的路径
         """
-        old_species_table = self.output_dir + "/rda_species.xls"
-        new_species_table = self.work_dir + "rda_plot_species_data.xls"
+        if os.path.exists(self.output_dir + "/rda_species.xls"):
+            old_species_table = self.output_dir + "/rda_species.xls"
+            new_species_table = self.work_dir + "rda_plot_species_data.xls"
+        else:
+            old_species_table = self.output_dir + "/cca_species.xls"
+            new_species_table = self.work_dir + "cca_plot_species_data.xls"
         with open (old_species_table, "rb") as table, open(new_species_table, "a") as w:
             line = table.readlines()
             for l in line:
@@ -392,6 +409,54 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                     if content[0] in otu_species_list:
                         w.write('\t'.join(content) + "\n")
         return new_species_table
+
+    def env_type(self):
+        """
+        判断环境因子表中是否存在分类型环境因子
+        :param env_table:被判断的环境因子表
+        :return:如果存在分类型环境因子返回“F”,不存在时返回“T”
+        """
+        file_path = self.env_table
+        result_list = []
+        with open(file_path, "rb") as f:
+            content = f.readlines()
+            judge_content = content[1].split("\t")[1:]  # 根据环境因子表的第一行数据进行判定
+            for r in judge_content:
+                num = r.split(".")  # 分隔小数
+                ppp = ''
+                for m in num:
+                    Q = re.match('-(.*)', m)  # 解决负数问题
+                    if Q:  # 去掉负号
+                        m = Q.group(1)
+                    print m
+                    p = re.match('[0-9](.*)', m)
+                    if p:
+                        pass
+                    else:
+                        ppp = "1"
+                        break
+                if ppp == "1":
+                    result_list.append("False")
+                else:
+                    result_list.append("True")
+        if "False" in result_list:
+            return "F"
+        else:
+            return "T"
+
+    # def rm_(self, old_file):  # add by zhouxuan 20170401
+    #     new_file = self.work_dir + '/new_env_.xls'
+    #     with open(old_file, "rb") as f, open(new_file, "a") as w:
+    #         content = f.readlines()
+    #         for r in content:
+    #             if r.startswith("#"):
+    #                 r = r.split("\t")
+    #                 readline = "sample" + "\t" +("\t").join(r[1:]) +"\n"
+    #                 w.write(readline)
+    #             else:
+    #                 w.write(r)
+    #     return new_file
+
 
 
 

@@ -166,7 +166,7 @@ class FastqTrimAgent(Agent):
         设置所需资源
         """
         self._cpu = 6
-        self._memory = ''
+        self._memory = '5G'
 
 
 class FastqTrimTool(Tool):
@@ -174,8 +174,8 @@ class FastqTrimTool(Tool):
     def __init__(self, config):
         super(FastqTrimTool, self).__init__(config)
         self._version = '0.35'
-        self.trimmomatic_path = ('sun_jdk1.8.0/bin/java -jar ' + self.config.SOFTWARE_DIR +
-                                 '/bioinfo/seq/trimmomatic-0.36.jar')
+        self.trimmomatic_path = ('program/sun_jdk1.8.0/bin/java -jar ' + self.config.SOFTWARE_DIR +
+                                 '/bioinfo/seq/trimmomatic-0.36/trimmomatic-0.36.jar')
         # self.cutadapt_path = self.config.SOFTWARE_DIR + 'Python/bin/cutadapt'
         self.adapter = ''
 
@@ -246,13 +246,13 @@ class FastqTrimTool(Tool):
             cmd = cmd + ' MINLEN:' + str(self.option('len_fliter'))
         if self.option('run_quality_fliter'):
             cmd = cmd + ' AVGQUAL:' + str(self.option('quality_fliter'))
-        self.logger.info('运行Trimmomatic-0.35程序')
+        self.logger.info('运行Trimmomatic-0.36程序')
         self.logger.info(cmd)
         trimmomatic_command = self.add_command('trimmomatic', cmd)
         trimmomatic_command.run()
         self.wait()
         if trimmomatic_command.return_code == 0:
-            self.logger.info('Trimmomatic-0.35正常结束')
+            self.logger.info('Trimmomatic-0.36正常结束')
             self.set_output()
             self.end()
         else:

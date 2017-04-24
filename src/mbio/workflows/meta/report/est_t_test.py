@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
 from biocluster.workflow import Workflow
-from mbio.api.to_file.meta import *
 from mbio.packages.alpha_diversity.group_file_split import group_file_spilt
-from mainapp.libs.param_pack import group_detail_sort
-import datetime
+import os
 
 
 class EstTTestWorkflow(Workflow):
@@ -90,7 +88,7 @@ class EstTTestWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"]
+            [".", "", "多样性指数结果目录"]
         ])
         result_dir.add_regexp_rules([
             [r".*\.xls", "", "alpha多样性指数T检验结果表"]

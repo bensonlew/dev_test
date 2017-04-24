@@ -8,6 +8,7 @@ from biocluster.core.exceptions import OptionError
 from mainapp.libs.signature import CreateSignature
 from biocluster.config import Config
 from mainapp.libs.param_pack import *
+from socket import error as SocketError
 import urllib2
 import urllib
 import httplib
@@ -25,12 +26,13 @@ class PipeSubmitAllAgent(Agent):
     用于submit子分析的接口,针对的是所有的分析，后面还会有医口与农口
     version v1.0
     author: hongdongxuan
-    last_modify: 2017.02.20
+    last_modify: 2017.03.09
     """
     def __init__(self, parent):
         super(PipeSubmitAllAgent, self).__init__(parent)
         options = [
-            {"name": "data", "type": "string"}
+            {"name": "data", "type": "string"},
+            {"name": "pipe_id", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("piple_submit")
@@ -91,7 +93,7 @@ class PipeSubmitAllTool(Tool):
                           "species_lefse_analyse": "sg_species_difference_lefse", "alpha_rarefaction_curve":"sg_alpha_rarefaction_curve",
                           "otunetwork_analyse": "sg_network", "roc_analyse": "sg_roc",
                           "alpha_diversity_index":"sg_alpha_diversity","alpha_ttest":"sg_alpha_ttest",
-                          "beta_multi_analysis_plsda": "sg_beta_multi_analysis","beta_sample_distance": "sg_newick_tree",
+                          "beta_multi_analysis_plsda": "sg_beta_multi_analysis","beta_sample_distance_hcluster_tree": "sg_newick_tree",
                           "beta_multi_analysis_pearson_correlation":"sg_species_env_correlation","beta_multi_analysis_rda_cca": "sg_beta_multi_analysis","hc_heatmap": "sg_hc_heatmap",
                           "beta_multi_analysis_anosim": "sg_beta_multi_anosim", "species_difference_multiple": "sg_species_difference_check",
                           "beta_multi_analysis_results": "sg_species_mantel_check", "beta_multi_analysis_pcoa": "sg_beta_multi_analysis",
@@ -101,35 +103,22 @@ class PipeSubmitAllTool(Tool):
                           "corr_network_analyse": "sg_corr_network", "otu_pan_core": "sg_otu_pan_core",
                           "plot_tree": "sg_phylo_tree", "enterotyping": "sg_enterotyping"}
         data = self.option('data')
-        print "打印出data"
-        # print data
         data = json.loads(data)
-        print "----"
-        # print data
-        print type(data)
-        print data.keys()
-        # env_id = data['env_id']
-        # env_labs = data['env_labs']
         group_infos = data['group_info']
-        # print type(group_infos)
-        # print "打印出group_infos"
-        # print group_infos
-        group_infos = json.loads(group_infos)
-        # print "test group_infos"
-        # print type(group_infos)
-        # print group_infos
-        level_ids = []
+        group_infos = json.loads(group_infos)  #这里group_infos才是dict
+        level_ids = []  #line 109 ~112将level_id字符串进行分割存入列表中，用于后面组合
         level = str(data['level_id']).strip().split(",")
         for m in level:
             level_ids.append(m)
-        # print level_ids
         sub_analysis = data['sub_analysis']
-        # print sub_analysis
-        # print type(sub_analysis)
         sub_analysis = json.loads(sub_analysis)
-        # print type(sub_analysis)
-        # print sub_analysis
-        # otu_id = data['otu_id']
+        key_list = [] #line 116 ~ 122全局计算有多少个分析，这里有个特例，pancore，一个分析会产生两个主表
+        for key in sub_analysis:
+            key_list.append(str(key))
+        if "otu_pan_core" in key_list:
+            analysis_num = len(sub_analysis) + 1
+        else:
+            analysis_num = len(sub_analysis)
         client = data['client']
         method = "post"
         if client == "client01":
@@ -138,62 +127,24 @@ class PipeSubmitAllTool(Tool):
             # base_url = "http://10.101.203.193:9100"
             base_url = "http://192.168.12.102:9090"
         else:
-            print "***client必须是client01或者client03***"
-        print "client= %s, base_url= %s"%(client, base_url)
-        #计算抽平
-        collection_sg_otu = self.db["sg_otu"]
-        result = collection_sg_otu.find_one({"_id": ObjectId(str(data['otu_id']))})
-        task_id = result['task_id']
-        from_id = result['from_id']
-        sg_otu_results = collection_sg_otu.find({"task_id": task_id})
-        my_param = dict()
-        my_param["group_id"] = data['group_id']
-        my_param['otu_id'] = from_id
-        my_param["submit_location"] = "otu_statistic"
-        my_param["size"] = data['size']
-        my_param["filter_json"] = data['filter_json']
-        my_param["group_detail"] = group_detail_sort(data['group_detail'])
-        my_param["task_type"] = "reportTask"
-        params_otu = param_pack(my_param)
-        print "params_otu"
-        print json.dumps(params_otu)
-        otu_id = "none"
-        for m in sg_otu_results:
-            # print "result['params']:"
-            # print json.dumps(m['params'])
-            if 'params' in m.keys() and json.dumps(m['params']) == json.dumps(params_otu) and "status" in m.keys() and m['status'] == "end":
-                otu_id = str(m['_id'])
-                print "str(m['_id'])%s"%(otu_id)
-                break
-            else:
-                otu_id = "none"
-        if otu_id == "none":
-            params = {"otu_id": str(data['otu_id']), "group_id": data['group_id'], "group_detail": data['group_detail'], "submit_location": "otu_statistic",
-                  "filter_json": data['filter_json'], "task_type": "reportTask", "size": data['size'], "level_id": "9"}
-            api_statistic = "meta/otu_subsample"
-            results_statistic = self.run_controllers(api=api_statistic, client=client, base_url=base_url, params=params, method=method)
-            results_statistic = json.loads(results_statistic)
-            if 'sub_anaylsis_id' in results_statistic.keys():
-                otu_id = results_statistic['sub_anaylsis_id']['id']
-            else:
-                raise Exception("进行抽平或者样本筛选的过程失败，程序被终止！")
-        print "打印抽平后的otu_id"
-        print otu_id
-        list2 = [] #用于存储分类水平与分组方案的所有的组合s
+            raise Exception("***client必须是client01或者client03***")
+        otu_id = self.otu_subsample(data=data, client=client, base_url=base_url, method=method) #计算抽平，后面分析基于抽平后的id进行计算
+        list2 = [] #用于存储分类水平与分组方案的所有的组合
         for level in level_ids:
             for group in group_infos:
                 if 'env_id' in data.keys() and 'env_labs' in data.keys():
-                    m = {"otu_id": str(otu_id), "level_id": str(level), "group_id": group['group_id'], "group_detail": json.dumps(group['group_detail']),
-                     "env_id": str(data['env_id']), "env_labs": str(data['env_labs'])}
+                    m = {"otu_id": str(otu_id), "level_id": str(level), "group_id": group['group_id'],
+                         "group_detail": json.dumps(group['group_detail']), "env_id": str(data['env_id']),
+                         "env_labs": str(data['env_labs'])}
                 else:
                     m = {"otu_id": str(otu_id), "level_id": str(level), "group_id": group['group_id'],
                          "group_detail": json.dumps(group['group_detail'])}
                 list2.append(m)
-        print "打印出所有的组合情况"
-        print list2
+        all_analysis_num = analysis_num * len(list2) #计算总共有多少个分析
         all_results = []  # 存储所有子分析的ids
-        err_results = []  # 用于存储投递失败的分析信息
-        #定义多样性指数与指数间差异分析的接口投递
+        ready_analysis_num = 0 #定义已经完成的分析的个数
+        ready_analysis_list = [] #定时刷新一次mongo表，将每次刷新投递运行成功的结果保存到这个列表中，然后计算出最大值，用于后面即时的分析叠加
+        #下面定义多样性指数与指数间差异分析的接口投递，所有的投递的接口都要在这里自行定义
         anaylsis_names = []
         alpha_diversity_index_data = {}
         alpha_ttest_data = {}
@@ -223,138 +174,54 @@ class PipeSubmitAllTool(Tool):
                 randomforest_analyse_data = sub_analysis[key]
             else:
                 pass
-        print "\n"
-        print anaylsis_names
-        print len(anaylsis_names)
-        print alpha_diversity_index_data
-        print alpha_ttest_data
-        print "\n"
-
         if "randomforest_analyse" in anaylsis_names:
-            for n in list2:
-                randomforest_analyse_data['otu_id'] = n['otu_id']
-                randomforest_analyse_data['level_id'] = n['level_id']
-                randomforest_analyse_data['group_id'] = n['group_id']
-                randomforest_analyse_data['group_detail'] = n['group_detail']
-                if len(self.params_check(randomforest_analyse_data,
-                                         analysis_table[randomforest_analyse_data['submit_location']],
-                                         randomforest_analyse_data['submit_location'])) == 0:
-                    result_randomforest_analyse = self.run_controllers(api="/".join(str(randomforest_analyse_data['api']).strip().split("|")),
-                                                                       client=client, base_url=base_url,
-                                                                       params=randomforest_analyse_data, method=method)
-                    result_randomforest_analyse = json.loads(result_randomforest_analyse)
-                    all_results.append(result_randomforest_analyse)
-                else:
-                    all_results.append(self.params_check(randomforest_analyse_data,
-                                                         analysis_table[randomforest_analyse_data['submit_location']],
-                                                         randomforest_analyse_data['submit_location']))
+            ready_analysis_num = self.randomforest_analyse(list2, randomforest_analyse_data, analysis_table,
+                                                           ready_analysis_num, all_analysis_num, client, base_url,
+                                                           method, all_results)
+            ready_analysis_list.append(ready_analysis_num)
         else:
             pass
-
         if "sixteens_prediction" in anaylsis_names:
-            for n in list2:
-                sixteens_prediction_data['otu_id'] = n['otu_id']
-                sixteens_prediction_data['level_id'] = n['level_id']
-                sixteens_prediction_data['group_id'] = n['group_id']
-                sixteens_prediction_data['group_detail'] = n['group_detail']
-                if len(self.params_check(sixteens_prediction_data,
-                                         analysis_table[sixteens_prediction_data['submit_location']],
-                                         sixteens_prediction_data['submit_location'])) == 0:
-                    result_sixteens_prediction = self.run_controllers(api="/".join(str(sixteens_prediction_data['api']).strip().split("|")),
-                                                                      client=client, base_url=base_url,
-                                                                      params=sixteens_prediction_data, method=method)
-                    result_sixteens_prediction = json.loads(result_sixteens_prediction)
-                    all_results.append(result_sixteens_prediction)
-                else:
-                    all_results.append(self.params_check(sixteens_prediction_data,
-                                                         analysis_table[sixteens_prediction_data['submit_location']],
-                                                         sixteens_prediction_data['submit_location']))
+            ready_analysis_num = self.sixteens_prediction(list2, sixteens_prediction_data,
+                                                          analysis_table, ready_analysis_num, all_analysis_num, client,
+                                                          base_url, method, all_results)
+            ready_analysis_list.append(ready_analysis_num)
         else:
             pass
         if "species_lefse_analyse" in anaylsis_names:
-            for n in list2:
-                species_lefse_analyse_data['otu_id'] = n['otu_id']
-                species_lefse_analyse_data['level_id'] = n['level_id']
-                species_lefse_analyse_data['group_id'] = n['group_id']
-                species_lefse_analyse_data['group_detail'] = n['group_detail']
-                if len(self.params_check(species_lefse_analyse_data,
-                                         analysis_table[species_lefse_analyse_data['submit_location']],
-                                         species_lefse_analyse_data['submit_location'])) == 0:
-                    print "test01"
-                    result_species_lefse_analyse = self.run_controllers(api="/".join(str(species_lefse_analyse_data['api']).strip().split("|")),
-                                                                        client=client, base_url=base_url,
-                                                                        params=species_lefse_analyse_data, method=method)
-                    result_species_lefse_analyse = json.loads(result_species_lefse_analyse)
-                    all_results.append(result_species_lefse_analyse)
-                else:
-                    print "test02"
-                    all_results.append(self.params_check(species_lefse_analyse_data,
-                                                         analysis_table[species_lefse_analyse_data['submit_location']],
-                                                         species_lefse_analyse_data['submit_location']))
+            ready_analysis_num = self.species_lefse_analyse(list2, species_lefse_analyse_data,
+                                                            analysis_table, ready_analysis_num, all_analysis_num,
+                                                            client, base_url, method, all_results)
+            ready_analysis_list.append(ready_analysis_num)
         else:
             pass
-
         if "alpha_rarefaction_curve" in anaylsis_names:
-            for n in list2:
-                alpha_rarefaction_curve_data['otu_id'] = n['otu_id']
-                alpha_rarefaction_curve_data['level_id'] = n['level_id']
-                alpha_rarefaction_curve_data['group_id'] = n['group_id']
-                alpha_rarefaction_curve_data['group_detail'] = n['group_detail']
-                if len(self.params_check(alpha_rarefaction_curve_data,
-                                         analysis_table[alpha_rarefaction_curve_data['submit_location']],
-                                         alpha_rarefaction_curve_data['submit_location'])) == 0:
-                    result_alpha_rarefaction_curve = self.run_controllers(api="/".join(str(alpha_rarefaction_curve_data['api']).strip().split("|")),
-                                                                          client=client, base_url=base_url,
-                                                                          params=alpha_rarefaction_curve_data, method=method)
-                    result_alpha_rarefaction_curve = json.loads(result_alpha_rarefaction_curve)
-                    all_results.append(result_alpha_rarefaction_curve)
-                else:
-                    all_results.append(self.params_check(alpha_rarefaction_curve_data,
-                                                         analysis_table[alpha_rarefaction_curve_data['submit_location']],
-                                                         alpha_rarefaction_curve_data['submit_location']))
+            ready_analysis_num = self.alpha_rarefaction_curve(list2, alpha_rarefaction_curve_data,
+                                                              analysis_table, ready_analysis_num, all_analysis_num,
+                                                              client, base_url, method, all_results)
+            ready_analysis_list.append(ready_analysis_num)
         else:
             pass
 
         if "otunetwork_analyse" in anaylsis_names:
-            for n in list2:
-                otunetwork_analyse_data['otu_id'] = n['otu_id']
-                otunetwork_analyse_data['level_id'] = n['level_id']
-                otunetwork_analyse_data['group_id'] = n['group_id']
-                otunetwork_analyse_data['group_detail'] = n['group_detail']
-                if len(self.params_check(otunetwork_analyse_data, analysis_table[otunetwork_analyse_data['submit_location']],
-                                         otunetwork_analyse_data['submit_location'])) == 0:
-                    result_otunetwork_analyse = self.run_controllers(api="/".join(str(otunetwork_analyse_data['api']).strip().split("|")),
-                                                                     client=client, base_url=base_url,
-                                                                     params=otunetwork_analyse_data, method=method)
-                    result_otunetwork_analyse = json.loads(result_otunetwork_analyse)
-                    all_results.append(result_otunetwork_analyse)
-                else:
-                    all_results.append(self.params_check(otunetwork_analyse_data,
-                                                         analysis_table[otunetwork_analyse_data['submit_location']],
-                                                         otunetwork_analyse_data['submit_location']))
+            ready_analysis_num = self.otunetwork_analyse(list2, otunetwork_analyse_data, analysis_table,
+                                                         ready_analysis_num, all_analysis_num, client, base_url,
+                                                         method, all_results)
+            ready_analysis_list.append(ready_analysis_num)
         else:
             pass
-
         if "roc_analyse" in anaylsis_names:
-            for n in list2:
-                roc_analyse_data['otu_id'] = n['otu_id']
-                roc_analyse_data['level_id'] = n['level_id']
-                roc_analyse_data['group_id'] = n['group_id']
-                roc_analyse_data['group_detail'] = n['group_detail']
-                if len(self.params_check(roc_analyse_data,
-                                         analysis_table[roc_analyse_data['submit_location']],
-                                         roc_analyse_data['submit_location'])) == 0:
-                    result_roc_analyse = self.run_controllers(api="/".join(str(roc_analyse_data['api']).strip().split("|")),
-                                                              client=client, base_url=base_url,
-                                                              params=roc_analyse_data, method=method)
-                    result_roc_analyse = json.loads(result_roc_analyse)
-                    all_results.append(result_roc_analyse)
-                else:
-                    all_results.append(self.params_check(roc_analyse_data,
-                                                         analysis_table[roc_analyse_data['submit_location']],
-                                                         roc_analyse_data['submit_location']))
+            ready_analysis_num = self.roc_analyse(list2, roc_analyse_data, analysis_table,
+                                                  ready_analysis_num, all_analysis_num, client, base_url,
+                                                  method, all_results)
+            ready_analysis_list.append(ready_analysis_num)
         else:
             pass
+        #用于判断是否有投递的分析，有投递的分析，则求最后一次刷新mongo表中完成的最大个数，否则就初始化为0
+        if len(ready_analysis_list) == 0:
+            pass
+        else:
+            ready_analysis_num = max(ready_analysis_list)
 
         if "alpha_ttest" in anaylsis_names and "alpha_diversity_index" in anaylsis_names:
             for n in list2:
@@ -370,6 +237,8 @@ class PipeSubmitAllTool(Tool):
                                                                          params=alpha_diversity_index_data, method=method)
                     results_alpha_diversity_index = json.loads(results_alpha_diversity_index)
                     all_results.append(results_alpha_diversity_index)
+                    ready_analysis_num += 1
+                    self.update_status(all_analysis_num, ready_analysis_num)
                     if 'sub_anaylsis_id' in results_alpha_diversity_index.keys():
                         alpha_diversity_id = results_alpha_diversity_index['sub_anaylsis_id']['id']
                     else:
@@ -378,32 +247,42 @@ class PipeSubmitAllTool(Tool):
                     all_results.append(self.params_check(alpha_diversity_index_data,
                                                          analysis_table[alpha_diversity_index_data['submit_location']],
                                                          alpha_diversity_index_data['submit_location']))
+                    ready_analysis_num += 1
+                    self.update_status(all_analysis_num, ready_analysis_num)
                     results_alpha_diversity_index = self.params_check(alpha_diversity_index_data,
                                                                       analysis_table[alpha_diversity_index_data['submit_location']],
                                                                       alpha_diversity_index_data['submit_location'])
-                    print results_alpha_diversity_index
-                    print type(results_alpha_diversity_index)
-                    print "results_alpha_diversity_index1"
                     alpha_diversity_id = results_alpha_diversity_index['sub_anaylsis_id']['id']
-                    print "这里测试alpha_diversity_id"
+                    print "打印出alpha_diversity_id"
                     print alpha_diversity_id
-                alpha_ttest_data['otu_id'] = n['otu_id']
-                alpha_ttest_data['level_id'] = n['level_id']
-                alpha_ttest_data['group_id'] = n['group_id']
-                alpha_ttest_data['alpha_diversity_id'] = str(alpha_diversity_id)
-                alpha_ttest_data['group_detail'] = n['group_detail']
-                if len(self.params_check(alpha_ttest_data,
-                                         analysis_table[alpha_ttest_data['submit_location']],
-                                         alpha_ttest_data['submit_location'])) == 0:
-                    results_alpha_ttest = self.run_controllers(api="/".join(str(alpha_ttest_data['api']).strip().split("|")),
-                                                               client=client, base_url=base_url,
-                                                               params=alpha_ttest_data, method=method)
-                    results_alpha_ttest = json.loads(results_alpha_ttest)
-                    all_results.append(results_alpha_ttest)
+                if alpha_diversity_id:
+                    alpha_ttest_data['otu_id'] = n['otu_id']
+                    alpha_ttest_data['level_id'] = n['level_id']
+                    alpha_ttest_data['group_id'] = n['group_id']
+                    alpha_ttest_data['alpha_diversity_id'] = str(alpha_diversity_id)
+                    alpha_ttest_data['group_detail'] = n['group_detail']
+                    if len(self.params_check(alpha_ttest_data, analysis_table[alpha_ttest_data['submit_location']],
+                                             alpha_ttest_data['submit_location'])) == 0:
+                        results_alpha_ttest = self.run_controllers(api="/".join(str(alpha_ttest_data['api']).strip().split("|")),
+                                                                   client=client, base_url=base_url,
+                                                                   params=alpha_ttest_data, method=method)
+                        results_alpha_ttest = json.loads(results_alpha_ttest)
+                        all_results.append(results_alpha_ttest)
+                        ready_analysis_num += 1
+                        self.update_status(all_analysis_num, ready_analysis_num)
+                    else:
+                        all_results.append(self.params_check(alpha_ttest_data,
+                                                             analysis_table[alpha_ttest_data['submit_location']],
+                                                             alpha_ttest_data['submit_location']))
+                        ready_analysis_num += 1
+                        self.update_status(all_analysis_num, ready_analysis_num)
                 else:
-                    all_results.append(self.params_check(alpha_ttest_data,
-                                                         analysis_table[alpha_ttest_data['submit_location']],
-                                                         alpha_ttest_data['submit_location']))
+                    alpha_diversity_results = {"level_id": n['level_id'], "group_id": n['group_id'],
+                                               "info": "多样性指数分析出错，无法进行该分析！", "success": False,
+                                               "submit_location": "alpha_ttest"}
+                    all_results.append(alpha_diversity_results)
+                    ready_analysis_num += 1
+                    self.update_status(all_analysis_num, ready_analysis_num)
         elif "alpha_diversity_index" in anaylsis_names and "alpha_ttest" not in anaylsis_names:
             for n in list2:
                 alpha_diversity_index_data['otu_id'] = n['otu_id']
@@ -418,10 +297,14 @@ class PipeSubmitAllTool(Tool):
                         client=client, base_url=base_url, params=alpha_diversity_index_data, method=method)
                     results_alpha_diversity_index = json.loads(results_alpha_diversity_index)
                     all_results.append(results_alpha_diversity_index)
+                    ready_analysis_num += 1
+                    self.update_status(all_analysis_num, ready_analysis_num)
                 else:
                     all_results.append(self.params_check(alpha_diversity_index_data,
                                                          analysis_table[alpha_diversity_index_data['submit_location']],
                                                          alpha_diversity_index_data['submit_location']))
+                    ready_analysis_num += 1
+                    self.update_status(all_analysis_num, ready_analysis_num)
         else:
             pass
         #删除子分析字典中alpha_diversity_index，alpha_ttest两个分析,重构sub_analysis数组
@@ -457,23 +340,13 @@ class PipeSubmitAllTool(Tool):
             del sub_analysis['randomforest_analyse']
         else:
             pass
-        print "打印删除子分析字典中alpha_diversity_index，alpha_ttest,以及投递的多个分析,重构后的sub_analysis"
-        print sub_analysis
-        print len(sub_analysis)
         #定义没有依赖的分析的通用接口投递
         for info in list2:
-            print "打印出info"
-            print info
-            print info.keys()
             for anaylsis in sub_analysis:
-                # print "打印出sub_analysis"
-                # print sub_analysis[anaylsis]
                 sub_analysis[anaylsis]['otu_id'] = info['otu_id']
                 sub_analysis[anaylsis]['level_id'] = info['level_id']
                 sub_analysis[anaylsis]['group_id'] = info['group_id']
                 sub_analysis[anaylsis]['group_detail'] = info['group_detail']
-                # print "答应group_detail类型"
-                # print type(info['group_detail'])
                 if anaylsis in ['beta_multi_analysis_pca', 'beta_multi_analysis_rda_cca', 'beta_multi_analysis_dbrda',
                                 'beta_multi_analysis_pearson_correlation', 'beta_multi_analysis_results'] \
                         and 'env_id' in info.keys() and 'env_labs' in info.keys():
@@ -481,73 +354,92 @@ class PipeSubmitAllTool(Tool):
                     sub_analysis[anaylsis]['env_labs'] = info['env_labs']
                 else:
                     pass
-            print "下面打印出来的是每个子分析sub_analysis添加了分组与分类水平的data值"
-            print sub_analysis
+            gevent_data = []
+            submit_location_dict = {}
             for key in sub_analysis:
                 name = []
                 data = []  # 用于存储子分析参数的具体数值
                 submit_info = {}
-                print sub_analysis[key]
-                # params_data = sub_analysis[key]
-                if len(self.params_check(sub_analysis[key], analysis_table[sub_analysis[key]['submit_location']], sub_analysis[key]['submit_location'])) == 0:
+                if len(self.params_check(sub_analysis[key], analysis_table[sub_analysis[key]['submit_location']],
+                                         sub_analysis[key]['submit_location'])) == 0:
                     for key1 in sub_analysis[key]:
-                        # print sub_analysis[key]
-                        # print sub_analysis[key].keys()
-                        # print sub_analysis[key]['api']
                         name.append(key1)
                         data.append(sub_analysis[key][key1])
                         submit_info = {"api": "/".join(str(sub_analysis[key]['api']).strip().split('|')),
-                                   "submit_location": str(sub_analysis[key]['submit_location'])}
-                    print "打印出每个分析对应的api，base_url，client，method"
-                    print submit_info
+                                       "submit_location": str(sub_analysis[key]['submit_location'])}
                     name = ";".join(name)
-                    print "打印出name值"
-                    print name
                     data = ";".join(data)
-                    print "打印出data值"
-                    print data
                     api = submit_info['api']
                     method = "post"
-                    print "***api:%s, client:%s, base_url:%s"%(api, client, base_url)
-                    return_page = self.webapitest(method, api, name, data, client, base_url)
-                    result = json.loads(return_page)
-                    result = json.loads(result)
-                    if result['success'] == True:
-                        results = {"level_id": info['level_id'], "group_id": info['group_id'],
-                                   "sub_anaylsis_id": result['content']['ids'], "success": True,
-                                   "submit_location": submit_info['submit_location']}
-                        all_results.append(results)
-                    elif 'content' in result.keys() and result['success'] == False:
-                        results = {"level_id": info['level_id'], "group_id": info['group_id'],
-                                   "sub_anaylsis_id": result['content']['ids'], "success": False,
-                                   "submit_location": submit_info['submit_location'], "info": result['info']}
-                        all_results.append(results)
-                    elif 'content' not in result.keys() and result['success'] == False:
-                        results = {"level_id": info['level_id'], "group_id": info['group_id'],
-                                   "info": result['info'], "success": False,
-                                   "submit_location": submit_info['submit_location']}
-                        all_results.append(results)
-                    else:
-                        print "结果还有额外的情况出现！"
-                        pass
+                    # time.sleep(60)
+                    submit_location_dict[str(gevent.spawn(self.webapitest, method=method, api=api, name=name, data=data, client=client, base_url=base_url))] = submit_info['submit_location']
+                    gevent_data.append(gevent.spawn(self.webapitest, method=method, api=api, name=name, data=data, client=client, base_url=base_url))
                 else:
-                    all_results.append(self.params_check(sub_analysis[key], analysis_table[sub_analysis[key]['submit_location']], sub_analysis[key]['submit_location']))
-        print "打印出所有子分析的ids"
-        print all_results
-        print len(all_results)
+                    all_results.append(
+                        self.params_check(sub_analysis[key], analysis_table[sub_analysis[key]['submit_location']],
+                                          sub_analysis[key]['submit_location']))
+                    ready_analysis_num += 1
+                    self.update_status(all_analysis_num, ready_analysis_num)
+            print "gevent_data", gevent_data
+            print "submit_location_dict", submit_location_dict
+            gevent.joinall(gevent_data)
+            for result_page in gevent_data:
+                a = str(result_page)
+                print "test", submit_location_dict[a]
+                result = json.loads(json.loads(result_page.value))
+                print result['success']
+                ready_analysis_num += 1
+                self.update_status(all_analysis_num, ready_analysis_num)
+                if result['success'] == True:
+                    results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                               "sub_anaylsis_id": result['content']['ids'], "success": True,
+                               "submit_location": submit_location_dict[str(result_page)]}
+                    all_results.append(results)
+                else:
+                    results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                               "info": result['info'], "success": False,
+                               "submit_location": submit_location_dict[str(result_page)]}
+                    all_results.append(results)
+                    # return_page = self.webapitest(method, api, name, data, client, base_url)
+                    # result = json.loads(return_page)
+                    # result = json.loads(result)
+                    # ready_analysis_num += 1
+                    # self.update_status(all_analysis_num, ready_analysis_num)
+                    # if result['success'] == True:
+                    #     results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                    #                "sub_anaylsis_id": result['content']['ids'], "success": True,
+                    #                "submit_location": submit_info['submit_location']}
+                    #     all_results.append(results)
+                    # else:
+                    #     results = {"level_id": info['level_id'], "group_id": info['group_id'],
+                    #                "info": result['info'], "success": False,
+                    #                "submit_location": submit_info['submit_location']}
+                    #     all_results.append(results)
+                # else:
+                #     all_results.append(self.params_check(sub_analysis[key], analysis_table[sub_analysis[key]['submit_location']], sub_analysis[key]['submit_location']))
+                #     ready_analysis_num += 1
+                #     self.update_status(all_analysis_num, ready_analysis_num)
         output_table = os.path.join(self.work_dir, "ids.txt")
         with open(output_table, "w") as w:
             w.write(str(all_results))
 
 
-    def params_check(self, ever_analysis_params, analysis_table, submit_location):
+    def params_check(self, ever_analysis_params, analysis_table_name, submit_location):
+        """
+        这里是进行每个分析的参数判断，如果参数一样就不进行投递。
+        :param ever_analysis_params: 每个分析的所有的参数
+        :param analysis_table_name: 这个分析的主表
+        :param submit_location: 该分析的submit_location，注意这个字段一定要与前端对应，所有的分析都是以此字段进行区别。
+        :return:
+        """
         if not isinstance(ever_analysis_params, dict):
-            success.append("传入的params不是一个字典")
+            raise Exception("传入的params不是一个字典！")
         if submit_location in ["beta_multi_analysis_rda_cca", "beta_multi_analysis_pca", "beta_multi_analysis_pcoa",
                                "beta_multi_analysis_nmds", "beta_multi_analysis_plsda", "beta_multi_analysis_dbrda", "otunetwork_analyse",
                                "randomforest_analyse", "otu_pan_core", "roc_analyse", "otu_group_analyse", "hc_heatmap",
                                "beta_multi_analysis_pearson_correlation", "otu_venn",
-                               "beta_multi_analysis_anosim", "beta_sample_distance", "enterotyping"]:
+                               "beta_multi_analysis_anosim", "beta_sample_distance_hcluster_tree", "enterotyping",
+                               "beta_multi_analysis_results"]:
             my_param = dict()
             for key in ever_analysis_params:
                 if key == "level_id":
@@ -560,7 +452,6 @@ class PipeSubmitAllTool(Tool):
                     my_param[key] = ever_analysis_params[key]
             new_params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         elif submit_location in ["species_lefse_analyse"]:
-            # print "yes----------"
             my_param = dict()
             for key in ever_analysis_params:
                 if key == "group_detail":
@@ -577,10 +468,10 @@ class PipeSubmitAllTool(Tool):
                     pass
                 elif key == "lda_filter" and re.search(r'\.0$', ever_analysis_params['lda_filter']):
                     my_param[key] = int(float(ever_analysis_params[key]))
-                elif key == "lda_filter" and re.search(r'\.0$', ever_analysis_params['lda_filter']):
+                elif key == "lda_filter" and re.search(r'\..*$', ever_analysis_params['lda_filter']):
                     my_param[key] = float(ever_analysis_params[key])
                 elif key == "lda_filter" and not re.search(r'\.0$', ever_analysis_params['lda_filter']) and not \
-                        re.search(r'\.0$', ever_analysis_params['lda_filter']):
+                        re.search(r'\..*$', ever_analysis_params['lda_filter']):
                     my_param[key] = int(ever_analysis_params[key])
                 else:
                     my_param[key] = ever_analysis_params[key]
@@ -594,6 +485,7 @@ class PipeSubmitAllTool(Tool):
                     my_param[key] = group_detail_sort(ever_analysis_params[key])
                 elif key == "index_type":
                     sort_index = ever_analysis_params[key].split(',')
+                    sort_index.sort()
                     sort_index = ','.join(sort_index)
                     my_param[key] = sort_index
                 elif key == "api":
@@ -627,7 +519,7 @@ class PipeSubmitAllTool(Tool):
                 else:
                     my_param[key] = ever_analysis_params[key]
             new_params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        elif submit_location in ["alpha_diversity_index", "beta_multi_analysis_results"]:
+        elif submit_location in ["alpha_diversity_index"]:
             my_param = dict()
             for key in ever_analysis_params:
                 if key == "group_detail":
@@ -649,49 +541,40 @@ class PipeSubmitAllTool(Tool):
         collection_sg_otu = self.db["sg_otu"]
         result = collection_sg_otu.find_one({"_id": ObjectId(str(ever_analysis_params['otu_id']))})
         task_id = result['task_id']
-        collections = self.db[analysis_table]
-        result1 = collections.find({"task_id": task_id})
-        # print result1
-        print "-----"
-        print json.dumps(new_params)
-        print "-----"
+        collections = self.db[analysis_table_name]
+        # print json.dumps(new_params)
         results = {}
         if submit_location == "otu_pan_core":
-            for datas in result1:
-                analysis_id = []
-                if 'params' in datas.keys() and json.dumps(datas['params']) == json.dumps(new_params) and datas['status'] in ["start", "end"]:
-                    ids = {"id": str(datas['_id']), "name": datas['name']}
-                    analysis_id.append(ids)
-                    another_id = collections.find({"task_id": task_id, "created_ts": datas['created_ts']})
-                    for m in another_id:
-                        if str(m['_id']) != str(datas['_id']) and json.dumps(m['params']) == json.dumps(new_params):
-                            ids1 = {"id": str(m['_id']), "name": m['name']}
-                            analysis_id.append(ids1)
-                        # print analysis_id
+            result1 = collections.find_one({"task_id": task_id, "params": new_params, "status": "end"})
+            analysis_id = []
+            if result1:
+                ids = {"id": str(result1['_id']), "name": result1['name']}
+                analysis_id.append(ids)
+                another_id = collections.find({"task_id": task_id, "created_ts": result1['created_ts']})
+                for m in another_id:
+                    if str(m['_id']) != str(result1['_id']) and json.dumps(m['params']) == json.dumps(new_params):
+                        ids1 = {"id": str(m['_id']), "name": m['name']}
+                        analysis_id.append(ids1)
                         results = {"level_id": ever_analysis_params['level_id'],
                                    "group_id": ever_analysis_params['group_id'],
                                    "sub_anaylsis_id": analysis_id, "success": "unknown",
                                    "submit_location": submit_location}
                         break
         else:
-            for datas in result1:
-                # print json.dumps(datas['params'])
-                if 'params' in datas.keys() and json.dumps(datas['params']) == json.dumps(new_params):
-                    print "yes"
-                    # print json.dumps(datas['params'])
-                    if datas['status'] == "start":
-                        results = {"level_id": ever_analysis_params['level_id'],
-                                   "group_id": ever_analysis_params['group_id'],
-                                   "sub_anaylsis_id": {"id": str(datas['_id']), "name": datas['name']}, "success": "unknown",
-                                   "submit_location": submit_location}
-                    elif datas['status'] == "end":
-                        results = {"level_id": ever_analysis_params['level_id'],
-                                   "group_id": ever_analysis_params['group_id'],
-                                   "sub_anaylsis_id": {"id": str(datas['_id']), "name": datas['name']}, "success": True,
-                                   "submit_location": submit_location}
-                    break
-        print "打印出不需要计算的分析"
-        print results
+            if collections.find_one({"task_id": task_id, "params": new_params, "status": "start"}):
+                m = collections.find_one({"task_id": task_id, "params": new_params, "status": "start"})
+                results = {"level_id": ever_analysis_params['level_id'],
+                           "group_id": ever_analysis_params['group_id'],
+                           "sub_anaylsis_id": {"id": str(m['_id']), "name": m['name']}, "success": "unknown",
+                           "submit_location": submit_location}
+            elif collections.find_one({"task_id": task_id, "params": new_params, "status": "end"}):
+                m = collections.find_one({"task_id": task_id, "params": new_params, "status": "end"})
+                results = {"level_id": ever_analysis_params['level_id'],
+                           "group_id": ever_analysis_params['group_id'],
+                           "sub_anaylsis_id": {"id": str(m['_id']), "name": m['name']}, "success": True,
+                           "submit_location": submit_location}
+        # print "打印出不需要计算的分析"
+        # print results
         return results
 
     def run_controllers(self, api, client, base_url, params, method, header=None):
@@ -703,7 +586,7 @@ class PipeSubmitAllTool(Tool):
         :return:
         """
         if not isinstance(params, dict):
-            success.append("传入的params不是一个字典")
+            raise Exception("传入的params不是一个字典！")
         name = []
         data = []
         results = {}
@@ -712,6 +595,7 @@ class PipeSubmitAllTool(Tool):
             data.append(params[key])
         name = ";".join(name)
         data = ";".join(data)
+        time.sleep(0.5)
         return_page = self.webapitest(method, api, name, data, client, base_url)
         result = json.loads(return_page)
         result = json.loads(result)
@@ -719,22 +603,12 @@ class PipeSubmitAllTool(Tool):
             results = {"level_id": params['level_id'], "group_id": params['group_id'],
                        "sub_anaylsis_id": result['content']['ids'], "success": True,
                        "submit_location": params['submit_location']}
-        elif 'content' in result.keys() and result['success'] == False:
-            results = {"level_id": params['level_id'], "group_id": params['group_id'],
-                       "sub_anaylsis_id": result['content']['ids'], "success": False,
-                       "submit_location": params['submit_location'], "info": result['info']}
-        elif 'content' not in result.keys() and result['success'] == False:
+        else:
             results = {"level_id": params['level_id'], "group_id": params['group_id'],
                        "info": result['info'], "success": False,
                        "submit_location": params['submit_location']}
-        else:
-            print "结果还有额外的情况出现！"
-            pass
-        # results = {"level_id": params['level_id'], "group_id": params['group_id'],
-        #            "sub_anaylsis_id": result['content']['ids']}
+
         return json.dumps(results)
-
-
 
     def webapitest(self, method, api, name, data, client, base_url, header=None):
         """
@@ -805,7 +679,7 @@ class PipeSubmitAllTool(Tool):
                     url = "%s?%s" % (url, data)
             else:
                 url = "%s%s" % (base_url, api)
-            print("get url %s ..." % url)
+            # print("get url %s ..." % url)
             request = urllib2.Request(url)
 
         if header:
@@ -816,19 +690,18 @@ class PipeSubmitAllTool(Tool):
 
         try:
             response = urllib2.urlopen(request)
-            # print "controller test"
-            # print response
-        except (urllib2.HTTPError, urllib2.URLError, httplib.HTTPException), e:
-            print("%s \n" % e)
-            time.sleep(30)    #这一步一定要休眠30s 目的是为了等端口重启好
+        except (urllib2.HTTPError, urllib2.URLError, httplib.HTTPException, SocketError), e:
+            print("%s-- \n" % e)
+            time.sleep(50)    #这一步一定要休眠50s 目的是为了等端口重启好，再测试过程中出现接口连续重启3次的情况
             #这一步骤是用于处理接口投递时出现异常导致接口投递失败，当失败的时候休眠5s然后重新投递2次，badstatsline属于httplib.HTTPException异常
             for n in range(2):
                 time.sleep(10)
                 try:
                     response = urllib2.urlopen(request)
-                except (urllib2.HTTPError, urllib2.URLError, httplib.HTTPException), e:
+                except (urllib2.HTTPError, urllib2.URLError, httplib.HTTPException, SocketError), e:
                     print("%s \n" % e)
                     the_page = {"info": "submit failed!", "success": False}
+                    the_page = json.dumps(the_page)
                 else:
                     the_page = response.read()
                     print("Return page:\n%s" % the_page)
@@ -841,9 +714,296 @@ class PipeSubmitAllTool(Tool):
         return json.dumps(the_page)
 
 
+    def update_status(self, all_analysis_num, ready_analysis_num, analysis_type=None, all_results=None,
+                      analysis_table=None):
+        """
+        用于进度条显示
+        all_analysis_num:参数是指所有的分析的个数（分类水平*分组方案*分析个数）
+        ready_analysis_num:参数是指已经完成的分析的个数
+        all_results: 针对的是投递的分析，需要根据all_results中的id去查找状态
+        analysis_table：每个分析submit_location对应的主表
+        analysis_type:submit or instant
+        pipe_id:批次表的主表id
+        :return:
+        """
+        main_table_id = self.option("pipe_id")
+        collection_pipe = self.db["sg_pipe_batch"]
+        if analysis_type and analysis_type == "submit":
+            for m in all_results:
+                collections_sub_analysis = self.db[analysis_table[m["submit_location"]]]
+                if 'sub_anaylsis_id' in m.keys():
+                    if "id" in m["sub_anaylsis_id"].keys():
+                        sub_anaylsis_main_id = str(m['sub_anaylsis_id']['id'])
+                        result = collections_sub_analysis.find_one({"_id": ObjectId(sub_anaylsis_main_id)})
+                        if result and result['status'] != 'start':
+                            ready_analysis_num += 1
+                        else:
+                            pass
+                    elif isinstance(m['sub_anaylsis_id'], list):
+                        for n in m['sub_anaylsis_id']:
+                            sub_anaylsis_main_id = str(n['id'])
+                            result = collections_sub_analysis.find_one({"_id": ObjectId(sub_anaylsis_main_id)})
+                            if result and result['status'] != 'start':
+                                ready_analysis_num += 1
+                            else:
+                                pass
+                else:
+                    ready_analysis_num += 1
 
+        percent = str(ready_analysis_num) + "/" + str(all_analysis_num)
+        data = {
+            "percent": percent
+        }
+        try:
+            collection_pipe.update({"_id": ObjectId(main_table_id)}, {'$set': data}, upsert=False)
+        except:
+            raise Exception("进度条更新失败了！")
+        return ready_analysis_num
 
     def run(self):
         super(PipeSubmitAllTool, self).run()
         self.run_webapitest()
         self.end()
+
+
+    def otu_subsample(self, data, client, base_url, method):
+        """
+        进行抽平计算，返回的值是抽平后的otu_id
+        :param data:
+        :param client:
+        :param base_url:
+        :param method:
+        :return:
+        """
+        if not isinstance(data, dict):
+            raise Exception("传入的params不是一个字典！")
+        collection_sg_otu = self.db["sg_otu"]
+        result = collection_sg_otu.find_one({"_id": ObjectId(str(data['otu_id']))})
+        task_id = result['task_id']
+        from_id = result['from_id']
+        my_param = dict()
+        my_param["group_id"] = data['group_id']
+        my_param['otu_id'] = from_id
+        my_param["submit_location"] = "otu_statistic"
+        my_param["size"] = data['size']
+        my_param["filter_json"] = filter_json_sort(data['filter_json'])
+        my_param["group_detail"] = group_detail_sort(data['group_detail'])
+        my_param["task_type"] = "reportTask"
+        params_otu = param_pack(my_param)
+        if collection_sg_otu.find_one({"task_id": task_id, "params": params_otu, "status": "end"}):
+            otu_id = str(collection_sg_otu.find_one({"task_id": task_id, "params": params_otu, "status": "end"})["_id"])
+        else:
+            otu_id = "none"
+        if otu_id == "none":
+            params = {"otu_id": str(data['otu_id']), "group_id": data['group_id'], "group_detail": data['group_detail'],
+                      "submit_location": "otu_statistic",
+                      "filter_json": data['filter_json'], "task_type": "reportTask", "size": data['size'],
+                      "level_id": "9"}
+            api_statistic = "meta/otu_subsample"
+            results_statistic = self.run_controllers(api=api_statistic, client=client, base_url=base_url, params=params,
+                                                     method=method)
+            results_statistic = json.loads(results_statistic)
+            if 'sub_anaylsis_id' in results_statistic.keys() and results_statistic['success'] == True:
+                otu_id = results_statistic['sub_anaylsis_id']['id']
+            else:
+                raise Exception("进行抽平或者样本筛选的过程失败，程序被终止！")
+        return otu_id
+
+    def otunetwork_analyse(self, list2, otunetwork_analyse_data, analysis_table, ready_analysis_num, all_analysis_num,
+                           client, base_url, method, all_results):
+        """
+        :param list2: 这是所有的分组方案与分类水平进行随机组合的列表
+        :param otunetwork_analyse_data: 每个子分析需要除了otu_id，group_id，group_detail参数之外的其它高级参数
+        :param analysis_table: 这个在run_webapitest开始地方定义，将所有分析的submit_location与main_table_name对应的字典
+        :param client:
+        :param base_url:
+        :param method:
+        :param all_results:用于存储所有分析的返回的id以及表的名字，或者返回的错误信息。该列表是个全局列表
+        :return: 返回的值是用于进度条计算的，返回的是投递的分析已经完成的个数
+        """
+        for n in list2:
+            ready_analysis_num = 0
+            otunetwork_analyse_data['otu_id'] = n['otu_id']
+            otunetwork_analyse_data['level_id'] = n['level_id']
+            otunetwork_analyse_data['group_id'] = n['group_id']
+            otunetwork_analyse_data['group_detail'] = n['group_detail']
+            if len(self.params_check(otunetwork_analyse_data,
+                                     analysis_table[otunetwork_analyse_data['submit_location']],
+                                     otunetwork_analyse_data['submit_location'])) == 0:
+                result_otunetwork_analyse = self.run_controllers(
+                    api="/".join(str(otunetwork_analyse_data['api']).strip().split("|")),
+                    client=client, base_url=base_url, params=otunetwork_analyse_data, method=method)
+                result_otunetwork_analyse = json.loads(result_otunetwork_analyse)
+                all_results.append(result_otunetwork_analyse)
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num, analysis_type="submit",
+                                                        ready_analysis_num=ready_analysis_num, all_results=all_results,
+                                                        analysis_table=analysis_table)
+            else:
+                all_results.append(self.params_check(otunetwork_analyse_data,
+                                                     analysis_table[otunetwork_analyse_data['submit_location']],
+                                                     otunetwork_analyse_data['submit_location']))
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num, analysis_type="submit",
+                                                        ready_analysis_num=ready_analysis_num, all_results=all_results,
+                                                        analysis_table=analysis_table)
+        return ready_analysis_num
+
+
+    def roc_analyse(self, list2, roc_analyse_data, analysis_table, ready_analysis_num, all_analysis_num, client,
+                    base_url, method, all_results):
+        """
+        计算ROC的程序
+        """
+        for n in list2:
+            ready_analysis_num = 0
+            roc_analyse_data['otu_id'] = n['otu_id']
+            roc_analyse_data['level_id'] = n['level_id']
+            roc_analyse_data['group_id'] = n['group_id']
+            roc_analyse_data['group_detail'] = n['group_detail']
+            if len(self.params_check(roc_analyse_data,
+                                     analysis_table[roc_analyse_data['submit_location']],
+                                     roc_analyse_data['submit_location'])) == 0:
+                result_roc_analyse = self.run_controllers(api="/".join(str(roc_analyse_data['api']).strip().split("|")),
+                                                          client=client, base_url=base_url,
+                                                          params=roc_analyse_data, method=method)
+                result_roc_analyse = json.loads(result_roc_analyse)
+                all_results.append(result_roc_analyse)
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num,
+                                                        ready_analysis_num=ready_analysis_num, analysis_type="submit",
+                                                        all_results=all_results, analysis_table=analysis_table)
+            else:
+                all_results.append(self.params_check(roc_analyse_data,
+                                                     analysis_table[roc_analyse_data['submit_location']],
+                                                     roc_analyse_data['submit_location']))
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num,
+                                                        ready_analysis_num=ready_analysis_num, analysis_type="submit",
+                                                        all_results=all_results, analysis_table=analysis_table)
+        return ready_analysis_num
+
+    def randomforest_analyse(self, list2, randomforest_analyse_data, analysis_table, ready_analysis_num,
+                             all_analysis_num, client, base_url, method, all_results):
+        """
+        计算随机森林的程序
+        """
+        for n in list2:
+            ready_analysis_num = 0
+            randomforest_analyse_data['otu_id'] = n['otu_id']
+            randomforest_analyse_data['level_id'] = n['level_id']
+            randomforest_analyse_data['group_id'] = n['group_id']
+            randomforest_analyse_data['group_detail'] = n['group_detail']
+            if len(self.params_check(randomforest_analyse_data,
+                                     analysis_table[randomforest_analyse_data['submit_location']],
+                                     randomforest_analyse_data['submit_location'])) == 0:
+                result_randomforest_analyse = self.run_controllers(
+                    api="/".join(str(randomforest_analyse_data['api']).strip().split("|")),
+                    client=client, base_url=base_url,
+                    params=randomforest_analyse_data, method=method)
+                result_randomforest_analyse = json.loads(result_randomforest_analyse)
+                all_results.append(result_randomforest_analyse)
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num,
+                                                        ready_analysis_num=ready_analysis_num, analysis_type="submit",
+                                                        all_results=all_results, analysis_table=analysis_table)
+            else:
+                all_results.append(self.params_check(randomforest_analyse_data,
+                                                     analysis_table[randomforest_analyse_data['submit_location']],
+                                                     randomforest_analyse_data['submit_location']))
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num,
+                                                        ready_analysis_num=ready_analysis_num, analysis_type="submit",
+                                                        all_results=all_results, analysis_table=analysis_table)
+        return ready_analysis_num
+
+
+    def sixteens_prediction(self, list2, sixteens_prediction_data, analysis_table, ready_analysis_num,
+                            all_analysis_num, client, base_url, method, all_results):
+        """
+        计算16s功能预测的程序
+        """
+        for n in list2:
+            ready_analysis_num = 0
+            sixteens_prediction_data['otu_id'] = n['otu_id']
+            sixteens_prediction_data['level_id'] = n['level_id']
+            sixteens_prediction_data['group_id'] = n['group_id']
+            sixteens_prediction_data['group_detail'] = n['group_detail']
+            if len(self.params_check(sixteens_prediction_data,
+                                     analysis_table[sixteens_prediction_data['submit_location']],
+                                     sixteens_prediction_data['submit_location'])) == 0:
+                result_sixteens_prediction = self.run_controllers(
+                    api="/".join(str(sixteens_prediction_data['api']).strip().split("|")),
+                    client=client, base_url=base_url,
+                    params=sixteens_prediction_data, method=method)
+                result_sixteens_prediction = json.loads(result_sixteens_prediction)
+                all_results.append(result_sixteens_prediction)
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num,
+                                                        ready_analysis_num=ready_analysis_num, analysis_type="submit",
+                                                        all_results=all_results, analysis_table=analysis_table)
+            else:
+                all_results.append(self.params_check(sixteens_prediction_data,
+                                                     analysis_table[sixteens_prediction_data['submit_location']],
+                                                     sixteens_prediction_data['submit_location']))
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num,
+                                                        ready_analysis_num=ready_analysis_num, analysis_type="submit",
+                                                        all_results=all_results, analysis_table=analysis_table)
+        return ready_analysis_num
+
+    def species_lefse_analyse(self, list2, species_lefse_analyse_data, analysis_table, ready_analysis_num,
+                              all_analysis_num, client, base_url, method, all_results):
+        """
+        计算lefse的程序
+        """
+        for n in list2:
+            ready_analysis_num = 0
+            species_lefse_analyse_data['otu_id'] = n['otu_id']
+            species_lefse_analyse_data['level_id'] = n['level_id']
+            species_lefse_analyse_data['group_id'] = n['group_id']
+            species_lefse_analyse_data['group_detail'] = n['group_detail']
+            if len(self.params_check(species_lefse_analyse_data,
+                                     analysis_table[species_lefse_analyse_data['submit_location']],
+                                     species_lefse_analyse_data['submit_location'])) == 0:
+                result_species_lefse_analyse = self.run_controllers(
+                    api="/".join(str(species_lefse_analyse_data['api']).strip().split("|")),
+                    client=client, base_url=base_url,
+                    params=species_lefse_analyse_data, method=method)
+                result_species_lefse_analyse = json.loads(result_species_lefse_analyse)
+                all_results.append(result_species_lefse_analyse)
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num,
+                                                        ready_analysis_num=ready_analysis_num, analysis_type="submit",
+                                                        all_results=all_results, analysis_table=analysis_table)
+            else:
+                all_results.append(self.params_check(species_lefse_analyse_data,
+                                                     analysis_table[species_lefse_analyse_data['submit_location']],
+                                                     species_lefse_analyse_data['submit_location']))
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num,
+                                                        ready_analysis_num=ready_analysis_num, analysis_type="submit",
+                                                        all_results=all_results, analysis_table=analysis_table)
+        return ready_analysis_num
+
+    def alpha_rarefaction_curve(self, list2, alpha_rarefaction_curve_data, analysis_table, ready_analysis_num,
+                                all_analysis_num, client, base_url, method, all_results):
+        """
+        计算多样性指数的程序
+        """
+        for n in list2:
+            ready_analysis_num = 0  #这个要放在每个循环里面，每循环一次都要初始化
+            alpha_rarefaction_curve_data['otu_id'] = n['otu_id']
+            alpha_rarefaction_curve_data['level_id'] = n['level_id']
+            alpha_rarefaction_curve_data['group_id'] = n['group_id']
+            alpha_rarefaction_curve_data['group_detail'] = n['group_detail']
+            if len(self.params_check(alpha_rarefaction_curve_data,
+                                     analysis_table[alpha_rarefaction_curve_data['submit_location']],
+                                     alpha_rarefaction_curve_data['submit_location'])) == 0:
+                result_alpha_rarefaction_curve = self.run_controllers(
+                    api="/".join(str(alpha_rarefaction_curve_data['api']).strip().split("|")),
+                    client=client, base_url=base_url,
+                    params=alpha_rarefaction_curve_data, method=method)
+                result_alpha_rarefaction_curve = json.loads(result_alpha_rarefaction_curve)
+                all_results.append(result_alpha_rarefaction_curve)
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num,
+                                                        ready_analysis_num=ready_analysis_num, analysis_type="submit",
+                                                        all_results=all_results, analysis_table=analysis_table)
+            else:
+                all_results.append(self.params_check(alpha_rarefaction_curve_data,
+                                                     analysis_table[alpha_rarefaction_curve_data['submit_location']],
+                                                     alpha_rarefaction_curve_data['submit_location']))
+                ready_analysis_num = self.update_status(all_analysis_num=all_analysis_num,
+                                                        ready_analysis_num=ready_analysis_num, analysis_type="submit",
+                                                        all_results=all_results, analysis_table=analysis_table)
+        return ready_analysis_num

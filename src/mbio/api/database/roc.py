@@ -15,7 +15,6 @@ class Roc(Base):
     def __init__(self, bind_object):
         super(Roc, self).__init__(bind_object)
         self._db_name = Config().MONGODB
-        # self.client = get_mongo_client()
 
     @report_check
     def add_roc_curve(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
@@ -81,11 +80,11 @@ class Roc(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
-        
-        
 
 
-    
+
+
+
 
     #@report_check
     def create_roc(self, params, group_id=0, from_otu_table=0, name=None, level_id=0):
@@ -122,4 +121,3 @@ class Roc(Base):
         collection = self.db["sg_meta_roc"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         return inserted_id
-

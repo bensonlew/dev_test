@@ -6,9 +6,7 @@
 
 """
 
-import os
 from Bio import Phylo
-from mainapp.config.db import get_mongo_client
 from bson.objectid import ObjectId
 from bson.errors import InvalidId as bosn_InvalidID
 from collections import defaultdict
@@ -18,6 +16,7 @@ import types
 
 
 db_name = Config().MONGODB
+mongo_client = Config().mongo_client
 
 
 class Otu(object):
@@ -85,7 +84,7 @@ class otu_table(object):
                 self.__dict = json.loads(table_content)
             except ValueError, e:
                 raise Exception('初始化参数不正确！info:%s' % e)
-        self.__mongodb = get_mongo_client()
+        self.__mongodb = mongo_client
         self._samples = self._get_samples_name()
         self.otus = self._get_all_otus()
 
@@ -166,7 +165,7 @@ class otu_table(object):
 def get_origin_otu(otu_id, connecter=None, database=db_name, collection='sg_otu'):
     u"""从一个OTU ID找到这个OTU的原始OTU ID."""
     if not connecter:
-        connecter = get_mongo_client()
+        connecter = mongo_client
     collect = connecter[database][collection]
     if isinstance(otu_id, types.StringTypes):
         try:
@@ -203,7 +202,7 @@ def get_otu_phylo_newick(otu_id, connecter=None, database=db_name,
     返回一个两个元素的元组,第一个bool代表找到或者没找到，第二个是错误信息或者结果进化树字符串
     """
     if not connecter:
-        connecter = get_mongo_client()
+        connecter = mongo_client
     if isinstance(otu_id, types.StringTypes):
         try:
             otu_id = ObjectId(otu_id)
@@ -223,7 +222,7 @@ def get_otu_phylo_newick(otu_id, connecter=None, database=db_name,
 
 
 def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, topN=None, bind_obj=None):
-    collection = get_mongo_client()[db_name]['sg_otu']
+    collection = mongo_client[db_name]['sg_otu']
     tempdir = tempdir.rstrip('/') + '/'
     temptre = tempdir + 'temp_newick.tre'
     filter_tre = tempdir + 'temp_filter_newick.tre'

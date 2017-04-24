@@ -124,10 +124,10 @@ class FactorDistanceTool(Tool):
                 write_line_list[n] += "\t{}".format(line[0])
                 for i in fac_index:
                     n += 1
-                    if re.match(r"\D", line[i]):
-                        continue
-                    else:
-                        write_line_list[n] += "\t{}".format(line[i])
+                    # if re.match(r"\D", line[i]):
+                    #     continue
+                    # else:
+                    write_line_list[n] += "\t{}".format(line[i])
             write_line_len = len(write_line_list[0].split("\t"))
             for write_line in write_line_list:
                 if len(write_line.split("\t")) < write_line_len:

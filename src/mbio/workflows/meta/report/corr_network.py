@@ -2,7 +2,7 @@
 # __author__ = 'xuanhongdong'
 from biocluster.workflow import Workflow
 import os
-from mbio.api.to_file.meta import *
+
 
 class CorrNetworkWorkflow(Workflow):
     """
@@ -133,7 +133,9 @@ class CorrNetworkWorkflow(Workflow):
 
     def end(self):
         repaths = [
-            [".", "", "物种相关性网络结果输出目录"],
+            [".", "", "物种相关性网络分析结果目录"],
+            ["./otu_association", "", "物种相关性计算结果输出目录"],
+            ["./corr_network_calc", "", "物种相关性网络分析结果输出目录"],
             ["./otu_association/shared.txt", "txt", "shared文件"],
             ["./corr_network_calc/corr_network_attributes.txt", "txt", "网络的单值属性表"],
             ["./corr_network_calc/corr_network_by_cut.txt", "txt", "相关系数筛选后网络边文件"],
@@ -143,7 +145,7 @@ class CorrNetworkWorkflow(Workflow):
             ["./corr_network_calc/corr_network_node_degree.txt", "txt", "网络节点的度统计表"]
         ]
         regexps = [
-            [r"./otu_association/*\.otu\.corr", "corr", "物种相似性网络边文件"]
+            [r"^otu_association/shared", "corr", "物种相似性网络边文件"]
         ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)
@@ -186,7 +188,7 @@ class CorrNetworkWorkflow(Workflow):
 
         api_corrnetwork.add_network_links_table(file_path=node_links_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_abundance_table(file_path=node_abundance_path, table_id=self.option("corr_network_id"))
-        api_corrnetwork.add_network_cluster_degree(file1_path=network_degree_path, file2_path=network_clustering_path,table_id=self.option("corr_network_id"))
+        api_corrnetwork.add_network_cluster_degree(file1_path=network_degree_path, file2_path=network_clustering_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_attributes(file_path=network_attributes_path, table_id=self.option("corr_network_id"))
         api_corrnetwork.add_network_degree_distribution(file_path=network_degree_distribution, table_id=self.option("corr_network_id"))

@@ -8,7 +8,7 @@ from ..wsheet import Sheet
 from .logger import Logger
 from .log import LogWorker
 from ..config import Config
-from .db import WorkflowModel, CheckModel
+from .db import WorkflowModel, CheckModel, ClientKeyModel
 import os
 import traceback
 from pwd import getpwnam
@@ -19,6 +19,8 @@ import time
 import gevent
 import sys
 from ..core.function import hostname
+import hashlib
+import threading
 
 
 @singleton
@@ -27,9 +29,14 @@ class WorkflowManager(object):
         self.queue = Queue()
         self.workflows = {}
         self.event = {}
+        self.multi_event = {}
         self.return_msg = {}
         self.logger = Logger()
         self.server = None
+        self._key = {}
+        self._port_list = {}
+        self.config = Config()
+        self.port_lock = threading.Lock()
 
     def add_task(self, json):
         try:
@@ -37,6 +44,7 @@ class WorkflowManager(object):
                 self.logger.error("add workflow %s format error!" % json)
                 return {"success": False, "info": "json格式错误"}
             json["WPM"] = True
+            json["endpoint"] = "tcp://{}:{}".format(self.__get_ip(), self.__get_port(json["id"]))
             wsheet = Sheet(data=json)
             model = WorkflowModel(wsheet)
             if wsheet.id in self.workflows.keys():
@@ -53,16 +61,43 @@ class WorkflowManager(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 add_task: %s" % e)
 
-    def get_event(self, wid):
-        if wid not in self.workflows.keys():
-            raise Exception("ID不存在，请先添加任务!")
-        if wid in self.event.keys():
-            return self.event[wid]
+    def __get_port(self, wid):
+        if wid in self._port_list.keys():
+            return self._port_list[wid]
+        port = self.config.get_listen_port()
+        if port in self._port_list.values():
+            return self.__get_port(wid)
+        else:
+            with self.port_lock:
+                self._port_list[wid] = port
+            return port
+
+    def __get_ip(self):
+        return self.config.LISTEN_IP
+
+    def get_event(self, *wid):
+        for eid in wid:
+            if eid not in self.workflows.keys():
+                raise Exception("ID%s不存在，请先添加任务!" % eid)
+        if len(wid) == 1:
+            my_id = wid[0]
+        else:
+            ids = list(wid)
+            ids.sort()
+            my_id = hashlib.sha1("".join([str(i) for i in ids])).hexdigest()
+
+        if my_id in self.event.keys():
+            return self.event[my_id]
         else:
             event = Event()
-            self.event[wid] = event
+            self.event[my_id] = event
+            if len(wid) > 1:
+                for i in wid:
+                    self.multi_event[my_id] = {}
+                    self.multi_event[my_id][i] = False
             return event
 
     def start(self, wid, pid=0):
@@ -73,7 +108,8 @@ class WorkflowManager(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 start: %s" % e)
 
     def set_end(self, wid, msg=None):
         try:
@@ -86,11 +122,26 @@ class WorkflowManager(object):
                     event = self.event.pop(wid)
                     if event:
                         event.set()
+                if wid in self._port_list.keys():
+                    self._port_list.pop(wid)
+                for m_id in self.multi_event.keys():
+                    all_over = True
+                    for mw_id in self.multi_event[m_id]:
+                        if mw_id == wid:
+                            self.multi_event[m_id][mw_id] = {"success": True, "info": "运行结束!"}
+                        if self.multi_event[m_id][mw_id] is False:
+                            all_over = False
+                    if all_over:
+                        if m_id in self.event:
+                            event = self.event.pop(m_id)
+                            if event:
+                                event.set()
                 self.logger.info("Workflow %s 运行结束! " % wid)
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 set_end: %s" % e)
 
     def process_end(self, wid):
         try:
@@ -100,27 +151,59 @@ class WorkflowManager(object):
                 if model:
                     model.error(error_msg)
 
+                if wid in self._port_list.keys():
+                    self._port_list.pop(wid)
+
                 if wid in self.event.keys():
                     self.return_msg[wid] = {"success": False, "info": error_msg}
                     event = self.event.pop(wid)
                     if event:
                         event.set()
+                for m_id in self.multi_event.keys():
+                    all_over = True
+                    for mw_id in self.multi_event[m_id]:
+                        if mw_id == wid:
+                            self.multi_event[m_id][mw_id] = {"success": False, "info": "进程意外结束"}
+                        if self.multi_event[m_id][mw_id] is False:
+                            all_over = False
+                    if all_over:
+                        if m_id in self.event:
+                            event = self.event.pop(m_id)
+                            if event:
+                                event.set()
                 self.logger.error("Workflow %s 进程意外结束: %s " % (wid, error_msg))
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 process_end: %s" % e)
 
-    def get_msg(self, wid):
+    def get_msg(self, *wid):
         try:
-            if wid in self.return_msg.keys():
-                return self.return_msg.pop(wid)
+            if len(wid) == 1:
+                if wid[0] in self.return_msg.keys():
+                    return self.return_msg.pop(wid[0])
+                else:
+                    return None
             else:
-                return None
+                ids = list(wid)
+                ids.sort()
+                my_id = hashlib.sha1("".join([str(i) for i in ids])).hexdigest()
+
+                if my_id in self.multi_event.keys():
+                    msg = {}
+                    for mw_id in self.multi_event[my_id]:
+                        if self.multi_event[my_id][mw_id] is not False:
+                            msg[mw_id] = self.multi_event[my_id][mw_id]
+                    self.multi_event.pop(my_id)
+                    return msg
+                else:
+                    return None
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 get_msg: %s" % e)
 
     def keep_alive(self, wid):
         try:
@@ -130,7 +213,8 @@ class WorkflowManager(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 keep_alive: %s" % e)
 
     def set_error(self, wid, error_msg):
         try:
@@ -139,16 +223,32 @@ class WorkflowManager(object):
                 if model:
                     model.error(error_msg)
 
+                if wid in self._port_list.keys():
+                    self._port_list.pop(wid)
+
                 if wid in self.event.keys():
                     self.return_msg[wid] = {"success": False, "info": error_msg}
                     event = self.event.pop(wid)
                     if event:
                         event.set()
+                for m_id in self.multi_event.keys():
+                    all_over = True
+                    for mw_id in self.multi_event[m_id]:
+                        if mw_id == wid:
+                            self.multi_event[m_id][mw_id] = {"success": False, "info": error_msg}
+                        if self.multi_event[m_id][mw_id] is False:
+                            all_over = False
+                    if all_over:
+                        if m_id in self.event:
+                            event = self.event.pop(m_id)
+                            if event:
+                                event.set()
                 self.logger.error("Workflow %s 运行出错: %s " % (wid, error_msg))
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 set_error: %s" % e)
 
     def set_pause(self, wid):
         try:
@@ -158,7 +258,8 @@ class WorkflowManager(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 set_pause: %s" % e)
 
     def set_pause_exit(self, wid):
         try:
@@ -168,7 +269,8 @@ class WorkflowManager(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 set_pause_exit: %s" % e)
 
     def pause_timeout(self, wid):
         try:
@@ -178,7 +280,8 @@ class WorkflowManager(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 pause_timeout: %s" % e)
 
     def set_stop(self, wid):
         try:
@@ -188,16 +291,28 @@ class WorkflowManager(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 set_stop: %s" % e)
+
+    def get_key(self, client):
+        if client not in self._key.keys():
+            model = ClientKeyModel()
+            self._key[client] = model.find_key(client)
+        return self._key[client]
 
 
-def get_event(wid):
+def get_event(*wid):
     try:
-        event = WorkflowManager().get_event(wid)
+        if len(wid) == 1:
+            event = WorkflowManager().get_event(wid[0])
+        else:
+            event = WorkflowManager().get_event(*wid)
+
     except Exception, e:
         exstr = traceback.format_exc()
         print e
         print exstr
+        sys.stdout.flush()
         return None
     else:
         return event
@@ -209,7 +324,13 @@ class ManagerProcess(Process):
         self.queue = queue
         self.config = Config()
         self.process = {}
-        self.model = CheckModel()
+        self._model = None
+
+    @property
+    def model(self):
+        if not self._model:
+            self._model = CheckModel()
+        return self._model
 
     def run(self):
         super(ManagerProcess, self).run()
@@ -243,6 +364,7 @@ class ManagerProcess(Process):
         wpm_manager.connect()
         worker = wpm_manager.worker()
         worker.process_end(wid)
+        del worker
 
         class LogManager(BaseManager):
             pass
@@ -251,6 +373,7 @@ class ManagerProcess(Process):
         m.connect()
         log = m.apilog()
         log.set_end(wid)
+        del log
 
     def process_start(self, wid, pid):
         class WorkerManager(BaseManager):
@@ -261,6 +384,7 @@ class ManagerProcess(Process):
         wpm_manager.connect()
         worker = wpm_manager.worker()
         worker.start(wid, pid)
+        del worker
 
     def _check_process(self):
         while True:
@@ -274,6 +398,7 @@ class ManagerProcess(Process):
                         exstr = traceback.format_exc()
                         print exstr
                         print e
+                        sys.stdout.flush()
                     self.process.pop(wid)
 
     def _check_stop(self):
@@ -302,13 +427,14 @@ class ManagerProcess(Process):
 
     def _check(self):
         while True:
-            time.sleep(10)
+            time.sleep(15)
             try:
                 self._check_stop()
                 self._check_pause()
                 self._check_exit_pause()
             except Exception, e:
                 print e
+                sys.stdout.flush()
                 continue
 
     def start_thread(self):
@@ -347,7 +473,8 @@ class ApiLogManager(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 add_log: %s" % e)
 
     def get_worker(self):
         try:
@@ -360,7 +487,8 @@ class ApiLogManager(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 get_worker: %s" % e)
 
     def set_end(self, wid):
         try:
@@ -373,7 +501,8 @@ class ApiLogManager(object):
         except Exception, e:
             exstr = traceback.format_exc()
             print exstr
-            self.logger.error("服务异常: %s" % e)
+            sys.stdout.flush()
+            self.logger.error("服务异常 set_end: %s" % e)
 
 
 class ApiLogProcess(Process):
@@ -406,7 +535,7 @@ class ApiLogProcess(Process):
 
     def run(self):
         super(ApiLogProcess, self).run()
-        setproctitle.setproctitle("WPM[API LOG manager]")
+        setproctitle.setproctitle("WPM[API Log Manager]")
         log_manager = ApiLogManager()
         self.start_thread(log_manager)
 
