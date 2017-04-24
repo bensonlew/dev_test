@@ -66,10 +66,15 @@ class BiomFile(File):
         try:
             subpro = subprocess.check_output("biom summarize-table -i " + self.prop['path'], shell=True)
             result = subpro.split('\n')
-            sample_num = re.split(r':\s+', result[0])[1]
-            otu_num = re.split(r':\s+', result[1])[1]
-            seq_num = re.split(r':\s+', result[2])[1]
-            metadata = re.split(r':\s+', result[12])[1]
+            for line in result:
+                if line.startswith("Num samples"):
+                    sample_num = re.split(r':\s+', line)[1]
+                if line.startswith("Num observations"):
+                    otu_num = re.split(r':\s+', line)[1]
+                if line.startswith("Total count"):
+                    seq_num = re.split(r':\s+', line)[1]
+                if line.lstrip().startswith("Observation Metadata Categories"):
+                    metadata = re.split(r':\s+', line)[1]
             return (sample_num, otu_num, seq_num, metadata)
         except subprocess.CalledProcessError:
             raise Exception("biom summarize-table 运行出错！")

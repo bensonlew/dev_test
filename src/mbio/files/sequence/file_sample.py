@@ -11,11 +11,12 @@ class FileSampleFile(File):
     定义 文件名——样本 的文件格式
     这里的名称是文件名，当qc模块的输入是一个fastq文件夹的时候，用于规范化文件名
     """
+
     def __init__(self):
         super(FileSampleFile, self).__init__()
         self.col = 0
         self.repeat_name = False
-        self.se_repeat = False      # modify by qiuping 2016.07.22,add 2 line
+        self.se_repeat = False  # modify by qiuping 2016.07.22,add 2 line
         self.pe_repeat = False
         self.file_sample = dict()  # 文件名与样本名的对应
 
@@ -45,11 +46,11 @@ class FileSampleFile(File):
                 line = line.rstrip('\n')
                 line = line.split()
                 self.col = len(line)
-                if self.col != 2 and self.col != 3:   # modify by qiuping 2016.07.22
+                if self.col != 2 and self.col != 3:  # modify by qiuping 2016.07.22
                     raise FileError('这个文件的列数应该为2(SE)或者3(PE)')
                 if line[1] not in sample.keys():
                     sample[line[1]] = 1
-                else:                   # modify by qiuping 2016.07.22,add 2 lines
+                else:  # modify by qiuping 2016.07.22,add 2 lines
                     sample[line[1]] += 1
                 if line[0] not in name.keys():
                     name[line[0]] = 1
@@ -58,10 +59,36 @@ class FileSampleFile(File):
                 full_name = os.path.join(dir_name, line[0])
                 if os.path.isfile(full_name):
                     self.file_sample[line[0]] = line[1]
-                if self.col == 3:      # modify by qiuping 2016.07.22,add 3 lines
+                if self.col == 3:  # modify by qiuping 2016.07.22,add 3 lines
                     if line[2] not in ['l', 'r']:
                         raise FileError('为PE测序时，标识左右两端的字段不符合要求：l,r')
         return sample, name
+
+    def get_sample_str(self):
+        """
+        PE 时返回{‘l’:s1_l_path,s2_l_path,s3_l_path, 'r':s1_r_path,s2_r_path,s3_r_path}
+        added by 金林芳
+        date： 2017.2.4
+        :return:
+        """
+        sample_list_dic = {}
+        sample_str_l_lst = []
+        sample_str_r_lst = []
+        sample_str_single_lst = []
+        with open(self.path) as fr:
+            for line in fr:
+                arr = line.strip().split()
+                if len(arr) == 3:
+                    if arr[2] == 'r':
+                        sample_str_r_lst.append(arr[0])
+                    elif arr[2] == 'l':
+                        sample_str_l_lst.append(arr[0])
+                if len(arr) == 2:
+                    sample_str_single_lst.append(arr[0])
+        sample_list_dic['left'] = sorted(sample_str_l_lst)
+        sample_list_dic['right'] = sorted(sample_str_r_lst)
+        sample_list_dic['single'] = sorted(sample_str_single_lst)
+        return sample_list_dic
 
     def get_list(self):
         """

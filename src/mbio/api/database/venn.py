@@ -412,7 +412,7 @@ class Venn(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
             "express_id": str(express_id),
-            "name": "venn_table_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "name": "Venn_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             "status": "end",
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "params": params

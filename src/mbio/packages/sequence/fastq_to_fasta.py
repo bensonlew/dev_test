@@ -16,21 +16,21 @@ import os
 #     """
 #     命令行模式下运行此脚本的参数获取方法
 #     """
-#     parse = argparse.ArgumentParser(prog='fastq_to_fasta.py',
+#     __parse_details = argparse.ArgumentParser(prog='fastq_to_fasta.py',
 #                                     usage='关于此脚本的说明',
 #                                     description='将fastq文件转换成fasta文件，并可以生成qual质量文件，phred默认为33',
 #                                     epilog='请确保参数准确',
 #                                     version='v1.0',
 #                                     parents='')
-#     parse.add_argument('-f', '--fastq',
+#     __parse_details.add_argument('-f', '--fastq',
 #                        required=True, help='输入fastq文件')
-#     parse.add_argument('-a', '--fasta',
+#     __parse_details.add_argument('-a', '--fasta',
 #                        required=True, help='输出的fasta文件')
-#     parse.add_argument('-o', '--qual',
+#     __parse_details.add_argument('-o', '--qual',
 #                        required=True, help='输出qual质量文件')
-#     parse.add_argument('-p', '--phred',
+#     __parse_details.add_argument('-p', '--phred',
 #                        required=True, help='质量的格式')
-#     args = parse.parse_args()
+#     args = __parse_details.parse_args()
 #
 #     fastq = args.fastq
 #     fasta = args.fasta

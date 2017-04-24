@@ -19,12 +19,12 @@ class RsemAgent(Agent):
         options = [
             {"name": "fq_type", "type": "string"},  # PE OR SE
             {"name": "rsem_fa", "type": "infile", "format": "sequence.fasta"},  # trinit.fasta文件
-            {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
-            {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
-            {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件夹
+            {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件
+            {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件
+            {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件
             {"name": "fa_build", "type": "outfile", "format": "sequence.fasta"},  # trinit.fasta文件
             {"name": "only_bowtie_build", "type": "bool", "default": False},  # 为true时该tool只建索引
-            {"name": "bowtie_build_rsem", "type": "bool", "default": False}  # 为true时该tool只建索引
+            {"name": "bowtie_build_rsem", "type": "bool", "default": False}  # 为true时,建完索引后运行rsem，否则默认有bowtie2的索引，只跑rsem
         ]
         self.add_option(options)
         self.step.add_steps("rsem")
@@ -112,6 +112,7 @@ class RsemTool(Tool):
             self.option('fa_build', rsem_fasta)
         else:
             self.set_error("%s运行出错!" % bowtie_cmd)
+            raise("%s运行出错!" % bowtie_cmd)
 
     def run_rsem(self, rsem_fasta):
         if self.option('fq_type') == 'SE':
@@ -124,10 +125,12 @@ class RsemTool(Tool):
         self.logger.info("开始运行_rsem_cmd")
         cmd = self.add_command("rsem_cmd", rsem_cmd).run()
         self.wait()
+        self.logger.info("....返回码为：%s" % cmd.return_code)
         if cmd.return_code == 0:
             self.logger.info("%s运行完成" % cmd)
         else:
             self.set_error("%s运行出错!" % cmd)
+            raise("%s运行出错!" % cmd)
 
     def set_output(self):
         """

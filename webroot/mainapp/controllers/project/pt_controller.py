@@ -9,6 +9,7 @@ from mainapp.libs.signature import check_sig
 import json
 import random
 
+
 class PtController(MetaController):
     def __init__(self, instant=False):
         super(PtController, self).__init__(instant)

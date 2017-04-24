@@ -28,7 +28,7 @@ class DenovoAnnotation(Base):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'annotation_stat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'name': name if name else 'AnnotationStat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'params': params,
             'status': 'end',
             'desc': '注释概况主表',
@@ -223,6 +223,7 @@ class DenovoAnnotation(Base):
                     ('level3', level3),
                     ('level4', level4),
                     ('seq_number', int(line[7])),
+                    ('seq_list', line[8]),
                 ]
                 if query_type:
                     data.append(('type', query_type))
@@ -358,21 +359,28 @@ class DenovoAnnotation(Base):
         with open(kegg_path, 'r') as f1, open(gene_kegg_path, 'r') as f2:
             lines1 = f1.readlines()
             lines2 = f2.readlines()
-            i = 1
+            tran_info = {}
+            gene_info = {}
             for i in range(len(lines1)):
-                lines1[i] = lines1[i].strip().split('\t')
-                lines2[i] = lines2[i].strip().split('\t')
-                if lines1[i][0] == lines2[i][0]:
-                    if lines1[i][1] == lines2[i][1]:
-                        data = [
-                            ('annotation_id', annotation_id),
-                            ('first_catergory', lines1[i][0]),
-                            ('second_catergory', lines1[i][1]),
-                            ('transcripts_num', int(lines1[i][2])),
-                            ('genes_num', int(lines2[i][2])),
-                        ]
-                        data = SON(data)
-                        data_list.append(data)
+                line = lines1[i].strip().split('\t')
+                tran_info[line[1]] = [line[0], line[2]]
+            for i in range(len(lines2)):
+                line = lines2[i].strip().split('\t')
+                gene_info[line[1]] = [line[0], line[2]]
+            gene_k = gene_info.keys()
+            for k in tran_info:
+                data = [
+                    ('annotation_id', annotation_id),
+                    ('first_catergory', tran_info[k][0]),
+                    ('second_catergory', k),
+                    ('transcripts_num', int(tran_info[k][1]))
+                ]
+                if k in gene_k:
+                    data.append(('genes_num', int(gene_info[k][1])))
+                else:
+                    data.append(('genes_num', 0))
+                data = SON(data)
+                data_list.append(data)
         try:
             collection = self.db['sg_denovo_annotation_kegg_detail']
             collection.insert_many(data_list)
