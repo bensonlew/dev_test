@@ -37,9 +37,14 @@ class TabFile(Base):
                         "batch_id": ObjectId(batch_id)
                     }
                 break
+            m = re.match('WQ([0-9].*)-(M|S)(.+)\.tab',sample)
+            if m:
+                sample_dad = 'WQ' + m.group(1) +'-F.*'
+
             try:
                 collection = self.database['sg_pt_ref_main']
                 collection.find_one_and_update({"sample_id": sample_name},{'$set':insert_data})
+                collection.find_one_and_update({"sample_id": {"$regex": sample_dad}}, {'analysised': 'no'})
             except Exception as e:
                 self.bind_object.logger.error('导入tab主表出错：{}'.format(e))
             else:
