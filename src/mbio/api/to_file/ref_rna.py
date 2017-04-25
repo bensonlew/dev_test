@@ -9,7 +9,7 @@ import re
 from types import StringTypes
 
 
-client = Config().mongo_client
+# client = Config().mongo_client
 # db = client[Config().MONGODB + '_ref_rna']
 
 
@@ -233,3 +233,21 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
                 # w.write("\t".join(write_line[write_line_key]))
                 w.write("\n")
     return go_path
+
+
+def export_gene_list_ppi(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    gene_list_path = os.path.join(dir_path, "%s_list.txt" % option_name)
+    bind_obj.logger.debug("正在导出基因集")
+    collection = db['sg_geneset_detail']
+    main_collection = db['sg_geneset']
+    my_result = main_collection.find_one({'_id': ObjectId(data)})
+    if not my_result:
+        raise Exception("意外错误，geneset_id:{}在sg_geneset中未找到！".format(ObjectId(data)))
+    results = collection.find({"geneset_id": ObjectId(data)})
+    with open(gene_list_path, "wb") as f:
+        f.write("gene_id" + "\n")
+        for result in results:
+            gene_id = result['gene_name']
+            f.write(gene_id + "\n")
+    return gene_list_path
