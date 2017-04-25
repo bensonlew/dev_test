@@ -730,8 +730,8 @@ class RefrnaWorkflow(Workflow):
             self.snp_rna.run()
         
     def run_map_assess(self):
-        # assess_method = self.option("map_assess_method") + ",stat"
-        assess_method = "saturation,duplication,coverage,stat"
+        assess_method = self.option("map_assess_method") + ",stat"
+        # assess_method = "saturation,duplication,coverage,stat"
         opts = {
             "bam": self.mapping.option("bam_output").prop["path"],
             "analysis": assess_method,

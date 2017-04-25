@@ -79,6 +79,7 @@ class RpkmSaturationTool(Tool):
         self.python_full_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
         self.perl_path = "program/perl/perls/perl-5.24.0/bin/perl"
         self.plot_script = self.config.SOFTWARE_DIR + "/bioinfo/plot/scripts/saturation2plot.pl"
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin/R")
         self.plot_cmd = []
 
     def rpkm_saturation(self, bam, out_pre):
