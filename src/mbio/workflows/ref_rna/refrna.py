@@ -105,7 +105,7 @@ class RefrnaWorkflow(Workflow):
         self.altersplicing = self.add_module("gene_structure.rmats")
         self.map_qc = self.add_module("denovo_rna.mapping.map_assessment")
         self.map_gene = self.add_module("rna.rnaseq_mapping")
-        self.assembly = self.add_module("rna.assembly")
+        self.assembly = self.add_module("assemble.refrna_assemble")
         self.exp = self.add_module("rna.express")
         self.exp_diff_trans = self.add_module("denovo_rna.express.diff_analysis")
         self.exp_diff_gene = self.add_module("denovo_rna.express.diff_analysis")
