@@ -46,6 +46,8 @@ class Gff3File(File):
     
     def check(self):
         super(Gff3File, self).check()
+        self.check_logical()
+
     
     def check_format(self, fasta_file, so_file):
         # self.check_lines()
