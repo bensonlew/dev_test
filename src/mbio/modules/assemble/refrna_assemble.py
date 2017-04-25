@@ -9,7 +9,7 @@ import re
 from mbio.files.sequence.file_sample import FileSampleFile
 
 
-class AssemblyModule(Module):
+class RefrnaAssembleModule(Module):
     """
     拼接以及新转录本预测
     version v1.0.1
@@ -17,21 +17,21 @@ class AssemblyModule(Module):
     last_modify: 2016.09.09
     """
     def __init__(self, work_id):
-        super(AssemblyModule, self).__init__(work_id)
+        super(RefrnaAssembleModule, self).__init__(work_id)
         options = [
-            {"name": "sample_bam_dir", "type": "infile", "format": "ref_rna.assembly.bam_dir"},  # 所有样本的bam文件夹
+            {"name": "sample_bam_dir", "type": "infile", "format": "align.bwa.bam_dir"},  # 所有样本的bam文件夹
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
-            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因的注释文件
-            {"name": "assembly_GTF_list.txt", "type": "infile", "format": "ref_rna.assembly.merge_txt"},
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因的注释文件
+            {"name": "assembly_GTF_list.txt", "type": "infile", "format": "assembly.merge_txt"},
             # 所有样本比对之后的bam文件路径列表
             {"name": "cpu", "type": "int", "default": 10},  # 软件所分配的cpu数量
             {"name": "fr_stranded", "type": "string", "default": "fr-unstranded"},  # 是否链特异性
             {"name": "strand_direct", "type": "string", "default": "none"},  # 链特异性时选择正负链
             {"name": "assemble_method", "type": "string", "default": "cufflinks"},  # 选择拼接软件
-            {"name": "sample_gtf", "type": "outfile", "format": "sequence.gtf"},  # 输出的gtf文件
-            {"name": "merged_gtf", "type": "outfile", "format": "sequence.gtf"},  # 输出的合并文件
-            {"name": "cuff_gtf", "type": "outfile", "format": "sequence.gtf"},  # compare后的gtf文件
-            {"name": "new_gtf", "type": "outfile", "format": "sequence.gtf"},  # 新转录本注释文件
+            {"name": "sample_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的gtf文件
+            {"name": "merged_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的合并文件
+            {"name": "cuff_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # compare后的gtf文件
+            {"name": "new_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新转录本注释文件
             {"name": "new_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本注释文件
         ]
         self.add_option(options)
@@ -65,7 +65,7 @@ class AssemblyModule(Module):
         samples = os.listdir(self.option('sample_bam_dir').prop['path'])
         for f in samples:
             f = os.path.join(self.option('sample_bam_dir').prop['path'], f)
-            stringtie = self.add_tool('ref_rna.assembly.stringtie')
+            stringtie = self.add_tool('assemble.stringtie')
             self.step.add_steps('stringtie_{}'.format(n))
             stringtie.set_options({
                 "sample_bam": f,
@@ -89,7 +89,7 @@ class AssemblyModule(Module):
 
     def stringtie_merge_run(self):
         self.get_list()
-        stringtie_merge = self.add_tool("ref_rna.assembly.stringtie_merge")
+        stringtie_merge = self.add_tool("assemble.stringtie_merge")
         stringtie_merge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
             "ref_fa": self.option('ref_fa').prop['path'],
@@ -107,7 +107,7 @@ class AssemblyModule(Module):
         samples = os.listdir(self.option('sample_bam_dir').prop['path'])
         for f in samples:
             f = os.path.join(self.option('sample_bam_dir').prop['path'], f)
-            cufflinks = self.add_tool('ref_rna.assembly.cufflinks')
+            cufflinks = self.add_tool('assemble.cufflinks')
             self.step.add_steps('cufflinks_{}'.format(n))
             cufflinks.set_options({
                 "sample_bam": f,
@@ -132,7 +132,7 @@ class AssemblyModule(Module):
 
     def cuffmerge_run(self):
         self.get_list()
-        cuffmerge = self.add_tool("ref_rna.assembly.cuffmerge")
+        cuffmerge = self.add_tool("assemble.cuffmerge")
         cuffmerge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
             "ref_fa": self.option('ref_fa').prop['path'],
@@ -151,7 +151,7 @@ class AssemblyModule(Module):
             merged_gtf = os.path.join(self.work_dir, "Cuffmerge/output/merged_gtf")
         elif self.option("assemble_method") == "stringtie":
             merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged_gtf")
-        gffcompare = self.add_tool("ref_rna.assembly.gffcompare")
+        gffcompare = self.add_tool("assemble.gffcompare")
         gffcompare.set_options({
              "merged_gtf": merged_gtf,
              "ref_gtf": self.option('ref_gtf').prop['path'],
@@ -175,7 +175,7 @@ class AssemblyModule(Module):
             merged_gtf = os.path.join(self.work_dir, "merged_gtf")
             merged_add_code(old_merged_gtf, tmap, merged_gtf)
             os.system('cp -r %s %s' % (merged_gtf, old_merged_gtf))
-        new_transcripts = self.add_tool("ref_rna.assembly.new_transcripts")
+        new_transcripts = self.add_tool("assemble.new_transcripts")
         new_transcripts.set_options({
             "tmap": tmap,
             "merged_gtf": merged_gtf,
@@ -261,7 +261,7 @@ class AssemblyModule(Module):
             self.cufflinks_run()
         elif self.option("assemble_method") == "stringtie":
             self.stringtie_run()
-        super(AssemblyModule, self).run()
+        super(RefrnaAssembleModule, self).run()
 
     def get_list(self):
         gtffile_path = os.path.join(self.work_dir, "assembly_gtf.txt")
@@ -403,4 +403,4 @@ class AssemblyModule(Module):
                 [r"Statistics/new_.*\.txt$", "txt", "统计结果文件"],
 
             ])
-        super(AssemblyModule, self).end()
+        super(RefrnaAssembleModule, self).end()

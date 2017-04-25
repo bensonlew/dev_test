@@ -69,7 +69,7 @@ class GoUploadTool(Tool):
         self.b2g_user = "biocluster102"
         self.b2g_password = "sanger-dev-123"
         self.python = self.config.SOFTWARE_DIR + "/program/Python/bin/python"
-        self.goAnnot = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goAnnot2.py"
+        self.goAnnot = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goAnnot.py"
         self.goSplit = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goSplit.py"
 
     def run(self):

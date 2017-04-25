@@ -25,6 +25,21 @@ def check_seq_type(seq_type):
 def dict_factory():
     return defaultdict(dict_factory)
 
+def get_gene_list(gtf):
+    gene_list = {}
+    with open(gtf, "r") as file:
+        for line in file:
+            line = line.strip()
+            tmp = line.split("\t")
+            # print tmp[-1]
+            m = re.match("transcript_id \"(.+)\";\sgene_id \"(.+?)\";", tmp[-1])
+            if m:
+                transcript_id = m.group(1)
+                gene_id = m.group(2)
+                if transcript_id not in gene_list.keys():
+                    gene_list[transcript_id] = gene_id
+    return gene_list
+
 
 class GtfFile(File):
     # def __init__(self, fasta):  # fasta应为FastaFile对象
@@ -198,3 +213,54 @@ class GtfFile(File):
                     gene_id = content_m.captures(7)[0]
             if txpt_id:
                 self._txpt_gene[txpt_id] = gene_id
+
+    def gtf_patch(self, gtf):
+        gene_list = {}
+        with open(gtf, "r") as file:
+            for line in file:
+                line = line.strip()
+                tmp = line.split("\t")
+                m = re.match("transcript_id \"(.+)\";\sgene_id \"(.+?)\";", tmp[-1])
+                if m:
+                    transcript_id = m.group(1)
+                    gene_id = m.group(2)
+                    if transcript_id not in gene_list.keys():
+                        gene_list[transcript_id] = gene_id
+        temp_gtf = os.path.split(self.prop["path"])[0] + "/tmp.gtf"
+        w = open(temp_gtf, "w")
+        with open(self.prop["path"], "r") as file:
+            for line in file:
+                line = line.strip()
+                tmp = line.split("\t")
+                if tmp[-1].find("gene_id") == -1:
+                    m = re.match("transcript_id \"(.+?)\";", tmp[-1])
+                    if m:
+                        t_id = m.group(1)
+                        if gene_id in gene_list.keys():
+                            gene_id = gene_list[t_id]
+                        elif re.match("transcript:(.+)", t_id):
+                            t_id =  re.match("transcript:(.+)", t_id).group(1)
+                            if t_id in gene_list.keys():
+                                gene_id = gene_list[t_id]
+                        else:
+                            gene_id = t_id
+                        lst = tmp[-1].split(";")
+                        new_list = []
+                        for item in lst:
+                            new_list.append(item)
+                            if item.startswith("transcript_id"):
+                                new_list.append(" gene_id \"" + gene_id +"\"")
+                        tmp[-1] = ";".join(new_list)
+                        new_line = "\t".join(tmp)
+                        w.write(new_line + "\n")
+                elif tmp[-1].find("transcript_id") == -1:
+                    self.logger.info("there is no transcript id in {}".format(line))
+                else:
+                    w.write(line + "\n")
+        w.close()
+
+
+if __name__ == "__main__":
+    gtf = GtfFile()
+    gtf.set_path("/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/assembly_newtranscripts/merged.gtf")
+    gtf.gtf_patch("/mnt/ilustre/users/sanger-dev/workspace/20170210/Refrna_refrna_test_01/FilecheckRef/Danio_rerio.GRCz10.85.gff3.gtf")

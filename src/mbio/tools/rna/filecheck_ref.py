@@ -4,7 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.files.sequence.fastq import FastqFile
-from mbio.files.sequence.gff3 import Gff3File
+from mbio.files.gene_structure.gff3 import Gff3File
 from mbio.files.sequence.file_sample import FileSampleFile
 from biocluster.config import Config
 import os

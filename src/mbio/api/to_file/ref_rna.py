@@ -3,10 +3,6 @@
 import os
 from biocluster.config import Config
 from bson.objectid import ObjectId
-import types
-import json
-import re
-from types import StringTypes
 
 
 # client = Config().mongo_client
@@ -130,8 +126,7 @@ def export_diff_express(data, option_name, dir_path, bind_obj=None):  # 需要�
                 log = result["log2FC({}/{})".format(compare_name, name)]
                 pval = result["Pvalue"]
                 fdr = result["Fdr"]
-            w.write(gene_id + '\t' + str(name_count) + '\t' + str(compare_count) + '\t' + str(name_fpkm) + '\t' + str(compare_fpkm) + '\t' + str(log) + '\t' + str(pval) + '\t' + str(fdr) +
-'\t' + significant + '\t' + regulate + '\n')
+            w.write(gene_id + '\t' + str(name_count) + '\t' + str(compare_count) + '\t' + str(name_fpkm) + '\t' + str(compare_fpkm) + '\t' + str(log) + '\t' + str(pval) + '\t' + str(fdr) + '\t' + significant + '\t' + regulate + '\n')
     return diff_express
 
 

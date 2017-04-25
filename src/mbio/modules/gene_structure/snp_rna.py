@@ -26,7 +26,7 @@ class SnpRnaModule(Module):
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
-            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 基因组gtf文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 基因组gtf文件
             {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
             {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列←
             {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列右
@@ -86,7 +86,7 @@ class SnpRnaModule(Module):
             elif self.option("seq_method") == "SE":
                 for f in self.samples:
                     fq_s = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f])
-                    star = self.add_tool('ref_rna.gene_structure.star')
+                    star = self.add_tool('align.star')
                     star.set_options({
                         "ref_genome": self.ref_name,
                         "readFilesIN": fq_s,
@@ -109,7 +109,7 @@ class SnpRnaModule(Module):
                     self.logger.info(f)
                     fq1 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])
                     fq2 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["r"])
-                    star = self.add_tool('ref_rna.gene_structure.star')
+                    star = self.add_tool('align.star')
                     star.set_options({
                         "ref_genome": "customer_mode",
                         "ref_genome_custom": ref_fasta,
@@ -125,7 +125,7 @@ class SnpRnaModule(Module):
             elif self.option("seq_method") == "SE":  # 如果测序方式为SE测序
                 for f in self.samples:
                     fq_s = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f])
-                    star = self.add_tool('ref_rna.gene_structure.star')
+                    star = self.add_tool('align.star')
                     star.set_options({
                         "ref_genome": "customer_mode",
                         "ref_genome_custom": ref_fasta,
@@ -185,7 +185,7 @@ class SnpRnaModule(Module):
         star_output = os.listdir(obj.output_dir)
         f_path = os.path.join(obj.output_dir, star_output[0])
         self.logger.info(f_path)  # 打印出f_path的信息，是上一步输出文件的路径
-        picard = self.add_tool('ref_rna.gene_structure.picard_rna')
+        picard = self.add_tool('gene_structure.picard_rna')
         self.picards.append(picard)
         self.logger.info(len(self.picards))
         if self.option("ref_genome") == "customer_mode":
@@ -218,7 +218,7 @@ class SnpRnaModule(Module):
             if i.endswith(".bam"):
                 f_path = os.path.join(obj.output_dir, i)
                 self.logger.info(f_path)
-        gatk = self.add_tool('ref_rna.gene_structure.gatk')
+        gatk = self.add_tool('gene_structure.gatk')
         self.gatks.append(gatk)
         self.logger.info("llllgatkkkkkkk")
         self.logger.info(self.ref_name)
@@ -251,7 +251,7 @@ class SnpRnaModule(Module):
             if i.endswith(".vcf"):
                 vcf_path = os.path.join(obj.output_dir, i)
         self.logger.info(vcf_path)
-        annovar = self.add_tool('ref_rna.gene_structure.annovar')
+        annovar = self.add_tool('gene_structure.annovar')
         options = {
             "ref_genome": self.ref_name,
             "input_file": vcf_path,

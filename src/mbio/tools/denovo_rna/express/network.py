@@ -19,8 +19,8 @@ class NetworkAgent(Agent):
     def __init__(self, parent):
         super(NetworkAgent, self).__init__(parent)
         options = [
-            {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，差异基因表达量矩阵
-            {"name": "gene_file", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 差异基因名称文件
+            {"name": "diff_fpkm", "type": "infile", "format": "rna.express_matrix"},  # 输入文件，差异基因表达量矩阵
+            {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},  # 差异基因名称文件
             {"name": "softpower", "type": "int", "default": 9},
             {"name": "dissimilarity", "type": "float", "default": 0.25},
             {"name": "module", "type": "float", "default": 0.1},
