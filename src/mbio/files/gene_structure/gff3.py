@@ -255,7 +255,7 @@ class Gff3File(File):
         """
         bed_path = os.path.split(gtf_path)[0]
         bed = os.path.join(bed_path, os.path.split(gtf_path)[1] + ".bed")
-        cmd = "perl {} {} > {}".format(self._gtf2bed_path, gtf_path, bed)
+        cmd = "python {} -i {} -o {}".format(self._gtf2bed_path, gtf_path, bed)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
