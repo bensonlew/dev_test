@@ -50,6 +50,9 @@ class PpinetworkPredictAgent(Agent):
                         4558, 4577, 59689, 3702, 3711, 3847, 3694, 4081, 4113, 29760, 88036, 3218, 3055, 45157]
         if not self.option('diff_exp_mapped'):
             raise OptionError("必须输入含有STRINGid的差异基因表")
+        line = open(self.option('diff_exp_mapped'), "r").readlines()[1:]
+        if not line:
+            raise OptionError("基因集中的基因不能匹配到string数据库中id，请您确认基因id为Ensemble或者Entrez GeneID！")
         if not isinstance(self.option('combine_score'), int) or self.option('combine_score') < 0:
             raise OptionError("combined_score值必须是大于0的整数！")
         if int(self.option('species')) not in species_list:
