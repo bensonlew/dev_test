@@ -4,7 +4,7 @@ import web
 import json
 import datetime
 from mainapp.controllers.project.ref_rna_controller import RefRnaController
-from mbio.api.to_file.ref_rna import *
+from bson.objectid import ObjectId
 
 
 class Ppinetwork(RefRnaController):
@@ -40,6 +40,7 @@ class Ppinetwork(RefRnaController):
             ('task_id', task_info['task_id']),
             ('status', 'start'),
             ('name', main_table_name),
+            ('geneset_id', ObjectId(data.geneset_id)),
             ('desc', 'ppi_network分析中...'),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':')))
@@ -55,7 +56,7 @@ class Ppinetwork(RefRnaController):
             "species": data.species,
             "combine_score": data.combine_score,
         }
-        to_file = "ref_rna.export_gene_list(diff_exp_gene)"
+        to_file = "ref_rna.export_gene_list_ppi(diff_exp_gene)"
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
                             to_file=to_file, project_sn=task_info['project_sn'], task_id=task_info['task_id'])
 
