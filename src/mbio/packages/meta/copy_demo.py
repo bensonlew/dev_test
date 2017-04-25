@@ -60,6 +60,7 @@ class CopyMongo(object):
         self.copy_main_details('sg_otu_specimen', 'otu_id', self.otu_id_dict, others_position=['specimen_id'], join=False)
         self.copy_sg_newick_tree()
         self.recopy_update_otu()
+        print "ready"
         greenlet = Greenlet(self.species_env_correlation)
         greenlet.start()
         self.all_greenlets.append(greenlet)
@@ -117,12 +118,6 @@ class CopyMongo(object):
         # print self.all_greenlets
         # print len(self.all_greenlets)
         gevent.joinall(self.all_greenlets)
-        import socket
-        import threading
-        import thread
-        reload(thread)
-        reload(socket)
-        reload(threading)
 
     def species_env_correlation(self):
         corr_id_dict = self.copy_collection_with_change('sg_', change_positions=['otu_id', 'env_id'], update_sg_status=True)
@@ -211,7 +206,9 @@ class CopyMongo(object):
 
 
     def alpha_diversity(self):
+        print "alpha_diversity"
         self.alpha_diversity_id_dict = self.copy_collection_with_change('sg_alpha_diversity', change_positions=['otu_id'], update_sg_status=True, join=True)
+        print "alpha_diversity end"
         self._exchange_dict['alpha_diversity_id'] = self.alpha_diversity_id_dict
         self.copy_main_details('sg_alpha_diversity_detail', 'alpha_diversity_id', self.alpha_diversity_id_dict, join=False)
         self.alpha_ttest()
@@ -558,7 +555,7 @@ class CopyMongo(object):
         return json.dumps(params, sort_keys=True, separators=(',', ':'))
 
 if __name__ == '__main__':
-    copy_task = CopyMongo('tsanger_7008', 'tsanger_7008_16', '10004002_1', 'shenghe_test')
+    copy_task = CopyMongo('tsanger_7008', 'tsanger_7008_17', '10004002_1', 'shenghe_test')
     copy_task.run()
 
     # copy_task = CopyMongo('tsg_3617', 'tsg_3617_022', '10000782_22', 'm_188_22')
