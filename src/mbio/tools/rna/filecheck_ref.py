@@ -198,7 +198,7 @@ class FilecheckRefTool(Tool):
 
     def run(self):
         super(FilecheckRefTool, self).run()
-        self.check_genome_status()
+        # self.check_genome_status()
         self.transform_gff()
         self.check_fasta()
         self.check_control()

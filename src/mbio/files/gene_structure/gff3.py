@@ -46,12 +46,14 @@ class Gff3File(File):
     
     def check(self):
         super(Gff3File, self).check()
-        self.check_logical()
+        # self.check_logical()
+        if (not self.prop["path"].endswith("gff")) and (not self.prop["path"].endswith("gff3")):
+            raise FileError("gff文件格式不正确")
 
     
     def check_format(self, fasta_file, so_file):
         # self.check_lines()
-        self.parse_and_check_column(fasta_file, so_file)  # memory error
+        self.parse_and_check_column(fasta_file, so_file)
         self.check_logical()
         return True
     

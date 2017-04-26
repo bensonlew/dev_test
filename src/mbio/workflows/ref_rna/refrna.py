@@ -744,6 +744,7 @@ class RefrnaWorkflow(Workflow):
     def run_exp(self):  # 表达量与表达差异模块
         self.logger.info("开始运行表达量模块")
         opts = {
+            "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
             "merged_gtf": self.assembly.option("merged_gtf"),
@@ -759,8 +760,8 @@ class RefrnaWorkflow(Workflow):
         tool = self.exp
         tool.set_options(opts)
         tool.on("end", self.set_output, "exp")
-        tool.on('start', self.set_step, {'start': "exp"})
-        tool.on('end', self.set_step, {'end': "exp"})
+        tool.on('start', self.set_step, {'start': self.step.exp})
+        tool.on('end', self.set_step, {'end': self.step.exp})
         tool.run()
 
     def run_network(self):
@@ -930,6 +931,16 @@ class RefrnaWorkflow(Workflow):
             self.exp_diff_gene.run()
         else:
             self.logger.info("输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略")
+
+    def get_group_from_edger_group(self):  # 用来判断是否进行可变剪切分析
+        group_spname = self.option("group_table").get_group_spname()
+        if self.option("fq_type") == "PE":
+            for key in group_spname.keys():
+                if len(group_spname[key]) <= 3:
+                    self.logger.info("某分组中样本数小于等于3，将不进行可变剪切分析")
+                    return False
+        else:
+            return True
         
     def move2outputdir(self, olddir, newname, mode='link'):
         """
@@ -1059,7 +1070,8 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('end', self.run_mapping)
         self.qc.on('end', self.run_snp)
         self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
-        self.mapping.on("end", self.run_altersplicing)
+        if self.get_group_from_edger_group():
+            self.mapping.on("end", self.run_altersplicing)
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp)
