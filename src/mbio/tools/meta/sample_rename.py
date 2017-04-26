@@ -7,7 +7,6 @@ import re
 import shutil
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-from biocluster.config import Config
 
 
 class SampleRenameAgent(Agent):
@@ -44,16 +43,32 @@ class SampleRenameAgent(Agent):
 
 class SampleRenameTool(Tool):
     def __init__(self, config):
-        pass
+        super(SampleRenameTool, self).__init__(config)
+        old_info_path = self.option("info_txt").prop["path"]
+        if self.option("file_list") == "null":
+            dict = {}
+            with open(old_info_path, "r") as r:
+                r.readline()
+                for line in r:
+                    line = line.strip()
+                    lst = line.split("\t")
+                    file_name = os.path.basename(lst[0])
+                    sample_name = lst[1]
+                    key = file_name + "::" + sample_name
+                    dict[key] = [sample_name, sample_name]
+            self.file_list = dict
+        else:
+            self.file_list = eval(self.option("file_list"))
+
     
     def run(self):
         super(SampleRenameTool, self).run()
         old_info_path = self.option("info_txt").prop["path"]
         new_info_path = os.path.join(self.work_dir, "info_tmp.txt")
         self.info_rename(old_info_path, new_info_path)
+
     
     def info_rename(self, old_info_path, new_info_path):
-        file_list = eval(self.option("file_list"))
         with open(new_info_path, "w") as w:
             with open(old_info_path, "r") as r:
                 w.write("#file_path\tsample\twork_dir_path\tseq_num\tbase_num\tmean_length\tmin_length\tmax_length\n")
@@ -64,27 +79,22 @@ class SampleRenameTool(Tool):
                     file_name = os.path.basename(lst[0])
                     sample_name = lst[1]
                     key = file_name + "::" + sample_name
-                    if key in file_list.keys():
+                    if key in self.file_list.keys():
                         new_tool_lst = lst[2].split("/")
                         new_tool_path = self.work_dir + "/" + new_tool_lst[-1]  
                         self.mv(lst[2], new_tool_path, key)
-                        w.write(lst[0] + "\t" + file_list[key][0] + "\t" +
+                        w.write(lst[0] + "\t" + self.file_list[key][0] + "\t" +
                                 new_tool_path + "\t" + lst[3] + "\t" + lst[4] + "\t" +
                                 lst[5] + "\t" + lst[6] + "\t" + lst[7] + "\n")
         self.create_info(new_info_path)
     
     def mv(self, old_path, new_path, key):
-        if self.option("file_list") != "null":
-            file_list = eval(self.option("file_list"))
-            old_name = file_list[key][1]
-            new_name = file_list[key][0]
-            if new_name.find(".") != -1 or new_name.find(" ") != -1:
-                raise Exception("样本名称中带.和空格，请更改样本名称为不带.的名称后再进行流程")
-            if new_name == "OUT" or new_name == "IN":
-                raise Exception("样本名称不能为IN与OUT")
-        else:
-            old_name = key
-            new_name = key
+        old_name = self.file_list[key][1]
+        new_name = self.file_list[key][0]
+        if new_name.find(".") != -1 or new_name.find(" ") != -1:
+            raise Exception("样本名称中带.和空格，请更改样本名称为不带.的名称后再进行流程")
+        if new_name == "OUT" or new_name == "IN":
+            raise Exception("样本名称不能为IN与OUT")
         if not os.path.exists(new_path):
             os.mkdir(new_path)
         output_path = new_path + "/output"

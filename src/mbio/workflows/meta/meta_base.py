@@ -65,7 +65,7 @@ class MetaBaseWorkflow(Workflow):
         self.alpha = self.add_module("meta.alpha_diversity.alpha_diversity")
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
         self.pan_core = self.add_tool("meta.otu.pan_core_otu")
-        self.step.add_steps("pre_sample_extract", "sample_rename", "otucluster", "taxassign", "alphadiv", "betadiv")
+        self.step.add_steps("sample_rename", "otucluster", "taxassign", "alphadiv", "betadiv")
         self.spname_spid = dict()
         self.otu_id = None
         self.env_id = None
@@ -136,8 +136,8 @@ class MetaBaseWorkflow(Workflow):
                 "in_fastq": self.in_fastq_path if self.option("if_fungene") else self.option("in_fastq")  # modified by qindanhua 判断是否输入为功能基因
             }
         self.new_sample_extract.set_options(opts)
-        self.new_sample_extract.on("start", self.set_step, {'start': self.step.pre_sample_extract})
-        self.new_sample_extract.on("end", self.set_step, {'end': self.step.pre_sample_extract})
+        # self.new_sample_extract.on("start", self.set_step, {'start': self.step.pre_sample_extract})
+        # self.new_sample_extract.on("end", self.set_step, {'end': self.step.pre_sample_extract})
         self.new_sample_extract.run()
 
     def run_sample_rename(self):
