@@ -148,9 +148,9 @@ class RefrnaAssembleModule(Module):
     def gffcompare_run(self):
         merged_gtf = ""
         if self.option("assemble_method") == "cufflinks":
-            merged_gtf = os.path.join(self.work_dir, "Cuffmerge/output/merged_gtf")
+            merged_gtf = os.path.join(self.work_dir, "Cuffmerge/output/merged.gtf")
         elif self.option("assemble_method") == "stringtie":
-            merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged_gtf")
+            merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged.gtf")
         gffcompare = self.add_tool("assemble.gffcompare")
         gffcompare.set_options({
              "merged_gtf": merged_gtf,
@@ -167,12 +167,12 @@ class RefrnaAssembleModule(Module):
         tmap = ""
         merged_gtf = ""
         if self.option("assemble_method") == "cufflinks":
-            tmap = os.path.join(self.work_dir, "Cuffmerge/output/cuffcmp.merged_gtf.tmap")
-            merged_gtf = os.path.join(self.work_dir, "Cuffmerge/output/merged_gtf")
+            tmap = os.path.join(self.work_dir, "Cuffmerge/output/cuffcmp.merged.gtf.tmap")
+            merged_gtf = os.path.join(self.work_dir, "Cuffmerge/output/merged.gtf")
         elif self.option("assemble_method") == "stringtie":
-            tmap = os.path.join(self.work_dir, "StringtieMerge/output/cuffcmp.merged_gtf.tmap")
-            old_merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged_gtf")
-            merged_gtf = os.path.join(self.work_dir, "merged_gtf")
+            tmap = os.path.join(self.work_dir, "StringtieMerge/output/cuffcmp.merged.gtf.tmap")
+            old_merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged.gtf")
+            merged_gtf = os.path.join(self.work_dir, "merged.gtf")
             merged_add_code(old_merged_gtf, tmap, merged_gtf)
             os.system('cp -r %s %s' % (merged_gtf, old_merged_gtf))
         new_transcripts = self.add_tool("assemble.new_transcripts")
@@ -246,7 +246,7 @@ class RefrnaAssembleModule(Module):
             self.logger.info(files)
             if files.endswith("_out.gtf") or files.endswith("_out.fa"):
                 os.system('cp %s %s' % (old_dir + files, gtf_dir + "/" + files))
-            elif files.endswith("merged_gtf") or files.endswith("merged.fa"):
+            elif files.endswith("merged.gtf") or files.endswith("merged.fa"):
                 os.system('cp %s %s' % (old_dir + files, merge_dir + "/" + files))
             elif files.startswith("cuffcmp."):
                 os.system('cp %s %s' % (old_dir + files, compare_dir + "/" + files))
@@ -254,6 +254,8 @@ class RefrnaAssembleModule(Module):
                 os.system('cp %s %s' % (old_dir + files, statistics_dir + "/" + files))
             elif files.startswith("new_transcripts.") or files.startswith("new_genes.") or files.startswith("old_trans.gtf") or files.startswith("old_genes.gtf"):
                 os.system('cp %s %s' % (old_dir + files, new_transcripts_dir + "/" + files))
+        self.option("merged_gtf").set_path(merge_dir + '/merged.gtf')
+        self.option("cuff_gtf").set_path(compare_dir + '/cuffcmp.annotated.gtf')
         self.end()
 
     def run(self):
@@ -281,7 +283,7 @@ class RefrnaAssembleModule(Module):
             a = os.listdir(self.work_dir+'/assembly_newtranscripts')
             for f in a:
                 file_list.append(f)
-                if f.endswith("_out.gtf") or f.endswith("merged_gtf"):
+                if f.endswith("_out.gtf") or f.endswith("merged.gtf"):
                     files = os.path.join(self.work_dir+'/assembly_newtranscripts', f)
                     r = open(files)
                     list1 = set("")
@@ -312,7 +314,7 @@ class RefrnaAssembleModule(Module):
                                self.work_dir + "/assembly_newtranscripts/trans_count_stat_" + str(step) + ".txt")
                 self.logger.info("步长统计完成")
                 self.logger.info("开始统计class_code")
-            if f.endswith("merged_gtf"):
+            if f.endswith("merged.gtf"):
                 files = os.path.join(self.work_dir + '/assembly_newtranscripts', f)
                 code_count = os.path.join(self.work_dir + "/assembly_newtranscripts", "code_num.txt")
                 class_code_count(files, code_count)
@@ -350,12 +352,12 @@ class RefrnaAssembleModule(Module):
                 [r".", "", "结果输出目录"],
                 ["Stringtie", "", "拼接后的各样本文件夹"],
                 ["StringtieMerge", "", "拼接组装合并之后结果文件夹"],
-                ["StringtieMerge/merged_gtf", "gtf", "样本合并之后的注释文件"],
+                ["StringtieMerge/merged.gtf", "gtf", "样本合并之后的注释文件"],
                 ["StringtieMerge/merged.fa", "fasta", "样本合并之后的序列文件"],
                 ["Gffcompare", "", "进行新转录本预测后的结果文件夹"],
                 ["Gffcompare/cuffcmp.annotated.gtf", "", "进行新转录本预测后的结果文件"],
-                ["Gffcompare/cuffcmp.merged_gtf.refmap", "", "进行新转录本预测后的结果文件"],
-                ["Gffcompare/cuffcmp.merged_gtf.tmap", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.refmap", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.tmap", "", "进行新转录本预测后的结果文件"],
                 ["NewTranscripts", "", "新转录本结果文件夹"],
                 ["NewTranscripts/new_transcripts.gtf", "gtf", "新转录本注释文件"],
                 ["NewTranscripts/new_transcripts.fa", "fa", "新转录本序列文件"],
@@ -379,12 +381,12 @@ class RefrnaAssembleModule(Module):
                 [r".", "", "结果输出目录"],
                 ["Cufflinks", "", "拼接后的各样本文件夹"],
                 ["Cuffmerge", "", "拼接组装合并之后结果文件夹"],
-                ["Cuffmerge/merged_gtf", "gtf", "样本合并之后的注释文件"],
+                ["Cuffmerge/merged.gtf", "gtf", "样本合并之后的注释文件"],
                 ["Cuffmerge/merged.fa", "fasta", "样本合并之后的序列文件"],
                 ["Gffcompare", "", "进行新转录本预测后的结果文件夹"],
                 ["Gffcompare/cuffcmp.annotated.gtf", "", "进行新转录本预测后的结果文件"],
-                ["Gffcompare/cuffcmp.merged_gtf.refmap", "", "进行新转录本预测后的结果文件"],
-                ["Gffcompare/cuffcmp.merged_gtf.tmap", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.refmap", "", "进行新转录本预测后的结果文件"],
+                ["Gffcompare/cuffcmp.merged.gtf.tmap", "", "进行新转录本预测后的结果文件"],
                 ["NewTranscripts", "", "新转录本结果文件夹"],
                 ["NewTranscripts/new_transcripts.gtf", "gtf", "新转录本注释文件"],
                 ["NewTranscripts/new_transcripts.fa", "fa", "新转录本序列文件"],
