@@ -112,6 +112,9 @@ class CopyMongo(object):
         greenlet = Greenlet(self.alpha_diversity)
         greenlet.start()
         self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.sixteen_function_predict)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
         gevent.joinall(self.all_greenlets)
         gevent.joinall(self.all_greenlets)
 
@@ -200,6 +203,12 @@ class CopyMongo(object):
         self.copy_main_details('sg_corr_network_structure_link', 'corr_network_id', corr_network_id_dict, join=False)
         self.copy_main_details('sg_corr_network_structure_node', 'corr_network_id', corr_network_id_dict, join=False)
 
+    def sixteen_function_predict(self):
+        function_predict_id_dict = self.copy_collection_with_change('sg_16s', change_positions=['otu_id'], update_sg_status=True)
+        self.copy_main_details('sg_16s_cog_function', 'prediction_id', function_predict_id_dict, join=False)
+        self.copy_main_details('sg_16s_cog_specimen', 'prediction_id', function_predict_id_dict, join=False)
+        self.copy_main_details('sg_16s_kegg_level', 'prediction_id', function_predict_id_dict, join=False)
+        self.copy_main_details('sg_16s_kegg_specimen', 'prediction_id', function_predict_id_dict, join=False)
 
     def alpha_diversity(self):
         self.alpha_diversity_id_dict = self.copy_collection_with_change('sg_alpha_diversity', change_positions=['otu_id'], update_sg_status=True, join=True)
