@@ -74,8 +74,8 @@ class StarAgent(Agent):
                 raise OptionError("请提供用于比对的单端fastq或fasta文件！")
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = '500G'   # 设置资源大小
+        self._cpu = 20
+        self._memory = '30G'   # 设置资源大小
 
     def end(self):
         super(StarAgent, self).end()    # 继承超类的end方法

@@ -56,7 +56,7 @@ class LocalActor(gevent.Greenlet):
         if self._update is None and (not self._agent.is_wait):
                 if self._agent.job.submit_time is not None:
                         if (now - self._agent.job.submit_time).seconds - \
-                                self._wto_fire_times * self._config.MAX_WAIT_TIME > self._config.MAX_WAIT_TIME:
+                                        self._wto_fire_times * self._config.MAX_WAIT_TIME > self._config.MAX_WAIT_TIME:
                             if self._wto_fire_times >= self._config.MAX_FIRE_WTO_TIMES:
                                 if self._has_firewtoout is False:
                                     self._agent.fire("firewtoout", self._wto_fire_times)

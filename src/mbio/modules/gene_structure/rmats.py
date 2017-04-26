@@ -93,7 +93,8 @@ class RmatsModule(Module):
         sample_bams = [f for f in os.listdir(self.option('sample_bam_dir').path) if re.match(r'.*\.bam$', f)]
         sample_path_dic = {}
         for sample_bam in sample_bams:
-            m = re.match(r'(\S+?)\.\S+\.bam$', sample_bam)
+            # m = re.match(r'(\S+?)\.\S+\.bam$', sample_bam)
+            m = re.match(r'(\S+)\.bam$', sample_bam)  # edited by shijin
             sample_name = m.group(1)
             '''
             字典格式为：{sample_name: sample_bam_abs_path}

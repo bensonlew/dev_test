@@ -1,25 +1,13 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'sheng.he'
 # lastmodied: 20160921
+import json
+import gevent
+from bson import ObjectId
+from gevent import Greenlet
+from gevent.monkey import patch_all
 from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
-from bson import ObjectId
-import json
-
-
-all_collections = ['fs.chunks', 'fs.files', 'sg_alpha_diversity', 'sg_alpha_diversity_detail', 'sg_alpha_est_t_test',
-                   'sg_alpha_est_t_test_detail', 'sg_alpha_rarefaction_curve', 'sg_alpha_rarefaction_curve_detail',
-                   'sg_alpha_ttest', 'sg_alpha_ttest_detail', 'sg_beta_multi_analysis',
-                   'sg_beta_multi_analysis_detail', 'sg_beta_multi_analysis_json_detail', 'sg_beta_multi_anosim',
-                   'sg_beta_multi_anosim_detail', 'sg_beta_specimen_distance', 'sg_beta_specimen_distance_detail',
-                   'sg_env', 'sg_env_detail', 'sg_img', 'sg_newick_tree', 'sg_otu', 'sg_otu_detail',
-                   'sg_otu_detail_level', 'sg_otu_pan_core', 'sg_otu_pan_core_detail', 'sg_otu_specimen',
-                   'sg_otu_venn', 'sg_otu_venn_detail', 'sg_result_table_params', 'sg_seq_sample',
-                   'sg_species_difference_check', 'sg_species_difference_check_boxplot',
-                   'sg_species_difference_check_ci_plot', 'sg_species_difference_check_detail',
-                   'sg_species_difference_lefse', 'sg_species_difference_lefse_detail', 'sg_specimen',
-                   'sg_specimen_group', 'sg_specimen_sequence', 'sg_specimen_step', 'sg_status', 'sg_task']
-
 
 
 class CopyMongo(object):
@@ -40,6 +28,7 @@ class CopyMongo(object):
         self.alpha_diversity_id_dict = {}
         self.newick_tree_id_dict = {}
         self.specimen_distance_id_dict = {}
+        self.all_greenlets = []
         self._exchange_dict = {  # 根据特定字段名称，进行特定的ID新旧替换
             'specimen_id': self.specimen_id_dict,
             'group_id': self.group_id_dict,
@@ -54,103 +43,178 @@ class CopyMongo(object):
         """
         运行执行复制特定ID数据的操作，如果有新的分析请参照下面的写法添加代码，不同分析表结构不同，所有需要手动添加。
         """
+        patch_all()
         self.copy_member_id()
         self.copy_sg_specimen()
         self.copy_sg_specimen_group()
-        self.copy_collection_with_change('sg_specimen_sequence', change_positions=['specimen_id', ])
-        self.copy_collection_with_change('sg_specimen_step', change_positions=['specimen_id', ])
+        self.copy_collection_with_change('sg_specimen_sequence', change_positions=['specimen_id', ], join=False)
+        self.copy_collection_with_change('sg_specimen_step', change_positions=['specimen_id', ], join=False)
         self.copy_sg_otu()
-        self.copy_collection_with_change('sg_otu_detail', change_positions=['otu_id', ])
-        self.copy_collection_with_change('sg_otu_detail_level', change_positions=['otu_id', ])
+        self.copy_collection_with_change('sg_otu_detail', change_positions=['otu_id', ], join=False)
+        self.copy_collection_with_change('sg_otu_detail_level', change_positions=['otu_id', ], join=False)
         self.env_id_dict = self.copy_collection_with_change('sg_env')
-        self.copy_main_details('sg_env_detail', 'env_id', self.env_id_dict, others_position=['specimen_id'])
+        self.copy_main_details('sg_env_detail', 'env_id', self.env_id_dict, others_position=['specimen_id'], join=True)
         self.env_id_dict[None] = None
         self.env_id_dict[''] = None
         self._exchange_dict['env_id'] = self.env_id_dict
-        self.copy_main_details('sg_otu_specimen', 'otu_id', self.otu_id_dict, others_position=['specimen_id'])
+        self.copy_main_details('sg_otu_specimen', 'otu_id', self.otu_id_dict, others_position=['specimen_id'], join=False)
         self.copy_sg_newick_tree()
         self.recopy_update_otu()
+        print "ready"
+        greenlet = Greenlet(self.species_env_correlation)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.species_mantel_check)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.otu_venn)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.otu_pan_core)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.alpha_rarefaction_curve)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.beta_specimen_distance)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.beta_multi_analysis)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.beta_multi_anosim)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.species_difference_check)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.species_difference_lefse)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.network)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.randomforest)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.phylo_tree)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.hc_heatmap)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.sequence_info)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.corr_network)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.alpha_diversity)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
+        # print self.all_greenlets
+        # print len(self.all_greenlets)
+        gevent.joinall(self.all_greenlets)
+        # print self.all_greenlets
+        # print len(self.all_greenlets)
+        gevent.joinall(self.all_greenlets)
 
-        self.alpha_diversity_id_dict = self.copy_collection_with_change('sg_alpha_diversity', change_positions=['otu_id'], update_sg_status=True)
-        self._exchange_dict['alpha_diversity_id'] = self.alpha_diversity_id_dict
-        self.copy_main_details('sg_alpha_diversity_detail', 'alpha_diversity_id', self.alpha_diversity_id_dict)
+    def species_env_correlation(self):
+        corr_id_dict = self.copy_collection_with_change('sg_', change_positions=['otu_id', 'env_id'], update_sg_status=True)
+        self.copy_main_details("sg_species_env_correlation_detail", "correlation_id", corr_id_dict, join=False)
 
-        corr_id_dict = self.copy_collection_with_change('sg_species_env_correlation', change_positions=['otu_id', 'env_id'], update_sg_status=True)
-        # print(corr_id_dict)
-        self.copy_main_details("sg_species_env_correlation_detail", "correlation_id", corr_id_dict)
 
+    def species_mantel_check(self):
         mantel_id_dict = self.copy_collection_with_change('sg_species_mantel_check', change_positions=['otu_id', 'env_id'], update_sg_status=True)
-        # print(mantel_id_dict)
-        self.copy_main_details("sg_species_mantel_check_detail", "mantel_id", mantel_id_dict)
-        self.copy_main_details("sg_species_mantel_check_matrix", "mantel_id", mantel_id_dict)
+        self.copy_main_details("sg_species_mantel_check_detail", "mantel_id", mantel_id_dict, join=False)
+        self.copy_main_details("sg_species_mantel_check_matrix", "mantel_id", mantel_id_dict, join=False)
 
+    def otu_venn(self):
         venn_id_dict = self.copy_collection_with_change('sg_otu_venn', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_otu_venn_detail', 'otu_venn_id', venn_id_dict, others_position=['otu_id'])
-        self.copy_main_details("sg_otu_venn_graph", 'venn_id', venn_id_dict)
+        self.copy_main_details('sg_otu_venn_detail', 'otu_venn_id', venn_id_dict, others_position=['otu_id'], join=False)
+        self.copy_main_details("sg_otu_venn_graph", 'venn_id', venn_id_dict, join=False)
 
+    def otu_pan_core(self):
         pan_core_id_dict = self.copy_collection_with_change('sg_otu_pan_core', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_otu_pan_core_detail', 'pan_core_id', pan_core_id_dict)
+        self.copy_main_details('sg_otu_pan_core_detail', 'pan_core_id', pan_core_id_dict, join=False)
 
+    def alpha_ttest(self):
         alpha_ttest_id_dict = self.copy_collection_with_change('sg_alpha_ttest', change_positions=['alpha_diversity_id', 'otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_alpha_ttest_detail', 'alpha_ttest_id', alpha_ttest_id_dict)
+        self.copy_main_details('sg_alpha_ttest_detail', 'alpha_ttest_id', alpha_ttest_id_dict, join=False)
 
+    def alpha_rarefaction_curve(self):
         alpha_rarefaction_curve_id_dict = self.copy_collection_with_change('sg_alpha_rarefaction_curve', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_alpha_rarefaction_curve_detail', 'rarefaction_curve_id', alpha_rarefaction_curve_id_dict)
+        self.copy_main_details('sg_alpha_rarefaction_curve_detail', 'rarefaction_curve_id', alpha_rarefaction_curve_id_dict, join=False)
 
+    def beta_specimen_distance(self):
         self.specimen_distance_id_dict = self.copy_collection_with_change('sg_beta_specimen_distance', change_positions=['otu_id', 'newick_tree_id'])
         self._exchange_dict['specimen_distance_id'] = self.specimen_distance_id_dict
-        self.copy_main_details('sg_beta_specimen_distance_detail', 'specimen_distance_id', self.specimen_distance_id_dict)
+        self.copy_main_details('sg_beta_specimen_distance_detail', 'specimen_distance_id', self.specimen_distance_id_dict, join=False)
 
+    def beta_multi_analysis(self):
         beta_multi_analysis_id_dict = self.copy_collection_with_change('sg_beta_multi_analysis', change_positions=['env_id', 'group_id', 'otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_beta_multi_analysis_detail', 'multi_analysis_id', beta_multi_analysis_id_dict)
+        self.copy_main_details('sg_beta_multi_analysis_detail', 'multi_analysis_id', beta_multi_analysis_id_dict, join=False)
 
+    def beta_multi_anosim(self):
         beta_multi_anosim_id_dict = self.copy_collection_with_change('sg_beta_multi_anosim', change_positions=['otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_beta_multi_anosim_detail', 'anosim_id', beta_multi_anosim_id_dict)
+        self.copy_main_details('sg_beta_multi_anosim_detail', 'anosim_id', beta_multi_anosim_id_dict, join=False)
 
+    def species_difference_check(self):
         species_difference_check_id_dict = self.copy_collection_with_change('sg_species_difference_check', change_positions=['otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_species_difference_check_detail', 'species_check_id', species_difference_check_id_dict)
-        self.copy_main_details('sg_species_difference_check_boxplot', 'species_check_id', species_difference_check_id_dict)
+        self.copy_main_details('sg_species_difference_check_detail', 'species_check_id', species_difference_check_id_dict, join=False)
+        self.copy_main_details('sg_species_difference_check_boxplot', 'species_check_id', species_difference_check_id_dict, join=False)
 
+    def species_difference_lefse(self):
         species_difference_lefse_id_dict = self.copy_collection_with_change('sg_species_difference_lefse', change_positions=['otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_species_difference_lefse_detail', 'species_lefse_id', species_difference_lefse_id_dict)
+        self.copy_main_details('sg_species_difference_lefse_detail', 'species_lefse_id', species_difference_lefse_id_dict, join=False)
 
-        # phylo_tree_plot_id_dict = self.copy_collection_with_change('sg_tree_picture', change_positions=['otu_id'], update_sg_status=True)
-
+    def network(self):
         network_id_dict = self.copy_collection_with_change('sg_network', change_positions=['otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_network_centrality_node', 'network_id', network_id_dict)
-        self.copy_main_details('sg_network_distribution_node', 'network_id', network_id_dict)
-        self.copy_main_details('sg_network_structure_attributes', 'network_id', network_id_dict)
-        self.copy_main_details('sg_network_structure_link', 'network_id', network_id_dict)
-        self.copy_main_details('sg_network_structure_node', 'network_id', network_id_dict)
+        self.copy_main_details('sg_network_centrality_node', 'network_id', network_id_dict, join=False)
+        self.copy_main_details('sg_network_distribution_node', 'network_id', network_id_dict, join=False)
+        self.copy_main_details('sg_network_structure_attributes', 'network_id', network_id_dict, join=False)
+        self.copy_main_details('sg_network_structure_link', 'network_id', network_id_dict, join=False)
+        self.copy_main_details('sg_network_structure_node', 'network_id', network_id_dict, join=False)
 
+    def randomforest(self):
         randomforest_id_dict = self.copy_collection_with_change('sg_randomforest', change_positions=['otu_id', 'group_id'], update_sg_status=True)
-        self.copy_main_details('sg_randomforest_species_bar', 'randomforest_id', randomforest_id_dict)
-        self.copy_main_details('sg_randomforest_specimen_scatter', 'randomforest_id', randomforest_id_dict)
+        self.copy_main_details('sg_randomforest_species_bar', 'randomforest_id', randomforest_id_dict, join=False)
+        self.copy_main_details('sg_randomforest_specimen_scatter', 'randomforest_id', randomforest_id_dict, join=False)
 
+    def phylo_tree(self):
         phylo_tree_id_dict = self.copy_collection_with_change('sg_phylo_tree', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_phylo_tree_species_categories', 'phylo_tree_id', phylo_tree_id_dict)
-        self.copy_main_details('sg_phylo_tree_species_detail', 'phylo_tree_id', phylo_tree_id_dict)
+        self.copy_main_details('sg_phylo_tree_species_categories', 'phylo_tree_id', phylo_tree_id_dict, join=False)
+        self.copy_main_details('sg_phylo_tree_species_detail', 'phylo_tree_id', phylo_tree_id_dict, join=False)
 
+    def hc_heatmap(self):
         hc_heatmap_id_dict = self.copy_collection_with_change('sg_hc_heatmap', change_positions=['otu_id'], update_sg_status=True)
-        self.copy_main_details('sg_hc_heatmap_detail', 'hc_id', hc_heatmap_id_dict)
+        self.copy_main_details('sg_hc_heatmap_detail', 'hc_id', hc_heatmap_id_dict, join=False)
 
-        self.copy_collection_with_change('sg_valid_sequence_info')
-        self.copy_collection_with_change('sg_raw_sequence_info')
+    def sequence_info(self):
+        self.copy_collection_with_change('sg_valid_sequence_info', join=False)
+        self.copy_collection_with_change('sg_raw_sequence_info', join=False)
 
+    def corr_network(self):
         corr_network_id_dict = self.copy_collection_with_change('sg_corr_network', change_positions=['otu_id', 'group_id'],
                                                                 update_sg_status=True)
-        self.copy_main_details('sg_corr_network_centrality_node', 'corr_network_id', corr_network_id_dict)
-        self.copy_main_details('sg_corr_network_distribution_node', 'corr_network_id', corr_network_id_dict)
-        self.copy_main_details('sg_corr_network_structure_abundance', 'corr_network_id', corr_network_id_dict)
-        self.copy_main_details('sg_corr_network_structure_attributes', 'corr_network_id', corr_network_id_dict)
-        self.copy_main_details('sg_corr_network_structure_link', 'corr_network_id', corr_network_id_dict)
-        self.copy_main_details('sg_corr_network_structure_node', 'corr_network_id', corr_network_id_dict)
+        self.copy_main_details('sg_corr_network_centrality_node', 'corr_network_id', corr_network_id_dict, join=False)
+        self.copy_main_details('sg_corr_network_distribution_node', 'corr_network_id', corr_network_id_dict, join=False)
+        self.copy_main_details('sg_corr_network_structure_abundance', 'corr_network_id', corr_network_id_dict, join=False)
+        self.copy_main_details('sg_corr_network_structure_attributes', 'corr_network_id', corr_network_id_dict, join=False)
+        self.copy_main_details('sg_corr_network_structure_link', 'corr_network_id', corr_network_id_dict, join=False)
+        self.copy_main_details('sg_corr_network_structure_node', 'corr_network_id', corr_network_id_dict, join=False)
 
 
+    def alpha_diversity(self):
+        print "alpha_diversity"
+        self.alpha_diversity_id_dict = self.copy_collection_with_change('sg_alpha_diversity', change_positions=['otu_id'], update_sg_status=True, join=True)
+        print "alpha_diversity end"
+        self._exchange_dict['alpha_diversity_id'] = self.alpha_diversity_id_dict
+        self.copy_main_details('sg_alpha_diversity_detail', 'alpha_diversity_id', self.alpha_diversity_id_dict, join=False)
+        self.alpha_ttest()
 
 
-
-    def copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False):
+    def _copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False):
         """
         公共模块，一般用于导入主表数据，依靠task_id进行查询，修改change_positions提供的字段，相应修改ID为新的，同时更新params中的数据ID
 
@@ -181,6 +245,50 @@ class CopyMongo(object):
             return dict(zip(olds, [str(one) for one in result.inserted_ids]))
         else:
             return {}
+
+    def copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False, join=True):
+        greenlet = Greenlet(self._copy_collection_with_change, collection, change_positions, update_sg_status)
+        greenlet.start()
+        if join is True:
+            greenlet.join()
+            return greenlet.value
+        self.all_greenlets.append(greenlet)
+        return greenlet
+
+    def _copy_main_details(self, collection, main_field, change_dict, others_position=[]):
+        """
+        公共模块，一般用于更新detail表，根据提供的主表id字段名，和主表新旧ID字典，进行查找，再复制替换，others_position用于更新主表ID之外其他需要更新的ID
+
+        params collection: detail表名称
+        params main_field: 主表字段名称
+        params change_dict: 主表新旧替换字典，一般来源于 copy_collection_with_change 的返回字典
+        params others_position: detail表中除了主表还需要更新的字段，
+            只能是 specimen_id,group_id,env_id,otu_id,alpha_diversity_id,newick_tree_id,specimen_distance_id
+        """
+        coll = self.db[collection]
+        for old, new in change_dict.items():
+            finds = coll.find({main_field: ObjectId(old)})
+            news = []
+            for i in finds:
+                i.pop('_id')
+                i[main_field] = ObjectId(new)
+                for position in others_position:
+                    i[position] = self.exchange_ObjectId(position, i[position])
+                news.append(i)
+            if news:
+                coll.insert_many(news)
+            else:
+                print 'WARNING: 主表:{}没有detail表信息，请注意数据合理性,collection:{}'.format(old, collection)
+
+    def copy_main_details(self, collection, main_field, change_dict, others_position=[], join=True):
+        greenlet = Greenlet(self._copy_main_details, collection, main_field, change_dict, others_position)
+        greenlet.start()
+        if join is True:
+            greenlet.join()
+            return greenlet.value
+        self.all_greenlets.append(greenlet)
+        return greenlet
+
 
     def insert_new_status(self, collection, main_docs, ids):
         """
@@ -272,31 +380,6 @@ class CopyMongo(object):
                 self.db.sg_env_detail.insert_many(news)
             else:
                 print 'WARNING: 环境因子主表:{}没有detail表信息，请注意数据合理性'.format(old)
-
-    def copy_main_details(self, collection, main_field, change_dict, others_position=[]):
-        """
-        公共模块，一般用于更新detail表，根据提供的主表id字段名，和主表新旧ID字典，进行查找，再复制替换，others_position用于更新主表ID之外其他需要更新的ID
-
-        params collection: detail表名称
-        params main_field: 主表字段名称
-        params change_dict: 主表新旧替换字典，一般来源于 copy_collection_with_change 的返回字典
-        params others_position: detail表中除了主表还需要更新的字段，
-            只能是 specimen_id,group_id,env_id,otu_id,alpha_diversity_id,newick_tree_id,specimen_distance_id
-        """
-        coll = self.db[collection]
-        for old, new in change_dict.items():
-            finds = coll.find({main_field: ObjectId(old)})
-            news = []
-            for i in finds:
-                i.pop('_id')
-                i[main_field] = ObjectId(new)
-                for position in others_position:
-                    i[position] = self.exchange_ObjectId(position, i[position])
-                news.append(i)
-            if news:
-                coll.insert_many(news)
-            else:
-                print 'WARNING: 主表:{}没有detail表信息，请注意数据合理性,collection:{}'.format(old, collection)
 
     def copy_sg_otu(self):
         """
@@ -472,7 +555,8 @@ class CopyMongo(object):
         return json.dumps(params, sort_keys=True, separators=(',', ':'))
 
 if __name__ == '__main__':
-    copy_task = CopyMongo('i-sanger_6414', 'i-sanger_6414_1', '10004002_1', 'shenghe_test')
+    copy_task = CopyMongo('tsanger_7008', 'tsanger_7008_17', '10004002_1', 'shenghe_test')
     copy_task.run()
+
     # copy_task = CopyMongo('tsg_3617', 'tsg_3617_022', '10000782_22', 'm_188_22')
     # copy_task.run()

@@ -46,10 +46,14 @@ class Gff3File(File):
     
     def check(self):
         super(Gff3File, self).check()
+        # self.check_logical()
+        if (not self.prop["path"].endswith("gff")) and (not self.prop["path"].endswith("gff3")):
+            raise FileError("gff文件格式不正确")
+
     
     def check_format(self, fasta_file, so_file):
         # self.check_lines()
-        self.parse_and_check_column(fasta_file, so_file)  # memory error
+        self.parse_and_check_column(fasta_file, so_file)
         self.check_logical()
         return True
     
@@ -253,7 +257,7 @@ class Gff3File(File):
         """
         bed_path = os.path.split(gtf_path)[0]
         bed = os.path.join(bed_path, os.path.split(gtf_path)[1] + ".bed")
-        cmd = "perl {} {} > {}".format(self._gtf2bed_path, gtf_path, bed)
+        cmd = "python {} -i {} -o {}".format(self._gtf2bed_path, gtf_path, bed)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
