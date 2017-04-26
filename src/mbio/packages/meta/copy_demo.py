@@ -349,11 +349,8 @@ class CopyMongo(object):
                 i['project_sn'] = self._new_project_sn
             if 'params' in i:
                 i['params'] = self.params_exchange(i['params'])
-            if i['table_type'] == 'otu':
-                if 'table_id' in i:
-                    i['table_id'] = ObjectId(self.otu_id_dict[str(i['table_id'])])
-            elif i['table_type'] == 'dist':
-                print 'WARNING: newick tree表已经不在存在dist的table'
+            if 'table_id' in i:
+                i['table_id'] = ObjectId(self.otu_id_dict[str(i['table_id'])])
             news.append(i)
         if news:
             result = self.db.sg_newick_tree.insert_many(news)
