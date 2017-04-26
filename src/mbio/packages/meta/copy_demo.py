@@ -119,7 +119,7 @@ class CopyMongo(object):
         gevent.joinall(self.all_greenlets)
 
     def species_env_correlation(self):
-        corr_id_dict = self.copy_collection_with_change('sg_', change_positions=['otu_id', 'env_id'], update_sg_status=True)
+        corr_id_dict = self.copy_collection_with_change('sg_species_env_correlation', change_positions=['otu_id', 'env_id'], update_sg_status=True)
         self.copy_main_details("sg_species_env_correlation_detail", "correlation_id", corr_id_dict, join=False)
 
 
