@@ -14,20 +14,20 @@ import os
 #     """
 #     命令行模式下运行此脚本的参数获取方法
 #     """
-#     parse = argparse.ArgumentParser(prog='standard_qualname.py',
+#     __parse_details = argparse.ArgumentParser(prog='standard_qualname.py',
 #                                     usage='关于此脚本的说明',
 #                                     description='检查fasta序列名和qual序列名的第一空位符前的名称是否一致，\
 #                                     如果一致，将qual的名称转换成fasta的名称，否则报错',
 #                                     epilog='请确保参数准确',
 #                                     version='v1.0',
 #                                     parents='')
-#     parse.add_argument('-f', '--fasta',
+#     __parse_details.add_argument('-f', '--fasta',
 #                        required=True, help='输入fasta文件')
-#     parse.add_argument('-q', '--qual',
+#     __parse_details.add_argument('-q', '--qual',
 #                        required=True, help='输入fasta对应qual文件')
-#     parse.add_argument('-o', '--output',
+#     __parse_details.add_argument('-o', '--output',
 #                        required=True, help='输出新的qual文件路径')
-#     args = parse.parse_args()
+#     args = __parse_details.parse_args()
 #
 #     output = args.output
 #     fasta = args.fasta

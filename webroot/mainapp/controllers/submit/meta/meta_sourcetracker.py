@@ -14,7 +14,7 @@ class MetaSourcetracker(MetaController):
 
     def POST(self):
         data = web.input()
-        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 's', 'sink']
+        params_name = ['otu_id', 'level_id', 'group_id', 'group_detail', 'second_group_id', 'second_group_detail', 'add_Algorithm', 's', 'submit_location']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
@@ -25,7 +25,10 @@ class MetaSourcetracker(MetaController):
         group_detail = json.loads(data.group_detail)
         if not isinstance(group_detail, dict):
             success.append("传入的group_detail不是一个字典")
-        otu_info = self.meta.get_otu_table_info(data.otu_id)
+        second_group_detail = json.loads(data.second_group_detail)
+        if not isinstance(second_group_detail, dict):
+            success.append("传入的second_group_detail不是一个字典")
+        otu_info = Meta().get_otu_table_info(data.otu_id)
         if not otu_info:
             info = {"success": False, "info": "OTU不存在，请确认参数是否正确！!"}
             return json.dumps(info)
@@ -35,11 +38,13 @@ class MetaSourcetracker(MetaController):
         main_table_name = 'MetaSourcetracker_' + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         params_json = {
             'otu_id': data.otu_id,
-            'level_id': int(data.level_id),
+            'level_id': data.level_id,
             'group_id': data.group_id,
             'group_detail': group_detail_sort(data.group_detail),
+            'second_group_id': data.second_group_id,
+            'second_group_detail': group_detail_sort(data.second_group_detail),
             's': data.s,
-            'sink': data.sink,
+            'add_Algorithm': data.add_Algorithm,
             'submit_location': data.submit_location,
             'task_type': 'reportTask'
         }
@@ -57,16 +62,16 @@ class MetaSourcetracker(MetaController):
         update_info = {str(main_table_id): 'sg_sourcetracker'}
         options = {
             "in_otu_table": data.otu_id,
+            "level": data.level_id,
             "map_detail": data.group_id,
             "group_detail": data.group_detail,
-            "update_info": json.dumps(update_info),
-            "group_id": data.group_id,
+            "second_group_detail": data.second_group_detail,
+            "add_Algorithm": data.add_Algorithm,
             "s": data.s,
-            "level": data.level_id,
-            "sink": data.sink,
             "meta_sourcetracker_id": str(main_table_id),
+            "update_info": json.dumps(update_info),
         }
-        to_file = ["meta.export_otu_table_by_detail(in_otu_table)", "meta.export_group_table_by_detail(map_detail)"]
+        to_file = ["meta.export_otu_table_by_level(in_otu_table)", "meta.export_group_table_by_detail_2(map_detail)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(MetaSourcetracker, self).POST()

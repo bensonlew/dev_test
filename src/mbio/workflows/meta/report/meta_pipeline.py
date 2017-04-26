@@ -7,7 +7,6 @@ class MetaPipelineWorkflow(Workflow):
     """
     用于meta一键化交互的计算
     """
-
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
         super(MetaPipelineWorkflow, self).__init__(wsheet_object)
@@ -31,7 +30,6 @@ class MetaPipelineWorkflow(Workflow):
             'task_id': self.get_task_id()
         }
         self.pipe_submit_all.set_options(options)
-        # self.pipe_submit_all.on('end', self.get_results)
         self.pipe_submit_all.on('end', self.end)
         self.pipe_submit_all.run()
 
@@ -39,8 +37,8 @@ class MetaPipelineWorkflow(Workflow):
         split_id = self._sheet.id.split('_')
         split_id.pop()
         split_id.pop()
-        self.task_id = '_'.join(split_id)
-        return self.task_id
+        task_id = '_'.join(split_id)
+        return task_id
 
     def run(self):
         self.run_all()

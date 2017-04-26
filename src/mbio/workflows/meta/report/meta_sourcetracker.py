@@ -17,15 +17,14 @@ class MetaSourcetrackerWorkflow(Workflow):
         super(MetaSourcetrackerWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "in_otu_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的OTU表
-            # {"name": "input_otu_id", "type": "string"},  # 输入的OTU id
             {"name": "level", "type": "string", "default": "9"},  # 输入的OTU level
             {"name": "map_detail", "type": "infile", "format": "meta.otu.group_table"},  # 输入的map_detail 示例如下(map文件后续导表)
-            {"name": "meta_sourcetracker_id", "type": "string"}, #主表的id
-            {"name": "update_info", "type": "string"},
-            {"name": "group_id", "type": "string"},
             {"name": "group_detail", "type": "string"},
-            {"name": "s", "type": "string", "default": "1"},  #OTU筛选参数
-            {"name": "sink", "type": "string"}
+            {"name": "second_group_detail", "type": "string"},
+            {"name": "add_Algorithm", "type": "string", "default": ""},
+            {"name": "s", "type": "string", "default": "1"},  # OTU筛选参数
+            {"name": "meta_sourcetracker_id", "type": "string"}, #主表的id
+            {"name": "update_info", "type": "string"}
             # {"name": "source", "type": "string"}
             # {"A":["578da2fba4e1af34596b04ce","578da2fba4e1af34596b04cf","578da2fba4e1af34596b04d0"],"B":["578da2fba4e1af34596b04d1","578da2fba4e1af34596b04d3","578da2fba4e1af34596b04d5"],"C":["578da2fba4e1af34596b04d2","578da2fba4e1af34596b04d4","578da2fba4e1af34596b04d6"]}
             # {"name": "method", "type": "string", "default": ""}  # 聚类方式， ""为不进行聚类
@@ -33,13 +32,88 @@ class MetaSourcetrackerWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.meta_sourcetracker = self.add_tool("meta.beta_diversity.meta_sourcetracker")
-        self.qiime_table_path = ''
-        self.map_detail_path = ''
-        # group_table_path = os.path.join(self.work_dir, "group_table.xls")
-        # self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table_path)
+        self.sort_all_samples = self.add_tool("meta.otu.sort_samples")
+        self.sort_source_samples = self.add_tool("meta.otu.sort_samples")
+        self.sort_sink_samples = self.add_tool("meta.otu.sort_samples")
+        self.all_sort = ''
+        self.source_group_file = ''
+        self.sink_group_file = ''
 
-    def reset_input_table(self):
-        old_otu_table_path = self.option("in_otu_table").prop['path']
+    def check_options(self):  # 2016.12.1 zhouxuan
+        if self.option('add_Algorithm') not in ['average', 'middle', 'sum', ""]:
+            raise OptionError('错误的层级聚类方式：%s' % self.option('add_Algorithm'))
+
+    def judge(self):
+        """
+        判断map文件是否正确，同时生成后续要用的两个小的分组文件
+        :return:
+        """
+        self.source_group_file = os.path.join(self.work_dir, "source_group")
+        self.sink_group_file = os.path.join(self.work_dir, "sink_group")
+        samples = []
+        sink_label = []
+        with open(self.option('map_detail').prop['path'], "rb") as r, open(self.source_group_file, 'a') as e, open(self.sink_group_file, 'a') as k:
+            line = r.next()
+            k.write("#Sample\tsink\n")
+            e.write("#Sample\tsource\n")
+            for line in r:
+                line = line.rstrip().split("\t")
+                if line[0] not in samples:
+                    samples.append(line[0])
+                else:
+                    raise OptionError('sink组和source组中不能存在同一个样本 {}'.format(line[0]))
+                if line[2] == 'sink':
+                    k.write(line[0] + "\t" + line[1] + "\n")
+                    if line[1] not in sink_label:
+                        sink_label.append(line[1])
+                else:
+                    e.write(line[0] + "\t" + line[1] + "\n")
+        if len(sink_label) == 1 or self.option('add_Algorithm') == '':
+            self.run_sort_all_samples()
+        else:
+            self.run_sort_source_samples()
+
+    def run_sort_all_samples(self):
+        self.all_sort = "true"
+        self.sort_all_samples.set_options({
+            "in_otu_table": self.option("in_otu_table"),
+            "group_table": self.option("map_detail")
+        })
+        self.sort_all_samples.on('end', self.run_meta_sourcetracker)
+        self.sort_all_samples.run()
+
+    def run_sort_source_samples(self):
+        self.sort_source_samples.set_options({
+            "in_otu_table": self.option("in_otu_table"),
+            "group_table": self.source_group_file
+        })
+        self.sort_source_samples.on('end', self.run_sort_sink_samples)
+        self.sort_source_samples.run()
+
+    def run_sort_sink_samples(self):
+        self.sort_sink_samples.set_options({
+            "in_otu_table": self.option("in_otu_table"),
+            "group_table": self.sink_group_file,
+            "method": self.option('add_Algorithm')
+        })
+        self.sort_sink_samples.on('end', self.run_meta_sourcetracker)
+        self.sort_sink_samples.run()
+
+    def run_meta_sourcetracker(self):
+        if self.all_sort == "true":
+            qiime_table_path = self.reset_input_otu_table(self.sort_all_samples.option("out_otu_table").prop['path'])
+        else:
+            otu_table = self.add_otu_file(self.sort_source_samples.option("out_otu_table").prop['path'], self.sort_sink_samples.option("out_otu_table").prop['path'])
+            qiime_table_path = self.reset_input_otu_table(otu_table)
+        self.meta_sourcetracker.set_options({
+            "otu_table": qiime_table_path,
+            "map_table": self.option('map_detail'),
+            "s": self.option("s")
+        })
+        self.meta_sourcetracker.on('end', self.set_db)
+        self.meta_sourcetracker.run()
+
+    def reset_input_otu_table(self, old_otu_table_path):
         new_qiime_otu_table = os.path.join(self.work_dir, "otu_table.txt")
         with open(new_qiime_otu_table, "a") as n:
             firstline = "# QIIME-formatted OTU table" + "\n"
@@ -56,96 +130,22 @@ class MetaSourcetrackerWorkflow(Workflow):
                 with open(new_qiime_otu_table, "a") as n:
                     n.write(line)
             a.close()
-        self.qiime_table_path = new_qiime_otu_table
+        return new_qiime_otu_table
 
-        old_map_detail_path = self.option("map_detail").prop['path']  # 检查group文件并根据group文件
-        new_map_detail_path = os.path.join(self.work_dir, "map_table")
-        if os.path.exists(old_map_detail_path):
-            b = open(old_map_detail_path, "r")
-            content = b.readlines()
-            first_dict = {}
-            source_sample = []
-            sink_sample = []
-            for f in content:
-                if f.startswith("#") is False:
-                    c = f.strip().split("\t")
-                    first_dict[c[0]] = c[1]
-                    if c[1] == self.option("sink"):
-                        sink_sample.append(c[0])
-                    else:
-                        source_sample.append(c[0])
-            b.close()
-            with open(new_map_detail_path, "a") as m:
-                first = "#SampleID" + "\t" + "Env" + "\t" + "SourceSink" + "\n"
-                m.write(first)
-                for sample in source_sample:
-                    m.write(sample + "\t" + first_dict[sample] + "\t" + "source" + "\n")
-                for sample in sink_sample:
-                    m.write(sample + "\t" + first_dict[sample] + "\t" + "sink" + "\n")
-            self.map_detail_path = new_map_detail_path
-        self.run_meta_sourcetracker()
-
-        # old_map_detail_path = self.option("map_detail").prop['path']  # 检查group文件并根据group文件
-        # new_map_detail_path = os.path.join(self.work_dir, "map_table")
-        # if os.path.exists(old_map_detail_path):
-        #     b = open(old_map_detail_path, "r")
-        #     content = b.readlines()
-        #     first_dict = {}
-        #     second_dict = {}
-        #     source_sample = []
-        #     sink_sample = []
-        #     for f in content:
-        #         if f.startswith("#") is False:
-        #             c = f.strip().split("\t")
-        #             first_dict[c[0]] = c[1]
-        #             if c[1] == self.option("source"):
-        #                 source_sample.append(c[0])
-        #             elif c[1] == self.option("sink"):
-        #                 sink_sample.append(c[0])
-        #             else:
-        #                 raise OptionError('错误的一级分组方案')
-        #             second_dict[c[0]] = c[2]
-        #     b.close()
-        #     source_group_list = []
-        #     sink_group_list = []
-        #     all_group_list = []
-        #     for sample in source_sample:
-        #         if second_dict[sample] not in source_group_list:
-        #             source_group_list.append(second_dict[sample])
-        #         if second_dict[sample] not in all_group_list:
-        #             all_group_list.append(second_dict[sample])
-        #     for sample in sink_sample:
-        #         if second_dict[sample] not in sink_group_list:
-        #             sink_group_list.append(second_dict[sample])
-        #         if second_dict[sample] not in all_group_list:
-        #             all_group_list.append(second_dict[sample])
-        #     print(source_group_list)
-        #     print(sink_group_list)
-        #     print(all_group_list)
-        #     if len(source_group_list) + len(sink_group_list) == len(all_group_list):
-        #         with open(new_map_detail_path, "a") as m:
-        #             first = "#SampleID" + "\t" + "Env" + "\t" + "SourceSink" + "\n"
-        #             m.write(first)
-        #             for sample in source_sample:
-        #                 m.write(sample + "\t" + second_dict[sample] + "\t" + "source" + "\n")
-        #             for sample in sink_sample:
-        #                 m.write(sample + "\t" + second_dict[sample] + "\t" + "sink" + "\n")
-        #         self.map_detail_path = new_map_detail_path
-        #     else:
-        #         raise OptionError('错误的二级分组方案，sink组和source组的样本不能出现在同一组')
-        # else:
-        #     raise OptionError('请输入正确的分组文件')
-        # self.run_meta_sourcetracker()
-
-    def run_meta_sourcetracker(self):
-        self.meta_sourcetracker.set_options({
-            "otu_table": self.qiime_table_path,
-            "map_table": self.map_detail_path,
-            "s": self.option("s")
-        })
-        self.meta_sourcetracker.on('end', self.set_db)
-        self.meta_sourcetracker.run()
-
+    def add_otu_file(self, file1, file2):
+        new_otu_file = os.path.join(self.work_dir, "add_file.txt")
+        with open(file1, "r") as f1, open(file2, "r") as f2, open(new_otu_file, "a") as w:
+            content1 = f1.readlines()
+            content2 = f2.readlines()
+            print "###############################"
+            print len(content1)
+            for i in range(0, len(content1)):
+                print(content1[i])
+                print(content2[i])
+                content1[i] = content1[i].strip("\n")
+                line2 = content2[i].rstrip("\n").split("\t")
+                w.write(content1[i] + "\t" + ("\t").join(line2[1:]) + "\n")
+        return new_otu_file
 
     def set_db(self):
         self.logger.info("正在写入mongo数据库")
@@ -160,8 +160,8 @@ class MetaSourcetrackerWorkflow(Workflow):
             shutil.copy2(self.meta_sourcetracker.output_dir + "/sink_predictions.txt", self.output_dir + "/sink_predictions.txt")
             shutil.copy2(self.meta_sourcetracker.output_dir + "/sink_predictions_stdev.txt", self.output_dir + "/sink_predictions_stdev.txt")
         except Exception as e:
-            self.logger.info("sink_predictions.txt copy success{}".format(e))
-            self.set_error("sink_predictions.txt copy success{}".format(e))
+            self.logger.info("copying sink_predictions.txt failed{}".format(e))
+            self.set_error("copying sink_predictions.txt failed{}".format(e))
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "微生物组成来源比例分析"],
@@ -171,5 +171,5 @@ class MetaSourcetrackerWorkflow(Workflow):
         super(MetaSourcetrackerWorkflow, self).end()
 
     def run(self):
-        self.reset_input_table()
+        self.judge()
         super(MetaSourcetrackerWorkflow, self).run()

@@ -45,9 +45,9 @@ def check_dispersion(genes, diff_num, diff_rate):
     return dispersion
 
 
-# def get_gene_list(fpkm_file, output):
-#     with open(fpkm_file, 'rb') as r, open(output, 'wb') as w:
-#         w.write('gene_id\tgene_id\n')
-#         lines = r.readlines()
-#         for line in lines[1:]:
-#             w.write('{}\t{}\n'.format(line.split('\t')[0], line.split('\t')[0]))
+def get_gene_list(fpkm_file, output):
+    with open(fpkm_file, 'rb') as r, open(output, 'wb') as w:
+        w.write('gene_id\tgene_id\n')
+        lines = r.readlines()
+        for line in lines[1:]:
+            w.write('{}\t{}\n'.format(line.split('\t')[0], line.split('\t')[0]))

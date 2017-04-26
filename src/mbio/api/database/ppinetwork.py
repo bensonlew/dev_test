@@ -15,10 +15,10 @@ from biocluster.config import Config
 class Ppinetwork(Base):
     def __init__(self, bind_object):
         super(Ppinetwork, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_rna'
+        self._db_name = Config().MONGODB + '_ref_rna'
 
     # @report_check
-    def add_network_attributes(self, file1_path, file2_path, table_id = None, major = False):
+    def add_network_attributes(self, file1_path, file2_path, table_id=None, major=False):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
                 table_id = ObjectId(table_id)
@@ -40,7 +40,7 @@ class Ppinetwork(Base):
             data_son = SON(data)
             data_list.append(data_son)
         try:
-            collection = self.db["sg_ref_ppinetwork_structure_attributes"]
+            collection = self.db["sg_ppinetwork_structure_attributes"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file1_path, e))
@@ -51,7 +51,7 @@ class Ppinetwork(Base):
         return data_list, table_id
 
     # @report_check
-    def add_network_cluster_degree(self, file1_path, file2_path, table_id = None, major = False):
+    def add_network_cluster_degree(self, file1_path, file2_path, table_id=None, major=False):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
                 table_id = ObjectId(table_id)
@@ -66,12 +66,12 @@ class Ppinetwork(Base):
                 for line1 in data1:
                     temp1 = line1.rstrip().split("\t")
                     if temp1[1] == temp2[1]:
-                        data = [("ppi_id", table_id), ("node_id", eval(temp1[0])), ("node_name", temp1[1]), ("degree", eval(temp1[2])),
-                            ("clustering", eval(temp2[2]))]
+                        data = [("ppi_id", table_id), ("node_id", eval(temp1[0])), ("node_name", temp1[1]),
+                                ("degree", eval(temp1[2])), ("clustering", eval(temp2[2]))]
                         data_son = SON(data)
                         data_list.append(data_son)
         try:
-            collection = self.db["sg_ref_ppinetwork_structure_node"]
+            collection = self.db["sg_ppinetwork_structure_node"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file1_path, e))
@@ -80,7 +80,7 @@ class Ppinetwork(Base):
         return data_list
 
     # @report_check
-    def add_network_centrality(self, file_path, table_id = None, major = False):
+    def add_network_centrality(self, file_path, table_id=None, major=False):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
                 table_id = ObjectId(table_id)
@@ -101,7 +101,7 @@ class Ppinetwork(Base):
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
-            collection = self.db["sg_ref_ppinetwork_centrality_node"]
+            collection = self.db["sg_ppinetwork_centrality_node"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
@@ -110,7 +110,7 @@ class Ppinetwork(Base):
         return data_list
 
     # @report_check
-    def add_node_table(self,  file_path, table_id=None, major=False):
+    def add_node_table(self, file_path, table_id=None, major=False):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
                 table_id = ObjectId(table_id)
@@ -122,11 +122,11 @@ class Ppinetwork(Base):
             for line in data_line:
                 line_data = line.strip().split('\t')
                 data = [("ppi_id", table_id), ("node_name", line_data[0]), ("degree", eval(line_data[1])),
-                            ("logFC", eval(line_data[2]))]
+                        ("gene_id", line_data[2]), ("string_id", line_data[3])]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
-            collection = self.db["sg_ref_ppinetwork_node_table"]
+            collection = self.db["sg_ppinetwork_node_table"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
@@ -151,7 +151,7 @@ class Ppinetwork(Base):
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
-            collection = self.db["sg_ref_ppinetwork_structure_link"]
+            collection = self.db["sg_ppinetwork_structure_link"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
@@ -175,7 +175,7 @@ class Ppinetwork(Base):
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
-            collection = self.db["sg_ref_ppinetwork_distribution_node"]
+            collection = self.db["sg_ppinetwork_distribution_node"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
