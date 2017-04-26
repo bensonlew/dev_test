@@ -17,7 +17,7 @@ class PtDatasplitWorkflow(Workflow):
 	名称：亲子鉴定数据拆分流程
 	作用：完成下机数据的拆分，合并以及分组(wq\ws\undetermined)
 	author：zhouxuan
-	last_modified: 2017.03.23
+	last_modified: 2017.04.26
 	"""
 	def __init__(self, wsheet_object):
 		self._sheet = wsheet_object
@@ -36,7 +36,6 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_split = self.add_tool("paternity_test.data_split")
 		self.merge_fastq = self.add_tool("paternity_test.merge_fastq")
 		self.set_options(self._sheet.options())
-		# self.step.add_steps("data_split", "merge_fastq")
 		self.update_status_api = self.api.pt_update_status
 		self.tools = []
 		self.sample_name_wq = []
@@ -62,46 +61,12 @@ class PtDatasplitWorkflow(Workflow):
 			raise OptionError("缺少家系信息表")
 		return True
 
-	# def set_step(self, event):
-	# 	if 'start' in event['data'].keys():
-	# 		event['data']['start'].start()
-	# 	if 'end' in event['data'].keys():
-	# 		event['data']['end'].finish()
-		# self.step.update()
-
-	# def finish_update(self, event):
-	# 	step = getattr(self.step, event['data'])
-	# 	step.finish()
-		# self.step.update()
-	def judge(self):
-		"""
-		判断这组数据是不是已经跑过拆分了，如果数据库中已有，说明已经有wq和ws以及undetermined的路径了
-		判断路径是否存在，如果存在给self.wq_dir等赋值，如果不存在，直接重跑
-		:return:
-		"""
-		self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
-		db_customer = self.api.pt_customer
-		dir_list = db_customer.get_wq_dir(self.option('data_dir'))
-		self.logger.info(dir_list)
-		if len(dir_list) == 3 and (os.path.exists(dir_list[0]) or os.path.exists(dir_list[1])):
-			self.wq_dir = dir_list[0]
-			self.ws_dir = dir_list[1]
-			self.un_dir = dir_list[2]
-			self.end()
-		else:
-			self.done_data_split = "true"
-			self.run_data_split()
-
 	def run_data_split(self):
-		#self.db_customer()  # 家系表导表
 		self.data_split.set_options({
 			"message_table": self.option('message_table'),
 			"data_dir": self.option('data_dir'),
 		})
-		# self.data_split.on('end', self.set_output, 'data_split')
 		self.data_split.on('end', self.run_merge_fastq_wq)
-		# self.data_split.on('start', self.set_step, {'start': self.step.data_split})
-		# self.data_split.on('end', self.set_step, {'end': self.step.data_split})
 		self.data_split.run()
 
 	def db_customer(self):
@@ -132,19 +97,13 @@ class PtDatasplitWorkflow(Workflow):
 			os.mkdir(self.wq_dir)
 		for i in self.sample_name_wq:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
-			# self.step.add_steps('merge_fastq{}'.format(n))
 			merge_fastq.set_options({
 				"sample_dir_name": i,
 				"data_dir": self.data_dir,
 				"result_dir": self.wq_dir,
 			})
-			# step = getattr(self.step, 'merge_fastq{}'.format(n))
-			# step.start()
-			# merge_fastq.on('end', self.finish_update, 'merge_fastq{}'.format(n))
 			self.tools.append(merge_fastq)
 			n += 1
-		# for j in range(len(self.tools)):
-		# 	self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
 			if len(self.sample_name_ws) == 0 and len(self.sample_name_un) != 0:
 				self.on_rely(self.tools, self.run_merge_fastq_un)
@@ -178,8 +137,6 @@ class PtDatasplitWorkflow(Workflow):
 			})
 			self.tools.append(merge_fastq)
 			n += 1
-		# for j in range(len(self.tools)):
-		# 	self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
 			if len(self.sample_name_un) != 0:
 				self.on_rely(self.tools, self.run_merge_fastq_un)
@@ -251,8 +208,6 @@ class PtDatasplitWorkflow(Workflow):
 			})
 			self.tools.append(merge_fastq)
 			n += 1
-		# for j in range(len(self.tools)):
-		# 	self.tools[j].on('end', self.set_output, 'merge_fastq')
 		if len(self.tools) > 1:
 			self.on_rely(self.tools, self.end)
 		else:
@@ -261,9 +216,25 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run(self):
-		# self.run_data_split()
-		self.judge()
-		super(PtDatasplitWorkflow, self).run()
+		"""
+		判断这组数据是不是已经跑过拆分了，如果数据库中已有，说明已经有wq和ws以及undetermined的路径了
+	    判断路径是否存在，如果存在给self.wq_dir等赋值，如果不存在，直接重跑
+		:return:
+		"""
+		self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
+		db_customer = self.api.pt_customer
+		dir_list = db_customer.get_wq_dir(self.option('data_dir'))
+		self.logger.info(dir_list)
+		if len(dir_list) == 3 and (os.path.exists(dir_list[0]) or os.path.exists(dir_list[1])):
+			self.wq_dir = dir_list[0]
+			self.ws_dir = dir_list[1]
+			self.un_dir = dir_list[2]
+			self.start_listener()
+			self.end()
+		else:
+			self.done_data_split = "true"
+			self.run_data_split()
+			super(PtDatasplitWorkflow, self).run()
 
 	def set_output(self, event):  # 暂时无用
 		obj = event["bind_object"]
