@@ -117,6 +117,8 @@ class CopyMongo(object):
         self.all_greenlets.append(greenlet)
         gevent.joinall(self.all_greenlets)
         gevent.joinall(self.all_greenlets)
+        import socket
+        reload(socket)
 
     def species_env_correlation(self):
         corr_id_dict = self.copy_collection_with_change('sg_species_env_correlation', change_positions=['otu_id', 'env_id'], update_sg_status=True)
@@ -433,7 +435,7 @@ class CopyMongo(object):
             find.update(update_dict)
             update_sg_status_docs.append(find)
             self.db.sg_otu.update_one({'_id': i}, {'$set': update_dict})
-        update_sg_status_docs = [i for i in update_sg_status_docs if i['type'] in ['otu_statistic', "otu_statistic,otu_venn,otu_group_analysis", 'otu_group_analysis']]
+        update_sg_status_docs = [i for i in update_sg_status_docs if i['type'] in ['otu_statistic', "otu_statistic,otu_venn,otu_group_analysis", 'otu_group_analyse']]
         ids = [i['_id'] for i in update_sg_status_docs]
         self.insert_new_status('sg_otu', update_sg_status_docs, ids)
         return self.otu_id_dict
