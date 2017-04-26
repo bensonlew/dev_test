@@ -44,7 +44,10 @@ class PtDatasplitWorkflow(Workflow):
 		self.sample_name_un = []
 		self.data_dir = ''
 		self.wq_dir = ''
+		self.ws_dir = ''
+		self.un_dir = ''
 		self.done_wq = ''
+		self.done_data_split = ''
 
 	def check_options(self):
 		'''
@@ -70,9 +73,27 @@ class PtDatasplitWorkflow(Workflow):
 	# 	step = getattr(self.step, event['data'])
 	# 	step.finish()
 		# self.step.update()
+	def judge(self):
+		"""
+		判断这组数据是不是已经跑过拆分了，如果数据库中已有，说明已经有wq和ws以及undetermined的路径了
+		判断路径是否存在，如果存在给self.wq_dir等赋值，如果不存在，直接重跑
+		:return:
+		"""
+		self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
+		db_customer = self.api.pt_customer
+		dir_list = db_customer.get_wq_dir(self.option('data_dir'))
+		self.logger.info(dir_list)
+		if len(dir_list) == 3 and (os.path.exists(dir_list[0]) or os.path.exists(dir_list[1])):
+			self.wq_dir = dir_list[0]
+			self.ws_dir = dir_list[1]
+			self.un_dir = dir_list[2]
+			self.end()
+		else:
+			self.done_data_split = "true"
+			self.run_data_split()
 
 	def run_data_split(self):
-		self.db_customer()  # 家系表导表
+		#self.db_customer()  # 家系表导表
 		self.data_split.set_options({
 			"message_table": self.option('message_table'),
 			"data_dir": self.option('data_dir'),
@@ -97,7 +118,7 @@ class PtDatasplitWorkflow(Workflow):
 		sample_name = os.listdir(self.data_dir)
 		for j in sample_name:
 			p = re.match('Sample_WQ([0-9].*)-(.*)', j)
-			q = re.match('Sample_WS-(.*)', j)
+			q = re.match('Sample_WS(.*)', j)
 			if p:
 				self.sample_name_wq.append(j)
 			elif q:
@@ -145,15 +166,15 @@ class PtDatasplitWorkflow(Workflow):
 		self.run_wq_wf()  # 启动亲子鉴定流程和导表工作
 		n = 0
 		self.tools = []
-		ws_dir = os.path.join(self.output_dir, "ws_dir")
-		if not os.path.exists(ws_dir):
-			os.mkdir(ws_dir)
+		self.ws_dir = os.path.join(self.output_dir, "ws_dir")
+		if not os.path.exists(self.ws_dir):
+			os.mkdir(self.ws_dir)
 		for i in self.sample_name_ws:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			merge_fastq.set_options({
 				"sample_dir_name": i,
 				"data_dir": self.data_dir,
-				"result_dir": ws_dir
+				"result_dir": self.ws_dir
 			})
 			self.tools.append(merge_fastq)
 			n += 1
@@ -218,15 +239,15 @@ class PtDatasplitWorkflow(Workflow):
 			self.run_wq_wf()
 		n = 0
 		self.tools = []
-		undetermined_dir = os.path.join(self.output_dir, "undetermined_dir")
-		if not os.path.exists(undetermined_dir):
-			os.mkdir(undetermined_dir)
+		self.un_dir = os.path.join(self.output_dir, "undetermined_dir")
+		if not os.path.exists(self.un_dir):
+			os.mkdir(self.un_dir)
 		for i in self.sample_name_un:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
 			merge_fastq.set_options({
 				"sample_dir_name": i,
 				"data_dir": self.data_dir,
-				"result_dir": undetermined_dir
+				"result_dir": self.un_dir
 			})
 			self.tools.append(merge_fastq)
 			n += 1
@@ -240,7 +261,8 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run(self):
-		self.run_data_split()
+		# self.run_data_split()
+		self.judge()
 		super(PtDatasplitWorkflow, self).run()
 
 	def set_output(self, event):  # 暂时无用
@@ -260,7 +282,7 @@ class PtDatasplitWorkflow(Workflow):
 				os.mkdir(undetermined_dir)
 			file_name = os.listdir(obj.output_dir)
 			m = re.match('WQ([0-9].*)-(.*)', file_name[0])  # wq
-			n = re.match('WS-(.*)', file_name[0])  # ws
+			n = re.match('WS(.*)', file_name[0])  # ws
 			if m:
 				self.linkdir(obj.output_dir, wq_dir)
 			else:
@@ -271,6 +293,10 @@ class PtDatasplitWorkflow(Workflow):
 
 	def end(self):
 		self.logger.info("医学流程数据拆分结束")
+		if self.done_data_split == "true":
+			self.logger.info("开始导入拆分结果路径")
+			db_customer = self.api.pt_customer
+			db_customer.add_data_dir(self.option('data_dir'), self.wq_dir, self.ws_dir, self.un_dir)
 		if self.done_wq != "true":
 			self.run_wq_wf()
 		super(PtDatasplitWorkflow, self).end()
