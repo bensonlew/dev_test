@@ -3,7 +3,7 @@
 
 from biocluster.workflow import Workflow
 from biocluster.config import Config
-import os
+import glob
 import re
 from bson.objectid import ObjectId
 
@@ -60,12 +60,12 @@ class GenesetEnrichWorkflow(Workflow):
         """
         保存结果指数表到mongo数据库中
         """
-        # api_geneset = self.api.geneset
-        # output_file = self.output_dir+"/estimators.xls"
-        # if not os.path.isfile(output_file):
-        #     raise Exception("找不到报告文件:{}".format(output_file))
-        # est_id = api_geneset.add_est_table(output_file, level=self.option('level'), otu_id=self.option('otu_id'), est_id=self.option("est_id"))
-        # self.add_return_mongo_id('sg_alpha_diversity', est_id)
+        api_geneset = self.api.ref_rna_geneset
+        output_file = glob.glob("{}/*.xls".format(self.output_dir))
+        if self.option("anno_type") == "kegg":
+            api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0])
+        else:
+            api_geneset.add_go_enrich_detail(self.option("main_table_id"), output_file[0])
         self.end()
 
     def end(self):

@@ -2,10 +2,11 @@
 # __author__ = 'qindanhua'
 
 from biocluster.workflow import Workflow
-from biocluster.config import Config
+from collections import defaultdict
 import os
 import re
 from bson.objectid import ObjectId
+from mbio.packages.denovo_rna.express.kegg_regulate import KeggRegulate
 
 
 class GenesetClassWorkflow(Workflow):
@@ -35,6 +36,8 @@ class GenesetClassWorkflow(Workflow):
         # self.group_spname = dict()
 
     def run(self):
+        if self.option("anno_type") == "kegg":
+            self.get_kegg_table()
         self.set_db()
         # super(GenesetClassWorkflow, self).run()
 
@@ -55,6 +58,21 @@ class GenesetClassWorkflow(Workflow):
         os.link(output_file, self.output_dir + "/" + os.path.basename(output_file))
         print(output_file)
         self.end()
+
+    def get_kegg_table(self):
+        kegg = KeggRegulate()
+        ko_genes, path_ko = self.option('kegg_table').get_pathway_koid()
+        regulate_dict = defaultdict(set)
+        regulate_gene = []
+        pathways = self.output_dir + '/pathways'
+        if not os.path.exists(pathways):
+            os.mkdir(pathways)
+        try:
+            kegg.get_pictrue(path_ko=path_ko, out_dir=pathways, regulate_dict=regulate_dict)
+            kegg.get_regulate_table(ko_gene=ko_genes, path_ko=path_ko, regulate_gene=regulate_gene, output=self.output_dir + '/kegg_stat.xls')
+            self.end()
+        except Exception:
+            self.end()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
