@@ -59,7 +59,7 @@ class RefrnaWorkflow(Workflow):
 
             {"name": "seq_method", "type": "string", "default": "Tophat"},  # 比对方法，Tophat or Hisat
             {"name": "map_assess_method", "type": "string", "default":
-                "saturation,duplication,distribution,coverage"},
+                "saturation,duplication,distribution,coverage,chr_stat"},
             # 比对质量评估分析
             {"name": "mate_std", "type": "int", "default": 50},  # 末端配对插入片段长度标准差
             {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
@@ -119,6 +119,7 @@ class RefrnaWorkflow(Workflow):
         self.merge_trans_annot = self.add_tool("annotation.merge_annot")
         self.merge_gene_annot = self.add_tool("annotation.merge_annot")
         self.ref_genome = ""
+        self.final_tools = []
         self.geno_database = ["cog"]  # 用于参考基因组提取出的序列的注释
         if not self.option("go_upload_file").is_set:
             self.geno_database.append("go")
@@ -155,7 +156,7 @@ class RefrnaWorkflow(Workflow):
         if not self.option("seq_method") in ["Tophat", "Hisat"]:
             raise OptionError("比对软件应在Tophat与Hisat中选择")
         for i in self.option('map_assess_method').split(','):
-            if i not in ["saturation", "duplication", "distribution", "coverage"]:
+            if i not in ["saturation", "duplication", "distribution", "coverage", "chr_stat"]:
                 raise OptionError("比对质量评估分析没有{}，请检查".format(i))
         if self.option("assemble_or_not"):
             if self.option("assemble_method") not in ["cufflinks", "stringtie"]:
@@ -727,6 +728,7 @@ class RefrnaWorkflow(Workflow):
             }
             self.snp_rna.set_options(opts)
             self.snp_rna.on("end", self.set_output, "snp_rna")
+            self.final_tools.append(self.snp_rna)
             self.snp_rna.run()
         
     def run_map_assess(self):
@@ -762,24 +764,23 @@ class RefrnaWorkflow(Workflow):
         tool.on("end", self.set_output, "exp")
         tool.on('start', self.set_step, {'start': self.step.exp})
         tool.on('end', self.set_step, {'end': self.step.exp})
+        self.final_tools.append(tool)
         tool.run()
 
     def run_network(self):
-        if self.option("ref_genome") != "customer_mode":
-            opts = {
-                "diff_exp": self.exp.option("diff_list"),
-                "species_list": "",
-                "species": self.option("ref_genome"),
-                "combine_score": self.option("combine_score"),
-                "logFC": self.option("logFC")
-            }
-            self.network.set_options(opts)
-            self.network.on("end", self.set_output, "network_analysis")
-            self.network.on('start', self.set_step, {'start': self.step.network_analysis})
-            self.network.on('end', self.set_step, {'end': self.step.network_analysis})
-            self.network.run()
-        else:
-            self.network.fire("end")
+        opts = {
+            "diff_exp": self.exp.option("diff_list"),
+            "species_list": "",
+            "species": self.option("ref_genome"),
+            "combine_score": self.option("combine_score"),
+            "logFC": self.option("logFC")
+        }
+        self.network.set_options(opts)
+        self.network.on("end", self.set_output, "network_analysis")
+        self.network.on('start', self.set_step, {'start': self.step.network_analysis})
+        self.network.on('end', self.set_step, {'end': self.step.network_analysis})
+        self.final_tools.append(self.network)
+        self.network.run()
 
     def run_altersplicing(self):
         if not self.filecheck.option("genome_status"):
@@ -806,21 +807,20 @@ class RefrnaWorkflow(Workflow):
             self.altersplicing.on("end", self.set_output, "altersplicing")
             self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
             self.altersplicing.on('end', self.set_step, {'end': self.step.altersplicing})
+            self.final_tools.append(self.altersplicing)
             self.altersplicing.run()
 
     def run_tf(self):
-        if self.option("ref_genome") != "customer_mode":
-            opts = {
-                "diff_gene_list": self.exp.option("diff_list"),
-                "database": self.option("tf_database_type")
-            }
-            self.tf.set_options(opts)
-            self.tf.on("end", self.set_output, "tf")
-            self.tf.on('start', self.set_step, {'start': self.step.transfactor_analysis})
-            self.tf.on('end', self.set_step, {'end': self.step.transfactor_analysis})
-            self.tf.run()
-        else:
-            self.tf.fire("end")
+        opts = {
+            "diff_gene_list": self.exp.option("diff_list"),
+            "database": self.option("tf_database_type")
+        }
+        self.tf.set_options(opts)
+        self.tf.on("end", self.set_output, "tf")
+        self.tf.on('start', self.set_step, {'start': self.step.transfactor_analysis})
+        self.tf.on('end', self.set_step, {'end': self.step.transfactor_analysis})
+        self.final_tools.append(self.tf)
+        self.tf.run()
 
     def run_merge_annot(self):
         if not self.option("go_upload_file").is_set:
@@ -1076,10 +1076,9 @@ class RefrnaWorkflow(Workflow):
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp)
         self.assembly.on("end", self.run_new_abs)
-        self.exp.on("end", self.run_tf)
-        self.exp.on("end", self.run_network)
-        self.on_rely([self.snp_rna, self.network, self.altersplicing, self.tf, self.exp_diff_gene,
-                      self.exp_diff_trans], self.end)
+        if self.option("ref_genome") != "customer_mode":
+            self.exp.on("end", self.run_tf)
+            self.exp.on("end", self.run_network)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
 
@@ -1112,16 +1111,16 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('end', self.run_mapping)
         self.qc.on('end', self.run_snp)
         self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
-        self.mapping.on("end", self.run_altersplicing)
+        if self.get_group_from_edger_group():
+            self.mapping.on("end", self.run_altersplicing)
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp)
         self.assembly.on("end", self.run_new_abs)
-        self.exp.on("end", self.run_tf)
-        self.exp.on("end", self.run_network)
-        self.on_rely([self.snp_rna, self.network, self.altersplicing, self.tf, self.exp_diff_gene,
-                      self.exp_diff_trans], self.end)
-        #self.on_rely([self.gs, self.seq_abs], self.end)
+        if self.option("ref_genome") != "customer_mode":
+            self.exp.on("end", self.run_tf)
+            self.exp.on("end", self.run_network)
+        # self.on_rely(self.final_tools, self.end)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
         

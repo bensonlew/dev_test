@@ -98,11 +98,11 @@ class SnpRnaModule(Module):
         
         else:  # 用户上传基因组
             self.ref_name = self.option("ref_genome")
-            ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
-            self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta)
+            ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
+            self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta.prop["path"])
             if os.path.exists(self.ref_link):
                 os.remove(self.ref_link)
-            os.link(ref_fasta, self.ref_link)  # 将参考基因组链接到self.work_dir下
+            os.link(ref_fasta.prop["path"], self.ref_link)  # 将参考基因组链接到self.work_dir下
             
             if self.option("seq_method") == "PE":  # 如果测序方式为PE测序
                 for f in self.samples:
@@ -147,7 +147,7 @@ class SnpRnaModule(Module):
             if self.option("seq_method") == "PE":
                 star.set_options({
                     "ref_genome": "customer_mode",
-                    "ref_genome_custom": self.option('ref_genome_custom').prop["path"],
+                    "ref_genome_custom": self.option('ref_genome_custom'),
                     'readFilesIN1': self.option('readFilesIN1').prop["path"],
                     'readFilesIN2': self.option('readFilesIN2').prop["path"],
                     'seq_method': self.option('seq_method')
@@ -155,7 +155,7 @@ class SnpRnaModule(Module):
             elif self.option("seq_method") == "SE":
                 star.set_options({
                     "ref_genome": "customer_mode",
-                    "ref_genome_custom": self.option('ref_genome_custom').prop["path"],
+                    "ref_genome_custom": self.option('ref_genome_custom'),
                     'readFilesIN': self.option('readFilesIN').prop["path"],
                     'seq_method': self.option('seq_method')
                 })
@@ -189,7 +189,7 @@ class SnpRnaModule(Module):
         self.picards.append(picard)
         self.logger.info(len(self.picards))
         if self.option("ref_genome") == "customer_mode":
-            ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
+            ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
             picard.set_options({
                 "ref_genome_custom": ref_fasta,
                 "in_sam": f_path,
@@ -224,7 +224,7 @@ class SnpRnaModule(Module):
         self.logger.info(self.ref_name)
         self.logger.info(self.option("ref_genome"))
         if self.option("ref_genome") == "customer_mode":
-            ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
+            ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
             gatk.set_options({
                 "ref_fa": ref_fasta,
                 "input_bam": f_path,
