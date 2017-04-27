@@ -123,8 +123,8 @@ class BwaSamtoolsModule(Module):
                 step = getattr(self.step, 'bwa_{}'.format(n))
                 step.start()
                 bwa.on("end", self.finish_update, "bwa_{}".format(n))
-                bwa.on("end", self.rename, f)
-                bwa.on("end", self.samtools_run, n)
+                # bwa.on("end", self.rename, f)
+                bwa.on("end", self.samtools_run, f)
                 # bwa.run()
                 self.bwa_tools.append(bwa)
         elif self.option("fq_type") == "SE":
@@ -140,8 +140,8 @@ class BwaSamtoolsModule(Module):
                 step = getattr(self.step, 'bwa_{}'.format(n))
                 step.start()
                 bwa.on("end", self.finish_update, "bwa_{}".format(n))
-                bwa.on("end", self.rename, f)
-                bwa.on("end", self.samtools_run, n)
+                # bwa.on("end", self.rename, f)
+                bwa.on("end", self.samtools_run, f)
                 # bwa.run()
                 self.bwa_tools.append(bwa)
         if len(self.bwa_tools) == 1:
@@ -176,7 +176,10 @@ class BwaSamtoolsModule(Module):
     def samtools_run(self, event):
         obj = event["bind_object"]
         bwa_output = os.listdir(obj.output_dir)
-        f_path = os.path.join(obj.output_dir, bwa_output[0])
+        old_name = os.path.join(obj.output_dir, bwa_output[0])
+        self.logger.info(event["data"] + ".sam")
+        f_path = os.path.join(obj.output_dir, event["data"] + ".sam")
+        os.rename(old_name, f_path)
         self.logger.info(f_path)
         self.logger.info(self.ref_link)
         samtools = self.add_tool('denovo_rna.gene_structure.samtools')

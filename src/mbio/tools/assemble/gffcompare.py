@@ -18,9 +18,9 @@ class GffcompareAgent(Agent):
     def __init__(self, parent):
         super(GffcompareAgent, self).__init__(parent)
         options = [
-            {"name": "merged_gtf", "type": "infile", "format": "sequence.gtf"},  # 拼接合并之后的转录本文件
-            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因的注释文件
-            {"name": "cuff_gtf", "type": "outfile", "format": "sequence.gtf"},
+            {"name": "merged_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 拼接合并之后的转录本文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因的注释文件
+            {"name": "cuff_gtf", "type": "outfile", "format": "gene_structure.gtf"},
         ]
         self.add_option(options)
         self.step.add_steps("gffcompare")

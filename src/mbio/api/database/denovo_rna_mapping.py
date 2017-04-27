@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
+from __future__ import division
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 from bson.objectid import ObjectId
@@ -28,10 +29,14 @@ class DenovoRnaMapping(Base):
                 line = line.strip().split()
                 data = {
                     "project_sn": self.bind_object.sheet.project_sn,
-                    "task_id": self.bind_object.sheet.task_id,
+                    "task_id": self.bind_object.sheet.id,
                     "specimen_name": line[0],
                     "mapping_reads": line[1],
-                    "mapping_rate": line[2]
+                    "mapping_rate": str(float("%0.4f" % (int(line[2])/int(line[1])))*100) + "%",
+                    "multiple_mapped": line[3],
+                    "multiple_rate": str(float("%0.4f" % (int(line[3])/int(line[1])))*100) + "%",
+                    "uniq_mapped": line[4],
+                    "uniq_rate": str(float("%0.4f" % (int(line[4])/int(line[1])))*100) + "%"
                 }
                 data_list.append(data)
         try:
@@ -140,7 +145,7 @@ class DenovoRnaMapping(Base):
     def add_rpkm_curve(self, rpkm_file, rpkm_id=None):
         rpkm_id = ObjectId(rpkm_id)
         curve_files = glob.glob("{}/*cluster_percent.xls".format(rpkm_file))
-        rpkm_pdf = glob.glob("{}/*.png".format(rpkm_file))
+        rpkm_pdf = glob.glob("{}/*.pdf".format(rpkm_file))
         erpkm = glob.glob("{}/*.eRPKM.xls".format(rpkm_file))
         # curve_category = []
         with open(erpkm[0], "r") as f:
@@ -314,14 +319,15 @@ class DenovoRnaMapping(Base):
         collection = self.db["sg_denovo_correlation"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         if detail:
-            self.add_correlation_detail(correlation, inserted_id)
+            # self.add_correlation_detail(correlation, inserted_id)
             pca_file = os.path.join(correlation, 'pca_importance.xls')
             pca_rotation = os.path.join(correlation, 'pca_rotation.xls')
             site_file = os.path.join(correlation, 'pca_sites.xls')
             self.add_correlation_detail(collection=correlation, correlation_id=inserted_id, updata_tree=True)
-            self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
-            self.add_pca_rotation(input_file=pca_rotation, db_name='sg_denovo_correlation_pca_rotation', correlation_id=inserted_id)
-            self.add_pca_rotation(input_file=site_file, db_name='sg_denovo_correlation_pca_sites', correlation_id=inserted_id)
+            if os.path.exists(pca_file):
+                self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
+                self.add_pca_rotation(input_file=pca_rotation, db_name='sg_denovo_correlation_pca_rotation', correlation_id=inserted_id)
+                self.add_pca_rotation(input_file=site_file, db_name='sg_denovo_correlation_pca_sites', correlation_id=inserted_id)
         return inserted_id
 
     @report_check

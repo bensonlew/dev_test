@@ -22,7 +22,7 @@ class DiffExpAgent(Agent):
     def __init__(self, parent):
         super(DiffExpAgent, self).__init__(parent)
         options = [
-            {"name": "count", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，基因技术矩阵
+            {"name": "count", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，基因计数矩阵
             {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，基因表达量矩阵
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
             {"name": "min_rowsum_counts", "type": "int", "default": 2},  # 离散值估计检验的最小计数值
@@ -127,7 +127,7 @@ class DiffExpTool(Tool):
     def run_edger(self, dispersion=None):
         if self.option('edger_group').is_set:
             self.option('edger_group').get_edger_group([self.option('gname')], './edger_group')
-            edger_cmd = self.edger + " --matrix %s --method edgeR --samples_file %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], './edger_group', self.option('min_rowsum_counts'))
+            edger_cmd = self.edger + " --matrix %s --method edgeR --samples_file %s --output edger_result --min_rowSum_counts %s --dispersion %s" % (self.option('count').prop['path'], './edger_group', self.option('min_rowsum_counts'), self.option('dispersion'))
         else:
             edger_cmd = self.edger + " --matrix %s --method edgeR --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], self.option('dispersion'), self.option('min_rowsum_counts'))
             restart_edger_cmd = self.edger + " --matrix %s --method edgeR --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], dispersion, self.option('min_rowsum_counts'))
@@ -144,7 +144,7 @@ class DiffExpTool(Tool):
             self.cat_diff_list(self.work_dir + '/edger_result/', self.work_dir + '/diff_list_dir/')
         else:
             self.set_error("运行edger_cmd出错")
-            self.logger.info("运行edger_cmd出错")
+            raise("运行edger_cmd出错")
 
     def cat_diff_list(self, edger_dir, output_dir):
         edger = os.listdir(edger_dir)
@@ -232,7 +232,7 @@ class DiffExpTool(Tool):
                 self.logger.info('输入的fpkm表没有检测到差异基因')
         except Exception as e:
             self.set_error("设置edger分析结果目录失败{}".format(e))
-            self.logger.info("设置edger分析结果目录失败{}".format(e))
+            raise("设置edger分析结果目录失败{}".format(e))
 
     def run(self):
         super(DiffExpTool, self).run()

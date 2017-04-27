@@ -79,6 +79,8 @@ class GoAnnotationTool(Tool):
     def __init__(self, config):
         super(GoAnnotationTool, self).__init__(config)
         self._version = "1.0"
+        self.b2g_user = "biocluster102"
+        self.b2g_password = "sanger-dev-123"
 
     def run(self):
         super(GoAnnotationTool, self).run()
@@ -132,7 +134,7 @@ class GoAnnotationTool(Tool):
         cmd2 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/goAnnot.py'.format(
             self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
         cmd2 += ' %s %s %s %s' % (
-            self.work_dir + '/GO.list', 'localhost', Config().DB_USER, Config().DB_PASSWD)  # 10.100.203.193
+            self.work_dir + '/GO.list', 'localhost', self.b2g_user, self.b2g_password)  # 10.100.203.193
         self.logger.info("运行goAnnot.py")
         self.logger.info(cmd2)
         try:

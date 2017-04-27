@@ -94,21 +94,26 @@ class SnpModule(Module):
         step = getattr(self.step, 'varscan_{}'.format(self.end_info))
         step.start()
         varscan.on("end", self.samtools_finish_update, 'varscan_{}'.format(self.end_info))
-        varscan.on("end", self.rename, event["data"])
-        varscan.on("end", self.set_output)
+        # varscan.on("end", self.rename, event["data"])
+        varscan.on("end", self.set_output, event["data"])
         self.logger.info("varscanrun")
         varscan.run()
         self.varscan.append(varscan)
 
-    def rename(self, event):
+    # def rename(self, event):
+    #     obj = event["bind_object"]
+    #     for f in os.listdir(obj.output_dir):
+    #         old_name = os.path.join(obj.output_dir, f)
+    #         new_name = os.path.join(obj.output_dir, event["data"] + "." + f)
+    #         os.rename(old_name, new_name)
+
+    def set_output(self, event):
+        self.logger.info("set output")
         obj = event["bind_object"]
         for f in os.listdir(obj.output_dir):
             old_name = os.path.join(obj.output_dir, f)
             new_name = os.path.join(obj.output_dir, event["data"] + "." + f)
             os.rename(old_name, new_name)
-
-    def set_output(self):
-        self.logger.info("set output")
         if self.end_info < len(self.bam_files):
             self.logger.info(self.end_info)
             self.end_info += 1

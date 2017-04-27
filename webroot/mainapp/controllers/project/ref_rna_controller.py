@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'qiuping'
+# __author__ = 'qin.danhua'
 import web
-import random
 from ..core.basic import Basic
 from mainapp.libs.signature import check_sig
-from mainapp.models.mongo.meta import Meta
 from mainapp.models.mongo.ref_rna import RefRna
 from meta_controller import MetaController
-from biocluster.config import Config
 
 
 class RefRnaController(MetaController):
@@ -50,14 +47,6 @@ class RefRnaController(MetaController):
         :return:
         """
         self._post_data = web.input()
-        # if hasattr(self._post_data, "geneset_id"):
-        #     table_info = RefRna().get_main_info(self._post_data["geneset_id"].split(",")[0], "sg_geneset")
-        # if hasattr(self._post_data, "express_id"):
-        #     table_info = RefRna().get_main_info(self._post_data["express_id"], "sg_express")
-        # project_sn = table_info["project_sn"]
-        # task_id = table_info["task_id"]
-        # print("llllllll")
-        # print(task_id)
         new_task_id = self.get_new_id(task_id)
         self._sheet_data = {
             'id': new_task_id,
@@ -77,9 +66,6 @@ class RefRnaController(MetaController):
             self._sheet_data["params"] = params
         if to_file:
             self._sheet_data["to_file"] = to_file
-        # if main_table_name:
-        #     self._sheet_data["main_table_name"] = main_table_name
         print('Sheet_Data: {}'.format(self._sheet_data))
         self.workflow_id = new_task_id
-        # self.meta_pipe()
         return self._sheet_data

@@ -23,7 +23,7 @@ class RefrnaWorkflow(Workflow):
             # 基因组结构完整程度，True表示基因组结构注释文件可以支持rna编辑与snp分析
             {"name": "assemble_or_not", "type": "bool", "default": True},
             {"name": "blast_method", "type" :"string", "default": "diamond"},
-            {"name": "genome_structure_file", "type": "infile", "format": "sequence.gtf, sequence.gff3"},
+            {"name": "genome_structure_file", "type": "infile", "format": "gene_structure.gtf, gene_structure.gff3"},
             # 基因组结构注释文件，可上传gff3或gtf
             {"name": "strand_specific", "type": "bool", "default": False},
             # 当为PE测序时，是否有链特异性, 默认是False, 无特异性
@@ -105,7 +105,7 @@ class RefrnaWorkflow(Workflow):
         self.altersplicing = self.add_module("gene_structure.rmats")
         self.map_qc = self.add_module("denovo_rna.mapping.map_assessment")
         self.map_gene = self.add_module("rna.rnaseq_mapping")
-        self.assembly = self.add_module("rna.assembly")
+        self.assembly = self.add_module("assemble.refrna_assemble")
         self.exp = self.add_module("rna.express")
         self.exp_diff_trans = self.add_module("denovo_rna.express.diff_analysis")
         self.exp_diff_gene = self.add_module("denovo_rna.express.diff_analysis")
@@ -182,7 +182,7 @@ class RefrnaWorkflow(Workflow):
         }
         if self.option("ref_genome") == "customer_mode":  # 如果是自定义模式,须用户上传基因组
             # self.logger.info(dir(self.option('genome_structure_file')))
-            if self.option('genome_structure_file').format == "sequence.gff3":
+            if self.option('genome_structure_file').format == "gene_structure.gff3":
                 self.gff = self.option('genome_structure_file').prop["path"]
                 opts.update({
                     "gff": self.gff,
@@ -288,7 +288,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_change_diamond(self, event):
         if event["data"]:
-            self.change_tool_before = self.add_tool("align.diamond.change_diamondout")
+            self.change_tool_before = self.add_tool("align.change_diamondout")
             opts = {
                 "nr_out": self.blast_nr.option('outxml'),
                 "kegg_out": self.blast_kegg.option('outxml'),
@@ -298,7 +298,7 @@ class RefrnaWorkflow(Workflow):
             self.change_tool_before.on("end",self.run_diamond_annotation)
             self.change_tool_before.run()
         else:
-            self.change_tool_after = self.add_tool("align.diamond.change_diamondout")
+            self.change_tool_after = self.add_tool("align.change_diamondout")
             opts = {
                 "nr_out": self.new_blast_nr.option('outxml'),
                 "kegg_out": self.new_blast_kegg.option('outxml'),
@@ -461,6 +461,7 @@ class RefrnaWorkflow(Workflow):
         self.annotation.run()
 
     def run_qc_stat(self, event):
+
         if event['data']: 
             self.qc_stat_after.set_options({
                 'fastq_dir': self.qc.option('sickle_dir'),
@@ -729,8 +730,8 @@ class RefrnaWorkflow(Workflow):
             self.snp_rna.run()
         
     def run_map_assess(self):
-        # assess_method = self.option("map_assess_method") + ",stat"
-        assess_method = "saturation,duplication,coverage,stat"
+        assess_method = self.option("map_assess_method") + ",stat"
+        # assess_method = "saturation,duplication,coverage,stat"
         opts = {
             "bam": self.mapping.option("bam_output").prop["path"],
             "analysis": assess_method,
@@ -743,6 +744,7 @@ class RefrnaWorkflow(Workflow):
     def run_exp(self):  # 表达量与表达差异模块
         self.logger.info("开始运行表达量模块")
         opts = {
+            "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
             "merged_gtf": self.assembly.option("merged_gtf"),
@@ -758,8 +760,8 @@ class RefrnaWorkflow(Workflow):
         tool = self.exp
         tool.set_options(opts)
         tool.on("end", self.set_output, "exp")
-        tool.on('start', self.set_step, {'start': "exp"})
-        tool.on('end', self.set_step, {'end': "exp"})
+        tool.on('start', self.set_step, {'start': self.step.exp})
+        tool.on('end', self.set_step, {'end': self.step.exp})
         tool.run()
 
     def run_network(self):
@@ -797,9 +799,9 @@ class RefrnaWorkflow(Workflow):
                 "rmats_control": self.option("control_file")
             }
             if self.option("fq_type") == "PE":
-                opts.update({"sequencing_type": "paired"})
+                opts.update({"seq_type": "paired"})
             else:
-                opts.update({"sequencing_type": "single"})
+                opts.update({"seq_type": "single"})
             self.altersplicing.set_options(opts)
             self.altersplicing.on("end", self.set_output, "altersplicing")
             self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
@@ -929,6 +931,16 @@ class RefrnaWorkflow(Workflow):
             self.exp_diff_gene.run()
         else:
             self.logger.info("输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略")
+
+    def get_group_from_edger_group(self):  # 用来判断是否进行可变剪切分析
+        group_spname = self.option("group_table").get_group_spname()
+        if self.option("fq_type") == "PE":
+            for key in group_spname.keys():
+                if len(group_spname[key]) <= 3:
+                    self.logger.info("某分组中样本数小于等于3，将不进行可变剪切分析")
+                    return False
+        else:
+            return True
         
     def move2outputdir(self, olddir, newname, mode='link'):
         """
@@ -1058,7 +1070,8 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('end', self.run_mapping)
         self.qc.on('end', self.run_snp)
         self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
-        self.mapping.on("end", self.run_altersplicing)
+        if self.get_group_from_edger_group():
+            self.mapping.on("end", self.run_altersplicing)
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp)

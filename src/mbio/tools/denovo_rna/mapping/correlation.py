@@ -21,7 +21,7 @@ class CorrelationAgent(Agent):
     def __init__(self, parent):
         super(CorrelationAgent, self).__init__(parent)
         options = [
-            {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # Fpkm矩阵表
+            {"name": "fpkm", "type": "infile", "format": "rna.express_matrix"},  # Fpkm矩阵表
             # {"name": "", "type": "outfile", "format": "denovo_rna.gene_structure.bed"}  # bed格式文件
         ]
         self.add_option(options)

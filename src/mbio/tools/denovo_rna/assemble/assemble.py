@@ -127,8 +127,10 @@ class AssembleTool(Tool):
         self.samtools = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
         self.gcc = self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin'
         self.gcc_lib = self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64'
+        self.java = self.config.SOFTWARE_DIR + '/program/sun_jdk1.8.0/bin'
         self.set_environ(PATH=self.bowtie)
         self.set_environ(PATH=self.samtools)
+        self.set_environ(PATH=self.java)
         self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
 
     def run(self):
@@ -171,6 +173,13 @@ class AssembleTool(Tool):
                 self.logger.info('trinity_stat.py运行出错，统计trinity.fasta信息失败')
         else:
             self.set_error("trinity运行出错!")
+
+    def trinity_cmd_check(self, command, line):
+        line = line.strip("\n")
+        if re.match(r"succeeded.+?completed\.$", line):
+            self.logger.debug(line)
+        else:
+            pass
 
     def set_output(self):
         """

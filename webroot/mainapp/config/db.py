@@ -70,7 +70,7 @@ class Config(object):
 
     def get_biodb_mongo_client(self):
         if not self._biodb_mongo_client:
-            uri = self.rcf.ger("MONGO", "bio_uri")
+            uri = self.rcf.get("MONGO", "bio_uri")
             self._biodb_mongo_client = MongoClient(uri)
         return self._biodb_mongo_client
 
