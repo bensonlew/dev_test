@@ -496,6 +496,7 @@ class MetaBaseWorkflow(Workflow):
         """
         在不同的OTU数目以及不同的样本数量下，有些分析会被跳过不做
         """
+        self.update_info = ""
         self.count_otus = True  # otu/代表序列数量大于等于2
         self.count_samples = 0  # 样本数量是否大于等于2
         counts = 0
@@ -508,11 +509,21 @@ class MetaBaseWorkflow(Workflow):
             self.count_otus = False
         with open(self.sample_check.output_dir + "/samples_info/samples_info.txt") as r:
             self.count_samples = len(r.readlines()) - 1
-        if self.count_samples is 2:  # 只有两个样本
-            self.option('beta_analysis', 'hcluster')
-        elif self.count_samples is 1:
+        if self.count_samples < 3:  # 少于3个样本
             self.option('beta_analysis', '')
-        if self.option('dis_method')
+        if not self.count_otus:
+            if 'pca' in self.option('beta_analysis'):
+                self.option('beta_analysis', self.option('beta_analysis').replace('pca', '').strip(',').replace(',,', ','))
+                self.update_info += "OTU数量过少，不做PCA分析；"
+            if "unifrac" in self.option('dis_method'):
+                self.option('dis_method') = "bray_curtis"
+                self.update_info += "OTU数量过少，不使用unifrac类型距离算法，采用默认bray_curtis算法；"
+            indices = self.option("estimate_indices").split(',')
+            if 'pd' in indices:
+                indices.remove("pd")
+                indices = ','.join(indices)
+                self.option('estimate_indices', indices)
+                self.update_info += "OTU数量过少没有进行进化树分析，所以移除了依赖进化树分析多样性指数 PD；"
         if self.count_otus and self.count_samples > 1:
             self.on_rely([self.tax, self.phylo], self.run_stat)
             self.stat.on('end', self.run_alpha)
@@ -522,6 +533,7 @@ class MetaBaseWorkflow(Workflow):
             self.run_taxon()
             self.run_phylotree()
         elif self.count_otus and self.count_samples == 1:
+            self.update_info += "样本数量过少，不进行Pan Core分析"
             self.on_rely([self.tax, self.phylo], self.run_stat)
             self.stat.on('end', self.run_alpha)
             self.stat.on('end', self.run_beta)
@@ -529,11 +541,13 @@ class MetaBaseWorkflow(Workflow):
             self.run_taxon()
             self.run_phylotree()
         else:
+            self.update_info += "OTU数量过少，不进行物种进化树分析，将不会生成物种进化树"
             self.tax.on('end', self.run_stat)
             self.stat.on('end', self.run_alpha)
             self.stat.on('end', self.run_beta)
             self.on_rely([self.alpha, self.beta], self.end)
             self.run_taxon()
+        self.logger.info("分析结果异常处理：{}".format(self.update_info))
 
     def run(self):
         task_info = self.api.api('task_info.task_info')
