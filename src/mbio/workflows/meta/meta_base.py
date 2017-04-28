@@ -53,7 +53,8 @@ class MetaBaseWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.sample_extract = self.add_module("meta.sample_extract.sample_extract")
+        self.sample_rename = self.add_tool("meta.sample_rename")
+        self.new_sample_extract = self.add_module("meta.sample_extract.sample_extract")  # added by shijin
         self.sample_check = self.add_tool("meta.sample_check")
         # self.info_abstract = self.add_tool("meta.lala.info_abstract")
         self.otu = self.add_tool("meta.otu.usearch_otu")
@@ -63,7 +64,7 @@ class MetaBaseWorkflow(Workflow):
         self.alpha = self.add_module("meta.alpha_diversity.alpha_diversity")
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
         self.pan_core = self.add_tool("meta.otu.pan_core_otu")
-        self.step.add_steps("sample_extract", "otucluster", "taxassign", "alphadiv", "betadiv")
+        self.step.add_steps("sample_rename", "otucluster", "taxassign", "alphadiv", "betadiv")
         self.spname_spid = dict()
         self.otu_id = None
         self.env_id = None
@@ -95,11 +96,12 @@ class MetaBaseWorkflow(Workflow):
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
                                                'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX', 'fgr/mcrA',
+                                               'fgr/amoA_archaea', 'fgr/amoA_bacteria',
                                                'maarjam081/AM', 'Human_HOMD',
                                                'silva128/16s_archaea', 'silva128/16s_bacteria',
                                                'silva128/18s_eukaryota', 'silva128/16s',
                                                'greengenes135/16s', 'greengenes135/16s_archaea', 'greengenes135/16s_bacteria']:
-                    # 王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA 2016.11.28增加数据库greengenes135
+                    # add by wzy 2016.11.14 silva128,2016.11.23 mrcA,2016.11.28,greengenes135,20170424,amoA(a,b)
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
         # add by qindanhua 20170112 check if function gene is exist
         if self.option("if_fungene") and self.option("database").split("/")[0] != "fgr":
@@ -117,33 +119,37 @@ class MetaBaseWorkflow(Workflow):
             tax_name = 'amoA_AOB'
         self.function_gene_tool.set_options({
             "fastq": self.option("in_fastq"),
-            "function_gene": self.option("database").split("/")[1],
+            "function_gene": tax_name,
         })
         self.function_gene_tool.on("start", self.set_step, {'start': self.step.function_gene})
-        self.function_gene_tool.on("end", self.run_sample_extract)
+        self.function_gene_tool.on("end", self.run_pre_sample_extract)
         self.function_gene_tool.on("end", self.set_step, {'end': self.step.function_gene})
         self.function_gene_tool.run()
 
-    def run_sample_extract(self):
-        # add 2 lines by qindanhua 20170112 将输入的fastq文件换成功能基因fastq
+    def run_pre_sample_extract(self):
         if self.option("if_fungene"):
             self.in_fastq_path = self.function_gene_tool.output_dir + "/fungene_reads.fastq"
-        if self.option("file_list") == "null":
-            opts = {
+        opts = {
                 "in_fastq": self.in_fastq_path if self.option("if_fungene") else self.option("in_fastq")  # modified by qindanhua 判断是否输入为功能基因
             }
-        else:
-            opts = {
-                "workdir_sample": self.option("workdir_sample"),  # 从数据库中提取到的样本工作路径，以便对其进行操作
-                "file_list": self.option("file_list")  # 对样本进行重命名
-            }
-        self.sample_extract.set_options(opts)
-        self.sample_extract.on("start", self.set_step, {'start': self.step.sample_extract})
-        self.sample_extract.run()
+        self.new_sample_extract.set_options(opts)
+        # self.new_sample_extract.on("start", self.set_step, {'start': self.step.pre_sample_extract})
+        # self.new_sample_extract.on("end", self.set_step, {'end': self.step.pre_sample_extract})
+        self.new_sample_extract.run()
+
+    def run_sample_rename(self):
+        opts = {
+            # "workdir_sample": self.option("workdir_sample"),  # 从数据库中提取到的样本工作路径，以便对其进行操作
+            "info_txt": self.new_sample_extract.work_dir + "/info.txt",
+            "file_list": self.option("file_list")  # 对样本进行重命名
+        }
+        self.sample_rename.set_options(opts)
+        self.sample_rename.on("start", self.set_step, {'start': self.step.sample_rename})
+        self.sample_rename.run()
 
     def run_samplecheck(self):  # 样本合并
         opts = {
-            "file_sample_list": self.sample_extract.option("file_sample_list")
+            "file_sample_list": self.sample_rename.option("file_sample_list")
         }
         if self.option("raw_sequence").is_set:
             opts.update({
@@ -160,7 +166,7 @@ class MetaBaseWorkflow(Workflow):
         }
         self.otu.set_options(opts)
         self.otu.on("end", self.set_output, "otu")
-        self.otu.on("start", self.set_step, {'end': self.step.sample_extract, 'start': self.step.otucluster})
+        self.otu.on("start", self.set_step, {'end': self.step.sample_rename, 'start': self.step.otucluster})
         # self.otu.on("end", self.set_step, {'end':self.step.otucluster})
         self.otu.run()
 
@@ -219,10 +225,6 @@ class MetaBaseWorkflow(Workflow):
         self.alpha.run()
 
     def run_beta(self):
-        if self.count_samples is 2:  # 只有两个样本
-            self.option('beta_analysis', 'hcluster')
-        elif self.count_samples is 1:
-            self.option('beta_analysis', '')
         opts = {
             'analysis': 'distance,' + self.option('beta_analysis'),
             'dis_method': self.option('dis_method'),
@@ -492,6 +494,7 @@ class MetaBaseWorkflow(Workflow):
 
     def check_otu_run(self):
         """
+        在不同的OTU数目以及不同的样本数量下，有些分析会被跳过不做
         """
         self.count_otus = True  # otu/代表序列数量大于等于2
         self.count_samples = 0  # 样本数量是否大于等于2
@@ -503,9 +506,13 @@ class MetaBaseWorkflow(Workflow):
                     break
         else:
             self.count_otus = False
-        counts = -1
         with open(self.sample_check.output_dir + "/samples_info/samples_info.txt") as r:
             self.count_samples = len(r.readlines()) - 1
+        if self.count_samples is 2:  # 只有两个样本
+            self.option('beta_analysis', 'hcluster')
+        elif self.count_samples is 1:
+            self.option('beta_analysis', '')
+        if self.option('dis_method')
         if self.count_otus and self.count_samples > 1:
             self.on_rely([self.tax, self.phylo], self.run_stat)
             self.stat.on('end', self.run_alpha)
@@ -524,7 +531,8 @@ class MetaBaseWorkflow(Workflow):
         else:
             self.tax.on('end', self.run_stat)
             self.stat.on('end', self.run_alpha)
-            self.alpha.on("end", self.end)
+            self.stat.on('end', self.run_beta)
+            self.on_rely([self.alpha, self.beta], self.end)
             self.run_taxon()
 
     def run(self):
@@ -537,7 +545,7 @@ class MetaBaseWorkflow(Workflow):
         if self.option("if_fungene"):
             self.run_function_gene()
         else:
-            self.run_sample_extract()
+            self.run_pre_sample_extract()
         super(MetaBaseWorkflow, self).run()
 
     def send_files(self):
