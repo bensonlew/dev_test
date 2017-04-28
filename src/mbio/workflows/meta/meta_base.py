@@ -121,19 +121,19 @@ class MetaBaseWorkflow(Workflow):
             tax_name = 'amoA_AOB'
         # change by wzy,20170424
         self.function_gene_tool.set_options({
-            "fastq": self.option("in_fastq"),
+            "fasta": self.sample_check.option("otu_fasta"),
             "function_gene": tax_name,
         })
         self.function_gene_tool.on("start", self.set_step, {'start': self.step.function_gene})
-        self.function_gene_tool.on("end", self.run_pre_sample_extract)
+        self.function_gene_tool.on("end", self.run_otu)
         self.function_gene_tool.on("end", self.set_step, {'end': self.step.function_gene})
         self.function_gene_tool.run()
 
     def run_pre_sample_extract(self):
-        if self.option("if_fungene"):
-            self.in_fastq_path = self.function_gene_tool.output_dir + "/fungene_reads.fastq"
+        # if self.option("if_fungene"):
+        #     self.in_fastq_path = self.function_gene_tool.output_dir + "/fungene_reads.fastq"
         opts = {
-                "in_fastq": self.in_fastq_path if self.option("if_fungene") else self.option("in_fastq")  # modified by qindanhua 判断是否输入为功能基因
+                "in_fastq":  self.option("in_fastq")  # modified by shijin
             }
         self.new_sample_extract.set_options(opts)
         # self.new_sample_extract.on("start", self.set_step, {'start': self.step.pre_sample_extract})
@@ -156,15 +156,18 @@ class MetaBaseWorkflow(Workflow):
         }
         if self.option("raw_sequence").is_set:
             opts.update({
-                "raw_sequence" : self.option("raw_sequence")
+                "raw_sequence": self.option("raw_sequence")
             })
         self.sample_check.set_options(opts)
         self.sample_check.on("end", self.set_output, "sample_check")
         self.sample_check.run()
 
     def run_otu(self):
+        if self.option("if_fungene"):
+            self.in_fasta_path = self.function_gene_tool.output_dir + "/fungene_reads.fasta"
         opts = {
-            "fasta":self.sample_check.option("otu_fasta"),
+            "fasta": self.in_fasta_path if self.option("if_fungene") else self.sample_check.option("otu_fasta"),
+            # modified by shijin on 20170428
             "identity": self.option("identity")
         }
         self.otu.set_options(opts)
@@ -505,7 +508,10 @@ class MetaBaseWorkflow(Workflow):
         task_info.add_task_info()
         self.new_sample_extract.on("end", self.run_sample_rename)
         self.sample_rename.on("end",self.run_samplecheck)
-        self.sample_check.on("end",self.run_otu)
+        if self.option("if_fungene"):
+            self.sample_check.on("end",self.run_function_gene)
+        else:
+            self.sample_check.on("end",self.run_otu)
         # self.info_abstract.on("end",self.run_otu)
         self.otu.on('end', self.run_taxon)
         self.otu.on('end', self.run_phylotree)
@@ -515,11 +521,10 @@ class MetaBaseWorkflow(Workflow):
         # self.stat.on('end', self.run_pan_core)
         # self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         # modify by qindanhua 如果筛选功能基因就先运行功能基因tool
-        if self.option("if_fungene"):
-            self.logger.info("llllllllllllll")
-            self.run_function_gene()
-        else:
-            self.run_pre_sample_extract()
+        # if self.option("if_fungene"):
+        #     self.logger.info("llllllllllllll")
+        #     self.run_function_gene()
+        self.run_pre_sample_extract()
         super(MetaBaseWorkflow, self).run()
 
     def send_files(self):
