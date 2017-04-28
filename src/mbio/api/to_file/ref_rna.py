@@ -28,8 +28,8 @@ def export_gene_list(data, option_name, dir_path, bind_obj=None):
 
 def export_go_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-    go_list = os.path.join(dir_path, "GO.list")
-    bind_obj.logger.debug("正在导出%sgo列表:%s" % (option_name, go_list))
+    go_list_path = os.path.join(dir_path, "GO.list")
+    bind_obj.logger.debug("正在导出%sgo列表:%s" % (option_name, go_list_path))
     geneset_collection = db["sg_geneset"]
     task_id = geneset_collection.find_one({"_id": ObjectId(data)})["task_id"]
     my_result = db["sg_annotation_go"].find_one({"task_id": task_id})
@@ -40,12 +40,12 @@ def export_go_list(data, option_name, dir_path, bind_obj=None):
     results = collection.find({"go_id": ObjectId(go_id)})
     if not results:
         raise Exception("生成gos_list出错：annotation_id:{}在sg_annotation_gos_list中未找到！".format(ObjectId(go_id)))
-    with open(go_list, "wb") as w:
+    with open(go_list_path, "wb") as w:
         for result in results:
             gene_id = result["gene_id"]
             go_list = result["gos_list"]
             w.write(gene_id + "\t" + go_list + "\n")
-    return go_list
+    return go_list_path
 
 
 def export_kegg_table(data, option_name, dir_path, bind_obj=None):
@@ -55,14 +55,15 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
     geneset_collection = db["sg_geneset"]
     geneset_result = geneset_collection.find_one({"_id": ObjectId(data)})
     task_id = geneset_result["task_id"]
-    geneset_type = geneset_result["type"]
+    # geneset_type = geneset_result["type"]
     my_result = db["sg_annotation_kegg"].find_one({"task_id": task_id})
     kegg_id = my_result["_id"]
     if not my_result:
         raise Exception("意外错误，annotation_kegg_id:{}在sg_annotation_kegg中未找到！".format(kegg_id))
     with open(kegg_path, 'wb') as w:
         w.write('#Query\tKO_ID(Gene id)\tKO_name(Gene name)\tHyperlink\tPaths\n')
-        results = db['sg_annotation_kegg_table'].find({'$and': [{'kegg_id': kegg_id}, {'type': geneset_type}]})
+        # results = db['sg_annotation_kegg_table'].find({'$and': [{'kegg_id': kegg_id}, {'type': geneset_type}]})
+        results = db['sg_annotation_kegg_table'].find({'kegg_id': kegg_id})
         if not results:
             raise Exception("生成kegg_table出错：kegg_id:{}在sg_annotation_kegg_table中未找到！".format(ObjectId(kegg_id)))
         for result in results:

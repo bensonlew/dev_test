@@ -37,7 +37,16 @@ class KeggRegulate(object):
         regulate_dict：gene调控信息:{'up': [gene1,gene2], 'down': [gene1,gene2]}
         """
         with open(output, 'wb') as w:
-            w.write('Pathway_id\tKo_ids\tup_numbers\tdown_numbers\tup_genes\tdown_genes\n')
+            # w.write('Pathway_id\tKo_ids\tup_numbers\tdown_numbers\tup_genes\tdown_genes\n')
+            # modified by qindanhua add 7 line 支持两个以上的基因集统计
+            genelist_names = regulate_gene.keys()
+            w.write('Pathway_id\tKo_ids\t')
+            for gn in genelist_names:
+                w.write("{}_numbers\t".format(gn))
+            for gn in genelist_names:
+                w.write("{}_genes\t".format(gn))
+            w.write("\n")
+
             for path in path_ko:
                 ko_ids = set(path_ko[path])
                 up_genes = []
