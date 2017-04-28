@@ -71,7 +71,6 @@ class WorkflowModel(object):
         return self._db.update(sql, (self.workflow_id, ))
 
     def pause(self):
-        self._db.begin()
         try:
             sql1 = "update pause set has_pause=1, pause_time=CURRENT_TIMESTAMP() " \
                    "where workflow_id = %s and has_pause=0"
@@ -84,13 +83,12 @@ class WorkflowModel(object):
             print e
             self._db.end(option="rollback")
         else:
-            self.end()
+            self._db.end()
 
     def exit_pause(self):
-        self._db.begin()
         try:
             sql1 = "update pause set has_continue=1,continue_time=CURRENT_TIMESTAMP() " \
-                   "where workflow_id = %s and has_pause=1 and exit_pause=1 and has_continue=0"
+                  "where workflow_id = %s and has_pause=1 and exit_pause=1 and has_continue=0"
             self._db.update(sql1, (self.workflow_id, ))
             sql2 = "update workflow set paused=0 where workflow_id = %s"
             self._db.update(sql2, (self.workflow_id, ))
@@ -101,13 +99,12 @@ class WorkflowModel(object):
             sys.stdout.flush()
             self._db.end(option="rollback")
         else:
-            self.end()
+            self._db.end()
 
     def pause_timeout(self):
-        self._db.begin()
         try:
             sql1 = "update pause set timeout=1,timeout_time=CURRENT_TIMESTAMP() " \
-                   "where workflow_id = %s and has_pause=1 and exit_pause=0 and timeout=0"
+                  "where workflow_id = %s and has_pause=1 and exit_pause=0 and timeout=0"
             self._db.update(sql1, (self.workflow_id,))
             sql2 = "update workflow set paused=0 where workflow_id = %s"
             self._db.update(sql2, (self.workflow_id,))
@@ -115,10 +112,9 @@ class WorkflowModel(object):
             exstr = traceback.format_exc()
             print exstr
             print e
-
             self._db.end(option="rollback")
         else:
-            self.end()
+            self._db.end()
 
 
 class CheckModel(object):
@@ -139,9 +135,6 @@ class CheckModel(object):
               "exit_pause_time > DATE_SUB(now(),INTERVAL 1 hour)"
         # print sql
         return self._db.get_all(sql)
-
-    def close(self):
-        self._db.dispose()
 
 
 class ApiLogModel(object):
@@ -170,3 +163,4 @@ class ClientKeyModel(object):
             return data["key"]
         else:
             return None
+

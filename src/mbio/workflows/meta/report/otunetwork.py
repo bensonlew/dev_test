@@ -21,7 +21,7 @@ class OtunetworkWorkflow(Workflow):
             {"name": "group_detail", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "network_id", "type": "string"},
-            {"name": "add_Algorithm", "type": "string", "default": ""},  # 分组样本求和算法，默认不求和
+            {"name": "add_Algorithm", "type": "string", "default": ""} # 分组样本求和算法，默认不求和
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -47,25 +47,24 @@ class OtunetworkWorkflow(Workflow):
                     line_he = "".join(line_data)
                     line[0] = line_he
                     for i in range(0, len(line)):
-                        if i == len(line)-1:
-                            f2.write("%s\n"%(line[i]))
+                        if i == len(line) - 1:
+                            f2.write("%s\n" % (line[i]))
                         else:
-                            f2.write("%s\t"%(line[i]))
+                            f2.write("%s\t" % (line[i]))
         f2.close()
         return newtable
 
-    def cat_samples(self, otu, method):
+    def cat_samples(self, otu, method, grouptable):
         """
         合并同一分组的样本，可进行求和，求平均，求中位数
         :param method:
         :return:
         """
-        grouptable = "O:\\Users\\hongdong.xuan\\Desktop\\Otunetwork_tsg_6592_4367_7992\\grouptable_input.group.xls"
-        cat_otu_path = "O:\\Users\\hongdong.xuan\\Desktop\\Otunetwork_tsg_6592_4367_7992\\out.xls"
+        # grouptable = os.path.join(self.work_dir, "grouptable_input.group.xls")
+        cat_otu_path = os.path.join(self.work_dir, "cat_otu.xls")
         sample_group = dict()  # 一个样本是属于哪个group的
         index_sample = dict()  # 一个OTU表中第几列属于哪个样本
         group_sample_num = defaultdict(int)  # 一个分组里面有多少的样本
-        cat_otu_path = os.path.join(self.work_dir, "cat_otu.xls")
         with open(grouptable, "rb") as r:
             line = r.next()
             for line in r:
@@ -78,15 +77,14 @@ class OtunetworkWorkflow(Workflow):
             for v in sample_group.values():
                 group_list.append(v)
                 group_list = list(set(group_list))
-            print group_list
+            # print group_list
             # l = len(group_list) #zx
 
             line = r.next().rstrip().split("\t")
-            print line
+            # print line
             for i in range(len(line)):
                 index_sample[i] = line[i]
-            print index_sample
-
+            # print index_sample
             w.write(index_sample[0] + "\t")
             w.write("\t".join(group_list) + "\n")
             for line in r:
@@ -113,7 +111,6 @@ class OtunetworkWorkflow(Workflow):
                                 else:
                                     mid_num[m] = list1[index]
                                     list1 = []
-
                 if method == "sum":
                     for g in group_list:
                         tmp.append(str(num[g]))
@@ -128,20 +125,42 @@ class OtunetworkWorkflow(Workflow):
                 w.write("\n")
         return cat_otu_path
 
+    def set_group_file(self):
+        """
+        tofile文件当group_id为all时，grouptable_input.group.xls为空，直接在这里处理all的分组情况
+        :return:
+        """
+        grouptable = os.path.join(self.work_dir, "grouptable_input.group.xls")
+        newtable = os.path.join(self.work_dir, 'otutable.xls')
+        with open(newtable, "rb") as r, open(grouptable, "wb") as w:
+            data1 = r.readlines()[0]
+            w.write("#sample\tgroup" + "\n")
+            data = data1.strip().split("\t")
+            for i in range(1, len(data)):
+                w.write(data[i] + "\tAll\n")
+        return grouptable
+
 
     def run_otunetwork(self):
-        newtable = self.change_otuname(self.option('otutable').prop['path'])
-        #newtable = os.path.join(self.work_dir, 'otutable1.xls')
-        if self.option("group_id") == 'all':
-            options = {
-                'otutable': newtable,
-            }
-
+        self.logger.info(self.option('grouptable'))
+        if self.option('add_Algorithm') in ["sum", "average", "middle"]:
+            if self.option("group_id") == "all":
+                grouptable = self.set_group_file()
+            else:
+                grouptable = os.path.join(self.work_dir, "grouptable_input.group.xls")
+            otu = os.path.join(self.work_dir, 'otutable.xls')
+            otu_hebing = self.cat_samples(otu, self.option('add_Algorithm'), grouptable)
+            newtable = self.change_otuname(otu_hebing)
+            options = {'otutable': newtable}
         else:
-            options = {
-                'otutable': newtable,
-                'grouptable': self.option('grouptable')}
-
+            newtable = self.change_otuname(self.option('otutable').prop['path'])
+            if self.option("group_id") == 'all':
+                options = {'otutable': newtable}
+            else:
+                options = {
+                    'otutable': newtable,
+                    'grouptable': self.option('grouptable')
+                }
         self.otunetwork.set_options(options)
         self.otunetwork.on('end', self.set_db)
         self.output_dir = self.otunetwork.output_dir
@@ -192,14 +211,14 @@ class OtunetworkWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(network_attributes_path))
         if not os.path.isfile(network_degree_path):
             raise Exception("找不到报告文件:{}".format(network_degree_path))
-        print 'stat insert 1'
+
         api_otunetwork.add_node_table(file_path=node_table_path, table_id=self.option("network_id"))
-        #api_otunetwork.add_node_table_group(file_path=node_table_path, table_id=self.option("network_id"))
+        # api_otunetwork.add_node_table_group(file_path=node_table_path, table_id=self.option("network_id"))
         api_otunetwork.add_edge_table(file_path=edge_table_path, table_id=self.option("network_id"))
         api_otunetwork.add_network_attributes(file_path=network_attributes_path, table_id=self.option("network_id"))
-        api_otunetwork.add_network_degree(file1_path=otu_degree_path,file2_path=sample_degree_path, file3_path=sample_otu_degree_path, table_id=self.option("network_id"))
+        api_otunetwork.add_network_degree(file1_path=otu_degree_path, file2_path=sample_degree_path,
+                                          file3_path=sample_otu_degree_path, table_id=self.option("network_id"))
         api_otunetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("network_id"))
-        print 'stat insert 1'
         self.end()
 
     def run(self):
