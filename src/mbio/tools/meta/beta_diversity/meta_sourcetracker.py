@@ -89,6 +89,10 @@ class MetaSourcetrackerTool(Tool):
 		"""
 		运行相关脚本和软件，进行微生物组成来源比例分析
 		"""
+		if self.option('s') == "":
+			s = "0"
+		else:
+			s = self.option('s')
 		# cmd1 = self.biom_path + (' convert -i %s -o temp.biom --table-type "OTU table" --to-hdf5' % (self.option('otu_table').prop['path']))
 		cmd1 = self.biom_path + (' convert -i %s -o temp.biom --table-type "OTU table" --to-hdf5' % (self.option('otu_table')))
 
@@ -101,7 +105,7 @@ class MetaSourcetrackerTool(Tool):
 			self.set_error("OTU转biom运行出错!")
 		# cmd2 = self.python_path + self.python_script_path + ('/python filter_otus_from_otu_table.py -i temp.biom -o filtered.biom -s %s' % (self.option('s')))
 		cmd2 = self.python_path + (
-		' /mnt/ilustre/users/sanger-dev/app/program/Python/bin/filter_otus_from_otu_table.py -i temp.biom -o filtered.biom -s %s' % (self.option('s')))
+		' /mnt/ilustre/users/sanger-dev/app/program/Python/bin/filter_otus_from_otu_table.py -i temp.biom -o filtered.biom -s %s' % (s))
 		self.logger.info('python脚本，进行物种筛选')
 		command2 = self.add_command("python_cmd", cmd2).run()
 		self.wait(command2)
