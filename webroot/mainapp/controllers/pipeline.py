@@ -41,11 +41,11 @@ class Pipeline(object):
                 json_obj = self.sanger_submit()
                 json_obj["IMPORT_REPORT_DATA"] = True   # 更新报告数据
                 json_obj["IMPORT_REPORT_AFTER_END"] = True
-                try:
-                    json_obj = self.meta_sample_extract(json_obj)
-                except Exception as e:
-                    print('Meta 样本检测相关错误：{}'.format(e))
-                    return json.dumps({"success": False, "info": str(e)})
+                # try:
+                #     json_obj = self.meta_sample_extract(json_obj)
+                # except Exception as e:
+                #     print('Meta 样本检测相关错误：{}'.format(e))
+                #     return json.dumps({"success": False, "info": str(e)})
             else:
                 json_obj = self.json_submit()
         except Exception, e:
