@@ -36,7 +36,7 @@ class MetaBaseWorkflow(Workflow):
             {"name": "rarefy_indices", "type": "string", "default": "sobs,shannon"},  # 指数类型
             {"name": "rarefy_freq", "type": "int", "default": 100},
             {"name": "alpha_level", "type": "string", "default": "otu"},  # level水平
-            {"name": "beta_analysis", "type": "string","default": "pca,hcluster"},
+            {"name": "beta_analysis", "type": "string", "default": "pca,hcluster"},
             {"name": "beta_level", "type": "string", "default": "otu"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
             # {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
@@ -47,9 +47,8 @@ class MetaBaseWorkflow(Workflow):
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
             {"name": "plsda_grouplab", "type": 'string', "default": ''},
             {"name": "file_list", "type": "string", "default": "null"},
-            {"name": "raw_sequence", "type" : "infile", "format": "sequence.raw_sequence_txt"},
-            {"name": "workdir_sample", "type":"string", "default":""},
-            # add by qindanhua 20170112 add function gene relative option
+            {"name": "raw_sequence", "type": "infile", "format": "sequence.raw_sequence_txt"},
+            {"name": "workdir_sample", "type": "string", "default": ""},
             {"name": "if_fungene", "type": "bool", 'default': False}
         ]
         self.add_option(options)
@@ -72,7 +71,6 @@ class MetaBaseWorkflow(Workflow):
         self.updata_status_api = self.api.meta_update_status
         self.info_path = ""
         self.work_dir_path = ""
-        # add by qindanhua 20170112 add function gene tool
         self.function_gene_tool = None
         self.function_gene_path = ""
         self.in_fastq_path = ""
@@ -112,6 +110,11 @@ class MetaBaseWorkflow(Workflow):
     def run_function_gene(self):
         self.step.add_steps("function_gene")
         self.function_gene_tool = self.add_tool("meta.function_gene.function_gene")
+        tax_name = self.option("database").split("/")[1]
+        if tax_name == 'amoA_archaea':
+            tax_name = 'amoA_AOA'
+        elif tax_name == 'amoA_bacteria':
+            tax_name = 'amoA_AOB'
         self.function_gene_tool.set_options({
             "fastq": self.option("in_fastq"),
             "function_gene": self.option("database").split("/")[1],
@@ -144,7 +147,7 @@ class MetaBaseWorkflow(Workflow):
         }
         if self.option("raw_sequence").is_set:
             opts.update({
-                "raw_sequence" : self.option("raw_sequence")
+                "raw_sequence": self.option("raw_sequence")
             })
         self.sample_check.set_options(opts)
         self.sample_check.on("end", self.set_output, "sample_check")
@@ -152,7 +155,7 @@ class MetaBaseWorkflow(Workflow):
 
     def run_otu(self):
         opts = {
-            "fasta":self.sample_check.option("otu_fasta"),
+            "fasta": self.sample_check.option("otu_fasta"),
             "identity": self.option("identity")
         }
         self.otu.set_options(opts)
@@ -216,7 +219,9 @@ class MetaBaseWorkflow(Workflow):
         self.alpha.run()
 
     def run_beta(self):
-        if len(open(self.stat.option("otu_taxon_dir").get_table("otu")).readline().split('\t')) < 4: # 只有两个样本
+        if self.count_samples is 2:  # 只有两个样本
+            self.option('beta_analysis', 'hcluster')
+        elif self.count_samples is 1:
             self.option('beta_analysis', '')
         opts = {
             'analysis': 'distance,' + self.option('beta_analysis'),
@@ -311,7 +316,7 @@ class MetaBaseWorkflow(Workflow):
             for step in (20, 50, 100, 200):
                 reads_len_info_path = self.sample_check.output_dir + "/reads_len_info/step_{}.reads_len_info.txt".format(str(step))
                 if not os.path.isfile(reads_len_info_path):
-                    raise Exception("找不到报告文件:{}".format(base_info_path))
+                    raise Exception("找不到报告文件")
                 api_samples.add_reads_len_info(step, reads_len_info_path)
             if self.option('envtable').is_set:
                 api_env = self.api.env
@@ -353,10 +358,10 @@ class MetaBaseWorkflow(Workflow):
                 raise Exception("找不到报告文件:{}".format(otu_path))
             params = {
                 "group_id": 'all',
-                #"size": 0,
+                # "size": 0,
                 "size": "",   # modified by hongdongxuan 20170303
                 "submit_location": 'otu_statistic',
-                "filter_json": "[]", # add by hongdongxuan 20170303
+                "filter_json": "[]",  # add by hongdongxuan 20170303
                 "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
@@ -485,25 +490,51 @@ class MetaBaseWorkflow(Workflow):
             self.updata_status_api.add_meta_status(table_id=pan_id, type_name='sg_otu_pan_core')
             self.updata_status_api.add_meta_status(table_id=core_id, type_name='sg_otu_pan_core')
 
+    def check_otu_run(self):
+        """
+        """
+        self.count_otus = True  # otu/代表序列数量大于等于2
+        self.count_samples = 0  # 样本数量是否大于等于2
+        counts = 0
+        for i in open(self.otu.output_dir + '/otu_reps.fasta'):
+            if i[0] == '>':
+                counts += 1
+                if counts > 1:
+                    break
+        else:
+            self.count_otus = False
+        counts = -1
+        with open(self.sample_check.output_dir + "/samples_info/samples_info.txt") as r:
+            self.count_samples = len(r.readlines()) - 1
+        if self.count_otus and self.count_samples > 1:
+            self.on_rely([self.tax, self.phylo], self.run_stat)
+            self.stat.on('end', self.run_alpha)
+            self.stat.on('end', self.run_beta)
+            self.stat.on('end', self.run_pan_core)
+            self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
+            self.run_taxon()
+            self.run_phylotree()
+        elif self.count_otus and self.count_samples == 1:
+            self.on_rely([self.tax, self.phylo], self.run_stat)
+            self.stat.on('end', self.run_alpha)
+            self.stat.on('end', self.run_beta)
+            self.on_rely([self.alpha, self.beta], self.end)
+            self.run_taxon()
+            self.run_phylotree()
+        else:
+            self.tax.on('end', self.run_stat)
+            self.stat.on('end', self.run_alpha)
+            self.alpha.on("end", self.end)
+            self.run_taxon()
+
     def run(self):
-        #self.filecheck.on('end', self.run_qc)
-        #self.sample_check.on('end',self.run_filecheck)
-        #self.qc.on('end', self.run_otu)
         task_info = self.api.api('task_info.task_info')
         task_info.add_task_info()
-        self.sample_extract.on("end",self.run_samplecheck)
-        self.sample_check.on("end",self.run_otu)
-        # self.info_abstract.on("end",self.run_otu)
-        self.otu.on('end', self.run_taxon)
-        self.otu.on('end', self.run_phylotree)
-        self.on_rely([self.tax, self.phylo], self.run_stat)
-        self.stat.on('end', self.run_alpha)
-        self.stat.on('end', self.run_beta)
-        # self.stat.on('end', self.run_pan_core)
-        # self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
-        # modify by qindanhua 如果筛选功能基因就先运行功能基因tool
+        self.new_sample_extract.on("end", self.run_sample_rename)
+        self.sample_rename.on("end", self.run_samplecheck)
+        self.sample_check.on("end", self.run_otu)
+        self.otu.on('end', self.check_otu_run)
         if self.option("if_fungene"):
-            self.logger.info("llllllllllllll")
             self.run_function_gene()
         else:
             self.run_sample_extract()
@@ -513,11 +544,11 @@ class MetaBaseWorkflow(Workflow):
         repaths = [
             [".", "", "基础分析结果文件夹"],
             ["QC_stat", "", "样本数据统计文件目录"],
-            ["QC_stat/samples_info", "", "样本信息文件目录"], # add by hongdongxuan 20170323
+            ["QC_stat/samples_info", "", "样本信息文件目录"],  # add by hongdongxuan 20170323
             ["QC_stat/samples_info/samples_info.txt", "txt", "样本信息统计文件"],
             ["QC_stat/base_info", "", "单个样本碱基质量统计目录"],
             ["QC_stat/reads_len_info", "", "序列长度分布统计文件目录"],
-            ["QC_stat/valid_sequence.txt", "txt", "优化序列信息统计表"], # add by hongdongxuan 20170323
+            ["QC_stat/valid_sequence.txt", "txt", "优化序列信息统计表"],  # add by hongdongxuan 20170323
             ["Otu", "", "OTU聚类结果文件目录"],
             ["Tax_assign", "", "OTU对应物种分类文件目录"],
             ["Tax_assign/seqs_tax_assignments.txt", "taxon.seq_taxon", "OTU序列物种分类文件"],
@@ -566,7 +597,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分组别特征值表"],
             ["Beta_diversity/Plsda/plsda_importancepre.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Rda", "", "RDA_CCA分析结果目录"],
-            ["pan_core", "", "Pan/core分析结果目录"],     #add 3 lines by hongdongxuan 20170323
+            ["pan_core", "", "Pan/core分析结果目录"],     # add 3 lines by hongdongxuan 20170323
             ["pan_core/core.richness.xls", "xls", "core 表格"],
             ["pan_core/pan.richness.xls", "xls", "pan 表格"]
         ]
