@@ -124,7 +124,7 @@ class RefrnaWorkflow(Workflow):
         if not self.option("go_upload_file").is_set:
             self.geno_database.append("go")
             self.geno_database.append("nr")
-        elif not self.option("kegg_upload_file").is_set:
+        if not self.option("kegg_upload_file").is_set:
             self.geno_database.append("kegg")
         self.step.add_steps("qcstat", "mapping", "assembly", "annotation", "exp", "map_stat",
                             "seq_abs", "transfactor_analysis", "network_analysis", "sample_analysis",
