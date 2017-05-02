@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'shijin'
+# __author__ = 'sanger'
 import os
 from biocluster.config import Config
 from bson.objectid import ObjectId
@@ -28,6 +28,28 @@ def export_gene_list(data, option_name, dir_path, bind_obj=None):
             gene_id = result['gene_name']
             f.write(gene_id + "\n")
     return gene_list_path
+
+
+def export_multi_gene_list(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    geneset_id = data.split(",")
+    multi_geneset_path = dir_path + "/multi_geneset_list"
+    collection = db['sg_geneset_detail']
+    main_collection = db['sg_geneset']
+    f = open(multi_geneset_path, "wb")
+    for n, gi in enumerate(geneset_id):
+        my_result = main_collection.find_one({'_id': ObjectId(gi)})
+        if not my_result:
+            raise Exception("意外错误，geneset_id:{}在sg_geneset中未找到！".format(ObjectId(gi)))
+        f.write(my_result["name"] + "\t")
+        results = collection.find({"geneset_id": ObjectId(gi)})
+        id_list = []
+        for result in results:
+            gene_id = result['gene_name']
+            id_list.append(gene_id)
+        f.write(",".join(id_list) + "\n")
+    f.close()
+    print multi_geneset_path
 
 
 def export_blast_table(data, option_name, dir_path, bind_obj=None):

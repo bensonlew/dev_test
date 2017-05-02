@@ -49,7 +49,7 @@ class GenesetClassAction(RefRnaController):
         elif data.anno_type == "kegg":
             table_name = "Kegg"
             collection_name = "sg_geneset_kegg_class"
-            to_file = 'ref_rna.export_gene_list(geneset_kegg)'
+            to_file = 'ref_rna.export_multi_gene_list(geneset_kegg)'
             option = {"geneset_kegg": data.geneset_id}
         else:
             info = {'success': False, 'info': '不支持的功能分类!'}
