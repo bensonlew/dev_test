@@ -80,12 +80,14 @@ class FunctionPredictWorkflow(Workflow):
         sample_path = self.option("otu_table").split(',')[0]
         table_path= self.output_dir + '/COG/cog.descrip.table.xls'
         function_path = self.output_dir + '/COG/cog.category.function.xls'
+        predict_path = self.output_dir + '/COG/predictions_cog.xls'
         prediction_id = self.option("predict_id")
         if os.path.exists(sample_path):
             api_fun.update_specimen(sample_path=sample_path, prediction_id=prediction_id)
-        if os.path.exists(table_path) and os.path.exists(function_path):
+        if os.path.exists(function_path):
             api_fun.add_cog_function(prediction_id=prediction_id, sample_path=sample_path, function_path=function_path)
-            api_fun.add_cog_specimen(prediction_id=prediction_id, sample_path=sample_path, group_method=self.option("group_method"), table_path=table_path)
+        if os.path.exists(table_path) and os.path.exists(predict_path):
+            api_fun.add_cog_specimen(prediction_id=prediction_id, sample_path=sample_path, group_method=self.option("group_method"), table_path=table_path, predict_path=predict_path)
         else:
             raise Exception("找不到COG功能预测的结果文件！")
         kegg_path = self.output_dir + '/KEGG'
