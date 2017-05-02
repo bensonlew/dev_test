@@ -211,8 +211,8 @@ class Workflow(Basic):
         self.step.finish()
         self.step.update()
         self.logger.info("运行结束!")
-        self._update("end")
         self.rpc_server.close()
+        self._update("end")
 
     def set_return_msg(self, msg):
         """
@@ -283,8 +283,8 @@ class Workflow(Basic):
         self.end_unfinish_job()
         self.logger.info("程序退出: %s " % data)
         self.step.update()
-        self._update("error", "程序主动退出:%s" % data)
         self.rpc_server.close()
+        self._update("error", "程序主动退出:%s" % data)
         sys.exit(exitcode)
 
     # def __update_service(self):
@@ -310,7 +310,7 @@ class Workflow(Basic):
     #     # finally:
     #     #     self.close_db_cursor()
 
-    def _update(self, type, msg=None):
+    def _update(self, type, msg=None, _failed_times=0):
         """
         插入数据库，更新流程运行状态,只在后台服务调用时生效
 
@@ -327,6 +327,7 @@ class Workflow(Basic):
         #         self.logger.debug("数据库更新异常: %s" % e)
         #     finally:
         #         self.close_db_cursor()
+
         if self.sheet.WPM:
             try:
                 worker = worker_client()
@@ -347,9 +348,18 @@ class Workflow(Basic):
             except Exception, e:
                 exstr = traceback.format_exc()
                 print exstr
-                self.logger.error("连接WPM服务异常: %s" % e)
+                sys.stdout.flush()
+                if _failed_times < 3:
+                    self.logger.error("连接WPM服务异常: %s,10秒后重新尝试" % e)
+                    _failed_times += 1
+                    gevent.sleep(10)
+                    self._update(type, msg, _failed_times)
+                else:
+                    self.logger.error("连接WPM服务异常: %s,重试超过3次，放弃尝试" % e)
+            else:
+                del worker
 
-    def send_log(self, data):
+    def send_log(self, data, _failed_times=0):
         """
         发送API LOG信息到WPM API LOG管理器
 
@@ -357,13 +367,23 @@ class Workflow(Basic):
         :return:
         """
         if self.sheet.WPM:
+
             try:
                 log = log_client()
                 log.add_log(data)
             except Exception, e:
                 exstr = traceback.format_exc()
                 print exstr
-                self.logger.error("连接WPM服务异常: %s" % e)
+                sys.stdout.flush()
+                if _failed_times < 3:
+                    self.logger.error("连接WPM log服务异常: %s,10秒后重新尝试" % e)
+                    _failed_times += 1
+                    gevent.sleep(10)
+                    self.send_log(data)
+                else:
+                    self.logger.error("连接WPM log服务异常: %s,重试超过3次，放弃尝试" % e)
+            else:
+                del log
 
     def __check(self):
         if self.is_end is True:
