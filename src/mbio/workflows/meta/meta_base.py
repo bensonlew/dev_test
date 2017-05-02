@@ -197,12 +197,6 @@ class MetaBaseWorkflow(Workflow):
         self.tax.run()
 
     def run_stat(self):
-        with open(self.sample_check.output_dir + "/samples_info/samples_info.txt") as r:
-            if len(r.readlines()) < 3:
-                self.on_rely([self.alpha, self.beta], self.end)
-            else:
-                self.stat.on('end', self.run_pan_core)
-                self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         self.stat.set_options({
             "in_otu_table": self.otu.option("otu_table"),
             "taxon_file": self.tax.option("taxon_file")
@@ -230,9 +224,10 @@ class MetaBaseWorkflow(Workflow):
             'dis_method': self.option('dis_method'),
             'otutable': self.stat.option('otu_taxon_dir'),
             "level": self.option('beta_level'),
-            'permutations': self.option('permutations'),
-            'phy_newick': self.phylo.option('phylo_tre').prop['path']
+            'permutations': self.option('permutations')
         }
+        if self.count_otus:
+            opts['phy_newick'] = self.phylo.option('phylo_tre').prop['path']
         if self.option('envtable').is_set:
             opts.update({
                 'envtable': self.option('envtable')
@@ -371,14 +366,15 @@ class MetaBaseWorkflow(Workflow):
             api_otu_level.add_sg_otu_detail_level(otu_path, self.otu_id, 9)
             # self.otu_id = str(self.otu_id)
             # self.logger.info('OTU mongo ID:%s' % self.otu_id)
-            api_tree = self.api.newicktree
-            tree_path = self.phylo.option('phylo_tre').prop['path']
-            if not os.path.isfile(tree_path):
-                raise Exception("找不到报告文件:{}".format(tree_path))
-            if os.path.exists(self.output_dir + '/Otu/otu_phylo.tre'):
-                os.remove(self.output_dir + '/Otu/otu_phylo.tre')
-            os.link(tree_path, self.output_dir + '/Otu/otu_phylo.tre')
-            api_tree.add_tree_file(tree_path, major=True, level=9, table_id=str(self.otu_id), table_type='otu', tree_type='phylo')
+            if self.count_otus:
+                api_tree = self.api.newicktree
+                tree_path = self.phylo.option('phylo_tre').prop['path']
+                if not os.path.isfile(tree_path):
+                    raise Exception("找不到报告文件:{}".format(tree_path))
+                if os.path.exists(self.output_dir + '/Otu/otu_phylo.tre'):
+                    os.remove(self.output_dir + '/Otu/otu_phylo.tre')
+                os.link(tree_path, self.output_dir + '/Otu/otu_phylo.tre')
+                api_tree.add_tree_file(tree_path, major=True, level=9, table_id=str(self.otu_id), table_type='otu', tree_type='phylo')
             if self.option('group').is_set:
                 api_group = self.api.group
                 api_group.add_ini_group_table(self.option('group').prop["path"], self.spname_spid, sort_samples=True)
@@ -510,13 +506,14 @@ class MetaBaseWorkflow(Workflow):
         with open(self.sample_check.output_dir + "/samples_info/samples_info.txt") as r:
             self.count_samples = len(r.readlines()) - 1
         if self.count_samples < 3:  # 少于3个样本
+            self.update_info += "样本少于三个，不进行beta多样性相关分析；"
             self.option('beta_analysis', '')
         if not self.count_otus:
             if 'pca' in self.option('beta_analysis'):
                 self.option('beta_analysis', self.option('beta_analysis').replace('pca', '').strip(',').replace(',,', ','))
                 self.update_info += "OTU数量过少，不做PCA分析；"
             if "unifrac" in self.option('dis_method'):
-                self.option('dis_method') = "bray_curtis"
+                self.option('dis_method', "bray_curtis")
                 self.update_info += "OTU数量过少，不使用unifrac类型距离算法，采用默认bray_curtis算法；"
             indices = self.option("estimate_indices").split(',')
             if 'pd' in indices:
@@ -533,7 +530,7 @@ class MetaBaseWorkflow(Workflow):
             self.run_taxon()
             self.run_phylotree()
         elif self.count_otus and self.count_samples == 1:
-            self.update_info += "样本数量过少，不进行Pan Core分析"
+            self.update_info += "样本数量过少，不进行Pan Core分析；"
             self.on_rely([self.tax, self.phylo], self.run_stat)
             self.stat.on('end', self.run_alpha)
             self.stat.on('end', self.run_beta)
@@ -541,7 +538,7 @@ class MetaBaseWorkflow(Workflow):
             self.run_taxon()
             self.run_phylotree()
         else:
-            self.update_info += "OTU数量过少，不进行物种进化树分析，将不会生成物种进化树"
+            self.update_info += "OTU数量过少，不进行物种进化树分析，将不会生成物种进化树；"
             self.tax.on('end', self.run_stat)
             self.stat.on('end', self.run_alpha)
             self.stat.on('end', self.run_beta)
