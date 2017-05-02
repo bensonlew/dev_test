@@ -154,7 +154,6 @@ class PatchDcBackupWorkflow(Workflow):
 				x = api_read_tab.dedup_sample(m)
 				if len(x):  # 如果库中能取到前后的样本
 					for k in range(len(x)):
-						print x[k]
 						api_read_tab.export_tab_file(x[k], self.output_dir)
 						if x[k] != self.family_id[p][0] and x[k] != self.family_id[p][0] + '1':
 							name_list.append(x[k])
@@ -194,7 +193,11 @@ class PatchDcBackupWorkflow(Workflow):
 		for j in range(len(self.tools_analysis)):
 			self.tools_analysis[j].on('end', self.set_output, 'pt_analysis')
 			self.tools_analysis[j].on('end', self.result_info_run, j)
-			# self.tool.append([])
+
+		# if len(self.tools_analysis) > 1:
+		# 	self.on_rely(self.tools_analysis, self.result_info_run,len(self.tools_analysis))
+		# elif len(self.tools_analysis) == 1:
+		# 	self.tools_analysis[0].on('end', self.result_info_run,len(self.tools_analysis))
 
 		for t in self.tools_analysis:
 			t.run()
@@ -226,6 +229,35 @@ class PatchDcBackupWorkflow(Workflow):
 			result_info.on('end', self.dedup_run, q)
 		else:
 			pass
+
+		#
+		# num = event['data']
+		# for n in range(num):
+		# 	result_info = self.add_tool("paternity_test.result_info")
+		# 	self.step.add_steps('result_info{}'.format(n))
+		# 	if int(n) == 0:
+		# 		results = os.listdir(self.work_dir + "/PtAnalysis/FamilyMerge/output")
+		# 		for f in results:
+		# 			if re.match(r'.*family_joined_tab\.Rdata$', f):
+		# 				rdata = f
+		# 			else:
+		# 				print "Oops!"
+		# 		self.rdata = self.work_dir + '/PtAnalysis/FamilyMerge/output/' + rdata
+		# 		self.father_sample = rdata.split('_')[0]
+		# 	else:
+		# 		results = os.listdir(self.work_dir + "/PtAnalysis{}/FamilyMerge/output".format(n))
+		# 		for f in results:
+		# 			if re.match(r'.*family_joined_tab\.Rdata$', f):
+		# 				rdata = f
+		# 			else:
+		# 				print "Oops!"
+		# 		self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/'.format(n) + rdata
+		# 		self.father_sample = rdata.split('_')[0]
+		# 	if self.father_sample in self.father:
+		# 		q = self.father.index(self.father_sample)
+		# 		result_info.on('end', self.dedup_run, q)
+		# 	else:
+		# 		pass
 
 		result_info.set_options({
 			"tab_merged": self.rdata
@@ -266,13 +298,6 @@ class PatchDcBackupWorkflow(Workflow):
 			self.tool[q][j].on('end', self.set_output, 'dedup')
 
 		x = len(self.tool) - 1
-		# for k in range(len(self.tool)-1):
-		#     if len(self.tool[k]) > 1:
-		#         self.on_rely(self.tool[k], self.tool[k+1])
-		#     elif len(self.tool[x]) == 1:
-		#         self.tool[k][0].on('end', self.tool[k+1])
-		# else:
-		#     self.end()
 
 		if self.list_2D(self.tool):
 			if len(self.tool[x]) > 1:
