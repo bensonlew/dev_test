@@ -89,45 +89,41 @@ class MetaSourcetrackerTool(Tool):
 		"""
 		运行相关脚本和软件，进行微生物组成来源比例分析
 		"""
-		if self.option('s') == "":
-			s = "0"
+		if self.option('s') != "0" and self.option('s') != "":
+			cmd1 = self.biom_path + (' convert -i %s -o temp.biom --table-type "OTU table" --to-hdf5' % (self.option('otu_table')))
+			self.logger.info('运行biom，进行OTU转biom')
+			command1 = self.add_command("convert1_cmd", cmd1).run()
+			self.wait(command1)
+			if command1.return_code == 0:
+				self.logger.info("OTU转biom运行完成!")
+			else:
+				self.set_error("OTU转biom运行出错!")
+				raise Exception("OTU转biom运行出错!")
+			cmd2 = self.python_path + (' /mnt/ilustre/users/sanger-dev/app/program/Python/bin/filter_otus_from_otu_table.py -i temp.biom -o filtered.biom -s %s' % (self.option('s')) )
+			self.logger.info('python脚本，进行物种筛选')
+			command2 = self.add_command("python_cmd", cmd2).run()
+			self.wait(command2)
+			if command2.return_code == 0:
+				self.logger.info("物种筛选运行完成!")
+			else:
+				self.set_error("物种筛选运行出错!")
+				raise Exception("物种筛选运行出错!")
+			cmd3 = self.biom_path + (' convert -i filtered.biom -o filtered.txt --table-type "OTU table" --to-tsv')
+			self.logger.info('运行biom，进行biom转OTU')
+			command3 = self.add_command("convert2_cmd", cmd3).run()
+			self.wait(command3)
+			if command3.return_code == 0:
+				self.logger.info("biom转OTU运行完成!")
+			else:
+				self.set_error("biom转OTU运行出错!")
+				raise Exception("biom转OTU运行出错!")
+			cmd4 = self.r_path + (
+			' /mnt/ilustre/users/sanger-dev/app/install_packages/sourcetracker-1.0.0-release/sourcetracker_for_qiime.r -i filtered.txt -m %s -o %s' % (
+			self.option('map_table').prop['path'], self.output_dir))
 		else:
-			s = self.option('s')
-		# cmd1 = self.biom_path + (' convert -i %s -o temp.biom --table-type "OTU table" --to-hdf5' % (self.option('otu_table').prop['path']))
-		cmd1 = self.biom_path + (' convert -i %s -o temp.biom --table-type "OTU table" --to-hdf5' % (self.option('otu_table')))
-
-		self.logger.info('运行biom，进行OTU转biom')
-		command1 = self.add_command("convert1_cmd", cmd1).run()
-		self.wait(command1)
-		if command1.return_code == 0:
-			self.logger.info("OTU转biom运行完成!")
-		else:
-			self.set_error("OTU转biom运行出错!")
-		# cmd2 = self.python_path + self.python_script_path + ('/python filter_otus_from_otu_table.py -i temp.biom -o filtered.biom -s %s' % (self.option('s')))
-		cmd2 = self.python_path + (
-		' /mnt/ilustre/users/sanger-dev/app/program/Python/bin/filter_otus_from_otu_table.py -i temp.biom -o filtered.biom -s %s' % (s))
-		self.logger.info('python脚本，进行物种筛选')
-		command2 = self.add_command("python_cmd", cmd2).run()
-		self.wait(command2)
-		if command2.return_code == 0:
-			self.logger.info("物种筛选运行完成!")
-		else:
-			self.set_error("物种筛选运行出错!")
-		cmd3 = self.biom_path + (' convert -i filtered.biom -o filtered.txt --table-type "OTU table" --to-tsv')
-		self.logger.info('运行biom，进行biom转OTU')
-		command3 = self.add_command("convert2_cmd", cmd3).run()
-		self.wait(command3)
-		if command3.return_code == 0:
-			self.logger.info("biom转OTU运行完成!")
-		else:
-			self.set_error("biom转OTU运行出错!")
-		cmd4 = self.r_path + (
-		' /mnt/ilustre/users/sanger-dev/app/install_packages/sourcetracker-1.0.0-release/sourcetracker_for_qiime.r -i filtered.txt -m %s -o %s' % (
-		self.option('map_table').prop['path'], self.output_dir))
-		# cmd4 = self.r_path + (' --slave --vanilla --args -i filtered.txt -m %s -o %s < /mnt/ilustre/users/sanger-dev/app/install_packages/sourcetracker-1.0.0-release/sourcetracker_for_qiime.r' % (self.option('map_table').prop['path'],self.work_dir))
-		# cmd4 = 'R --slave --vanilla --args -i filtered.txt -m %s -o %s < /mnt/ilustre/users/sanger-dev/app/install_packages/sourcetracker-1.0.0-release/sourcetracker_for_qiime.r' % (
-		# self.option('map_table').prop['path'], self.work_dir)
-		#print(cmd4)
+			cmd4 = self.r_path + (
+				' /mnt/ilustre/users/sanger-dev/app/install_packages/sourcetracker-1.0.0-release/sourcetracker_for_qiime.r -i %s -m %s -o %s' % (
+					self.option('otu_table'), self.option('map_table').prop['path'], self.output_dir))
 		self.logger.info('运行R，进行结果数据生成')
 		command4 = self.add_command("r_cmd", cmd4).run()
 		self.wait(command4)
@@ -135,6 +131,7 @@ class MetaSourcetrackerTool(Tool):
 			self.logger.info("结果数据生成运行完成!")
 		else:
 			self.set_error("结果数据生成运行出错!")
+			raise Exception("结果数据生成运行出错!")
 
 	# def set_output(self):
 	# 	"""
