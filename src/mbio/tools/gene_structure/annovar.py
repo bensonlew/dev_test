@@ -170,6 +170,7 @@ class AnnovarTool(Tool):
         if os.path.exists(self.output_dir + "/snp_anno.xls"):
             os.remove(self.output_dir + "/snp_anno.xls")
         os.link(self.work_dir + "/snp_anno.xls", self.output_dir + "/snp_anno.xls")
+        os.link(self.option("input_file").prop["path"], self.work_dir + "snp.vcf")
         self.logger.info("set ouptput done")
 
     def run(self):
