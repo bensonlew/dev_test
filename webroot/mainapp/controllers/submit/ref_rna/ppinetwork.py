@@ -13,7 +13,7 @@ class PpinetworkAction(RefRnaController):
 
     def POST(self):
         data = web.input()
-        default_argu = ['geneset_id', 'species', 'submit_location', 'combine_score', 'task_type']
+        default_argu = ['geneset_id', 'type', 'species', 'submit_location', 'combine_score', 'task_type']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -26,7 +26,8 @@ class PpinetworkAction(RefRnaController):
             "task_type": data.task_type,
             "geneset_id": data.geneset_id,
             "species": data.species,
-            "combine_score": data.combine_score
+            "combine_score": data.combine_score,
+            "type": data.type
         }
         geneset_info = self.ref_rna.get_main_info(data.geneset_id, 'sg_geneset')
         if not geneset_info:
@@ -54,7 +55,7 @@ class PpinetworkAction(RefRnaController):
             "geneset_id": data.geneset_id,
             "diff_exp_gene": data.geneset_id,
             "species": data.species,
-            "combine_score": data.combine_score,
+            "combine_score": data.combine_score
         }
         to_file = "ref_rna.export_gene_list_ppi(diff_exp_gene)"
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
