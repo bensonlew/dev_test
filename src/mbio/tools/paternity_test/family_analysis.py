@@ -79,8 +79,9 @@ class FamilyAnalysisTool(Tool):
         self._version = '1.0.1'
 
         self.R_path = 'program/R-3.3.1/bin/'
-        self.script_path = Config().SOFTWARE_DIR+'/bioinfo/medical/scripts/'
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
+        self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/medical/scripts/'
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
 
     def run_tf(self):
         analysis_cmd = "{}Rscript {}data_analysis.R {}".\
@@ -116,3 +117,5 @@ class FamilyAnalysisTool(Tool):
         self.run_tf()
         self.set_output()
         self.end()
+
+# /mnt/ilustre/users/sanger-dev/app/program/R-3.3.1/bin/Rscript /mnt/ilustre/users/sanger-dev/app/bioinfo/medical/scripts/family_joined.R /mnt/ilustre/users/sanger-dev/workspace/20170502/PatchDcBackup_pt_batch_8991_378/output/WQ170826-F.tab /mnt/ilustre/users/sanger-dev/workspace/20170502/PatchDcBackup_pt_batch_8991_378/output/WQ170826-M.tab /mnt/ilustre/users/sanger-dev/workspace/20170502/PatchDcBackup_pt_batch_8991_378/output/WQ170826-S.tab 1 /mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/targets.bed.rda

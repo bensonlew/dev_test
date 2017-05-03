@@ -24,7 +24,8 @@ class Bam2tabAgent(Agent):
             {"name": "sample_id", "type": "string"}, #输入F/M/S的样本ID
             {"name": "bam_dir", "type": "string"},  #bam文件路径
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
-            {"name": "targets_bedfile", "type": "infile","format":"sequence.rda"} #位点信息
+            {"name": "targets_bedfile", "type": "infile","format":"sequence.rda"}, #位点信息
+            {"name": "batch_id", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("Bam2tab")
@@ -130,6 +131,32 @@ class Bam2tabTool(Tool):
             else:
                 pass
         self.logger.info('设置文件夹路径成功')
+
+        api = self.api.tab_file
+        temp = os.listdir(self.output_dir)
+        api_read_tab = self.api.tab_file  # 二次判断数据库中是否存在tab文件
+        for i in temp:
+            m = re.search(r'(.*)\.mem.*tab$', i)
+            n = re.search(r'(.*)\.qc', i)
+            if m:
+                tab_path = self.output_dir + '/' + i
+                tab_name = m.group(1)
+                # tab_path = self.output_dir + '/' + i
+                # tab_name = m.group(1)
+                if not api_read_tab.tab_exist(tab_name):
+                    api.add_pt_tab(tab_path, self.option('batch_id'))
+                    api.add_sg_pt_tab_detail(tab_path)
+                else:
+                    raise Exception('可能样本重名，请检查！')
+            elif n:
+                tab_path = self.output_dir + '/' + i
+                tab_name = n.group(1)
+                if not api_read_tab.qc_exist(tab_name):
+                    api.sample_qc(tab_path, tab_name)
+                    api.sample_qc_addition(tab_name)
+                else:
+                    raise Exception('可能样本重名，请检查！')
+
 
     def run(self):
         super(Bam2tabTool, self).run()
