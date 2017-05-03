@@ -16,8 +16,6 @@ from mainapp.controllers.instant.meta.two_group import TwoGroup
 from mainapp.controllers.instant.meta.estimators import Estimators
 from mainapp.controllers.instant.meta.pan_core import PanCore
 from mainapp.controllers.instant.meta.venn import Venn
-from mainapp.controllers.instant.meta.heat_cluster import HeatCluster
-from mainapp.controllers.instant.meta.beta.distance_calc import DistanceCalc
 from mainapp.controllers.instant.meta.beta.hcluster import Hcluster
 from mainapp.controllers.instant.meta.otu_subsample import OtuSubsample
 from mainapp.controllers.instant.meta.two_sample import TwoSample
