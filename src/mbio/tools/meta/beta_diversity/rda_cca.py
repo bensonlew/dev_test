@@ -8,6 +8,7 @@ import subprocess
 from biocluster.core.exceptions import OptionError
 import re
 
+
 class RdaCcaAgent(Agent):
     """
     脚本ordination.pl
@@ -78,10 +79,6 @@ class RdaCcaAgent(Agent):
         common_samples = set(samplelist) & set(self.option('envtable').prop['sample'])
         if len(common_samples) < 3:
             raise OptionError("环境因子表和OTU表的共有样本数必须大于等于3个：{}".format(len(common_samples)))
-        table = open(self.gettable())
-        if len(table.readlines()) < 4:
-            raise OptionError('提供的数据表信息少于3行')
-        table.close()
         return True
 
     def set_resource(self):
@@ -360,7 +357,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         :return: 丰度为前30的物种或者 空的列表
         """
         otu_path = self.get_otu_table()
-        with open(otu_path,"rb") as r:
+        with open(otu_path, "rb") as r:
             r = r.readlines()
             species_number = len(r) - 1
             if species_number <= 30:
@@ -399,7 +396,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         else:
             old_species_table = self.output_dir + "/cca_species.xls"
             new_species_table = self.work_dir + "cca_plot_species_data.xls"
-        with open (old_species_table, "rb") as table, open(new_species_table, "a") as w:
+        with open(old_species_table, "rb") as table, open(new_species_table, "a") as w:
             line = table.readlines()
             for l in line:
                 content = l.strip().split("\t")
@@ -456,11 +453,3 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
     #             else:
     #                 w.write(r)
     #     return new_file
-
-
-
-
-
-
-
-

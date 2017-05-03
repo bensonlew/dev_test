@@ -65,9 +65,3 @@ class PaternityTestNew(PtController):
         self.set_sheet_data(name=task_name, options=options,module_type=task_type, params=params)
         task_info = super(PaternityTestNew, self).POST()
         return json.dumps(task_info)
-
-<<<<<<< Updated upstream
-# python /mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py post paternity_test_new -c client03 -b http://192.168.12.102:9090 -n "err_min;dedup;father_id;submit_location" -d "3;50;58ca46b9a4e1af6b57c5fd64;XXX"
-=======
-# python /mnt/ilustre/users/sanger-dev/biocluster/bin/webapitest.py post paternity_test_new -c client03 -b http://192.168.12.102:9091 -n "err_min;dedup;father_id;submit_location" -d "3;50;58ca46b9a4e1af6b57c5fd64;XXX"
->>>>>>> Stashed changes

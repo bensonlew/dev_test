@@ -36,7 +36,7 @@ class Anosim(MetaController):
             info = {'success': False, 'info': '置换次数应该在[10-10000]之间:%s' % data.permutations}
             return json.dumps(info)
         if len(group) < 2:
-            info = {'success': False, 'info': '不可只选择一个分组'}
+            info = {'success': False, 'info': '分析只适用于分组方案的分组类别数量大于等于2的情况！'}
             return json.dumps(info)
         samples = reduce(lambda x, y: x + y, group.values())
         if len(samples) == len(set(samples)):
