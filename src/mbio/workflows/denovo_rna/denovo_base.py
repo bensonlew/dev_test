@@ -613,7 +613,7 @@ class DenovoBaseWorkflow(Workflow):
             if self.option('group_table').is_set:
                 self.express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id=group_id, group_detail=group_detail, control_id=control_id, diff_exp_dir=diff_exp_dir)
             else:
-                self.express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id='all', group_detail={'all': self.sample_ids}, control_id=control_id, diff_exp_dir=diff_exp_dir)
+                self.express_diff_id = self.api_express.add_express_diff(params=diff_param, samples=self.samples, compare_column=compare_column, express_id=self.express_id, group_id='all', group_detail=self.sample_ids, control_id=control_id, diff_exp_dir=diff_exp_dir)
             # update sg_status
             self.update_status_api.add_denovo_status(table_id=str(self.express_diff_id), type_name='sg_denovo_express_diff')
             # add diff fpkm file
@@ -643,16 +643,17 @@ class DenovoBaseWorkflow(Workflow):
                 clust_params = {
                     'submit_location': 'sg_denovo_cluster',
                     'log': 10,
-                    'methor': 'hclust',
+                    'method': 'hclust',
                     'distance': 'euclidean',
                     'sub_num': 5,
+                    'gene_list': 'all'
                 }
                 api_clust = self.api.denovo_cluster
                 with open(obj.cluster.work_dir + '/hc_sample_order', 'rb') as s:
                     samples = s.readlines()[0].strip('\n')
                 with open(obj.cluster.work_dir + '/hc_gene_order', 'rb') as s:
                     genes = s.readlines()[0].strip('\n')
-                clust_id = api_clust.add_cluster(params=clust_params, express_id=self.diff_gene_id, sample_tree=clust_path + 'samples_tree.txt', gene_tree=clust_path + 'genes_tree.txt', samples=samples, genes=genes)
+                clust_id = api_clust.add_cluster(params=clust_params, express_id=self.diff_gene_id, sample_tree=clust_path + 'samples_tree.txt', gene_tree=clust_path + 'genes_tree.txt', samples=self.samples, genes=genes)
                 for f in clust_files:
                     if re.search(r'^subcluster_', f):
                         sub = f.split('_')[1]
@@ -742,22 +743,24 @@ class DenovoBaseWorkflow(Workflow):
             self.api_anno.add_annotation(anno_stat_dir=obj.output_dir, databases=self.option('database'))
         if event['data'] == 'nrblast':
             self.move2outputdir(obj.output_dir, 'Annotation/nrblast')
-            # blastfile = self.output_dir + '/Annotation/nrblast/' + os.listdir(self.output_dir + '/Annotation/nrblast/')[0]
-            blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast/CatBlastout/output/blast_table.xls'
+            blastfile = self.output_dir + '/Annotation/nrblast/' + os.listdir(self.output_dir + '/Annotation/nrblast/')[0]
+            # blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast/CatBlastout/output/blast_table.xls'
             self.api_anno.add_blast(blast_pro='blastp', blast_db='nr', e_value=self.option('nr_blast_evalue'), blast_path=blastfile, gene_list=self.gene_list)
         if event['data'] == 'keggblast':
             self.move2outputdir(obj.output_dir, 'Annotation/keggblast')
-            blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast2/CatBlastout/output/blast_table.xls'
-            # blastfile = self.output_dir + '/Annotation/keggblast/' + os.listdir(self.output_dir + '/Annotation/keggblast/')[0]
+            # blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast2/CatBlastout/output/blast_table.xls'
+            blastfile = self.output_dir + '/Annotation/keggblast/' + os.listdir(self.output_dir + '/Annotation/keggblast/')[0]
             self.api_anno.add_blast(blast_pro='blastp', blast_db='kegg', e_value=self.option('kegg_blast_evalue'), blast_path=blastfile, gene_list=self.gene_list)
         if event['data'] == 'stringblast':
             self.move2outputdir(obj.output_dir, 'Annotation/stringblast')
-            blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast1/CatBlastout/output/blast_table.xls'
-            # blastfile = self.output_dir + '/Annotation/stringblast/' + os.listdir(self.output_dir + '/Annotation/stringblast/')[0]
+            # blastfile = '/mnt/ilustre/users/sanger-dev/workspace/20170103/DenovoBase_sg_5538/Blast1/CatBlastout/output/blast_table.xls'
+            blastfile = self.output_dir + '/Annotation/stringblast/' + os.listdir(self.output_dir + '/Annotation/stringblast/')[0]
             self.api_anno.add_blast(blast_pro='blastp', blast_db='string', e_value=self.option('string_blast_evalue'), blast_path=blastfile, gene_list=self.gene_list)
 
     def run(self):
         self.logger.info('...options:%s' % self._options)
+        task_info = self.api.api('task_info.denovo_task_info')
+        task_info.add_task_info()
         self.filecheck.on('end', self.run_qc)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
@@ -770,8 +773,7 @@ class DenovoBaseWorkflow(Workflow):
         self.final_tools.append(self.bam_stat)
         gene_stru = [self.orf_len]
         if self.option('database'):
-            self.assemble.on('end', self.run_blast_test)
-            # self.assemble.on('end', self.run_blast)
+            self.assemble.on('end', self.run_blast)
             self.final_tools.append(self.annotation)
         if 'ssr' in self.option('gene_analysis'):
             self.orf.on('end', self.run_ssr)
@@ -784,7 +786,7 @@ class DenovoBaseWorkflow(Workflow):
             gene_stru.append(self.snp)
         self.logger.info('........gene_stru:%s' % gene_stru)
         if len(gene_stru) == 1:
-            self.on('end', self.set_step, {'end': self.step.gene_structure})
+            gene_stru[0].on('end', self.set_step, {'end': self.step.gene_structure})
         else:
             self.on_rely(gene_stru, self.set_step, {'end': self.step.gene_structure})
         if self.option('exp_analysis'):

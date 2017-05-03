@@ -20,6 +20,7 @@ class ClusterAnalysisWorkflow(Workflow):
             {"name": "level", "type": "string", "default": "9"},  # 输入的OTU level
             {"name": "update_info", "type": "string"},
             {"name": "main_id", "type": "string"},
+            {"name": "add_Algorithm", "type": "string", "default": ""}, ##1 line added by yiru 20170424
             {"name": "group_detail", "type": "string"}  # 输入的group_detail 示例如下
             # {"A":["578da2fba4e1af34596b04ce","578da2fba4e1af34596b04cf","578da2fba4e1af34596b04d0"],"B":["578da2fba4e1af34596b04d1","578da2fba4e1af34596b04d3","578da2fba4e1af34596b04d5"],"C":["578da2fba4e1af34596b04d2","578da2fba4e1af34596b04d4","578da2fba4e1af34596b04d6"]}
             # {"name": "method", "type": "string", "default": ""}  # 聚类方式， ""为不进行聚类
@@ -31,15 +32,21 @@ class ClusterAnalysisWorkflow(Workflow):
         # self.hcluster = self.add_tool('meta.beta_diversity.hcluster')
         group_table_path = os.path.join(self.work_dir, "group_table.xls")
         self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table_path)
+        self.logger.info(self.option("group_detail"))
 
     # def check_options(self):  # 2016.12.1 zhouxuan
     #     if self.option('method') not in ['average', 'single', 'complete', ""]:
     #         raise OptionError('错误的层级聚类方式：%s' % self.option('method'))
 
+    def check_options(self): ##3 lines added by yiru 20170424
+        if self.option('add_Algorithm') not in ['sum','average', 'middle', '']:
+            raise OptionError('错误的样本求和方式：%s' % self.option('add_Algorithm'))
+
     def run_sort_samples(self):
         self.sort_samples.set_options({
             "in_otu_table": self.option("in_otu_table"),
-            "group_table": self.group_table_path
+            "group_table": self.group_table_path,
+            "method": self.option("add_Algorithm") ##1 line added by yiru 20170424
         })
         # if self.option("method") != "":  # 2016.12.1 zhouxuan
         #     self.sort_samples.on("end", self.run_matrix)
@@ -80,7 +87,7 @@ class ClusterAnalysisWorkflow(Workflow):
         #     self.add_return_mongo_id("sg_newick_tree", newick_id, "", False)
         api_otu = self.api.cluster_analysis
         # new_otu_id = api_otu.add_sg_otu(self.sheet.params, self.option("input_otu_id"), None, newick_id)
-        api_otu.add_sg_otu_detail(self.sort_samples.option("out_otu_table").prop["path"], self.option("main_id"), self.option("input_otu_id"))
+        api_otu.add_sg_otu_detail(self.sort_samples.option("out_otu_table").prop["path"], self.option("main_id"), self.option("input_otu_id"),self.option('add_Algorithm')) ##modified by yiru 20170424
         # self.add_return_mongo_id("sg_otu", new_otu_id)
         self.end()
 

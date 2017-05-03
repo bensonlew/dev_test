@@ -310,6 +310,56 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     client.close()
     return file_path
 
+def export_group_table_by_detail_2(data, option_name, dir_path, bind_obj=None):
+    """
+    按分组的详细信息获取group表
+    使用时确保你的workflow的option里group_detail这个字段和second_group_detail字段
+    目的是生成一张group表(此处不做任何判断，完成信息的收集就可以了)
+    该种格式的文件主要用于meta的sourcetracker分析
+    """
+    file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
+    bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
+    data = _get_objectid(data)
+    group_detail = bind_obj.sheet.option('group_detail')  #
+    second_group_detail = bind_obj.sheet.option('second_group_detail')
+    if not isinstance(group_detail, dict):
+        try:
+            table_dict_1 = json.loads(group_detail)
+        except Exception:
+            raise Exception("生成group1表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+    if not isinstance(table_dict_1, dict):
+        raise Exception("生成group1表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+    if not isinstance(second_group_detail, dict):
+        try:
+            table_dict_2 = json.loads(second_group_detail)
+        except Exception:
+            raise Exception("生成group2表失败，传入的不是一个字典或者是字典对应的字符串")
+    if not isinstance(table_dict_2, dict):
+        raise Exception("生成group2表失败，传入的不是一个字典或者是字典对应的字符串")
+    with open(file_path, "wb") as f:
+        f.write("#SampleID\tEnv\tSourceSink\n")
+    sample_table_name = 'sg_specimen'
+    sample_table = db[sample_table_name]
+    with open(file_path, "ab") as f:
+        for k in table_dict_1:
+            for sp_id in table_dict_1[k]:
+                sp = sample_table.find_one({"_id": ObjectId(sp_id)})
+                if not sp:
+                    raise Exception("group_detal中的样本_id:{}在样本表{}中未找到".format(sp_id, sample_table_name))
+                else:
+                    sp_name = sp["specimen_name"]
+                f.write("{}\t{}\tsource\n".format(sp_name, k))
+    with open(file_path, "ab") as w:
+        for k in table_dict_2:
+            for sp_id_2 in table_dict_2[k]:
+                sp_2 = sample_table.find_one({"_id": ObjectId(sp_id_2)})
+                if not sp_2:
+                    raise Exception("group_detal中的样本_id:{}在样本表{}中未找到".format(sp_id_2, sample_table_name))
+                else:
+                    sp_name = sp_2["specimen_name"]
+                w.write("{}\t{}\tsink\n".format(sp_name, k))
+    return file_path
+
 
 def export_cascading_table_by_detail(data, option_name, dir_path, bind_obj=None):
     """

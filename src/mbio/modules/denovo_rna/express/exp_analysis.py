@@ -45,13 +45,14 @@ class ExpAnalysisModule(Module):
         self.diff_gene = False
         self.bam_path = self.work_dir + '/bowtie2_bam_dir/'
         # add by qindanhua 161201
+        self.sample_num = 0
         self.tool_lists = [self.diff_exp]
         self.gene_corr = self.add_tool("denovo_rna.mapping.correlation")
         self.tran_corr = self.add_tool("denovo_rna.mapping.correlation")
         self.gene_pca = self.add_tool("meta.beta_diversity.pca")
         self.tran_pca = self.add_tool("meta.beta_diversity.pca")
         self.corr_tool_list = [self.gene_corr, self.tran_corr, self.gene_pca, self.tran_pca]
-        self.tool_lists += self.corr_tool_list
+        # self.tool_lists += self.corr_tool_list
 
     def check_options(self):
         if not self.option('fq_type'):
@@ -59,10 +60,16 @@ class ExpAnalysisModule(Module):
         if self.option('fq_type') not in ['PE', 'SE']:
             raise OptionError('测序类型不在所给范围内')
         if not self.option('only_bowtie_build'):
-            if self.option("fq_type") == "PE" and not self.option("fq_r").is_set and not self.option("fq_l").is_set:
-                raise OptionError("PE测序时需设置左端序列和右端序列输入文件")
-            if self.option("fq_type") == "SE" and not self.option("fq_s").is_set:
-                raise OptionError("SE测序时需设置序列输入文件")
+            if self.option("fq_type") == "PE":
+                if not self.option("fq_r").is_set and not self.option("fq_l").is_set:
+                    raise OptionError("PE测序时需设置左端序列和右端序列输入文件")
+                else:
+                    self.sample_num = len(os.listdir(self.option("fq_r").prop['path']))
+            if self.option("fq_type") == "SE":
+                if not self.option("fq_s").is_set:
+                    raise OptionError("SE测序时需设置序列输入文件")
+                else:
+                    self.sample_num = len(os.listdir(self.option("fq_s").prop['path']))
         if self.option("exp_way") not in ['fpkm', 'tpm']:
             raise OptionError("所设表达量的代表指标不在范围内，请检查")
         if not self.option('control_file').is_set:
@@ -81,32 +88,35 @@ class ExpAnalysisModule(Module):
 
     # add by qindanhua 161201
     def correlation_run(self):
-        print self.merge_rsem.option('gene_fpkm').prop['path']
         self.gene_corr.set_options({
             'fpkm': self.merge_rsem.option('gene_fpkm').prop['path']
         })
         self.tran_corr.set_options({
             'fpkm': self.merge_rsem.option('tran_fpkm').prop['path']
         })
-        self.tran_pca.set_options({
-            'otutable': self.merge_rsem.option('tran_fpkm').prop['path']
-        })
-        self.gene_pca.set_options({
-            'otutable': self.merge_rsem.option('gene_fpkm').prop['path']
-        })
         self.gene_corr.on('end', self.set_step, {'end': self.step.gene_corr, 'start': self.step.gene_corr})
         self.tran_corr.on('end', self.set_step, {'end': self.step.tran_corr, 'start': self.step.tran_corr})
-        self.tran_pca.on('end', self.set_step, {'end': self.step.tran_pca, 'start': self.step.tran_pca})
-        self.gene_pca.on('end', self.set_step, {'end': self.step.gene_pca, 'start': self.step.gene_pca})
         self.gene_corr.on('end', self.set_output, "gene_correlation")
         self.tran_corr.on('end', self.set_output, "tran_correlation")
-        self.tran_pca.on('end', self.set_output, "tran_correlation")
-        self.gene_pca.on('end', self.set_output, "gene_correlation")
-        # self.on_rely(self.corr_tool_list, self.set_output, 'correlation')
-        self.gene_corr.run()
-        self.tran_corr.run()
-        self.gene_pca.run()
-        self.tran_pca.run()
+        if self.sample_num > 2:
+            self.tran_pca.set_options({
+                'otutable': self.merge_rsem.option('tran_fpkm').prop['path']
+            })
+            self.gene_pca.set_options({
+                'otutable': self.merge_rsem.option('gene_fpkm').prop['path']
+            })
+            self.tran_pca.on('end', self.set_step, {'end': self.step.tran_pca, 'start': self.step.tran_pca})
+            self.gene_pca.on('end', self.set_step, {'end': self.step.gene_pca, 'start': self.step.gene_pca})
+            self.tran_pca.on('end', self.set_output, "tran_correlation")
+            self.gene_pca.on('end', self.set_output, "gene_correlation")
+        if self.sample_num > 2:
+            self.gene_pca.run()
+            self.tran_pca.run()
+            self.gene_corr.run()
+            self.tran_corr.run()
+        if self.sample_num == 2:
+            self.gene_corr.run()
+            self.tran_corr.run()
 
     def run_bowtie_build(self):
         tool_opt = {
@@ -137,7 +147,8 @@ class ExpAnalysisModule(Module):
                     print tool_opt
                     # print self.bowtie_build.option('fa_build').prop['path']
                     self.rsem.set_options(tool_opt)
-                    self.rsem.run()
+                    if self.sample_num != 1:
+                        self.rsem.run()
                     self.rsem_tools.append(self.rsem)
         else:
             r_files = os.listdir(self.option('fq_r').prop['path'])
@@ -151,10 +162,16 @@ class ExpAnalysisModule(Module):
                             tool_opt['fq_l'] = self.option('fq_l').prop['path'] + '/' + f1
                             self.rsem = self.add_tool('denovo_rna.express.rsem')
                             self.rsem.set_options(tool_opt)
-                            self.rsem.run()
+                            if self.sample_num != 1:
+                                self.rsem.run()
                             self.rsem_tools.append(self.rsem)
         print self.rsem_tools
-        self.on_rely(self.rsem_tools, self.set_output, 'rsem')
+        if self.sample_num == 1:
+            self.rsem.on("end", self.set_output, 'rsem')
+            self.rsem.on('end', self.end)
+            self.rsem.run()
+        else:
+            self.on_rely(self.rsem_tools, self.set_output, 'rsem')
         # self.on_rely(self.rsem_tools, self.merge_rsem_run)
         # self.on_rely(self.rsem_tools, self.set_step, {'end': self.step.rsem, 'start': self.step.merge_rsem})
 
@@ -225,8 +242,10 @@ class ExpAnalysisModule(Module):
                         else:
                             os.link(os.path.join(tool.work_dir, f), self.bam_path + f)
             self.option('bam_dir', self.bam_path)
-            self.set_step({'data': {'end': self.step.rsem, 'start': self.step.merge_rsem}})
-            self.merge_rsem_run()
+            if self.sample_num != 1:
+                self.set_step({'data': {'end': self.step.rsem, 'start': self.step.merge_rsem}})
+                self.merge_rsem.on('end', self.diff_exp_run)
+                self.merge_rsem_run()
         elif event['data'] == 'merge_rsem':
             self.linkdir(obj.output_dir, 'rsem', self.output_dir)
             self.option('gene_count', self.merge_rsem.option('gene_count'))
@@ -257,10 +276,18 @@ class ExpAnalysisModule(Module):
         super(ExpAnalysisModule, self).run()
         self.bowtie_build.on('end', self.rsem_run)
         self.run_bowtie_build()
-        self.merge_rsem.on('end', self.diff_exp_run)
-        self.merge_rsem.on('end', self.correlation_run)
-        # change by qindanhua 改变end依赖对象
-        self.on_rely(self.tool_lists, self.end)
+        # self.merge_rsem.on('end', self.correlation_run)
+        # modify by qindanhua 改变end依赖对象 20170213
+        # if self.sample_num < 2:
+        #     self.rsem.on('end', self.end)
+        if self.sample_num == 2:
+            self.tool_lists += [self.gene_corr, self.tran_corr]
+            self.merge_rsem.on('end', self.correlation_run)
+            self.on_rely(self.tool_lists, self.end)
+        else:
+            self.tool_lists += self.corr_tool_list
+            self.merge_rsem.on('end', self.correlation_run)
+            self.on_rely(self.tool_lists, self.end)
 
     def end(self):
         repaths = [

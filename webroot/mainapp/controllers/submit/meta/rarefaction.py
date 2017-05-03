@@ -26,7 +26,7 @@ class Rarefaction(MetaController):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['otu_id', 'level_id', 'index_type', 'freq', 'submit_location', 'group_id', 'group_detail']
+        params_name = ['otu_id', 'level_id', 'index_type', 'freq', 'submit_location', 'group_id', 'group_detail','add_Algorithm'] ##this line edited by yiru 20170426
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!" % param}
@@ -51,6 +51,7 @@ class Rarefaction(MetaController):
         my_param['task_type'] = data.task_type
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
+        my_param['add_Algorithm'] = data.add_Algorithm ##1 line added by yiru 20170426
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
 
         otu_info = self.meta.get_otu_table_info(data.otu_id)
@@ -86,7 +87,8 @@ class Rarefaction(MetaController):
             "level": data.level_id,
             "freq": data.freq,
             "rare_id": str(main_table_id),
-            "group_detail": data.group_detail
+            "group_detail": data.group_detail,
+            "add_Algorithm": data.add_Algorithm ##1 line added by yiru 20170426
                 }
 
         to_file = "meta.export_otu_table_by_detail(otu_table)"

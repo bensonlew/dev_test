@@ -170,7 +170,8 @@ class BetaMultiAnalysis(Base):
                 dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
                 plot_species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_plot_species_data.xls'  # add 4 lines by zhouxuan 20170123 20170401
                 envfit_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_envfit.xls'
-                self.insert_envfit_table(envfit_path, 'envfit', update_id=main_id)
+                if os.path.exists(envfit_path):
+                    self.insert_envfit_table(envfit_path, 'envfit', update_id=main_id)
                 self.insert_table_detail(plot_species_path, 'plot_species', update_id=main_id)
                 self.insert_table_detail(site_path, 'specimen', update_id=main_id)
                 self.insert_table_detail(species_path, 'species', update_id=main_id, split_fullname=True)
