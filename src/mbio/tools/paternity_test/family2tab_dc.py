@@ -27,7 +27,8 @@ class Family2tabDcAgent(Agent):
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"}, #hg38.chromosomal_assembly/ref.fa
             {"name": "targets_bedfile","type": "infile","format":"sequence.rda"},
             {"name": "seq_path", "type": "infile","format":"sequence.fastq_dir"}, #fastq所在路径
-            {"name": "cpu_number", "type": "int", "default": 4}
+            {"name": "cpu_number", "type": "int", "default": 4},
+            {"name": "batch_id", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("family2tab")
@@ -64,7 +65,7 @@ class Family2tabDcAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '50G'
+        self._memory = '60G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -102,12 +103,13 @@ class Family2tabDcTool(Tool):
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/vt-master')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/vcflib-master/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/picard-tools-2.2.4')
+        self.java_path = self.config.SOFTWARE_DIR + '/program/sun_jdk1.8.0/bin/java'
 
 
     def run_Family2tab(self):
-        fastq2tab_cmd = "{}dcpt_zml.sh {} {} {} {} {} {}".format(self.cmd_path, self.option("fastq"), self.option("cpu_number"),
+        fastq2tab_cmd = "{}dcpt_zml.sh {} {} {} {} {} {} {}".format(self.cmd_path, self.option("fastq"), self.option("cpu_number"),
                             self.option("ref_fasta").prop["path"], self.option("seq_path").prop['path'], self.option("targets_bedfile").prop['path']
-                            ,self.config.SOFTWARE_DIR+'/bioinfo/medical/picard-tools-2.2.4/picard.jar')
+                            ,self.config.SOFTWARE_DIR+'/bioinfo/medical/picard-tools-2.2.4/picard.jar', self.java_path)
         self.logger.info(fastq2tab_cmd)
         self.logger.info("开始运行转bam文件")
         cmd = self.add_command("fastq2tab_cmd", fastq2tab_cmd).run()
@@ -134,6 +136,32 @@ class Family2tabDcTool(Tool):
             #if re.search(r'.*\.filter\.bam$', f) or re.search(r'.*\.qc$', f):
                 shutil.move(file_path + f, self.output_dir)
         self.logger.info('设置文件夹路径成功')
+
+        api = self.api.tab_file
+        temp = os.listdir(self.output_dir)
+        api_read_tab = self.api.tab_file  # 二次判断数据库中是否存在tab文件
+        for i in temp:
+            m = re.search(r'(.*)\.mem.*tab$', i)
+            n = re.search(r'(.*)\.qc', i)
+            if m:
+                tab_path = self.output_dir + '/' + i
+                tab_name = m.group(1)
+                # tab_path = self.output_dir + '/' + i
+                # tab_name = m.group(1)
+                if not api_read_tab.tab_exist(tab_name):
+                    api.add_pt_tab(tab_path, self.option('batch_id'))
+                    api.add_sg_pt_tab_detail(tab_path)
+                else:
+                    raise Exception('可能样本重名，请检查！')
+            elif n:
+                tab_path = self.output_dir + '/' + i
+                tab_name = n.group(1)
+                if not api_read_tab.qc_exist(tab_name):
+                    api.sample_qc_dc(tab_path, tab_name)
+                    api.sample_qc_addition_dc(tab_name)
+                else:
+                    raise Exception('可能样本重名，请检查！')
+
 
     def run(self):
         super(Family2tabDcTool, self).run()
