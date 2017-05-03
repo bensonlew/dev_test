@@ -21,9 +21,7 @@ class EstimatorsAgent(Agent):
     last_modify: 2016.05.06
     """
     #ESTIMATORS = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron','geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs','qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow']
-    ESTIMATORS = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron',
-                  'geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs',
-                  'qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow','pd']
+    ESTIMATORS = ['ace', 'bergerparker', 'boneh', 'bootstrap', 'bstick', 'chao', 'coverage', 'default', 'efron','geometric', 'goodscoverage', 'heip', 'invsimpson', 'jack', 'logseries', 'npshannon', 'nseqs','qstat', 'shannon', 'shannoneven', 'shen', 'simpson', 'simpsoneven', 'smithwilson', 'sobs', 'solow','pd']
 
     def __init__(self, parent):
         super(EstimatorsAgent, self).__init__(parent)
@@ -89,7 +87,7 @@ class EstimatorsAgent(Agent):
         所需资源
         """
         self._cpu = 11
-        self._memory = ''
+        self._memory = '4G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -110,8 +108,8 @@ class EstimatorsTool(Tool):
         self.indices = '-'.join(self.option('indices').split(','))
         self.special_est = ['boneh', 'efron', 'shen', 'solow']
         #################################################added 2 lines by yiru 20170425
-        self.biom = self.biom_otu_table()  # 传入otu表需要转化为biom格式
         self.real_otu = self.gettable()  # 获取真实的OTU表路劲
+        self.biom = self.biom_otu_table()  # 传入otu表需要转化为biom格式
         ######################################################
         self.otu_table = ''
 
