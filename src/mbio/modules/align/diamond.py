@@ -29,7 +29,7 @@ class DiamondModule(Module):
             # 当输出格式为非5，6时，只产生文件不作为outfile
         ]
         self.add_option(options)
-        self.catblast = self.add_tool("align.ncbi.cat_blastout")
+        self.catblast = self.add_tool("align.cat_blastout")
         self.splitfasta = self.add_tool("sequence.split_fasta")
         self.step.add_steps('blast', 'split_fasta', 'cat_blastout')
         self.blast_tools = []
@@ -77,7 +77,7 @@ class DiamondModule(Module):
         }
         for f in os.listdir(self.splitfasta.output_dir):
             opts['query'] = os.path.join(self.splitfasta.output_dir, f)
-            blast_tool = self.add_tool('align.diamond.diamond')
+            blast_tool = self.add_tool('align.diamond')
             blast_tool.set_options(opts)
             blast_tool.run()
             self.blast_tools.append(blast_tool)
@@ -100,7 +100,7 @@ class DiamondModule(Module):
         # self.catblast.run()
         self.catblast_tools.append(self.catblast)
         if self.option('outfmt') == 6:
-            self.tmp_tool = self.add_tool('align.ncbi.cat_blastout')
+            self.tmp_tool = self.add_tool('align.cat_blastout')
             self.tmp_tool.set_options({"blastout": self.work_dir + '/xml_tmp'})
             # self.tmp_tool.run()
             self.catblast_tools.append(self.tmp_tool)

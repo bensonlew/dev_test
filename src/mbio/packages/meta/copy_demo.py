@@ -3,6 +3,7 @@
 # lastmodied: 20160921
 import json
 import gevent
+import datetime
 from bson import ObjectId
 from gevent import Greenlet
 from gevent.monkey import patch_all
@@ -60,7 +61,6 @@ class CopyMongo(object):
         self.copy_main_details('sg_otu_specimen', 'otu_id', self.otu_id_dict, others_position=['specimen_id'], join=False)
         self.copy_sg_newick_tree()
         self.recopy_update_otu()
-        print "ready"
         greenlet = Greenlet(self.species_env_correlation)
         greenlet.start()
         self.all_greenlets.append(greenlet)
@@ -112,15 +112,16 @@ class CopyMongo(object):
         greenlet = Greenlet(self.alpha_diversity)
         greenlet.start()
         self.all_greenlets.append(greenlet)
-        # print self.all_greenlets
-        # print len(self.all_greenlets)
+        greenlet = Greenlet(self.sixteen_function_predict)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
         gevent.joinall(self.all_greenlets)
-        # print self.all_greenlets
-        # print len(self.all_greenlets)
         gevent.joinall(self.all_greenlets)
+        import socket
+        reload(socket)
 
     def species_env_correlation(self):
-        corr_id_dict = self.copy_collection_with_change('sg_', change_positions=['otu_id', 'env_id'], update_sg_status=True)
+        corr_id_dict = self.copy_collection_with_change('sg_species_env_correlation', change_positions=['otu_id', 'env_id'], update_sg_status=True)
         self.copy_main_details("sg_species_env_correlation_detail", "correlation_id", corr_id_dict, join=False)
 
 
@@ -204,11 +205,15 @@ class CopyMongo(object):
         self.copy_main_details('sg_corr_network_structure_link', 'corr_network_id', corr_network_id_dict, join=False)
         self.copy_main_details('sg_corr_network_structure_node', 'corr_network_id', corr_network_id_dict, join=False)
 
+    def sixteen_function_predict(self):
+        function_predict_id_dict = self.copy_collection_with_change('sg_16s', change_positions=['otu_id'], update_sg_status=True)
+        self.copy_main_details('sg_16s_cog_function', 'prediction_id', function_predict_id_dict, join=False)
+        self.copy_main_details('sg_16s_cog_specimen', 'prediction_id', function_predict_id_dict, join=False)
+        self.copy_main_details('sg_16s_kegg_level', 'prediction_id', function_predict_id_dict, join=False)
+        self.copy_main_details('sg_16s_kegg_specimen', 'prediction_id', function_predict_id_dict, join=False)
 
     def alpha_diversity(self):
-        print "alpha_diversity"
         self.alpha_diversity_id_dict = self.copy_collection_with_change('sg_alpha_diversity', change_positions=['otu_id'], update_sg_status=True, join=True)
-        print "alpha_diversity end"
         self._exchange_dict['alpha_diversity_id'] = self.alpha_diversity_id_dict
         self.copy_main_details('sg_alpha_diversity_detail', 'alpha_diversity_id', self.alpha_diversity_id_dict, join=False)
         self.alpha_ttest()
@@ -223,6 +228,7 @@ class CopyMongo(object):
             可用为specimen_id,group_id,env_id,otu_id,alpha_diversity_id,newick_tree_id,specimen_distance_id
         params update_sg_status: 更新 sg_status表
         """
+        time_start = datetime.datetime.now()
         coll = self.db[collection]
         finds = coll.find({'task_id': self._old_task_id})
         news = []
@@ -242,8 +248,14 @@ class CopyMongo(object):
             result = coll.insert_many(news)
             if update_sg_status:
                 self.insert_new_status(collection, news, result.inserted_ids)
+            time_end = datetime.datetime.now()
+            run_time = (time_end - time_start).seconds
+            print "{}复制运行时间: {}s".format(collection, run_time)
             return dict(zip(olds, [str(one) for one in result.inserted_ids]))
         else:
+            time_end = datetime.datetime.now()
+            run_time = (time_end - time_start).seconds
+            print "{}复制运行时间: {}s".format(collection, run_time)
             return {}
 
     def copy_collection_with_change(self, collection, change_positions=[], update_sg_status=False, join=True):
@@ -265,6 +277,7 @@ class CopyMongo(object):
         params others_position: detail表中除了主表还需要更新的字段，
             只能是 specimen_id,group_id,env_id,otu_id,alpha_diversity_id,newick_tree_id,specimen_distance_id
         """
+        time_start = datetime.datetime.now()
         coll = self.db[collection]
         for old, new in change_dict.items():
             finds = coll.find({main_field: ObjectId(old)})
@@ -279,6 +292,9 @@ class CopyMongo(object):
                 coll.insert_many(news)
             else:
                 print 'WARNING: 主表:{}没有detail表信息，请注意数据合理性,collection:{}'.format(old, collection)
+        time_end = datetime.datetime.now()
+        run_time = (time_end - time_start).seconds
+        print "{}复制运行时间: {}s".format(collection, run_time)
 
     def copy_main_details(self, collection, main_field, change_dict, others_position=[], join=True):
         greenlet = Greenlet(self._copy_main_details, collection, main_field, change_dict, others_position)
@@ -333,11 +349,8 @@ class CopyMongo(object):
                 i['project_sn'] = self._new_project_sn
             if 'params' in i:
                 i['params'] = self.params_exchange(i['params'])
-            if i['table_type'] == 'otu':
-                if 'table_id' in i:
-                    i['table_id'] = ObjectId(self.otu_id_dict[str(i['table_id'])])
-            elif i['table_type'] == 'dist':
-                print 'WARNING: newick tree表已经不在存在dist的table'
+            if 'table_id' in i:
+                i['table_id'] = ObjectId(self.otu_id_dict[str(i['table_id'])])
             news.append(i)
         if news:
             result = self.db.sg_newick_tree.insert_many(news)
@@ -419,7 +432,7 @@ class CopyMongo(object):
             find.update(update_dict)
             update_sg_status_docs.append(find)
             self.db.sg_otu.update_one({'_id': i}, {'$set': update_dict})
-        update_sg_status_docs = [i for i in update_sg_status_docs if i['type'] in ['otu_statistic', "otu_statistic,otu_venn,otu_group_analysis", 'otu_group_analysis']]
+        update_sg_status_docs = [i for i in update_sg_status_docs if i['type'] in ['otu_statistic', "otu_statistic,otu_venn,otu_group_analysis", 'otu_group_analyse']]
         ids = [i['_id'] for i in update_sg_status_docs]
         self.insert_new_status('sg_otu', update_sg_status_docs, ids)
         return self.otu_id_dict
@@ -555,7 +568,7 @@ class CopyMongo(object):
         return json.dumps(params, sort_keys=True, separators=(',', ':'))
 
 if __name__ == '__main__':
-    copy_task = CopyMongo('tsanger_7008', 'tsanger_7008_17', '10004002_1', 'shenghe_test')
+    copy_task = CopyMongo('tsg_5001', 'tsg_5001_1', '10004002_1', 'shenghe_test')
     copy_task.run()
 
     # copy_task = CopyMongo('tsg_3617', 'tsg_3617_022', '10000782_22', 'm_188_22')

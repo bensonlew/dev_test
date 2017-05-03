@@ -152,20 +152,32 @@ class DistanceCalcTool(Tool):
         dist_matrix_command.run()
         self.wait()
         if dist_matrix_command.return_code == 0:
-            self.logger.info('运行qiime:beta_diversity.py完成')
-            filename = self.work_dir + '/' + \
-                self.option('method') + '_temp.txt'
-            basename = os.path.splitext(os.path.basename(self.real_otu))[0]
-            linkfile = self.output_dir + '/' + \
-                self.option('method') + '_' + basename + '.xls'
-            if os.path.exists(linkfile):
-                os.remove(linkfile)
-            os.link(filename, linkfile)
-            # self.option('dis_matrix').set_path(linkfile)
-            self.option('dis_matrix', linkfile)
-            self.end()
+            self.command_successful()
+        elif dist_matrix_command.return_code is None:
+            self.logger.warn("运行命令出错，返回值为None，尝试重新运行")
+            dist_matrix_command.rerun()
+            self.wait()
+            if dist_matrix_command.return_code is 0:
+                self.command_successful()
+            else:
+                self.set_error("运行qiime:beta_diversity.py出错")
+
         else:
             self.set_error('运行qiime:beta_diversity.py出错')
+
+    def command_successful(self):
+        self.logger.info('运行qiime:beta_diversity.py完成')
+        filename = self.work_dir + '/' + \
+            self.option('method') + '_temp.txt'
+        basename = os.path.splitext(os.path.basename(self.real_otu))[0]
+        linkfile = self.output_dir + '/' + \
+            self.option('method') + '_' + basename + '.xls'
+        if os.path.exists(linkfile):
+            os.remove(linkfile)
+        os.link(filename, linkfile)
+        # self.option('dis_matrix').set_path(linkfile)
+        self.option('dis_matrix', linkfile)
+        self.end()
 
     def biom_otu_table(self):
         """

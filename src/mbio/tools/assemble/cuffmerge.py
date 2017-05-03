@@ -65,7 +65,7 @@ class CuffmergeAgent(Agent):
             [".", "", "结果输出目录"],
         ])
         result_dir.add_regexp_rules([
-            ["merged_gtf", "gtf", "样本合并之后的gtf文件"]
+            ["merged.gtf", "gtf", "样本合并之后的gtf文件"]
         ])
         super(CuffmergeAgent, self).end()
 
@@ -111,7 +111,7 @@ class CuffmergeTool(Tool):
         运行gtf_to_fasta，转录本gtf文件转fa文件
         """
         cmd = self.cuffmerge_path + "gffread %s -g %s -w merged.fa" % (
-        self.work_dir + "/merge_out/"+"merged_gtf", self.option('ref_fa').prop['path'])
+        self.work_dir + "/merge_out/"+"merged.gtf", self.option('ref_fa').prop['path'])
         self.logger.info('运行gtf_to_fasta，形成fasta文件')
         command = self.add_command("gtf_to_fa_cmd", cmd).run()
         self.wait(command)
@@ -127,8 +127,8 @@ class CuffmergeTool(Tool):
         """
         self.logger.info("设置结果目录")
         try:
-            shutil.copy2(self.work_dir + "/merge_out/merged_gtf", self.output_dir + "/merged_gtf")
-            self.option('merged_gtf').set_path(self.work_dir + "/" + "merge_out"+"/"+"merged_gtf")
+            shutil.copy2(self.work_dir + "/merge_out/merged.gtf", self.output_dir + "/merged.gtf")
+            self.option('merged_gtf').set_path(self.work_dir + "/" + "merge_out"+"/"+"merged.gtf")
             shutil.copy2(self.work_dir + "/merged.fa", self.output_dir + "/merged.fa")
             self.logger.info("设置拼接合并分析结果目录成功")
 
