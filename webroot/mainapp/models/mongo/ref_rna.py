@@ -3,11 +3,12 @@
 from mainapp.config.db import get_mongo_client
 from bson.objectid import ObjectId
 import types
+from bson import SON
 from biocluster.config import Config
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.meta import Meta
 import random
-
+import json
 
 class RefRna(Meta):
     def __init__(self):
@@ -33,3 +34,28 @@ class RefRna(Meta):
         main_info = collection.find_one({'_id': main_id})
         return main_info
 
+    def insert_main_table(self, collection_name, data):
+        return self.db[collection_name].insert_one(SON(data)).inserted_id
+    
+    def get_express_id(self, task_id, _type, express_method): #add by khl 
+         """
+         暂时实现的功能是根据表达量的软件如RSEM和表达量水平FPKM 获取表达量的主表(tsanger_ref_rna["sg_express"]) id
+         :params _type: 表达量水平fpkm/tpm
+         :params express_method: 表达量方法 featurecounts/rsem
+         """
+         mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+         collection=mongodb["sg_express"]
+         db=collection.find({"task_id":task_id})
+         try:
+             for d in db:
+                 _id = d["_id"]
+                 params=json.loads(d['params'])
+                 print params
+                 print params['type']
+                 print params['express_method']
+                 if _type == params['type'] and express_method == params['express_method'].lower():
+                       return _id
+                 else: 
+                       pass
+         except Exception:
+                 print "没有找到{}和{}对应的express_id".format(_type,express_method)
