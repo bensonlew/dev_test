@@ -215,49 +215,38 @@ class PatchDcBackupWorkflow(Workflow):
 					print "Oops!"
 			self.rdata = self.work_dir + '/PtAnalysis/FamilyMerge/output/' + rdata
 			self.father_sample = rdata.split('_')[0]
+			self.mom_sample = rdata.split('_')[1]
+			self.preg_sample = rdata.split('_')[2]
 		else:
 			results = os.listdir(self.work_dir + "/PtAnalysis{}/FamilyMerge/output".format(n))
 			for f in results:
 				if re.match(r'.*family_joined_tab\.Rdata$', f):
 					rdata = f
-				else:
-					print "Oops!"
+				elif re.match(r'.*family_joined_tab\.txt$', f):
+					pass
 			self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/'.format(n) + rdata
 			self.father_sample = rdata.split('_')[0]
+			self.mom_sample = rdata.split('_')[1]
+			self.preg_sample = rdata.split('_')[2]
+
+		self.logger.info(self.father_sample)
+		self.logger.info(self.father)
+		self.logger.info(self.mom_sample)
+		self.logger.info(self.mother)
+		self.logger.info(self.preg_sample)
+		self.logger.info(self.preg)
+
 		if self.father_sample in self.father:
 			q = self.father.index(self.father_sample)
 			result_info.on('end', self.dedup_run, q)
+		elif self.mom_sample in self.mother:
+			q = self.mother.index(self.mom_sample)
+			result_info.on('end', self.dedup_run, q)
+		elif self.preg_sample in self.preg:
+			q = self.preg.index(self.preg_sample)
+			result_info.on('end', self.dedup_run, q)
 		else:
 			pass
-
-		#
-		# num = event['data']
-		# for n in range(num):
-		# 	result_info = self.add_tool("paternity_test.result_info")
-		# 	self.step.add_steps('result_info{}'.format(n))
-		# 	if int(n) == 0:
-		# 		results = os.listdir(self.work_dir + "/PtAnalysis/FamilyMerge/output")
-		# 		for f in results:
-		# 			if re.match(r'.*family_joined_tab\.Rdata$', f):
-		# 				rdata = f
-		# 			else:
-		# 				print "Oops!"
-		# 		self.rdata = self.work_dir + '/PtAnalysis/FamilyMerge/output/' + rdata
-		# 		self.father_sample = rdata.split('_')[0]
-		# 	else:
-		# 		results = os.listdir(self.work_dir + "/PtAnalysis{}/FamilyMerge/output".format(n))
-		# 		for f in results:
-		# 			if re.match(r'.*family_joined_tab\.Rdata$', f):
-		# 				rdata = f
-		# 			else:
-		# 				print "Oops!"
-		# 		self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/'.format(n) + rdata
-		# 		self.father_sample = rdata.split('_')[0]
-		# 	if self.father_sample in self.father:
-		# 		q = self.father.index(self.father_sample)
-		# 		result_info.on('end', self.dedup_run, q)
-		# 	else:
-		# 		pass
 
 		result_info.set_options({
 			"tab_merged": self.rdata
@@ -273,12 +262,12 @@ class PatchDcBackupWorkflow(Workflow):
 		q = event['data']
 		name_list = self.dedup_list[q]
 		self.tools_dedup = []
+		self.logger.info(q)
+		self.logger.info(name_list)
 		# family = self.father[q].split('-')[0]
 		for i in name_list:
 			pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
 			self.step.add_steps('dedup_{}'.format(n))
-			print '************'
-			print self.mother[q]
 			pt_analysis_dedup.set_options({
 				"dad_tab": self.output_dir + '/'+ i + '.tab',  # 数据库的tab文件
 				"mom_tab": self.output_dir + '/' + self.mother[q] +'.tab',
@@ -299,6 +288,7 @@ class PatchDcBackupWorkflow(Workflow):
 
 		x = len(self.tool) - 1
 
+		self.logger.info(self.tool)
 		if self.list_2D(self.tool):
 			if len(self.tool[x]) > 1:
 				self.on_rely(self.tool[x], self.end)
@@ -308,8 +298,7 @@ class PatchDcBackupWorkflow(Workflow):
 			for tool in self.tool:
 				for tool_i in tool:
 					tool_i.run()
-		else:
-			pass
+		self.logger.info(self.tool)
 
 	def list_2D(self, name):
 		for m in name:
@@ -404,8 +393,13 @@ class PatchDcBackupWorkflow(Workflow):
 					file_dir = self.output_dir + '/' + dad_id + '_' + mom_id + '_' + preg_id
 					api_main.add_pt_father_figure(file_dir, self.pt_father_id)
 
+			#如遇深度较低的样本，在结果处报错
+			if dad_id + '_' + mom_id + '_' + preg_id + '_family.png' not in results:
+				api_main.has_problem(self.pt_father_id, dad_id)
+
+
 			# 把筛选的内容提取到主表中去
-			api_main.add_father_result(self.father_id, self.pt_father_id)
+			api_main.add_father_result(self.father_id, self.pt_father_id,dad_id)
 			api_main.add_father_qc(self.father_id, self.pt_father_id)
 			# 更新单次运行的状态
 			api_main.update_sg_pt_father(self.pt_father_id)
