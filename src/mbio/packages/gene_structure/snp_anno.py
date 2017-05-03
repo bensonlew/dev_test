@@ -29,4 +29,4 @@ def snp_anno(variant_function, exonic_variant_function, snp_stat):
                 else:
                     MUT_type = "."
                     MUT_info = "."
-                w.write("\t".join([line[2], line[3], line[4], line[5],line[6], line[-1], line[0], line[1], MUT_type, MUT_info]) + "\n")
+                w.write("\t".join([line[2], line[3], line[4], line[5], line[6], line[-1], line[0], line[1], MUT_type, MUT_info]) + "\n")

@@ -7,7 +7,7 @@ import os
 from biocluster.core.exceptions import OptionError
 import subprocess
 import shutil
-from mbio.packages.ref_rna.gene_structure.snp_anno import snp_anno
+from mbio.packages.gene_structure.snp_anno import snp_anno
 import json
 
 
