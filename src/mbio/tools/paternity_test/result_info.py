@@ -85,7 +85,7 @@ class ResultInfoTool(Tool):
         # self.python_path = Config().SOFTWARE_DIR + '/program/Python/'
 
         self.R_path = 'program/R-3.3.1/bin/'
-        self.script_path = Config().SOFTWARE_DIR + '/bioinfo/medical/scripts/'
+        self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/medical/scripts/'
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib')
@@ -104,8 +104,16 @@ class ResultInfoTool(Tool):
         else:
             self.logger.info("运行绘制结果图出错")
 
+        path_family = None
+        path_fig1 = None
+        path_fig2 = None
+        path_percent = None
+
         result = os.listdir(self.work_dir)
         for file in result:
+            if re.search('.*NA.*', file):
+                break
+
             family = re.search("(.*family)\.svg", file)
             fig1 = re.search("(.*fig1)\.svg", file)
             fig2 = re.search("(.*fig2)\.svg", file)
@@ -124,15 +132,16 @@ class ResultInfoTool(Tool):
                 percent_name = percent.group(1)
                 path_percent = os.path.join(self.work_dir, percent_name)
 
-        convert_cmd = "bioinfo/medical/scripts/convert2png.sh {} {} {} {}".format(path_family,path_fig1,path_fig2,path_percent)
-        self.logger.info(convert_cmd)
-        self.logger.info("开始运行结果图的转化")
-        cmd = self.add_command("convert_cmd", convert_cmd).run()
-        self.wait(cmd)
-        if cmd.return_code == 0:
-            self.logger.info("运行转化结果图成功")
-        else:
-            self.logger.info("运行转化结果图出错")
+        if path_family and path_fig1 and path_fig2 and path_percent:
+            convert_cmd = "bioinfo/medical/scripts/convert2png.sh {} {} {} {}".format(path_family,path_fig1,path_fig2,path_percent)
+            self.logger.info(convert_cmd)
+            self.logger.info("开始运行结果图的转化")
+            cmd = self.add_command("convert_cmd", convert_cmd).run()
+            self.wait(cmd)
+            if cmd.return_code == 0:
+                self.logger.info("运行转化结果图成功")
+            else:
+                self.logger.info("运行转化结果图出错")
 
     def set_output(self):
         """
