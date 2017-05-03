@@ -8,7 +8,6 @@ import subprocess
 import re
 from mbio.packages.alpha_diversity.estimator_size import est_size
 ##################################
-from mbio.packages.alpha_diversity.make_estimators_table import make_estimators_table
 from mbio.files.meta.otu.otu_table import OtuTableFile
 #######################################
 
@@ -189,7 +188,7 @@ class EstimatorsTool(Tool):
             return False
 
     def get_est_table(self):
-        cmd = 'program/Python/bin/python {}/bioinfo/meta/scripts/make_estimate_table.py'.format(self.config.SOFTWARE_DIR)
+        cmd = 'program/Python/bin/python {}/bioinfo/meta/scripts/make_estimators_table.py'.format(self.config.SOFTWARE_DIR)
         command = self.add_command("get_est_table", cmd)
         command.run()
         self.wait(command)
