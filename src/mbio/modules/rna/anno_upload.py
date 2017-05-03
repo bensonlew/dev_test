@@ -18,7 +18,7 @@ class AnnoUploadModule(Module):
             {"name": "in_cog", "type": "infile", "format": "annotation.cog.cog_table"},
             {"name": "in_kegg", "type": "infile", "format": "annotation.upload.anno_upload"},
             {"name": "in_go", "type": "infile", "format": "annotation.upload.anno_upload"},
-            {"name": "database", "type": "string", "default": "go,kegg,string"}
+            {"name": "database", "type": "string", "default": "go,kegg,string"},
         ]
         self.add_option(options)
         self.kegg = self.add_tool("annotation.kegg_upload")

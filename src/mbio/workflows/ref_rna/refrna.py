@@ -111,21 +111,22 @@ class RefrnaWorkflow(Workflow):
         self.seq_abs = self.add_tool("annotation.transcript_abstract")
         self.new_abs = self.add_tool("annotation.transcript_abstract")
         self.para_anno = self.add_module("rna.parallel_anno")
-        self.annotation = self.add_module('annotation.ref_annotation')
+        self.annotation = self.add_module('rna.anno_upload')
         self.new_annotation = self.add_module('annotation.ref_annotation')
         self.network = self.add_module("protein_regulation.ppinetwork_analysis")
         self.tf = self.add_tool("protein_regulation.TF_predict")
         self.merge_trans_annot = self.add_tool("annotation.merge_annot")
         self.merge_gene_annot = self.add_tool("annotation.merge_annot")
-        self.ref_genome = ""
+        if self.option("ref_genome") != "customer_mode":
+            self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
+        else:
+            self.ref_genome = self.option("ref_genome_custom")
+        if self.option('genome_structure_file').format == "gene_structure.gff3":
+            if self.option("ref_genome") == "customer_mode":
+                self.gff = self.option('genome_structure_file').prop["path"]
+            else:
+                self.gff = self.json_dict[self.option("ref_genome")]["gff"]
         self.genome_status = True
-        self.final_tools = []
-        self.geno_database = ["cog"]  # 用于参考基因组提取出的序列的注释
-        if not self.option("go_upload_file").is_set:
-            self.geno_database.append("go")
-            self.geno_database.append("nr")
-        if not self.option("kegg_upload_file").is_set:
-            self.geno_database.append("kegg")
         self.step.add_steps("qcstat", "mapping", "assembly", "annotation", "exp", "map_stat",
                             "seq_abs", "transfactor_analysis", "network_analysis", "sample_analysis",
                             "altersplicing")
@@ -180,38 +181,24 @@ class RefrnaWorkflow(Workflow):
             'fastq_dir': self.option('fastq_dir'),
             'fq_type': self.option('fq_type'),
             'control_file': self.option('control_file'),
+            "ref_genome_custom": self.ref_genome
         }
-        if self.option("ref_genome") == "customer_mode":  # 如果是自定义模式,须用户上传基因组
-            # self.logger.info(dir(self.option('genome_structure_file')))
-            if self.option('genome_structure_file').format == "gene_structure.gff3":
-                self.gff = self.option('genome_structure_file').prop["path"]
-                opts.update({
-                    "gff": self.gff,
-                    "ref_genome_custom": self.option("ref_genome_custom")
-                })
-            else:
-                opts.update({
-                    "in_gtf": self.option('genome_structure_file').prop["path"],
-                    "ref_genome_custom": self.option("ref_genome_custom")
-                })
-        else:
-            self.gff = self.json_dict[self.option("ref_genome")]["gff"]
+        if self.option('genome_structure_file').format == "gene_structure.gff3":
             opts.update({
-                    "gff": self.gff,
-                    "ref_genome_custom": self.json[self.option("ref_genome")]["ref_genome"]
-                })
+                "gff": self.gff
+            })
+        else:
+            opts.update({
+                "in_gtf": self.option('genome_structure_file').prop["path"]
+            })
         if self.option('group_table').is_set:
             opts.update({'group_table': self.option('group_table')})
         self.filecheck.set_options(opts)
         self.filecheck.run()
 
     def run_gs(self):
-        if self.option("ref_genome") != "customer_mode":
-            ref = self.json_dict[self.option("ref_genome")]["ref_genome"]
-        else:
-            ref = self.option("ref_genome_custom").prop["path"]
         opts = {
-            "in_fasta": ref,
+            "in_fasta": self.ref_genome,
             "in_gtf": self.filecheck.option("gtf")
         }
         self.gs.set_options(opts)
@@ -224,19 +211,15 @@ class RefrnaWorkflow(Workflow):
         })
         self.qc.on('end', self.set_output, 'qc')
         self.genome_status = self.filecheck.option("genome_status")
-        if self.genome_status:
+        if self.genome_status:  # 运行snp模块
             self.qc.on("end", self.run_snp)
         self.qc.on('start', self.set_step, {'start': self.step.qcstat})
         self.qc.on('end', self.set_step, {'end': self.step.qcstat})
         self.qc.run()
         
     def run_seq_abs(self):
-        if self.option("ref_genome") != "customer_mode":
-            ref = self.json_dict[self.option("ref_genome")]["ref_genome"]
-        else:
-            ref = self.option("ref_genome_custom")
         opts = {
-            "ref_genome_custom": ref,
+            "ref_genome_custom": self.ref_genome,
             "ref_genome_gtf": self.filecheck.option("gtf")
         }
         self.seq_abs.set_options(opts)
@@ -294,21 +277,21 @@ class RefrnaWorkflow(Workflow):
 
     def run_para_anno(self):
         opts = {
-            "string_align_dir": self.blast_string.work_dir + "/blast_tmp",
-            "nr_align_dir": self.blast_nr.work_dir + "/blast_tmp",
-            "kegg_align_dir": self.blast_kegg.work_dir + "/blast_tmp",
-            "gene_file": self.seq_abs.option("gene_file")
+            "string_align_dir": self.blast_string.catblast.option("blastout"),
+            "nr_align_dir": self.blast_nr.catblast.option("blastout"),
+            "kegg_align_dir": self.blast_kegg.catblast.option("blastout"),
+            "gene_file": self.seq_abs.option("gene_file"),
+            "ref_genome_gtf": self.filecheck.option("gtf")
         }
         self.para_anno.set_options(opts)
         self.para_anno.on("end", self.run_annotation)
         self.para_anno.run()
 
     def run_annotation(self):
-        # 设置cog注释参数
+        # 读入上传表格文件进行注释
         pass
 
     def run_qc_stat(self, event):
-
         if event['data']: 
             self.qc_stat_after.set_options({
                 'fastq_dir': self.qc.option('sickle_dir'),
@@ -343,10 +326,6 @@ class RefrnaWorkflow(Workflow):
         self.map_gene.run()
 
     def run_mapping(self):
-        if self.option("ref_genome") != "customer_mode":
-            self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
-        else:
-            self.ref_genome = self.option("ref_genome_custom").prop["path"]
         opts = {
             "ref_genome_custom": self.ref_genome,
             "ref_genome": "customer_mode",
@@ -420,7 +399,7 @@ class RefrnaWorkflow(Workflow):
             self.new_blast_nr = self.add_module('align.' + method)
             blast_opts.update(
                 {
-                    'database': self.option("database").split(",")[-1],
+                    'database': self.option("database").split(",")[-1],  # 进行修改
                     'evalue': self.option('nr_blast_evalue')
                 }
             )
@@ -482,12 +461,8 @@ class RefrnaWorkflow(Workflow):
         self.new_annotation.run()
 
     def run_snp(self):
-        if self.option("ref_genome") != "customer_mode":
-            ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
-        else:
-            ref_genome = self.option("ref_genome_custom")
         opts = {
-            "ref_genome_custom": ref_genome,
+            "ref_genome_custom": self.ref_genome,
             "ref_genome":  "customer_mode",
             "ref_gtf": self.filecheck.option("gtf"),
             "seq_method": self.option("fq_type"),
@@ -495,12 +470,10 @@ class RefrnaWorkflow(Workflow):
         }
         self.snp_rna.set_options(opts)
         self.snp_rna.on("end", self.set_output, "snp_rna")
-        self.final_tools.append(self.snp_rna)
         self.snp_rna.run()
         
     def run_map_assess(self):
         assess_method = self.option("map_assess_method") + ",stat"
-        # assess_method = "saturation,duplication,coverage,stat"
         opts = {
             "bam": self.mapping.option("bam_output"),
             "analysis": assess_method,
@@ -531,7 +504,6 @@ class RefrnaWorkflow(Workflow):
         tool.on("end", self.set_output, "exp")
         tool.on('start', self.set_step, {'start': self.step.exp})
         tool.on('end', self.set_step, {'end': self.step.exp})
-        self.final_tools.append(tool)
         tool.run()
 
     def run_network(self):
@@ -546,7 +518,6 @@ class RefrnaWorkflow(Workflow):
         self.network.on("end", self.set_output, "network_analysis")
         self.network.on('start', self.set_step, {'start': self.step.network_analysis})
         self.network.on('end', self.set_step, {'end': self.step.network_analysis})
-        self.final_tools.append(self.network)
         self.network.run()
 
     def run_altersplicing(self):
@@ -554,11 +525,10 @@ class RefrnaWorkflow(Workflow):
             lib_type = "fr-firststrand"
         else:
             lib_type = "fr-unstranded"
-        gtf_path = self.filecheck.option("gtf")
         opts = {
             "sample_bam_dir": self.mapping.option("bam_output"),
             "lib_type": lib_type,
-            "ref_gtf": gtf_path,
+            "ref_gtf": self.filecheck.option("gtf"),
             "group_table": self.option("group_table"),
             "rmats_control": self.option("control_file")
         }
@@ -570,7 +540,6 @@ class RefrnaWorkflow(Workflow):
         self.altersplicing.on("end", self.set_output, "altersplicing")
         self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
         self.altersplicing.on('end', self.set_step, {'end': self.step.altersplicing})
-        self.final_tools.append(self.altersplicing)
         self.altersplicing.run()
 
     def run_tf(self):
@@ -582,38 +551,14 @@ class RefrnaWorkflow(Workflow):
         self.tf.on("end", self.set_output, "tf")
         self.tf.on('start', self.set_step, {'start': self.step.transfactor_analysis})
         self.tf.on('end', self.set_step, {'end': self.step.transfactor_analysis})
-        self.final_tools.append(self.tf)
         self.tf.run()
 
     def run_merge_annot(self):
-        if not self.option("go_upload_file").is_set:
-            gos_dir1_trans = self.annotation.work_dir + "/GoAnnotation/output/query_gos.list"
-            gos_dir1_gene = self.annotation.work_dir + "/RefAnnoStat/go_stat/gene_gos.list"
-        else:
-            gos_dir1_trans = self.go_upload.output_dir + "/query_gos.list"
-            gos_dir1_gene = self.annotation.option("gene_go_list").prop["path"]
-        gos_dir2_trans = self.new_annotation.work_dir + "/GoAnotation/ouptut/query_gos.list"
-        gos_dir2_gene = self.new_annotation.work_dir + "/RefAnnoStat/go_stat/gene_gos.list"
-        if not self.option("go_upload_file").is_set:
-            kegg_table_dir1_trans = self.annotation.work_dir + "/KeggAnnotation/output/kegg_table.xls"
-            kegg_table_dir1_gene = self.annotation.work_dir + "/RefAnnoStat/kegg_stat/gene_kegg_table.xls"
-        else:
-            kegg_table_dir1_trans = self.kegg_upload.output_dir + "/kegg_table.xls"
-            kegg_table_dir1_gene = self.annotation.option("gene_kegg_table").prop["path"]
-        kegg_table_dir2_trans = self.new_annotation.work_dir + "/KeggAnnotation/output/kegg_table.xls"
-        kegg_table_dir2_gene = self.new_annotation.work_dir + "/RefAnnoStat/kegg_stat/gene_kegg_table.xls"
-        cog_table_dir1_trans = self.annotation.work_dir + "/String2cogv9/output/cog_table.xls"
-        cog_table_dir2_trans = self.new_annotation.work_dir + "/String2cogv9/output/cog_table.xls"
-        cog_table_dir1_gene = self.annotation.work_dir + "/RefAnnoStat/cog_stat/gene_cog_table.xls"
-        cog_table_dir2_gene = self.new_annotation.work_dir + "/RefAnnoStat/cog_stat/gene_cog_table.xls"
-        # transcripts参数生成
-        gos_dir_trans = gos_dir1_trans + ";" + gos_dir2_trans
-        kegg_table_dir_trans = kegg_table_dir1_trans + ";" + kegg_table_dir2_trans
-        cog_table_dir_trans = cog_table_dir1_trans + ";" + cog_table_dir2_trans
-        # gene参数生成
-        gos_dir_gene = gos_dir1_gene + ";" + gos_dir2_gene
-        kegg_table_dir_gene = kegg_table_dir1_gene + ";" + kegg_table_dir2_gene
-        cog_table_dir_gene = cog_table_dir1_gene + ";" + cog_table_dir2_gene
+        """
+        根据新加入模块操作，修改self.annotation
+        :return:
+        """
+
         trans_opts = {
             "gos_dir": gos_dir_trans,
             "kegg_table_dir": kegg_table_dir_trans,
@@ -817,14 +762,7 @@ class RefrnaWorkflow(Workflow):
         else:
             self.seq_abs.on('end', self.run_align, "blast")
             self.new_abs.on("end", self.run_new_align, "diamond")
-        # self.module_before_merge = [self.new_annotation, self.annotation]
-        # if self.option("go_upload_file").is_set:
-        #     self.filecheck.on('end', self.run_go_upload)
-        #     self.module_before_merge.append(self.go_upload)
-        # if self.option("kegg_upload_file").is_set:
-        #     self.filecheck.on('end', self.run_kegg_upload)
-        #     self.module_before_merge.append(self.kegg_upload)
-        # self.on_rely(self.module_before_merge, self.run_merge_annot)
+        self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
         self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
         self.filecheck.on("end", self.run_gs)
@@ -842,9 +780,6 @@ class RefrnaWorkflow(Workflow):
             self.exp.on("end", self.run_network)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
-
-    def test_run(self):
-        pass
         
     def end(self):
         super(RefrnaWorkflow, self).end()
