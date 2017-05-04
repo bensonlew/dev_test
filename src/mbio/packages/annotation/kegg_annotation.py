@@ -199,17 +199,20 @@ class KeggAnnotation(object):
                         png_id = result['pathway_ko_png']
                         k.write(fs.get(kgml_id).read())
                         p.write(fs.get(png_id).read())
-                p_kgml = KGML_parser.read(open("pathway.kgml"))
-                p_kgml.image = png_path
-                for ko in koid:
-                    for degree in p_kgml.entries.values():
-                        if re.search(ko, degree.name):
-                            l.append(degree.id)
-                    for n in l:
-                        for graphic in p_kgml.entries[n].graphics:
-                            graphic.fgcolor = '#CC0000'
-                    canvas = KGMLCanvas(p_kgml, import_imagemap=True)
-                    canvas.draw(pathwaydir + '/' + pid + '.pdf')
+                try:
+                    p_kgml = KGML_parser.read(open("pathway.kgml"))
+                    p_kgml.image = png_path
+                    for ko in koid:
+                        for degree in p_kgml.entries.values():
+                            if re.search(ko, degree.name):
+                                l.append(degree.id)
+                        for n in l:
+                            for graphic in p_kgml.entries[n].graphics:
+                                graphic.fgcolor = '#CC0000'
+                        canvas = KGMLCanvas(p_kgml, import_imagemap=True)
+                        canvas.draw(pathwaydir + '/' + pid + '.pdf')
+                except:
+                    print "没找到对应的通路图"
         print "getPic finished!!!"
 
     def keggLayer(self, pathway_table, layerfile, taxonomyfile):
