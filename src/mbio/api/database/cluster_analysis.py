@@ -92,7 +92,7 @@ class ClusterAnalysis(Base):
             self.bind_object.logger.error("导入sg_otu_detail表格信息出错:{}".format(e))
         else:
             self.bind_object.logger.info("导入sg_otu_detail表格成功")
-        if self.add_Algorithm != '':  # three lines added by yiru 20170424
+        if add_Algorithm == '':  # three lines added by yiru 20170424
             pass
         self.bind_object.logger.info("开始导入sg_otu_specimen表")
         insert_data = list()
