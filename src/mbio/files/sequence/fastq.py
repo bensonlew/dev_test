@@ -32,7 +32,7 @@ class FastqFile(File):
         self.samples = list()
         self.is_gz = False
 
-    # @property
+    @property
     def is_gzip(self):
         """
         依据文件后缀名检测是是gz个是压缩文件
@@ -227,9 +227,3 @@ if __name__=="__main__":
     print d1
     #a1=data.check_format()
     #data.get_info()
-    
-
-
-
-  
-    

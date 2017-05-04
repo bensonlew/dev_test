@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'zhouxuan'
+# __author__ = 'zhouxuan' 20170503
 
 """微生物组成来源比例分析模块"""
 import os
@@ -8,6 +8,9 @@ import shutil
 import datetime
 from biocluster.core.exceptions import OptionError
 from biocluster.workflow import Workflow
+import re
+import pandas as pd
+from pandas import Series,DataFrame
 from mainapp.models.mongo.public.meta.meta import Meta
 
 
@@ -38,6 +41,8 @@ class MetaSourcetrackerWorkflow(Workflow):
         self.all_sort = ''
         self.source_group_file = ''
         self.sink_group_file = ''
+        self.math_sample_name = ''
+        self.sample_name = dict()
 
     def check_options(self):  # 2016.12.1 zhouxuan
         if self.option('add_Algorithm') not in ['average', 'middle', 'sum', ""]:
@@ -51,24 +56,30 @@ class MetaSourcetrackerWorkflow(Workflow):
         self.source_group_file = os.path.join(self.work_dir, "source_group")
         self.sink_group_file = os.path.join(self.work_dir, "sink_group")
         samples = []
-        sink_label = []
+        self.sink_label = []
+        self.sample_name = dict()
         with open(self.option('map_detail').prop['path'], "rb") as r, open(self.source_group_file, 'a') as e, open(self.sink_group_file, 'a') as k:
             line = r.next()
             k.write("#Sample\tsink\n")
             e.write("#Sample\tsource\n")
             for line in r:
                 line = line.rstrip().split("\t")
+                if re.match('[0-9].+', line[0]):
+                    self.math_sample_name = "true"
                 if line[0] not in samples:
                     samples.append(line[0])
                 else:
                     raise OptionError('sink组和source组中不能存在同一个样本 {}'.format(line[0]))
                 if line[2] == 'sink':
                     k.write(line[0] + "\t" + line[1] + "\n")
-                    if line[1] not in sink_label:
-                        sink_label.append(line[1])
+                    self.sample_name[line[0]] = "N_" + line[0]
+                    if line[1] not in self.sink_label:
+                        self.sink_label.append(line[1])
                 else:
                     e.write(line[0] + "\t" + line[1] + "\n")
-        if len(sink_label) == 1 or self.option('add_Algorithm') == '':
+                    self.sample_name[line[0]] = "N_" + line[0]
+        self.logger.info(self.sample_name)
+        if len(self.sink_label) == 1 or self.option('add_Algorithm') == '':
             self.run_sort_all_samples()
         else:
             self.run_sort_source_samples()
@@ -102,66 +113,165 @@ class MetaSourcetrackerWorkflow(Workflow):
     def run_meta_sourcetracker(self):
         if self.all_sort == "true":
             qiime_table_path = self.reset_input_otu_table(self.sort_all_samples.option("out_otu_table").prop['path'])
+            map_file_path = self.option('map_detail').prop['path']
         else:
             otu_table = self.add_otu_file(self.sort_source_samples.option("out_otu_table").prop['path'], self.sort_sink_samples.option("out_otu_table").prop['path'])
+            map_file_path = self.get_new_map()
             qiime_table_path = self.reset_input_otu_table(otu_table)
+        if self.math_sample_name == "true":
+            fin_map = self.change_name(map_file_path)
+        else:
+            fin_map = map_file_path
         self.meta_sourcetracker.set_options({
             "otu_table": qiime_table_path,
-            "map_table": self.option('map_detail'),
+            "map_table": fin_map,
             "s": self.option("s")
         })
         self.meta_sourcetracker.on('end', self.set_db)
         self.meta_sourcetracker.run()
 
     def reset_input_otu_table(self, old_otu_table_path):
-        new_qiime_otu_table = os.path.join(self.work_dir, "otu_table.txt")
+        self.logger.info("开始重置OTU表")
+        new_qiime_otu_table = os.path.join(self.work_dir, "finally_table.txt")
         with open(new_qiime_otu_table, "a") as n:
             firstline = "# QIIME-formatted OTU table" + "\n"
-            print (firstline)
             n.write(firstline)
         if os.path.exists(old_otu_table_path):
             a = open(old_otu_table_path, "r")
             content = a.readlines()
+            m = ''
             for f in content:
                 if f.startswith("OTU ID") == True:
-                    line = "#" + f
+                    if self.math_sample_name != "true":
+                        line = "#" + f
+                    else:
+                        f = f.rstrip("\n").split("\t")
+                        for c in f[1:]:
+                            if c in self.sample_name.keys():
+                                m = m + "\t" + self.sample_name[c]
+                            else:
+                                m = m + "\t" + "N_" + c
+                                self.sample_name[c] = "N_" + c
+                        line = "#OTU ID" + m + "\n"
+                        print line
                 else:
                     line = f
                 with open(new_qiime_otu_table, "a") as n:
                     n.write(line)
             a.close()
+        else:
+            self.logger.info("qiime的前一张OTU表不存在")
+            raise Exception("qiime的前一张OTU表不存在")
+        self.logger.info("重置OTU表结束")
         return new_qiime_otu_table
 
-    def add_otu_file(self, file1, file2):
-        new_otu_file = os.path.join(self.work_dir, "add_file.txt")
-        with open(file1, "r") as f1, open(file2, "r") as f2, open(new_otu_file, "a") as w:
-            content1 = f1.readlines()
-            content2 = f2.readlines()
-            print "###############################"
-            print len(content1)
-            for i in range(0, len(content1)):
-                print(content1[i])
-                print(content2[i])
-                content1[i] = content1[i].strip("\n")
-                line2 = content2[i].rstrip("\n").split("\t")
-                w.write(content1[i] + "\t" + ("\t").join(line2[1:]) + "\n")
+    def add_otu_file(self, source_file, sink_file):
+        self.logger.info("开始合并source和sink")
+        new_otu_file = os.path.join(self.work_dir, "add_table.txt")
+        source = pd.read_table(source_file, header=0, sep="\t")
+        sink = pd.read_table(sink_file, header=0, sep="\t")
+        source_spe = source["OTU ID"]
+        source_new_index = [i for i in source_spe]
+        source.index = source_new_index
+        e = set(source_new_index)
+        sink_spe = sink["OTU ID"]
+        sink_new_index = [i for i in sink_spe]
+        sink.index = sink_new_index
+        k = set(sink_new_index)
+        spe = e & k
+        fin_spe = [i for i in spe]
+        source.reindex(index=fin_spe)
+        sink.reindex(index=fin_spe)
+        fin = pd.merge(source, sink)
+        fin.to_csv(new_otu_file, sep="\t", index=False)
+        self.logger.info("合并source和sink结束")
         return new_otu_file
+
+    def change_name(self, file1):
+        self.logger.info("self.math_sample_name {}".format(self.math_sample_name))
+        self.logger.info("修改分组文件的样本名称")
+        new_file = os.path.join(self.work_dir, "finally_map_table.txt")
+        with open(file1, "rb") as r, open(new_file, 'a') as e:
+            for line in r:
+                if line.startswith("#") == True:
+                    e.write(line)
+                else:
+                    line = line.rstrip("\n").split("\t")
+                    e.write(str(self.sample_name[line[0]]) + "\t" + str(("\t").join(line[1:]) + "\n"))
+        return new_file
+
+    def revert_name(self, file1, file2):
+        self.logger.info("修改结果文件中的样本名称")
+        key_list = []
+        value_list = []
+        for key, value in self.sample_name.items():
+            key_list.append(key)
+            value_list.append(value)
+        with open(file1, "rb") as r, open(file2, 'a') as e:
+            for line in r:
+                if line.startswith("S") == True:
+                    e.write(line)
+                else:
+                    line = line.rstrip("\n").split("\t")
+                    e.write(key_list[value_list.index(line[0])] + "\t" + str(("\t").join(line[1:])) + "\n")
+        return file2
+
+    def get_new_map(self):
+        """
+        sink分组进行分组求和时产生新的map表
+        :return:
+        """
+        self.logger.info("sink分组进行分组求和时产生新的map表")
+        new_map = os.path.join(self.work_dir, "group_map.txt")
+        with open(self.option('map_detail').prop['path'], "rb") as r, open(new_map, 'a') as e:
+            for line in r:
+                line = line.rstrip("\n").split("\t")
+                self.logger.info(len(line))
+                if line[2] != "sink":
+                    e.write(str(("\t").join(line)) + "\n")
+            for c in self.sink_label:
+                e.write(c + "\t" + c + "\t" + "sink\n")
+        self.logger.info("sink分组进行分组求和时产生新的map表的生成结束")
+        return new_map
 
     def set_db(self):
         self.logger.info("正在写入mongo数据库")
+        if self.math_sample_name != "true":
+            file_path = self.meta_sourcetracker.output_dir + "/sink_predictions.txt"
+            stdev_file_path = self.meta_sourcetracker.output_dir + "/sink_predictions_stdev.txt"
+        else:
+            file_path = self.revert_name(self.meta_sourcetracker.output_dir + "/sink_predictions.txt",
+                                         os.path.join(self.work_dir, "sink_predictions.txt"))
+            stdev_file_path = self.revert_name(self.meta_sourcetracker.output_dir + "/sink_predictions_stdev.txt",
+                                               os.path.join(self.work_dir, "sink_predictions_stdev.txt"))
         api_otu = self.api.meta_sourcetracker
-        api_otu.add_sg_sourcetracker_detail(self.option("meta_sourcetracker_id"), file_path=self.meta_sourcetracker.output_dir +
-                                            "/sink_predictions.txt", stdev_file_path=self.meta_sourcetracker.output_dir + "/sink_predictions_stdev.txt",
-                                            name_1="sink_predictions.txt", name_2="sink_predictions_stdev.txt")
+        api_otu.add_sg_sourcetracker_detail(self.option("meta_sourcetracker_id"), file_path=file_path,
+                                            stdev_file_path=stdev_file_path,
+                                            name_1="sink_predictions.txt",
+                                            name_2="sink_predictions_stdev.txt")
         self.end()
 
     def end(self):
-        try:
-            shutil.copy2(self.meta_sourcetracker.output_dir + "/sink_predictions.txt", self.output_dir + "/sink_predictions.txt")
-            shutil.copy2(self.meta_sourcetracker.output_dir + "/sink_predictions_stdev.txt", self.output_dir + "/sink_predictions_stdev.txt")
-        except Exception as e:
-            self.logger.info("copying sink_predictions.txt failed{}".format(e))
-            self.set_error("copying sink_predictions.txt failed{}".format(e))
+        if self.math_sample_name != "true":
+            try:
+                os.link(self.meta_sourcetracker.output_dir + "/sink_predictions.txt",
+                        self.output_dir + "/sink_predictions.txt")
+                os.link(self.meta_sourcetracker.output_dir + "/sink_predictions_stdev.txt",
+                        self.output_dir + "/sink_predictions_stdev.txt")
+            except Exception as e:
+                self.logger.info("copying sink_predictions.txt failed{}".format(e))
+                self.set_error("copying sink_predictions.txt failed{}".format(e))
+                raise Exception("copying sink_predictions.txt failed{}".format(e))
+        else:
+            try:
+                os.link(self.work_dir + "/sink_predictions.txt",
+                        self.output_dir + "/sink_predictions.txt")
+                os.link(self.work_dir + "/sink_predictions_stdev.txt",
+                        self.output_dir + "/sink_predictions_stdev.txt")
+            except Exception as e:
+                self.logger.info("copying sink_predictions.txt failed{}".format(e))
+                self.set_error("copying sink_predictions.txt failed{}".format(e))
+                raise Exception("copying sink_predictions.txt failed{}".format(e))
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "微生物组成来源比例分析"],

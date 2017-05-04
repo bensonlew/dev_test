@@ -91,6 +91,27 @@ class PtCustomer(Base):
         else:
             self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
 
+    def add_data_dir(self, dir_name, wq_dir, ws_dir, undetermined_dir):
+        insert_data = {
+            "data_name": dir_name,
+            "wq_dir": wq_dir,
+            "ws_dir": ws_dir,
+            "undetermined_dir": undetermined_dir
+        }
+        try:
+            collection = self.database["sg_med_data_dir"]
+            if collection.find_one({"data_name": dir_name}):
+                collection.update_one({"data_name": dir_name}, {'$set':
+                                                            {"wq_dir": wq_dir,
+                                                            "ws_dir": ws_dir,
+                                                            "undetermined_dir": undetermined_dir}})
+            else:
+                collection.insert_one(insert_data)
+        except Exception as e:
+            self.bind_object.logger.info('导入拆分结果路径出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info('导入拆分结果路径成功')
+
     def get_wq_dir(self, file_name):
         main_collection = self.database["sg_med_data_dir"]
         result = main_collection.find_one({"data_name": file_name})
@@ -101,7 +122,7 @@ class PtCustomer(Base):
             dir_list.append(result["undetermined_dir"])
             return dir_list
         else:
-            return
+            return dir_list
 
     def add_sample_type(self, file):
         insert =[]
