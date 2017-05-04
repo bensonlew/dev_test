@@ -41,6 +41,7 @@ class RefRna(Meta):
          """
          暂时实现的功能是根据表达量的软件如RSEM和表达量水平FPKM 获取表达量的主表(tsanger_ref_rna["sg_express"]) id
          :params _type: 表达量水平fpkm/tpm
+         :params query_type: gene or transcript
          :params express_method: 表达量方法 featurecounts/rsem
          """
          mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
@@ -59,3 +60,16 @@ class RefRna(Meta):
                        pass
          except Exception:
                  print "没有找到{}和{}对应的express_id".format(_type,express_method)
+    
+    def get_class_code_id(self, task_id):
+        """
+        获得class_code的主表信息，为差异分析得到sequence_id的gene_name
+        """
+        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = mongodb["sg_express_class_code"]
+        try:
+            db=collection.find_one({"task_id":task_id})
+            return db["_id"]
+        except Exception:
+            print "没有找到task_id: {}对应的class_code_id".format(task_id)
+         
