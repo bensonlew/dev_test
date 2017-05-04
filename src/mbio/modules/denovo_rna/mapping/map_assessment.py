@@ -89,7 +89,7 @@ class MapAssessmentModule(Module):
     def bam_stat_run(self):
         n = 0
         for f in self.files:
-            bam_stat = self.add_tool('gene_structure.bam_stat')
+            bam_stat = self.add_tool('align.bam_stat')
             self.step.add_steps('bamStat_{}'.format(n))
             bam_stat.set_options({
                 'bam': f

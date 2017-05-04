@@ -24,7 +24,8 @@ class Bam2tabAgent(Agent):
             {"name": "sample_id", "type": "string"}, #输入F/M/S的样本ID
             {"name": "bam_dir", "type": "string"},  #bam文件路径
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
-            {"name": "targets_bedfile", "type": "infile","format":"sequence.rda"} #位点信息
+            {"name": "targets_bedfile", "type": "infile","format":"sequence.rda"}, #位点信息
+            {"name": "batch_id", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("Bam2tab")
@@ -89,13 +90,13 @@ class Bam2tabTool(Tool):
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/lib/ruby/gems/2.3.0/gems/bio-vcf-0.9.2/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioawk')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bwa-0.7.15/bin')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/samblaster-0.1.22/bin')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/bwa-0.7.15')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/samblaster-0.1.24')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.4/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bedtools-2.24.0/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/sun_jdk1.8.0/bin')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bcftools-1.3.0/bin')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/vt-master')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bcftools-1.4/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/vt-0.577')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/vcflib-master/bin')
 
     def run_Bam2tab(self):
@@ -130,6 +131,32 @@ class Bam2tabTool(Tool):
             else:
                 pass
         self.logger.info('设置文件夹路径成功')
+
+        api = self.api.tab_file
+        temp = os.listdir(self.output_dir)
+        api_read_tab = self.api.tab_file  # 二次判断数据库中是否存在tab文件
+        for i in temp:
+            m = re.search(r'(.*)\.mem.*tab$', i)
+            n = re.search(r'(.*)\.qc', i)
+            if m:
+                tab_path = self.output_dir + '/' + i
+                tab_name = m.group(1)
+                # tab_path = self.output_dir + '/' + i
+                # tab_name = m.group(1)
+                if not api_read_tab.tab_exist(tab_name):
+                    api.add_pt_tab(tab_path, self.option('batch_id'))
+                    api.add_sg_pt_tab_detail(tab_path)
+                else:
+                    raise Exception('可能样本重名，请检查！')
+            elif n:
+                tab_path = self.output_dir + '/' + i
+                tab_name = n.group(1)
+                if not api_read_tab.qc_exist(tab_name):
+                    api.sample_qc(tab_path, tab_name)
+                    api.sample_qc_addition(tab_name)
+                else:
+                    raise Exception('可能样本重名，请检查！')
+
 
     def run(self):
         super(Bam2tabTool, self).run()

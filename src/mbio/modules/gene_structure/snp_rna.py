@@ -26,7 +26,7 @@ class SnpRnaModule(Module):
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
-            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 基因组gtf文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 基因组gtf文件
             {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
             {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列←
             {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列右
@@ -86,7 +86,7 @@ class SnpRnaModule(Module):
             elif self.option("seq_method") == "SE":
                 for f in self.samples:
                     fq_s = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f])
-                    star = self.add_tool('ref_rna.gene_structure.star')
+                    star = self.add_tool('align.star')
                     star.set_options({
                         "ref_genome": self.ref_name,
                         "readFilesIN": fq_s,
@@ -98,18 +98,18 @@ class SnpRnaModule(Module):
         
         else:  # 用户上传基因组
             self.ref_name = self.option("ref_genome")
-            ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
-            self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta)
+            ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
+            self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta.prop["path"])
             if os.path.exists(self.ref_link):
                 os.remove(self.ref_link)
-            os.link(ref_fasta, self.ref_link)  # 将参考基因组链接到self.work_dir下
+            os.link(ref_fasta.prop["path"], self.ref_link)  # 将参考基因组链接到self.work_dir下
             
             if self.option("seq_method") == "PE":  # 如果测序方式为PE测序
                 for f in self.samples:
                     self.logger.info(f)
                     fq1 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])
                     fq2 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["r"])
-                    star = self.add_tool('ref_rna.gene_structure.star')
+                    star = self.add_tool('align.star')
                     star.set_options({
                         "ref_genome": "customer_mode",
                         "ref_genome_custom": ref_fasta,
@@ -125,7 +125,7 @@ class SnpRnaModule(Module):
             elif self.option("seq_method") == "SE":  # 如果测序方式为SE测序
                 for f in self.samples:
                     fq_s = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f])
-                    star = self.add_tool('ref_rna.gene_structure.star')
+                    star = self.add_tool('align.star')
                     star.set_options({
                         "ref_genome": "customer_mode",
                         "ref_genome_custom": ref_fasta,
@@ -147,7 +147,7 @@ class SnpRnaModule(Module):
             if self.option("seq_method") == "PE":
                 star.set_options({
                     "ref_genome": "customer_mode",
-                    "ref_genome_custom": self.option('ref_genome_custom').prop["path"],
+                    "ref_genome_custom": self.option('ref_genome_custom'),
                     'readFilesIN1': self.option('readFilesIN1').prop["path"],
                     'readFilesIN2': self.option('readFilesIN2').prop["path"],
                     'seq_method': self.option('seq_method')
@@ -155,7 +155,7 @@ class SnpRnaModule(Module):
             elif self.option("seq_method") == "SE":
                 star.set_options({
                     "ref_genome": "customer_mode",
-                    "ref_genome_custom": self.option('ref_genome_custom').prop["path"],
+                    "ref_genome_custom": self.option('ref_genome_custom'),
                     'readFilesIN': self.option('readFilesIN').prop["path"],
                     'seq_method': self.option('seq_method')
                 })
@@ -185,11 +185,11 @@ class SnpRnaModule(Module):
         star_output = os.listdir(obj.output_dir)
         f_path = os.path.join(obj.output_dir, star_output[0])
         self.logger.info(f_path)  # 打印出f_path的信息，是上一步输出文件的路径
-        picard = self.add_tool('ref_rna.gene_structure.picard_rna')
+        picard = self.add_tool('gene_structure.picard_rna')
         self.picards.append(picard)
         self.logger.info(len(self.picards))
         if self.option("ref_genome") == "customer_mode":
-            ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
+            ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
             picard.set_options({
                 "ref_genome_custom": ref_fasta,
                 "in_sam": f_path,
@@ -218,13 +218,13 @@ class SnpRnaModule(Module):
             if i.endswith(".bam"):
                 f_path = os.path.join(obj.output_dir, i)
                 self.logger.info(f_path)
-        gatk = self.add_tool('ref_rna.gene_structure.gatk')
+        gatk = self.add_tool('gene_structure.gatk')
         self.gatks.append(gatk)
         self.logger.info("llllgatkkkkkkk")
         self.logger.info(self.ref_name)
         self.logger.info(self.option("ref_genome"))
         if self.option("ref_genome") == "customer_mode":
-            ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
+            ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
             gatk.set_options({
                 "ref_fa": ref_fasta,
                 "input_bam": f_path,
@@ -251,7 +251,7 @@ class SnpRnaModule(Module):
             if i.endswith(".vcf"):
                 vcf_path = os.path.join(obj.output_dir, i)
         self.logger.info(vcf_path)
-        annovar = self.add_tool('ref_rna.gene_structure.annovar')
+        annovar = self.add_tool('gene_structure.annovar')
         options = {
             "ref_genome": self.ref_name,
             "input_file": vcf_path,

@@ -19,7 +19,7 @@ class ClusterAgent(Agent):
     def __init__(self, parent):
         super(ClusterAgent, self).__init__(parent)
         options = [
-            {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，差异基因表达量矩阵
+            {"name": "diff_fpkm", "type": "infile", "format": "rna.express_matrix"},  # 输入文件，差异基因表达量矩阵
             {"name": "distance_method", "type": "string", "default": "euclidean"},  # 计算距离的算法
             {"name": "log", "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
             {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择

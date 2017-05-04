@@ -17,10 +17,10 @@ class CuffcompareAgent(Agent):
     def __init__(self, parent):
         super(CuffcompareAgent, self).__init__(parent)
         options = [
-            {"name": "merged_gtf", "type": "infile", "format": "sequence.gtf"},  # 拼接合并之后的转录本文件
+            {"name": "merged_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 拼接合并之后的转录本文件
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
-            {"name": "ref_gtf", "type": "infile", "format": "sequence_gtf"},  # 参考基因的注释文件
-            {"name": "cuff_gtf", "type": "outfile", "format": "sequence.gtf"},  # compare后的combined.gtf文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因的注释文件
+            {"name": "cuff_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # compare后的combined.gtf文件
         ]
         self.add_option(options)
         self.step.add_steps("cuffcompare")
