@@ -64,4 +64,3 @@ else:
     signal.signal(signal.SIGTERM, kill_sub_service)
     signal.signal(signal.SIGINT, kill_sub_service)
     server.start()
-

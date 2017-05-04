@@ -18,11 +18,11 @@ class NewTranscriptsAgent(Agent):
     def __init__(self, parent):
         super(NewTranscriptsAgent, self).__init__(parent)
         options = [
-            {"name": "tmap", "type": "infile", "format": "ref_rna.assembly.tmap"},  # compare后的tmap文件
+            {"name": "tmap", "type": "infile", "format": "assembly.tmap"},  # compare后的tmap文件
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
-            {"name": "merged_gtf", "type": "infile", "format": "sequence.gtf"},  # 拼接后的注释文件
-            {"name": "new_trans_gtf", "type": "outfile", "format": "sequence.gtf"},  # 新转录本注释文件
-            {"name": "new_genes_gtf", "type": "outfile", "format": "sequence.gtf"},  # 新基因gtf文件
+            {"name": "merged_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 拼接后的注释文件
+            {"name": "new_trans_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新转录本注释文件
+            {"name": "new_genes_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新基因gtf文件
             {"name": "new_trans_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本注释文件
             {"name": "new_genes_fa", "type": "outfile", "format": "sequence.fasta"}  # 新基因注释文件
         ]

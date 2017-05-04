@@ -19,7 +19,7 @@ class CoverageAgent(Agent):
     def __init__(self, parent):
         super(CoverageAgent, self).__init__(parent)
         options = [
-            {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
+            {"name": "bed", "type": "infile", "format": "gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam"},  # bam格式文件
             {"name": "min_len", "type": "int", "default": 100}  # Minimum mRNA length (bp).
         ]

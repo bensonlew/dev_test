@@ -19,7 +19,7 @@ class RpkmSaturationAgent(Agent):
     def __init__(self, parent):
         super(RpkmSaturationAgent, self).__init__(parent)
         options = [
-            {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
+            {"name": "bed", "type": "infile", "format": "gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "quality", "type": "int", "default": 30},  # 质量值
             {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
@@ -79,6 +79,7 @@ class RpkmSaturationTool(Tool):
         self.python_full_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
         self.perl_path = "program/perl/perls/perl-5.24.0/bin/perl"
         self.plot_script = self.config.SOFTWARE_DIR + "/bioinfo/plot/scripts/saturation2plot.pl"
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin")
         self.plot_cmd = []
 
     def rpkm_saturation(self, bam, out_pre):

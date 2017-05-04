@@ -13,7 +13,7 @@ import os
 import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-from mbio.packages.ref_rna.trans_step import *
+from mbio.packages.gene_structure.rmats_process_func import *
 import re
 from mbio.files.sequence.file_sample import FileSampleFile
 
@@ -21,7 +21,7 @@ from mbio.files.sequence.file_sample import FileSampleFile
 class RmatsModule(Module):
     '''
     '''
-
+    
     def __init__(self, work_id):
         super(RmatsModule, self).__init__(work_id)
         options = [
@@ -38,10 +38,10 @@ class RmatsModule(Module):
             {"name": "as_diff", "type": "float", "default": 0.05},
             {"name": "keep_temp", "type": "int", "default": 0}
         ]
-
+        
         self.add_option(options)
         self.rmats_bam_tools = []
-
+    
     def check_options(self):
         if self.option('sample_bam_dir') is None:
             raise OptionError("必须设置bam文件夹")
@@ -57,18 +57,19 @@ class RmatsModule(Module):
             raise OptionError('是否设置发现新的AS事件，参数范围应为（1,0），其中1为是，0为否')
         if self.option('group_table').is_set and not self.option('gname'):
             raise OptionError("有分组文件时必须传入分组方案名字")
-        if self.option('group_table').is_set and self.option('gname') not in self.option('group_table').prop['group_scheme']:
+        if self.option('group_table').is_set and self.option('gname') not in self.option('group_table').prop[
+            'group_scheme']:
             raise OptionError("传入分组方案名字不在分组文件内")
         if not self.option('rmats_control').is_set:
             raise OptionError("必须设置输入文件：上下调对照组参考文件")
-
+        
         return True
-
+    
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
         step.finish()
         self.step.update()
-
+    
     # def link_ref(self):
     #     ref_gtf = self.option('ref_gtf').path
     #     self.ref_gtf_link = self.work_dir + "/" + os.path.basename(ref_gtf)
@@ -76,14 +77,14 @@ class RmatsModule(Module):
     #     if os.path.exists(self.ref_gtf_link):
     #         os.remove(self.ref_gtf_link)
     #     os.symlink(ref_gtf, self.ref_gtf_link)
-
+    
     def get_list(self):
         list_path = os.path.join(self.option("sample_bam_dir").path, "list.txt")
         file_sample = FileSampleFile()
         file_sample.set_path(list_path)
         samples = file_sample.get_list()
         return samples
-
+    
     def get_group_str(self):
         '''
 
@@ -93,31 +94,37 @@ class RmatsModule(Module):
         sample_bams = [f for f in os.listdir(self.option('sample_bam_dir').path) if re.match(r'.*\.bam$', f)]
         sample_path_dic = {}
         for sample_bam in sample_bams:
-            m = re.match(r'(\S+?)\.\S+\.bam$', sample_bam)
+            # m = re.match(r'(\S+?)\.\S+\.bam$', sample_bam)
+            m = re.match(r'(\S+)\.bam$', sample_bam)  # edited by shijin
             sample_name = m.group(1)
             '''
             字典格式为：{sample_name: sample_bam_abs_path}
             '''
             sample_path_dic[sample_name] = os.path.join(self.option('sample_bam_dir').path, sample_bam)
+        self.logger.info('sample_path_dic 为：{}'.format(sample_path_dic))
         num, vs_list = self.option('rmats_control').get_control_info()
+        self.logger.info('获取的信息为：{}，{}'.format(num, vs_list))
         group_sample_dic = self.option(
             'group_table').get_group_spname()  #:return group_spname:该分组方案下分组类别对应的样本信息详细的字典，eg：{'A': [1,2,3], 'B': [4,5,6]}
+        self.logger.info('group_sample_dic 为：{}'.format(group_sample_dic))
         for vs_pair in vs_list:
             a_group_name = vs_pair[0]
             b_group_name = vs_pair[1]
+            self.logger.info("b_group_name为： {}".format(b_group_name))
+            self.logger.info("a_group_name为： {}".format(a_group_name))
             a_group_samples = group_sample_dic[a_group_name]
             a_group_path_lst = []
             b_group_path_lst = []
             b_group_samples = group_sample_dic[b_group_name]
             for a_group_sample in a_group_samples:
-                a_group_path_lst.append(sample_path_dic[a_group_sample])
+                a_group_path_lst.append(sample_path_dic[a_group_sample + '.bam.sorted'])
             for b_group_sample in b_group_samples:
-                b_group_path_lst.append(sample_path_dic[b_group_sample])
+                b_group_path_lst.append(sample_path_dic[b_group_sample + '.bam.sorted'])
             a_group_path_str = ','.join(a_group_path_lst)
             b_group_path_str = ','.join(b_group_path_lst)
             a_b_bam_path_tuple_lst.append((a_group_path_str, b_group_path_str))
         return a_b_bam_path_tuple_lst
-
+    
     def multi_rmats_bam_run(self):
         vs_group_path_pair_lst = self.get_group_str()
         n = 0
@@ -138,7 +145,7 @@ class RmatsModule(Module):
                 "output_dir": rmats_bam.output_dir,
                 "keep_temp": self.option('keep_temp')
             })
-
+            
             step = getattr(self.step, 'rmats_bam_{}'.format(n))
             step.start()
             """绑定下一个将要运行的步骤"""
@@ -147,11 +154,12 @@ class RmatsModule(Module):
             self.rmats_bam_tools.append(rmats_bam)
         for tool in self.rmats_bam_tools:
             tool.run()
-
+    
     def set_output(self):
         self.logger.info('set output')
         for rmats_bam_tool in self.rmats_bam_tools:
-            output_dir = os.path.join(self.output_dir,rmats_bam_tool.name)
+            process_rmats_result(rmats_bam_tool.output_dir)
+            output_dir = os.path.join(self.output_dir, rmats_bam_tool.name)
             if not os.path.exists(output_dir):
                 os.mkdir(output_dir)
             outfiles = os.listdir(rmats_bam_tool.output_dir)
@@ -161,11 +169,11 @@ class RmatsModule(Module):
                 os.symlink(f_path, target)
         self.logger.info("set output done")
         self.end()
-
+    
     def run(self):
         self.multi_rmats_bam_run()
         super(RmatsModule, self).run()
-
+    
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
@@ -173,9 +181,13 @@ class RmatsModule(Module):
         ]
         )
         result_dir.add_regexp_rules([
-            ["ASevents$", '', '样本非冗余可变剪接事件详情表'],
-            ["MATS_output$", '', 'MATS结果目录'],
-            ['commands.txt$', '', 'rMATS运行过程指令'],
+            ["fromGTF\.(RI|A3SS|A5SS|SE|MXE)\.alter_id\.txt", 'txt', '可变剪接事件基本表'],
+            ["fromGTF\.novelEvents\.(RI|A3SS|A5SS|SE|MXE)\.alter_id\.txt", 'txt', '新发现可变剪接事件基本表'],
+            ["(RI|A3SS|A5SS|SE|MXE)\.MATS\.ReadsOnTargetAndJunctionCounts\.alter_id\.psi_info\.txt", 'txt',
+             '差异事件详情表（ReadsOnTargetAndJunctionCounts证据）'],
+            ["(RI|A3SS|A5SS|SE|MXE)\.MATS\.JunctionCountOnly\.alter_id\.psi_info\.txt", 'txt',
+             '差异事件详情表（JunctionCountOnly证据）'],
+            ['all_events_detail_big_table.txt', 'txt', '全部结果整合大表'],
             ['config.txt', '', '配置详情文件']
         ])
         super(RmatsModule, self).end()
