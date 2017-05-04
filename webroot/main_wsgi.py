@@ -118,6 +118,10 @@ urls = (
     "/denovo_rna/diff_express", "DiffExpress",
     "/denovo_rna/denovo_venn", "DenovoVenn",
     "/denovo_rna/go_enrich_regulate", "GoEnrichRegulate"
+
+    #med
+    "/paternity_test/pt_datasplit","PtDatasplit",
+    "/paternity_test_new","PaternityTestNew",
 )
 
 
