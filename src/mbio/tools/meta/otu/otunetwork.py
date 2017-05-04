@@ -22,7 +22,7 @@ class OtunetworkAgent(Agent):
             {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "level", "type": "string", "default": "otu"},
             {"name": "grouptable", "type": "infile", "format": "meta.otu.group_table"}
-            ]
+        ]
         self.add_option(options)
         self.step.add_steps('OtunetworkAnalysis')
         self.on('start', self.step_start)
@@ -69,7 +69,7 @@ class OtunetworkAgent(Agent):
                 if sample not in samplelist:
                     raise OptionError('分组表的样本中存在OTU表中未知的样本%s' % sample)
         table = open(self.gettable())
-        if len(table.readlines()) < 4 :
+        if len(table.readlines()) < 4:
             raise OptionError('数据表信息少于3行')
         table.close()
         return True
@@ -84,17 +84,17 @@ class OtunetworkAgent(Agent):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-                [".", "", "网络分析结果输出目录"],
-                ["./real_node_table.txt", "txt", "网络节点属性表"],
-                ["./real_edge_table.txt", "txt", "网络边的属性表"],
-                ["./real_dc_otu_degree.txt", "txt", "网络物种节点度分布表"],
-                ["./real_dc_sample_degree.txt", "txt", "网络sample节点度分布表"],
-                ["./real_dc_sample_otu_degree.txt", "txt", "网络所有节点度分布表"],
-                ["./network_centrality.txt", "txt", "网络中心系数表"],
-                ["./network_attributes.txt", "txt", "网络单值属性表"],
-                ["./network_degree.txt", "txt", "网络度统计总表"]
-                ])
-        print self.get_upload_files()
+            [".", "", "网络分析结果输出目录"],
+            ["./real_node_table.txt", "txt", "网络节点属性表"],
+            ["./real_edge_table.txt", "txt", "网络边的属性表"],
+            ["./real_dc_otu_degree.txt", "txt", "网络物种节点度分布表"],
+            ["./real_dc_sample_degree.txt", "txt", "网络sample节点度分布表"],
+            ["./real_dc_sample_otu_degree.txt", "txt", "网络所有节点度分布表"],
+            ["./network_centrality.txt", "txt", "网络中心系数表"],
+            ["./network_attributes.txt", "txt", "网络单值属性表"],
+            ["./network_degree.txt", "txt", "网络度统计总表"]
+        ])
+        # print self.get_upload_files()
         super(OtunetworkAgent, self).end()
 
 
@@ -106,8 +106,10 @@ class OtunetworkTool(Tool):
         if self.option('grouptable').is_set:
             self.group_table = self.option('grouptable').prop['path']
         self.otu_table = self.get_otu_table()
-        self.out_files = ['real_node_table.txt', 'real_edge_table.txt', 'real_dc_otu_degree.txt', 'real_dc_sample_degree.txt', 'real_dc_sample_otu_degree.txt', 'network_centrality.txt', 'network_attributes.txt', 'network_degree.txt']
-        
+        self.out_files = ['real_node_table.txt', 'real_edge_table.txt', 'real_dc_otu_degree.txt',
+                          'real_dc_sample_degree.txt', 'real_dc_sample_otu_degree.txt', 'network_centrality.txt',
+                          'network_attributes.txt', 'network_degree.txt']
+
         
     def get_otu_table(self):
         """
@@ -174,7 +176,7 @@ class OtunetworkTool(Tool):
     def get_filesname(self):
         filelist = os.listdir(self.work_dir + '/otu_network')
         files_status = [None, None, None, None, None, None, None, None]
-        for paths,d,filelist in os.walk(self.work_dir + '/otu_network'):
+        for paths, d, filelist in os.walk(self.work_dir + '/otu_network'):
             for filename in filelist:
                 name = os.path.join(paths, filename)
                 print name

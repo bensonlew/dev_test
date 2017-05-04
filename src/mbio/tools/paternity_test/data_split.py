@@ -144,6 +144,13 @@ class DataSplitTool(Tool):
 		将数据拆分的结果，直接存放在同一个文件夹下，按照样本分成不同的小文件夹
 		:return:
 		"""
+		result_dir = os.path.join(self.output_dir, "MED")
+		if os.path.exists(result_dir):
+			self.logger.info("拆分成功")
+		else:
+			raise Exception("拆分失败")
+		"""
+		# 不把Undetermined文件放入MED了
 		undetermined_file = os.listdir(self.output_dir)
 		undetermined_sample_file = []
 		for file_name in undetermined_file:
@@ -161,6 +168,7 @@ class DataSplitTool(Tool):
 				os.link(src, os.path.join(dir_name, name))
 			else:
 				os.link(src, os.path.join(dir_name, name))
+		"""
 		"""
 		med_result_dir = os.path.join(self.work_dir, "MED")
 		list_name = os.listdir(med_result_dir)

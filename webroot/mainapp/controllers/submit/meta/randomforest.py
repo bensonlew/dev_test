@@ -21,6 +21,10 @@ class Randomforest(MetaController):
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
                 return json.dumps(info)
+        table_dict = json.loads(data.group_detail)
+        if len(table_dict) < 2:
+            info = {"success": False, "info": "分析只适用于分组方案的分组类别数量大于等于2的情况！"}
+            return json.dumps(info)
         task_name = 'meta.report.randomforest'
         task_type = 'workflow'
         otu_info = self.meta.get_otu_table_info(data.otu_id)
