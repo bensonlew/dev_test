@@ -18,14 +18,14 @@ class CufflinksAgent(Agent):
     def __init__(self, parent):
         super(CufflinksAgent, self).__init__(parent)
         options = [
-            {"name": "sample_bam", "type": "infile", "format": "ref_rna.assembly.bam"},  # 所有样本比对之后的bam文件
+            {"name": "sample_bam", "type": "infile", "format": "align.bwa.bam"},  # 所有样本比对之后的bam文件
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
-            {"name": "ref_gtf", "type": "infile", "format": "sequence.gtf"},  # 参考基因的注释文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因的注释文件
             {"name": "cpu", "type": "int", "default": 10},  #cufflinks软件所分配的cpu数量
             {"name": "F", "type": "int", "default": 0.1},  # min-isoform-fraction
             {"name": "fr_stranded", "type": "string", "default": "fr-unstranded"},  # 是否链特异性
             {"name": "strand_direct", "type": "string", "default": "none"},  # 链特异性时选择正负链
-            {"name": "sample_gtf", "type": "outfile", "format": "sequence.gtf"},  # 输出的转录本文件
+            {"name": "sample_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的转录本文件
         ]
         self.add_option(options)
         self.step.add_steps("cufflinks")

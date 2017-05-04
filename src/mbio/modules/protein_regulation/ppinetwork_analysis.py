@@ -56,9 +56,6 @@ class PpinetworkAnalysisModule(Module):
 
     def ppinetwork_predict_run(self):
         diff_exp_mapped_table = os.path.join(self.work_dir, "PpinetworkMap/output/diff_exp_mapped.txt")
-        line = open(diff_exp_mapped_table, "r").readlines()[1:]
-        if not line:
-            raise Exception("基因集中的基因不能匹配到string数据库中id，请您确认基因id为Ensemble或者Entrez GeneID！")
         self.ppinetwork_predict.set_options({
             "diff_exp_mapped": diff_exp_mapped_table,
             "species": self.option("species"),

@@ -6,7 +6,7 @@ import os
 
 class PpinetworkWorkflow(Workflow):
     """
-    报告中进行OTU网络构建与分析时使用
+    报告中进行ppi网络构建与分析时使用
     """
 
     def __init__(self, wsheet_object):
@@ -17,6 +17,7 @@ class PpinetworkWorkflow(Workflow):
             {"name": "species", "type": "int", "default": 9606},
             {"name": "combine_score", "type": "int", "default": 300},  # 设定蛋白质间的相互作用可能性值前300个互作组
             {"name": "update_info", "type": "string"},
+            {"name": "geneset_id", "type": "string"},
             {"name": "ppi_id", "type": "string"}
         ]
         self.add_option(options)
@@ -26,8 +27,9 @@ class PpinetworkWorkflow(Workflow):
 
     def run_ppinetwork(self):
         # self.logger.info(self.option("diff_exp_gene").path)
+        diff_exp_gene = os.path.join(self.work_dir, "diff_exp_gene_list.txt")
         options = {
-            'diff_exp_gene': self.option('diff_exp_gene'),
+            'diff_exp_gene': diff_exp_gene,
             'species': self.option('species'),
             'combine_score': self.option('combine_score')
         }
@@ -87,12 +89,12 @@ class PpinetworkWorkflow(Workflow):
             raise Exception("找不到报告文件:{}".format(degree_distribution_path))
         if not os.path.isfile(network_node_degree_path):
             raise Exception("找不到报告文件:{}".format(network_node_degree_path))
-        print 'start insert'
 
-        api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.option("ppi_id"))   #节点的属性文件（画网络图用）
+        print 'start insert'
+        api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.option("ppi_id"))   # 节点的属性文件（画网络图用）
         api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.option("ppi_id"))  # 边信息
-        api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path = network_stats_path, table_id=self.option("ppi_id"))#网络全局属性
-        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.option("ppi_id")) #节点的聚类与degree，画折线图
+        api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.option("ppi_id"))  # 网络全局属性
+        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.option("ppi_id"))  # 节点的聚类与degree，画折线图
         api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("ppi_id"))  # 中心信息
         api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.option("ppi_id"))  # 度分布
         print 'end insert'

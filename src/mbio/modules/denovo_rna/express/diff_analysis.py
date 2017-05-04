@@ -5,7 +5,7 @@
 from biocluster.module import Module
 import os
 from biocluster.core.exceptions import OptionError
-from mbio.files.denovo_rna.express.diff_stat_table import DiffStatTableFile
+from mbio.files.rna.diff_stat_table import DiffStatTableFile
 # import shutil
 
 
@@ -15,9 +15,9 @@ class DiffAnalysisModule(Module):
         self.step.add_steps('cluster', 'network', 'go_rich', 'kegg_rich', 'go_regulate', 'kegg_regulate')
         options = [
             {"name": "analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich,go_regulate,kegg_regulate"},  # 选择要做的分析
-            {"name": "diff_fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
-            {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 全部基因名称文件
-            {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},  # 差异基因名称文件
+            {"name": "diff_fpkm", "type": "infile", "format": "rna.express_matrix"},  # 差异基因表达量表
+            {"name": "all_list", "type": "infile", "format": "rna.gene_list"},  # 全部基因名称文件
+            {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},  # 差异基因名称文件
             {"name": "distance_method", "type": "string", "default": "euclidean"},  # 计算距离的算法
             {"name": "log", "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
             {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
@@ -26,12 +26,12 @@ class DiffAnalysisModule(Module):
             {"name": "dissimilarity", "type": "float", "default": 0.25},
             {"name": "module", "type": "float", "default": 0.1},
             {"name": "network", "type": "float", "default": 0.2},
-            {"name": "diff_list_dir", "type": "infile", "format": "denovo_rna.express.gene_list_dir"},  # 两两样本/分组的差异基因文件
+            {"name": "diff_list_dir", "type": "infile", "format": "rna.gene_list_dir"},  # 两两样本/分组的差异基因文件
             {"name": "correct", "type": "string", "default": "BH"},  # 多重检验校正方法
             {"name": "gene_kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},  # KEGG的pathway文件
             {"name": "gene_go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
             {"name": "gene_go_level_2", "type": "infile", "format": "annotation.go.level2"},
-            {"name": "diff_stat_dir", "type": "infile", "format": "denovo_rna.express.diff_stat_dir"},
+            {"name": "diff_stat_dir", "type": "infile", "format": "rna.diff_stat_dir"},
         ]
         self.add_option(options)
         self.cluster = self.add_tool("denovo_rna.express.cluster")

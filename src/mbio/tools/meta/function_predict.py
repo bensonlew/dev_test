@@ -11,7 +11,7 @@ import shutil
 import re
 import subprocess
 import itertools
-from mbio.packages.annotation.kegg.kegg_annotation_v1 import KeggAnnotation
+from mbio.packages.annotation.kegg_annotation import KeggAnnotation
 
 
 class FunctionPredictAgent(Agent):
@@ -69,6 +69,7 @@ class FunctionPredictTool(Tool):
         self.scripts = self.config.SOFTWARE_DIR + "/bioinfo/meta/16s_scripts/"
         self.picrust_path = self.config.SOFTWARE_DIR + "/bioinfo/meta/picrust-1.1.0/scripts/"
         self.Fundb = self.config.SOFTWARE_DIR + "/bioinfo/meta/16sFundb/rep_set/97_otus.fasta"  # 设置数据库文件路径，97_otus.fasta
+        self.category_db = self.config.SOFTWARE_DIR + "/bioinfo/meta/16sFundb/database/"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
         self.cmds = []
 
@@ -145,8 +146,8 @@ class FunctionPredictTool(Tool):
         cmd13 = '{} {}kegg_anno.pl -i predictions_ko.xls -o kegg > kegg_anno.log'.format(self.perl, self.scripts)
         cmd14 = '{} {}cog_anno.pl -i predictions_cog.xls -o cog'.format(self.perl, self.scripts)
 
-
         cmd15 = '{}python {}cog-boxplot.py -f cog.category.function.xls -c cog.descrip.table.xls -o cog.box.pdf'.format(self.python_scripts, self.scripts)
+        cmd16 = '{}python {}cog_category.py {} {} predictions_cog.xls'.format(self.python_scripts, self.scripts, self.category_db + 'NOG.funccat.txt', self.category_db + 'eggnog.fun_cate.txt')
 
         if self.option("db") == "cog" or self.option("db") == "both":
             self.cmds.append(cmd9_cog)
@@ -155,6 +156,7 @@ class FunctionPredictTool(Tool):
             self.cmds.append(cmd9_trans2)
             self.cmds.append(cmd14)
             self.cmds.append(cmd15)
+            self.cmds.append(cmd16)
             self.logger.info("cog分析命令行添加完毕！")
         if self.option("db") == "kegg" or self.option("db") == "both":
             self.cmds.append(cmd8_ko)
@@ -240,7 +242,7 @@ class FunctionPredictTool(Tool):
             shutil.move("KEGG", self.output_dir)
             os.makedirs("output/KEGG/Pathway_pdf")
             pdf_dir = os.path.join(os.getcwd(), "output/KEGG/Pathway_pdf")
-            KeggAnnotation().get_pictrue("pid.txt", pdf_dir)
+            KeggAnnotation().getPic("pid.txt", pdf_dir)
             os.makedirs("output/KEGG/Pathway_png")
             png_dir = os.path.join(os.getcwd(), "output/KEGG/Pathway_png")
             if os.path.exists(pdf_dir):
