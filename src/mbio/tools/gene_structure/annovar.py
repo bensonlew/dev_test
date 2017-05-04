@@ -23,9 +23,9 @@ class AnnovarAgent(Agent):
         super(AnnovarAgent, self).__init__(parent)
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
-            {"name": "input_file", "type": "infile", "format": "ref_rna.gene_structure.vcf"},  # 输入文件
+            {"name": "input_file", "type": "infile", "format": "gene_structure.vcf"},  # 输入文件
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 输入文件
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"},  # 输入文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf,gene_structure.gff3"},  # 输入文件
         ]
         self.add_option(options)
         self.step.add_steps('annovar')
