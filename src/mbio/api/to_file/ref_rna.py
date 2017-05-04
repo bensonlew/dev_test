@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'shijin'
+# __author__ = 'sanger'
 import os
 from biocluster.config import Config
 from bson.objectid import ObjectId
+import types
+import json
+import re
+from types import StringTypes
 
 
 # client = Config().mongo_client
@@ -24,6 +28,68 @@ def export_gene_list(data, option_name, dir_path, bind_obj=None):
             gene_id = result['gene_name']
             f.write(gene_id + "\n")
     return gene_list_path
+
+
+def export_blast_table(data, option_name, dir_path, bind_obj=None):
+    """
+    获取blast结果
+    """
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    nr_table_path = os.path.join(dir_path, "nr_{}.xls".format(option_name))
+    gene_nr_table_path = os.path.join(dir_path, "gene_nr_{}.xls".format(option_name))
+    sw_table_path = os.path.join(dir_path, "swissprot_{}.xls".format(option_name))
+    gene_sw_table_path = os.path.join(dir_path, "gene_swissprot_{}.xls".format(option_name))
+    blast_collection = db["sg_annotation_blast"]
+    blast_result = blast_collection.find({"stat_id": ObjectId(data)})
+    if not blast_result.count():
+        raise Exception("stat_id:{}在sg_annotation_blast表中未找到".format(data))
+    for result in blast_result:
+        blast_id = result["_id"]
+    collection = db["sg_annotation_blast_detail"]
+    results = collection.find({"blast_id": blast_id})
+    with open(nr_table_path, "wb") as w1, open(gene_nr_table_path, "wb") as w2, open(sw_table_path, "wb") as w3, open(gene_sw_table_path, "wb") as w4:
+        header = "Score\tE-Value\tHSP-Len\tIdentity-%\tSimilarity-%\tQuery-Name\tQ-Len\tQ-Begin\t"
+        header += "Q-End\tQ-Frame\tHit-Name\tHit-Len\tHsp-Begin\tHsp-End\tHsp-Frame\tHit-Description\n"
+        w1.write(header)
+        w2.write(header)
+        w3.write(header)
+        w4.write(header)
+        for result in results:
+            db = result["database"]
+            anno_type = result["anno_type"]
+            seq_type = result["seq_type"]
+            score = result["score"]
+            evalue = result["e_value"]
+            hsp_len = result["hsp_len"]
+            identity = result["identity_rate"]
+            similarity = result["similarity_rate"]
+            query_id = result["query_id"]
+            hit_name = result["hit_name"]
+            description = result["description"]
+            q_len = result["q_len"]
+            q_begin = result["q_begin"]
+            q_end = result["q_end"]
+            q_frame = result["q_frame"]
+            hit_len = result["hit_len"]
+            hsp_begin = result["hsp_begin"]
+            hsp_end = result["hsp_end"]
+            hsp_frame = result["hsp_frame"]
+            line = str(score) + "\t" + str(evalue) + "\t" + str(hsp_len) + "\t" + str(identity) + "\t"
+            line += str(similarity) + "\t" + query_id + "\t" + q_len + "\t" + q_begin + "\t" + q_end + "\t" + q_frame + "\t"
+            line += hit_name + "\t"+ hit_len + "\t" + hsp_begin + "\t" + hsp_end + "\t" + hsp_frame + "\t" + description + "\n"
+            if seq_type == "new":
+                if db == "nr":
+                    if anno_type == "transcript":
+                        w1.write(line)
+                    if anno_type == "gene":
+                        w2.write(line)
+                if db == "swissprot":
+                    if anno_type == "transcript":
+                        w3.write(line)
+                    if anno_type == "gene":
+                        w4.write(line)
+    paths = ",".join([nr_table_path, gene_nr_table_path, sw_table_path, gene_sw_table_path])
+    return paths
 
 
 def export_go_list(data, option_name, dir_path, bind_obj=None):
@@ -126,7 +192,8 @@ def export_diff_express(data, option_name, dir_path, bind_obj=None):  # 需要�
                 log = result["log2FC({}/{})".format(compare_name, name)]
                 pval = result["Pvalue"]
                 fdr = result["Fdr"]
-            w.write(gene_id + '\t' + str(name_count) + '\t' + str(compare_count) + '\t' + str(name_fpkm) + '\t' + str(compare_fpkm) + '\t' + str(log) + '\t' + str(pval) + '\t' + str(fdr) + '\t' + significant + '\t' + regulate + '\n')
+            w.write(gene_id + '\t' + str(name_count) + '\t' + str(compare_count) + '\t' + str(name_fpkm) + '\t' + str(compare_fpkm) + '\t' + str(log) + '\t' + str(pval) + '\t' + str(fdr) +
+'\t' + significant + '\t' + regulate + '\n')
     return diff_express
 
 
@@ -246,3 +313,140 @@ def export_gene_list_ppi(data, option_name, dir_path, bind_obj=None):
             gene_id = result['gene_name']
             f.write(gene_id + "\n")
     return gene_list_path
+
+    
+# ############表达量部分
+def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
+    """
+    level对应的是gene/transcript字段，workflow里确保有这个字段 
+    """
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    fpkm_path = os.path.join(dir_path, "%s_fpkm.matrix" % option_name)
+    count_path = os.path.join(dir_path, "%s_count.matrix" % option_name)
+    bind_obj.logger.debug("正在导出计数矩阵:%s；fpkm矩阵:%s" % (count_path, fpkm_path))
+    collection = db['sg_express_detail']
+    my_collection = db['sg_express']
+    level = bind_obj.sheet.option("type")
+    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(level)}]})
+    my_result = my_collection.find_one({'_id': ObjectId(data)})
+    if not my_result:
+        raise Exception("意外错误，express_id:{}在sg_express中未找到！".format(ObjectId(data)))
+    samples = my_result['specimen']
+    with open(fpkm_path, "wb") as f, open(count_path, 'wb') as c:
+        head = '\t'.join(samples)
+        f.write('\t' + head + '\n')
+        c.write('\t' + head + '\n')
+        for result in results:
+            gene_id = result['seq_id']
+            fpkm_write = '{}'.format(gene_id)
+            count_write = '{}'.format(gene_id)
+            for sam in samples:
+                fpkm = sam + '_fpkm'
+                count = sam + '_count'
+                fpkm_write += '\t{}'.format(result[fpkm])
+                count_write += '\t{}'.format(result[count])
+            fpkm_write += '\n'
+            count_write += '\n'
+            f.write(fpkm_write)
+            c.write(count_write)
+    paths = ','.join([fpkm_path, count_path])
+    return paths
+
+
+def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
+    """
+    按分组的详细信息获取group表
+    使用时确保你的workflow的option里group_detal这个字段
+    """
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
+    bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
+    if data in ["all", "All", "ALL"]:
+        with open(file_path, "wb") as f:
+            f.write("#sample\t" + "##empty_group##" + "\n")
+        return file_path
+    data = _get_objectid(data)
+    group_detail = bind_obj.sheet.option('group_detail')  #另传字段
+    group_table = db['sg_specimen_group_compare']  
+    if not isinstance(group_detail, dict):
+        try:
+            table_dict = json.loads(group_detail)
+        except Exception:
+            raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+    if not isinstance(table_dict, dict):
+        raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+    group_schema = group_table.find_one({"_id": ObjectId(data)})
+    if not group_schema:
+        raise Exception("无法根据传入的group_id:{}在sg_specimen_group_compare表里找到相应的记录".format(data))
+    schema_name = re.sub("\s", "_", group_schema["group_name"])  # 将分组方案名的空格替换成下划线
+    with open(file_path, "wb") as f:
+        f.write("#sample\t" + schema_name + "\n")
+    sample_table_name = 'sg_specimen'
+    sample_table = db[sample_table_name]
+    with open(file_path, "ab") as f:
+        for k in table_dict:
+            for sp_id in table_dict[k]:
+                sp = sample_table.find_one({"_id": ObjectId(sp_id)})
+                if not sp:
+                    raise Exception("group_detal中的样本_id:{}在样本表{}中未找到".format(sp_id, sample_table_name))
+                else:
+                    sp_name = sp["specimen_name"]
+                f.write("{}\t{}\n".format(sp_name, k))
+    return file_path
+
+
+def _get_objectid(data):
+    if not isinstance(data, ObjectId):
+        if not isinstance(data, StringTypes):
+            raise Exception("{}不为ObjectId类型或者其对应的字符串".format(data))
+        else:
+            try:
+                data = ObjectId(data)
+            except:
+                raise Exception("{}不为ObjectId类型或者其对应的字符串".format(data))
+    return data
+
+
+def export_control_file(data, option_name, dir_path, bind_obj=None):  #此函数待定 不一定对
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    file_path = os.path.join(dir_path, '{}.txt'.format(option_name))
+    bind_obj.logger.debug("正在导出计数矩阵:%s" % file_path)
+    collection = db['sg_specimen_control']
+    result = collection.find_one({'_id': ObjectId(data)})
+    if not result:
+        raise Exception("意外错误，control_id:{}在sg_specimen_control中未找到！".format(ObjectId(data)))
+    group_id = result['group_id']
+    if group_id not in ['all', 'All', 'ALL']:
+        if isinstance(group_id, types.StringTypes):
+            group_id = ObjectId(group_id)
+        group_coll = db['sg_specimen_group_compare']
+        g_result = group_coll.find_one({'_id': group_id})
+        if not g_result:
+            raise Exception("意外错误，control_file的group_id:{}在sg_specimen_group中未找到！".format(group_id))
+    control_detail = result['control_names']
+    with open(file_path, 'wb') as w:
+        w.write('#control\t{}\n'.format(result['scheme_name']))
+        for i in control_detail:
+            w.write('{}\t{}\n'.format(i.keys()[0], i.values()[0]))
+    return file_path
+
+
+def export_multi_gene_list(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    geneset_id = data.split(",")
+    multi_geneset_path = dir_path + "/multi_geneset_list"
+    collection = db['sg_geneset_detail']
+    main_collection = db['sg_geneset']
+    f = open(multi_geneset_path, "wb")
+    for n, gi in enumerate(geneset_id):
+        my_result = main_collection.find_one({'_id': ObjectId(gi)})
+        if not my_result:
+            raise Exception("意外错误，geneset_id:{}在sg_geneset中未找到！".format(ObjectId(gi)))
+        f.write(my_result["name"] + "\t")
+        results = collection.find({"geneset_id": ObjectId(gi)})
+        id_list = []
+        for result in results:
+            gene_id = result['gene_name']
+            id_list.append(gene_id)
+        f.write(",".join(id_list) + "\n")
+    return multi_geneset_path

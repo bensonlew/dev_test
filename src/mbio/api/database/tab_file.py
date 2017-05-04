@@ -37,6 +37,17 @@ class TabFile(Base):
                         "batch_id": ObjectId(batch_id)
                     }
                 break
+            m = re.match('WQ([0-9].*)-(M|S)(.+)\.tab',sample)
+            if m:
+                sample_dad = 'WQ' + m.group(1) +'-F.*'
+                collection = self.database['sg_pt_ref_main']
+                try:
+                    collection.find_one_and_update({"sample_id": {"$regex": sample_dad}},{'$set': {'analysised': 'no'}})
+                except Exception as e:
+                    self.bind_object.logger.error('更新重送样父本出错：{}'.format(e))
+                else:
+                    self.bind_object.logger.info("更新重送样父本成功")
+
             try:
                 collection = self.database['sg_pt_ref_main']
                 collection.find_one_and_update({"sample_id": sample_name},{'$set':insert_data})
@@ -93,31 +104,43 @@ class TabFile(Base):
             self.bind_object.logger.info("样本{}已存在数据库中".format(sample))
         return result
 
+    def qc_exist(self, sample):
+        self.bind_object.logger.info('开始检测qc表格')
+        collection = self.database['sg_pt_qc']
+        result = collection.find_one({'sample_id': sample})
+        if not result:
+            self.bind_object.logger.info("样本{}不在数据库中，开始进行转tab文件并入库流程".format(sample))
+        else:
+            self.bind_object.logger.info("样本{}已存在数据库中".format(sample))
+        return result
+
 
     def export_tab_file(self, sample, dir):
         collection = self.database['sg_pt_ref']
-        search_result = collection.find({"sample_id": sample})  # 读出来是个地址
-        temp = collection.find_one({"sample_id":sample})
-        if temp:
-            final_result = search_result
-            file = os.path.join(dir, sample + '.tab')
+        sample_tab = sample + '.tab'
+        file = os.path.join(dir, sample_tab)
+
+        if os.path.exists(file):
+            pass
         else:
-            sample_other_name = sample + '1'
-            if collection.find_one({"sample_id": sample_other_name}):
-                final_result = collection.find({"sample_id": sample_other_name})
-                file = os.path.join(dir, sample_other_name + '.tab')
+            search_result = collection.find({"sample_id": sample})  # 读出来是个地址
+            temp = collection.find_one({"sample_id":sample})
+
+            if temp:
+                final_result = search_result
+                file = os.path.join(dir, sample + '.tab')
             else:
                 raise Exception('意外报错：没有在数据库中搜到相应sample')
-        with open(file, 'w+') as f:
-            for i in final_result:
-                    f.write(i['sample_id'] + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
-                            + i['ref'] + '\t' + i['alt'] + '\t' + i['dp'] + '\t'
-                            + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
-        if os.path.getsize(file):
+            with open(file, 'w+') as f:
+                for i in final_result:
+                        f.write(i['sample_id'] + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
+                                + i['ref'] + '\t' + i['alt'] + '\t' + i['dp'] + '\t'
+                                + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
+            if os.path.getsize(file):
             # pass
-            return file
-        else:
-            raise Exception('报错：样本数据{}的tab文件为空，可能还未下机'.format(sample))
+                return file
+            else:
+                raise Exception('报错：样本数据{}的tab文件为空，可能还未下机'.format(sample))
 
 
     def dedup_sample(self, num):

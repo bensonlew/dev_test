@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 import os
 # import glob
-import shutil
+# import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
-import json
-# import re
+# import json
+from mbio.packages.gene_structure.snp_anno import snp_freq_stat
 
 
 class SnpRnaModule(Module):
@@ -26,7 +26,7 @@ class SnpRnaModule(Module):
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
-            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 基因组gtf文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf,gene_structure.gff3"},  # 基因组gtf文件
             {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
             {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列←
             {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列右
@@ -72,7 +72,7 @@ class SnpRnaModule(Module):
                 for f in self.samples:
                     fq1 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])
                     fq2 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["r"]) 
-                    star = self.add_tool('ref_rna.gene_structure.star')  # add_tool(self, path) return agent
+                    star = self.add_tool('align.star')  # add_tool(self, path) return agent
                     star.set_options({
                         "ref_genome": self.ref_name,
                         "readFilesIN1": fq1,
@@ -98,11 +98,11 @@ class SnpRnaModule(Module):
         
         else:  # 用户上传基因组
             self.ref_name = self.option("ref_genome")
-            ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
-            self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta)
+            ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
+            self.ref_link = self.work_dir + "/" + os.path.basename(ref_fasta.prop["path"])
             if os.path.exists(self.ref_link):
                 os.remove(self.ref_link)
-            os.link(ref_fasta, self.ref_link)  # 将参考基因组链接到self.work_dir下
+            os.link(ref_fasta.prop["path"], self.ref_link)  # 将参考基因组链接到self.work_dir下
             
             if self.option("seq_method") == "PE":  # 如果测序方式为PE测序
                 for f in self.samples:
@@ -147,7 +147,7 @@ class SnpRnaModule(Module):
             if self.option("seq_method") == "PE":
                 star.set_options({
                     "ref_genome": "customer_mode",
-                    "ref_genome_custom": self.option('ref_genome_custom').prop["path"],
+                    "ref_genome_custom": self.option('ref_genome_custom'),
                     'readFilesIN1': self.option('readFilesIN1').prop["path"],
                     'readFilesIN2': self.option('readFilesIN2').prop["path"],
                     'seq_method': self.option('seq_method')
@@ -155,7 +155,7 @@ class SnpRnaModule(Module):
             elif self.option("seq_method") == "SE":
                 star.set_options({
                     "ref_genome": "customer_mode",
-                    "ref_genome_custom": self.option('ref_genome_custom').prop["path"],
+                    "ref_genome_custom": self.option('ref_genome_custom'),
                     'readFilesIN': self.option('readFilesIN').prop["path"],
                     'seq_method': self.option('seq_method')
                 })
@@ -189,7 +189,7 @@ class SnpRnaModule(Module):
         self.picards.append(picard)
         self.logger.info(len(self.picards))
         if self.option("ref_genome") == "customer_mode":
-            ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
+            ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
             picard.set_options({
                 "ref_genome_custom": ref_fasta,
                 "in_sam": f_path,
@@ -224,7 +224,7 @@ class SnpRnaModule(Module):
         self.logger.info(self.ref_name)
         self.logger.info(self.option("ref_genome"))
         if self.option("ref_genome") == "customer_mode":
-            ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
+            ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
             gatk.set_options({
                 "ref_fa": ref_fasta,
                 "input_bam": f_path,
@@ -293,7 +293,8 @@ class SnpRnaModule(Module):
             self.logger.info(output_name)
             if os.path.exists(output_name):
                 os.remove(output_name)
-            os.link(obj.output_dir + "/snp_anno.xls", output_name)
+            snp_freq_stat(obj.work_dir + "snp.vcf", obj.output_dir + "/snp_anno.xls", output_name)
+            # os.link(obj.output_dir + "/snp_anno.xls", output_name)
             self.end_times += 1
             if self.end_times == len(self.samples):
                 self.logger.info("set output done")

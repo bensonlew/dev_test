@@ -118,8 +118,16 @@ class DrawFastqInfoTool(Tool):
                 self.logger.info("运行{}完成")
                 fastq_qual_stat("qual_stat")
             else:
-                self.set_error("运行{}运行出错!")
-                return False
+                # self.set_error("运行{}运行出错!")
+                # return False
+                command.rerun()  # modified by shijin on 20170504
+                self.logger.info("开始重新运行")
+                self.wait()
+                if command.return_code == 0:
+                    self.logger.info("重新运行完成")
+                    fastq_qual_stat("qual_stat")
+                else:
+                    self.set_error("两次运行出错")
         elif self.option("fastq").format == "sequence.fastq_dir":
             commands = self.multi_fastq_quality_stats()
             self.wait()
@@ -132,7 +140,16 @@ class DrawFastqInfoTool(Tool):
                     fastq_qual_stat(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
                 else:
                     # self.logger.info("运行出错")
-                    self.set_error("运行{}出错!".format(cmd.name))
-                    return False
+                    # self.set_error("运行{}出错!".format(cmd.name))
+                    # return False
+                    cmd.rerun()  # modified by shijin on 20170504
+                    self.logger.info("开始重新运行")
+                    self.wait()
+                    if cmd.return_code == 0:
+                        self.logger.info("重新运行完成")
+                        self.logger.info(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
+                        fastq_qual_stat(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
+                    else:
+                        self.set_error("两次运行出错")
         self.set_output()
         self.end()

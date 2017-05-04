@@ -7,7 +7,7 @@ import os
 from biocluster.core.exceptions import OptionError
 import subprocess
 import shutil
-from mbio.packages.ref_rna.gene_structure.snp_anno import snp_anno
+from mbio.packages.gene_structure.snp_anno import snp_anno
 import json
 
 
@@ -23,9 +23,9 @@ class AnnovarAgent(Agent):
         super(AnnovarAgent, self).__init__(parent)
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
-            {"name": "input_file", "type": "infile", "format": "ref_rna.gene_structure.vcf"},  # 输入文件
+            {"name": "input_file", "type": "infile", "format": "gene_structure.vcf"},  # 输入文件
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 输入文件
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf"},  # 输入文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf,gene_structure.gff3"},  # 输入文件
         ]
         self.add_option(options)
         self.step.add_steps('annovar')
@@ -170,6 +170,7 @@ class AnnovarTool(Tool):
         if os.path.exists(self.output_dir + "/snp_anno.xls"):
             os.remove(self.output_dir + "/snp_anno.xls")
         os.link(self.work_dir + "/snp_anno.xls", self.output_dir + "/snp_anno.xls")
+        os.link(self.option("input_file").prop["path"], self.work_dir + "snp.vcf")
         self.logger.info("set ouptput done")
 
     def run(self):

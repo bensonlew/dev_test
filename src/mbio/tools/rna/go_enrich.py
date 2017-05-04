@@ -38,7 +38,6 @@ class GoEnrichAgent(Agent):
         self.step.goenrich.finish()
         self.step.update()
 
-
     def check_options(self):
         """
         重写参数检测函数

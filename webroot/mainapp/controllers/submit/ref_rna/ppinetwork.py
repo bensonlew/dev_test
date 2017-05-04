@@ -7,13 +7,13 @@ from mainapp.controllers.project.ref_rna_controller import RefRnaController
 from bson.objectid import ObjectId
 
 
-class Ppinetwork(RefRnaController):
+class PpinetworkAction(RefRnaController):
     def __init__(self):
-        super(Ppinetwork, self).__init__(instant=False)
+        super(PpinetworkAction, self).__init__(instant=False)
 
     def POST(self):
         data = web.input()
-        default_argu = ['geneset_id', 'species', 'submit_location', 'combine_score', 'task_type']
+        default_argu = ['geneset_id', 'type', 'species', 'submit_location', 'combine_score', 'task_type']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
@@ -26,7 +26,8 @@ class Ppinetwork(RefRnaController):
             "task_type": data.task_type,
             "geneset_id": data.geneset_id,
             "species": data.species,
-            "combine_score": data.combine_score
+            "combine_score": data.combine_score,
+            "type": data.type
         }
         geneset_info = self.ref_rna.get_main_info(data.geneset_id, 'sg_geneset')
         if not geneset_info:
@@ -54,13 +55,13 @@ class Ppinetwork(RefRnaController):
             "geneset_id": data.geneset_id,
             "diff_exp_gene": data.geneset_id,
             "species": data.species,
-            "combine_score": data.combine_score,
+            "combine_score": data.combine_score
         }
         to_file = "ref_rna.export_gene_list_ppi(diff_exp_gene)"
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
                             to_file=to_file, project_sn=task_info['project_sn'], task_id=task_info['task_id'])
 
-        task_info = super(Ppinetwork, self).POST()
+        task_info = super(PpinetworkAction, self).POST()
 
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         return json.dumps(task_info)
