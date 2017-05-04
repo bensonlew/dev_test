@@ -37,7 +37,7 @@ class String2cogv9Agent(Agent):
         self.step.update()
 
     def check_options(self):
-        if not self.option("blastout").is_set no not self.option("string_table").is_set:
+        if not self.option("blastout").is_set and not self.option("string_table").is_set:
             raise OptionError("必须提供比对到string库的xm文件或table文件")
         if self.option("blastout").is_set:
             document = ET.parse(self.option("blastout").prop['path'])
