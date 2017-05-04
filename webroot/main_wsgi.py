@@ -55,6 +55,10 @@ from mainapp.controllers.submit.denovo_rna.network import Network
 # Denovo_rna instant
 from mainapp.controllers.instant.denovo_rna.denovo_venn import DenovoVenn
 
+#med submit
+from mainapp.controllers.submit.paternity_test.pt_datasplit import PtDatasplit
+from mainapp.controllers.submit.paternity_test_new import PaternityTestNew
+
 
 # web.config.debug = False
 urls = (
@@ -118,6 +122,10 @@ urls = (
     "/denovo_rna/diff_express", "DiffExpress",
     "/denovo_rna/denovo_venn", "DenovoVenn",
     "/denovo_rna/go_enrich_regulate", "GoEnrichRegulate"
+
+    #med
+    "/paternity_test/pt_datasplit","PtDatasplit",
+    "/paternity_test_new","PaternityTestNew",
 )
 
 
