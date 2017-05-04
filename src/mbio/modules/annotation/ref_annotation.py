@@ -194,10 +194,10 @@ class RefAnnotationModule(Module):
             if 'go' in self.anno_database:
                 self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
                 self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])
-            try:
-                self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
-            except Exception as e:
-                self.logger.info("统计all_annotation出错：{}".format(e))
+            # try:
+            #     self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
+            # except Exception as e:
+            #     self.logger.info("统计all_annotation出错：{}".format(e))
             self.end()
         else:
             pass
