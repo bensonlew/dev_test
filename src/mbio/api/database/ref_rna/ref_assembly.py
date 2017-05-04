@@ -19,7 +19,7 @@ class RefAssembly(object):
 # class RefAssembly(Base):
 #     def __init__(self, bind_object):
 #         super(RefAssembly, self).__init__(bind_object)
-#         self._db_name = Config().MONGODB + '_ref_rna'
+#         self.db = Config().MONGODB + '_ref_rna'
 
     # @report_check
     # def add_assembly_result(self, name=None, params=None, all_gtf_path=None, merged_path=None,
@@ -182,14 +182,23 @@ class RefAssembly(object):
         code_list = []
         with open(code_file, "r") as fr:
             for line in fr:
+                new_gene_list = []
                 lines = line.strip().split("\t")
                 gene_list = lines[1].strip().split(",")
                 code_list.append(lines[0])
+                for ids in gene_list:
+                    if ids.startswith("transcript:"):
+                        strinfo = re.compile('transcript:')
+                        new_ids = strinfo.sub('', ids)
+                        new_gene_list.append(new_ids)
+                    else:
+                        new_gene_list.append(ids)
                 data = [
                     ('transcripts_id', transcript_id),
                     ('class_code', lines[0]),
                     ('num', int(lines[2])),
-                    ('gene_list', gene_list),
+                    ('type', "transcripts"),
+                    ('gene_list', new_gene_list),
                 ]
                 data = SON(data)
                 data_list.append(data)
@@ -206,6 +215,7 @@ class RefAssembly(object):
             # self.bind_object.logger.info("导入class_code信息：%s成功!" % (code_file))
 
 if __name__ == "__main__":
+
     a = RefAssembly()
     all_gtf_path = '/mnt/ilustre/users/sanger-dev/workspace/20170411/Single_assembly_module_tophat_stringtie_zebra_2/Assembly/output/Stringtie'
     merged_path = "/mnt/ilustre/users/sanger-dev/workspace/20170411/Single_assembly_module_tophat_stringtie_zebra_2/Assembly/output/StringtieMerge"
