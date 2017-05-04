@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 # __author__ = 'linfang.jin'
 # time: 2017/1/22 17:46
@@ -13,7 +13,7 @@ import os
 import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-from mbio.packages.ref_rna.trans_step import *
+from mbio.packages.rna.trans_step import *
 import re
 from mbio.files.sequence.file_sample import FileSampleFile
 

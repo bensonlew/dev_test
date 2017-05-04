@@ -94,10 +94,11 @@ class ParallelAnnoModule(Module):
             gene_kegg_path = mod.option("gene_kegg_table").prop["path"]
             gene_go_path = mod.anno_stat.work_dir + "/go_stat/gene_blast2go.annot"
             gene_cog_path = mod.anno_stat.work_dir + "/go_stat/gene_cog_list.xls"
-            self.add2kegg_table(transcript_kegg_path, self.output_dir + "/transcript_kegg.list", "transcript")
-            self.add2kegg_table(gene_kegg_path, self.output_dir + "/gene_kegg.list", "gene")
-            self.add2go_table(transcript_go_path, self.output_dir + "/transcript_go.list", "transcript")
-            self.add2go_table(gene_go_path, self.output_dir + "/gene_go.list", "gene")
+            self.add2kegg_table(transcript_kegg_path, self.output_dir + "/kegg.list", "transcript")
+            self.add2kegg_table(gene_kegg_path, self.output_dir + "/kegg.list", "gene")
+            self.add2go_table(transcript_go_path, self.output_dir + "/go.list", "transcript")
+            self.add2go_table(gene_go_path, self.output_dir + "/go.list", "gene")
+
         self.end()
 
     @staticmethod
@@ -121,7 +122,8 @@ class ParallelAnnoModule(Module):
             for line in r:
                 tmp = line.split("\t")
                 t_id = tmp[0]
-                ko_id = tmp[1]
-                string = t_id + "\t" + type_ + "\t" + ko_id + "\n"
+                go_id = tmp[1]
+                string = t_id + "\t" + type_ + "\t" + go_id + "\n"
                 file.write(string)
         file.close()
+
