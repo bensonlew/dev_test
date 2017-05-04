@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'shijin'
+# __author__ = 'sanger'
 import os
 from biocluster.config import Config
 from bson.objectid import ObjectId
@@ -315,7 +315,7 @@ def export_gene_list_ppi(data, option_name, dir_path, bind_obj=None):
     return gene_list_path
 
     
-#############表达量部分
+# ############表达量部分
 def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     """
     level对应的是gene/transcript字段，workflow里确保有这个字段 
@@ -351,6 +351,7 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
             c.write(count_write)
     paths = ','.join([fpkm_path, count_path])
     return paths
+
 
 def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     """
@@ -393,6 +394,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
                 f.write("{}\t{}\n".format(sp_name, k))
     return file_path
 
+
 def _get_objectid(data):
     if not isinstance(data, ObjectId):
         if not isinstance(data, StringTypes):
@@ -403,7 +405,8 @@ def _get_objectid(data):
             except:
                 raise Exception("{}不为ObjectId类型或者其对应的字符串".format(data))
     return data
-    
+
+
 def export_control_file(data, option_name, dir_path, bind_obj=None):  #此函数待定 不一定对
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     file_path = os.path.join(dir_path, '{}.txt'.format(option_name))
@@ -426,3 +429,24 @@ def export_control_file(data, option_name, dir_path, bind_obj=None):  #此函数
         for i in control_detail:
             w.write('{}\t{}\n'.format(i.keys()[0], i.values()[0]))
     return file_path
+
+
+def export_multi_gene_list(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    geneset_id = data.split(",")
+    multi_geneset_path = dir_path + "/multi_geneset_list"
+    collection = db['sg_geneset_detail']
+    main_collection = db['sg_geneset']
+    f = open(multi_geneset_path, "wb")
+    for n, gi in enumerate(geneset_id):
+        my_result = main_collection.find_one({'_id': ObjectId(gi)})
+        if not my_result:
+            raise Exception("意外错误，geneset_id:{}在sg_geneset中未找到！".format(ObjectId(gi)))
+        f.write(my_result["name"] + "\t")
+        results = collection.find({"geneset_id": ObjectId(gi)})
+        id_list = []
+        for result in results:
+            gene_id = result['gene_name']
+            id_list.append(gene_id)
+        f.write(",".join(id_list) + "\n")
+    return multi_geneset_path

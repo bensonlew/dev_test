@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 import os
 # import glob
-import shutil
+# import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
-import json
-# import re
+# import json
+from mbio.packages.gene_structure.snp_anno import snp_freq_stat
 
 
 class SnpRnaModule(Module):
@@ -26,7 +26,7 @@ class SnpRnaModule(Module):
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
-            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 基因组gtf文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf,gene_structure.gff3"},  # 基因组gtf文件
             {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
             {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列←
             {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列右
@@ -72,7 +72,7 @@ class SnpRnaModule(Module):
                 for f in self.samples:
                     fq1 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["l"])
                     fq2 = os.path.join(self.option('fastq_dir').prop["path"], self.samples[f]["r"]) 
-                    star = self.add_tool('ref_rna.gene_structure.star')  # add_tool(self, path) return agent
+                    star = self.add_tool('align.star')  # add_tool(self, path) return agent
                     star.set_options({
                         "ref_genome": self.ref_name,
                         "readFilesIN1": fq1,
@@ -293,7 +293,8 @@ class SnpRnaModule(Module):
             self.logger.info(output_name)
             if os.path.exists(output_name):
                 os.remove(output_name)
-            os.link(obj.output_dir + "/snp_anno.xls", output_name)
+            snp_freq_stat(obj.work_dir + "snp.vcf", obj.output_dir + "/snp_anno.xls", output_name)
+            # os.link(obj.output_dir + "/snp_anno.xls", output_name)
             self.end_times += 1
             if self.end_times == len(self.samples):
                 self.logger.info("set output done")

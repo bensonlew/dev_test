@@ -128,7 +128,7 @@ class MultiAnalysis(MetaController):
                 return json.dumps(info)
             # params_json['group_detail'] = group_detail_sort(data.group_detail)
             if len(group) < 2:
-                info = {'success': False, 'info': '不可只选择一个分组'}
+                info = {'success': False, 'info': '分析只适用于分组方案的分组类别数量大于等于2的情况！'}
                 return json.dumps(info)
             samples = reduce(lambda x, y: x + y, group.values())
             if len(samples) == len(set(samples)):

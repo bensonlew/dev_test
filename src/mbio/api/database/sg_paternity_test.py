@@ -51,12 +51,15 @@ class SgPaternityTest(Base):
             self.bind_object.logger.info("导入家系主表成功")
         return father_id
 
-    def add_father_result(self,father_id,pt_father_id):
+    def add_father_result(self,father_id,pt_father_id, dad_id):
         collection_result = self.database['sg_pt_father_analysis']
         collection = self.database['sg_father']
         case = collection.find_one({"_id":father_id})
-        dad_id = case['dad_id']
-        result_case = collection_result.find_one({'pt_father_id':pt_father_id, "dad_id":dad_id})
+        # dad_id = case['dad_id']
+        if  collection_result.find_one({'dad_id':dad_id}):
+            result_case = collection_result.find_one({'pt_father_id':pt_father_id, "dad_id":dad_id})
+        else:
+            result_case = collection_result.find_one({'pt_father_id': pt_father_id, "dad_id": 'NA'})
         result = result_case['result']
 
         try:
@@ -348,3 +351,11 @@ class SgPaternityTest(Base):
                 self.bind_object.logger.error('导入位点信息表格出错：{}'.format(e))
             else:
                 self.bind_object.logger.info("导入位点信息表格成功")
+
+    def has_problem(self,pt_father_id,dad_id):
+        collection = self.database['sg_pt_father_analysis']
+        if collection.find_one({'dad_id':dad_id}):
+            collection.find_one_and_update({"pt_father_id":pt_father_id,'dad_id':dad_id},{"$set":{"result":'MARK'}})
+        else:
+            collection.find_one_and_update({"pt_father_id": pt_father_id, 'dad_id': 'NA'},
+                                           {"$set": {"result": 'MARK'}})

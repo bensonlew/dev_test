@@ -110,7 +110,7 @@ class FunctionPredict(Base):
             self.bind_object.logger.info("导入cog功能预测%s、%s信息成功!" % (sample_path, function_path))
 
     @report_check
-    def add_cog_specimen(self, prediction_id, group_method, sample_path, table_path):
+    def add_cog_specimen(self, prediction_id, group_method, sample_path, table_path, predict_path):
         if not isinstance(prediction_id, ObjectId):
             if isinstance(prediction_id, types.StringTypes):
                 prediction_id = ObjectId(prediction_id)
@@ -120,16 +120,21 @@ class FunctionPredict(Base):
             raise Exception("{}所指定的路径不存在，请检查！".format(sample_path))
         if not os.path.exists(table_path):
             raise Exception("{}所指定的路径不存在，请检查！".format(table_path))
+        if not os.path.exists(predict_path):
+            raise Exception("{}所指定的路径不存在，请检查！".format(predict_path))
         data_list = []
-        with open(sample_path, "rb") as f, open(table_path, "rb") as t:
+        with open(sample_path, "rb") as f, open(table_path, "rb") as t, open(predict_path, "rb") as c:
             lines = t.readlines()
+            lines2 = c.readlines()
             line1 = f.readline().strip().split('\t')
-            for line in lines[1:]:
-                line = line.strip().split("\t")
+            for i in range(1, len(lines)):
+                line = lines[i].strip().split("\t")
+                cate = lines2[i].strip().split("\t")
                 data = [
                     ("prediction_id", prediction_id),
                     ("cog_id", line[0]),
                     ("description", line[-1]),
+                    ("category", cate[-1])
                 ]
                 mylist = []
                 calculation, summary = 0, 0
