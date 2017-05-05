@@ -31,13 +31,13 @@ class RefAnnoStatAgent(Agent):
         super(RefAnnoStatAgent, self).__init__(parent)
         options = [
             {"name": "nr_xml", "type": "infile", "format": "align.blast.blast_xml"},  # blast比对到nr库的xml结果文件
-            {"name": "nr_taxon_details", "type": "infile", "format": "annotation.nr.nr_taxon"},
             {"name": "blast2go_annot", "type": "infile", "format": "annotation.go.blast2go_annot"},
             {"name": "gos_list", "type": "infile", "format": "annotation.go.go_list"},  # go注释tool的结果文件
             {"name": "gos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},   # 客户上传go注释文件,用blast2go_annot、gos_list或gos_list_upload进行go注统计
             {"name": "kegg_xml", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "kos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},  # 客户上传kegg注释文件,kegg_xml或kos_list_upload进行kegg注释统计
             {"name": "string_xml", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "string_table", "type": "infile", "format": "align.blast.blast_table"},
             {"name": "cog_list", "type": "infile", "format": "annotation.cog.cog_list"},
             {"name": "cog_table", "type": "infile", "format": "annotation.cog.cog_table"},
             {"name": "pfam_domain", "type": "infile", "format": "annotation.kegg.kegg_list"},
@@ -49,7 +49,6 @@ class RefAnnoStatAgent(Agent):
             {"name": "gene_string_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "gene_kegg_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "gene_swissprot_table", "type": "outfile", "format": "align.blast.blast_table"},
-            {"name": "nr_taxons", "type": "outfile", "format": "annotation.nr.nr_taxon"},
             {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
             {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "gene_kegg_anno_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
@@ -89,9 +88,16 @@ class RefAnnoStatAgent(Agent):
                     pass
                 else:
                     raise OptionError('缺少go注释的输入文件')
-            if i == 'cog' and not self.option('string_xml').is_set and not self.option('cog_list').is_set and not self.option('cog_table').is_set:
-                raise OptionError('缺少cog注释的输入文件')
-            if i == 'nr' and not self.option('nr_xml').is_set and not self.option('nr_taxon_details').is_set:
+            if i == 'cog':
+                if self.option('string_xml').is_set:
+                    pass
+                elif self.option('string_table').is_set:
+                    pass
+                else:
+                    raise OptionError('进行cog注释统计必须输入blast到string数据库的xml文件或table文件')
+                if not self.option('cog_list').is_set and not self.option('cog_table').is_set:
+                    raise OptionError('缺少cog注释的输入文件:cog_list、cog_table')
+            if i == 'nr' and not self.option('nr_xml').is_set:
                 raise OptionError('缺少nr注释的输入文件')
             if i == "pfam" and not self.option('pfam_domain').is_set:
                 raise OptionError('缺少pfam注释的输入文件')
@@ -114,13 +120,12 @@ class RefAnnoStatAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '10G'
+        self._memory = '30G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         relpath = [
             [".", "", "denovo注释统计结果输出目录"],
-            ["/ncbi_taxonomy/", "dir", "nr统计结果目录"],
             ["/blast_nr_statistics/", "dir", "blast比对nr库evalue等值统计目录"],
             ["/blast_swissprot_statistics/", "dir", "blast比对swissprot库evalue等值统计目录"],
             ["/cog_stat/", "dir", "cog统计结果目录"],
@@ -153,7 +158,6 @@ class RefAnnoStatAgent(Agent):
             ["/kegg_stat/gene_kegg_taxonomy.xls", "xls", "KEGG taxonomy summary of gene"],
             ["/kegg_stat/gene_kegg_layer.xls", "xls", "KEGG taxonomy summary of gene"],
             ["/kegg_stat/gene_pathway/", "dir", "基因的标红pathway图"],
-            ['/ncbi_taxonomy/gene_taxons_detail.xls', 'xls', '基因序列详细物种分类文件'],
             ["/blast_nr_statistics/gene_nr_evalue.xls", "xls", "基因序列blast结果E-value统计"],
             ["/blast_nr_statistics/gene_nr_similar.xls", "xls", "基因序列blast结果similarity统计"],
             ["/blast_nr_statistics/nr_evalue.xls", "xls", "转录本序列blast结果E-value统计"],
@@ -162,12 +166,9 @@ class RefAnnoStatAgent(Agent):
             ["/blast_swissprot_statistics/gene_nr_similar.xls", "xls", "基因序列blast结果similarity统计"],
             ["/blast_swissprot_statistics/nr_evalue.xls", "xls", "转录本序列blast结果E-value统计"],
             ["/blast_swissprot_statistics/nr_similar.xls", "xls", "转录本序列blast结果similarity统计"],
-            ["/ncbi_taxonomy/gene_taxons.xls", "xls", "基因序列nr物种注释表"],
-            ["/ncbi_taxonomy/query_taxons.xls", "xls", "nr物种注释表"],
         ]
         result_dir.add_relpath_rules(relpath)
         result_dir.add_regexp_rules([
-            [r"^/ncbi_taxonomy/nr_taxon_stat", "xls", "不同水平的nr物种分类统计表"],
         ])
         super(RefAnnoStatAgent, self).end()
 
@@ -186,14 +187,18 @@ class RefAnnoStatTool(Tool):
         self.go_annot = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goAnnot.py'
         self.go_split = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goSplit.py'
         self.kegg_anno = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
-        self.cog = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
+        self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
+        self.cog_table = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/cog_annot.py'
         self.gene_list = self.option('gene_file').prop['gene_list']
         self.gene_nr_xml = self.work_dir + '/blast/gene_nr.xml'
-        self.gene_string_xml = self.work_dir + '/blast/gene_string.xml'
+        if self.option('string_xml').is_set:
+            self.gene_string_xml = self.work_dir + '/blast/gene_string.xml'
+        else:
+            self.gene_string_table = self.work_dir + '/blast/gene_string.xls'
         self.gene_swissprot_xml = self.work_dir + '/blast/gene_swissprot.xml'
         if self.option("kegg_xml").is_set:
             self.gene_kegg_xml = self.work_dir + '/blast/gene_kegg.xml'
-        dir_list = ['/blast/', '/ncbi_taxonomy/', '/cog_stat/', '/go_stat/', '/pfam_stat/', '/kegg_stat/', '/blast_nr_statistics/', '/blast_swissprot_statistics/']
+        dir_list = ['/blast/', '/cog_stat/', '/go_stat/', '/pfam_stat/', '/kegg_stat/', '/blast_nr_statistics/', '/blast_swissprot_statistics/']
         for i in dir_list:
             if os.path.exists(self.work_dir + i):
                 shutil.rmtree(self.work_dir + i)
@@ -208,10 +213,9 @@ class RefAnnoStatTool(Tool):
         self.anno_list = {}  # 注释到的转录本序列名字
 
     def run_nr_stat(self):
-        self.nr_stat_path = self.work_dir + '/ncbi_taxonomy/'
         # 筛选gene_nr.xml、gene_nr.xls
         self.logger.info("开始筛选gene_nr.xml、gene_nr.xls")
-        self.option('nr_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_nr_xml, trinity_mode=True)
+        self.option('nr_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_nr_xml, trinity_mode=False)
         xml2table(self.gene_nr_xml, self.work_dir + '/blast/gene_nr.xls')
         xml2table(self.option('nr_xml').prop['path'], self.work_dir + '/blast/nr.xls')
         self.logger.info("完成筛选gene_nr.xml、gene_nr.xls")
@@ -223,25 +227,21 @@ class RefAnnoStatTool(Tool):
         except Exception as e:
             self.set_error("运行nr evalue,similar for gene nr blast table出错:{}".format(e))
             self.logger.info("Error: evalue,similar for gene nr blast table")
-        # stat taxon info
-        nr = nr_stat()
-        try:
-            nr.stats(detail_file=self.option('nr_taxon_details').prop['path'], out_dir=self.nr_stat_path, gene_list=self.gene_list)
-            self.logger.info("End: stat nr ")
-        except Exception as e:
-            self.set_error("运行nr stat evalue出错:{}".format(e))
-            self.logger.info("Error: stat nr")
 
     def run_cog_stat(self):
         self.cog_stat_path = self.work_dir + '/cog_stat/'
         # 筛选gene_string.xml、gene_string.xls
         self.logger.info("开始筛选gene_string.xml、gene_string.xls")
-        self.option('string_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_string_xml, trinity_mode=True)
-        transcript_gene().get_gene_blast_xml(tran_list= self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_string_xml, gene_xml_path=self.gene_string_xml)
-        xml2table(self.gene_string_xml, self.work_dir + '/blast/gene_string.xls')
-        self.logger.info("完成筛选gene_string.xml、gene_string.xls")
-        # cog stat
-        cmd = '{} {} {} {}'.format(self.python_path, self.cog, self.gene_string_xml, self.cog_stat_path)
+        if self.option('string_xml').is_set:
+            self.option('string_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_string_xml, trinity_mode=False)
+            transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_string_xml, gene_xml_path=self.gene_string_xml)
+            xml2table(self.gene_string_xml, self.work_dir + '/blast/gene_string.xls')
+            self.logger.info("完成筛选gene_string.xml、gene_string.xls")
+            cmd = '{} {} {} {}'.format(self.python_path, self.cog_xml, self.gene_string_xml, self.cog_stat_path)
+        else:
+            self.option('string_table').sub_blast_table(genes=self.gene_list, new_fp=self.work_dir + '/gene_string.xls')
+            transcript_gene().get_gene_blast_table(tran_list=self.tran_list, tran_gene=self.tran_gene, table_path=self.work_dir + '/gene_string.xls', gene_table_path=self.gene_string_table)
+            cmd = '{} {} {} {}'.format(self.python_path, self.cog_table, self.gene_string_table, self.cog_stat_path)
         cog_cmd = self.add_command('cog_cmd', cmd).run()
         self.wait(cog_cmd)
         if cog_cmd.return_code == 0:
@@ -256,6 +256,7 @@ class RefAnnoStatTool(Tool):
 
     def run_pfam_stat(self):
         self.pfam_stat_path = self.work_dir + '/pfam_stat/'
+
         def get_gene_pfam(pfam_domain, gene_list, outpath):
             """
             将pfam注释的结果文件pfam_domain筛选致函基因的结果信息
@@ -280,7 +281,7 @@ class RefAnnoStatTool(Tool):
         if self.option("kegg_xml").is_set:
             # 筛选gene_kegg.xml、gene_kegg.xls
             self.logger.info("开始筛选gene_kegg.xml、gene_kegg.xls")
-            self.option('kegg_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_kegg_xml, trinity_mode=True)
+            self.option('kegg_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_kegg_xml, trinity_mode=False)
             transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_kegg_xml, gene_xml_path=self.gene_kegg_xml)
             xml2table(self.gene_kegg_xml, self.work_dir + '/blast/gene_kegg.xls')
             self.logger.info("完成筛选gene_kegg.xml、gene_kegg.xls")
@@ -303,7 +304,7 @@ class RefAnnoStatTool(Tool):
     def run_go_stat(self):
         self.go_stat_path = self.work_dir + '/go_stat/'
 
-        def get_gene_go(go_result, gene_list, outpath, trinity_mode=True):
+        def get_gene_go(go_result, gene_list, outpath, trinity_mode=False):
             """
             将go_annotation注释的结果文件筛选只包含基因的结果信息,保留含有基因序列的行
             go_result:go_annotation tool运行得到的blast2go.annot或query_gos.list结果文件；
@@ -341,7 +342,7 @@ class RefAnnoStatTool(Tool):
 
     def run_swissprot_stat(self):
         self.logger.info("开始筛选gene_swissprot.xml、gene_swissprot.xls")
-        self.option('swissprot_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_swissprot_xml, trinity_mode=True)
+        self.option('swissprot_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_swissprot_xml, trinity_mode=False)
         xml2table(self.gene_swissprot_xml, self.work_dir + '/blast/gene_swissprot.xls')
         xml2table(self.option('swissprot_xml').prop['path'], self.work_dir + '/blast/swissprot.xls')
         self.logger.info("完成筛选gene_swissprot.xml、gene_swissprot.xls")
@@ -366,8 +367,11 @@ class RefAnnoStatTool(Tool):
                     self.movedir2output(self.cog_stat_path, 'cog_stat')
                     self.option('gene_string_table', self.output_dir + '/blast/gene_string.xls')
                     # string_venn_stat
-                    self.option('string_xml').get_info()
-                    string_venn = self.option('string_xml').prop['hit_query_list']
+                    if self.option('string_xml').is_set:
+                        self.option('string_xml').get_info()
+                        string_venn = self.option('string_xml').prop['hit_query_list']
+                    else:
+                        string_venn = self.option('string_table').prop['query_list']
                     string_gene_venn = self.option('gene_string_table').prop['query_list']
                     self.get_venn(venn_list=string_venn, output=self.output_dir + '/venn/string_venn.txt')
                     self.get_venn(venn_list=string_gene_venn, output=self.output_dir + '/venn/gene_string_venn.txt')
@@ -381,9 +385,7 @@ class RefAnnoStatTool(Tool):
                     self.anno_list['cog'] = cog_venn
                     self.gene_anno_list['cog'] = cog_gene_venn
                 if db == 'nr':
-                    self.movedir2output(self.nr_stat_path, 'ncbi_taxonomy')
                     self.option('gene_nr_table', self.output_dir + '/blast/gene_nr.xls')
-                    self.option('nr_taxons', self.output_dir + '/ncbi_taxonomy/query_taxons.xls')
                     self.movedir2output(self.work_dir + '/blast_nr_statistics/', 'blast_nr_statistics')
                     # venn_stat
                     self.option('nr_xml').get_info()
@@ -518,10 +520,7 @@ class RefAnnoStatTool(Tool):
             tmp = []
             tmp_gene = []
             anno_num['total']['gene'] = len(self.option('gene_file').prop['gene_list'])
-            if 'cog' in self.database:
-                anno_num['total']['tran'] = self.option('string_xml').prop['query_num']
-            else:
-                anno_num['total']['tran'] = self.option('nr_xml').prop['query_num']
+            anno_num['total']['tran'] = len(self.tran_list)
             for db in self.anno_list:
                 w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, len(self.anno_list[db]), len(self.gene_anno_list[db]), '%0.4g' % (len(self.anno_list[db]) / anno_num['total']['tran']), '%0.4g' % (len(self.gene_anno_list[db]) / anno_num['total']['gene'])))
                 tmp += self.anno_list[db]
