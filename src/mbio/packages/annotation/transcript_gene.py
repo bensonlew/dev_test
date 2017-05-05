@@ -72,13 +72,12 @@ class transcript_gene(object):
         """
         with open(table_path, "rb") as f, open("tmp.xls", "wb") as w:
             lines = f.readlines()
-            header = f.readline()
-            w.write(header)
+            w.write(lines[0])
             for line in lines[1:]:
                 item = line.strip().split("\t")
                 query_id = item[5]
                 if query_id in tran_list:
-                    query = re.sub(r'{}'.format(query_id), tran_gene[query_id], query_id)
+                    query = re.sub(r'{}'.format(query_id), tran_gene[query_id], line)
                     w.write(query)
         with open("tmp.xls", "rb") as f, open(gene_table_path, "wb") as w:
             lines = f.readlines()
