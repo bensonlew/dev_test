@@ -93,7 +93,13 @@ class DiamondModule(Module):
             if self.option('outfmt') == 6:
                 pass
             else:
-                file = os.listdir(i.output_dir)[0]
+                if len(os.listdir(i.output_dir)) != 1:
+                    self.logger.info(str(os.listdir(i.output_dir)))
+                    for f in os.listdir(i.output_dir):
+                        if f.endswith("xml"):
+                            file = f
+                else:
+                    file = os.listdir(i.output_dir)[0]
                 _path = os.path.join(i.output_dir, file)
             os.link(_path, self.work_dir + '/blast_tmp/' + os.path.basename(_path))
         self.catblast.set_options({"blastout": self.work_dir + '/blast_tmp'})
