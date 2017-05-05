@@ -111,7 +111,7 @@ class RefrnaWorkflow(Workflow):
         self.seq_abs = self.add_tool("annotation.transcript_abstract")
         self.new_abs = self.add_tool("annotation.transcript_abstract")
         self.para_anno = self.add_module("rna.parallel_anno")
-        self.annotation = self.add_module('rna.anno_upload')
+        self.annotation = self.add_module('annotation.ref_annotation')
         self.new_annotation = self.add_module('annotation.ref_annotation')
         self.network = self.add_module("protein_regulation.ppinetwork_analysis")
         self.tf = self.add_tool("protein_regulation.TF_predict")
@@ -289,7 +289,13 @@ class RefrnaWorkflow(Workflow):
 
     def run_annotation(self):
         # 读入上传表格文件进行注释
-        pass
+        opts = {
+            "gos_list_upload": self.para_anno.option("out_go"),
+            "kos_list_upload": self.para_anno.option("out_kegg"),
+        }
+        self.annotation.set_options(opts)
+        self.annotation.on("end", self.set_output, "annotation")
+        self.annotation.run()
 
     def run_qc_stat(self, event):
         if event['data']: 
@@ -486,6 +492,7 @@ class RefrnaWorkflow(Workflow):
     def run_exp(self):  # 表达量与表达差异模块
         self.logger.info("开始运行表达量模块")
         opts = {
+            "express_method": self.option("express_method"),
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
@@ -558,7 +565,12 @@ class RefrnaWorkflow(Workflow):
         根据新加入模块操作，修改self.annotation
         :return:
         """
-
+        gos_dir_trans = ""
+        kegg_table_dir_trans = ""
+        cog_table_dir_trans = ""
+        gos_dir_gene = ""
+        kegg_table_dir_gene = ""
+        cog_table_dir_gene = ""
         trans_opts = {
             "gos_dir": gos_dir_trans,
             "kegg_table_dir": kegg_table_dir_trans,
@@ -581,7 +593,7 @@ class RefrnaWorkflow(Workflow):
                 'analysis': self.option('exp_analysis')
             }
             if 'network' in self.option('exp_analysis'):
-                exp_diff_opts.update({'gene_file': self.exp.option('gene_file')})
+                exp_diff_opts.update({'gene_file': self.exp.option('all_list')})
             elif 'kegg_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
                     'kegg_path': self.merge_trans_annot.option('kegg_table'),
@@ -769,7 +781,6 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
-        self.qc.on('end', self.run_snp)
         self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)

@@ -23,7 +23,7 @@ class SampleBase(Base):
             else:
                 raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
                 """
-        collection = self.db["sg_test_batch_specimen"]
+        collection = self.db["sg_test_specimen"]
         results = {}
         # results["test_batch_id"] = ObjectId(table_id)
         with open(stat_path, "r") as file:
@@ -48,23 +48,25 @@ class SampleBase(Base):
         for key in file_sample.keys():
             if file_sample[key] == sample:
                 results["path"].append(key)
-        try:
-            sample_id = collection.insert_one(results).insert_id
-            self.bind_object.logger.info("表格导入成功")
-        except Exception as e:
-            self.bind_object.logger.error("表格导入出错:{}".format(e))
+        # try:
+        sample_id = collection.insert_one(results).insert_id
+        self.bind_object.logger.info("表格导入成功")
+        # except Exception as e:
+        # self.bind_object.logger.error("表格导入出错:{}".format(e))
         return sample_id
 
     @report_check
     def add_sg_test_batch_specimen(self, table_id, sample_id, sample):
         collection = self.db["sg_test_batch_specimen"]
+        results_list = []
         results = {}
         results["test_batch_id"] = ObjectId(table_id)
         results["test_specimen_id"] = ObjectId(sample_id)
         results["old_name"] = sample
         results["new_name"] = sample
+        results_list.append(results)
         try:
-            collection.insert_one(results)
+            collection.insert_many(results_list)
             self.bind_object.logger.info("表格导入成功")
         except Exception as e:
             self.bind_object.logger.error("表格导入出错:{}".format(e))
