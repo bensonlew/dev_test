@@ -96,6 +96,21 @@ class BlastTableFile(File):
         table.set_path(outputfile)
         return table
 
+    def sub_blast_table(self, genes, new_fp):
+        """根据提供的基因列表，查找table中的查询序列，生成新的table"""
+        genes = dict(zip(genes, xrange(len(genes))))
+        with open(self.path, "rb") as f, open("tmp.xls", "wb") as w:
+            lines = f.readlines()
+            w.write(lines[0])
+            for line in lines[1:]:
+                item = line.strip().split("\t")
+                query_id = item[5]
+                if query_id in genes:
+                    w.write(line)
+        with open("tmp.xls", "rb") as f, open(new_fp, "wb") as w:
+            lines = f.readlines()
+            w.writelines(lines)
+
 
 if __name__ == '__main__':  # for test
     a = BlastTableFile()
