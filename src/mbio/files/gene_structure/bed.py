@@ -11,7 +11,7 @@ from mbio.files.gene_structure.gtf import *
 class BedFile(File):
     
     def __init__(self):
-
+        super(BedFile, self).__init__()
         pass
     
     def check(self):

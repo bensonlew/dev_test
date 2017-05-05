@@ -20,12 +20,15 @@ class RsemAgent(Agent):
         super(RsemAgent, self).__init__(parent)
         options = [
             {"name": "fq_type", "type": "string"}, #PE OR SE
-            {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 转录本fasta文件
+            {"name": "ref_denovo","type":"string", "default": "ref"}, #ref or denovo，判断是有参还是无参
+            {"name": "transcript_fa", "type": "infile", "format": "sequence.fasta"},  # 转录本fasta文件
+            # {"name": "rsem_fa", "type": "infile", "format": "sequence.fasta"},  # trinit.fasta文件
+            {"name": "fa_build", "type": "outfile", "format": "sequence.fasta"},  # 转录本fasta构建好索引文件
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹  不压缩的fq文件
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件夹
             # {"name": "bam", "type": "infile", "format": "align.bwa.bam, ref_rna.assembly.bam_dir"}, # bam文件输入
-            {"name": "ref_gtf", "type": "infile", "format": "ref_rna.reads_mapping.gtf, ref_rna.reads_mapping.gff" }, # gtf/gff文件
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf" }, # gtf/gff文件
             #{"name": "gtf_type", "type": "string", "default": "ref"}, # "ref" "merged_stringtie" "merged_cufflinks"
             {"name": "sample_name", "type":"string"}, # 样本名称
             {"name": "cpu", "type": "int", "default": 8},  # 设置CPU
@@ -50,7 +53,7 @@ class RsemAgent(Agent):
         """重写参数检测函数"""
         self.logger.info("输出ref_gtf格式")
         self.logger.info(self.option('ref_gtf').format)
-        if not self.option("ref_fa").is_set:
+        if not self.option("transcript_fa").is_set:
             raise OptionError("请输入参考基因组的fa文件")
         if self.option("fq_type") not in ['PE', 'SE']:
             raise OptionError("请输入单端或双端!")
@@ -79,7 +82,7 @@ class RsemTool(Tool):
         self.set_environ(PATH=self.rsem_path)
         self.set_environ(PATH=self.bowtie_path)
     
-    def rsem_build(self):
+    def ref_rsem_build(self):
         self.rsem_index_path = os.path.join(self.work_dir, "rsem_index")
         gtf_format = os.path.basename(self.option('ref_gtf').prop['path'])
         gene2transcript = os.path.join(self.work_dir, 'gene2transcript')
@@ -91,36 +94,26 @@ class RsemTool(Tool):
             self.logger.info("对gtf文件提取gene_transcript成功！")
         if os.path.exists(gene2transcript):
             self.logger.info("建立gene_id和transcript_id对应关系成功！")
-        if self.option("ref_fa").is_set:
-            cmd = self.rsem_path + "rsem-prepare-reference -p 8 --transcript-to-gene-map {} {} {} --bowtie2 --bowtie2-path {} ".format(gene2transcript, self.option("ref_fa").prop['path'],\
+        if self.option("transcript_fa").is_set:
+            cmd = self.rsem_path + "rsem-prepare-reference -p 8 --transcript-to-gene-map {} {} {} --bowtie2 --bowtie2-path {} ".format(gene2transcript, self.option("transcript_fa").prop['path'],\
                    self.rsem_index_path, self.bowtie_path)
-        """
-        if self.option("ref_gtf").is_set and self.option("ref_fa").is_set:  #根据gtf/gff、fasta建索引
-            if gtf_format.endswith('gff3'):
-                cmd = self.rsem_path + "rsem-prepare-reference -p 8 --gff3 {} {} --bowtie2 --bowtie2-path {} {}".format(self.option("ref_gtf").prop['path'],\
-                    self.option("ref_fa").prop['path'], self.bowtie_path, self.rsem_index_path)
-            else:
-                cmd = self.rsem_path + "rsem-prepare-reference -p 8 --gtf {} {} --bowtie2 --bowtie2-path {} {}".format(self.option("ref_gtf").prop['path'],\
-                    self.option("ref_fa").prop['path'], self.bowtie_path, self.rsem_index_path)
-        else:
-            raise Exception("{}和{}文件不存在！".format(self.option("ref_gtf").prop['path'], self.option("ref_fa").prop['path']))
-        """
         self.logger.info(cmd)
         bowtie2_cmd = self.add_command("bowtie2_build", cmd).run()
         self.wait()
         if bowtie2_cmd.return_code == 0:
             self.logger.info("%s运行完成" % bowtie2_cmd)
+            #self.option("fa_build").set_path(self.rsem_index_path)
         else:
             self.set_error("%s运行出错!" % bowtie2_cmd)
     
-    def rsem_run(self):
+    def ref_rsem_run(self, fasta_build):
         data = FastqFile()
         if self.option("fq_type") == "PE":
             cmd = self.rsem_path + "rsem-calculate-expression --paired-end -p 8 {} {} {} {} --bowtie2 --bowtie2-path {}".format(self.option("fq_l").prop['path'],\
-               self.option("fq_r").prop['path'], self.rsem_index_path , self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
+               self.option("fq_r").prop['path'], fasta_build , self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
         elif self.option("fq_type") == "SE":
             cmd = self.rsem_path + "rsem-calculate-expression -p 8 {} {} {} --bowtie2 --bowtie2-path {}".format(self.option("fq_s").prop['path'],\
-                   self.rsem_index_path , self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
+                   fasta_build, self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
         self.logger.info(cmd)
         exp_cmd = self.add_command("express_run", cmd).run()
         self.wait()
@@ -128,30 +121,83 @@ class RsemTool(Tool):
             self.logger.info("{}运行成功！".format(exp_cmd))
         else:
             self.set_error("{}运行失败".format(exp_cmd))
+    
+    def denovo_bowtie_build(self):
+        rsem_fasta = self.work_dir + '/' + os.path.basename(self.option('transcript_fa').prop['path'])
+        if os.path.exists(rsem_fasta):
+            os.remove(rsem_fasta)
+            os.link(self.option('transcript_fa').prop['path'], rsem_fasta)
+        else:
+            os.link(self.option('transcript_fa').prop['path'], rsem_fasta)
+        cmd = self.rsem + ' --transcripts %s --seqType fq --single test.fq --est_method  RSEM --output_dir %s --trinity_mode --aln_method bowtie2 --prep_reference' % (rsem_fasta, self.work_dir)
+        self.logger.info('开始运行bowtie2建索引')
+        bowtie_cmd = self.add_command('bowtie_build', cmd).run()
+        self.wait()
+        if bowtie_cmd.return_code == 0:
+            self.logger.info("%s运行完成" % bowtie_cmd)
+            self.option('fa_build', rsem_fasta)
+        else:
+            self.set_error("%s运行出错!" % bowtie_cmd)
 
+    def denovo_run_rsem(self, rsem_fasta):
+        if self.option('fq_type') == 'SE':
+            sample = os.path.basename(self.option('fq_s').prop['path']).split('_sickle_s.fastq')[0]
+            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --single %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (rsem_fasta, self.option('fq_s').prop['path'], self.work_dir, sample)
+        else:
+            sample = os.path.basename(self.option('fq_l').prop['path']).split('_sickle_l.fastq')[0]
+            rsem_cmd = self.rsem + ' --transcripts %s --seqType fq --right %s --left %s --est_method  RSEM --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (rsem_fasta, self.option('fq_r').prop['path'], self.option('fq_l').prop['path'], self.work_dir, sample)
+
+        self.logger.info("开始运行_rsem_cmd")
+        cmd = self.add_command("rsem_cmd", rsem_cmd).run()
+        self.wait()
+        if cmd.return_code == 0:
+            self.logger.info("%s运行完成" % cmd)
+        else:
+            self.set_error("%s运行出错!" % cmd)
+    
     def set_output(self):
-        for files in os.listdir(self.work_dir):
-            if files.endswith('isoforms.results'):
-                shutil.copy2(os.path.join(self.work_dir, files), self.output_dir+"/"+files)
-            elif files.endswith('genes.results'):
-                shutil.copy2(os.path.join(self.work_dir, files), self.output_dir+"/"+files)
-        for _files in os.listdir(self.output_dir):
-            file_path = os.path.join(self.output_dir, _files)
-            os.system(""" sed -i "s/gene://g" %s """ % (file_path))
-            os.system(""" sed -i "s/transcript://g" %s """ % (file_path))
-        self.logger.info("RSEM表达量结果设置成功!")
+        """
+        将结果文件link到output文件夹下面
+        :return:
+        """
+        #for root, dirs, files in os.walk(self.output_dir):
+        #    for names in files:
+        #        os.remove(os.path.join(root, names))
+        self.logger.info("设置结果目录")
+        results = os.listdir(self.work_dir)
+        try:
+            for f in results:
+                if re.search(r'results$', f):
+                    os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+                    # os.system(""" sed -i "s/gene://g" %s """ % (file_path))
+                    # os.system(""" sed -i "s/transcript://g" %s """ % (file_path))
+            self.logger.info("设置rsem分析结果目录成功")
+        except Exception as e:
+            self.logger.info("设置rsem分析结果目录失败{}".format(e))
     
     def run(self):
         super(RsemTool, self).run()
         if self.option("only_bowtie_build") == True:
-            self.rsem_build()
+            if self.option("ref_denovo") == "ref":
+                self.ref_rsem_build()
+            if self.option("ref_denovo") == "denovo":
+                self.denovo_bowtie_build()
             self.logger.info("rsem建立索引成功！")
         else:
             if self.option("bowtie_build_rsem") == False:
-                self.rsem_build()
-                self.rsem_run()
+                if self.option("ref_denovo") == "ref":
+                    self.ref_rsem_build()
+                    # self.ref_rsem_run(self.option("fa_build").prop['path'])
+                    self.ref_rsem_run(self.rsem_index_path)
+                if self.option("ref_denovo") == "denovo":
+                    self.denovo_bowtie_build()
+                    self.denovo_run_rsem(self.option('fa_build').prop['path'])
                 self.logger.info("rsem计算表达量成功！")
             else:
-                self.rsem_run()
+                """输入建好索引的文件，直接进行表达量的计算"""
+                if self.option("ref_denovo") == "ref":
+                    self.ref_rsem_run(self.option("transcript_fa").prop["path"])
+                if self.option("ref_denovo") == "denovo":
+                    self.denovo_run_rsem(self.option('transcript_fa').prop['path'])
         self.set_output()
         self.end()

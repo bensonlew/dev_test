@@ -14,7 +14,7 @@ class CogClassAgent(Agent):
     def __init__(self, parent):
         super(CogClassAgent, self).__init__(parent)
         options = [
-           {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
+           {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},
             {"name": "cog_table", "type": "infile", "format": "annotation.cog.cog_table"}
         ]
         self.add_option(options)

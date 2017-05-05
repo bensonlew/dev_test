@@ -7,9 +7,9 @@ from mainapp.controllers.project.ref_rna_controller import RefRnaController
 from mbio.api.to_file.ref_rna import *
 
 
-class GenesetClass(RefRnaController):
+class GenesetClassAction(RefRnaController):
     def __init__(self):
-        super(GenesetClass, self).__init__(instant=True)
+        super(GenesetClassAction, self).__init__(instant=True)
 
     def POST(self):
         data = web.input()
@@ -49,7 +49,7 @@ class GenesetClass(RefRnaController):
         elif data.anno_type == "kegg":
             table_name = "Kegg"
             collection_name = "sg_geneset_kegg_class"
-            to_file = 'ref_rna.export_kegg_class(geneset_kegg)'
+            to_file = 'ref_rna.export_multi_gene_list(geneset_kegg)'
             option = {"geneset_kegg": data.geneset_id}
         else:
             info = {'success': False, 'info': '不支持的功能分类!'}
@@ -82,7 +82,7 @@ class GenesetClass(RefRnaController):
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
                             to_file=to_file, project_sn=task_info['project_sn'], task_id=task_info['task_id'])
 
-        task_info = super(GenesetClass, self).POST()
+        task_info = super(GenesetClassAction, self).POST()
 
         task_info['content'] = {
             'ids': {
