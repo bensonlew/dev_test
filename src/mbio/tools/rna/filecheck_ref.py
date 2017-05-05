@@ -4,7 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.files.sequence.fastq import FastqFile
-from mbio.files.sequence.gff3 import Gff3File
+from mbio.files.gene_structure.gff3 import Gff3File
 from mbio.files.sequence.file_sample import FileSampleFile
 from biocluster.config import Config
 import os
@@ -70,7 +70,7 @@ class FilecheckRefAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = "10G"
+        self._memory = "15G"
 
 
 class FilecheckRefTool(Tool):
@@ -167,7 +167,7 @@ class FilecheckRefTool(Tool):
             if os.path.exists(new_gff_path + ".gtf.bed"):
                 os.remove(new_gff_path + ".gtf.bed")
             self.logger.info("转换gff文件为gtf文件完成")
-            gff.set_gtf2bed_path(Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.pl")
+            gff.set_gtf2bed_path(Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.py")
             gff.gtf_to_bed(new_gff_path + ".gtf")
             self.logger.info("转换gtf文件为bed文件完成")
             self.option("gtf").set_path(new_gff_path + ".gtf")

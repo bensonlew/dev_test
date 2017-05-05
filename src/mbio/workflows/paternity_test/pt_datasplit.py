@@ -223,7 +223,7 @@ class PtDatasplitWorkflow(Workflow):
 		"""
 		self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
 		db_customer = self.api.pt_customer
-		dir_list = db_customer.get_wq_dir(self.option('data_dir'))
+		dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1])
 		self.logger.info(dir_list)
 		if len(dir_list) == 3 and (os.path.exists(dir_list[0]) or os.path.exists(dir_list[1])):
 			self.wq_dir = dir_list[0]
@@ -267,7 +267,7 @@ class PtDatasplitWorkflow(Workflow):
 		if self.done_data_split == "true":
 			self.logger.info("开始导入拆分结果路径")
 			db_customer = self.api.pt_customer
-			db_customer.add_data_dir(self.option('data_dir'), self.wq_dir, self.ws_dir, self.un_dir)
+			db_customer.add_data_dir(self.option('data_dir').split(":")[1], self.wq_dir, self.ws_dir, self.un_dir)
 		if self.done_wq != "true":
 			self.run_wq_wf()
 		super(PtDatasplitWorkflow, self).end()

@@ -23,7 +23,7 @@ class BamReadsdistributionAgent(Agent):
         super(BamReadsdistributionAgent, self).__init__(parent)
         options = [
             {'name': 'bam', 'type': 'infile','format':'align.bwa.bam,align.bwa.bam_dir'},  # 排序过的bam格式文件
-            {'name': 'bed', 'type': 'infile','format':'denovo_rna.gene_structure.bed'}    # bed格式文件
+            {'name': 'bed', 'type': 'infile','format':'gene_structure.bed'}    # bed格式文件
             #{'name': 'output', 'type': 'outfile','format':'ref_rna.txt'}
         ]
         self.add_option(options)

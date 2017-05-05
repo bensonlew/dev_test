@@ -27,8 +27,7 @@ class RefAnnotationModule(Module):
             {"name": "gos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},   # 客户上传go注释文件
             {"name": "kos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},  # 客户上传kegg注释文件
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
-            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件，将参考基因组转录本ID替换成gene ID
-            {"name": "sequence_type", "type": "string", "default": "new"},  # 进行注释的序列的类型，参考基因组（ref）/新序列（new），为ref时，必须有参数ref_genome_gtf
+            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
             {"name": "anno_statistics", "type": "bool", "default": True},
             {"name": "go_annot", "type": "bool", "default": True},
             {"name": "nr_annot", "type": "bool", "default": True},
@@ -46,11 +45,11 @@ class RefAnnotationModule(Module):
         self.step.add_steps('blast_statistics', 'go_annot', 'kegg_annot', 'cog_annot', 'taxon_annot', 'anno_stat')
 
     def check_options(self):
-        if self.option('anno_statistics') and not self.option('gene_file').is_set:
-            raise OptionError('运行注释统计的tool必须要设置gene_file')
-        if self.option('sequence_type') == "ref":
+        if self.option('anno_statistics'):
+            if not self.option('gene_file').is_set:
+                raise OptionError('运行注释统计的tool必须要设置gene_file')
             if not self.option('ref_genome_gtf').is_set:
-                raise OptionError('缺失参考基因组gtf文件')
+                raise OptionError('缺少gtf文件')
 
     def set_step(self, event):
         if 'start' in event['data']:
@@ -79,7 +78,6 @@ class RefAnnotationModule(Module):
             opts['nr_taxon_details'] = self.ncbi_taxon.option('taxon_out')
         opts['swissprot_xml'] = self.option('blast_swissprot_xml')
         opts['pfam_domain'] = self.option('pfam_domain')
-        opts['sequence_type'] = self.option('sequence_type')
         opts['ref_genome_gtf'] = self.option('ref_genome_gtf')
         self.anno_stat.set_options(opts)
         self.anno_stat.on('start', self.set_step, {'start': self.step.anno_stat})
@@ -196,10 +194,10 @@ class RefAnnotationModule(Module):
             if 'go' in self.anno_database:
                 self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
                 self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])
-            try:
-                self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
-            except Exception as e:
-                self.logger.info("统计all_annotation出错：{}".format(e))
+            # try:
+            #     self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
+            # except Exception as e:
+            #     self.logger.info("统计all_annotation出错：{}".format(e))
             self.end()
         else:
             pass
