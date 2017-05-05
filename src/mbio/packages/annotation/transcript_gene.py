@@ -66,6 +66,24 @@ class transcript_gene(object):
             w.writelines(lines)
         # os.remove('tmp.txt')
 
+    def get_gene_blast_table(self, tran_list, tran_gene, table_path, gene_table_path):
+        """
+        根据提供的基因和转录本对应关系，查找table中的查询序列，将转录本ID替换成基因ID,生成新的table
+        """
+        with open(table_path, "rb") as f, open("tmp.xls", "wb") as w:
+            lines = f.readlines()
+            header = f.readline()
+            w.write(header)
+            for line in lines[1:]:
+                item = line.strip().split("\t")
+                query_id = item[5]
+                if query_id in tran_list:
+                    query = re.sub(r'{}'.format(query_id), tran_gene[query_id], query_id)
+                    w.write(query)
+        with open("tmp.xls", "rb") as f, open(gene_table_path, "wb") as w:
+            lines = f.readlines()
+            w.writelines(lines)
+
     def get_gene_go_list(self, tran_list, tran_gene, go_list, gene_go_list):
         """
         根据提供的基因和转录本对应关系，将go注释的go.list转录本ID替换成基因ID
@@ -88,3 +106,4 @@ if __name__ == "__main__":
     a.get_gene_transcript()
     a.get_gene_blast_xml()
     a.get_gene_go_list()
+    a.get_gene_blast_table()
