@@ -5,9 +5,7 @@
 from __future__ import division
 import os
 import shutil
-import re
 from biocluster.module import Module
-from biocluster.config import Config
 
 
 class FastqExtractModule(Module):
@@ -20,10 +18,6 @@ class FastqExtractModule(Module):
         super(FastqExtractModule, self).__init__(work_id)
         options = [
             {"name": "in_fastq", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"},
-            {"name": "file_sample_list", "type": "outfile", "format": "sequence.info_txt"},
-            {"name": "out_fa", "type": "outfile", "format": "sequence.fasta_dir"},
-            {"name": "length_dir", "type": "outfile", "format": "sequence.length_dir"},
-            {"name": "table_id", "type": "string", "default": ""}
         ]
         self.add_option(options)
         self.samples = []
@@ -39,7 +33,8 @@ class FastqExtractModule(Module):
         }
         run_tool = self.add_tool("sample_base.fastq_extract")
         run_tool.set_options(opts)
-        run_tool.on("end", self.end)
+        self.tools.append(run_tool)
+        run_tool.on("end", self.move_to_output)
         run_tool.run()
 
     def fastq_dir_run(self):
@@ -70,7 +65,6 @@ class FastqExtractModule(Module):
             self.fastq_dir_run()
 
     def end(self):
-        self.logger.info("table id is: " + self.option("table_id"))
         repaths = []
         repaths.append([".", "", "拆分结果文件目录"])
         for file in os.listdir(self.output_dir):
@@ -81,7 +75,8 @@ class FastqExtractModule(Module):
         super(FastqExtractModule, self).end()
 
     def move_to_output(self):
-        os.removedirs(self.output_dir)
+        self.logger.info("进入移动文件过程")
+        shutil.rmtree(self.output_dir)
         os.mkdir(self.output_dir)
         for tool in self.tools:
             for file in os.listdir(tool.output_dir + "/fastq"):
@@ -89,7 +84,14 @@ class FastqExtractModule(Module):
                 file_name = os.path.split(file_path)[1]
                 if not os.path.exists(self.output_dir + "/" + file_name):
                     os.link(file_path, self.output_dir + "/" + file_name)
+                    self.logger.info(self.output_dir + "/" + file_name)
                 else:
                     with open(self.output_dir + "/" + file_name, "a") as a:
                         content = open(file_path, "r").read()
                         a.write(content)
+            list_path = tool.work_dir + "/info.txt"
+            with open(self.work_dir + "/info.txt", "a") as a:
+                f = open(list_path, "r")
+                f.readline()
+                a.write(f.read())
+        self.end()
