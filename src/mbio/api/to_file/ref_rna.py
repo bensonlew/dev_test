@@ -306,12 +306,12 @@ def export_gene_list_ppi(data, option_name, dir_path, bind_obj=None):
     my_result = main_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
         raise Exception("意外错误，geneset_id:{}在sg_geneset中未找到！".format(ObjectId(data)))
-    results = collection.find({"geneset_id": ObjectId(data)})
+    results = collection.find_one({"geneset_id": ObjectId(data)})["gene_list"]
     with open(gene_list_path, "wb") as f:
         f.write("gene_id" + "\n")
         for result in results:
-            gene_id = result['gene_name']
-            f.write(gene_id + "\n")
+            f.write(result + "\n")
+    bind_obj.logger.debug("基因集导出成功！")
     return gene_list_path
 
     
