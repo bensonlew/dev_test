@@ -71,6 +71,7 @@ class RefAnnotationModule(Module):
             opts['gos_list_upload'] = self.option('gos_list_upload')
         if 'cog' in self.anno_database:
             opts['string_xml'] = self.option('blast_string_xml')
+            opts['string_table'] = self.option('blast_string_table')
             opts['cog_list'] = self.string_cog.option('cog_list')
             opts['cog_table'] = self.string_cog.option('cog_table')
         if 'nr' in self.anno_database:
@@ -100,7 +101,8 @@ class RefAnnotationModule(Module):
 
     def run_string2cog(self):
         options = {
-            'blastout': self.option('blast_string_xml')
+            'blastout': self.option('blast_string_xml'),
+            'string_table': self.option('blast_string_table')
         }
         self.string_cog.set_options(options)
         self.string_cog.on('start', self.set_step, {'start': self.step.cog_annot})
@@ -155,7 +157,7 @@ class RefAnnotationModule(Module):
             self.anno_database.append('go')
             self.all_end_tool.append(self.go_annot)
             self.run_go_anno()
-        if self.option('blast_string_xml').is_set:
+        if self.option('blast_string_xml').is_set or self.option('blast_string_table').is_set:
             self.anno_database.append('cog')
             self.all_end_tool.append(self.string_cog)
             self.run_string2cog()
