@@ -11,7 +11,7 @@ class HcHeatmapAgent(Agent):
 	"""
 	小工具聚类heatmap图：实现任意二维数据的热图并含有行和列的聚类树
 	auther: xuan.zhou
-	last_modified: 20170417
+	last_modified: 20170508
 	使用脚本实现聚类树
 	"""
 	def __init__(self, parent):
@@ -21,7 +21,8 @@ class HcHeatmapAgent(Agent):
 			{"name": "row_method", "type": "string", "default": ""},  # 行聚类方式
 			{"name": "col_method", "type": "string", "default": ""},  # 列聚类方式
 			{"name": "col_number", "type": "string", "default": "10"},  # 列数
-			{"name": "row_number", "type": "string", "default": "10"}  # 行数
+			{"name": "row_number", "type": "string", "default": "10"},  # 行数
+			{"name": "data_T", "type": "bool", "default": False}
         ]
 		self.add_option(options)
 		self.step.add_steps('hc_heatmap')
@@ -67,7 +68,7 @@ class HcHeatmapTool(Tool):
 		#self.app_path = self.config.SOFTWARE_DIR + '/bioinfo/statistical/scripts/plot-hcluster_tree_app.pl'
 		self._version = 1.0
 
-	def get_new_data(self, old_path, new_path, col_number, row_number):
+	def get_new_data(self, old_path, new_path, col_number, row_number, t):
 		"""
 		使用pandas包完成对于二维表格（行列名称均存在）的筛选，筛选出丰度为前多少的行和列的数据
 		:return: 新的表格
@@ -80,6 +81,7 @@ class HcHeatmapTool(Tool):
 		data_1 = data.drop(["col"], axis=1)  # 从数据框中去除行和
 		if row_number != "":
 			data_1 = data_1.iloc[:int(row_number)]  # 筛选出前多少行
+		name_list = [i for i in data_1.T.iloc[0]]  # 行列转置的时候可能会用
 		name = data_1.T.iloc[0].to_frame(name="name")  # 原数据行名的保留
 		row = data_1.T.iloc[1:].sum(axis=1)  # 去除行名数据框转置求行和也就是求原数据的列和
 		data_2 = data_1.T.iloc[1:].join(row.to_frame(name="row"))  # 以下四行就是以相同的方式筛选出前多少行(由于转置所以实际是列)
@@ -87,8 +89,14 @@ class HcHeatmapTool(Tool):
 		data_2 = data_2.drop(["row"], axis=1)
 		if col_number != "":
 			data_2 = data_2.iloc[:int(col_number)]
-		data_ = name.join(data_2.T)  # 恢复行名
-		data_.to_csv(new_path, sep="\t", index=False)  # 数据框写入文件
+		if t == True:
+			data_2.columns = name_list
+			data_ = data_2
+			data_.index.name = "name"
+			data_.to_csv(new_path, sep="\t", index=True)
+		else:
+			data_ = name.join(data_2.T)  # 恢复行名
+			data_.to_csv(new_path, sep="\t", index=False)  # 数据框写入文件
 
 	def create_tree(self):
 		"""
@@ -99,7 +107,8 @@ class HcHeatmapTool(Tool):
 		else:
 			self.new_data = os.path.join(self.work_dir, "new_data.xls")
 			self.get_new_data(old_path=self.option('data_table').prop['path'], new_path=self.new_data,
-		                  col_number=self.option("col_number"), row_number=self.option("row_number"))
+			                  col_number=self.option("col_number"), row_number=self.option("row_number"),
+			                  t=self.option('data_T'))
 		if self.option('row_method') == '' and self.option('col_method') == '':
 			self.set_output()
 		else:  # -m ~ col
