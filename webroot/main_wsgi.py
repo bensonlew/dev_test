@@ -54,7 +54,7 @@ from mainapp.controllers.submit.denovo_rna.network import Network
 # Denovo_rna instant
 from mainapp.controllers.instant.denovo_rna.denovo_venn import DenovoVenn
 
-#med submit
+# med submit
 from mainapp.controllers.submit.paternity_test.pt_datasplit import PtDatasplit
 from mainapp.controllers.submit.paternity_test_new import PaternityTestNew
 
