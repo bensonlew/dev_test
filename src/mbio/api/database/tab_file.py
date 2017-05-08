@@ -123,11 +123,11 @@ class TabFile(Base):
         if os.path.exists(file):
             pass
         else:
-            # search_result = collection.find({"sample_id": sample})  # 读出来是个地址
-            temp = collection.find_one({"sample_id":sample})
+            search_result = collection.find({"sample_id": sample})  # 读出来是个地址
+            # temp = collection.find_one({"sample_id":sample})
 
-            if temp:
-                final_result = temp
+            if search_result.count() != 0:
+                final_result = search_result
                 file = os.path.join(dir, sample + '.tab')
             else:
                 raise Exception('意外报错：没有在数据库中搜到相应sample')
