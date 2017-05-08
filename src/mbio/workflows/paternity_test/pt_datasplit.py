@@ -11,6 +11,7 @@ import datetime
 import json
 from mainapp.models.mongo.submit.paternity_test_mongo import PaternityTest as PT
 from bson import ObjectId
+from biocluster.config import Config
 
 class PtDatasplitWorkflow(Workflow):
 	"""
@@ -175,9 +176,9 @@ class PtDatasplitWorkflow(Workflow):
 				"member_id": self.option('member_id'),
 				"fastq_path": self.wq_dir,
 				"cpu_number": 8,
-				"ref_fasta": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa",
-				"targets_bedfile": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/share/pt/snp.chr.sort.3.bed",
-				"ref_point": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/targets.bed.rda",
+				"ref_fasta": Config().SOFTWARE_DIR + "/database/human/hg38.chromosomal_assembly/ref.fa",
+				"targets_bedfile": Config().SOFTWARE_DIR + "/database/human/pt_ref/snp.chr.sort.3.bed",
+				"ref_point": Config().SOFTWARE_DIR + "/database/human/pt_ref/targets.bed.rda",
 				"err_min": 2,
 				"batch_id": self.option('pt_data_split_id'),
 				"dedup_num": 2,
