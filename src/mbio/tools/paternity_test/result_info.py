@@ -86,11 +86,11 @@ class ResultInfoTool(Tool):
 
         self.R_path = 'program/R-3.3.1/bin/'
         self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/medical/scripts/'
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ImageMagick/bin')
-        # self.set_environ(PATH= self.config.SOFTWARE_DIR + '/gcc/5.4.0/stage1-x86_64-unknown-linux-gnu/libstdc++-v3/src/.libs')
+        # self.set_environ(PATH= self.config.SOFTWARE_DIR + '/gcc/5.1.0/stage1-x86_64-unknown-linux-gnu/libstdc++-v3/src/.libs')
 
     def run_tf(self):
         data_name = self.option("tab_merged").prop['path'].split('/')[-1]

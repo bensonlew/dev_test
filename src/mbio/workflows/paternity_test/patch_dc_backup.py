@@ -25,10 +25,10 @@ class PatchDcBackupWorkflow(Workflow):
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},  # fastq所在路径(文件夹
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
-			{"name": "targets_bedfile", "type": "infile", "format": "sequence.rda"},
+			{"name": "targets_bedfile", "type": "infile", "format": "paternity_test.rda"},
 
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
-			{"name": "ref_point", "type": "infile", "format": "sequence.rda"},  # 参考位点
+			{"name": "ref_point", "type": "infile", "format": "paternity_test.rda"},  # 参考位点
 			{"name": "dedup_num", "type": "int", "default": 2},  # 查重样本数
 			{"name": "batch_id", "type": "string"},
 			{"name": "update_info", "type": "string"},
