@@ -73,6 +73,7 @@ class Lustre(RemoteFile):
             return target_path
 
     def upload(self, from_path):
+        os.umask(002)
         if not os.path.exists(from_path):
             raise Exception("源文件%s不存存在" % from_path)
         # basename = os.path.basename(from_path)
@@ -119,6 +120,7 @@ class Lustre(RemoteFile):
                 os.link(real_path, os.path.join(self._full_path, os.path.basename(from_path)))
             else:
                 os.link(from_path, os.path.join(self._full_path, os.path.basename(from_path)))
+        os.umask(022)
         return os.path.join(self._full_path, os.path.basename(from_path))
 
     # def _read_link(self, path):
