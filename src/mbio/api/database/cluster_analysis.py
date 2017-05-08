@@ -53,7 +53,7 @@ class ClusterAnalysis(Base):
         return inserted_id
 
     @report_check
-    def add_sg_otu_detail(self, file_path, new_otu_id, from_otu_id):
+    def add_sg_otu_detail(self, file_path, new_otu_id, from_otu_id, add_Algorithm=''):
         if from_otu_id != 0 and not isinstance(from_otu_id, ObjectId):
             if isinstance(from_otu_id, StringTypes):
                 from_otu_id = ObjectId(from_otu_id)
@@ -61,6 +61,11 @@ class ClusterAnalysis(Base):
                 raise Exception("from_otu_table必须为ObjectId对象或其对应的字符串!")
         self.bind_object.logger.info("开始导入sg_otu_detail表")
         self._get_name_id(from_otu_id)
+        find_otu = self.db['sg_otu'].find_one({"_id": ObjectId(new_otu_id)})
+        if find_otu:
+            self.task_id = find_otu['task_id']
+        else:
+            raise Exception("OTU_ID没有找到相关的主表信息")
         insert_data = list()
         with open(file_path, 'rb') as r:
             head = r.next().strip('\r\n')
@@ -87,6 +92,8 @@ class ClusterAnalysis(Base):
             self.bind_object.logger.error("导入sg_otu_detail表格信息出错:{}".format(e))
         else:
             self.bind_object.logger.info("导入sg_otu_detail表格成功")
+        if add_Algorithm == '':  # three lines added by yiru 20170424
+            pass
         self.bind_object.logger.info("开始导入sg_otu_specimen表")
         insert_data = list()
         for sp in new_head:

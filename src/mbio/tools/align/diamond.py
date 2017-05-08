@@ -3,6 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
+import re
 from biocluster.core.exceptions import OptionError
 
 
@@ -20,7 +21,7 @@ class DiamondAgent(Agent):
             {"name": "query_type", "type": "string", "default": "nucl"},  # 输入的查询序列的格式，为nucl或者prot
             {"name": "database", "type": "string", "default": "plant"},
             # 比对数据库 plant, nr, etc.
-            {"name": "outfmt", "type": "int", "default": 6},  # 输出格式，数字遵从blast+
+            {"name": "outfmt", "type": "int", "default": 5},  # 输出格式，数字默认为5，输出xml
             {"name": "blast", "type": "string", "default": "blastp"},  # 设定diamond程序有blastp，blastx
             {"name": "reference", "type": "infile", "format": "sequence.fasta"},  # 参考序列  选择customer时启用
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
@@ -68,6 +69,8 @@ class DiamondTool(Tool):
             self.blast_type = "blastx"
         else:
             self.blast_type = "blastp"
+        self.ori = []
+        self.repl = []
 
     def run_makedb_and_diamond(self):
         """
@@ -122,14 +125,16 @@ class DiamondTool(Tool):
             if self.option('outfmt') == 5:
                 self.logger.info(outputfile)
                 # self.option('outxml', outputfile)
-            self.end()
+                self.change_version(outputfile)
+            # self.end()
         else:
             self.logger.info("重新运行diamond")
             blast_command.rerun()
             self.wait()
             if blast_command.return_code == 0:
                 self.logger.info("重新运行diamond成功")
-                self.end()
+                # self.end()
+                self.change_version(outputfile)
             else:
                 self.set_error("diamond运行出错!")
 
@@ -143,3 +148,32 @@ class DiamondTool(Tool):
             self.run_makedb_and_diamond()
         else:
             self.run_diamond(self.option("database"))
+
+    def change_version(self, outputfile):
+        path = outputfile
+        with open(path,"r") as file:
+            for line in file:
+                line = line.strip()
+                if line.lstrip().startswith("<Hit_id>"):
+                    m = re.match("<Hit_id>(.+)</Hit_id>", line.lstrip())
+                    if m:
+                        self.ori.append(m.group(1))
+                        line = file.next()
+                        n = re.match("<Hit_def>(.+)</Hit_def>", line.lstrip())
+                        try:
+                            self.repl.append(n.group(1))
+                        except:
+                            print line
+        with open(path,"r") as file, open(path + "_new", "w") as fw:
+            i = 0
+            for line in file:
+                if line.lstrip().startswith("<BlastOutput_version>"):
+                    line = line.replace("diamond 0.8.35", "BLASTX 2.3.0+")
+                if line.lstrip().startswith("<Hit_id>"):
+                    m = re.match("<Hit_id>(.+)</Hit_id>", line.lstrip())
+                    if m:
+                        line = line.replace(self.ori[i],self.repl[i])
+                        i += 1
+                fw.write(line)
+        os.system("mv {} {}".format(path + "_new", path))
+        self.end()

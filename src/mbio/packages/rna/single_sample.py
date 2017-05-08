@@ -10,7 +10,7 @@ import os
 import subprocess
 from mbio.packages.denovo_rna.express.express_distribution import distribution
 
-def prepare(input_file, gtf_file, gtf_type, class_code_file, count_matrix, gene_length, software="featurecounts", feature_type="Transcripts"):
+def prepare(input_file, gtf_file, count_matrix, gene_length):
     #对featureCounts生成的文件进一步处理，求fpkm.tpm表达量
     #:param input_file, infile, file produced by featureCounts 
     #:param gene_length, outfile, 两列，第一列为基因名，第二列为基因外显子长度
@@ -441,18 +441,25 @@ def gtf(infile, outfile):
     os.remove(tmp)
     print 'end'
 
-def add_gene_name(old_express, new_express, class_code):
+def add_gene_name(old_express, new_express, class_code, type= 'gene'):
     with open(old_express, 'r+') as f1, open(class_code, 'r+') as f2, open(new_express, 'w+') as f3:
         gene_trans_info = {} 
         f2.readline()
         for lines in f2:
             line = lines.strip().split("\t")
-            gene_trans_info[line[0]]={"gene_name":line[5]}
+            if type == "transcript":
+                gene_trans_info[line[0]]={"gene_name":line[5]}
+            if type == "gene":
+                gene_trans_info[line[1]]={"gene_name":line[5]}
         title = f1.readline()
         f3.write(title)
         for ll in f1:
             line = ll.strip().split("\t")
             seq_id = line[0]
+            #if type == "transcript":
+            #    seq_id = line[0]
+            #if type == "gene":
+            #    seq_id = line[1]
             if seq_id in gene_trans_info.keys():
                 f3.write(seq_id+","+gene_trans_info[seq_id]['gene_name']+"\t"+"\t".join(line[1:])+"\n")
             else:
@@ -558,7 +565,7 @@ if __name__ == "__main__":
     gtf("/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/assembly_newtranscripts/merged.gtf",\
     "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_rsem_stringtie_zebra_3/Express/Rsem1/newgene2transcript"
     )
-    """
+    
     fpkm_path = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_rsem_stringtie_zebra_7/Express/MergeRsem/output/transcripts.TMM.fpkm.matrix"
     new_fpkm = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_rsem_stringtie_zebra_7/Express/MergeRsem/output/new_transcript.fpkm"
     sample_group_info = {"a1":["ERR1621569_sickle_l","ERR1621480_sickle_l"],"a2":["ERR1621658_sickle_l","ERR1621391_sickle_l"]}
@@ -567,5 +574,10 @@ if __name__ == "__main__":
     filename = "transcriptGroup"
     outputfile = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_rsem_stringtie_zebra_7/Express/MergeRsem/output"
     group_express(old_fpkm = fpkm_path, new_fpkm = new_fpkm, sample_group_info = sample_group_info, rfile = rfile, filename=filename, outputfile=outputfile)
-   
+    """
+    old_express = "/mnt/ilustre/users/sanger-dev/workspace/20170425/Single_merge_rsem_fpkm_9/MergeRsem/output/genes.counts.matrix"
+    new_express = "/mnt/ilustre/users/sanger-dev/workspace/20170425/Single_merge_rsem_fpkm_9/MergeRsem/output/new.genes.counts.matrix"
+    class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170425/Single_merge_rsem_fpkm_9/MergeRsem/class_code"
+    add_gene_name(old_express,new_express,class_code,"gene")
+    print 'end'
     

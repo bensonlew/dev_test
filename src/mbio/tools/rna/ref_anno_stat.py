@@ -43,8 +43,7 @@ class RefAnnoStatAgent(Agent):
             {"name": "pfam_domain", "type": "infile", "format": "annotation.kegg.kegg_list"},
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
             {"name": "swissprot_xml", "type": "infile", "format": "align.blast.blast_xml"},
-            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件，将参考基因组转录本ID替换成gene ID
-            {"name": "sequence_type", "type": "string", "default": "new"},  # 进行注释的序列的类型，参考基因组（ref）/新序列（new），为ref时，必须有参数ref_genome_gtf
+            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
             {"name": "database", "type": "string", "default": "nr,go,cog,pfam,kegg,swissprot"},
             {"name": "gene_nr_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "gene_string_table", "type": "outfile", "format": "align.blast.blast_table"},
@@ -78,11 +77,8 @@ class RefAnnoStatAgent(Agent):
         self.anno_database = set(self.option('database').split(','))
         if len(self.anno_database) < 1:
             raise OptionError('至少选择一种注释库')
-        if self.option("sequence_type") == "ref":
-            for i in self.anno_database:
-                if i in ["go", "cog", "kegg"]:
-                    if not self.option("ref_genome_gtf").is_set:
-                        raise OptionError("缺失参考基因组gtf文件")
+        if not self.option("ref_genome_gtf").is_set:
+            raise OptionError("缺失参考基因组gtf文件")
         for i in self.anno_database:
             if i not in ['nr', 'go', 'cog', 'pfam', 'kegg', 'swissprot']:
                 raise OptionError('需要注释的数据库不在支持范围内[nr, go, cog, pfam, kegg, swissprot]:{}'.format(i))
@@ -204,10 +200,9 @@ class RefAnnoStatTool(Tool):
             os.makedirs(self.work_dir + i)
         if not os.path.exists(self.output_dir + '/venn'):
             os.makedirs(self.output_dir + '/venn')
-        if self.option("sequence_type") == "ref":
-            tran_gene = transcript_gene().get_gene_transcript(gtf_path=self.option("ref_genome_gtf").prop["path"])
-            self.tran_gene = tran_gene[0]
-            self.tran_list = tran_gene[1]
+        tran_gene = transcript_gene().get_gene_transcript(gtf_path=self.option("ref_genome_gtf").prop["path"])
+        self.tran_gene = tran_gene[0]
+        self.tran_list = tran_gene[1]
         self.database = self.option('database').split(',')
         self.gene_anno_list = {}  # 注释到的基因序列名字
         self.anno_list = {}  # 注释到的转录本序列名字
@@ -242,8 +237,7 @@ class RefAnnoStatTool(Tool):
         # 筛选gene_string.xml、gene_string.xls
         self.logger.info("开始筛选gene_string.xml、gene_string.xls")
         self.option('string_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_string_xml, trinity_mode=True)
-        if self.option("sequence_type") == "ref":
-            transcript_gene().get_gene_blast_xml(tran_list= self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_string_xml, gene_xml_path=self.gene_string_xml)
+        transcript_gene().get_gene_blast_xml(tran_list= self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_string_xml, gene_xml_path=self.gene_string_xml)
         xml2table(self.gene_string_xml, self.work_dir + '/blast/gene_string.xls')
         self.logger.info("完成筛选gene_string.xml、gene_string.xls")
         # cog stat
@@ -287,8 +281,7 @@ class RefAnnoStatTool(Tool):
             # 筛选gene_kegg.xml、gene_kegg.xls
             self.logger.info("开始筛选gene_kegg.xml、gene_kegg.xls")
             self.option('kegg_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_kegg_xml, trinity_mode=True)
-            if self.option("sequence_type") == "ref":
-                transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_kegg_xml, gene_xml_path=self.gene_kegg_xml)
+            transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_kegg_xml, gene_xml_path=self.gene_kegg_xml)
             xml2table(self.gene_kegg_xml, self.work_dir + '/blast/gene_kegg.xls')
             self.logger.info("完成筛选gene_kegg.xml、gene_kegg.xls")
         try:
@@ -329,9 +322,8 @@ class RefAnnoStatTool(Tool):
         if self.option("blast2go_annot").is_set and self.option("gos_list").is_set:
             get_gene_go(go_result=self.option('blast2go_annot').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_blast2go.annot')
             get_gene_go(go_result=self.option('gos_list').prop['path'], gene_list=self.gene_list, outpath=self.go_stat_path + '/gene_gos.list')
-            if self.option("sequence_type") == "ref":
-                transcript_gene().get_gene_go_list(tran_list=self.tran_list, tran_gene=self.tran_gene, go_list=self.go_stat_path + '/gene_blast2go.annot', gene_go_list=self.go_stat_path + '/gene_blast2go.annot')
-                transcript_gene().get_gene_go_list(tran_list=self.tran_list, tran_gene=self.tran_gene, go_list=self.go_stat_path + '/gene_gos.list', gene_go_list=self.go_stat_path + '/gene_gos.list')
+            transcript_gene().get_gene_go_list(tran_list=self.tran_list, tran_gene=self.tran_gene, go_list=self.go_stat_path + '/gene_blast2go.annot', gene_go_list=self.go_stat_path + '/gene_blast2go.annot')
+            transcript_gene().get_gene_go_list(tran_list=self.tran_list, tran_gene=self.tran_gene, go_list=self.go_stat_path + '/gene_gos.list', gene_go_list=self.go_stat_path + '/gene_gos.list')
         else:
             self.option("gos_list_upload").get_transcript_anno(outdir=self.work_dir + "/query_gos.list")
             self.option("gos_list_upload").get_gene_anno(outdir=self.go_stat_path + '/gene_gos.list')

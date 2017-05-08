@@ -76,10 +76,13 @@ class PtReportWorkflow(Workflow):
 
 	def pt_analysis_run(self):
 		api_read_tab = self.api.tab_file
+		api_read_tab.export_tab_file(str(self.option('dad_id')), self.output_dir)
+		api_read_tab.export_tab_file(str(self.option('mom_id')), self.output_dir)
+		api_read_tab.export_tab_file(str(self.option('preg_id')), self.output_dir)
 		self.pt_analysis.set_options({
-			"dad_tab": api_read_tab.export_tab_file(str(self.option('dad_id')), self.output_dir),  # 数据库的tab文件
-			"mom_tab": api_read_tab.export_tab_file(str(self.option('mom_id')), self.output_dir),
-			"preg_tab": api_read_tab.export_tab_file(str(self.option('preg_id')), self.output_dir),
+			"dad_tab": self.output_dir + '/' + str(self.option('dad_id')) + '.tab',  # 数据库的tab文件
+			"mom_tab": self.output_dir + '/' + str(self.option('mom_id')) + '.tab',
+			"preg_tab": self.output_dir + '/' + str(self.option('preg_id')) + '.tab',
 			"ref_point": self.option("ref_point"),
 			"err_min": self.option("err_min")
 		})
@@ -117,22 +120,24 @@ class PtReportWorkflow(Workflow):
 		name_list = list(set(name_list))
 		for i in name_list:
 			if i == self.option('dad_id'):
-				continue
-			pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
-			# self.step.add_steps('dedup_{}'.format(n))
-			pt_analysis_dedup.set_options({
-					"dad_tab": api_read_tab.export_tab_file(i, self.output_dir),  # 数据库的tab文件
-					"mom_tab": api_read_tab.export_tab_file(self.option('mom_id'), self.output_dir),
-					"preg_tab": api_read_tab.export_tab_file(self.option('preg_id'), self.output_dir),
+				pass
+			else:
+				pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
+				api_read_tab = self.api.tab_file
+				api_read_tab.export_tab_file(i, self.output_dir)
+				pt_analysis_dedup.set_options({
+					"dad_tab": self.output_dir + '/' + i + '.tab',  # 数据库的tab文件
+					"mom_tab": self.output_dir + '/' + str(self.option('mom_id')) + '.tab',
+					"preg_tab": self.output_dir + '/' + str(self.option('preg_id')) + '.tab',
 					"ref_point": self.option("ref_point"),
 					"err_min": self.option("err_min")
-			}
-			)
+				}
+				)
 			# step = getattr(self.step, 'dedup_{}'.format(n))
 			# step.start()
 			# pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
-			self.tools_dedup.append(pt_analysis_dedup)
-			n += 1
+				self.tools_dedup.append(pt_analysis_dedup)
+				n += 1
 		for j in range(len(self.tools_dedup)):
 			self.tools_dedup[j].on('end', self.set_output, 'dedup')
 		if len(self.tools_dedup) > 1:
