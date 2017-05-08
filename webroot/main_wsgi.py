@@ -121,11 +121,10 @@ urls = (
     "/denovo_rna/denovo_venn", "DenovoVenn",
     "/denovo_rna/go_enrich_regulate", "GoEnrichRegulate",
 
-    #med
-    "/paternity_test/pt_datasplit","PtDatasplit",
-    "/paternity_test_new","PaternityTestNew"
+    # med
+    "/paternity_test/pt_datasplit", "PtDatasplit",
+    "/paternity_test_new", "PaternityTestNew"
 )
-
 
 class hello(object):
     # @check_sig

@@ -8,6 +8,7 @@ from mainapp.libs.param_pack import group_detail_sort
 ######################################added 2 lines by yiru 20170421
 from bson import ObjectId
 from mbio.packages.beta_diversity.filter_newick import *
+import re
 ######################################
 
 class EstimatorsWorkflow(Workflow):
@@ -30,7 +31,7 @@ class EstimatorsWorkflow(Workflow):
             {"name": "task_type", "type": "string"},
             {"name": "group_id", "type": "string"},
             {"name": "group_detail", "type": "string"}
-            ]
+        ]
         self.add_option(options)
         # print(self._sheet.options())
         self.set_options(self._sheet.options())
@@ -42,14 +43,17 @@ class EstimatorsWorkflow(Workflow):
         if 'pd' in indices:
             ####如果需要得到PD指数，则需要找到OTU对应的进化树
             if self.option('level') != 9:
-                newicktree = get_level_newicktree(self.option('otu_id'), level=self.option('level'),tempdir=self.work_dir, return_file=False, bind_obj=self)
+                newicktree = self.get_level_newicktree(self.option('otu_id'), level=self.option('level'),
+                                                       tempdir=self.work_dir, return_file=False, bind_obj=self)
                 all_find = re.findall(r'\'.+?\'', newicktree)  # 找到所有带引号的进化树中复杂的名称
                 for n, m in enumerate(all_find):
                     all_find[n] = m.strip('\'')
                 all_find = dict((i[1], i[0]) for i in enumerate(all_find))  # 用名称做键，找到的位置数字做值
 
                 def match_newname(matchname):
-                    '随着自身被调用，自身的属性count随调用次数增加，返回OTU加次数，用于重命名进化树复杂的名称'
+                    """
+                    随着自身被调用，自身的属性count随调用次数增加，返回OTU加次数，用于重命名进化树复杂的名称
+                    """
                     if hasattr(match_newname, 'count'):
                         match_newname.count = match_newname.count + 1
                     else:
@@ -83,7 +87,8 @@ class EstimatorsWorkflow(Workflow):
                     'indices': self.option('indices')
                 }
             else:
-                newicktree = get_level_newicktree(self.option('otu_id'), level=self.option('level'), tempdir=self.work_dir, return_file=False, bind_obj=self)
+                newicktree = self.get_level_newicktree(self.option('otu_id'), level=self.option('level'),
+                                                       tempdir=self.work_dir, return_file=False, bind_obj=self)
                 temp_tree_file = self.work_dir + '/temp.tree'
                 tempfile = open(temp_tree_file, 'w')
                 tempfile.write(newicktree)
@@ -123,17 +128,18 @@ class EstimatorsWorkflow(Workflow):
         保存结果指数表到mongo数据库中
         """
         api_estimators = self.api.estimator
-        est_path = self.output_dir+"/estimators.xls"
+        est_path = self.output_dir + "/estimators.xls"
         if not os.path.isfile(est_path):
             raise Exception("找不到报告文件:{}".format(est_path))
-        est_id = api_estimators.add_est_table(est_path, level=self.option('level'),otu_id=self.option('otu_id'), est_id=self.option("est_id"))
+        est_id = api_estimators.add_est_table(est_path, level=self.option('level'),otu_id=self.option('otu_id'),
+                                              est_id=self.option("est_id"))
         # self.add_return_mongo_id('sg_alpha_diversity', est_id)
         self.end()
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            # [".", "", "结果输出目录"],
+            [".", "", "多样性指数结果目录"],
             ["./estimators.xls", "xls", "alpha多样性指数表"]
         ])
         # print self.get_upload_files()

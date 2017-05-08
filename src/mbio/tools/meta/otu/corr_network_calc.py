@@ -66,7 +66,7 @@ class CorrNetworkCalcAgent(Agent):
             ["corr_network_clustering.txt", "txt", "网络节点的聚类系数表"],
             ["corr_network_degree_distribution.txt", "txt", "网络节点的度分布表"],
             ["corr_network_node_degree.txt", "txt", "网络节点的度统计表"]
-            ])
+        ])
 
         super(CorrNetworkCalcAgent, self).end()
 
@@ -90,10 +90,10 @@ class CorrNetworkCalcTool(Tool):
         self.wait(cmd)
         if cmd.return_code == 0:
             self.logger.info("运行networkcalc成功")
-            return True
-        else:
-            self.set_error("运行networkcalc出错")
-            return False
+        #     return True
+        # else:
+        #     self.set_error("运行networkcalc出错")
+        #     return False
 
     def set_output(self):
         """
@@ -106,12 +106,12 @@ class CorrNetworkCalcTool(Tool):
         self.logger.info("设置结果目录")
         results = os.listdir(self.work_dir + '/' + "corr_result/")
         for f in results:
-            os.link(self.work_dir + '/' + "corr_result/" +f, self.output_dir + "/" +f)
+            os.link(self.work_dir + '/' + "corr_result/" + f, self.output_dir + "/" + f)
         self.logger.info('设置文件夹路径成功')
 
 
     def run(self):
         super(CorrNetworkCalcTool, self).run()
-        if self.run_CorrNetworkCalc():
-            self.set_output()
-            self.end()
+        self.run_CorrNetworkCalc()
+        self.set_output()
+        self.end()
