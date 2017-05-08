@@ -9,7 +9,6 @@ from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.report.download_web_pic import DownloadWebPic
 from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
 from mainapp.controllers.instant.dataexchange.upload_task import UploadTask
-from mainapp.controllers.submit.meta.pipe import Pipe
 
 
 # Meta instant
@@ -79,7 +78,6 @@ urls = (
     "/app/dataexchange/download_task", "DownloadTask",
     "/dataexchange/upload_task", "UploadTask",
     "/app/dataexchange/upload_task", "UploadTask",
-    "/meta/pipe", "Pipe",
 
     # Meta
     "/meta/demo_mongodata_copy", "DemoMongodataCopy",
@@ -127,7 +125,6 @@ urls = (
     "/paternity_test/pt_datasplit", "PtDatasplit",
     "/paternity_test_new", "PaternityTestNew"
 )
-
 
 class hello(object):
     # @check_sig
