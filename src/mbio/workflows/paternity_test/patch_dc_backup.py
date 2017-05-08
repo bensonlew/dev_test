@@ -380,8 +380,14 @@ class PatchDcBackupWorkflow(Workflow):
 			                                           dedup=self.option('dedup_num'))
 
 			dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt'
+			dedup1 = '.*_NA_' + preg_id + '_family_analysis.txt'
+			dedup2 = '.*' + mom_id + '_NA_family_analysis.txt'
 			for f in results:
 				if re.search(dedup, f):
+					api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)
+				elif re.search(dedup1, f):
+					api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)
+				elif re.search(dedup2, f):
 					api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)
 				elif f == dad_id + '_' + mom_id + '_' + preg_id + '_family_joined_tab.txt':
 					api_main.add_sg_pt_father_detail(self.output_dir + '/' + f, self.pt_father_id)
@@ -396,6 +402,8 @@ class PatchDcBackupWorkflow(Workflow):
 			#如遇深度较低的样本，在结果处报错
 			if dad_id + '_' + mom_id + '_' + preg_id + '_family.png' not in results:
 				api_main.has_problem(self.pt_father_id, dad_id)
+			if mom_id + '_' + preg_id + '_info_show.txt' not in results:
+				api_main.update_infoshow(self.pt_father_id,mom_id,preg_id)
 
 
 			# 把筛选的内容提取到主表中去
