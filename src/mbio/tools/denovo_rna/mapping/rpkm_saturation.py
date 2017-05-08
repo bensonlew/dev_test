@@ -19,7 +19,7 @@ class RpkmSaturationAgent(Agent):
     def __init__(self, parent):
         super(RpkmSaturationAgent, self).__init__(parent)
         options = [
-            {"name": "bed", "type": "infile", "format": "denovo_rna.gene_structure.bed"},  # bed格式文件
+            {"name": "bed", "type": "infile", "format": "gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "quality", "type": "int", "default": 30},  # 质量值
             {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
@@ -54,7 +54,7 @@ class RpkmSaturationAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = '50G'
+        self._memory = '15G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -79,9 +79,7 @@ class RpkmSaturationTool(Tool):
         self.python_full_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
         self.perl_path = "program/perl/perls/perl-5.24.0/bin/perl"
         self.plot_script = self.config.SOFTWARE_DIR + "/bioinfo/plot/scripts/saturation2plot.pl"
-        self.imagemagick_path = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/"
-        self.R_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin/"
-        self.set_environ(PATH=self.R_path)
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin")
         self.plot_cmd = []
 
     def rpkm_saturation(self, bam, out_pre):
@@ -129,11 +127,7 @@ class RpkmSaturationTool(Tool):
             if "saturation.r" in f:
                 satur_file.append(f)
             if "saturation.pdf" in f and "eRPKM.xls" not in f:
-                png_file = ".".join(f.split(".")[:-1]) + ".png"
-                os.system(self.imagemagick_path + "convert {} {}".format(f, png_file))
                 satur_file.append(f)
-                satur_file.append(png_file)
-        # satur_file = glob.glob(r"*eRPKM.xls")
         print(satur_file)
         for f in satur_file:
             output_dir = os.path.join(self.output_dir, f)

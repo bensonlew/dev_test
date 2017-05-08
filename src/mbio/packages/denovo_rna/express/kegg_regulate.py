@@ -37,19 +37,31 @@ class KeggRegulate(object):
         regulate_dict：gene调控信息:{'up': [gene1,gene2], 'down': [gene1,gene2]}
         """
         with open(output, 'wb') as w:
-            w.write('Pathway_id\tKo_ids\tup_numbers\tdown_numbers\tup_genes\tdown_genes\n')
+            # w.write('Pathway_id\tKo_ids\tup_numbers\tdown_numbers\tup_genes\tdown_genes\n')
+            # modified by qindanhua add 7 line 支持两个以上的基因集统计
+            genelist_names = regulate_gene.keys()
+            w.write('Pathway_id\tKo_ids\t')
+            for gn in genelist_names:
+                w.write("{}_numbers\t{}_genes\t".format(gn, gn))
+            w.write("\n")
+
             for path in path_ko:
                 ko_ids = set(path_ko[path])
-                up_genes = []
-                down_genes = []
+                # up_genes = []
+                # down_genes = []
+                write_dict = {}
+                for gn in genelist_names:
+                    write_dict[gn] = []
                 for ko in ko_ids:
                     genes = ko_gene[ko]
                     for g in genes:
-                        if g in regulate_gene['up']:
-                            up_genes.append('{}({})'.format(g, ko))
-                        if g in regulate_gene['down']:
-                            down_genes.append('{}({})'.format(g, ko))
-                w.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(path, ';'.join(ko_ids), ';'.join(up_genes), ';'.join(down_genes), len(up_genes), len(down_genes)))
+                        for gn in genelist_names:
+                            if g in regulate_gene[gn]:
+                                write_dict[gn].append('{}({})'.format(g, ko))
+                w.write('{}\t{}\t'.format(path, ';'.join(ko_ids),))
+                for gn in write_dict:
+                    w.write("{}\t{}\t".format(len(write_dict[gn]), ";".join(write_dict[gn])))
+                w.write("\n")
 
     def get_pictrue(self, path_ko, out_dir, regulate_dict=None):
             """

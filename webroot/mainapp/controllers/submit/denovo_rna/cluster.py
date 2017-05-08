@@ -8,9 +8,10 @@ from bson.objectid import ObjectId
 from biocluster.config import Config
 from mainapp.models.mongo.submit.denovo_rna.denovo_cluster import DenovoExpress
 import types
-from mainapp.models.mongo.denovo import Denovo
+from mainapp.models.mongo.meta import Meta
 from mainapp.models.workflow import Workflow
 from mainapp.controllers.project.denovo_controller import DenovoController
+import datetime
 
 
 class Cluster(DenovoController):
@@ -35,7 +36,7 @@ class Cluster(DenovoController):
         my_param["sub_num"] = data.sub_num
         my_param['gene_list'] = data.gene_list
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        express_info = Denovo().get_main_info(data.express_id, 'sg_denovo_express')
+        express_info = Meta(db=self.mongodb).get_main_info(data.express_id, 'sg_denovo_express')
         if express_info:
             main_table_name = "Cluster_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_id = express_info["task_id"]
@@ -54,7 +55,7 @@ class Cluster(DenovoController):
                 "gene_list": data.gene_list
             }
             to_file = "denovo.export_express_matrix(express_file)"
-            self.set_sheet_data(name='denovo_rna.report.cluster', options=options, main_table_name=main_table_name, module_type='workflow', to_file=to_file)
+            self.set_sheet_data(name='denovo_rna.report.cluster', options=options, main_table_name=main_table_name, module_type='workflow', to_file=to_file, main_id=cluster_id, collection_name="sg_denovo_cluster")
             task_info = super(Cluster, self).POST()
             task_info['content'] = {'ids': {'id': str(cluster_id), 'name': main_table_name}}
             print task_info

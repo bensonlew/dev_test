@@ -79,7 +79,7 @@ class EnterotypingTool(Tool):
 		"""
 		super(EnterotypingTool, self).run()
 		self.run_enterotyping()
-		# self.set_output()
+		self.set_output()
 		self.end()
 
 	def run_enterotyping(self):
@@ -96,14 +96,18 @@ class EnterotypingTool(Tool):
 		else:
 			self.set_error("enterotyping运行出错!")
 
-	# def set_output(self):
-	# 	"""
-	# 	将结果文件复制到output文件夹下面
-	# 	:return:
-	# 	"""
-	# 	self.logger.info("设置结果目录")
-	# 	self.option('result_dir').set_path(self.output_dir)
-	# 	self.logger.info("设置样本菌群分型分析成功")
+	def set_output(self):  # 20170412
+		"""
+		结果已经生成在out_put文件夹下面，判断是否正确生成数据
+		:return:
+		"""
+		self.logger.info("判断结果文件是否完整")
+		file_name = os.listdir(self.output_dir)
+		if len(file_name) == 2:
+			self.logger.info("样本量或物种分类过低，不能进行菌群分型分析")
+			raise OptionError('样本量或物种分类过低，不能进行菌群分型分析，请选择较多的样本或者较高的分类水平')
+		else:
+			self.logger.info("样本菌群分型分析成功")
 
 
 

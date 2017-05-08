@@ -61,8 +61,10 @@ class NetworkWorkflow(Workflow):
            ['.', '', '结果输出目录'],
            ['all_nodes.txt', 'txt', 'nodes结果信息'],
            ['all_edges.txt', 'txt', 'edges结果信息'],
-           ["ModuleTree.pdf", "pdf", "ModuleTree图"],
-           ["softPower.pdf", "pdf", "softpower图"],
+           ["ModuleTree.pdf", "pdf", "ModuleTree pdf图"],
+           ["softPower.pdf", "pdf", "softpower pdf图"],
+           ["ModuleTree.png", "png", "ModuleTree png图"],
+           ["softPower.png", "png", "softpower png图"],
            ['removeSample.xls', 'xls', 'removeSample.xls'],
            ['networkHeatmap.pdf', "pdf", "networkHeatmap.pdf"],
            ['sampleClustering.pdf', 'pdf', 'sampleClustering.pdf'],
@@ -112,6 +114,9 @@ class NetworkWorkflow(Workflow):
         db_name = Config().MONGODB + '_rna'
         print db_name
         collection = client[db_name]['sg_denovo_network']
+        self.logger.info(module_path)
+        self.logger.info(softpower_path)
+        self.logger.info(module)
         #with open(softpower_path, "rb") as s, open(module_path, 'rb') as m:
             #softpower_id = StringIO(s.read())
             #softpower_id = bson.binary.Binary(softpower_id.getvalue())

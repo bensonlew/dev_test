@@ -3,6 +3,7 @@
 from biocluster.workflow import Workflow
 from mbio.packages.alpha_diversity.group_file_split import group_file_spilt
 import os
+from biocluster.core.exceptions import OptionError
 
 
 class EstTTestWorkflow(Workflow):
@@ -32,6 +33,21 @@ class EstTTestWorkflow(Workflow):
         self.est_t_test = self.add_tool('statistical.metastat')
         self.group_name = ''
         self.group_file_dir = self.work_dir + '/two_group_output'
+
+    def check_options(self):
+        with open(self.option("est_table").prop['path'], "r") as f:
+            firstline = f.readline()
+            bad_line_num = 0
+            total_line = 0
+            for line in f:
+                total_line += 1
+                line = line.strip().split("\t")[1:]
+                line_set = set(line)
+                if len(line_set) == 1:
+                    bad_line_num += 1
+            if total_line == bad_line_num:
+                raise OptionError("输入的多样性指数表格格式不正确，全部样本指数值相同")
+            print bad_line_num, total_line
 
     def run(self):
         group_name = group_file_spilt(self.option('group_table').prop['path'], self.group_file_dir)

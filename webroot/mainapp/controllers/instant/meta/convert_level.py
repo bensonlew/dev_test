@@ -6,7 +6,7 @@ import web
 import json
 import datetime
 import os
-from mbio.instant.to_files.export_file import ExportFile
+from mainapp.models.mongo.export_file import ExportFile
 from biocluster.config import Config
 from bson.objectid import ObjectId
 from types import StringTypes

@@ -83,8 +83,8 @@ class PcaAgent(Agent):
             #     if sample not in samplelist:
             #         raise OptionError('环境因子中存在，OTU表中的未知样本%s' % sample)
         table = open(self.gettable())
-        if len(table.readlines()) < 4:
-            raise OptionError('数据表少于3行，不可进行分析')
+        if len(table.readlines()) < 3:
+            raise OptionError('数据表特征数量必须大于等于2: {}'.format(len(table.readlines())))
         table.close()
         return True
 

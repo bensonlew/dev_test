@@ -36,7 +36,7 @@ class MetaBaseWorkflow(Workflow):
             {"name": "rarefy_indices", "type": "string", "default": "sobs,shannon"},  # 指数类型
             {"name": "rarefy_freq", "type": "int", "default": 100},
             {"name": "alpha_level", "type": "string", "default": "otu"},  # level水平
-            {"name": "beta_analysis", "type": "string","default": "pca,hcluster"},
+            {"name": "beta_analysis", "type": "string", "default": "pca,hcluster"},
             {"name": "beta_level", "type": "string", "default": "otu"},
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
             # {"name": "phy_newick", "type": "infile", "format": "meta.beta_diversity.newick_tree"},
@@ -47,14 +47,14 @@ class MetaBaseWorkflow(Workflow):
             {"name": "anosim_grouplab", "type": 'string', "default": ''},
             {"name": "plsda_grouplab", "type": 'string', "default": ''},
             {"name": "file_list", "type": "string", "default": "null"},
-            {"name": "raw_sequence", "type" : "infile", "format": "sequence.raw_sequence_txt"},
-            {"name": "workdir_sample", "type":"string", "default":""},
-            # add by qindanhua 20170112 add function gene relative option
+            {"name": "raw_sequence", "type": "infile", "format": "sequence.raw_sequence_txt"},
+            {"name": "workdir_sample", "type": "string", "default": ""},
             {"name": "if_fungene", "type": "bool", 'default': False}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.sample_extract = self.add_module("meta.sample_extract.sample_extract")
+        self.sample_rename = self.add_tool("meta.sample_rename")
+        self.new_sample_extract = self.add_module("meta.sample_extract.sample_extract")  # added by shijin
         self.sample_check = self.add_tool("meta.sample_check")
         # self.info_abstract = self.add_tool("meta.lala.info_abstract")
         self.otu = self.add_tool("meta.otu.usearch_otu")
@@ -64,7 +64,7 @@ class MetaBaseWorkflow(Workflow):
         self.alpha = self.add_module("meta.alpha_diversity.alpha_diversity")
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
         self.pan_core = self.add_tool("meta.otu.pan_core_otu")
-        self.step.add_steps("sample_extract", "otucluster", "taxassign", "alphadiv", "betadiv")
+        self.step.add_steps("sample_rename", "otucluster", "taxassign", "alphadiv", "betadiv")
         self.spname_spid = dict()
         self.otu_id = None
         self.env_id = None
@@ -72,7 +72,6 @@ class MetaBaseWorkflow(Workflow):
         self.updata_status_api = self.api.meta_update_status
         self.info_path = ""
         self.work_dir_path = ""
-        # add by qindanhua 20170112 add function gene tool
         self.function_gene_tool = None
         self.function_gene_path = ""
         self.in_fastq_path = ""
@@ -97,11 +96,12 @@ class MetaBaseWorkflow(Workflow):
                                                'silva119/16s', 'silva119/18s_eukaryota', 'unite7.0/its_fungi',
                                                'fgr/amoA', 'fgr/nosZ', 'fgr/nirK', 'fgr/nirS',
                                                'fgr/nifH', 'fgr/pmoA', 'fgr/mmoX', 'fgr/mcrA',
+                                               'fgr/amoA_archaea', 'fgr/amoA_bacteria',
                                                'maarjam081/AM', 'Human_HOMD',
                                                'silva128/16s_archaea', 'silva128/16s_bacteria',
                                                'silva128/18s_eukaryota', 'silva128/16s',
                                                'greengenes135/16s', 'greengenes135/16s_archaea', 'greengenes135/16s_bacteria']:
-                    # 王兆月 2016.11.14 增加数据库silva128 2016.11.23增加数据库mrcA 2016.11.28增加数据库greengenes135
+                    # add by wzy 2016.11.14 silva128,2016.11.23 mrcA,2016.11.28,greengenes135,20170424,amoA(a,b)
                 raise OptionError("数据库{}不被支持".format(self.option("database")))
         # add by qindanhua 20170112 check if function gene is exist
         if self.option("if_fungene") and self.option("database").split("/")[0] != "fgr":
@@ -112,52 +112,64 @@ class MetaBaseWorkflow(Workflow):
     def run_function_gene(self):
         self.step.add_steps("function_gene")
         self.function_gene_tool = self.add_tool("meta.function_gene.function_gene")
+        tax_name = self.option("database").split("/")[1]
+        if tax_name == 'amoA_archaea':
+            tax_name = 'amoA_AOA'
+        elif tax_name == 'amoA_bacteria':
+            tax_name = 'amoA_AOB'
         self.function_gene_tool.set_options({
-            "fastq": self.option("in_fastq"),
-            "function_gene": self.option("database").split("/")[1],
+            "fasta": self.sample_check.option("otu_fasta"),
+            "function_gene": tax_name,
         })
         self.function_gene_tool.on("start", self.set_step, {'start': self.step.function_gene})
-        self.function_gene_tool.on("end", self.run_sample_extract)
+        self.function_gene_tool.on("end", self.run_otu)
         self.function_gene_tool.on("end", self.set_step, {'end': self.step.function_gene})
         self.function_gene_tool.run()
 
-    def run_sample_extract(self):
-        # add 2 lines by qindanhua 20170112 将输入的fastq文件换成功能基因fastq
-        if self.option("if_fungene"):
-            self.in_fastq_path = self.function_gene_tool.output_dir + "/fungene_reads.fastq"
-        if self.option("file_list") == "null":
-            opts = {
-                "in_fastq": self.in_fastq_path if self.option("if_fungene") else self.option("in_fastq")  # modified by qindanhua 判断是否输入为功能基因
+    def run_pre_sample_extract(self):
+        # if self.option("if_fungene"):
+        #     self.in_fastq_path = self.function_gene_tool.output_dir + "/fungene_reads.fastq"
+        opts = {
+                "in_fastq":  self.option("in_fastq")  # modified by shijin
             }
-        else:
-            opts = {
-                "workdir_sample": self.option("workdir_sample"),  # 从数据库中提取到的样本工作路径，以便对其进行操作
-                "file_list": self.option("file_list")  # 对样本进行重命名
-            }
-        self.sample_extract.set_options(opts)
-        self.sample_extract.on("start", self.set_step, {'start': self.step.sample_extract})
-        self.sample_extract.run()
+        self.new_sample_extract.set_options(opts)
+        # self.new_sample_extract.on("start", self.set_step, {'start': self.step.pre_sample_extract})
+        # self.new_sample_extract.on("end", self.set_step, {'end': self.step.pre_sample_extract})
+        self.new_sample_extract.run()
+
+    def run_sample_rename(self):
+        opts = {
+            # "workdir_sample": self.option("workdir_sample"),  # 从数据库中提取到的样本工作路径，以便对其进行操作
+            "info_txt": self.new_sample_extract.work_dir + "/info.txt",
+            "file_list": self.option("file_list")  # 对样本进行重命名
+        }
+        self.sample_rename.set_options(opts)
+        self.sample_rename.on("start", self.set_step, {'start': self.step.sample_rename})
+        self.sample_rename.run()
 
     def run_samplecheck(self):  # 样本合并
         opts = {
-            "file_sample_list": self.sample_extract.option("file_sample_list")
+            "file_sample_list": self.sample_rename.option("file_sample_list")
         }
         if self.option("raw_sequence").is_set:
             opts.update({
-                "raw_sequence" : self.option("raw_sequence")
+                "raw_sequence": self.option("raw_sequence")
             })
         self.sample_check.set_options(opts)
         self.sample_check.on("end", self.set_output, "sample_check")
         self.sample_check.run()
 
     def run_otu(self):
+        if self.option("if_fungene"):
+            self.in_fasta_path = self.function_gene_tool.output_dir + "/fungene_reads.fasta"
         opts = {
-            "fasta":self.sample_check.option("otu_fasta"),
+            "fasta": self.in_fasta_path if self.option("if_fungene") else self.sample_check.option("otu_fasta"),
+            # modified by shijin on 20170428
             "identity": self.option("identity")
         }
         self.otu.set_options(opts)
         self.otu.on("end", self.set_output, "otu")
-        self.otu.on("start", self.set_step, {'end': self.step.sample_extract, 'start': self.step.otucluster})
+        self.otu.on("start", self.set_step, {'end': self.step.sample_rename, 'start': self.step.otucluster})
         # self.otu.on("end", self.set_step, {'end':self.step.otucluster})
         self.otu.run()
 
@@ -188,12 +200,6 @@ class MetaBaseWorkflow(Workflow):
         self.tax.run()
 
     def run_stat(self):
-        with open(self.sample_check.output_dir + "/samples_info/samples_info.txt") as r:
-            if len(r.readlines()) < 3:
-                self.on_rely([self.alpha, self.beta], self.end)
-            else:
-                self.stat.on('end', self.run_pan_core)
-                self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
         self.stat.set_options({
             "in_otu_table": self.otu.option("otu_table"),
             "taxon_file": self.tax.option("taxon_file")
@@ -216,16 +222,15 @@ class MetaBaseWorkflow(Workflow):
         self.alpha.run()
 
     def run_beta(self):
-        if len(open(self.stat.option("otu_taxon_dir").get_table("otu")).readline().split('\t')) < 4: # 只有两个样本
-            self.option('beta_analysis', '')
         opts = {
             'analysis': 'distance,' + self.option('beta_analysis'),
             'dis_method': self.option('dis_method'),
             'otutable': self.stat.option('otu_taxon_dir'),
             "level": self.option('beta_level'),
-            'permutations': self.option('permutations'),
-            'phy_newick': self.phylo.option('phylo_tre').prop['path']
+            'permutations': self.option('permutations')
         }
+        if self.count_otus:
+            opts['phy_newick'] = self.phylo.option('phylo_tre').prop['path']
         if self.option('envtable').is_set:
             opts.update({
                 'envtable': self.option('envtable')
@@ -311,7 +316,7 @@ class MetaBaseWorkflow(Workflow):
             for step in (20, 50, 100, 200):
                 reads_len_info_path = self.sample_check.output_dir + "/reads_len_info/step_{}.reads_len_info.txt".format(str(step))
                 if not os.path.isfile(reads_len_info_path):
-                    raise Exception("找不到报告文件:{}".format(base_info_path))
+                    raise Exception("找不到报告文件")
                 api_samples.add_reads_len_info(step, reads_len_info_path)
             if self.option('envtable').is_set:
                 api_env = self.api.env
@@ -353,25 +358,27 @@ class MetaBaseWorkflow(Workflow):
                 raise Exception("找不到报告文件:{}".format(otu_path))
             params = {
                 "group_id": 'all',
-                #"size": 0,
+                # "size": 0,
                 "size": "",   # modified by hongdongxuan 20170303
                 "submit_location": 'otu_statistic',
-                "filter_json": "[]", # add by hongdongxuan 20170303
+                "filter_json": "[]",  # add by hongdongxuan 20170303
                 "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
+            self.updata_status_api.add_meta_status(table_id=str(self.otu_id), type_name='sg_otu')
             api_otu_level = self.api.sub_sample
             api_otu_level.add_sg_otu_detail_level(otu_path, self.otu_id, 9)
             # self.otu_id = str(self.otu_id)
             # self.logger.info('OTU mongo ID:%s' % self.otu_id)
-            api_tree = self.api.newicktree
-            tree_path = self.phylo.option('phylo_tre').prop['path']
-            if not os.path.isfile(tree_path):
-                raise Exception("找不到报告文件:{}".format(tree_path))
-            if os.path.exists(self.output_dir + '/Otu/otu_phylo.tre'):
-                os.remove(self.output_dir + '/Otu/otu_phylo.tre')
-            os.link(tree_path, self.output_dir + '/Otu/otu_phylo.tre')
-            api_tree.add_tree_file(tree_path, major=True, level=9, table_id=str(self.otu_id), table_type='otu', tree_type='phylo')
+            if self.count_otus:
+                api_tree = self.api.newicktree
+                tree_path = self.phylo.option('phylo_tre').prop['path']
+                if not os.path.isfile(tree_path):
+                    raise Exception("找不到报告文件:{}".format(tree_path))
+                if os.path.exists(self.output_dir + '/Otu/otu_phylo.tre'):
+                    os.remove(self.output_dir + '/Otu/otu_phylo.tre')
+                os.link(tree_path, self.output_dir + '/Otu/otu_phylo.tre')
+                api_tree.add_tree_file(tree_path, major=True, level=9, table_id=str(self.otu_id), table_type='otu', tree_type='phylo')
             if self.option('group').is_set:
                 api_group = self.api.group
                 api_group.add_ini_group_table(self.option('group').prop["path"], self.spname_spid, sort_samples=True)
@@ -485,39 +492,86 @@ class MetaBaseWorkflow(Workflow):
             self.updata_status_api.add_meta_status(table_id=pan_id, type_name='sg_otu_pan_core')
             self.updata_status_api.add_meta_status(table_id=core_id, type_name='sg_otu_pan_core')
 
+    def check_otu_run(self):
+        """
+        在不同的OTU数目以及不同的样本数量下，有些分析会被跳过不做
+        """
+        self.update_info = ""
+        self.count_otus = True  # otu/代表序列数量大于等于2
+        self.count_samples = 0  # 样本数量是否大于等于2
+        counts = 0
+        for i in open(self.otu.output_dir + '/otu_reps.fasta'):
+            if i[0] == '>':
+                counts += 1
+                if counts > 1:
+                    break
+        else:
+            self.count_otus = False
+        with open(self.sample_check.output_dir + "/samples_info/samples_info.txt") as r:
+            self.count_samples = len(r.readlines()) - 1
+        if self.count_samples < 3:  # 少于3个样本
+            self.update_info += "样本少于三个，不进行beta多样性相关分析；"
+            self.option('beta_analysis', '')
+        if not self.count_otus:
+            if 'pca' in self.option('beta_analysis'):
+                self.option('beta_analysis', self.option('beta_analysis').replace('pca', '').strip(',').replace(',,', ','))
+                self.update_info += "OTU数量过少，不做PCA分析；"
+            if "unifrac" in self.option('dis_method'):
+                self.option('dis_method', "bray_curtis")
+                self.update_info += "OTU数量过少，不使用unifrac类型距离算法，采用默认bray_curtis算法；"
+            indices = self.option("estimate_indices").split(',')
+            if 'pd' in indices:
+                indices.remove("pd")
+                indices = ','.join(indices)
+                self.option('estimate_indices', indices)
+                self.update_info += "OTU数量过少没有进行进化树分析，所以移除了依赖进化树分析多样性指数 PD；"
+        if self.count_otus and self.count_samples > 1:
+            self.on_rely([self.tax, self.phylo], self.run_stat)
+            self.stat.on('end', self.run_alpha)
+            self.stat.on('end', self.run_beta)
+            self.stat.on('end', self.run_pan_core)
+            self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
+            self.run_taxon()
+            self.run_phylotree()
+        elif self.count_otus and self.count_samples == 1:
+            self.update_info += "样本数量过少，不进行Pan Core分析；"
+            self.on_rely([self.tax, self.phylo], self.run_stat)
+            self.stat.on('end', self.run_alpha)
+            self.stat.on('end', self.run_beta)
+            self.on_rely([self.alpha, self.beta], self.end)
+            self.run_taxon()
+            self.run_phylotree()
+        else:
+            self.update_info += "OTU数量过少，不进行物种进化树分析，将不会生成物种进化树；"
+            self.tax.on('end', self.run_stat)
+            self.stat.on('end', self.run_alpha)
+            self.stat.on('end', self.run_beta)
+            self.on_rely([self.alpha, self.beta], self.end)
+            self.run_taxon()
+        self.logger.info("分析结果异常处理：{}".format(self.update_info))
+
     def run(self):
-        #self.filecheck.on('end', self.run_qc)
-        #self.sample_check.on('end',self.run_filecheck)
-        #self.qc.on('end', self.run_otu)
         task_info = self.api.api('task_info.task_info')
         task_info.add_task_info()
-        self.sample_extract.on("end",self.run_samplecheck)
-        self.sample_check.on("end",self.run_otu)
-        # self.info_abstract.on("end",self.run_otu)
-        self.otu.on('end', self.run_taxon)
-        self.otu.on('end', self.run_phylotree)
-        self.on_rely([self.tax, self.phylo], self.run_stat)
-        self.stat.on('end', self.run_alpha)
-        self.stat.on('end', self.run_beta)
-        # self.stat.on('end', self.run_pan_core)
-        # self.on_rely([self.alpha, self.beta, self.pan_core], self.end)
-        # modify by qindanhua 如果筛选功能基因就先运行功能基因tool
+        self.new_sample_extract.on("end", self.run_sample_rename)
+        self.sample_rename.on("end", self.run_samplecheck)
+        self.sample_check.on("end", self.run_otu)
+        self.otu.on('end', self.check_otu_run)
         if self.option("if_fungene"):
-            self.logger.info("llllllllllllll")
             self.run_function_gene()
         else:
-            self.run_sample_extract()
+            self.run_pre_sample_extract()
         super(MetaBaseWorkflow, self).run()
 
     def send_files(self):
         repaths = [
             [".", "", "基础分析结果文件夹"],
             ["QC_stat", "", "样本数据统计文件目录"],
-            ["QC_stat/samples_info", "", "样本信息文件目录"], # add by hongdongxuan 20170323
+            ["QC_stat/samples_info", "", "样本信息文件目录"],  # add by hongdongxuan 20170323
             ["QC_stat/samples_info/samples_info.txt", "txt", "样本信息统计文件"],
             ["QC_stat/base_info", "", "单个样本碱基质量统计目录"],
             ["QC_stat/reads_len_info", "", "序列长度分布统计文件目录"],
-            ["QC_stat/valid_sequence.txt", "txt", "优化序列信息统计表"], # add by hongdongxuan 20170323
+            ["QC_stat/valid_sequence.txt", "txt", "优化序列信息统计表"],  # add by hongdongxuan 20170323
             ["Otu", "", "OTU聚类结果文件目录"],
             ["Tax_assign", "", "OTU对应物种分类文件目录"],
             ["Tax_assign/seqs_tax_assignments.txt", "taxon.seq_taxon", "OTU序列物种分类文件"],
@@ -566,7 +620,7 @@ class MetaBaseWorkflow(Workflow):
             ["Beta_diversity/Plsda/plsda_importance.xls", "xls", "主成分组别特征值表"],
             ["Beta_diversity/Plsda/plsda_importancepre.xls", "xls", "主成分解释度表"],
             ["Beta_diversity/Rda", "", "RDA_CCA分析结果目录"],
-            ["pan_core", "", "Pan/core分析结果目录"],     #add 3 lines by hongdongxuan 20170323
+            ["pan_core", "", "Pan/core分析结果目录"],     # add 3 lines by hongdongxuan 20170323
             ["pan_core/core.richness.xls", "xls", "core 表格"],
             ["pan_core/pan.richness.xls", "xls", "pan 表格"]
         ]

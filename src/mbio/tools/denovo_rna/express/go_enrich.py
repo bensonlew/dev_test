@@ -19,8 +19,8 @@ class GoEnrichAgent(Agent):
     def __init__(self, parent):
         super(GoEnrichAgent, self).__init__(parent)
         options = [
-            {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
-            {"name": "all_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
+            {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},
+            {"name": "all_list", "type": "infile", "format": "rna.gene_list"},
             {"name": "go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
             {"name": "pval", "type": "string", "default": "0.05"},
             {"name": "method", "type": "string", "default": "bonferroni,sidak,holm,fdr"}

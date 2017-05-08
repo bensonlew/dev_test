@@ -21,10 +21,12 @@ class FastqFile(File):
     """
     def __init__(self):
         super(FastqFile, self).__init__()
-        self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "seqs/seqstat")
+        #self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "seqs/seqstat")
+        self.seqstat_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/seq/biosquid_1.9g+cvs20050121/bin/seqstat") #修改软件路径 konghualei 20170124
         self._fastaname = ""
         self._filename = ""
-        self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/fastq_to_fasta")
+        #self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "fastxtoolkit/bin/fastq_to_fasta")
+        self.fastq_to_fasta_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/seq/fastx_toolkit_0.0.14/fastq_to_fasta") # konghualei 20170124
         self.is_convert = False
         self.has_sample_info = False
         self.samples = list()
@@ -215,3 +217,13 @@ class FastqFile(File):
             return seq_type, seq_number, bases, shortest, longest
         except subprocess.CalledProcessError:
             raise Exception("seqstat 运行出错！")
+
+if __name__=="__main__":
+    data=FastqFile()
+    data.set_path("/mnt/ilustre/users/sanger-dev/sg-users/konghualei/ref_rna/tools/kallisto/fq_dir/fastq/trim1.fq")
+    data._prepare("/mnt/ilustre/users/sanger-dev/sg-users/konghualei/ref_rna/tools/kallisto/fq_dir/fastq/")
+    data.convert_to_fasta()
+    d1=data.get_seq_info()
+    print d1
+    #a1=data.check_format()
+    #data.get_info()
