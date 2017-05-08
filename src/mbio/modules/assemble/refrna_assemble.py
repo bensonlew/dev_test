@@ -31,8 +31,9 @@ class RefrnaAssembleModule(Module):
             {"name": "sample_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的gtf文件
             {"name": "merged_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的合并文件
             {"name": "cuff_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # compare后的gtf文件
-            {"name": "new_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新转录本注释文件
-            {"name": "new_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本注释文件
+            {"name": "new_transcripts_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新转录本注释文件
+            {"name": "new_gene_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新基因注释文件
+            {"name": "merged_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本注释文件
         ]
         self.add_option(options)
         self.tools = []
@@ -69,7 +70,7 @@ class RefrnaAssembleModule(Module):
             self.step.add_steps('stringtie_{}'.format(n))
             stringtie.set_options({
                 "sample_bam": f,
-                "ref_fa": self.option('ref_fa').prop['path'],
+                "ref_fa": self.option('ref_fa'),
                 "ref_gtf": self.option('ref_gtf').prop['path'],
             })
             step = getattr(self.step, 'stringtie_{}'.format(n))
@@ -92,7 +93,7 @@ class RefrnaAssembleModule(Module):
         stringtie_merge = self.add_tool("assemble.stringtie_merge")
         stringtie_merge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
-            "ref_fa": self.option('ref_fa').prop['path'],
+            "ref_fa": self.option('ref_fa'),
             "ref_gtf": self.option('ref_gtf').prop['path'],
         })
         stringtie_merge.on('end', self.gffcompare_run)
@@ -111,7 +112,7 @@ class RefrnaAssembleModule(Module):
             self.step.add_steps('cufflinks_{}'.format(n))
             cufflinks.set_options({
                 "sample_bam": f,
-                "ref_fa": self.option('ref_fa').prop['path'],
+                "ref_fa": self.option('ref_fa'),
                 "ref_gtf": self.option('ref_gtf').prop['path'],
                 "fr_stranded": self.option("fr_stranded"),
             })
@@ -135,7 +136,7 @@ class RefrnaAssembleModule(Module):
         cuffmerge = self.add_tool("assemble.cuffmerge")
         cuffmerge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
-            "ref_fa": self.option('ref_fa').prop['path'],
+            "ref_fa": self.option('ref_fa'),
             "ref_gtf": self.option('ref_gtf').prop['path'],
         })
         cuffmerge.on('end', self.gffcompare_run)
@@ -179,7 +180,7 @@ class RefrnaAssembleModule(Module):
         new_transcripts.set_options({
             "tmap": tmap,
             "merged_gtf": merged_gtf,
-            "ref_fa": self.option('ref_fa').prop['path'],
+            "ref_fa": self.option('ref_fa'),
         })
         new_transcripts.on('end', self.set_output)
         new_transcripts.run()
@@ -255,6 +256,9 @@ class RefrnaAssembleModule(Module):
             elif files.startswith("new_transcripts.") or files.startswith("new_genes.") or files.startswith("old_trans.gtf") or files.startswith("old_genes.gtf"):
                 os.system('cp %s %s' % (old_dir + files, new_transcripts_dir + "/" + files))
         self.option("merged_gtf").set_path(merge_dir + '/merged.gtf')
+        self.option("merged_fa").set_path(merge_dir +"/merged.fa")
+        self.option("new_transcripts_gtf").set_path(new_transcripts_dir + "/new_transcripts.gtf")
+        self.option("new_gene_gtf").set_path(new_transcripts_dir + "/new_genes.gtf")
         self.option("cuff_gtf").set_path(compare_dir + '/cuffcmp.annotated.gtf')
         self.end()
 

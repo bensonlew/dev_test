@@ -109,7 +109,8 @@ class RefrnaWorkflow(Workflow):
         self.exp_diff_gene = self.add_module("denovo_rna.express.diff_analysis")
         self.snp_rna = self.add_module("gene_structure.snp_rna")
         self.seq_abs = self.add_tool("annotation.transcript_abstract")
-        self.new_abs = self.add_tool("annotation.transcript_abstract")
+        self.new_gene_abs = self.add_tool("annotation.transcript_abstract")
+        self.new_trans_abs = self.add_tool("annotation.transcript_abstract")
         self.para_anno = self.add_module("rna.parallel_anno")
         self.annotation = self.add_module('annotation.ref_annotation')
         self.new_annotation = self.add_module('annotation.ref_annotation')
@@ -128,8 +129,7 @@ class RefrnaWorkflow(Workflow):
                 self.gff = self.json_dict[self.option("ref_genome")]["gff"]
         self.genome_status = True
         self.step.add_steps("qcstat", "mapping", "assembly", "annotation", "exp", "map_stat",
-                            "seq_abs", "transfactor_analysis", "network_analysis", "sample_analysis",
-                            "altersplicing")
+                            "seq_abs","network_analysis", "sample_analysis", "altersplicing")
         
     def check_options(self):
         """
@@ -378,22 +378,30 @@ class RefrnaWorkflow(Workflow):
         self.assembly.on('end', self.set_step, {'end': self.step.assembly})
         self.assembly.run()
 
-    def run_new_abs(self):
+    def run_new_transcripts_abs(self):
         opts = {
             "ref_genome_custom": self.ref_genome,
-            "ref_genome_gtf": self.assembly.option("new_gtf")
+            "ref_genome_gtf": self.assembly.option("new_transcripts_gtf")
         }
-        self.new_abs.set_options(opts)
-        self.new_abs.run()
+        self.new_trans_abs.set_options(opts)
+        self.new_trans_abs.run()
+
+    def run_new_gene_abs(self):
+        opts = {
+            "ref_genome_custom": self.ref_genome,
+            "ref_genome_gtf": self.assembly.option("new_gene_gtf")
+        }
+        self.new_gene_abs.set_options(opts)
+        self.new_gene_abs.run()
 
     def run_new_align(self, event):
         method = event["data"]
         self.new_blast_modules = []
-        self.gene_list = self.new_abs.option('gene_file')
-        blast_lines = int(self.new_abs.option('query').prop['seq_number']) / 10
+        self.gene_list = self.new_gene_abs.option('gene_file')
+        blast_lines = int(self.new_gene_abs.option('query').prop['seq_number']) / 10
         self.logger.info('.......blast_lines:%s' % blast_lines)
         blast_opts = {
-            'query': self.new_abs.option('query'),
+            'query': self.new_trans_abs.option('query'),
             'query_type': 'nucl',
             'database': None,
             'blast': 'blastx',
@@ -436,7 +444,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_new_annotation(self):
         anno_opts = {
-            'gene_file': self.new_abs.option('gene_file'),
+            'gene_file': self.new_gene_abs.option('gene_file'),
         }
         if 'go' in self.option('database'):
             anno_opts.update({
@@ -499,19 +507,21 @@ class RefrnaWorkflow(Workflow):
             "merged_gtf": self.assembly.option("merged_gtf"),
             "cmp_gtf": self.assembly.option("cuff_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
+            "ref_genome_custom": self.assembly.option("merged_fa"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
             "method": self.option("diff_method"),
             "diff_ci": self.option("diff_ci"),
+            "exp_way": self.option("exp_way"),
             "strand_dir": self.option("strand_dir")
         }
-        tool = self.exp
-        tool.set_options(opts)
-        tool.on("end", self.set_output, "exp")
-        tool.on('start', self.set_step, {'start': self.step.exp})
-        tool.on('end', self.set_step, {'end': self.step.exp})
-        tool.run()
+        mod = self.exp
+        mod.set_options(opts)
+        mod.on("end", self.set_output, "exp")
+        mod.on('start', self.set_step, {'start': self.step.exp})
+        mod.on('end', self.set_step, {'end': self.step.exp})
+        mod.run()
 
     def run_network(self):
         opts = {
@@ -548,17 +558,6 @@ class RefrnaWorkflow(Workflow):
         self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
         self.altersplicing.on('end', self.set_step, {'end': self.step.altersplicing})
         self.altersplicing.run()
-
-    def run_tf(self):
-        opts = {
-            "diff_gene_list": self.exp.option("diff_list"),
-            "database": self.option("tf_database_type")
-        }
-        self.tf.set_options(opts)
-        self.tf.on("end", self.set_output, "tf")
-        self.tf.on('start', self.set_step, {'start': self.step.transfactor_analysis})
-        self.tf.on('end', self.set_step, {'end': self.step.transfactor_analysis})
-        self.tf.run()
 
     def run_merge_annot(self):
         """
@@ -727,9 +726,6 @@ class RefrnaWorkflow(Workflow):
         if event['data'] == 'network_analysis':
             self.move2outputdir(obj.output_dir, 'network_analysis')
             self.logger.info("network_analysis文件移动完成")
-        if event['data'] == 'tf':
-            self.move2outputdir(obj.output_dir, 'transfactor_analysis')
-            self.logger.info("transfactor_analysis文件移动完成")
         if event['data'] == 'annotation':
             self.move2outputdir(obj.output_dir, 'annotation')
             self.logger.info("annotation文件移动完成")
@@ -770,10 +766,10 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.on('end', self.run_seq_abs)
         if self.option("blast_method") == "diamond":
             self.seq_abs.on('end', self.run_align, "diamond")
-            self.new_abs.on("end", self.run_new_align, "diamond")
+            self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
         else:
             self.seq_abs.on('end', self.run_align, "blast")
-            self.new_abs.on("end", self.run_new_align, "diamond")
+            self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "blast")
         self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
         self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
@@ -785,9 +781,9 @@ class RefrnaWorkflow(Workflow):
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp)
-        self.assembly.on("end", self.run_new_abs)
+        self.assembly.on("end", self.run_new_transcripts_abs)
+        self.assembly.on("end", self.run_new_gene_abs)
         if self.option("ref_genome") != "customer_mode":
-            self.exp.on("end", self.run_tf)
             self.exp.on("end", self.run_network)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
