@@ -69,6 +69,22 @@ class SgPaternityTest(Base):
         else:
             self.bind_object.logger.info("更新father主表结果成功")
 
+    def update_infoshow(self, pt_father_id,mom,preg):
+        collection_result = self.database['sg_pt_father_result_info']
+        insert={
+            "pt_father_id":pt_father_id,
+            "qc":"unqualified",
+            "mom_id":mom,
+            "preg_id":preg
+        }
+
+        try:
+            collection_result.insert_one(insert)
+        except Exception as e:
+            self.bind_object.logger.error('更新有问题的母子信息表出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info("更新有问题的母子信息表成功")
+
     def add_father_qc(self, father_id, pt_father_id):
         collection_result = self.database['sg_pt_father_result_info']
         collection = self.database['sg_father']
