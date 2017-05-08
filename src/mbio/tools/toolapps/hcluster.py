@@ -13,7 +13,7 @@ class HclusterAgent(Agent):
     脚本plot-hcluster_tree_app.pl
     version v2.0
     author: zhangpeng
-    last_modified:2017.3.9
+    last_modified:2017.5.8 zhouxuan
     """
 
     def __init__(self, parent):
@@ -52,13 +52,12 @@ class HclusterAgent(Agent):
             return self.option('otu_table').get_table(self.option('level'))
         else:
             return self.option('otu_table').prop['path']
-
-        if self.option('linkage') not in ['average', 'single', 'complete']:
-            raise OptionError('错误的层级聚类方式：%s' % self.option('linkage'))
         if self.option('method') not in ['euclidean', 'maximum', 'manhattan', 'canberra', 'binary', 'minkowski']:
             raise OptionError('错误的距离方式：%s' % self.option('method'))
         if self.option('trans') not in ['col', 'row']:
             raise OptionError('错误的距离方式：%s' % self.option('trans'))
+        if self.option('linkage') not in ['average', 'single', 'complete']:
+            raise OptionError('错误的层级聚类方式：%s' % self.option('linkage'))
 
     def set_resource(self):
         """
@@ -123,6 +122,7 @@ class HclusterTool(Tool):
         if os.path.exists(linkfile):
             os.remove(linkfile)
         os.link(filename + '.temp', linkfile)
+        os.link(self.option('otu_table').prop['path'], os.path.join(self.output_dir, "data_table"))
         self.end()
 
     def change_sample_name(self, quotes=False, new_path=None):
