@@ -37,7 +37,7 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_split = self.add_tool("paternity_test.data_split")
 		self.merge_fastq = self.add_tool("paternity_test.merge_fastq")
 		self.set_options(self._sheet.options())
-		self.update_status_api = self.api.pt_update_status
+		# self.update_status_api = self.api.pt_update_status
 		self.tools = []
 		self.sample_name_wq = []
 		self.sample_name_ws = []
