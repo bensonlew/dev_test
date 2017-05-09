@@ -8,9 +8,9 @@ from mainapp.controllers.core.basic import Basic
 from mainapp.controllers.project.ref_rna_controller import RefRnaController
 
 
-class GenesetEnrich(RefRnaController):
+class GenesetEnrichAction(RefRnaController):
     def __init__(self):
-        super(GenesetEnrich, self).__init__(instant=True)
+        super(GenesetEnrichAction, self).__init__(instant=True)
 
     def POST(self):
         data = web.input()
@@ -85,7 +85,7 @@ class GenesetEnrich(RefRnaController):
 
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
                             to_file=to_file, task_id=task_info["task_id"], project_sn=task_info["project_sn"])
-        task_info = super(GenesetEnrich, self).POST()
+        task_info = super(GenesetEnrichAction, self).POST()
         task_info['content'] = {
             'ids': {
                 'id': str(main_table_id),
