@@ -117,7 +117,7 @@ class Family2tabDcTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("运行转tab文件成功")
         else:
-            self.logger.info("运行转tab文件出错")
+            raise Exception("运行转tab文件出错")
 
     def set_output(self):
         """

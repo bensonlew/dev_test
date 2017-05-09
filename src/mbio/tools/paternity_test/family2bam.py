@@ -119,7 +119,7 @@ class Family2bamTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("运行转bam文件成功")
         else:
-            self.logger.info("运行转bam文件出错")
+            raise Exception("运行转bam文件出错")
 
     def set_output(self):
         """

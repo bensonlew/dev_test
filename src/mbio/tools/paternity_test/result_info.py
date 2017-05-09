@@ -107,7 +107,7 @@ class ResultInfoTool(Tool):
             if cmd.return_code == 0:
                 self.logger.info("运行绘制结果图成功")
             else:
-                self.logger.info("运行绘制结果图出错")
+                raise Exception("运行绘制结果图出错")
         else:
             self.logger.info("家系中有样本质控不合格")
 
@@ -148,7 +148,7 @@ class ResultInfoTool(Tool):
             if cmd.return_code == 0:
                 self.logger.info("运行转化结果图成功")
             else:
-                self.logger.info("运行转化结果图出错"+cmd.return_code)
+                raise Exception("运行转化结果图出错"+cmd.return_code)
 
     def set_output(self):
         """
