@@ -441,7 +441,7 @@ class RefrnaExpress(Base):
         else:
             self.bind_object.logger.info("导入基因集detail表：%s信息成功!" % diff_stat_path)
     
-    def add_express_diff(self, params, samples, compare_column, diff_exp_dir=None, class_code=None,query_type=None,express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True):
+    def add_express_diff(self, params, samples, compare_column, is_duplicate=None,express_method =None, diff_exp_dir=None, class_code=None,query_type=None,express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True):
         # group_id, group_detail, control_id只供denovobase初始化时更新param使用
         """
         差异分析主表
@@ -468,8 +468,15 @@ class RefrnaExpress(Base):
             'status': 'end',
             'compare_column': compare_column,
             'group_detail': group_detail,
-            'express_id': express_id
+            'express_id': express_id,
+            "is_duplicate":is_duplicate
         }
+        if express_method =='rsem':
+            insert_data["genes"]=True
+            insert_data["trans"]=True
+        elif express_method.lower() == 'featurecounts':
+            insert_data["genes"]=True
+            insert_data["trans"]=False
         if group_id == 'all':
             insert_data['group_detail'] = {'all': group_detail}
         collection = self.db['sg_express_diff']
