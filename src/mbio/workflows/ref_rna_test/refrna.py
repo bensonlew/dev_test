@@ -8,7 +8,6 @@ from biocluster.core.exceptions import OptionError, FileError
 import os
 import json
 import shutil
-import glob
 
 
 class RefrnaWorkflow(Workflow):
@@ -727,37 +726,6 @@ class RefrnaWorkflow(Workflow):
         if event['data'] == 'network_analysis':
             self.move2outputdir(obj.output_dir, 'network_analysis')
             self.logger.info("network_analysis文件移动完成")
-            api_ppinetwork = self.api.ppinetwork
-            all_nodes_path = self.output_dir + '/ppinetwork_predict/all_nodes.txt'   # 画图节点属性文件
-            interaction_path = self.output_dir + '/ppinetwork_predict/interaction.txt'  # 画图的边文件
-            network_stats_path = self.output_dir + '/ppinetwork_predict/network_stats.txt'  # 网络全局属性统计
-            network_centrality_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_centrality.txt'
-            network_clustering_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_clustering.txt'
-            network_transitivity_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_transitivity.txt'
-            degree_distribution_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_degree_distribution.txt'
-            network_node_degree_path = self.output_dir + '/ppinetwork_topology/protein_interaction_network_node_degree.txt'
-            if not os.path.isfile(all_nodes_path):
-                raise Exception("找不到报告文件:{}".format(all_nodes_path))
-            if not os.path.isfile(interaction_path):
-                raise Exception("找不到报告文件:{}".format(interaction_path))
-            if not os.path.isfile(network_stats_path):
-                raise Exception("找不到报告文件:{}".format(network_stats_path))
-            if not os.path.isfile(network_clustering_path):
-                raise Exception("找不到报告文件:{}".format(network_clustering_path))
-            if not os.path.isfile(network_centrality_path):
-                raise Exception("找不到报告文件:{}".format(network_centrality_path))
-            if not os.path.isfile(network_transitivity_path):
-                raise Exception("找不到报告文件:{}".format(network_transitivity_path))
-            if not os.path.isfile(degree_distribution_path):
-                raise Exception("找不到报告文件:{}".format(degree_distribution_path))
-            if not os.path.isfile(network_node_degree_path):
-                raise Exception("找不到报告文件:{}".format(network_node_degree_path))
-            api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.option("ppi_id"))   # 节点的属性文件（画网络图用）
-            api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.option("ppi_id"))  # 边信息
-            api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.option("ppi_id"))  # 网络全局属性
-            api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.option("ppi_id"))  # 节点的聚类与degree，画折线图
-            api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("ppi_id"))  # 中心信息
-            api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.option("ppi_id"))  # 度分布
         if event['data'] == 'annotation':
             self.move2outputdir(obj.output_dir, 'annotation')
             self.logger.info("annotation文件移动完成")
@@ -788,33 +756,6 @@ class RefrnaWorkflow(Workflow):
         if event["data"] == "map_gene":
             self.move2outputdir(obj.output_dir, 'map_gene')
             self.logger.info("map_gene文件移动完成")
-        if event["data"] == "exp_diff_gene":
-            api_geneset_venn = self.api.refrna_corr_express
-            venn_table = self.geneset_venn.output_dir + "/venn_table.xls"
-            venn_id = self.option("geneset_venn_id")
-            api_geneset_venn.add_denovo_venn_detail(venn_table, venn_id, project = 'ref')
-            self.logger.info("venn_table上传完毕！")
-            venn_graph = self.geneset_venn.output_dir + "/venn_graph.xls"
-            api_geneset_venn.add_venn_graph(venn_graph, venn_id, project='ref')
-            api_geneset = self.api.ref_rna_geneset
-            output_file = glob.glob("{}/*.xls".format(self.output_dir))
-            api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0])  # 存在问题
-            api_geneset.add_go_enrich_detail(self.option("main_table_id"), output_file[0])
-
-        if event["data"] == "exp_diff_trans":
-            api_geneset_venn = self.api.refrna_corr_express
-            venn_table = self.geneset_venn.output_dir + "/venn_table.xls"
-            venn_id = self.option("geneset_venn_id")
-            api_geneset_venn.add_denovo_venn_detail(venn_table, venn_id, project = 'ref')
-            self.logger.info("venn_table上传完毕！")
-            venn_graph = self.geneset_venn.output_dir + "/venn_graph.xls"
-            api_geneset_venn.add_venn_graph(venn_graph, venn_id, project='ref')
-            api_geneset = self.api.ref_rna_geneset
-            output_file = glob.glob("{}/*.xls".format(self.output_dir))
-            api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0])  # 存在问题
-            api_geneset.add_go_enrich_detail(self.option("main_table_id"), output_file[0])
-
-
             
     def run(self):
         """
