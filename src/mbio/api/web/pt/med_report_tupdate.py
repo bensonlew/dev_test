@@ -15,13 +15,10 @@ class MedReportTupdate(UpdateStatus):
         self._config = Config()
         self._client = "client03"
         self._key = "hM4uZcGs9d"
-        # self.update_info = self.data["content"]["update_info"] if "update_info" in self.data["content"].keys() else None
         self._url = "http://www.tsanger.com/api/add_file"
         self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
-        # self._mongo_client = MongoClient(Config().MONGO_URI)
-        # self.database = self._mongo_client['tsanger_paternity_test_v2']
         self._mongo_client = self._config.mongo_client
-        self.database = self._mongo_client[Config().MONGODB+'_paternity_test_v2']
+        self.database = self._mongo_client['paternity_test']
 
     def update(self):
         self.update_status()
