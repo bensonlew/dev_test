@@ -235,7 +235,7 @@ class RefrnaSplicingRmats(Base):
         }
     
     @report_check
-    def add_sg_splicing_rmats(self, params=None, major=True, group=None, ref_gtf=None, name=None, outpath=None):
+    def add_sg_splicing_rmats(self, params=None, major=True, group={}, ref_gtf=None, name=None, outpath=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         chr_set = []
@@ -247,6 +247,12 @@ class RefrnaSplicingRmats(Base):
             raise Exception('导表时没有设置ref gtf路径')
         if not outpath:
             raise Exception('导表时没有设置rmats结果根目录路径')
+        if (not group) or (not isinstance(group, dict)) or \
+                (not set(group.values()) == {'s1', 's2'}) or len(group) != 2:
+            raise Exception(
+                '您设置的group：%s 不合法，'
+                '合法的group 应该是 字典，且 '
+                '固定格式为{\'a_group_name\':\'s1\', \'b_group_name\':\'s2\'}, 其中 s1和s2为固定')
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -256,10 +262,7 @@ class RefrnaSplicingRmats(Base):
             'params':
                 json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params,
             'status': 'end',
-            'group': {
-                'A': 's1',
-                'B': 's2'
-            },
+            'group': group,
             'chr_set': chr_set,
             'rmats_out': outpath
         }
@@ -420,7 +423,7 @@ class RefrnaSplicingRmats(Base):
                                   'jcorall': {'A3SS': 0, 'MXE': 0, 'RI': 0, 'SE': 0, 'A5SS': 0, }},
                      'splicing_id': splicing_id
                      }
-    
+        
         for kind in graph_dic['stats_pie'].keys():
             for type in graph_dic['stats_pie'][kind].keys():
                 graph_dic['stats_pie'][kind][type] = stats[kind + '_' + type.lower()]
@@ -433,7 +436,7 @@ class RefrnaSplicingRmats(Base):
                     for type in graph_dic['psi_bar'][sample][src][psi_kind].keys():
                         graph_dic['psi_bar'][sample][src][psi_kind][type] = psi[
                             '_'.join([type.lower(), sample, src, psi_kind])]
-    
+        
         collection_obj = self.db['sg_splicing_rmats_graph']
         try:
             collection_obj.insert_one(graph_dic)
