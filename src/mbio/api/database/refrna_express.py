@@ -632,7 +632,7 @@ class RefrnaExpress(Base):
                     ('ref_trans_id',line[3]),
                     ('ref_gene_id',line[4]),
                     ('gene_name',line[5]),
-                    ('class_code_id',str(class_code_id))
+                    ('class_code_id',ObjectId(class_code_id))
                 ]
                 data = SON(data)
                 data_list.append(data)
