@@ -24,8 +24,7 @@ class RefrnaExpress(Base):
     
     # @report_check
     def add_express(self, rsem_dir=None, transcript_fasta_path=None, is_duplicate=None, class_code = None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = None):
-            # task_id ="tsg_1000"
-            # project_sn = "10000951"
+            
             task_id = self.bind_object.sheet.id
             project_sn = self.bind_object.sheet.project_sn
             # if not express_diff_id:
@@ -100,6 +99,80 @@ class RefrnaExpress(Base):
                         self.add_express_specimen_detail(express_id, file_, 'transcript', sample)
             return express_id
     
+        def add_express_feature(self, rsem_dir=None, transcript_fasta_path=None, is_duplicate=None, class_code = None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = None):
+            task_id = self.bind_object.sheet.id
+            project_sn = self.bind_object.sheet.project_sn
+            # if not express_diff_id:
+                # params={"value_type":value_type, "query_type":query_type,"method":method, "group_id":group_id,"group_detail":group_detail}
+            insert_data = {
+                'project_sn': project_sn,
+                'task_id': task_id,
+                'name': name if name else 'ExpressStat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+                'desc': '表达量计算主表',
+                'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
+                'specimen': samples,
+                'status': 'end',
+                'bam_path': bam_path,
+                'transcript_fasta_path': transcript_fasta_path,
+                'is_duplicate': is_duplicate
+            }
+            if params:
+                insert_data["genes"]=True
+                if params["express_method"] == "rsem":
+                    insert_data["trans"]=True
+                if params["express_method"].lower() == "featurecounts":
+                    insert_data["trans"]=False
+                if params['group_detail']:
+                    if is_duplicate:
+                        insert_data["group"]=params["group_detail"].keys()
+            if express_diff_id:
+                insert_data["express_diff_id"] = express_diff_id
+            collection = db['sg_express']
+            express_id = collection.insert_one(insert_data).inserted_id
+            print "插入主表id是{}".format(express_id)
+            value_type = params["type"]
+            method = params["express_method"]
+            # express_id=ObjectId("58f03a28a4e1af44d4139c79")
+            if major:
+                rsem_files = os.listdir(rsem_dir)
+                # sample_group = "sample"
+                for f in rsem_files:
+                    if re.search(r'^genes\.TMM', f):
+                        fpkm_path = rsem_dir + "/" + f
+                        count_path = rsem_dir + '/genes.counts.matrix'
+                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group)
+                        self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2gene_distribution.xls", \
+                                          distribution_path_log10 = distri_path+"/log10gene_distribution.xls", \
+                                          distribution_path = distri_path+"/gene_distribution.xls", sample_group = "sample", query_type="gene")
+                        self.add_express_box(express_id, fpkm_path = os.path.split(rsem_dir)[0]+"/oldrsem/"+f, sample_group="sample", query_type="gene")
+                        if is_duplicate:
+                            self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2GroupGenes_distribution.xls", \
+                                              distribution_path_log10 = distri_path+"/log10GroupGenes_distribution.xls", \
+                                              distribution_path = distri_path+"/GroupGenes_distribution.xls", sample_group = "group", query_type="gene")
+                            self.add_express_box(express_id, fpkm_path=distri_path+"/group/Group.genes_genes.TMM.fpkm.matrix", sample_group="group", query_type="gene")
+                    elif re.search(r'^transcripts\.TMM', f):
+                        fpkm_path = rsem_dir + "/" + f
+                        count_path = rsem_dir + '/transcripts.counts.matrix'
+                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'transcript', value_type, method, sample_group)
+                        self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2transcript_distribution.xls", \
+                                          distribution_path_log10 = distri_path+"/log10transcript_distribution.xls", \
+                                          distribution_path = distri_path+"/transcript_distribution.xls", sample_group = "sample", query_type="transcript")
+                        self.add_express_box(express_id, fpkm_path = os.path.split(rsem_dir)[0]+"/oldrsem/"+f, sample_group="sample", query_type="transcript")
+                        if is_duplicate:
+                            self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2GroupTrans_distribution.xls", \
+                                              distribution_path_log10 = distri_path+"/log10GroupTrans_distribution.xls", \
+                                              distribution_path = distri_path+"/GroupTrans_distribution.xls", sample_group = "group", query_type="transcript")
+                            self.add_express_box(express_id, fpkm_path=distri_path+"/group/Group.trans_transcripts.TMM.fpkm.matrix", sample_group="group", query_type="transcript")
+                    elif re.search(r'\.genes\.results$', f):
+                        sample = f.split('.genes.results')[0]
+                        file_ = rsem_dir + "/" + f
+                        self.add_express_specimen_detail(express_id, file_, 'gene', sample)
+                    elif re.search(r'\.isoforms\.results$', f):
+                        sample = f.split('.isoforms.results')[0]
+                        file_ = rsem_dir + "/" + f
+                        self.add_express_specimen_detail(express_id, file_, 'transcript', sample)
+            return express_id
     # @report_check
     def add_express_detail(self, express_id, count_path, fpkm_path, class_code=None, query_type=None, value_type=None, method=None, sample_group=None, diff=True,):
             if not isinstance(express_id, ObjectId):
@@ -380,12 +453,12 @@ class RefrnaExpress(Base):
                         pass
             return sequence
     
-    def add_geneset(self, diff_stat_path, name=None, compare_name=None, group_id=None, express_method=None, type=None, task_id=None, project_sn=None, up_down=None):
+    def add_geneset(self, diff_stat_path, name=None, compare_name=None, group_id=None, express_method=None, type=None, up_down=None):
         """
         添加sg_geneset主表, geneset的名字包括 up 和 down 
         """
-        task_id = task_id
-        project_sn = project_sn
+        task_id = self.bind_object.sheet.id
+        project_sn = self.bind_object.sheet.project_sn
         
         if not os.path.exists(diff_stat_path):
             raise Exception('diff_stat_path所指的路径:{}不存在'.fromat(diff_sta_path))
@@ -461,8 +534,7 @@ class RefrnaExpress(Base):
             params['group_detail'] = {'all': group_detail}
         insert_data = {
             'project_sn': project_sn,
-            #'task_id': task_id,
-            'task_id': 'tsg_1000',
+            'task_id': task_id,
             'name': name if name else 'ExpressDiffStat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
             'desc': '表达量差异检测主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -607,7 +679,9 @@ class RefrnaExpress(Base):
         else:
             self.bind_object.logger.info("导入差异分析summary表成功!")
     
-    def add_class_code(self, task_id, project_sn, assembly_method, name=None):
+    def add_class_code(self, assembly_method, name=None):
+        task_id = self.bind_object.sheet.id
+        project_sn = self.bind_object.sheet.project_sn
         data =[
             ('task_id',task_id),
             ('project_sn',project_sn),
