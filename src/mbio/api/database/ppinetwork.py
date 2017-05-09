@@ -34,13 +34,9 @@ class Ppinetwork(Base):
             "params": json.dumps(params_dict, sort_keys=True, separators=(',', ':'))
         }
         col = self.db["sg_ppinetwork"]
-        try:
-            main_id = col.insert_one(data).insert_id
-            self.bind.logger.info("主表创建成功")
-        except:
-            raise Exception
-        else:
-            return main_id
+        main_id = col.insert_one(data).insert_id
+        self.bind_object.logger.info("主表创建成功")
+        return main_id
 
     # @report_check
     def add_network_attributes(self, file1_path, file2_path, table_id=None, major=False):
