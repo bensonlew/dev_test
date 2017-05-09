@@ -51,6 +51,7 @@ class RefRnaGeneset(Base):
             else:
                 self.bind_object.logger.error("导入cog表格：%s成功!" % (geneset_cog_table))
 
+    @report_check
     def add_go_enrich_detail(self, go_enrich_id, go_enrich_dir):
         if not isinstance(go_enrich_id, ObjectId):
             if isinstance(go_enrich_id, types.StringTypes):
@@ -114,6 +115,7 @@ class RefRnaGeneset(Base):
         else:
             print("导入go富集信息：%s成功!" % (go_enrich_dir))
 
+    @report_check
     def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table):
         if not isinstance(enrich_id, ObjectId):
             if isinstance(enrich_id, types.StringTypes):

@@ -15,9 +15,9 @@ import re
 import os
 
 
-class naMapping(Base):
+class RefRnaQc(Base):
     def __init__(self, bind_object):
-        super(naMapping, self).__init__(bind_object)
+        super(RefRnaQc, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
 
     def add_samples_info(self, qc_stat, qc_adapt=None, fq_type='se'):
