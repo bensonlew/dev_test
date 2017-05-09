@@ -17,11 +17,8 @@ class SgPaternityTest(Base):
     '''
     def __init__(self, bind_object):
         super(SgPaternityTest, self).__init__(bind_object)
-        # self._db_name = Config().MONGODB
-        # self.mongo_client = MongoClient(Config().MONGO_URI)
-        # self.database = self.mongo_client['tsanger_paternity_test_v2']
         self.mongo_client = Config().mongo_client
-        self.database = self.mongo_client['tsanger_paternity_test_v2']
+        self.database = self.mongo_client['paternity_test']
 
 
     @report_check

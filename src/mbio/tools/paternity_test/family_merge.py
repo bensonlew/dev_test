@@ -102,7 +102,7 @@ class FamilyMergeTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("运行家系合并成功")
         else:
-            self.logger.info("运行家系合并出错")
+            raise Exception("运行家系合并出错")
 
     def set_output(self):
         """

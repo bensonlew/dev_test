@@ -21,7 +21,7 @@ class PtController(MetaController):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
-            return 'pt.update_status'
+            return 'pt.med_report_tupdate'
         else:
             return 'pt.med_report_tupdate'
 
