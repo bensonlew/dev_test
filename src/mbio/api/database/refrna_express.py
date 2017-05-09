@@ -626,7 +626,7 @@ class RefrnaExpress(Base):
                                 data.append(('gene_name',gene_name))
                             else:
                                 data.append(('gene_name','-'))
-                        if re.match(r'\d', line[i]):
+                        if re.match(r'^(\d+).(\d+)$', line[i]):
                             data.append((head[i], float(line[i])))
                         else:
                             data.append((head[i], line[i]))
