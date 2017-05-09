@@ -111,7 +111,7 @@ class Bam2tabTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("运行Bam2tab成功")
         else:
-            self.logger.info("运行Bam2tab出错")
+            raise Exception("运行Bam2tab出错")
 
     def set_output(self):
         """
