@@ -121,7 +121,7 @@ class DrawFastqInfoTool(Tool):
                 # self.set_error("运行{}运行出错!")
                 # return False
                 command.rerun()  # modified by shijin on 20170504
-                self.logger.info("开始重新运行")
+                self.logger.info("运行出错，开始重新运行")
                 self.wait()
                 if command.return_code == 0:
                     self.logger.info("重新运行完成")

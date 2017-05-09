@@ -63,9 +63,14 @@ class Sample(object):
         self.seqs_min_len = min(self.seqs_len.keys())
         self.seqs_max_len = max(self.seqs_len.keys())
 
+    def write_len(self):
+        self._new_seq_len_file = open(self.length_dir + '/' + self.name + '.length_file', 'w')
+        for length in sorted(self.seqs_len.keys()):
+            self._new_seq_len_file.write('\n'.join([str(length)] * self.seqs_len[length]) + '\n')
+
     def close_all(self):
         self._new_fastq_file.close()
-        # self._new_seq_len_file.close()
+        self._new_seq_len_file.close()
 
 
 class FastqExtractTool(Tool):
@@ -92,7 +97,7 @@ class FastqExtractTool(Tool):
             info.write('#file\tsample\tworkdir\tseqs_num\tbase_num\tmean_length\tmin_length\tmax_length\n')
             for sample in self.samples.values():
                 sample.get_info()
-                # sample.write_len()
+                sample.write_len()
                 sample.close_all()
                 info.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(self.option("in_fastq").prop["path"],
                                                                      sample.name,
@@ -107,9 +112,12 @@ class FastqExtractTool(Tool):
         if sample_name in self.samples:
             return self.samples[sample_name]
         fastq_dir = self.output_dir + "/fastq"
+        length_dir = self.output_dir + "/length"
         if not os.path.exists(fastq_dir):
             os.mkdir(fastq_dir)
-        sample = Sample(sample_name, fastq_dir=fastq_dir)
+        if not os.path.exists(length_dir):
+            os.mkdir(length_dir)
+        sample = Sample(sample_name, fastq_dir=fastq_dir, length_dir=length_dir)
         self.samples[sample_name] = sample
         return sample
 

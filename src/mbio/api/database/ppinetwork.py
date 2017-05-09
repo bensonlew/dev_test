@@ -6,12 +6,37 @@ from bson.objectid import ObjectId
 from types import StringTypes
 from bson.son import SON
 from biocluster.config import Config
-
+import datetime
+import json
 
 class Ppinetwork(Base):
     def __init__(self, bind_object):
         super(Ppinetwork, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
+
+    @report_check
+    def add_ppi_main_id(self, geneset_id, combine_score, gene_type, species):
+        params_dict = dict()
+        params_dict["combine_score"] = combine_score,
+        params_dict["gene_type"] = gene_type,
+        params_dict["geneset_id"] = geneset_id,
+        params_dict["species"] = species,
+        params_dict["submit_location"] = "ppinetwork_analysis",
+        params_dict["task_type"] = "workflow"
+        data = {
+            "project_sn": self.bind_object.sheet.project_sn,
+            "task_id": self.bind_object.sheet.id,
+            "status": "end",
+            "name": 'PPINETWORK_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3],
+            "geneset_id": ObjectId(geneset_id),
+            "desc": "",
+            "created_ts": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "params": json.dumps(params_dict, sort_keys=True, separators=(',', ':'))
+        }
+        col = self.db["sg_ppinetwork"]
+        main_id = col.insert_one(data).insert_id
+        self.bind_object.logger.info("主表创建成功")
+        return main_id
 
     # @report_check
     def add_network_attributes(self, file1_path, file2_path, table_id=None, major=False):

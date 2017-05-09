@@ -20,6 +20,7 @@ class FastqExtractModule(Module):
             {"name": "in_fastq", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"},
         ]
         self.add_option(options)
+        self.length_stat = self.add_tool("sample_base.length_stat")
         self.samples = []
         self.tools = []
         self.info_path = []
@@ -57,12 +58,13 @@ class FastqExtractModule(Module):
             tool.run()
 
     def run(self):
-        super(FastqExtractModule, self).run()
+        self.length_stat.on("end", self.end)
         if self.option("in_fastq").format == "sequence.fastq":
             self.fastq_run()
         else:
             self.logger.info("输入文件为文件夹，开始进行并行运行")
             self.fastq_dir_run()
+        super(FastqExtractModule, self).run()
 
     def end(self):
         repaths = []
@@ -78,15 +80,32 @@ class FastqExtractModule(Module):
         self.logger.info("进入移动文件过程")
         shutil.rmtree(self.output_dir)
         os.mkdir(self.output_dir)
+        os.mkdir(self.output_dir + "/fastq")
+        fq_dir = self.output_dir + "/fastq"
+        os.mkdir(self.output_dir + "/length")
+        length_dir = self.output_dir + "/length"
+        if os.path.exists(self.work_dir + "/info.txt"):
+            os.remove(self.work_dir + "/info.txt")
+        with open(self.work_dir + "/info.txt", "a") as a:
+            a.write("#file\tsample\tworkdir\tseqs_num\tbase_num\tmean_length\tmin_length\tmax_length\n")
         for tool in self.tools:
             for file in os.listdir(tool.output_dir + "/fastq"):
                 file_path = os.path.join(tool.output_dir + "/fastq", file)
                 file_name = os.path.split(file_path)[1]
-                if not os.path.exists(self.output_dir + "/" + file_name):
-                    os.link(file_path, self.output_dir + "/" + file_name)
-                    self.logger.info(self.output_dir + "/" + file_name)
+                if not os.path.exists(fq_dir + "/" + file_name):
+                    os.link(file_path, fq_dir + "/" + file_name)
+                    # self.logger.info(fq_dir + "/" + file_name)
                 else:
-                    with open(self.output_dir + "/" + file_name, "a") as a:
+                    with open(fq_dir + "/" + file_name, "a") as a:
+                        content = open(file_path, "r").read()
+                        a.write(content)
+            for file in os.listdir(tool.output_dir + "/length"):
+                file_path = os.path.join(tool.output_dir + "/length", file)
+                file_name = os.path.split(file_path)[1]
+                if not os.path.exists(length_dir + "/" + file_name):
+                    os.link(file_path, length_dir + "/" + file_name)
+                else:
+                    with open(length_dir + "/" + file_name, "a") as a:
                         content = open(file_path, "r").read()
                         a.write(content)
             list_path = tool.work_dir + "/info.txt"
@@ -94,4 +113,13 @@ class FastqExtractModule(Module):
                 f = open(list_path, "r")
                 f.readline()
                 a.write(f.read())
-        self.end()
+        self.get_length_stat()
+
+    def get_length_stat(self):
+        self.logger.info("移动样本文件过程结束，进入长度统计步骤")
+        opts = {
+            "length_dir": self.output_dir + "/length",
+            "file_sample_list": self.work_dir + "/info.txt"
+        }
+        self.length_stat.set_options(opts)
+        self.length_stat.run()
