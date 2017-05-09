@@ -78,8 +78,12 @@ class FastqStatTool(Tool):
             self.logger.info("运行FastqStat.jar完成")
             self.set_output()
         else:
-            self.set_error("运行FastqStat.jar运行出错!")
-            return False
+            self.logger.info("第一次运行失败，开始重新运行")
+            command.rerun()
+            self.wait(command)
+            if command.return_code == 0:
+                self.set_error("运行FastqStat.jar运行出错!")
+                return False
 
     def get_list_file(self):
         if self.option("fastq").format == "sequence.fastq":

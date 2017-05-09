@@ -48,7 +48,10 @@ class ChangeFastqdirAgent(Agent):
 class ChangeFastqdirTool(Tool):
     def __init__(self, config):
         super(ChangeFastqdirTool, self).__init__(config)
-        self.sample_base = Config().SAMPLE_BASE
+        # self.sample_base = Config().SAMPLE_BASE
+        self.sample_base = Config().WORK_DIR + "/sample_base"
+        if not os.path.exists(self.sample_base):
+            os.mkdir(self.sample_base)
         # self.id = self._id
         self.logger.info(self._id)
         self.fastq = list()
@@ -56,10 +59,11 @@ class ChangeFastqdirTool(Tool):
         self.map = dict()
 
     def get_fastq_info(self):
+        self.logger.info("进行get_fastq_info")
         dir_path = os.path.join(self.work_dir, "output")  # 直接以output文件夹作为新fastq的存放路径
         if os.path.exists(dir_path):
             os.system("rm -r {}".format(dir_path))
-        os.system("mkdir {}".format(dir_path))
+        os.mkdir(dir_path)
         fq_dir = FastqDirFile()
         fq_dir.set_path(self.option("fastq_dir").prop["path"])
         fq_dir.get_full_info(dir_path)
@@ -95,12 +99,13 @@ class ChangeFastqdirTool(Tool):
             self.map[sample] = fq
 
     def gen_list(self):
+        self.logger.info("进入gen_list")
         list_path = os.path.join(self.output_dir, "list.txt")
         if self.option("fq_type") == "PE":
             with open(list_path, "w") as file:
                 for sample in self.samples:
                     try:
-                        file.write(self.map[sample]["l"] + "\t" + sample  + "\tl\n")
+                        file.write(self.map[sample]["l"] + "\t" + sample + "\tl\n")
                         file.write(self.map[sample]["r"] + "\t" + sample + "\tr\n")
                     except:
                         self.logger.info(sample)
@@ -110,7 +115,8 @@ class ChangeFastqdirTool(Tool):
                     file.write(self.map[sample] + "\t" + sample + "\n")
 
     def export2database(self):  # 将样本存放于固定的位置
-        task_dir = os.path.join(self.sample_base, self.id)
+        self.logger.info("开始导入数据库")
+        task_dir = os.path.join(self.sample_base, self.id.split(".")[0])
         if os.path.exists(task_dir):
             os.system("rm -r {}/*".format(task_dir))
         else:

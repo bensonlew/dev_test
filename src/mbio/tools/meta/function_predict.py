@@ -11,7 +11,7 @@ import shutil
 import re
 import subprocess
 import itertools
-from mbio.packages.annotation.kegg.kegg_annotation_v1 import KeggAnnotation
+from mbio.packages.annotation.kegg_annotation import KeggAnnotation
 
 
 class FunctionPredictAgent(Agent):
@@ -242,7 +242,7 @@ class FunctionPredictTool(Tool):
             shutil.move("KEGG", self.output_dir)
             os.makedirs("output/KEGG/Pathway_pdf")
             pdf_dir = os.path.join(os.getcwd(), "output/KEGG/Pathway_pdf")
-            KeggAnnotation().get_pictrue("pid.txt", pdf_dir)
+            KeggAnnotation().getPic("pid.txt", pdf_dir)
             os.makedirs("output/KEGG/Pathway_png")
             png_dir = os.path.join(os.getcwd(), "output/KEGG/Pathway_png")
             if os.path.exists(pdf_dir):
