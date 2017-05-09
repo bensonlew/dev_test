@@ -4,11 +4,11 @@ from __future__ import division
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 from bson.objectid import ObjectId
-from cStringIO import StringIO
-import bson.binary
+# from cStringIO import StringIO
+# import bson.binary
 import datetime
-import pandas
-import numpy
+# import pandas
+# import numpy
 import json
 import glob
 import re
@@ -180,7 +180,7 @@ class RefRnaQc(Base):
                 line = line.strip().split()
                 data = {
                     "project_sn": self.bind_object.sheet.project_sn,
-                    "task_id": self.bind_object.sheet.task_id,
+                    "task_id": self.bind_object.sheet.id,
                     "type": type,
                     "specimen_name": line[0],
                     "total_reads": float(line[1]),

@@ -19,7 +19,35 @@ class RefRnaGeneset(Base):
         self._db_name = Config().MONGODB + '_ref_rna'
 
     @report_check
+    def add_main_table(self, collection_name, params, name):
+        """
+        添加主表的导表函数
+        :param collection_name: 主表的collection名字
+        :param params: 主表的参数
+        :param name: 主表的名字
+        :return:
+        """
+        insert_data = {
+            "project_sn": self.bind_object.sheet.project_sn,
+            "task_id": self.bind_object.sheet.id,
+            "status": "start",
+            "name": name,
+            "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "params": json.dumps(params, sort_keys=True, separators=(',', ':'))
+        }
+
+        collection = self.db[collection_name]
+        inserted_id = collection.insert_one(insert_data).inserted_id
+        return inserted_id
+
+    @report_check
     def add_geneset_cog_detail(self, geneset_cog_table, geneset_cog_id=None):
+        """
+        cog详情表导表函数
+        :param geneset_cog_table:cog结果表
+        :param geneset_cog_id:主表ID
+        :return:
+        """
         data_list = []
         with open(geneset_cog_table, 'r') as f:
             first_line = f.readline().strip().split("\t")
@@ -53,6 +81,12 @@ class RefRnaGeneset(Base):
 
     @report_check
     def add_go_enrich_detail(self, go_enrich_id, go_enrich_dir):
+        """
+        GO富集详情导表函数
+        :param go_enrich_id: 主表ID
+        :param go_enrich_dir: 结果文件（不是文件夹）
+        :return:
+        """
         if not isinstance(go_enrich_id, ObjectId):
             if isinstance(go_enrich_id, types.StringTypes):
                 go_enrich_id = ObjectId(go_enrich_id)
@@ -117,6 +151,12 @@ class RefRnaGeneset(Base):
 
     @report_check
     def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table):
+        """
+        KEGG富集详情表导表函数
+        :param enrich_id: 主表id
+        :param kegg_enrich_table: 结果表
+        :return:
+        """
         if not isinstance(enrich_id, ObjectId):
             if isinstance(enrich_id, types.StringTypes):
                 enrich_id = ObjectId(enrich_id)
