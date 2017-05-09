@@ -441,5 +441,3 @@ class TabFile(Base):
             self.bind_object.logger.error('计算并导入ot出错：{}'.format(e))
         else:
             self.bind_object.logger.info("计算并导入ot成功")
-
-
