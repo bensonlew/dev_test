@@ -71,7 +71,7 @@ class BedAnalysisAgent(Agent):
         ])
         result_dir.add_regexp_rules([
             ["z.xls", "xls", "z值分析结果"],
-            ["zz.xls", "xls", "统计z值"]
+            ["zz.xls", "xls", "统计zz值"]
         ])
         super(BedAnalysisAgent, self).end()
 
