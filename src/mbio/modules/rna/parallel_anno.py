@@ -3,9 +3,9 @@
 # __author__ == shijin
 
 import os
-from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-
+from collections import defaultdict
+from mbio.files.align.blast.blast_xml import BlastXmlFile
 
 class ParallelAnnoModule(Module):
     """
@@ -68,8 +68,7 @@ class ParallelAnnoModule(Module):
         for i in range(self.option("upper_limit")):
             lst = self.xml_list[i]
             opts = {
-                "blast_nr_xml": lst[0],
-                "blast_string_xml": lst[1],
+                "blast_nr_xml": lst[0],  # "blast_string_xml": lst[1]
                 "blast_kegg_xml": lst[2],
                 "gene_file": self.option("gene_file"),
                 "ref_genome_gtf": self.option("ref_genome_gtf"),
@@ -80,11 +79,20 @@ class ParallelAnnoModule(Module):
             anno_module.set_options(opts)
             self.anno_list.append(anno_module)
         if len(self.anno_list) != 1:
-            self.on_rely(self.anno_list, self.cat_output)
+            self.on_rely(self.anno_list, self.cat_cog_xml)
         else:
-            self.anno_list[0].on("end", self.cat_output)
+            self.anno_list[0].on("end", self.cat_cog_xml)
         for anno_mod in self.anno_list:
             anno_mod.run()
+
+    def cat_cog_xml(self):
+        self.cat_cog = self.add_tool("align.cat_blastout")
+        opts = {
+            "blastout": self.option("string_align_dir")
+        }
+        self.cat_cog.set_options(opts)
+        self.cat_cog.on("end", self.cat_output)
+        self.cat_cog.run()
     
     def cat_output(self):
         for mod in self.anno_list:
@@ -98,7 +106,12 @@ class ParallelAnnoModule(Module):
             self.add2kegg_table(gene_kegg_path, self.output_dir + "/kegg.list", "gene")
             self.add2go_table(transcript_go_path, self.output_dir + "/go.list", "transcript")
             self.add2go_table(gene_go_path, self.output_dir + "/go.list", "gene")
-
+        xml = BlastXmlFile()
+        xml.set_path(self.cat_cog.option("blast_result").prop["path"])
+        xml.convert2table(self.output_dir + "/cog.list")
+        self.option("out_cog").set_path(self.output_dir + "/cog.list")
+        self.option("out_kegg").set_path(self.output_dir + "/kegg.list")
+        self.option("out_go").set_path(self.output_dir + "/go.list")
         self.end()
 
     @staticmethod
@@ -106,10 +119,20 @@ class ParallelAnnoModule(Module):
         file = open(table, "a")
         with open(_kegg_table, "r") as r:
             r.readline()
+            kegg_dict = defaultdict(lambda: [])
             for line in r:
                 tmp = line.split("\t")
                 t_id = tmp[0]
                 ko_id = tmp[1]
+                # string = t_id + "\t" + type_ + "\t" + ko_id + "\n"
+                # file.write(string)
+                kegg_dict[t_id].append(ko_id)
+            for key in kegg_dict.keys():
+                t_id = key
+                if len(kegg_dict[t_id]) == 1:
+                    ko_id = kegg_dict[t_id][0]
+                else:
+                    ko_id = ";".join(kegg_dict[t_id])
                 string = t_id + "\t" + type_ + "\t" + ko_id + "\n"
                 file.write(string)
         file.close()
@@ -119,11 +142,21 @@ class ParallelAnnoModule(Module):
         file = open(table, "a")
         with open(_go_table, "r") as r:
             r.readline()
+            go_dict = defaultdict(lambda: [])
             for line in r:
                 tmp = line.split("\t")
                 t_id = tmp[0]
                 go_id = tmp[1]
-                string = t_id + "\t" + type_ + "\t" + go_id + "\n"
+                # string = t_id + "\t" + type_ + "\t" + go_id + "\n"
+                # file.write(string)
+                go_dict[t_id].append(go_id)
+            for key in go_dict.keys():
+                t_id = key
+                if len(go_dict[t_id]) == 1:
+                    ko_id = go_dict[t_id][0]
+                else:
+                    ko_id = ";".join(go_dict[t_id])
+                string = t_id + "\t" + type_ + "\t" + ko_id + "\n"
                 file.write(string)
         file.close()
 
