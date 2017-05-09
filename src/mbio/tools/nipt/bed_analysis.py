@@ -85,7 +85,7 @@ class BedAnalysisTool(Tool):
         self._version = '1.0.1'
         self.r_path = 'program/R-3.3.1/bin/Rscript'
         self.script_path = os.path.join(Config().SOFTWARE_DIR, "bioinfo/medical/scripts/")
-        self.ref_cor_cn = Config().SOFTWARE_DIR + "database/human/hg38_nipt/ref_cor/" + self.option("ref_group") + ".ref.cor.Rdata"
+        self.ref_cor_cn = Config().SOFTWARE_DIR + "/database/human/hg38_nipt/ref_cor/" + str(self.option("ref_group")) + ".ref.cor.Rdata"
         self.logger.info(self.ref_cor_cn)
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
