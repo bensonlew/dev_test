@@ -365,6 +365,7 @@ class MetaBaseWorkflow(Workflow):
                 "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
+            self.updata_status_api.add_meta_status(table_id=str(self.otu_id), type_name='sg_otu')
             api_otu_level = self.api.sub_sample
             api_otu_level.add_sg_otu_detail_level(otu_path, self.otu_id, 9)
             # self.otu_id = str(self.otu_id)

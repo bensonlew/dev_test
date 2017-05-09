@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 import web
+import mainapp.core.auto_load as autoload
 from biocluster.core.function import hostname
 from mainapp.libs.signature import check_sig
 from mainapp.controllers.pipeline import Pipeline, PipelineState, PipelineLog, PipelineStop, PipelineQueue, PipelineStopPause, PipelinePause
 from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.report.download_web_pic import DownloadWebPic
+from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
+from mainapp.controllers.instant.dataexchange.upload_task import UploadTask
+
 
 # Meta instant
 from mainapp.controllers.instant.meta.two_group import TwoGroup
 from mainapp.controllers.instant.meta.estimators import Estimators
 from mainapp.controllers.instant.meta.pan_core import PanCore
 from mainapp.controllers.instant.meta.venn import Venn
-from mainapp.controllers.instant.meta.heat_cluster import HeatCluster
-from mainapp.controllers.instant.meta.beta.distance_calc import DistanceCalc
 from mainapp.controllers.instant.meta.beta.hcluster import Hcluster
 from mainapp.controllers.instant.meta.otu_subsample import OtuSubsample
 from mainapp.controllers.instant.meta.two_sample import TwoSample
@@ -52,6 +54,10 @@ from mainapp.controllers.submit.denovo_rna.network import Network
 # Denovo_rna instant
 from mainapp.controllers.instant.denovo_rna.denovo_venn import DenovoVenn
 
+# med submit
+from mainapp.controllers.submit.paternity_test.pt_datasplit import PtDatasplit
+from mainapp.controllers.submit.paternity_test_new import PaternityTestNew
+
 
 # web.config.debug = False
 urls = (
@@ -68,6 +74,10 @@ urls = (
     "/pipeline/stop_pause", "PipelineStopPause",
     "/download/report/pdf", "DownloadWebPic",
     "/download/report/png", "DownloadWebPic",
+    "/dataexchange/download_task", "DownloadTask",
+    "/app/dataexchange/download_task", "DownloadTask",
+    "/dataexchange/upload_task", "UploadTask",
+    "/app/dataexchange/upload_task", "UploadTask",
 
     # Meta
     "/meta/demo_mongodata_copy", "DemoMongodataCopy",
@@ -109,7 +119,11 @@ urls = (
     "/denovo_rna/cluster", "Cluster",
     "/denovo_rna/diff_express", "DiffExpress",
     "/denovo_rna/denovo_venn", "DenovoVenn",
-    "/denovo_rna/go_enrich_regulate", "GoEnrichRegulate"
+    "/denovo_rna/go_enrich_regulate", "GoEnrichRegulate",
+
+    # med
+    "/paternity_test/pt_datasplit", "PtDatasplit",
+    "/paternity_test_new", "PaternityTestNew"
 )
 
 
