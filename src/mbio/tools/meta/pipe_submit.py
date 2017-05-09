@@ -300,7 +300,8 @@ class PipeSubmitTool(Tool):
         # monkey.patch_ssl()
         self.signature = self.signature()
         self.task_id = self.option("task_id")
-        self.url = "http://bcl.sanger.com" if self.task_client == "client01" else "http://bcl.tsanger.com"
+        # self.url = "http://bcl.sanger.com" if self.task_client == "client01" else "http://bcl.tsanger.com"
+        self.url = "http://bcl.sanger.com" if self.task_client == "client01" else "http://10.101.203.193:9090"
         self.all = {}
         self.all_count = 0
         sixteens_prediction_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
@@ -587,9 +588,9 @@ class Submit(object):
             if i in temp_params and temp_params[i]:
                 temp_params[i] = json.dumps(
                     temp_params[i], sort_keys=True, separators=(',', ':'))
-        if not self.instant:
+        # if not self.instant:
             # temp_params['pipe_id'] = str(self.pipe_main_id)
-            temp_params['batch_id'] = str(self.bind_object.option('pipe_id'))
+        temp_params['batch_id'] = str(self.bind_object.option('pipe_id'))
         return temp_params
 
     def post(self):
