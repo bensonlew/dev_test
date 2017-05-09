@@ -146,7 +146,8 @@ class MetaController(object):
         # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
         update_info["batch_id"] = data.batch_id
         self._sheet_data['options']["update_info"] = json.dumps(update_info)
-        self._sheet_data["instant"] = False
+        if self.sheet_data['name'].strip().split(".")[-1] not in ["otu_subsample", "estimators"]:
+            self._sheet_data["instant"] = False
 
 
     def get_new_id(self, task_id, otu_id=None):
