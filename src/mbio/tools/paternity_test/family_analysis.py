@@ -93,7 +93,7 @@ class FamilyAnalysisTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("运行家系分析成功")
         else:
-            self.logger.info("运行家系分析出错")
+            raise Exception("运行家系分析出错")
 
     def set_output(self):
         """
