@@ -22,6 +22,7 @@ class RefrnaCorrExpress(Base):
         print db
     @report_check
     def add_pca_table(self, pca_path, group_id=None,group_detail=None,name=None, params=None, express_id=None, detail=True, seq_type=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         params = {}
         # params ['group_id'] = "58f01bbca4e1af488e52de3d"
         # group_detail = {"A":["58d8a96e719ad0adae70fa14","58d8a96e719ad0adae70fa12"], "B":["58d8a96e719ad0adae70fa11","58d8a96e719ad0adae70fa13"]}
@@ -62,6 +63,7 @@ class RefrnaCorrExpress(Base):
 
     @report_check
     def add_pca(self, pca_file, correlation_id=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         correlation_id = ObjectId(correlation_id)
         with open(pca_file, "r") as f:
@@ -83,6 +85,7 @@ class RefrnaCorrExpress(Base):
 
     @report_check
     def add_pca_rotation(self,input_file, db_name, correlation_id=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         correlation_id = ObjectId(correlation_id)
         if db_name == "sg_denovo_pca_rotation":
