@@ -233,14 +233,24 @@ class RefrnaAssembleModule(Module):
         new_transcripts = 'NewTranscripts'
         statistics = 'Statistics'
         gtf_dir = os.path.join(self.output_dir, gtf_file)
+        if os.path.exists(gtf_dir):
+            shutil.rmtree(gtf_dir)
         os.mkdir(gtf_dir)
         merge_dir = os.path.join(self.output_dir, merge)
+        if os.path.exists(merge_dir):
+            shutil.rmtree(merge_dir)
         os.mkdir(merge_dir)
         compare_dir = os.path.join(self.output_dir, compare)
+        if os.path.exists(compare_dir):
+            shutil.rmtree(compare_dir)
         os.mkdir(compare_dir)
         new_transcripts_dir = os.path.join(self.output_dir, new_transcripts)
+        if os.path.exists(new_transcripts_dir):
+            shutil.rmtree(new_transcripts_dir)
         os.mkdir(new_transcripts_dir)
         statistics_dir = os.path.join(self.output_dir, statistics)
+        if os.path.exists(statistics_dir):
+            shutil.rmtree(statistics_dir)
         os.mkdir(statistics_dir)
         old_dir = self.work_dir + '/assembly_newtranscripts/'
         for files in os.listdir(old_dir):
