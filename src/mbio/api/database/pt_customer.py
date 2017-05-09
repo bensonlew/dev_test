@@ -33,7 +33,6 @@ class PtCustomer(Base):
                 # num += 1
                 # if num == 1: #csv格式的文件没有表头 所以不需要这一句
                 # 	continue
-                print line
                 #line = line.decode("gb2312")
                 line = line.decode("GB18030")
                 line = line.strip()
@@ -49,7 +48,6 @@ class PtCustomer(Base):
                     family_name = "WQ" + line[8].split("-")[1] +"-"+ line[8].split("-")[-1] + "-" + line[5].split("-")[-1] + "-" + line[21].split("-")[-1]
                 else:
                     family_name = "WQ" + line[8].split("-")[1] +"-"+ line[8].split("-")[-1] + "-" + line[5].split("-")[-1] + "-S"
-                print len(line)
                 collection = self.database["sg_pt_customer"]
                 result = collection.find_one({"name": family_name})
                 if result:
@@ -146,7 +144,3 @@ class PtCustomer(Base):
                     self.bind_object.logger.info("导入ref类型成功")
             else:
                 self.bind_object.logger.info("没有插入样本信息")
-
-
-
-

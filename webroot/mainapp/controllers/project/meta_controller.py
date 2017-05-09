@@ -127,7 +127,8 @@ class MetaController(object):
             self._sheet_data["params"] = params
         if to_file:
             self._sheet_data["to_file"] = to_file
-        print('Sheet_Data: {}'.format(self._sheet_data))
+        # print('Sheet_Data: {}'.format(self._sheet_data))
+        # 此处不能print  sheet_data的量可能比较大，会造成uwsgi日志问题
         self.workflow_id = new_task_id
         self.meta_pipe()
         return self._sheet_data
