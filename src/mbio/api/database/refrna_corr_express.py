@@ -32,6 +32,15 @@ class RefrnaCorrExpress(Base):
             params['group_detail'] = group_detail
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
+        with open(pca_path + "/pca_importance.xls",'r+') as f1:
+            pc_num = []
+            pc = {}
+            f1.readline()
+            for lines in f1:
+                line = lines.strip().split("\t")
+                pc_num.append(line[0])
+                pc[line[0]]=round(float(line[1]),6)
+                
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,
@@ -41,13 +50,17 @@ class RefrnaCorrExpress(Base):
             "desc": "样本间相关性PCA分析",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "express_id": ObjectId(express_id)
+            "express_id": ObjectId(express_id),
+            "pc_num":pc_num
             # "pc_num":["PC1","PC2","PC3","PC4"],
             # "PC1":str(0.54047),
             # "PC2":str(0.25556),
             # "PC3":str(0.20397),
             # "PC4":str(0)
         }
+        if pc:
+            for keys,values in pc.items():
+                insert_data[keys]=values
         collection = db["sg_express_pca"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         if detail:
