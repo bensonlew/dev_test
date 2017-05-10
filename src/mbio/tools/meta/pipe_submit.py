@@ -106,11 +106,11 @@ class PipeSubmitTool(Tool):
         return self.task_id
 
     def update_mongo_ends_count(self, ana):
-        if ana.instant:
-            self.logger.info("api: {} END_COUNT+1".format(ana.api))
-            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
-                                                         {'$inc': {"ends_count": 1}})
-        elif ana._params_check_end or not ana.success:
+        # if ana.instant:
+        #     self.logger.info("api: {} END_COUNT+1".format(ana.api))
+        #     self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+        #                                                  {'$inc': {"ends_count": 1}})
+        if ana._params_check_end or not ana.success:
             if ana._params['submit_location'] == "otu_pan_core":  # pancore 分析默认两个主表，一次结束 加 2
                 inc = 2
             else:
