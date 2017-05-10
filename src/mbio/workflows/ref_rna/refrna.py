@@ -54,6 +54,7 @@ class RefrnaWorkflow(Workflow):
             {"name": "swissprot_blast_evalue", "type": "float", "default": 1e-5},  # Swissprot比对使用的e值
             {"name": "database", "type": "string", "default": 'go,nr,cog,kegg,swissprot'},
             # 全部五个注释
+            {"name": "nr_database", "type": "string", "default": "animal"},  # nr库类型
 
             {"name": "seq_method", "type": "string", "default": "Tophat"},  # 比对方法，Tophat or Hisat
             {"name": "map_assess_method", "type": "string", "default":
@@ -105,6 +106,8 @@ class RefrnaWorkflow(Workflow):
         self.map_gene = self.add_module("rna.rnaseq_mapping")
         self.assembly = self.add_module("assemble.refrna_assemble")
         self.exp = self.add_module("rna.express")
+        self.exp_alter = self.add_module("rna.express")
+        self.exp_fc = self.add_module("rna.express")
         self.exp_diff_trans = self.add_module("denovo_rna.express.diff_analysis")
         self.exp_diff_gene = self.add_module("denovo_rna.express.diff_analysis")
         self.snp_rna = self.add_module("gene_structure.snp_rna")
@@ -120,8 +123,10 @@ class RefrnaWorkflow(Workflow):
         self.merge_gene_annot = self.add_tool("annotation.merge_annot")
         if self.option("ref_genome") != "customer_mode":
             self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
+            self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
         else:
             self.ref_genome = self.option("ref_genome_custom")
+            self.taxon_id = ""
         if self.option('genome_structure_file').format == "gene_structure.gff3":
             if self.option("ref_genome") == "customer_mode":
                 self.gff = self.option('genome_structure_file').prop["path"]
@@ -246,7 +251,7 @@ class RefrnaWorkflow(Workflow):
         self.blast_nr = self.add_module('align.' + method)
         blast_opts.update(
             {
-                'database': self.option("database").split(",")[-1],
+                'database': self.option("nr_database"),
                 'evalue': self.option('nr_blast_evalue')
             }
         )
@@ -292,7 +297,18 @@ class RefrnaWorkflow(Workflow):
         opts = {
             "gos_list_upload": self.para_anno.option("out_go"),
             "kos_list_upload": self.para_anno.option("out_kegg"),
+            "blast_string_table": self.para_anno.option("out_cog"),
+            "gene_file": self.seq_abs.option("gene_file"),
+            "ref_genome_gtf": self.filecheck.option("gtf")
         }
+        if self.option("go_upload_file").is_set():
+            opts.update({
+                "gos_list_upload": self.option("go_upload_file")
+            })
+        if self.option("kegg_upload_file").is_set():
+            opts.update({
+                "kos_list_upload": self.option("kegg_upload_file")
+            })
         self.annotation.set_options(opts)
         self.annotation.on("end", self.set_output, "annotation")
         self.annotation.run()
@@ -487,20 +503,18 @@ class RefrnaWorkflow(Workflow):
         self.snp_rna.run()
         
     def run_map_assess(self):
-        assess_method = self.option("map_assess_method") + ",stat"
         opts = {
             "bam": self.mapping.option("bam_output"),
-            "analysis": assess_method,
             "bed": self.filecheck.option("bed")
         }
         self.map_qc.set_options(opts)
         self.map_qc.on("end", self.set_output, "map_qc")
         self.map_qc.run()
     
-    def run_exp(self):  # 表达量与表达差异模块
+    def run_exp_rsem_default(self):  # 表达量与表达差异模块
         self.logger.info("开始运行表达量模块")
         opts = {
-            "express_method": self.option("express_method"),
+            "express_method": "rsem",
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
@@ -519,6 +533,62 @@ class RefrnaWorkflow(Workflow):
         mod = self.exp
         mod.set_options(opts)
         mod.on("end", self.set_output, "exp")
+        mod.on('start', self.set_step, {'start': self.step.exp})
+        mod.on('end', self.set_step, {'end': self.step.exp})
+        mod.run()
+
+    def run_exp_rsem_alter(self):
+        if self.option("exp_way") == "fpkm":
+            exp_way = "tpm"
+        else:
+            exp_way = "fpkm"
+        self.logger.info("开始运行表达量模块,alter")
+        opts = {
+            "express_method": "rsem",
+            "fastq_dir": self.qc.option("sickle_dir"),
+            "fq_type": self.option("fq_type"),
+            "ref_gtf": self.filecheck.option("gtf"),
+            "merged_gtf": self.assembly.option("merged_gtf"),
+            "cmp_gtf": self.assembly.option("cuff_gtf"),
+            "sample_bam": self.mapping.option("bam_output"),
+            "ref_genome_custom": self.assembly.option("merged_fa"),
+            "strand_specific": self.option("strand_specific"),
+            "control_file": self.option("control_file"),
+            "edger_group": self.option("group_table"),
+            "method": self.option("diff_method"),
+            "diff_ci": self.option("diff_ci"),
+            "exp_way": exp_way,
+            "strand_dir": self.option("strand_dir")
+        }
+        mod = self.exp_alter
+        mod.set_options(opts)
+        mod.on("end", self.set_output, "exp_rsem_alter")
+        mod.on('start', self.set_step, {'start': self.step.exp})
+        mod.on('end', self.set_step, {'end': self.step.exp})
+        mod.run()
+
+    def run_exp_fc(self):
+        self.logger.info("开始运行表达量模块,fc_fpkm")
+        opts = {
+            "express_method": "featurecounts",
+            "fastq_dir": self.qc.option("sickle_dir"),
+            "fq_type": self.option("fq_type"),
+            "ref_gtf": self.filecheck.option("gtf"),
+            "merged_gtf": self.assembly.option("merged_gtf"),
+            "cmp_gtf": self.assembly.option("cuff_gtf"),
+            "sample_bam": self.mapping.option("bam_output"),
+            "ref_genome_custom": self.assembly.option("merged_fa"),
+            "strand_specific": self.option("strand_specific"),
+            "control_file": self.option("control_file"),
+            "edger_group": self.option("group_table"),
+            "method":  self.option("diff_method"),
+            "diff_ci": self.option("diff_ci"),
+            "exp_way": "all",
+            "strand_dir": self.option("strand_dir")
+        }
+        mod = self.exp_fc
+        mod.set_options(opts)
+        mod.on("end", self.set_output, "exp_fc_fpkm")
         mod.on('start', self.set_step, {'start': self.step.exp})
         mod.on('end', self.set_step, {'end': self.step.exp})
         mod.run()
@@ -714,6 +784,15 @@ class RefrnaWorkflow(Workflow):
         if event['data'] == 'exp':
             self.move2outputdir(obj.output_dir, 'express')
             self.logger.info('express文件移动完成')
+        if event["data"] == "exp_alter":
+            self.move2outputdir(obj.output_dir, 'exp_alter')
+            self.logger.info('express_alter文件移动完成')
+        if event['data'] == 'exp_fc_fpkm':
+            self.move2outputdir(obj.output_dir, 'express_fc_fpkm')
+            self.logger.info('express_fc_fpkm文件移动完成')
+        if event["data"] == "exp_fc_tpm":
+            self.move2outputdir(obj.output_dir, 'exp_fc_tpm')
+            self.logger.info('express_fc_tpm文件移动完成')
         if event['data'] == 'exp_diff_gene':
             self.move2outputdir(obj.output_dir, 'express_diff_gene')
             self.logger.info("express diff")
@@ -780,10 +859,12 @@ class RefrnaWorkflow(Workflow):
         self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
-        self.assembly.on("end", self.run_exp)
+        self.assembly.on("end", self.run_exp_rsem_default)
+        self.assembly.on("end", self.run_exp_rsem_alter)
+        self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
-        if self.option("ref_genome") != "customer_mode":
+        if self.taxon_id != "":
             self.exp.on("end", self.run_network)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
