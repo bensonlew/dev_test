@@ -300,8 +300,7 @@ class PipeSubmitTool(Tool):
         # monkey.patch_ssl()
         self.signature = self.signature()
         self.task_id = self.option("task_id")
-        # self.url = "http://bcl.sanger.com" if self.task_client == "client01" else "http://bcl.tsanger.com"
-        self.url = "http://bcl.sanger.com" if self.task_client == "client01" else "http://10.101.203.193:9090"
+        self.url = "http://bcl.sanger.com" if self.task_client == "client01" else "http://bcl.tsanger.com"
         self.all = {}
         self.all_count = 0
         sixteens_prediction_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
@@ -897,8 +896,8 @@ class OtuPanCore(BetaSampleDistanceHclusterTree):
         result = self.db[self.mongo_collection].find({'task_id': self.task_id, 'params': self.json_params,
                                                       'status': {'$in': ['end', 'start', "failed"]}})
         if not result.count():
-            self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}, params: {}".format(
-                self.api, self.mongo_collection, self.params_pack(self._params)))
+            self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}".format(
+                self.api, self.mongo_collection, ))
             return False
         else:
             lastone = result.sort('created_ts', pymongo.DESCENDING)[0]
