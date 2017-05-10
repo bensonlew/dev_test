@@ -17,6 +17,11 @@ class RefAnnotation(Base):
         self._db_name = Config().MONGODB + '_ref_rna'
 
     def add_annotation(self, name=None, params=None, seq_type=None, anno_path=None, pfam_path=None):
+        """
+        seq_type:参考序列(ref)/新序列(new)
+        anno_path:注释的结果文件夹
+        pfam_path:转录本的pfam_domain
+        """
         stat_id = self.add_annotation_stat(name=name, params=params, seq_type=seq_type)
         stat_path = anno_path + "/anno_stat/all_annotation_statistics.xls"
         venn_path = anno_path + "/anno_stat/venn"
