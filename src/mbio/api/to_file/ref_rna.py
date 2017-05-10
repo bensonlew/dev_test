@@ -425,7 +425,7 @@ def export_control_file(data, option_name, dir_path, bind_obj=None):  #此函数
         g_result = group_coll.find_one({'_id': group_id})
         if not g_result:
             raise Exception("意外错误，control_file的group_id:{}在sg_specimen_group中未找到！".format(group_id))
-    control_detail = result['compare_names']
+    control_detail = json.loads(result['compare_names'])
     with open(file_path, 'wb') as w:
         w.write('#control\t{}\n'.format(result['compare_category_name']))
         for i in control_detail:    #此处需要修改, 可能会有错误
