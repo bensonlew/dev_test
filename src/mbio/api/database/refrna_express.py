@@ -621,15 +621,23 @@ class RefrnaExpress(Base):
                     for i in range(len(head)):
                         if i == 0:   #添加gene_name信息
                             seq_id = line[0]
-                            if seq_id in name_seq_id.keys():
-                                gene_name = name_seq_id[seq_id]
-                                data.append(('gene_name',gene_name))
-                            else:
-                                data.append(('gene_name','-'))
-                        if re.match(r'^(\d+).(\d+)$', line[i]):
+                            if class_code: 
+                                if name_seq_id:
+                                    if seq_id in name_seq_id.keys():
+                                        gene_name = name_seq_id[seq_id]
+                                        data.append(('gene_name',gene_name))
+                                    else:
+                                        data.append(('gene_name','-'))
+                        if line[i] == 0:
+                            data.append((head[i],float(line[i])))
+                        elif re.match(r'^(\d+)|.(\d+)$', line[i]):
                             data.append((head[i], float(line[i])))
                         else:
                             data.append((head[i], line[i]))
+                        # if re.match(r'^(\d+)|.(\d+)$', line[i]):
+                            # data.append((head[i], float(line[i])))
+                        # else:
+                            # data.append((head[i], line[i]))
                     #print data
                     data = SON(data)
                     #print data
