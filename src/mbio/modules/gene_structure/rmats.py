@@ -14,6 +14,7 @@ import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 from mbio.packages.gene_structure.rmats_process_func import *
+from mbio.packages.gene_structure.rmats_process_func import process_single_rmats_output_dir
 import re
 from mbio.files.sequence.file_sample import FileSampleFile
 
@@ -155,10 +156,15 @@ class RmatsModule(Module):
         for tool in self.rmats_bam_tools:
             tool.run()
     
+    def process_rmats_module_result(self):
+        for rmats_tool_out_root in [os.path.join(self.output_dir,d) for d in os.listdir(self.output_dir) if
+                                    os.path.isdir(os.path.join(self.output_dir, d)) and re.match(r'^Rmats', d)]:
+            process_single_rmats_output_dir(root=rmats_tool_out_root,)
+            pass
+    
     def set_output(self):
         self.logger.info('set output')
         for rmats_bam_tool in self.rmats_bam_tools:
-            process_rmats_result(rmats_bam_tool.output_dir)
             output_dir = os.path.join(self.output_dir, rmats_bam_tool.name)
             if not os.path.exists(output_dir):
                 os.mkdir(output_dir)
@@ -167,6 +173,7 @@ class RmatsModule(Module):
                 f_path = os.path.join(rmats_bam_tool.output_dir, f)
                 target = os.path.join(output_dir, f)
                 os.symlink(f_path, target)
+        self.process_rmats_module_result()
         self.logger.info("set output done")
         self.end()
     
@@ -188,6 +195,7 @@ class RmatsModule(Module):
             ["(RI|A3SS|A5SS|SE|MXE)\.MATS\.JunctionCountOnly\.alter_id\.psi_info\.txt", 'txt',
              '差异事件详情表（JunctionCountOnly证据）'],
             ['all_events_detail_big_table.txt', 'txt', '全部结果整合大表'],
-            ['config.txt', '', '配置详情文件']
+            ['config.txt', 'txt', '运行配置详情文件'],
+            ['all_events_detail_big_table.txt','txt','结果综合详情表']
         ])
         super(RmatsModule, self).end()
