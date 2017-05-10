@@ -45,7 +45,7 @@ class PatchDcBackupWorkflow(Workflow):
 		self.set_options(self._sheet.options())
 		self.step.add_steps("pt_analysis", "result_info", "retab",
 		                    "de_dup1", "de_dup2")
-		self.update_status_api = self.api.pt_update_status
+		# self.update_status_api = self.api.pt_update_status
 
 	def check_options(self):
 		'''
