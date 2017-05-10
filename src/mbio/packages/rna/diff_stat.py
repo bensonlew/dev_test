@@ -165,7 +165,7 @@ class DiffStat(object):
                         count_data.append(str(counts[ss]))
                         fpkm_data.append(str(fpkms[ss]))
 
-                        w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, "\t".join(count_data),"\t".join(fpkm_data),control_count, other_count, control_fpkm, other_fpkm, '%0.4g' %logfc,'%0.4g' %logCPM, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, "\t".join(count_data),"\t".join(fpkm_data),control_count, other_count, control_fpkm, other_fpkm, '%0.4g' %logfc,'%0.4g' %logCPM, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
                 else:
                     w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (
                     gene, control_count, other_count, control_fpkm, other_fpkm, '%0.4g' % logfc, '%0.4g' % logCPM,
