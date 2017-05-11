@@ -43,13 +43,13 @@ class Gff3File(File):
         self._exons = {}
         self._cds = {}
         self._feature_tree = {}
+        self._attrs_record_set = {}
     
     def check(self):
         super(Gff3File, self).check()
-        # self.check_logical()
         if (not self.prop["path"].endswith("gff")) and (not self.prop["path"].endswith("gff3")):
             raise FileError("gff文件格式不正确")
-
+        # self.check_logical()
     
     def check_format(self, fasta_file, so_file):
         # self.check_lines()
@@ -187,7 +187,7 @@ class Gff3File(File):
     
     def set_gffread_path(self, value):
         self._gffread_path = value
-
+    
     def set_gtf2bed_path(self, value):
         self._gtf2bed_path = value
     
@@ -219,8 +219,8 @@ class Gff3File(File):
         cds_phase_cmd = 'grep -v \'^#\' %s |awk -F \'\\t\' \'$3~/CDS|cds/{print $8}\' |uniq | sort |uniq' % self.path
         cds_phase_set = set(
             [phase.strip() for phase in subprocess.check_output(cds_phase_cmd, shell=True).strip().split('\n')])
-        if cds_phase_set & {0, 1, 2} != cds_phase_set:
-            raise FileError('illogical phase value')
+        if cds_phase_set & {'0', '1', '2', '.'} != cds_phase_set:
+            raise FileError('illogical phase value: %s' % cds_phase_set)
     
     def get_genbank_assembly_id(self):
         if self._parse_status:
@@ -250,7 +250,7 @@ class Gff3File(File):
                     newline = newline.strip() + " gene_id \"" + gene_id + "\";\n"
             gtf.write(newline)
         gtf.close()
-
+    
     def gtf_to_bed(self, gtf_path):
         """
         gtf格式转bed格式
@@ -264,13 +264,13 @@ class Gff3File(File):
             os.remove(bed)
             raise FileError("运行出错")
         return True
-
+    
     def get_parent(self, transcript):
         if not self.check_parent:
             self.get_transcript_dict()
         gene_id = self._genes[transcript]
         return gene_id
-
+    
     def get_transcript_dict(self):
         if not self.check_parent:
             self.transcripts = []
@@ -296,7 +296,6 @@ if __name__ == '__main__':
 
     2.
 
-    '''
     gff3 = Gff3File()
     gff3.set_path('/mnt/ilustre/users/sanger-dev/workspace/20170210/Refrna_refrna_test_01/FilecheckRef/Danio_rerio.GRCz10.85.gff3')
     gff3.set_gtf_file('/mnt/ilustre/users/sanger-dev/x.gtf')
@@ -306,3 +305,12 @@ if __name__ == '__main__':
     # type_id_content = [record.strip() for record in
     #                    subprocess.check_output(type_id_cmd, shell=True).strip().split('\n')]
     # gff3.type_id_check(type_id_content)
+    '''
+    gff3 = Gff3File()
+    gff3.set_path(
+        '/mnt/ilustre/users/sanger-dev/workspace/20170210/Refrna_refrna_test_01/FilecheckRef/Danio_rerio.GRCz10.85.gff3')
+    fasta = ''
+    so_file = ''
+    # gff3.check_format(fasta_file=fasta, so_file=so_file)
+    # gff3.check_logical()
+    gff3.check()
