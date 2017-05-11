@@ -133,7 +133,7 @@ class MetaBaseWorkflow(Workflow):
                 "in_fastq":  self.option("in_fastq")  # modified by shijin
             }
         self.new_sample_extract.set_options(opts)
-        # self.new_sample_extract.on("start", self.set_step, {'start': self.step.pre_sample_extract})
+        self.new_sample_extract.on("start", self.set_step, {'start': self.step.sample_rename})
         # self.new_sample_extract.on("end", self.set_step, {'end': self.step.pre_sample_extract})
         self.new_sample_extract.run()
 
@@ -144,7 +144,7 @@ class MetaBaseWorkflow(Workflow):
             "file_list": self.option("file_list")  # 对样本进行重命名
         }
         self.sample_rename.set_options(opts)
-        self.sample_rename.on("start", self.set_step, {'start': self.step.sample_rename})
+        # self.sample_rename.on("start", self.set_step, {'start': self.step.sample_rename})
         self.sample_rename.run()
 
     def run_samplecheck(self):  # 样本合并
