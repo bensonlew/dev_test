@@ -200,7 +200,60 @@ class RocNewWorkflow(Workflow):
         import pandas as pd
         if name == "lefse":
             file_path = os.path.join(self.two_ran_lefse.output_dir, "lefse_LDA.xls")
-            con = pd.read_table(file_path)
+            con = pd.read_table(file_path, header=0, sep="\t")
+            con = con[con["pvalue"] != "-"]
+            if self.option('lefse_cho') == "p-value":
+                con = con.sort_values(by="pvalue", ascending=False)
+            else:
+                con = con.sort_values(by="lda", ascending=False)
+            con = con.iloc[:self.option('lefse_num')]
+            lefse_spe_list = [i for i in con['taxon']]
+            ori_otu = pd.read_table(os.path.join(self.two_ran_lefse.output_dir, "lefse_otu_table"), header=0, sep="\t")
+            spe_list = [i for i in ori_otu['#OTU ID']]
+            ori_otu.index = spe_list
+            new_otu = ori_otu.reindex(index=lefse_spe_list)
+            new_otu["group"] = con["group"]
+            group_list = [i for i in con["group"]]
+            if len(list(set(group_list))) == 1:
+                raise Exception("lefse筛选物种后只剩一个组别无法进行roc分析")
+            table = os.path.join(self.work_dir, 'lefse_roc_input_otu.xls')
+            new_otu.to_csv(table, sep="\t", index=False)
+        if name == "two_group":
+            file_path = os.path.join(self.two_ran_lefse.output_dir, "two_group_table.xls")
+            con = pd.read_table(file_path, header=0, sep="\t")
+            if self.option('two_group_cho') == "p-value":
+                con = con.sort_values(by="pvalue", ascending=False)
+            else:
+                con = con.sort_values(by="corrected_pvalue", ascending=False)
+            con = con.iloc[:self.option('two_group_num')]
+            two_group_spe_list = [i for i in con[' ']]
+            ori_otu = pd.read_table(self.option('two_ran_otu').prop['path'], header=0, sep="\t")
+            spe_list = [i for i in ori_otu['#OTU ID']]
+            ori_otu.index = spe_list
+            new_otu = ori_otu.reindex(index=two_group_spe_list)
+            table = os.path.join(self.work_dir, 'two_group_otu.xls')
+            new_otu.to_csv(table, sep="\t", index=False)
+            self.logger.info("生成还没寻找各物种在哪个组中为高丰度物种的otu表格_two_group")
+        if name == "random_forest":
+            file_path = os.path.join(self.two_ran_lefse.output_dir, "Random_table.xls")
+            con = pd.read_table(file_path, header=0, sep="\t")
+            con = con.sort_values(by="MeanDecreaseAccuracy", ascending=False)
+            con = con.iloc[:self.option('Ran_for_num')]
+            index = con.index
+            ori_otu = pd.read_table(self.option('two_ran_otu').prop['path'], header=0, sep="\t")
+            spe_list = [i.split(";")[-1] for i in ori_otu['#OTU ID']]
+            ori_otu.index = spe_list
+            new_otu = ori_otu.reindex(index=index)
+            table = os.path.join(self.work_dir, 'random_forest_otu.xls')
+            new_otu.to_csv(table, sep="\t", index=False)
+            self.logger.info("生成还没寻找各物种在哪个组中为高丰度物种的otu表格_random_forest")
+        # if name == "all":
+        #     if self.option(''):
+
+
+
+
+
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
