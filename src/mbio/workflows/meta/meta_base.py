@@ -548,7 +548,10 @@ class MetaBaseWorkflow(Workflow):
             self.stat.on('end', self.run_beta)
             self.on_rely([self.alpha, self.beta], self.end)
             self.run_taxon()
-        self.logger.info("分析结果异常处理：{}".format(self.update_info))
+        if self.update_info:
+            self.logger.info("分析结果异常处理：{}".format(self.update_info))
+            self.step._info += self.update_info
+            self.step._has_state_change = True
 
     def run(self):
         task_info = self.api.api('task_info.task_info')

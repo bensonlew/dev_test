@@ -26,7 +26,7 @@ class UpdateStatus(Log):
         self._config = Config()
         self._client = "client01"
         self._key = "1ZYw71APsQ"
-        self._url = "http://www.sanger.com/api/add_file"
+        self._url = "http://api.sanger.com/task/add_file"
         self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
         self._mongo_client = self._config.mongo_client
         self.mongodb = self._mongo_client[Config().MONGODB]
@@ -35,19 +35,22 @@ class UpdateStatus(Log):
         ana_dir = {}
         report_dir_des = {}
         n = 0
-        workflow_id = self.data["content"]["stage"]["task_id"]
+        workflow_id = self.data["sync_task_log"]['task']["task_id"]
         my_id = re.split('_', workflow_id)
         my_id.pop(-1)
         my_id.pop(-1)
         data = dict()
+        assert len(my_id) == 2
         content = {
-            "task_id": "_".join(my_id),
+            "task": {
+                "task_id": "_".join(my_id)
+            }
             # "stage": self.data["content"]["stage"]
         }
-        if 'files' in self.data['content']:
-            content['files'] = self.data["content"]["files"]
-        if 'dirs' in self.data['content']:
-            content['dirs'] = self.data['content']['dirs']  # add 15 lines by hongdongxuan 20170327, 遍历dirs中路径最短的进行处理
+        if 'files' in self.data['sync_task_log']:
+            content['files'] = self.data["sync_task_log"]["files"]
+        if 'dirs' in self.data['sync_task_log']:
+            content['dirs'] = self.data['sync_task_log']['dirs']  # add 15 lines by hongdongxuan 20170327, 遍历dirs中路径最短的进行处理
             min_path_len = len(content['dirs'][0]['path'].rstrip('/').split("/"))
             for m in content['dirs'][1:]:
                 if len(m['path'].rstrip('/').split("/")) < min_path_len:
@@ -63,7 +66,8 @@ class UpdateStatus(Log):
             content['dirs'].append(report_dir_des)
             if n > 1:
                 raise Exception("存在两个最短路径，请进行检查！")
-        data['content'] = json.dumps(content, cls=CJsonEncoder)
+        data['sync_task_log'] = json.dumps(content, cls=CJsonEncoder)
+        self.logger.info("CONTENT:{}".format(data['sync_task_log']))
         return urllib.urlencode(data)
 
     def update(self):
@@ -121,9 +125,12 @@ class UpdateStatus(Log):
         # self.save()
 
     def update_status(self):
-        status = self.data["content"]["stage"]["status"]
-        desc = filter_error_info(self.data["content"]["stage"]["error"])
-        create_time = str(self.data["content"]["stage"]["created_ts"])
+        status = self.data["sync_task_log"]["task"]["status"]
+        desc = ''
+        for i in self.data['sync_task_log']['log']:
+            if 'name' not in i:
+                desc = i['desc']
+        create_time = str(self.data["sync_task_log"]["task"]["created_ts"])
         if not self.update_info:
             return
         self.update_info = json.loads(self.update_info)
