@@ -72,18 +72,20 @@ class PtCustomer(Base):
                     collection.insert_one(insert_data)
                 except Exception as e:
                     self.bind_object.logger.error('导入家系表表出错：{}'.format(e))
-                else:
-                    self.bind_object.logger.info("导入家系表成功")
-        try:
-            main_collection = self.database["sg_pt_datasplit"]
-            self.bind_object.logger.info("开始刷新主表写状态")
-            main_collection.update({"_id": ObjectId(main_id)},
-                                    {"$set": {
-                                        "desc": "pt_datasplit done, start pt_batch"}})
-        except Exception as e:
-            self.bind_object.logger.error("更新sg_pt_datasplit主表出错:{}".format(e))
-        else:
-            self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
+                    raise Exception('导入家系表表出错：{}'.format(e))
+                # else:
+                #     self.bind_object.logger.info("导入家系表成功")
+        self.bind_object.logger.info("导入家系表成功")
+        # try:
+        #     main_collection = self.database["sg_pt_datasplit"]
+        #     self.bind_object.logger.info("开始刷新主表写状态")
+        #     main_collection.update({"_id": ObjectId(main_id)},
+        #                             {"$set": {
+        #                                 "desc": "pt_datasplit done, start pt_batch"}})
+        # except Exception as e:
+        #     self.bind_object.logger.error("更新sg_pt_datasplit主表出错:{}".format(e))
+        # else:
+        #     self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
 
     def add_data_dir(self, dir_name, wq_dir, ws_dir, undetermined_dir):
         insert_data = {
