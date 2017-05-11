@@ -18,7 +18,7 @@ class PtCustomer(Base):
         self.database = self.mongo_client[Config().MONGODB+'_paternity_test']
 
         self.mongo_client_ref = Config().biodb_mongo_client
-        self.database_ref = self.mongo_client_ref[Config().MONGODB+'_paternity_test_ref']
+        self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
 
 
     # @report_check
