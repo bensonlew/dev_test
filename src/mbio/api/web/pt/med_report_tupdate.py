@@ -18,7 +18,7 @@ class MedReportTupdate(UpdateStatus):
         self._url = "http://www.tsanger.com/api/add_file"
         self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
         self._mongo_client = self._config.mongo_client
-        self.database = self._mongo_client['paternity_test']
+        self.database = self._mongo_client[Config().MONGODB+'_paternity_test']
 
     def update(self):
         self.update_status()
