@@ -150,6 +150,7 @@ class RefAnnotationModule(Module):
             self.run_kegg_anno()
         if self.option("blast_swissprot_xml").is_set:
             self.anno_database.append('swissprot')
+            self.run_swissprot_anno()  # add
         if self.option("pfam_domain").is_set:
             self.anno_database.append('pfam')
         if len(self.all_end_tool) > 1:
