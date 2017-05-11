@@ -12,7 +12,7 @@ class Sanger(Log):
         super(Sanger, self).__init__(data)
         self._client = "client01"
         self._key = "1ZYw71APsQ"
-        self._url = "http://www.sanger.com/api/add_task_log"
+        self._url = "http://api.sanger.com/task/add_task_log"
         self._post_data = "%s&%s" % (self.get_sig(), self.post_data)
 
     # @property

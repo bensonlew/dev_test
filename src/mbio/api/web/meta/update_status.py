@@ -26,7 +26,7 @@ class UpdateStatus(Log):
         self._config = Config()
         self._client = "client01"
         self._key = "1ZYw71APsQ"
-        self._url = "http://www.sanger.com/api/add_file"
+        self._url = "http://api.sanger.com/task/add_file"
         self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
         self._mongo_client = self._config.mongo_client
         self.mongodb = self._mongo_client[Config().MONGODB]
@@ -42,7 +42,9 @@ class UpdateStatus(Log):
         data = dict()
         assert len(my_id) == 2
         content = {
-            "task_id": "_".join(my_id),
+            "task": {
+                "task_id": "_".join(my_id)
+            }
             # "stage": self.data["content"]["stage"]
         }
         if 'files' in self.data['sync_task_log']:
@@ -64,8 +66,8 @@ class UpdateStatus(Log):
             content['dirs'].append(report_dir_des)
             if n > 1:
                 raise Exception("存在两个最短路径，请进行检查！")
-        data['content'] = json.dumps(content, cls=CJsonEncoder)
-        self.logger.info("CONTENT:{}".format(data['content']))
+        data['sync_task_log'] = json.dumps(content, cls=CJsonEncoder)
+        self.logger.info("CONTENT:{}".format(data['sync_task_log']))
         return urllib.urlencode(data)
 
     def update(self):
