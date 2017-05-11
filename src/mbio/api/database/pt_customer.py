@@ -15,10 +15,10 @@ class PtCustomer(Base):
     def __init__(self, bind_object):
         super(PtCustomer, self).__init__(bind_object)
         self.mongo_client = Config().mongo_client
-        self.database = self.mongo_client['paternity_test']
+        self.database = self.mongo_client[Config().MONGODB+'_paternity_test']
 
         self.mongo_client_ref = Config().biodb_mongo_client
-        self.database_ref = self.mongo_client_ref['paternity_test_ref']
+        self.database_ref = self.mongo_client_ref[Config().MONGODB+'_paternity_test_ref']
 
 
     # @report_check
