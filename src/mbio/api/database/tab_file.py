@@ -17,7 +17,7 @@ class TabFile(Base):
         # self.mongo_client = MongoClient(Config().MONGO_BIO_URI)
         # self.database = self.mongo_client['sanger_paternity_test_v2']
         self.mongo_client = Config().biodb_mongo_client
-        self.database = self.mongo_client['paternity_test_ref']
+        self.database = self.mongo_client['_paternity_test_ref']
 
 
     # @report_check
