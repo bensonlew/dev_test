@@ -11,7 +11,7 @@ from mbio.packages.denovo_rna.express.express_distribution import *
 import shutil
 import os
 import re
-
+from mbio.files.meta.otu.group_table import *
 
 class FeaturecountsAgent(Agent):
 
@@ -30,7 +30,7 @@ class FeaturecountsAgent(Agent):
             {"name": "gtf", "type":"string"}, #该物种的参考基因组文件路径  gtf格式而非gff格式
             {"name": "cpu", "type": "int", "default": 10},  #设置CPU
             {"name": "is_duplicate", "type": "bool"}, # 是否有生物学重复 
-            {"name": "edger_group", "type":"infile", "format":"meta.otu.group_table"}, 
+            {"name": "edger_group", "type":"infile", "format":"sample.group_table"}, 
             {"name": "max_memory", "type": "string", "default": "100G"},  #设置内存
             {"name": "exp_way", "type": "string","default": "fpkm"}, #fpkm水平表达量  fpkm tpm all
             {"name": "all_gene_list", "type": "outfile", "format": "rna.express_matrix"},  #所有基因list列表，提供给下游差异分析module
@@ -186,10 +186,10 @@ class FeaturecountsTool(Tool):
 
     def group_distribution(self, old_fpkm, new_fpkm,sample_group_info, outputfile, filename): # add by khl 
         import random
-        shutil.copy2(self.distribution_path+"/express_distribution.py",self.work_dir+"/express_distribution.py")
-        shutil.copy2(self.distribution_path+"/express_distribution.r",self.work_dir+"/express_distribution.r")
+        shutil.copy2(self.distribution_path+"/express_distribution.py",outputfile+"/express_distribution.py")
+        shutil.copy2(self.distribution_path+"/express_distribution.r",outputfile+"/express_distribution.r")
         self.logger.info("express_distribution py和r文件复制完毕！")
-        rfile = self.work_dir+"/express_distribution.r"
+        rfile = outputfile+"/express_distribution.r"
         group_express(old_fpkm = old_fpkm, new_fpkm = new_fpkm, sample_group_info = sample_group_info, \
                         rfile=rfile, outputfile = outputfile, filename = filename)
         cmd = self.r_path1 + " {}".format(rfile)
@@ -201,36 +201,46 @@ class FeaturecountsTool(Tool):
         else:
             self.logger.info("计算group密度分布失败")
     
-    def group_detail(self): # add by khl
+    def group_detail(self): 
         g = GroupTableFile()
         if self.option("edger_group").is_set:
             g.set_path(self.option("edger_group").prop['path'])
             sample_group_info = g.get_group_spname()
             self.logger.info("打印sample_group_info信息")
             self.logger.info(sample_group_info)
-            outputfile = self.work_dir
+            outputfile = self.output_dir
             results=os.listdir(outputfile)
             new_group_path = self.work_dir + "/group"
             if not os.path.exists(new_group_path):
                 os.mkdir(new_group_path)
-            for f in results:
-                if re.search(r'^(transcripts\.TMM)(.+)(matrix)$', f):
-                    self.logger.info("开始计算trans group分布信息")
-                    trans_new_fpkm = self.work_dir + "/Group.trans_"+f
-                    self.logger.info("生成trans group 文件")
-                    trans_filename = "GroupTrans"
-                    self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=trans_new_fpkm,\
-                            sample_group_info=sample_group_info, outputfile=outputfile, filename = trans_filename)
-                    shutil.copy2(trans_new_fpkm, new_group_path+"/Group.trans_"+f)
-                elif re.search(r'^(genes\.TMM)(.+)(matrix)$', f):
-                    self.logger.info("开始计算gene group分布信息")
-                    genes_new_fpkm = self.work_dir + "/Group.genes_"+f
-                    self.logger.info("生成gene group 文件")
-                    genes_filename = "GroupGenes"
-                    self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=genes_new_fpkm,\
-                            sample_group_info=sample_group_info, outputfile=outputfile, filename = genes_filename)
-                    shutil.copy2(genes_new_fpkm, new_group_path+"/Group.genes_"+f)
+            group_fpkm = new_group_path+"/fpkm"
+            group_tpm = new_group_path + "/tpm"
+            if not os.path.exists(group_fpkm):
+                os.mkdir(group_fpkm)
+            if not os.path.exists(group_tpm):
+                os.mkdir(group_tpm)
+            self.group_distribution(old_fpkm=outputfile+"/fpkm_tpm.fpkm.xls",new_fpkm=new_group_path+"/group.fpkm.xls",\
+                            sample_group_info=sample_group_info, outputfile=group_fpkm,filename='GroupGenes')
+            self.group_distribution(old_fpkm=outputfile+"/fpkm_tpm.tpm.xls",new_fpkm=new_group_path+"/group.tpm.xls",\
+                            sample_group_info=sample_group_info, outputfile=group_tpm,filename='GroupGenes')
             self.logger.info("计算基因转录本group成功！")
+            # for f in results:
+                # if re.search(r'^(transcripts\.TMM)(.+)(matrix)$', f):
+                    # self.logger.info("开始计算trans group分布信息")
+                    # trans_new_fpkm = self.work_dir + "/Group.trans_"+f
+                    # self.logger.info("生成trans group 文件")
+                    # trans_filename = "GroupTrans"
+                    # self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=trans_new_fpkm,\
+                            # sample_group_info=sample_group_info, outputfile=outputfile, filename = trans_filename)
+                    # shutil.copy2(trans_new_fpkm, new_group_path+"/Group.trans_"+f)
+                # elif re.search(r'^(genes\.TMM)(.+)(matrix)$', f):
+                    # self.logger.info("开始计算gene group分布信息")
+                    # genes_new_fpkm = self.work_dir + "/Group.genes_"+f
+                    # self.logger.info("生成gene group 文件")
+                    # genes_filename = "GroupGenes"
+                    # self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=genes_new_fpkm,\
+                            # sample_group_info=sample_group_info, outputfile=outputfile, filename = genes_filename)
+                    # shutil.copy2(genes_new_fpkm, new_group_path+"/Group.genes_"+f)
         else:
             raise Exception("有生物学重复时，请设置样本生物学分组信息！")
     

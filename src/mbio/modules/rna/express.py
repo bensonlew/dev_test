@@ -396,41 +396,6 @@ class ExpressModule(Module):
             'diff_ci': self.option("diff_ci")
         }
         self.diff_count +=1
-        #venn_group_table = venn_group_table
-        # if self.option("change_sample_name") == True:
-            # if self.option("express_method").lower() == 'rsem' or self.option("express_method").lower() == "featurecounts":
-                # self.genes_new_count_path, self.sample_name_dict, self.edger_group_path, self.genes_new_fpkm_path = changesamplename(file_path_count=genes_count_path, file_path_fpkm=genes_fpkm_path, out_count="genes_count.txt", out_fpkm="genes_fpkm.txt",\
-                       # group_file=edger_group_path)
-                # genes_opt = tool_opt
-                # genes_opt["count"] = self.genes_new_count_path
-                # genes_opt["fpkm"] = self.genes_new_fpkm_path
-                # genes_opt["edger_group"] = self.edger_group_path
-                # self.logger.info("更新基因的count，fpkm，edger_group成功！")
-                # self.genes_diffRexp.set_options(genes_opt)
-                # self.genes_diffRexp.on('end', self.set_output,'genes_diff')
-                # self.genes_diffRexp.on("end", self.set_step, {"end": self.step.genes_diffRexp})
-                # self.genes_diffRexp.on("end", self.sample_correlation)
-                # self.genes_diffRexp.run()
-                # self.logger.info("计算基因差异分析成功！")
-            # if self.option("express_method").lower() == 'rsem' or self.option("express_method").lower() == "kallisto":
-                # self.new_count_path, self.sample_name_dict, self.edger_group_path ,self.new_fpkm_path = changesamplename(file_path_count=trans_count_path, file_path_fpkm=trans_fpkm_path, out_count="trans_count.txt", out_fpkm="trans_fpkm.txt",\
-                       # group_file=edger_group_path)
-                # self.logger.info(self.new_count_path)
-                # self.logger.info(self.edger_group_path)
-                # self.logger.info(self.new_fpkm_path)
-                # trans_opt = tool_opt
-                # trans_opt["count"] = self.new_count_path
-                # trans_opt["fpkm"] = self.new_fpkm_path
-                # trans_opt["edger_group"] = self.edger_group_path
-                # self.logger.info("更新转录本的count，fpkm，edger_group成功！")
-                # self.trans_diffRexp.set_options(trans_opt)
-                # self.trans_diffRexp.on('end', self.set_output,'trans_diff')
-                # self.trans_diffRexp.on("end", self.set_step, {"end": self.step.trans_diffRexp})
-                # if self.option("express_method").lower() == 'kallisto':
-                    # self.genes_diffRexp.on("end", self.sample_correlation)
-                # self.trans_diffRexp.run()
-                # self.logger.info("计算转录本差异分析成功！")
-        # else:
         if self.option("express_method").lower() == 'rsem':
             genes_opt = tool_opt
             genes_opt["count"] = genes_count_path
@@ -439,7 +404,7 @@ class ExpressModule(Module):
                 edger_group_path = self.option('edger_group').prop['path']
                 genes_opt['edger_group'] = edger_group_path
             self.genes_diffRexp.set_options(genes_opt)
-            self.genes_diffRexp.on('end', self.set_output, 'genes_diff_')
+            self.genes_diffRexp.on('end', self.set_output, 'genes_diff')
             self.genes_diffRexp.on("end", self.set_step, {"end": self.step.genes_diffRexp})
             self.genes_diffRexp.on("end", self.sample_correlation)
             self.genes_diffRexp.run()
@@ -592,7 +557,7 @@ class ExpressModule(Module):
                 self.rsem_genes_fpkm = self.output_dir + '/rsem/genes.TMM.EXPR.matrix'
                 self.rsem_transcripts_fpkm = self.output_dir + '/rsem/transcripts.TMM.EXPR.matrix'
             self.diff_Rexp_run(genes_count_path=self.rsem_genes_count, genes_fpkm_path=self.rsem_genes_fpkm,trans_count_path = self.rsem_transcripts_count, trans_fpkm_path = self.rsem_transcripts_fpkm)
-        elif re.search(r'gene', event['data']) or re.search(r'trans', event['data']):
+        elif re.search(r'genes_diff', event['data']) or re.search(r'trans_diff', event['data']):
             self.logger.info("开始设置差异分析结果目录！")
             if self.option('express_method') == 'rsem':
                 if not os.path.exists(self.output_dir+'/diff'):

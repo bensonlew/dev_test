@@ -3,7 +3,7 @@
 from __future__ import division
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-from mbio.packages.annotation.all_annotation_stat import AllAnnoStat
+from mbio.packages.annotation.ref_annotation_query import AllAnnoStat
 import os
 import shutil
 
@@ -150,6 +150,7 @@ class RefAnnotationModule(Module):
             self.run_kegg_anno()
         if self.option("blast_swissprot_xml").is_set:
             self.anno_database.append('swissprot')
+            self.run_swissprot_anno()  # add
         if self.option("pfam_domain").is_set:
             self.anno_database.append('pfam')
         if len(self.all_end_tool) > 1:
@@ -177,17 +178,17 @@ class RefAnnotationModule(Module):
             if 'go' in self.anno_database:
                 self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
                 self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])
-            # try:
-            #     self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
-            # except Exception as e:
-            #     self.logger.info("统计all_annotation出错：{}".format(e))
+            try:
+                self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
+            except Exception as e:
+                self.logger.info("统计all_annotation出错：{}".format(e))
             self.end()
         else:
             pass
 
     def get_all_anno_stat(self, all_anno_path):
         # stat all_annotation.xls
-        kwargs = {'outpath': all_anno_path, 'gene_list': self.option('gene_file').prop['gene_list']}
+        kwargs = {'outpath': all_anno_path, 'gtf_path': self.option('ref_genome_gtf').prop['path']}
         for db in self.anno_database:
             if db == 'cog':
                 kwargs['cog_list'] = self.string_cog.option('cog_list').prop['path']
@@ -199,6 +200,8 @@ class RefAnnotationModule(Module):
                 kwargs['blast_nr_table'] = self.option('blast_nr_table').prop['path']
             if db == 'swissprot':
                 kwargs['blast_swissprot_table'] = self.option('blast_swissprot_table').prop['path']
+            if db == 'pfam':
+                kwargs['pfam_domain'] = self.option('pfam_domain').prop['path']
 
         allstat = AllAnnoStat()
         allstat.get_anno_stat(**kwargs)

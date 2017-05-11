@@ -16,6 +16,7 @@ from collections import Counter
 import glob
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
+import math
 
 class RefrnaExpress(Base):
     def __init__(self, bind_object):
@@ -150,7 +151,7 @@ class RefrnaExpress(Base):
                 m_ = re.search(r'vs',files)
                 if m_:
                     path = feature_dir+"/"+files
-                    self.add_express_specimen_detail_feature(express_id, feature_dir+"/)
+                    self.add_express_specimen_detail_feature(express_id, feature_dir+"/"+files)
                 else:
                     self.bind_object.logger.error("没有找到正确的specimen路径！")
         return express_id
@@ -187,6 +188,7 @@ class RefrnaExpress(Base):
             
     # @report_check
     def add_express_detail(self, express_id, count_path, fpkm_path, class_code=None, query_type=None, value_type=None, method=None, sample_group=None, diff=True,):
+            import math
             if not isinstance(express_id, ObjectId):
                 if isinstance(express_id, types.StringTypes):
                     express_id = ObjectId(express_id)
@@ -217,7 +219,7 @@ class RefrnaExpress(Base):
             data_list = list()
             count_dict = {}
             sample_count = {}
-            if not diff:
+            if class_code:
                 class_code_info = class_code_get(class_code = class_code, query_type = query_type)
             with open(count_path, 'rb') as c, open(fpkm_path, 'rb') as f:
                 for sam in samples:
@@ -241,18 +243,22 @@ class RefrnaExpress(Base):
                         sequence_id = seq_id
                         gene_name = None
                     fpkm = l[1:]
-                    if not diff:
-                        if sequence_id in class_code_info.keys():
-                            _class_code = class_code_info[sequence_id]
-                            if _class_code != "=":
-                                _class=True
+                    
+                    if class_code:
+                        if class_code_info:
+                            if sequence_id in class_code_info.keys():
+                                _class_code = class_code_info[sequence_id]
+                                if _class_code != "=":
+                                    _class=True
+                                else:
+                                    _class=False
                             else:
-                                _class=False
-                        else:
-                            _class=None
-                            # raise Exception("{}class_code信息没有找到，请确认:{}!".format(seq_id,class_code))
+                                _class=None
                     else:
-                        _class = None
+                        _class =None
+                        self.bind_object.logger.error("更新class_code信息出错！:%s" % e)
+                        # raise Exception("{}class_code信息没有找到，请确认:{}!".format(seq_id,class_code))
+                    
                     data = [
                         ('seq_id', sequence_id),
                         ('type', query_type),
@@ -260,13 +266,17 @@ class RefrnaExpress(Base):
                         ("value_type", value_type),
                         ("is_new", _class),
                         ("method", method),
-                        ("gene_name", gene_name), #添加gene_name信息
+                        # ("gene_name", gene_name), #添加gene_name信息
                         ("sample_group", sample_group)
                     ]
                     for i in range(len(samples)):
+                        log2_fpkm = math.log(fpkm[i]+1)/math.log(2)
+                        log10_fpkm = math.log(fpkm[i]+1)/math.log(10)
                         data += [
                             ('{}_count'.format(samples[i]), float(count_dict[seq_id][i])), ('{}_fpkm'.format(samples[i]), float(fpkm[i])),
                             ('{}_sum'.format(samples[i]), sample_count[samples[i]]),
+                            ('{}_log2_fpkm'.format(samples[i]),float(log2_fpkm)),
+                            ('{}_log10_fpkm'.format(samples[i]),float(log10_fpkm)),
                         ]
                     data = SON(data)
                     data_list.append(data)
@@ -587,10 +597,11 @@ class RefrnaExpress(Base):
             data = {}
             for lines in f1:
                 line = lines.strip().split("\t")
-                if query_type == 'transcript':
-                    data[line[0]] = line[5]
-                if query_type == 'gene':
-                    data[line[1]] = line[5]
+                # if query_type == 'transcript':
+                    # data[line[0]] = line[5]
+                # if query_type == 'gene':
+                    # data[line[1]] = line[5]
+                data[line[0]]=line[1]
             return data
 
     def add_express_diff_detail(self, express_diff_id,  name, compare_name, diff_stat_path, class_code=None,query_type=None):
@@ -606,35 +617,49 @@ class RefrnaExpress(Base):
                 raise Exception('express_diff_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(diff_stat_path):
             raise Exception('diff_stat_path所指定的路径:{}不存在，请检查！'.format(diff_stat_path))
-        if os.path.exists(class_code):
-            name_seq_id = self.get_gene_name(class_code, query_type)
-            data_list = []
-            with open(diff_stat_path, 'rb') as f:
-                head = f.readline().strip().split('\t')
-                for line in f:
-                    line = line.strip().split('\t')
-                    data = [
-                        ('name', name),
-                        ('compare_name', compare_name),
-                        ('express_diff_id', express_diff_id),
-                    ]
-                    for i in range(len(head)):
-                        if i == 0:   #添加gene_name信息
-                            seq_id = line[0]
-                            if seq_id in name_seq_id.keys():
-                                gene_name = name_seq_id[seq_id]
-                                data.append(('gene_name',gene_name))
-                            else:
-                                data.append(('gene_name','-'))
-                        if re.match(r'^(\d+).(\d+)$', line[i]):
+        if class_code:
+            if os.path.exists(class_code):
+                name_seq_id = self.get_gene_name(class_code, query_type)
+        data_list = []
+        with open(diff_stat_path, 'rb') as f:
+            head = f.readline().strip().split('\t')
+            for line in f:
+                line = line.strip().split('\t')
+                data = [
+                    ('name', name),
+                    ('compare_name', compare_name),
+                    ('express_diff_id', express_diff_id),
+                ]
+                for i in range(len(head)):
+                    if i == 0:   #添加gene_name信息
+                        seq_id = line[0]
+                        if class_code: 
+                            if name_seq_id:
+                                if seq_id in name_seq_id.keys():
+                                    gene_name = name_seq_id[seq_id]
+                                    data.append(('gene_name',gene_name))
+                                else:
+                                    data.append(('gene_name','-'))
+                    # if line[i] == 0:
+                        # data.append((head[i],float(line[i])))
+                    try:
+                        if re.match(r'^(\d+)|.(\d+)$', line[i]) or re.match(r'-(\d+)|.(\d+)$', line[i]):
                             data.append((head[i], float(line[i])))
                         else:
                             data.append((head[i], line[i]))
-                    #print data
-                    data = SON(data)
-                    #print data
-                    #print "aaaaaaaaaaaaaaaaaaaaaaa"
-                    data_list.append(data)
+                    except Exception:
+                        print line
+                        print head
+                        self.bind_object.logger.error("差异基因detail表出错,数据格式问题:%s" %(diff_stat_path))
+                    # if re.match(r'^(\d+)|.(\d+)$', line[i]):
+                        # data.append((head[i], float(line[i])))
+                    # else:
+                        # data.append((head[i], line[i]))
+                #print data
+                data = SON(data)
+                #print data
+                #print "aaaaaaaaaaaaaaaaaaaaaaa"
+                data_list.append(data)
             try:
                 collection = self.db["sg_express_diff_detail"]
                 collection.insert_many(data_list)
@@ -642,8 +667,8 @@ class RefrnaExpress(Base):
                 self.bind_object.logger.error("导入基因表达差异统计表：%s信息出错:%s" % (diff_stat_path, e))
             else:
                 self.bind_object.logger.info("导入基因表达差异统计表：%s信息成功!" % diff_stat_path)
-        else:
-            raise Exception("请输入class_code信息！")
+        # else:
+            # raise Exception("请输入class_code信息！")
             
     def add_diff_summary_detail(self, diff_express_id, count_path):
         if not isinstance(diff_express_id, ObjectId):
@@ -752,9 +777,9 @@ if __name__ == "__main__":
     params["group_detail"] = {"A":["58d8a96e719ad0adae70fa14","58d8a96e719ad0adae70fa12"],
                                "B":["58d8a96e719ad0adae70fa11", "58d8a96e719ad0adae70fa13"]}
     distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170413/Single_rsem_stringtie_zebra_9/Express/MergeRsem"
-    data = RefrnaExpress()
-    data.add_express(rsem_dir=rsem_dir, transcript_fasta_path=transcript_fasta_path, is_duplicate=is_duplicate, class_code = class_code, samples=samples, \
-        params=params, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = distri_path)
+    # data = RefrnaExpress()
+    # data.add_express(rsem_dir=rsem_dir, transcript_fasta_path=transcript_fasta_path, is_duplicate=is_duplicate, class_code = class_code, samples=samples, \
+        # params=params, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = distri_path)
     # rsem_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170413/Single_rsem_stringtie_zebra_9/Express/output/oldrsem"
     
     # add_express(rsem_dir=rsem_dir, transcript_fasta_path=None, is_duplicate=is_duplicate, class_code = None, samples=samples, \
