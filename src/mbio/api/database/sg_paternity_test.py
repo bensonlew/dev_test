@@ -18,7 +18,7 @@ class SgPaternityTest(Base):
     def __init__(self, bind_object):
         super(SgPaternityTest, self).__init__(bind_object)
         self.mongo_client = Config().mongo_client
-        self.database = self.mongo_client['paternity_test']
+        self.database = self.mongo_client[Config().MONGODB+'_paternity_test']
 
 
     @report_check
