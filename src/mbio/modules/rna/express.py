@@ -404,7 +404,7 @@ class ExpressModule(Module):
                 edger_group_path = self.option('edger_group').prop['path']
                 genes_opt['edger_group'] = edger_group_path
             self.genes_diffRexp.set_options(genes_opt)
-            self.genes_diffRexp.on('end', self.set_output, 'genes_diff_')
+            self.genes_diffRexp.on('end', self.set_output, 'genes_diff')
             self.genes_diffRexp.on("end", self.set_step, {"end": self.step.genes_diffRexp})
             self.genes_diffRexp.on("end", self.sample_correlation)
             self.genes_diffRexp.run()
@@ -557,7 +557,7 @@ class ExpressModule(Module):
                 self.rsem_genes_fpkm = self.output_dir + '/rsem/genes.TMM.EXPR.matrix'
                 self.rsem_transcripts_fpkm = self.output_dir + '/rsem/transcripts.TMM.EXPR.matrix'
             self.diff_Rexp_run(genes_count_path=self.rsem_genes_count, genes_fpkm_path=self.rsem_genes_fpkm,trans_count_path = self.rsem_transcripts_count, trans_fpkm_path = self.rsem_transcripts_fpkm)
-        elif re.search(r'gene', event['data']) or re.search(r'trans', event['data']):
+        elif re.search(r'genes_diff', event['data']) or re.search(r'trans_diff', event['data']):
             self.logger.info("开始设置差异分析结果目录！")
             if self.option('express_method') == 'rsem':
                 if not os.path.exists(self.output_dir+'/diff'):
