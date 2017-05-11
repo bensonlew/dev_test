@@ -301,7 +301,19 @@ class RocNewTool(Tool):
             for names in files:
                 os.remove(os.path.join(root, names))
         os.link(self.work_dir + '/lefse_lda_head.xls', self.output_dir + '/lefse_LDA.xls')
-
+        file_list = os.listdir(self.work_dir + "/tax_summary_a")
+        new_file_list = []
+        for i in file_list:
+            if re.match('otu_taxa_table_L\d\.txt', i):
+                new_file_list.append(i)
+        con_list = []
+        for f in new_file_list:
+            file_path = os.path.join(self.work_dir, "tax_summary_a", f)
+            con = pd.read_table(file_path, header=0, sep="\t")
+            con_list.append(con)
+        finally_otu = pd.concat(con_list)
+        fin_path = os.path.join(self.output_dir, "lefse_otu_table")
+        finally_otu.to_csv(fin_path, sep="\t", index=False)
 
     def formattable(self, tablepath):
         print "sometime"
