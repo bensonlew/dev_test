@@ -46,6 +46,9 @@ from mainapp.controllers.submit.meta.function_predict import FunctionPredict
 from mainapp.controllers.submit.meta.meta_sourcetracker import MetaSourcetracker
 from mainapp.controllers.submit.meta.pipe import Pipe
 
+# sequence submit
+from mainapp.controllers.submit.sequence.sample_extract import SampleExtract
+
 # Denovo_rna submit
 from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
 from mainapp.controllers.submit.denovo_rna.cluster import Cluster
@@ -116,6 +119,9 @@ urls = (
     "/meta/function_predict", "FunctionPredict",
     "/meta/meta_sourcetracker", "MetaSourcetracker",
 
+    # sequence
+    "/sequence/sample_extract", "SampleExtract",
+    
     # denovo_rna
     "/denovo_rna/network", "Network",
     "/denovo_rna/cluster", "Cluster",
