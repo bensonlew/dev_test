@@ -16,7 +16,7 @@ class PaternityTest(object):
         self.mongo_client = Config().mongo_client
         self.database = self.mongo_client[Config().MONGODB+'_paternity_test']
         self.mongo_client_get_tab = Config().biodb_mongo_client
-        self.database_tab = self.mongo_client_get_tab[Config().MONGODB+'_paternity_test_ref']
+        self.database_tab = self.mongo_client_get_tab['sanger_paternity_test_ref']
 
     def add_pt_father(self, father_id, err_min, dedup):
         params = dict()
