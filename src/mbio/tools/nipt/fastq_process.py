@@ -55,7 +55,7 @@ class FastqProcessAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '20G'
+        self._memory = '50G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -245,6 +245,14 @@ class FastqProcessTool(Tool):
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
         results = os.listdir(self.work_dir)
+        for f in results:
+            if re.search(r'.*map.valid.bam$', f):
+                os.link(self.work_dir +'/'+ f, self.output_dir + '/' + f)
+            elif re.search(r'.*qc$', f):
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+            elif re.search(r'.*bed.2$', f):
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+        self.logger.info('设置文件夹路径成功')
 
     def run(self):
         super(FastqProcessTool, self).run()
