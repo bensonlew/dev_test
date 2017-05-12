@@ -632,7 +632,7 @@ class RefrnaExpress(Base):
             self.bind_object.logger.info("导入基因表达基因集：%s信息成功!" % diff_stat_path)
             return geneset_up_id
     
-    def add_geneset_detail(geneset_id, diff_stat_path, fc=None,up_down=None):
+    def add_geneset_detail(self, geneset_id, diff_stat_path, fc=None,up_down=None):
         """
         添加sg_geneset_detail表
         """
