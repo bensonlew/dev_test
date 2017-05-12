@@ -232,8 +232,7 @@ class Gff3File(File):
     
     def to_gtf(self):
         temp_gtf = os.path.join(os.path.dirname(self._gtf), os.path.basename(self._gtf).split('.')[0]) + '_temp.gtf'
-        to_gtf_cmd = '%s %s -T -O -C -o %s  ' % (self._gffread_path, self.path, temp_gtf)
-        # 先加上-c参数以保证组装过程不出现错误，后期修改组装模块后取消-c参数
+        to_gtf_cmd = '%s %s -T -O -o %s  ' % (self._gffread_path, self.path, temp_gtf)
         try:
             subprocess.check_output(to_gtf_cmd, shell=True)
         except:

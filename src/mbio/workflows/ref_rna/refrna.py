@@ -311,11 +311,11 @@ class RefrnaWorkflow(Workflow):
             "gene_file": self.seq_abs.option("gene_file"),
             "ref_genome_gtf": self.filecheck.option("gtf")
         }
-        if self.option("go_upload_file").is_set():
+        if self.option("go_upload_file").is_set:
             opts.update({
                 "gos_list_upload": self.option("go_upload_file")
             })
-        if self.option("kegg_upload_file").is_set():
+        if self.option("kegg_upload_file").is_set:
             opts.update({
                 "kos_list_upload": self.option("kegg_upload_file")
             })
@@ -671,12 +671,18 @@ class RefrnaWorkflow(Workflow):
         根据新加入模块操作，修改self.annotation
         :return:
         """
-        gos_dir_trans = ""
-        kegg_table_dir_trans = ""
-        cog_table_dir_trans = ""
-        gos_dir_gene = ""
-        kegg_table_dir_gene = ""
-        cog_table_dir_gene = ""
+        gos_dir_trans = self.annotation.output_dir + "/go/query_go.list" + \
+            ";" + self.new_annotation.output_dir + "/go/query_go.list"
+        kegg_table_dir_trans = self.annotation.output_dir + "/kegg/kegg_table.xls" + \
+            ";" + self.new_annotation.output_dir + "/kegg/kegg_table.xls"
+        cog_table_dir_trans = self.annotation.output_dir + "/cog/cog_table.xls" + \
+            ";" + self.new_annotation.output_dir + "/cog/cog_table.xls"
+        gos_dir_gene = self.annotation.output_dir + "/anno_stat/go_stat/gene_go.list" + \
+            ";" + self.new_annotation.output_dir + "/anno_stat/go_stat/gene_go.list"
+        kegg_table_dir_gene = self.annotation.output_dir + "/anno_stat/kegg_stat/gene_kegg_table.xls" + \
+            ";" + self.new_annotation.output_dir + "/anno_stat/kegg_stat/gene_kegg_table.xls"
+        cog_table_dir_gene = self.annotation.output_dir + "/anno_stat/cog_stat/gene_cog_table.xls" + \
+            ";" + self.new_annotation.output_dir + "/anno_stat/cog_stat/gene_cog_table.xls"
         trans_opts = {
             "gos_dir": gos_dir_trans,
             "kegg_table_dir": kegg_table_dir_trans,
