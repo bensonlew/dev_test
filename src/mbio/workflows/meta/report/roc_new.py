@@ -52,7 +52,7 @@ class RocNewWorkflow(Workflow):
             {"name": "roc_calc_method", "type": "string", "default": "sum"},  # ROC计算方法以及env表的计算方法
             {"name": "roc_method_1", "type": "string", "default": ""},
             {"name": "roc_method_2", "type": "string", "default": ""},
-            {"name": "env_table", "type": "infile", "format": "meta.otu.group_table"},
+            {"name": "env_table", "type": "string", "default": ""},  # 需要修改在workflow内部进行to_file
 
             {"name": "update_info", "type": "string"},  # workflow更新
         ]
@@ -114,7 +114,7 @@ class RocNewWorkflow(Workflow):
             self.two_ran_lefse.on("end", self.run_roc_two)
         elif self.option('ran_for_analysis'):
             self.two_ran_lefse.on("end", self.run_roc_ran)
-        elif os.path.exists(self.option("env_table").prop['path']):
+        elif self.option("env_table") != "":
             self.two_ran_lefse.on("end", self.run_roc_env)
         else:
             raise Exception('参数不正确，无法正常进行roc分析')
@@ -122,15 +122,15 @@ class RocNewWorkflow(Workflow):
 
     def run_roc_intersection(self):
         fin_otu = self.get_intersection_otu()
-        #new_table = self.change_otuname(fin_otu)
+        # new_table = self.change_otuname(fin_otu)
         options = {
             'otu_table': fin_otu,
-            'level': 9,
+            'level': self.option('level_id'),
             'group_table': self.option('two_ran_group'),
             'method': self.option('roc_calc_method'),
         }
         self.roc_intersection.set_options(options)
-        if os.path.exists(self.option("env_table").prop['path']):
+        if self.option("env_table") != "":
             self.roc_intersection.on("end", self.run_roc_env)
         else:
             self.roc_intersection.on("end", self.set_db)
@@ -140,8 +140,8 @@ class RocNewWorkflow(Workflow):
         options = {
             'otu_table': self.option("env_table").prop['path'],
             # 'level': self.option('level_id'),
-            'group_table': self.option('group_table'),
-            'method': self.option('method'),
+            'group_table': self.option('two_ran_group'),
+            'method': self.option('roc_calc_method'),
         }
         self.roc_env.set_options(options)
         self.roc_env.on("end", self.set_db)
@@ -149,19 +149,19 @@ class RocNewWorkflow(Workflow):
 
     def run_roc_lefse(self):
         lefse_otu = self.get_otu_table(name="lefse")
-        new_table = self.change_otuname(lefse_otu)
+        # new_table = self.change_otuname(lefse_otu)
         options = {
-            'otu_table': new_table,
+            'otu_table': lefse_otu,
             'level': self.option('level_id'),
-            'group_table': self.option('group_table'),
-            'method': self.option('method'),
+            'group_table': self.option('two_ran_group'),
+            'method': self.option('roc_calc_method'),
         }
         self.roc_lefse.set_options(options)
         if self.option('two_group_analysis'):
             self.roc_lefse.on("end", self.run_roc_two)
         elif self.option('ran_for_analysis'):
             self.roc_lefse.on("end", self.run_roc_ran)
-        elif os.path.exists(self.option("env_table").prop['path']):
+        elif self.option("env_table") != "":
             self.roc_lefse.on("end", self.run_roc_env)
         else:
             self.roc_lefse.on("end", self.set_db)
@@ -169,17 +169,17 @@ class RocNewWorkflow(Workflow):
 
     def run_roc_two(self):
         two_otu = self.get_otu_table(name="two_group")
-        new_table = self.change_otuname(two_otu)
+        # new_table = self.change_otuname(two_otu)
         options = {
-            'otu_table': new_table,
+            'otu_table': two_otu,
             'level': self.option('level_id'),
-            'group_table': self.option('group_table'),
-            'method': self.option('method'),
+            'group_table': self.option('two_ran_group'),
+            'method': self.option('roc_calc_method'),
         }
         self.roc_two.set_options(options)
         if self.option('ran_for_analysis'):
             self.roc_two.on("end", self.run_roc_ran)
-        elif os.path.exists(self.option("env_table").prop['path']):
+        elif self.option("env_table") != "":
             self.roc_two.on("end", self.run_roc_env)
         else:
             self.roc_two.on("end", self.set_db)
@@ -187,22 +187,21 @@ class RocNewWorkflow(Workflow):
 
     def run_roc_ran(self):
         ran_otu = self.get_otu_table(name="random_forest")
-        new_table = self.change_otuname(ran_otu)
+        # new_table = self.change_otuname(ran_otu)
         options = {
-            'otu_table': new_table,
+            'otu_table': ran_otu,
             'level': self.option('level_id'),
-            'group_table': self.option('group_table'),
-            'method': self.option('method'),
+            'group_table': self.option('two_ran_group'),
+            'method': self.option('roc_calc_method'),
         }
         self.roc_ran.set_options(options)
-        if os.path.exists(self.option("env_table").prop['path']):
-            self.roc_two.on("end", self.run_roc_env)
+        if self.option("env_table") != "":
+            self.roc_ran.on("end", self.run_roc_env)
         else:
-            self.roc_two.on("end", self.set_db)
+            self.roc_ran.on("end", self.set_db)
         self.roc_ran.run()
 
     def get_otu_table(self, name=None):
-        import pandas as pd
         if name == "lefse":
             file_path = os.path.join(self.two_ran_lefse.output_dir, "lefse_LDA.xls")
             con = pd.read_table(file_path, header=0, sep="\t")
@@ -273,13 +272,17 @@ class RocNewWorkflow(Workflow):
             for i in path:
                 T += 1
                 con = pd.read_table(i, header=0, sep="\t")
-                self.logger.info('{}的otu-id{}'.format(i, con['OTU ID']))
+                # self.logger.info('{}的otu-id{}'.format(i, con['OTU ID']))
                 spe_list = [m.split(";")[-1] for m in con['OTU ID']]  # 取最后一个分类水平的名称
                 old = new
                 new = set(spe_list)
+                self.logger.info("{}的spe集合{}".format(i, new))
                 if T >= 2:
                     new = old & new
             all_spe = [i for i in new]
+            self.logger.info("all_spe:{}".format(all_spe))
+            if len(all_spe) == 0:
+                raise Exception("取交集后物种数目为0，无法进行roc分析")
             if self.option('two_group_analysis'):
                 any_one_con = pd.read_table(table_two, header=0, sep="\t")
             else:
