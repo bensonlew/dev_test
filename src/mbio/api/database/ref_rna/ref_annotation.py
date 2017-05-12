@@ -1113,9 +1113,15 @@ class RefAnnotation(Base):
                     ('query_id', query_id),
                     ('transcript_id', line[0]),
                     ('gene_id', line[1]),
-                    ('gene_name', line[2])
-                    ('length', line[3])
                 ]
+                try:
+                    data.append(('gene_name', line[2]))
+                except:
+                    data.append(('gene_name', None))
+                    try:
+                        data.append(('length', line[3]))
+                    except:
+                        data.append(('length', None))
                 try:
                     data.append(('nr_hit_names', line[13]))
                 except:
