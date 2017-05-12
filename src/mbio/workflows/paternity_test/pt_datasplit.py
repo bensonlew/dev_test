@@ -190,7 +190,11 @@ class PtDatasplitWorkflow(Workflow):
 		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
 
 	def _update_status_api(self):
-		return 'pt.med_report_tupdate'
+		name = self.option('data_dir').split(":")[0]
+		if name == "sanger" or name == "i-sanger":
+			return 'pt.med_report_update'
+		else:
+			return 'pt.med_report_tupdate'
 
 	def run_merge_fastq_un(self):
 		if self.done_wq != "true":

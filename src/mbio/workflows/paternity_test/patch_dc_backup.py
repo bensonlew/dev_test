@@ -104,7 +104,7 @@ class PatchDcBackupWorkflow(Workflow):
 				self.tools.append(fastq2mongo)
 				n += 1
 			else:
-				self.logger.info('{}样本已存在于数据库'.format(i))
+				raise Exception('{}样本已存在于数据库,请检查是否重名'.format(i))
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2mongo')
 
@@ -246,7 +246,7 @@ class PatchDcBackupWorkflow(Workflow):
 			q = self.preg.index(self.preg_sample)
 			result_info.on('end', self.dedup_run, q)
 		else:
-			pass
+			result_info.on('end', self.end)
 
 		result_info.set_options({
 			"tab_merged": self.rdata
