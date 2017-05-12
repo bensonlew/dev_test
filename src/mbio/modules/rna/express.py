@@ -439,7 +439,7 @@ class ExpressModule(Module):
                 edger_group_path = self.option('edger_group').prop['path']
                 genes_opt['edger_group'] = edger_group_path
             self.genes_diffRexp.set_options(genes_opt)
-            self.genes_diffRexp.on('end', self.set_output, 'genes_diff_')
+            self.genes_diffRexp.on('end', self.set_output, 'genes_diff')
             self.genes_diffRexp.on("end", self.set_step, {"end": self.step.genes_diffRexp})
             self.genes_diffRexp.on("end", self.sample_correlation)
             self.genes_diffRexp.run()
@@ -454,15 +454,15 @@ class ExpressModule(Module):
             self.trans_diffRexp.set_options(trans_opt)
             self.trans_diffRexp.on('end', self.set_output, 'trans_diff')
             self.trans_diffRexp.on("end", self.set_step, {"end": self.step.trans_diffRexp})
-            if self.option("express_method").lower() == 'featurecounts':
-                self.genes_diffRexp.on("end", self.sample_correlation)
+            # if self.option("express_method").lower() == 'featurecounts':
+            #     self.genes_diffRexp.on("end", self.sample_correlation)
             self.trans_diffRexp.run()
             self.logger.info("计算转录本差异分析成功！")
         if self.option("express_method").lower() == 'featurecounts':
             fpkm_opt = tool_opt
             fpkm_opt["count"] = self.feature_count_path
             fpkm_opt["fpkm"] = self.feature_fpkm_path
-            
+
             tpm_opt = tool_opt
             tpm_opt["count"] = self.feature_count_path
             tpm_opt["fpkm"] = self.feature_tpm_path
@@ -592,7 +592,7 @@ class ExpressModule(Module):
                 self.rsem_genes_fpkm = self.output_dir + '/rsem/genes.TMM.EXPR.matrix'
                 self.rsem_transcripts_fpkm = self.output_dir + '/rsem/transcripts.TMM.EXPR.matrix'
             self.diff_Rexp_run(genes_count_path=self.rsem_genes_count, genes_fpkm_path=self.rsem_genes_fpkm,trans_count_path = self.rsem_transcripts_count, trans_fpkm_path = self.rsem_transcripts_fpkm)
-        elif re.search(r'gene', event['data']) or re.search(r'trans', event['data']):
+        elif re.search(r'genes_diff', event['data']) or re.search(r'trans_diff', event['data']):
             self.logger.info("开始设置差异分析结果目录！")
             if self.option('express_method') == 'rsem':
                 if not os.path.exists(self.output_dir+'/diff'):
@@ -689,6 +689,14 @@ class ExpressModule(Module):
             self.featurecounts_run()
         elif self.option("express_method") == "rsem":
             self.rsem_run()
+            # path = "/mnt/ilustre/users/sanger-dev/workspace/20170510/Single_rsem_cufflinks_fpkm_3/Express/output/rsem"
+            # genes_count_path = path + "/genes.counts.matrix"
+            # trans_count_path = path + "/transcripts.counts.matrix"
+            # genes_fpkm_path = path + "/genes.TMM.fpkm.matrix"
+            # trans_fpkm_path = path +"/transcripts.TMM.fpkm.matrix"
+            # self.rsem_genes_fpkm = genes_fpkm_path
+            # self.rsem_transcripts_fpkm = trans_fpkm_path
+            # self.diff_Rexp_run(genes_count_path=genes_count_path,trans_count_path=trans_count_path,genes_fpkm_path=genes_fpkm_path,trans_fpkm_path=trans_fpkm_path)
         elif self.option("express_method") == "kallisto":
             self.file_get_list()
             self.transcript_abstract()

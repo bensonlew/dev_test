@@ -6,6 +6,8 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from collections import defaultdict
+import re
+import os
 
 class CogClassAgent(Agent):
     """
@@ -14,7 +16,7 @@ class CogClassAgent(Agent):
     def __init__(self, parent):
         super(CogClassAgent, self).__init__(parent)
         options = [
-           {"name": "diff_list", "type": "infile", "format": "denovo_rna.express.gene_list"},
+           {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},
             {"name": "cog_table", "type": "infile", "format": "annotation.cog.cog_table"}
         ]
         self.add_option(options)
@@ -45,14 +47,12 @@ class CogClassTool(Tool):
         self.gene_list = self.option("diff_list").prop["gene_list"]
         self.query_list = []
         self.group_dict = defaultdict(lambda: [])
-        self.categories_dict = {}
+        self.categories_dict = defaultdict(lambda: {})
         self.func_type = {
             'INFORMATION STORAGE AND PROCESSING': ['A', 'B', 'J', 'K', 'L'],
             'CELLULAR PROCESSES AND SIGNALING': ['D', 'M', 'N', 'O', 'T', 'U', 'V', 'W', 'Y', 'Z'],
             'METABOLISM': ['C', 'E', 'F', 'G', 'H', 'I', 'P', 'Q'],
-            'POORLY CHARACTERIZED': ['R', 'S'],
-            'METABOLISM': ['C', 'E', 'F', 'G', 'H', 'I', 'P', 'Q'],
-            'POORLY CHARACTERIZED': ['R', 'S'],
+            'POORLY CHARACTERIZED': ['R', 'S']
         }
         self.func_decs = {
             'A': 'RNA processing and modification',
@@ -81,7 +81,8 @@ class CogClassTool(Tool):
             'Y': 'Nuclear structure',
             'Z': 'Cytoskeleton'
         }
-        self.summary_file = open(self.output_dir + "/cog_summary.xls", "w")
+        name = os.path.basename(self.option("diff_list").prop["path"])
+        self.summary_file = open(self.output_dir + "/{}_cog_summary.xls".format(name), "w")
 
     def cmd1(self):
         with open(self.option("cog_table").prop["path"], "r") as file:
@@ -93,6 +94,8 @@ class CogClassTool(Tool):
                 query = tmp[0]
                 cog_group = tmp[10]
                 cog_categories = tmp[12]
+                m = re.match("transcript:(.+)", query)
+                query = m.group(1) if m else query
                 if query in self.gene_list:
                     # if query not in self.query_list:
                         # self.query_list.append(query)
@@ -101,6 +104,7 @@ class CogClassTool(Tool):
                             self.categories_dict[cog_categories][letter] = []
                         if cog_group.startswith(letter):
                             self.categories_dict[cog_categories][letter].append(query)
+        self.summary_file.write("type\tcategory\tCOG\tNOG\tKOG\tCOG_LIST\tNOG_LIST\tKOG_LIST\n")
         for thekey in ['INFORMATION STORAGE AND PROCESSING', 'CELLULAR PROCESSES AND SIGNALING',
                        'METABOLISM', 'POORLY CHARACTERIZED']:
             for g in self.func_type[thekey]:
