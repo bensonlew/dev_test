@@ -485,6 +485,7 @@ class RefrnaWorkflow(Workflow):
     def run_new_annotation(self):
         anno_opts = {
             'gene_file': self.new_gene_abs.option('gene_file'),
+            "ref_genome_gtf": self.filecheck.option("gtf")
         }
         if 'go' in self.option('database'):
             anno_opts.update({
@@ -559,6 +560,7 @@ class RefrnaWorkflow(Workflow):
             "edger_group": self.option("group_table"),
             "method": self.option("diff_method"),
             "diff_ci": self.option("diff_ci"),
+            "is_duplicate": self.option("is_duplicate"),
             "exp_way": self.option("exp_way"),
             "strand_dir": self.option("strand_dir")
         }
@@ -589,6 +591,7 @@ class RefrnaWorkflow(Workflow):
             "edger_group": self.option("group_table"),
             "method": self.option("diff_method"),
             "diff_ci": self.option("diff_ci"),
+            "is_duplicate": self.option("is_duplicate"),
             "exp_way": exp_way,
             "strand_dir": self.option("strand_dir")
         }
@@ -615,6 +618,7 @@ class RefrnaWorkflow(Workflow):
             "edger_group": self.option("group_table"),
             "method":  self.option("diff_method"),
             "diff_ci": self.option("diff_ci"),
+            "is_duplicate": self.option("is_duplicate"),
             "exp_way": "all",
             "strand_dir": self.option("strand_dir")
         }
@@ -909,6 +913,65 @@ class RefrnaWorkflow(Workflow):
             self.exp.on("end", self.run_network)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
-        
+
+    def test_run(self):
+        self.assembly.on("end", self.run_new_gene_abs_test)
+        self.assembly.on("end", self.run_new_transcripts_abs_test)
+        self.para_anno.on("end", self.run_annotation_test)
+        self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        self.start_listener()
+        self.fire("start")
+        self.assembly.start_listener()
+        self.assembly.fire("end")
+        self.para_anno.start_listener()
+        self.para_anno.fire("end")
+        self.filecheck.option("gtf").set_path(self.filecheck.work_dir + "/Danio_rerio.GRCz10.87.gff3.gtf")
+        self.seq_abs.option("gene_file").set_path(self.seq_abs.output_dir + "/gene_list.txt")
+        if self._parent is None:
+            from biocluster.core.watcher import Watcher
+            # watcher = Watcher()
+            # watcher.add(self.__check, 3)
+            self.rpc_server.run()
+
+    def __check(self):
+        super(RefrnaWorkflow, self).__check()
+
+    def run_new_gene_abs_test(self):
+        opts = {
+            "ref_genome_custom": self.ref_genome,
+            "ref_genome_gtf": self.assembly.output_dir + "/NewTranscripts/new_genes.gtf"
+        }
+        self.new_gene_abs.set_options(opts)
+        self.new_gene_abs.run()
+
+    def run_new_transcripts_abs_test(self):
+        opts = {
+            "ref_genome_custom": self.ref_genome,
+            "ref_genome_gtf": self.assembly.output_dir + "/NewTranscripts/new_transcripts.gtf"
+        }
+        self.new_trans_abs.set_options(opts)
+        self.new_trans_abs.run()
+
+    def run_annotation_test(self):
+        opts = {
+            "gos_list_upload": self.para_anno.output_dir + "/go.list",
+            "kos_list_upload": self.para_anno.output_dir + "/kegg.list",
+            "blast_string_table": self.para_anno.output_dir + "/cog.list",
+            "gene_file": self.seq_abs.option("gene_file"),
+            "ref_genome_gtf": self.filecheck.option("gtf")
+        }
+        if self.option("go_upload_file").is_set:
+            opts.update({
+                "gos_list_upload": self.option("go_upload_file")
+            })
+        if self.option("kegg_upload_file").is_set:
+            opts.update({
+                "kos_list_upload": self.option("kegg_upload_file")
+            })
+        self.annotation.set_options(opts)
+        self.annotation.on("end", self.set_output, "annotation")
+        self.annotation.run()
+
     def end(self):
         super(RefrnaWorkflow, self).end()

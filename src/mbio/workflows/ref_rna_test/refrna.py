@@ -931,3 +931,9 @@ class RefrnaWorkflow(Workflow):
 
     def test_run(self):
         self.export_qc()
+        self.export_assembly()
+
+    def export_assembly(self):
+        self.api_assembly = self.api.api("ref_rna.ref_assembly")
+        self.api_assembly.add_assembly_result()
+        self
