@@ -639,7 +639,7 @@ class RefrnaExpress(Base):
         geneset_id = str(geneset_id)
         data_list = []
         data_list_up = []
-        up_data = get_diff_list(up_down_output = diff_stat_path, up_down= up_down, fc=fc)
+        up_data = self.get_diff_list(up_down_output = diff_stat_path, up_down= up_down, fc=fc)
         data = [
             ("geneset_id",ObjectId(geneset_id)),
             ("gene_list",up_data)
