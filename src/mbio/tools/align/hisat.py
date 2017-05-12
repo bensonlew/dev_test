@@ -145,8 +145,14 @@ class HisatTool(Tool):
         self.wait()
         if command.return_code == 0:
             self.sam_bam()
+        elif command.return_code == None:
+            command.rerun()
+            if command.return_code == 0:
+                self.logger.info("hisat运行完成")
+                self.sam_bam()
         else:
-            self.logger.info("生成sam文件这里出错了")
+            self.logger.error("生成sam文件这里出错了")
+            self.set_error("生成sam文件出错")
             
     def sam_bam(self):
         """

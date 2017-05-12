@@ -18,9 +18,9 @@ class RefrnaWorkflow(Workflow):
         self._sheet = wsheet_object
         super(RefrnaWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name": "workflow_type", "type":"string", "default": "transcriptome"},  # 转录组
+            {"name": "workflow_type", "type": "string", "default": "transcriptome"},  # 转录组
             {"name": "assemble_or_not", "type": "bool", "default": True},
-            {"name": "blast_method", "type" :"string", "default": "diamond"},
+            {"name": "blast_method", "type": "string", "default": "diamond"},
             {"name": "genome_structure_file", "type": "infile", "format": "gene_structure.gtf, gene_structure.gff3"},
             # 基因组结构注释文件，可上传gff3或gtf
             {"name": "strand_specific", "type": "bool", "default": False},
@@ -142,11 +142,6 @@ class RefrnaWorkflow(Workflow):
         """
         检查选项
         """
-        if not self.option("ref_genome") == "customer_mode":
-            if not self.option("genome_structure_file").is_set:
-                raise OptionError("未设置gff文件或gtf文件")
-            if not self.option("ref_genome_custom").is_set:
-                raise OptionError("未设置fa文件")
         if not self.option("fq_type") in ["PE", "SE"]:
             raise OptionError("fq序列类型应为PE或SE")
         if not self.option("qc_quality") > 0 and not self.option("qc_quality") < 42:

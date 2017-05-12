@@ -815,6 +815,7 @@ class RefrnaWorkflow(Workflow):
         if event['data'] == 'qc_stat_after':
             self.move2outputdir(obj.output_dir, 'QC_stat/after_qc')
             self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
+            self.export_qc()
         if event['data'] == 'mapping':
             self.move2outputdir(obj.output_dir, 'mapping')
             self.logger.info('mapping results are put into output dir')
@@ -917,3 +918,16 @@ class RefrnaWorkflow(Workflow):
         
     def end(self):
         super(RefrnaWorkflow, self).end()
+
+    def export_qc(self):
+        self.api_qc = self.api.ref_rna_qc
+        qc_stat = self.qc_stat_after.output_dir
+        fq_type = self.option("fq_type").lower()
+        self.api_qc.add_samples_info(qc_stat, fq_type=fq_type)
+        quality_stat_after = self.qc_stat_after.output_dir + "/qualityStat"
+        self.api_qc.add_gragh_info(quality_stat_after, "after")
+        quality_stat_before = self.qc_stat_before.output_dir + "/qualityStat"  # 将qc前导表加于该处
+        self.api_qc.add_gragh_info(quality_stat_before, "before")
+
+    def test_run(self):
+        self.export_qc()
