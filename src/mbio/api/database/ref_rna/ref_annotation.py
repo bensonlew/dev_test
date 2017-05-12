@@ -41,6 +41,7 @@ class RefAnnotation(Base):
         if seq_type == "ref":
             database = ["nr", "string", "kegg"]
             self.add_annotation_blast(name=name, params=params, stat_id=stat_id, seq_type=seq_type, database=database, anno_path=anno_path)
+        self.add_annotation_query(name=name, params=params, stat_id=stat_id, anno_path=anno_path)
 
 
     @report_check
@@ -78,14 +79,6 @@ class RefAnnotation(Base):
             raise Exception('{}所指定的路径不存在，请检查！'.format(stat_path))
         if not os.path.exists(venn_path):
             raise Exception('{}所指定的路径不存在，请检查！'.format(venn_path))
-        nr_venn = venn_path + "/nr_venn.txt"
-        gene_nr_venn = venn_path + "/gene_nr_venn.txt"
-        cog_venn = venn_path + "/cog_venn.txt"
-        gene_cog_venn = venn_path + "/gene_cog_venn.txt"
-        swissprot_venn = venn_path + "/swissprot_venn.txt"
-        gene_swissprot_venn = venn_path + "/gene_swissprot_venn.txt"
-        kegg_venn = venn_path + "/kegg_venn.txt"
-        gene_kegg_venn = venn_path + "/gene_kegg_venn.txt"
         data_list = []
         with open(stat_path, 'r') as f:
             lines = f.readlines()
@@ -99,53 +92,33 @@ class RefAnnotation(Base):
                     ('transcript_percent', round(float(line[3]), 4)),
                     ('gene_percent', round(float(line[4]), 4)),
                 ]
-                if line[0] == "nr":
-                    with open(nr_venn, "rb") as f:
-                        venn_list = f.readline().strip('\n')
-                        for line in f:
-                            venn_list += ',{}'.format(line.strip('\n'))
-                    with open(gene_nr_venn, "rb") as f:
-                        gene_venn_list = f.readline().strip('\n')
-                        for line in f:
-                            gene_venn_list += ',{}'.format(line.strip('\n'))
-                if line[0] == "cog":
-                    with open(cog_venn, "rb") as f:
-                        venn_list = f.readline().strip('\n')
-                        for line in f:
-                            venn_list += ',{}'.format(line.strip('\n'))
-                    with open(gene_cog_venn, "rb") as f:
-                        gene_venn_list = f.readline().strip('\n')
-                        for line in f:
-                            gene_venn_list += ',{}'.format(line.strip('\n'))
-                if line[0] == "swissprot":
-                    with open(swissprot_venn, "rb") as f:
-                        venn_list = f.readline().strip('\n')
-                        for line in f:
-                            venn_list += ',{}'.format(line.strip('\n'))
-                    with open(gene_swissprot_venn, "rb") as f:
-                        gene_venn_list = f.readline().strip('\n')
-                        for line in f:
-                            gene_venn_list += ',{}'.format(line.strip('\n'))
-                if line[0] == "kegg":
-                    with open(kegg_venn, "rb") as f:
-                        venn_list = f.readline().strip('\n')
-                        for line in f:
-                            venn_list += ',{}'.format(line.strip('\n'))
-                    with open(gene_kegg_venn, "rb") as f:
-                        gene_venn_list = f.readline().strip('\n')
-                        for line in f:
-                            gene_venn_list += ',{}'.format(line.strip('\n'))
-                data.append(("gene_list", venn_list))
-                data.append(("transcript_list", gene_venn_list))
+                venn_list, gene_venn_list = None, None
+                database = ["nr", "swissprot", "pfam", "kegg", "go", "string", "cog"]
+                if line[0] in database:
+                    venn = venn_path + "/" + line[0] + "_venn.txt"
+                    gene_venn = venn_path + "/gene_" + line[0] + "_venn.txt"
+                    if os.path.exists(venn) and os.path.exists(gene_venn):
+                        with open(venn, "rb") as f:
+                            venn_list = f.readline().strip('\n')
+                            for line in f:
+                                venn_list += ',{}'.format(line.strip('\n'))
+                        with open(gene_venn, "rb") as f:
+                            gene_venn_list = f.readline().strip('\n')
+                            for line in f:
+                                gene_venn_list += ',{}'.format(line.strip('\n'))
+                        data.append(("gene_list", venn_list))
+                        data.append(("transcript_list", gene_venn_list))
+                    else:
+                        raise Exception("{}对应的venn.txt文件不存在".format(line[0]))
                 data = SON(data)
                 data_list.append(data)
         try:
             collection = self.db['sg_annotation_stat_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入注释统计信息：%s出错!" % (stat_path))
+            raise Exception("导入注释统计信息失败:%s" % stat_path)
         else:
-            self.bind_object.logger.info("导入注释统计信息：%s成功!" % (stat_path))
+            self.bind_object.logger.info("导入注释统计信息成功：%s" % (stat_path))
 
     @report_check
     def add_stat_detail(self, old_stat_id, stat_id, nr_evalue, gene_nr_evalue, sw_evalue, gene_sw_evalue):
@@ -215,7 +188,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_stat_detail']
             collection.insert_many(data_list)
         except:
-            self.bind_object.logger.error("导入注释统计信息出错")
+            raise Exception("导入注释统计信息出错")
         else:
             self.bind_object.logger.info("导入注释统计信息成功")
 
@@ -333,7 +306,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_blast_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入注释统计信息：%s出错!" % (blast_path))
+            raise Exception("导入注释统计信息：%s出错!" % (blast_path))
         else:
             self.bind_object.logger.info("导入注释统计信息：%s成功!" % (blast_path))
 
@@ -420,7 +393,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_nr_pie']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入nr库注释作图信息evalue,similar：%s、%s出错!" % (evalue_path, similar_path))
+            raise Exception("导入nr库注释作图信息evalue,similar：%s、%s出错!" % (evalue_path, similar_path))
         else:
             self.bind_object.logger.info("导入nr库注释作图信息evalue,similar：%s、%s成功!" % (evalue_path, similar_path))
 
@@ -508,7 +481,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_swissprot_pie']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入swissprot库注释作图信息evalue,similar：%s、%s出错!" % (evalue_path, similar_path))
+            raise Exception("导入swissprot库注释作图信息evalue,similar：%s、%s出错!" % (evalue_path, similar_path))
         else:
             self.bind_object.logger.info("导入swissprot库注释作图信息evalue,similar：%s、%s成功!" % (evalue_path, similar_path))
 
@@ -617,7 +590,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_pfam_bar']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入pfam注释信息:%失败！" % pfam_path)
+            raise Exception("导入pfam注释信息:%失败！" % pfam_path)
         else:
             self.bind_object.logger.info("导入pfam注释信息:%成功！" % pfam_path)
 
@@ -707,7 +680,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_cog_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入cog注释信息：%s出错!" % (cog_path))
+            raise Exception("导入cog注释信息：%s出错!" % (cog_path))
         else:
             self.bind_object.logger.info("导入cog注释信息：%s成功!" % (cog_path))
 
@@ -756,7 +729,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_cog_table']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入cog注释table信息：%s出错!" % (table_path))
+            raise Exception("导入cog注释table信息：%s出错!" % (table_path))
         else:
             self.bind_object.logger.info("导入cog注释table信息：%s成功!" % (table_path))
 
@@ -858,7 +831,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_go_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入go注释信息：%s出错!" % (go_path))
+            raise Exception("导入go注释信息：%s出错!" % (go_path))
         else:
             self.bind_object.logger.info("导入go注释信息：%s成功!" % (go_path))
 
@@ -897,7 +870,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_go_level']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入go注释第二层级信息：%s出错!" % (level_path))
+            raise Exception("导入go注释第二层级信息：%s出错!" % (level_path))
         else:
             self.bind_object.logger.info("导入go注释第二层级信息：%s成功!" % (level_path))
 
@@ -931,7 +904,7 @@ class RefAnnotation(Base):
                 collection = self.db['sg_annotation_go_list']
                 collection.insert_many(data_list)
             except Exception, e:
-                self.bind_object.logger.error("导入gos_list注释信息：%s出错:%s" % (gos_path))
+                raise Exception("导入gos_list注释信息：%s出错:%s" % (gos_path))
             else:
                 self.bind_object.logger.info("导入gos_list注释信息：%s成功!" % (gos_path))
 
@@ -1011,7 +984,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_kegg_categories']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入kegg注释分类信息：%s出错!" % (categories_path))
+            raise Exception("导入kegg注释分类信息：%s出错!" % (categories_path))
         else:
             self.bind_object.logger.info("导入kegg注释分类信息：%s 成功!" % categories_path)
 
@@ -1054,7 +1027,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_kegg_level']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入kegg注释层级信息：%s、%s出错!" % (level_path, png_dir))
+            raise Exception("导入kegg注释层级信息：%s、%s出错!" % (level_path, png_dir))
         else:
             self.bind_object.logger.info("导入kegg注释层级信息：%s、%s 成功!" % (level_path, png_dir))
 
@@ -1087,6 +1060,106 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_kegg_table']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.error("导入kegg注释table信息：%s出错!" % (table_path))
+            raise Exception("导入kegg注释table信息：%s出错!" % (table_path))
         else:
             self.bind_object.logger.info("导入kegg注释table信息：%s成功!" % (table_path))
+
+    @report_check
+    def add_annotation_query(self, name=None, params=None, stat_id=None, anno_path=None):
+        """
+        """
+        task_id = self.bind_object.sheet.id
+        project_sn = self.bind_object.sheet.project_sn
+        if not isinstance(stat_id, ObjectId):
+            if isinstance(stat_id, types.StringTypes):
+                stat_id = ObjectId(stat_id)
+            else:
+                raise Exception('stat_id必须为ObjectId对象或其对应的字符串！')
+        insert_data = {
+            'project_sn': project_sn,
+            'task_id': task_id,
+            'name': name if name else 'AnnotationQuery_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'params': params,
+            'status': 'end',
+            'desc': '注释查询主表',
+            'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'stat_id': stat_id
+        }
+        collection = self.db['sg_annotation_query']
+        query_id = collection.insert_one(insert_data).inserted_id
+        self.bind_object.logger.info("add ref_annotation_query!")
+        query_path = anno_path + "/anno_stat/all_annotation.xls"
+        if os.path.exists(query_path):
+            self.add_annotation_query_detail(query_id=query_id, query_path=query_path)
+        else:
+            raise Exception("注释查询文件all_annotation.xls不存在")
+        return query_id
+
+    @report_check
+    def add_annotation_query_detail(self, query_id, query_path):
+        if not isinstance(query_id, ObjectId):
+            if isinstance(query_id, types.StringTypes):
+                query_id = ObjectId(query_id)
+            else:
+                raise Exception('query_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(query_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(query_path))
+        data_list = []
+        with open(query_path, 'r') as f:
+            lines = f.readlines()
+            for line in lines[1:]:
+                line = line.strip().split('\t')
+                data = [
+                    ('query_id', query_id),
+                    ('transcript_id', line[0]),
+                    ('gene_id', line[1]),
+                    ('gene_name', line[2])
+                    ('length', line[3])
+                ]
+                try:
+                    data.append(('nr_hit_names', line[13]))
+                except:
+                    data.append(('nr_hit_names', None))
+                try:
+                    data.append(('sp_hit_names', line[14]))
+                except:
+                    data.append(('sp_hit_names', None))
+                try:
+                    data.append(('cog', line[4]))
+                except:
+                    data.append(('cog', None))
+                try:
+                    data.append(('nog', line[5]))
+                except:
+                    data.append(('nog', None))
+                try:
+                    data.append(('kog', line[5]))
+                except:
+                    data.append(('kog', None))
+                try:
+                    data.append(('go_ids', line[12]))
+                except:
+                    data.append(('go_ids', None))
+                try:
+                    data.append(('ko_id', line[7]))
+                    data.append(('ko_name', line[8]))
+                    data.append(('pathway_ids', line[9]))
+                except:
+                    data.append(('ko_id', None))
+                    data.append(('ko_name', None))
+                    data.append(('pathway_ids', None))
+                try:
+                    data.append(('pfam_id', line[10]))
+                    data.append(('domain', line[11]))
+                except:
+                    data.append(('pfam_id', None))
+                    data.append(('domain', None))
+                data = SON(data)
+                data_list.append(data)
+        try:
+            collection = self.db['sg_annotation_query_detail']
+            collection.insert_many(data_list)
+        except Exception, e:
+            raise Exception("导入注释统计信息：%s出错!" % (query_path))
+        else:
+            self.bind_object.logger.info("导入注释统计信息：%s成功!" % (query_path))
