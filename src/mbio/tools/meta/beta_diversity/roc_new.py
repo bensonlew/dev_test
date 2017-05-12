@@ -310,6 +310,10 @@ class RocNewTool(Tool):
         for f in new_file_list:
             file_path = os.path.join(self.work_dir, "tax_summary_a", f)
             con = pd.read_table(file_path, header=0, sep="\t")
+            if f == "otu_taxa_table_L9.txt":
+                con = con.drop("taxonomy", axis=1)
+            else:
+                con = con.rename(columns={'#OTU ID': 'OTU ID'})
             con_list.append(con)
         finally_otu = pd.concat(con_list)
         fin_path = os.path.join(self.output_dir, "lefse_otu_table")
