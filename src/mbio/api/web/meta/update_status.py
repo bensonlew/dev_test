@@ -130,6 +130,7 @@ class UpdateStatus(Log):
         for i in self.data['sync_task_log']['log']:
             if 'name' not in i:
                 desc = i['desc']
+        desc = filter_error_info(desc)
         create_time = str(self.data["sync_task_log"]["task"]["created_ts"])
         if not self.update_info:
             return
