@@ -82,13 +82,11 @@ class AllAnnoStat(object):
                     gene_id = content_m.captures(7)[0]
                 if query_name in self.stat_info:
                     self.stat_info[query_name].gene_id = gene_id
-            m = re.match(r".+(gene_id|transcript_id) \"(.+?)\"; (transcript_id|gene_id) \"(.+?)\"; (gene_name) \"(.+?)\";.*$", line)
+            m = re.match(r".+transcript_id \"(.+?)\";.*gene_name \"(.+?)\";.*$", line)
             if m:
-                query_name = m.group(2)
-                gene_id = m.group(1)
-                gene_name = m.group(3)
+                query_name = m.group(1)
+                gene_name = m.group(2)
                 if query_name in self.stat_info:
-                    self.stat_info[query_name].gene_id = gene_id
                     self.stat_info[query_name].gene_name = gene_name
 
     def get_kegg(self, kegg_table):
