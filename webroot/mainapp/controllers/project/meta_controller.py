@@ -83,6 +83,8 @@ class MetaController(object):
         try:
             update_info = json.loads(self.sheet_data['options']['update_info'])
             for i in update_info:
+                if i == "batch_id":
+                    continue
                 self.meta.update_status_failed(update_info[i], i)
                 print("INFO: 更新主表状态为failed成功: coll:{} _id:{}".format(update_info[i], i))
         except Exception as e:
@@ -147,7 +149,7 @@ class MetaController(object):
         update_info["batch_id"] = data.batch_id
         self._sheet_data['options']["update_info"] = json.dumps(update_info)
         if self._sheet_data['name'].strip().split(".")[-1] not in ["otu_subsample", "estimators"]:
-            print "test", self._sheet_data['name'].strip().split(".")[-1]
+            # print "test", self._sheet_data['name'].strip().split(".")[-1]
             self._instant = False
             self._sheet_data["instant"] = False
 
