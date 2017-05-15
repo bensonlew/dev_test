@@ -69,8 +69,8 @@ class RefrnaCorrExpress(Base):
             site_file = os.path.join(pca_path, 'pca_sites.xls')
             if os.path.exists(pca_path):
                 self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
-                self.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
-                self.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_sites', correlation_id=inserted_id)
+                #self.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
+                self.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
         print "pca主表导入成功！{}".format(inserted_id)
         return inserted_id
 
