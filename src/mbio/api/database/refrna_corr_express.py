@@ -84,7 +84,7 @@ class RefrnaCorrExpress(Base):
             for line in f:
                 line = line.strip().split("\t")
                 data = {
-                    "correlation_id": correlation_id,
+                    "pca_id": correlation_id,
                     line[0]: line[1]
                 }
                 data_list.append(data)
@@ -110,7 +110,7 @@ class RefrnaCorrExpress(Base):
             for line in f:
                 line = line.strip().split("\t")
                 data = {
-                    "correlation_id": correlation_id,
+                    "pca_id": correlation_id,
                     col_name: line[0]
                 }
                 for n, p in enumerate(pcas):
@@ -256,7 +256,7 @@ class RefrnaCorrExpress(Base):
             if project == 'denovo':
                 collection = db["sg_denovo_venn_detail"]
             if project == 'ref':
-                collection = db['sg_express_venn_datail']
+                collection = db['sg_express_venn_detail']
             collection.insert_many(data_list)
             print 'haha1'
         except Exception, e:

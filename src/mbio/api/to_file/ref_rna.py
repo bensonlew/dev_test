@@ -140,16 +140,16 @@ def export_all_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     all_list = os.path.join(dir_path, "all_gene.list")
     bind_obj.logger.debug("正在导出所有基因")
-    collection = db['sg_express_class_code_detail']
-    main_collection = db['sg_express_class_code']
-    my_result = main_collection.find_one({'task_id': data})
+    collection = db['sg_geneset_detail']
+    main_collection = db['sg_geneset']
+    my_result = main_collection.find_one({'task_id': data, "type": "background"})
     print my_result["_id"]
     if not my_result:
         raise Exception("意外错误，task_id:{}的背景基因在sg_geneset中未找到！".format(data))
-    results = collection.find({"class_code_id": ObjectId(my_result["_id"])})
+    results = collection.find({"geneset_id": ObjectId(my_result["_id"])})
     with open(all_list, "wb") as f:
         for result in results:
-            gene_id = result['assembly_gene_id']
+            gene_id = result['gene_name']
             f.write(gene_id + "\n")
     return all_list
 
@@ -249,10 +249,13 @@ def get_geneset_detail(data):
         geneset_name = geneset_result["name"]
         table_title.append(geneset_name)
         genesets[geneset_name] = [geneset_type]
-        # geneset_names = set()
+        geneset_names = set()
         collection = db['sg_geneset_detail']
         results = collection.find_one({"geneset_id": ObjectId(geneset_id)})
         geneset_names = set(results["gene_list"])
+        #for result in results["gene_list"]:
+            #gene_id = result['gene_name']
+            #geneset_names.add(gene_id)
         genesets[geneset_name].append(geneset_names)
     return genesets, table_title, task_id, geneset_type
 
@@ -327,7 +330,8 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     my_collection = db['sg_express']
     level = bind_obj.sheet.option("type")
     bind_obj.logger.debug(level)
-    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(level)}]})
+    #sample_group = bind_obj.sheet.option("sample_group")
+    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(level)},{"sample_group":"sample"}]})
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
         raise Exception("意外错误，express_id:{}在sg_express中未找到！".format(ObjectId(data)))
@@ -345,8 +349,14 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
                 fpkm = sam + '_fpkm'
                 count = sam + '_count'
                 #bind_obj.logger.debug(fpkm)
-                fpkm_write += '\t{}'.format(result[fpkm])
-                count_write += '\t{}'.format(result[count])
+                try:
+                    fpkm_write += '\t{}'.format(result[fpkm])
+                    count_write += '\t{}'.format(result[count])
+                except Exception:
+                    print fpkm_write
+                    print sam
+                    print result
+                    raise Exception("{}错误".format(result[fpkm]))
             fpkm_write += '\n'
             count_write += '\n'
             f.write(fpkm_write)
@@ -383,7 +393,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
         raise Exception("无法根据传入的group_id:{}在sg_specimen_group_compare表里找到相应的记录".format(data))
     schema_name = re.sub("\s", "_", group_schema["group_name"])  # 将分组方案名的空格替换成下划线
     with open(file_path, "wb") as f:
-        f.write("#sample\t" + schema_name + "\n")
+        f.write("#sample\t" + "group" + "\n")
     sample_table_name = 'sg_specimen'
     sample_table = db[sample_table_name]
     with open(file_path, "ab") as f:
@@ -427,9 +437,10 @@ def export_control_file(data, option_name, dir_path, bind_obj=None):  #此函数
             raise Exception("意外错误，control_file的group_id:{}在sg_specimen_group中未找到！".format(group_id))
     control_detail = json.loads(result['compare_names'])
     with open(file_path, 'wb') as w:
-        w.write('#control\t{}\n'.format(result['compare_category_name']))
+        w.write('#control\t{}\n'.format('group'))
         for i in control_detail:    #此处需要修改, 可能会有错误
             # w.write('{}\t{}\n'.format(i.keys()[0], i.values()[0]))
+            print i
             control_other = i.split("|")
             w.write('{}\t{}\n'.format(control_other[0], control_other[1]))
     return file_path

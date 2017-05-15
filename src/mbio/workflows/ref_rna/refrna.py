@@ -75,7 +75,7 @@ class RefrnaWorkflow(Workflow):
             # 差异表达分析方法
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
             # {"name": "sort_type", "type": "string", "default": "pos"},  # 排序方法
-            {"name": "exp_analysis", "type": "string", "default": "cluster,kegg_rich,go_rich,cog_class"},
+            {"name": "exp_analysis", "type": "string", "default": "kegg_rich,cog_class,kegg_regulate,go_rich,go_regulate"},
             # 差异表达富集方法,聚类分析, GO富集分析, KEGG富集分析, cog统计分析
 
             {"name": "human_or_not", "type": "bool", "default": True},  # 是否为人类基因组
@@ -84,7 +84,8 @@ class RefrnaWorkflow(Workflow):
             {"name": "alter_splicing_method", "type": "string", "default": "rMATS"},
             # 可变剪切分析软件: rMATS, ASprofile, MapSplice, SpliceGrapher, CLASS2
 
-            {"name": "protein_analysis", "type": "string", "default": ""},
+            {"name": "protein_analysis", "type": "string", "default": "network"},
+            {"name": "combine_score", "type": "int", "default": 300},
             # 蛋白质分析
 
             {"name": "p_length", "type": "int", "default": 100},  # pfam参数
@@ -117,7 +118,8 @@ class RefrnaWorkflow(Workflow):
         self.para_anno = self.add_module("rna.parallel_anno")
         self.annotation = self.add_module('annotation.ref_annotation')
         self.new_annotation = self.add_module('annotation.ref_annotation')
-        self.network = self.add_module("protein_regulation.ppinetwork_analysis")
+        self.network_trans = self.add_module("protein_regulation.ppinetwork_analysis")
+        self.network_gene = self.add_module("protein_regulation.ppinetwork_analysis")
         self.tf = self.add_tool("protein_regulation.TF_predict")
         self.merge_trans_annot = self.add_tool("annotation.merge_annot")
         self.merge_gene_annot = self.add_tool("annotation.merge_annot")
@@ -419,7 +421,7 @@ class RefrnaWorkflow(Workflow):
         method = event["data"]
         self.new_blast_modules = []
         self.gene_list = self.new_gene_abs.option('gene_file')
-        blast_lines = int(self.new_gene_abs.option('query').prop['seq_number']) / 10
+        blast_lines = int(self.new_trans_abs.option('query').prop['seq_number']) / 10
         self.logger.info('.......blast_lines:%s' % blast_lines)
         blast_opts = {
             'query': self.new_trans_abs.option('query'),
@@ -463,7 +465,7 @@ class RefrnaWorkflow(Workflow):
         if 'swissprot' in self.option('database'):
             self.new_blast_swissprot = self.add_module('align.blast')
             blast_opts.update(
-                {'database': 'swissprot', 'evalue': self.option('swiss_blast_evalue')}
+                {'database': 'swissprot', 'evalue': self.option('swissprot_blast_evalue')}
             )
             self.new_blast_swissprot.set_options(blast_opts)
             self.new_blast_modules.append(self.new_blast_swissprot)
@@ -485,6 +487,7 @@ class RefrnaWorkflow(Workflow):
     def run_new_annotation(self):
         anno_opts = {
             'gene_file': self.new_gene_abs.option('gene_file'),
+            "ref_genome_gtf": self.filecheck.option("gtf")
         }
         if 'go' in self.option('database'):
             anno_opts.update({
@@ -559,6 +562,7 @@ class RefrnaWorkflow(Workflow):
             "edger_group": self.option("group_table"),
             "method": self.option("diff_method"),
             "diff_ci": self.option("diff_ci"),
+            "is_duplicate": self.option("is_duplicate"),
             "exp_way": self.option("exp_way"),
             "strand_dir": self.option("strand_dir")
         }
@@ -589,6 +593,7 @@ class RefrnaWorkflow(Workflow):
             "edger_group": self.option("group_table"),
             "method": self.option("diff_method"),
             "diff_ci": self.option("diff_ci"),
+            "is_duplicate": self.option("is_duplicate"),
             "exp_way": exp_way,
             "strand_dir": self.option("strand_dir")
         }
@@ -615,6 +620,7 @@ class RefrnaWorkflow(Workflow):
             "edger_group": self.option("group_table"),
             "method":  self.option("diff_method"),
             "diff_ci": self.option("diff_ci"),
+            "is_duplicate": self.option("is_duplicate"),
             "exp_way": "all",
             "strand_dir": self.option("strand_dir")
         }
@@ -625,19 +631,29 @@ class RefrnaWorkflow(Workflow):
         mod.on('end', self.set_step, {'end': self.step.exp})
         mod.run()
 
-    def run_network(self):
+    def run_network_trans(self):
         opts = {
-            "diff_exp": self.exp.option("diff_list"),
-            "species_list": "",
-            "species": self.option("ref_genome"),
-            "combine_score": self.option("combine_score"),
-            "logFC": self.option("logFC")
+            "diff_exp_gene": self.exp.output_dir + "/diff/trans_diff/diff_list",
+            "species": int(self.taxon_id),
+            "combine_score": self.option("combine_score")
         }
-        self.network.set_options(opts)
-        self.network.on("end", self.set_output, "network_analysis")
-        self.network.on('start', self.set_step, {'start': self.step.network_analysis})
-        self.network.on('end', self.set_step, {'end': self.step.network_analysis})
-        self.network.run()
+        self.network_trans.set_options(opts)
+        self.network_trans.on("end", self.set_output, "network_analysis")
+        self.network_trans.on('start', self.set_step, {'start': self.step.network_analysis})
+        self.network_trans.on('end', self.set_step, {'end': self.step.network_analysis})
+        self.network_trans.run()
+
+    def run_network_gene(self):
+        opts = {
+            "diff_exp_gene": self.exp.output_dir + "/diff/genes_diff/diff_list",
+            "species": int(self.taxon_id),
+            "combine_score": self.option("combine_score")
+        }
+        self.network_gene.set_options(opts)
+        self.network_gene.on("end", self.set_output, "network_analysis")
+        self.network_gene.on('start', self.set_step, {'start': self.step.network_analysis})
+        self.network_gene.on('end', self.set_step, {'end': self.step.network_analysis})
+        self.network_gene.run()
 
     def run_altersplicing(self):
         if self.option("strand_specific"):
@@ -666,14 +682,14 @@ class RefrnaWorkflow(Workflow):
         根据新加入模块操作，修改self.annotation
         :return:
         """
-        gos_dir_trans = self.annotation.output_dir + "/go/query_go.list" + \
-            ";" + self.new_annotation.output_dir + "/go/query_go.list"
+        gos_dir_trans = self.annotation.output_dir + "/go/query_gos.list" + \
+            ";" + self.new_annotation.output_dir + "/go/query_gos.list"
         kegg_table_dir_trans = self.annotation.output_dir + "/kegg/kegg_table.xls" + \
             ";" + self.new_annotation.output_dir + "/kegg/kegg_table.xls"
         cog_table_dir_trans = self.annotation.output_dir + "/cog/cog_table.xls" + \
             ";" + self.new_annotation.output_dir + "/cog/cog_table.xls"
-        gos_dir_gene = self.annotation.output_dir + "/anno_stat/go_stat/gene_go.list" + \
-            ";" + self.new_annotation.output_dir + "/anno_stat/go_stat/gene_go.list"
+        gos_dir_gene = self.annotation.output_dir + "/anno_stat/go_stat/gene_gos.list" + \
+            ";" + self.new_annotation.output_dir + "/anno_stat/go_stat/gene_gos.list"
         kegg_table_dir_gene = self.annotation.output_dir + "/anno_stat/kegg_stat/gene_kegg_table.xls" + \
             ";" + self.new_annotation.output_dir + "/anno_stat/kegg_stat/gene_kegg_table.xls"
         cog_table_dir_gene = self.annotation.output_dir + "/anno_stat/cog_stat/gene_cog_table.xls" + \
@@ -694,70 +710,80 @@ class RefrnaWorkflow(Workflow):
         self.merge_gene_annot.run()
 
     def run_exp_trans_diff(self):
-        if self.exp.diff_gene:
+        with open(self.exp.output_dir + "/diff/trans_diff/diff_list", "r") as f:
+            content = f.read()
+        if not content:
+            self.exp_diff_trans.start_listener()
+            self.exp_diff_trans.fire("end")
+        else:
             exp_diff_opts = {
-                'diff_fpkm': self.exp.option('diff_fpkm'),
-                'analysis': self.option('exp_analysis')
+                'diff_fpkm': self.exp.output_dir + "/diff/trans_diff/diff_fpkm",
+                'analysis': self.option('exp_analysis'),
+                'diff_list': self.exp.output_dir + "/diff/trans_diff/diff_list"
             }
-            if 'network' in self.option('exp_analysis'):
-                exp_diff_opts.update({'gene_file': self.exp.option('all_list')})
-            elif 'kegg_rich' in self.option('exp_analysis'):
+            if 'kegg_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
-                    'kegg_path': self.merge_trans_annot.option('kegg_table'),
-                    'diff_list_dir': self.exp.option('diff_list_dir')
+                    'gene_kegg_table': self.merge_trans_annot.option('kegg_table'),
+                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
+                     'all_list': self.exp.output_dir + "/rsem/trans_list",
                 })
-            elif 'go_rich' in self.option('exp_analysis'):
+            if 'go_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
-                    'go_list': self.merge_trans_annot.option('golist_out'),
-                    'diff_list_dir': self.exp.option('diff_list_dir'),
-                    'all_list': self.exp.option('all_list'),
-                    'go_level_2': self.merge_trans_annot.option('go2level_out')
+                    'gene_go_list': self.merge_trans_annot.option('golist_out'),
+                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
+                    'all_list': self.exp.output_dir + "/rsem/trans_list",
+                    'gene_go_level_2': self.merge_trans_annot.option('go2level_out')
                 })
-            elif 'cog_class' in self.option('exp_analysis'):
+            if 'cog_class' in self.option('exp_analysis'):
                 exp_diff_opts.update({
                     'cog_table': self.merge_trans_annot.option('cog_table'),
-                    'diff_list_dir': self.exp.option('diff_list_dir'),
+                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
                 })
-            else:
-                pass
+            if 'kegg_regulate' in self.option('exp_analysis') or 'go_regulate' in self.option('exp_analysis'):
+                exp_diff_opts.update({
+                    'diff_stat_dir': self.exp.output_dir + "/diff/trans_diff/diff_stat_dir"
+                })
             self.exp_diff_trans.set_options(exp_diff_opts)
             self.exp_diff_trans.on('end', self.set_output, 'exp_diff_trans')
             self.exp_diff_trans.run()
-        else:
-            self.logger.info("输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略")
 
     def run_exp_gene_diff(self):
-        if self.exp.diff_gene:
+        with open(self.exp.output_dir + "/diff/genes_diff/diff_list", "r") as f:
+            content = f.read()
+        if not content:
+            self.exp_diff_gene.start_listener()
+            self.exp_diff_gene.fire("end")
+        else:
             exp_diff_opts = {
-                'diff_fpkm': self.exp.option('diff_fpkm'),
-                'analysis': self.option('exp_analysis')
+                'diff_fpkm': self.exp.output_dir + "/diff/genes_diff/diff_fpkm",
+                'analysis': self.option('exp_analysis'),
+                'diff_list': self.exp.output_dir + "/diff/genes_diff/diff_list"
             }
-            if 'network' in self.option('exp_analysis'):
-                exp_diff_opts.update({'gene_file': self.exp.option('gene_file')})
-            elif 'kegg_rich' in self.option('exp_analysis'):
+            if 'kegg_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
-                    'kegg_path': self.merge_gene_annot.option('kegg_table'),
-                    'diff_list_dir': self.exp.option('diff_list_dir')
+                    'gene_kegg_table': self.merge_gene_annot.option('kegg_table'),
+                    'diff_list_dir': self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
+                     'all_list': self.exp.output_dir + "/rsem/gene_list",
                 })
-            elif 'go_rich' in self.option('exp_analysis'):
+            if 'go_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
-                    'go_list': self.merge_gene_annot.option('golist_out'),
-                    'diff_list_dir': self.exp.option('diff_list_dir'),
-                    'all_list': self.exp.option('all_list'),
-                    'go_level_2': self.merge_gene_annot.option('go2level_out')
+                    'gene_go_list': self.merge_gene_annot.option('golist_out'),
+                    'diff_list_dir': self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
+                    'all_list': self.exp.output_dir + "/rsem/gene_list",
+                    'gene_go_level_2': self.merge_gene_annot.option('go2level_out')
                 })
-            elif 'cog_class' in self.option('exp_analysis'):
+            if 'cog_class' in self.option('exp_analysis'):
                 exp_diff_opts.update({
                     'cog_table': self.merge_gene_annot.option('cog_table'),
-                    'diff_list_dir': self.exp.option('diff_list_dir'),
+                    'diff_list_dir': self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
                 })
-            else:
-                pass
+            if 'kegg_regulate' in self.option('exp_analysis') or 'go_regulate' in self.option('exp_analysis'):
+                exp_diff_opts.update({
+                    'diff_stat_dir': self.exp.output_dir + "/diff/genes_diff/diff_stat_dir"
+                })
             self.exp_diff_gene.set_options(exp_diff_opts)
             self.exp_diff_gene.on('end', self.set_output, 'exp_diff_gene')
             self.exp_diff_gene.run()
-        else:
-            self.logger.info("输入文件数据量过小，没有检测到差异基因，差异基因相关分析将忽略")
 
     def get_group_from_edger_group(self):  # 用来判断是否进行可变剪切分析
         group_spname = self.option("group_table").get_group_spname()
@@ -906,9 +932,58 @@ class RefrnaWorkflow(Workflow):
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
         if self.taxon_id != "":
-            self.exp.on("end", self.run_network)
+            self.exp.on("end", self.run_network_trans)
+            self.exp.on("end", self.run_network_gene)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
-        
+
+    def test_run(self):
+        self.filecheck.option("gtf").set_path(self.filecheck.work_dir + "/Danio_rerio.GRCz10.87.gff3.gtf")
+        self.taxon_id = "8128"
+        self.start_listener()
+        self.fire("start")
+        self.run_network_gene()
+        self.run_network_trans()
+        self.rpc_server.run()
+
+    def __check(self):
+        super(RefrnaWorkflow, self).__check()
+
+    def run_new_gene_abs_test(self):
+        opts = {
+            "ref_genome_custom": self.ref_genome,
+            "ref_genome_gtf": self.assembly.output_dir + "/NewTranscripts/new_genes.gtf"
+        }
+        self.new_gene_abs.set_options(opts)
+        self.new_gene_abs.run()
+
+    def run_new_transcripts_abs_test(self):
+        opts = {
+            "ref_genome_custom": self.ref_genome,
+            "ref_genome_gtf": self.assembly.output_dir + "/NewTranscripts/new_transcripts.gtf"
+        }
+        self.new_trans_abs.set_options(opts)
+        self.new_trans_abs.run()
+
+    def run_annotation_test(self):
+        opts = {
+            "gos_list_upload": self.para_anno.output_dir + "/go.list",
+            "kos_list_upload": self.para_anno.output_dir + "/kegg.list",
+            "blast_string_table": self.para_anno.output_dir + "/cog.list",
+            "gene_file": self.seq_abs.option("gene_file"),
+            "ref_genome_gtf": self.filecheck.option("gtf")
+        }
+        if self.option("go_upload_file").is_set:
+            opts.update({
+                "gos_list_upload": self.option("go_upload_file")
+            })
+        if self.option("kegg_upload_file").is_set:
+            opts.update({
+                "kos_list_upload": self.option("kegg_upload_file")
+            })
+        self.annotation.set_options(opts)
+        self.annotation.on("end", self.set_output, "annotation")
+        self.annotation.run()
+
     def end(self):
         super(RefrnaWorkflow, self).end()

@@ -101,6 +101,8 @@ class DiamondModule(Module):
             else:
                 file = os.listdir(i.output_dir)[0]
             _path = os.path.join(i.output_dir, file)
+            if os.path.exists(self.work_dir + '/blast_tmp/' + os.path.basename(_path)):
+                os.remove(self.work_dir + '/blast_tmp/' + os.path.basename(_path))
             os.link(_path, self.work_dir + '/blast_tmp/' + os.path.basename(_path))
         self.catblast.set_options({"blastout": self.work_dir + '/blast_tmp'})
         self.catblast_tools.append(self.catblast)

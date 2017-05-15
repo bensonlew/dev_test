@@ -62,7 +62,7 @@ class DiffAnalysisModule(Module):
                 if not self._options[i]:
                     raise OptionError('缺少kegg富集分析的输入文件:{}'.format(i))
         if 'kegg_regulate' in analysis:
-            opts = ['diff_list_dir', 'gene_kegg_table']
+            opts = [ 'gene_kegg_table', 'diff_stat_dir']
             for i in opts:
                 if not self._options[i]:
                     raise OptionError('缺少kegg调控分析的输入文件:{}'.format(i))
@@ -203,6 +203,7 @@ class DiffAnalysisModule(Module):
 
     def kegg_regulate_run(self):
         self.step.kegg_regulate.start()
+        self.logger.info(vars(self.option('diff_stat_dir')))
         files = os.listdir(self.option('diff_stat_dir').prop['path'])
         for f in files:
             self.kegg_regulate = self.add_tool("denovo_rna.express.kegg_regulate")

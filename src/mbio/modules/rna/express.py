@@ -393,7 +393,8 @@ class ExpressModule(Module):
             "control_file": self.option('control_file').prop['path'],
             "gname": "group",
             "method": self.option("method"),
-            'diff_ci': self.option("diff_ci")
+            'diff_ci': self.option("diff_ci"),
+            "pvalue_padjust": "padjust"
         }
         self.diff_count +=1
         #venn_group_table = venn_group_table
