@@ -148,22 +148,11 @@ class TabFile(Base):
         param = "WQ{}-F".format(num) + '.*'
         sample = []
 
-        for u in collection.find({"sample_id": {"$regex": param}}):
-            sample.append(u['sample_id'])
+        flag = collection.find_one({"sample_id": {"$regex": param}})
+        if flag:
+            sample.append(flag['sample_id'])
         sample_new = list(set(sample))
         return sample_new
-
-    def dedup_fuzzy_sample(self, num, dad_id):
-        collection = self.database['sg_pt_ref']
-        param = "WQ\d{1,}%d\d{1,}-F" % (num)
-        sample = []
-
-        for u in collection.find({"sample_id": {"$regex": param}}):
-            if u['sample_id'] != dad_id or u['sample_id'] != dad_id + '1':
-                sample.append(u['sample_id'])
-        sample_new = list(set(sample))
-        if sample_new:
-            return sample_new
 
     def sample_qc(self, file, sample_id):
         qc_detail = list()
