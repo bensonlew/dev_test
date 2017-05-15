@@ -23,7 +23,7 @@ class PtController(MetaController):
         if client == 'client01':
             return 'pt.med_report_tupdate'
         else:
-            return 'pt.med_report_tupdate'
+            return 'pt.med_report_update'
 
     # def set_sheet_data(self, *arg, **kwarg):
     #     print arg, kwarg
