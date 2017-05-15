@@ -62,12 +62,15 @@ class ExpressCorrWorkflow(Workflow):
             for lines in f1:
                 line=lines.strip().split("\t")
                 samples.append(line[0])
-        print samples
+        return samples
     
     def run_pca(self):
         """样本间pca分析"""
-        specimen = self.get_samples()
-        new_fpkm = self.fpkm(specimen)
+        new_specimen = self.get_samples()
+        print 'haha1'
+        print new_specimen
+        new_fpkm = self.fpkm(new_specimen)
+        self.logger.info(new_fpkm)
         opts = {
             "otutable": new_fpkm
         }
@@ -78,15 +81,18 @@ class ExpressCorrWorkflow(Workflow):
     def fpkm(self,samples):
         fpkm_path = self.option("express_file").split(",")[0]
         fpkm = pd.read_table(fpkm_path, sep="\t")
-        print fpkm.columns
+        print "heihei1"
+        print fpkm.columns[1:]
+        print 'heihei2'
+        print samples
         no_samp = []
         sample_total = fpkm.columns[1:]
+
         for sam in sample_total:
-            try:
-                if sam not in samples:
-                    no_samp.append(sam)
-            except Exception:
-                pass
+            if sam not in samples:
+                no_samp.append(sam)
+        self.logger.info("heihei3")
+        self.logger.info(no_samp)
         if no_samp:
             new_fpkm = fpkm.drop(no_samp, axis=1)
             print new_fpkm.columns
@@ -95,7 +101,7 @@ class ExpressCorrWorkflow(Workflow):
             if self.option("corr_pca") == "pca":
                 self.new_fpkm = self.pca.work_dir + "/fpkm"
             header=['']
-            header.extend(self.samples)
+            header.extend(samples)
             new_fpkm.columns=header
             new_fpkm.to_csv(self.new_fpkm, sep="\t",index=False)
             return self.new_fpkm
@@ -118,9 +124,9 @@ class ExpressCorrWorkflow(Workflow):
             pca_rotation = os.path.join(pca_path, 'pca_rotation.xls')
             site_file = os.path.join(pca_path, 'pca_sites.xls')
             api_corr.add_pca(pca_file=pca_file, correlation_id=inserted_id)
-            api_corr.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation',
-                                     correlation_id=inserted_id)
-            api_corr.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_sites', correlation_id=inserted_id)
+            #api_corr.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation',
+            #                         correlation_id=inserted_id)
+            api_corr.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
             self._update_pca(pca_file, self.option("correlation_id"))
         self.end()
 

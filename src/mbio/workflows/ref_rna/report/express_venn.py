@@ -21,6 +21,7 @@ class ExpressVennWorkflow(Workflow):
             {"name":"group_detail","type":"string"},
             {"name": "update_info", "type": "string"},
             {"name":"type","type":"string"},
+            # {"name":"sample_group",'type':"string","default":"sample"},
             {"name":"venn_id","type":"string"},
         ]
         self.logger.info(options)
@@ -63,6 +64,7 @@ class ExpressVennWorkflow(Workflow):
                 line=lines.strip().split("\t")
                 samples.append(line[0])
         print samples
+        return samples
         
     def get_sample_table(self,fpkm_path, specimen):
         """ 根据筛选的样本名生成新的fpkm表 和 group_table表 """

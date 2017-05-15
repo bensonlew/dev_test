@@ -17,7 +17,8 @@ class GenesetClusterWorkflow(Workflow):
         super(GenesetClusterWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "express_file", "type": "string", "default": "none"},  # 输入文件，差异基因表达量矩阵
-            {"name": "distance_method", "type": "string", "default": "euclidean"},  # 计算距离的算法
+            {"name": "samples_distance_method", "type": "string","default":"complete"},  # 计算距离的算法
+            {"name": "genes_distance_method", "type": "string","defalut":"complete"},  # 计算距离的算法
             {"name": "log", "type": "int", "default": None},  # 画热图时对原始表进行取对数处理，底数为10或2
             {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
             {"name": "group_id", "type": "string"},
@@ -47,6 +48,7 @@ class GenesetClusterWorkflow(Workflow):
                 line=lines.strip().split("\t")
                 samples.append(line[0])
         print samples
+        return samples
     
     def fpkm(self,samples):  #add by khl 20170504
         fpkm_path = self.option("express_file").split(",")[0]
@@ -77,11 +79,18 @@ class GenesetClusterWorkflow(Workflow):
         new_fpkm = self.fpkm(specimen)
         self.logger.info(self.option("method"))
         options = {
-            "distance_method": self.option("distance_method"),
             "sub_num": self.option("sub_num"),
             "method": self.option("method"),
             "log": self.option("log")
         }
+        if self.option("genes_distance_method") == "":
+            genes_distance_method ="complete"
+            options["genes_distance_method"]=genes_distance_method
+        if self.option("method") == "hclust":
+            if self.option("samples_distance_method") == "":
+                samples_distance_method = "complete"
+                options["samples_distance_method"]=samples_distance_method
+
         gene_list = self.option("gene_list")
         self.logger.info("gene_list文件路径为:{}".format(self.option("gene_list")))
         gene_list_id = []
