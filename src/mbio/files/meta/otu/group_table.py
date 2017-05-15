@@ -49,6 +49,8 @@ class GroupTableFile(File):
                 row += 1
                 if line[0] not in sample:
                     sample.append(line[0])
+                else:
+                    raise FileError("存在相同的样本名")
             return (sample, header, is_empty)
 
     def format_check(self):

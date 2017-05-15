@@ -11,6 +11,7 @@ import datetime
 import json
 from mainapp.models.mongo.submit.paternity_test_mongo import PaternityTest as PT
 from bson import ObjectId
+from biocluster.config import Config
 
 class PtDatasplitWorkflow(Workflow):
 	"""
@@ -36,7 +37,7 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_split = self.add_tool("paternity_test.data_split")
 		self.merge_fastq = self.add_tool("paternity_test.merge_fastq")
 		self.set_options(self._sheet.options())
-		self.update_status_api = self.api.pt_update_status
+		# self.update_status_api = self.api.pt_update_status
 		self.tools = []
 		self.sample_name_wq = []
 		self.sample_name_ws = []
@@ -162,6 +163,10 @@ class PtDatasplitWorkflow(Workflow):
 		main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
 		update_info = {str(main_table_id): 'sg_analysis_status'}
 		update_info = json.dumps(update_info)
+		if self.done_data_split == "true":
+			bool_value = False
+		else:
+			bool_value = True
 		data = {
 			'stage_id': 0,
 			'UPDATE_STATUS_API': self._update_status_api(),
@@ -175,13 +180,14 @@ class PtDatasplitWorkflow(Workflow):
 				"member_id": self.option('member_id'),
 				"fastq_path": self.wq_dir,
 				"cpu_number": 8,
-				"ref_fasta": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa",
-				"targets_bedfile": "/mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/share/pt/snp.chr.sort.3.bed",
-				"ref_point": "/mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/pt/targets.bed.rda",
+				"ref_fasta": Config().SOFTWARE_DIR + "/database/human/hg38.chromosomal_assembly/ref.fa",
+				"targets_bedfile": Config().SOFTWARE_DIR + "/database/human/pt_ref/snp.chr.sort.3.bed",
+				"ref_point": Config().SOFTWARE_DIR + "/database/human/pt_ref/targets.bed.rda",
 				"err_min": 2,
 				"batch_id": self.option('pt_data_split_id'),
-				"dedup_num": 2,
-				"update_info": update_info
+				"dedup_num": 10,
+				"update_info": update_info,
+				"direct_get_path": bool_value
 			}
 		}
 		WC().add_task(data)
@@ -189,7 +195,11 @@ class PtDatasplitWorkflow(Workflow):
 		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
 
 	def _update_status_api(self):
-		return 'pt.med_report_tupdate'
+		name = self.option('data_dir').split(":")[0]
+		if name == "sanger" or name == "i-sanger":
+			return 'pt.med_report_update'
+		else:
+			return 'pt.med_report_tupdate'
 
 	def run_merge_fastq_un(self):
 		if self.done_wq != "true":

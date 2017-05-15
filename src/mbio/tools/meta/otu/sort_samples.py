@@ -60,7 +60,7 @@ class SortSamplesAgent(Agent):
         设置所需的资源
         """
         self._cpu = 2
-        self._memory = "3G"
+        self._memory = "5G"
 
 
 class SortSamplesTool(Tool):

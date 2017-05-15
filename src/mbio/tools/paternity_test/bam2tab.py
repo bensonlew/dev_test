@@ -24,7 +24,7 @@ class Bam2tabAgent(Agent):
             {"name": "sample_id", "type": "string"}, #输入F/M/S的样本ID
             {"name": "bam_dir", "type": "string"},  #bam文件路径
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
-            {"name": "targets_bedfile", "type": "infile","format":"sequence.rda"}, #位点信息
+            {"name": "targets_bedfile", "type": "infile","format":"paternity_test.rda"}, #位点信息
             {"name": "batch_id", "type": "string"}
         ]
         self.add_option(options)
@@ -84,10 +84,10 @@ class Bam2tabTool(Tool):
         super(Bam2tabTool, self).__init__(config)
         self._version = '1.0.1'
         self.cmd_path = "bioinfo/medical/scripts/bam2tab.sh"
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/lib/ruby/gems/2.3.0/gems/bio-vcf-0.9.2/bin')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
+        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioawk')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/bwa-0.7.15')
@@ -111,7 +111,7 @@ class Bam2tabTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("运行Bam2tab成功")
         else:
-            self.logger.info("运行Bam2tab出错")
+            raise Exception("运行Bam2tab出错")
 
     def set_output(self):
         """
