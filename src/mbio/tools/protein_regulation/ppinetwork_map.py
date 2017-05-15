@@ -21,7 +21,7 @@ class PpinetworkMapAgent(Agent):
     def __init__(self, parent):
         super(PpinetworkMapAgent, self).__init__(parent)
         options = [
-            {"name": "diff_exp_gene", "type": "infile", "format": "rna.gene_list"},
+            {"name": "diff_exp_gene", "type": "infile", "format": "rna.ppi"},
             {"name": "species", "type": "int", "default": 9606}
         ]
         self.add_option(options)
