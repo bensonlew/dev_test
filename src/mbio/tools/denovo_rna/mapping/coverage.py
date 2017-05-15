@@ -97,8 +97,11 @@ class CoverageTool(Tool):
             self.set_error("运行{}过程出错".format(command.name))
 
     def coverage(self):
+        # coverage_cmd = "{}python {}geneBody_coverage.py  -i {} -l {} -r {} -o {}".\
+        #     format(self.python_path, self.python_full_path, self.bam_name + ".sorted.bam", self.option("min_len"), self.option("bed").prop["path"], "coverage_" + self.bam_name)
+        # print(coverage_cmd)
         coverage_cmd = "{}python {}geneBody_coverage.py  -i {} -l {} -r {} -o {}".\
-            format(self.python_path, self.python_full_path, self.bam_name + ".sorted.bam", self.option("min_len"), self.option("bed").prop["path"], "coverage_" + self.bam_name)
+            format(self.python_path, self.python_full_path, self.option("bam").prop["path"], self.option("min_len"), self.option("bed").prop["path"], "coverage_" + self.bam_name)
         print(coverage_cmd)
         self.logger.info("开始运行geneBody_coverage.py脚本")
         coverage_command = self.add_command("coverage", coverage_cmd)
@@ -125,7 +128,7 @@ class CoverageTool(Tool):
         运行
         """
         super(CoverageTool, self).run()
-        self.sort()
-        self.index()
+        # self.sort()
+        # self.index()
         self.coverage()
         self.set_output()

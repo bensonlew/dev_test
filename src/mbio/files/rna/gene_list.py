@@ -54,3 +54,9 @@ class GeneListFile(File):
             for line in r:
                 line = line.strip('\n')
                 w.write('{}\t{}\n'.format(line, line))
+
+if __name__ == "__main__":
+    cls = GeneListFile()
+    cls.set_path("/mnt/ilustre/users/sanger-dev/workspace/20170513/Refrna_zebrafish_test/TranscriptAbstract1/output/gene_list.txt")
+    cls.check()
+    print cls.prop["gene_list"]

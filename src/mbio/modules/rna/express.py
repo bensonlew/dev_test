@@ -32,7 +32,7 @@ class ExpressModule(Module):
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  #转录本的fasta 适用于kallisto软件
             {"name": "strand_specific", "type": "bool", "default": False},  # PE测序，是否链特异性, 默认是0, 无特异性
             {"name": "strand_dir", "type": "string"},  # 链特异性时选择正链, 默认不设置此参数"forward" "reverse"
-            {"name": "express_method", "type": "string", "default": "rsem"},  # 选择计算表达量的方法 默认"rsem"
+            {"name": "express_method", "type": "string"},  # 选择计算表达量的方法 默认"rsem"
             {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹  不压缩的fq文件
             {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
             {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件夹
@@ -46,19 +46,27 @@ class ExpressModule(Module):
             {"name": "all_list", "type": "outfile", "format": "rna.gene_list"},  # 全部基因名称文件
             {"name": "method", "type": "string", "default": "edgeR"},  # 分析差异基因选择的方法
             # {"name": "change_sample_name", "type": "bool"}, #选择是否更改样本的名称
-            {"name": "exp_way", "type": "string", "default": "fpkm"}, #默认选择fpkm进行表达量的计算
+            {"name": "exp_way", "type": "string", "default": "fpkm"}, #默认选择fpkm进行表达量的计算  rsem (fpkm,tpm) featurecounts(fpkm tpm all)
             {"name": "diff_list_dir", "type": "outfile", "format": "rna.diff_stat_dir"}  #差异分组对应的差异基因
         ]
         self.add_option(options)
+    
+    def check_options(self):
         self.logger.info(self.option("express_method"))
         if self.option("express_method").lower() == 'featurecounts':
-            self.step.add_steps("featurecounts", "genes_diffRexp", "genes_corr", "genes_pca")
+            self.step.add_steps("featurecounts", "fpkm_diffRexp", "tpm_diffRexp", "fpkm_corr", "fpkm_pca","tpm_corr","tpm_pca")
             self.featurecounts=self.add_tool("rna.featureCounts")
+            self.fpkm_corr = self.add_tool("denovo_rna.mapping.correlation")
+            self.tpm_corr = self.add_tool("denovo_rna.mapping.correlation")
+            self.fpkm_pca = self.add_tool("meta.beta_diversity.pca")
+            self.tpm_pca = self.add_tool("meta.beta_diversity.pca")
+            self.fpkm_diffRexp = self.add_tool("rna.diff_exp") 
+            self.tpm_diffRexp = self.add_tool('rna.diff_exp')
         elif self.option("express_method").lower() == 'rsem':
             self.step.add_steps("rsem", "mergersem",  "transcript_abstract", "genes_diffRexp", "trans_diffRexp", "trans_corr", "trans_pca", "genes_corr", "genes_pca")
         elif self.option("express_method").lower() == 'kallisto':
             self.step.add_steps("kallisto", "mergekallisto", "transcript_abstract", "trans_diffRexp", "trans_corr", "trans_pca")
-        if self.option('express_method').lower() == 'featurecounts' or self.option("express_method").lower()=='rsem':
+        if self.option("express_method").lower()=='rsem':
             self.genes_corr = self.add_tool("denovo_rna.mapping.correlation")
             self.genes_pca = self.add_tool("meta.beta_diversity.pca")
             self.genes_diffRexp = self.add_tool("rna.diff_exp")
@@ -69,8 +77,7 @@ class ExpressModule(Module):
         self.tool_lists = []
         self.samples = []
         self.sumtool = []
-
-    def check_options(self):
+        self.diff_count = 0
         if not self.option('fq_type'):
             raise OptionError('必须设置测序类型：PE OR SE')
         if self.option('fq_type') not in ['PE', 'SE']:
@@ -90,8 +97,14 @@ class ExpressModule(Module):
             "cpu":10,
             "max_memory": "100G",
             "bam": self.option("sample_bam").prop['path'],
-            "fq_type": self.option('fq_type')
+            "fq_type": self.option('fq_type'),
+            "exp_way": self.option("exp_way")
         }
+        if self.option("is_duplicate"):
+            tool_opt.update({
+                "is_duplicate":self.option("is_duplicate"),
+                "edger_group":self.option("edger_group")
+            })
         if self.option("strand_specific"):
              tool_opt.update({
                  "strand_dir":self.option("strand_dir")
@@ -125,7 +138,7 @@ class ExpressModule(Module):
                     self.rsem = self.add_tool("rna.rsem")
                     self.rsem.set_options(tool_opt)
                     self.tool_lists.append(self.rsem)
-                    # self.rsem.run()
+                    self.rsem.run()
             elif self.option("fq_type") == "PE":
                 self.logger.info(self.samples)
                 self.logger.info("haha")
@@ -330,13 +343,20 @@ class ExpressModule(Module):
                 # self.genes_corr.set_options({"fpkm": self.genes_new_fpkm_path})
                 # self.genes_pca.set_options({"otutable": self.genes_new_fpkm_path})
             # else:
-            self.genes_corr.set_options({"fpkm": self.feature_fpkm_path})
-            self.genes_pca.set_options({"otutable": self.feature_fpkm_path})
-            self.genes_corr.on("end",self.set_output,"genes_correlation")
-            self.genes_pca.on("end",self.set_output,"genes_pca")
-            self.genes_corr.run()
+            """fpkm、tpm表达量相关性/pca"""
+            self.fpkm_corr.set_options({"fpkm": self.feature_fpkm_path})
+            self.fpkm_pca.set_options({"otutable": self.feature_fpkm_path})
+            self.fpkm_corr.on("end",self.set_output,"fpkm_correlation")
+            self.fpkm_pca.on("end",self.set_output,"fpkm_pca")
+            self.fpkm_corr.run()
+            self.tpm_corr.set_options({"fpkm": self.feature_tpm_path})
+            self.tpm_pca.set_options({"otutable": self.feature_tpm_path})
+            self.tpm_corr.on("end",self.set_output,"tpm_correlation")
+            self.tpm_pca.on("end",self.set_output,"tpm_pca")
+            self.tpm_corr.run()
             if self.get_list() > 2:
-                self.genes_pca.run()
+                self.fpkm_pca.run()
+                self.tpm_pca.run()
             else:
                 self.logger.info("样本数目小于等于2，无法进行样本间pca分析！")
         elif self.option("express_method") == "kallisto":
@@ -373,9 +393,10 @@ class ExpressModule(Module):
             "control_file": self.option('control_file').prop['path'],
             "gname": "group",
             "method": self.option("method"),
-            'diff_ci': self.option("diff_ci")
+            'diff_ci': self.option("diff_ci"),
+            "pvalue_padjust": "padjust"
         }
-        edger_group_path = self.option('edger_group').prop['path']
+        self.diff_count +=1
         #venn_group_table = venn_group_table
         # if self.option("change_sample_name") == True:
             # if self.option("express_method").lower() == 'rsem' or self.option("express_method").lower() == "featurecounts":
@@ -411,11 +432,13 @@ class ExpressModule(Module):
                 # self.trans_diffRexp.run()
                 # self.logger.info("计算转录本差异分析成功！")
         # else:
-        if self.option("express_method").lower() == 'rsem' or self.option("express_method").lower() == "featurecounts":
+        if self.option("express_method").lower() == 'rsem':
             genes_opt = tool_opt
             genes_opt["count"] = genes_count_path
             genes_opt["fpkm"] = genes_fpkm_path
-            genes_opt['edger_group'] = edger_group_path
+            if self.option('edger_group').is_set:
+                edger_group_path = self.option('edger_group').prop['path']
+                genes_opt['edger_group'] = edger_group_path
             self.genes_diffRexp.set_options(genes_opt)
             self.genes_diffRexp.on('end', self.set_output, 'genes_diff')
             self.genes_diffRexp.on("end", self.set_step, {"end": self.step.genes_diffRexp})
@@ -426,15 +449,47 @@ class ExpressModule(Module):
             trans_opt = tool_opt
             trans_opt["count"] = trans_count_path
             trans_opt["fpkm"] = trans_fpkm_path
-            trans_opt["edger_group"] = edger_group_path
+            if self.option('edger_group').is_set:
+                edger_group_path = self.option('edger_group').prop['path']
+                trans_opt["edger_group"] = edger_group_path
             self.trans_diffRexp.set_options(trans_opt)
             self.trans_diffRexp.on('end', self.set_output, 'trans_diff')
             self.trans_diffRexp.on("end", self.set_step, {"end": self.step.trans_diffRexp})
-            if self.option("express_method").lower() == 'featurecounts':
-                self.genes_diffRexp.on("end", self.sample_correlation)
+            # if self.option("express_method").lower() == 'featurecounts':
+            #     self.genes_diffRexp.on("end", self.sample_correlation)
             self.trans_diffRexp.run()
             self.logger.info("计算转录本差异分析成功！")
-        
+        if self.option("express_method").lower() == 'featurecounts':
+            fpkm_opt = tool_opt
+            fpkm_opt["count"] = self.feature_count_path
+            fpkm_opt["fpkm"] = self.feature_fpkm_path
+
+            tpm_opt = tool_opt
+            tpm_opt["count"] = self.feature_count_path
+            tpm_opt["fpkm"] = self.feature_tpm_path
+            
+            if self.option('edger_group').is_set:
+                edger_group_path = self.option('edger_group').prop['path']
+                fpkm_opt['edger_group'] = edger_group_path
+                tpm_opt['edger_group'] = edger_group_path
+            
+            self.fpkm_diffRexp.set_options(fpkm_opt)
+            self.fpkm_diffRexp.on('end', self.set_output, 'genes_diff_fpkm')
+            self.tpm_diffRexp.on('end', self.set_output, 'genes_diff_tpm')
+            
+            self.fpkm_diffRexp.on("end", self.set_step, {"end": self.step.fpkm_diffRexp})
+            self.fpkm_diffRexp.on("end", self.sample_correlation)
+            
+            self.fpkm_diffRexp.run()
+            self.logger.info("准备计算fpkm差异分析！")
+            
+            self.tpm_diffRexp.set_options(tpm_opt)
+            self.tpm_diffRexp.on("end", self.set_step, {"end": self.step.tpm_diffRexp})
+            # self.tpm_diffRexp.on("end", self.sample_correlation)
+            
+            self.tpm_diffRexp.run()
+            self.logger.info("准备计算tpm差异分析！")
+   
     def get_list(self):
         if self.option("express_method").lower() == "featurecounts":
             list_path = self.option("sample_bam").prop['path']
@@ -476,9 +531,15 @@ class ExpressModule(Module):
                 self.feature_count_path = self.featurecounts.output_dir + "/count.xls"
                 if self.option("exp_way") == 'fpkm':
                     self.feature_fpkm_path = self.featurecounts.output_dir + "/fpkm_tpm.fpkm.xls"
-                elif self.option("exp_way") == "tpm":
+                    self.diff_Rexp_run(genes_count_path = self.feature_count_path, genes_fpkm_path = self.feature_fpkm_path)
+                if self.option("exp_way") == "tpm":
                     self.feature_fpkm_path = self.featurecounts.output_dir + "/fpkm_tpm.tpm.xls"
-                self.diff_Rexp_run(genes_count_path = self.feature_count_path, genes_fpkm_path = self.feature_fpkm_path)
+                    self.diff_Rexp_run(genes_count_path = self.feature_count_path, genes_fpkm_path = self.feature_fpkm_path)
+                if self.option("exp_way") == 'all':
+                    self.feature_fpkm_path = self.featurecounts.output_dir + "/fpkm_tpm.fpkm.xls"
+                    self.feature_tpm_path = self.featurecounts.output_dir + "/fpkm_tpm.tpm.xls"
+                    self.diff_Rexp_run()
+                    self.logger.info("tpm, fpkm开始进行差异分析！")
         elif event['data'] == 'transcript_abstract':
             self.linkdir(obj.output_dir, event['data'], self.output_dir)
             self.logger.info("transcript_abstract设置结果目录成功！")
@@ -532,7 +593,7 @@ class ExpressModule(Module):
                 self.rsem_genes_fpkm = self.output_dir + '/rsem/genes.TMM.EXPR.matrix'
                 self.rsem_transcripts_fpkm = self.output_dir + '/rsem/transcripts.TMM.EXPR.matrix'
             self.diff_Rexp_run(genes_count_path=self.rsem_genes_count, genes_fpkm_path=self.rsem_genes_fpkm,trans_count_path = self.rsem_transcripts_count, trans_fpkm_path = self.rsem_transcripts_fpkm)
-        elif event['data'] == "genes_diff" or event['data'] == 'trans_diff':
+        elif re.search(r'genes_diff', event['data']) or re.search(r'trans_diff', event['data']):
             self.logger.info("开始设置差异分析结果目录！")
             if self.option('express_method') == 'rsem':
                 if not os.path.exists(self.output_dir+'/diff'):
@@ -543,11 +604,13 @@ class ExpressModule(Module):
                 else:
                     self.logger.info("{}分析没有生成diff_list_dir文件夹！".format(event['data']))
                 self.logger.info("差异分析结果目录设置成功！")
-            else:
-                self.linkdir(obj.output_dir, event['data'], self.output_dir)
+            elif self.option('express_method').lower() == "featurecounts":
+                if not os.path.exists(self.output_dir+"/diff"):
+                    os.mkdir(self.output_dir+"/diff")    
+                self.linkdir(obj.output_dir, event['data'], self.output_dir+'/diff')
                 if os.path.exists(os.path.join(obj.work_dir, 'diff_list_dir')):
-                    self.linkdir(obj.work_dir+'/diff_list_dir', 'diff_list_dir', self.output_dir+'/'+event['data'])
-                    self.option("diff_list_dir").set_path(self.output_dir+'/'+event['data']+'/diff_list_dir')
+                    self.linkdir(obj.work_dir+'/diff_list_dir', 'diff_list_dir', self.output_dir+'/diff/'+event['data'])
+                    self.option("diff_list_dir").set_path(self.output_dir+'/diff/'+event['data']+'/diff_list_dir')
                     self.logger.info("diff_list_dir文件已拷贝成功！")
                 else:
                     self.logger.info("没有生成diff_list_dir文件夹！")
@@ -581,21 +644,16 @@ class ExpressModule(Module):
             elif self.option("exp_way") == "tpm":
                 self.kallisto_fpkm_path = self.mergekallisto.output_dir + "/true_tpm.xls"
             self.trans_fpkm = self.diff_Rexp_run(trans_count_path = self.kallisto_count_path, trans_fpkm_path = self.kallisto_fpkm_path)
-        elif event['data'] == "genes_correlation" or event['data'] == 'trans_correlation':
+        elif re.search(r'correlation',event['data']) or re.search(r'trans_correlation',event['data']):
             if not os.path.exists(self.output_dir+"/correlation"):
                 os.mkdir(self.output_dir+"/correlation")
-            if self.option("express_method").lower() == 'rsem':
-                self.linkdir(obj.output_dir, event['data'], self.output_dir+"/correlation")
-            else:
-                self.linkdir(obj.output_dir, event['data'], self.output_dir)
+            self.linkdir(obj.output_dir, event['data'], self.output_dir+"/correlation")
             self.logger.info("设置correlation输出结果成功！")
-        elif event['data'] == "genes_pca" or event['data'] == 'trans_pca':
+        
+        elif re.search(r'pca',event['data']) or re.search(r'trans_pca',event['data']):
             if not os.path.exists(self.output_dir+"/pca"):
                 os.mkdir(self.output_dir + "/pca")
-            if self.option("express_method").lower() == 'rsem':
-                self.linkdir(obj.output_dir, event['data'], self.output_dir+"/pca")
-            else:
-                self.linkdir(obj.output_dir, event['data'], self.output_dir)
+            self.linkdir(obj.output_dir, event['data'], self.output_dir+"/pca")
             self.logger.info("设置pca输出结果成功！")
         """
         elif event['data'] == 'venn_corr' or event['data'] == 'venn_genes' or event['data'] == 'venn_transcripts':
@@ -620,18 +678,26 @@ class ExpressModule(Module):
             elif self.option("express_method").lower() == 'kallisto':
                 self.on_rely([self.trans_diffRexp, self.trans_corr, self.trans_pca], self.end)
             elif self.option("express_method").lower() == 'featurecounts':
-                self.on_rely([self.genes_diffRexp, self.genes_corr, self.genes_pca], self.end)
+                self.on_rely([self.fpkm_diffRexp, self.tpm_diffRexp, self.fpkm_corr, self.fpkm_pca, self.tpm_corr, self.tpm_pca], self.end)
         else:
             if self.option("express_method").lower() == 'rsem':
                 self.on_rely([self.genes_diffRexp, self.trans_diffRexp, self.genes_corr, self.trans_corr],self.end)
             elif self.option("express_method").lower() == 'kallisto':
                 self.on_rely([self.trans_diffRexp, self.trans_corr], self.end)
             elif self.option("express_method").lower() == 'featurecounts':
-                self.on_rely([self.genes_diffRexp, self.genes_corr], self.end)
+                self.on_rely([self.fpkm_diffRexp, self.tpm_diffRexp, self.fpkm_corr, self.tpm_corr], self.end)
         if self.option("express_method").lower() == "featurecounts":
             self.featurecounts_run()
         elif self.option("express_method") == "rsem":
             self.rsem_run()
+            # path = "/mnt/ilustre/users/sanger-dev/workspace/20170510/Single_rsem_cufflinks_fpkm_3/Express/output/rsem"
+            # genes_count_path = path + "/genes.counts.matrix"
+            # trans_count_path = path + "/transcripts.counts.matrix"
+            # genes_fpkm_path = path + "/genes.TMM.fpkm.matrix"
+            # trans_fpkm_path = path +"/transcripts.TMM.fpkm.matrix"
+            # self.rsem_genes_fpkm = genes_fpkm_path
+            # self.rsem_transcripts_fpkm = trans_fpkm_path
+            # self.diff_Rexp_run(genes_count_path=genes_count_path,trans_count_path=trans_count_path,genes_fpkm_path=genes_fpkm_path,trans_fpkm_path=trans_fpkm_path)
         elif self.option("express_method") == "kallisto":
             self.file_get_list()
             self.transcript_abstract()

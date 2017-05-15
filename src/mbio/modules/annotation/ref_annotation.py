@@ -3,7 +3,7 @@
 from __future__ import division
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-from mbio.packages.annotation.all_annotation_stat import AllAnnoStat
+from mbio.packages.annotation.ref_annotation_query import AllAnnoStat
 import os
 import shutil
 
@@ -38,10 +38,12 @@ class RefAnnotationModule(Module):
         ]
         self.add_option(options)
         self.go_annot = self.add_tool('annotation.go.go_annotation')
+        self.go_upload = self.add_tool('annotation.go.go_upload')
         self.string_cog = self.add_tool('annotation.cog.string2cogv9')
         self.kegg_annot = self.add_tool('annotation.kegg.kegg_annotation')
+        self.kegg_upload = self.add_tool('annotation.kegg.kegg_upload')
         self.anno_stat = self.add_tool('rna.ref_anno_stat')
-        self.step.add_steps('blast_statistics', 'go_annot', 'kegg_annot', 'cog_annot', 'anno_stat')
+        self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat')
 
     def check_options(self):
         if self.option('anno_statistics'):
@@ -97,6 +99,17 @@ class RefAnnotationModule(Module):
         self.kegg_annot.on('end', self.set_output, 'kegg_annot')
         self.kegg_annot.run()
 
+    def run_kegg_upload(self):
+        options = {
+            'kos_list_upload': self.option('kos_list_upload'),
+            'taxonomy': self.option('taxonomy')
+        }
+        self.kegg_upload.set_options(options)
+        self.kegg_upload.on('start', self.set_step, {'start': self.step.kegg_upload})
+        self.kegg_upload.on('end', self.set_step, {'end': self.step.kegg_upload})
+        self.kegg_upload.on('end', self.set_output, 'kegg_annot')
+        self.kegg_upload.run()
+
     def run_string2cog(self):
         options = {
             'blastout': self.option('blast_string_xml'),
@@ -120,6 +133,16 @@ class RefAnnotationModule(Module):
         self.go_annot.on('end', self.set_output, 'go_annot')
         self.go_annot.run()
 
+    def run_go_upload(self):
+        options = {
+            'gos_list_upload': self.option('gos_list_upload')
+        }
+        self.go_upload.set_options(options)
+        self.go_upload.on('start', self.set_step, {'start': self.step.go_upload})
+        self.go_upload.on('end', self.set_step, {'end': self.step.go_upload})
+        self.go_upload.on('end', self.set_output, 'go_annot')
+        self.go_upload.run()
+
     def run_swissprot_anno(self):
         options = {
             'blastout': self.option('blast_swissprot_xml')
@@ -138,8 +161,12 @@ class RefAnnotationModule(Module):
             self.anno_database.append('nr')
         if self.option('go_annot'):
             self.anno_database.append('go')
-            self.all_end_tool.append(self.go_annot)
-            self.run_go_anno()
+            if self.option("gos_list_upload").is_set:
+                self.all_end_tool.append(self.go_upload)
+                self.run_go_upload()
+            else:
+                self.all_end_tool.append(self.go_annot)
+                self.run_go_anno()
         if self.option('blast_string_xml').is_set or self.option('blast_string_table').is_set:
             self.anno_database.append('cog')
             self.all_end_tool.append(self.string_cog)
@@ -148,8 +175,13 @@ class RefAnnotationModule(Module):
             self.anno_database.append('kegg')
             self.all_end_tool.append(self.kegg_annot)
             self.run_kegg_anno()
+        if self.option('kos_list_upload').is_set:
+            self.anno_database.append('kegg')
+            self.all_end_tool.append(self.kegg_upload)
+            self.run_kegg_upload()
         if self.option("blast_swissprot_xml").is_set:
             self.anno_database.append('swissprot')
+            self.run_swissprot_anno()  # add
         if self.option("pfam_domain").is_set:
             self.anno_database.append('pfam')
         if len(self.all_end_tool) > 1:
@@ -177,17 +209,17 @@ class RefAnnotationModule(Module):
             if 'go' in self.anno_database:
                 self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
                 self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])
-            # try:
-            #     self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
-            # except Exception as e:
-            #     self.logger.info("统计all_annotation出错：{}".format(e))
+            try:
+                self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
+            except Exception as e:
+                self.logger.info("统计all_annotation出错：{}".format(e))
             self.end()
         else:
             pass
 
     def get_all_anno_stat(self, all_anno_path):
         # stat all_annotation.xls
-        kwargs = {'outpath': all_anno_path, 'gene_list': self.option('gene_file').prop['gene_list']}
+        kwargs = {'outpath': all_anno_path, 'gtf_path': self.option('ref_genome_gtf').prop['path']}
         for db in self.anno_database:
             if db == 'cog':
                 kwargs['cog_list'] = self.string_cog.option('cog_list').prop['path']
@@ -199,6 +231,8 @@ class RefAnnotationModule(Module):
                 kwargs['blast_nr_table'] = self.option('blast_nr_table').prop['path']
             if db == 'swissprot':
                 kwargs['blast_swissprot_table'] = self.option('blast_swissprot_table').prop['path']
+            if db == 'pfam':
+                kwargs['pfam_domain'] = self.option('pfam_domain').prop['path']
 
         allstat = AllAnnoStat()
         allstat.get_anno_stat(**kwargs)
