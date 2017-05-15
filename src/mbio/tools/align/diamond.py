@@ -158,7 +158,7 @@ class DiamondTool(Tool):
             i = 0
             for line in file:
                 if line.lstrip().startswith("<BlastOutput_db>"):
-                    line = line.replace("<BlastOutput_db>" + self.option("database"), "<BlastOutput_db>")
+                    line = line.replace("<BlastOutput_db>", "<BlastOutput_db>" + self.option("database"))
                 if line.lstrip().startswith("<BlastOutput_version>"):
                     line = line.replace("diamond 0.8.35", "BLASTX 2.3.0+")
                 if line.lstrip().startswith("<Hit_id>"):
