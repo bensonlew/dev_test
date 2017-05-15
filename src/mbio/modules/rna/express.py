@@ -43,11 +43,17 @@ class ExpressModule(Module):
             {"name": "edger_group", "type": "infile", "format": "sample.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
             {"name": "gname", "type": "string", "default": "group"},  # 分组方案名称
-            {"name": "all_list", "type": "outfile", "format": "rna.gene_list"},  # 全部基因名称文件
+            {"name": "genes_all_list", "type": "outfile", "format": "rna.gene_list"},  # 全部基因名称文件
+            {"name":"genes_diff_list","type":"outfile","format":"rna.gene_list"}, #差异基因/转录本文件
+            {"name": "trans_all_list", "type": "outfile", "format": "rna.gene_list"},  # 全部基因名称文件
+            {"name": "trans_diff_list", "type": "outfile", "format": "rna.gene_list"},  # 差异基因/转录本文件
             {"name": "method", "type": "string", "default": "edgeR"},  # 分析差异基因选择的方法
             # {"name": "change_sample_name", "type": "bool"}, #选择是否更改样本的名称
             {"name": "exp_way", "type": "string", "default": "fpkm"}, #默认选择fpkm进行表达量的计算  rsem (fpkm,tpm) featurecounts(fpkm tpm all)
-            {"name": "diff_list_dir", "type": "outfile", "format": "rna.diff_stat_dir"}  #差异分组对应的差异基因
+            {"name": "genes_diff_list_dir", "type": "outfile", "format": "rna.diff_stat_dir"}, #差异分组对应的差异基因
+            {"name": "trans_diff_list_dir", "type": "outfile", "format": "rna.diff_stat_dir"}, # 差异分组对应的差异基因
+            {"name": "genes_diff_fpkm","type":"outfile","format":"rna.express_matrix"}, #差异基因的fpkm表
+            {"name": "trans_diff_fpkm", "type": "outfile", "format": "rna.express_matrix"},  # 差异转录本的fpkm表
         ]
         self.add_option(options)
     
@@ -586,6 +592,8 @@ class ExpressModule(Module):
                 self.logger.info("设置gene count 和 fpkm 输出结果成功！")
             self.rsem_genes_count = self.output_dir+'/rsem/genes.counts.matrix'
             self.rsem_transcripts_count = self.output_dir + '/rsem/transcripts.counts.matrix'
+            self.option("genes_all_list",self.output_dir+"/rsem/gene_list")
+            self.option("trans_all_list",self.set_output+"/rsem/trans_list")
             if self.option("exp_way").lower() == 'fpkm':
                 self.rsem_genes_fpkm = self.output_dir + '/rsem/genes.TMM.fpkm.matrix'
                 self.rsem_transcripts_fpkm = self.output_dir + '/rsem/transcripts.TMM.fpkm.matrix'
@@ -599,8 +607,32 @@ class ExpressModule(Module):
                 if not os.path.exists(self.output_dir+'/diff'):
                     os.mkdir(self.output_dir+'/diff')
                 self.linkdir(obj.output_dir, event['data'], self.output_dir+'/diff')
+                stat_path = self.output_dir+'/diff/'+event['data']+"/diff_stat_dir"
+                if not os.path.exists(stat_path):
+                    os.mkdir(stat_path)
+                for files in os.listdir(self.output_dir+"/diff/"+event['data']):  #把差异统计表移到diff_stat_dir文件夹
+                    if re.search(r'edgr_stat.xls',files):
+                        os.system("""mv %s %s"""%(self.output_dir+"/diff/"+event['data']+"/"+files, stat_path+"/"+files))
+                    if re.search(r'diff_fpkm',files):
+                        if re.search(r'genes_diff',event['data']):
+                            self.option("genes_diff_fpkm", self.output_dir+"/diff/"+event['data']+"/diff_fpkm")
+                        if re.search(r'trans_diff',event['data']):
+                            self.option("trans_diff_fpkm", self.output_dir+"/diff/"+event['data']+"/diff_fpkm")
+                if os.path.exists(obj.work_dir+"/diff_list"):
+                    shutil.copy2(obj.work_dir+"/diff_list", self.output_dir+"/diff/"+event['data']+"/diff_list")
+                    if re.search(r'genes_diff',event['data']):
+                        self.option("genes_diff_list",self.output_dir+"/diff/"+event['data']+"/diff_list")
+                        self.add_gene_id(self.output_dir+"/diff/"+event['data']+"/diff_list",self.output_dir+"/diff/"+event['data'])
+                    if re.search(r'trans_diff', event['data']):
+                        self.option("trans_diff_list", self.output_dir + "/diff/" + event['data'] + "/diff_list")
+                        self.add_gene_id(self.output_dir + "/diff/" + event['data'] + "/diff_list",
+                                         self.output_dir + "/diff/" + event['data'] )
                 if os.path.exists(os.path.join(obj.work_dir, 'diff_list_dir')):
                     self.linkdir(obj.work_dir+'/diff_list_dir', 'diff_list_dir', self.output_dir+'/diff/'+event['data'])
+                    if re.search(r'genes_diff', event['data']):
+                        self.option("genes_diff_list_dir", self.output_dir+'/diff/'+event['data']+"/diff_list_dir")
+                    if re.search(r'trans_diff', event['data']):
+                        self.option("trans_diff_list_dir", self.output_dir + '/diff/' + event['data'] + "/diff_list_dir")
                 else:
                     self.logger.info("{}分析没有生成diff_list_dir文件夹！".format(event['data']))
                 self.logger.info("差异分析结果目录设置成功！")
@@ -669,6 +701,16 @@ class ExpressModule(Module):
                 self.linkdir(obj.output_dir, event['data'], self.output_dir)
                 self.sample_correlation(self.fpkm)
         """
+    def add_gene_id(self,old_diff_list,new_path):
+        if os.path.exists(old_diff_list):
+            tmp = os.path.join(new_path+"/tmp")
+            shutil.copy2(old_diff_list,tmp)
+            new_diff_list = os.path.join(new_path,"network_diff_list")
+            os.system("""sed '1i gene_id' {}>{}""".format(tmp,new_diff_list))
+            os.remove(tmp)
+            return new_diff_list
+        else:
+            raise Exception("{}文件不存在".format(old_diff_list))
 
     def run(self):
         super(ExpressModule, self).run()
