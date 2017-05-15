@@ -17,7 +17,7 @@ class TabFile(Base):
         # self.mongo_client = MongoClient(Config().MONGO_BIO_URI)
         # self.database = self.mongo_client['sanger_paternity_test_v2']
         self.mongo_client = Config().biodb_mongo_client
-        self.database = self.mongo_client['sanger_paternity_test_v2']
+        self.database = self.mongo_client['sanger_paternity_test_ref']
 
 
     # @report_check
@@ -124,9 +124,9 @@ class TabFile(Base):
             pass
         else:
             search_result = collection.find({"sample_id": sample})  # 读出来是个地址
-            temp = collection.find_one({"sample_id":sample})
+            # temp = collection.find_one({"sample_id":sample})
 
-            if temp:
+            if search_result.count() != 0:
                 final_result = search_result
                 file = os.path.join(dir, sample + '.tab')
             else:
@@ -441,5 +441,3 @@ class TabFile(Base):
             self.bind_object.logger.error('计算并导入ot出错：{}'.format(e))
         else:
             self.bind_object.logger.info("计算并导入ot成功")
-
-

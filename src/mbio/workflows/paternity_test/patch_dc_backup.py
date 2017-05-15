@@ -25,10 +25,10 @@ class PatchDcBackupWorkflow(Workflow):
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},  # fastq所在路径(文件夹
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
-			{"name": "targets_bedfile", "type": "infile", "format": "sequence.rda"},
+			{"name": "targets_bedfile", "type": "infile", "format": "paternity_test.rda"},
 
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
-			{"name": "ref_point", "type": "infile", "format": "sequence.rda"},  # 参考位点
+			{"name": "ref_point", "type": "infile", "format": "paternity_test.rda"},  # 参考位点
 			{"name": "dedup_num", "type": "int", "default": 2},  # 查重样本数
 			{"name": "batch_id", "type": "string"},
 			{"name": "update_info", "type": "string"},
@@ -45,7 +45,7 @@ class PatchDcBackupWorkflow(Workflow):
 		self.set_options(self._sheet.options())
 		self.step.add_steps("pt_analysis", "result_info", "retab",
 		                    "de_dup1", "de_dup2")
-		self.update_status_api = self.api.pt_update_status
+		# self.update_status_api = self.api.pt_update_status
 
 	def check_options(self):
 		'''
@@ -104,7 +104,7 @@ class PatchDcBackupWorkflow(Workflow):
 				self.tools.append(fastq2mongo)
 				n += 1
 			else:
-				self.logger.info('{}样本已存在于数据库'.format(i))
+				raise Exception('{}样本已存在于数据库,请检查是否重名'.format(i))
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2mongo')
 
@@ -246,7 +246,7 @@ class PatchDcBackupWorkflow(Workflow):
 			q = self.preg.index(self.preg_sample)
 			result_info.on('end', self.dedup_run, q)
 		else:
-			pass
+			result_info.on('end', self.end)
 
 		result_info.set_options({
 			"tab_merged": self.rdata
@@ -380,8 +380,14 @@ class PatchDcBackupWorkflow(Workflow):
 			                                           dedup=self.option('dedup_num'))
 
 			dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt'
+			dedup1 = '.*_NA_' + preg_id + '_family_analysis.txt'
+			dedup2 = '.*' + mom_id + '_NA_family_analysis.txt'
 			for f in results:
 				if re.search(dedup, f):
+					api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)
+				elif re.search(dedup1, f):
+					api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)
+				elif re.search(dedup2, f):
 					api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)
 				elif f == dad_id + '_' + mom_id + '_' + preg_id + '_family_joined_tab.txt':
 					api_main.add_sg_pt_father_detail(self.output_dir + '/' + f, self.pt_father_id)
@@ -396,6 +402,8 @@ class PatchDcBackupWorkflow(Workflow):
 			#如遇深度较低的样本，在结果处报错
 			if dad_id + '_' + mom_id + '_' + preg_id + '_family.png' not in results:
 				api_main.has_problem(self.pt_father_id, dad_id)
+			if mom_id + '_' + preg_id + '_info_show.txt' not in results:
+				api_main.update_infoshow(self.pt_father_id,mom_id,preg_id)
 
 
 			# 把筛选的内容提取到主表中去
