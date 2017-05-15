@@ -50,7 +50,7 @@ class ExpressPcaAction(RefRnaController):
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
-                ('status', 'start'),
+                ('status', 'end'),
                 ('name', main_table_name),
                 ("type", "gene"), #pca只对基因进行分析
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -64,7 +64,7 @@ class ExpressPcaAction(RefRnaController):
             
             options = {
                 "express_file": data.express_id,
-                "pca_id": str(main_table_id),
+                "correlation_id": str(main_table_id),
                 "group_id": data.group_id,
                 "group_detail": data.group_detail,
                 "corr_pca": "pca",
