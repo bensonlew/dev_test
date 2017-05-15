@@ -181,7 +181,7 @@ class PtDatasplitWorkflow(Workflow):
 				"ref_point": Config().SOFTWARE_DIR + "/database/human/pt_ref/targets.bed.rda",
 				"err_min": 2,
 				"batch_id": self.option('pt_data_split_id'),
-				"dedup_num": 2,
+				"dedup_num": 10,
 				"update_info": update_info
 			}
 		}
