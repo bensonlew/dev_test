@@ -42,7 +42,7 @@ class ExpressVennAction(RefRnaController):
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
-                ('status', 'start'),
+                ('status', 'end'),
                 ('name', main_table_name),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))

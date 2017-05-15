@@ -9,6 +9,7 @@ import datetime
 import pandas as pd
 import shutil
 import re
+from biocluster.config import Config
 from biocluster.workflow import Workflow
 
 class ExpressPCAWorkflow(Workflow):
@@ -23,14 +24,12 @@ class ExpressPCAWorkflow(Workflow):
             {"name":"express_file","type":"infile","format":"rna.express_matrix"},
             {"name":"group_id","type":"string"},
             {"name":"group_detail","type":"string"},
-            {"name":"specimen","type":"string"},
             {"name":"pca_id","type":"string"},
             {"name":"update_info","type":"string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.pca = self.add_tool('meta.beta_diversity.pca')
-        self.samples = re.split(',', self.option('specimen'))
     
     def run_pca(self,):
         """样本间pca分析"""
@@ -63,10 +62,39 @@ class ExpressPCAWorkflow(Workflow):
         api_pca = self.api.refrna_corr_express
         # corr_id = self.option("correlation_id")
         self.logger.info(self.pca.output_dir)
-        _id = api_pca.add_pca_table(pca_path = self.pca.output_dir,express_id="58ef0bcba4e1af740ec4c14c",\
-            detail=True, seq_type="gene")
+        # _id = api_pca.add_pca_table(pca_path = self.pca.output_dir,express_id="58ef0bcba4e1af740ec4c14c",\
+        #     detail=True, seq_type="gene")
+        pca_path = self.pca.output_dir
+        inserted_id = self.option("pca_id")
+        pca_file = os.path.join(pca_path, 'pca_importance.xls')
+        pca_rotation = os.path.join(pca_path, 'pca_rotation.xls')
+        site_file = os.path.join(pca_path, 'pca_sites.xls')
+        api_pca.add_pca(pca_file=pca_file, correlation_id=inserted_id)
+        api_pca.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
+        api_pca.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_sites', correlation_id=inserted_id)
+        self._update_pca(pca_file,self.option("pca_id"))
         self.end()
-    
+
+    def _update_pca(self,pca_file,pca_id):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        con = db['sg_express_pca']
+        pc_num = []
+        pc = {}
+        if not os.path.exists(pca_file):
+            raise Exception("pca分析错误，没有生成{}文件".format(self.pca.output_dir+"/pca_importance.xls"))
+        with open(pca_file,'r+') as f1:
+            f1.readline()
+            for lines in f1:
+                line=lines.strip().split("\t")
+                pc_num.append(line[0])
+                pc[line[0]]=line[1]
+        con.update({"_id":ObjectId(pca_id)},{"$set":{"pc_num":pc_num}})
+        self.option("更新pc_num成功")
+        for keys,values in pc.items():
+            con.update({"_id":ObjectId(pca_id)},{"$set":{keys:values}})
+        self.option("更新pc成功！")
+
+        con.find_one({"_id":ObjectId(self.option("pca_id"))})
     def run(self):
         self.run_pca()
         super(ExpressPCAWorkflow, self).run()
