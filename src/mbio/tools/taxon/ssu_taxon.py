@@ -3,8 +3,6 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-import threading
-import re
 
 
 class SsuTaxonAgent(Agent):
