@@ -52,24 +52,19 @@ class ExpressPcaAction(RefRnaController):
                 ('task_id', task_info['task_id']),
                 ('status', 'start'),
                 ('name', main_table_name),
+                ("type", "gene"), #pca只对基因进行分析
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
             ]
-            
+            print my_param
             collection_name = "sg_express_pca"
             main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
+            
             update_info = {str(main_table_id): collection_name}
-            
-            specimen_ids = list()
-            for v in group_detail_dict.values():
-                for tmp in v:
-                    specimen_ids.append(tmp)
-            
-            specimen_ids = ",".join(specimen_ids)
             
             options = {
                 "express_file": data.express_id,
-                "correlation_id": main_table_id,
+                "pca_id": str(main_table_id),
                 "group_id": data.group_id,
                 "group_detail": data.group_detail,
                 "corr_pca": "pca",
