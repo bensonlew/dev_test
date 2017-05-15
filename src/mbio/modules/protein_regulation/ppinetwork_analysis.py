@@ -12,7 +12,7 @@ class PpinetworkAnalysisModule(Module):
         super(PpinetworkAnalysisModule, self).__init__(work_id)
         self.step.add_steps('ppinetwork_map', 'ppinetwork_predict', 'ppinetwork_topology')
         options = [
-            {"name": "diff_exp_gene", "type": "infile", "format": "rna.ppi"},
+            {"name": "diff_exp_gene", "type": "infile", "format": "rna.gene_list"},
             {"name": "species", "type": "int", "default": 9606},
             {"name": "combine_score", "type": "int", "default": 300}
         ]
