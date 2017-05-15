@@ -36,6 +36,8 @@ class GenesetClassWorkflow(Workflow):
         # self.group_spname = dict()
 
     def run(self):
+        self.start_listener()
+        self.fire("start")
         if self.option("anno_type") == "kegg":
             self.get_kegg_table()
         self.set_db()

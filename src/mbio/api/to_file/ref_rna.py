@@ -200,13 +200,13 @@ def export_diff_express(data, option_name, dir_path, bind_obj=None):  # 需要�
 def export_cog_class(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     cog_path = os.path.join(dir_path, 'cog_class_table.xls')
-    bind_obj.logger.debug("正在导出")
+    bind_obj.logger.debug("正在导出{}".format(cog_path))
     genesets, table_title, task_id, geneset_type = get_geneset_detail(data)
     cog_collection = db["sg_annotation_cog"]
     cog_detail_collection = db["sg_annotation_cog_detail"]
     cog_id = cog_collection.find_one({"task_id": task_id})["_id"]
     cog_results = cog_detail_collection.find({'cog_id': cog_id})
-    print table_title
+    bind_obj.logger.debug(table_title)
     with open(cog_path, "wb") as w:
         w.write("Type\tFunctional Categoris\t" + "\t".join(table_title) + "\n")
         for cr in cog_results:

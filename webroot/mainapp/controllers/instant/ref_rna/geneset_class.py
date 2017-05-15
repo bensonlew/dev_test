@@ -25,7 +25,8 @@ class GenesetClassAction(RefRnaController):
             "submit_location": data.submit_location,
             "task_type": data.task_type,
             "geneset_id": data.geneset_id,
-            "anno_type": data.anno_type
+            "anno_type": data.anno_type,
+            "geneset_type": data.geneset_type
         }
         # 判断传入的基因集id是否存在
         geneset_info = {}
