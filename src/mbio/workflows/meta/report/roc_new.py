@@ -50,8 +50,8 @@ class RocNewWorkflow(Workflow):
             {"name": "intersection", "type": "bool", "default": False},
 
             {"name": "roc_calc_method", "type": "string", "default": "sum"},  # ROC计算方法以及env表的计算方法
-            {"name": "roc_method_1", "type": "string", "default": ""},
-            {"name": "roc_method_2", "type": "string", "default": ""},
+            {"name": "roc_method_1", "type": "string", "default": "a:0.1"},  # 后续需要从网页端传入,必须携带相应的分组名称
+            {"name": "roc_method_2", "type": "string", "default": "b:0.2"},
             {"name": "env_table", "type": "string", "default": ""},  # 需要修改在workflow内部进行to_file
 
             {"name": "update_info", "type": "string"},  # workflow更新
@@ -294,7 +294,14 @@ class RocNewWorkflow(Workflow):
             new_otu.to_csv(table, sep="\t", index=False)
         return table
 
+    #def get_mi_otu(self, otu_table, group_table):
+
+
+
     def end(self):
+        """
+        上传结果目录
+        """
         # result_dir = self.add_upload_dir(self.output_dir)
         # result_dir.add_relpath_rules([
         #     [".", "", "LEfSe差异分析结果目录"],
@@ -329,7 +336,43 @@ class RocNewWorkflow(Workflow):
 
     def set_db(self):
         """
-        保存两组比较分析的结果表保存到mongo数据库中
+        设置结果文件，将数据导入mongo库中
         """
-        # api_lefse = self.api.stat_test
+        if self.option("intersection"):
+            self.linkdir(self.roc_intersection.output_dir, "Intersection_roc")
+        else:
+            if self.option("lefse_analysis"):
+                self.linkdir(self.roc_lefse.output_dir, "Lefse_roc")
+            if self.option("two_group_analysis"):
+                self.linkdir(self.roc_two.output_dir, "Two_roc")
+            if self.option("ran_for_analysis"):
+                self.linkdir(self.roc_ran.output_dir, "Ran_roc")
         self.end()
+
+    def linkdir(self, dirpath, dirname):
+        """
+        link一个文件夹下的所有文件到本module的output目录
+        :param dirpath: 传入文件夹路径
+        :param dirname: 新的文件夹名称
+        :return:
+        """
+        allfiles = os.listdir(dirpath)
+        newdir = os.path.join(self.output_dir, dirname)
+        if not os.path.exists(newdir):
+            os.mkdir(newdir)
+        oldfiles = [os.path.join(dirpath, i) for i in allfiles]
+        newfiles = [os.path.join(newdir, i) for i in allfiles]
+        for newfile in newfiles:
+            if os.path.exists(newfile):
+                if os.path.isfile(newfile):
+                    os.remove(newfile)
+                else:
+                    os.system('rm -r %s' % newfile)
+        for i in range(len(allfiles)):
+            if os.path.isfile(oldfiles[i]):
+                os.link(oldfiles[i], newfiles[i])
+            elif os.path.isdir(oldfiles[i]):
+                file_name = os.listdir(oldfiles[i])
+                os.mkdir(newfiles[i])
+                for file_name_ in file_name:
+                    os.link(os.path.join(oldfiles[i], file_name_), os.path.join(newfiles[i], file_name_))
