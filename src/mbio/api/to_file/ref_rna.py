@@ -140,16 +140,16 @@ def export_all_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     all_list = os.path.join(dir_path, "all_gene.list")
     bind_obj.logger.debug("正在导出所有基因")
-    collection = db['sg_geneset_detail']
-    main_collection = db['sg_geneset']
-    my_result = main_collection.find_one({'task_id': data, "type": "background"})
+    collection = db['sg_express_class_code_detail']
+    main_collection = db['sg_express_class_code']
+    my_result = main_collection.find_one({'task_id': data})
     print my_result["_id"]
     if not my_result:
         raise Exception("意外错误，task_id:{}的背景基因在sg_geneset中未找到！".format(data))
-    results = collection.find({"geneset_id": ObjectId(my_result["_id"])})
+    results = collection.find({"class_code_id": ObjectId(my_result["_id"])})
     with open(all_list, "wb") as f:
         for result in results:
-            gene_id = result['gene_name']
+            gene_id = result['assembly_gene_id']
             f.write(gene_id + "\n")
     return all_list
 
@@ -249,7 +249,7 @@ def get_geneset_detail(data):
         geneset_name = geneset_result["name"]
         table_title.append(geneset_name)
         genesets[geneset_name] = [geneset_type]
-        geneset_names = set()
+        # geneset_names = set()
         collection = db['sg_geneset_detail']
         results = collection.find_one({"geneset_id": ObjectId(geneset_id)})
         geneset_names = set(results["gene_list"])
