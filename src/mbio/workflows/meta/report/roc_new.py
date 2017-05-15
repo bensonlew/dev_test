@@ -64,6 +64,7 @@ class RocNewWorkflow(Workflow):
         self.roc_two = self.add_tool('meta.beta_diversity.roc')
         self.roc_intersection = self.add_tool('meta.beta_diversity.roc')
         self.roc_env = self.add_tool('meta.beta_diversity.roc')
+        self.dict = {}
 
     def check_options(self):
         if self.option('method_cal') not in ['student', 'welch', 'wilcox']:
@@ -81,6 +82,11 @@ class RocNewWorkflow(Workflow):
 
     def run(self):
         self.run_two_ran_lefse()
+        if self.option('roc_calc_method') == "MI":
+            value_1 = self.option("roc_method_1").split(":")
+            self.dict[value_1[0]] = value_1[1]
+            value_2 = self.option("roc_method_2").split(":")
+            self.dict[value_2[0]] = value_2[1]
         super(RocNewWorkflow, self).run()
 
     def run_two_ran_lefse(self):
@@ -122,12 +128,18 @@ class RocNewWorkflow(Workflow):
 
     def run_roc_intersection(self):
         fin_otu = self.get_intersection_otu()
+        if self.option('roc_calc_method') == "MI":
+            mi_group = os.path.join(self.work_dir, "intersection_mi_otu.xls")
+            self.get_mi_otu(fin_otu, self.option('two_ran_group').prop['path'], mi_group, self.dict)
+        else:
+            mi_group = self.option('two_ran_group')
         # new_table = self.change_otuname(fin_otu)
         options = {
             'otu_table': fin_otu,
             'level': self.option('level_id'),
-            'group_table': self.option('two_ran_group'),
+            'group_table': mi_group,
             'method': self.option('roc_calc_method'),
+            'top_n': 0
         }
         self.roc_intersection.set_options(options)
         if self.option("env_table") != "":
@@ -142,6 +154,7 @@ class RocNewWorkflow(Workflow):
             # 'level': self.option('level_id'),
             'group_table': self.option('two_ran_group'),
             'method': self.option('roc_calc_method'),
+            'top_n': 0
         }
         self.roc_env.set_options(options)
         self.roc_env.on("end", self.set_db)
@@ -149,12 +162,18 @@ class RocNewWorkflow(Workflow):
 
     def run_roc_lefse(self):
         lefse_otu = self.get_otu_table(name="lefse")
+        if self.option('roc_calc_method') == "MI":
+            mi_group = os.path.join(self.work_dir, "lefse_mi_otu.xls")
+            self.get_mi_otu(lefse_otu, self.option('two_ran_group').prop['path'], mi_group, self.dict)
+        else:
+            mi_group = self.option('two_ran_group')
         # new_table = self.change_otuname(lefse_otu)
         options = {
             'otu_table': lefse_otu,
             'level': self.option('level_id'),
-            'group_table': self.option('two_ran_group'),
+            'group_table': mi_group,
             'method': self.option('roc_calc_method'),
+            'top_n': 0
         }
         self.roc_lefse.set_options(options)
         if self.option('two_group_analysis'):
@@ -169,12 +188,18 @@ class RocNewWorkflow(Workflow):
 
     def run_roc_two(self):
         two_otu = self.get_otu_table(name="two_group")
+        if self.option('roc_calc_method') == "MI":
+            mi_group = os.path.join(self.work_dir, "lefse_mi_otu.xls")
+            self.get_mi_otu(two_otu, self.option('two_ran_group').prop['path'], mi_group, self.dict)
+        else:
+            mi_group = self.option('two_ran_group')
         # new_table = self.change_otuname(two_otu)
         options = {
             'otu_table': two_otu,
             'level': self.option('level_id'),
-            'group_table': self.option('two_ran_group'),
+            'group_table': mi_group,
             'method': self.option('roc_calc_method'),
+            'top_n': 0
         }
         self.roc_two.set_options(options)
         if self.option('ran_for_analysis'):
@@ -187,12 +212,18 @@ class RocNewWorkflow(Workflow):
 
     def run_roc_ran(self):
         ran_otu = self.get_otu_table(name="random_forest")
+        if self.option('roc_calc_method') == "MI":
+            mi_group = os.path.join(self.work_dir, "lefse_mi_otu.xls")
+            self.get_mi_otu(ran_otu, self.option('two_ran_group').prop['path'], mi_group, self.dict)
+        else:
+            mi_group = self.option('two_ran_group')
         # new_table = self.change_otuname(ran_otu)
         options = {
             'otu_table': ran_otu,
             'level': self.option('level_id'),
-            'group_table': self.option('two_ran_group'),
+            'group_table': mi_group,
             'method': self.option('roc_calc_method'),
+            'top_n': 0
         }
         self.roc_ran.set_options(options)
         if self.option("env_table") != "":
@@ -294,9 +325,68 @@ class RocNewWorkflow(Workflow):
             new_otu.to_csv(table, sep="\t", index=False)
         return table
 
-    #def get_mi_otu(self, otu_table, group_table):
-
-
+    def get_mi_otu(self, otu_table, group_table, result_path, dict_):
+        group = pd.read_table(group_table, header=0, sep="\t")
+        group_dict = {}
+        for i in group.index:
+            group_dict[group["#sample"][i]] = group[group.columns[1]][i]
+        table = pd.read_table(otu_table, header=0, sep="\t")
+        samp_list = []
+        for i in table.columns:
+            samp_list.append(i)
+        g_list = []
+        for i in samp_list[1:]:
+            g_list.append(group_dict[i])
+        tablet = table.T
+        tablet = tablet.drop("OTU ID")
+        tablet["g_name"] = g_list
+        sum_table = tablet.groupby('g_name').sum().T
+        spe_group = []
+        for i in sum_table.index:
+            if sum_table.ix[i][0] < sum_table.ix[i][1]:
+                spe_group.append(sum_table.columns[0])
+            else:
+                spe_group.append(sum_table.columns[1])
+        table["sp_group"] = spe_group
+        fin_otu = table.T
+        fin_otu = fin_otu.drop("OTU ID")
+        a_number = 0
+        b_number = 0
+        for i in spe_group:
+            if i == sum_table.columns[0]:
+                a_number = a_number + 1
+            else:
+                b_number = b_number + 1
+        data = {}
+        con = pd.DataFrame(data)
+        for i in fin_otu.index:
+            a = 0
+            b = 0
+            if i == "sp_group":
+                break
+            for m in range(len(spe_group)):
+                if fin_otu.ix['sp_group'][m] == sum_table.columns[0]:
+                    a = a + int(fin_otu.ix[i][m])
+                else:
+                    b = b + int(fin_otu.ix[i][m])
+            a = a / a_number
+            b = b / b_number
+            if data:
+                con[i] = [a, b]
+            else:
+                data = {i: [a, b]}
+                con = pd.DataFrame(data)
+        con.index = [sum_table.columns[0], sum_table.columns[1]]
+        fin_con = con.T
+        fin_value = []
+        for i in fin_con.index:
+            value = fin_con.ix[i][0] * dict_[fin_con.columns[0]] - fin_con.ix[i][1] * dict_[fin_con.columns[1]]
+            fin_value.append(value)
+        fin_con["value"] = fin_value
+        fin_con["group_name"] = g_list
+        fin_con = fin_con.drop([sum_table.columns[0], sum_table.columns[1]], axis=1)
+        fin_con.index.name = "sample"
+        fin_con.to_csv(result_path, sep="\t", index=True)
 
     def end(self):
         """
