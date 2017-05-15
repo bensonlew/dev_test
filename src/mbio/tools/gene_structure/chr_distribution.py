@@ -5,7 +5,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
-import glob
+import re
 import subprocess
 
 
@@ -21,7 +21,7 @@ class ChrDistributionAgent(Agent):
         super(ChrDistributionAgent, self).__init__(parent)
         options = [
             {"name": "bam", "type": "infile", "format": "align.bwa.bam"},  # bam格式文件,排序过的
-            # {"name": "quality", "type": "int", "default": 30}  # 质量值
+            {"name": "range", "type": "int", "default": 10000}  # 质量值
         ]
         self.add_option(options)
         self.step.add_steps('dup')
@@ -68,6 +68,7 @@ class ChrDistributionTool(Tool):
         self.python_path = "program/Python/bin/"
         self.python_full_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
         self.samtools_path = self.config.SOFTWARE_DIR + "/bioinfo/align/samtools-1.3.1/"
+        self.chr_distribution_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/scripts/reads_distribution.py"
         self.bam_name = ""
 
     def chr_distribution(self):
@@ -83,8 +84,18 @@ class ChrDistributionTool(Tool):
             self.logger.info("开始运行统计reads在染色体的分布情况结束")
             return True
         except subprocess.CalledProcessError:
-            self.logger.info("去接头命令运行出错")
+            self.logger.info("统计出错")
             return False
+
+    def chr_range_stat(self):
+        cmd = "{} python {} -i {}".format(self.python_full_path, self.chr_distribution_path, self.option("bam").prop["path"])
+        command = self.add_command('chr_range_stat', cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("统计染色体分布信息完成")
+        else:
+            self.set_error('统计染色体分布信息完成')
 
     def set_output(self):
         self.logger.info("set out put")
