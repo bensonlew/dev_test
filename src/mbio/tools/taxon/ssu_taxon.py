@@ -70,12 +70,16 @@ class SsuTaxonTool(Tool):
 
     def taxon_ssu(self, table_file, dbversion, outfile):
         query_ids = []
+        hit_ids = []
         for i in open(table_file):
-            query_ids.append(i.split('\t')[0])
+            values = i.split('\t')
+            query_ids.append(values[5])
+            hit_ids.append(values[10])
+        query_hit = zip(query_ids, hit_ids)
         db = self.config.biodb_mongo_client.sanger_biodb
         coll_name = dbversion + '_ssu_taxon'
         collection = db[coll_name]
         outw = open(outfile, "w")
-        for i in query_ids:
-            find = collection.find_one({"_id": i}, {"taxon": 1})
-            outw.write(find["_id"] + '\t' + find["taxon"] + '\n')
+        for query, hit in query_hit:
+            find = collection.find_one({"_id": hit}, {"taxon": 1})
+            outw.write(query + '\t' + find["_id"] + '\t' + find["taxon"] + '\n')

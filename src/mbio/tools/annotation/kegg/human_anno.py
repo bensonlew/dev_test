@@ -53,27 +53,24 @@ class HumanAnnoTool(Tool):
         super(HumanAnnoTool, self).run()
         table_file = self.work_dir + '/temp_blastable.xls'
         if self.option("blastout").format == 'align.blast.blast_xml':
-            self.option("blastout").convert2table(table_file)
+            self.option("blastout").convert2blast6default(table_file)
         else:
             table_file = self.option('blastout').path
-        try:
-            self.humann_anno(table_file)
-            self.end()
-        except Exception:
-            import traceback
-            self.logger.debug(traceback.format_exc())
-            self.set_error('humann注释出错！')
+        self.humann_anno(table_file)
 
     def humann_anno(self, blast_table):
         if not os.path.exists("input"):
             os.makedirs("input")
-        os.link(blast_table, "input")
+        os.link(blast_table, "input/" + os.path.basename(blast_table))
         with open(self.humann_scon) as f, open("SConstruct", 'w') as w:
             w.write(f.read())
         cmd = self.config.SOFTWARE_DIR + "/program/Python/bin/scons " + "--site-dir=" + os.path.dirname(self.humann_scon) + \
-        "site_scons " + "-C " + self.work_dir + " -j 2"
+            "site_scons " + "-C " + self.work_dir + " -j 2"
         command = self.add_command("humann", cmd)
         command.run()
         self.wait()
-
-        pass
+        if command.return_code == 0:
+            self.logger.info("humann注释完成")
+            self.end()
+        else:
+            self.set_error("humann注释出错")
