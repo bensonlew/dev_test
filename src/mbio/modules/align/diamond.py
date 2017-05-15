@@ -18,7 +18,7 @@ class DiamondModule(Module):
             {"name": "query_type", "type": "string"},  # 输入的查询序列的格式，为nucl或者prot
             {"name": "database", "type": "string", "default": "nr"},
             # 比对数据库 nt nr string swissprot kegg customer_mode
-            {"name": "outfmt", "type": "int", "default": 5},  # 输出格式，只为5，6
+            {"name": "outfmt", "type": "int", "default": 5},  # 输出格式，只为5
             {"name": "blast", "type": "string"},
             {"name": "reference", "type": "infile", "format": "sequence.fasta"},  # 参考序列  选择customer时启用
             {"name": "reference_type", "type": "string"},  # 参考序列(库)的类型  为nucl或者prot
@@ -70,7 +70,7 @@ class DiamondModule(Module):
         opts = {
             "query_type": self.option("query_type"),
             "database": self.option("database"),
-            "outfmt": self.option("outfmt"),
+            "outfmt": 5,
             "blast": self.option("blast"),
             "evalue": self.option("evalue"),
             "num_threads": self.option("num_threads"),
@@ -81,7 +81,10 @@ class DiamondModule(Module):
             blast_tool.set_options(opts)
             blast_tool.run()
             self.blast_tools.append(blast_tool)
-        self.on_rely(self.blast_tools, self.run_catblastout)
+        if len(self.blast_tools) == 1:
+            self.blast_tools[0].on("end", self.run_catblastout)
+        else:
+            self.on_rely(self.blast_tools, self.run_catblastout)
         # self.on_rely(self.blast_tools, self.set_step, {'end': self.step.blast})  # on_rely相同的依赖列表不能绑定多个函数
 
     def run_catblastout(self):
@@ -90,32 +93,22 @@ class DiamondModule(Module):
             shutil.rmtree(self.work_dir + '/blast_tmp')
         os.mkdir(self.work_dir + '/blast_tmp')
         for i in self.blast_tools:
-            if self.option('outfmt') == 6:
-                pass
+            if len(os.listdir(i.output_dir)) != 1:
+                self.logger.info(str(os.listdir(i.output_dir)))
+                for f in os.listdir(i.output_dir):
+                    if f.endswith("xml"):
+                        file = f
             else:
-                if len(os.listdir(i.output_dir)) != 1:
-                    self.logger.info(str(os.listdir(i.output_dir)))
-                    for f in os.listdir(i.output_dir):
-                        if f.endswith("xml"):
-                            file = f
-                else:
-                    file = os.listdir(i.output_dir)[0]
-                _path = os.path.join(i.output_dir, file)
+                file = os.listdir(i.output_dir)[0]
+            _path = os.path.join(i.output_dir, file)
             os.link(_path, self.work_dir + '/blast_tmp/' + os.path.basename(_path))
         self.catblast.set_options({"blastout": self.work_dir + '/blast_tmp'})
-        # self.catblast.run()
         self.catblast_tools.append(self.catblast)
-        if self.option('outfmt') == 6:
-            self.tmp_tool = self.add_tool('align.cat_blastout')
-            self.tmp_tool.set_options({"blastout": self.work_dir + '/xml_tmp'})
-            # self.tmp_tool.run()
-            self.catblast_tools.append(self.tmp_tool)
         self.catblast.on('start', self.set_step, {'start': self.step.cat_blastout})
         if len(self.catblast_tools) == 1:
             self.catblast.on('end', self.set_step, {'end': self.step.cat_blastout})
             self.catblast.on('end', self.set_output)
         else:
-            # self.on_rely(self.catblast_tools, self.set_step, {'end': self.step.cat_blastout})
             self.on_rely(self.catblast_tools, self.set_output)
         for i in self.catblast_tools:
             i.run()
@@ -126,12 +119,13 @@ class DiamondModule(Module):
             for names in files:
                 os.remove(os.path.join(root, names))
         if self.option('outfmt') == 6:
-            os.link(self.catblast.option('blast_result').prop['path'], self.output_dir + '/blast_table.xls')
-            self.option('outtable', self.output_dir + '/blast_table.xls')
-            self.option('outxml', self.tmp_tool.option('blast_result').prop['path'])
-        else:
-            os.link(self.catblast.option('blast_result').prop['path'], self.output_dir + '/blast.xml')
-            self.option('outxml', self.output_dir + '/blast.xml')
+            from mbio.files.align.blast.blast_xml import BlastXmlFile
+            xml = BlastXmlFile()
+            xml.set_path(self.catblast.option('blast_result').prop['path'])
+            xml.convert2table(self.output_dir + "/blast.table")
+            self.option('outtable').set_path(self.output_dir + "/blast.table")
+        os.link(self.catblast.option('blast_result').prop['path'], self.output_dir + '/blast.xml')
+        self.option('outxml', self.output_dir + '/blast.xml')
         self.end()
 
     def run(self):

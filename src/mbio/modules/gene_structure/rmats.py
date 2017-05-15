@@ -119,8 +119,10 @@ class RmatsModule(Module):
             b_group_samples = group_sample_dic[b_group_name]
             for a_group_sample in a_group_samples:
                 a_group_path_lst.append(sample_path_dic[a_group_sample + '.bam.sorted'])
+                # a_group_path_lst.append(sample_path_dic[a_group_sample])
             for b_group_sample in b_group_samples:
                 b_group_path_lst.append(sample_path_dic[b_group_sample + '.bam.sorted'])
+                # b_group_path_lst.append(sample_path_dic[b_group_sample])
             a_group_path_str = ','.join(a_group_path_lst)
             b_group_path_str = ','.join(b_group_path_lst)
             a_b_bam_path_tuple_lst.append((a_group_path_str, b_group_path_str))
@@ -157,9 +159,9 @@ class RmatsModule(Module):
             tool.run()
     
     def process_rmats_module_result(self):
-        for rmats_tool_out_root in [os.path.join(self.output_dir,d) for d in os.listdir(self.output_dir) if
+        for rmats_tool_out_root in [os.path.join(self.output_dir, d) for d in os.listdir(self.output_dir) if
                                     os.path.isdir(os.path.join(self.output_dir, d)) and re.match(r'^Rmats', d)]:
-            process_single_rmats_output_dir(root=rmats_tool_out_root,)
+            process_single_rmats_output_dir(root=rmats_tool_out_root, )
             pass
     
     def set_output(self):
@@ -196,6 +198,6 @@ class RmatsModule(Module):
              '差异事件详情表（JunctionCountOnly证据）'],
             ['all_events_detail_big_table.txt', 'txt', '全部结果整合大表'],
             ['config.txt', 'txt', '运行配置详情文件'],
-            ['all_events_detail_big_table.txt','txt','结果综合详情表']
+            ['all_events_detail_big_table.txt', 'txt', '结果综合详情表']
         ])
         super(RmatsModule, self).end()
