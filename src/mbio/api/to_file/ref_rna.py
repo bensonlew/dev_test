@@ -94,8 +94,8 @@ def export_blast_table(data, option_name, dir_path, bind_obj=None):
 
 def export_go_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-    go_list = os.path.join(dir_path, "GO.list")
-    bind_obj.logger.debug("正在导出%sgo列表:%s" % (option_name, go_list))
+    go_list_path = os.path.join(dir_path, "GO.list")
+    bind_obj.logger.debug("正在导出%sgo列表:%s" % (option_name, go_list_path))
     geneset_collection = db["sg_geneset"]
     task_id = geneset_collection.find_one({"_id": ObjectId(data)})["task_id"]
     my_result = db["sg_annotation_go"].find_one({"task_id": task_id})
@@ -106,12 +106,12 @@ def export_go_list(data, option_name, dir_path, bind_obj=None):
     results = collection.find({"go_id": ObjectId(go_id)})
     if not results:
         raise Exception("生成gos_list出错：annotation_id:{}在sg_annotation_gos_list中未找到！".format(ObjectId(go_id)))
-    with open(go_list, "wb") as w:
+    with open(go_list_path, "wb") as w:
         for result in results:
             gene_id = result["gene_id"]
             go_list = result["gos_list"]
             w.write(gene_id + "\t" + go_list + "\n")
-    return go_list
+    return go_list_path
 
 
 def export_kegg_table(data, option_name, dir_path, bind_obj=None):
