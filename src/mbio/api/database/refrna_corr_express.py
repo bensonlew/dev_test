@@ -84,7 +84,7 @@ class RefrnaCorrExpress(Base):
             for line in f:
                 line = line.strip().split("\t")
                 data = {
-                    "correlation_id": correlation_id,
+                    "pca_id": correlation_id,
                     line[0]: line[1]
                 }
                 data_list.append(data)
@@ -110,7 +110,7 @@ class RefrnaCorrExpress(Base):
             for line in f:
                 line = line.strip().split("\t")
                 data = {
-                    "correlation_id": correlation_id,
+                    "pca_id": correlation_id,
                     col_name: line[0]
                 }
                 for n, p in enumerate(pcas):
