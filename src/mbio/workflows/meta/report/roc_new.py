@@ -23,6 +23,7 @@ class RocNewWorkflow(Workflow):
             {"name": "lefse_analysis", "type": "bool", 'default': False},  # 判断是否做这三个分析
             {"name": "two_group_analysis", "type": "bool", 'default': False},
             {"name": "ran_for_analysis", "type": "bool", 'default': False},
+            {"name": "otu_id", "type": "string", "default": ""},  # 导表使用
 
             {"name": "lefse_otu", "type": "infile", 'format': "meta.otu.otu_table"},  # lefse 分析的参数设置
             {"name": "lefse_group", "type": "infile", "format": "meta.otu.group_table"},
@@ -50,11 +51,15 @@ class RocNewWorkflow(Workflow):
             {"name": "intersection", "type": "bool", "default": False},
 
             {"name": "roc_calc_method", "type": "string", "default": "sum"},  # ROC计算方法以及env表的计算方法
-            {"name": "roc_method_1", "type": "string", "default": "a:0.1"},  # 后续需要从网页端传入,必须携带相应的分组名称
+            {"name": "roc_method_1", "type": "string", "default": "a:0.1"},
+            # 后续需要从网页端传入,必须携带相应的分组名称
             {"name": "roc_method_2", "type": "string", "default": "b:0.2"},
-            {"name": "env_table", "type": "string", "default": ""},  # 需要修改在workflow内部进行to_file
+            {"name": "env_table", "type": "infile", 'format': "meta.otu.group_table"},  # env表格存在有或没有的状态
+            {"name": "env_labs", "type": "string", "default": ""},
+            {"name": "env_id", "type": "string", "default": ""},
 
             {"name": "update_info", "type": "string"},  # workflow更新
+            {"name": "main_id", "type": "string", "default": "56a847100e6da953f3ce31e6"},  # 主表id 测试用default
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -78,7 +83,8 @@ class RocNewWorkflow(Workflow):
         if self.option('roc_calc_method') not in ['sum', 'average', 'median', 'MI']:
             raise OptionError('错误的roc计算方法：%s' % self.option('roc_calc_method'))
         if self.option('roc_calc_method') == "MI" and (self.option('roc_method_1') == "" or self.option('roc_method_2') == ""):
-            raise OptionError('错误的roc计算方法参数：%s %s' % (self.option('roc_method_1'), self.option('roc_method_2')))
+            raise OptionError('错误的roc计算方法参数：%s %s' %
+                              (self.option('roc_method_1'), self.option('roc_method_2')))
 
     def run(self):
         self.run_two_ran_lefse()
@@ -120,7 +126,7 @@ class RocNewWorkflow(Workflow):
             self.two_ran_lefse.on("end", self.run_roc_two)
         elif self.option('ran_for_analysis'):
             self.two_ran_lefse.on("end", self.run_roc_ran)
-        elif self.option("env_table") != "":
+        elif self.option('env_table').is_set:
             self.two_ran_lefse.on("end", self.run_roc_env)
         else:
             raise Exception('参数不正确，无法正常进行roc分析')
@@ -142,17 +148,23 @@ class RocNewWorkflow(Workflow):
             'top_n': 0
         }
         self.roc_intersection.set_options(options)
-        if self.option("env_table") != "":
+        if self.option('env_table').is_set:
             self.roc_intersection.on("end", self.run_roc_env)
         else:
             self.roc_intersection.on("end", self.set_db)
         self.roc_intersection.run()
 
     def run_roc_env(self):
+        env_otu = self.get_env_otu(self.option('env_table').prop['path'])
+        if self.option('roc_calc_method') == "MI":
+            mi_group = os.path.join(self.work_dir, "roc_mi_otu.xls")
+            self.get_mi_otu(env_otu, self.option('two_ran_group').prop['path'], mi_group, self.dict)
+        else:
+            mi_group = self.option('two_ran_group')
         options = {
-            'otu_table': self.option("env_table").prop['path'],
-            # 'level': self.option('level_id'),
-            'group_table': self.option('two_ran_group'),
+            'otu_table': env_otu,  # 把传入的env表格进行修改，otu表一个格式的进行
+            'level': self.option('level_id'),
+            'group_table': mi_group,  # 分组文件表
             'method': self.option('roc_calc_method'),
             'top_n': 0
         }
@@ -180,7 +192,7 @@ class RocNewWorkflow(Workflow):
             self.roc_lefse.on("end", self.run_roc_two)
         elif self.option('ran_for_analysis'):
             self.roc_lefse.on("end", self.run_roc_ran)
-        elif self.option("env_table") != "":
+        elif self.option('env_table').is_set:
             self.roc_lefse.on("end", self.run_roc_env)
         else:
             self.roc_lefse.on("end", self.set_db)
@@ -189,7 +201,7 @@ class RocNewWorkflow(Workflow):
     def run_roc_two(self):
         two_otu = self.get_otu_table(name="two_group")
         if self.option('roc_calc_method') == "MI":
-            mi_group = os.path.join(self.work_dir, "lefse_mi_otu.xls")
+            mi_group = os.path.join(self.work_dir, "two_mi_otu.xls")
             self.get_mi_otu(two_otu, self.option('two_ran_group').prop['path'], mi_group, self.dict)
         else:
             mi_group = self.option('two_ran_group')
@@ -204,7 +216,7 @@ class RocNewWorkflow(Workflow):
         self.roc_two.set_options(options)
         if self.option('ran_for_analysis'):
             self.roc_two.on("end", self.run_roc_ran)
-        elif self.option("env_table") != "":
+        elif self.option('env_table').is_set:
             self.roc_two.on("end", self.run_roc_env)
         else:
             self.roc_two.on("end", self.set_db)
@@ -213,7 +225,7 @@ class RocNewWorkflow(Workflow):
     def run_roc_ran(self):
         ran_otu = self.get_otu_table(name="random_forest")
         if self.option('roc_calc_method') == "MI":
-            mi_group = os.path.join(self.work_dir, "lefse_mi_otu.xls")
+            mi_group = os.path.join(self.work_dir, "ran_mi_otu.xls")
             self.get_mi_otu(ran_otu, self.option('two_ran_group').prop['path'], mi_group, self.dict)
         else:
             mi_group = self.option('two_ran_group')
@@ -226,11 +238,22 @@ class RocNewWorkflow(Workflow):
             'top_n': 0
         }
         self.roc_ran.set_options(options)
-        if self.option("env_table") != "":
+        if self.option('env_table').is_set:
             self.roc_ran.on("end", self.run_roc_env)
         else:
             self.roc_ran.on("end", self.set_db)
         self.roc_ran.run()
+
+    def get_env_otu(self, env_table):
+        con = pd.read_table(env_table, header=0, sep="\t")
+        cont = con.T
+        sample_list = [i for i in cont.ix[0]]
+        cont = cont.drop("#SampleID")
+        cont.columns = sample_list
+        cont.index.name = "OTU ID"
+        table = os.path.join(self.work_dir, "env_table")
+        cont.to_csv(table, sep="\t", index=True)
+        return table
 
     def get_otu_table(self, name=None):
         if name == "lefse":
@@ -241,9 +264,12 @@ class RocNewWorkflow(Workflow):
                 con = con.sort_values(by="pvalue", ascending=False)
             else:
                 con = con.sort_values(by="lda", ascending=False)
-            self.logger.info("lefse排序结果:{}".format(con))
             con = con.iloc[:self.option('lefse_num')]
-            lefse_spe_list = [i for i in con['taxon']]  # lda表中的物种
+            lefse_spe_list_old = [i for i in con['taxon']]  # lda表中的物种
+            lefse_spe_list = []
+            for i in lefse_spe_list_old:
+                c = i.split('.')
+                lefse_spe_list.append((';').join(c))
             ori_otu = pd.read_table(os.path.join(self.two_ran_lefse.output_dir, "lefse_otu_table"), header=0, sep="\t")
             spe_list = [i for i in ori_otu['OTU ID']]  # 原始otu表中的物种
             ori_otu.index = spe_list
@@ -268,7 +294,6 @@ class RocNewWorkflow(Workflow):
             new_otu = ori_otu.reindex(index=two_group_spe_list)
             table = os.path.join(self.work_dir, 'two_group_otu.xls')
             new_otu.to_csv(table, sep="\t", index=False)
-            self.logger.info("生成还没寻找各物种在哪个组中为高丰度物种的otu表格_two_group")
         if name == "random_forest":
             file_path = os.path.join(self.two_ran_lefse.output_dir, "Random_table.xls")
             con = pd.read_table(file_path, header=0, sep="\t")
@@ -281,7 +306,6 @@ class RocNewWorkflow(Workflow):
             new_otu = ori_otu.reindex(index=index)
             table = os.path.join(self.work_dir, 'random_forest_otu.xls')
             new_otu.to_csv(table, sep="\t", index=False)
-            self.logger.info("生成还没寻找各物种在哪个组中为高丰度物种的otu表格_random_forest")
         return table
 
     def get_intersection_otu(self):
@@ -303,7 +327,6 @@ class RocNewWorkflow(Workflow):
             for i in path:
                 T += 1
                 con = pd.read_table(i, header=0, sep="\t")
-                # self.logger.info('{}的otu-id{}'.format(i, con['OTU ID']))
                 spe_list = [m.split(";")[-1] for m in con['OTU ID']]  # 取最后一个分类水平的名称
                 old = new
                 new = set(spe_list)
@@ -357,6 +380,8 @@ class RocNewWorkflow(Workflow):
                 a_number = a_number + 1
             else:
                 b_number = b_number + 1
+        if a_number == 0 or b_number == 0:
+            raise Exception("筛选后物种无法进行MI指数的roc分析{}".format(result_path))
         data = {}
         con = pd.DataFrame(data)
         for i in fin_otu.index:
@@ -380,12 +405,12 @@ class RocNewWorkflow(Workflow):
         fin_con = con.T
         fin_value = []
         for i in fin_con.index:
-            value = fin_con.ix[i][0] * dict_[fin_con.columns[0]] - fin_con.ix[i][1] * dict_[fin_con.columns[1]]
+            value = fin_con.ix[i][0] * float(dict_[fin_con.columns[0]]) - fin_con.ix[i][1] * float(dict_[fin_con.columns[1]])
             fin_value.append(value)
         fin_con["value"] = fin_value
         fin_con["group_name"] = g_list
         fin_con = fin_con.drop([sum_table.columns[0], sum_table.columns[1]], axis=1)
-        fin_con.index.name = "sample"
+        fin_con.index.name = "#Sample"
         fin_con.to_csv(result_path, sep="\t", index=True)
 
     def end(self):
@@ -437,6 +462,23 @@ class RocNewWorkflow(Workflow):
                 self.linkdir(self.roc_two.output_dir, "Two_roc")
             if self.option("ran_for_analysis"):
                 self.linkdir(self.roc_ran.output_dir, "Ran_roc")
+        if self.option('env_table').is_set:
+            self.linkdir(self.roc_env.output_dir, "Env_roc")
+        api_roc = self.api.roc
+        dir_name = os.listdir(self.output_dir)
+        for name in dir_name:
+            dir_path = os.path.join(self.output_dir, name)
+            file_name = os.listdir(dir_path)
+            for f_name in file_name:
+                if f_name == "roc_auc.xls":
+                    api_roc.add_roc_auc(file_path=os.path.join(dir_path, f_name), table_id=self.option("main_id"),
+                                        dir_name=name)
+                if f_name == "roc_curve.xls":
+                    api_roc.add_roc_curve(file_path=os.path.join(dir_path, f_name), table_id=self.option("main_id"),
+                                          dir_name=name)
+                if f_name == "roc_plot_rocarea.xls":
+                    api_roc.add_roc_area(file_path=os.path.join(dir_path, f_name), table_id=self.option("main_id"),
+                                         dir_name=name)
         self.end()
 
     def linkdir(self, dirpath, dirname):
