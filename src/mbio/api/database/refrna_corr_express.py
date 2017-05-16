@@ -69,8 +69,8 @@ class RefrnaCorrExpress(Base):
             site_file = os.path.join(pca_path, 'pca_sites.xls')
             if os.path.exists(pca_path):
                 self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
-                self.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
-                self.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_sites', correlation_id=inserted_id)
+                #self.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
+                self.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
         print "pca主表导入成功！{}".format(inserted_id)
         return inserted_id
 
@@ -192,7 +192,7 @@ class RefrnaCorrExpress(Base):
             f.close()
             r.close()
             collection_first = db['sg_express_correlation']
-            collection_first.update({"_id": ObjectId(correlation_id)}, {"$set": {"correlation_tree": tree_row, "row_tree": tree_row, "col_tree": tree_col, "tree_list": tree_list}})
+            collection_first.update({"_id": ObjectId(correlation_id)}, {"$set": {"correlation_tree": tree_row, "row_tree": tree_row, "col_tree": tree_col, "specimen": tree_list}})
         try:
             collection = db["sg_express_correlation_detail"]
             collection.insert_many(data_list)
@@ -202,7 +202,7 @@ class RefrnaCorrExpress(Base):
             print ("导入相关系数分析数据成功")
     
     @report_check
-    def add_venn(self, group_id,group_detail, express_id, venn_table=None, venn_graph_path=None, params=None, query_type=None):
+    def add_venn(self, group_id,group_detail, express_id, venn_table=None, venn_graph_path=None, params=None, query_type=None,analysis_name="express"):
         #db = Config().MONGODB + '_ref_rna'\
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_id, ObjectId):
@@ -225,16 +225,19 @@ class RefrnaCorrExpress(Base):
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "params": (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
         }
-        collection = db['sg_express_venn']
+        if analysis_name=="express":
+            collection = db['sg_express_venn']
+        if analysis_name =='geneset':
+            collection = db["sg_geneset_venn"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         if venn_table:
-            self.add_venn_detail(venn_table, inserted_id,project='ref')
+            self.add_venn_detail(venn_table, inserted_id,project='ref',analysis_name=analysis_name)
         if venn_graph_path:
-            self.add_venn_graph(venn_graph_path=venn_graph_path, venn_id=inserted_id, project='ref')
+            self.add_venn_graph(venn_graph_path=venn_graph_path, venn_id=inserted_id, project='ref',analysis_name=analysis_name)
         print inserted_id
         return inserted_id
 
-    def add_venn_detail(self, venn_table, venn_id, project = None):
+    def add_venn_detail(self, venn_table, venn_id, project = None,analysis_name="express"):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         if not isinstance(venn_id, ObjectId):
@@ -256,7 +259,10 @@ class RefrnaCorrExpress(Base):
             if project == 'denovo':
                 collection = db["sg_denovo_venn_detail"]
             if project == 'ref':
-                collection = db['sg_express_venn_detail']
+                if analysis_name =="express":
+                    collection = db['sg_express_venn_detail']
+                if analysis_name == "geneset":
+                    collection = db['sg_geneset_venn_detail']
             collection.insert_many(data_list)
             print 'haha1'
         except Exception, e:
@@ -264,7 +270,7 @@ class RefrnaCorrExpress(Base):
         else:
             print ("导入Venn数据成功")
 
-    def add_venn_graph(self,venn_graph_path, venn_id, project='meta'):
+    def add_venn_graph(self,venn_graph_path, venn_id, project='meta',analysis_name="express"):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         if not isinstance(venn_id, ObjectId):
@@ -292,7 +298,10 @@ class RefrnaCorrExpress(Base):
             if project == 'denovo':
                 collection = db["sg_denovo_venn_graph"]
             if project == 'ref':
-                collection = db['sg_express_venn_graph']
+                if analysis_name == "express":
+                    collection = db['sg_express_venn_graph']
+                if analysis_name == 'geneset':
+                    collection = db['sg_geneset_venn_graph']
             collection.insert_many(data_list)
         except Exception, e:
             print ("导入Venn画图数据出错:%s" % e)
