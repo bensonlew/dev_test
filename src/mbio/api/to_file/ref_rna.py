@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'sanger'
+from __future__ import division
 import os
 from biocluster.config import Config
 from bson.objectid import ObjectId
@@ -263,35 +264,41 @@ def get_geneset_detail(data):
 def export_go_class(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     go_path = os.path.join(dir_path, 'go_class_table.xls')
-    print("正在导出")
+    bind_obj.logger.debug("正在导出{}".format(go_path))
     genesets, table_title, task_id, seq_type = get_geneset_detail(data)
-    print seq_type
+    bind_obj.logger.debug(seq_type)
     go_collection = db["sg_annotation_go"]
     go_level_collection = db["sg_annotation_go_level"]
     go_id = go_collection.find_one({"task_id": task_id})["_id"]
-    go_results = go_level_collection.find({'go_id': go_id, "level": 2})
-    # go_results = go_level_collection.find({'go_id': go_id, "level": 2, "anno_type": seq_type})
+    # go_results = go_level_collection.find({'go_id': go_id, "level": 2})
+    go_results = go_level_collection.find({'go_id': go_id, "level": 2, "anno_type": seq_type})
+
     # print table_title
     new_table_title = []
     for tt in table_title:
         new_table_title.append(tt + " num")
         new_table_title.append(tt + " percent")
-    print new_table_title
+        new_table_title.append(tt + " list")
+    bind_obj.logger.debug(new_table_title)
     with open(go_path, "wb") as w:
         w.write("Term type\tTerm\tGO\t" + "\t".join(new_table_title) + "\n")
         for gr in go_results:
-            seq_list = set(gr["seq_list"].split(";"))
+            # seq_list = set(gr["seq_list"].split(";"))
+            seq_list = set(re.findall(r"(.*?)\(.*?\);", gr["seq_list"]))
+            # bind_obj.logger.debug(seq_list)
             write_line = {}
             for gt in genesets:
+                total_gene_num = len(genesets[gt][1])
                 go_count = list(seq_list & genesets[gt][1])
                 # print len(go_count)
+                # bind_obj.logger.debug(go_count)
                 if not len(go_count) == 0:
-                    write_line[gt] = str(len(go_count))
+                    write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "\t" + ";".join(go_count)
             if len(write_line):
                 w.write("{}\t{}\t{}\t".format(gr["parent_name"], gr["term_type"], gr["go"]))
                 for tt in table_title:
-                    print tt
-                    w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t")
+                    # bind_obj.logger.debug(tt)
+                    w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t0\t \t")
                 # print write_line
                 # w.write("\t".join(write_line[write_line_key]))
                 w.write("\n")
