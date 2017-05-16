@@ -583,7 +583,7 @@ class RefrnaExpress(Base):
 
                 diff_fc = line[-7]  # fc 信息
                 if fc:
-                    standard_fc = math.log(fc)/math.log2  
+                    standard_fc = math.log(fc)/math.log(2)
                     if diff_fc >= standard_fc:
                         m_ = re.search(regulate,up_down)
                         if _:

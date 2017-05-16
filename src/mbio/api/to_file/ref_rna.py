@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'sanger'
+from __future__ import division
 import os
 from biocluster.config import Config
 from bson.objectid import ObjectId
@@ -75,8 +76,8 @@ def export_blast_table(data, option_name, dir_path, bind_obj=None):
             hsp_end = result["hsp_end"]
             hsp_frame = result["hsp_frame"]
             line = str(score) + "\t" + str(evalue) + "\t" + str(hsp_len) + "\t" + str(identity) + "\t"
-            line += str(similarity) + "\t" + query_id + "\t" + q_len + "\t" + q_begin + "\t" + q_end + "\t" + q_frame + "\t"
-            line += hit_name + "\t"+ hit_len + "\t" + hsp_begin + "\t" + hsp_end + "\t" + hsp_frame + "\t" + description + "\n"
+            line += str(similarity) + "\t" + query_id + "\t" + str(q_len) + "\t" + q_begin + "\t" + q_end + "\t" + q_frame + "\t"
+            line += hit_name + "\t" + str(hit_len) + "\t" + hsp_begin + "\t" + hsp_end + "\t" + hsp_frame + "\t" + description + "\n"
             if seq_type == "new":
                 if db == "nr":
                     if anno_type == "transcript":
@@ -94,8 +95,8 @@ def export_blast_table(data, option_name, dir_path, bind_obj=None):
 
 def export_go_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-    go_list = os.path.join(dir_path, "GO.list")
-    bind_obj.logger.debug("正在导出%sgo列表:%s" % (option_name, go_list))
+    go_list_path = os.path.join(dir_path, "GO.list")
+    bind_obj.logger.debug("正在导出%sgo列表:%s" % (option_name, go_list_path))
     geneset_collection = db["sg_geneset"]
     task_id = geneset_collection.find_one({"_id": ObjectId(data)})["task_id"]
     my_result = db["sg_annotation_go"].find_one({"task_id": task_id})
@@ -106,12 +107,12 @@ def export_go_list(data, option_name, dir_path, bind_obj=None):
     results = collection.find({"go_id": ObjectId(go_id)})
     if not results:
         raise Exception("生成gos_list出错：annotation_id:{}在sg_annotation_gos_list中未找到！".format(ObjectId(go_id)))
-    with open(go_list, "wb") as w:
+    with open(go_list_path, "wb") as w:
         for result in results:
             gene_id = result["gene_id"]
             go_list = result["gos_list"]
             w.write(gene_id + "\t" + go_list + "\n")
-    return go_list
+    return go_list_path
 
 
 def export_kegg_table(data, option_name, dir_path, bind_obj=None):
@@ -140,16 +141,16 @@ def export_all_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     all_list = os.path.join(dir_path, "all_gene.list")
     bind_obj.logger.debug("正在导出所有基因")
-    collection = db['sg_geneset_detail']
-    main_collection = db['sg_geneset']
-    my_result = main_collection.find_one({'task_id': data, "type": "background"})
+    collection = db['sg_express_class_code_detail']
+    main_collection = db['sg_express_class_code']
+    my_result = main_collection.find_one({'task_id': data})
     print my_result["_id"]
     if not my_result:
         raise Exception("意外错误，task_id:{}的背景基因在sg_geneset中未找到！".format(data))
-    results = collection.find({"geneset_id": ObjectId(my_result["_id"])})
+    results = collection.find({"class_code_id": ObjectId(my_result["_id"])})
     with open(all_list, "wb") as f:
         for result in results:
-            gene_id = result['gene_name']
+            gene_id = result['assembly_gene_id']
             f.write(gene_id + "\n")
     return all_list
 
@@ -200,13 +201,13 @@ def export_diff_express(data, option_name, dir_path, bind_obj=None):  # 需要�
 def export_cog_class(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     cog_path = os.path.join(dir_path, 'cog_class_table.xls')
-    bind_obj.logger.debug("正在导出")
+    bind_obj.logger.debug("正在导出{}".format(cog_path))
     genesets, table_title, task_id, geneset_type = get_geneset_detail(data)
     cog_collection = db["sg_annotation_cog"]
     cog_detail_collection = db["sg_annotation_cog_detail"]
     cog_id = cog_collection.find_one({"task_id": task_id})["_id"]
     cog_results = cog_detail_collection.find({'cog_id': cog_id})
-    print table_title
+    bind_obj.logger.debug(table_title)
     with open(cog_path, "wb") as w:
         w.write("Type\tFunctional Categoris\t" + "\t".join(table_title) + "\n")
         for cr in cog_results:
@@ -249,7 +250,7 @@ def get_geneset_detail(data):
         geneset_name = geneset_result["name"]
         table_title.append(geneset_name)
         genesets[geneset_name] = [geneset_type]
-        geneset_names = set()
+        # geneset_names = set()
         collection = db['sg_geneset_detail']
         results = collection.find_one({"geneset_id": ObjectId(geneset_id)})
         geneset_names = set(results["gene_list"])
@@ -263,35 +264,41 @@ def get_geneset_detail(data):
 def export_go_class(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     go_path = os.path.join(dir_path, 'go_class_table.xls')
-    print("正在导出")
+    bind_obj.logger.debug("正在导出{}".format(go_path))
     genesets, table_title, task_id, seq_type = get_geneset_detail(data)
-    print seq_type
+    bind_obj.logger.debug(seq_type)
     go_collection = db["sg_annotation_go"]
     go_level_collection = db["sg_annotation_go_level"]
     go_id = go_collection.find_one({"task_id": task_id})["_id"]
-    go_results = go_level_collection.find({'go_id': go_id, "level": 2})
-    # go_results = go_level_collection.find({'go_id': go_id, "level": 2, "anno_type": seq_type})
+    # go_results = go_level_collection.find({'go_id': go_id, "level": 2})
+    go_results = go_level_collection.find({'go_id': go_id, "level": 2, "anno_type": seq_type})
+
     # print table_title
     new_table_title = []
     for tt in table_title:
         new_table_title.append(tt + " num")
         new_table_title.append(tt + " percent")
-    print new_table_title
+        new_table_title.append(tt + " list")
+    bind_obj.logger.debug(new_table_title)
     with open(go_path, "wb") as w:
         w.write("Term type\tTerm\tGO\t" + "\t".join(new_table_title) + "\n")
         for gr in go_results:
-            seq_list = set(gr["seq_list"].split(";"))
+            # seq_list = set(gr["seq_list"].split(";"))
+            seq_list = set(re.findall(r"(.*?)\(.*?\);", gr["seq_list"]))
+            # bind_obj.logger.debug(seq_list)
             write_line = {}
             for gt in genesets:
+                total_gene_num = len(genesets[gt][1])
                 go_count = list(seq_list & genesets[gt][1])
                 # print len(go_count)
+                # bind_obj.logger.debug(go_count)
                 if not len(go_count) == 0:
-                    write_line[gt] = str(len(go_count))
+                    write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "\t" + ";".join(go_count)
             if len(write_line):
                 w.write("{}\t{}\t{}\t".format(gr["parent_name"], gr["term_type"], gr["go"]))
                 for tt in table_title:
-                    print tt
-                    w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t")
+                    # bind_obj.logger.debug(tt)
+                    w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t0\t \t")
                 # print write_line
                 # w.write("\t".join(write_line[write_line_key]))
                 w.write("\n")
@@ -315,12 +322,12 @@ def export_gene_list_ppi(data, option_name, dir_path, bind_obj=None):
     bind_obj.logger.debug("基因集导出成功！")
     return gene_list_path
 
-    
+
 # ############表达量部分
 ####################################################表达量部分
 def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     """
-    level对应的是gene/transcript字段，workflow里确保有这个字段 
+    level对应的是gene/transcript字段，workflow里确保有这个字段
     """
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     fpkm_path = os.path.join(dir_path, "%s_fpkm.matrix" % option_name)
@@ -378,7 +385,7 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
         return file_path
     data = _get_objectid(data)
     group_detail = bind_obj.sheet.option('group_detail')  #另传字段
-    group_table = db['sg_specimen_group']  
+    group_table = db['sg_specimen_group']
     if not isinstance(group_detail, dict):
         try:
             table_dict = json.loads(group_detail)
@@ -417,7 +424,7 @@ def _get_objectid(data):
             except:
                 raise Exception("{}不为ObjectId类型或者其对应的字符串".format(data))
     return data
-    
+
 def export_control_file(data, option_name, dir_path, bind_obj=None):  #此函数待定 不一定对
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     file_path = os.path.join(dir_path, '{}.txt'.format(option_name))
@@ -457,10 +464,10 @@ def _get_gene_id(geneset,geneset_detail,_id):
     except Exception:
         raise Exception("{}在sg_geneset表中没有找到!")
     return seq_id, _name
-    
+
 def export_geneset_venn_level(data, option_name, dir_path, bind_obj=None):
     """
-    level对应的是gene/transcript字段，workflow里确保有这个字段 
+    level对应的是gene/transcript字段，workflow里确保有这个字段
     """
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     geneset_venn = os.path.join(dir_path,"%s_geneset_venn" %(option_name))
@@ -478,7 +485,7 @@ def export_geneset_venn_level(data, option_name, dir_path, bind_obj=None):
         _seq = ",".join(seq)
         geneset_table.write(_name+"\t"+_seq+"\n")
     geneset_table.close()
-    return geneset_venn 
+    return geneset_venn
 
 def export_class_code(data,option_name,dir_path,bind_obj=None): #输出class_code信息
     """
@@ -511,15 +518,15 @@ if __name__ == "__main__":
 def export_geneset_cluster_level(data,option_name,dir_path,bind_obj=None):  #这个函数待定 并且导表函数也待定
     """
     此函数暂时没有用到
-    log对应的是2/10字段，workflow里确保有这个字段 
-    type对应的是fpkm/tpm字段，workflow里确保有这个字段 
+    log对应的是2/10字段，workflow里确保有这个字段
+    type对应的是fpkm/tpm字段，workflow里确保有这个字段
     data 是两个id，由逗号连接，第一个id是geneset_id 第二个是express_id
     """
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     fpkm_path = os.path.join(dir_path, "%s_fpkm.matrix" % option_name)
     bind_obj.logger.debug("正在导出表达量矩阵矩阵:%s" %(fpkm_path))
     log = bind_obj.sheet.option("log")
-    type = bind_obj.sheet.option('type')  
+    type = bind_obj.sheet.option('type')
     if not re.search(',',data):
         raise Exception("{}必须是两个ObjectId对象,并由逗号连接".format(data))
     geneset_id = data.split(",")[0]
@@ -551,7 +558,7 @@ def export_geneset_cluster_level(data,option_name,dir_path,bind_obj=None):  #这
             fpkm_write += '\n'
             f.write(fpkm_write)
     return fpkm_path
-    
+
 ###########################################
 
 def export_multi_gene_list(data, option_name, dir_path, bind_obj=None):

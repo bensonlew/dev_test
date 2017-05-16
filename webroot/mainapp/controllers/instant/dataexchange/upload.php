@@ -80,7 +80,7 @@ if ((preg_match("/MSIE/", $ua)) or (preg_match("/Firefox/", $ua)) or (preg_match
 else{
 	$info = checkIdentity($code, $input_dir, $mode);
 	if (!$info["success"]){
-	    header('HTTP/1.1 405 '. $info["info"]);
+	    header('HTTP/1.1 405 '. $info);
 	}
 	else{
 		if (!is_dir($dir_name)){

@@ -9,7 +9,6 @@ from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.report.download_web_pic import DownloadWebPic
 from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
 from mainapp.controllers.instant.dataexchange.upload_task import UploadTask
-from mainapp.controllers.submit.meta.pipe import Pipe
 
 
 # Meta instant
@@ -45,6 +44,10 @@ from mainapp.controllers.submit.meta.n_pca import NPca
 from mainapp.controllers.submit.meta.environmental_regression import EnvironmentalRegression
 from mainapp.controllers.submit.meta.function_predict import FunctionPredict
 from mainapp.controllers.submit.meta.meta_sourcetracker import MetaSourcetracker
+from mainapp.controllers.submit.meta.pipe import Pipe
+
+# sequence submit
+from mainapp.controllers.submit.sequence.sample_extract import SampleExtract
 
 # Denovo_rna submit
 from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
@@ -79,9 +82,9 @@ urls = (
     "/app/dataexchange/download_task", "DownloadTask",
     "/dataexchange/upload_task", "UploadTask",
     "/app/dataexchange/upload_task", "UploadTask",
-    "/meta/pipe", "Pipe",
 
     # Meta
+    "/meta/pipe", "Pipe",
     "/meta/demo_mongodata_copy", "DemoMongodataCopy",
     "/meta/convert_level", "ConvertLevel",
     "/meta/estimators", "Estimators",
@@ -116,6 +119,9 @@ urls = (
     "/meta/function_predict", "FunctionPredict",
     "/meta/meta_sourcetracker", "MetaSourcetracker",
 
+    # sequence
+    "/sequence/sample_extract", "SampleExtract",
+
     # denovo_rna
     "/denovo_rna/network", "Network",
     "/denovo_rna/cluster", "Cluster",
@@ -127,7 +133,6 @@ urls = (
     "/paternity_test/pt_datasplit", "PtDatasplit",
     "/paternity_test_new", "PaternityTestNew"
 )
-
 
 class hello(object):
     # @check_sig

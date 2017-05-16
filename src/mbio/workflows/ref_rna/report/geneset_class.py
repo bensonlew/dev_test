@@ -36,6 +36,8 @@ class GenesetClassWorkflow(Workflow):
         # self.group_spname = dict()
 
     def run(self):
+        self.start_listener()
+        self.fire("start")
         if self.option("anno_type") == "kegg":
             self.get_kegg_table()
         self.set_db()
@@ -52,6 +54,7 @@ class GenesetClassWorkflow(Workflow):
             api_geneset.add_geneset_cog_detail(output_file, self.option("main_table_id"))
         elif self.option("anno_type") == "go":
             output_file = self.option("geneset_go")
+            # api_geneset.add_geneset_cog_detail(output_file, self.option("main_table_id"))
         else:
             output_file = self.output_dir + '/kegg_stat.xls'
             api_geneset.add_geneset_kegg_detail(output_file, self.option("main_table_id"))

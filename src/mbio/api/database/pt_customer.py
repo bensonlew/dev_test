@@ -14,15 +14,11 @@ class PtCustomer(Base):
     '''
     def __init__(self, bind_object):
         super(PtCustomer, self).__init__(bind_object)
-        # self.mongo_client = MongoClient(Config().MONGO_URI)
-        # self.database = self.mongo_client['tsanger_paternity_test_v2']
         self.mongo_client = Config().mongo_client
-        self.database = self.mongo_client['tsanger_paternity_test_v2']
+        self.database = self.mongo_client[Config().MONGODB+'_paternity_test']
 
-        # self.mongo_client_ref = MongoClient(Config().MONGO_BIO_URI)
-        # self.database_ref = self.mongo_client_ref['sanger_paternity_test_v2']
         self.mongo_client_ref = Config().biodb_mongo_client
-        self.database_ref = self.mongo_client_ref['sanger_paternity_test_v2']
+        self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
 
 
     # @report_check
@@ -37,7 +33,6 @@ class PtCustomer(Base):
                 # num += 1
                 # if num == 1: #csv格式的文件没有表头 所以不需要这一句
                 # 	continue
-                print line
                 #line = line.decode("gb2312")
                 line = line.decode("GB18030")
                 line = line.strip()
@@ -53,7 +48,6 @@ class PtCustomer(Base):
                     family_name = "WQ" + line[8].split("-")[1] +"-"+ line[8].split("-")[-1] + "-" + line[5].split("-")[-1] + "-" + line[21].split("-")[-1]
                 else:
                     family_name = "WQ" + line[8].split("-")[1] +"-"+ line[8].split("-")[-1] + "-" + line[5].split("-")[-1] + "-S"
-                print len(line)
                 collection = self.database["sg_pt_customer"]
                 result = collection.find_one({"name": family_name})
                 if result:
@@ -78,18 +72,20 @@ class PtCustomer(Base):
                     collection.insert_one(insert_data)
                 except Exception as e:
                     self.bind_object.logger.error('导入家系表表出错：{}'.format(e))
-                else:
-                    self.bind_object.logger.info("导入家系表成功")
-        try:
-            main_collection = self.database["sg_pt_datasplit"]
-            self.bind_object.logger.info("开始刷新主表写状态")
-            main_collection.update({"_id": ObjectId(main_id)},
-                                    {"$set": {
-                                        "desc": "pt_datasplit done, start pt_batch"}})
-        except Exception as e:
-            self.bind_object.logger.error("更新sg_pt_datasplit主表出错:{}".format(e))
-        else:
-            self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
+                    raise Exception('导入家系表表出错：{}'.format(e))
+                # else:
+                #     self.bind_object.logger.info("导入家系表成功")
+        self.bind_object.logger.info("导入家系表成功")
+        # try:
+        #     main_collection = self.database["sg_pt_datasplit"]
+        #     self.bind_object.logger.info("开始刷新主表写状态")
+        #     main_collection.update({"_id": ObjectId(main_id)},
+        #                             {"$set": {
+        #                                 "desc": "pt_datasplit done, start pt_batch"}})
+        # except Exception as e:
+        #     self.bind_object.logger.error("更新sg_pt_datasplit主表出错:{}".format(e))
+        # else:
+        #     self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
 
     def add_data_dir(self, dir_name, wq_dir, ws_dir, undetermined_dir):
         insert_data = {
@@ -150,7 +146,3 @@ class PtCustomer(Base):
                     self.bind_object.logger.info("导入ref类型成功")
             else:
                 self.bind_object.logger.info("没有插入样本信息")
-
-
-
-

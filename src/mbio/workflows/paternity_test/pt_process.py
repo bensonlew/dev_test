@@ -28,7 +28,7 @@ class PtProcessWorkflow(Workflow):
 			{"name": "mom_id", "type": "string"},
 			{"name": "preg_id", "type": "string"},
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
-			{"name": "ref_point", "type": "infile","format":"sequence.rda"},  # 参考位点
+			{"name": "ref_point", "type": "infile","format":"paternity_test.rda"},  # 参考位点
 			{"name": "dedup_num", "type": "int", "default": 50},  # 查重样本数
 
 			{"name": "second_sample_f", "type": "bool", "default": False},  # 是否重送样或二次上机

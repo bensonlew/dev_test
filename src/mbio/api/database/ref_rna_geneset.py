@@ -60,7 +60,7 @@ class RefRnaGeneset(Base):
             for line in f:
                 line = line.strip().split("\t")
                 data = {
-                    'geneset_cog_id': geneset_cog_id,
+                    'geneset_cog_id': ObjectId(geneset_cog_id),
                     'type': line[0],
                     'function_categories': line[1]
                 }
