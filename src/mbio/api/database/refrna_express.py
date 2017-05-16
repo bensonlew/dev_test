@@ -240,15 +240,16 @@ class RefrnaExpress(Base):
                     ("type",query_type),
                     ("value_type",value_type),
                     ("method",method),
-                    ("sample_group",sample_group)
+                    ("sample_group",sample_group),
+                    ("express_id",express_id)
                 ]
                 fpkm_data = line[1:]
                 for i in range(len(fpkm_data)):
                     data_log2 = log(float(fpkm_data[i])+1)/log(2)
                     data_log10 = log(float(fpkm_data[i])+1)/log(10)
                     insert_data += [
-                        ('{}_log2_fpkm'.format(group_name),data_log2),
-                        ('{}_log10_fpkm'.format(group_name),data_log10)
+                        ('{}_log2_fpkm'.format(group_name[i]),data_log2),
+                        ('{}_log10_fpkm'.format(group_name[i]),data_log10)
                     ]
                 insert_data=SON(insert_data)
                 data_list.append(insert_data)
