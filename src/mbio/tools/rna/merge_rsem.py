@@ -31,7 +31,7 @@ class MergeRsemAgent(Agent):
             {"name": "gene_fpkm", "type": "outfile", "format": "rna.express_matrix"},
             {"name": "is_duplicate", "type": "bool"}, # 是否有生物学重复 
             {"name": "class_code", "type":"outfile", "format":"rna.express_matrix"}, #class_code 文件基本信息
-            {"name": "edger_group", "type":"infile", "format":"meta.otu.group_table"},
+            {"name": "edger_group", "type":"infile", "format":"sample.group_table"},
             {"name": "exp_way", "type": "string", "default": "fpkm"},
         ]
         self.add_option(options)
