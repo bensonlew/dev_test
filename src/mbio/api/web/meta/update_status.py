@@ -207,5 +207,12 @@ class UpdateStatus(Log):
         self.logger.info("存在batch_id:{}, collection: {}, _id: {}, status: {}".format(batch_id, collection, _id, status))
         # meta_pipe_detail_id = ObjectId(meta_pipe_detail_id)
         batch_id = ObjectId(batch_id)
-        self.mongodb['sg_pipe_batch'].find_one_and_update({'_id': batch_id}, {"$inc": {"ends_count": 1}})
-        self.mongodb['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)}, {"$set": {'status': status, "desc": desc}})
+        if str(collection) == "sg_otu" and str(status) == "failed" and self.mongodb['sg_otu'].find_one({"_id": ObjectId(_id)})['type'] == "otu_statistic":
+            self.logger.info("抽平不加")
+            pass
+        elif str(collection) == "sg_alpha_diversity" and str(status) == "failed":
+            self.logger.info("多样性指数不加")
+            pass
+        else:
+            self.mongodb['sg_pipe_batch'].find_one_and_update({'_id': batch_id}, {"$inc": {"ends_count": 1}})
+            self.mongodb['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)}, {"$set": {'status': status, "desc": desc}})
