@@ -850,7 +850,7 @@ class RefrnaExpress(Base):
                     data = [
                         ("seq_id", gene_id),
                         ("express_diff_id", diff_express_id),
-                        ('sum', sum_1),
+                        ('sum', int(sum_1)),
                         ]
                     for j in range(blen):
                         data +=[
