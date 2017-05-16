@@ -104,6 +104,7 @@ class RefrnaWorkflow(Workflow):
         self.mapping = self.add_module("rna.rnaseq_mapping")
         self.altersplicing = self.add_module("gene_structure.rmats")
         self.map_qc = self.add_module("denovo_rna.mapping.map_assessment")
+        self.map_qc_gene = self.add_module("denovo_rna.mapping.map_assessment")
         self.map_gene = self.add_module("rna.rnaseq_mapping")
         self.assembly = self.add_module("assemble.refrna_assemble")
         self.exp = self.add_module("rna.express")
@@ -338,6 +339,15 @@ class RefrnaWorkflow(Workflow):
         else:
             self.qc_stat_before.on('end', self.set_output, 'qc_stat_before')
             self.qc_stat_before.run()
+
+    def run_map_assess_gene(self):
+        opts = {
+            "bam": self.map_gene.option("bam_output"),
+            "bed": self.filecheck.option("bed")
+        }
+        self.map_qc_gene.set_options(opts)
+        self.map_qc_gene.on("end", self.set_output, "map_qc_gene")
+        self.map_qc_gene.run()
 
     def run_map_gene(self):
         opts = {
@@ -634,28 +644,44 @@ class RefrnaWorkflow(Workflow):
         mod.run()
 
     def run_network_trans(self):
-        opts = {
-            "diff_exp_gene": self.exp.output_dir + "/diff/trans_diff/diff_list",
-            "species": int(self.taxon_id),
-            "combine_score": self.option("combine_score")
-        }
-        self.network_trans.set_options(opts)
-        self.network_trans.on("end", self.set_output, "network_analysis")
-        self.network_trans.on('start', self.set_step, {'start': self.step.network_analysis})
-        self.network_trans.on('end', self.set_step, {'end': self.step.network_analysis})
-        self.network_trans.run()
+        with open(self.exp.output_dir + "/diff/trans_diff/network_diff_list", "r") as ft:
+            ft.readline()
+            content = ft.read()
+        if not content:
+            self.logger.info("无差异基因，不进行网络分析")
+            self.network_trans.start_listener()
+            self.network_trans.fire("end")
+        else:
+            opts = {
+                "diff_exp_gene": self.exp.output_dir + "/diff/trans_diff/network_diff_list",
+                "species": int(self.taxon_id),
+                "combine_score": self.option("combine_score")
+            }
+            self.network_trans.set_options(opts)
+            self.network_trans.on("end", self.set_output, "network_analysis")
+            self.network_trans.on('start', self.set_step, {'start': self.step.network_analysis})
+            self.network_trans.on('end', self.set_step, {'end': self.step.network_analysis})
+            self.network_trans.run()
 
     def run_network_gene(self):
-        opts = {
-            "diff_exp_gene": self.exp.output_dir + "/diff/genes_diff/diff_list",
-            "species": int(self.taxon_id),
-            "combine_score": self.option("combine_score")
-        }
-        self.network_gene.set_options(opts)
-        self.network_gene.on("end", self.set_output, "network_analysis")
-        self.network_gene.on('start', self.set_step, {'start': self.step.network_analysis})
-        self.network_gene.on('end', self.set_step, {'end': self.step.network_analysis})
-        self.network_gene.run()
+        with open(self.exp.output_dir + "/diff/genes_diff/network_diff_list", "r") as fg:
+            fg.readline()
+            content = fg.read()
+        if not content:
+            self.logger.info("无差异基因，不进行网络分析")
+            self.network_gene.start_listener()
+            self.network_gene.fire("end")
+        else:
+            opts = {
+                "diff_exp_gene": self.exp.output_dir + "/diff/genes_diff/network_diff_list",
+                "species": int(self.taxon_id),
+                "combine_score": self.option("combine_score")
+            }
+            self.network_gene.set_options(opts)
+            self.network_gene.on("end", self.set_output, "network_analysis")
+            self.network_gene.on('start', self.set_step, {'start': self.step.network_analysis})
+            self.network_gene.on('end', self.set_step, {'end': self.step.network_analysis})
+            self.network_gene.run()
 
     def run_altersplicing(self):
         if self.option("strand_specific"):
@@ -927,6 +953,7 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
         self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
+        self.map_gene.on("end", self.run_map_assess_gene)
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp_rsem_default)
@@ -937,7 +964,8 @@ class RefrnaWorkflow(Workflow):
         if self.taxon_id != "":
             self.exp.on("end", self.run_network_trans)
             self.exp.on("end", self.run_network_gene)
-            self.final_tools.append(self.network_gene, self.network_trans)
+            self.final_tools.append(self.network_gene)
+            self.final_tools.append(self.network_trans)
         self.on_rely(self.final_tools, self.end)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
@@ -953,18 +981,6 @@ class RefrnaWorkflow(Workflow):
 
     def __check(self):
         super(RefrnaWorkflow, self).__check()
-
-    def run_network_trans_test(self):
-        opts = {
-            "diff_exp_gene": self.
-            "species": int(self.taxon_id),
-            "combine_score": self.option("combine_score")
-        }
-        self.network_trans.set_options(opts)
-        self.network_trans.on("end", self.set_output, "network_analysis")
-        self.network_trans.on('start', self.set_step, {'start': self.step.network_analysis})
-        self.network_trans.on('end', self.set_step, {'end': self.step.network_analysis})
-        self.network_trans.run()
 
     def run_new_gene_abs_test(self):
         opts = {
