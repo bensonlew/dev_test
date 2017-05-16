@@ -68,7 +68,7 @@ class DiffExpressAction(RefRnaController):
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
-                ('status', 'start'),
+                ('status', 'end'),
                 ('name', main_table_name),
                 ("value_type",value_type),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
