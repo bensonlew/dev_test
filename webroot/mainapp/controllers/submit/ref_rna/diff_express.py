@@ -78,7 +78,7 @@ class DiffExpressAction(RefRnaController):
             #if express_info["is_duplicate"] and express_info['trans'] and express_info['genes']:
             if "is_duplicate" in express_info.keys() and "trans" in express_info.keys() and "genes" in express_info.keys():
                 mongo_data.extend([
-                    ("id_duplicate", express_info["is_duplicate"]),
+                    ("is_duplicate", express_info["is_duplicate"]),
                     ("trans", express_info['trans']),
                     ('genes', express_info['genes'])
                 ])   #参数值方便前端取数据
