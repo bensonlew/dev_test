@@ -9,6 +9,8 @@ import os
 import re
 from bson.objectid import ObjectId
 from mainapp.libs.param_pack import group_detail_sort
+import pandas as pd
+import json
 
 class DiffExpressWorkflow(Workflow):
     """
@@ -43,11 +45,59 @@ class DiffExpressWorkflow(Workflow):
         self.output_dir = self.diff_exp.output_dir
         self.group_spname = dict()
 
+    def get_samples(self):
+        """筛选样本名称"""
+        edger_group_path = self.option("group_id")
+        self.logger.info(edger_group_path)
+        samples = []
+        with open(edger_group_path, 'r+') as f1:
+            f1.readline()
+            for lines in f1:
+                line = lines.strip().split("\t")
+                samples.append(line[0])
+        return samples
+
+    def fpkm(self, samples):
+        fpkm_path = self.option("express_file").split(",")[0]
+        count_path= self.option("express_file").split(",")[1]
+        fpkm = pd.read_table(fpkm_path, sep="\t")
+        count = pd.read_table(count_path, sep="\t")
+        print "heihei1"
+        print fpkm.columns[1:]
+        print 'heihei2'
+        print samples
+        no_samp = []
+        sample_total = fpkm.columns[1:]
+
+        for sam in sample_total:
+            if sam not in samples:
+                no_samp.append(sam)
+        self.logger.info("heihei3")
+        self.logger.info(no_samp)
+        if no_samp:
+            new_fpkm = fpkm.drop(no_samp, axis=1)
+            new_count = count.drop(no_samp, axis=1)
+            print new_fpkm.columns
+            print new_count.columns
+            self.new_fpkm = self.diff_exp.work_dir + "/fpkm"
+            self.new_count = self.diff_exp.work_dir + "/count"
+            header = ['']
+            header.extend(samples)
+            new_fpkm.columns = header
+            new_count.columns = header
+            new_count.to_csv(self.new_count,sep="\t",index=False)
+            new_fpkm.to_csv(self.new_fpkm, sep="\t", index=False)
+            return self.new_fpkm, self.new_count
+        else:
+            return fpkm_path,count_path
+
     def run_diff_exp(self):
-        exp_files = self.option("express_file").split(',')
+        # exp_files = self.option("express_file").split(',')
+        specimen = self.get_samples()
+        _count,_fpkm = self.fpkm(specimen)
         options = {
-            "count": exp_files[1],
-            "fpkm": exp_files[0],
+            "count": _count,
+            "fpkm": _fpkm,
             "control_file": self.option("control_file"),
             # "edger_group":self.option("group_id"),
             "method": self.option("diff_method"),
@@ -57,7 +107,7 @@ class DiffExpressWorkflow(Workflow):
             options["diff_fdr_ci"]=self.option("pvalue")
         if self.option("pvalue_padjust") == "pvalue":
             options["diff_ci"] = self.option("pvalue")
-        self.option("count").set_path(exp_files[1])
+        self.option("count").set_path(_count)
         if self.option("group_id") != "all":  
             options['edger_group'] = self.option("group_id")
         self.diff_exp.set_options(options)
