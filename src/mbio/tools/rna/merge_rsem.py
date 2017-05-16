@@ -170,7 +170,7 @@ class MergeRsemTool(Tool):
         group_express(old_fpkm = old_fpkm, new_fpkm = new_fpkm, sample_group_info = sample_group_info, \
                         rfile=rfile, outputfile = outputfile, filename = filename)
         cmd = self.r_path1 + " {}".format(rfile)
-        cmd1 = self.add_command("{}".format("".join(random.sample("abcdeghijk",3))), cmd).run()
+        cmd1 = self.add_command("{}".format(filename), cmd).run()
         self.logger.info(cmd)
         self.wait()
         if cmd1.return_code == 0:
@@ -219,6 +219,8 @@ class MergeRsemTool(Tool):
         """
         self.logger.info("设置merge_rsem结果目录")
         results = os.listdir(self.work_dir)
+        gene_list_path = self.output_dir+"/gene_list"
+        trans_list_path = self.output_dir+"/trans_list"
         if self.option("is_class_code"):
             old_rsem_path = os.path.join(self.work_dir, "oldrsem")
             if not os.path.exists(old_rsem_path):
@@ -229,6 +231,7 @@ class MergeRsemTool(Tool):
                 if re.search(r'^(transcripts\.TMM)(.+)(matrix)$', f):
                     ss+=1
                     os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+                    all_gene_list(self.work_dir + '/' + f, trans_list_path)
                     if self.option("is_class_code"):
                         os.system(""" sed -i "s/gene://g" %s """ % (self.work_dir + '/' + f))
                         os.system(""" sed -i "s/transcript://g" %s """ % (self.work_dir + '/' + f))
@@ -238,6 +241,7 @@ class MergeRsemTool(Tool):
                 elif re.search(r'^(genes\.TMM)(.+)(matrix)$', f):
                     ss+=1
                     os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+                    all_gene_list(self.work_dir + '/' + f, gene_list_path)
                     if self.option("is_class_code"):
                         os.system(""" sed -i "s/gene://g" %s """ % (self.work_dir + '/' + f))
                         os.system(""" sed -i "s/transcript://g" %s """ % (self.work_dir + '/' + f))
@@ -276,3 +280,4 @@ class MergeRsemTool(Tool):
         if self.option("is_duplicate"):
             self.group_detail()
         self.end()
+    
