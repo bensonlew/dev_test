@@ -113,6 +113,7 @@ class MetaController(object):
         new_task_id = self.get_new_id(task_id)
         self._sheet_data = {
             'id': new_task_id,
+            "batch": False,
             'stage_id': 0,
             'name': name,  # 需要配置
             'type': module_type,  # 可以配置
@@ -152,6 +153,7 @@ class MetaController(object):
             # print "test", self._sheet_data['name'].strip().split(".")[-1]
             self._instant = False
             self._sheet_data["instant"] = False
+            self._sheet_data["batch"] = True
 
 
     def get_new_id(self, task_id, otu_id=None):
