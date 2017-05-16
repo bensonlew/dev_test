@@ -78,13 +78,16 @@ class RefrnaExpress(Base):
                                           distribution_path = distri_path+"/gene_distribution.xls", sample_group = "sample", query_type="gene")
                         self.add_express_box(express_id, fpkm_path = rsem_dir+"/"+f, sample_group="sample", query_type="gene")
                         if is_duplicate:
-                            gene_group_fpkm_path = group_fpkm_path+"/Group.genes_genes.TMM.fpkm.matrix"
+                            if value_type == 'fpkm':
+                                gene_group_fpkm_path = group_fpkm_path+"/Group.genes_genes.TMM.fpkm.matrix"
+                            if value_type == 'tpm':
+                                gene_group_fpkm_path = group_fpkm_path + "/Group.genes_genes.TMM.EXPR.matrix"
                             if os.path.exists(gene_group_fpkm_path):
                                 self.add_express_group_detail(express_id, gene_group_fpkm_path,"gene",value_type,"rsem","group")
                             self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2GroupGenes_distribution.xls", \
                                               distribution_path_log10 = distri_path+"/log10GroupGenes_distribution.xls", \
                                               distribution_path = distri_path+"/GroupGenes_distribution.xls", sample_group = "group", query_type="gene")
-                            self.add_express_box(express_id, fpkm_path=distri_path+"/group/Group.genes_genes.TMM.fpkm.matrix", sample_group="group", query_type="gene")
+                            self.add_express_box(express_id, fpkm_path=gene_group_fpkm_path, sample_group="group", query_type="gene")
                     elif re.search(r'^transcripts\.TMM', f):
                         fpkm_path = rsem_dir + "/" + f
                         count_path = rsem_dir + '/transcripts.counts.matrix'
@@ -94,13 +97,16 @@ class RefrnaExpress(Base):
                                           distribution_path = distri_path+"/transcript_distribution.xls", sample_group = "sample", query_type="transcript")
                         self.add_express_box(express_id, fpkm_path = rsem_dir+"/"+f, sample_group="sample", query_type="transcript")
                         if is_duplicate:
-                            trans_group_fpkm_path = group_fpkm_path+"/Group.trans_transcripts.TMM.fpkm.matrix"
+                            if value_type == 'fpkm':
+                                trans_group_fpkm_path = group_fpkm_path+"/Group.trans_transcripts.TMM.fpkm.matrix"
+                            if value_type == 'tpm':
+                                trans_group_fpkm_path = group_fpkm_path + "/Group.trans_transcripts.TMM.EXPR.matrix"
                             if os.path.exists(trans_group_fpkm_path):
                                 self.add_express_group_detail(express_id, trans_group_fpkm_path,"transcript",value_type,"rsem","group")
                             self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2GroupTrans_distribution.xls", \
                                               distribution_path_log10 = distri_path+"/log10GroupTrans_distribution.xls", \
                                               distribution_path = distri_path+"/GroupTrans_distribution.xls", sample_group = "group", query_type="transcript")
-                            self.add_express_box(express_id, fpkm_path=distri_path+"/group/Group.trans_transcripts.TMM.fpkm.matrix", sample_group="group", query_type="transcript")
+                            self.add_express_box(express_id, fpkm_path=trans_group_fpkm_path, sample_group="group", query_type="transcript")
                     elif re.search(r'\.genes\.results$', f):
                         sample = f.split('.genes.results')[0]
                         file_ = rsem_dir + "/" + f
