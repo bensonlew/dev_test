@@ -145,6 +145,11 @@ class MetaController(object):
             if not hasattr(data, i):
                 return
         print "一键化投递任务{}: {}".format(i, getattr(data, i))
+        if not hasattr(self.data, "batch_task_id"):
+            print "NO BATCH_TASK_ID"
+        else:
+            print "BATCH_task_id " + self.data.batch_task_id
+            self._sheet_data["batch_id"] = self.data.batch_task_id
         update_info = json.loads(self._sheet_data["options"]['update_info'])
         # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
         update_info["batch_id"] = data.batch_id
@@ -153,8 +158,7 @@ class MetaController(object):
             # print "test", self._sheet_data['name'].strip().split(".")[-1]
             self._instant = False
             self._sheet_data["instant"] = False
-            self._sheet_data["batch"] = True
-
+        self._sheet_data["batch"] = True
 
     def get_new_id(self, task_id, otu_id=None):
         """
