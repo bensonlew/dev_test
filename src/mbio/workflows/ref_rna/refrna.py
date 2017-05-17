@@ -125,9 +125,12 @@ class RefrnaWorkflow(Workflow):
         self.merge_trans_annot = self.add_tool("annotation.merge_annot")
         self.merge_gene_annot = self.add_tool("annotation.merge_annot")
         self.pfam = self.add_tool("denovo_rna.gene_structure.orf")
+        self.anno_path = ""
         if self.option("ref_genome") != "customer_mode":
             self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
+            self.anno_path = self.json_dict[self.option("ref_genome")]["anno_path"]
+            self.logger.info(self.anno_path)
         else:
             self.ref_genome = self.option("ref_genome_custom")
             self.taxon_id = ""
@@ -310,6 +313,12 @@ class RefrnaWorkflow(Workflow):
             "gene_file": self.seq_abs.option("gene_file"),
             "ref_genome_gtf": self.filecheck.option("gtf")
         }
+        if self.anno_path != "":  # 本地参考基因组注释文件
+            opts.update({
+                "gos_list_upload": self.anno_path + "/go.list",
+                "kos_list_upload": self.anno_path + "/kegg.list",
+                "blast_string_table": self.anno_path + "/cog.list",
+            })
         if self.option("go_upload_file").is_set:
             opts.update({
                 "gos_list_upload": self.option("go_upload_file")
@@ -940,10 +949,16 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.on('end', self.run_qc)
         self.filecheck.on('end', self.run_seq_abs)
         if self.option("blast_method") == "diamond":
-            self.seq_abs.on('end', self.run_align, "diamond")
+            if self.anno_path == "":
+                self.seq_abs.on('end', self.run_align, "diamond")
+            else:
+                self.seq_abs.on('end', self.run_annotation)
             self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
         else:
-            self.seq_abs.on('end', self.run_align, "blast")
+            if self.anno_path == "":
+                self.seq_abs.on('end', self.run_align, "blast")
+            else:
+                self.seq_abs.on('end', self.run_annotation)
             self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "blast")
         self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
