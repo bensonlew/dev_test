@@ -51,9 +51,9 @@ class RocNewWorkflow(Workflow):
             {"name": "intersection", "type": "bool", "default": False},
 
             {"name": "roc_calc_method", "type": "string", "default": "sum"},  # ROC计算方法以及env表的计算方法
-            {"name": "roc_method_1", "type": "string", "default": "a:0.1"},
+            {"name": "roc_method_1", "type": "string", "default": ""},  # a:0.1
             # 后续需要从网页端传入,必须携带相应的分组名称
-            {"name": "roc_method_2", "type": "string", "default": "b:0.2"},
+            {"name": "roc_method_2", "type": "string", "default": ""},  # b:0.2
             {"name": "env_table", "type": "infile", 'format': "meta.otu.group_table"},  # env表格存在有或没有的状态
             {"name": "env_labs", "type": "string", "default": ""},
             {"name": "env_id", "type": "string", "default": ""},
