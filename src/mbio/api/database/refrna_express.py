@@ -72,11 +72,11 @@ class RefrnaExpress(Base):
                         count_path = rsem_dir + '/genes.counts.matrix'
                         # query_type=None,value_type=None, method=None, sample_group=None
                         
-                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group)
+                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group,samples=samples)
                         self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2gene_distribution.xls", \
                                           distribution_path_log10 = distri_path+"/log10gene_distribution.xls", \
-                                          distribution_path = distri_path+"/gene_distribution.xls", sample_group = "sample", query_type="gene")
-                        self.add_express_box(express_id, fpkm_path = rsem_dir+"/"+f, sample_group="sample", query_type="gene")
+                                          distribution_path = distri_path+"/gene_distribution.xls", sample_group = "sample", query_type="gene",samples=samples)
+                        self.add_express_box(express_id, fpkm_path = rsem_dir+"/"+f, sample_group="sample", query_type="gene",samples=samples)
                         if is_duplicate:
                             if value_type == 'fpkm':
                                 gene_group_fpkm_path = group_fpkm_path+"/Group.genes_genes.TMM.fpkm.matrix"
@@ -91,7 +91,7 @@ class RefrnaExpress(Base):
                     elif re.search(r'^transcripts\.TMM', f):
                         fpkm_path = rsem_dir + "/" + f
                         count_path = rsem_dir + '/transcripts.counts.matrix'
-                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'transcript', value_type, method, sample_group)
+                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'transcript', value_type, method, sample_group,samples=samples)
                         self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2transcript_distribution.xls", \
                                           distribution_path_log10 = distri_path+"/log10transcript_distribution.xls", \
                                           distribution_path = distri_path+"/transcript_distribution.xls", sample_group = "sample", query_type="transcript")
@@ -157,7 +157,7 @@ class RefrnaExpress(Base):
             if value_type ==  'tpm':
                 fpkm_path = feature_dir + "/fpkm_tpm.tpm.xls"
             count_path = feature_dir + "/count.xls"
-            self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group)
+            self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group,samples=samples)
             self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/{}/log2gene_distribution.xls".format(value_type), \
                               distribution_path_log10 = distri_path+"/{}/log10gene_distribution.xls".format(value_type), \
                               distribution_path = distri_path+"/{}/gene_distribution.xls".format(value_type), sample_group = "sample", query_type="gene")
@@ -264,7 +264,7 @@ class RefrnaExpress(Base):
             bind_object.logger.info("导入表达量矩阵group信息成功!")
             
     # @report_check
-    def add_express_detail(self, express_id, count_path, fpkm_path, class_code=None, query_type=None, value_type=None, method=None, sample_group=None, diff=True,):
+    def add_express_detail(self, express_id, count_path, fpkm_path, class_code=None, query_type=None, value_type=None, method=None, sample_group=None, samples=None):
             db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
             import math
             if not isinstance(express_id, ObjectId):
@@ -348,8 +348,8 @@ class RefrnaExpress(Base):
                         ("sample_group", sample_group)
                     ]
                     for i in range(len(samples)):
-                        log2_fpkm = math.log(fpkm[i]+1)/math.log(2)
-                        log10_fpkm = math.log(fpkm[i]+1)/math.log(10)
+                        log2_fpkm = math.log(float(fpkm[i])+1)/math.log(2)
+                        log10_fpkm = math.log(float(fpkm[i])+1)/math.log(10)
                         data += [
                             ('{}_count'.format(samples[i]), float(count_dict[seq_id][i])), ('{}_fpkm'.format(samples[i]), float(fpkm[i])),
                             ('{}_sum'.format(samples[i]), sample_count[samples[i]]),
@@ -369,7 +369,7 @@ class RefrnaExpress(Base):
                 # bind_object.logger.info("导入表达量矩阵信息成功!")
     
     # @report_check
-    def add_express_gragh(self, express_id, distribution_path_log2, distribution_path_log10, distribution_path, sample_group, query_type=None):
+    def add_express_gragh(self, express_id, distribution_path_log2, distribution_path_log10, distribution_path, sample_group, query_type=None,samples=None):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         def stat(fpkm_data,density,log=None):
             tmp = []
@@ -409,7 +409,7 @@ class RefrnaExpress(Base):
             print ("导入表达量矩阵作图数据: %s信息成功!" % distribution_path_log2)           
     
     # @report_check
-    def add_express_box(self, express_id, fpkm_path, sample_group, query_type=None):
+    def add_express_box(self, express_id, fpkm_path, sample_group, query_type=None,samples=None):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         def log_value(value, log):
             """获取log值"""
