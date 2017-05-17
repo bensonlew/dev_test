@@ -68,6 +68,8 @@ class RocNew(MetaController):
             # data.roc_method_1 and data.roc_method_2:
             params_json['roc_method_1'] = data.roc_method_1
             params_json['roc_method_2'] = data.roc_method_2
+        if hasattr(data,'intersection'):
+            params_json['intersection'] = data.intersection
         mongo_data = [
             ('project_sn', task_info['project_sn']),
             ('task_id', task_info['task_id']),
@@ -128,6 +130,8 @@ class RocNew(MetaController):
         if hasattr(data, 'roc_method_1'):
             options['roc_method_1'] = data.roc_method_1
             options['roc_method_2'] = data.roc_method_2
+        if hasattr(data, 'intersection'):
+            options['intersection'] = data.intersection
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(RocNew, self).POST()
