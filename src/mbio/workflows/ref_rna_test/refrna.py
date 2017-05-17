@@ -975,11 +975,15 @@ class RefrnaWorkflow(Workflow):
         self.export_qc()
         # self.export_assembly()
         # self.export_map_assess()
-        self.export_exp_rsem_default()
+        # self.export_exp_rsem_default()
         # self.export_exp_rsem_alter()
         # self.export_exp_fc()
         # self.export_gene_set()
-        # self.export_diff()
+        # self.export_diff_gene()
+        # self.export_diff_trans()
+        # self.exp_cor()
+        # self.exp_pca()
+        # self.export_annotation()
 
 
     def export_assembly(self):
@@ -1212,6 +1216,7 @@ class RefrnaWorkflow(Workflow):
                                    express_id=self.express_id, detail=True, seq_type="gene")
 
     def export_annotation(self):
+        self.api_anno = self.api.api("ref_rna.ref_annotation")
         anno_path = self.annotation.output_dir
         params = {
             "nr_evalue": self.option("nr_blast_evalue"),
