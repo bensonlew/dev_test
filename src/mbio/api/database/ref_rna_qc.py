@@ -21,6 +21,7 @@ class RefRnaQc(Base):
         super(RefRnaQc, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
 
+    @report_check
     def add_samples_info(self, qc_stat, qc_adapt=None, fq_type='se'):
         """
         :param qc_stat: 统计结果文件夹，即module.output_dir
@@ -157,7 +158,7 @@ class RefRnaQc(Base):
             self.bind_object.logger.info("导入样品画图数据信息成功")
 
     @report_check
-    def add_spcimen_group(self, file):
+    def add_specimen_group(self, file):
         spname_spid = self.get_spname_spid()
         group_list = dict()
         with open(file, "r") as f:
@@ -176,7 +177,7 @@ class RefRnaQc(Base):
             tmp_dict = dict()
             for sample in lst:
                 sp_id = spname_spid[sample]
-                tmp_dict[sp_id] = sample
+                tmp_dict[str(sp_id)] = sample
             spcecimen_names.append(tmp_dict)
             group_sorted.append(key)
         data = {
@@ -187,13 +188,9 @@ class RefRnaQc(Base):
             "project_sn": self.bind_object.sheet.project_sn
         }
         col = self.db["sg_specimen_group"]
-        try:
-            group_id = col.insert_one(SON(data)).insert_id
-        except Exception,e:
-            self.bind_object.logger.error("导入样本分组信息出错:%s" % e)
-        else:
-            self.bind_object.logger.info("导入样本分组信息成功")
-            return (group_id, spcecimen_names, group_sorted)
+        group_id = col.insert_one(data).inserted_id
+        self.bind_object.logger.info("导入样本分组信息成功")
+        return group_id, spcecimen_names, group_sorted
 
     @report_check
     def add_control_group(self,file, group_id):
@@ -202,8 +199,8 @@ class RefRnaQc(Base):
             f.readline()
             for line in f:
                 tmp = line.strip().split("\t")
-                str = tmp[0] + "|" + tmp[1]
-                con_list.append(str)
+                string = tmp[0] + "|" + tmp[1]
+                con_list.append(string)
         col = self.db["sg_specimen_group"]
         result = col.find_one({"_id": group_id})
         group_name = result["group_name"]
@@ -211,18 +208,18 @@ class RefRnaQc(Base):
         data = {
             "task_id": self.bind_object.sheet.id,
             "compare_group_name": group_name,
-            "compare_names": con_list,
+            "compare_names": str(con_list),
             "compare_category_name": category_names,
-            "specimen_group_id": group_id
+            "specimen_group_id": str(group_id)
         }
         col = self.db["sg_specimen_group_compare"]
         try:
-            com_id = col.insert_one(data).insert_id
+            com_id = col.insert_one(data).inserted_id
         except Exception,e:
             self.bind_object.logger.error("导入样本对照组信息出错:%s" % e)
         else:
             self.bind_object.logger.info("导入样本对照组信息成功")
-            return (com_id, con_list)
+            return com_id, con_list
 
     @report_check
     def get_spname_spid(self):

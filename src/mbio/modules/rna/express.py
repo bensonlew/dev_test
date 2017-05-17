@@ -54,6 +54,7 @@ class ExpressModule(Module):
             {"name": "trans_diff_list_dir", "type": "outfile", "format": "rna.diff_stat_dir"}, # 差异分组对应的差异基因
             {"name": "genes_diff_fpkm","type":"outfile","format":"rna.express_matrix"}, #差异基因的fpkm表
             {"name": "trans_diff_fpkm", "type": "outfile", "format": "rna.express_matrix"},  # 差异转录本的fpkm表
+            {"name": "diff_list_dir", "type": "outfile", "format": "rna.diff_stat_dir"}
         ]
         self.add_option(options)
     
@@ -98,7 +99,7 @@ class ExpressModule(Module):
         self.step.update()
         print self.option('fq_type')
         tool_opt = {
-            "ref_gtf": self.option("merged_gtf").prop['path'],
+            "ref_gtf": self.option("merged_gtf"),
             "strand_specific": self.option("strand_specific"),
             "cpu":10,
             "max_memory": "100G",
@@ -130,9 +131,9 @@ class ExpressModule(Module):
             #先只添加用户自定义，上传fasta文件，不涉及平台参考库
             self.file_get_list()
             tool_opt = {
-                        "ref_gtf": self.option("cmp_gtf").prop['path']
+                        "ref_gtf": self.option("cmp_gtf")
                     }
-            tool_opt["transcript_fa"] = self.option("ref_genome_custom").prop['path']
+            tool_opt["transcript_fa"] = self.option("ref_genome_custom")
             self.logger.info(tool_opt["transcript_fa"])
             if self.option("fq_type") =="SE":
                 for sam, single in self.samples.items():
@@ -399,7 +400,7 @@ class ExpressModule(Module):
             "control_file": self.option('control_file').prop['path'],
             "gname": "group",
             "method": self.option("method"),
-            'diff_ci': self.option("diff_ci"),
+            'diff_fdr_ci': self.option("diff_ci"),
             "pvalue_padjust": "padjust"
         }
         self.diff_count +=1

@@ -632,7 +632,7 @@ class RefrnaWorkflow(Workflow):
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
             "method":  self.option("diff_method"),
-            "diff_fdr_ci": self.option("diff_ci"),
+            "diff_ci": self.option("diff_ci"),
             "is_duplicate": self.option("is_duplicate"),
             "exp_way": "all",
             "strand_dir": self.option("strand_dir")
@@ -967,22 +967,23 @@ class RefrnaWorkflow(Workflow):
         self.api_qc.add_gragh_info(quality_stat_after, "after")
         quality_stat_before = self.qc_stat_before.output_dir + "/qualityStat"  # 将qc前导表加于该处
         self.api_qc.add_gragh_info(quality_stat_before, "before")
-        self.group_id, self.group_detail, self.group_category = self.add_specimen_group(self.option("group_table").prop["path"])
-        self.control_id, self.compare_detail = self.add_specimen_group(self.option("control_file").prop["path"], self.group_id)
+        self.group_id, self.group_detail, self.group_category = self.api_qc.add_specimen_group(self.option("group_table").prop["path"])
+        self.logger.info(self.group_detail)
+        self.control_id, self.compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
 
     def test_run(self):
         self.export_qc()
-        self.export_assembly()
-        self.export_map_assess()
+        # self.export_assembly()
+        # self.export_map_assess()
         self.export_exp_rsem_default()
-        self.export_exp_rsem_alter()
-        self.export_exp_fc()
-        self.export_gene_set()
-        self.export_diff()
+        # self.export_exp_rsem_alter()
+        # self.export_exp_fc()
+        # self.export_gene_set()
+        # self.export_diff()
 
 
     def export_assembly(self):
-        self.api_assembly = self.api("ref_rna.ref_assembly")
+        self.api_assembly = self.api.api("ref_rna.ref_assembly")
         if self.option("assemble_method") == "cufflinks":
             all_gtf_path = self.assembly.output_dir + "/Cufflinks"
             merged_path = self.assembly.output_dir + "/Cuffmerge"
@@ -1007,6 +1008,7 @@ class RefrnaWorkflow(Workflow):
         self.api_map.add_chorm_distribution_table(chrom_distribution)
 
     def export_exp_rsem_default(self):
+        self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         self.api_exp = self.api.refrna_express
         rsem_dir = self.exp.output_dir + "/rsem"
         if self.option("is_duplicate"):
@@ -1020,11 +1022,18 @@ class RefrnaWorkflow(Workflow):
         params={}
         params["express_method"] = "rsem"
         params["type"] = self.option("exp_way")
-        params["group_id"] = self.group_id
-        params["group_detail"] = self.group_detail
+        params["group_id"] = str(self.group_id)
+        # params["group_detail"] = self.group_detail
+        params['group_detail'] = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            params['group_detail'][key] = value
+        self.logger.info(params['group_detail'])
         distri_path = self.exp.mergersem.work_dir
-        self.express_id = self.api_exp.add_express(self, rsem_dir=rsem_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate,
-                                 samples=samples, params=params, major=True, distri_path=distri_path)
+        class_code = self.exp.mergersem.work_dir + "/class_code"
+        self.express_id = self.api_exp.add_express(rsem_dir=rsem_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate,
+                                                   class_code=class_code, samples=samples, params=params, major=True, distri_path=distri_path)
 
     def export_exp_rsem_alter(self):
         self.api_exp = self.api.refrna_express
@@ -1136,11 +1145,14 @@ class RefrnaWorkflow(Workflow):
         merge_path = path + "/merge.xls"
         params['group_id'] = self.group_id
         params['control_id'] = self.control_id
-        params['group_detail'] = {}
+        params['group_detail'] = dict()
+        compare_column_specimen = dict()
         for i in range(self.group_category):
             key = self.group_category[i]
             value = self.group_detail[i].keys()
+            value2 = self.group_detail[i].values()
             params['group_detail'][key] = value
+            compare_column_specimen[key] = value2
         params['express_id'] = self.express_id
         params['fc'] = 0  # 可能会改动
         params['pvalue_padjust'] = 'padjust'  # 默认为padjust
@@ -1148,9 +1160,65 @@ class RefrnaWorkflow(Workflow):
         params['diff_method'] = self.option("diff_method")
         class_code = self.exp.mergersem.work_dir + "/class_code"
         diff_express_id = self.api_geneset.add_express_diff(params=params, samples=sample, compare_column=compare_column,
+                                                            compare_column_specimen=compare_column_specimen,
                                                             class_code=class_code, diff_exp_dir=path,
                                                             query_type="transcript", major=True,
                                                             group_id=params["group_id"], workflow=True)
         self.api_geneset.add_diff_summary_detail(diff_express_id, merge_path)
 
-    def
+    def export_diff_gene(self):
+        path = self.exp.output_dir + "/diff/genes_diff"
+        exp_path = self.exp.output_dir + "/rsem"
+        with open(exp_path + "/genes.counts.matrix", 'r+') as f1:
+            sample = f1.readline().strip().split("\t")
+        compare_column = self.compare_detail
+        params = {}
+        merge_path = path + "/merge.xls"
+        params['group_id'] = self.group_id
+        params['control_id'] = self.control_id
+        params['group_detail'] = dict()
+        compare_column_specimen = dict()
+        for i in range(self.group_category):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            value2 = self.group_detail[i].values()
+            params['group_detail'][key] = value
+            compare_column_specimen[key] = value2
+        params['express_id'] = self.express_id
+        params['fc'] = 0  # 可能会改动
+        params['pvalue_padjust'] = 'padjust'  # 默认为padjust
+        params['pvalue'] = self.option("diff_ci")
+        params['diff_method'] = self.option("diff_method")
+        class_code = self.exp.mergersem.work_dir + "/class_code"
+        diff_express_id = self.api_geneset.add_express_diff(params=params, samples=sample, compare_column=compare_column,
+                                                            compare_column_specimen=compare_column_specimen,
+                                                            class_code=class_code, diff_exp_dir=path,
+                                                            query_type="gene", major=True,
+                                                            group_id=params["group_id"], workflow=True)
+        self.api_geneset.add_diff_summary_detail(diff_express_id, merge_path)
+
+    def export_cor(self):
+        self.api_cor = self.api.refrna_corr_express
+        correlation = self.exp.output_dir + "/correlation/genes_correlation"
+        group_id = self.group_id
+        group_detail = self.group_detail
+        self.api_cor.add_correlation_table(correlation=correlation, group_id=group_id, group_detail=group_detail,
+                                           express_id=self.express_id, detail=True, seq_type="gene")
+
+    def export_pca(self):
+        self.api_pca = self.api.refrna_corr_express
+        pca_path = self.exp.output_dir + "/pca/genes_pca"
+        self.api_pca.add_pca_table(pca_path, group_id=self.group_id, group_detail=self.group_detail,
+                                   express_id=self.express_id, detail=True, seq_type="gene")
+
+    def export_annotation(self):
+        anno_path = self.annotation.output_dir
+        params = {
+            "nr_evalue": self.option("nr_blast_evalue"),
+            "swissprot_evalue": self.option("swissprot_blast_evalue")
+        }
+        params = json.dumps(params)
+        self.add_annotation(self, name=None, params=params, seq_type="ref", anno_path=anno_path, pfam_path=None)
+        anno_path = self.new_annotation.output_dir
+        pfam_path = self.pfam.output_dir + "/pfam_domian"
+        self.add_annotation(self, name=None, params=params, seq_type="new", anno_path=anno_path, pfam_path=pfam_path)
