@@ -37,7 +37,7 @@ class RocNewWorkflow(Workflow):
 
             {"name": "two_ran_otu", "type": "infile", 'format': "meta.otu.otu_table"},  # 两组和随机森林的参数设置
             {"name": "two_ran_group", "type": "infile", 'format': "meta.otu.group_table"},
-            {"name": "level_id", "type": "int"},
+            {"name": "level", "type": "int"},
             {"name": "method_cal", "type": "string", "default": "student"},
             {"name": "ci", "type": "float", "default": 0.99},
             {"name": "q_test", "type": "string", "default": "fdr"},
@@ -97,15 +97,17 @@ class RocNewWorkflow(Workflow):
 
     def run_two_ran_lefse(self):
         if self.option('intersection'):
-            start_level = self.option("level_id")
-            end_level = self.option("level_id")
+            start_level = self.option("level")
+            end_level = self.option("level")
         else:
             start_level = self.option("start_level")
             end_level = self.option("end_level")
+        new_table = self.change_otuname(self.option("two_ran_otu").prop["path"])
         options = {
             "lefse_input": self.option("lefse_otu"),
             "lefse_group": self.option("lefse_group"),
-            "otutable": self.option("two_ran_otu"),
+            "otutable": new_table,
+            # "otutable": self.option("two_ran_otu"),
             "grouptable": self.option("two_ran_group"),
             "lda_filter": self.option("lda_filter"),
             "strict": self.option("strict"),
@@ -142,7 +144,7 @@ class RocNewWorkflow(Workflow):
         # new_table = self.change_otuname(fin_otu)
         options = {
             'otu_table': fin_otu,
-            'level': self.option('level_id'),
+            'level': self.option('level'),
             'group_table': mi_group,
             'method': self.option('roc_calc_method'),
             'top_n': 0
@@ -163,7 +165,7 @@ class RocNewWorkflow(Workflow):
             mi_group = self.option('two_ran_group')
         options = {
             'otu_table': env_otu,  # 把传入的env表格进行修改，otu表一个格式的进行
-            'level': self.option('level_id'),
+            'level': self.option('level'),
             'group_table': mi_group,  # 分组文件表
             'method': self.option('roc_calc_method'),
             'top_n': 0
@@ -182,7 +184,7 @@ class RocNewWorkflow(Workflow):
         # new_table = self.change_otuname(lefse_otu)
         options = {
             'otu_table': lefse_otu,
-            'level': self.option('level_id'),
+            'level': self.option('level'),
             'group_table': mi_group,
             'method': self.option('roc_calc_method'),
             'top_n': 0
@@ -208,7 +210,7 @@ class RocNewWorkflow(Workflow):
         # new_table = self.change_otuname(two_otu)
         options = {
             'otu_table': two_otu,
-            'level': self.option('level_id'),
+            'level': self.option('level'),
             'group_table': mi_group,
             'method': self.option('roc_calc_method'),
             'top_n': 0
@@ -232,7 +234,7 @@ class RocNewWorkflow(Workflow):
         # new_table = self.change_otuname(ran_otu)
         options = {
             'otu_table': ran_otu,
-            'level': self.option('level_id'),
+            'level': self.option('level'),
             'group_table': mi_group,
             'method': self.option('roc_calc_method'),
             'top_n': 0
@@ -260,6 +262,8 @@ class RocNewWorkflow(Workflow):
             file_path = os.path.join(self.two_ran_lefse.output_dir, "lefse_LDA.xls")
             con = pd.read_table(file_path, header=0, sep="\t")
             con = con[con["pvalue"] != "-"]
+            if len(con) == 0:
+                raise Exception("lefse表格筛选不出OTU表")
             if self.option('lefse_cho') == "p-value":
                 con = con.sort_values(by="pvalue", ascending=False)
             else:
@@ -275,6 +279,8 @@ class RocNewWorkflow(Workflow):
             ori_otu.index = spe_list
             index = set(lefse_spe_list) & set(spe_list)
             index_list = [i for i in index]
+            if len(index_list) == 0:
+                raise Exception("lefse表格筛选不出OTU表")
             # 重置index的物种应该为交集
             new_otu = ori_otu.reindex(index=index_list)  # 重置筛选物种
             table = os.path.join(self.work_dir, 'lefse_roc_input_otu.xls')
@@ -288,7 +294,7 @@ class RocNewWorkflow(Workflow):
                 con = con.sort_values(by="corrected_pvalue", ascending=False)
             con = con.iloc[:self.option('two_group_num')]
             two_group_spe_list = [i for i in con[' ']]
-            ori_otu = pd.read_table(self.option('two_ran_otu').prop['path'], header=0, sep="\t")
+            ori_otu = pd.read_table(os.path.join(self.work_dir, 'change_otu_name'), header=0, sep="\t")
             spe_list = [i for i in ori_otu['OTU ID']]
             ori_otu.index = spe_list
             new_otu = ori_otu.reindex(index=two_group_spe_list)
@@ -300,7 +306,7 @@ class RocNewWorkflow(Workflow):
             con = con.sort_values(by="MeanDecreaseAccuracy", ascending=False)
             con = con.iloc[:self.option('Ran_for_num')]
             index = con.index
-            ori_otu = pd.read_table(self.option('two_ran_otu').prop['path'], header=0, sep="\t")
+            ori_otu = pd.read_table(os.path.join(self.work_dir, 'change_otu_name'), header=0, sep="\t")
             spe_list = [i.split(";")[-1] for i in ori_otu['OTU ID']]
             ori_otu.index = spe_list
             new_otu = ori_otu.reindex(index=index)
@@ -427,7 +433,7 @@ class RocNewWorkflow(Workflow):
         super(RocNewWorkflow, self).end()
 
     def change_otuname(self, tablepath):
-        newtable = os.path.join(tablepath, 'change_otu_name')
+        newtable = os.path.join(self.work_dir, 'change_otu_name')
         f2 = open(newtable, 'w+')
         with open(tablepath, 'r') as f:
             i = 0

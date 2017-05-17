@@ -316,6 +316,17 @@ class RocNewTool(Tool):
                 con = con.rename(columns={'#OTU ID': 'OTU ID'})
             con_list.append(con)
         finally_otu = pd.concat(con_list)
+        self.logger.info("finally_otu:{}".format(finally_otu))
+        sample = pd.read_table(self.option("grouptable").prop["path"], header=0, sep="\t")
+        sample_list = [i for i in sample["#sample"]]
+        sample_list.append("OTU ID")
+        self.logger.info("sample_list:{}".format(sample_list))
+        origin_name = [i for i in finally_otu.columns]
+        self.logger.info("origin_name:{}".format(origin_name))
+        for sam in origin_name:
+            if sam not in sample_list:
+                finally_otu = finally_otu.drop(sam, axis=1)
+        self.logger.info('finally_otu:{}'.format(finally_otu))
         fin_path = os.path.join(self.output_dir, "lefse_otu_table")
         finally_otu.to_csv(fin_path, sep="\t", index=False)
 
