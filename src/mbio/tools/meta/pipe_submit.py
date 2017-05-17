@@ -39,7 +39,8 @@ class PipeSubmitAgent(Agent):
         options = [
             {"name": "data", "type": "string"},
             {"name": "pipe_id", "type": "string"},
-            {"name": "task_id", "type": "string"}
+            {"name": "task_id", "type": "string"},
+            {"name": "batch_task_id", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("piple_submit")
@@ -590,6 +591,7 @@ class Submit(object):
         # if not self.instant:
             # temp_params['pipe_id'] = str(self.pipe_main_id)
         temp_params['batch_id'] = str(self.bind_object.option('pipe_id'))
+        temp_params['batch_task_id'] = str(self.bind_object.option('batch_task_id'))
         return temp_params
 
     def post(self):
