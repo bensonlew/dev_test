@@ -241,8 +241,8 @@ class RefrnaExpress(Base):
                     data_log2 = log(float(fpkm_data[i])+1)/log(2)
                     data_log10 = log(float(fpkm_data[i])+1)/log(10)
                     insert_data += [
-                        ('{}_log2_fpkm'.format(group_name[i]),float(data_log2)),
-                        ('{}_log10_fpkm'.format(group_name[i]),float(data_log10))
+                        ('{}_log2_{}'.format(group_name[i],value_type),float(data_log2)),
+                        ('{}_log10_{}'.format(group_name[i],value_type),float(data_log10))
                     ]
                 insert_data=SON(insert_data)
                 data_list.append(insert_data)
