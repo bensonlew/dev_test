@@ -11,10 +11,10 @@ import pandas as pd
 
 class RocNewAgent(Agent):
     """
-    调用analysis_lefse.py 脚本进行lefse分析
+    调用analysis_lefse.py 脚本进行lefse分析 同时进行两组和随机森林分析
     version v2.0
     author: zhangpeng
-    last_modify: 2017.03.14
+    last_modify: 2017.05.09 zhouxuan
     """
     def __init__(self, parent):
         super(RocNewAgent, self).__init__(parent)
@@ -28,6 +28,11 @@ class RocNewAgent(Agent):
             {"name": "lefse_gname", "type": "string"},
             {"name": "start_level", "type": "int", "default": 3},
             {"name": "end_level", "type": "int", "default": 7},
+            {"name": "method_cal", "type": "string", "default": "student"},
+            {"name": "ci", "type": "float", "default": 0.99},
+            {"name": "q_test", "type": "string", "default": "fdr"},
+            {"name": "tree_number", "type": "int", "default": 500}
+
         ]
         self.add_option(options)
         self.step.add_steps("run_biom", "tacxon_stat", "plot_lefse")
@@ -95,9 +100,7 @@ class RocNewAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "lefse分析结果输出目录"],
-            ["./lefse_LDA.cladogram.png", "png", "lefse分析cladogram结果图片"],
-            #["./lefse_LDA.png", "png", "lefse分析LDA图片"],
-            #["./lefse_LDA.xls", "xls", "lefse分析lda数据表"]
+            ["./lefse_LDA.cladogram.png", "png", "lefse分析cladogram结果图片"]
         ])
         super(RocNewAgent, self).end()
 
@@ -201,22 +204,6 @@ class RocNewTool(Tool):
         else:
             pass
 
-    # def run_sum_tax(self):
-    #     cmd = "for ((i=%s;i<=%s;i+=1)){\n\
-    #         %s %ssum_tax.fix.pl -i tax_summary_a/otu_taxa_table_L$i.txt " \
-    #           "-o tax_summary_a/otu_taxa_table_L$i.stat.xls\n\
-    #         mv tax_summary_a/otu_taxa_table_L$i.txt.new tax_summary_a/otu_taxa_table_L$i.txt\n\
-    #     }" % (self.start_level, self.end_level, self.perl_path, self.config.SOFTWARE_DIR + self.script_path)
-    #     try:
-    #         subprocess.check_output(cmd, shell=True)
-    #         self.logger.info("run_sum_tax运行完成")
-    #         self.get_otu_taxon()
-    #         self.remove_parent_otu(self.work_dir + '/tax_summary_a')
-    #         self.add_state("sum_taxa_finish", data="生成每一水平的物种统计文件完成")
-    #     except subprocess.CalledProcessError:
-    #         self.logger.info("run_sum_tax运行出错")
-    #         raise Exception("run_sum_tax运行出错")
-
     def format_input(self):
         self.add_state("lefse_start", data="开始进行lefse分析")
         glist = self.option('lefse_gname').split(',')
@@ -313,10 +300,24 @@ class RocNewTool(Tool):
         for root, dirs, files in os.walk(self.output_dir):
             for names in files:
                 os.remove(os.path.join(root, names))
-        # os.link(self.work_dir + '/lefse_LDA.cladogram.png', self.output_dir + '/lefse_LDA.cladogram.png')
-        # os.link(self.work_dir + '/lefse_LDA.png', self.output_dir + '/lefse_LDA.png')
         os.link(self.work_dir + '/lefse_lda_head.xls', self.output_dir + '/lefse_LDA.xls')
-        #os.link(self.work_dir + '/lefse_lda_head.xls', self.output_dir + '/lefse_LDA.xls')
+        file_list = os.listdir(self.work_dir + "/tax_summary_a")
+        new_file_list = []
+        for i in file_list:
+            if re.match('otu_taxa_table_L\d\.txt', i):
+                new_file_list.append(i)
+        con_list = []
+        for f in new_file_list:
+            file_path = os.path.join(self.work_dir, "tax_summary_a", f)
+            con = pd.read_table(file_path, header=0, sep="\t")
+            if f == "otu_taxa_table_L9.txt":
+                con = con.drop("taxonomy", axis=1)
+            else:
+                con = con.rename(columns={'#OTU ID': 'OTU ID'})
+            con_list.append(con)
+        finally_otu = pd.concat(con_list)
+        fin_path = os.path.join(self.output_dir, "lefse_otu_table")
+        finally_otu.to_csv(fin_path, sep="\t", index=False)
 
     def formattable(self, tablepath):
         print "sometime"
@@ -326,15 +327,14 @@ class RocNewTool(Tool):
         cmd += ' -i %s -o %s' % (self.option('otutable').prop['path'], self.work_dir + '/RandomForest')
         if self.option('lefse_group').is_set:
             cmd += ' -g %s -m %s' % (self.option('grouptable').prop['path'],self.option('grouptable').prop['path'])
-            #cmd += ' -g %s -m %s' % (self.group_table, self.group_table)
-        #cmd += ' -ntree %s' % (str(self.option('ntree')))
-        #cmd += ' -type %s' % (str(self.option('problem_type')))
-        cmd += ' -type 2' ##这个固定给脚本就可以
-        cmd += ' -ntree' ##str(self.option('ntree')) 可以写数个个数
-        cmd += ' -method_cal student'##student， welch，wilcox  最后一个wilcox我写的代码是其他的都用这个，瞎写名字也是用这个
-        cmd += ' -alt two.side'##固定给，后面如果加可以有two.sided greater less
-        cmd += ' -ci 0.95'##0-1之间
-        cmd += ' -q_test BH'##"holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"
+        cmd += ' -type 2'  # 这个固定给脚本就可以
+        cmd += ' -ntree {}'.format(self.option('tree_number'))  # str(self.option('ntree')) 可以写数个个数
+        cmd += ' -method_cal {}'.format(self.option('method_cal'))
+        # student,welch,wilcox  最后一个wilcox我写的代码是其他的都用这个
+        cmd += ' -alt two.side'  # 固定给，后面如果加可以有two.sided greater less
+        cmd += ' -ci {}'.format(self.option('ci'))  # 0-1之间
+        cmd += ' -q_test {}'.format(self.option('q_test'))
+        # "holm", "hochberg", "hommel", "bonferroni", "BH", "BY","fdr", "none"
         self.logger.info(cmd)
         self.logger.info('运行RandomForest_perl.pl程序进行RandomForest计算')
         try:
@@ -350,19 +350,25 @@ class RocNewTool(Tool):
             self.logger.info('RandomForest计算失败')
         self.logger.info('运行RandomForest_perl.pl程序进行RandomForest计算完成')
 
+    def set_random_twogroup_output(self):
+        try:
+            os.link(self.work_dir + "/RandomForest/two_group_table.xls", self.output_dir + "/two_group_table.xls")
+            os.link(self.work_dir + "/RandomForest/randomforest_vimp_table.xls", self.output_dir + "/Random_table.xls")
+        except Exception as e:
+            self.logger.info("随机森林两组比较结果link出错{}".format(e))
+            raise Exception("随机森林两组比较结果link出错{}".format(e))
+        else:
+            self.logger.info("随机森林两组比较结果link完成")
 
     def run(self):
         super(RocNewTool, self).run()
         self.run_biom()
         self.run_script()
-        # self.run_sum_tax()
         self.format_input()
         self.run_format()
         self.run_lefse()
         self.run_level_otu()
-        # self.plot_res()
-        # self.plot_cladogram()
-        # self.set_lefse_output()
-        self.randomforest_two_group()
         self.set_lefse_output()
+        self.randomforest_two_group()
+        self.set_random_twogroup_output()
         self.end()
