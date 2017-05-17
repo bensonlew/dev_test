@@ -33,12 +33,12 @@ class RefrnaAssembleModule(Module):
             {"name": "cuff_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # compare后的gtf文件
             {"name": "new_transcripts_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新转录本注释文件
             {"name": "new_gene_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新基因注释文件
-            {"name": "merged_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本注释文件
+            {"name": "merged_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本序列文件
         ]
         self.add_option(options)
         self.tools = []
         self.step.add_steps('stringtie', 'cufflinks', 'stringtie_merge', 'cuffmerge', 'cuffcompare', 'gffcompare',
-                            'new_transcripts', 'transcript_abstract')
+                            'new_transcripts')
         self.sum_tools = []
         self.gtfs = []
 

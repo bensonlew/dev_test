@@ -36,7 +36,7 @@ class ExpressPcaAction(RefRnaController):
         my_param = {}
         my_param['express_id'] = data.express_id
         my_param['group_id'] = data.group_id
-        my_param['group_detail'] = data.group_detail
+        my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['submit_location'] = data.submit_location
         my_param["task_type"]=task_type
         
