@@ -82,7 +82,7 @@ class OtuTaxonStatAgent(Agent):
         if table_size < 1024:
             self._memory = '3G'
         else:
-            multiple = table_size / 1024.00 / 5.00    #文件没增加5M，mem增加1G
+            multiple = table_size / 1024.00 / 5.00    #文件每增加5M，mem增加1G
             self._memory = str(3 + int(multiple)) + 'G'
 
 
