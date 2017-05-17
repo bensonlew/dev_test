@@ -94,7 +94,7 @@ class DiffExpressWorkflow(Workflow):
     def run_diff_exp(self):
         # exp_files = self.option("express_file").split(',')
         specimen = self.get_samples()
-        _count,_fpkm = self.fpkm(specimen)
+        _fpkm,_count = self.fpkm(specimen)
         options = {
             "count": _count,
             "fpkm": _fpkm,
