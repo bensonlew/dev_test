@@ -120,20 +120,27 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
     kegg_path = os.path.join(dir_path, 'gene_kegg_table.xls')
     bind_obj.logger.debug("正在导出参数%s的kegg_table文件，路径:%s" % (option_name, kegg_path))
     geneset_collection = db["sg_geneset"]
+    bind_obj.logger.debug(data)
+    # data = data.split(",")[0]
+    # bind_obj.logger.debug(data)
     geneset_result = geneset_collection.find_one({"_id": ObjectId(data)})
     task_id = geneset_result["task_id"]
     geneset_type = geneset_result["type"]
-    my_result = db["sg_annotation_kegg"].find_one({"task_id": task_id})
-    kegg_id = my_result["_id"]
-    if not my_result:
-        raise Exception("意外错误，annotation_kegg_id:{}在sg_annotation_kegg中未找到！".format(kegg_id))
+    # my_result = db["sg_annotation_kegg"].find_one({"task_id": task_id, "seq_type": "new"})
+    my_result = db["sg_annotation_kegg"].find({"task_id": task_id})
     with open(kegg_path, 'wb') as w:
         w.write('#Query\tKO_ID(Gene id)\tKO_name(Gene name)\tHyperlink\tPaths\n')
-        results = db['sg_annotation_kegg_table'].find({'$and': [{'kegg_id': kegg_id}, {'type': geneset_type}]})
-        if not results:
-            raise Exception("生成kegg_table出错：kegg_id:{}在sg_annotation_kegg_table中未找到！".format(ObjectId(kegg_id)))
-        for result in results:
-            w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
+        for main_table in my_result:
+            kegg_id = main_table["_id"]
+            if not my_result:
+                raise Exception("意外错误，annotation_kegg_id:{}在sg_annotation_kegg中未找到！".format(kegg_id))
+            # with open(kegg_path, 'wb') as w:
+            #     w.write('#Query\tKO_ID(Gene id)\tKO_name(Gene name)\tHyperlink\tPaths\n')
+            results = db['sg_annotation_kegg_table'].find({'kegg_id': kegg_id, 'anno_type': geneset_type})
+            if not results:
+                raise Exception("生成kegg_table出错：kegg_id:{}在sg_annotation_kegg_table中未找到！".format(ObjectId(kegg_id)))
+            for result in results:
+                w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
     return kegg_path
 
 
@@ -207,9 +214,13 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
     cog_detail_collection = db["sg_annotation_cog_detail"]
     cog_id = cog_collection.find_one({"task_id": task_id})["_id"]
     cog_results = cog_detail_collection.find({'cog_id': cog_id})
+    new_table_title = []
+    for tt in table_title:
+        new_tt = [tt + "_COG", tt + "_NOG", tt + "_KOG", tt + "_COG_list", tt + "_NOG_list", tt + "_KOG_list"]
+        new_table_title = new_table_title + new_tt
     bind_obj.logger.debug(table_title)
     with open(cog_path, "wb") as w:
-        w.write("Type\tFunctional Categoris\t" + "\t".join(table_title) + "\n")
+        w.write("Type\tFunctional Categoris\t" + "\t".join(new_table_title) + "\n")
         for cr in cog_results:
             kog_list = set(cr["kog_list"].split(";") if cr["kog_list"] else [])
             nog_list = set(cr["nog_list"].split(";") if cr["kog_list"] else [])
@@ -222,11 +233,11 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
                 nog_count = list(nog_list & genesets[gt][1])
                 cog_count = list(cog_list & genesets[gt][1])
                 if not len(kog_count) + len(nog_count) + len(cog_count) == 0:
-                    write_line[gt] = [str(len(cog_count)), str(len(nog_count)), str(len(kog_count))]
+                    write_line[gt] = [str(len(cog_count)), str(len(nog_count)), str(len(kog_count)), ";".join(cog_count), ";".join(nog_count), ";".join(kog_count)]
             if len(write_line) > 0:
                 w.write("{}\t{}\t".format(cr["type"], cr["function_categories"]))
                 for tt in table_title:
-                    w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\t0\t")
+                    w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\t0\tnone\tnone\tnone\t")
                 # print write_line
                 w.write("\n")
     return cog_path
@@ -298,7 +309,7 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
                 w.write("{}\t{}\t{}\t".format(gr["parent_name"], gr["term_type"], gr["go"]))
                 for tt in table_title:
                     # bind_obj.logger.debug(tt)
-                    w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t0\t \t")
+                    w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t0\tnone\t")
                 # print write_line
                 # w.write("\t".join(write_line[write_line_key]))
                 w.write("\n")
@@ -573,10 +584,10 @@ def export_multi_gene_list(data, option_name, dir_path, bind_obj=None):
         if not my_result:
             raise Exception("意外错误，geneset_id:{}在sg_geneset中未找到！".format(ObjectId(gi)))
         f.write(my_result["name"] + "\t")
-        results = collection.find({"geneset_id": ObjectId(gi)})
-        id_list = []
-        for result in results:
-            gene_id = result['gene_name']
-            id_list.append(gene_id)
-        f.write(",".join(id_list) + "\n")
+        results = collection.find_one({"geneset_id": ObjectId(gi)})
+        # id_list = []
+        # for result in results:
+        #     gene_id = result['gene_name']
+        #     id_list.append(gene_id)
+        f.write(",".join(results["gene_list"]) + "\n")
     return multi_geneset_path

@@ -130,12 +130,18 @@ class DiffExpressWorkflow(Workflow):
             self.group_spname = self.diff_exp.option('edger_group').get_group_spname()
             edger_group = self.option("group_id")
             self.samples=[]
+            """
             with open(edger_group,'r+') as f1:
                 f1.readline()
                 for lines in f1:
                     line = lines.strip().split("\t")
                     self.samples.append(line[0])
             # self.samples = self.option('group_id').prop['sample']
+            """
+            for keys,values in self.group_spname.items():
+                self.samples.extend(values)
+            self.logger.info("specimenname")
+            self.logger.info(self.samples)
         compare_column = list()
         for f in diff_files:
             if re.search(r'_edgr_stat.xls$', f):
@@ -178,24 +184,36 @@ class DiffExpressWorkflow(Workflow):
         else:
             raise Exception("此次差异分析没有生成summary表！")
         """更新主表信息"""
-        self.update_express_diff(table_id=self.option('diff_express_id'), compare_column=compare_column, group_detail=self.group_spname, samples=self.samples)
+        new_compare_column=list()
+        if self.option("group_id")!='all':
+            for d in compare_column:
+                _name = d.split("|")
+                tmp = []
+                for group in _name:
+                    if group in self.group_spname.keys():
+                        tmp.extend(self.group_spname[group])
+                new_compare_column[d]=tmp
+        self.logger.info("new_compare_column")
+        self.logger.info(new_compare_column)
+        self.update_express_diff(table_id=self.option('diff_express_id'), compare_column=compare_column, compare_column_specimen=new_compare_column,samples=self.samples)
         self.end()
 
-    def update_express_diff(self, table_id, compare_column, group_detail, samples):
+    def update_express_diff(self, table_id, compare_column, compare_column_specimen,samples):
         client = Config().mongo_client
         db_name = Config().MONGODB + '_ref_rna'
         self.logger.info(db_name)
         self.logger.info('haha')
+        
         collection = client[db_name]['sg_express_diff']
         """方便前端取数据, 生成compare_column_specimen"""
         if self.option("group_id") != "all":
-            compare_column_specimen={}
+            group_detail={}
             group_detal_dict = json.loads(self.option("group_detail"))
             for group,samples in group_detal_dict.items():
-                compare_column_specimen[group]=samples
-            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': samples,'compare_column_specimen':compare_column_specimen}})
+                group_detail[group]=samples
+            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': self.samples,'compare_column_specimen':compare_column_specimen}})
         else:
-            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': samples}})
+            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': self.samples}})
 
     def run(self):
         self.run_diff_exp()

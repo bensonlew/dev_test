@@ -23,9 +23,11 @@ class RefrnaExpress(Base):
         super(RefrnaExpress, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
         db =  Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        # db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        
     # @report_check
     def add_express(self, rsem_dir=None, group_fpkm_path = None, transcript_fasta_path=None, is_duplicate=None, class_code = None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = None):
-            
+            db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
             task_id = self.bind_object.sheet.id
             project_sn = self.bind_object.sheet.project_sn
             # if not express_diff_id:
@@ -54,7 +56,7 @@ class RefrnaExpress(Base):
                         insert_data["group"]=params["group_detail"].keys()
             if express_diff_id:
                 insert_data["express_diff_id"] = express_diff_id
-            collection = self.db['sg_express']
+            collection = db['sg_express']
             express_id = collection.insert_one(insert_data).inserted_id
             print "插入主表id是{}".format(express_id)
             value_type = params["type"]
@@ -70,35 +72,41 @@ class RefrnaExpress(Base):
                         count_path = rsem_dir + '/genes.counts.matrix'
                         # query_type=None,value_type=None, method=None, sample_group=None
                         
-                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group, samples=samples)
+                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group)
                         self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2gene_distribution.xls", \
                                           distribution_path_log10 = distri_path+"/log10gene_distribution.xls", \
                                           distribution_path = distri_path+"/gene_distribution.xls", sample_group = "sample", query_type="gene")
                         self.add_express_box(express_id, fpkm_path = rsem_dir+"/"+f, sample_group="sample", query_type="gene")
                         if is_duplicate:
-                            gene_group_fpkm_path = group_fpkm_path+"/Group.genes_genes.TMM.fpkm.matrix"
+                            if value_type == 'fpkm':
+                                gene_group_fpkm_path = group_fpkm_path+"/Group.genes_genes.TMM.fpkm.matrix"
+                            if value_type == 'tpm':
+                                gene_group_fpkm_path = group_fpkm_path + "/Group.genes_genes.TMM.EXPR.matrix"
                             if os.path.exists(gene_group_fpkm_path):
                                 self.add_express_group_detail(express_id, gene_group_fpkm_path,"gene",value_type,"rsem","group")
                             self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2GroupGenes_distribution.xls", \
                                               distribution_path_log10 = distri_path+"/log10GroupGenes_distribution.xls", \
                                               distribution_path = distri_path+"/GroupGenes_distribution.xls", sample_group = "group", query_type="gene")
-                            self.add_express_box(express_id, fpkm_path=distri_path+"/group/Group.genes_genes.TMM.fpkm.matrix", sample_group="group", query_type="gene")
+                            self.add_express_box(express_id, fpkm_path=gene_group_fpkm_path, sample_group="group", query_type="gene")
                     elif re.search(r'^transcripts\.TMM', f):
                         fpkm_path = rsem_dir + "/" + f
                         count_path = rsem_dir + '/transcripts.counts.matrix'
-                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'transcript', value_type, method, sample_group, samples=samples)
+                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'transcript', value_type, method, sample_group)
                         self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2transcript_distribution.xls", \
                                           distribution_path_log10 = distri_path+"/log10transcript_distribution.xls", \
                                           distribution_path = distri_path+"/transcript_distribution.xls", sample_group = "sample", query_type="transcript")
                         self.add_express_box(express_id, fpkm_path = rsem_dir+"/"+f, sample_group="sample", query_type="transcript")
                         if is_duplicate:
-                            trans_group_fpkm_path = group_fpkm_path+"/Group.trans_transcripts.TMM.fpkm.matrix"
+                            if value_type == 'fpkm':
+                                trans_group_fpkm_path = group_fpkm_path+"/Group.trans_transcripts.TMM.fpkm.matrix"
+                            if value_type == 'tpm':
+                                trans_group_fpkm_path = group_fpkm_path + "/Group.trans_transcripts.TMM.EXPR.matrix"
                             if os.path.exists(trans_group_fpkm_path):
                                 self.add_express_group_detail(express_id, trans_group_fpkm_path,"transcript",value_type,"rsem","group")
                             self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2GroupTrans_distribution.xls", \
                                               distribution_path_log10 = distri_path+"/log10GroupTrans_distribution.xls", \
                                               distribution_path = distri_path+"/GroupTrans_distribution.xls", sample_group = "group", query_type="transcript")
-                            self.add_express_box(express_id, fpkm_path=distri_path+"/group/Group.trans_transcripts.TMM.fpkm.matrix", sample_group="group", query_type="transcript")
+                            self.add_express_box(express_id, fpkm_path=trans_group_fpkm_path, sample_group="group", query_type="transcript")
                     elif re.search(r'\.genes\.results$', f):
                         sample = f.split('.genes.results')[0]
                         file_ = rsem_dir + "/" + f
@@ -110,6 +118,7 @@ class RefrnaExpress(Base):
             return express_id
     
     def add_express_feature(self, feature_dir=None, group_fpkm_path=None, is_duplicate=None, class_code = None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         # if not express_diff_id:
@@ -136,7 +145,7 @@ class RefrnaExpress(Base):
                     insert_data["group"]=params["group_detail"].keys()
         if express_diff_id:
             insert_data["express_diff_id"] = express_diff_id
-        collection = self.db['sg_express']
+        collection = db['sg_express']
         express_id = collection.insert_one(insert_data).inserted_id
         print "插入主表id是{}".format(express_id)
         value_type = params["type"]  #fpkm或者是tpm
@@ -148,7 +157,7 @@ class RefrnaExpress(Base):
             if value_type ==  'tpm':
                 fpkm_path = feature_dir + "/fpkm_tpm.tpm.xls"
             count_path = feature_dir + "/count.xls"
-            self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group,samples=samples)
+            self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group)
             self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/{}/log2gene_distribution.xls".format(value_type), \
                               distribution_path_log10 = distri_path+"/{}/log10gene_distribution.xls".format(value_type), \
                               distribution_path = distri_path+"/{}/gene_distribution.xls".format(value_type), sample_group = "sample", query_type="gene")
@@ -175,6 +184,7 @@ class RefrnaExpress(Base):
     
     def add_express_specimen_detail_feature(self, express_id, feature_result):
         """featurecounts单个样本的表达量信息"""
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
                 express_id = ObjectId(express_id)
@@ -195,7 +205,7 @@ class RefrnaExpress(Base):
                 insert_data=SON(insert_data)
                 data_list.append(insert_data)
         try:
-            collection = self.db["sg_express_specimen_detail"]
+            collection = db["sg_express_specimen_detail"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error ("导入单样本表达量矩阵：%s信息出错:%s" % (feature_result, e))
@@ -204,6 +214,7 @@ class RefrnaExpress(Base):
             
     
     def add_express_group_detail(self,express_id,group_fpkm_path=None,query_type=None,value_type=None, method=None, sample_group=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         from math import log
         if not isinstance(express_id, ObjectId):
                 if isinstance(express_id, types.StringTypes):
@@ -229,20 +240,21 @@ class RefrnaExpress(Base):
                     ("type",query_type),
                     ("value_type",value_type),
                     ("method",method),
-                    ("sample_group",sample_group)
+                    ("sample_group",sample_group),
+                    ("express_id",express_id)
                 ]
                 fpkm_data = line[1:]
                 for i in range(len(fpkm_data)):
                     data_log2 = log(float(fpkm_data[i])+1)/log(2)
                     data_log10 = log(float(fpkm_data[i])+1)/log(10)
                     insert_data += [
-                        ('{}_log2_fpkm'.format(group_name),data_log2),
-                        ('{}_log10_fpkm'.format(group_name),data_log10)
+                        ('{}_log2_fpkm'.format(group_name[i]),data_log2),
+                        ('{}_log10_fpkm'.format(group_name[i]),data_log10)
                     ]
                 insert_data=SON(insert_data)
                 data_list.append(insert_data)
         try:
-            collection = self.db["sg_express_detail"]
+            collection = db["sg_express_detail"]
             collection.insert_many(data_list)
         except Exception, e:
             bind_object.logger.error("导入表达量矩阵group信息出错:%s" % e)
@@ -252,7 +264,8 @@ class RefrnaExpress(Base):
             bind_object.logger.info("导入表达量矩阵group信息成功!")
             
     # @report_check
-    def add_express_detail(self, express_id, count_path, fpkm_path, class_code=None, query_type=None, value_type=None, method=None, sample_group=None,samples=None):
+    def add_express_detail(self, express_id, count_path, fpkm_path, class_code=None, query_type=None, value_type=None, method=None, sample_group=None, diff=True,):
+            db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
             import math
             if not isinstance(express_id, ObjectId):
                 if isinstance(express_id, types.StringTypes):
@@ -346,7 +359,7 @@ class RefrnaExpress(Base):
                     data = SON(data)
                     data_list.append(data)
             try:
-                collection = self.db["sg_express_detail"]
+                collection = db["sg_express_detail"]
                 collection.insert_many(data_list)
             except Exception, e:
                 # bind_object.logger.error("导入表达量矩阵信息出错:%s" % e)
@@ -356,7 +369,8 @@ class RefrnaExpress(Base):
                 # bind_object.logger.info("导入表达量矩阵信息成功!")
     
     # @report_check
-    def add_express_gragh(self, express_id, distribution_path_log2, distribution_path_log10, distribution_path, sample_group, query_type=None):    
+    def add_express_gragh(self, express_id, distribution_path_log2, distribution_path_log10, distribution_path, sample_group, query_type=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         def stat(fpkm_data,density,log=None):
             tmp = []
             if len(fpkm_data) != len(density):
@@ -387,7 +401,7 @@ class RefrnaExpress(Base):
             insert_data = SON(insert_data)
             data_list.append(insert_data)
         try:
-            collection = self.db["sg_express_gragh"]
+            collection = db["sg_express_gragh"]
             collection.insert_many(data_list)
         except Exception, e:
             print ("导入表达量矩阵作图数据：%s信息出错:%s" % (distribution_path_log2, e))
@@ -396,6 +410,7 @@ class RefrnaExpress(Base):
     
     # @report_check
     def add_express_box(self, express_id, fpkm_path, sample_group, query_type=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         def log_value(value, log):
             """获取log值"""
             if log == 2:
@@ -426,7 +441,7 @@ class RefrnaExpress(Base):
                 q3_max = fpkm[[0]][log_value(fpkm[sam], log).apply(lambda x: x>q3 and x<=max)].values
                 gene_list[sam]['q3-max'] = [i[0] for i in q3_max]
             return box, gene_list
-        express_info =self.db["sg_express"].find_one({"_id": ObjectId(express_id)})
+        express_info =db["sg_express"].find_one({"_id": ObjectId(express_id)})
         files = open(fpkm_path,'r+')
         samples = files.readline().strip().split("\t")[1:]
 
@@ -468,8 +483,8 @@ class RefrnaExpress(Base):
             data_log2=SON(data_log2)
             data_log10=SON(data_log10)
             
-            log2_id = self.db['sg_express_box'].insert_one(data_log2).inserted_id  #每个样本的box值单独分开导表
-            log10_id = self.db['sg_express_box'].insert_one(data_log10).inserted_id
+            log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id  #每个样本的box值单独分开导表
+            log10_id = db['sg_express_box'].insert_one(data_log10).inserted_id
             
             data_list_log2 = []
             data_list_log10 = []
@@ -492,8 +507,8 @@ class RefrnaExpress(Base):
                 insert_data_log10 = SON(insert_data_log10)
                 data_list_log10.append(insert_data_log10)
             
-            self.db["sg_express_box_detail"].insert_many(data_list_log2)
-            self.db["sg_express_box_detail"].insert_many(data_list_log10)
+            db["sg_express_box_detail"].insert_many(data_list_log2)
+            db["sg_express_box_detail"].insert_many(data_list_log10)
             
             print log2_id, log10_id
         # for sam in samples:
@@ -512,13 +527,14 @@ class RefrnaExpress(Base):
         # data = SON(data)
         # data_log2 = SON(data_log2)
         # data_log10 = SON(data_log10)
-        id = self.db['sg_express_box'].insert_one(data).inserted_id
+        id = db['sg_express_box'].insert_one(data).inserted_id
         # log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id
         # log10_id = db['sg_express_box'].insert_one(data_log10).inserted_id
         # print log2_id, log10_id
     
     # @report_check
     def add_express_specimen_detail(self, express_id, rsem_result, rsem_type, sample=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
                 express_id = ObjectId(express_id)
@@ -556,7 +572,7 @@ class RefrnaExpress(Base):
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = self.db["sg_express_specimen_detail"]
+            collection = db["sg_express_specimen_detail"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error ("导入单样本表达量矩阵：%s信息出错:%s" % (rsem_result, e))
@@ -586,7 +602,7 @@ class RefrnaExpress(Base):
                     standard_fc = math.log(fc)/math.log(2)
                     if diff_fc >= standard_fc:
                         m_ = re.search(regulate,up_down)
-                        if _:
+                        if m_:
                             sequence.append(seq_id)
                     else:
                         pass
@@ -602,6 +618,7 @@ class RefrnaExpress(Base):
         """
         添加sg_geneset主表, geneset的名字包括 up 和 down 
         """
+        db= Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         
@@ -622,7 +639,7 @@ class RefrnaExpress(Base):
             }
             
         try:
-            collection = self.db["sg_geneset"]
+            collection = db["sg_geneset"]
             print collection
             geneset_up_id = collection.insert_one(data_up).inserted_id
             print geneset_up_id
@@ -636,6 +653,7 @@ class RefrnaExpress(Base):
         """
         添加sg_geneset_detail表
         """
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         geneset_id = str(geneset_id)
         data_list = []
         data_list_up = []
@@ -655,7 +673,7 @@ class RefrnaExpress(Base):
             # data = SON(data)
             # data_list.append(data)
         try:
-            collection = self.db["sg_geneset_detail"]
+            collection = db["sg_geneset_detail"]
             collection.insert_one(data)
         except Exception, e:
             self.bind_object.logger.error("导入基因集detail表：%s信息出错:%s" % (diff_stat_path, e))
@@ -667,6 +685,7 @@ class RefrnaExpress(Base):
         """
         差异分析主表
         """
+        db= Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         params.update({
@@ -702,7 +721,7 @@ class RefrnaExpress(Base):
             insert_data["compare_column_specimen"]=compare_column_specimen
         if group_id == 'all':
             insert_data['group_detail'] = {'all': group_detail}
-        collection = self.db['sg_express_diff']
+        collection = db['sg_express_diff']
         express_diff_id = collection.insert_one(insert_data).inserted_id
         if major:
             diff_exp_files = os.listdir(diff_exp_dir)
@@ -739,6 +758,7 @@ class RefrnaExpress(Base):
         diff_stat_path: 差异统计表
         workflow: 是否工作流导入文件
         """
+        db =  Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_diff_id, ObjectId):
             if isinstance(express_diff_id, types.StringTypes):
                 express_diff_id = ObjectId(express_diff_id)
@@ -790,7 +810,7 @@ class RefrnaExpress(Base):
                 #print "aaaaaaaaaaaaaaaaaaaaaaa"
                 data_list.append(data)
             try:
-                collection = self.db["sg_express_diff_detail"]
+                collection = db["sg_express_diff_detail"]
                 collection.insert_many(data_list)
             except Exception, e:
                 self.bind_object.logger.error("导入基因表达差异统计表：%s信息出错:%s" % (diff_stat_path, e))
@@ -800,6 +820,7 @@ class RefrnaExpress(Base):
             # raise Exception("请输入class_code信息！")
             
     def add_diff_summary_detail(self, diff_express_id, count_path):
+        db=Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(diff_express_id, ObjectId):
             if isinstance(diff_express_id, types.StringTypes):
                 diff_express_id = ObjectId(diff_express_id)
@@ -828,8 +849,8 @@ class RefrnaExpress(Base):
                     sum_1 = l[alen]
                     data = [
                         ("seq_id", gene_id),
-                        ("diff_express_id", diff_express_id),
-                        ('sum', sum_1),
+                        ("express_diff_id", diff_express_id),
+                        ('sum', int(sum_1)),
                         ]
                     for j in range(blen):
                         data +=[
@@ -838,7 +859,7 @@ class RefrnaExpress(Base):
                     data = SON(data)
                     data_list.append(data)
         try:
-            collection = self.db["sg_express_diff_summary"]
+            collection = db["sg_express_diff_summary"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入差异分析summary表出错:%s" % e)
@@ -846,6 +867,7 @@ class RefrnaExpress(Base):
             self.bind_object.logger.info("导入差异分析summary表成功!")
     
     def add_class_code(self, assembly_method, name=None,major=False,class_code_path=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         data =[
@@ -858,7 +880,7 @@ class RefrnaExpress(Base):
             ('name',name if name else 'Classcode_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
         ]
         try:
-            collection = self.db["sg_express_class_code"]
+            collection = db["sg_express_class_code"]
             _id = collection.insert_one(SON(data)).inserted_id
             if major:
                 if os.path.exists(class_code_path):
@@ -870,6 +892,7 @@ class RefrnaExpress(Base):
             return _id
     
     def add_class_code_detail(self, class_code, class_code_id):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         with open(class_code,'r+') as f1:
             for lines in f1:
@@ -886,7 +909,7 @@ class RefrnaExpress(Base):
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = self.db["sg_express_class_code_detail"]
+            collection = db["sg_express_class_code_detail"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入%s表出错:%s" % (class_code,e))

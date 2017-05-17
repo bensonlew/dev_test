@@ -11,6 +11,7 @@ from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 import json
 import re
+import gridfs
 
 
 class RefRnaGeneset(Base):
@@ -41,7 +42,7 @@ class RefRnaGeneset(Base):
         return inserted_id
 
     @report_check
-    def add_geneset_cog_detail(self, geneset_cog_table, geneset_cog_id=None):
+    def add_geneset_cog_detail(self, geneset_cog_table, geneset_cog_id):
         """
         cog详情表导表函数
         :param geneset_cog_table:cog结果表
@@ -49,14 +50,18 @@ class RefRnaGeneset(Base):
         :return:
         """
         data_list = []
+        geneset_name = []
         with open(geneset_cog_table, 'r') as f:
             first_line = f.readline().strip().split("\t")
             print first_line
-            geneset_name = []
+            # print f.next().split("\t")
+
             for gn in first_line[2:]:
-                if not gn[:-4] in geneset_name:
+                if "list" in gn:
+                    continue
+                elif not gn[:-4] in geneset_name:
                     geneset_name.append(gn[:-4])
-            print geneset_name
+            self.bind_object.logger.error(geneset_name)
             for line in f:
                 line = line.strip().split("\t")
                 data = {
@@ -65,19 +70,25 @@ class RefRnaGeneset(Base):
                     'function_categories': line[1]
                 }
                 for n, gn in enumerate(geneset_name):
-                    data[gn + "_cog"] = int(line[n+2])
-                    data[gn + "_nog"] = int(line[n+2])
-                    data[gn + "_kog"] = int(line[n+2])
-                # print data
-                # data = SON(data)
+                    data[gn + "_cog"] = int(line[6*n+2])
+                    data[gn + "_nog"] = int(line[6*n+3])
+                    data[gn + "_kog"] = int(line[6*n+4])
+                    data[gn + "_cog_list"] = line[6*n+5].split(";")
+                    data[gn + "_nog_list"] = line[6*n+6].split(";")
+                    data[gn + "_kog_list"] = line[6*n+7].split(";")
+                    data[gn + "_cog_str"] = line[6*n+5]
+                    data[gn + "_nog_str"] = line[6*n+6]
+                    data[gn + "_kog_str"] = line[6*n+7]
                 data_list.append(data)
-            try:
-                collection = self.db['sg_geneset_cog_class_detail']
-                collection.insert_many(data_list)
-            except Exception, e:
-                self.bind_object.logger.error("导入cog表格：%s出错:%s" % (geneset_cog_table, e))
-            else:
-                self.bind_object.logger.error("导入cog表格：%s成功!" % (geneset_cog_table))
+        try:
+            collection = self.db['sg_geneset_cog_class_detail']
+            main_collection = self.db['sg_geneset_cog_class']
+            collection.insert_many(data_list)
+            main_collection.update({"_id": geneset_cog_id}, {"$set": {"table_columns": geneset_name}})
+        except Exception, e:
+            self.bind_object.logger.error("导入cog表格：%s出错:%s" % (geneset_cog_table, e))
+        else:
+            self.bind_object.logger.error("导入cog表格：%s成功!" % (geneset_cog_table))
 
     @report_check
     def add_go_enrich_detail(self, go_enrich_id, go_enrich_dir):
@@ -194,3 +205,134 @@ class RefRnaGeneset(Base):
                 coll = self.db['sg_geneset_kegg_enrich']
                 coll.update({'_id': enrich_id}, {'$set': {'desc': 'no_result'}})
                 self.bind_object.logger.info("kegg富集统计表没结果：" % kegg_enrich_table)
+
+    @report_check
+    def add_go_regulate_detail(self, go_regulate_dir, go_regulate_id):
+        """
+        :param go_regulate_id: 主表ID
+        :param go_regulate_dir: GO上下调结果
+        :return:
+        """
+        data_list = []
+        # geneset_name = []
+        if not isinstance(go_regulate_id, ObjectId):
+            if isinstance(go_regulate_id, types.StringTypes):
+                go_regulate_id = ObjectId(go_regulate_id)
+            else:
+                raise Exception('go_enrich_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(go_regulate_dir):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(go_regulate_dir))
+        with open(go_regulate_dir, 'r') as f:
+            first_line = f.readline().strip().split("\t")
+            doc_keys = set([l.split(" ")[0] for l in first_line[3:]])
+            geneset_name = doc_keys
+            # print first_line[3:]
+            # print f.next()
+            print doc_keys
+            for line in f:
+                line = line.strip().split('\t')
+                data = {
+                    'go_regulate_id': go_regulate_id,
+                    'go_type': line[0],
+                    'go': line[1],
+                    'go_id': line[2]
+                }
+                # print line[3]
+                for n, dk in enumerate(doc_keys):
+                    # print n+3
+                    data["{}_num".format(dk)] = int(line[3+n*3])
+                    data["{}_percent".format(dk)] = float(line[4+n*3])
+                    data["{}_str".format(dk)] = line[5+n*3]
+                    data["{}_genes".format(dk)] = line[5+n*3].split(";")
+                data_list.append(data)
+            try:
+                collection = self.db['sg_geneset_go_class_detail']
+                main_collection = self.db['sg_geneset_go_class']
+                collection.insert_many(data_list)
+                main_collection.update({"_id": go_regulate_id}, {"$set": {"table_columns": geneset_name}})
+            except Exception, e:
+                self.bind_object.logger.info("导入go调控信息：%s出错:%s" % (go_regulate_dir, e))
+            else:
+                self.bind_object.logger.info("导入go调控信息：%s成功!" % (go_regulate_dir))
+
+    @report_check
+    def add_kegg_regulate_pathway(self, regulate_id, pathway_dir):
+        """
+
+        :param regulate_id: 主表id
+        :param pathway_dir:~/output/pathway 结果图片文件夹
+        :return:
+        """
+        if not isinstance(regulate_id, ObjectId):
+            if isinstance(regulate_id, types.StringTypes):
+                regulate_id = ObjectId(regulate_id)
+            else:
+                raise Exception('kegg_regulate_id必须为ObjectId对象或其对应的字符串!')
+        if not os.path.exists(pathway_dir):
+            raise Exception('pathway_dir所指定的路径:{}不存在，请检查！'.format(pathway_dir))
+        data_list = []
+        files = os.listdir(pathway_dir)
+        fs = gridfs.GridFS(self.db)
+        for f in files:
+            png_id = fs.put(open(os.path.join(pathway_dir, f), 'rb'))
+            insert_data = {
+                'kegg_id': regulate_id,
+                'pathway_png': png_id,
+                'pathway_id': f.split('.pdf')[0]
+            }
+            data_list.append(insert_data)
+        try:
+            collection = self.db['sg_geneset_kegg_class_pathway']
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.info("导入kegg调控pathway：%s信息出错:%s" % (pathway_dir, e))
+        else:
+            self.bind_object.logger.info("导入kegg调控pathway:%s信息成功!" % pathway_dir)
+
+    @report_check
+    def add_kegg_regulate_detail(self, regulate_id, kegg_regulate_table):
+        """
+
+        :param regulate_id: 主表ID
+        :param kegg_regulate_table: kegg_stat.xls统计结果文件
+        :return:
+        """
+        if not isinstance(regulate_id, ObjectId):
+            if isinstance(regulate_id, types.StringTypes):
+                regulate_id = ObjectId(regulate_id)
+            else:
+                raise Exception('kegg_regulate_id必须为ObjectId对象或其对应的字符串!')
+        if not os.path.exists(kegg_regulate_table):
+            raise Exception('kegg_regulate_table所指定的路径:{}不存在，请检查！'.format(kegg_regulate_table))
+        data_list = []
+        with open(kegg_regulate_table, 'rb') as r:
+            first_line = r.readline().strip().split("\t")[2:]
+            print r.next()
+            genesets_name = []
+            for fl in first_line:
+                if "numbers" in fl:
+                    genesets_name.append(fl[:-8])
+            print genesets_name
+            print first_line
+            for line in r:
+                line = line.strip('\n').split('\t')
+                insert_data = {
+                    'kegg_id': regulate_id,
+                    'pathway_id': line[0],
+                    'ko_ids': line[1]
+                }
+                # print line
+                for n, gn in enumerate(genesets_name):
+                    insert_data["{}_numbers".format(gn)] = line[3+2*n]
+                    insert_data["{}_genes".format(gn)] = line[4+2*n].split(";")
+                    insert_data["{}_str".format(gn)] = line[4+2*n]
+                data_list.append(insert_data)
+            try:
+                collection = self.db['sg_geneset_kegg_class_detail']
+                main_collection = self.db['sg_geneset_kegg_class']
+                collection.insert_many(data_list)
+                main_collection.update({"_id": regulate_id}, {"$set": {"table_columns": genesets_name}})
+            except Exception, e:
+                self.bind_object.logger.info("导入kegg调控统计表：%s信息出错:%s" % (kegg_regulate_table, e))
+            else:
+                self.bind_object.logger.info("导入kegg调控统计表:%s信息成功!" % kegg_regulate_table)

@@ -83,16 +83,17 @@ class KeggRegulate(object):
                         for degree in pathway.entries.values():
                             if re.search(ko, degree.name):
                                 l[degree.id] = ko
-                    for theid in l:
-                        for graphic in pathway.entries[theid].graphics:
-                            if l[theid] in regulate_dict['up_down']:
-                                graphic.fgcolor = '#EEEE00'
-                            elif l[theid] in regulate_dict['up']:
-                                graphic.fgcolor = '#CC0000'
-                            elif l[theid] in regulate_dict['down']:
-                                graphic.fgcolor = '#388E3C'
-                            else:
-                                print theid
+                    if not regulate_dict == None:
+                        for theid in l:
+                            for graphic in pathway.entries[theid].graphics:
+                                if l[theid] in regulate_dict['up_down']:
+                                    graphic.fgcolor = '#EEEE00'
+                                elif l[theid] in regulate_dict['up']:
+                                    graphic.fgcolor = '#CC0000'
+                                elif l[theid] in regulate_dict['down']:
+                                    graphic.fgcolor = '#388E3C'
+                                else:
+                                    print theid
                     canvas = KGMLCanvas(pathway, import_imagemap=True)
                     canvas.draw(out_dir + '/' + path + '.pdf')
                     os.remove(kgml_path)
