@@ -9,6 +9,8 @@ import os
 import re
 from bson.objectid import ObjectId
 from mainapp.libs.param_pack import group_detail_sort
+import pandas as pd
+import json
 
 class DiffExpressWorkflow(Workflow):
     """
@@ -43,11 +45,59 @@ class DiffExpressWorkflow(Workflow):
         self.output_dir = self.diff_exp.output_dir
         self.group_spname = dict()
 
+    def get_samples(self):
+        """筛选样本名称"""
+        edger_group_path = self.option("group_id")
+        self.logger.info(edger_group_path)
+        samples = []
+        with open(edger_group_path, 'r+') as f1:
+            f1.readline()
+            for lines in f1:
+                line = lines.strip().split("\t")
+                samples.append(line[0])
+        return samples
+
+    def fpkm(self, samples):
+        fpkm_path = self.option("express_file").split(",")[0]
+        count_path= self.option("express_file").split(",")[1]
+        fpkm = pd.read_table(fpkm_path, sep="\t")
+        count = pd.read_table(count_path, sep="\t")
+        print "heihei1"
+        print fpkm.columns[1:]
+        print 'heihei2'
+        print samples
+        no_samp = []
+        sample_total = fpkm.columns[1:]
+
+        for sam in sample_total:
+            if sam not in samples:
+                no_samp.append(sam)
+        self.logger.info("heihei3")
+        self.logger.info(no_samp)
+        if no_samp:
+            new_fpkm = fpkm.drop(no_samp, axis=1)
+            new_count = count.drop(no_samp, axis=1)
+            print new_fpkm.columns
+            print new_count.columns
+            self.new_fpkm = self.diff_exp.work_dir + "/fpkm"
+            self.new_count = self.diff_exp.work_dir + "/count"
+            header = ['']
+            header.extend(samples)
+            new_fpkm.columns = header
+            new_count.columns = header
+            new_count.to_csv(self.new_count,sep="\t",index=False)
+            new_fpkm.to_csv(self.new_fpkm, sep="\t", index=False)
+            return self.new_fpkm, self.new_count
+        else:
+            return fpkm_path,count_path
+
     def run_diff_exp(self):
-        exp_files = self.option("express_file").split(',')
+        # exp_files = self.option("express_file").split(',')
+        specimen = self.get_samples()
+        _count,_fpkm = self.fpkm(specimen)
         options = {
-            "count": exp_files[1],
-            "fpkm": exp_files[0],
+            "count": _count,
+            "fpkm": _fpkm,
             "control_file": self.option("control_file"),
             # "edger_group":self.option("group_id"),
             "method": self.option("diff_method"),
@@ -57,7 +107,7 @@ class DiffExpressWorkflow(Workflow):
             options["diff_fdr_ci"]=self.option("pvalue")
         if self.option("pvalue_padjust") == "pvalue":
             options["diff_ci"] = self.option("pvalue")
-        self.option("count").set_path(exp_files[1])
+        self.option("count").set_path(_count)
         if self.option("group_id") != "all":  
             options['edger_group'] = self.option("group_id")
         self.diff_exp.set_options(options)
@@ -80,12 +130,18 @@ class DiffExpressWorkflow(Workflow):
             self.group_spname = self.diff_exp.option('edger_group').get_group_spname()
             edger_group = self.option("group_id")
             self.samples=[]
+            """
             with open(edger_group,'r+') as f1:
                 f1.readline()
                 for lines in f1:
                     line = lines.strip().split("\t")
                     self.samples.append(line[0])
             # self.samples = self.option('group_id').prop['sample']
+            """
+            for keys,values in self.group_spname.items():
+                self.samples.extend(values)
+            self.logger.info("specimenname")
+            self.logger.info(self.samples)
         compare_column = list()
         for f in diff_files:
             if re.search(r'_edgr_stat.xls$', f):
@@ -128,24 +184,36 @@ class DiffExpressWorkflow(Workflow):
         else:
             raise Exception("此次差异分析没有生成summary表！")
         """更新主表信息"""
-        self.update_express_diff(table_id=self.option('diff_express_id'), compare_column=compare_column, group_detail=self.group_spname, samples=self.samples)
+        new_compare_column=list()
+        if self.option("group_id")!='all':
+            for d in compare_column:
+                _name = d.split("|")
+                tmp = []
+                for group in _name:
+                    if group in self.group_spname.keys():
+                        tmp.extend(self.group_spname[group])
+                new_compare_column[d]=tmp
+        self.logger.info("new_compare_column")
+        self.logger.info(new_compare_column)
+        self.update_express_diff(table_id=self.option('diff_express_id'), compare_column=compare_column, compare_column_specimen=new_compare_column,samples=self.samples)
         self.end()
 
-    def update_express_diff(self, table_id, compare_column, group_detail, samples):
+    def update_express_diff(self, table_id, compare_column, compare_column_specimen,samples):
         client = Config().mongo_client
         db_name = Config().MONGODB + '_ref_rna'
         self.logger.info(db_name)
         self.logger.info('haha')
+        
         collection = client[db_name]['sg_express_diff']
         """方便前端取数据, 生成compare_column_specimen"""
         if self.option("group_id") != "all":
-            compare_column_specimen={}
+            group_detail={}
             group_detal_dict = json.loads(self.option("group_detail"))
             for group,samples in group_detal_dict.items():
-                compare_column_specimen[group]=samples
-            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': samples,'compare_column_specimen':compare_column_specimen}})
+                group_detail[group]=samples
+            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': self.samples,'compare_column_specimen':compare_column_specimen}})
         else:
-            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': samples}})
+            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': self.samples}})
 
     def run(self):
         self.run_diff_exp()

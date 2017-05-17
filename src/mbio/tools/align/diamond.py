@@ -81,7 +81,7 @@ class DiamondTool(Tool):
         db_name = os.path.splitext(os.path.basename(self.option("reference").prop['path']))[0]
         cmd = os.path.join(self.cmd_path, "makedb")
         self.db_path = os.path.join(self.work_dir, 'diamond')
-        cmd += "-makedb -in {} -d {}".format(self.option("reference").prop['path'], db_name)
+        cmd += " makedb -in {} -d {}".format(self.option("reference").prop['path'], db_name)
         self.logger.info("开始创建diamond数据库，生成结果库文件放在工作目录的customer_blastdb下")
         makedb_obj = self.add_command("makedb", cmd).run()
         self.wait(makedb_obj)
