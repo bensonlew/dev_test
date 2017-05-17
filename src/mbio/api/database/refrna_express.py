@@ -344,11 +344,12 @@ class RefrnaExpress(Base):
                     for i in range(len(samples)):
                         log2_fpkm = math.log(float(fpkm[i])+1)/math.log(2)
                         log10_fpkm = math.log(float(fpkm[i])+1)/math.log(10)
+
                         data += [
-                            ('{}_count'.format(samples[i]), float(count_dict[seq_id][i])), ('{}_fpkm'.format(samples[i]), float(fpkm[i])),
+                            ('{}_count'.format(samples[i]), float(count_dict[seq_id][i])), ('{}_{}'.format(samples[i],value_type), float(fpkm[i])),
                             ('{}_sum'.format(samples[i]), sample_count[samples[i]]),
-                            ('{}_log2_fpkm'.format(samples[i]),float(log2_fpkm)),
-                            ('{}_log10_fpkm'.format(samples[i]),float(log10_fpkm)),
+                            ('{}_log2_{}'.format(samples[i],value_type),float(log2_fpkm)),
+                            ('{}_log10_{}'.format(samples[i],value_type),float(log10_fpkm)),
                         ]
                     data = SON(data)
                     data_list.append(data)
