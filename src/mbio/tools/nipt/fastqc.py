@@ -24,7 +24,7 @@ class FastqcAgent(Agent):
 		options = [  # 输入的参数
 			{"name": "sample_id", "type": "string"},
 			{"name": "fastq_path", "type": "string"},
-			{"name": "bed_path", "type": "string"}
+			{"name": "bed_file", "type": "infile", "format": "nipt.bed"}
 		]
 		self.add_option(options)
 		self.step.add_steps("fastqc")
