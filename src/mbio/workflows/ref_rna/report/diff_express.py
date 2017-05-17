@@ -155,19 +155,19 @@ class DiffExpressWorkflow(Workflow):
                 """添加diff_detail表"""
                 api_diff_exp.add_express_diff_detail(name=name,compare_name=compare_name, express_diff_id=self.option("diff_express_id"),\
                             diff_stat_path=self.output_dir + '/' + f, workflow=False,class_code = self.option("class_code"),query_type = self.option("type"))
-                """添加geneset主表"""
+                """不用再导入基因集了"""
                 # geneset_up_id, geneset_down_id = api_diff_exp.add_geneset(diff_stat_path = self.output_dir + '/' + f,name=name,compare_name=compare_name,\
                             # group_id=self.option("group_id_id"),express_method=self.option("express_method"),type=self.option("type"))
-                up_id = api_diff_exp.add_geneset(diff_stat_path = self.output_dir + '/' + f,name=name,compare_name=compare_name,\
-                            group_id=self.option("group_id_id"),express_method=self.option("express_method"),type=self.option("type"),up_down='up')
-                down_id = api_diff_exp.add_geneset(diff_stat_path = self.output_dir + '/' + f,name=name,compare_name=compare_name,\
-                            group_id=self.option("group_id_id"),express_method=self.option("express_method"),type=self.option("type"),up_down='down')
-                up_down_id = api_diff_exp.add_geneset(diff_stat_path = self.output_dir + '/' + f,name=name,compare_name=compare_name,\
-                            group_id=self.option("group_id_id"),express_method=self.option("express_method"),type=self.option("type"),up_down='up_down')
-                """添加geneset_detail表-up,down"""
-                api_diff_exp.add_geneset_detail(geneset_id = up_id,diff_stat_path = self.output_dir + '/' + f, fc=self.option("fc"),up_down='up')
-                api_diff_exp.add_geneset_detail(geneset_id = down_id,diff_stat_path = self.output_dir + '/' + f, fc=self.option("fc"),up_down='down')
-                api_diff_exp.add_geneset_detail(geneset_id = up_down_id,diff_stat_path = self.output_dir + '/' + f, fc=self.option("fc"),up_down='up_down')
+                # up_id = api_diff_exp.add_geneset(diff_stat_path = self.output_dir + '/' + f,name=name,compare_name=compare_name,\
+                #             group_id=self.option("group_id_id"),express_method=self.option("express_method"),type=self.option("type"),up_down='up')
+                # down_id = api_diff_exp.add_geneset(diff_stat_path = self.output_dir + '/' + f,name=name,compare_name=compare_name,\
+                #             group_id=self.option("group_id_id"),express_method=self.option("express_method"),type=self.option("type"),up_down='down')
+                # up_down_id = api_diff_exp.add_geneset(diff_stat_path = self.output_dir + '/' + f,name=name,compare_name=compare_name,\
+                #             group_id=self.option("group_id_id"),express_method=self.option("express_method"),type=self.option("type"),up_down='up_down')
+                # """添加geneset_detail表-up,down"""
+                # api_diff_exp.add_geneset_detail(geneset_id = up_id,diff_stat_path = self.output_dir + '/' + f, fc=self.option("fc"),up_down='up')
+                # api_diff_exp.add_geneset_detail(geneset_id = down_id,diff_stat_path = self.output_dir + '/' + f, fc=self.option("fc"),up_down='down')
+                # api_diff_exp.add_geneset_detail(geneset_id = up_down_id,diff_stat_path = self.output_dir + '/' + f, fc=self.option("fc"),up_down='up_down')
                 
                 # api_diff_exp.add_geneset(geneset_id=geneset_id, diff_stat_path=self.output_dir + '/' + f)
                 # express_diff_id = api_diff_exp.test_main_table(express_id=self.option('diff_express_id'))
@@ -179,23 +179,15 @@ class DiffExpressWorkflow(Workflow):
                 # geneset_down_id = api_diff_exp.express_diff_up_down(group=con_exp, express_diff_id=self.option('diff_express_id'),group_id=self.option('group_id'),diff_stat_path=self.output_dir + '/' + f )
                 # api_diff_exp.add_geneset_down(geneset_id=geneset_down_id, diff_stat_path=self.output_dir + '/' + f)
         """添加summary表"""
+        self.logger.info("开始导summary表")
         if os.path.exists(self.output_dir + '/merge.xls'):
             api_diff_exp.add_diff_summary_detail(diff_express_id=self.option('diff_express_id'),count_path =self.output_dir + '/merge.xls')
         else:
             raise Exception("此次差异分析没有生成summary表！")
         """更新主表信息"""
-        new_compare_column=list()
-        if self.option("group_id")!='all':
-            for d in compare_column:
-                _name = d.split("|")
-                tmp = []
-                for group in _name:
-                    if group in self.group_spname.keys():
-                        tmp.extend(self.group_spname[group])
-                new_compare_column[d]=tmp
-        self.logger.info("new_compare_column")
-        self.logger.info(new_compare_column)
-        self.update_express_diff(table_id=self.option('diff_express_id'), compare_column=compare_column, compare_column_specimen=new_compare_column,samples=self.samples)
+
+        self.update_express_diff(table_id=self.option('diff_express_id'), compare_column=compare_column, compare_column_specimen=self.group_spname,samples=self.samples)
+        self.logger.info("更新主表成功！")
         self.end()
 
     def update_express_diff(self, table_id, compare_column, compare_column_specimen,samples):
@@ -206,12 +198,29 @@ class DiffExpressWorkflow(Workflow):
         
         collection = client[db_name]['sg_express_diff']
         """方便前端取数据, 生成compare_column_specimen"""
+        print "compare_column"
+        print compare_column
+        print "compare_column_specimen"
+        print compare_column_specimen
+
         if self.option("group_id") != "all":
+            new_compare_column_specimen = {}
+            for keys1 in compare_column:
+                new_compare = keys1.split("|")
+                new_sam = []
+                # print new_compare
+                for _group in new_compare:
+                    if _group in compare_column_specimen.keys():
+                        new_sam.extend(compare_column_specimen[_group])
+                # print new_sam
+                new_compare_column_specimen[keys1] = new_sam
+            print new_compare_column_specimen
+
             group_detail={}
             group_detal_dict = json.loads(self.option("group_detail"))
             for group,samples in group_detal_dict.items():
                 group_detail[group]=samples
-            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': self.samples,'compare_column_specimen':compare_column_specimen}})
+            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': self.samples,'compare_column_specimen':new_compare_column_specimen}})
         else:
             collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': self.samples}})
 
