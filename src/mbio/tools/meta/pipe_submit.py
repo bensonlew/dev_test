@@ -39,7 +39,8 @@ class PipeSubmitAgent(Agent):
         options = [
             {"name": "data", "type": "string"},
             {"name": "pipe_id", "type": "string"},
-            {"name": "task_id", "type": "string"}
+            {"name": "task_id", "type": "string"},
+            {"name": "batch_task_id", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("piple_submit")
@@ -106,11 +107,11 @@ class PipeSubmitTool(Tool):
         return self.task_id
 
     def update_mongo_ends_count(self, ana):
-        if ana.instant:
-            self.logger.info("api: {} END_COUNT+1".format(ana.api))
-            self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
-                                                         {'$inc': {"ends_count": 1}})
-        elif ana._params_check_end or not ana.success:
+        # if ana.instant:
+        #     self.logger.info("api: {} END_COUNT+1".format(ana.api))
+        #     self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+        #                                                  {'$inc': {"ends_count": 1}})
+        if ana._params_check_end or not ana.success:
             if ana._params['submit_location'] == "otu_pan_core":  # pancore 分析默认两个主表，一次结束 加 2
                 inc = 2
             else:
@@ -534,7 +535,7 @@ class Submit(object):
                 'pipe_batch_id': ObjectId(self.bind_object.option('pipe_id')),
                 'table_id': ObjectId(table_id),
                 'status': "failed",
-                'desc': "因为OtuSubsample分析计算失败，后面的依赖分析都不能进行，请重新设定基本参数，再次尝试，(" + str(self.result['info']) + ")",
+                'desc': "因为OtuSubsample分析计算失败，后面的依赖分析都不能进行，请重新设定基本参数，再次尝试!",
                 'level_id': "",
                 "group_id": "",
                 'type_name': self.mongo_collection,
@@ -587,9 +588,10 @@ class Submit(object):
             if i in temp_params and temp_params[i]:
                 temp_params[i] = json.dumps(
                     temp_params[i], sort_keys=True, separators=(',', ':'))
-        if not self.instant:
+        # if not self.instant:
             # temp_params['pipe_id'] = str(self.pipe_main_id)
-            temp_params['batch_id'] = str(self.bind_object.option('pipe_id'))
+        temp_params['batch_id'] = str(self.bind_object.option('pipe_id'))
+        temp_params['batch_task_id'] = str(self.bind_object.option('batch_task_id'))
         return temp_params
 
     def post(self):
@@ -896,8 +898,8 @@ class OtuPanCore(BetaSampleDistanceHclusterTree):
         result = self.db[self.mongo_collection].find({'task_id': self.task_id, 'params': self.json_params,
                                                       'status': {'$in': ['end', 'start', "failed"]}})
         if not result.count():
-            self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}, params: {}".format(
-                self.api, self.mongo_collection, self.params_pack(self._params)))
+            self.bind_object.logger.info("参数比对没有找到相关结果: 任务: {}, collection: {}".format(
+                self.api, self.mongo_collection, ))
             return False
         else:
             lastone = result.sort('created_ts', pymongo.DESCENDING)[0]

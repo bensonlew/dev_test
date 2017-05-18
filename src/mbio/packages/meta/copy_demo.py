@@ -115,6 +115,9 @@ class CopyMongo(object):
         greenlet = Greenlet(self.sixteen_function_predict)
         greenlet.start()
         self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.roc)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
         gevent.joinall(self.all_greenlets)
         gevent.joinall(self.all_greenlets)
         import socket
@@ -211,6 +214,11 @@ class CopyMongo(object):
         self.copy_main_details('sg_16s_cog_specimen', 'prediction_id', function_predict_id_dict, join=False)
         self.copy_main_details('sg_16s_kegg_level', 'prediction_id', function_predict_id_dict, join=False)
         self.copy_main_details('sg_16s_kegg_specimen', 'prediction_id', function_predict_id_dict, join=False)
+
+    def roc(self):
+        roc_id_dict = self.copy_collection_with_change("sg_roc", change_positions=["otu_id"], update_sg_status=True)
+        self.copy_main_details("sg_roc_auc", "roc_id", roc_id_dict, join=False)
+        self.copy_main_details("sg_roc_curve", "roc_id", roc_id_dict, join=False)
 
     def alpha_diversity(self):
         self.alpha_diversity_id_dict = self.copy_collection_with_change('sg_alpha_diversity', change_positions=['otu_id'], update_sg_status=True, join=True)
@@ -568,7 +576,7 @@ class CopyMongo(object):
         return json.dumps(params, sort_keys=True, separators=(',', ':'))
 
 if __name__ == '__main__':
-    copy_task = CopyMongo('tsg_5001', 'tsg_5001_1', '10004002_1', 'shenghe_test')
+    copy_task = CopyMongo('tsanger_7186', 'tsg_7186_22', '10004002_1', 'shenghe_test')
     copy_task.run()
 
     # copy_task = CopyMongo('tsg_3617', 'tsg_3617_022', '10000782_22', 'm_188_22')

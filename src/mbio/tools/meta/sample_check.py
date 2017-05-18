@@ -29,26 +29,26 @@ class SampleCheckAgent(Agent):
 
     def start_sample_check(self):
         self.step.sample_check.start()
-        self.step.update()             
+        self.step.update()
 
     def end_sample_check(self):
         self.step.sample_check.finish()
         self.step.update()
 
     def check_options(self):
-        
+
         return True
 
     def set_resource(self):
         self._cpu = 4
-        self._memory = "4G" 
+        self._memory = "4G"
 
 class SampleCheckTool(Tool):
     def __init__(self, config):
         super(SampleCheckTool, self).__init__(config)
         self.longest = ""
         self.allowed_step = [20, 50, 100, 200]
-    
+
     def cat_fastas_dir(self, sample_list):
         cat_fasta = self.work_dir + "/cat_meta.fasta"
         if os.path.exists(cat_fasta):
@@ -87,7 +87,7 @@ class SampleCheckTool(Tool):
         else:
             self.valid_statistics()
         self.end()
-    
+
     def _create_reads_len_info(self, length_list):
         """
         生成4个reads_len_info文件
@@ -108,7 +108,7 @@ class SampleCheckTool(Tool):
             max_list.append(int(myfasta.prop["longest"]))
         """
         with open(self.option("file_sample_list").prop["path"],"r") as r:
-           r.readline() 
+           r.readline()
            for line in r:
                 line = line.strip()
                 lst =line.split("\t")
@@ -175,7 +175,7 @@ class SampleCheckTool(Tool):
             for line in r:
                 line = line.strip()
                 len_ = int(line)
-                self.logger.info(len_)
+                # self.logger.info(len_)
                 for i in self.allowed_step:
                     self._find_range(len_, i, eval("self.step_" + str(i)))
             for mystep in self.allowed_step:
@@ -217,7 +217,7 @@ class SampleCheckTool(Tool):
                 dict_[i] += 1
                 break
             i += step
-    
+
     def sample_info(self,info_txt):
         dir_path = self.output_dir + "/samples_info"
         if os.path.exists(dir_path):
@@ -231,7 +231,7 @@ class SampleCheckTool(Tool):
                     line = line.strip()
                     lst = line.split("\t")
                     w.write(lst[1] + "\t" + lst[3] + "\t" +lst[4] + "\t" + lst[5] + "\t" + lst[6] +  "\t" + lst[7] + "\n")
-                    
+
     def sequence_statistics(self):
         self.logger.info("开始统计有效序列信息valid sequence")
         os.link(self.option("raw_sequence").prop["path"],self.output_dir + "/raw_sequence.txt")
@@ -254,8 +254,8 @@ class SampleCheckTool(Tool):
                     sequences += int(lst[1])
                     bases += int(lst[2])
                     samples += 1
-                a.write("\t" + str(samples) + "\t" + str(sequences) + "\t" + str(bases) + "\t" + str(bases/sequences))  
-                
+                a.write("\t" + str(samples) + "\t" + str(sequences) + "\t" + str(bases) + "\t" + str(bases/sequences))
+
     def valid_statistics(self):
         self.logger.info("开始统计有效序列信息valid sequence")
         with open(self.output_dir + "/valid_sequence.txt","a") as a:
@@ -270,4 +270,4 @@ class SampleCheckTool(Tool):
                     sequences += int(lst[1])
                     bases += int(lst[2])
                     samples += 1
-                a.write("-" + "\t" + str(samples) + "\t" + str(sequences) + "\t" + str(bases) + "\t" + str(bases/sequences))  
+                a.write("-" + "\t" + str(samples) + "\t" + str(sequences) + "\t" + str(bases) + "\t" + str(bases/sequences))
