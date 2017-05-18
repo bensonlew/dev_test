@@ -145,10 +145,10 @@ class TabFile(Base):
 
     def dedup_sample(self, num):
         collection = self.database['sg_pt_ref_main']
-        param = "WQ{}-F".format(num) + '.*'
+        # param = "WQ{}-F".format(num) + '.*'
         sample = []
 
-        for u in collection.find({"sample_id": {"$regex": param}}):
+        for u in collection.find({"sample_id": {"$regex": '.*-F.*'},"batch_id": {"$exists":True}}):
             sample.append(u['sample_id'])
         sample_new = list(set(sample))
         return sample_new
