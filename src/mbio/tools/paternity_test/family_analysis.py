@@ -90,6 +90,12 @@ class FamilyAnalysisTool(Tool):
         self.logger.info("开始运行家系的分析")
         cmd = self.add_command("analysis_cmd", analysis_cmd).run()
         self.wait(cmd)
+
+        if cmd.return_code == 'None':
+            self.logger.info("返回码问题，重新运行cmd")
+            cmd = self.add_command("cmd", cmd).run()
+            self.wait(cmd)
+
         if cmd.return_code == 0:
             self.logger.info("运行家系分析成功")
         else:
