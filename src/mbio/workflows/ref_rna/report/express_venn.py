@@ -57,14 +57,14 @@ class ExpressVennWorkflow(Workflow):
     def get_samples(self):
         edger_group_path = self.option("group_id")
         self.logger.info(edger_group_path)
-        samples=[]
+        self.samples=[]
         with open(edger_group_path,'r+') as f1:
             f1.readline()
             for lines in f1:
                 line=lines.strip().split("\t")
-                samples.append(line[0])
-        print samples
-        return samples
+                self.samples.append(line[0])
+        print self.samples
+        return self.samples
         
     def get_sample_table(self,fpkm_path, specimen):
         """ 根据筛选的样本名生成新的fpkm表 和 group_table表 """
@@ -81,7 +81,7 @@ class ExpressVennWorkflow(Workflow):
             new_fpkm = fpkm.drop(del_sam, axis=1)
             self.new_fpkm = self.venn.work_dir + "/fpkm"
             header=['']
-            header.extend(self.samples)
+            header.extend(specimen)
             new_fpkm.columns = header
             new_fpkm.to_csv(self.new_fpkm, sep="\t",index=False)
             print 'end!'
