@@ -31,7 +31,7 @@ class GenesetClusterWorkflow(Workflow):
             # {"name":"gene_cluster",'type':bool}, #是否基因聚类
             # {"name":"sample_cluster",'type':bool}, #是否样本聚类
             {"name": "gene_list", "type": "string"},  #输出gene_list
-            {"name": "level", "type": "string"}  # tpm/fpkm  #这个参数也可能暂时没有用
+            {"name": "express_level", "type": "string"}# 对应 tpm/fpkm字段, 传给workflow
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())

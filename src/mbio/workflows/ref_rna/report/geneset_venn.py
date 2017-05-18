@@ -8,7 +8,7 @@ from bson import ObjectId
 import datetime
 import pandas as pd
 import shutil
-import re
+import re,os
 from biocluster.workflow import Workflow
 from mbio.packages.ref_rna.express.genesetVenn import ExpressVenn
 
@@ -20,7 +20,7 @@ class GenesetVennWorkflow(Workflow):
         self._sheet = wsheet_object
         super(GenesetVennWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name":"geneset_file","type":"infile","format":"rna.express_metrix"},
+            {"name":"geneset_file","type":"string"},
             {"name":"type","type":"string"}, #基因还是转录本
             {"name":"update_info","type":"string"},
             {"name":"geneset_venn_id","type":"string"}
@@ -34,7 +34,7 @@ class GenesetVennWorkflow(Workflow):
         基因集venn图分析
         """
         opts = {
-            "fpkm":self.option("geneset_file").prop['path']
+            "fpkm":self.option("geneset_file")
         }
         self.geneset_venn.set_options(opts)
         self.geneset_venn.on("end", self.set_db)
@@ -46,10 +46,10 @@ class GenesetVennWorkflow(Workflow):
         api_geneset_venn = self.api.refrna_corr_express
         venn_table = self.geneset_venn.output_dir + "/venn_table.xls"
         venn_id = self.option("geneset_venn_id")
-        api_geneset_venn.add_denovo_venn_detail(venn_table, venn_id, project = 'ref')
+        api_geneset_venn.add_venn_detail(venn_table, venn_id, project = 'ref',analysis_name="geneset")
         self.logger.info("venn_table上传完毕！")
         venn_graph = self.geneset_venn.output_dir + "/venn_graph.xls"
-        api_geneset_venn.add_venn_graph(venn_graph, venn_id, project='ref')
+        api_geneset_venn.add_venn_graph(venn_graph, venn_id, project='ref',analysis_name="geneset")
         self.logger.info("venn_graph上传完毕！")
         self.end()
     

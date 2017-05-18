@@ -36,6 +36,7 @@ class DiffExpressWorkflow(Workflow):
             {"name": "diff_method", "type": "string","default":"edgeR"},
             {"name": "type","type": "string"},
             {"name":"log","type":"string"},
+            {"name":"express_level","type":"string"},#对应fpkm/tpm
             {"name":"pvalue_padjust","type":"string","default":"padjust"},
             {"name":"pvalue","type":"float","default":0.01}
         ]

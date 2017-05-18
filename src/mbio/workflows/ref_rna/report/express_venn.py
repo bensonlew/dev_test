@@ -20,7 +20,8 @@ class ExpressVennWorkflow(Workflow):
             {"name": "group_id", "type":"string"},  #样本的分组信息
             {"name":"group_detail","type":"string"},
             {"name": "update_info", "type": "string"},
-            {"name":"type","type":"string"},
+            {"name":"type","type":"string"},#对应gene/transcript
+            {"name":"express_level","type":"string"}, #对应fpkm/tpm
             # {"name":"sample_group",'type':"string","default":"sample"},
             {"name":"venn_id","type":"string"},
         ]
