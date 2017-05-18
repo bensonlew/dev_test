@@ -115,6 +115,7 @@ class FastqStatTool(Tool):
         os.link(self.work_dir+'/fastqstat.o', self.output_dir+'/{}_fastq_stat.xls'.format(self.fastq_name))
         os.system("sed -i '1d' {}".format(self.output_dir+'/{}_fastq_stat.xls'.format(self.fastq_name)))
         os.system("sed -i '$d' {}".format(self.output_dir+'/{}_fastq_stat.xls'.format(self.fastq_name)))
+        os.system("sed -i '$d' {}".format(self.output_dir+'/{}_fastq_stat.xls'.format(self.fastq_name)))
         self.logger.info("done")
         self.end()
 

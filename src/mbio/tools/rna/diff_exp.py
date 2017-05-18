@@ -139,7 +139,7 @@ class DiffExpTool(Tool):
     def run_edger(self, dispersion=None):
         if self.option('edger_group').is_set:
             self.option('edger_group').get_edger_group([self.option('gname')], './edger_group')
-            edger_cmd = self.edger + " --matrix %s --method %s --samples_file %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'), './edger_group', self.option('min_rowsum_counts'))
+            edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --samples_file %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'), self.option('dispersion'), './edger_group', self.option('min_rowsum_counts'))
         else:
             edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], self.option('method'), self.option('dispersion'), self.option('min_rowsum_counts'))
             restart_edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'), dispersion, self.option('min_rowsum_counts'))

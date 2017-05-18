@@ -15,7 +15,7 @@ class PtAnalysisModule(Module):
             {"name": "dad_tab", "type": "infile", "format": "paternity_test.tab"},  # 输入F/M/S的样本ID
             {"name": "mom_tab", "type": "infile", "format": "paternity_test.tab"},  # fastq所在路径
             {"name": "preg_tab", "type": "infile", "format": "paternity_test.tab"},
-            {"name": "ref_point", "type": "infile","format":"sequence.rda"},
+            {"name": "ref_point", "type": "infile","format":"paternity_test.rda"},
             {"name": "err_min", "type": "int", "default": 2},
         ]
         self.add_option(options)

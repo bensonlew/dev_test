@@ -104,10 +104,10 @@ class DiffStat(object):
                 for ss in samples_:
                     count_.append("{}_count".format(ss))
                     fpkm_.append("{}_fpkm".format(ss))
-                head = "gene_id\t%s\t%s\t%s_mean_count\t%s_mean_count\t%s_mean_fpkm\t%s_mean_fpkm\tlog2fc\tlogCPM\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (
+                head = "seq_id\t%s\t%s\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc\tlogCPM\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (
                     "\t".join(count_), "\t".join(fpkm_), control, other, control, other)
             else:
-                head = "gene_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc\tlogCPM\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (
+                head = "seq_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc\tlogCPM\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (
                 control, other, control, other)
             w.write(head)
             for line in r:

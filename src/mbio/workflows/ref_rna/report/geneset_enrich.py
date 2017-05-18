@@ -51,6 +51,7 @@ class GenesetEnrichWorkflow(Workflow):
                 # "pval": self.option("pval"),
                 "method": self.option("method"),
             }
+        self.logger.info(options)
         self.enrich_tool.set_options(options)
         self.enrich_tool.on('end', self.set_db)
         self.enrich_tool.run()

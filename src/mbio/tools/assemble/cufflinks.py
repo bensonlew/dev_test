@@ -10,7 +10,7 @@ import re
 
 class CufflinksAgent(Agent):
     """
-    有参转录组cuffmerge合并
+    有参转录组拼接
     version v1.0.1
     author: wangzhaoyue
     last_modify: 2016.09.09

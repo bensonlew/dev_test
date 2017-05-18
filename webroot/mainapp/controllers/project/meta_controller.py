@@ -127,7 +127,8 @@ class MetaController(object):
             self._sheet_data["params"] = params
         if to_file:
             self._sheet_data["to_file"] = to_file
-        print('Sheet_Data: {}'.format(self._sheet_data))
+        # print('Sheet_Data: {}'.format(self._sheet_data))
+        # 此处不能print  sheet_data的量可能比较大，会造成uwsgi日志问题
         self.workflow_id = new_task_id
         self.meta_pipe()
         return self._sheet_data
@@ -141,12 +142,14 @@ class MetaController(object):
             if not hasattr(data, i):
                 return
         print "一键化投递任务{}: {}".format(i, getattr(data, i))
-        self._instant = False
         update_info = json.loads(self._sheet_data["options"]['update_info'])
         # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
         update_info["batch_id"] = data.batch_id
         self._sheet_data['options']["update_info"] = json.dumps(update_info)
-        self._sheet_data["instant"] = False
+        if self._sheet_data['name'].strip().split(".")[-1] not in ["otu_subsample", "estimators"]:
+            print "test", self._sheet_data['name'].strip().split(".")[-1]
+            self._instant = False
+            self._sheet_data["instant"] = False
 
 
     def get_new_id(self, task_id, otu_id=None):

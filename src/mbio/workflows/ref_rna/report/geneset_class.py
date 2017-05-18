@@ -36,6 +36,8 @@ class GenesetClassWorkflow(Workflow):
         # self.group_spname = dict()
 
     def run(self):
+        self.start_listener()
+        self.fire("start")
         if self.option("anno_type") == "kegg":
             self.get_kegg_table()
         self.set_db()
@@ -52,9 +54,11 @@ class GenesetClassWorkflow(Workflow):
             api_geneset.add_geneset_cog_detail(output_file, self.option("main_table_id"))
         elif self.option("anno_type") == "go":
             output_file = self.option("geneset_go")
+            api_geneset.add_go_regulate_detail(output_file, self.option("main_table_id"))
         else:
             output_file = self.output_dir + '/kegg_stat.xls'
-            api_geneset.add_geneset_kegg_detail(output_file, self.option("main_table_id"))
+            api_geneset.add_go_regulate_detail(output_file, self.option("main_table_id"))
+            api_geneset.add_kegg_regulate_pathway(output_file, self.option("main_table_id"))
         os.link(output_file, self.output_dir + "/" + os.path.basename(output_file))
         print(output_file)
         self.end()
@@ -64,14 +68,14 @@ class GenesetClassWorkflow(Workflow):
         ko_genes, path_ko = self.option('kegg_table').get_pathway_koid()
         # regulate_dict = defaultdict(set)
         regulate_gene = {}
-        with open("geneset_kegg", "r") as f:
+        with open(self.option("geneset_kegg"), "r") as f:
             for line in f:
                 line = line.strip().split("\t")
                 regulate_gene[line[0]] = line[1].split(",")
         pathways = self.output_dir + '/pathways'
         if not os.path.exists(pathways):
             os.mkdir(pathways)
-        self.logger.info(regulate_gene)
+        self.logger.info(ko_genes)
         # kegg.get_pictrue(path_ko=path_ko, out_dir=pathways, regulate_dict=regulate_gene)  # 颜色
         kegg.get_pictrue(path_ko=path_ko, out_dir=pathways)
         kegg.get_regulate_table(ko_gene=ko_genes, path_ko=path_ko, regulate_gene=regulate_gene, output=self.output_dir + '/kegg_stat.xls')

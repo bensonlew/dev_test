@@ -81,7 +81,7 @@ class DiamondTool(Tool):
         db_name = os.path.splitext(os.path.basename(self.option("reference").prop['path']))[0]
         cmd = os.path.join(self.cmd_path, "makedb")
         self.db_path = os.path.join(self.work_dir, 'diamond')
-        cmd += "-makedb -in {} -d {}".format(self.option("reference").prop['path'], db_name)
+        cmd += " makedb -in {} -d {}".format(self.option("reference").prop['path'], db_name)
         self.logger.info("开始创建diamond数据库，生成结果库文件放在工作目录的customer_blastdb下")
         makedb_obj = self.add_command("makedb", cmd).run()
         self.wait(makedb_obj)
@@ -158,7 +158,7 @@ class DiamondTool(Tool):
             i = 0
             for line in file:
                 if line.lstrip().startswith("<BlastOutput_db>"):
-                    line = line.replace("<BlastOutput_db>" + self.option("database"), "<BlastOutput_db>")
+                    line = line.replace("<BlastOutput_db>", "<BlastOutput_db>" + self.option("database"))
                 if line.lstrip().startswith("<BlastOutput_version>"):
                     line = line.replace("diamond 0.8.35", "BLASTX 2.3.0+")
                 if line.lstrip().startswith("<Hit_id>"):

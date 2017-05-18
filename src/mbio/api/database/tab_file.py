@@ -17,7 +17,7 @@ class TabFile(Base):
         # self.mongo_client = MongoClient(Config().MONGO_BIO_URI)
         # self.database = self.mongo_client['sanger_paternity_test_v2']
         self.mongo_client = Config().biodb_mongo_client
-        self.database = self.mongo_client['sanger_paternity_test_v2']
+        self.database = self.mongo_client['sanger_paternity_test_ref']
 
 
     # @report_check
@@ -124,9 +124,9 @@ class TabFile(Base):
             pass
         else:
             search_result = collection.find({"sample_id": sample})  # 读出来是个地址
-            temp = collection.find_one({"sample_id":sample})
+            # temp = collection.find_one({"sample_id":sample})
 
-            if temp:
+            if search_result.count() != 0:
                 final_result = search_result
                 file = os.path.join(dir, sample + '.tab')
             else:
@@ -148,22 +148,11 @@ class TabFile(Base):
         param = "WQ{}-F".format(num) + '.*'
         sample = []
 
-        for u in collection.find({"sample_id": {"$regex": param}}):
-            sample.append(u['sample_id'])
+        flag = collection.find_one({"sample_id": {"$regex": param}})
+        if flag:
+            sample.append(flag['sample_id'])
         sample_new = list(set(sample))
         return sample_new
-
-    def dedup_fuzzy_sample(self, num, dad_id):
-        collection = self.database['sg_pt_ref']
-        param = "WQ\d{1,}%d\d{1,}-F" % (num)
-        sample = []
-
-        for u in collection.find({"sample_id": {"$regex": param}}):
-            if u['sample_id'] != dad_id or u['sample_id'] != dad_id + '1':
-                sample.append(u['sample_id'])
-        sample_new = list(set(sample))
-        if sample_new:
-            return sample_new
 
     def sample_qc(self, file, sample_id):
         qc_detail = list()
@@ -441,5 +430,3 @@ class TabFile(Base):
             self.bind_object.logger.error('计算并导入ot出错：{}'.format(e))
         else:
             self.bind_object.logger.info("计算并导入ot成功")
-
-
