@@ -338,7 +338,8 @@ def export_gene_list_ppi(data, option_name, dir_path, bind_obj=None):
 ####################################################表达量部分
 def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     """
-    level对应的是gene/transcript字段，workflow里确保有这个字段
+    type对应的是gene/transcript字段，workflow里确保有这个字段
+    level对应的是fpkm/tpm字段，workflow里确保有这个字段
     """
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     fpkm_path = os.path.join(dir_path, "%s_fpkm.matrix" % option_name)
@@ -346,10 +347,11 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     bind_obj.logger.debug("正在导出计数矩阵:%s；fpkm矩阵:%s" % (count_path, fpkm_path))
     collection = db['sg_express_detail']
     my_collection = db['sg_express']
-    level = bind_obj.sheet.option("type")
-    bind_obj.logger.debug(level)
+    type = bind_obj.sheet.option("type")
+    bind_obj.logger.debug(type)
+    level = bind_obj.sheet.option("express_level")
     #sample_group = bind_obj.sheet.option("sample_group")
-    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(level)},{"sample_group":"sample"}]})
+    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(type)},{"sample_group":"sample"}]})
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
         raise Exception("意外错误，express_id:{}在sg_express中未找到！".format(ObjectId(data)))
@@ -364,7 +366,7 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
             fpkm_write = '{}'.format(gene_id)
             count_write = '{}'.format(gene_id)
             for sam in samples:
-                fpkm = sam + '_fpkm'
+                fpkm = sam + '_{}'.format(level)
                 count = sam + '_count'
                 #bind_obj.logger.debug(fpkm)
                 try:
