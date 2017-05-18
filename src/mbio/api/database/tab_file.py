@@ -124,9 +124,9 @@ class TabFile(Base):
             pass
         else:
             search_result = collection.find({"sample_id": sample})  # 读出来是个地址
-            temp = collection.find_one({"sample_id":sample})
+            # temp = collection.find_one({"sample_id":sample})
 
-            if temp:
+            if search_result.count() != 0:
                 final_result = search_result
                 file = os.path.join(dir, sample + '.tab')
             else:
