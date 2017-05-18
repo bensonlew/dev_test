@@ -3,21 +3,20 @@
 from biocluster.iofile import Directory
 import os
 from biocluster.core.exceptions import FileError
-from mbio.files.align.blast.blast_table import BlastTableFile
+from mbio.files.align.blast.blast_table import BlastTableRelaxedFile
 
 
-class BlastTableDirFile(Directory):
+class BlastTableRelaxedDirFile(Directory):
     """
     bam文件夹格式
     """
     def __init__(self):
-        super(BlastTableDirFile, self).__init__()
+        super(BlastTableRelaxedDirFile, self).__init__()
 
     def check(self):
-        if super(BlastTableDirFile, self).check():
+        if super(BlastTableRelaxedDirFile, self).check():
             self.get_info()
             return True
-
 
     def get_info(self):
         files = os.listdir(self.path)
@@ -28,7 +27,7 @@ class BlastTableDirFile(Directory):
             raise FileError('文件夹为空，请检查！')
         for f in files:
             base_name = os.path.splitext(f)[0]
-            blasttable = BlastTableFile()
+            blasttable = BlastTableRelaxedFile()
             path = os.path.join(self.path, f)
             blasttable.set_path(path)
             blasttable.check()
