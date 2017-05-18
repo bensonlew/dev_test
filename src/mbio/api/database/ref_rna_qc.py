@@ -9,6 +9,7 @@ from bson.objectid import ObjectId
 import datetime
 # import pandas
 # import numpy
+from bson.son import SON
 import json
 import glob
 import re
@@ -20,6 +21,7 @@ class RefRnaQc(Base):
         super(RefRnaQc, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
 
+    @report_check
     def add_samples_info(self, qc_stat, qc_adapt=None, fq_type='se'):
         """
         :param qc_stat: 统计结果文件夹，即module.output_dir
@@ -154,6 +156,70 @@ class RefRnaQc(Base):
             self.bind_object.logger.error("导入样品画图数据信息出错:%s" % e)
         else:
             self.bind_object.logger.info("导入样品画图数据信息成功")
+
+    @report_check
+    def add_specimen_group(self, file):
+        spname_spid = self.get_spname_spid()
+        group_list = dict()
+        with open(file, "r") as f:
+            f.readline()
+            for line in f:
+                tmp = line.strip().split("\t")
+                group_name = tmp[1]
+                if group_name not in group_list.keys():
+                    group_list[group_name] = [tmp[0]]
+                else:
+                    group_list[group_name].append(tmp[0])
+        spcecimen_names = list()
+        group_sorted = list()
+        for key in group_list.keys():
+            lst = group_list[key]
+            tmp_dict = dict()
+            for sample in lst:
+                sp_id = spname_spid[sample]
+                tmp_dict[str(sp_id)] = sample
+            spcecimen_names.append(tmp_dict)
+            group_sorted.append(key)
+        data = {
+            "task_id" : self.bind_object.sheet.id,
+            "category_names": group_sorted,
+            "specimen_names": spcecimen_names,
+            "group_name": os.path.basename(file),
+            "project_sn": self.bind_object.sheet.project_sn
+        }
+        col = self.db["sg_specimen_group"]
+        group_id = col.insert_one(data).inserted_id
+        self.bind_object.logger.info("导入样本分组信息成功")
+        return group_id, spcecimen_names, group_sorted
+
+    @report_check
+    def add_control_group(self,file, group_id):
+        con_list = list()
+        with open(file, "r") as f:
+            f.readline()
+            for line in f:
+                tmp = line.strip().split("\t")
+                string = tmp[0] + "|" + tmp[1]
+                con_list.append(string)
+        col = self.db["sg_specimen_group"]
+        result = col.find_one({"_id": group_id})
+        group_name = result["group_name"]
+        category_names = str(result["category_names"])
+        data = {
+            "task_id": self.bind_object.sheet.id,
+            "compare_group_name": group_name,
+            "compare_names": str(con_list),
+            "compare_category_name": category_names,
+            "specimen_group_id": str(group_id)
+        }
+        col = self.db["sg_specimen_group_compare"]
+        try:
+            com_id = col.insert_one(data).inserted_id
+        except Exception,e:
+            self.bind_object.logger.error("导入样本对照组信息出错:%s" % e)
+        else:
+            self.bind_object.logger.info("导入样本对照组信息成功")
+            return com_id, con_list
 
     @report_check
     def get_spname_spid(self):

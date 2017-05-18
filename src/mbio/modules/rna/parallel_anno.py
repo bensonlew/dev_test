@@ -21,7 +21,7 @@ class ParallelAnnoModule(Module):
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},
             {"name": "upper_limit", "type": "int", "default": 10},  # xml被拆为10份
-            {"name": "out_cog", "type": "outfile", "format": "annotation.upload.anno_upload"},
+            {"name": "out_cog", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "out_kegg", "type": "outfile", "format": "annotation.upload.anno_upload"},
             {"name": "out_go", "type": "outfile", "format": "annotation.upload.anno_upload"}
         ]

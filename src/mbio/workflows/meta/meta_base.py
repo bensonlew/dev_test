@@ -365,6 +365,7 @@ class MetaBaseWorkflow(Workflow):
                 "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
+            self.updata_status_api.add_meta_status(table_id=str(self.otu_id), type_name='sg_otu')
             api_otu_level = self.api.sub_sample
             api_otu_level.add_sg_otu_detail_level(otu_path, self.otu_id, 9)
             # self.otu_id = str(self.otu_id)
@@ -547,7 +548,10 @@ class MetaBaseWorkflow(Workflow):
             self.stat.on('end', self.run_beta)
             self.on_rely([self.alpha, self.beta], self.end)
             self.run_taxon()
-        self.logger.info("分析结果异常处理：{}".format(self.update_info))
+        if self.update_info:
+            self.logger.info("分析结果异常处理：{}".format(self.update_info))
+            self.step._info += self.update_info
+            self.step._has_state_change = True
 
     def run(self):
         task_info = self.api.api('task_info.task_info')

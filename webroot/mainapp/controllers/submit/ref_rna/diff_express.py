@@ -25,18 +25,8 @@ class DiffExpressAction(RefRnaController):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        print data.express_id
-        print data.group_detail
-        print data.control_id
-        print data.group_id
-        print data.fc
-        print data.pvalue_padjust
-        print data.diff_method
-        print data.pvalue
-        print data.diff_method
         print data.type
-        
-        return "diff_express"
+        print 'haha'
         
         return_result = self.check_options(data)
         if return_result:
@@ -62,6 +52,13 @@ class DiffExpressAction(RefRnaController):
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
+        express_params=json.loads(express_info["params"])
+        print express_info
+        print 'heihei'
+        print task_info
+        print 'heihei1'
+        express_method = express_params["express_method"]
+        value_type = express_params["type"]
         
         if express_info:
             main_table_name = "DiffExpress_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -71,35 +68,54 @@ class DiffExpressAction(RefRnaController):
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
-                ('status', 'start'),
+                ('status', 'end'),
                 ('name', main_table_name),
+                ("value_type",value_type),
+                ("express_id",ObjectId(data.express_id)),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
             ]
+            #if express_info["is_duplicate"] and express_info['trans'] and express_info['genes']:
+            if "is_duplicate" in express_info.keys() and "trans" in express_info.keys() and "genes" in express_info.keys():
+                mongo_data.extend([
+                    ("is_duplicate", express_info["is_duplicate"]),
+                    ("trans", express_info['trans']),
+                    ('genes', express_info['genes'])
+                ])   #参数值方便前端取数据
+            else:
+                raise Exception("{}没有is_duplicate,trans,genes信息".format(str(data.express_id)))
             collection_name = "sg_express_diff"
             main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
             update_info = {str(main_table_id): collection_name}
             update_info = json.dumps(update_info)
-            
+            try:
+                class_code_id = self.ref_rna.get_class_code_id(task_id)
+            except Exception:
+                print "没有获得class_code_id信息"
             options = {
                 "express_file": data.express_id,
                 "update_info": update_info,
-                "group_id": data.group_id,
-                "group_detail":data.group_detail,
-                "type":data.type,
+                "type":data.type,  #gene/ transcript
                 "control_file": data.control_id,
                 'fc': data.fc,
+                "express_method": express_method,
+                "group_id_id":data.group_id,
+                'class_code': class_code_id,
                 "diff_method":data.diff_method,
-                "diff_express_id": str(main_table_id)
+                "diff_express_id": str(main_table_id),
+                "log":"None"
+                # "group_id": data.group_id,
+                # "group_detail":data.group_detail,
             }
-            to_file = ["ref_rna.export_express_matrix_level(express_file)", "ref_rna.export_control_file(control_file)"]
+            to_file = ["ref_rna.export_express_matrix_level(express_file)",  "ref_rna.export_control_file(control_file)", "ref_rna.export_class_code(class_code)"]
             if data.group_id != 'all':
-                to_file.append("ref_rna.export_group_table_by_detail(group_file)")
                 options.update({
-                    "group_file": data.group_id,
+                    "group_id": data.group_id,
                     "group_detail": data.group_detail,
                 })
-            self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type='workflow', to_file=to_file, main_id=diff_express_id, collection_name="sg_ref_express_diff")
+                to_file.append("ref_rna.export_group_table_by_detail(group_id)")
+            self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, 
+                            to_file=to_file,params=my_param, project_sn=task_info['project_sn'], task_id=task_info['task_id'])
             task_info = super(DiffExpressAction, self).POST()
             task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
             print task_info
@@ -119,8 +135,6 @@ class DiffExpressAction(RefRnaController):
         for names in params_name:
             if not (hasattr(data, names)):
                 success.append("缺少参数!")
-        if float(data.ci) >= 1 or float(data.ci) <= 0:
-            success.append("显著性水平ci不在范围内")
         for ids in [data.express_id, data.group_id, data.control_id]:
             ids = str(ids)
             print type(ids)

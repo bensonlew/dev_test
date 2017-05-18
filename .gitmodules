@@ -1,0 +1,3 @@
+[submodule "src/biocluster"]
+	path = src/biocluster
+	url = git@git.majorbio.com:guo.quan/biocluster-core.git
