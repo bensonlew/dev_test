@@ -43,6 +43,7 @@ class ExpressVennAction(RefRnaController):
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
                 ('status', 'end'),
+                ('desc',"样本间特异性venn图分析"),
                 ('name', main_table_name),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
@@ -50,13 +51,17 @@ class ExpressVennAction(RefRnaController):
             collection_name = "sg_express_venn"
             main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
             update_info = {str(main_table_id): collection_name}
-
+            
+            params = json.loads(express_info['params'])
+            express_level = params['type']
+            
             options = {
                 "express_file": data.express_id,
                 "group_id": data.group_id,
                 "group_detail": data.group_detail,
                 "update_info": json.dumps(update_info),
                 "venn_id": str(main_table_id),
+                "express_level":express_level,  #传fpkm还是tpm值给workflow
                 "type": data.type  #给workflow传参用的
             }
             to_file = ["ref_rna.export_express_matrix_level(express_file)", "ref_rna.export_group_table_by_detail(group_id)"]
