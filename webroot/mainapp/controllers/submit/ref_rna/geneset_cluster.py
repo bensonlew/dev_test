@@ -98,7 +98,8 @@ class GenesetClusterAction(RefRnaController):
         except Exception:
             print "根据task_id:{}、type:{}、express_method:{}未获得表达量的主表id".format(task_info['task_id'],data.type,data.express_method)
         print express_id
-        
+        #express_info = self.ref_rna.get_main_info(ObjectId(express_id), 'sg_express') 
+
         options = {
             "express_file": str(express_id),
             "genes_distance_method": data.genes_distance_method,
@@ -108,7 +109,7 @@ class GenesetClusterAction(RefRnaController):
             "group_detail": data.group_detail,
             "type": data.type,  # 对应gene or transcript
             "express_method": data.express_method,
-            "level": data.level, #对应fpkm or tpm
+            "express_level": data.level, #对应fpkm or tpm
             "sub_num": data.sub_num,
             "geneset_cluster_id": str(main_table_id),
             "gene_list": data.geneset_id,
@@ -139,9 +140,11 @@ class GenesetClusterAction(RefRnaController):
                            'group_id', 'group_detail', 'geneset_id',
                            'express_method', 'submit_location']
         success = []
+        
         for names in params_name:
             if not hasattr(data, names):
-                success.append("缺少参数！")
+                success.append("缺少参数！{}".format(names))
+        
         geneset_id = str(data.geneset_id)
         if not isinstance(geneset_id, ObjectId) and not isinstance(geneset_id, types.StringType):
             success.append("传入的geneset_id {}不是一个ObjectId对象或字符串类型".format(geneset_id))
