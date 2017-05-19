@@ -25,8 +25,8 @@ class DiffExpressAction(RefRnaController):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        print data.type
         print 'haha'
+        print data.group_id
         
         return_result = self.check_options(data)
         if return_result:
@@ -53,10 +53,7 @@ class DiffExpressAction(RefRnaController):
         express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
         express_params=json.loads(express_info["params"])
-        print express_info
-        print 'heihei'
-        print task_info
-        print 'heihei1'
+        
         express_method = express_params["express_method"]
         value_type = express_params["type"]
         
@@ -80,9 +77,14 @@ class DiffExpressAction(RefRnaController):
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
             ]
             #if express_info["is_duplicate"] and express_info['trans'] and express_info['genes']:
-            if "is_duplicate" in express_info.keys():
-                mongo_data.append(
-                    ("is_duplicate", express_info["is_duplicate"]))
+            # if "is_duplicate" in express_info.keys():
+            #     mongo_data.append(
+            #         ("is_duplicate", express_info["is_duplicate"]))
+            if str(data.group_id) == 'all':  #判断is_duplicate参数
+                mongo_data.append(('is_duplicate',False))
+            else:
+                mongo_data.append(('is_duplicate',True))
+
             if data.type == 'gene':
                 mongo_data.extend([
                     ("trans", False),
