@@ -105,13 +105,19 @@ class ResultInfoTool(Tool):
             cmd = self.add_command("plot_cmd", plot_cmd).run()
             self.wait(cmd)
 
-            if cmd.return_code == None:
-                self.logger.info("返回码问题，重新运行cmd")
-                cmd = self.add_command("cmd", cmd).run()
-                self.wait(cmd)
-
             if cmd.return_code == 0:
                 self.logger.info("运行绘制结果图成功")
+            elif cmd.return_code == None:
+                self.logger.info("返回码问题，重新运行cmd")
+                re_plot_cmd = "{}Rscript {}plot.R {}". \
+                    format(self.R_path, self.script_path, self.option("tab_merged").prop['path'])
+                re_plot_cmd = self.add_command("re_plot_cmd", re_plot_cmd).run()
+                self.wait(re_plot_cmd)
+
+                if re_plot_cmd.return_code == 0:
+                    self.logger.info("运行绘制结果图成功")
+                else:
+                    raise Exception("运行绘制结果图出错")
             else:
                 raise Exception("运行绘制结果图出错")
         else:
@@ -152,13 +158,19 @@ class ResultInfoTool(Tool):
             cmd = self.add_command("convert_cmd", convert_cmd).run()
             self.wait(cmd)
 
-            if cmd.return_code == None:
-                self.logger.info("返回码问题，重新运行cmd")
-                cmd = self.add_command("cmd", cmd).run()
-                self.wait(cmd)
-
             if cmd.return_code == 0:
                 self.logger.info("运行转化结果图成功")
+            elif cmd.return_code == None:
+                self.logger.info("返回码问题，重新运行cmd")
+                re_convert_cmd = "bioinfo/medical/scripts/convert2png.sh {} {} {} {}".format(path_family, path_fig1,
+                                                                                          path_fig2, path_percent)
+                re_convert_cmd = self.add_command("re_convert_cmd", re_convert_cmd).run()
+                self.wait(re_convert_cmd)
+
+                if re_convert_cmd.return_code == 0:
+                    self.logger.info("运行转化结果图成功")
+                else:
+                    raise Exception("运行转化结果图出错")
             else:
                 raise Exception("运行转化结果图出错")
 
