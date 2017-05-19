@@ -37,13 +37,15 @@ class RefAnnotationModule(Module):
             {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
         ]
         self.add_option(options)
+        self.swissprot_annot = self.add_tool('align.xml2table')
+        self.nr_annot = self.add_tool('align.xml2table')
         self.go_annot = self.add_tool('annotation.go.go_annotation')
         self.go_upload = self.add_tool('annotation.go.go_upload')
         self.string_cog = self.add_tool('annotation.cog.string2cogv9')
         self.kegg_annot = self.add_tool('annotation.kegg.kegg_annotation')
         self.kegg_upload = self.add_tool('annotation.kegg.kegg_upload')
         self.anno_stat = self.add_tool('rna.ref_anno_stat')
-        self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat')
+        self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat', 'nr_annot', 'swissprot_annot')
 
     def check_options(self):
         if self.option('anno_statistics'):
@@ -153,12 +155,23 @@ class RefAnnotationModule(Module):
         self.swissprot_annot.on('end', self.set_output, 'swissprot_annot')
         self.swissprot_annot.run()
 
+    def run_nr_anno(self):
+        options = {
+            'blastout': self.option('blast_swissprot_xml')
+        }
+        self.nr_annot.set_options(options)
+        self.nr_annot.on('start', self.set_step, {'start': self.step.nr_annot})
+        self.nr_annot.on('end', self.set_step, {'end': self.step.nr_annot})
+        self.nr_annot.on('end', self.set_output, 'nr_annot')
+        self.nr_annot.run()
+
     def run(self):
         super(RefAnnotationModule, self).run()
         self.all_end_tool = []  # 所有尾部注释模块，全部结束后运行整体统计
         self.anno_database = []
         if self.option('nr_annot'):
             self.anno_database.append('nr')
+            self.run_nr_anno()
         if self.option('go_annot'):
             self.anno_database.append('go')
             if self.option("gos_list_upload").is_set:
@@ -181,7 +194,7 @@ class RefAnnotationModule(Module):
             self.run_kegg_upload()
         if self.option("blast_swissprot_xml").is_set:
             self.anno_database.append('swissprot')
-            self.run_swissprot_anno()  # add
+            self.run_swissprot_anno()
         if self.option("pfam_domain").is_set:
             self.anno_database.append('pfam')
         if len(self.all_end_tool) > 1:
@@ -228,12 +241,11 @@ class RefAnnotationModule(Module):
             if db == 'kegg':
                 kwargs['kegg_table'] = self.kegg_annot.option('kegg_table').prop['path']
             if db == 'nr':
-                kwargs['blast_nr_table'] = self.option('blast_nr_table').prop['path']
+                kwargs['blast_nr_table'] = self.nr_annot.option('blast_table').prop['path']
             if db == 'swissprot':
-                kwargs['blast_swissprot_table'] = self.option('blast_swissprot_table').prop['path']
+                kwargs['blast_swissprot_table'] = self.swissprot_annot.option('blast_table').prop['path']
             if db == 'pfam':
                 kwargs['pfam_domain'] = self.option('pfam_domain').prop['path']
-
         allstat = AllAnnoStat()
         allstat.get_anno_stat(**kwargs)
 
