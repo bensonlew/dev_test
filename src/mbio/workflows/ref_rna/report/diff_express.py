@@ -23,11 +23,11 @@ class DiffExpressWorkflow(Workflow):
         options = [
             {"name": "express_file", "type": "string"},
             {"name":"count","type":"outfile",'format':"rna.express_matrix"},
-            {"name":"edger_group","type":"outfile",'format':"sample.group_table"},
+            # {"name":"edger_group","type":"outfile",'format':"sample.group_table"},
             {"name": "group_detail", "type": "string"},
             {"name": "fc", "type": "float"},
             {"name": "group_id", "type": "string"},
-            {"name":"group_id_id","type":"string"},  #group_id_id，字符串格式，不是to_file生成的edger_group文件
+            {"name":"group_id_id","type":"string"},  #group_id_id，字符串格式，不是to_file生成的edger_group文件 此参数暂时无用
             {"name":"express_method","type":"string"},
             {"name": "update_info", "type": "string"},
             {"name": "control_file", "type": "string"},
@@ -94,7 +94,18 @@ class DiffExpressWorkflow(Workflow):
 
     def run_diff_exp(self):
         # exp_files = self.option("express_file").split(',')
-        specimen = self.get_samples()
+        if self.option("group_id_id").lower() != 'all':
+            specimen = self.get_samples()
+        else:
+            with open(self.option("control_file"),'r+') as f1:
+                f1.readline()
+                specimen = []
+                for lines in f1:
+                    line=lines.strip().split("\t")
+                    for ll in line:
+                        if ll not in specimen:
+                            specimen.append(ll)
+
         _fpkm,_count = self.fpkm(specimen)
         options = {
             "count": _count,
@@ -109,7 +120,7 @@ class DiffExpressWorkflow(Workflow):
         if self.option("pvalue_padjust") == "pvalue":
             options["diff_ci"] = self.option("pvalue")
         self.option("count").set_path(_count)
-        if self.option("group_id") != "all":  
+        if self.option("group_id_id") != "all":
             options['edger_group'] = self.option("group_id")
         self.diff_exp.set_options(options)
         self.diff_exp.on("end", self.set_db)
@@ -122,9 +133,9 @@ class DiffExpressWorkflow(Workflow):
         api_diff_exp = self.api.refrna_express
         diff_files = os.listdir(self.output_dir)
         
-        if self.option("group_id") == "all":
+        if self.option("group_id_id") == "all":
             # self.samples = self.diff_exp.option('count').prop['sample']
-            self.samples = self.option("count").prop['sample']
+            self.samples = self.diff_exp.option("count").prop['sample']
             self.logger.info(self.samples)
             self.group_spname['all'] = self.samples
         else:
@@ -144,11 +155,27 @@ class DiffExpressWorkflow(Workflow):
             self.logger.info("specimenname")
             self.logger.info(self.samples)
         compare_column = list()
+        workflow_compare_column={}  #workflow中真正想要运行的control table 分组信息
+        workflow_group_name = []
+        with open(self.option("control_file"),'r+') as f1:
+            f1.readline()
+            _compare_column = []
+            for lines in f1:
+                _name, _compare_name = lines.strip().split("\t")
+                if "|".join([_name, _compare_name]) not in _compare_column:
+                    _compare_column.append("|".join([_name, _compare_name]))
+        print "打印期望分析的_compare_column："
+        print _compare_column
+
+
         for f in diff_files:
             if re.search(r'_edgr_stat.xls$', f):
                 #获得所有比较的差异分析文件
                 con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
-                compare_column.append('|'.join(con_exp))
+                if "|".join(con_exp) in _compare_column:
+                    compare_column.append('|'.join(con_exp))
+                else:
+                    continue
                 print self.output_dir + '/' + f
                 name = con_exp[0]
                 compare_name = con_exp[1]
@@ -204,7 +231,7 @@ class DiffExpressWorkflow(Workflow):
         print "compare_column_specimen"
         print compare_column_specimen
 
-        if self.option("group_id") != "all":
+        if self.option("group_id_id") != "all":
             new_compare_column_specimen = {}
             for keys1 in compare_column:
                 new_compare = keys1.split("|")
@@ -223,7 +250,7 @@ class DiffExpressWorkflow(Workflow):
                 group_detail[group]=samples
             collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': self.samples,'compare_column_specimen':new_compare_column_specimen}})
         else:
-            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': self.samples}})
+            collection.update({'_id': ObjectId(table_id)}, {'$set': {'compare_column': compare_column, 'specimen': self.samples}})
 
     def run(self):
         self.run_diff_exp()
