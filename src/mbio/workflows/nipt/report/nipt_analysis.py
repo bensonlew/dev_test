@@ -27,6 +27,11 @@ class NiptAnalysisWorkflow(Workflow):
 
     def run_niptanalysis(self):
         # bed_file = os.path.join(self.work_dir, "file.bed")
+        print self.option('bed_file'), self.option('bed_file').prop['path']
+        if self.api.nipt_analysis. add_bed_file(file_path=self.option('bed_file').prop['path']):
+            print "bed input success!"
+        else:
+            print "bed input failed!"
         options = {
             'bed_file': self.option('bed_file'),
             'bw': self.option('bw'),
