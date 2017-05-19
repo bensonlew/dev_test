@@ -256,7 +256,7 @@ class RefRnaQc(Base):
                     "map_to_up": float(line[5]),
                     "map_to_down": float(line[6]),
                     "non_splice_reads": float(line[-1]),
-                    "rRNA_reads": float(line[7]),
+                    "splice_reads": float(line[7]),
                     "mapping_rate": str(float("%0.4f" % (float(line[2])/float(line[1])))*100) + "%",
                     # "multiple_mapped": line[3],
                     "multiple_rate": str(float("%0.4f" % (float(line[3])/float(line[1])))*100) + "%",
