@@ -52,6 +52,9 @@ class RefSnp(Base):
         snp_files = glob.glob("{}/*".format(snp_anno))
         graph_data_list = []
         snp_types = []
+        sample_names = []
+        chroms = set()
+        distributions = []
         print snp_files
         for sf in snp_files:
             data_list = []
@@ -63,6 +66,7 @@ class RefSnp(Base):
                 f.readline()
                 # print f.next().split("\t")
                 sample_name = os.path.basename(sf).split(".")[0]
+                sample_names.append(sample_name)
                 print sample_name
                 for line in f:
                     # print len(line)
@@ -85,7 +89,7 @@ class RefSnp(Base):
                         "mut_info": line[9],
                         "snp_type": snp_type
                     }
-
+                    chroms.add(line[0])
                     data_list.append(data)
                     if "-" not in snp_type and len(snp_type) < 4:
                         if snp_type in snp_type_stat:
@@ -144,13 +148,14 @@ class RefSnp(Base):
             # print
             # print indel_pos_stat
         # print graph_data_list
+            distributions = snp_pos_stat.keys()
         try:
             # collection = conn["sg_snp_detail"]
             # collection.insert_many(data_list)
             graph_collection = self.db["sg_snp_graphic"]
             graph_collection.insert_many(graph_data_list)
             main_collection = self.db["sg_snp"]
-            main_collection.update({"_id": ObjectId(snp_id)}, {"$set": {"snp_types": snp_types}})
+            main_collection.update({"_id": ObjectId(snp_id)}, {"$set": {"snp_types": snp_types, "specimen": sample_names, "distributions": distributions, "chroms": list(chroms)}})
         except Exception, e:
             print("导入SNP统计信息出错:%s" % e)
         else:
