@@ -7,6 +7,7 @@ from types import StringTypes
 from bson.son import SON
 from biocluster.config import Config
 import xlrd
+import os
 
 
 class NiptAnalysis(Base):
@@ -203,3 +204,31 @@ class NiptAnalysis(Base):
             raise Exception('插入客户信息表出错：{}'.format(e))
         else:
             self.bind_object.logger.info("插入客户信息表成功")
+
+    def export_bed_file(self, sample, dir):
+        """
+        用于导出bed文件，用于后面计算
+        """
+        collection = self.database_ref['sg_nipt_bed']
+        sample_bed = str(sample) + ".bed"
+        file = os.path.join(dir, sample_bed)
+        if os.path.exists(file):
+            pass
+        else:
+            search_result = collection.find({"sample_id": str(sample)})
+            if search_result.count() != 0:
+                final_result = search_result
+                file = os.path.join(dir, sample + '.bed')
+            else:
+                raise Exception("没有在数据库中搜到%s"%(sample))
+            with open(file, "w+") as f:
+                for n in final_result:
+                    f.write(n['chr'] + '\t' + n['start'] + '\t' + n['end'] +
+                            '\t' + n['gc'] + '\t' + n['map'] + '\t' + n['pn'] + '\t' +
+                            n['reads'] + '\t' + n['sample_id'] + '\n')
+            if os.path.getsize(file):
+                return file
+            else:
+                raise Exception("样本 %s 的bed文件为空！"%(sample))
+
+
