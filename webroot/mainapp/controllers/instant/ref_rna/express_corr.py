@@ -41,6 +41,7 @@ class ExpressCorrAction(RefRnaController):
                 ('project_sn', express_info['project_sn']),
                 ('task_id', express_info['task_id']),
                 ('status', 'end'),
+                ('desc',"样本间相关性分析"),
                 ('name', main_table_name),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
@@ -48,6 +49,10 @@ class ExpressCorrAction(RefRnaController):
             collection_name = "sg_express_correlation"
             main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
             update_info = {str(main_table_id): collection_name}
+            
+            params=json.loads(express_info['params'])
+            express_level = params['type']
+            
             options = {
                 "express_file": data.express_id,
                 "method": data.method,
@@ -57,7 +62,8 @@ class ExpressCorrAction(RefRnaController):
                 "group_detail": data.group_detail,
                 "corr_pca": "corr",
                 "type": "gene",  # 给workflow传参使用
-                "update_info": json.dumps(update_info)
+                "update_info": json.dumps(update_info),
+                "express_level":express_level
             }
             to_file = ["ref_rna.export_express_matrix_level(express_file)", "ref_rna.export_group_table_by_detail(group_id)"]
             self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,

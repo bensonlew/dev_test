@@ -31,6 +31,7 @@ class ExpressCorrWorkflow(Workflow):
             {"name":"type","type":"string","default":"gene"}, #传给to_file 参数
             {"name":"method","type":"string","default":"pearson"}, #聚类方法
             {"name":"hclust_method",'type':"string",'default':'complete'}, #层次聚类方式
+            {"name":"express_level","type":"string"}, #对应fpkm/tpm
             {"name":"corr_pca","type":"string"} #pca 或 correlation分析
         ]
         self.add_option(options)

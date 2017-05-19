@@ -51,6 +51,7 @@ class ExpressPcaAction(RefRnaController):
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
                 ('status', 'end'),
+                ('desc',"样本间pca分析"),
                 ('name', main_table_name),
                 ("type", "gene"), #pca只对基因进行分析
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
@@ -61,7 +62,8 @@ class ExpressPcaAction(RefRnaController):
             main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
             
             update_info = {str(main_table_id): collection_name}
-            
+            params = json.loads(express_info['params'])
+            express_level = params['type']
             options = {
                 "express_file": data.express_id,
                 "correlation_id": str(main_table_id),
@@ -69,7 +71,8 @@ class ExpressPcaAction(RefRnaController):
                 "group_detail": data.group_detail,
                 "corr_pca": "pca",
                 "type": "gene",
-                "update_info": json.dumps(update_info)
+                "update_info": json.dumps(update_info),
+                "express_level":express_level
             }
             
             to_file = ["ref_rna.export_express_matrix_level(express_file)", "ref_rna.export_group_table_by_detail(group_id)"]

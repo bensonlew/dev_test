@@ -32,6 +32,8 @@ class GenesetVennAction(RefRnaController):
         my_param['geneset_id']=data.geneset_id
         my_param['submit_location'] = data.submit_location
         my_param["task_id"] = data.task_id
+        my_param['task_type'] = task_type
+
         # 判断传入的基因集id是否存在
         geneset_info = {}
         for geneset in data.geneset_id.split(","):
@@ -51,6 +53,7 @@ class GenesetVennAction(RefRnaController):
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
                 ('status', 'end'),
+                ('desc',"基因集venn图分析"),
                 ('name', main_table_name),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))

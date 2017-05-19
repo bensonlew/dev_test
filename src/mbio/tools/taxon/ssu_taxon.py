@@ -14,7 +14,7 @@ class SsuTaxonAgent(Agent):
     def __init__(self, parent):
         super(SsuTaxonAgent, self).__init__(parent)
         options = [
-            {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml, align.blast.blast_table"},  # 输入文件
+            {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml_dir, align.blast.blast_table_dir"},  # 输入文件
             {"name": "taxon_out", "type": "outfile", "format": "annotation.nr.nr_taxon"},  # 输出结果文件 没有定义内容
             {"name": "ssu_db", 'type': 'string', 'default': 'None'}  # 数据库版本有 silva119/silva123/silva128
             ]

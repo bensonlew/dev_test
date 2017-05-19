@@ -61,6 +61,9 @@ class DiffExpressAction(RefRnaController):
         value_type = express_params["type"]
         
         if express_info:
+            params = json.loads(express_info['params'])
+            express_level = params['type']
+
             main_table_name = "DiffExpress_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_id = express_info["task_id"]
             project_sn = express_info["project_sn"]
@@ -69,6 +72,7 @@ class DiffExpressAction(RefRnaController):
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
                 ('status', 'end'),
+                ('desc',"表达量差异主表"),
                 ('name', main_table_name),
                 ("value_type",value_type),
                 ("express_id",ObjectId(data.express_id)),
@@ -103,7 +107,8 @@ class DiffExpressAction(RefRnaController):
                 'class_code': class_code_id,
                 "diff_method":data.diff_method,
                 "diff_express_id": str(main_table_id),
-                "log":"None"
+                "log":"None",
+                "express_level":express_level
                 # "group_id": data.group_id,
                 # "group_detail":data.group_detail,
             }
