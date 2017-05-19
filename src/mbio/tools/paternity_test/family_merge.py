@@ -29,7 +29,7 @@ class FamilyMergeAgent(Agent):
             {"name": "dad_tab", "type": "infile", "format": "paternity_test.tab"},
             {"name": "mom_tab", "type": "infile", "format": "paternity_test.tab"},
             {"name": "preg_tab", "type": "infile", "format": "paternity_test.tab"},
-            {"name": "ref_point", "type": "infile","format":"sequence.rda"},
+            {"name": "ref_point", "type": "infile","format":"paternity_test.rda"},
             {"name": "err_min", "type": "int", "default": 2},
             {"name": "tab_merged", "type": "infile", "format": "paternity_test.rdata"}
         ]
@@ -87,8 +87,8 @@ class FamilyMergeTool(Tool):
 
         self.R_path = 'program/R-3.3.1/bin/'
         self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/medical/scripts/'
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
         tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {}".\
@@ -99,10 +99,16 @@ class FamilyMergeTool(Tool):
         self.logger.info("开始运行家系合并")
         cmd = self.add_command("tab2family_cmd", tab2family_cmd).run()
         self.wait(cmd)
+
+        if cmd.return_code == None:
+            self.logger.info("返回码问题，重新运行cmd")
+            cmd = self.add_command("cmd", cmd).run()
+            self.wait(cmd)
+
         if cmd.return_code == 0:
             self.logger.info("运行家系合并成功")
         else:
-            self.logger.info("运行家系合并出错")
+            raise Exception("运行家系合并出错")
 
     def set_output(self):
         """
