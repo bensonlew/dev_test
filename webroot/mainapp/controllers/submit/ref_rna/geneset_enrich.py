@@ -10,7 +10,7 @@ from mainapp.controllers.project.ref_rna_controller import RefRnaController
 
 class GenesetEnrichAction(RefRnaController):
     def __init__(self):
-        super(GenesetEnrichAction, self).__init__(instant=True)
+        super(GenesetEnrichAction, self).__init__(instant=False)
 
     def POST(self):
         data = web.input()

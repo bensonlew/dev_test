@@ -5,7 +5,7 @@
 Path
 -----------
 
-**ref_rna.protein_regulation**
+**module.protein_regulation**
 
 功能和用途描述
 -----------------------------------
@@ -21,14 +21,11 @@ Path
 参数设计
 -----------------------------------
 
-::
 
-     {"name": "diff_exp", "type": "infile", "format": "ref_rna.txt"},  #差异基因ID mapping后文件
-     {"name": "species", "type": "int", "default": 9606}, #设置物种
-     {"name": "combine_score",  "type": "int", "default": 600}, #蛋白质之间相互作用可能性，值越大越好
-     {"name": "logFC",  "type": "float", "default": 0.2}, #logFC>0.2 && logFC <-0.2 的差异基因
-     {"name": "species_list", "type": "string"} #读入string数据库中存在的物种taxon_id，用于检测用户输入的taxon是不是正确
 
+{"name": "diff_exp_gene", "type": "infile", "format": "rna.ppi"},
+{"name": "species", "type": "int", "default": 9606},
+{"name": "combine_score", "type": "int", "default": 300}
 
 
 运行逻辑
