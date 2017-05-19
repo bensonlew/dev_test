@@ -80,14 +80,19 @@ class DiffExpressAction(RefRnaController):
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
             ]
             #if express_info["is_duplicate"] and express_info['trans'] and express_info['genes']:
-            if "is_duplicate" in express_info.keys() and "trans" in express_info.keys() and "genes" in express_info.keys():
+            if "is_duplicate" in express_info.keys():
+                mongo_data.append(
+                    ("is_duplicate", express_info["is_duplicate"]))
+            if data.type == 'gene':
                 mongo_data.extend([
-                    ("is_duplicate", express_info["is_duplicate"]),
-                    ("trans", express_info['trans']),
-                    ('genes', express_info['genes'])
+                    ("trans", False),
+                    ('genes', True)
                 ])   #参数值方便前端取数据
-            else:
-                raise Exception("{}没有is_duplicate,trans,genes信息".format(str(data.express_id)))
+            if data.type == 'transcript':
+                mongo_data.extend([
+                    ('trans',True),
+                    ('genes',False)
+                ])
             collection_name = "sg_express_diff"
             main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
             update_info = {str(main_table_id): collection_name}
