@@ -41,6 +41,7 @@ class RefAnnotationModule(Module):
         self.go_upload = self.add_tool('annotation.go.go_upload')
         self.string_cog = self.add_tool('annotation.cog.string2cogv9')
         self.kegg_annot = self.add_tool('annotation.kegg.kegg_annotation')
+        self.swissprot_annot = self.add_tool("annotation.swissprot")
         self.kegg_upload = self.add_tool('annotation.kegg.kegg_upload')
         self.anno_stat = self.add_tool('rna.ref_anno_stat')
         self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat')

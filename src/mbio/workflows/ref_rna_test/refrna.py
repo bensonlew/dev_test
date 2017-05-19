@@ -1225,16 +1225,15 @@ class RefrnaWorkflow(Workflow):
 
     def export_annotation(self):
         self.api_anno = self.api.api("ref_rna.ref_annotation")
-        anno_path = self.annotation.output_dir
+        ref_anno_path = self.annotation.output_dir
         params = {
             "nr_evalue": self.option("nr_blast_evalue"),
             "swissprot_evalue": self.option("swissprot_blast_evalue")
         }
         params = json.dumps(params)
-        self.add_annotation(self, name=None, params=params, seq_type="ref", anno_path=anno_path, pfam_path=None)
-        anno_path = self.new_annotation.output_dir
+        new_anno_path = self.new_annotation.output_dir
         pfam_path = self.pfam.output_dir + "/pfam_domian"
-        self.add_annotation(self, name=None, params=params, seq_type="new", anno_path=anno_path, pfam_path=pfam_path)
+        self.api_anno.add_annotation(name=None, params=params, ref_anno_path=ref_anno_path, new_anno_path=new_anno_path, pfam_path=pfam_path)
 
     def export_as(self):
         self.api_as = self.api.refrna_splicing_rmats

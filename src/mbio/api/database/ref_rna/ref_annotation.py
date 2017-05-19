@@ -25,7 +25,7 @@ class RefAnnotation(Base):
         new_stat_path = new_anno_path + "/anno_stat/all_annotation_statistics.xls"
         new_venn_path = new_anno_path + "/anno_stat/venn"
         stat_id = self.add_annotation_stat(name=None, params=params, seq_type="new", database="nr,swissprot,pfam,cog,go,kegg")
-        if oa.path.exists(new_stat_path) and os.path.exists(new_venn_path):
+        if os.path.exists(new_stat_path) and os.path.exists(new_venn_path):
             self.add_annotation_stat_detail(stat_id=stat_id, stat_path=new_stat_path, venn_path=new_venn_path)
         else:
             raise Exception("新序列注释统计文件和venn图文件夹不存在")
