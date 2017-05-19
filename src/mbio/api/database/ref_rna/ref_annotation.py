@@ -16,36 +16,155 @@ class RefAnnotation(Base):
         super(RefAnnotation, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
 
-    def add_annotation(self, name=None, params=None, seq_type=None, anno_path=None, pfam_path=None):
+    def add_annotation(self, name=None, params=None, ref_anno_path=None, new_anno_path=None, pfam_path=None):
         """
-        seq_type:参考序列(ref)/新序列(new)
-        anno_path:注释的结果文件夹
+        ref_anno_path: 已知序列注释的结果文件夹
+        new_anno_path: 新序列注释的结果文件夹
         pfam_path:转录本的pfam_domain
         """
-        stat_id = self.add_annotation_stat(name=name, params=params, seq_type=seq_type)
-        stat_path = anno_path + "/anno_stat/all_annotation_statistics.xls"
-        venn_path = anno_path + "/anno_stat/venn"
-        if oa.path.exists(stat_path) and os.path.exists(venn_path):
-            self.add_annotation_stat_detail(stat_id=stat_id, stat_path=stat_path, venn_path=venn_path)
+        new_stat_path = new_anno_path + "/anno_stat/all_annotation_statistics.xls"
+        new_venn_path = new_anno_path + "/anno_stat/venn"
+        stat_id = self.add_annotation_stat(name=None, params=params, seq_type="new", database="nr,swissprot,pfam,cog,go,kegg")
+        if oa.path.exists(new_stat_path) and os.path.exists(new_venn_path):
+            self.add_annotation_stat_detail(stat_id=stat_id, stat_path=new_stat_path, venn_path=new_venn_path)
         else:
-            raise Exception("注释统计文件和venn图文件夹不存在")
-        self.add_annotation_cog(name=name, params=params, stat_id=stat_id, seq_type=seq_type, anno_path=anno_path)
-        self.add_annotation_go(name=name, params=params, stat_id=stat_id, seq_type=seq_type, anno_path=anno_path)
-        self.add_annotation_kegg(name=name, params=params, stat_id=stat_id, seq_type=seq_type, anno_path=anno_path)
-        if seq_type == "new":
-            database = ["nr", "swissprot", "string", "kegg"]
-            self.add_annotation_blast(name=name, params=params, stat_id=stat_id, seq_type=seq_type, database=database, anno_path=anno_path)
-            self.add_annotation_nr(name=name, params=params, stat_id=stat_id, seq_type=seq_type, anno_path=anno_path)
-            self.add_annotation_swissprot(name=name, params=params, stat_id=stat_id, seq_type=seq_type, anno_path=anno_path)
-            self.add_annotation_pfam(name=name, params=params, stat_id=stat_id, seq_type=seq_type, pfam_path=pfam_path, anno_path=anno_path)
-        if seq_type == "ref":
-            database = ["nr", "string", "kegg"]
-            self.add_annotation_blast(name=name, params=params, stat_id=stat_id, seq_type=seq_type, database=database, anno_path=anno_path)
-        self.add_annotation_query(name=name, params=params, stat_id=stat_id, anno_path=anno_path)
+            raise Exception("新序列注释统计文件和venn图文件夹不存在")
+        blast_id = self.add_annotation_blast(name=None, params=params, stat_id=stat_id)
+        blast_path = new_anno_path + "/anno_stat/blast"
+        if os.apth.exists(blast_path):
+            for db in ["nr", "swissprot"]:
+                blast_path = blast_path + '/blast_' + db + '.xls'
+                gene_blast_path = blast_path + '/gene_blast_' + db + '.xls'
+                self.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="transcript", database=db, blast_path=blast_path)
+                self.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="gene", database=db, blast_path=gene_blast_path)
+        else:
+            raise Exception("没有blast的结果文件夹")
+        nr_id = self.add_annotation_nr(name=None, params=params, stat_id=stat_id)
+        nr_path = new_anno_path + "/anno_stat/blast_nr_statistics"
+        if os.path.exists(nr_path):
+            evalue_path = nr_path + "/nr_evalue.xls"
+            similar_path = nr_path + "/nr_similar.xls"
+            gene_evalue_path = nr_path + "/gene_nr_evalue.xls"
+            gene_similar_path = nr_path + "/gene_nr_similar.xls"
+            self.add_annotation_nr_pie(nr_id=nr_id, evalue_path=evalue_path, similar_path=similar_path, seq_type="new", anno_type="transcript")
+            self.add_annotation_nr_pie(nr_id=nr_id, evalue_path=gene_evalue_path, similar_path=gene_similar_path, seq_type="new", anno_type="gene")
+        raise Exception("新序列NR注释结果文件不存在")
+        swissprot_id = self.add_annotation_swissprot(name=None, params=params, stat_id=stat_id)
+        swissprot_path = new_anno_path + "/anno_stat/blast_swissprot_statistics"
+        if os.apth.exists(swissprot_path):
+            evalue_path = swissprot_path + "/swissprot_evalue.xls"
+            similar_path = swissprot_path + "/swissprot_similar.xls"
+            gene_evalue_path = swissprot_path + "/gene_swissprot_evalue.xls"
+            gene_similar_path = swissprot_path + "/gene_swissprot_similar.xls"
+            self.add_annotation_swissprot_pie(swissprot_id=swissprot_id, evalue_path=evalue_path, similar_path=similar_path, seq_type="new", anno_type="transcript")
+            self.add_annotation_swissprot_pie(swissprot_id=swissprot_id, evalue_path=gene_evalue_path, similar_path=gene_similar_path, seq_type="new", anno_type="gene")
+        raise Exception("新序列Swiss-Prot注释结果文件不存在")
+        pfam_id = self.add_annotation_pfam(name=None, params=params, stat_id=stat_id)
+        gene_pfam_path = new_anno_path + "/anno_stat/pfam_stat/gene_pfam_domain"
+        if os.path.exists(pfam_path) and os.path.exists(gene_pfam_path):
+            self.add_annotation_pfam_detail(pfam_id=pfam_id, pfam_path=pfam_path, seq_type="new", anno_type="transcript")
+            self.add_annotation_pfam_detail(pfam_id=pfam_id, pfam_path=gene_pfam_path, seq_type="new", anno_type="gene")
+            self.add_annotation_pfam_bar(pfam_id=pfam_id, pfam_path=pfam_path, seq_type="new", anno_type="transcript")
+            self.add_annotation_pfam_bar(pfam_id=pfam_id, pfam_path=gene_pfam_path, seq_type="new", anno_type="gene")
+        else:
+            raise Exception("pfam注释结果文件不存在")
+        ref_stat_path = ref_anno_path + "/anno_stat/all_annotation_statistics.xls"
+        ref_venn_path = ref_anno_path + "/anno_stat/venn"
+        if oa.path.exists(ref_stat_path) and os.path.exists(ref_venn_path):
+            stat_id = self.add_annotation_stat(name=None, params=params, seq_type="ref" , database="cog,go,kegg")
+            self.add_annotation_stat_detail(stat_id=stat_id, stat_path=ref_stat_path, venn_path=ref_venn_path)
+        else:
+            raise Exception("已知序列注释统计文件和venn图文件夹不存在")
+        query_id = self.add_annotation_query(name=None, params=params)
+        query_path = ref_anno_path + "/anno_stat/all_annotation.xls"
+        if os.path.exists(query_path):
+            self.add_annotation_query_detail(query_id=query_id, query_path=query_path)
+        else:
+            raise Exception("已知序列注释查询文件all_annotation.xls不存在")
+        query_path = new_anno_path + "/anno_stat/all_annotation.xls"
+        if os.path.exists(query_path):
+            self.add_annotation_query_detail(query_id=query_id, query_path=query_path)
+        else:
+            raise Exception("新序列注释查询文件all_annotation.xls不存在")
+        cog_id = self.add_annotation_cog(name=name, params=params)
+        sum_path = ref_anno_path + "/cog/cog_summary.xls"
+        table_path = ref_anno_path + "/cog/cog_table.xls"
+        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=sum_path, seq_type="ref", anno_type="transcript")
+        self.add_annotation_cog_table(cog_id=cog_id, table_path=table_path, seq_type="ref", anno_type="transcript")
+        gene_sum_path = ref_anno_path + "/anno_stat/cog_stat/gene_cog_summary.xls"
+        gene_table_path = ref_anno_path + "/anno_stat/cog_stat/gene_cog_table.xls"
+        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=gene_sum_path, seq_type="ref", anno_type="gene")
+        self.add_annotation_cog_table(cog_id=cog_id, table_path=gene_table_path, seq_type="ref", anno_type="gene")
+        sum_path = new_anno_path + "/cog/cog_summary.xls"
+        table_path = new_anno_path + "/cog/cog_table.xls"
+        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=sum_path, seq_type="new", anno_type="transcript")
+        self.add_annotation_cog_table(cog_id=cog_id, table_path=table_path, seq_type="new", anno_type="transcript")
+        gene_sum_path = new_anno_path + "/anno_stat/cog_stat/gene_cog_summary.xls"
+        gene_table_path = new_anno_path + "/anno_stat/cog_stat/gene_cog_table.xls"
+        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=gene_sum_path, seq_type="new", anno_type="gene")
+        self.add_annotation_cog_table(cog_id=cog_id, table_path=gene_table_path, seq_type="new", anno_type="gene")
 
+        def add_go(go_id, go_path, gene_go_path, seq_type):
+            if os.path.exists(go_path) and os.path.exists(gene_go_path):
+                for i in range(2, 5):
+                    level = go_path + "/go{}level.xls".format(i)
+                    gene_level = gene_go_path + "/gene_go{}level.xls".format{i}
+                    self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=i, level_path=level)
+                    self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="gene", level=i, level_path=gene_level)
+                stat_level2 = go_path + "/go12level_statistics.xls"
+                stat_level3 = go_path + "/go123level_statistics.xls"
+                stat_level4 = go_path + "/go124level_statistics.xls"
+                gene_stat_level2 = gene_go_path + "/gene_go12level_statistics.xls"
+                gene_stat_level3 = gene_go_path + "/gene_go123level_statistics.xls"
+                gene_stat_level4 = gene_go_path + "/gene_go1234level_statistics.xls"
+                gos_path = go_path + "/query_gos.list"
+                gene_gos_path = gene_go_path + "/gene_gos.list"
+                self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=2, go_path=stat_level2)
+                self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=3, go_path=stat_level3)
+                self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=4, go_path=stat_level4)
+                self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="gene", level=2, go_path=gene_stat_level2)
+                self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="gene", level=3, go_path=gene_stat_level3)
+                self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="gene", level=4, go_path=gene_stat_level4)
+                self.add_annotation_go_list(go_id=go_id, seq_type=seq_type, anno_type="transcript", gos_path=gos_path)
+                self.add_annotation_go_list(go_id=go_id, seq_type=seq_type, anno_type="gene", gos_path=gene_gos_path)
+            else:
+                raise Exception("GO注释的结果文件不存在")
+        go_id = self.add_annotation_go(name=name, params=params)
+        go_path = ref_anno_path + "/go"
+        gene_go_path = ref_anno_path + "/anno_stat/go_stat"
+        add_go(go_id=go_id, go_path=go_path, gene_go_path=gene_go_path, seq_type="ref")
+        go_path = new_anno_path + "/go"
+        gene_go_path = new_anno_path + "/anno_stat/go_stat"
+        add_go(go_id=go_id, go_path=go_path, gene_go_path=gene_go_path, seq_type="new")
+
+        def add_kegg(kegg_id, kegg_path, gene_kegg_path, seq_type):
+            if os.apth.exists(kegg_path) and os.path.exists(gene_kegg_path):
+                layer_path = kegg_path + "/kegg_layer.xls"
+                pathway_path = kegg_path + "/pathway_table.xls"
+                png_path = kegg_path + "/pathways"
+                table_path = kegg_path + "/kegg_table.xls"
+                gene_layer_path = gene_kegg_path + "/gene_kegg_layer.xls"
+                gene_pathway_path = gene_kegg_path + "/gene_pathway_table.xls"
+                gene_kegg_path = gene_kegg_path + "/gene_kegg_table.xls"
+                gene_png_path = gene_kegg_path + "/gene_pathway"
+                self.add_annotation_kegg_categories(kegg_id=kegg_id, seq_type=seq_type, anno_type="transcript", categories_path=layer_path)
+                self.add_annotation_kegg_categories(kegg_id=kegg_id, seq_type=seq_type, anno_type="gene", categories_path=gene_layer_path)
+                self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type=seq_type, anno_type="transcript", level_path=pathway_path, png_dir=png_path)
+                self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type=seq_type, anno_type="gene", level_path=gene_pathway_path, png_dir=gene_png_path)
+                self.add_annotation_kegg_table(kegg_id=kegg_id, seq_type=seq_type, anno_type="transcript", table_path=table_path)
+                self.add_annotation_kegg_table(kegg_id=kegg_id, seq_type=seq_type, anno_type="gene", table_path=gene_table_path)
+            else:
+                raise Exception("KEGG注释文件不存在")
+        kegg_id = self.add_annotation_kegg(name=None, params=params)
+        kegg_path = ref_anno_path + "/kegg"
+        gene_kegg_path = ref_anno_path + "/anno_stat/kegg_stat"
+        add_kegg(kegg_id=kegg_id, kegg_path=kegg_path, gene_kegg_path=gene_kegg_path, seq_type="ref")
+        kegg_path = new_anno_path + "/kegg"
+        gene_kegg_path = new_anno_path + "/anno_stat/kegg_stat"
+        add_kegg(kegg_id=kegg_id, kegg_path=kegg_path, gene_kegg_path=gene_kegg_path, seq_type="new")
 
     @report_check
-    def add_annotation_stat(self, name=None, params=None, seq_type=None):
+    def add_annotation_stat(self, name=None, params=None, seq_type=None, database=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         insert_data = {
@@ -56,7 +175,8 @@ class RefAnnotation(Base):
             'status': 'end',
             'desc': '注释统计主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'seq_type': seq_type
+            'seq_type': seq_type,
+            'database': database
         }
         collection = self.db['sg_annotation_stat']
         stat_id = collection.insert_one(insert_data).inserted_id
@@ -176,7 +296,7 @@ class RefAnnotation(Base):
             ('stat_id', stat_id),
             ('type', "swissprot"),
             ('transcript', len(sw_ids)),
-            ('gene',len(gene_sw_ids)),
+            ('gene', len(gene_sw_ids)),
             ('transcript_percent', round(float(len(sw_ids))/total_tran, 4)),
             ('gene_percent', round(float(len(gene_sw_ids))/total_gene, 4)),
             ('gene_list', ";".join(gene_sw_ids)),
@@ -208,10 +328,7 @@ class RefAnnotation(Base):
         return id_list
 
     @report_check
-    def add_annotation_blast(self, name=None, params=None, stat_id=None, seq_type=None, database=None, anno_path=None):
-        """
-
-        """
+    def add_annotation_blast(self, name=None, params=None, stat_id=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         if not isinstance(stat_id, ObjectId):
@@ -232,15 +349,6 @@ class RefAnnotation(Base):
         collection = self.db['sg_annotation_blast']
         blast_id = collection.insert_one(insert_data).inserted_id
         self.bind_object.logger.info("add ref_annotation_blast!")
-        blast_path = anno_path + "/anno_stat/blast"
-        if os.apth.exists(blast_path):
-            for db in database:
-                blast_path = blast_path + '/blast_' + db + '.xls'
-                gene_blast_path = blast_path + '/gene_blast_' + db + '.xls'
-                self.add_annotation_blast_detail(blast_id=blast_id, seq_type=seq_type, anno_type="transcript", database=db, blast_path=blast_path)
-                self.add_annotation_blast_detail(blast_id=blast_id, seq_type=seq_type, anno_type="gene", database=db, blast_path=gene_blast_path)
-        else:
-            raise Exception("没有blast的结果文件夹")
         return blast_id
 
     @report_check
@@ -284,17 +392,17 @@ class RefAnnotation(Base):
                     ('anno_type', anno_type),
                     ('database', database),
                     ('score', float(line[0])),
-                    ('e_value', line[1]),
-                    ('hsp_len', line[2]),
+                    ('e_value', float(line[1])),
+                    ('hsp_len', int(line[2])),
                     ('identity_rate', round(float(line[3]), 4)),
                     ('similarity_rate', round(float(line[4]), 4)),
                     ('query_id', line[5]),
-                    ('q_len', line[6]),
+                    ('q_len', int(line[6])),
                     ('q_begin', line[7]),
                     ('q_end', line[8]),
                     ('q_frame', line[9]),
                     ('hit_name', line[10]),
-                    ('hit_len', line[11]),
+                    ('hit_len', int(line[11])),
                     ('hsp_begin', line[12]),
                     ('hsp_end', line[13]),
                     ('hsp_frame', line[14]),
@@ -311,9 +419,7 @@ class RefAnnotation(Base):
             self.bind_object.logger.info("导入注释统计信息：%s成功!" % (blast_path))
 
     @report_check
-    def add_annotation_nr(self, name=None, params=None, stat_id=None, seq_type=None, anno_path=None):
-        """
-        """
+    def add_annotation_nr(self, name=None, params=None, stat_id=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         if not isinstance(stat_id, ObjectId):
@@ -334,14 +440,6 @@ class RefAnnotation(Base):
         collection = self.db['sg_annotation_nr']
         nr_id = collection.insert_one(insert_data).inserted_id
         self.bind_object.logger.info("add sg_annotation_nr!")
-        nr_path = anno_path + "/anno_stat/blast_nr_statistics"
-        if os.path.exists(nr_path):
-            evalue_path = nr_path + "/nr_evalue.xls"
-            similar_path = nr_path + "/nr_similar.xls"
-            gene_evalue_path = nr_path + "/gene_nr_evalue.xls"
-            gene_similar_path = nr_path + "/gene_nr_similar.xls"
-            self.add_annotation_nr_pie(nr_id=nr_id, evalue_path=evalue_path, similar_path=similar_path, seq_type=seq_type, anno_type="transcript")
-            self.add_annotation_nr_pie(nr_id=nr_id, evalue_path=gene_evalue_path, similar_path=gene_similar_path, seq_type=seq_type, anno_type="gene")
         return nr_id
 
     @report_check
@@ -398,9 +496,7 @@ class RefAnnotation(Base):
             self.bind_object.logger.info("导入nr库注释作图信息evalue,similar：%s、%s成功!" % (evalue_path, similar_path))
 
     @report_check
-    def add_annotation_swissprot(self, name=None, params=None, stat_id=None, seq_type=None, anno_path=None):
-        """
-        """
+    def add_annotation_swissprot(self, name=None, params=None, stat_id=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         if not isinstance(stat_id, ObjectId):
@@ -421,14 +517,6 @@ class RefAnnotation(Base):
         collection = self.db['sg_annotation_swissprot']
         swissprot_id = collection.insert_one(insert_data).inserted_id
         self.bind_object.logger.info("add sg_annotation_swissprot!")
-        swissprot_path = anno_path + "/anno_stat/blast_swissprot_statistics"
-        if os.apth.exists(swissprot_path):
-            evalue_path = swissprot_path + "/swissprot_evalue.xls"
-            similar_path = swissprot_path + "/swissprot_similar.xls"
-            gene_evalue_path = swissprot_path + "/gene_swissprot_evalue.xls"
-            gene_similar_path = swissprot_path + "/gene_swissprot_similar.xls"
-            self.add_annotation_swissprot_pie(swissprot_id=swissprot_id, evalue_path=evalue_path, similar_path=similar_path, seq_type=seq_type, anno_type="transcript")
-            self.add_annotation_swissprot_pie(swissprot_id=swissprot_id, evalue_path=gene_evalue_path, similar_path=gene_similar_path, seq_type=seq_type, anno_type="gene")
         return swissprot_id
 
     def add_annotation_swissprot_pie(self, swissprot_id, evalue_path, similar_path, seq_type, anno_type):
@@ -486,10 +574,7 @@ class RefAnnotation(Base):
             self.bind_object.logger.info("导入swissprot库注释作图信息evalue,similar：%s、%s成功!" % (evalue_path, similar_path))
 
     @report_check
-    def add_annotation_pfam(self, name=None, params=None, stat_id=None, seq_type=None, pfam_path=None, anno_path=None):
-        """
-        pfam_path:
-        """
+    def add_annotation_pfam(self, name=None, params=None, stat_id=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         if not isinstance(stat_id, ObjectId):
@@ -510,14 +595,6 @@ class RefAnnotation(Base):
         collection = self.db['sg_annotation_pfam']
         pfam_id = collection.insert_one(insert_data).inserted_id
         self.bind_object.logger.info("add sg_annotation_pfam!")
-        gene_pfam_path = anno_path + "/anno_stat/pfam_stat/gene_pfam_domain"
-        if os.path.exists(pfam_path) and os.path.exists(gene_pfam_path):
-            self.add_annotation_pfam_detail(pfam_id=pfam_id, pfam_path=pfam_path, seq_type=seq_type, anno_type="transcript")
-            self.add_annotation_pfam_detail(pfam_id=pfam_id, pfam_path=gene_pfam_path, seq_type=seq_type, anno_type="gene")
-            self.add_annotation_pfam_bar(pfam_id=pfam_id, pfam_path=pfam_path, seq_type=seq_type, anno_type="transcript")
-            self.add_annotation_pfam_bar(pfam_id=pfam_id, pfam_path=gene_pfam_path, seq_type=seq_type, anno_type="gene")
-        else:
-            raise Exception("pfam注释结果文件不存在")
         return pfam_id
 
     def add_annotation_pfam_detail(self, pfam_id, pfam_path, seq_type, anno_type):
@@ -595,16 +672,9 @@ class RefAnnotation(Base):
             self.bind_object.logger.info("导入pfam注释信息:%成功！" % pfam_path)
 
     @report_check
-    def add_annotation_cog(self, name=None, params=None, stat_id=None, seq_type=None, anno_path=None):
-        """
-        """
+    def add_annotation_cog(self, name=None, params=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        if not isinstance(stat_id, ObjectId):
-            if isinstance(stat_id, types.StringTypes):
-                stat_id = ObjectId(stat_id)
-            else:
-                raise Exception('stat_id必须为ObjectId对象或其对应的字符串！')
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -612,25 +682,11 @@ class RefAnnotation(Base):
             'params': params,
             'status': 'end',
             'desc': 'cog注释结果主表',
-            'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'stat_id': stat_id
+            'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         collection = self.db['sg_annotation_cog']
         cog_id = collection.insert_one(insert_data).inserted_id
         self.bind_object.logger.info("add ref_annotation_cog!")
-        cog_path = anno_path + "/cog"
-        gene_cog_path = anno_path + "/anno_stat/cog_stat"
-        if os.path.exists(cog_path) and os.path.exists(gene_cog_path):
-            sum_path = cog_path + "/cog_summary.xls"
-            gene_sum_path = gene_cog_path + "/gene_cog_summary.xls"
-            table_path = cog_path + "/cog_table.xls"
-            gene_table_path = gene_cog_path + "/gene_cog_table.xls"
-            self.add_annotation_cog_detail(cog_id=cog_id, cog_pathsum_path, seq_type=seq_type, anno_type="transcript")
-            self.add_annotation_cog_detail(cog_id=cog_id, cog_path=gene_sum_path, seq_type=seq_type, anno_type="gene")
-            self.add_annotation_cog_table(cog_id=cog_id, table_path=table_path, seq_type=seq_type, anno_type="transcript")
-            self.add_annotation_cog_table(cog_id=cog_id, table_path=gene_table_path, seq_type=seq_type, anno_type="gene")
-        else:
-            raise Exception("cog注释文件不存在")
         return cog_id
 
     @report_check
@@ -734,17 +790,12 @@ class RefAnnotation(Base):
             self.bind_object.logger.info("导入cog注释table信息：%s成功!" % (table_path))
 
     @report_check
-    def add_annotation_go(self, name=None, params=None, stat_id=None, seq_type=None, anno_path=None):
+    def add_annotation_go(self, name=None, params=None):
         """
         go注释导表函数
         """
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        if not isinstance(stat_id, ObjectId):
-            if isinstance(stat_id, types.StringTypes):
-                stat_id = ObjectId(stat_id)
-            else:
-                raise Exception('stat_id必须为ObjectId对象或其对应的字符串！')
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -752,43 +803,11 @@ class RefAnnotation(Base):
             'params': params,
             'status': 'end',
             'desc': 'go注释结果主表',
-            'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'stat_id': stat_id
+            'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         collection = self.db['sg_annotation_go']
         go_id = collection.insert_one(insert_data).inserted_id
         self.bind_object.logger.info("add ref_annotation_go!")
-        go_path = anno_path + "/go"
-        gene_go_path = anno_path + "/anno_stat/go_stat"
-        if os.path.exists(go_path) and os.path.exists(gene_go_path):
-            level2 = go_path + "/go2level.xls"
-            level3 = go_path + "/go3level.xls"
-            level4 = go_path + "/go4level.xls"
-            gene_level2 = gene_go_path + "/gene_go2level.xls"
-            gene_level3 = gene_go_path + "/gene_go3level.xls"
-            gene_level4 = gene_go_path + "/gene_go4level.xls"
-            stat_level2 = go_path + "/go12level_statistics.xls"
-            stat_level3 = go_path + "/go12level_statistics.xls"
-            stat_level4 = go_path + "/go12level_statistics.xls"
-            gene_stat_level2 = gene_go_path + "/gene_go12level_statistics.xls"
-            gene_stat_level3 = gene_go_path + "/gene_go123level_statistics.xls"
-            gene_stat_level4 = gene_go_path + "/gene_go1234level_statistics.xls"
-            gos_path = go_path + "/query_gos.list"
-            gene_gos_path = gene_go_path + "/gene_gos.list"
-            self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=2, go_path=stat_level2)
-            self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=3, go_path=stat_level3)
-            self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=4, go_path=stat_level4)
-            self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="ref", level=2, go_path=gene_stat_level2)
-            self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="ref", level=3, go_path=gene_stat_level3)
-            self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="ref", level=4, go_path=gene_stat_level4)
-            self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=2, level_path=level2)
-            self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=3, level_path=level3)
-            self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=4, level_path=level4)
-            self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="ref", level=2, level_path=gene_level2)
-            self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="ref", level=3, level_path=gene_level3)
-            self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="ref", level=4, level_path=gene_level4)
-            self.add_annotation_go_list(go_id=go_id, seq_type=seq_type, anno_type="transcript", gos_path=gos_path)
-            self.add_annotation_go_list(go_id=go_id, seq_type=seq_type, anno_type="ref", gos_path=gene_gos_path)
         return go_id
 
     def add_annotation_go_detail(self, go_id, seq_type, anno_type, level, go_path):
@@ -909,17 +928,12 @@ class RefAnnotation(Base):
                 self.bind_object.logger.info("导入gos_list注释信息：%s成功!" % (gos_path))
 
     @report_check
-    def add_annotation_kegg(self, name=None, params=None, stat_id=None, seq_type=None, anno_path=None):
+    def add_annotation_kegg(self, name=None, params=None):
         """
         kegg注释导表函数
         """
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        if not isinstance(stat_id, ObjectId):
-            if isinstance(stat_id, types.StringTypes):
-                stat_id = ObjectId(stat_id)
-            else:
-                raise Exception('stat_id必须为ObjectId对象或其对应的字符串！')
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -927,29 +941,11 @@ class RefAnnotation(Base):
             'params': params,
             'status': 'end',
             'desc': 'kegg注释结果主表',
-            'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'stat_id': stat_id
+            'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         collection = self.db['sg_annotation_kegg']
         kegg_id = collection.insert_one(insert_data).inserted_id
         self.bind_object.logger.info("add ref_annotation_kegg!")
-        kegg_path = anno_path + "/kegg"
-        gene_kegg_path = anno_path + "/anno_stat/kegg_stat"
-        if os.apth.exists(kegg_path) and os.path.exists(gene_kegg_path):
-            layer_path = kegg_path + "/kegg_layer.xls"
-            gene_layer_path = gene_kegg_path + "/gene_kegg_layer.xls"
-            pathway_path = kegg_path + "/pathway_table.xls"
-            gene_pathway_path = gene_kegg_path + "/gene_pathway_table.xls"
-            png_path = kegg_path + "/pathways"
-            gene_png_path = gene_kegg_path + "/gene_pathway"
-            table_path = kegg_path + "/kegg_table.xls"
-            gene_kegg_path = gene_kegg_path + "/gene_kegg_table.xls"
-            self.add_annotation_kegg_categories(kegg_id=kegg_id, seq_type=seq_type, anno_type="transcript", categories_path=layer_path)
-            self.add_annotation_kegg_categories(kegg_id=kegg_id, seq_type=seq_type, anno_type="gene", categories_path=gene_layer_path)
-            self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type=seq_type, anno_type="transcript", level_path=pathway_path, png_dir=png_path)
-            self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type=seq_type, anno_type="gene", level_path=gene_pathway_path, png_dir=gene_png_path)
-            self.add_annotation_kegg_table(kegg_id=kegg_id, seq_type=seq_type, anno_type="transcript", table_path=table_path)
-            self.add_annotation_kegg_table(kegg_id=kegg_id, seq_type=seq_type, anno_type="gene", table_path=gene_table_path)
         return kegg_id
 
     @report_check
@@ -1065,9 +1061,7 @@ class RefAnnotation(Base):
             self.bind_object.logger.info("导入kegg注释table信息：%s成功!" % (table_path))
 
     @report_check
-    def add_annotation_query(self, name=None, params=None, stat_id=None, anno_path=None):
-        """
-        """
+    def add_annotation_query(self, name=None, params=None, stat_id=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         if not isinstance(stat_id, ObjectId):
@@ -1088,11 +1082,6 @@ class RefAnnotation(Base):
         collection = self.db['sg_annotation_query']
         query_id = collection.insert_one(insert_data).inserted_id
         self.bind_object.logger.info("add ref_annotation_query!")
-        query_path = anno_path + "/anno_stat/all_annotation.xls"
-        if os.path.exists(query_path):
-            self.add_annotation_query_detail(query_id=query_id, query_path=query_path)
-        else:
-            raise Exception("注释查询文件all_annotation.xls不存在")
         return query_id
 
     @report_check
@@ -1118,10 +1107,10 @@ class RefAnnotation(Base):
                     data.append(('gene_name', line[2]))
                 except:
                     data.append(('gene_name', None))
-                    try:
-                        data.append(('length', line[3]))
-                    except:
-                        data.append(('length', None))
+                try:
+                    data.append(('length', line[3]))
+                except:
+                    data.append(('length', None))
                 try:
                     data.append(('nr_hit_names', line[13]))
                 except:
