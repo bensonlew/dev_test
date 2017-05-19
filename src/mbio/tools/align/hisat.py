@@ -98,14 +98,24 @@ class HisatTool(Tool):
             self.logger.info("开始运行hisat2-build，进行建索引")
             command = self.add_command("hisat_build", cmd)
             command.run()
+            self.wait(command)
+            if command.return_code == 0:
+                return True
+            elif command.return_code == None:
+                command.rerun()
+                if command.return_code == 0:
+                    return True
+                else:
+                    raise Exception("建立索引出错")
+            else:
+                raise Exception("建立索引出错")
         else:
             with open(self.config.SOFTWARE_DIR + "/database/refGenome/ref_genome.json", "r") as f:
                 dict = json.loads(f.read())
                 ref = dict[self.option("ref_genome")]["ref_genome"]
                 index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
                 global index_ref
-                # shutil.copyfile(index_ref, self.work_dir)        
-        self.wait()
+                # shutil.copyfile(index_ref, self.work_dir)
 
     def hisat_mapping(self):
         """
@@ -151,8 +161,8 @@ class HisatTool(Tool):
                 self.logger.info("hisat运行完成")
                 self.sam_bam()
         else:
-            self.logger.error("生成sam文件这里出错了")
-            self.set_error("生成sam文件出错")
+            self.logger.error("hisat运行出错")
+            self.set_error("hisat运行出错")
             raise Exception("运行hisat出错")
             
     def sam_bam(self):

@@ -30,7 +30,7 @@ class RefAnnotationModule(Module):
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
             {"name": "anno_statistics", "type": "bool", "default": True},
             {"name": "go_annot", "type": "bool", "default": True},
-            {"name": "nr_annot", "type": "bool", "default": True},
+            {"name": "nr_annot", "type": "bool", "default": False},  # 参考基因组注释不提供缺少nr_xml文件，因此将默认值改为False
             {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "gene_kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
