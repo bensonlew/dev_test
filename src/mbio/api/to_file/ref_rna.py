@@ -147,17 +147,26 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
 def export_all_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     all_list = os.path.join(dir_path, "all_gene.list")
-    bind_obj.logger.debug("正在导出所有基因")
-    collection = db['sg_express_class_code_detail']
-    main_collection = db['sg_express_class_code']
-    my_result = main_collection.find_one({'task_id': data})
-    print my_result["_id"]
-    if not my_result:
+    bind_obj.logger.debug("正在导出所有背景基因{}".format(all_list))
+    # collection = conn['sg_geneset_detail']
+    collection = db['sg_express_detail']
+    exp_collection = db['sg_express']
+    main_collection = db['sg_geneset']
+    my_result = main_collection.find_one({'_id': ObjectId(data)})
+    task_id = my_result["task_id"]
+    geneset_type = my_result["type"]
+    bind_obj.logger.debug(task_id)
+    exp_result = exp_collection.find_one({'task_id': task_id, "genes": True, "trans": True})
+
+    # my_result = main_collection.find_one({'_id': ObjectId("591aefeba4e1af3ec14249c8")})
+    # print exp_result["_id"]
+    if not exp_result:
         raise Exception("意外错误，task_id:{}的背景基因在sg_geneset中未找到！".format(data))
-    results = collection.find({"class_code_id": ObjectId(my_result["_id"])})
+    exp_id = exp_result["_id"]
+    results = collection.find({"express_id": ObjectId(exp_id), "type": geneset_type, "sample_group": "sample"})
     with open(all_list, "wb") as f:
         for result in results:
-            gene_id = result['assembly_gene_id']
+            gene_id = result['seq_id']
             f.write(gene_id + "\n")
     return all_list
 

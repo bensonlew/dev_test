@@ -57,9 +57,10 @@ class GenesetClassWorkflow(Workflow):
             api_geneset.add_go_regulate_detail(output_file, self.option("main_table_id"))
         else:
             output_file = self.output_dir + '/kegg_stat.xls'
-            api_geneset.add_go_regulate_detail(output_file, self.option("main_table_id"))
-            api_geneset.add_kegg_regulate_pathway(output_file, self.option("main_table_id"))
-        os.link(output_file, self.output_dir + "/" + os.path.basename(output_file))
+            pathway_file = self.output_dir + '/pathways'
+            api_geneset.add_kegg_regulate_detail(self.option("main_table_id"), output_file)
+            api_geneset.add_kegg_regulate_pathway(pathway_file, self.option("main_table_id"))
+        # os.link(output_file, self.output_dir + "/" + os.path.basename(output_file))
         print(output_file)
         self.end()
 

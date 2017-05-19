@@ -4,7 +4,7 @@
 from biocluster.workflow import Workflow
 from biocluster.config import Config
 import glob
-import re
+import os
 from bson.objectid import ObjectId
 
 
@@ -63,10 +63,13 @@ class GenesetEnrichWorkflow(Workflow):
         """
         api_geneset = self.api.ref_rna_geneset
         output_file = glob.glob("{}/*.xls".format(self.output_dir))
+        png_file = glob.glob("{}/*.png".format(self.output_dir))
         if self.option("anno_type") == "kegg":
             api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0])
         else:
             api_geneset.add_go_enrich_detail(self.option("main_table_id"), output_file[0])
+            if len(png_file) == 1:
+                api_geneset.update_directed_graph(self.option("main_table_id"), png_file[0])
         self.end()
 
     def end(self):

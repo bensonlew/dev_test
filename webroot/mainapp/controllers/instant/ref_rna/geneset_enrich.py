@@ -29,7 +29,7 @@ class GenesetEnrichAction(RefRnaController):
             "geneset_id": data.geneset_id,
             "anno_type": data.anno_type,
             "method": data.method,
-            # "annotation_id": data.annotation_id
+            "geneset_type": data.geneset_type
         }
         # 判断传入的基因集id是否存在
         geneset_info = self.ref_rna.get_main_info(data.geneset_id, 'sg_geneset')
@@ -76,7 +76,7 @@ class GenesetEnrichAction(RefRnaController):
             "method": data.method,
             # "annotation_id": data.annotation_id,
             "genset_list": data.geneset_id,
-            "all_list": task_info['task_id']
+            "all_list": data.geneset_id
             }
         options.update(infile)
         print("lllllllll")
