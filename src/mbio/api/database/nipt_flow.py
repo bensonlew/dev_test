@@ -26,11 +26,9 @@ class NiptFlow(Base):
         sh = bk.sheet_by_name(u'\u65e0\u521b\u4ea7\u7b5b')
         nrows = sh.nrows
 
-        para_list = []
         insert = list()
         # 获取各行数据
         for i in range(4, nrows):
-            para_list = []
             row_data = sh.row_values(i)
             if i == 4:
                 report_num_index = row_data.index(
@@ -52,10 +50,12 @@ class NiptFlow(Base):
                 age_index = row_data.index(u'\u5e74\u9f84')  # 年龄
                 type_index = row_data.index(u'\u6807\u672c\u7c7b\u578b')  # 样本类型
             else:
+                print i
+                para_list = []
                 report_num = row_data[report_num_index]
                 para_list.append(report_num)
                 sample_date = row_data[sample_date_index]
-                if type(sample_date) == 'float' or 'double':
+                if type(sample_date) == 'float':
                     sample_date_tuple = xlrd.xldate_as_tuple(sample_date, 0)
                     para_list.append(
                         str(sample_date_tuple[0]) + '/' + str(sample_date_tuple[1]) + '/' + str(sample_date_tuple[2]))
@@ -66,7 +66,7 @@ class NiptFlow(Base):
                 para_list.append(patient_name)
                 accpeted_date = row_data[accpeted_date_index]
                 
-                if type(accpeted_date) == 'float' or 'double':
+                if type(accpeted_date) == 'float':
                     accpeted_date_tuple = xlrd.xldate_as_tuple(accpeted_date, 0)
                     para_list.append(
                     str(accpeted_date_tuple[0]) + '/' + str(accpeted_date_tuple[1]) + '/' + str(accpeted_date_tuple[2]))
@@ -101,29 +101,30 @@ class NiptFlow(Base):
                 sample_type = row_data[type_index]
                 para_list.append(sample_type)
 
-                print para_list
-                insert_data = {
-                    "report_num":para_list[0],
-                    "sample_date": para_list[1],
-                    "patient_name": patient_name,
-                    "accpeted_date": para_list[3],
-                    "number": para_list[4],
-                    "register_number": para_list[5],
-                    "gestation": para_list[6],
-                    "pregnancy": para_list[7],
-                    "IVFET": para_list[8],
-                    "hospital": para_list[9],
-                    "doctor": para_list[10],
-                    "tel": para_list[11],
-                    "status": para_list[12],
-                    "final_period": para_list[13],
-                    "gestation_week": para_list[14],
-                    "age":para_list[15],
-                    "sample_type":para_list[16],
-                }
-
-                insert.append(insert_data)
-
+                collection = self.database['nipt_customer']
+                if collection.find_one({"report_num":para_list[0]}):
+                    continue
+                else:
+                    insert_data = {
+                        "report_num":para_list[0],
+                        "sample_date": para_list[1],
+                        "patient_name": patient_name,
+                        "accpeted_date": para_list[3],
+                        "number": para_list[4],
+                        "register_number": para_list[5],
+                        "gestation": para_list[6],
+                        "pregnancy": para_list[7],
+                        "IVFET": para_list[8],
+                        "hospital": para_list[9],
+                        "doctor": para_list[10],
+                        "tel": para_list[11],
+                        "status": para_list[12],
+                        "final_period": para_list[13],
+                        "gestation_week": para_list[14],
+                        "age":para_list[15],
+                        "sample_type":para_list[16],
+                    }
+                    insert.append(insert_data)
         try:
             collection = self.database['nipt_customer']
             collection.insert_many(insert)
