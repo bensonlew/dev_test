@@ -25,14 +25,15 @@ class PatchDcBackupWorkflow(Workflow):
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},  # fastq所在路径(文件夹
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
-			{"name": "targets_bedfile", "type": "infile", "format": "sequence.rda"},
+			{"name": "targets_bedfile", "type": "infile", "format": "paternity_test.rda"},
 
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
-			{"name": "ref_point", "type": "infile", "format": "sequence.rda"},  # 参考位点
+			{"name": "ref_point", "type": "infile", "format": "paternity_test.rda"},  # 参考位点
 			{"name": "dedup_num", "type": "int", "default": 2},  # 查重样本数
 			{"name": "batch_id", "type": "string"},
 			{"name": "update_info", "type": "string"},
-			{"name": "member_id", "type": "string"}
+			{"name": "member_id", "type": "string"},
+			{"name":"direct_get_path", "type":"bool"}
 
 		]
 		self.add_option(options)
@@ -45,7 +46,7 @@ class PatchDcBackupWorkflow(Workflow):
 		self.set_options(self._sheet.options())
 		self.step.add_steps("pt_analysis", "result_info", "retab",
 		                    "de_dup1", "de_dup2")
-		self.update_status_api = self.api.pt_update_status
+		# self.update_status_api = self.api.pt_update_status
 
 	def check_options(self):
 		'''
@@ -104,7 +105,10 @@ class PatchDcBackupWorkflow(Workflow):
 				self.tools.append(fastq2mongo)
 				n += 1
 			else:
-				self.logger.info('{}样本已存在于数据库'.format(i))
+				if self.option('direct_get_path') == True:
+					self.logger.info('{}样本已存在于数据库'.format(i))
+				elif self.option('direct_get_path') == False:
+					raise Exception('请确认{}样本是否重名'.format(i))
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2mongo')
 
@@ -246,7 +250,7 @@ class PatchDcBackupWorkflow(Workflow):
 			q = self.preg.index(self.preg_sample)
 			result_info.on('end', self.dedup_run, q)
 		else:
-			pass
+			result_info.on('end', self.end)
 
 		result_info.set_options({
 			"tab_merged": self.rdata

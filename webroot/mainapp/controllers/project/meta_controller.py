@@ -83,6 +83,8 @@ class MetaController(object):
         try:
             update_info = json.loads(self.sheet_data['options']['update_info'])
             for i in update_info:
+                if i == "batch_id":
+                    continue
                 self.meta.update_status_failed(update_info[i], i)
                 print("INFO: 更新主表状态为failed成功: coll:{} _id:{}".format(update_info[i], i))
         except Exception as e:
@@ -111,6 +113,7 @@ class MetaController(object):
         new_task_id = self.get_new_id(task_id)
         self._sheet_data = {
             'id': new_task_id,
+            "batch": False,
             'stage_id': 0,
             'name': name,  # 需要配置
             'type': module_type,  # 可以配置
@@ -127,7 +130,8 @@ class MetaController(object):
             self._sheet_data["params"] = params
         if to_file:
             self._sheet_data["to_file"] = to_file
-        print('Sheet_Data: {}'.format(self._sheet_data))
+        # print('Sheet_Data: {}'.format(self._sheet_data))
+        # 此处不能print  sheet_data的量可能比较大，会造成uwsgi日志问题
         self.workflow_id = new_task_id
         self.meta_pipe()
         return self._sheet_data
@@ -141,13 +145,20 @@ class MetaController(object):
             if not hasattr(data, i):
                 return
         print "一键化投递任务{}: {}".format(i, getattr(data, i))
-        self._instant = False
+        if not hasattr(self.data, "batch_task_id"):
+            print "NO BATCH_TASK_ID"
+        else:
+            print "BATCH_task_id " + self.data.batch_task_id
+            self._sheet_data["batch_id"] = self.data.batch_task_id
         update_info = json.loads(self._sheet_data["options"]['update_info'])
         # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
         update_info["batch_id"] = data.batch_id
         self._sheet_data['options']["update_info"] = json.dumps(update_info)
-        self._sheet_data["instant"] = False
-
+        if self._sheet_data['name'].strip().split(".")[-1] not in ["otu_subsample", "estimators"]:
+            # print "test", self._sheet_data['name'].strip().split(".")[-1]
+            self._instant = False
+            self._sheet_data["instant"] = False
+        self._sheet_data["batch"] = True
 
     def get_new_id(self, task_id, otu_id=None):
         """

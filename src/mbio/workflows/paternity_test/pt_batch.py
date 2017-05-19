@@ -27,7 +27,7 @@ class PtBatchWorkflow(Workflow):
             {"name": "targets_bedfile", "type": "infile","format":"denovo_rna.gene_structure.bed"},
 
             {"name": "err_min", "type": "int", "default": 2},  # 允许错配数
-            {"name": "ref_point", "type": "infile","format":"sequence.rda"},  # 参考位点
+            {"name": "ref_point", "type": "infile","format":"paternity_test.rda"},  # 参考位点
             {"name": "dedup_num", "type": "int", "default": 2},  # 查重样本数
             {"name":"batch_id","type":"string"},
             {"name": "update_info", "type": "string"},

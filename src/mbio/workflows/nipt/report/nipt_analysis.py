@@ -18,7 +18,7 @@ class NiptAnalysisWorkflow(Workflow):
             {"name": "bw", "type": "int", "default": 10},
             {"name": "bs", "type": "int", "default": 1},
             {"name": "ref_group", "type": "int", "default": 2},
-            {"name": "nipt_id", "type": "string"}
+            {"name": "nipt_task_id", "type": "string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -26,9 +26,14 @@ class NiptAnalysisWorkflow(Workflow):
 
 
     def run_niptanalysis(self):
-        bed_file = os.path.join(self.work_dir, "file.bed")
+        # bed_file = os.path.join(self.work_dir, "file.bed")
+        print self.option('bed_file'), self.option('bed_file').prop['path']
+        if self.api.nipt_analysis. add_bed_file(file_path=self.option('bed_file').prop['path']):
+            print "bed input success!"
+        else:
+            print "bed input failed!"
         options = {
-            'bed_file': bed_file,
+            'bed_file': self.option('bed_file'),
             'bw': self.option('bw'),
             'bs': self.option('bs'),
             'ref_group': self.option('ref_group')
@@ -52,7 +57,7 @@ class NiptAnalysisWorkflow(Workflow):
         """
         报存分析结果到mongo数据库中
         """
-        api_niptanalysis = self.api.niptanalysis
+        api_niptanalysis = self.api.nipt_analysis
         z_file_path = self.output_dir + '/z.xls'
         zz_file_path = self.output_dir + '/zz.xls'
         if not os.path.isfile(z_file_path):
@@ -60,8 +65,8 @@ class NiptAnalysisWorkflow(Workflow):
         if not os.path.isfile(zz_file_path):
             raise Exception("找不到报告文件:{}".format(zz_file_path))
         print 'start insert'
-        api_niptanalysis.add_node_table(file_path=z_file_path, table_id=self.option("nipt_id"))
-        api_niptanalysis.add_edge_table(file_path=zz_file_path, table_id=self.option("nipt_id"))
+        api_niptanalysis.add_z_result(file_path=z_file_path, table_id=self.option("nipt_task_id"))
+        api_niptanalysis.add_zz_result(file_path=zz_file_path, table_id=self.option("nipt_task_id"))
         print 'end insert'
         self.end()
 

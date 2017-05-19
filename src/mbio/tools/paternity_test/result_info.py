@@ -86,11 +86,11 @@ class ResultInfoTool(Tool):
 
         self.R_path = 'program/R-3.3.1/bin/'
         self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/medical/scripts/'
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ImageMagick/bin')
-        # self.set_environ(PATH= self.config.SOFTWARE_DIR + '/gcc/5.4.0/stage1-x86_64-unknown-linux-gnu/libstdc++-v3/src/.libs')
+        # self.set_environ(PATH= self.config.SOFTWARE_DIR + '/gcc/5.1.0/stage1-x86_64-unknown-linux-gnu/libstdc++-v3/src/.libs')
 
     def run_tf(self):
         data_name = self.option("tab_merged").prop['path'].split('/')[-1]
@@ -104,10 +104,16 @@ class ResultInfoTool(Tool):
             self.logger.info("开始运行结果信息图的绘制")
             cmd = self.add_command("plot_cmd", plot_cmd).run()
             self.wait(cmd)
+
+            if cmd.return_code == None:
+                self.logger.info("返回码问题，重新运行cmd")
+                cmd = self.add_command("cmd", cmd).run()
+                self.wait(cmd)
+
             if cmd.return_code == 0:
                 self.logger.info("运行绘制结果图成功")
             else:
-                self.logger.info("运行绘制结果图出错")
+                raise Exception("运行绘制结果图出错")
         else:
             self.logger.info("家系中有样本质控不合格")
 
@@ -145,10 +151,16 @@ class ResultInfoTool(Tool):
             self.logger.info("开始运行结果图的转化")
             cmd = self.add_command("convert_cmd", convert_cmd).run()
             self.wait(cmd)
+
+            if cmd.return_code == None:
+                self.logger.info("返回码问题，重新运行cmd")
+                cmd = self.add_command("cmd", cmd).run()
+                self.wait(cmd)
+
             if cmd.return_code == 0:
                 self.logger.info("运行转化结果图成功")
             else:
-                self.logger.info("运行转化结果图出错"+cmd.return_code)
+                raise Exception("运行转化结果图出错")
 
     def set_output(self):
         """

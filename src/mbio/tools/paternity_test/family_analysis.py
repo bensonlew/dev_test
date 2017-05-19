@@ -80,8 +80,8 @@ class FamilyAnalysisTool(Tool):
 
         self.R_path = 'program/R-3.3.1/bin/'
         self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/medical/scripts/'
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
         analysis_cmd = "{}Rscript {}data_analysis.R {}".\
@@ -90,10 +90,16 @@ class FamilyAnalysisTool(Tool):
         self.logger.info("开始运行家系的分析")
         cmd = self.add_command("analysis_cmd", analysis_cmd).run()
         self.wait(cmd)
+
+        if cmd.return_code == None:
+            self.logger.info("返回码问题，重新运行cmd")
+            cmd = self.add_command("cmd", cmd).run()
+            self.wait(cmd)
+
         if cmd.return_code == 0:
             self.logger.info("运行家系分析成功")
         else:
-            self.logger.info("运行家系分析出错")
+            raise Exception("运行家系分析出错")
 
     def set_output(self):
         """
