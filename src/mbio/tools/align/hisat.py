@@ -153,6 +153,7 @@ class HisatTool(Tool):
         else:
             self.logger.error("生成sam文件这里出错了")
             self.set_error("生成sam文件出错")
+            raise Exception("运行hisat出错")
             
     def sam_bam(self):
         """

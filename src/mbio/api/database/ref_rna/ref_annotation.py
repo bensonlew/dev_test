@@ -22,11 +22,19 @@ class RefAnnotation(Base):
         new_anno_path: 新序列注释的结果文件夹
         pfam_path:转录本的pfam_domain
         """
+<<<<<<< HEAD
         new_stat_path = new_anno_path + "/anno_stat/all_annotation_statistics.xls"
         new_venn_path = new_anno_path + "/anno_stat/venn"
         stat_id = self.add_annotation_stat(name=None, params=params, seq_type="new", database="nr,swissprot,pfam,cog,go,kegg")
         if oa.path.exists(new_stat_path) and os.path.exists(new_venn_path):
             self.add_annotation_stat_detail(stat_id=stat_id, stat_path=new_stat_path, venn_path=new_venn_path)
+=======
+        stat_id = self.add_annotation_stat(name=name, params=params, seq_type=seq_type)
+        stat_path = anno_path + "/anno_stat/all_annotation_statistics.xls"
+        venn_path = anno_path + "/anno_stat/venn"
+        if os.path.exists(stat_path) and os.path.exists(venn_path):
+            self.add_annotation_stat_detail(stat_id=stat_id, stat_path=stat_path, venn_path=venn_path)
+>>>>>>> 1e26174ea9ae0002c21ebe17d91cb0d9971703ef
         else:
             raise Exception("新序列注释统计文件和venn图文件夹不存在")
         blast_id = self.add_annotation_blast(name=None, params=params, stat_id=stat_id)

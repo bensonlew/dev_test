@@ -5,7 +5,7 @@
 Path
 -----------
 
-**ref_rna.protein_regulation**
+**tools.protein_regulation**
 
 程序安装路径
 -----------------------------------
@@ -31,9 +31,9 @@ Python calc_ppi.py interaction.txt 700 ppi_network
 参数设计
 -----------------------------------
 
-::
 
-      {"name": "ppitable", "type": "infile"},  #输入网络互作边的矩阵数据
+
+      {"name": "ppitable", "type": "string"},  #输入网络互作边的矩阵数据
       {"name": "cut", "type": "string", "default": "-1"} #选择combined_score > cut的边
 
 

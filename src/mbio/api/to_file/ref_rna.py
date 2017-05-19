@@ -147,17 +147,26 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
 def export_all_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     all_list = os.path.join(dir_path, "all_gene.list")
-    bind_obj.logger.debug("正在导出所有基因")
-    collection = db['sg_express_class_code_detail']
-    main_collection = db['sg_express_class_code']
-    my_result = main_collection.find_one({'task_id': data})
-    print my_result["_id"]
-    if not my_result:
+    bind_obj.logger.debug("正在导出所有背景基因{}".format(all_list))
+    # collection = conn['sg_geneset_detail']
+    collection = db['sg_express_detail']
+    exp_collection = db['sg_express']
+    main_collection = db['sg_geneset']
+    my_result = main_collection.find_one({'_id': ObjectId(data)})
+    task_id = my_result["task_id"]
+    geneset_type = my_result["type"]
+    bind_obj.logger.debug(task_id)
+    exp_result = exp_collection.find_one({'task_id': task_id, "genes": True, "trans": True})
+
+    # my_result = main_collection.find_one({'_id': ObjectId("591aefeba4e1af3ec14249c8")})
+    # print exp_result["_id"]
+    if not exp_result:
         raise Exception("意外错误，task_id:{}的背景基因在sg_geneset中未找到！".format(data))
-    results = collection.find({"class_code_id": ObjectId(my_result["_id"])})
+    exp_id = exp_result["_id"]
+    results = collection.find({"express_id": ObjectId(exp_id), "type": geneset_type, "sample_group": "sample"})
     with open(all_list, "wb") as f:
         for result in results:
-            gene_id = result['assembly_gene_id']
+            gene_id = result['seq_id']
             f.write(gene_id + "\n")
     return all_list
 
@@ -338,7 +347,8 @@ def export_gene_list_ppi(data, option_name, dir_path, bind_obj=None):
 ####################################################表达量部分
 def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     """
-    level对应的是gene/transcript字段，workflow里确保有这个字段
+    type对应的是gene/transcript字段，workflow里确保有这个字段
+    level对应的是fpkm/tpm字段，workflow里确保有这个字段
     """
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     fpkm_path = os.path.join(dir_path, "%s_fpkm.matrix" % option_name)
@@ -346,10 +356,11 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     bind_obj.logger.debug("正在导出计数矩阵:%s；fpkm矩阵:%s" % (count_path, fpkm_path))
     collection = db['sg_express_detail']
     my_collection = db['sg_express']
-    level = bind_obj.sheet.option("type")
-    bind_obj.logger.debug(level)
+    type = bind_obj.sheet.option("type")
+    bind_obj.logger.debug(type)
+    level = bind_obj.sheet.option("express_level")
     #sample_group = bind_obj.sheet.option("sample_group")
-    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(level)},{"sample_group":"sample"}]})
+    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(type)},{"sample_group":"sample"}]})
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
         raise Exception("意外错误，express_id:{}在sg_express中未找到！".format(ObjectId(data)))
@@ -364,7 +375,7 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
             fpkm_write = '{}'.format(gene_id)
             count_write = '{}'.format(gene_id)
             for sam in samples:
-                fpkm = sam + '_fpkm'
+                fpkm = sam + '_{}'.format(level)
                 count = sam + '_count'
                 #bind_obj.logger.debug(fpkm)
                 try:

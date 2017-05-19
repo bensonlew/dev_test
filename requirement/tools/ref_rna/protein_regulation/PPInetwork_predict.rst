@@ -5,12 +5,12 @@
 Path
 -----------
 
-**ref_rna.protein_regulation**
+**tools.protein_regulation**
 
 程序安装路径
 -----------------------------------
 
-/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/PPInetwork_predict.r
+/mnt/ilustre/users/sanger-dev/app/bioinfo/rna/scripts/new_PPInetwork_predict.r
 
 功能和用途描述
 -----------------------------------
@@ -31,13 +31,13 @@ Rscript --slave PPInetwork_predict.r diff_exp_mapped.txt 9606 PPI_result 600 0.2
 参数设计
 -----------------------------------
 
-::
 
-     {"name": "diff_exp_mapped", "type": "infile", "format": "ref_rna.txt"},  #差异基因ID mapping后文件
-     {"name": "species", "type": "int", "default": 9606}, #设置物种
-     {"name": "combine_score",  "type": "int", "default": 600}, #蛋白质之间相互作用可能性，值越大越好
-     {"name": "logFC",  "type": "float", "default": 0.2}, #logFC>0.2 && logFC <-0.2 的差异基因
-     {"name": "species_list", "type": "string"} #读入string数据库中存在的物种taxon_id，用于检测用户输入的taxon是不是正确
+
+     {"name": "diff_exp_mapped", "type": "string"},
+     {"name": "species", "type": "int", "default": 9606},
+     {"name": "combine_score",  "type": "int", "default": 600}
+
+
 
 
 
