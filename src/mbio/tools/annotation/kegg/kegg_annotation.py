@@ -67,7 +67,7 @@ class KeggAnnotationTool(Tool):
         super(KeggAnnotationTool, self).__init__(config)
         self._version = "2.0"
         self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
-        self.image_magick = self.config.SOFTWARE_DIR + "//program/ImageMagick/bin/convert"
+        self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
 
     def run(self):
         super(KeggAnnotationTool, self).run()
