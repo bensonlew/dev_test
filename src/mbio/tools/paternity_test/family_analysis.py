@@ -91,7 +91,7 @@ class FamilyAnalysisTool(Tool):
         cmd = self.add_command("analysis_cmd", analysis_cmd).run()
         self.wait(cmd)
 
-        if cmd.return_code == 'None':
+        if cmd.return_code == None:
             self.logger.info("返回码问题，重新运行cmd")
             cmd = self.add_command("cmd", cmd).run()
             self.wait(cmd)
