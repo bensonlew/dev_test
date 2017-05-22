@@ -896,6 +896,7 @@ class RefrnaExpress(Base):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         with open(class_code,'r+') as f1:
+            f1.readline()
             for lines in f1:
                 line=lines.strip().split("\t")
                 data = [
