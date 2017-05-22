@@ -447,7 +447,7 @@ class RefrnaExpress(Base):
             return box, gene_list
         express_info =db["sg_express"].find_one({"_id": ObjectId(express_id)})
         files = open(fpkm_path,'r+')
-        samples = files.readline().strip().split("\t")[1:]   #此处已经有samples了
+        samples = files.readline().strip().split("\t")  #此处已经有samples了
 
         fpkm = pd.read_table(fpkm_path)
         box = {}
@@ -456,16 +456,7 @@ class RefrnaExpress(Base):
         gene_list = {}
         log2gene_list = {}
         log10gene_list = {}
-        # data = [
-            # ("express_id", express_id),
-            # ("sample_group", sample_group),
-            # ("type", query_type)
-        # ]
 
-        # data_log2 = data
-        # data_log10 = data
-        # gene_list_log2 = data
-        # gene_list_log10 = data
         box, gene_list = box_info(fpkm=fpkm, samples=samples)
         log2box, log2gene_list = box_info(fpkm=fpkm, log=2, samples=samples)
         log10box, log10gene_list = box_info(fpkm=fpkm, log=10, samples=samples)
@@ -476,22 +467,14 @@ class RefrnaExpress(Base):
             ("sample_group", sample_group),
             ("type", query_type)
             ]
-            data_log10 = data_log2
-            
             data_log2 += [
                 ('{}_log2'.format(sam), {'{}'.format(sam): log2box[sam]})
             ]
-            data_log10 += [
-                ('{}_log10'.format(sam), {'{}'.format(sam): log10box[sam]})
-            ]
             data_log2=SON(data_log2)
-            data_log10=SON(data_log10)
-            
             log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id  #每个样本的box值单独分开导表
-            log10_id = db['sg_express_box'].insert_one(data_log10).inserted_id
+
             
             data_list_log2 = []
-            data_list_log10 = []
             
             for keys,values in log2gene_list[sam].items():  #每个样本的不同区段的gene_list分开导表
                 insert_data_log2 = [
@@ -501,40 +484,11 @@ class RefrnaExpress(Base):
                 ]
                 insert_data_log2 = SON(insert_data_log2)
                 data_list_log2.append(insert_data_log2)
-                
-            for keys1,values1 in log10gene_list[sam].items(): 
-                insert_data_log10 = [
-                    (keys1,values1),
-                    ("express_id",ObjectId(express_id)),
-                    ("box_id",ObjectId(log10_id))
-                ]
-                insert_data_log10 = SON(insert_data_log10)
-                data_list_log10.append(insert_data_log10)
             
             db["sg_express_box_detail"].insert_many(data_list_log2)
-            db["sg_express_box_detail"].insert_many(data_list_log10)
-            
-            print log2_id, log10_id
-        # for sam in samples:
-            # data += [
-                # (sam, {'{}'.format(sam): box[sam]}),
-                # ('{}_gene_list'.format(sam), {'{}'.format(sam): gene_list[sam]})
-            # ]
-            # data_log2 += [
-                # (sam, {'{}_log2'.format(sam): log2box[sam]}),
-                # ('{}_gene_list'.format(sam), {'{}_log2'.format(sam): log2gene_list[sam]})
-            # ]
-            # data_log10 += [
-                # (sam, {'{}_log10'.format(sam): log10box[sam]}),
-                # ('{}_gene_list'.format(sam), {'{}_log10'.format(sam): log10gene_list[sam]})
-            # ]
-        # data = SON(data)
-        # data_log2 = SON(data_log2)
-        # data_log10 = SON(data_log10)
-        # id = db['sg_express_box'].insert_one(data).inserted_id
-        # log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id
-        # log10_id = db['sg_express_box'].insert_one(data_log10).inserted_id
-        # print log2_id, log10_id
+
+
+
     
     # @report_check
     def add_express_specimen_detail(self, express_id, rsem_result, rsem_type, sample=None):
@@ -618,7 +572,10 @@ class RefrnaExpress(Base):
                         sequence.append(seq_id)
                     else:
                         pass
-            return sequence
+            if sequence:
+                return sequence
+            else:
+                return None
     
     def add_geneset(self, diff_stat_path, name=None, compare_name=None, group_id=None, express_method=None, type=None, up_down=None,major=False):
         """
@@ -656,14 +613,19 @@ class RefrnaExpress(Base):
                     geneset_up_id = collection.insert_one(data_up).inserted_id
                     print geneset_up_id
                     if major:
-                        self.logger.info("准备开始导入geneset_detail表！")
-                        self.add_geneset_detail(geneset_up_id,diff_stat_path,up_data=up_data,up_down=up_down)  #直接导入detail表
-                        self.logger.info("导入geneset_detail表成功！")
+                        self.bind_object.blogger.info("准备开始导入geneset_detail表！")
+                        if geneset_up_id:
+                            self.add_geneset_detail(geneset_up_id,diff_stat_path,up_data=up_data,up_down=up_down)  #直接导入detail表
+                            self.bind_object.logger.info("导入geneset_detail表成功！")
                 except Exception, e:
                     self.bind_object.logger.error("导入基因表达基因集：%s信息出错:%s" % (diff_stat_path, e))
                 else:
                     self.bind_object.logger.info("导入基因表达基因集：%s信息成功!" % diff_stat_path)
                     return geneset_up_id
+            else:
+                print "{}对应{}调控基因集为空！".format(diff_stat_path,up_down)
+        else:
+            return None
     
     def add_geneset_detail(self, geneset_id, diff_stat_path, up_data=None,fc=None,up_down=None):
         """
