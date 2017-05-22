@@ -250,11 +250,11 @@ class RefrnaExpress(Base):
             collection = db["sg_express_detail"]
             collection.insert_many(data_list)
         except Exception, e:
-            bind_object.logger.error("导入表达量矩阵group信息出错:%s" % e)
+            self.bind_object.logger.error("导入表达量矩阵group信息出错:%s" % e)
             # print ("导入表达量矩阵信息出错:%s" % e)
         else:
             # print ("导入表达量矩阵信息成功!")
-            bind_object.logger.info("导入表达量矩阵group信息成功!")
+            self.bind_object.logger.info("导入表达量矩阵group信息成功!")
             
     # @report_check
     def add_express_detail(self, express_id, count_path, fpkm_path, class_code=None, query_type=None, value_type=None, method=None, sample_group=None):
@@ -526,7 +526,7 @@ class RefrnaExpress(Base):
         # data = SON(data)
         # data_log2 = SON(data_log2)
         # data_log10 = SON(data_log10)
-        id = db['sg_express_box'].insert_one(data).inserted_id
+        # id = db['sg_express_box'].insert_one(data).inserted_id
         # log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id
         # log10_id = db['sg_express_box'].insert_one(data_log10).inserted_id
         # print log2_id, log10_id
