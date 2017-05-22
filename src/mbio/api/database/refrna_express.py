@@ -238,7 +238,8 @@ class RefrnaExpress(Base):
                     ("value_type",value_type),
                     ("method",method),
                     ("sample_group",sample_group),
-                    ("express_id",express_id)
+                    ("express_id",express_id),
+                    ("seq_id",line[0])  
                 ]
                 fpkm_data = line[1:]
                 for i in range(len(fpkm_data)):
