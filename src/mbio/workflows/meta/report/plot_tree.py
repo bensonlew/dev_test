@@ -190,8 +190,6 @@ class PlotTreeWorkflow(Workflow):
 
 
     def end(self):
-        import time
-        time.sleep(10)
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "进化分析结果目录"],
@@ -199,14 +197,15 @@ class PlotTreeWorkflow(Workflow):
             ["phylo_tree.tre", "tree", "进化树"],
             ["species_group.xls", "txt", "物种在高层级的分类表"]
             ])
+        self.set_end()
+        self.fire('end')
         self._upload_result()
         self._import_report_data()
         self.step.finish()
         self.step.update()
         self.logger.info("运行结束!")
-        self._update("end")
-        self.set_end()
-        self.fire('end')
+        self._save_report_data()
+        # self._update("end")
         # super(PlotTreeWorkflow, self).end()
 
 

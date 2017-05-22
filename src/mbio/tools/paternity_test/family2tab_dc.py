@@ -92,6 +92,7 @@ class Family2tabDcTool(Tool):
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1')#测试机
         # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1/bin')#正式机
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioruby-vcf-master/bin') #测试机
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioawk')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/bwa-0.7.15')
