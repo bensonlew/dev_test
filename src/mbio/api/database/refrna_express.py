@@ -478,29 +478,51 @@ class RefrnaExpress(Base):
             ("type", query_type)
             ]
             data_log2 += [
-                ('{}_log2'.format(sam), {'{}'.format(sam): log2box[sam]})
+                ('{}_log2'.format(sam), log2box[sam])
             ]
             data_log2 += [
-                ('{}_log10'.format(sam), {'{}'.format(sam): log10box[sam]})
+                ('{}_log10'.format(sam), log10box[sam])
             ]
 
-            data_log2=SON(data_log2)
-            log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id  #每个样本的box值单独分开导表
+            # data_log2=SON(data_log2)
+            # log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id  #每个样本的box值单独分开导表
 
             
-            data_list_log2 = []
+            data_list_log2 = {}
+            data_list_log10 = {}
             
             for keys,values in log2gene_list[sam].items():  #每个样本的不同区段的gene_list分开导表
-                insert_data_log2 = [
-                    (keys,values),
-                    ("express_id",ObjectId(express_id)),
-                    ("box_id",ObjectId(log2_id))
-                ]
-                insert_data_log2 = SON(insert_data_log2)
-                data_list_log2.append(insert_data_log2)
-            
-            db["sg_express_box_detail"].insert_many(data_list_log2)
-
+                # insert_data_log2 = [
+                #     (keys,values),
+                #     ("express_id",ObjectId(express_id)),
+                #     ("box_id",ObjectId(log2_id))
+                # ]
+                # insert_data_log2 = SON(insert_data_log2)
+                # data_list_log2.append(insert_data_log2)
+                if values:
+                    """如果values不为空"""
+                    data_list_log2[keys]=",".join(values)
+                else:
+                    data_list_log2[keys]=values
+            for keys1,values1 in log10gene_list[sam].items():
+                if values1:
+                    """如果values1不为空"""
+                    data_list_log10[keys1] = ",".join(values1)
+                else:
+                    data_list_log10[keys1] = values1
+            data_log2 += [
+                ('{}_log2_genelist'.format(sam), data_list_log2),
+                ('{}_log10_genelist'.format(sam), data_list_log10)
+            ]
+            try:
+                data_log2=SON(data_log2)
+                collection = db["sg_express_box"]
+                box_id = collection.insert_one(data_log2).inserted_id
+                print str(box_id)
+            except Exception, e:
+                self.bind_object.logger.error("导入盒形图错误：%s信息出错:%s" % (sam, e))
+            else:
+                self.bind_object.logger.info("导入盒形图: %s信息成功!" % sam)
 
 
     
@@ -640,11 +662,11 @@ class RefrnaExpress(Base):
                     self.bind_object.logger.error("导入基因表达基因集：%s信息出错:%s" % (diff_stat_path, e))
                 else:
                     self.bind_object.logger.info("导入基因表达基因集：%s信息成功!" % diff_stat_path)
-                    return geneset_up_id
+                    return geneset_up_id,up_data
             else:
                 print "{}对应{}调控基因集为空！".format(diff_stat_path,up_down)
         else:
-            return None
+            return None, None
     
     def add_geneset_detail(self, geneset_id, diff_stat_path, up_data=None,fc=None,up_down=None):
         """
