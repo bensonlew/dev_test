@@ -627,34 +627,40 @@ class RefrnaExpress(Base):
             raise Exception('diff_stat_path所指的路径:{}不存在'.format(diff_sta_path))
         data_list_up = []
         data_list = []
-        
-
         data_up = {
-                'group_id': group_id,
-                'task_id': task_id,
-                'desc': '%s_vs_%s_差异基因集' % (name, compare_name),
-                'project_sn': project_sn,
-                'type': type
+            'group_id': group_id,
+            'task_id': task_id,
+            'desc': '%s_vs_%s_差异基因集' % (name, compare_name),
+            'project_sn': project_sn,
+            'type': type
         }
-        if up_down=='up' or up_down=='down':
-            data_up["name"]='{}_vs_{}_{}'.format(name, compare_name, up_down)
-        if up_down == 'up_down':
-            data_up['name']='{}_vs_{}'.format(name, compare_name)
 
-        try:
-            collection = db["sg_geneset"]
-            print collection
-            geneset_up_id = collection.insert_one(data_up).inserted_id
-            print geneset_up_id
-            if major:
-                self.add_geneset_detail(geneset_up_id,diff_stat_path,up_down=up_down)
-        except Exception, e:
-            self.bind_object.logger.error("导入基因表达基因集：%s信息出错:%s" % (diff_stat_path, e))
-        else:
-            self.bind_object.logger.info("导入基因表达基因集：%s信息成功!" % diff_stat_path)
-            return geneset_up_id
+        up_data = self.get_diff_list(up_down_output=diff_stat_path, up_down=up_down, fc=fc)
+        if up_data:
+            geneset_length = len(up_data)
+            if geneset_length > 0:
+                data_up['geneset_length'] = int(geneset_length)
+                if up_down=='up' or up_down=='down':
+                    data_up["name"]='{}_vs_{}_{}'.format(name, compare_name, up_down)
+                if up_down == 'up_down':
+                    data_up['name']='{}_vs_{}'.format(name, compare_name)
+
+                try:
+                    collection = db["sg_geneset"]
+                    print collection
+                    geneset_up_id = collection.insert_one(data_up).inserted_id
+                    print geneset_up_id
+                    if major:
+                        self.logger.info("准备开始导入geneset_detail表！")
+                        self.add_geneset_detail(geneset_up_id,diff_stat_path,up_data=up_data,up_down=up_down)  #直接导入detail表
+                        self.logger.info("导入geneset_detail表成功！")
+                except Exception, e:
+                    self.bind_object.logger.error("导入基因表达基因集：%s信息出错:%s" % (diff_stat_path, e))
+                else:
+                    self.bind_object.logger.info("导入基因表达基因集：%s信息成功!" % diff_stat_path)
+                    return geneset_up_id
     
-    def add_geneset_detail(self, geneset_id, diff_stat_path, fc=None,up_down=None):
+    def add_geneset_detail(self, geneset_id, diff_stat_path, up_data=None,fc=None,up_down=None):
         """
         添加sg_geneset_detail表
         """
@@ -662,7 +668,9 @@ class RefrnaExpress(Base):
         geneset_id = str(geneset_id)
         data_list = []
         data_list_up = []
-        up_data = self.get_diff_list(up_down_output = diff_stat_path, up_down= up_down, fc=fc)
+        if not up_data:
+            up_data = self.get_diff_list(up_down_output = diff_stat_path, up_down= up_down, fc=fc)
+
         data = [
             ("geneset_id",ObjectId(geneset_id)),
             ("gene_list",up_data)
