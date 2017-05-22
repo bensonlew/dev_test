@@ -25,8 +25,8 @@ class DiffExpressAction(RefRnaController):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        print data.type
         print 'haha'
+        print data.group_id
         
         return_result = self.check_options(data)
         if return_result:
@@ -53,10 +53,7 @@ class DiffExpressAction(RefRnaController):
         express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
         express_params=json.loads(express_info["params"])
-        print express_info
-        print 'heihei'
-        print task_info
-        print 'heihei1'
+        
         express_method = express_params["express_method"]
         value_type = express_params["type"]
         
@@ -80,14 +77,24 @@ class DiffExpressAction(RefRnaController):
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
             ]
             #if express_info["is_duplicate"] and express_info['trans'] and express_info['genes']:
-            if "is_duplicate" in express_info.keys() and "trans" in express_info.keys() and "genes" in express_info.keys():
-                mongo_data.extend([
-                    ("is_duplicate", express_info["is_duplicate"]),
-                    ("trans", express_info['trans']),
-                    ('genes', express_info['genes'])
-                ])   #参数值方便前端取数据
+            # if "is_duplicate" in express_info.keys():
+            #     mongo_data.append(
+            #         ("is_duplicate", express_info["is_duplicate"]))
+            if str(data.group_id) == 'all':  #判断is_duplicate参数
+                mongo_data.append(('is_duplicate',False))
             else:
-                raise Exception("{}没有is_duplicate,trans,genes信息".format(str(data.express_id)))
+                mongo_data.append(('is_duplicate',True))
+
+            if data.type == 'gene':
+                mongo_data.extend([
+                    ("trans", False),
+                    ('genes', True)
+                ])   #参数值方便前端取数据
+            if data.type == 'transcript':
+                mongo_data.extend([
+                    ('trans',True),
+                    ('genes',False)
+                ])
             collection_name = "sg_express_diff"
             main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
             update_info = {str(main_table_id): collection_name}

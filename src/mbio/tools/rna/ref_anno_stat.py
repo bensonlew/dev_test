@@ -189,6 +189,7 @@ class RefAnnoStatTool(Tool):
         self.kegg_anno = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
         self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
         self.cog_table = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/cog_annot.py'
+        self.image_magick = self.config.SOFTWARE_DIR + "//program/ImageMagick/bin/convert"
         self.gene_list = self.option('gene_file').prop['gene_list']
         self.gene_nr_xml = self.work_dir + '/blast/gene_nr.xml'
         if self.option('string_xml').is_set:
@@ -293,7 +294,7 @@ class RefAnnoStatTool(Tool):
                 self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
                 kegg_anno.pathSearch_upload(kegg_ids=self.work_dir + "/gene_kegg.list", kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
             kegg_anno.pathTable(kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls', pathway_path=self.kegg_stat_path + '/gene_pathway_table.xls', pidpath=self.work_dir + '/gene_pid.txt')
-            kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway)
+            kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway, image_magick=self.image_magick)
             kegg_anno.keggLayer(pathway_table=self.kegg_stat_path + '/gene_pathway_table.xls', layerfile=self.kegg_stat_path + '/gene_kegg_layer.xls', taxonomyfile=self.kegg_stat_path + '/gene_kegg_taxonomy.xls')
             self.logger.info('finish: kegg stat')
         except:

@@ -41,7 +41,8 @@ class BlastAnnotationAction(RefRnaController):
             "swissprot_score": data.swissprot_score,
             "swissprot_similarity": data.swissprot_similarity,
             "swissprot_identity": data.swissprot_identity,
-            "submit_location": data.submit_location
+            "submit_location": data.submit_location,
+            "task_type": data.task_type
         }
         main_table_name = "AnnotationStat_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         mongo_data = [
@@ -86,6 +87,8 @@ class BlastAnnotationAction(RefRnaController):
         success = []
         if not (hasattr(data, "stat_id")):
             success.append("缺少参数stat_id")
+        if not (hasattr(data, "task_type")):
+            success.append("缺少参数task_type")
         if not (hasattr(data, "nr_evalue")):
             data.nr_evalue = 10e-3
         else:

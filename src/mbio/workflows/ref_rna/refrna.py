@@ -5,6 +5,7 @@
 
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError, FileError
+from mbio.files.sequence.fasta import FastaFile
 import os
 import json
 import shutil
@@ -55,6 +56,7 @@ class RefrnaWorkflow(Workflow):
             {"name": "database", "type": "string", "default": 'go,nr,cog,kegg,swissprot,pfam'},
             # 全部六个注释
             {"name": "nr_database", "type": "string", "default": "animal"},  # nr库类型
+            {"name": "kegg_database", "type": "string", "default": None},  # kegg注释库类型
 
             {"name": "seq_method", "type": "string", "default": "Tophat"},  # 比对方法，Tophat or Hisat
             {"name": "map_assess_method", "type": "string", "default":
@@ -127,7 +129,11 @@ class RefrnaWorkflow(Workflow):
         self.pfam = self.add_tool("denovo_rna.gene_structure.orf")
         self.anno_path = ""
         if self.option("ref_genome") != "customer_mode":
+            # self.ref_genome = FastaFile()
+            # self.ref_genome.set_path(self.json_dict[self.option("ref_genome")]["ref_genome"])
+            # self.ref_genome.check()
             self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
+            self.option("ref_genome_custom", self.ref_genome)
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
             self.anno_path = self.json_dict[self.option("ref_genome")]["anno_path"]
             self.logger.info(self.anno_path)
@@ -190,7 +196,7 @@ class RefrnaWorkflow(Workflow):
             'fastq_dir': self.option('fastq_dir'),
             'fq_type': self.option('fq_type'),
             'control_file': self.option('control_file'),
-            "ref_genome_custom": self.ref_genome
+            "ref_genome_custom": self.option("ref_genome_custom")
         }
         if self.gff != "":
             opts.update({
@@ -207,7 +213,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_gs(self):
         opts = {
-            "in_fasta": self.ref_genome,
+            "in_fasta": self.option("ref_genome_custom"),
             # "in_gtf": self.filecheck.option("gtf")
         }
         if self.gff != "":
@@ -236,7 +242,7 @@ class RefrnaWorkflow(Workflow):
         
     def run_seq_abs(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome_gtf": self.filecheck.option("gtf")
         }
         self.seq_abs.set_options(opts)
@@ -311,7 +317,9 @@ class RefrnaWorkflow(Workflow):
             "kos_list_upload": self.para_anno.option("out_kegg"),
             "blast_string_table": self.para_anno.option("out_cog"),
             "gene_file": self.seq_abs.option("gene_file"),
-            "ref_genome_gtf": self.filecheck.option("gtf")
+            "ref_genome_gtf": self.filecheck.option("gtf"),
+            "taxonomy": self.option("kegg_database"),
+            "nr_annot": False
         }
         if self.anno_path != "":  # 本地参考基因组注释文件
             opts.update({
@@ -376,7 +384,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_mapping(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome": "customer_mode",
             "mapping_method": self.option("seq_method").lower(),  # 比对软件
             "seq_method": self.option("fq_type"),   # PE or SE
@@ -399,7 +407,7 @@ class RefrnaWorkflow(Workflow):
             "sample_bam_dir": self.mapping.option("bam_output"),
             "assemble_method": self.option("assemble_method"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "ref_fa": self.ref_genome
+            "ref_fa": self.option("ref_genome_custom")
         }
         # 如果具有链特异性
         if self.option("strand_specific"):
@@ -423,7 +431,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_new_transcripts_abs(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome_gtf": self.assembly.option("new_transcripts_gtf")
         }
         self.new_trans_abs.set_options(opts)
@@ -431,7 +439,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_new_gene_abs(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome_gtf": self.assembly.option("new_gene_gtf")
         }
         self.new_gene_abs.set_options(opts)
@@ -526,6 +534,7 @@ class RefrnaWorkflow(Workflow):
         if 'kegg' in self.option('database'):
             anno_opts.update({
                 'blast_kegg_xml': self.new_blast_kegg.option('outxml'),
+                'taxonomy': self.option("kegg_database")
             })
         if 'cog' in self.option('database'):
             anno_opts.update({
@@ -547,7 +556,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_snp(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome":  "customer_mode",
             "ref_gtf": self.filecheck.option("gtf"),
             "seq_method": self.option("fq_type"),
@@ -999,7 +1008,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_new_gene_abs_test(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome_gtf": self.assembly.output_dir + "/NewTranscripts/new_genes.gtf"
         }
         self.new_gene_abs.set_options(opts)
@@ -1007,7 +1016,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_new_transcripts_abs_test(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome_gtf": self.assembly.output_dir + "/NewTranscripts/new_transcripts.gtf"
         }
         self.new_trans_abs.set_options(opts)

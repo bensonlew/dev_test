@@ -62,6 +62,7 @@ class KeggUploadTool(Tool):
         super(KeggUploadTool, self).__init__(config)
         self._version = "2.0"
         self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
+        self.image_magick = self.config.SOFTWARE_DIR + "//program/ImageMagick/bin/convert"
 
     def run(self):
         super(KeggUploadTool, self).run()
@@ -80,7 +81,7 @@ class KeggUploadTool(Tool):
             kegg_anno = self.load_package('annotation.kegg_annotation')()
             kegg_anno.pathSearch_upload(kegg_ids=self.work_dir + "/kegg.list", kegg_table=self.output_dir + '/kegg_table.xls', taxonomy=taxonomy)
             kegg_anno.pathTable(kegg_table=self.output_dir + '/kegg_table.xls', pathway_path=self.output_dir + '/pathway_table.xls', pidpath=self.work_dir + '/pid.txt')
-            kegg_anno.getPic(pidpath=self.work_dir + '/pid.txt', pathwaydir=self.output_dir + '/pathways')
+            kegg_anno.getPic(pidpath=self.work_dir + '/pid.txt', pathwaydir=self.output_dir + '/pathways', image_magick=self.image_magick)
             kegg_anno.keggLayer(pathway_table=self.output_dir + '/pathway_table.xls', layerfile=self.output_dir + '/kegg_layer.xls', taxonomyfile=self.output_dir + '/kegg_taxonomy.xls')
             self.option("kegg_table", self.output_dir + '/kegg_table.xls')
             self.logger.info("运行成功完成！")
