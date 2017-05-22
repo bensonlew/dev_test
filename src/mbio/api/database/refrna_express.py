@@ -370,6 +370,11 @@ class RefrnaExpress(Base):
     
     # @report_check
     def add_express_gragh(self, express_id, distribution_path_log2, distribution_path_log10, distribution_path, sample_group, query_type=None):
+        if not isinstance(express_id, ObjectId):
+            if isinstance(express_id, types.StringTypes):
+                express_id = ObjectId(express_id)
+            else:
+                raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         with open(distribution_path_log2,'r+') as f1:
             samples=f1.readline().strip().split("\t")[1:]  #添加这两行代码不确定是否会报错
         if not samples:
@@ -414,6 +419,11 @@ class RefrnaExpress(Base):
     
     # @report_check
     def add_express_box(self, express_id, fpkm_path, sample_group, query_type=None):
+        if not isinstance(express_id, ObjectId):
+            if isinstance(express_id, types.StringTypes):
+                express_id = ObjectId(express_id)
+            else:
+                raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         def log_value(value, log):
             """获取log值"""
@@ -496,6 +506,11 @@ class RefrnaExpress(Base):
     
     # @report_check
     def add_express_specimen_detail(self, express_id, rsem_result, rsem_type, sample=None):
+        if not isinstance(express_id, ObjectId):
+            if isinstance(express_id, types.StringTypes):
+                express_id = ObjectId(express_id)
+            else:
+                raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
@@ -635,8 +650,13 @@ class RefrnaExpress(Base):
         """
         添加sg_geneset_detail表
         """
+        if not isinstance(geneset_id, ObjectId):
+            if isinstance(geneset_id, types.StringTypes):
+                express_id = ObjectId(geneset_id)
+            else:
+                raise Exception('geneset_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        geneset_id = str(geneset_id)
+        # geneset_id = str(geneset_id)
         data_list = []
         data_list_up = []
         if not up_data:
@@ -660,11 +680,16 @@ class RefrnaExpress(Base):
         """
         差异分析主表
         """
+        if not isinstance(express_id, ObjectId):
+            if isinstance(express_id, types.StringTypes):
+                express_id = ObjectId(express_id)
+            else:
+                raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db= Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         params.update({
-            'express_id': str(express_id),
+            'express_id': express_id,
             'group_id': str(group_id),
             'group_detail': group_detail,
             'control_id': str(control_id)
@@ -859,6 +884,11 @@ class RefrnaExpress(Base):
             return _id
     
     def add_class_code_detail(self, class_code, class_code_id):
+        if not isinstance(class_code_id, ObjectId):
+            if isinstance(class_code_id, types.StringTypes):
+                express_id = ObjectId(class_code_id)
+            else:
+                raise Exception('class_code_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         with open(class_code,'r+') as f1:
