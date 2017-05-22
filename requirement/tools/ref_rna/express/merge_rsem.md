@@ -47,4 +47,5 @@ tpm:
 运行逻辑
 -----------------------------------
 
-1. 参数is_duplicate判断是否有生物学重复, 如果有, 则需要输入参数
+1. 参数is_duplicate判断是否有生物学重复, 如果有, 则需要设置is_duplicate为False;且设置edger_group参数;
+2. 设置gtf_ref和gtf_cmp文件，输出class_code信息, 即拼接生成的基因id,转录本id,class_code,参考基因id,参考转录本id之间的对应关系;
