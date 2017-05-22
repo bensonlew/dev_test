@@ -157,7 +157,5 @@ class DrawFastqInfoTool(Tool):
                         self.set_error("运行{}运行出错!".format(cmd.name))
                         raise Exception("运行draw_fastq_info出错!")
                         return False
-                    self.set_error("运行{}出错!".format(cmd.name))
-                    return False
         self.set_output()
         self.end()
