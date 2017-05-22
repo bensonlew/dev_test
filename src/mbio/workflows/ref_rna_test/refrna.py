@@ -983,7 +983,7 @@ class RefrnaWorkflow(Workflow):
         self.export_qc()
         # self.export_assembly()
         # self.export_map_assess()
-        # self.export_exp_rsem_default()
+        self.export_exp_rsem_default()
         # self.export_exp_rsem_alter()
         # self.export_exp_fc()
         # self.export_gene_set()
@@ -1232,7 +1232,7 @@ class RefrnaWorkflow(Workflow):
         }
         params = json.dumps(params)
         new_anno_path = self.new_annotation.output_dir
-        pfam_path = self.pfam.output_dir + "/pfam_domian"
+        pfam_path = self.pfam.output_dir + "/pfam_domain"
         self.api_anno.add_annotation(name=None, params=params, ref_anno_path=ref_anno_path, new_anno_path=new_anno_path, pfam_path=pfam_path)
 
     def export_as(self):
@@ -1258,4 +1258,5 @@ class RefrnaWorkflow(Workflow):
         self.api_as.add_sg_splicing_rmats(params=params, major=True, name=None, outpath=None, work_path=work_path)
 
     def export_ppi(self):
+        self.api_net = self.api.api("ref_rna.ppinetwork")
         pass

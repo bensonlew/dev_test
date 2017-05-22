@@ -43,6 +43,8 @@ class RefrnaExpress(Base):
                 'transcript_fasta_path': transcript_fasta_path,
                 'is_duplicate': is_duplicate
             }
+            # if is_duplicate:
+            #     insert_data['group'] = group
             if params:
                 insert_data["genes"]=True
                 if params["express_method"] == "rsem":
@@ -130,6 +132,8 @@ class RefrnaExpress(Base):
             'bam_path': bam_path,
             'is_duplicate': is_duplicate
         }
+        # if is_duplicate:
+        #     insert_data['group']=group
         sample_group ="sample"
         if params:
             insert_data["genes"]=True
@@ -234,7 +238,8 @@ class RefrnaExpress(Base):
                     ("value_type",value_type),
                     ("method",method),
                     ("sample_group",sample_group),
-                    ("express_id",express_id)
+                    ("express_id",express_id),
+                    ("seq_id",line[0])  
                 ]
                 fpkm_data = line[1:]
                 for i in range(len(fpkm_data)):
@@ -250,11 +255,11 @@ class RefrnaExpress(Base):
             collection = db["sg_express_detail"]
             collection.insert_many(data_list)
         except Exception, e:
-            bind_object.logger.error("导入表达量矩阵group信息出错:%s" % e)
+            self.bind_object.logger.error("导入表达量矩阵group信息出错:%s" % e)
             # print ("导入表达量矩阵信息出错:%s" % e)
         else:
             # print ("导入表达量矩阵信息成功!")
-            bind_object.logger.info("导入表达量矩阵group信息成功!")
+            self.bind_object.logger.info("导入表达量矩阵group信息成功!")
             
     # @report_check
     def add_express_detail(self, express_id, count_path, fpkm_path, class_code=None, query_type=None, value_type=None, method=None, sample_group=None):
@@ -365,6 +370,11 @@ class RefrnaExpress(Base):
     
     # @report_check
     def add_express_gragh(self, express_id, distribution_path_log2, distribution_path_log10, distribution_path, sample_group, query_type=None):
+        if not isinstance(express_id, ObjectId):
+            if isinstance(express_id, types.StringTypes):
+                express_id = ObjectId(express_id)
+            else:
+                raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         with open(distribution_path_log2,'r+') as f1:
             samples=f1.readline().strip().split("\t")[1:]  #添加这两行代码不确定是否会报错
         if not samples:
@@ -409,6 +419,11 @@ class RefrnaExpress(Base):
     
     # @report_check
     def add_express_box(self, express_id, fpkm_path, sample_group, query_type=None):
+        if not isinstance(express_id, ObjectId):
+            if isinstance(express_id, types.StringTypes):
+                express_id = ObjectId(express_id)
+            else:
+                raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         def log_value(value, log):
             """获取log值"""
@@ -442,7 +457,7 @@ class RefrnaExpress(Base):
             return box, gene_list
         express_info =db["sg_express"].find_one({"_id": ObjectId(express_id)})
         files = open(fpkm_path,'r+')
-        samples = files.readline().strip().split("\t")[1:]   #此处已经有samples了
+        samples = files.readline().strip().split("\t")  #此处已经有samples了
 
         fpkm = pd.read_table(fpkm_path)
         box = {}
@@ -451,16 +466,7 @@ class RefrnaExpress(Base):
         gene_list = {}
         log2gene_list = {}
         log10gene_list = {}
-        # data = [
-            # ("express_id", express_id),
-            # ("sample_group", sample_group),
-            # ("type", query_type)
-        # ]
 
-        # data_log2 = data
-        # data_log10 = data
-        # gene_list_log2 = data
-        # gene_list_log10 = data
         box, gene_list = box_info(fpkm=fpkm, samples=samples)
         log2box, log2gene_list = box_info(fpkm=fpkm, log=2, samples=samples)
         log10box, log10gene_list = box_info(fpkm=fpkm, log=10, samples=samples)
@@ -471,22 +477,18 @@ class RefrnaExpress(Base):
             ("sample_group", sample_group),
             ("type", query_type)
             ]
-            data_log10 = data_log2
-            
             data_log2 += [
                 ('{}_log2'.format(sam), {'{}'.format(sam): log2box[sam]})
             ]
-            data_log10 += [
+            data_log2 += [
                 ('{}_log10'.format(sam), {'{}'.format(sam): log10box[sam]})
             ]
+
             data_log2=SON(data_log2)
-            data_log10=SON(data_log10)
-            
             log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id  #每个样本的box值单独分开导表
-            log10_id = db['sg_express_box'].insert_one(data_log10).inserted_id
+
             
             data_list_log2 = []
-            data_list_log10 = []
             
             for keys,values in log2gene_list[sam].items():  #每个样本的不同区段的gene_list分开导表
                 insert_data_log2 = [
@@ -496,43 +498,19 @@ class RefrnaExpress(Base):
                 ]
                 insert_data_log2 = SON(insert_data_log2)
                 data_list_log2.append(insert_data_log2)
-                
-            for keys1,values1 in log10gene_list[sam].items(): 
-                insert_data_log10 = [
-                    (keys1,values1),
-                    ("express_id",ObjectId(express_id)),
-                    ("box_id",ObjectId(log10_id))
-                ]
-                insert_data_log10 = SON(insert_data_log10)
-                data_list_log10.append(insert_data_log10)
             
             db["sg_express_box_detail"].insert_many(data_list_log2)
-            db["sg_express_box_detail"].insert_many(data_list_log10)
-            
-            print log2_id, log10_id
-        # for sam in samples:
-            # data += [
-                # (sam, {'{}'.format(sam): box[sam]}),
-                # ('{}_gene_list'.format(sam), {'{}'.format(sam): gene_list[sam]})
-            # ]
-            # data_log2 += [
-                # (sam, {'{}_log2'.format(sam): log2box[sam]}),
-                # ('{}_gene_list'.format(sam), {'{}_log2'.format(sam): log2gene_list[sam]})
-            # ]
-            # data_log10 += [
-                # (sam, {'{}_log10'.format(sam): log10box[sam]}),
-                # ('{}_gene_list'.format(sam), {'{}_log10'.format(sam): log10gene_list[sam]})
-            # ]
-        # data = SON(data)
-        # data_log2 = SON(data_log2)
-        # data_log10 = SON(data_log10)
-        id = db['sg_express_box'].insert_one(data).inserted_id
-        # log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id
-        # log10_id = db['sg_express_box'].insert_one(data_log10).inserted_id
-        # print log2_id, log10_id
+
+
+
     
     # @report_check
     def add_express_specimen_detail(self, express_id, rsem_result, rsem_type, sample=None):
+        if not isinstance(express_id, ObjectId):
+            if isinstance(express_id, types.StringTypes):
+                express_id = ObjectId(express_id)
+            else:
+                raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
@@ -613,7 +591,10 @@ class RefrnaExpress(Base):
                         sequence.append(seq_id)
                     else:
                         pass
-            return sequence
+            if sequence:
+                return sequence
+            else:
+                return None
     
     def add_geneset(self, diff_stat_path, name=None, compare_name=None, group_id=None, express_method=None, type=None, up_down=None,major=False):
         """
@@ -651,21 +632,31 @@ class RefrnaExpress(Base):
                     geneset_up_id = collection.insert_one(data_up).inserted_id
                     print geneset_up_id
                     if major:
-                        self.logger.info("准备开始导入geneset_detail表！")
-                        self.add_geneset_detail(geneset_up_id,diff_stat_path,up_data=up_data,up_down=up_down)  #直接导入detail表
-                        self.logger.info("导入geneset_detail表成功！")
+                        self.bind_object.blogger.info("准备开始导入geneset_detail表！")
+                        if geneset_up_id:
+                            self.add_geneset_detail(geneset_up_id,diff_stat_path,up_data=up_data,up_down=up_down)  #直接导入detail表
+                            self.bind_object.logger.info("导入geneset_detail表成功！")
                 except Exception, e:
                     self.bind_object.logger.error("导入基因表达基因集：%s信息出错:%s" % (diff_stat_path, e))
                 else:
                     self.bind_object.logger.info("导入基因表达基因集：%s信息成功!" % diff_stat_path)
                     return geneset_up_id
+            else:
+                print "{}对应{}调控基因集为空！".format(diff_stat_path,up_down)
+        else:
+            return None
     
     def add_geneset_detail(self, geneset_id, diff_stat_path, up_data=None,fc=None,up_down=None):
         """
         添加sg_geneset_detail表
         """
+        if not isinstance(geneset_id, ObjectId):
+            if isinstance(geneset_id, types.StringTypes):
+                express_id = ObjectId(geneset_id)
+            else:
+                raise Exception('geneset_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        geneset_id = str(geneset_id)
+        # geneset_id = str(geneset_id)
         data_list = []
         data_list_up = []
         if not up_data:
@@ -689,11 +680,16 @@ class RefrnaExpress(Base):
         """
         差异分析主表
         """
+        if not isinstance(express_id, ObjectId):
+            if isinstance(express_id, types.StringTypes):
+                express_id = ObjectId(express_id)
+            else:
+                raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db= Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         params.update({
-            'express_id': str(express_id),
+            'express_id': express_id,
             'group_id': str(group_id),
             'group_detail': group_detail,
             'control_id': str(control_id)
@@ -888,9 +884,15 @@ class RefrnaExpress(Base):
             return _id
     
     def add_class_code_detail(self, class_code, class_code_id):
+        if not isinstance(class_code_id, ObjectId):
+            if isinstance(class_code_id, types.StringTypes):
+                express_id = ObjectId(class_code_id)
+            else:
+                raise Exception('class_code_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         with open(class_code,'r+') as f1:
+            f1.readline()
             for lines in f1:
                 line=lines.strip().split("\t")
                 data = [
