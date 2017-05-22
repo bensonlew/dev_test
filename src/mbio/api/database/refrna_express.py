@@ -470,6 +470,10 @@ class RefrnaExpress(Base):
             data_log2 += [
                 ('{}_log2'.format(sam), {'{}'.format(sam): log2box[sam]})
             ]
+            data_log2 += [
+                ('{}_log10'.format(sam), {'{}'.format(sam): log10box[sam]})
+            ]
+
             data_log2=SON(data_log2)
             log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id  #每个样本的box值单独分开导表
 
