@@ -8,9 +8,9 @@ from mainapp.controllers.core.basic import Basic
 from mainapp.controllers.project.ref_rna_controller import RefRnaController
 
 
-class GenesetEnrich(RefRnaController):
+class GenesetEnrichAction(RefRnaController):
     def __init__(self):
-        super(GenesetEnrich, self).__init__(instant=True)
+        super(GenesetEnrichAction, self).__init__(instant=True)
 
     def POST(self):
         data = web.input()
@@ -29,7 +29,7 @@ class GenesetEnrich(RefRnaController):
             "geneset_id": data.geneset_id,
             "anno_type": data.anno_type,
             "method": data.method,
-            # "annotation_id": data.annotation_id
+            "geneset_type": data.geneset_type
         }
         # 判断传入的基因集id是否存在
         geneset_info = self.ref_rna.get_main_info(data.geneset_id, 'sg_geneset')
@@ -76,7 +76,7 @@ class GenesetEnrich(RefRnaController):
             "method": data.method,
             # "annotation_id": data.annotation_id,
             "genset_list": data.geneset_id,
-            "all_list": task_info['task_id']
+            "all_list": data.geneset_id
             }
         options.update(infile)
         print("lllllllll")
@@ -85,7 +85,7 @@ class GenesetEnrich(RefRnaController):
 
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
                             to_file=to_file, task_id=task_info["task_id"], project_sn=task_info["project_sn"])
-        task_info = super(GenesetEnrich, self).POST()
+        task_info = super(GenesetEnrichAction, self).POST()
         task_info['content'] = {
             'ids': {
                 'id': str(main_table_id),

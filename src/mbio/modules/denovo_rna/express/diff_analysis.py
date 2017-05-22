@@ -14,7 +14,7 @@ class DiffAnalysisModule(Module):
         super(DiffAnalysisModule, self).__init__(work_id)
         self.step.add_steps('cluster', 'network', 'go_rich', 'kegg_rich', 'go_regulate', 'kegg_regulate')
         options = [
-            {"name": "analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich,go_regulate,kegg_regulate"},  # 选择要做的分析
+            {"name": "analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich,go_regulate,kegg_regulate,cog_class"},  # 选择要做的分析
             {"name": "diff_fpkm", "type": "infile", "format": "rna.express_matrix"},  # 差异基因表达量表
             {"name": "all_list", "type": "infile", "format": "rna.gene_list"},  # 全部基因名称文件
             {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},  # 差异基因名称文件
@@ -32,12 +32,14 @@ class DiffAnalysisModule(Module):
             {"name": "gene_go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
             {"name": "gene_go_level_2", "type": "infile", "format": "annotation.go.level2"},
             {"name": "diff_stat_dir", "type": "infile", "format": "rna.diff_stat_dir"},
+            {"name": "cog_table", "type": "infile", "format": "annotation.cog.cog_table"},
         ]
         self.add_option(options)
         self.cluster = self.add_tool("denovo_rna.express.cluster")
         self.network = self.add_tool("denovo_rna.express.network")
         self._end_info = 0
         self.kegg_rich_tool = []
+        self.cog_class_tool = []
         self.go_rich_tool = []
         self.go_regulate_tool = []
         self.kegg_regulate_tool = []
@@ -60,7 +62,7 @@ class DiffAnalysisModule(Module):
                 if not self._options[i]:
                     raise OptionError('缺少kegg富集分析的输入文件:{}'.format(i))
         if 'kegg_regulate' in analysis:
-            opts = ['diff_list_dir', 'gene_kegg_table']
+            opts = [ 'gene_kegg_table', 'diff_stat_dir']
             for i in opts:
                 if not self._options[i]:
                     raise OptionError('缺少kegg调控分析的输入文件:{}'.format(i))
@@ -201,6 +203,7 @@ class DiffAnalysisModule(Module):
 
     def kegg_regulate_run(self):
         self.step.kegg_regulate.start()
+        self.logger.info(vars(self.option('diff_stat_dir')))
         files = os.listdir(self.option('diff_stat_dir').prop['path'])
         for f in files:
             self.kegg_regulate = self.add_tool("denovo_rna.express.kegg_regulate")
@@ -295,12 +298,30 @@ class DiffAnalysisModule(Module):
             self.go_regulate_run()
         if 'kegg_regulate' in analysis:
             self.kegg_regulate_run()
+        if 'cog_class' in analysis:
+            self.cog_class_run()
         if len(self.tools) != 1:
             self.on_rely(self.tools, self.end)
             print '......on rely end'
         else:
             self.tools[0].on('end', self.end)
         self.run_tools()
+
+    def cog_class_run(self):
+        opts = {
+            "cog_table": self.option("cog_table")
+        }
+        files = os.listdir(self.option('diff_list_dir').prop['path'])
+        for f in files:
+            opts.update({"diff_list": os.path.join(self.option('diff_list_dir').prop['path'], f)})
+            self.cog_class = self.add_tool("denovo_rna.express.cog_class")
+            self.cog_class.set_options(opts)
+            self.cog_class_tool.append(self.cog_class)
+        if len(self.cog_class_tool) == 1:
+            self.cog_class_tool[0].on('end', self.set_output, 'cog_class')
+        else:
+            self.on_rely(self.cog_class_tool, self.set_output, 'cog_class')
+        self.tools += self.cog_class_tool
 
     def run_tools(self):
         analysis = self.option('analysis').split(',')

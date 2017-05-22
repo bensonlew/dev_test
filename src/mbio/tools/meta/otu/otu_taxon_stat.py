@@ -78,7 +78,12 @@ class OtuTaxonStatAgent(Agent):
         设置所需要的资源
         """
         self._cpu = 1
-        self._memory = '3G'
+        table_size = self.option("in_otu_table").get_size()   #单位K
+        if table_size < 1024:
+            self._memory = '3G'
+        else:
+            multiple = table_size / 1024.00 / 5.00    #文件每增加5M，mem增加1G
+            self._memory = str(3 + int(multiple)) + 'G'
 
 
 class OtuTaxonStatTool(Tool):

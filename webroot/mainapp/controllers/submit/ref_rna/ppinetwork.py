@@ -8,17 +8,29 @@ from bson.objectid import ObjectId
 
 
 class PpinetworkAction(RefRnaController):
+    """
+    蛋白质互作网络的接口
+    """
+
+    species_list = [30611, 9598, 61853, 9593, 9606, 9544, 9483, 30608, 9601, 9478, 10141, 10020, 10090, 9986, 10116,
+                    43179, 37347, 9685, 9913, 9739, 9669, 9796, 132908, 59463, 9646, 9823, 9785, 9813, 9371, 9361,
+                    28377, 9031, 13735, 9103, 59729, 8049, 31033, 8090, 8083, 69293, 99883, 8128, 7955, 13616, 9258,
+                    9305, 9315, 7897, 7757, 7719, 51511, 6239, 7227, 4932, 15368, 4513, 4641, 4533, 4538, 4555,
+                    4558, 4577, 59689, 3702, 3711, 3847, 3694, 4081, 4113, 29760, 88036, 3218, 3055, 45157]
+
     def __init__(self):
         super(PpinetworkAction, self).__init__(instant=False)
 
     def POST(self):
         data = web.input()
-        default_argu = ['geneset_id', 'type', 'species', 'submit_location', 'combine_score', 'task_type']
+        default_argu = ['geneset_id', 'gene_type', 'species', 'submit_location', 'combine_score', 'task_type']
         for argu in default_argu:
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
                 return json.dumps(info)
-
+        if int(data.species) not in self.species_list:
+            info = {"success": False, "info": "不能进行蛋白质互作分析，因为数据库中不存在该物种的蛋白质互作组数据！"}
+            return json.dumps(info)
         task_name = 'ref_rna.report.ppinetwork'
         task_type = 'workflow'
         params_json = {
@@ -27,7 +39,7 @@ class PpinetworkAction(RefRnaController):
             "geneset_id": data.geneset_id,
             "species": data.species,
             "combine_score": data.combine_score,
-            "type": data.type
+            "gene_type": data.gene_type
         }
         geneset_info = self.ref_rna.get_main_info(data.geneset_id, 'sg_geneset')
         if not geneset_info:

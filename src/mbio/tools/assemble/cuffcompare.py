@@ -53,8 +53,8 @@ class CuffcompareAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 10
-        self._memory = "50G"
+        self._cpu = 1
+        self._memory = "5G"
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

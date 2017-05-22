@@ -110,7 +110,12 @@ class RpkmSaturationTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("运行{}结束!".format(cmd.name))
         else:
-            self.set_error("运行{}出错!".format(cmd.name))
+            self.logger.info("程序出错，开始重新运行")
+            cmd.rerun()
+            if cmd.return_code == 0:
+                self.logger.info("运行{}结束!".format(cmd.name))
+            else:
+                self.set_error("运行{}出错!".format(cmd.name))
         return cmd
 
     def set_output(self):
