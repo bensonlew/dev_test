@@ -26,7 +26,7 @@ class RefrnaExpress(Base):
         # db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         
     # @report_check
-    def add_express(self, rsem_dir=None, group_fpkm_path = None, transcript_fasta_path=None, is_duplicate=None, group=None, class_code = None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = None):
+    def add_express(self, rsem_dir=None, group_fpkm_path = None, transcript_fasta_path=None, is_duplicate=None, class_code = None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = None):
             db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
             task_id = self.bind_object.sheet.id
             project_sn = self.bind_object.sheet.project_sn
@@ -43,8 +43,8 @@ class RefrnaExpress(Base):
                 'transcript_fasta_path': transcript_fasta_path,
                 'is_duplicate': is_duplicate
             }
-            if is_duplicate:
-                insert_data['group'] = group
+            # if is_duplicate:
+            #     insert_data['group'] = group
             if params:
                 insert_data["genes"]=True
                 if params["express_method"] == "rsem":
@@ -116,7 +116,7 @@ class RefrnaExpress(Base):
                         self.add_express_specimen_detail(express_id, file_, 'transcript', sample)
             return express_id
     
-    def add_express_feature(self, feature_dir=None, group_fpkm_path=None, is_duplicate=None, class_code = None, group=None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = None):
+    def add_express_feature(self, feature_dir=None, group_fpkm_path=None, is_duplicate=None, class_code = None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = None):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
@@ -132,8 +132,8 @@ class RefrnaExpress(Base):
             'bam_path': bam_path,
             'is_duplicate': is_duplicate
         }
-        if is_duplicate:
-            insert_data['group']=group
+        # if is_duplicate:
+        #     insert_data['group']=group
         sample_group ="sample"
         if params:
             insert_data["genes"]=True
