@@ -199,8 +199,12 @@ class StarTool(Tool):
         if command.return_code == 0:
             self.logger.info("最终双端比对成功！")
         else:
-            self.set_error("最终双端比对出错!")
-            raise Exception("运行star出错")
+            command.rerun()
+            if command.return_code == 0:
+                self.logger.info("最终双端比对成功！")
+            else:
+                self.set_error("最终双端比对出错!")
+                raise Exception("运行star出错")
             
     def run(self):
         """
