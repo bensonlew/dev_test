@@ -85,7 +85,13 @@ class PatchDcBackupWorkflow(Workflow):
 				file_type.append(type)
 		n = 0
 		for i in file:
-			if not api_read_tab.tab_exist(i):
+			x = api_read_tab.tab_exist(i)
+			if x:
+				if self.option('direct_get_path') == 'True':
+					self.logger.info('{}样本已存在于数据库'.format(i))
+				elif self.option('direct_get_path') == 'False':
+					raise Exception('请确认{}样本是否重名'.format(i))
+			else:
 				fastq2mongo = self.add_module("paternity_test.fastq2mongo_dc")
 				self.step.add_steps('fastq2mongo{}'.format(n))
 				fastq2mongo.set_options({
@@ -104,11 +110,7 @@ class PatchDcBackupWorkflow(Workflow):
 				fastq2mongo.on('end', self.finish_update, 'fastq2mongo{}'.format(n))
 				self.tools.append(fastq2mongo)
 				n += 1
-			else:
-				if self.option('direct_get_path') == 'True':
-					self.logger.info('{}样本已存在于数据库'.format(i))
-				elif self.option('direct_get_path') == 'False':
-					raise Exception('请确认{}样本是否重名'.format(i))
+
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2mongo')
 
