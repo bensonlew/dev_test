@@ -983,7 +983,7 @@ class RefrnaWorkflow(Workflow):
         self.export_qc()
         # self.export_assembly()
         # self.export_map_assess()
-        self.export_exp_rsem_default()
+        # self.export_exp_rsem_default()
         # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
         # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         # self.export_exp_rsem_alter()
@@ -992,11 +992,13 @@ class RefrnaWorkflow(Workflow):
         # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         # self.export_exp_fc()
         # self.export_gene_set()
-        self.export_diff_gene()
-        self.export_diff_trans()
+        # self.export_diff_gene()
+        # self.export_diff_trans()
         # self.export_cor()
         # self.export_pca()
         # self.export_annotation()
+        # self.export_snp()
+        # self.export_ppi()
 
     def export_assembly(self):
         self.api_assembly = self.api.api("ref_rna.ref_assembly")
@@ -1181,6 +1183,7 @@ class RefrnaWorkflow(Workflow):
             value2 = self.group_detail[i].values()
             params['group_detail'][key] = value
             compare_column_specimen[key] = value2
+        self.logger.info(params['group_detail'])  # 打印group_detail
         params['express_id'] = str(self.express_id)
         params['fc'] = 0  # 可能会改动
         params['pvalue_padjust'] = 'padjust'  # 默认为padjust
@@ -1273,7 +1276,16 @@ class RefrnaWorkflow(Workflow):
             "read_len": 150,
             "ref_gtf": self.filecheck.option("gtf").prop["path"],
             "seq_type": seq_type,
+            "control_file": str(self.control_id),
+            "gname": "group1",
+            "submit_location": "splicingrmats",
+            "task_type": ""
         }
+        params['group_detail'] = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            params['group_detail'][key] = value
         outpath = self.altersplicing.output_dir
         self.api_as.add_sg_splicing_rmats(self, params=params, major=True, group={}, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
 
