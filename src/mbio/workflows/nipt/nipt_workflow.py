@@ -50,7 +50,7 @@ class NiptWorkflow(Workflow):
 		self.step.update()
 
 	def fastq_run(self):
-		api = self.api.nipt_flow
+		api = self.api.nipt_analysis
 		file = self.option('customer_table').prop['path']
 		api.nipt_customer(file)
 		os.listdir(self.option('fastq_path').prop['path'])

@@ -121,7 +121,6 @@ class NiptAnalysis(Base):
                 age_index = row_data.index(u'\u5e74\u9f84')  # 年龄
                 type_index = row_data.index(u'\u6807\u672c\u7c7b\u578b')  # 样本类型
             else:
-                print i
                 para_list = []
                 report_num = row_data[report_num_index]
                 para_list.append(report_num)
@@ -197,13 +196,16 @@ class NiptAnalysis(Base):
                         "sample_type": para_list[16],
                     }
                     insert.append(insert_data)
-        try:
-            collection = self.database['nipt_customer']
-            collection.insert_many(insert)
-        except Exception as e:
-            raise Exception('插入客户信息表出错：{}'.format(e))
+        if insert == []:
+            self.bind_object.logger.info('可能无新的客户信息')
         else:
-            self.bind_object.logger.info("插入客户信息表成功")
+            try:
+                collection = self.database['nipt_customer']
+                collection.insert_many(insert)
+            except Exception as e:
+                raise Exception('插入客户信息表出错：{}'.format(e))
+            else:
+                self.bind_object.logger.info("插入客户信息表成功")
 
     def export_bed_file(self, sample, dir):
         """
@@ -232,5 +234,4 @@ class NiptAnalysis(Base):
                 return file
             else:
                 raise Exception("样本 %s 的bed文件为空！"%(sample))
-
 
