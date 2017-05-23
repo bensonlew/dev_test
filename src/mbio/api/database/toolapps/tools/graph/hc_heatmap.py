@@ -26,8 +26,38 @@ class HcHeatmap(Base):
         运行函数
         """
         self.main_id = self.heatmap_in()
+        self.table_ids = self.table_in()
         return self.main_id
         pass
+
+    def table_in(self):
+        """
+		导入表格相关信息
+		"""
+        ratation = self.insert_table(self.output_dir + '/result_data', 'heatmap图结果表',
+                                     '画heatmap图时使用的数据')
+        return [ratation]
+
+    def insert_table(self, fp, name, desc):
+        with open(fp) as f:
+            columns = f.readline().strip().split('\t')
+            insert_data = []
+            table_id = self.db['table'].insert_one(SON(
+                project_sn=self.bind_object.sheet.project_sn,
+                task_id=self.bind_object.id,
+                name=name,
+                attrs=columns,
+                desc=desc,
+                status='end',
+                created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )).inserted_id
+            for line in f:
+                line_split = line.strip().split('\t')
+                data = dict(zip(columns, line_split))
+                data['table_id'] = table_id
+                insert_data.append(data)
+            self.db['table_detail'].insert_many(insert_data)
+        return table_id
 
     def heatmap_in(self):
         """
