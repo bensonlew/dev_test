@@ -25,7 +25,7 @@ class RefAnnotation(Base):
         new_stat_path = new_anno_path + "/anno_stat/all_annotation_statistics.xls"
         new_venn_path = new_anno_path + "/anno_stat/venn"
         stat_id = self.add_annotation_stat(name=None, params=params, seq_type="new", database="nr,swissprot,pfam,cog,go,kegg")
-        if oa.path.exists(new_stat_path) and os.path.exists(new_venn_path):
+        if os.path.exists(new_stat_path) and os.path.exists(new_venn_path):
             self.add_annotation_stat_detail(stat_id=stat_id, stat_path=new_stat_path, venn_path=new_venn_path)
         else:
             raise Exception("新序列注释统计文件和venn图文件夹不存在")
@@ -70,7 +70,7 @@ class RefAnnotation(Base):
             raise Exception("pfam注释结果文件不存在")
         ref_stat_path = ref_anno_path + "/anno_stat/all_annotation_statistics.xls"
         ref_venn_path = ref_anno_path + "/anno_stat/venn"
-        if oa.path.exists(ref_stat_path) and os.path.exists(ref_venn_path):
+        if os.path.exists(ref_stat_path) and os.path.exists(ref_venn_path):
             stat_id = self.add_annotation_stat(name=None, params=params, seq_type="ref" , database="cog,go,kegg")
             self.add_annotation_stat_detail(stat_id=stat_id, stat_path=ref_stat_path, venn_path=ref_venn_path)
         else:
@@ -1005,7 +1005,8 @@ class RefAnnotation(Base):
                 line = line.strip('\n').split('\t')
                 fs = gridfs.GridFS(self.db)
                 pid = re.sub('path:', '', line[0])
-                pngid = fs.put(open(png_dir + '/' + pid + '.pdf', 'rb'))
+                pdfid = fs.put(open(png_dir + '/' + pid + '.pdf', 'rb'))
+                graph_png_id = fs.put(open(png_dir + '/' + pid + '.png', 'rb'))
                 insert_data = {
                     'kegg_id': kegg_id,
                     'seq_type': seq_type,
@@ -1016,7 +1017,8 @@ class RefAnnotation(Base):
                     'pathway_definition': line[3],
                     'number_of_seqs': int(line[4]),
                     'seq_list': line[5],
-                    'graph_id': pngid,
+                    'graph_id': pdfid,
+                    'graph_png_id': graph_png_id
                 }
                 data_list.append(insert_data)
         try:
