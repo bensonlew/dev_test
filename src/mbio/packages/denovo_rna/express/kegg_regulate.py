@@ -74,7 +74,7 @@ class KeggRegulate(object):
                 koid = path_ko[path]
                 l = {}
                 kgml_path = out_dir + '/kgml_tmp.kgml'
-                png_path = out_dir + '/png_tmp.png'
+                png_path = out_dir + '/{}.png'.format(path)
                 result = self.get_kgml_and_png(pathway_id=path, kgml_path=kgml_path, png_path=png_path)
                 if result:
                     pathway = KGML_parser.read(open(kgml_path))
@@ -97,4 +97,4 @@ class KeggRegulate(object):
                     canvas = KGMLCanvas(pathway, import_imagemap=True)
                     canvas.draw(out_dir + '/' + path + '.pdf')
                     os.remove(kgml_path)
-                    os.remove(png_path)
+                    # os.remove(png_path)
