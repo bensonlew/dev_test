@@ -33,7 +33,7 @@ class PatchDcBackupWorkflow(Workflow):
 			{"name": "batch_id", "type": "string"},
 			{"name": "update_info", "type": "string"},
 			{"name": "member_id", "type": "string"},
-			{"name":"direct_get_path", "type":"bool"}
+			{"name":"direct_get_path", "type":"string"}
 
 		]
 		self.add_option(options)
@@ -105,9 +105,9 @@ class PatchDcBackupWorkflow(Workflow):
 				self.tools.append(fastq2mongo)
 				n += 1
 			else:
-				if self.option('direct_get_path') == True:
+				if self.option('direct_get_path') == 'True':
 					self.logger.info('{}样本已存在于数据库'.format(i))
-				elif self.option('direct_get_path') == False:
+				elif self.option('direct_get_path') == 'False':
 					raise Exception('请确认{}样本是否重名'.format(i))
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2mongo')
