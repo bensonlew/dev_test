@@ -30,7 +30,7 @@ class RefAnnotationModule(Module):
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
             {"name": "anno_statistics", "type": "bool", "default": True},
             {"name": "go_annot", "type": "bool", "default": True},
-            {"name": "nr_annot", "type": "bool", "default": True},
+            {"name": "nr_annot", "type": "bool", "default": False},  # 参考基因组注释不提供缺少nr_xml文件，因此将默认值改为False
             {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "gene_kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
@@ -43,9 +43,14 @@ class RefAnnotationModule(Module):
         self.go_upload = self.add_tool('annotation.go.go_upload')
         self.string_cog = self.add_tool('annotation.cog.string2cogv9')
         self.kegg_annot = self.add_tool('annotation.kegg.kegg_annotation')
+        self.swissprot_annot = self.add_tool("annotation.swissprot")
         self.kegg_upload = self.add_tool('annotation.kegg.kegg_upload')
         self.anno_stat = self.add_tool('rna.ref_anno_stat')
+<<<<<<< HEAD
         self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat', 'nr_annot', 'swissprot_annot')
+=======
+        self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat', 'swissprot_annot')
+>>>>>>> 68a1525f0bc5fe87170a8f4a6af34f8964865cbc
 
     def check_options(self):
         if self.option('anno_statistics'):

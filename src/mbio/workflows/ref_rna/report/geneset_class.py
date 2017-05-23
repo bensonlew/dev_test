@@ -88,13 +88,13 @@ class GenesetClassWorkflow(Workflow):
             # ["./estimators.xls", "xls", "alpha多样性指数表"]
         ])
         # print self.get_upload_files()
+        self.set_end()
+        self.fire('end')
         self._upload_result()
         self._import_report_data()
         self.step.finish()
         self.step.update()
         self.logger.info("运行结束!")
-        self._update("end")
-        self.set_end()
-        self.fire('end')
+        self._save_report_data()
         # super(GenesetClassWorkflow, self).end()
 

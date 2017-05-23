@@ -131,7 +131,7 @@ class RefSnp(Base):
                 "snp_pos_stat": snp_pos_stat,
                 "indel_pos_stat": indel_pos_stat,
                 "type_stat": snp_type_stat,
-                # "depth_stat": depth_stat,
+                "depth_stat": depth_stat,
                 "freq_stat": {}
             }
             snp_types = snp_type_stat.keys()

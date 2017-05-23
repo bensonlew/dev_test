@@ -118,6 +118,7 @@ class RefrnaWorkflow(Workflow):
         self.new_gene_abs = self.add_tool("annotation.transcript_abstract")
         self.new_trans_abs = self.add_tool("annotation.transcript_abstract")
         self.para_anno = self.add_module("rna.parallel_anno")
+
         self.annotation = self.add_module('annotation.ref_annotation')
         self.new_annotation = self.add_module('annotation.ref_annotation')
         self.network_trans = self.add_module("protein_regulation.ppinetwork_analysis")
@@ -138,6 +139,7 @@ class RefrnaWorkflow(Workflow):
                 self.gff = self.option('genome_structure_file').prop["path"]
         else:
             self.gff = self.json_dict[self.option("ref_genome")]["gff"]
+        self.IMPORT_REPORT_AFTER_END = False
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans]
         self.genome_status = True
         self.step.add_steps("qcstat", "mapping", "assembly", "annotation", "exp", "map_stat",
@@ -226,8 +228,6 @@ class RefrnaWorkflow(Workflow):
         })
         self.qc.on('end', self.set_output, 'qc')
         self.genome_status = self.filecheck.option("genome_status")
-        if self.genome_status:  # 运行snp模块
-            self.qc.on("end", self.run_snp)
         self.qc.on('start', self.set_step, {'start': self.step.qcstat})
         self.qc.on('end', self.set_step, {'end': self.step.qcstat})
         self.qc.run()
@@ -379,9 +379,6 @@ class RefrnaWorkflow(Workflow):
             "result_reserved": self.option("result_reserved")
         }
         self.mapping.set_options(opts)
-        if self.genome_status:  # 进行可变剪切分析
-            if self.get_group_from_edger_group():
-                self.mapping.on("end", self.run_altersplicing)
         self.mapping.on("end", self.set_output, "mapping")
         self.mapping.run()
 
@@ -924,28 +921,29 @@ class RefrnaWorkflow(Workflow):
         """
         self.filecheck.on('end', self.run_qc)
         self.filecheck.on('end', self.run_seq_abs)
-        if self.option("blast_method") == "diamond":
-            self.seq_abs.on('end', self.run_align, "diamond")
-            self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
-        else:
-            self.seq_abs.on('end', self.run_align, "blast")
-            self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "blast")
-        self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
-        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
-        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
         self.filecheck.on("end", self.run_gs)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
         self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
         self.map_gene.on("end", self.run_map_assess_gene)
-        self.mapping.on('end', self.run_assembly)
+        # self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
+        self.on_rely([self.map_qc, self.map_qc_gene, self.gs, self.qc_stat_after], self.run_map_api)
         self.assembly.on("end", self.run_exp_rsem_default)
         self.assembly.on("end", self.run_exp_rsem_alter)
         self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
+        if self.option("blast_method") == "diamond":
+            self.assembly.on('end', self.run_align, "diamond")
+            self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        else:
+            self.assembly.on('end', self.run_align, "blast")
+            self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "blast")
+        self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
+        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
         if self.taxon_id != "":
             self.exp.on("end", self.run_network_trans)
             self.exp.on("end", self.run_network_gene)
@@ -957,6 +955,16 @@ class RefrnaWorkflow(Workflow):
 
     def end(self):
         super(RefrnaWorkflow, self).end()
+
+    def run_map_api(self):
+        self.export_qc()
+        self.export_map_assess()
+        # self.IMPORT_REPORT_AFTER_END = True
+        self.run_assembly()
+        if self.filecheck.option("genome_status"):
+            if self.get_group_from_edger_group():
+                self.run_altersplicing()
+            self.run_snp()
 
     def export_qc(self):
         self.api_qc = self.api.ref_rna_qc
@@ -975,7 +983,7 @@ class RefrnaWorkflow(Workflow):
         self.export_qc()
         # self.export_assembly()
         # self.export_map_assess()
-        # self.export_exp_rsem_default()
+        self.export_exp_rsem_default()
         # self.export_exp_rsem_alter()
         # self.export_exp_fc()
         # self.export_gene_set()
@@ -1217,13 +1225,38 @@ class RefrnaWorkflow(Workflow):
 
     def export_annotation(self):
         self.api_anno = self.api.api("ref_rna.ref_annotation")
-        anno_path = self.annotation.output_dir
+        ref_anno_path = self.annotation.output_dir
         params = {
             "nr_evalue": self.option("nr_blast_evalue"),
             "swissprot_evalue": self.option("swissprot_blast_evalue")
         }
         params = json.dumps(params)
-        self.add_annotation(self, name=None, params=params, seq_type="ref", anno_path=anno_path, pfam_path=None)
-        anno_path = self.new_annotation.output_dir
-        pfam_path = self.pfam.output_dir + "/pfam_domian"
-        self.add_annotation(self, name=None, params=params, seq_type="new", anno_path=anno_path, pfam_path=pfam_path)
+        new_anno_path = self.new_annotation.output_dir
+        pfam_path = self.pfam.output_dir + "/pfam_domain"
+        self.api_anno.add_annotation(name=None, params=params, ref_anno_path=ref_anno_path, new_anno_path=new_anno_path, pfam_path=pfam_path)
+
+    def export_as(self):
+        self.api_as = self.api.refrna_splicing_rmats
+        if self.option("strand_specific"):
+            lib_type = "fr-firststrand"
+        else:
+            lib_type = "fr-unstranded"
+        if self.option("fq_type") == "PE":
+            seq_type = "paired"
+        else:
+            seq_type = "single"
+        params = {
+            "ana_mode": "P",
+            "as_diff": 0.001,
+            "group_id": str(self.group_id),
+            "lib_type": lib_type,
+            "read_len": 150,
+            "ref_gtf": self.filecheck.option("gtf").prop["path"],
+            "seq_type": seq_type
+        }
+        work_path = self.altersplicing.work_dir
+        self.api_as.add_sg_splicing_rmats(params=params, major=True, name=None, outpath=None, work_path=work_path)
+
+    def export_ppi(self):
+        self.api_net = self.api.api("ref_rna.ppinetwork")
+        pass

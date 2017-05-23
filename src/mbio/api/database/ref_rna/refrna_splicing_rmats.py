@@ -220,7 +220,7 @@ class RefrnaSplicingRmats(Base):
     def add_sg_splicing_rmats(self, params=None, major=True, group={}, ref_gtf=None, name=None, outpath=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        
+        chr_set = []
         if ref_gtf:
             chr_set = [e.strip() for e in
                        subprocess.check_output('awk -F \'\\t\'  \'$0!~/^#/{print $1}\' %s  | uniq | sort |uniq ',
@@ -246,7 +246,7 @@ class RefrnaSplicingRmats(Base):
             'status': 'end',
             'group': group,
             'chr_set': chr_set,
-            'rmats_out_root_dir': outpath
+            'rmats_out': outpath
         }
         collection_obj = self.db['sg_splicing_rmats']
         try:

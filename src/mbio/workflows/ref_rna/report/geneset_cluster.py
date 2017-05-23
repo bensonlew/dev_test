@@ -67,7 +67,7 @@ class GenesetClusterWorkflow(Workflow):
             # print new_fpkm.columns
             self.new_fpkm = self.cluster.work_dir + "/ref_fpkm"
             header=['']
-            header.extend(self.samples)
+            header.extend(samples)
             new_fpkm.columns=header
             new_fpkm.to_csv(self.new_fpkm, sep="\t",index=False)
             return self.new_fpkm

@@ -5,6 +5,7 @@
 
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError, FileError
+from mbio.files.sequence.fasta import FastaFile
 import os
 import json
 import shutil
@@ -48,6 +49,12 @@ class RefrnaWorkflow(Workflow):
             {"name": "ref_genome", "type": "string", "default": "customer_mode"},  # 参考基因组
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组
 
+            # 增加evalue参数，再转换为float传给module使用
+            {"name": "nr_evalue", "type": "string", "default": "1e-5"},
+            {"name": "string_evalue", "type": "string", "default": "1e-5"},
+            {"name": "kegg_evalue", "type": "string", "default": "1e-5"},
+            {"name": "swissprot_evalue", "type": "string", "default": "1e-5"},
+
             {"name": "nr_blast_evalue", "type": "float", "default": 1e-5},  # NR比对e值
             {"name": "string_blast_evalue", "type": "float", "default": 1e-5},  # String比对使用的e值
             {"name": "kegg_blast_evalue", "type": "float", "default": 1e-5},  # KEGG注释使用的e值
@@ -55,6 +62,7 @@ class RefrnaWorkflow(Workflow):
             {"name": "database", "type": "string", "default": 'go,nr,cog,kegg,swissprot,pfam'},
             # 全部六个注释
             {"name": "nr_database", "type": "string", "default": "animal"},  # nr库类型
+            {"name": "kegg_database", "type": "string", "default": None},  # kegg注释库类型
 
             {"name": "seq_method", "type": "string", "default": "Tophat"},  # 比对方法，Tophat or Hisat
             {"name": "map_assess_method", "type": "string", "default":
@@ -127,7 +135,11 @@ class RefrnaWorkflow(Workflow):
         self.pfam = self.add_tool("denovo_rna.gene_structure.orf")
         self.anno_path = ""
         if self.option("ref_genome") != "customer_mode":
+            # self.ref_genome = FastaFile()
+            # self.ref_genome.set_path(self.json_dict[self.option("ref_genome")]["ref_genome"])
+            # self.ref_genome.check()
             self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
+            self.option("ref_genome_custom", self.ref_genome)
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
             self.anno_path = self.json_dict[self.option("ref_genome")]["anno_path"]
             self.logger.info(self.anno_path)
@@ -140,10 +152,12 @@ class RefrnaWorkflow(Workflow):
                 self.gff = self.option('genome_structure_file').prop["path"]
         else:
             self.gff = self.json_dict[self.option("ref_genome")]["gff"]
-        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans]
+        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans,
+                            self.exp_rsem_alter, self.exp_fc]
         self.genome_status = True
         self.step.add_steps("qcstat", "mapping", "assembly", "annotation", "exp", "map_stat",
-                            "seq_abs","network_analysis", "sample_analysis", "altersplicing")
+                            "seq_abs", "network_analysis", "sample_analysis", "altersplicing")
+
         
     def check_options(self):
         """
@@ -155,6 +169,18 @@ class RefrnaWorkflow(Workflow):
             raise OptionError("qc中最小质量值超出范围，应在0~42之间")
         if not self.option("qc_length") > 0:
             raise OptionError("qc中最小长度超出范围，应大于0")
+        try:
+            nr_evalue = float(self.option("nr_evalue"))
+            string_evalue = float(self.option("string_evalue"))
+            kegg_evalue = float(self.option("string_evalue"))
+            swissprot_evalue = float(self.option("swissprot_evalue"))
+        except:
+            raise OptionError("传入的evalue值不符合规范")
+        else:
+            self.option("nr_blast_evalue", nr_evalue)
+            self.option("string_blast_evalue", string_evalue)
+            self.option("kegg_blast_evalue", kegg_evalue)
+            self.option("swissprot_blast_evalue", swissprot_evalue)
         if not self.option("nr_blast_evalue") > 0 and not self.option("nr_blast_evalue") < 1:
             raise OptionError("NR比对的E值超出范围")
         if not self.option("string_blast_evalue") > 0 and not self.option("string_blast_evalue") < 1:
@@ -190,7 +216,7 @@ class RefrnaWorkflow(Workflow):
             'fastq_dir': self.option('fastq_dir'),
             'fq_type': self.option('fq_type'),
             'control_file': self.option('control_file'),
-            "ref_genome_custom": self.ref_genome
+            "ref_genome_custom": self.option("ref_genome_custom")
         }
         if self.gff != "":
             opts.update({
@@ -207,7 +233,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_gs(self):
         opts = {
-            "in_fasta": self.ref_genome,
+            "in_fasta": self.option("ref_genome_custom"),
             # "in_gtf": self.filecheck.option("gtf")
         }
         if self.gff != "":
@@ -236,7 +262,7 @@ class RefrnaWorkflow(Workflow):
         
     def run_seq_abs(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome_gtf": self.filecheck.option("gtf")
         }
         self.seq_abs.set_options(opts)
@@ -311,7 +337,9 @@ class RefrnaWorkflow(Workflow):
             "kos_list_upload": self.para_anno.option("out_kegg"),
             "blast_string_table": self.para_anno.option("out_cog"),
             "gene_file": self.seq_abs.option("gene_file"),
-            "ref_genome_gtf": self.filecheck.option("gtf")
+            "ref_genome_gtf": self.filecheck.option("gtf"),
+            "taxonomy": self.option("kegg_database"),
+            "nr_annot": False
         }
         if self.anno_path != "":  # 本地参考基因组注释文件
             opts.update({
@@ -376,7 +404,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_mapping(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome": "customer_mode",
             "mapping_method": self.option("seq_method").lower(),  # 比对软件
             "seq_method": self.option("fq_type"),   # PE or SE
@@ -390,6 +418,10 @@ class RefrnaWorkflow(Workflow):
         if self.genome_status:  # 进行可变剪切分析
             if self.get_group_from_edger_group():
                 self.mapping.on("end", self.run_altersplicing)
+            else:
+                self.logger.info("不进行可变剪切分析")
+                self.altersplicing.start_listener()
+                self.altersplicing.fire("end")
         self.mapping.on("end", self.set_output, "mapping")
         self.mapping.run()
      
@@ -399,7 +431,7 @@ class RefrnaWorkflow(Workflow):
             "sample_bam_dir": self.mapping.option("bam_output"),
             "assemble_method": self.option("assemble_method"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "ref_fa": self.ref_genome
+            "ref_fa": self.option("ref_genome_custom")
         }
         # 如果具有链特异性
         if self.option("strand_specific"):
@@ -423,7 +455,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_new_transcripts_abs(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome_gtf": self.assembly.option("new_transcripts_gtf")
         }
         self.new_trans_abs.set_options(opts)
@@ -431,7 +463,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_new_gene_abs(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome_gtf": self.assembly.option("new_gene_gtf")
         }
         self.new_gene_abs.set_options(opts)
@@ -526,6 +558,7 @@ class RefrnaWorkflow(Workflow):
         if 'kegg' in self.option('database'):
             anno_opts.update({
                 'blast_kegg_xml': self.new_blast_kegg.option('outxml'),
+                'taxonomy': self.option("kegg_database")
             })
         if 'cog' in self.option('database'):
             anno_opts.update({
@@ -547,15 +580,14 @@ class RefrnaWorkflow(Workflow):
 
     def run_snp(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome":  "customer_mode",
             "ref_gtf": self.filecheck.option("gtf"),
             "seq_method": self.option("fq_type"),
             "fastq_dir": self.qc.option("sickle_dir")
         }
         self.snp_rna.set_options(opts)
-        self.final_tools.append(self.snp_rna)
-        self.snp_rna.on("end", self.set_output, "snp_rna")
+        # self.final_tools.append(self.snp_rna)
         self.snp_rna.run()
         
     def run_map_assess(self):
@@ -657,7 +689,7 @@ class RefrnaWorkflow(Workflow):
             ft.readline()
             content = ft.read()
         if not content:
-            self.logger.info("无差异基因，不进行网络分析")
+            self.logger.info("无差异转录本，不进行网络分析")
             self.network_trans.start_listener()
             self.network_trans.fire("end")
         else:
@@ -712,7 +744,7 @@ class RefrnaWorkflow(Workflow):
         self.altersplicing.on("end", self.set_output, "altersplicing")
         self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
         self.altersplicing.on('end', self.set_step, {'end': self.step.altersplicing})
-        self.final_tools.append(self.altersplicing)
+        # self.final_tools.append(self.altersplicing)
         self.altersplicing.run()
 
     def run_merge_annot(self):
@@ -751,6 +783,7 @@ class RefrnaWorkflow(Workflow):
         with open(self.exp.output_dir + "/diff/trans_diff/diff_list", "r") as f:
             content = f.read()
         if not content:
+            self.logger.info("无差异转录本，不进行差异分析")
             self.exp_diff_trans.start_listener()
             self.exp_diff_trans.fire("end")
         else:
@@ -789,6 +822,7 @@ class RefrnaWorkflow(Workflow):
         with open(self.exp.output_dir + "/diff/genes_diff/diff_list", "r") as f:
             content = f.read()
         if not content:
+            self.logger.info("无差异基因，不进行差异分析")
             self.exp_diff_gene.start_listener()
             self.exp_diff_gene.fire("end")
         else:
@@ -999,7 +1033,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_new_gene_abs_test(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome_gtf": self.assembly.output_dir + "/NewTranscripts/new_genes.gtf"
         }
         self.new_gene_abs.set_options(opts)
@@ -1007,7 +1041,7 @@ class RefrnaWorkflow(Workflow):
 
     def run_new_transcripts_abs_test(self):
         opts = {
-            "ref_genome_custom": self.ref_genome,
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome_gtf": self.assembly.output_dir + "/NewTranscripts/new_transcripts.gtf"
         }
         self.new_trans_abs.set_options(opts)

@@ -88,17 +88,14 @@ class GenesetClusterAction(RefRnaController):
             else:
                 mongo_data.append(("sample_cluster", True))
         collection_name = "sg_geneset_cluster"
+        express_id = self.ref_rna.get_express_id(task_info['task_id'], data.level, data.express_method)
+        if not express_id:
+             info = {"success": False, "info": "sg_express表params参数中没有找到表达量水平type:{},表达量计算软件exp    ress_method{}的表达量信息,请换一种表达量或表达量值类型".format(data.type,data.express_method)}
+             return json.dumps(info)
+
         main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
         update_info = {str(main_table_id): collection_name}
-        update_info = json.dumps(update_info)
-        
-        """获得表达量主表id"""
-        try:
-            express_id = self.ref_rna.get_express_id(task_info['task_id'], data.level, data.express_method)
-        except Exception:
-            print "根据task_id:{}、type:{}、express_method:{}未获得表达量的主表id".format(task_info['task_id'],data.type,data.express_method)
-        print express_id
-        #express_info = self.ref_rna.get_main_info(ObjectId(express_id), 'sg_express') 
+        update_info = json.dumps(update_info) 
 
         options = {
             "express_file": str(express_id),

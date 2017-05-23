@@ -73,6 +73,7 @@ class RsemTool(Tool):
         super(RsemTool, self).__init__(config)
         # self.version = "1.0.1"
         #self.rsem_path =self.config.SOFTWARE_DIR + '/bioinfo/rna/RSEM-1.2.31/bin/'
+        self.rsem = "/bioinfo/rna/scripts/align_and_estimate_abundance.pl"
         self.rsem_path ='bioinfo/rna/RSEM-1.2.31/bin/'
         self.bowtie_path = self.config.SOFTWARE_DIR + '/bioinfo/align/bowtie2-2.2.9/'
         #self.star_build_path = self.config.SOFTWARE_DIR + "/bioinfo/rna/star-2.5/bin/Linux_x86_64/"
