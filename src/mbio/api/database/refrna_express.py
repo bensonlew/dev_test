@@ -711,7 +711,7 @@ class RefrnaExpress(Base):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         params.update({
-            'express_id': str(express_id),
+            'express_id': express_id,
             'group_id': str(group_id),
             'group_detail': group_detail,
             'control_id': str(control_id)

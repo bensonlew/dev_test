@@ -192,7 +192,7 @@ class RefRnaGeneset(Base):
             print("导入%s信息成功！" % (go_graph_dir))
 
     @report_check
-    def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table):
+    def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table, geneset_list_path, all_list_path):
         """
         KEGG富集详情表导表函数
         :param enrich_id: 主表id
@@ -207,6 +207,8 @@ class RefRnaGeneset(Base):
         if not os.path.exists(kegg_enrich_table):
             raise Exception('kegg_enrich_table所指定的路径:{}不存在，请检查！'.format(kegg_enrich_table))
         data_list = []
+        geneset_length = len(open(geneset_list_path, "r").readlines())
+        all_list_length = len(open(all_list_path, "r").readlines())
         with open(kegg_enrich_table, 'rb') as r:
             for line in r:
                 if re.match(r'\w', line):
@@ -218,10 +220,12 @@ class RefRnaGeneset(Base):
                         'id': line[2],
                         'study_number': int(line[3]),
                         'backgroud_number': int(line[4]),
+                        'ratio_in_study': line[3] + "/" + str(geneset_length),
+                        'ratio_in_pop': line[4] + "/" + str(all_list_length),
                         'pvalue': round(float(line[5]), 4),
-                        'corrected_pvalue': round(float(line[6]), 4),
-                        'gene_lists': line[7],
-                        'hyperlink': line[8]
+                        'corrected_pvalue': round(float(line[-3]), 4) if not line[-3] == "None" else "None",
+                        'gene_lists': line[-2],
+                        'hyperlink': line[-1]
                     }
                     data_list.append(insert_data)
             if data_list:

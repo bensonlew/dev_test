@@ -1007,7 +1007,8 @@ class RefAnnotation(Base):
                 line = line.strip('\n').split('\t')
                 fs = gridfs.GridFS(self.db)
                 pid = re.sub('path:', '', line[0])
-                pngid = fs.put(open(png_dir + '/' + pid + '.pdf', 'rb'))
+                pdfid = fs.put(open(png_dir + '/' + pid + '.pdf', 'rb'))
+                graph_png_id = fs.put(open(png_dir + '/' + pid + '.png', 'rb'))
                 insert_data = {
                     'kegg_id': kegg_id,
                     'seq_type': seq_type,
@@ -1018,7 +1019,8 @@ class RefAnnotation(Base):
                     'pathway_definition': line[3],
                     'number_of_seqs': int(line[4]),
                     'seq_list': line[5],
-                    'graph_id': pngid,
+                    'graph_id': pdfid,
+                    'graph_png_id': graph_png_id
                 }
                 data_list.append(insert_data)
         try:
