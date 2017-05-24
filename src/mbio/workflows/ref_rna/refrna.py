@@ -153,7 +153,7 @@ class RefrnaWorkflow(Workflow):
         else:
             self.gff = self.json_dict[self.option("ref_genome")]["gff"]
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans,
-                            self.exp_rsem_alter, self.exp_fc]
+                            self.exp_alter, self.exp_fc]
         self.genome_status = True
         self.step.add_steps("qcstat", "mapping", "assembly", "annotation", "exp", "map_stat",
                             "seq_abs", "network_analysis", "sample_analysis", "altersplicing")

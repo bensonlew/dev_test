@@ -159,4 +159,4 @@ class RefSnp(Base):
         except Exception, e:
             print("导入SNP统计信息出错:%s" % e)
         else:
-            print("导入SNP统计信息出错")
+            print("导入SNP统计信息成功")
