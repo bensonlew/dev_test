@@ -28,6 +28,10 @@ class NiptWorkflow(Workflow):
 		]
 		self.add_option(options)
 		self.set_options(self._sheet.options())
+		self.tools=[]
+		self.tool_bed = []
+		self.tool_fastqc =[]
+		self.sample_id = []
 
 	def check_options(self):
 		'''
@@ -59,10 +63,11 @@ class NiptWorkflow(Workflow):
 		for i in os.listdir(self.option('fastq_path').prop['path']):
 			m = re.match('(.*)_R1.fastq.gz', i)
 			if m:
-				fastq_process = self.add_module("nipt.fastq_process")
+				self.sample_id.append(m.group(1))
+				fastq_process = self.add_tool("nipt.fastq_process")
 				self.step.add_steps('fastq_process{}'.format(n))
 				fastq_process.set_options({
-					"sample_id": m,
+					"sample_id": m.group(1),
 					"fastq_path": self.option("fastq_path")
 				}
 				)
@@ -73,15 +78,72 @@ class NiptWorkflow(Workflow):
 				n += 1
 
 		for j in range(len(self.tools)):
-			self.tools[j].on('end', self.set_output, 'fastq_process')
+			self.tools[j].on('end', self.set_output)
 
 		if len(self.tools) > 1:
-			self.on_rely(self.tools, self.end)
+			self.on_rely(self.tools, self.bed_run)
 		elif len(self.tools) == 1:
-			self.tools[0].on('end', self.end)
+			self.tools[0].on('end', self.bed_run)
 
 		for tool in self.tools:
 			tool.run()
+
+
+	def bed_run(self):
+		n = 0
+		for i in self.sample_id:
+			bed_analysis = self.add_tool("nipt.bed_analysis")
+			self.step.add_steps('bed_analysis{}'.format(n))
+			bed_analysis.set_options({
+				"bed_file": self.output_dir+'/'+i+'_R1.bed.2',
+			}
+			)
+			step = getattr(self.step, 'bed_analysis{}'.format(n))
+			step.start()
+			bed_analysis.on('end', self.finish_update, 'bed_analysis{}'.format(n))
+			self.tool_bed.append(bed_analysis)
+			n += 1
+
+		for j in range(len(self.tool_bed)):
+			self.tool_bed[j].on('end', self.set_output)
+
+		if len(self.tool_bed) > 1:
+			self.on_rely(self.tool_bed, self.fastqc)
+		elif len(self.tool_bed) == 1:
+			self.tool_bed[0].on('end', self.fastqc)
+
+		for tool in self.tool_bed:
+			tool.run()
+
+	def fastqc(self):
+		n = 0
+		for i in self.sample_id:
+			fastqc = self.add_tool("nipt.fastqc")
+			self.step.add_steps('bed_analysis{}'.format(n))
+			fastqc.set_options({
+				"sample_id":i,
+				"fastq_path":self.option('fastq_path'),
+				"bed_file": self.output_dir + '/' + i + '_R1.bed.2',
+			}
+			)
+			step = getattr(self.step, 'fastqc{}'.format(n))
+			step.start()
+			fastqc.on('end', self.finish_update, 'fastqc{}'.format(n))
+			self.tool_fastqc.append(fastqc)
+			n += 1
+
+		for j in range(len(self.tool_fastqc)):
+			self.tool_fastqc[j].on('end', self.set_output)
+
+		if len(self.tool_fastqc) > 1:
+			self.on_rely(self.tool_fastqc, self.end)
+		elif len(self.tool_fastqc) == 1:
+			self.tool_fastqc[0].on('end', self.end)
+
+		for tool in self.tool_fastqc:
+			tool.run()
+
+
 
 	def linkdir(self, dirpath, dirname):
 		"""
@@ -110,8 +172,7 @@ class NiptWorkflow(Workflow):
 
 	def set_output(self, event):
 		obj = event["bind_object"]
-		if event['data'] == "fastq_process":
-			self.linkdir(obj.output_dir, self.output_dir)
+		self.linkdir(obj.output_dir, self.output_dir)
 
 	def run(self):
 		self.fastq_run()
