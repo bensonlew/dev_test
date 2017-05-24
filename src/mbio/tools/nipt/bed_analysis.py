@@ -122,10 +122,10 @@ class BedAnalysisTool(Tool):
         self.logger.info("设置结果目录")
         results = os.listdir(self.work_dir + '/nipt_output/')
         for f in results:
-            if re.search(r'.*Rdata$', f):
-                pass
-            else:
-                os.link(self.work_dir + '/nipt_output/' + f, self.output_dir + '/' + f)
+            if f == "z.xls":
+                os.link(self.work_dir + '/nipt_output/' + f, self.output_dir + '/' + os.path.basename(self.option('bed_file').prop['path']).strip().split(".")[0] + "_z.xls")
+            elif f == "zz.xls":
+                os.link(self.work_dir + '/nipt_output/' + f, self.output_dir + '/' + os.path.basename(self.option('bed_file').prop['path']).strip().split(".")[0] + "_zz.xls")
         self.logger.info('设置文件夹路径成功')
 
 
