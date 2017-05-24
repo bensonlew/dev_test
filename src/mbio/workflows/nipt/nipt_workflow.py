@@ -19,12 +19,11 @@ class NiptWorkflow(Workflow):
 		options = [
 			{"name": "customer_table", "type": "infile", "format": "nipt.xlsx"},
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},
-			# {"name": "customer_table", "type": "string"},
-			# {"name": "fastq_path", "type": "string"},
-			# {"name": "bw", "type": "int", "default": 10},
-			# {"name": "bs", "type": "int", "default": 1},
-			# {"name": "ref_group", "type": "int", "default": 2}
-
+			{"name": "batch_id", "type": "string"},
+			{'name':'member_id','type':'string'},
+			{"name": "bw", "type": "int", "default": 10},
+			{"name": "bs", "type": "int", "default": 1},
+			{"name": "ref_group", "type": "int", "default": 2}
 		]
 		self.add_option(options)
 		self.set_options(self._sheet.options())
@@ -54,9 +53,9 @@ class NiptWorkflow(Workflow):
 		self.step.update()
 
 	def fastq_run(self):
-		api = self.api.nipt_analysis
+		self.api = self.api.nipt_analysis
 		file = self.option('customer_table').prop['path']
-		api.nipt_customer(file)
+		self.api.nipt_customer(file)
 		os.listdir(self.option('fastq_path').prop['path'])
 
 		n = 0
@@ -96,6 +95,9 @@ class NiptWorkflow(Workflow):
 			self.step.add_steps('bed_analysis{}'.format(n))
 			bed_analysis.set_options({
 				"bed_file": self.output_dir+'/'+i+'_R1.bed.2',
+				"bw": self.option('bw'),
+				'bs':self.option('bs'),
+				'ref_group':self.option('ref_group')
 			}
 			)
 			step = getattr(self.step, 'bed_analysis{}'.format(n))
@@ -119,7 +121,7 @@ class NiptWorkflow(Workflow):
 		n = 0
 		for i in self.sample_id:
 			fastqc = self.add_tool("nipt.fastqc")
-			self.step.add_steps('bed_analysis{}'.format(n))
+			self.step.add_steps('fastqc{}'.format(n))
 			fastqc.set_options({
 				"sample_id":i,
 				"fastq_path":self.option('fastq_path'),
@@ -175,8 +177,22 @@ class NiptWorkflow(Workflow):
 		self.linkdir(obj.output_dir, self.output_dir)
 
 	def run(self):
+		self.api = self.api.nipt_analysis
+		self.main_id = self.api.add_main(self.option('member_id'),self.option('sample_id'),self.option('batch_id'))
+		self.api.add_interaction(self.main_id,self.option('bw'), self.option('bs'),self.option('ref_group'))
+
 		self.fastq_run()
 		super(NiptWorkflow, self).run()
 
 	def end(self):
+		self.api.add_fastqc(self.main_id, self.output_dir)  # fastqc入库
+		for i in os.listdir(self.output_dir):
+			if re.search(r'.*bed.2$', i):
+				self.api.add_bed_file(self.output_dir + '/'+ i)
+			elif re.search(r'.*qc$', i):
+				self.api.add_qc(self.output_dir + '/' + i)
+			elif re.search(r'.*z.xls$', i):
+				self.api.add_z_result(self.output_dir + '/' + i,self.main_id)
+			elif re.search(r'.*zz.xls$', i):
+				self.api.add_z_result(self.output_dir + '/' + i, self.main_id)
 		super(NiptWorkflow, self).end()

@@ -92,7 +92,7 @@ class FastqcTool(Tool):
 		if cmd.return_code == 0:
 			self.logger.info("gz_fastqc质控成功")
 		elif cmd.return_code == None:
-			rerun_cmd = self.add_command("gz_fastqc", gz_fastqc).rerun()
+			rerun_cmd = self.add_command("re_gz_fastqc", gz_fastqc).rerun()
 			self.wait()
 			if rerun_cmd.rerurn_code == 0:
 				self.logger.info("gz_fastqc质控成功")
@@ -109,7 +109,7 @@ class FastqcTool(Tool):
 		if cmd.return_code == 0:
 			self.logger.info("bam_fastqc质控成功")
 		elif cmd.return_code == None:
-			rerun_cmd = self.add_command("bam_fastqc", bam_fastqc).rerun()
+			rerun_cmd = self.add_command("re_bam_fastqc", bam_fastqc).rerun()
 			self.wait()
 			if rerun_cmd.rerurn_code == 0:
 				self.logger.info("bam_fastqc质控成功")

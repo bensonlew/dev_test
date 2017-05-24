@@ -103,7 +103,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("处理接头成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("pre_cmd", pre_cmd).rerun()
+            rerun_cmd = self.add_command("re_pre_cmd", pre_cmd).rerun()
             self.wait(rerun_cmd)
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("处理接头成功")
@@ -120,7 +120,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("seqtk mergepe成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("seq_merge",seq_merge).rerun()
+            rerun_cmd = self.add_command("re_seq_merge",seq_merge).rerun()
             self.wait(rerun_cmd)
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("seqtk mergepe成功")
@@ -139,7 +139,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("cutadapt去接头成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("cut_adapt",cut_adapt).rerun()
+            rerun_cmd = self.add_command("re_cut_adapt",cut_adapt).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("cutadapt去接头成功")
@@ -155,7 +155,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("cut_50截取成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("cut_50",cut_50).rerun()
+            rerun_cmd = self.add_command("re_cut_50",cut_50).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("cut_50截取成功")
@@ -171,7 +171,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("sam_cutbam成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("sam_cutbam",sam_cutbam).rerun()
+            rerun_cmd = self.add_command("re_sam_cutbam",sam_cutbam).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("sam_cutbam成功")
@@ -199,7 +199,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("sam_cut_uniq成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("sam_cut_uniq",sam_cut_uniq).rerun()
+            rerun_cmd = self.add_command("re_sam_cut_uniq",sam_cut_uniq).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("sam_cut_uniq成功")
@@ -215,7 +215,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("sam排序成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("sam_sort",sam_sort).rerun()
+            rerun_cmd = self.add_command("re_sam_sort",sam_sort).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("sam排序成功")
@@ -232,7 +232,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("picard成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("picard_cmd",picard_cmd).rerun()
+            rerun_cmd = self.add_command("re_picard_cmd",picard_cmd).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("picard成功")
@@ -249,7 +249,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("sam_valid成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("sam_valid",sam_valid).rerun()
+            rerun_cmd = self.add_command("re_sam_valid",sam_valid).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("sam_valid成功")
@@ -265,7 +265,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("sam_valid_index成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("sam_valid_index",sam_valid_index).rerun()
+            rerun_cmd = self.add_command("re_sam_valid_index",sam_valid_index).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("sam_valid_index成功")
@@ -282,7 +282,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("sam_map成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("sam_map",sam_map).rerun()
+            rerun_cmd = self.add_command("re_sam_map",sam_map).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("sam_map成功")
@@ -293,12 +293,12 @@ class FastqProcessTool(Tool):
 
         sam_map_index='{} index {}_R1.map.valid.bam'.format(self.sam_path, self.option('sample_id'))
         self.logger.info(sam_map_index)
-        cmd = self.add_command("sam_map_index",sam_map_index).run()
+        cmd = self.add_command("re_sam_map_index",sam_map_index).run()
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("sam_map_index成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("sam_map_index",sam_map_index).rerun()
+            rerun_cmd = self.add_command("re_sam_map_index",sam_map_index).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("sam_map_index成功")
@@ -315,7 +315,7 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("bed文件生成成功")
         elif cmd.return_code == None:
-            rerun_cmd = self.add_command("bed_qc",bed_qc).rerun()
+            rerun_cmd = self.add_command("re_bed_qc",bed_qc).rerun()
             self.wait()
             if rerun_cmd.rerurn_code == 0:
                 self.logger.info("bed文件生成成功")

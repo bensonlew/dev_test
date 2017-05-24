@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuanhongdong'
 # last_modify:20170519
+import datetime
+import re
+
 from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
 from types import StringTypes
@@ -14,12 +17,12 @@ class NiptAnalysis(Base):
     def __init__(self, bind_object):
         super(NiptAnalysis, self).__init__(bind_object)
         self.mongo_client = Config().mongo_client
-        self.database = self.mongo_client['tsanger_nipt']  # 结果库
+        self.database = self.mongo_client[Config().MONGO+'_nipt']  # 结果库
         self.mongo_client_ref = Config().biodb_mongo_client
         self.database_ref = self.mongo_client_ref['sanger_nipt_ref']  # 参考库
 
     # @report_check
-    def add_zz_result(self, file_path, table_id=None, major=False):
+    def add_zz_result(self, file_path, table_id=None):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
                 table_id = ObjectId(table_id)
@@ -30,7 +33,7 @@ class NiptAnalysis(Base):
             data1 = r.readlines()[1:]
             for line1 in data1:
                 temp1 = line1.rstrip().split("\t")
-                data = [("nipt_task_id", table_id), ("sample_id", str(temp1[0])), ("zz", eval(temp1[1]))]
+                data = [("nipt_interaction_id", table_id), ("sample_id", str(temp1[0])), ("zz", eval(temp1[1]))]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
@@ -43,7 +46,7 @@ class NiptAnalysis(Base):
         return data_list, table_id
 
     # @report_check
-    def add_z_result(self, file_path, table_id=None, major=False):
+    def add_z_result(self, file_path, table_id=None):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
                 table_id = ObjectId(table_id)
@@ -54,7 +57,7 @@ class NiptAnalysis(Base):
             data1 = r.readlines()[1:]
             for line in data1:
                 temp = line.rstrip().split("\t")
-                data = [("nipt_task_id", table_id), ("sample_id", str(temp[0])), ("chr", int(temp[1])),
+                data = [("nipt_interaction_id", table_id), ("sample_id", str(temp[0])), ("chr", int(temp[1])),
                         ("cn", eval(temp[2])), ("bin", int(temp[3])), ("n", int(temp[4])), ("sd", eval(temp[5])),
                         ("mean", eval(temp[6])), ("z", eval(temp[7]))]
                 data_son = SON(data)
@@ -234,4 +237,89 @@ class NiptAnalysis(Base):
                 return file
             else:
                 raise Exception("样本 %s 的bed文件为空！"%(sample))
+
+    def add_main(self,member_id,sample_id,batch_id):
+        collection = self.database['sg_nipt_main']
+        insert_data={
+            'member_id':member_id,
+            'sample_id':sample_id,
+            'batch_id':batch_id,
+            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+        try:
+            main_id = collection.insert_one(insert_data).inserted_id
+        except Exception as e:
+            raise Exception('插入主表出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info("插入主表成功")
+        return main_id
+
+    def add_interaction(self,main_id,bw,bs,ref_group):
+        collection = self.database['sg_nipt_interaction']
+        params = dict()
+        params['bw'] = bw
+        params['bs'] = bs
+        params['ref_group'] = ref_group
+        name = 'bw-' + str(bw) + '_bs-' + str(bs)+'_ref-'+str(ref_group)
+        insert_data ={
+            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'nipt_main_id':main_id,
+            'param':params,
+            'name': name
+        }
+
+        try:
+            interaction_id = collection.insert_one(insert_data).inserted_id
+        except Exception as e:
+            raise Exception('插入交互表出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info("插入交互表成功")
+        return interaction_id
+
+    def add_fastqc(self,main_id,dir):
+        collection = self.database['sg_nipt_fastqc']
+        insert =[]
+        for i in os.listdir(dir):
+            if re.search(r'.*fastqc.html$', i):
+                fasctqc = i
+            elif re.search(r'.*.map.valid_fastqc.html$', i):
+                map_valid_fastqc = i
+            insert_data={
+                'nipt_main_id': main_id,
+                'fasctqc':fasctqc,
+                'map_valid_fastqc':map_valid_fastqc
+            }
+            insert.append(insert_data)
+        try:
+            collection.insert_many(insert)
+        except Exception as e:
+            raise Exception('插入fastqc表出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info("插入fastqc表成功")
+
+    def add_qc(self,file):
+        collection = self.database['sg_nipt_qc']
+        insert = []
+        with open(file,'rb') as f:
+            for line in f:
+                line = line.strip()
+                line = line.split(': ')
+                if re.search('.*num$', line[0]):
+                    insert.append({"num": line[1]})
+                elif re.search('.*n_map$', line[0]):
+                    insert.append({"n_map": line[1]})
+                elif re.search('.*n_dedup$', line[0]):
+                    insert.append({"n_dedup": line[1]})
+                elif re.search('.*valid_reads$', line[0]):
+                    insert.append({"valid_reads": line[1]})
+                elif re.search('.*properly_paired$', line[0]):
+                    insert.append({"properly_paired": line[1]})
+
+        try:
+            collection.insert_one(insert)
+        except Exception as e:
+            raise Exception('插入qc表出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info("插入qc表成功")
 
