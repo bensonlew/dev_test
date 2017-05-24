@@ -128,8 +128,8 @@ class PtCustomer(Base):
                 line = line.split('\t')
                 if re.match('WQ([0-9]*)-.*',line[3]):
                     insert_data ={
-                        "type": line[2],
-                        "sample_id":line[3]
+                        "type": line[2].strip(),
+                        "sample_id":line[3].strip()
                     }
                     collection = self.database_ref['sg_pt_ref_main']
                     if collection.find_one({"sample_id": line[3]}):
