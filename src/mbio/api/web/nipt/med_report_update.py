@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
 from biocluster.config import Config
-from mbio.api.web.pt.med_report_tupdate import MedReportTupdate
+from mbio.api.web.nipt.med_report_tupdate import MedReportTupdate
 
 
 class MedReportUpdate(MedReportTupdate):
