@@ -17,7 +17,7 @@ class NiptAnalysis(Base):
     def __init__(self, bind_object):
         super(NiptAnalysis, self).__init__(bind_object)
         self.mongo_client = Config().mongo_client
-        self.database = self.mongo_client[Config().MONGO+'_nipt']  # 结果库
+        self.database = self.mongo_client[Config().MONGODB+'_nipt']  # 结果库
         self.mongo_client_ref = Config().biodb_mongo_client
         self.database_ref = self.mongo_client_ref['sanger_nipt_ref']  # 参考库
 
@@ -243,7 +243,7 @@ class NiptAnalysis(Base):
         insert_data={
             'member_id':member_id,
             'sample_id':sample_id,
-            'batch_id':batch_id,
+            'batch_id':ObjectId(batch_id),
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
