@@ -23,7 +23,7 @@ class FastqcAgent(Agent):
 		super(FastqcAgent, self).__init__(parent)
 		options = [  # 输入的参数
 			{"name": "sample_id", "type": "string"},
-			{"name": "fastq_path", "type": "string"},
+			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},
 			{"name": "bed_file", "type": "infile", "format": "nipt.bed"}
 		]
 		self.add_option(options)
@@ -85,12 +85,19 @@ class FastqcTool(Tool):
 		os.mkdir(self.work_dir+'/temp')
 
 		gz_fastqc = 'bioinfo/medical/FastQc/fastqc -t 10 -o {} {}_R1.fastq.gz'\
-			.format(self.work_dir+'/temp',os.path.join(self.option('fastq_path'), self.option('sample_id')))
+			.format(self.work_dir+'/temp',os.path.join(self.option('fastq_path').prop['path'], self.option('sample_id')))
 		self.logger.info(gz_fastqc)
 		cmd = self.add_command("gz_fastqc", gz_fastqc).run()
 		self.wait(cmd)
 		if cmd.return_code == 0:
 			self.logger.info("gz_fastqc质控成功")
+		elif cmd.return_code == None:
+			rerun_cmd = self.add_command("gz_fastqc", gz_fastqc).rerun()
+			self.wait()
+			if rerun_cmd.rerurn_code == 0:
+				self.logger.info("gz_fastqc质控成功")
+			else:
+				raise Exception("gz_fastqc质控再次运行出错")
 		else:
 			raise Exception("gz_fastqc质控出错")
 
@@ -101,6 +108,13 @@ class FastqcTool(Tool):
 		self.wait()
 		if cmd.return_code == 0:
 			self.logger.info("bam_fastqc质控成功")
+		elif cmd.return_code == None:
+			rerun_cmd = self.add_command("bam_fastqc", bam_fastqc).rerun()
+			self.wait()
+			if rerun_cmd.rerurn_code == 0:
+				self.logger.info("bam_fastqc质控成功")
+			else:
+				raise Exception("bam_fastqc质控再次运行出错")
 		else:
 			raise Exception("bam_fastqc质控出错")
 
