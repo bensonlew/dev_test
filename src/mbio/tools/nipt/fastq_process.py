@@ -22,7 +22,7 @@ class FastqProcessAgent(Agent):
         super(FastqProcessAgent, self).__init__(parent)
         options = [#输入的参数
             {"name": "sample_id", "type": "string"},
-            {"name":"fastq_path","type":"string"}
+            {"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"}
         ]
         self.add_option(options)
         self.step.add_steps("fastq2bed")
@@ -93,18 +93,22 @@ class FastqProcessTool(Tool):
         self.ref1 = self.config.SOFTWARE_DIR + '/database/human/hg38.chromosomal_assembly/ref.fa'
         self.ref = self.config.SOFTWARE_DIR + '/database/human/hg38_nipt/nchr.fa'
         self.bed_ref = self.config.SOFTWARE_DIR+ '/database/human/hg38_nipt/nchr.20k.gmn.bed'
-    def run_tf(self):
-        # ./nipt-0208-zml.sh WS-170281 /mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38_nipt/nchr.fa /mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa
-        # /mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/nipt/temp /mnt/ilustre/users/sanger-dev/app/program/sun_jdk1.8.0/bin/java /mnt/ilustre/users/sanger-dev/app/bioinfo/medical/picard-tools-2.2.4/picard.jar
-        # fq1 = self.option('sample_id') + '_R1.fastq.gz'
-        # fq2 = self.option('sample_id') + '_R2.fastq.gz'
 
-        pre_cmd = '{}nipt_fastq_pre.sh {} {}'.format(self.script_path, self.option("fastq_path"), self.option('sample_id'))
+    def run_tf(self):
+        pre_cmd = '{}nipt_fastq_pre.sh {} {}'.format(self.script_path, self.option("fastq_path").prop['path'], self.option('sample_id'))
         self.logger.info(pre_cmd)
         cmd = self.add_command("pre_cmd", pre_cmd).run()
         self.wait(cmd)
+
         if cmd.return_code == 0:
             self.logger.info("处理接头成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("pre_cmd", pre_cmd).rerun()
+            self.wait(rerun_cmd)
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("处理接头成功")
+            else:
+                raise Exception("处理接头再次运行出错")
         else:
             raise Exception("处理接头出错")
 
@@ -115,6 +119,13 @@ class FastqProcessTool(Tool):
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("seqtk mergepe成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("seq_merge",seq_merge).rerun()
+            self.wait(rerun_cmd)
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("seqtk mergepe成功")
+            else:
+                raise Exception("seqtk mergepe再次运行出错")
         else:
             raise Exception("seqtk mergepe出错")
 
@@ -124,8 +135,16 @@ class FastqProcessTool(Tool):
         self.logger.info(cut_adapt)
         cmd = self.add_command("cut_adapt",cut_adapt).run()
         self.wait()
+
         if cmd.return_code == 0:
             self.logger.info("cutadapt去接头成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("cut_adapt",cut_adapt).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("cutadapt去接头成功")
+            else:
+                raise Exception("cutadapt去接头再次运行出错")
         else:
             raise Exception("cutadapt去接头出错")
 
@@ -135,6 +154,13 @@ class FastqProcessTool(Tool):
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("cut_50截取成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("cut_50",cut_50).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("cut_50截取成功")
+            else:
+                raise Exception("cut_50截取再次运行出错")
         else:
             raise Exception("cut_50截取出错")
 
@@ -144,6 +170,13 @@ class FastqProcessTool(Tool):
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("sam_cutbam成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("sam_cutbam",sam_cutbam).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("sam_cutbam成功")
+            else:
+                raise Exception("sam_cutbam再次运行出错")
         else:
             raise Exception("sam_cutbam出错") 
 
@@ -165,6 +198,13 @@ class FastqProcessTool(Tool):
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("sam_cut_uniq成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("sam_cut_uniq",sam_cut_uniq).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("sam_cut_uniq成功")
+            else:
+                raise Exception("sam_cut_uniq再次运行出错")
         else:
             raise Exception("sam_cut_uniq出错") 
 
@@ -174,6 +214,13 @@ class FastqProcessTool(Tool):
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("sam排序成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("sam_sort",sam_sort).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("sam排序成功")
+            else:
+                raise Exception("sam排序再次运行出错")
         else:
             raise Exception("sam排序出错")
 
@@ -184,6 +231,13 @@ class FastqProcessTool(Tool):
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("picard成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("picard_cmd",picard_cmd).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("picard成功")
+            else:
+                raise Exception("picard再次运行出错")
         else:
             raise Exception("picard出错")
 
@@ -194,6 +248,13 @@ class FastqProcessTool(Tool):
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("sam_valid成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("sam_valid",sam_valid).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("sam_valid成功")
+            else:
+                raise Exception("sam_valid再次运行出错")
         else:
             raise Exception("sam_valid出错")
 
@@ -203,6 +264,13 @@ class FastqProcessTool(Tool):
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("sam_valid_index成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("sam_valid_index",sam_valid_index).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("sam_valid_index成功")
+            else:
+                raise Exception("sam_valid_index再次运行出错")
         else:
             raise Exception("sam_valid_index出错")
 
@@ -213,6 +281,13 @@ class FastqProcessTool(Tool):
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("sam_map成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("sam_map",sam_map).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("sam_map成功")
+            else:
+                raise Exception("sam_map再次运行出错")
         else:
             raise Exception("sam_map出错")
 
@@ -222,16 +297,30 @@ class FastqProcessTool(Tool):
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("sam_map_index成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("sam_map_index",sam_map_index).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("sam_map_index成功")
+            else:
+                raise Exception("sam_map_index再次运行出错")
         else:
             raise Exception("sam_map_index出错") 
 
         bed_qc='{}nipt_bed.sh {} {} {} {}'\
-            .format(self.script_path,self.option('sample_id'),self.bed_ref,self.work_dir,self.option("fastq_path"))
+            .format(self.script_path,self.option('sample_id'),self.bed_ref,self.work_dir,self.option("fastq_path").prop['path'])
         self.logger.info(bed_qc)
         cmd = self.add_command("bed_qc",bed_qc).run()
         self.wait()
         if cmd.return_code == 0:
             self.logger.info("bed文件生成成功")
+        elif cmd.return_code == None:
+            rerun_cmd = self.add_command("bed_qc",bed_qc).rerun()
+            self.wait()
+            if rerun_cmd.rerurn_code == 0:
+                self.logger.info("bed文件生成成功")
+            else:
+                raise Exception("bed文件生成再次运行出错")
         else:
             raise Exception("bed文件生成出错") 
 
