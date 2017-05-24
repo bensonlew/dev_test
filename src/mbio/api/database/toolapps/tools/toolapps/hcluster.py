@@ -72,6 +72,11 @@ class Hcluster(Base):
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )).inserted_id
             line = f.readline()
+            tree = line.strip()
+            raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', tree)
+            sample_list = [i[1] for i in raw_samp]
+            self.bind_object.logger.info(tree)
+            specimen_ids_dict = self.insert_specimens(sample_list)
             try:
                 collection = self.db["tree"]
                 collection.update_one({"_id": hcluster_id}, {"$set": {"value": line}})
@@ -79,30 +84,24 @@ class Hcluster(Base):
                 self.bind_object.logger.error("导入tree信息出错:%s" % e)
             else:
                 self.bind_object.logger.info("导入tree信息成功!")
-        # with open(self.output_dir + "/data_table") as m:
-        #     self.bind_object.logger.info("tree的输入表导入开始")
-        #     insert_data = []
-        #     head = m.next().strip('\r\n')  # windows换行符
-        #     head = re.split('\t', head)
-        #     new_head = head[1:]
-        #     for line in m:
-        #         line = line.rstrip("\r\n")
-        #         line = re.split('\t', line)
-        #         sample_num = line[1:]
-        #         otu_detail = dict()
-        #         otu_detail['hcluster_id'] = hcluster_id
-        #         otu_detail['row_name'] = line[0]
-        #         for i in range(0, len(sample_num)):
-        #             otu_detail[new_head[i]] = sample_num[i]
-        #         insert_data.append(otu_detail)
-        #     self.bind_object.logger.info("tree的输入表导入结束")
-        #     try:
-        #         self.db['tree_detail'].insert_many(insert_data)
-        #     except Exception as e:
-        #         self.bind_object.logger.info("tree的输入表导入出错{}".format(e))
-        #     else:
-        #         self.bind_object.logger.info("tree的输入表导入完成")
+            reverse_ids = SON([(str(n), m) for m, n in specimen_ids_dict.iteritems()])
+            self.db['specimen_group'].insert_one(SON(data=[('project_sn', self.bind_object.sheet.project_sn),
+                                                           ('task_id', self.bind_object.id),
+                                                           ('visual_type', ['hcluster']),
+                                                           ('visual_id', [hcluster_id]),
+                                                           ('name', 'ALL'),
+                                                           ('category_names', ['ALL']),
+                                                           ('specimen', [reverse_ids])]))
         return hcluster_id
+
+    def insert_specimens(self, specimen_names):
+        """
+		"""
+        task_id = self.bind_object.id
+        project_sn = self.bind_object.sheet.project_sn
+        datas = [SON(project_sn=project_sn, task_id=task_id, name=i) for i in specimen_names]
+        ids = self.db['specimen'].insert_many(datas).inserted_ids
+        return SON(zip(specimen_names, ids))
 
     def check(self):
         """
