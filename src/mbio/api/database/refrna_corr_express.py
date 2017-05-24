@@ -40,7 +40,8 @@ class RefrnaCorrExpress(Base):
                 line = lines.strip().split("\t")
                 pc_num.append(line[0])
                 pc[line[0]]=round(float(line[1]),6)
-                
+        if params:
+            params['submit_location']='express_pca'
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,
@@ -142,6 +143,7 @@ class RefrnaCorrExpress(Base):
         if group_id and group_detail:
             params['group_id']=group_id
             params['group_detail'] = group_detail
+        params['submit_location']='express_corr'
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn    
         insert_data = {
@@ -214,6 +216,7 @@ class RefrnaCorrExpress(Base):
         # group_detail = {"A":["58d8a96e719ad0adae70fa14","58d8a96e719ad0adae70fa12"], "B":["58d8a96e719ad0adae70fa11","58d8a96e719ad0adae70fa13"]}
         # params["group_detail"] = group_detail
         params["type"] = query_type
+        params['submit_location'] = '{}_venn'.format(analysis_name)
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         insert_data = {
@@ -287,6 +290,7 @@ class RefrnaCorrExpress(Base):
                     # 'otu_id': ObjectId(otu_id),
                     'category_name': line[0]
                 }
+                print line[0]
                 if project == 'meta':
                     insert_data['otu_names'] = line[1]
                 if project == 'denovo' or project == 'ref':
