@@ -327,6 +327,8 @@ class TabFile(Base):
     def type(self,sample_id):
         collection = self.database['sg_pt_ref_main']
         sample = collection.find_one({"sample_id": sample_id})
+        if not sample:
+            raise Exception('{}样本在库中找不到类型'.format(sample_id))
         return sample['type']
 
     def sample_qc_dc(self, file, sample_id):
