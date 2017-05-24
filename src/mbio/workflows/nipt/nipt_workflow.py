@@ -20,7 +20,7 @@ class NiptWorkflow(Workflow):
 			{"name": "customer_table", "type": "infile", "format": "nipt.xlsx"},
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},
 			{"name": "batch_id", "type": "string"},
-			{'name':'member_id','type':'string'},
+			{'name': 'member_id','type':'string'},
 			{"name": "bw", "type": "int", "default": 10},
 			{"name": "bs", "type": "int", "default": 1},
 			{"name": "ref_group", "type": "int", "default": 2}
@@ -53,9 +53,9 @@ class NiptWorkflow(Workflow):
 		self.step.update()
 
 	def fastq_run(self):
-		self.api = self.api.nipt_analysis
+		self.api_nipt = self.api.nipt_analysis
 		file = self.option('customer_table').prop['path']
-		self.api.nipt_customer(file)
+		self.api_nipt.nipt_customer(file)
 		os.listdir(self.option('fastq_path').prop['path'])
 
 		n = 0
@@ -75,6 +75,10 @@ class NiptWorkflow(Workflow):
 				fastq_process.on('end', self.finish_update, 'fastq_process{}'.format(n))
 				self.tools.append(fastq_process)
 				n += 1
+
+		for name in self.sample_id:
+			self.main_id = self.api_nipt.add_main(self.option('member_id'), name, self.option('batch_id'))
+			self.api_nipt.add_interaction(self.main_id, self.option('bw'), self.option('bs'), self.option('ref_group'))
 
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output)
@@ -177,22 +181,18 @@ class NiptWorkflow(Workflow):
 		self.linkdir(obj.output_dir, self.output_dir)
 
 	def run(self):
-		self.api = self.api.nipt_analysis
-		self.main_id = self.api.add_main(self.option('member_id'),self.option('sample_id'),self.option('batch_id'))
-		self.api.add_interaction(self.main_id,self.option('bw'), self.option('bs'),self.option('ref_group'))
-
 		self.fastq_run()
 		super(NiptWorkflow, self).run()
 
 	def end(self):
-		self.api.add_fastqc(self.main_id, self.output_dir)  # fastqc入库
+		self.api_nipt.add_fastqc(self.main_id, self.output_dir)  # fastqc入库
 		for i in os.listdir(self.output_dir):
 			if re.search(r'.*bed.2$', i):
-				self.api.add_bed_file(self.output_dir + '/'+ i)
+				self.api_nipt.add_bed_file(self.output_dir + '/'+ i)
 			elif re.search(r'.*qc$', i):
-				self.api.add_qc(self.output_dir + '/' + i)
+				self.api_nipt.add_qc(self.output_dir + '/' + i)
 			elif re.search(r'.*z.xls$', i):
-				self.api.add_z_result(self.output_dir + '/' + i,self.main_id)
+				self.api_nipt.add_z_result(self.output_dir + '/' + i,self.main_id)
 			elif re.search(r'.*zz.xls$', i):
-				self.api.add_z_result(self.output_dir + '/' + i, self.main_id)
+				self.api_nipt.add_z_result(self.output_dir + '/' + i, self.main_id)
 		super(NiptWorkflow, self).end()
