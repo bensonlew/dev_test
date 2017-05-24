@@ -14,10 +14,11 @@ class NiptAnalysisWorkflow(Workflow):
         self._sheet = wsheet_object
         super(NiptAnalysisWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name": "bed_file", "type": "infile", "format": "nipt.bed"},
+            {"name": "bed_file", "type": "string"},  # 输入样本的id
             {"name": "bw", "type": "int", "default": 10},
             {"name": "bs", "type": "int", "default": 1},
             {"name": "ref_group", "type": "int", "default": 2},
+            {"name": "update_info", "type": "string"},
             {"name": "nipt_task_id", "type": "string"}
         ]
         self.add_option(options)
@@ -26,14 +27,11 @@ class NiptAnalysisWorkflow(Workflow):
 
 
     def run_niptanalysis(self):
-        # bed_file = os.path.join(self.work_dir, "file.bed")
-        print self.option('bed_file'), self.option('bed_file').prop['path']
-        if self.api.nipt_analysis. add_bed_file(file_path=self.option('bed_file').prop['path']):
-            print "bed input success!"
-        else:
-            print "bed input failed!"
+        print "test", self.option("bed_file")
+        # self.api.nipt_analysis.add_bed_file(self.option("bed_file").prop['path'])
+        bed_file = self.api.nipt_analysis.export_bed_file(sample=self.option("bed_file"), dir=self.work_dir)
         options = {
-            'bed_file': self.option('bed_file'),
+            'bed_file': bed_file,
             'bw': self.option('bw'),
             'bs': self.option('bs'),
             'ref_group': self.option('ref_group')

@@ -7,6 +7,7 @@ from types import StringTypes
 from bson.son import SON
 from biocluster.config import Config
 import xlrd
+import os
 
 
 class NiptAnalysis(Base):
@@ -77,9 +78,9 @@ class NiptAnalysis(Base):
             data1 = r.readlines()
             for line in data1:
                 temp = line.rstrip().split("\t")
-                data = [("chr", int(temp[0])),
-                        ("start", int(temp[1])), ("end", int(temp[2])), ("gc", eval(temp[3])), ("map", eval(temp[4])),
-                        ("pn", eval(temp[5])), ("reads", int(temp[6])), ("sample_id", str(temp[7]))]
+                data = [("chr", str(temp[0])),
+                        ("start", str(temp[1])), ("end", str(temp[2])), ("gc", str(temp[3])), ("map", str(temp[4])),
+                        ("pn", str(temp[5])), ("reads", str(temp[6])), ("sample_id", str(temp[7]))]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
@@ -205,3 +206,32 @@ class NiptAnalysis(Base):
                 raise Exception('插入客户信息表出错：{}'.format(e))
             else:
                 self.bind_object.logger.info("插入客户信息表成功")
+
+    def export_bed_file(self, sample, dir):
+        """
+        用于导出bed文件，用于后面计算
+        """
+        collection = self.database_ref['sg_nipt_bed']
+        sample_bed = str(sample) + ".bed"
+        file = os.path.join(dir, sample_bed)
+        if os.path.exists(file):
+            self.bind_object.logger.info("work_dir中已经存在bed文件！")
+            pass
+        else:
+            search_result = collection.find({"sample_id": str(sample)})
+            if search_result.count() != 0:
+                self.bind_object.logger.info("mongo表中存在样本的bed文件！")
+                final_result = search_result
+                file = os.path.join(dir, sample + '.bed')
+            else:
+                raise Exception("没有在数据库中搜到%s"%(sample))
+            with open(file, "w+") as f:
+                for n in final_result:
+                    f.write(str(n['chr']) + '\t' + str(n['start']) + '\t' + str(n['end']) +
+                            '\t' + str(n['gc']) + '\t' + str(n['map']) + '\t' + str(n['pn']) + '\t' +
+                            str(n['reads']) + '\t' + str(n['sample_id']) + '\n')
+            if os.path.getsize(file):
+                return file
+            else:
+                raise Exception("样本 %s 的bed文件为空！"%(sample))
+
