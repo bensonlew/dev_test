@@ -24,7 +24,7 @@ class FastqcAgent(Agent):
 		options = [  # 输入的参数
 			{"name": "sample_id", "type": "string"},
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},
-			{"name": "bed_file", "type": "infile", "format": "nipt.bed"}
+			{"name": "bam_file", "type": "infile", "format": "nipt.bed"}
 		]
 		self.add_option(options)
 		self.step.add_steps("fastqc")
@@ -102,7 +102,7 @@ class FastqcTool(Tool):
 			raise Exception("gz_fastqc质控出错")
 
 		bam_fastqc = 'bioinfo/medical/FastQc/fastqc -t 10 -o {} {}_R1.map.valid.bam'. \
-			format(self.work_dir+'/temp',os.path.join(self.option('bed_path'), self.option('sample_id')))
+			format(self.work_dir+'/temp',self.option('bam_file').prop['path'])
 		self.logger.info(bam_fastqc)
 		cmd = self.add_command("bam_fastqc", bam_fastqc).run()
 		self.wait()
