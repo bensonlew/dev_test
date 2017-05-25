@@ -149,20 +149,20 @@ class PatchDcBackupWorkflow(Workflow):
 		self.preg =[]
 		self.mother = []
 		for p in range(len(self.family_id)):
-			temp = re.match('WQ([1-9].*)-F.*', self.family_id[p][0])
-			num = int(temp.group(1))
-			self.num_list = range(num - self.option('dedup_num'), num + self.option('dedup_num') + 1)
+			# temp = re.match('WQ([1-9].*)-F.*', self.family_id[p][0])
+			# num = int(temp.group(1))
+			# self.num_list = range(num - self.option('dedup_num'), num + self.option('dedup_num') + 1)
 			name_list = []
 			api_read_tab.export_tab_file(self.family_id[p][1], self.output_dir)
 			api_read_tab.export_tab_file(self.family_id[p][2], self.output_dir)
 
-			for m in self.num_list:
-				x = api_read_tab.dedup_sample(m)
-				if len(x):  # 如果库中能取到前后的样本
-					for k in range(len(x)):
-						api_read_tab.export_tab_file(x[k], self.output_dir)
-						if x[k] != self.family_id[p][0] and x[k] != self.family_id[p][0] + '1':
-							name_list.append(x[k])
+
+			x = api_read_tab.dedup_sample()
+			if len(x):  # 如果库中能取到前后的样本
+				for k in range(len(x)):
+					api_read_tab.export_tab_file(x[k], self.output_dir)
+					if x[k] != self.family_id[p][0] and x[k] != self.family_id[p][0] + '1':
+						name_list.append(x[k])
 			if name_list == []:
 				pass
 			else:
@@ -235,12 +235,12 @@ class PatchDcBackupWorkflow(Workflow):
 			self.mom_sample = rdata.split('_')[1]
 			self.preg_sample = rdata.split('_')[2]
 
-		self.logger.info(self.father_sample)
-		self.logger.info(self.father)
-		self.logger.info(self.mom_sample)
-		self.logger.info(self.mother)
-		self.logger.info(self.preg_sample)
-		self.logger.info(self.preg)
+		# self.logger.info(self.father_sample)
+		# self.logger.info(self.father)
+		# self.logger.info(self.mom_sample)
+		# self.logger.info(self.mother)
+		# self.logger.info(self.preg_sample)
+		# self.logger.info(self.preg)
 
 		if self.father_sample in self.father:
 			q = self.father.index(self.father_sample)
