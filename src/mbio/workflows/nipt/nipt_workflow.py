@@ -3,6 +3,7 @@
 # last modified:201705
 
 '''医学检验所-无创产前筛查流程'''
+import time
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
@@ -94,6 +95,7 @@ class NiptWorkflow(Workflow):
 
 	def bed_run(self):
 		n = 0
+		time.sleep(30)
 		for i in self.sample_id:
 			bed_analysis = self.add_tool("nipt.bed_analysis")
 			self.step.add_steps('bed_analysis{}'.format(n))
