@@ -20,6 +20,7 @@ class RefrnaWorkflow(Workflow):
         super(RefrnaWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "workflow_type", "type": "string", "default": "transcriptome"},  # 转录组
+            {"name": "taxonmy", "type":"string", "default": "animal"},
             {"name": "assemble_or_not", "type": "bool", "default": True},
             {"name": "blast_method", "type": "string", "default": "diamond"},
             {"name": "genome_structure_file", "type": "infile", "format": "gene_structure.gtf, gene_structure.gff3"},
@@ -81,7 +82,8 @@ class RefrnaWorkflow(Workflow):
 
             {"name": "diff_method", "type": "string", "default": "edgeR"},
             # 差异表达分析方法
-            {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
+            {"name": "diff_fdr_ci", "type": "float", "default": 0.05},  # 显著性水平
+            {"name": "fc", "type": "float", "default": 2},
             # {"name": "sort_type", "type": "string", "default": "pos"},  # 排序方法
             {"name": "exp_analysis", "type": "string", "default": "cluster,kegg_rich,cog_class,kegg_regulate,go_rich,go_regulate"},
             # 差异表达富集方法,聚类分析, GO富集分析, KEGG富集分析, cog统计分析
@@ -614,7 +616,8 @@ class RefrnaWorkflow(Workflow):
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
             "method": self.option("diff_method"),
-            "diff_ci": self.option("diff_ci"),
+            "diff_fdr_ci": self.option("diff_fdr_ci"),
+            "fc": self.option("fc"),
             "is_duplicate": self.option("is_duplicate"),
             "exp_way": self.option("exp_way"),
             "strand_dir": self.option("strand_dir")
@@ -645,7 +648,8 @@ class RefrnaWorkflow(Workflow):
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
             "method": self.option("diff_method"),
-            "diff_ci": self.option("diff_ci"),
+            "diff_fdr_ci": self.option("diff_fdr_ci"),
+            "fc":self.option("fc"),
             "is_duplicate": self.option("is_duplicate"),
             "exp_way": exp_way,
             "strand_dir": self.option("strand_dir")
@@ -672,7 +676,8 @@ class RefrnaWorkflow(Workflow):
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
             "method":  self.option("diff_method"),
-            "diff_ci": self.option("diff_ci"),
+            "diff_fdr_ci": self.option("diff_fdr_ci"),
+            "fc": self.option("fc"),
             "is_duplicate": self.option("is_duplicate"),
             "exp_way": "all",
             "strand_dir": self.option("strand_dir")
@@ -1023,8 +1028,10 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.option("gtf").set_path(self.filecheck.work_dir + "/Danio_rerio.GRCz10.87.gff3.gtf")
         self.taxon_id = "8128"
         self.start_listener()
+        self.merge_gene_annot.on("end", self.run_exp_gene_diff)
         self.fire("start")
         # self.run_network_gene()
+        self.run_merge_annot()
         self.run_network_trans_test()
         self.rpc_server.run()
 

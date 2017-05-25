@@ -223,8 +223,9 @@ class RefrnaSplicingRmats(Base):
         chr_set = []
         if ref_gtf:
             chr_set = [e.strip() for e in
-                       subprocess.check_output('awk -F \'\\t\'  \'$0!~/^#/{print $1}\' %s  | uniq | sort |uniq ',
+                       subprocess.check_output('awk -F \'\\t\'  \'$0!~/^#/{print $1}\' %s  | uniq | sort |uniq '% ref_gtf,
                                                shell=True).strip().split('\n')]
+            # self.bind_object.logger.info(chr_set)
         else:
             raise Exception('导表时没有设置ref gtf路径')
         if not outpath:
@@ -249,6 +250,7 @@ class RefrnaSplicingRmats(Base):
             'rmats_out': outpath
         }
         collection_obj = self.db['sg_splicing_rmats']
+        self.bind_object.logger.info(insert_data)
         try:
             splicing_id = collection_obj.insert_one(insert_data).inserted_id
             print('导入rmats主表成功')

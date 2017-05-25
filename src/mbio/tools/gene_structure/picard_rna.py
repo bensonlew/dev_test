@@ -75,7 +75,12 @@ class PicardRnaTool(Tool):
         if command.return_code == 0:
             self.logger.info("sam文件addorreplacereadgroups完成!")
         else:
-            self.set_error("sam文件addorreplacereadgroups出错！")
+            command.rerun()
+            if command.return_code == 0:
+                self.logger.info("sam文件addorreplacereadgroups完成!")
+            else:
+                self.set_error("sam文件addorreplacereadgroups出错！")
+                raise Exception("sam文件addorreplacereadgroups出错！")
     
     def markduplicates(self, add_sorted_bam):
         """

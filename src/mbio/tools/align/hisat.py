@@ -101,14 +101,12 @@ class HisatTool(Tool):
             self.wait(command)
             if command.return_code == 0:
                 return True
-            elif command.return_code == None:
+            else:
                 command.rerun()
                 if command.return_code == 0:
                     return True
                 else:
                     raise Exception("建立索引出错")
-            else:
-                raise Exception("建立索引出错")
         else:
             with open(self.config.SOFTWARE_DIR + "/database/refGenome/ref_genome.json", "r") as f:
                 dict = json.loads(f.read())

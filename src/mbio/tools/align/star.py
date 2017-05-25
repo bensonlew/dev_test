@@ -110,8 +110,12 @@ class StarTool(Tool):
         if command.return_code == 0:
             self.logger.info("成功构建参考序列索引index1！")
         else:
-            self.set_error("构建索引出错!")
-            raise Exception("运行star出错")
+            command.rerun()
+            if command.return_code == 0:
+                self.logger.info("成功构建参考序列索引index1！")
+            else:
+                self.set_error("构建索引出错!")
+                raise Exception("运行star出错")
 
     def star_aln1_se(self, genomeDir):
         """

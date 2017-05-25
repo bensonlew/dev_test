@@ -980,6 +980,15 @@ class RefrnaWorkflow(Workflow):
         self.control_id, self.compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
 
     def test_run(self):
+        # # self.filecheck.option("gtf").set_path(self.filecheck.work_dir + "/Danio_rerio.GRCz10.87.gff3.gtf")
+        # self.taxon_id = "8128"
+        # self.start_listener()
+        # self.merge_gene_annot.on("end", self.run_exp_gene_diff)
+        # self.fire("start")
+        # # self.run_network_gene()
+        # self.run_merge_annot()
+        # # self.run_network_trans_test()
+        # self.rpc_server.run()
         self.export_qc()
         # self.export_assembly()
         # self.export_map_assess()
@@ -999,6 +1008,8 @@ class RefrnaWorkflow(Workflow):
         # self.export_annotation()
         # self.export_snp()
         # self.export_ppi()
+        self.filecheck.option("gtf", self.filecheck.work_dir + "/fake.gff3.gtf")
+        self.export_as()
 
     def export_assembly(self):
         self.api_assembly = self.api.api("ref_rna.ref_assembly")
@@ -1259,7 +1270,7 @@ class RefrnaWorkflow(Workflow):
         self.api_anno.add_annotation(name=None, params=params, ref_anno_path=ref_anno_path, new_anno_path=new_anno_path, pfam_path=pfam_path)
 
     def export_as(self):
-        self.api_as = self.api.refrna_splicing_rmats
+        self.api_as = self.api.api("ref_rna.refrna_splicing_rmats")
         if self.option("strand_specific"):
             lib_type = "fr-firststrand"
         else:
@@ -1281,13 +1292,23 @@ class RefrnaWorkflow(Workflow):
             "submit_location": "splicingrmats",
             "task_type": ""
         }
+        if len(self.group_category) > 2:
+            self.logger.info("出现两组以上对照组，取前两组进行导表")
         params['group_detail'] = dict()
+        group = dict()
         for i in range(len(self.group_category)):
+            if i == 2:
+                break
             key = self.group_category[i]
             value = self.group_detail[i].keys()
             params['group_detail'][key] = value
+            if i == 0:
+                group[key] = "s1"
+            else:
+                group[key] = "s2"
         outpath = self.altersplicing.output_dir
-        self.api_as.add_sg_splicing_rmats(self, params=params, major=True, group={}, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
+        self.logger.info(params)
+        self.api_as.add_sg_splicing_rmats(params=params, major=True, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
 
     def export_ppi(self):
         api_ppinetwork = self.api.ppinetwork
