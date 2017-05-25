@@ -103,6 +103,7 @@ class HisatTool(Tool):
                 return True
             else:
                 command.rerun()
+                self.wait(command)
                 if command.return_code == 0:
                     return True
                 else:
