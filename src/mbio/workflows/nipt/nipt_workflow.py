@@ -131,7 +131,7 @@ class NiptWorkflow(Workflow):
 			fastqc.set_options({
 				"sample_id":i,
 				"fastq_path":self.option('fastq_path'),
-				"bed_file": self.output_dir + '/' + i + '_R1.bed.2',
+				"bam_file": self.output_dir + '/' + i + '_R1.map.valid.bam',
 			}
 			)
 			step = getattr(self.step, 'fastqc{}'.format(n))
