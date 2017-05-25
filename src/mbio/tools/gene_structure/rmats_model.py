@@ -33,7 +33,7 @@ class RmatsModelAgent(Agent):
                    {"name": "event_file", "type": "infile", "format": "gene_structure.as_event"},  # 建库类型
                    {"name": "intron_s", "type": "int", "default": 1},
                    {"name": "exon_s", "type": "int", "default": 1},
-                   
+        
                    ]
         
         self.add_option(options)
@@ -124,4 +124,28 @@ class RmatsModelTool(Tool):
         """
         super(RmatsModelTool, self).run()
         self.run_rmats()
+        pdf_paths = [os.path.join(self.output_dir + '/Sashimi_plot', pdf) for pdf in
+                     os.listdir(self.output_dir + '/Sashimi_plot') if re.match(r'^\S+\.pdf$', pdf.strip())]
+        if len(pdf_paths) < 1:
+            self.logger.info('未生成pdf文件：路径为 %s' % self.output_dir + '/Sashimi_plot')
+            raise Exception('未生成pdf文件：路径为 %s' % self.output_dir + '/Sashimi_plot')
+        pdf_paths_new = [pdf_paths[0]]
+        png_paths = [pdf_paths[0]+'.png']
+        info = self.convert_pdf_to_png(pdf_paths_new,png_paths)
         self.end()
+    
+    def convert_pdf_to_png(self, olds, news):
+        self.image_magick = '/program/ImageMagick/bin/convert'
+        convert_commands = []
+        for index, i in enumerate(olds):
+            cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + i + ' ' + news[index]
+            command = self.add_command('convert_{}'.format(index), cmd)
+            command.run()
+            convert_commands.append(command)
+            self.wait()
+            for i in convert_commands:
+                if i.return_code == 0:
+                    pass
+                else:
+                    return False
+        return True

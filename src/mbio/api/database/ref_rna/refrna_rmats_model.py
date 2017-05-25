@@ -55,11 +55,14 @@ class RefrnaRmatsModel(Base):
             raise Exception('导入rmats model主表失败:%s' % e)
         return rmats_model_id
     
-    def add_sg_fs(self, file_path, rmats_model_id):
+    def add_sg_fs(self, file_path, rmats_model_id,file_type):
         data = open(file_path, "r").read()
         fs = gridfs.GridFS(database=self.db, collection='fs')
         fs_id = fs.put(data, filename=os.path.basename(file_path))  # splicing_id
         # self.db['fs.files'].update_one({'_id': fs_id}, {'$set': {'splicing_id': splicing_id}})
         # self.db['fs.files'].update_one({'_id': fs_id}, {'$set': {'rmats_model_id': rmats_model_id}})
-        self.db['sg_splicing_rmats_model'].update_one({'_id': rmats_model_id}, {'$set': {'graph_id': fs_id}})
-        
+        if file_type == 'pdf':
+            self.db['sg_splicing_rmats_model'].update_one({'_id': rmats_model_id}, {'$set': {'graph_id': fs_id}})
+        if file_type == 'png':
+            self.db['sg_splicing_rmats_model'].update_one({'_id': rmats_model_id}, {'$set': {'png_id': fs_id}})
+
