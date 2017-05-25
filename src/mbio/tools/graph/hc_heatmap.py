@@ -22,7 +22,8 @@ class HcHeatmapAgent(Agent):
 			{"name": "col_method", "type": "string", "default": ""},  # 列聚类方式
 			{"name": "col_number", "type": "string", "default": "10"},  # 列数
 			{"name": "row_number", "type": "string", "default": "10"},  # 行数
-			{"name": "data_T", "type": "bool", "default": False}
+			# {"name": "data_T", "type": "bool", "default": False}
+			{"name": "data_T", "type": "string", "default": "false"}
         ]
 		self.add_option(options)
 		self.step.add_steps('hc_heatmap')
@@ -57,6 +58,16 @@ class HcHeatmapAgent(Agent):
 		self._cpu = 10
 		self._memory = '10G'
 
+	def end(self):
+		result_dir = self.add_upload_dir(self.output_dir)
+		result_dir.add_relpath_rules([
+			[".", "", "Heatmap结果目录"],
+			["./result_data", "xls", "结果表"],
+			["./row_tre", "tre", "行聚类树"],
+			["./col_tre", "tre", "列聚类树"],
+		])
+		super(HcHeatmapAgent, self).end()
+
 class HcHeatmapTool(Tool):
 	"""
 	使用脚本/mnt/ilustre/users/sanger-dev/app/bioinfo/statistical/scripts/plot-hcluster_tree_app.pl
@@ -89,7 +100,8 @@ class HcHeatmapTool(Tool):
 		data_2 = data_2.drop(["row"], axis=1)
 		if col_number != "":
 			data_2 = data_2.iloc[:int(col_number)]
-		if t == True:
+		# if t == True:
+		if t == "true":
 			data_2.columns = name_list
 			data_ = data_2
 			data_.index.name = "name"
@@ -156,14 +168,21 @@ class HcHeatmapTool(Tool):
 			for name in file_name:
 				if re.search('(\.tre)$', name):
 					os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))
+					os.remove(os.path.join(self.output_dir, name))
 				if re.search('(\.ttre)$', name):
 					os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "row_tre"))
+					os.remove(os.path.join(self.output_dir, name))
 			self.logger.info("存在行聚类树")
 		else:
 			for name in file_name:
 				if re.search('(\.tre)$', name):
 					os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))
+					os.remove(os.path.join(self.output_dir, name))
 			self.logger.info("存在列聚类树")
+		file_name_2 = os.listdir(self.output_dir)
+		for name in file_name_2:
+			if re.search('(\.pdf)$', name):
+				os.remove(os.path.join(self.output_dir, name))
 
 	def run(self):
 		"""
