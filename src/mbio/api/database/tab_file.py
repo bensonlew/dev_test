@@ -143,7 +143,7 @@ class TabFile(Base):
                 raise Exception('报错：样本数据{}的tab文件为空，可能还未下机'.format(sample))
 
 
-    def dedup_sample(self, num):
+    def dedup_sample(self):
         collection = self.database['sg_pt_ref_main']
         # param = "WQ{}-F".format(num) + '.*'
         sample = []
