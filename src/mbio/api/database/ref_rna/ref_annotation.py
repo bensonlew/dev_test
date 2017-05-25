@@ -1117,43 +1117,49 @@ class RefAnnotation(Base):
                 except:
                     data.append(('length', None))
                 try:
-                    data.append(('nr_hit_names', line[13]))
-                except:
-                    data.append(('nr_hit_names', None))
-                try:
-                    data.append(('sp_hit_names', line[14]))
-                except:
-                    data.append(('sp_hit_names', None))
-                try:
                     data.append(('cog', line[4]))
+                    data.append(('cog_description', line[7]))
                 except:
                     data.append(('cog', None))
+                    data.append(('cog_description', None))
                 try:
                     data.append(('nog', line[5]))
+                    data.append(('nog_description', line[8]))
                 except:
                     data.append(('nog', None))
+                    data.append(('nog_description', None))
                 try:
-                    data.append(('kog', line[5]))
+                    data.append(('kog', line[6]))
+                    data.append(('kog_description', line[9]))
                 except:
                     data.append(('kog', None))
+                    data.append(('kog_description', None))
                 try:
-                    data.append(('go_ids', line[12]))
-                except:
-                    data.append(('go_ids', None))
-                try:
-                    data.append(('ko_id', line[7]))
-                    data.append(('ko_name', line[8]))
-                    data.append(('pathway_ids', line[9]))
+                    data.append(('ko_id', line[10]))
+                    data.append(('ko_name', line[11]))
                 except:
                     data.append(('ko_id', None))
                     data.append(('ko_name', None))
-                    data.append(('pathway_ids', None))
                 try:
-                    data.append(('pfam_id', line[10]))
-                    data.append(('domain', line[11]))
+                    data.append(('pathways', line[12]))
                 except:
-                    data.append(('pfam_id', None))
-                    data.append(('domain', None))
+                    data.append(('pathways', None))
+                try:
+                    data.append(('pfam', line[13]))
+                except:
+                    data.append(('pfam', None))
+                try:
+                    data.append(('go', line[14]))
+                except:
+                    data.append(('go', None))
+                try:
+                    data.append(('nr', line[15]))
+                except:
+                    data.append(('nr', None))
+                try:
+                    data.append(('swissprot', line[16]))
+                except:
+                    data.append(('swissprot', None))
                 data = SON(data)
                 data_list.append(data)
         try:

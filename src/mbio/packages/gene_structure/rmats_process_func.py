@@ -40,10 +40,15 @@ EVENT_DESC_ITEMS = {'A3SS': ["longExonStart_0base", "longExonEnd", "shortES", "s
 def modify_id_for_txt(infile, outfile):
     f_name_match = re.match(r'^.*?(A3SS|A5SS|MXE|RI|SE).*?\.txt$', os.path.basename(infile).strip())
     if f_name_match:
+        tmp = outfile + '.temp'
+        content = re.sub(r'\"', '', open(infile).read())
+        open(tmp, 'w').write(content)
         event_type = f_name_match.group(1)
         '''awk '{if ($1~/[0-9]+/) printf "A3SS_"$0"\n";  else print $0}' fromGTF.A3SS.txt'''
+        # cmd = """awk -F \'\\t\'  \'{if ($1~/[0-9]+/) printf  "%s"$0"\\n"; else print $0}\'   %s > %s""" % (
+        #     event_type + "_", infile, outfile)
         cmd = """awk -F \'\\t\'  \'{if ($1~/[0-9]+/) printf  "%s"$0"\\n"; else print $0}\'   %s > %s""" % (
-            event_type + "_", infile, outfile)
+            event_type + "_", tmp, outfile)
         subprocess.call(cmd, shell=True)
     
     else:
@@ -68,8 +73,12 @@ def check_rmats_out_dir(dirpath):
                                      name.strip())])
     info_dic = defaultdict(str)
     for f in to_be_altered_id_files:
-        info_dic[f] = os.path.join(os.path.dirname(f),
-                                   re.match(r'^(\S+)\.txt$', os.path.basename(f).strip()).group(1) + '.alter_id.txt')
+        alter_id_file = os.path.join(os.path.dirname(f),
+                                     re.match(r'^(\S+)\.txt$', os.path.basename(f).strip()).group(1) + '.alter_id.txt')
+        # format_line_file = os.path.join(os.path.dirname(f),
+        #                            re.match(r'^(\S+)\.txt$', os.path.basename(f).strip()).group(1) + '.format_line.txt')
+        # info_dic[f] = (format_line_file, alter_id_file)
+        info_dic[f] = alter_id_file
     return info_dic
 
 
@@ -113,7 +122,8 @@ def get_event_stats(files):
                           os.path.basename(f))
         if event_m:
             event_type = event_m.group(2)
-            data = pandas.read_table(f)
+            print('要读的是文件: %s' % f)
+            data = pandas.read_table(f, sep='\t')
             if event_m.group(1) is not None:
                 d[event_type]['novel_event_file'] = f
                 d[event_type]['novel_event_id_no'] = len(set(data['ID']))
@@ -126,7 +136,7 @@ def get_event_stats(files):
         if mats_m:
             event_type = mats_m.group(1)
             d[event_type][mats_m.group(2) + '_file'] = f
-            data = pandas.read_table(f)
+            data = pandas.read_table(f, sep='\t')
             d[event_type][mats_m.group(2) + '_event_id_set_no'] = len(set(data['ID']))
             d[event_type][mats_m.group(2) + '_event_id_set'] = set(data['ID'])
             continue
@@ -192,7 +202,7 @@ def get_event_psi_dic(d):
             psi_dic['JunctionCountOnly_file'] = JunctionCountOnly_file
             psi_dic['ReadsOnTargetAndJunctionCounts_file'] = ReadsOnTargetAndJunctionCounts_file
             
-            jc_data = pandas.read_table(JunctionCountOnly_file, sep='\t', index_col=0,
+            jc_data = pandas.read_table(JunctionCountOnly_file, index_col=0, sep='\t',
                                         dtype={'Pvalue': np.float64, 'FDR': np.float64,
                                                'IncLevelDifference': np.float64})
             jc_it = jc_data[['PValue', 'FDR', 'IncLevel1', 'IncLevel2', 'IncLevelDifference']].iterrows()
@@ -226,7 +236,8 @@ def get_event_psi_dic(d):
                         psi_dic[event_type]['SAMPLE_1']['JunctionCountOnly']['exclusion'] += 1
             except StopIteration:
                 pass
-            all_data = pandas.read_table(ReadsOnTargetAndJunctionCounts_file, sep='\t', index_col=0,
+            all_data = pandas.read_table(ReadsOnTargetAndJunctionCounts_file, index_col=0,
+                                         sep='\t',
                                          dtype={'Pvalue': np.float64, 'FDR': np.float64,
                                                 'IncLevelDifference': np.float64})
             all_it = all_data[['PValue', 'FDR', 'IncLevel1', 'IncLevel2', 'IncLevelDifference']].iterrows()
@@ -292,7 +303,7 @@ def write_psi_stats_file(stat_file, psi_dic):
 
 
 def add_psi_info(mats_file, new_file):
-    data = pandas.read_table(mats_file,
+    data = pandas.read_table(mats_file, sep='\t',
                              dtype={'PValue': float, 'FDR': float, 'IncLevelDifference': float, 'IncFormLen': int,
                                     'SkipFormLen': int, 'ID.1': str})
     fw = open(new_file, 'wb')
@@ -415,10 +426,11 @@ def write_big_detail_file(out, big_file):
         ReadsOnTargetAndJunctionCounts_file_type = os.path.join(out,
                                                                 'MATS_output/%s.MATS.ReadsOnTargetAndJunctionCounts.alter_id.psi_info.txt' % (
                                                                     type))
-        all_event_info_type = pandas.read_table(all_event_file_type, index_col=0)
+        all_event_info_type = pandas.read_table(all_event_file_type, index_col=0, sep='\t')
         all_event_set_type = set(all_event_info_type.index.tolist())
-        novel_event_set_type = set(pandas.read_table(novel_event_file_type, index_col=0).index.tolist())
-        JunctionCountOnly_info_type = pandas.read_table(JunctionCountOnly_file_type,
+        novel_event_set_type = set(
+            pandas.read_table(novel_event_file_type, index_col=0, sep='\t').index.tolist())
+        JunctionCountOnly_info_type = pandas.read_table(JunctionCountOnly_file_type, sep='\t',
                                                         dtype={'FDR': str, 'PValue': str, 'IncLevelDifference': str,
                                                                'average_IncLevel2': str, 'average_IncLevel1': str},
                                                         index_col=0)
@@ -427,7 +439,7 @@ def write_big_detail_file(out, big_file):
                                                                      dtype={'FDR': str, 'PValue': str,
                                                                             'IncLevelDifference': str,
                                                                             'average_IncLevel2': str,
-                                                                            'average_IncLevel1': str},
+                                                                            'average_IncLevel1': str}, sep='\t',
                                                                      index_col=0)
         ReadsOnTargetAndJunctionCounts_event_set_type = set(ReadsOnTargetAndJunctionCounts_info_type.index.tolist())
         
@@ -459,9 +471,10 @@ def write_big_detail_file(out, big_file):
             
             event_desc_str = '\t'.join(line_18_items)
             event_str = '\t'.join(
-                [event_id, type, novel, old, all_event_info_type.get_value(event_id, 'GeneID'),
-                 all_event_info_type.get_value(event_id, 'geneSymbol'), all_event_info_type.get_value(event_id, 'chr'),
-                 all_event_info_type.get_value(event_id, 'strand'), event_desc_str])
+                [str(e) for e in [event_id, type, novel, old, all_event_info_type.get_value(event_id, 'GeneID'),
+                                  all_event_info_type.get_value(event_id, 'geneSymbol'),
+                                  all_event_info_type.get_value(event_id, 'chr'),
+                                  all_event_info_type.get_value(event_id, 'strand'), event_desc_str]])
             if diff_ReadsOnTargetAndJunctionCounts == 'no':
                 ReadsOnTargetAndJunctionCounts_str = '\t'.join(np.repeat('null', 17).tolist())
             else:
@@ -482,6 +495,14 @@ def write_big_detail_file(out, big_file):
     fw.close()
 
 
+def format_line(infile, outfile):
+    fw = open(outfile, 'w')
+    for line in open(infile):
+        pass
+    
+    fw.close()
+
+
 def process_single_rmats_output_dir(root):
     big_detail_file = os.path.join(root, 'all_events_detail_big_table.txt')
     stat_psi = os.path.join(root, 'psi_stats.file.txt')
@@ -489,9 +510,13 @@ def process_single_rmats_output_dir(root):
     
     # 检查输出结果文件夹合理性
     alter_ref_dic = check_rmats_out_dir(root)  # alter_ref_dic
+    
     # 修饰结果文件 在ID 上加上事件类型
     s1 = time.time()
     for in_file, out_file in alter_ref_dic.items():
+        # format_line(infile=in_file, outfile=out_file[0])
+        # modify_id_for_txt(infile=out_file[0], outfile=out_file[1])
+        # modify_id_for_txt(infile=in_file, outfile=out_file[1])
         modify_id_for_txt(infile=in_file, outfile=out_file)
     s2 = time.time()
     print('转换ID任务完成，用时：{}'.format(s2 - s1))

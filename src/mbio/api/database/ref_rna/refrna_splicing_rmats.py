@@ -217,10 +217,9 @@ class RefrnaSplicingRmats(Base):
             }
     
     @report_check
-    def add_sg_splicing_rmats(self, params=None, major=True, group={}, ref_gtf=None, name=None, outpath=None):
+    def add_sg_splicing_rmats(self, params=None, major=True, group=None, ref_gtf=None, name=None, outpath=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        chr_set = []
         if ref_gtf:
             chr_set = [e.strip() for e in
                        subprocess.check_output('awk -F \'\\t\'  \'$0!~/^#/{print $1}\' %s  | uniq | sort |uniq '% ref_gtf,
@@ -247,7 +246,7 @@ class RefrnaSplicingRmats(Base):
             'status': 'end',
             'group': group,
             'chr_set': chr_set,
-            'rmats_out': outpath
+            'rmats_out_root_dir': outpath
         }
         collection_obj = self.db['sg_splicing_rmats']
         self.bind_object.logger.info(insert_data)
@@ -267,6 +266,17 @@ class RefrnaSplicingRmats(Base):
             psi_dic = self.add_sg_splicing_rmats_psi(splicing_id=splicing_id, src_dic=psi_data)
             self.add_sg_splicing_rmats_graph(splicing_id=splicing_id, stats=stats_dic, psi=psi_dic)
             # self.add_sg_splicing_rmats_model(splicing_id=splicing_id,sashimi_plot='')
+    
+    def add_sg_splicing_rmats_for_controller(self, splicing_id, outpath):
+        src_detail_file = os.path.join(outpath, 'all_events_detail_big_table.txt')
+        src_stats_file = os.path.join(outpath, 'event_stats.file.txt')
+        src_psi_file = os.path.join(outpath, 'psi_stats.file.txt')
+        self.add_sg_splicing_rmats_detail(splicing_id=splicing_id, file=src_detail_file)
+        stats_data = self._parse_dic_file(file=src_stats_file)
+        psi_data = self._parse_dic_file(file=src_psi_file)
+        stats_dic = self.add_sg_splicing_rmats_stats(splicing_id=splicing_id, src_dic=stats_data)
+        psi_dic = self.add_sg_splicing_rmats_psi(splicing_id=splicing_id, src_dic=psi_data)
+        self.add_sg_splicing_rmats_graph(splicing_id=splicing_id, stats=stats_dic, psi=psi_dic)
     
     def _parse_dic_file(self, file):
         dic = dict(
@@ -296,13 +306,13 @@ class RefrnaSplicingRmats(Base):
             data['splicing_id'] = splicing_id
             data['no_diff'] = 'no' if data['diff_jc_or_all'] == 'yes' else 'yes'
             data_lst.append(data)
-        collection_obj = self._db['sg_splicing_rmats_detail']
+        collection_obj = self.db['sg_splicing_rmats_detail']
         try:
             collection_obj.insert_many(data_lst)
             print("导入rmats事件详情表：%s信息成功" % (file))
         except Exception as e:
             raise Exception("导入rmats事件详情表：%s信息出错:%s" % (file, e))
-        os.rmdir(file_tmp)
+        # os.r(file_tmp)
         return True
     
     def add_sg_splicing_rmats_stats(self, splicing_id, src_dic):
