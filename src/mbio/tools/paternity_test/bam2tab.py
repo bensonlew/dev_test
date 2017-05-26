@@ -113,9 +113,7 @@ class Bam2tabTool(Tool):
             self.logger.info("运行Bam2tab成功")
         elif cmd.return_code == None:
             self.logger.info("返回码问题，重新运行cmd")
-            re_bam2tab_cmd=self.cmd_path + " %s %s %s %s" % (self.option("sample_id"), self.option("bam_dir"),
-                                                     self.option("ref_fasta").prop["path"], self.option("targets_bedfile").prop['path'])
-            re_bam2tab_cmd = self.add_command("re_bam2tab_cmd", re_bam2tab_cmd).run()
+            re_bam2tab_cmd = self.add_command("re_bam2tab_cmd", Bam2tab_cmd).rerun()
             self.wait(re_bam2tab_cmd)
             if re_bam2tab_cmd.return_code == 0:
                 self.logger.info("运行Bam2tab成功")

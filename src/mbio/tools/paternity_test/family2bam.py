@@ -121,13 +121,7 @@ class Family2bamTool(Tool):
             self.logger.info("运行转bam文件成功")
         elif cmd.return_code == None:
             self.logger.info("返回码问题，重新运行cmd")
-            re_fastq2bam_cmd = "{}fastq2bam.sh {} {} {} {} {} {} {}".format(self.cmd_path, self.option("fastq"),
-                                                                         self.option("cpu_number"),
-                                                                         self.option("ref_fasta").prop["path"],
-                                                                         self.option("seq_path").prop['path'],
-                                                                         self.option("targets_bedfile").prop['path']
-                                                                         , self.picard_path, self.java_path)
-            re_fastq2bam_cmd = self.add_command("re_fastq2bam_cmd", re_fastq2bam_cmd).run()
+            re_fastq2bam_cmd = self.add_command("re_fastq2bam_cmd", fastq2bam_cmd).rerun()
             self.wait(re_fastq2bam_cmd)
 
             if re_fastq2bam_cmd.return_code == 0:

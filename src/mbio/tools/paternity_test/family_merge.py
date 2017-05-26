@@ -104,15 +104,20 @@ class FamilyMergeTool(Tool):
             self.logger.info("运行家系合并成功")
         elif cmd.return_code == None:
             self.logger.info("返回码问题，重新运行cmd")
-            re_tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {}". \
-                format(self.R_path, self.script_path, self.option("dad_tab").prop['path'],
-                       self.option("mom_tab").prop['path'], self.option("preg_tab").prop['path'],
-                       self.option("err_min"), self.option("ref_point").prop['path'])
-            re_tab2family_cmd = self.add_command("re_tab2family_cmd", re_tab2family_cmd).run()
+            re_tab2family_cmd = self.add_command("re_tab2family_cmd", tab2family_cmd).rerun()
             self.wait(re_tab2family_cmd)
 
             if re_tab2family_cmd.return_code == 0:
                 self.logger.info("运行家系合并成功")
+            elif re_tab2family_cmd.return_code == None:
+                self.logger.info("返回码问题，第三次运行cmd")
+                tri_tab2family_cmd = self.add_command("tri_tab2family_cmd", tab2family_cmd).rerun()
+                self.wait(tri_tab2family_cmd)
+
+                if tri_tab2family_cmd.return_code == 0:
+                    self.logger.info("运行家系合并成功")
+                else:
+                    raise Exception("运行家系合并出错")
             else:
                 raise Exception("运行家系合并出错")
         else:

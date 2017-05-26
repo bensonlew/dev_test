@@ -162,9 +162,7 @@ class ResultInfoTool(Tool):
                 self.logger.info("运行转化结果图成功")
             elif cmd.return_code == None:
                 self.logger.info("返回码问题，重新运行cmd")
-                re_convert_cmd = "bioinfo/medical/scripts/convert2png.sh {} {} {} {}".format(path_family, path_fig1,
-                                                                                          path_fig2, path_percent)
-                re_convert_cmd = self.add_command("re_convert_cmd", re_convert_cmd).run()
+                re_convert_cmd = self.add_command("re_convert_cmd", convert_cmd).rerun()
                 self.wait(re_convert_cmd)
 
                 if re_convert_cmd.return_code == 0:

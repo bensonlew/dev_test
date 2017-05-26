@@ -120,15 +120,7 @@ class Family2tabDcTool(Tool):
             self.logger.info("运行转tab文件成功")
         elif cmd.return_code == None:
             self.logger.info("返回码问题，重新运行cmd")
-            re_fastq2tab_cmd = "{}dcpt_zml.sh {} {} {} {} {} {} {}".format(self.cmd_path, self.option("fastq"),
-                                                                        self.option("cpu_number"),
-                                                                        self.option("ref_fasta").prop["path"],
-                                                                        self.option("seq_path").prop['path'],
-                                                                        self.option("targets_bedfile").prop['path']
-                                                                        ,
-                                                                        self.config.SOFTWARE_DIR + '/bioinfo/medical/picard-tools-2.2.4/picard.jar',
-                                                                        self.java_path)
-            re_fastq2tab_cmd = self.add_command("re_fastq2tab_cmd", re_fastq2tab_cmd).run()
+            re_fastq2tab_cmd = self.add_command("re_fastq2tab_cmd", fastq2tab_cmd).rerun()
             self.wait(re_fastq2tab_cmd)
             if re_fastq2tab_cmd.return_code == 0:
                 self.logger.info("运行转tab文件成功")
