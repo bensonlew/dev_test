@@ -108,7 +108,7 @@ class MetaController(object):
             main_id = self.data.otu_id
             collection_name = 'sg_otu'
         table_info = Meta(db=self.mongodb).get_main_info(main_id=main_id, collection_name=collection_name)
-        print table_info
+        # print table_info
         project_sn = table_info["project_sn"]
         task_id = table_info["task_id"]
         new_task_id = self.get_new_id(task_id)
