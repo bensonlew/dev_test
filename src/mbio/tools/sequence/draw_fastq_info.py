@@ -145,6 +145,7 @@ class DrawFastqInfoTool(Tool):
                     # self.logger.info("运行出错")
                     if cmd.return_code == None:
                         cmd.rerun()
+                        self.wait(cmd)
                         if cmd.return_code == 0:
                             self.logger.info("运行{}完成".format(cmd.name))
                             self.logger.info(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))

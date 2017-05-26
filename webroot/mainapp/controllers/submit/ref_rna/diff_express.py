@@ -27,7 +27,8 @@ class DiffExpressAction(RefRnaController):
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         print 'haha'
         print data.group_id
-        
+        print data.pvalue
+        print data.pvalue_padjust
         return_result = self.check_options(data)
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
@@ -115,7 +116,9 @@ class DiffExpressAction(RefRnaController):
                 "diff_method":data.diff_method,
                 "diff_express_id": str(main_table_id),
                 "log":"None",
-                "express_level":express_level
+                "express_level":express_level,
+                "pvalue_padjust":data.pvalue_padjust,
+                "pvalue":data.pvalue
                 # "group_id": data.group_id,
                 # "group_detail":data.group_detail,
             }

@@ -46,11 +46,7 @@ class RefAnnotationModule(Module):
         self.swissprot_annot = self.add_tool("annotation.swissprot")
         self.kegg_upload = self.add_tool('annotation.kegg.kegg_upload')
         self.anno_stat = self.add_tool('rna.ref_anno_stat')
-<<<<<<< HEAD
-        self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat', 'nr_annot', 'swissprot_annot')
-=======
         self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat', 'swissprot_annot')
->>>>>>> 68a1525f0bc5fe87170a8f4a6af34f8964865cbc
 
     def check_options(self):
         if self.option('anno_statistics'):

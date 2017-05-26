@@ -19,6 +19,8 @@ from mbio.api.to_file.ref_rna import *
 from mainapp.models.mongo.ref_rna import RefRna
 from mainapp.controllers.project.ref_rna_controller import RefRnaController
 from pymongo import MongoClient
+import subprocess
+
 
 def isFloat(string):
     try:
@@ -26,6 +28,7 @@ def isFloat(string):
         return True
     except Exception as e:
         return False
+
 
 class RmatsRerunAction(RefRnaController):
     '''
@@ -51,7 +54,6 @@ class RmatsRerunAction(RefRnaController):
                 return json.dumps(info)
         task_name = 'ref_rna.report.rmats'
         task_type = 'workflow'
-        
         control_doc = RefRna().get_main_info(ObjectId(data.control_id), 'sg_specimen_group_compare')
         print control_doc
         group_doc = RefRna().get_main_info(ObjectId(data.group_id), 'sg_specimen_group')
@@ -74,7 +76,7 @@ class RmatsRerunAction(RefRnaController):
         control_group_bam_lst = []
         for case_sp in case_group_members:
             doc = RefRna().get_main_info(ObjectId(case_sp), 'sg_specimen')
-            print('现在装载%s样本的bam信息: %s' % (case_sp,doc))
+            print('现在装载%s样本的bam信息: %s' % (case_sp, doc))
             case_group_bam_lst.append(
                 doc['bam_path'])
         for control_sp in control_group_members:
@@ -90,21 +92,18 @@ class RmatsRerunAction(RefRnaController):
         if not isFloat(data.cut_off):
             info = {"success": False, "info": "cut_off必须为浮点数"}
             return json.dumps(info)
-        if float(data.cut_off)>=1 or float(data.cut_off) <0:
+        if float(data.cut_off) >= 1 or float(data.cut_off) < 0:
             info = {"success": False, "info": "cut_off必须在[0,1)之间"}
             return json.dumps(info)
-        
         my_param = {}
         print data.group_detail
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
-        my_param['control_file'] = data.control_id
+        my_param['control_id'] = data.control_id
         my_param['gname'] = group_doc['group_name']
         my_param['cut_off'] = data.cut_off
-        my_param['analysis_mode'] = 'P'
-        if my_param['analysis_mode'] == 'P' and len(case_group_bam_lst) != len(control_group_bam_lst):
-            info = {"success": False, "info": "分析模式为paired的时候，实验组和对照组的样本数必须相等"}
-            return json.dumps(info)
+        
+        
         my_param['submit_location'] = data.submit_location
         my_param['task_type'] = task_type
         splicing_info = RefRna().get_main_info(ObjectId(data.splicing_id), 'sg_splicing_rmats')
@@ -114,14 +113,40 @@ class RmatsRerunAction(RefRnaController):
             main_table_name = "SplicingRmats_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_id = splicing_info["task_id"]
             project_sn = splicing_info["project_sn"]
+            if not 'ref_gtf' in old_params.keys():
+                raise Exception('关联主表没有设置ref gtf路径')
+            if not 'seq_type' in old_params.keys():
+                raise Exception('关联主表没有设置seq_type')
+            if not 'read_len' in old_params.keys():
+                raise Exception('关联主表没有设置read_len')
+            if not 'novel' in old_params.keys():
+                raise Exception('关联主表没有设置novel')
+            if not 'analysis_mode' in old_params.keys():
+                raise Exception('关联主表没有设置analysis_mode')
+            if not 'lib_type' in old_params.keys():
+                raise Exception('关联主表没有设置lib_type')
             my_param["ref_gtf"] = old_params['ref_gtf']
             my_param["seq_type"] = old_params['seq_type']
+            my_param["read_len"] = old_params['read_len']
+            my_param["novel"] = old_params['novel']
+            my_param["analysis_mode"] = old_params['analysis_mode']
+            my_param["lib_type"] = old_params['lib_type']
+            if my_param['analysis_mode'] == 'P' and len(case_group_bam_lst) != len(control_group_bam_lst):
+                info = {"success": False, "info": "分析模式为paired的时候，实验组和对照组的样本数必须相等"}
+                return json.dumps(info)
+            
+            chr_set = [e.strip() for e in subprocess.check_output(
+                'awk -F \'\\t\'  \'$0!~/^#/{print $1}\' %s  | uniq | sort |uniq ' % old_params['ref_gtf'],
+                shell=True).strip().split('\n')]
+            group = {case_group_name: 's1', control_group_name: 's2'}
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
                 ('status', 'end'),
                 ('desc', "rmats主表"),
                 ('name', main_table_name),
+                ('chr_set', chr_set),
+                ('group', group),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
             ]
@@ -135,7 +160,7 @@ class RmatsRerunAction(RefRnaController):
                 "ref_gtf": old_params['ref_gtf'],
                 # "chr_set": splicing_info['chr_set'].__str__,
                 "cut_off": float(data.cut_off),
-                'control_file' : data.control_id,
+                'control_file': data.control_id,
                 "group_id": data.group_id,
                 "group_detail": data.group_detail
             }
@@ -155,9 +180,9 @@ class RmatsRerunAction(RefRnaController):
             else:
                 info = {"success": False, "info": "不能选单个样本作为一个组 组必须包含多个样本"}
                 return json.dumps(info)
-            print 'workflow设置的option为: %s'% options
+            print 'workflow设置的option为: %s' % options
             self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, task_id=task_id,
-                                project_sn=project_sn, module_type='workflow', to_file=to_file,params=my_param)
+                                project_sn=project_sn, module_type='workflow', to_file=to_file, params=my_param)
             task_info = super(RmatsRerunAction, self).POST()
             task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
             print task_info

@@ -60,12 +60,15 @@ class RmatsModelWorkflow(Workflow):
                                             'event_type') + '.MATS.ReadsOnTargetAndJunctionCounts.alter_id.txt')
         tmp_event_file = os.path.join(self.option("rmats_out_root_dir"),
                                       "MATS_output/" + self.option('event_id') + "." + self.option(
-                                          'event_type') + '.MATS.ReadsOnTargetAndJunctionCounts.txt')
+                                          'event_type') + '.MATS.ReadsOnTargetAndJunctionCounts.alter_id.txt')
+        self.logger.info(rmats_event_file)
+        self.logger.info(tmp_event_file)
+        
         tmp_str = subprocess.check_output(
-            "awk -F '\\t'  '$1==%s{print $0}' %s  " % (self.option('event_id'), rmats_event_file), shell=True).strip()
+            "grep '%s' %s  " % (self.option('event_id'), rmats_event_file), shell=True).strip()
         
         if tmp_str:
-            open(tmp_event_file, 'wb').write(tmp_str)
+            open(tmp_event_file, 'w').write(tmp_str)
         else:
             raise Exception('这个事件：{}没有模式信息记录！'.format(self.option('event_id')))
         
@@ -101,16 +104,20 @@ class RmatsModelWorkflow(Workflow):
         保存结果表保存到mongo数据库中
         """
         api_rmats_model = self.api.refrna_rmats_model
-        result_files = [os.path.join(self.rmats_model.output_dir + '/Sashimi_plot', f) for f in
-                        os.listdir(self.rmats_model.output_dir + '/Sashimi_plot') if re.match('^\S+\.pdf$', f)]
+        result_files = [os.path.join(self.rmats_model.output_dir + '/Sashimi_plot', f.strip()) for f in
+                        os.listdir(self.rmats_model.output_dir + '/Sashimi_plot') if re.match('^\S+\.(pdf|png)$', f.strip())]
         self.logger.info("要向mongo数据库中导入的文件是： %s" % result_files)
         splicing_id = ObjectId(self.option('splicing_id'))
         self.logger.info("准备开始向mongo数据库中导入rmats 事件模式图的rmats_model和graph信息！")
-        rmats_model_id = api_rmats_model.add_rmats_model(params=self.new_options, splicing_id=splicing_id)
+        # rmats_model_id = api_rmats_model.add_rmats_model(params=self.new_options, splicing_id=splicing_id)
+        rmats_model_id = self.option('rmats_model_id')
+        
         # for pdf in result_files:
         # rmats_model_id = ObjectId(self.option('rmats_model_id'))
         # self.logger.info('得到的rmats_model主表id是：%s' % rmats_model_id)
-        api_rmats_model.add_sg_fs(result_files[0], rmats_model_id)
+        for pic in result_files:
+            file_type = re.match('^\S+\.(png|pdf)$', os.path.basename(pic)).group(1)
+            api_rmats_model.add_sg_fs(file_path=pic, rmats_model_id=ObjectId(rmats_model_id), file_type=file_type)
         self.logger.info("向mongo数据库中导入rmats 事件模式图的rmats_model和graph信息成功！")
         self.end()
         

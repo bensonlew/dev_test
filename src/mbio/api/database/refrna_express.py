@@ -627,7 +627,7 @@ class RefrnaExpress(Base):
         project_sn = self.bind_object.sheet.project_sn
         
         if not os.path.exists(diff_stat_path):
-            raise Exception('diff_stat_path所指的路径:{}不存在'.format(diff_sta_path))
+            raise Exception('diff_stat_path所指的路径:{}不存在'.format(diff_stat_path))
         data_list_up = []
         data_list = []
         data_up = {
@@ -637,7 +637,7 @@ class RefrnaExpress(Base):
             'project_sn': project_sn,
             'type': type
         }
-
+        fc = 2
         up_data = self.get_diff_list(up_down_output=diff_stat_path, up_down=up_down, fc=fc)
         if up_data:
             geneset_length = len(up_data)
@@ -654,7 +654,7 @@ class RefrnaExpress(Base):
                     geneset_up_id = collection.insert_one(data_up).inserted_id
                     print geneset_up_id
                     if major:
-                        self.bind_object.blogger.info("准备开始导入geneset_detail表！")
+                        self.bind_object.logger.info("准备开始导入geneset_detail表！")
                         if geneset_up_id:
                             self.add_geneset_detail(geneset_up_id,diff_stat_path,up_data=up_data,up_down=up_down)  #直接导入detail表
                             self.bind_object.logger.info("导入geneset_detail表成功！")

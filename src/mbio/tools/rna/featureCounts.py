@@ -172,6 +172,8 @@ class FeaturecountsTool(Tool):
             self.set_error("表达量分布图{}的数据分析出错".format(exp_way))
             
     def sample_distribution(self):
+        #样本count  distribution
+        self.get_distribution(self.output_dir + "/count.xls", self.work_dir + "/count", "count")
         if self.option("exp_way") == "fpkm":
             self.get_distribution(self.output_dir+"/fpkm_tpm.fpkm.xls",self.work_dir+"/fpkm","fpkm")
             self.logger.info("计算fpkm成功")
@@ -184,23 +186,39 @@ class FeaturecountsTool(Tool):
             self.get_distribution(self.output_dir+"/fpkm_tpm.tpm.xls",self.work_dir+"/tpm","tpm")
             self.logger.info("计算tpm成功")
 
-    def group_distribution(self, old_fpkm, new_fpkm,sample_group_info, outputfile, filename): # add by khl 
-        import random
-        shutil.copy2(self.distribution_path+"/express_distribution.py",outputfile+"/express_distribution.py")
-        shutil.copy2(self.distribution_path+"/express_distribution.r",outputfile+"/express_distribution.r")
-        self.logger.info("express_distribution py和r文件复制完毕！")
-        rfile = outputfile+"/express_distribution.r"
-        group_express(old_fpkm = old_fpkm, new_fpkm = new_fpkm, sample_group_info = sample_group_info, \
-                        rfile=rfile, outputfile = outputfile, filename = filename)
-        cmd = self.r_path1 + " {}".format(rfile)
-        cmd1 = self.add_command("{}".format("".join(random.sample("abcdeghijk",3))), cmd).run()
-        self.logger.info(cmd)
+    def group_distribution(self, old_fpkm, new_fpkm,old_count, new_count, sample_group_info, outputfile, filename,_type=None): # add by khl
+        """
+        :param _type: fpkm或者tpm
+        """
+        group_express(old_fpkm = old_fpkm, new_fpkm = new_fpkm, old_count = old_count, new_count = new_count, sample_group_info = sample_group_info, \
+                        outputfile = outputfile, filename = filename)
+        # cmd = self.r_path1 + " {}".format(rfile)
+        # cmd1 = self.add_command("{}".format(filename+_type), cmd).run()
+        # self.logger.info(cmd)
+        # self.wait()
+
+        group_fpkm_distribution = self.work_dir + "/group_{}_distribution".format(_type)
+        if not os.path.exists(group_fpkm_distribution):
+            os.mkdir(group_fpkm_distribution)
+
+        distribution(rfile='./group_{}_distribution.r'.format(_type), input_matrix=new_fpkm, outputfile=group_fpkm_distribution,
+                     filename=filename)
+        cmd = self.r_path1 + " group_{}_distribution.r".format(_type)
+        cmd_run = self.add_command("{}".format((filename + "{}".format(_type)).lower()), cmd).run()
+
+        group_count_distribution = self.work_dir + "/group_count_distribution"
+        if not os.path.exists(group_count_distribution):
+            os.mkdir(group_count_distribution)
+            distribution(rfile='./group_count_distribution.r', input_matrix=new_count, outputfile=group_count_distribution,
+                     filename=filename)
+            cmd1 = self.r_path1 + " group_count_distribution.r"
+            cmd1_run = self.add_command("{}".format((filename + "count").lower()), cmd1).run()
         self.wait()
-        if cmd1.return_code == 0:
-            self.logger.info("计算group密度分布成功")
+        if cmd_run.return_code == 0:
+            self.logger.info("计算group{}密度分布成功".format(_type))
         else:
-            self.logger.info("计算group密度分布失败")
-    
+            self.logger.info("计算group{}密度分布失败".format(_type))
+
     def group_detail(self): 
         g = GroupTableFile()
         if self.option("edger_group").is_set:
@@ -219,28 +237,16 @@ class FeaturecountsTool(Tool):
                 os.mkdir(group_fpkm)
             if not os.path.exists(group_tpm):
                 os.mkdir(group_tpm)
-            self.group_distribution(old_fpkm=outputfile+"/fpkm_tpm.fpkm.xls",new_fpkm=new_group_path+"/group.fpkm.xls",\
-                            sample_group_info=sample_group_info, outputfile=group_fpkm,filename='GroupGenes')
-            self.group_distribution(old_fpkm=outputfile+"/fpkm_tpm.tpm.xls",new_fpkm=new_group_path+"/group.tpm.xls",\
-                            sample_group_info=sample_group_info, outputfile=group_tpm,filename='GroupGenes')
+            old_count = outputfile+"/count.xls"
+
+            self.group_distribution(old_fpkm=outputfile+"/fpkm_tpm.fpkm.xls", new_fpkm=new_group_path+"/group.fpkm.xls",
+                                    old_count=old_count, new_count=outputfile+"/fpkm_count.xls",
+                            sample_group_info=sample_group_info, outputfile=group_fpkm,filename='GroupGenes', _type='fpkm')
+            self.group_distribution(old_fpkm=outputfile+"/fpkm_tpm.tpm.xls",new_fpkm=new_group_path+"/group.tpm.xls",
+                                    old_count = old_count, new_count = outputfile+"/tpm_count.xls",
+                            sample_group_info=sample_group_info, outputfile=group_tpm,filename='GroupGenes', _type='tpm')
+
             self.logger.info("计算基因转录本group成功！")
-            # for f in results:
-                # if re.search(r'^(transcripts\.TMM)(.+)(matrix)$', f):
-                    # self.logger.info("开始计算trans group分布信息")
-                    # trans_new_fpkm = self.work_dir + "/Group.trans_"+f
-                    # self.logger.info("生成trans group 文件")
-                    # trans_filename = "GroupTrans"
-                    # self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=trans_new_fpkm,\
-                            # sample_group_info=sample_group_info, outputfile=outputfile, filename = trans_filename)
-                    # shutil.copy2(trans_new_fpkm, new_group_path+"/Group.trans_"+f)
-                # elif re.search(r'^(genes\.TMM)(.+)(matrix)$', f):
-                    # self.logger.info("开始计算gene group分布信息")
-                    # genes_new_fpkm = self.work_dir + "/Group.genes_"+f
-                    # self.logger.info("生成gene group 文件")
-                    # genes_filename = "GroupGenes"
-                    # self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=genes_new_fpkm,\
-                            # sample_group_info=sample_group_info, outputfile=outputfile, filename = genes_filename)
-                    # shutil.copy2(genes_new_fpkm, new_group_path+"/Group.genes_"+f)
         else:
             raise Exception("有生物学重复时，请设置样本生物学分组信息！")
     

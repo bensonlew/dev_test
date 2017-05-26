@@ -48,7 +48,7 @@ class RmatsModelAction(RefRnaController):
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
-        task_type = 'workflow'
+        task_type = data.task_type
         task_name = 'ref_rna.report.rmats_model'
         my_param = {'splicing_id': data.splicing_id, 'event_id': data.event_id, 'event_type': data.event_type,
                     'task_type': task_type, 'submit_location': data.submit_location}
@@ -65,7 +65,8 @@ class RmatsModelAction(RefRnaController):
             ('status', 'start'),
             ('name', main_table_name),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-            ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
+            ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':'))),
+            ('splicing_id', ObjectId(data.splicing_id))
         ]
         collection_name = "sg_splicing_rmats_model"
         main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
@@ -77,7 +78,8 @@ class RmatsModelAction(RefRnaController):
             "event_id": data.event_id,
             "event_type": data.event_type,
             "rmats_model_id": str(main_table_id),
-            "rmats_out_root_dir": rmats_out_root_dir
+            "rmats_out_root_dir": rmats_out_root_dir,
+            
         }
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, task_id=task_id,
                             project_sn=project_sn, module_type='workflow')
@@ -87,7 +89,7 @@ class RmatsModelAction(RefRnaController):
         return json.dumps(task_info)
     
     def check_options(self, data, out_root):
-        params_name = ["event_type", "event_id", "splicing_id"]
+        params_name = ["event_type", "event_id", "splicing_id","task_type"]
         success = []
         for name in params_name:
             if not hasattr(data, name):

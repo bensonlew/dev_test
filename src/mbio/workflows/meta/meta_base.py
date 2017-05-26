@@ -49,7 +49,7 @@ class MetaBaseWorkflow(Workflow):
             {"name": "file_list", "type": "string", "default": "null"},
             {"name": "raw_sequence", "type": "infile", "format": "sequence.raw_sequence_txt"},
             {"name": "workdir_sample", "type": "string", "default": ""},
-            {"name": "if_fungene", "type": "bool", 'default': False}
+            {"name": "if_fungene", "type": "bool", 'default': False}    
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
