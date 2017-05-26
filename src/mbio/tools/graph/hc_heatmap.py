@@ -164,7 +164,22 @@ class HcHeatmapTool(Tool):
 	def set_output(self):
 		os.link(self.new_data, os.path.join(self.output_dir, "result_data"))
 		file_name = os.listdir(self.output_dir)
-		if self.option('row_method') != '':
+		if self.option('row_method') != '' and self.option('col_method') == '':
+			for name in file_name:
+				if re.search('(\.tre)$', name):
+					os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "row_tre"))  # col_tre
+					os.remove(os.path.join(self.output_dir, name))
+				# if re.search('(\.ttre)$', name):
+				# 	os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))  # row_tre
+				# 	os.remove(os.path.join(self.output_dir, name))
+			self.logger.info("存在行聚类树")
+		elif self.option('row_method') == '' and self.option('col_method') != '':
+			for name in file_name:
+				if re.search('(\.tre)$', name):
+					os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))
+					os.remove(os.path.join(self.output_dir, name))
+			self.logger.info("存在列聚类树")
+		else:
 			for name in file_name:
 				if re.search('(\.tre)$', name):
 					os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))
@@ -172,13 +187,6 @@ class HcHeatmapTool(Tool):
 				if re.search('(\.ttre)$', name):
 					os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "row_tre"))
 					os.remove(os.path.join(self.output_dir, name))
-			self.logger.info("存在行聚类树")
-		else:
-			for name in file_name:
-				if re.search('(\.tre)$', name):
-					os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))
-					os.remove(os.path.join(self.output_dir, name))
-			self.logger.info("存在列聚类树")
 		file_name_2 = os.listdir(self.output_dir)
 		for name in file_name_2:
 			if re.search('(\.pdf)$', name):

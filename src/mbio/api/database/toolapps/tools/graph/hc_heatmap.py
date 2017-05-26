@@ -78,6 +78,7 @@ class HcHeatmap(Base):
             head = f.next().strip('\r\n')  # windows换行符
             head = re.split('\t', head)
             new_head = head[1:]
+            r_list = []
             for line in f:
                 line = line.rstrip("\r\n")
                 line = re.split('\t', line)
@@ -85,6 +86,7 @@ class HcHeatmap(Base):
                 otu_detail = dict()
                 otu_detail['heatmap_id'] = heatmap_id
                 otu_detail['row_name'] = line[0]
+                r_list.append(line[0])  # 后续画图做准备
                 for i in range(0, len(sample_num)):
                     otu_detail[new_head[i]] = sample_num[i]
                 insert_data.append(otu_detail)
@@ -104,7 +106,8 @@ class HcHeatmap(Base):
                     row_list = [i[1] for i in raw_samp]
             else:
                 row_tree = ""
-                row_list = []
+                row_list = r_list
+                # row_list = []
             col_tree_path = self.output_dir + '/col_tre'
             if os.path.exists(col_tree_path):
                 self.bind_object.logger.info("拥有列聚类树")
@@ -114,7 +117,8 @@ class HcHeatmap(Base):
                     col_list = [i[1] for i in raw_samp]
             else:
                 col_tree = ""
-                col_list = []
+                col_list = new_head
+                # col_list = []
             self.bind_object.logger.info("heatmap_id：{}".format(heatmap_id))
             try:
                 self.db['heatmap'].update_one({'_id': heatmap_id}, {'$set':
