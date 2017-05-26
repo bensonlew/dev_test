@@ -98,3 +98,17 @@ class KeggRegulate(object):
                     canvas.draw(out_dir + '/' + path + '.pdf')
                     os.remove(kgml_path)
                     # os.remove(png_path)
+                    # canvas = KGMLCanvas(kgml_path, import_imagemap=True, label_compounds=True,
+                    #                 label_orthologs=False, label_reaction_entries=False,
+                    #                 label_maps=False, show_maps=False, draw_relations=False, show_orthologs=True,
+                    #                 show_compounds=False, show_genes=False,
+                    #                 show_reaction_entries=False)
+                    # pdf = pathwaydir + '/' + pid + '.pdf'
+                    # png = pathwaydir + '/' + pid + '.png'
+                    # canvas.draw(pdf)
+                    # if image_magick:
+                    #     cmd = image_magick + ' -flatten -quality 100 -density 130 -background white ' + pdf + ' ' + png
+                    #     try:
+                    #         subprocess.check_output(cmd, shell=True)
+                    #     except subprocess.CalledProcessError:
+                    #         print '图片格式pdf转png出错'

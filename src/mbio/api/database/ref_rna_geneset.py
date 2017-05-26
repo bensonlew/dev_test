@@ -12,6 +12,7 @@ from biocluster.config import Config
 import json
 import re
 import gridfs
+import glob
 
 
 class RefRnaGeneset(Base):
@@ -311,14 +312,19 @@ class RefRnaGeneset(Base):
         if not os.path.exists(pathway_dir):
             raise Exception('pathway_dir所指定的路径:{}不存在，请检查！'.format(pathway_dir))
         data_list = []
-        files = os.listdir(pathway_dir)
+        png_files = glob.glob("{}/*.png".format(pathway_dir))
+        pdf_files = glob.glob("{}/*.pdf".format(pathway_dir))
         fs = gridfs.GridFS(self.db)
-        for f in files:
-            png_id = fs.put(open(os.path.join(pathway_dir, f), 'rb'))
+        for f in png_files:
+            # png_id = fs.put(open(os.path.join(pathway_dir, f), 'rb'))
+            f_name = os.path.basename(f).split(".")[0]
+            png_id = fs.put(open(f, 'rb'))
+            pdf_id = fs.put(open(os.path.join(pathway_dir, f_name + ".pdf"), 'rb'))
             insert_data = {
                 'kegg_id': regulate_id,
                 'pathway_png': png_id,
-                'pathway_id': f.split('.pdf')[0]
+                'pathway_pdf': pdf_id,
+                'pathway_id': f_name
             }
             data_list.append(insert_data)
         try:
