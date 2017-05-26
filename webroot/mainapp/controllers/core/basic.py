@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 
+import traceback
 from biocluster.wpm.client import worker_client, wait
 
 
@@ -39,15 +40,21 @@ class Basic(object):
         return self._return_msg
 
     def run(self):
-        worker = worker_client()
-        info = worker.add_task(self._json)
-        if info["success"]:
-            if self.instant:
-                return self.instant_wait(worker)
+        try:
+            worker = worker_client()
+            info = worker.add_task(self._json)
+            # self.logger.info("infor: %s"%(info))
+            if info["success"]:
+                if self.instant:
+                    return self.instant_wait(worker)
+                else:
+                    return info
             else:
-                return info
-        else:
-            raise Exception("任务提交失败:%s" % info["info"])
+                return False
+        except Exception, e:
+            exstr = traceback.format_exc()
+            print "ERROR:", exstr
+            raise Exception("任务提交失败：%s, %s" % (str(e), str(exstr)))
 
     def instant_wait(self, worker):
         end = wait(self._id)
