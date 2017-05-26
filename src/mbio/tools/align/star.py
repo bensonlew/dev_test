@@ -111,6 +111,7 @@ class StarTool(Tool):
             self.logger.info("成功构建参考序列索引index1！")
         else:
             self.set_error("构建索引出错!")
+            raise Exception("运行star出错")
 
     def star_aln1_se(self, genomeDir):
         """
@@ -127,6 +128,7 @@ class StarTool(Tool):
             self.logger.info("单端比对第一步比对成功！")
         else:
             self.set_error("单端比对第一步比对出错!")
+            raise Exception("运行star出错")
             
     def star_aln1_pe(self, genomeDir):
         """
@@ -143,6 +145,7 @@ class StarTool(Tool):
             self.logger.info("双端比对第一步比对成功！")
         else:
             self.set_error("双端比对第一步比对出错!")
+            raise Exception("运行star出错")
             
     def star_index2(self, ref_fa, sj):
         """
@@ -158,6 +161,7 @@ class StarTool(Tool):
             self.logger.info("第二次索引建立成功！")
         else:
             self.set_error("第二次索引建立出错!")
+            raise Exception("运行star出错")
             
     def star_aln2_se(self):
         """
@@ -180,6 +184,7 @@ class StarTool(Tool):
             self.logger.info("最终单端比对成功！")
         else:
             self.set_error("最终单端比对出错!")
+            raise Exception("运行star出错")
          
     def star_aln2_pe(self):
         """
@@ -195,6 +200,7 @@ class StarTool(Tool):
             self.logger.info("最终双端比对成功！")
         else:
             self.set_error("最终双端比对出错!")
+            raise Exception("运行star出错")
             
     def run(self):
         """

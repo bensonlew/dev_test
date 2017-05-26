@@ -19,6 +19,7 @@ class RnaCheckWorkflow(Workflow):
         self.set_options(self._sheet.options())
         self.qc = self.add_module("denovo_rna.qc.qc_stat")
         self.add_text = self.add_tool("sequence.change_fastqdir")
+        self.updata_status_api = self.api.meta_update_status
 
     def check_options(self):
 

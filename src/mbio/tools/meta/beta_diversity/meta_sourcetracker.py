@@ -54,8 +54,8 @@ class MetaSourcetrackerAgent(Agent):
 		设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
 		:return:
 		"""
-		self._cpu = 1
-		self._memory = "10G"
+		self._cpu = 10
+		self._memory = "20G"
 
 	def end(self):
 		result_dir = self.add_upload_dir(self.output_dir)
@@ -70,10 +70,9 @@ class MetaSourcetrackerTool(Tool):
 		super(MetaSourcetrackerTool, self).__init__(config)
 		self._version = "v1"
 		self.biom_path = 'program/Python/bin/biom'  #  /mnt/ilustre/users/sanger-dev/app/ app/program/R-3.3.1/lib64/R/bin/exec/R
-		# self.R_path = 'program/R-3.3.1/bin/'
 		self.r_path = 'program/R-3.3.1/bin/Rscript'
-		self.python_path = 'program/Python/bin/python'
-		self.python_script_path = 'program/Python/bin'
+		self.filter_otus_from_otu_table_path = 'program/Python/bin/filter_otus_from_otu_table.py'
+		self.sourcetracker_for_qiime_path = self.config.SOFTWARE_DIR + '/bioinfo/meta/sourcetracker-1.0.0-release/sourcetracker_for_qiime.r'
 
 	def run(self):
 		"""
@@ -99,7 +98,7 @@ class MetaSourcetrackerTool(Tool):
 			else:
 				self.set_error("OTU转biom运行出错!")
 				raise Exception("OTU转biom运行出错!")
-			cmd2 = self.python_path + (' /mnt/ilustre/users/sanger-dev/app/program/Python/bin/filter_otus_from_otu_table.py -i temp.biom -o filtered.biom -s %s' % (self.option('s')) )
+			cmd2 = self.filter_otus_from_otu_table_path + (' -i temp.biom -o filtered.biom -s %s' % (self.option('s')))
 			self.logger.info('python脚本，进行物种筛选')
 			command2 = self.add_command("python_cmd", cmd2).run()
 			self.wait(command2)
@@ -117,12 +116,12 @@ class MetaSourcetrackerTool(Tool):
 			else:
 				self.set_error("biom转OTU运行出错!")
 				raise Exception("biom转OTU运行出错!")
-			cmd4 = self.r_path + (
-			' /mnt/ilustre/users/sanger-dev/app/install_packages/sourcetracker-1.0.0-release/sourcetracker_for_qiime.r -i filtered.txt -m %s -o %s' % (
-			self.option('map_table').prop['path'], self.output_dir))
+			cmd4 = self.r_path + (' %s -i filtered.txt -m %s -o %s' %
+								 (self.sourcetracker_for_qiime_path,
+								  self.option('map_table').prop['path'], self.output_dir))
 		else:
 			cmd4 = self.r_path + (
-				' /mnt/ilustre/users/sanger-dev/app/install_packages/sourcetracker-1.0.0-release/sourcetracker_for_qiime.r -i %s -m %s -o %s' % (
+				' %s -i %s -m %s -o %s' % (self.sourcetracker_for_qiime_path,
 					self.option('otu_table'), self.option('map_table').prop['path'], self.output_dir))
 		self.logger.info('运行R，进行结果数据生成')
 		command4 = self.add_command("r_cmd", cmd4).run()
@@ -132,16 +131,3 @@ class MetaSourcetrackerTool(Tool):
 		else:
 			self.set_error("结果数据生成运行出错!")
 			raise Exception("结果数据生成运行出错!")
-
-	# def set_output(self):
-	# 	"""
-	# 	将结果文件复制到output文件夹下面
-	# 	:return:
-	# 	"""
-	# 	self.logger.info("设置结果目录")
-	# 	self.option('result_dir').set_path(self.output_dir)
-	# 	self.logger.info("设置样本菌群分型分析成功")
-
-
-
-

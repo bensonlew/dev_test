@@ -209,6 +209,7 @@ class Terms(dict):
 def get_color(values, steps=1000):
     all_red_colors = list(Color.range_to(Color('white'), Color('red'), steps - 1))
     all_blue_colors = list(Color.range_to(Color('blue'), Color('white'), steps - 1))
+    print(values)
     values = [-log10(i) for i in values]
     red_range = linspace(1.3, 10, steps)
     blue_range = linspace(0, 1.3, steps)
