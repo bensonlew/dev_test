@@ -34,6 +34,7 @@ class StarAgent(Agent):
             {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 单端序列文件
             {"name": "seq_method", "type": "string"},
             {"name": "is_indexed", "type": "bool", "default": False},
+            {"name": "sample", "type": "string", "default": ""}
            
         ]
         self.add_option(options)
@@ -86,7 +87,8 @@ class StarTool(Tool):
     def __init__(self, config):
         super(StarTool, self).__init__(config)
         self.star_path = "bioinfo/rna/star-2.5/bin/Linux_x86_64/"  # 设置star的路径
-        
+        self.samtools_path = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
+        self.shell_path = 'bioinfo/rna/scripts'
         # self.ref_fasta = self.option('ref_genome_custom').prop["path"]  # 用户上传的基因组路径
         # # if self.option("is_indexed") is False:
         # shutil.copy(self.ref_fasta, self.work_dir)  # 将参考基因组复制到当前工作路径下
@@ -111,6 +113,7 @@ class StarTool(Tool):
             self.logger.info("成功构建参考序列索引index1！")
         else:
             command.rerun()
+            self.wait(command)
             if command.return_code == 0:
                 self.logger.info("成功构建参考序列索引index1！")
             else:
@@ -278,8 +281,33 @@ class StarTool(Tool):
                 self.star_aln2_se()
         """
         只需要生成的Sam文件
-        """
+
         if os.path.exists(os.path.join(self.work_dir, "Aligned.out.sam")):
             shutil.copy(os.path.join(self.work_dir, "Aligned.out.sam"), self.output_dir)
         # self.set_output()
+        """
+        if os.path.exists(os.path.join(self.work_dir, "Aligned.out.sam")):
+            self.convert2bam()
         self.end()
+
+    def convert2bam(self):
+        sam_path = os.path.join(os.path.join(self.work_dir, "Aligned.out.sam"))
+        cmd = "{}/sam2bam.sh {} {}".format(self.shell_path, self.samtools_path, sam_path)
+        command = self.add_command("cmd", cmd)
+        command.run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("samtools转换完成")
+        else:
+            command.rerun()
+            if  command.return_code == 0:
+                self.logger.info("samtools转换完成")
+            else:
+                self.set_error("samtools转换出错")
+                raise Exception("samtools转换出错")
+        if not os.path.exists(self.output_dir + "/bam"):
+            os.mkdir(self.output_dir + "/bam")
+        if not os.path.exists(self.output_dir + "/sam"):
+            os.mkdir(self.output_dir + "/sam")
+        os.link(self.work_dir + "/accepted_hits.unsorted.bam", self.output_dir + "/bam/" + self.option("sample") + ".bam")
+        os.link(os.path.join(self.work_dir, "Aligned.out.sam"), self.output_dir + "/sam/" + self.option("sample") + ".sam")

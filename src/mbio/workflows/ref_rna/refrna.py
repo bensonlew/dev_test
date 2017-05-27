@@ -116,6 +116,7 @@ class RefrnaWorkflow(Workflow):
         self.map_qc = self.add_module("denovo_rna.mapping.map_assessment")
         self.map_qc_gene = self.add_module("denovo_rna.mapping.map_assessment")
         self.map_gene = self.add_module("rna.rnaseq_mapping")
+        self.star_mapping = self.add_module("rna.rnaseq_mapping")
         self.assembly = self.add_module("assemble.refrna_assemble")
         self.exp = self.add_module("rna.express")
         self.exp_alter = self.add_module("rna.express")
@@ -191,8 +192,8 @@ class RefrnaWorkflow(Workflow):
             raise OptionError("Kegg比对的E值超出范围")
         if not self.option("swissprot_blast_evalue") > 0 and not self.option("swissprot_blast_evalue") < 1:
             raise OptionError("Swissprot比对的E值超出范围")
-        if not self.option("seq_method") in ["Tophat", "Hisat"]:
-            raise OptionError("比对软件应在Tophat与Hisat中选择")
+        if not self.option("seq_method") in ["Tophat", "Hisat", "Star"]:
+            raise OptionError("比对软件应在Tophat,Star与Hisat中选择")
         for i in self.option('map_assess_method').split(','):
             if i not in ["saturation", "duplication", "distribution", "coverage", "chr_stat"]:
                 raise OptionError("比对质量评估分析没有{}，请检查".format(i))
@@ -255,9 +256,6 @@ class RefrnaWorkflow(Workflow):
             'fq_type': self.option('fq_type')
         })
         self.qc.on('end', self.set_output, 'qc')
-        self.genome_status = self.filecheck.option("genome_status")
-        if self.genome_status:  # 运行snp模块
-            self.qc.on("end", self.run_snp)
         self.qc.on('start', self.set_step, {'start': self.step.qcstat})
         self.qc.on('end', self.set_step, {'end': self.step.qcstat})
         self.qc.run()
@@ -417,15 +415,36 @@ class RefrnaWorkflow(Workflow):
             "result_reserved": self.option("result_reserved")
         }
         self.mapping.set_options(opts)
+        self.mapping.on("end", self.set_output, "mapping")
+        self.mapping.run()
+
+    def run_star_mapping(self):
+        opts = {
+            "ref_genome_custom": self.option("ref_genome_custom"),
+            "ref_genome": "customer_mode",
+            "mapping_method": "star",
+            "seq_method": self.option("fq_type"),   # PE or SE
+            "fastq_dir": self.qc.option("sickle_dir"),
+            "assemble_method": self.option("assemble_method")
+        }
+        self.star_mapping.set_options(opts)
+        self.genome_status = self.filecheck.option("genome_status")
         if self.genome_status:  # 进行可变剪切分析
             if self.get_group_from_edger_group():
-                self.mapping.on("end", self.run_altersplicing)
+                self.star_mapping.on("end", self.run_altersplicing)
             else:
                 self.logger.info("不进行可变剪切分析")
                 self.altersplicing.start_listener()
                 self.altersplicing.fire("end")
-        self.mapping.on("end", self.set_output, "mapping")
-        self.mapping.run()
+            self.star_mapping.on("end", self.run_snp)
+            self.star_mapping.on("end", self.set_output, "mapping")
+            self.star_mapping.run()
+        else:
+            self.logger.info("不进行snp分析与可变剪切分析")
+            self.snp_rna.start_listener()
+            self.snp_rna.fire("end")
+            self.altersplicing.start_listener()
+            self.altersplicing.fire("end")
      
     def run_assembly(self):
         self.logger.info("开始运行拼接步骤")
@@ -581,12 +600,13 @@ class RefrnaWorkflow(Workflow):
         self.new_annotation.run()
 
     def run_snp(self):
+        self.logger.info("开始运行snp步骤")
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_genome":  "customer_mode",
             "ref_gtf": self.filecheck.option("gtf"),
             "seq_method": self.option("fq_type"),
-            "fastq_dir": self.qc.option("sickle_dir")
+            "in_sam": self.star_mapping.output_dir + "/sam"
         }
         self.snp_rna.set_options(opts)
         # self.final_tools.append(self.snp_rna)
@@ -735,7 +755,7 @@ class RefrnaWorkflow(Workflow):
         else:
             lib_type = "fr-unstranded"
         opts = {
-            "sample_bam_dir": self.mapping.option("bam_output"),
+            "sample_bam_dir": self.star_mapping.option("bam_output"),
             "lib_type": lib_type,
             "ref_gtf": self.filecheck.option("gtf"),
             "group_table": self.option("group_table"),
@@ -1006,6 +1026,7 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
+        self.qc.on("end", self.run_star_mapping)
         self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
         self.map_gene.on("end", self.run_map_assess_gene)
         self.mapping.on('end', self.run_assembly)
@@ -1025,15 +1046,20 @@ class RefrnaWorkflow(Workflow):
         super(RefrnaWorkflow, self).run()
 
     def test_run(self):
-        self.filecheck.option("gtf").set_path(self.filecheck.work_dir + "/Danio_rerio.GRCz10.87.gff3.gtf")
-        self.taxon_id = "8128"
+        self.filecheck.option("gtf").set_path(self.filecheck.work_dir + "/fake.gff3.gtf")
+        # self.taxon_id = "8128"
+        # self.start_listener()
+        # self.merge_gene_annot.on("end", self.run_exp_gene_diff)
+        self.run_snp()
         self.start_listener()
-        self.merge_gene_annot.on("end", self.run_exp_gene_diff)
         self.fire("start")
-        # self.run_network_gene()
-        self.run_merge_annot()
-        self.run_network_trans_test()
         self.rpc_server.run()
+        # self.filecheck.on('end', self.run_qc)
+        # self.qc.on('end', self.run_star_mapping)
+        # self.mapping.on("end", self.run_snp)
+        # self.on_rely(self.final_tools, self.end)
+        # self.run_filecheck()
+        # super(RefrnaWorkflow, self).run()
 
     def __check(self):
         super(RefrnaWorkflow, self).__check()

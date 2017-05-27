@@ -45,7 +45,7 @@ class DrawFastqInfoAgent(Agent):
         所需资源
         """
         self._cpu = 11
-        self._memory = ''
+        self._memory = '4G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -120,6 +120,7 @@ class DrawFastqInfoTool(Tool):
             else:
                 if command.return_code == None:
                     command.rerun()
+                    command.wait()
                     if command.return_code == 0:
                         self.logger.info("运行{}完成".format(command.name))
                         fastq_qual_stat("qual_stat")
