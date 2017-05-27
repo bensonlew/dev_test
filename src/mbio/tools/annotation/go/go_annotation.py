@@ -67,9 +67,9 @@ class GoAnnotationAgent(Agent):
             ["./go1234level_statistics.xls", "xls", "Go annotation on 4 levels"],
             ["./go123level_statistics.xls", "xls", "Go annotation on 3 levels"],
             ["./go12level_statistics.xls", "xls", "Go annotation on 2 levels"],
-            ["./go2level.xls", "xls", "Go annotation on level 2"],
-            ["./go3level.xls", "xls", "Go annotation on level 3"],
-            ["./go4level.xls", "xls", "Go annotation on level 4"]
+            # ["./go2level.xls", "xls", "Go annotation on level 2"],
+            # ["./go3level.xls", "xls", "Go annotation on level 3"],
+            # ["./go4level.xls", "xls", "Go annotation on level 4"]
         ])
         super(GoAnnotationAgent, self).end()
 
@@ -148,7 +148,7 @@ class GoAnnotationTool(Tool):
                 os.link(self.work_dir + '/' + item, linkfile)
         except subprocess.CalledProcessError:
             self.set_error("运行goAnnot.py出错")
-        self.run_gosplit()
+        # self.run_gosplit()
 
     def run_gosplit(self):
         cmd3 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/goSplit.py'.format(
