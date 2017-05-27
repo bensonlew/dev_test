@@ -25,7 +25,8 @@ class GenesetClassAction(RefRnaController):
             "submit_location": data.submit_location,
             "task_type": data.task_type,
             "geneset_id": data.geneset_id,
-            "anno_type": data.anno_type
+            "anno_type": data.anno_type,
+            "geneset_type": data.geneset_type
         }
         # 判断传入的基因集id是否存在
         geneset_info = {}
@@ -49,8 +50,8 @@ class GenesetClassAction(RefRnaController):
         elif data.anno_type == "kegg":
             table_name = "Kegg"
             collection_name = "sg_geneset_kegg_class"
-            to_file = 'ref_rna.export_multi_gene_list(geneset_kegg)'
-            option = {"geneset_kegg": data.geneset_id}
+            to_file = ['ref_rna.export_multi_gene_list(geneset_kegg)', "ref_rna.export_kegg_table(kegg_table)'"]
+            option = {"geneset_kegg": data.geneset_id, "kegg_table": data.geneset_id.split(",")[0]}
         else:
             info = {'success': False, 'info': '不支持的功能分类!'}
             return json.dumps(info)

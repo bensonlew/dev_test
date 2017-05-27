@@ -72,7 +72,9 @@ class BamReadsdistributionTool(Tool):
         """
         运行read_distribution
         """
-        cmd = "python {}read_distribution.py -i {} -r {} -> reads_distribution.txt".format(self.cmd_path, self.option("bam").prop["path"], self.option("bed").prop["path"])
+        cmd = "python {}read_distribution.py -i {} -r {} -> {}.reads_distribution.txt"\
+            .format(self.cmd_path, self.option("bam").prop["path"], self.option("bed").prop["path"],
+                    os.path.basename(self.option("bam").prop["path"]).split(".")[0])
         self.logger.info("开始运行read_distribution")
         self.logger.info(cmd)
         try:

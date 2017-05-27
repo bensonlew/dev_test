@@ -93,6 +93,7 @@ class GatkTool(Tool):
             self.logger.info("参考基因组构建dict done!")
         else:
             self.set_error("构建dict过程error！")
+            raise Exception("构建dict过程error！")
 
     def samtools_faidx(self, ref_fasta):
 
@@ -107,7 +108,14 @@ class GatkTool(Tool):
         if command.return_code == 0:
             self.logger.info("samtools建索引完成！")
         else:
-            self.set_error("samtools建索引出错！")
+            self.logger.info("重新运行samtools建索引过程")
+            if command.return_code == None:
+                command.rerun()
+                if command.return_code == 0:
+                    self.logger.info("samtools建索引完成！")
+                else:
+                    self.set_error("samtools建索引出错！")
+                    raise Exception("samtools建索引出错！")
 
     # add by qindanhua 20170221
     def realignment(self, ref_fasta):
@@ -121,6 +129,7 @@ class GatkTool(Tool):
             self.logger.info("indel比对完成！")
         else:
             self.set_error("indel比对出错！")
+            raise Exception("indel比对出错！")
 
     def indel_realn(self, ref_fasta):
         cmd = "{}java -jar {}GenomeAnalysisTK.jar -T IndelRealigner -R {} -I {} -o {} -targetIntervals {}"\
@@ -133,6 +142,7 @@ class GatkTool(Tool):
             self.logger.info("indel_realn完成！")
         else:
             self.set_error("indel_realn出错！")
+            raise Exception("indel_realn出错！")
 
     def base_recalibrator(self, ref_fasta):
         cmd = "{}java -jar {}GenomeAnalysisTK.jar -T BaseRecalibrator -R {} -I {} -o {} -knownSites {}"\
@@ -145,6 +155,7 @@ class GatkTool(Tool):
             self.logger.info("base_recalibrator完成！")
         else:
             self.set_error("base_recalibrator出错！")
+            raise Exception("base_recalibrator出错！")
 
     def print_reads(self, ref_fasta):
         cmd = "{}java -jar {}GenomeAnalysisTK.jar -T PrintReads -R {} -I {} -o {}"\
@@ -157,6 +168,7 @@ class GatkTool(Tool):
             self.logger.info("print_reads完成！")
         else:
             self.set_error("print_reads出错！")
+            raise Exception("print_reads出错！")
 
     def gatk_split(self, ref_fasta, bam):
         """
@@ -173,6 +185,7 @@ class GatkTool(Tool):
             self.logger.info("split NCigar reads完成！")
         else:
             self.set_error("split NCigar reads出错！")
+            raise Exception("split NCigar reads出错！")
         
     def gatk_vc(self, ref_fasta, split_bam):
         """
@@ -188,6 +201,7 @@ class GatkTool(Tool):
             self.logger.info("variant calling完成！")
         else:
             self.set_error("variant calling出错！")
+            raise Exception("variant calling出错！")
             
     def gatk_vf(self, ref_fasta, variantfile):
         """
@@ -204,6 +218,7 @@ class GatkTool(Tool):
         except subprocess.CalledProcessError:
             self.logger.info('variant filtering失败')
             self.set_error('无法生成vcf文件')
+            raise Exception("无法生成vcf文件")
             
     def run(self):
         super(GatkTool, self).run()

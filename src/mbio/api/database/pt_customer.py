@@ -126,7 +126,7 @@ class PtCustomer(Base):
             for line in f:
                 line = line.strip()
                 line = line.split('\t')
-                if re.match('WQ[0-9]*-.*',line[3]):
+                if re.match('WQ([0-9]*)-.*',line[3]):
                     insert_data ={
                         "type": line[2],
                         "sample_id":line[3]

@@ -482,18 +482,13 @@ def write_big_detail_file(out, big_file):
     fw.close()
 
 
-if __name__ == '__main__':
-    out_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170502/Single_rmats_module_linfang_new/Rmats/RmatsBam/output'
-    case_name = 'SAMPLE_1'
-    control_name = 'SAMPLE_2'
-    big_detail_file = os.path.join(out_dir, 'all_events_detail_big_table.txt')
-    stat_psi = os.path.join(out_dir, 'psi_stats.file.txt')
-    events_stats_file = os.path.join(out_dir, 'event_stats.file.txt')
-    if not {case_name, control_name} == {'SAMPLE_1', 'SAMPLE_2'}:
-        raise Exception('case和control名字必须为SAMPLE_1、2：%s,%s ' % (case_name, control_name))
+def process_single_rmats_output_dir(root):
+    big_detail_file = os.path.join(root, 'all_events_detail_big_table.txt')
+    stat_psi = os.path.join(root, 'psi_stats.file.txt')
+    events_stats_file = os.path.join(root, 'event_stats.file.txt')
     
     # 检查输出结果文件夹合理性
-    alter_ref_dic = check_rmats_out_dir(out_dir)  # alter_ref_dic
+    alter_ref_dic = check_rmats_out_dir(root)  # alter_ref_dic
     # 修饰结果文件 在ID 上加上事件类型
     s1 = time.time()
     for in_file, out_file in alter_ref_dic.items():
@@ -519,7 +514,13 @@ if __name__ == '__main__':
     write_psi_stats_file(stat_file=stat_psi, psi_dic=psi_info_dic)
     s7 = time.time()
     print('写psi统计文件结束，用时：{}'.format(s7 - s6))
-    write_big_detail_file(big_file=big_detail_file, out=out_dir)
+    write_big_detail_file(big_file=big_detail_file, out=root)
     s8 = time.time()
     print('写大文件结束，用时：{}'.format(s8 - s7))
     print('程序总用时：{}'.format(s8 - s1))
+
+
+if __name__ == '__main__':
+    process_single_rmats_output_dir(
+        root='/mnt/ilustre/users/sanger-dev/workspace/'
+             '20170502/Single_rmats_module_linfang_new/Rmats/RmatsBam/output')

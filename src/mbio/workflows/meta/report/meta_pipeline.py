@@ -27,7 +27,8 @@ class MetaPipelineWorkflow(Workflow):
         options = {
             'data': self.option("data"),
             'pipe_id': self.option("pipe_id"),
-            'task_id': self.get_task_id()
+            'task_id': self.get_task_id(),
+            'batch_task_id': self._sheet.id
         }
         self.pipe_submit_all.set_options(options)
         self.pipe_submit_all.on('end', self.end)

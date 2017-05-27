@@ -19,7 +19,7 @@ class KeggRegulateAgent(Agent):
         super(KeggRegulateAgent, self).__init__(parent)
         options = [
             {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},  # 只含有基因的kegg table结果文件
-            {"name": "diff_stat", "type": "infile", "format": "denovo_rna.express.diff_stat_table"}
+            {"name": "diff_stat", "type": "infile", "format": "rna.diff_stat_table"}
         ]
         self.add_option(options)
         self.step.add_steps("kegg_regulate")

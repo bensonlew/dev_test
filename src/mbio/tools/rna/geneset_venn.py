@@ -76,7 +76,13 @@ class GenesetVennTool(Tool):
             self.set_error("%s运行出错" % cmd1)
         
     def set_output(self):
-        shutil.copy2(self.option("fpkm").prop['path'],self.output_dir+"/venn_graph.xls")
+        tmp = self.output_dir + "/tmp"
+        with open(self.option("fpkm").prop['path'],'r+') as f1,open(tmp,'w+') as f2:
+            f2.write("#group_name\tspecies_name\n")
+            for lines in f1:
+                f2.write(lines)
+        shutil.copy2(tmp,self.output_dir+"/venn_graph.xls")
+        os.remove(tmp)
         for files in os.listdir(self.output_dir):
             print files
             if re.search(r'table',files):
