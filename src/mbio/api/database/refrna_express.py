@@ -23,13 +23,244 @@ class RefrnaExpress(Base):
         super(RefrnaExpress, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
         db =  Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        # db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        
-    # @report_check
-    def add_express(self, rsem_dir=None, group_fpkm_path = None, transcript_fasta_path=None, is_duplicate=None, class_code = None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = None):
-            db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+
+    #@report_check
+    def add_express_gragh(self,express_id, distribution_path_log2, distribution_path_log10, distribution_path, sample_group,
+                          query_type=None, value_type=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        def stat(fpkm_data, density, log=None):
+            tmp = []
+            if len(fpkm_data) != len(density):
+                raise Exception("density必须和fpkm长度相等！")
+            else:
+                for i in range(len(fpkm_data)):
+                    if not log:
+                        tmp.append({"fpkm": round(fpkm_data[i], 6), "density": round(density[i], 6)})
+                return tmp
+
+        dflog2 = pd.read_table(distribution_path_log2)
+        dflog10 = pd.read_table(distribution_path_log10)
+        df = pd.read_table(distribution_path)
+        samples = df.columns[1:]
+        data_list = []
+        for i in samples:
+            insert_data = [
+                ('express_id', express_id),
+                ('type', query_type),
+                ('specimen', i),
+                ('sample_group', sample_group),
+                ('value_type', value_type)
+            ]
+            tmp = stat(fpkm_data=df["fpkm"], density=df[i])
+            tmplog2 = stat(fpkm_data=dflog2["log2fpkm"], density=dflog2[i])
+            tmplog10 = stat(fpkm_data=dflog10["log10fpkm"], density=dflog10[i])
+            insert_data.append(('data', tmp))
+            insert_data.append(('data_log2', tmplog2))
+            insert_data.append(('data_log10', tmplog10))
+            insert_data = SON(insert_data)
+            data_list.append(insert_data)
+        try:
+            collection = db["sg_express_gragh"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            print ("导入表达量矩阵作图数据：%s信息出错:%s" % (distribution_path_log2, e))
+        else:
+            print ("导入表达量矩阵作图数据: %s信息成功!" % distribution_path_log2)
+
+    #@report_check
+    def add_express(self, rsem_dir=None, group_fpkm_path=None, transcript_fasta_path=None, is_duplicate=None,
+                            class_code=None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None,
+                            major=True, distri_path=None):
+
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        task_id = self.bind_object.sheet.id
+        project_sn = self.bind_object.sheet.project_sn
+        # if not express_diff_id:
+        # params={"value_type":value_type, "query_type":query_type,"method":method, "group_id":group_id,"group_detail":group_detail}
+
+        insert_data = {
+            'project_sn': project_sn,
+            'task_id': task_id,
+            'name': name if name else 'ExpressStat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'desc': '表达量计算主表',
+            'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'params': (
+                json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
+            'specimen': samples,
+            'status': 'end',
+            'bam_path': bam_path,
+            'transcript_fasta_path': transcript_fasta_path,
+            'is_duplicate': is_duplicate
+        }
+        if params:
+            insert_data["genes"] = True
+            if params["express_method"] == "rsem":
+                insert_data["trans"] = True
+            if params["express_method"].lower() == "featurecounts":
+                insert_data["trans"] = False
+            if params['group_detail']:
+                if is_duplicate:
+                    insert_data["group"] = params["group_detail"].keys()
+        if express_diff_id:
+            insert_data["express_diff_id"] = express_diff_id
+        collection = db['sg_express']
+        value_type = params["type"]
+        print "value_type"
+        print value_type
+        if params:
+            params.update({"submit_location": "express_rsem_{}".format(value_type)})
+        express_id = collection.insert_one(insert_data).inserted_id
+        print "插入主表id是{}".format(express_id)
+
+        sample_group = "sample"
+        method = params["express_method"]
+        # express_id=ObjectId("58f03a28a4e1af44d4139c79")
+        if major:
+            rsem_files = os.listdir(rsem_dir)
+            # sample_group = "sample"
+            for f in rsem_files:
+                if re.search(r'^genes\.TMM', f):
+                    fpkm_path = rsem_dir + "/" + f
+                    count_path = rsem_dir + '/genes.counts.matrix'
+                    # query_type=None,value_type=None, method=None, sample_group=None
+                    print fpkm_path
+                    print count_path
+                    self.add_express_detail(express_id, fpkm_path, class_code, 'gene', value_type, method,
+                                            sample_group)
+                    self.add_express_detail(express_id, count_path, class_code, 'gene', 'count', method,
+                                            sample_group)
+                    try:
+                        self.add_express_gragh(express_id,
+                                               distribution_path_log2=distri_path + "/log2gene_distribution.xls",
+                                               distribution_path_log10=distri_path + "/log10gene_distribution.xls",
+                                               distribution_path=distri_path + "/gene_distribution.xls",
+                                               sample_group="sample",
+                                               query_type="gene", value_type=value_type)
+                    except Exception:
+                        print 'error!'
+                    print '导入基因{}graph成功'.format(value_type)
+
+                    self.add_express_gragh(express_id,
+                                           distribution_path_log2=distri_path + "/sample_count_distribution/log2gene_distribution.xls",
+                                           distribution_path_log10=distri_path + "/sample_count_distribution/log10gene_distribution.xls",
+                                           distribution_path=distri_path + "/sample_count_distribution/gene_distribution.xls",
+                                           sample_group='sample',
+                                           query_type="gene", value_type='count')
+                    print '导入基因{}graph成功'.format('count')
+
+                    self.add_express_box(express_id, fpkm_path=fpkm_path, sample_group="sample", query_type="gene",
+                                         value_type=value_type)
+                    self.add_express_box(express_id, fpkm_path=count_path, sample_group="sample", query_type="gene",
+                                         value_type='count')
+
+                    if is_duplicate:
+                        if value_type == 'fpkm':
+                            gene_group_fpkm_path = distri_path + "/Group.genes_genes.TMM.fpkm.matrix"
+                            gene_group_count_path = distri_path + "/Group.genes_count_genes.TMM.fpkm.matrix"
+                        if value_type == 'tpm':
+                            gene_group_fpkm_path = distri_path + "/Group.genes_genes.TMM.EXPR.matrix"
+                            gene_group_count_path = distri_path + "/Group.genes_count_genes.TMM.EXPR.matrix"
+                        print '开始进行group导表'
+                        if os.path.exists(gene_group_fpkm_path):
+                            self.add_express_group_detail(express_id, gene_group_fpkm_path, "gene", value_type, "rsem",
+                                                          "group")
+                            print '基因group{}导表成功！'.format(value_type)
+                        if os.path.exists(gene_group_count_path):
+                            self.add_express_group_detail(express_id, gene_group_count_path, "gene", "count", "rsem",
+                                                          "group")
+                            print '基因group count导表成功！'
+                        self.add_express_gragh(express_id,
+                                               distribution_path_log2=distri_path + "/group_genes_fpkm_distribution/log2GroupGenes_distribution.xls",
+                                               distribution_path_log10=distri_path + "/group_genes_fpkm_distribution/log10GroupGenes_distribution.xls",
+                                               distribution_path=distri_path + "/group_genes_fpkm_distribution/GroupGenes_distribution.xls",
+                                               sample_group="group", query_type="gene", value_type=value_type)
+                        print '基因group graph{}导表成功！'.format(value_type)
+                        self.add_express_gragh(express_id,
+                                               distribution_path_log2=distri_path + "/group_genes_count_distribution/log2GroupGenes_distribution.xls",
+                                               distribution_path_log10=distri_path + "/group_genes_count_distribution/log10GroupGenes_distribution.xls",
+                                               distribution_path=distri_path + "/group_genes_count_distribution/GroupGenes_distribution.xls",
+                                               sample_group="group", query_type="gene", value_type='count')
+                        print '基因group graph{}导表成功！'.format('count')
+                        # #目前缺少count的graph数据
+                        self.add_express_box(express_id, fpkm_path=gene_group_fpkm_path,
+                                             sample_group="group", query_type="gene", value_type=value_type)
+                        self.add_express_box(express_id, fpkm_path=gene_group_count_path, sample_group='group',
+                                             query_type='gene', value_type='count')
+                elif re.search(r'^transcripts\.TMM', f):
+                    fpkm_path = rsem_dir + "/" + f
+                    count_path = rsem_dir + '/transcripts.counts.matrix'
+                    print fpkm_path
+                    print count_path
+
+                    self.add_express_detail(express_id, fpkm_path, class_code, 'transcript', value_type, method,
+                                            sample_group)
+                    self.add_express_detail(express_id, count_path, class_code, 'transcript', 'count', method,
+                                            sample_group)
+                    self.add_express_gragh(express_id,
+                                           distribution_path_log2=distri_path + "/log2transcript_distribution.xls",
+                                           distribution_path_log10=distri_path + "/log10transcript_distribution.xls",
+                                           distribution_path=distri_path + "/transcript_distribution.xls",
+                                           sample_group="sample", query_type="transcript", value_type=value_type)
+                    self.add_express_gragh(express_id,
+                                           distribution_path_log2=distri_path + "/sample_count_distribution/log2transcript_distribution.xls",
+                                           distribution_path_log10=distri_path + "/sample_count_distribution/log10transcript_distribution.xls",
+                                           distribution_path=distri_path + "/sample_count_distribution/transcript_distribution.xls",
+                                           sample_group="sample", query_type="transcript", value_type='count')
+                    self.add_express_box(express_id, fpkm_path=fpkm_path, sample_group="sample",
+                                         query_type="transcript", value_type=value_type)
+                    self.add_express_box(express_id, fpkm_path=count_path, sample_group="sample",
+                                         query_type="transcript", value_type='count')
+                    if is_duplicate:
+                        print value_type
+
+                        if value_type == 'fpkm':
+                            trans_group_fpkm_path = distri_path + "/Group.trans_transcripts.TMM.fpkm.matrix"
+                            trans_group_count_path = distri_path + "/Group.trans_count_transcripts.TMM.fpkm.matrix"  # trans的count数据
+                        if value_type == 'tpm':
+                            trans_group_fpkm_path = distri_path + "/Group.trans_transcripts.TMM.EXPR.matrix"
+                            trans_group_count_path = distri_path + "/Group.trans_count_transcripts.TMM.EXPR.matrix"  # trans的count数据
+                        print trans_group_fpkm_path
+
+                        if os.path.exists(trans_group_fpkm_path):
+                            self.add_express_group_detail(express_id, trans_group_fpkm_path, "transcript", value_type,
+                                                          "rsem", "group")
+                            self.add_express_group_detail(express_id, trans_group_fpkm_path, "transcript", 'count',
+                                                          "rsem", "group")
+                        self.add_express_gragh(express_id,
+                                               distribution_path_log2=distri_path + "/group_trans_fpkm_distribution/log2GroupTrans_distribution.xls",
+                                               distribution_path_log10=distri_path + "/group_trans_fpkm_distribution/log10GroupTrans_distribution.xls",
+                                               distribution_path=distri_path + "/group_trans_fpkm_distribution/GroupTrans_distribution.xls",
+                                               sample_group="group", query_type="transcript", value_type=value_type)
+                        self.add_express_gragh(express_id,
+                                               distribution_path_log2=distri_path + "/group_trans_count_distribution/log2GroupTrans_distribution.xls",
+                                               distribution_path_log10=distri_path + "/group_trans_count_distribution/log10GroupTrans_distribution.xls",
+                                               distribution_path=distri_path + "/group_trans_count_distribution/GroupTrans_distribution.xls",
+                                               sample_group="group", query_type="transcript", value_type='count')
+                        # 目前缺少trans count的graph数据
+                        self.add_express_box(express_id,
+                                             fpkm_path=trans_group_fpkm_path,
+                                             sample_group="group", query_type="transcript", value_type=value_type)
+                        self.add_express_box(express_id,
+                                             fpkm_path=trans_group_count_path,
+                                             sample_group="group", query_type="transcript", value_type='count')
+                elif re.search(r'\.genes\.results$', f):
+                    sample = f.split('.genes.results')[0]
+                    file_ = rsem_dir + "/" + f
+                    self.add_express_specimen_detail(express_id, file_, 'gene', sample)
+                elif re.search(r'\.isoforms\.results$', f):
+                    sample = f.split('.isoforms.results')[0]
+                    file_ = rsem_dir + "/" + f
+                    self.add_express_specimen_detail(express_id, file_, 'transcript', sample)
+        return express_id
+
+    #@report_check
+    def add_express_feature(self, feature_dir=None, group_fpkm_path=None, is_duplicate=None, class_code=None,
+                                samples=None,
+                                params=None, name=None, express_diff_id=None, bam_path=None, major=True,
+                                distri_path=None):
             task_id = self.bind_object.sheet.id
             project_sn = self.bind_object.sheet.project_sn
+            db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
             insert_data = {
                 'project_sn': project_sn,
                 'task_id': task_id,
@@ -40,145 +271,79 @@ class RefrnaExpress(Base):
                 'specimen': samples,
                 'status': 'end',
                 'bam_path': bam_path,
-                'transcript_fasta_path': transcript_fasta_path,
+                # 'transcript_fasta_path': transcript_fasta_path,
                 'is_duplicate': is_duplicate
             }
-            # if is_duplicate:
-            #     insert_data['group'] = group
+            sample_group = "sample"
             if params:
-                insert_data["genes"]=True
-                if params["express_method"] == "rsem":
-                    insert_data["trans"]=True
-                if params["express_method"].lower() == "featurecounts":
-                    insert_data["trans"]=False
+                insert_data["genes"] = True
+                insert_data["trans"] = False
                 if params['group_detail']:
                     if is_duplicate:
-                        insert_data["group"]=params["group_detail"].keys()
-            if express_diff_id:
-                insert_data["express_diff_id"] = express_diff_id
+                        insert_data["group"] = params["group_detail"].keys()
             collection = db['sg_express']
+            value_type = params["type"]  # fpkm或者是tpm
+            method = params["express_method"]
+            if params:
+                params.update({"submit_location": "express_feature"})
             express_id = collection.insert_one(insert_data).inserted_id
             print "插入主表id是{}".format(express_id)
-            value_type = params["type"]
-            sample_group = "sample"
-            method = params["express_method"]
+
+            # express_id=ObjectId("58f03a28a4e1af44d4139c79")
             if major:
-                rsem_files = os.listdir(rsem_dir)
-                # sample_group = "sample"
-                for f in rsem_files:
-                    if re.search(r'^genes\.TMM', f):
-                        fpkm_path = rsem_dir + "/" + f
-                        count_path = rsem_dir + '/genes.counts.matrix'
-                        # query_type=None,value_type=None, method=None, sample_group=None
-                        
-                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group)
-                        self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2gene_distribution.xls",
-                                          distribution_path_log10 = distri_path+"/log10gene_distribution.xls",
-                                          distribution_path = distri_path+"/gene_distribution.xls", sample_group = "sample", query_type="gene")
-                        self.add_express_box(express_id, fpkm_path = rsem_dir+"/"+f, sample_group="sample", query_type="gene")
-                        if is_duplicate:
-                            if value_type == 'fpkm':
-                                gene_group_fpkm_path = group_fpkm_path+"/Group.genes_genes.TMM.fpkm.matrix"
-                            if value_type == 'tpm':
-                                gene_group_fpkm_path = group_fpkm_path + "/Group.genes_genes.TMM.EXPR.matrix"
-                            if os.path.exists(gene_group_fpkm_path):
-                                self.add_express_group_detail(express_id, gene_group_fpkm_path,"gene",value_type,"rsem","group")
-                            self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2GroupGenes_distribution.xls",
-                                              distribution_path_log10 = distri_path+"/log10GroupGenes_distribution.xls",
-                                              distribution_path = distri_path+"/GroupGenes_distribution.xls", sample_group = "group", query_type="gene")
-                            self.add_express_box(express_id, fpkm_path=gene_group_fpkm_path, sample_group="group", query_type="gene")
-                    elif re.search(r'^transcripts\.TMM', f):
-                        fpkm_path = rsem_dir + "/" + f
-                        count_path = rsem_dir + '/transcripts.counts.matrix'
-                        self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'transcript', value_type, method, sample_group)
-                        self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2transcript_distribution.xls",
-                                          distribution_path_log10 = distri_path+"/log10transcript_distribution.xls",
-                                          distribution_path = distri_path+"/transcript_distribution.xls", sample_group = "sample", query_type="transcript")
-                        self.add_express_box(express_id, fpkm_path = rsem_dir+"/"+f, sample_group="sample", query_type="transcript")
-                        if is_duplicate:
-                            if value_type == 'fpkm':
-                                trans_group_fpkm_path = group_fpkm_path+"/Group.trans_transcripts.TMM.fpkm.matrix"
-                            if value_type == 'tpm':
-                                trans_group_fpkm_path = group_fpkm_path + "/Group.trans_transcripts.TMM.EXPR.matrix"
-                            if os.path.exists(trans_group_fpkm_path):
-                                self.add_express_group_detail(express_id, trans_group_fpkm_path,"transcript",value_type,"rsem","group")
-                            self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/log2GroupTrans_distribution.xls",
-                                              distribution_path_log10 = distri_path+"/log10GroupTrans_distribution.xls",
-                                              distribution_path = distri_path+"/GroupTrans_distribution.xls", sample_group = "group", query_type="transcript")
-                            self.add_express_box(express_id, fpkm_path=trans_group_fpkm_path, sample_group="group", query_type="transcript")
-                    elif re.search(r'\.genes\.results$', f):
-                        sample = f.split('.genes.results')[0]
-                        file_ = rsem_dir + "/" + f
-                        self.add_express_specimen_detail(express_id, file_, 'gene', sample)
-                    elif re.search(r'\.isoforms\.results$', f):
-                        sample = f.split('.isoforms.results')[0]
-                        file_ = rsem_dir + "/" + f
-                        self.add_express_specimen_detail(express_id, file_, 'transcript', sample)
-            return express_id
-    
-    def add_express_feature(self, feature_dir=None, group_fpkm_path=None, is_duplicate=None, class_code = None, samples=None, params=None, name=None, express_diff_id=None, bam_path=None, major=True, distri_path = None):
-        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        task_id = self.bind_object.sheet.id
-        project_sn = self.bind_object.sheet.project_sn
-        insert_data = {
-            'project_sn': project_sn,
-            'task_id': task_id,
-            'name': name if name else 'ExpressStat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
-            'desc': '表达量计算主表',
-            'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
-            'specimen': samples,
-            'status': 'end',
-            'bam_path': bam_path,
-            'is_duplicate': is_duplicate
-        }
-        # if is_duplicate:
-        #     insert_data['group']=group
-        sample_group ="sample"
-        if params:
-            insert_data["genes"]=True
-            insert_data["trans"]=False
-            if params['group_detail']:
-                if is_duplicate:
-                    insert_data["group"]=params["group_detail"].keys()
-        if express_diff_id:
-            insert_data["express_diff_id"] = express_diff_id
-        collection = db['sg_express']
-        express_id = collection.insert_one(insert_data).inserted_id
-        print "插入主表id是{}".format(express_id)
-        value_type = params["type"]  #fpkm或者是tpm
-        method = params["express_method"]
-        if major:
-            if value_type == 'fpkm':
-                fpkm_path = feature_dir + "/fpkm_tpm.fpkm.xls"
-            if value_type ==  'tpm':
-                fpkm_path = feature_dir + "/fpkm_tpm.tpm.xls"
-            count_path = feature_dir + "/count.xls"
-            self.add_express_detail(express_id, count_path, fpkm_path, class_code, 'gene', value_type, method, sample_group)
-            self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/{}/log2gene_distribution.xls".format(value_type),
-                              distribution_path_log10 = distri_path+"/{}/log10gene_distribution.xls".format(value_type),
-                              distribution_path = distri_path+"/{}/gene_distribution.xls".format(value_type), sample_group = "sample", query_type="gene")
-            self.add_express_box(express_id, fpkm_path = fpkm_path, sample_group="sample", query_type="gene")
-            if is_duplicate:
                 if value_type == 'fpkm':
-                    fpkm_group_path = group_fpkm_path +"/group.fpkm.xls"
+                    fpkm_path = feature_dir + "/fpkm_tpm.fpkm.xls"
                 if value_type == 'tpm':
-                    fpkm_group_path = group_fpkm_path + "/group.tpm.xls"
-                self.add_express_group_detail(express_id, fpkm_group_path,"gene",value_type,"featurecounts","group")
-                
-                self.add_express_gragh(express_id, distribution_path_log2 = distri_path+"/group/{}/log2GroupGenes_distribution.xls".format(value_type),
-                                  distribution_path_log10 = distri_path+"/group/{}/log10GroupGenes_distribution.xls".format(value_type),
-                                  distribution_path = distri_path+"/group/{}/GroupGenes_distribution.xls".format(value_type), sample_group = "group", query_type="gene")
-                self.add_express_box(express_id, fpkm_path=distri_path+"/group/group.{}.xls".format(value_type), sample_group="group", query_type="gene")
-            for files in os.listdir(feature_dir):
-                m_ = re.search(r'vs',files)
-                if m_:
-                    path = feature_dir+"/"+files
-                    self.add_express_specimen_detail_feature(express_id, feature_dir+"/"+files)
-                else:
-                    self.bind_object.logger.error("没有找到正确的specimen路径！")
-        return express_id
-    
+                    fpkm_path = feature_dir + "/fpkm_tpm.tpm.xls"
+                count_path = feature_dir + "/count.xls"
+                self.add_express_detail(express_id, fpkm_path, class_code, 'gene', value_type, method, sample_group)
+                self.add_express_detail(express_id, count_path, class_code, 'gene', 'count', method, sample_group)
+                self.add_express_gragh(express_id,
+                                  distribution_path_log2=distri_path + "/{}/log2gene_distribution.xls".format(value_type),
+                                  distribution_path_log10=distri_path + "/{}/log10gene_distribution.xls".format(value_type),
+                                  distribution_path=distri_path + "/{}/gene_distribution.xls".format(value_type),
+                                  sample_group="sample", query_type="gene", value_type=value_type)
+                self.add_express_gragh(express_id,
+                                  distribution_path_log2=distri_path + "/{}/log2gene_distribution.xls".format('count'),
+                                  distribution_path_log10=distri_path + "/{}/log10gene_distribution.xls".format("count"),
+                                  distribution_path=distri_path + "/{}/gene_distribution.xls".format("count"),
+                                  sample_group="sample", query_type="gene", value_type='count')
+                self.add_express_box(express_id, fpkm_path=fpkm_path, sample_group="sample", query_type="gene", value_type=value_type)
+                self.add_express_box(express_id, fpkm_path=count_path, sample_group="sample", query_type="gene",
+                                value_type='count')
+                if is_duplicate:
+                    if value_type == 'fpkm':
+                        fpkm_group_path = group_fpkm_path + "/group.fpkm.xls"
+                    if value_type == 'tpm':
+                        fpkm_group_path = group_fpkm_path + "/group.tpm.xls"
+                    count_group_path = distri_path + "/output/fpkm_count.xls"
+                    self.add_express_group_detail(express_id, fpkm_group_path, "gene", value_type, "featurecounts", "group")
+                    self.add_express_group_detail(express_id, count_group_path, "gene", 'count', "featurecounts", "group")
+                    self.add_express_gragh(express_id,
+                                      distribution_path_log2=distri_path + "/group_fpkm_distribution/log2GroupGenes_distribution.xls",
+                                      distribution_path_log10=distri_path + "/group_fpkm_distribution/log10GroupGenes_distribution.xls",
+                                      distribution_path=distri_path + "/group_fpkm_distribution/GroupGenes_distribution.xls",
+                                      sample_group="group", query_type="gene", value_type=value_type)
+                    self.add_express_gragh(express_id,
+                                      distribution_path_log2=distri_path + "/group_count_distribution/log2GroupGenes_distribution.xls",
+                                      distribution_path_log10=distri_path + "/group_count_distribution/log10GroupGenes_distribution.xls",
+                                      distribution_path=distri_path + "/group_count_distribution/GroupGenes_distribution.xls",
+                                      sample_group="group", query_type="gene", value_type='count')
+                    self.add_express_box(express_id, fpkm_path=distri_path + "/group/group.{}.xls".format(value_type),
+                                    sample_group="group", query_type="gene", value_type=value_type)
+                    self.add_express_box(express_id, fpkm_path=distri_path + "/output/fpkm_count.xls",
+                                    sample_group="group", query_type="gene", value_type='count')
+
+                for files in os.listdir(feature_dir):
+                    m_ = re.search(r'vs', files)
+                    if m_:
+                        path = feature_dir + "/" + files
+                        self.add_express_specimen_detail_feature(express_id, feature_dir + "/" + files)
+                    else:
+                        print("没有找到正确的specimen路径！")
+            return express_id
+
+    #@report_check
     def add_express_specimen_detail_feature(self, express_id, feature_result):
         """featurecounts单个样本的表达量信息"""
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
@@ -207,9 +372,9 @@ class RefrnaExpress(Base):
         except Exception, e:
             self.bind_object.logger.error ("导入单样本表达量矩阵：%s信息出错:%s" % (feature_result, e))
         else:
-            self.bind_object.logger.info ("导入单样本表达量矩阵: %s信息成功!" % feature_result)    
-            
-    
+            self.bind_object.logger.info ("导入单样本表达量矩阵: %s信息成功!" % feature_result)
+
+    #@report_check
     def add_express_group_detail(self,express_id,group_fpkm_path=None,query_type=None,value_type=None, method=None, sample_group=None):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         from math import log
@@ -246,8 +411,8 @@ class RefrnaExpress(Base):
                     data_log2 = log(float(fpkm_data[i])+1)/log(2)
                     data_log10 = log(float(fpkm_data[i])+1)/log(10)
                     insert_data += [
-                        ('{}_log2_{}'.format(group_name[i],value_type),float(data_log2)),
-                        ('{}_log10_{}'.format(group_name[i],value_type),float(data_log10))
+                        ('{}_log2'.format(group_name[i]),float(data_log2)),
+                        ('{}_log10'.format(group_name[i]),float(data_log10))
                     ]
                 insert_data=SON(insert_data)
                 data_list.append(insert_data)
@@ -261,180 +426,114 @@ class RefrnaExpress(Base):
             # print ("导入表达量矩阵信息成功!")
             self.bind_object.logger.info("导入表达量矩阵group信息成功!")
             
-    # @report_check
-    def add_express_detail(self, express_id, count_path, fpkm_path, class_code=None, query_type=None, value_type=None, method=None, sample_group=None):
-            db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-            import math
-            if not isinstance(express_id, ObjectId):
-                if isinstance(express_id, types.StringTypes):
-                    express_id = ObjectId(express_id)
-                else:
-                    raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
-            if not os.path.exists(count_path):
-                raise Exception('count_path:{}所指定的路径不存在，请检查！'.format(count_path))
-            if not os.path.exists(fpkm_path):
-                raise Exception('fpkm_path:{}所指定的路径不存在，请检查！'.format(fpkm_path))
-            def class_code_get(class_code, query_type):
-                if class_code:
-                    if os.path.exists(class_code):
-                        with open(class_code, 'r+') as cc:
-                            class_code_dict ={}
-                            for lines in cc:
-                                line = lines.strip().split("\t")
-                                if query_type == "gene":
-                                    if line[1] not in class_code_dict.keys():
-                                        class_code_dict[line[1]] = str(line[2])
-                                    else:
-                                        pass
-                                if query_type == "transcript":
-                                    if line[0] not in class_code_dict.keys():
-                                        class_code_dict[line[0]] = str(line[2])
-                                    else:
-                                        pass
-                        return class_code_dict
-            data_list = list()
-            count_dict = {}
-            sample_count = {}
-            if class_code:
-                class_code_info = class_code_get(class_code = class_code, query_type = query_type)
-            with open(count_path, 'rb') as c, open(fpkm_path, 'rb') as f:
-                samples=c.readline().strip().split("\t")
-                for sam in samples:
-                    sample_count[sam] = 0
-                # c.readline()
-                for line in c:
-                    line = line.strip().split('\t')
-                    count_dict[line[0]] = line[1:]
-                    count = line[1:]
-                    for i in range(len(count)):
-                        if float(count[i]) > 0:
-                            sample_count[samples[i]] += 1
-                f.readline()
-                for l in f:
-                    l = l.strip().split('\t')
-                    seq_id = l[0]
-                    if re.search(r'(,)', seq_id):
-                        sequence_id = seq_id.split(",")[0] #以 ',' 为分隔符切割序列id和gene_name
-                        gene_name = seq_id.split(",")[1]
-                    else:
-                        sequence_id = seq_id
-                        gene_name = None
-                    fpkm = l[1:]
-                    
-                    if class_code:
-                        if class_code_info:
-                            if sequence_id in class_code_info.keys():
-                                _class_code = class_code_info[sequence_id]
-                                if _class_code != "=":
-                                    _class=True
-                                else:
-                                    _class=False
-                            else:
-                                _class=None
-                    else:
-                        _class =None
-                        self.bind_object.logger.error("更新class_code信息出错！:%s" % e)
-                        # raise Exception("{}class_code信息没有找到，请确认:{}!".format(seq_id,class_code))
-                    
-                    data = [
-                        ('seq_id', sequence_id),
-                        ('type', query_type),
-                        ('express_id', express_id),
-                        ("value_type", value_type),
-                        ("is_new", _class),
-                        ("method", method),
-                        # ("gene_name", gene_name), #添加gene_name信息
-                        ("sample_group", sample_group)
-                    ]
-                    for i in range(len(samples)):
-                        log2_fpkm = math.log(float(fpkm[i])+1)/math.log(2)
-                        log10_fpkm = math.log(float(fpkm[i])+1)/math.log(10)
-
-                        data += [
-                            ('{}_count'.format(samples[i]), float(count_dict[seq_id][i])), ('{}_{}'.format(samples[i],value_type), float(fpkm[i])),
-                            ('{}_sum'.format(samples[i]), sample_count[samples[i]]),
-                            ('{}_log2_{}'.format(samples[i],value_type),float(log2_fpkm)),
-                            ('{}_log10_{}'.format(samples[i],value_type),float(log10_fpkm)),
-                        ]
-                    data = SON(data)
-                    data_list.append(data)
-            try:
-                collection = db["sg_express_detail"]
-                collection.insert_many(data_list)
-            except Exception, e:
-                # bind_object.logger.error("导入表达量矩阵信息出错:%s" % e)
-                print ("导入表达量矩阵信息出错:%s" % e)
-            else:
-                print ("导入表达量矩阵信息成功!")
-                # bind_object.logger.info("导入表达量矩阵信息成功!")
-    
-    # @report_check
-    def add_express_gragh(self, express_id, distribution_path_log2, distribution_path_log10, distribution_path, sample_group, query_type=None):
+    #@report_check
+    def add_express_detail(self, express_id, path, class_code=None, query_type=None, value_type=None, method=None,sample_group=None, diff=True):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
                 express_id = ObjectId(express_id)
             else:
                 raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
-        with open(distribution_path_log2,'r+') as f1:
-            samples=f1.readline().strip().split("\t")[1:]  #添加这两行代码不确定是否会报错
-        if not samples:
-            raise Exception("没有获取到samples，请检查！")
-        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        def stat(fpkm_data,density,log=None):
-            tmp = []
-            if len(fpkm_data) != len(density):
-                raise Exception("density必须和fpkm长度相等！")
-            else:
-                for i in range(len(fpkm_data)):
-                    if not log:
-                        tmp.append({"fpkm":round(fpkm_data[i],6), "density": round(density[i], 6)})
-                return tmp
-        dflog2 = pd.read_table(distribution_path_log2)
-        dflog10 = pd.read_table(distribution_path_log10)
-        df = pd.read_table(distribution_path)
-        samples = df.columns[1:]
-        data_list = []
-        for i in samples:
-            insert_data = [
-                ('express_id', express_id),
-                ('type', query_type),
-                ('specimen', i),
-                ('sample_group', sample_group)
-            ]
-            tmp = stat(fpkm_data = df["fpkm"],density = df[i])
-            tmplog2 = stat(fpkm_data = dflog2["log2fpkm"], density = dflog2[i])
-            tmplog10 = stat(fpkm_data = dflog10["log10fpkm"], density = dflog10[i])
-            insert_data.append(('data', tmp))
-            insert_data.append(('data_log2', tmplog2))
-            insert_data.append(('data_log10', tmplog10))
-            insert_data = SON(insert_data)
-            data_list.append(insert_data)
+        if not os.path.exists(path):
+            raise Exception('path:{}所指定的路径不存在，请检查！'.format(path))
+
+        def class_code_get(class_code, query_type):
+            if class_code:
+                if os.path.exists(class_code):
+                    with open(class_code, 'r+') as cc:
+                        class_code_dict = {}
+                        for lines in cc:
+                            line = lines.strip().split("\t")
+                            if query_type == "gene":
+                                if line[1] not in class_code_dict.keys():
+                                    class_code_dict[line[1]] = str(line[2])
+                                else:
+                                    pass
+                            if query_type == "transcript":
+                                if line[0] not in class_code_dict.keys():
+                                    class_code_dict[line[0]] = str(line[2])
+                                else:
+                                    pass
+                    return class_code_dict
+
+        data_list = list()
+        count_dict = {}
+        sample_count = {}
+        if class_code:
+            class_code_info = class_code_get(class_code=class_code, query_type=query_type)
+
+        with open(path, 'rb') as f:
+            samples = f.readline().strip().split("\t")
+            for l in f:
+                l = l.strip().split('\t')
+                seq_id = l[0]
+                if re.search(r'(,)', seq_id):
+                    sequence_id = seq_id.split(",")[0]  # 以 ',' 为分隔符切割序列id和gene_name
+                    gene_name = seq_id.split(",")[1]
+                else:
+                    sequence_id = seq_id
+                    gene_name = None
+                fpkm = l[1:]
+                if class_code:
+                    if sequence_id in class_code_info.keys():
+                        _class_code = class_code_info[sequence_id]
+                        if _class_code != "=":
+                            _class = True
+                        else:
+                            _class = False
+                    else:
+                        _class = None
+                else:
+                    _class = None
+                data = [
+                    ('seq_id', sequence_id),
+                    ('type', query_type),
+                    ('express_id', express_id),
+                    ("value_type", value_type),
+                    ("is_new", _class),
+                    ("method", method),
+                    ("gene_name", gene_name),  # 添加gene_name信息
+                    ("sample_group", sample_group)
+                ]
+
+                for i in range(len(samples)):
+                    log2_fpkm = math.log(float(fpkm[i]) + 1) / math.log(2)
+                    log10_fpkm = math.log(float(fpkm[i]) + 1) / math.log(10)
+                    data += [
+                        ('{}'.format(samples[i]), float(fpkm[i])),
+                        ('{}_log2'.format(samples[i]), float(log2_fpkm)),
+                        ('{}_log10'.format(samples[i]), float(log10_fpkm)),
+                    ]
+                data = SON(data)
+                data_list.append(data)
         try:
-            collection = db["sg_express_gragh"]
+            collection = db["sg_express_detail"]
             collection.insert_many(data_list)
         except Exception, e:
-            print ("导入表达量矩阵作图数据：%s信息出错:%s" % (distribution_path_log2, e))
+            self.bind_object.logger.error("导入表达量矩阵信息出错:%s" % e)
         else:
-            print ("导入表达量矩阵作图数据: %s信息成功!" % distribution_path_log2)           
+            self.bind_object.logger.info("导入表达量矩阵信息成功!")
+
     
-    # @report_check
-    def add_express_box(self, express_id, fpkm_path, sample_group, query_type=None):
+    #@report_check
+    def add_express_box(self,express_id, fpkm_path, sample_group, query_type=None, value_type=None):
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
                 express_id = ObjectId(express_id)
             else:
                 raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+
         def log_value(value, log):
             """获取log值"""
             if log == 2:
-                return np.log2(value.apply(lambda x: x+1))
+                return np.log2(value.apply(lambda x: x + 1))
             elif log == 10:
-                return np.log10(value.apply(lambda x: x+1))
+                return np.log10(value.apply(lambda x: x + 1))
             else:
                 return value
 
-        def box_info(fpkm, samples, log = None):
+        def box_info(fpkm, samples, log=None):
             box = {}
             gene_list = {}
             for sam in samples:
@@ -444,20 +543,21 @@ class RefrnaExpress(Base):
                 max = log_value(fpkm[sam], log).max()
                 q1 = log_value(fpkm[sam], log).quantile(0.25)
                 q3 = log_value(fpkm[sam], log).quantile(0.75)
-                median = log_value(fpkm[sam],log).median()
-                box[sam]={"min": min, "max": max,'q1': q1,'q3': q3,'median': median}
-                min_q1 = fpkm[[0]][log_value(fpkm[sam], log).apply(lambda x: x>=min and x<=q1)].values
+                median = log_value(fpkm[sam], log).median()
+                box[sam] = {"min": min, "max": max, 'q1': q1, 'q3': q3, 'median': median}
+                min_q1 = fpkm[[0]][log_value(fpkm[sam], log).apply(lambda x: x >= min and x <= q1)].values
                 gene_list[sam]['min-q1'] = [i[0] for i in min_q1]
-                q1_median = fpkm[[0]][log_value(fpkm[sam], log).apply(lambda x: x>q1 and x<=median)].values
+                q1_median = fpkm[[0]][log_value(fpkm[sam], log).apply(lambda x: x > q1 and x <= median)].values
                 gene_list[sam]['q1-median'] = [i[0] for i in q1_median]
-                median_q3 = fpkm[[0]][log_value(fpkm[sam], log).apply(lambda x: x>median and x<=q3)].values
+                median_q3 = fpkm[[0]][log_value(fpkm[sam], log).apply(lambda x: x > median and x <= q3)].values
                 gene_list[sam]['median-q3'] = [i[0] for i in median_q3]
-                q3_max = fpkm[[0]][log_value(fpkm[sam], log).apply(lambda x: x>q3 and x<=max)].values
+                q3_max = fpkm[[0]][log_value(fpkm[sam], log).apply(lambda x: x > q3 and x <= max)].values
                 gene_list[sam]['q3-max'] = [i[0] for i in q3_max]
             return box, gene_list
-        express_info =db["sg_express"].find_one({"_id": ObjectId(express_id)})
-        files = open(fpkm_path,'r+')
-        samples = files.readline().strip().split("\t")  #此处已经有samples了
+
+        express_info = db["sg_express"].find_one({"_id": ObjectId(express_id)})
+        files = open(fpkm_path, 'r+')
+        samples = files.readline().strip().split("\t")  # 此处已经有samples了
 
         fpkm = pd.read_table(fpkm_path)
         box = {}
@@ -470,12 +570,13 @@ class RefrnaExpress(Base):
         box, gene_list = box_info(fpkm=fpkm, samples=samples)
         log2box, log2gene_list = box_info(fpkm=fpkm, log=2, samples=samples)
         log10box, log10gene_list = box_info(fpkm=fpkm, log=10, samples=samples)
-        
+
         for sam in samples:
             data_log2 = [
-            ("express_id", express_id),
-            ("sample_group", sample_group),
-            ("type", query_type)
+                ("express_id", express_id),
+                ("sample_group", sample_group),
+                ("type", query_type),
+                ("value_type", value_type)
             ]
             data_log2 += [
                 ('{}_log2'.format(sam), log2box[sam])
@@ -487,11 +588,11 @@ class RefrnaExpress(Base):
             # data_log2=SON(data_log2)
             # log2_id = db['sg_express_box'].insert_one(data_log2).inserted_id  #每个样本的box值单独分开导表
 
-            
+
             data_list_log2 = {}
             data_list_log10 = {}
-            
-            for keys,values in log2gene_list[sam].items():  #每个样本的不同区段的gene_list分开导表
+
+            for keys, values in log2gene_list[sam].items():  # 每个样本的不同区段的gene_list分开导表
                 # insert_data_log2 = [
                 #     (keys,values),
                 #     ("express_id",ObjectId(express_id)),
@@ -501,10 +602,10 @@ class RefrnaExpress(Base):
                 # data_list_log2.append(insert_data_log2)
                 if values:
                     """如果values不为空"""
-                    data_list_log2[keys]=",".join(values)
+                    data_list_log2[keys] = ",".join(values)
                 else:
-                    data_list_log2[keys]=values
-            for keys1,values1 in log10gene_list[sam].items():
+                    data_list_log2[keys] = values
+            for keys1, values1 in log10gene_list[sam].items():
                 if values1:
                     """如果values1不为空"""
                     data_list_log10[keys1] = ",".join(values1)
@@ -515,18 +616,16 @@ class RefrnaExpress(Base):
                 ('{}_log10_genelist'.format(sam), data_list_log10)
             ]
             try:
-                data_log2=SON(data_log2)
+                data_log2 = SON(data_log2)
                 collection = db["sg_express_box"]
                 box_id = collection.insert_one(data_log2).inserted_id
                 print str(box_id)
             except Exception, e:
-                self.bind_object.logger.error("导入盒形图错误：%s信息出错:%s" % (sam, e))
+                print("导入盒形图错误：%s信息出错:%s" % (sam, e))
             else:
-                self.bind_object.logger.info("导入盒形图: %s信息成功!" % sam)
+                print("导入盒形图: %s信息成功!" % sam)
 
-
-    
-    # @report_check
+    #@report_check
     def add_express_specimen_detail(self, express_id, rsem_result, rsem_type, sample=None):
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
@@ -577,8 +676,8 @@ class RefrnaExpress(Base):
             self.bind_object.logger.error ("导入单样本表达量矩阵：%s信息出错:%s" % (rsem_result, e))
         else:
             self.bind_object.logger.info ("导入单样本表达量矩阵: %s信息成功!" % rsem_result)
-
-    def get_diff_list(self, up_down_output, up_down= None, fc=None):
+    #@report_check
+    def get_diff_list(self, up_down_output, up_down=None):
         """
         :param diff_output_path, 差异分析生成的output文件夹，查找结尾是 'results_count'的文件
         :fc 筛选出fa的差异基因/转录本，导基因集的数据也是由此标准筛选之后生成的
@@ -586,29 +685,19 @@ class RefrnaExpress(Base):
         import math
         if not os.path.exists(up_down_output):
             raise Exception("{}文件不存在，无法对up和down差异基因进行分类！".format(up_down_output))
-        with open(up_down_output,'r+') as f1:
+        with open(up_down_output, 'r+') as f1:
             header = f1.readline()
             sequence = []
-            
+
             for lines in f1:
                 line = lines.strip().split("\t")
                 seq_id = line[0]
-                print seq_id
-                print line[-2]
-                regulate= line[-2]
-
-                diff_fc = line[-7]  # fc 信息  ###################此处待定可能会有错误
-                if fc:
-                    standard_fc = math.log(float(fc))/math.log(2)
-                    if diff_fc >= standard_fc:
-                        m_ = re.search(regulate,up_down)
-                        if m_:
-                            sequence.append(seq_id)
-                    else:
-                        pass
-                else:
-                    """此处暂时不筛选"""
-                    m_ = re.search(regulate,up_down)
+                # print seq_id
+                # print line[-2]
+                regulate = line[-2]
+                significant = line[-3]  # 显著性
+                if significant == 'yes':
+                    m_ = re.search(regulate, up_down)
                     if m_:
                         sequence.append(seq_id)
                     else:
@@ -617,7 +706,8 @@ class RefrnaExpress(Base):
                 return sequence
             else:
                 return None
-    
+
+    #@report_check
     def add_geneset(self, diff_stat_path, name=None, compare_name=None, group_id=None, express_method=None, type=None, up_down=None,major=False):
         """
         添加sg_geneset主表, geneset的名字包括 up 和 down 
@@ -637,8 +727,7 @@ class RefrnaExpress(Base):
             'project_sn': project_sn,
             'type': type
         }
-        fc = 2
-        up_data = self.get_diff_list(up_down_output=diff_stat_path, up_down=up_down, fc=fc)
+        up_data = self.get_diff_list(up_down_output=diff_stat_path, up_down=up_down)
         if up_data:
             geneset_length = len(up_data)
             if geneset_length > 0:
@@ -662,13 +751,14 @@ class RefrnaExpress(Base):
                     self.bind_object.logger.error("导入基因表达基因集：%s信息出错:%s" % (diff_stat_path, e))
                 else:
                     self.bind_object.logger.info("导入基因表达基因集：%s信息成功!" % diff_stat_path)
-                    return geneset_up_id,up_data
+                    return geneset_up_id
             else:
                 print "{}对应{}调控基因集为空！".format(diff_stat_path,up_down)
         else:
-            return None, None
-    
-    def add_geneset_detail(self, geneset_id, diff_stat_path, up_data=None,fc=None,up_down=None):
+            return None
+
+    #@report_check
+    def add_geneset_detail(self, geneset_id, diff_stat_path, up_data=None,up_down=None):
         """
         添加sg_geneset_detail表
         """
@@ -682,7 +772,7 @@ class RefrnaExpress(Base):
         data_list = []
         data_list_up = []
         if not up_data:
-            up_data = self.get_diff_list(up_down_output = diff_stat_path, up_down= up_down, fc=fc)
+            up_data = self.get_diff_list(up_down_output = diff_stat_path, up_down= up_down)
 
         data = [
             ("geneset_id",ObjectId(geneset_id)),
@@ -696,7 +786,8 @@ class RefrnaExpress(Base):
             self.bind_object.logger.error("导入基因集detail表：%s信息出错:%s" % (diff_stat_path, e))
         else:
             self.bind_object.logger.info("导入基因集detail表：%s信息成功!" % diff_stat_path)
-    
+
+    #@report_check
     def add_express_diff(self, params, samples, compare_column, compare_column_specimen= None, workflow=True,is_duplicate=None,value_type="fpkm", express_method =None, diff_exp_dir=None, class_code=None,query_type=None,express_id=None, name=None, group_id=None, group_detail=None, control_id=None, major=True):
         # group_id, group_detail, control_id只供denovobase初始化时更新param使用
         """
@@ -710,14 +801,16 @@ class RefrnaExpress(Base):
         db= Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        params.update({
-            'express_id': express_id,
-            'group_id': str(group_id),
-            'group_detail': group_detail,
-            'control_id': str(control_id)
-        })  # 为更新workflow的params，因为截停
+        # params.update({
+        #     'express_id': express_id,
+        #     'group_id': str(group_id),
+        #     'group_detail': group_detail,
+        #     'control_id': str(control_id)
+        # })  # 为更新workflow的params，因为截停
         if group_id == 'all':
             params['group_detail'] = {'all': group_detail}
+        if params:
+            params.update({"submit_location": "express_diff"})
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -733,12 +826,12 @@ class RefrnaExpress(Base):
             "is_duplicate":is_duplicate,
             "value_type": value_type
         }
-        if express_method =='rsem':
-            insert_data["genes"]=True
-            insert_data["trans"]=True
-        elif express_method.lower() == 'featurecounts':
+        if params['type'] =='gene':
             insert_data["genes"]=True
             insert_data["trans"]=False
+        elif params['type'] =='transcript':
+            insert_data["genes"]=False
+            insert_data["trans"]=True
         if compare_column_specimen:
             insert_data["compare_column_specimen"]=compare_column_specimen
         if group_id == 'all':
@@ -752,9 +845,10 @@ class RefrnaExpress(Base):
                     con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
                     name = con_exp[0]
                     compare_name = con_exp[1]
-                    self.add_express_diff_detail(express_diff_id, name, compare_name, diff_exp_dir + f, workflow, class_code, query_type)
+                    self.add_express_diff_detail(express_diff_id, name, compare_name, os.path.join(diff_exp_dir ,f), workflow, class_code, query_type)
         return express_diff_id
-        
+
+    #@report_check
     def get_gene_name(self, class_code, query_type=None, workflow=False):
         """
         :params: 是否工作流根据class_code信息导入基因/转录本名称
@@ -773,7 +867,8 @@ class RefrnaExpress(Base):
                     data[line[0]]=line[1]
             return data
 
-    def add_express_diff_detail(self, express_diff_id,  name, compare_name, diff_stat_path, workflow=False, class_code=None,query_type=None):
+    #@report_check
+    def add_express_diff_detail(self, express_diff_id,  name, compare_name, diff_stat_path, workflow=False, class_code=None,query_type=None,pvalue_padjust=None):
         """
         group:为两两比较的样本或分组名，列表
         query_type: gene/transcript
@@ -801,16 +896,30 @@ class RefrnaExpress(Base):
                     ('compare_name', compare_name),
                     ('express_diff_id', express_diff_id),
                 ]
+                from math import log10
                 for i in range(len(head)):
-                    if i == 0:   #添加gene_name信息
-                        seq_id = line[0]
-                        if class_code: 
-                            if name_seq_id:
-                                if seq_id in name_seq_id.keys():
-                                    gene_name = name_seq_id[seq_id]
-                                    data.append(('gene_name',gene_name))
-                                else:
-                                    data.append(('gene_name','-'))
+                    try:
+                        if i == 0:   #添加gene_name信息
+                            seq_id = line[0]
+                            if class_code:
+                                if name_seq_id:
+                                    if seq_id in name_seq_id.keys():
+                                        gene_name = name_seq_id[seq_id]
+                                        data.append(('gene_name',gene_name))
+                                    else:
+                                        data.append(('gene_name','-'))
+                    except Exception:
+                        print '{}'.format(str(i))
+                        print line
+                        print head
+                    if pvalue_padjust:
+                        if re.search(r'{}'.format(pvalue_padjust),head[i].lower()):
+                            if float(line[i]) <= 10e-5:
+                                log10_padjust = -(float(log10(float(10e-5))))
+                            else:
+                                log10_padjust = -(float(log10(float(line[i]))))
+                            data.append(('log10_{}'.format(pvalue_padjust), log10_padjust))
+
                     if line[i] == 0:
                         data.append((head[i], float(line[i])))
                     elif re.match(r'^(\d+)|.(\d+)$', line[i]) or re.match(r'-(\d+)|.(\d+)$', line[i]):
@@ -832,7 +941,8 @@ class RefrnaExpress(Base):
                 self.bind_object.logger.info("导入基因表达差异统计表：%s信息成功!" % diff_stat_path)
         # else:
             # raise Exception("请输入class_code信息！")
-            
+
+    #@report_check
     def add_diff_summary_detail(self, diff_express_id, count_path):
         db=Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(diff_express_id, ObjectId):
@@ -879,8 +989,9 @@ class RefrnaExpress(Base):
             self.bind_object.logger.error("导入差异分析summary表出错:%s" % e)
         else:
             self.bind_object.logger.info("导入差异分析summary表成功!")
-    
-    def add_class_code(self, assembly_method, name=None,major=False,class_code_path=None):
+
+    #@report_check
+    def add_class_code(self, assembly_method, name=None,major=False,class_code_path=None,species=None):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
@@ -898,14 +1009,15 @@ class RefrnaExpress(Base):
             _id = collection.insert_one(SON(data)).inserted_id
             if major:
                 if os.path.exists(class_code_path):
-                    self.add_class_code_detail(class_code_path,_id)
+                    self.add_class_code_detail(class_code_path,_id,species=species)
         except Exception, e:
             self.bind_object.logger.error("导入class_code表出错:%s" % e)
         else:
             self.bind_object.logger.info("导入class_code表成功！" )
             return _id
-    
-    def add_class_code_detail(self, class_code, class_code_id):
+
+    #@report_check
+    def add_class_code_detail(self, class_code, class_code_id,species=None):
         if not isinstance(class_code_id, ObjectId):
             if isinstance(class_code_id, types.StringTypes):
                 express_id = ObjectId(class_code_id)
@@ -925,6 +1037,12 @@ class RefrnaExpress(Base):
                     ('ref_gene_id',line[4]),
                     ('gene_name',line[5]),
                     ('class_code_id',ObjectId(class_code_id))
+                ]
+                data +=[
+                    ("gene_ncbi","https://www.ncbi.nlm.nih.gov/gquery/?term={}".format(line[1])),
+                    ("tran_ncbi","https://www.ncbi.nlm.nih.gov/gquery/?term={}".format(line[0])),
+                    ("gene_ensembl","http://www.ensembl.org/{}/Gene/Summary?g={}".format(species,line[1])),
+                    ("tran_ensembl","http://www.ensembl.org/{}/Transcript/Summary?t={}".format(species,line[0]))
                 ]
                 data = SON(data)
                 data_list.append(data)
