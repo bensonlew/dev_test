@@ -88,7 +88,7 @@ class HcHeatmap(Base):
                 otu_detail['row_name'] = line[0]
                 r_list.append(line[0])  # 后续画图做准备
                 for i in range(0, len(sample_num)):
-                    otu_detail[new_head[i]] = sample_num[i]
+                    otu_detail[new_head[i]] = float(sample_num[i])  # 保证画图时取到的数据是数值型
                 insert_data.append(otu_detail)
             self.bind_object.logger.info("heatmap表格数据导入开始")
             try:
