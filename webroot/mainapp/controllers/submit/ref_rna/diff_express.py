@@ -14,6 +14,7 @@ from mainapp.models.workflow import Workflow
 from mainapp.controllers.project.ref_express_controller import RefExpressController
 from mainapp.controllers.project.ref_rna_controller import RefRnaController
 from mbio.api.to_file.ref_rna import *
+from mainapp.models.mongo.submit.ref_rna import *
 
 class DiffExpressAction(RefRnaController):
     def __init__(self):
@@ -25,16 +26,20 @@ class DiffExpressAction(RefRnaController):
     def POST(self):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        print 'haha'
-        print data.group_id
-        print data.pvalue
-        print data.pvalue_padjust
+        print data.control_id
+
         return_result = self.check_options(data)
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
         my_param = dict()
-        
+
+        if str(data.group_id) != "all":
+            return_control_id_group_detail = self.check_group_id_control_id(data.control_id,json.loads(data.group_detail))
+            if return_control_id_group_detail:
+                info = {"success":False,"info":'+'.join(return_control_id_group_detail)}
+                return json.dumps(info)
+
         task_type = 'workflow'
         task_name = 'ref_rna.report.diff_express'
 
@@ -133,7 +138,6 @@ class DiffExpressAction(RefRnaController):
                             to_file=to_file,params=my_param, project_sn=task_info['project_sn'], task_id=task_info['task_id'])
             task_info = super(DiffExpressAction, self).POST()
             task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
-            print task_info
             return json.dumps(task_info)
         
         else:
@@ -152,7 +156,25 @@ class DiffExpressAction(RefRnaController):
                 success.append("缺少参数!")
         for ids in [data.express_id, data.group_id, data.control_id]:
             ids = str(ids)
-            print type(ids)
             if not isinstance(ids, ObjectId) and not isinstance(ids, types.StringTypes):
                 success.append("传入的id：{}不是一个ObjectId对象或字符串类型".format(ids))
+        return success
+
+    def check_group_id_control_id(self,control_id,group_detail):
+        """检测control_id的样本分组信息是否和group_detail表一一对应"""
+        compare_names = self.ref_rna.get_control_id(control_id)
+        group_names = group_detail.keys()
+        print 'haha'
+        print group_names
+        success = []
+        unique_compare_names=[]
+        for i in compare_names:
+            compare_id = i.split("|")
+            for j in compare_id:
+                if j not in group_names:
+                    if j not in unique_compare_names:
+                        unique_compare_names.append(j)
+                        success.append("分组方案和对照组方案不一致，分组方案没有选择{}".format(str(j),str(j)))
+                    else:
+                        pass
         return success
