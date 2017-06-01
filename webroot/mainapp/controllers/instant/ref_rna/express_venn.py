@@ -17,12 +17,12 @@ class ExpressVennAction(RefRnaController):
     def POST(self):
         data = web.input()
         # args = ["express_id", "group_id", "group_detail", "type", "submit_location"]
-        args = ["express_id", "group_id", "group_detail", "type", "submit_location"]
+        args = ["express_id", "group_id", "group_detail", "type", "threshold", "submit_location"]
         for arg in args:
             if not hasattr(data, arg):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
-        print data.express_id
+
         print data.group_detail
         task_name = "ref_rna.report.express_venn"
         task_type = "workflow"
@@ -33,6 +33,8 @@ class ExpressVennAction(RefRnaController):
         my_param["submit_location"] = data.submit_location
         my_param["task_type"] = task_type
         my_param["type"] = data.type
+        my_param['threshold'] = data.threshold #根据fpkm/tpm过滤
+
         express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
         main_table_name = 'ExpressVenn_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
@@ -62,7 +64,8 @@ class ExpressVennAction(RefRnaController):
                 "update_info": json.dumps(update_info),
                 "venn_id": str(main_table_id),
                 "express_level":express_level,  #传fpkm还是tpm值给workflow
-                "type": data.type  #给workflow传参用的
+                "type": data.type,  #给workflow传参用的
+                "threshold": data.threshold  #过滤表达量
             }
             to_file = ["ref_rna.export_express_matrix_level(express_file)", "ref_rna.export_group_table_by_detail(group_id)"]
             self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
