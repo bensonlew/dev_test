@@ -61,14 +61,14 @@ class DiscomparisonAgent(Agent):
 
     def set_resource(self):
         self._cpu = 5
-        self._memory = '2G'
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "Discomparison计算结果输出目录"],
             ["./mantel_results.txt", "txt", "Discomparison结果"]
-            ])
+        ])
         super(DiscomparisonAgent, self).end()
 
 
