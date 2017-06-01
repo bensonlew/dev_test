@@ -294,7 +294,6 @@ class PatchDcBackupWorkflow(Workflow):
 
 		x = len(self.tool) - 1
 
-		self.logger.info(self.tool)
 		if self.list_2D(self.tool):
 			if len(self.tool[x]) > 1:
 				self.on_rely(self.tool[x], self.end)
@@ -304,7 +303,6 @@ class PatchDcBackupWorkflow(Workflow):
 			for tool in self.tool:
 				for tool_i in tool:
 					tool_i.run()
-		self.logger.info(self.tool)
 
 	def list_2D(self, name):
 		for m in name:
