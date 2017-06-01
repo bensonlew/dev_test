@@ -250,10 +250,10 @@ class DenovoAnnoStatV1Tool(Tool):
         self.logger.info("完成筛选gene_kegg.xml、gene_kegg.xls")
         # kegg_stat
         try:
-            kegg_anno = self.load_package('annotation.kegg.kegg_annotation')()
+            kegg_anno = self.load_package('annotation.kegg_annotation')()
             kegg_anno.pathSearch(blast_xml=self.gene_kegg_xml, kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
             kegg_anno.pathTable(kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls', pathway_path=self.kegg_stat_path + '/gene_pathway_table.xls', pidpath=self.work_dir + '/gene_pid.txt')
-            kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway)
+            kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway, image_magick=self.image_magick)
             kegg_anno.keggLayer(pathway_table=self.kegg_stat_path + '/gene_pathway_table.xls', layerfile=self.kegg_stat_path + '/gene_kegg_layer.xls', taxonomyfile=self.kegg_stat_path + '/gene_kegg_taxonomy.xls')
             self.logger.info('finish: kegg stat')
         except:
