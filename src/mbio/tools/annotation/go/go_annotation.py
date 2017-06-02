@@ -149,6 +149,7 @@ class GoAnnotationTool(Tool):
         except subprocess.CalledProcessError:
             self.set_error("运行goAnnot.py出错")
         # self.run_gosplit()
+        self.end()
 
     def run_gosplit(self):
         cmd3 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/goSplit.py'.format(

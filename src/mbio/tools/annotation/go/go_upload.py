@@ -101,7 +101,8 @@ class GoUploadTool(Tool):
                     self.output_dir + '/go12level_statistics.xls')
         except subprocess.CalledProcessError:
             self.set_error("运行goAnnot.py出错")
-        self.run_gosplit()
+        # self.run_gosplit()
+        self.end()
 
     def run_gosplit(self):
         cmd = '{} {}'.format(self.python, self.goSplit)

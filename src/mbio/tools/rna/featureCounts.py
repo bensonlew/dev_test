@@ -7,7 +7,7 @@ from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
 from mbio.packages.ref_rna.express.single_sample import *
 from mbio.packages.ref_rna.express.set_strand import set_strand
-from mbio.packages.denovo_rna.express.express_distribution import *
+from mbio.packages.ref_rna.express.express_distribution import *
 import shutil
 import os
 import re
