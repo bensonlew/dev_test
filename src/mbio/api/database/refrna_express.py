@@ -532,6 +532,7 @@ class RefrnaExpress(Base):
                 return np.log10(value.apply(lambda x: x + 1))
             else:
                 return value
+        # def filter_minus(value):
 
         def box_info(fpkm, samples, log=None):
             box = {}
@@ -539,10 +540,14 @@ class RefrnaExpress(Base):
             for sam in samples:
                 gene_list[sam] = {}
                 box[sam] = {}
-                min = log_value(fpkm[sam], log).min()
-                max = log_value(fpkm[sam], log).max()
+                # min = log_value(fpkm[sam], log).min()
+                # max = log_value(fpkm[sam], log).max()
                 q1 = log_value(fpkm[sam], log).quantile(0.25)
                 q3 = log_value(fpkm[sam], log).quantile(0.75)
+                iqr = q3-q1
+                """过滤掉异常大的数值"""
+                max = q3+1.5*iqr
+                min = q1-1.5*iqr
                 median = log_value(fpkm[sam], log).median()
                 box[sam] = {"min": min, "max": max, 'q1': q1, 'q3': q3, 'median': median}
                 min_q1 = fpkm[[0]][log_value(fpkm[sam], log).apply(lambda x: x >= min and x <= q1)].values
