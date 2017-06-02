@@ -8,6 +8,7 @@ import datetime
 import json
 import shutil
 import re
+import shutil
 from biocluster.workflow import Workflow
 import pandas as pd
 
@@ -22,6 +23,7 @@ class ExpressVennWorkflow(Workflow):
             {"name": "update_info", "type": "string"},
             {"name":"type","type":"string"},#对应gene/transcript
             {"name":"express_level","type":"string"}, #对应fpkm/tpm
+            {"name":"threshold","type":"float","default":1}, #过滤
             # {"name":"sample_group",'type':"string","default":"sample"},
             {"name":"venn_id","type":"string"},
         ]
@@ -47,6 +49,8 @@ class ExpressVennWorkflow(Workflow):
         
     def set_db(self):
         venn_path = self.venn.output_dir
+        # 更新venn_graph.xls文件
+        shutil.copy2(self.venn.work_dir+"/new_venn_graph.xls",venn_path+"/venn_graph.xls")
         api_venn = self.api.refrna_corr_express
         venn_id = self.option("venn_id")
         self.logger.info("准备开始向mongo数据库中导入venn图detail表和graph信息！")
@@ -78,6 +82,11 @@ class ExpressVennWorkflow(Workflow):
                     del_sam.append(sam)
             except Exception:
                 pass
+        if self.option("threshold"):
+            """过滤"""
+            threshold = self.option("threshold")
+            for i in sample_name:
+                fpkm[i]=fpkm[i].apply(lambda x: x if(x>=threshold)else 0)
         if del_sam:
             new_fpkm = fpkm.drop(del_sam, axis=1)
             self.new_fpkm = self.venn.work_dir + "/fpkm"
@@ -88,7 +97,9 @@ class ExpressVennWorkflow(Workflow):
             print 'end!'
             return self.new_fpkm
         else:
-            return fpkm_path
+            self.new_fpkm = self.venn.work_dir + "/fpkm"
+            fpkm.to_csv(self.new_fpkm,sep="\t",index=False)
+            return self.new_fpkm
         
     def run(self):
         fpkm = self.option("express_file").split(",")[0]
