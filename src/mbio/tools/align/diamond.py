@@ -127,6 +127,7 @@ class DiamondTool(Tool):
                 self.change_version(outputfile)
         else:
             self.set_error("diamond运行出错!")
+            raise Exception("diamond运行出错!")
 
     def run(self):
         """
