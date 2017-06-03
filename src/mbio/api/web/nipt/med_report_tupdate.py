@@ -24,7 +24,7 @@ class MedReportTupdate(UpdateStatus):
 
     def update_status(self):
         status = self.data["sync_task_log"]["task"]["status"]
-        print "status", status
+        self.logger.info("status %s" % (status))
         desc = ''
         for i in self.data['sync_task_log']['log']:
             if 'name' not in i:
