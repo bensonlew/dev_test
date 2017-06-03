@@ -109,8 +109,8 @@ class RocAgent(Agent):
         """
         设置内存和CPU
         """
-        self._cpu = 2
-        self._memory = ''
+        self._cpu = 10
+        self._memory = '15G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

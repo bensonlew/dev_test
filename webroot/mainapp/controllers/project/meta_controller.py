@@ -64,14 +64,15 @@ class MetaController(object):
     @meta_check
     def POST(self):
         workflow_client = Basic(data=self.sheet_data, instant=self.instant)
-        try:
-            run_info = workflow_client.run()
+        run_info = workflow_client.run()
+        print "打印出run_info：", run_info
+        if run_info:
             run_info['info'] = filter_error_info(run_info['info'])
             self._return_msg = workflow_client.return_msg
             return run_info
-        except Exception as e:
+        else:
             self.roll_back()
-            return {"success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
+            return {"success": False, "info": "任务投递出错,请重新尝试！"}
 
     def roll_back(self):
         """
@@ -107,7 +108,7 @@ class MetaController(object):
             main_id = self.data.otu_id
             collection_name = 'sg_otu'
         table_info = Meta(db=self.mongodb).get_main_info(main_id=main_id, collection_name=collection_name)
-        print table_info
+        # print table_info
         project_sn = table_info["project_sn"]
         task_id = table_info["task_id"]
         new_task_id = self.get_new_id(task_id)

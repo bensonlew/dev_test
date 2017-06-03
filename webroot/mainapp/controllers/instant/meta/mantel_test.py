@@ -110,7 +110,7 @@ class MantelTest(MetaController):
                 'id': str(main_table_id),
                 'name': main_table_name
             }}
-        print(task_info)
+        # print(task_info)
         return json.dumps(task_info)
 
         # print self.returnInfo

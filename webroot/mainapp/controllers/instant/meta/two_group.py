@@ -79,7 +79,7 @@ class TwoGroup(MetaController):
         self.set_sheet_data(name=task_name, options=options, main_table_name="DiffStatTwoGroup/" + main_table_name, module_type=task_type, to_file=to_file)
         task_info = super(TwoGroup, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
-        print(self.return_msg)
+        # print(self.return_msg)
         return json.dumps(task_info)
 
     def check_options(self, data):
