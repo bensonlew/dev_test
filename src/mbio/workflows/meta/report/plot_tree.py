@@ -196,17 +196,17 @@ class PlotTreeWorkflow(Workflow):
             ["species_table.xls", "txt", "物种样本统计表"],
             ["phylo_tree.tre", "tree", "进化树"],
             ["species_group.xls", "txt", "物种在高层级的分类表"]
-            ])
-        self.set_end()
-        self.fire('end')
-        self._upload_result()
-        self._import_report_data()
-        self.step.finish()
-        self.step.update()
-        self.logger.info("运行结束!")
-        self._save_report_data()
-        # self._update("end")
-        # super(PlotTreeWorkflow, self).end()
+        ])
+        # self.set_end()
+        # self.fire('end')
+        # self._upload_result()
+        # self._import_report_data()
+        # self.step.finish()
+        # self.step.update()
+        # self.logger.info("运行结束!")
+        # self._save_report_data()
+        # # self._update("end")
+        super(PlotTreeWorkflow, self).end()
 
 
 
