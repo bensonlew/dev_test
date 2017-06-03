@@ -56,8 +56,8 @@ class NiptAnalysisWorkflow(Workflow):
         报存分析结果到mongo数据库中
         """
         api_niptanalysis = self.api.nipt_analysis
-        z_file_path = self.output_dir + '/z.xls'
-        zz_file_path = self.output_dir + '/zz.xls'
+        z_file_path = self.output_dir + '/' + str(self.option('bed_file')) + '_z.xls'
+        zz_file_path = self.output_dir + '/' + str(self.option('bed_file')) + '_zz.xls'
         if not os.path.isfile(z_file_path):
             raise Exception("找不到报告文件:{}".format(z_file_path))
         if not os.path.isfile(zz_file_path):
