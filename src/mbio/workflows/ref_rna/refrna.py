@@ -889,6 +889,7 @@ class RefrnaWorkflow(Workflow):
                 if len(group_spname[key]) <= 3:
                     self.logger.info("某分组中样本数小于等于3，将不进行可变剪切分析")
                     return False
+            return True
         else:
             return True
         
@@ -1046,20 +1047,40 @@ class RefrnaWorkflow(Workflow):
         super(RefrnaWorkflow, self).run()
 
     def test_run(self):
-        self.filecheck.option("gtf").set_path(self.filecheck.work_dir + "/fake.gff3.gtf")
-        # self.taxon_id = "8128"
-        # self.start_listener()
-        # self.merge_gene_annot.on("end", self.run_exp_gene_diff)
-        self.run_snp()
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170603/Refrna_arab_test/FilecheckRef/Arabidopsis_thaliana.TAIR10.32.gff3.gtf")
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170603/Refrna_arab_test/HiseqQc/output/sickle_dir")
+        self.seq_abs.on('end', self.run_annotation)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
+        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
+        # self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
+        self.qc.on('end', self.run_mapping)
+        # self.qc.on("end", self.run_star_mapping)
+        self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
+        self.map_gene.on("end", self.run_map_assess_gene)
+        self.mapping.on('end', self.run_assembly)
+        self.mapping.on('end', self.run_map_assess)
+        self.assembly.on("end", self.run_exp_rsem_default)
+        self.assembly.on("end", self.run_exp_rsem_alter)
+        self.assembly.on("end", self.run_exp_fc)
+        self.assembly.on("end", self.run_new_transcripts_abs)
+        self.assembly.on("end", self.run_new_gene_abs)
+        if self.taxon_id != "":
+            self.exp.on("end", self.run_network_trans)
+            self.exp.on("end", self.run_network_gene)
+            self.final_tools.append(self.network_gene)
+            self.final_tools.append(self.network_trans)
+        self.on_rely(self.final_tools, self.end)
+        self.run_seq_abs()
+        self.run_gs()
+        # self.qc.start_listener()
+        # self.qc.fire("end")
         self.start_listener()
         self.fire("start")
+        self.qc.start_listener()
+        self.qc.fire("end")
         self.rpc_server.run()
-        # self.filecheck.on('end', self.run_qc)
-        # self.qc.on('end', self.run_star_mapping)
-        # self.mapping.on("end", self.run_snp)
-        # self.on_rely(self.final_tools, self.end)
-        # self.run_filecheck()
-        # super(RefrnaWorkflow, self).run()
 
     def __check(self):
         super(RefrnaWorkflow, self).__check()
