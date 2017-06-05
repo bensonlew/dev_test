@@ -23,6 +23,7 @@ class ExpressModule(Module):
         super(ExpressModule,self).__init__(work_id)
         options=[
             {"name": "fq_type", "type": "string", "default": "PE"},  # PE OR SE
+            {"name":"is_class_code","type":"bool","default":True}, #是否根据拼接的结果提取class_code信息
             {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组的gtf文件
             {"name": "merged_gtf", "type": "infile", "format": "gene_structure.gtf"}, #拼接生成的merged.gtf文件
             {"name": "cmp_gtf", "type": "infile", "format": "gene_structure.gtf"}, #gttcompare生成的annotated.gtf文件
@@ -72,15 +73,15 @@ class ExpressModule(Module):
             self.fpkm_diffRexp = self.add_tool("rna.diff_exp") 
             self.tpm_diffRexp = self.add_tool('rna.diff_exp')
         elif self.option("express_method").lower() == 'rsem':
-            self.step.add_steps("rsem", "mergersem",  "transcript_abstract", "genes_diffRexp", "trans_diffRexp", "trans_corr", "trans_pca", "genes_corr", "genes_pca")
-        elif self.option("express_method").lower() == 'kallisto':
-            self.step.add_steps("kallisto", "mergekallisto", "transcript_abstract", "trans_diffRexp", "trans_corr", "trans_pca")
-        if self.option("express_method").lower()=='rsem':
-            self.genes_corr = self.add_tool("denovo_rna.mapping.correlation")
+            self.step.add_steps("rsem", "mergersem",  "genes_diffRexp", "trans_diffRexp", "trans_corr", "trans_pca", "genes_corr", "genes_pca")
+            #elif self.option("express_method").lower() == 'kallisto':
+            #self.step.add_steps("kallisto", "mergekallisto", "transcript_abstract", "trans_diffRexp", "trans_corr", "trans_pca")
+            #if self.option("express_method").lower()=='rsem':
+            self.genes_corr = self.add_tool("statistical.correlation")
             self.genes_pca = self.add_tool("meta.beta_diversity.pca")
             self.genes_diffRexp = self.add_tool("rna.diff_exp")
-        if self.option("express_method").lower() == 'rsem' or self.option("express_method").lower()=='kallisto':
-            self.trans_corr = self.add_tool("denovo_rna.mapping.correlation")
+            #if self.option("express_method").lower() == 'rsem' or self.option("express_method").lower()=='kallisto':
+            self.trans_corr = self.add_tool("statistical.correlation")
             self.trans_pca = self.add_tool("meta.beta_diversity.pca")
             self.trans_diffRexp = self.add_tool("rna.diff_exp")
         self.tool_lists = []
@@ -205,10 +206,11 @@ class ExpressModule(Module):
             "rsem_files": dir_path,
             "exp_way": self.option("exp_way"),
             "is_duplicate": self.option("is_duplicate"),
-            "gtf_ref": self.option("ref_gtf"),
-            "gtf_cmp": self.option("cmp_gtf"),
-            "is_class_code": True
+            "is_class_code": self.option("is_class_code")
         }
+        if self.option("is_class_code"):
+            opts["gtf_ref"] = self.option("ref_gtf")
+            opts["gtf_cmp"] = self.option("cmp_gtf")
         if self.option("is_duplicate"):
             opts.update({
                 "edger_group": self.option("edger_group")

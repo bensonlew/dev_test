@@ -120,7 +120,7 @@ class DrawFastqInfoTool(Tool):
             else:
                 if command.return_code == None:
                     command.rerun()
-                    command.wait()
+                    self.wait(command)
                     if command.return_code == 0:
                         self.logger.info("运行{}完成".format(command.name))
                         fastq_qual_stat("qual_stat")

@@ -7,7 +7,7 @@ from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
 from mbio.packages.ref_rna.express.single_sample import *
 from mbio.packages.ref_rna.express.set_strand import set_strand
-from mbio.packages.denovo_rna.express.express_distribution import *
+from mbio.packages.ref_rna.express.express_distribution import *
 import shutil
 import os
 import re
@@ -29,8 +29,8 @@ class FeaturecountsAgent(Agent):
             {"name": "out_file", "type": "outfile", "format": "rna.express_matrix"}, #featureCounts软件直接生成的表达量文件
             {"name": "gtf", "type":"string"}, #该物种的参考基因组文件路径  gtf格式而非gff格式
             {"name": "cpu", "type": "int", "default": 10},  #设置CPU
-            {"name": "is_duplicate", "type": "bool"}, # 是否有生物学重复 
-            {"name": "edger_group", "type":"infile", "format":"sample.group_table"}, 
+            {"name": "is_duplicate", "type": "bool"}, # 是否有生物学重复
+            {"name": "edger_group", "type":"infile", "format":"sample.group_table"},
             {"name": "max_memory", "type": "string", "default": "100G"},  #设置内存
             {"name": "exp_way", "type": "string","default": "fpkm"}, #fpkm水平表达量  fpkm tpm all
             {"name": "all_gene_list", "type": "outfile", "format": "rna.express_matrix"},  #所有基因list列表，提供给下游差异分析module
@@ -97,7 +97,7 @@ class FeaturecountsTool(Tool):
         self.python_path = self.config.SOFTWARE_DIR+"/program/Python/bin:$PATH"
         self.set_environ(PATH=self.python_path)
         self.distribution_path = '/mnt/ilustre/users/sanger-dev/biocluster/src/mbio/packages/denovo_rna/express'
-        
+
     def featurecounts_run(self):
         self.logger.info("开始进行表达量分析！")
         self.new_gtf = self.option('ref_gtf').prop['path']
@@ -131,12 +131,12 @@ class FeaturecountsTool(Tool):
                          self._out_dir, self.input_bam_file)
         self.logger.info("开始运行featureCounts计算表达量")
         featurecounts_cmd = self.add_command("featurecounts", cmd).run()
-        self.wait()
+        self.wait(featurecounts_cmd)
         if featurecounts_cmd.return_code == 0:
             self.logger.info("%s运行完成" % featurecounts_cmd)
         else:
             self.set_error("%s运行出错" % cmd)
-    
+
     def fpkm_tpm(self):
         """计算fpkm，tpm的表达量"""
         if os.path.exists(self._out_dir):
@@ -152,12 +152,12 @@ class FeaturecountsTool(Tool):
             gtf_file = self.new_gtf, count_matrix=self.count_path, gene_length=self.gene_length_path)
         fpkm_tpm_cmd= self.perl_path+self.parse_featurecounts_perl+self.count_path +" " +self.gene_length_path + " "+"fpkm_tpm"
         _fpkm_tpm_cmd = self.add_command("fpkm.tpm", fpkm_tpm_cmd).run()
-        self.wait()
+        self.wait(_fpkm_tpm_cmd)
         if _fpkm_tpm_cmd.return_code ==0:
             self.logger.info("计算fpkm, tpm表达量成功!\n{}".format(_fpkm_tpm_cmd))
         else:
             self.set_error("计算fpkkm, tpm表达量失败!\n{}".format(_fpkm_tpm_cmd))
-    
+
     def get_distribution(self, old_fpkm, out_path, exp_way=None):
         if not os.path.exists(out_path):
             os.mkdir(out_path)
@@ -165,12 +165,12 @@ class FeaturecountsTool(Tool):
         distribution(rfile=out_path+"/express_distribution.r",input_matrix=old_fpkm,outputfile=out_path,filename="gene")
         gcmd=self.r_path1+out_path+"/express_distribution.r"
         cmd1 = self.add_command("gene_{}_cmd".format(exp_way), gcmd).run()
-        self.wait()
+        self.wait(cmd1)
         if cmd1.return_code == 0:
             self.logger.info("表达量分布图{}的数据分析成功".format(exp_way))
         else:
             self.set_error("表达量分布图{}的数据分析出错".format(exp_way))
-            
+
     def sample_distribution(self):
         #样本count  distribution
         self.get_distribution(self.output_dir + "/count.xls", self.work_dir + "/count", "count")
@@ -213,13 +213,13 @@ class FeaturecountsTool(Tool):
                      filename=filename)
             cmd1 = self.r_path1 + " group_count_distribution.r"
             cmd1_run = self.add_command("{}".format((filename + "count").lower()), cmd1).run()
-        self.wait()
+        self.wait(cmd_run)
         if cmd_run.return_code == 0:
             self.logger.info("计算group{}密度分布成功".format(_type))
         else:
             self.logger.info("计算group{}密度分布失败".format(_type))
 
-    def group_detail(self): 
+    def group_detail(self):
         g = GroupTableFile()
         if self.option("edger_group").is_set:
             g.set_path(self.option("edger_group").prop['path'])
@@ -249,7 +249,7 @@ class FeaturecountsTool(Tool):
             self.logger.info("计算基因转录本group成功！")
         else:
             raise Exception("有生物学重复时，请设置样本生物学分组信息！")
-    
+
     def set_output(self):
         self.logger.info("设置结果目录")
         if os.path.exists(self.count_path):
@@ -269,7 +269,7 @@ class FeaturecountsTool(Tool):
         self.logger.info("生成gene_list成功！")
         self.logger.info("设置count表达量成功")
 
-    def run(self): 
+    def run(self):
         super(FeaturecountsTool, self).run()
         self.featurecounts_run()
         self.fpkm_tpm()
