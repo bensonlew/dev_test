@@ -54,6 +54,7 @@ class GenesetClassWorkflow(Workflow):
             api_geneset.add_geneset_cog_detail(output_file, self.option("main_table_id"))
         elif self.option("anno_type") == "go":
             output_file = self.option("geneset_go")
+            os.link(output_file, self.output_dir + "/go_class_table.xls")
             api_geneset.add_go_regulate_detail(output_file, self.option("main_table_id"))
         else:
             output_file = self.output_dir + '/kegg_stat.xls'
