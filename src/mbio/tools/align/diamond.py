@@ -111,7 +111,7 @@ class DiamondTool(Tool):
             self.option("evalue"), outfmt, self.option("num_threads"))
         self.logger.info("开始运行blast")
         blast_command = self.add_command("diamond", cmd)
-        blast_command.run(blast_command)
+        blast_command.run()
         self.wait()
         if blast_command.return_code == 0:
             self.logger.info("运行diamond完成")
