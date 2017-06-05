@@ -25,12 +25,11 @@ class NiptWorkflow(Workflow):
 			{"name": "bw", "type": "int", "default": 10},
 			{"name": "bs", "type": "int", "default": 1},
 			{"name": "ref_group", "type": "int", "default": 2}
+
 		]
 		self.add_option(options)
 		self.set_options(self._sheet.options())
 		self.tools=[]
-		self.tool_bed = []
-		self.tool_fastqc =[]
 		self.sample_id = []
 
 	def check_options(self):
@@ -53,7 +52,7 @@ class NiptWorkflow(Workflow):
 		step.finish()
 		self.step.update()
 
-	def fastq_run(self):
+	def analysis_run(self):
 		self.api_nipt = self.api.nipt_analysis
 		file = self.option('customer_table').prop['path']
 		self.api_nipt.nipt_customer(file)
@@ -64,17 +63,20 @@ class NiptWorkflow(Workflow):
 			m = re.match('(.*)_R1.fastq.gz', i)
 			if m:
 				self.sample_id.append(m.group(1))
-				fastq_process = self.add_tool("nipt.fastq_process")
-				self.step.add_steps('fastq_process{}'.format(n))
-				fastq_process.set_options({
+				nipt_analysis = self.add_module("nipt.nipt_analysis")
+				self.step.add_steps('nipt_analysis{}'.format(n))
+				nipt_analysis.set_options({
 					"sample_id": m.group(1),
-					"fastq_path": self.option("fastq_path")
+					"fastq_path": self.option("fastq_path"),
+					"bw": self.option('bw'),
+					'bs': self.option('bs'),
+					'ref_group': self.option('ref_group')
 				}
 				)
-				step = getattr(self.step, 'fastq_process{}'.format(n))
+				step = getattr(self.step, 'nipt_analysis{}'.format(n))
 				step.start()
-				fastq_process.on('end', self.finish_update, 'fastq_process{}'.format(n))
-				self.tools.append(fastq_process)
+				nipt_analysis.on('end', self.finish_update, 'nipt_analysis{}'.format(n))
+				self.tools.append(nipt_analysis)
 				n += 1
 
 		for name in self.sample_id:
@@ -82,73 +84,14 @@ class NiptWorkflow(Workflow):
 			self.api_nipt.add_interaction(self.main_id, self.option('bw'), self.option('bs'), self.option('ref_group'))
 
 		for j in range(len(self.tools)):
-			self.tools[j].on('end', self.set_output)
+			self.tools[j].on('end', self.set_output,'nipt_analysis')
 
 		if len(self.tools) > 1:
-			self.on_rely(self.tools, self.bed_run)
+			self.on_rely(self.tools, self.end)
 		elif len(self.tools) == 1:
-			self.tools[0].on('end', self.bed_run)
+			self.tools[0].on('end', self.end)
 
 		for tool in self.tools:
-			tool.run()
-
-
-	def bed_run(self):
-		n = 0
-		time.sleep(30)
-		for i in self.sample_id:
-			bed_analysis = self.add_tool("nipt.bed_analysis")
-			self.step.add_steps('bed_analysis{}'.format(n))
-			bed_analysis.set_options({
-				"bed_file": self.output_dir+'/'+i+'_R1.bed.2',
-				"bw": self.option('bw'),
-				'bs':self.option('bs'),
-				'ref_group':self.option('ref_group')
-			}
-			)
-			step = getattr(self.step, 'bed_analysis{}'.format(n))
-			step.start()
-			bed_analysis.on('end', self.finish_update, 'bed_analysis{}'.format(n))
-			self.tool_bed.append(bed_analysis)
-			n += 1
-
-		for j in range(len(self.tool_bed)):
-			self.tool_bed[j].on('end', self.set_output)
-
-		if len(self.tool_bed) > 1:
-			self.on_rely(self.tool_bed, self.fastqc)
-		elif len(self.tool_bed) == 1:
-			self.tool_bed[0].on('end', self.fastqc)
-
-		for tool in self.tool_bed:
-			tool.run()
-
-	def fastqc(self):
-		n = 0
-		for i in self.sample_id:
-			fastqc = self.add_tool("nipt.fastqc")
-			self.step.add_steps('fastqc{}'.format(n))
-			fastqc.set_options({
-				"sample_id":i,
-				"fastq_path":self.option('fastq_path'),
-				"bam_file": self.output_dir + '/' + i + '_R1.map.valid.bam',
-			}
-			)
-			step = getattr(self.step, 'fastqc{}'.format(n))
-			step.start()
-			fastqc.on('end', self.finish_update, 'fastqc{}'.format(n))
-			self.tool_fastqc.append(fastqc)
-			n += 1
-
-		for j in range(len(self.tool_fastqc)):
-			self.tool_fastqc[j].on('end', self.set_output)
-
-		if len(self.tool_fastqc) > 1:
-			self.on_rely(self.tool_fastqc, self.end)
-		elif len(self.tool_fastqc) == 1:
-			self.tool_fastqc[0].on('end', self.end)
-
-		for tool in self.tool_fastqc:
 			tool.run()
 
 
@@ -161,7 +104,8 @@ class NiptWorkflow(Workflow):
         :return:
         """
 		allfiles = os.listdir(dirpath)
-		newdir = os.path.join(self.output_dir, dirname)
+		# newdir = os.path.join(self.output_dir, dirname)
+		newdir = dirname
 		if not os.path.exists(newdir):
 			os.mkdir(newdir)
 		oldfiles = [os.path.join(dirpath, i) for i in allfiles]
@@ -180,10 +124,15 @@ class NiptWorkflow(Workflow):
 
 	def set_output(self, event):
 		obj = event["bind_object"]
-		self.linkdir(obj.output_dir, self.output_dir)
+		if event['data'] =='nipt_analysis':
+			allfiles = os.listdir(obj.output_dir)
+			oldfiles = [os.path.join(obj.output_dir, i) for i in allfiles]
+			newfiles = [os.path.join(self.output_dir, i) for i in allfiles]
+			for i in range(len(allfiles)):
+				os.link(oldfiles[i], newfiles[i])
 
 	def run(self):
-		self.fastq_run()
+		self.analysis_run()
 		super(NiptWorkflow, self).run()
 
 	def end(self):
