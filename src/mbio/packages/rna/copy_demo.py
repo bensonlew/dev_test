@@ -24,11 +24,11 @@ class CopyMongo(object):
         self._new_member_id = new_member_id
         self.specimen_id_dict = {}
         self.group_id_dict = {}
-        self.env_id_dict = {}
-        self.otu_id_dict = {}
-        self.alpha_diversity_id_dict = {}
-        self.newick_tree_id_dict = {}
-        self.specimen_distance_id_dict = {}
+        # self.env_id_dict = {}
+        # self.otu_id_dict = {}
+        # self.alpha_diversity_id_dict = {}
+        # self.newick_tree_id_dict = {}
+        # self.specimen_distance_id_dict = {}
         self.all_greenlets = []
         self._exchange_dict = {  # 根据特定字段名称，进行特定的ID新旧替换
             'specimen_id': self.specimen_id_dict,
@@ -47,20 +47,20 @@ class CopyMongo(object):
         patch_all()
         self.copy_member_id()
         self.copy_sg_specimen()
-        self.copy_sg_specimen_group()
-        self.copy_collection_with_change('sg_specimen_sequence', change_positions=['specimen_id', ], join=False)
-        self.copy_collection_with_change('sg_specimen_step', change_positions=['specimen_id', ], join=False)
-        self.copy_sg_otu()
-        self.copy_collection_with_change('sg_otu_detail', change_positions=['otu_id', ], join=False)
-        self.copy_collection_with_change('sg_otu_detail_level', change_positions=['otu_id', ], join=False)
-        self.env_id_dict = self.copy_collection_with_change('sg_env')
-        self.copy_main_details('sg_env_detail', 'env_id', self.env_id_dict, others_position=['specimen_id'], join=True)
-        self.env_id_dict[None] = None
-        self.env_id_dict[''] = None
-        self._exchange_dict['env_id'] = self.env_id_dict
-        self.copy_main_details('sg_otu_specimen', 'otu_id', self.otu_id_dict, others_position=['specimen_id'], join=False)
-        self.copy_sg_newick_tree()
-        self.recopy_update_otu()
+        # self.copy_sg_specimen_group()
+        # self.copy_collection_with_change('sg_specimen_sequence', change_positions=['specimen_id', ], join=False)
+        # self.copy_collection_with_change('sg_specimen_step', change_positions=['specimen_id', ], join=False)
+        # self.copy_sg_otu()
+        # self.copy_collection_with_change('sg_otu_detail', change_positions=['otu_id', ], join=False)
+        # self.copy_collection_with_change('sg_otu_detail_level', change_positions=['otu_id', ], join=False)
+        # self.env_id_dict = self.copy_collection_with_change('sg_env')
+        # self.copy_main_details('sg_env_detail', 'env_id', self.env_id_dict, others_position=['specimen_id'], join=True)
+        # self.env_id_dict[None] = None
+        # self.env_id_dict[''] = None
+        # self._exchange_dict['env_id'] = self.env_id_dict
+        # self.copy_main_details('sg_otu_specimen', 'otu_id', self.otu_id_dict, others_position=['specimen_id'], join=False)
+        # self.copy_sg_newick_tree()
+        # self.recopy_update_otu()
         greenlet = Greenlet(self.species_env_correlation)
         greenlet.start()
         self.all_greenlets.append(greenlet)
