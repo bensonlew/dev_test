@@ -119,15 +119,6 @@ class Family2bamTool(Tool):
 
         if cmd.return_code == 0:
             self.logger.info("运行转bam文件成功")
-        elif cmd.return_code == None:
-            self.logger.info("返回码问题，重新运行cmd")
-            re_fastq2bam_cmd = self.add_command("re_fastq2bam_cmd", fastq2bam_cmd).rerun()
-            self.wait(re_fastq2bam_cmd)
-
-            if re_fastq2bam_cmd.return_code == 0:
-                self.logger.info("运行转bam文件成功")
-            else:
-                raise Exception("运行转bam文件出错")
         else:
             raise Exception("运行转bam文件出错")
 

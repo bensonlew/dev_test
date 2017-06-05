@@ -93,14 +93,6 @@ class FamilyAnalysisTool(Tool):
 
         if cmd.return_code == 0:
             self.logger.info("运行家系分析成功")
-        elif cmd.return_code == None:
-            self.logger.info("返回码问题，重新运行cmd")
-            re_analysis_cmd = self.add_command("re_analysis_cmd", analysis_cmd).rerun()
-            self.wait(re_analysis_cmd)
-            if re_analysis_cmd.return_code == 0:
-                self.logger.info("运行家系分析成功")
-            else:
-                raise Exception("运行家系分析出错")
         else:
             raise Exception("运行家系分析出错")
 
