@@ -46,8 +46,8 @@ class NiptAnalysis(NiptController):
             ('name', main_table_name),
             ("nipt_main_id", ObjectId(data.main_id))
         ]
-        main_table_id = Nipt().insert_main_table('sg_nipt_task', mongo_data)
-        update_info = {str(main_table_id): 'sg_nipt_task'}
+        main_table_id = Nipt().insert_main_table('sg_nipt_interaction', mongo_data)
+        update_info = {str(main_table_id): 'sg_nipt_interaction'}
         options = {
             "bed_file": task_info['sample_id'],
             "bw": data.bw,

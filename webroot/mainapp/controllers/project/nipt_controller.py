@@ -20,9 +20,9 @@ class NiptController(MetaController):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
-            return 'nipt.med_report_tupdate'
-        else:
             return 'nipt.med_report_update'
+        else:
+            return 'nipt.med_report_tupdate'
 
     @check_sig
     def POST(self):
