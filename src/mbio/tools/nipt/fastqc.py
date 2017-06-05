@@ -94,14 +94,14 @@ class FastqcTool(Tool):
 		elif cmd.return_code == None:
 			rerun_cmd = self.add_command("re_gz_fastqc", gz_fastqc).rerun()
 			self.wait()
-			if rerun_cmd.rerurn_code == 0:
+			if rerun_cmd.return_code == 0:
 				self.logger.info("gz_fastqc质控成功")
 			else:
 				raise Exception("gz_fastqc质控再次运行出错")
 		else:
 			raise Exception("gz_fastqc质控出错")
 
-		bam_fastqc = 'bioinfo/medical/FastQc/fastqc -t 10 -o {} {}_R1.map.valid.bam'. \
+		bam_fastqc = 'bioinfo/medical/FastQc/fastqc -t 10 -o {} {}'. \
 			format(self.work_dir+'/temp',self.option('bam_file').prop['path'])
 		self.logger.info(bam_fastqc)
 		cmd = self.add_command("bam_fastqc", bam_fastqc).run()
@@ -111,7 +111,7 @@ class FastqcTool(Tool):
 		elif cmd.return_code == None:
 			rerun_cmd = self.add_command("re_bam_fastqc", bam_fastqc).rerun()
 			self.wait()
-			if rerun_cmd.rerurn_code == 0:
+			if rerun_cmd.return_code == 0:
 				self.logger.info("bam_fastqc质控成功")
 			else:
 				raise Exception("bam_fastqc质控再次运行出错")
