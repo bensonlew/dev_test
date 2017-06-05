@@ -278,10 +278,16 @@ class RefRnaGeneset(Base):
                 # print line[3]
                 for n, dk in enumerate(doc_keys):
                     # print n+3
+                    line4 = line[4+n*3].split("(")
                     data["{}_num".format(dk)] = int(line[3+n*3])
-                    data["{}_percent".format(dk)] = float(line[4+n*3])
+                    data["{}_percent".format(dk)] = float(line4[0])
+                    # data["{}_percent_str".format(dk)] = line4[1][:-1] if len(line4[1][:-1]) > 1 else "0"
                     data["{}_str".format(dk)] = line[5+n*3]
                     data["{}_genes".format(dk)] = line[5+n*3].split(";")
+                    if len(line4) > 1:
+                        data["{}_percent_str".format(dk)] = line4[1][:-1]
+                    else:
+                        data["{}_percent_str".format(dk)] = 0
                 data_list.append(data)
             try:
                 collection = self.db['sg_geneset_go_class_detail']
@@ -343,6 +349,9 @@ class RefRnaGeneset(Base):
         :param kegg_regulate_table: kegg_stat.xls统计结果文件
         :return:
         """
+        main_collection = self.db['sg_geneset_kegg_class']
+        kegg_main = self.db['sg_annotation_kegg']
+        kegg_level_coll = self.db['sg_annotation_kegg_level']
         if not isinstance(regulate_id, ObjectId):
             if isinstance(regulate_id, types.StringTypes):
                 regulate_id = ObjectId(regulate_id)
@@ -350,33 +359,45 @@ class RefRnaGeneset(Base):
                 raise Exception('kegg_regulate_id必须为ObjectId对象或其对应的字符串!')
         if not os.path.exists(kegg_regulate_table):
             raise Exception('kegg_regulate_table所指定的路径:{}不存在，请检查！'.format(kegg_regulate_table))
+        task_id = main_collection.find_one({"_id": regulate_id})['task_id']
+        kegg_main_id = kegg_main.find_one({"task_id": task_id})['_id']
+        kegg_result = kegg_level_coll.find({"kegg_id": kegg_main_id})
+        print kegg_main_id
+        path_def = {}
+        for kr in kegg_result:
+            # print kr['pathway_definition']
+            path_def[kr['pathway_id'].split(":")[-1]] = kr['pathway_definition']
+        # print path_def
+        # print task_id
         data_list = []
         with open(kegg_regulate_table, 'rb') as r:
             first_line = r.readline().strip().split("\t")[2:]
-            print r.next()
+            # print r.next()
             genesets_name = []
             for fl in first_line:
                 if "numbers" in fl:
                     genesets_name.append(fl[:-8])
             print genesets_name
-            print first_line
+            # print first_line
             for line in r:
                 line = line.strip('\n').split('\t')
                 insert_data = {
                     'kegg_id': regulate_id,
                     'pathway_id': line[0],
-                    'ko_ids': line[1]
+                    'ko_ids': line[1],
+                    'pathway_definition': path_def[line[0]]
                 }
-                # print line
+                # print path_def[line[0]]
                 for n, gn in enumerate(genesets_name):
                     gene_list = re.findall(r"(.*?)\(.*?\);", line[3+2*n])
+                    insert_data["{}_geneko".format(gn)] = line[3+2*n]
                     insert_data["{}_numbers".format(gn)] = line[2+2*n]
                     insert_data["{}_genes".format(gn)] = gene_list
                     insert_data["{}_str".format(gn)] = ";".join(gene_list)
                 data_list.append(insert_data)
             try:
                 collection = self.db['sg_geneset_kegg_class_detail']
-                main_collection = self.db['sg_geneset_kegg_class']
+                # main_collection = self.db['sg_geneset_kegg_class']
                 collection.insert_many(data_list)
                 main_collection.update({"_id": ObjectId(regulate_id)}, {"$set": {"table_columns": genesets_name}})
             except Exception, e:

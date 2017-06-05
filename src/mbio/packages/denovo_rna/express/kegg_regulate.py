@@ -70,6 +70,7 @@ class KeggRegulate(object):
             out_dir:输出结果的目录
             regulate_dict：ko调控信息:{'up': [ko1,ko2], 'up_down': [ko1,ko2],'down': [ko1,ko2]}
             """
+            colors = ['#EEEE00', '#CC0000', '#388E3C', "#EE6AA7", '#9B30FF', '#7B68EE']
             for path in path_ko:
                 koid = path_ko[path]
                 l = {}
@@ -86,29 +87,18 @@ class KeggRegulate(object):
                     if not regulate_dict == None:
                         for theid in l:
                             for graphic in pathway.entries[theid].graphics:
-                                if l[theid] in regulate_dict['up_down']:
-                                    graphic.fgcolor = '#EEEE00'
-                                elif l[theid] in regulate_dict['up']:
-                                    graphic.fgcolor = '#CC0000'
-                                elif l[theid] in regulate_dict['down']:
-                                    graphic.fgcolor = '#388E3C'
-                                else:
-                                    print theid
+                                # modified by qindanhua 20170602 适应基因集的修改，输入的字典名称根据基因集名臣变化，不限制于上下调基因
+                                for n, gs in enumerate(regulate_dict):
+                                    if l[theid] in regulate_dict[gs]:
+                                        graphic.fgcolor = colors[n]
+                                # if l[theid] in regulate_dict['up_down']:
+                                #     graphic.fgcolor = '#EEEE00'
+                                # elif l[theid] in regulate_dict['up']:
+                                #     graphic.fgcolor = '#CC0000'
+                                # elif l[theid] in regulate_dict['down']:
+                                #     graphic.fgcolor = '#388E3C'
+                                # else:
+                                #     print theid
                     canvas = KGMLCanvas(pathway, import_imagemap=True)
                     canvas.draw(out_dir + '/' + path + '.pdf')
                     os.remove(kgml_path)
-                    # os.remove(png_path)
-                    # canvas = KGMLCanvas(kgml_path, import_imagemap=True, label_compounds=True,
-                    #                 label_orthologs=False, label_reaction_entries=False,
-                    #                 label_maps=False, show_maps=False, draw_relations=False, show_orthologs=True,
-                    #                 show_compounds=False, show_genes=False,
-                    #                 show_reaction_entries=False)
-                    # pdf = pathwaydir + '/' + pid + '.pdf'
-                    # png = pathwaydir + '/' + pid + '.png'
-                    # canvas.draw(pdf)
-                    # if image_magick:
-                    #     cmd = image_magick + ' -flatten -quality 100 -density 130 -background white ' + pdf + ' ' + png
-                    #     try:
-                    #         subprocess.check_output(cmd, shell=True)
-                    #     except subprocess.CalledProcessError:
-                    #         print '图片格式pdf转png出错'

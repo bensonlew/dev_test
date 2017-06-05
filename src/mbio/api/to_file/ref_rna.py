@@ -313,7 +313,7 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
                 # print len(go_count)
                 # bind_obj.logger.debug(go_count)
                 if not len(go_count) == 0:
-                    write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "\t" + ";".join(go_count)
+                    write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "(" + str(len(go_count)) + "/" + str(total_gene_num) + ")" + "\t" + ";".join(go_count)
             if len(write_line):
                 w.write("{}\t{}\t{}\t".format(gr["parent_name"], gr["term_type"], gr["go"]))
                 for tt in table_title:
