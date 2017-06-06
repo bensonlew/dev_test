@@ -261,16 +261,17 @@ class PtDedupWorkflow(Workflow):
 		n = 0
 		q = event['data']
 		name_list = self.dedup_list[q]
-		dad_tab = []
+		dad_list = []
 		self.tools_dedup = []
-		self.logger.info(q)
-		self.logger.info(name_list)
+
 		for i in name_list:
-			dad_tab.append(self.output_dir + '/'+ i + '.tab')
-		pt_analysis_dedup = self.add_tool("paternity_test.pt_dedup")
+			dad_list.append(self.output_dir + '/'+ i + '.tab')
+		dad_list = ",".join(dad_list)
+
+		pt_analysis_dedup = self.add_tool("paternity_test.dedup_analysis")
 		self.step.add_steps('dedup_{}'.format(n))
 		pt_analysis_dedup.set_options({
-				"dad_tab": dad_tab,  # 数据库的tab文件
+				"dad_list": dad_list,  # 数据库的tab文件
 				"mom_tab": self.output_dir + '/' + self.mother[q] +'.tab',
 				"preg_tab": self.output_dir +'/' + self.preg[q]+'.tab',
 				"ref_point": self.option("ref_point"),
@@ -282,7 +283,6 @@ class PtDedupWorkflow(Workflow):
 		pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
 		self.tools_dedup.append(pt_analysis_dedup)
 		n += 1
-		self.tool[q] = self.tools_dedup
 
 		for j in range(len(self.tools_dedup)):
 			self.tools_dedup[j].on('end', self.set_output, 'dedup')
@@ -337,7 +337,7 @@ class PtDedupWorkflow(Workflow):
 			# api_main.add_pt_figure(obj.output_dir)
 
 		if event['data'] == "dedup":
-			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
+			self.linkdir(obj.output_dir, self.output_dir)
 
 	def run(self):
 		self.fastq2mongo_run()
@@ -351,6 +351,7 @@ class PtDedupWorkflow(Workflow):
 		results = os.listdir(self.output_dir)
 
 		for i in range(len(self.family_id)):
+			self.logger.info('家系{}开始进行导表'.format(self.family_id[i]))
 			dad_id = self.family_id[i][0]
 			mom_id = self.family_id[i][1]
 			preg_id = self.family_id[i][2]
