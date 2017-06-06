@@ -12,6 +12,7 @@ from biocluster.config import Config
 import json
 import re
 import gridfs
+import glob
 
 
 class RefRnaGeneset(Base):
@@ -192,7 +193,7 @@ class RefRnaGeneset(Base):
             print("导入%s信息成功！" % (go_graph_dir))
 
     @report_check
-    def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table):
+    def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table, geneset_list_path, all_list_path):
         """
         KEGG富集详情表导表函数
         :param enrich_id: 主表id
@@ -207,6 +208,8 @@ class RefRnaGeneset(Base):
         if not os.path.exists(kegg_enrich_table):
             raise Exception('kegg_enrich_table所指定的路径:{}不存在，请检查！'.format(kegg_enrich_table))
         data_list = []
+        geneset_length = len(open(geneset_list_path, "r").readlines())
+        all_list_length = len(open(all_list_path, "r").readlines())
         with open(kegg_enrich_table, 'rb') as r:
             for line in r:
                 if re.match(r'\w', line):
@@ -218,10 +221,12 @@ class RefRnaGeneset(Base):
                         'id': line[2],
                         'study_number': int(line[3]),
                         'backgroud_number': int(line[4]),
+                        'ratio_in_study': line[3] + "/" + str(geneset_length),
+                        'ratio_in_pop': line[4] + "/" + str(all_list_length),
                         'pvalue': round(float(line[5]), 4),
-                        'corrected_pvalue': round(float(line[6]), 4),
-                        'gene_lists': line[7],
-                        'hyperlink': line[8]
+                        'corrected_pvalue': round(float(line[-3]), 4) if not line[-3] == "None" else "None",
+                        'gene_lists': line[-2],
+                        'hyperlink': line[-1]
                     }
                     data_list.append(insert_data)
             if data_list:
@@ -273,10 +278,16 @@ class RefRnaGeneset(Base):
                 # print line[3]
                 for n, dk in enumerate(doc_keys):
                     # print n+3
+                    line4 = line[4+n*3].split("(")
                     data["{}_num".format(dk)] = int(line[3+n*3])
-                    data["{}_percent".format(dk)] = float(line[4+n*3])
+                    data["{}_percent".format(dk)] = float(line4[0])
+                    # data["{}_percent_str".format(dk)] = line4[1][:-1] if len(line4[1][:-1]) > 1 else "0"
                     data["{}_str".format(dk)] = line[5+n*3]
                     data["{}_genes".format(dk)] = line[5+n*3].split(";")
+                    if len(line4) > 1:
+                        data["{}_percent_str".format(dk)] = line4[1][:-1]
+                    else:
+                        data["{}_percent_str".format(dk)] = 0
                 data_list.append(data)
             try:
                 collection = self.db['sg_geneset_go_class_detail']
@@ -307,14 +318,19 @@ class RefRnaGeneset(Base):
         if not os.path.exists(pathway_dir):
             raise Exception('pathway_dir所指定的路径:{}不存在，请检查！'.format(pathway_dir))
         data_list = []
-        files = os.listdir(pathway_dir)
+        png_files = glob.glob("{}/*.png".format(pathway_dir))
+        pdf_files = glob.glob("{}/*.pdf".format(pathway_dir))
         fs = gridfs.GridFS(self.db)
-        for f in files:
-            png_id = fs.put(open(os.path.join(pathway_dir, f), 'rb'))
+        for f in png_files:
+            # png_id = fs.put(open(os.path.join(pathway_dir, f), 'rb'))
+            f_name = os.path.basename(f).split(".")[0]
+            png_id = fs.put(open(f, 'rb'))
+            pdf_id = fs.put(open(os.path.join(pathway_dir, f_name + ".pdf"), 'rb'))
             insert_data = {
                 'kegg_id': regulate_id,
                 'pathway_png': png_id,
-                'pathway_id': f.split('.pdf')[0]
+                'pathway_pdf': pdf_id,
+                'pathway_id': f_name
             }
             data_list.append(insert_data)
         try:
@@ -333,6 +349,9 @@ class RefRnaGeneset(Base):
         :param kegg_regulate_table: kegg_stat.xls统计结果文件
         :return:
         """
+        main_collection = self.db['sg_geneset_kegg_class']
+        kegg_main = self.db['sg_annotation_kegg']
+        kegg_level_coll = self.db['sg_annotation_kegg_level']
         if not isinstance(regulate_id, ObjectId):
             if isinstance(regulate_id, types.StringTypes):
                 regulate_id = ObjectId(regulate_id)
@@ -340,33 +359,45 @@ class RefRnaGeneset(Base):
                 raise Exception('kegg_regulate_id必须为ObjectId对象或其对应的字符串!')
         if not os.path.exists(kegg_regulate_table):
             raise Exception('kegg_regulate_table所指定的路径:{}不存在，请检查！'.format(kegg_regulate_table))
+        task_id = main_collection.find_one({"_id": regulate_id})['task_id']
+        kegg_main_id = kegg_main.find_one({"task_id": task_id})['_id']
+        kegg_result = kegg_level_coll.find({"kegg_id": kegg_main_id})
+        print kegg_main_id
+        path_def = {}
+        for kr in kegg_result:
+            # print kr['pathway_definition']
+            path_def[kr['pathway_id'].split(":")[-1]] = kr['pathway_definition']
+        # print path_def
+        # print task_id
         data_list = []
         with open(kegg_regulate_table, 'rb') as r:
             first_line = r.readline().strip().split("\t")[2:]
-            print r.next()
+            # print r.next()
             genesets_name = []
             for fl in first_line:
                 if "numbers" in fl:
                     genesets_name.append(fl[:-8])
             print genesets_name
-            print first_line
+            # print first_line
             for line in r:
                 line = line.strip('\n').split('\t')
                 insert_data = {
                     'kegg_id': regulate_id,
                     'pathway_id': line[0],
-                    'ko_ids': line[1]
+                    'ko_ids': line[1],
+                    'pathway_definition': path_def[line[0]]
                 }
-                # print line
+                # print path_def[line[0]]
                 for n, gn in enumerate(genesets_name):
                     gene_list = re.findall(r"(.*?)\(.*?\);", line[3+2*n])
+                    insert_data["{}_geneko".format(gn)] = line[3+2*n]
                     insert_data["{}_numbers".format(gn)] = line[2+2*n]
                     insert_data["{}_genes".format(gn)] = gene_list
                     insert_data["{}_str".format(gn)] = ";".join(gene_list)
                 data_list.append(insert_data)
             try:
                 collection = self.db['sg_geneset_kegg_class_detail']
-                main_collection = self.db['sg_geneset_kegg_class']
+                # main_collection = self.db['sg_geneset_kegg_class']
                 collection.insert_many(data_list)
                 main_collection.update({"_id": ObjectId(regulate_id)}, {"$set": {"table_columns": genesets_name}})
             except Exception, e:

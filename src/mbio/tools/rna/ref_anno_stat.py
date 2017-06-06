@@ -162,10 +162,10 @@ class RefAnnoStatAgent(Agent):
             ["/blast_nr_statistics/gene_nr_similar.xls", "xls", "基因序列blast结果similarity统计"],
             ["/blast_nr_statistics/nr_evalue.xls", "xls", "转录本序列blast结果E-value统计"],
             ["/blast_nr_statistics/nr_similar.xls", "xls", "转录本序列blast结果similarity统计"],
-            ["/blast_swissprot_statistics/gene_nr_evalue.xls", "xls", "基因序列blast结果E-value统计"],
-            ["/blast_swissprot_statistics/gene_nr_similar.xls", "xls", "基因序列blast结果similarity统计"],
-            ["/blast_swissprot_statistics/nr_evalue.xls", "xls", "转录本序列blast结果E-value统计"],
-            ["/blast_swissprot_statistics/nr_similar.xls", "xls", "转录本序列blast结果similarity统计"],
+            ["/blast_swissprot_statistics/gene_swissprot_evalue.xls", "xls", "基因序列blast结果E-value统计"],
+            ["/blast_swissprot_statistics/gene_swissprot_similar.xls", "xls", "基因序列blast结果similarity统计"],
+            ["/blast_swissprot_statistics/swissprot_evalue.xls", "xls", "转录本序列blast结果E-value统计"],
+            ["/blast_swissprot_statistics/swissprot_similar.xls", "xls", "转录本序列blast结果similarity统计"],
         ]
         result_dir.add_relpath_rules(relpath)
         result_dir.add_regexp_rules([
@@ -217,6 +217,7 @@ class RefAnnoStatTool(Tool):
         # 筛选gene_nr.xml、gene_nr.xls
         self.logger.info("开始筛选gene_nr.xml、gene_nr.xls")
         self.option('nr_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_nr_xml, trinity_mode=False)
+        transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_nr_xml, gene_xml_path=self.gene_nr_xml)
         xml2table(self.gene_nr_xml, self.work_dir + '/blast/gene_nr.xls')
         xml2table(self.option('nr_xml').prop['path'], self.work_dir + '/blast/nr.xls')
         self.logger.info("完成筛选gene_nr.xml、gene_nr.xls")
@@ -269,6 +270,7 @@ class RefAnnoStatTool(Tool):
                     item = line.strip().split('\t')
                     name = item[0]
                     if name in gene_list:
+                        line = re.sub(r"{}".format(name), self.tran_gene[name], line)
                         w.write(line)
         get_gene_pfam(pfam_domain=self.option('pfam_domain').prop['path'], gene_list=self.gene_list, outpath=self.pfam_stat_path + 'gene_pfam_domain')
         self.option('gene_pfam_domain', self.pfam_stat_path + 'gene_pfam_domain')
@@ -344,6 +346,7 @@ class RefAnnoStatTool(Tool):
     def run_swissprot_stat(self):
         self.logger.info("开始筛选gene_swissprot.xml、gene_swissprot.xls")
         self.option('swissprot_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_swissprot_xml, trinity_mode=False)
+        transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_swissprot_xml, gene_xml_path=self.gene_swissprot_xml)
         xml2table(self.gene_swissprot_xml, self.work_dir + '/blast/gene_swissprot.xls')
         xml2table(self.option('swissprot_xml').prop['path'], self.work_dir + '/blast/swissprot.xls')
         self.logger.info("完成筛选gene_swissprot.xml、gene_swissprot.xls")

@@ -45,7 +45,7 @@ class KeggAnnotationAgent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = '5G'
+        self._memory = '50G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -67,7 +67,7 @@ class KeggAnnotationTool(Tool):
         super(KeggAnnotationTool, self).__init__(config)
         self._version = "2.0"
         self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
-        self.image_magick = self.config.SOFTWARE_DIR + "//program/ImageMagick/bin/convert"
+        self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
 
     def run(self):
         super(KeggAnnotationTool, self).run()

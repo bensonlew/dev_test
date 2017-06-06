@@ -313,7 +313,7 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
                 # print len(go_count)
                 # bind_obj.logger.debug(go_count)
                 if not len(go_count) == 0:
-                    write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "\t" + ";".join(go_count)
+                    write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "(" + str(len(go_count)) + "/" + str(total_gene_num) + ")" + "\t" + ";".join(go_count)
             if len(write_line):
                 w.write("{}\t{}\t{}\t".format(gr["parent_name"], gr["term_type"], gr["go"]))
                 for tt in table_title:
@@ -348,7 +348,7 @@ def export_gene_list_ppi(data, option_name, dir_path, bind_obj=None):
 def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     """
     type对应的是gene/transcript字段，workflow里确保有这个字段
-    level对应的是fpkm/tpm字段，workflow里确保有这个字段
+    express_level对应的是fpkm/tpm字段，workflow里确保有这个字段
     """
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     fpkm_path = os.path.join(dir_path, "%s_fpkm.matrix" % option_name)
@@ -360,36 +360,37 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     bind_obj.logger.debug(type)
     level = bind_obj.sheet.option("express_level")
     #sample_group = bind_obj.sheet.option("sample_group")
-    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(type)},{"sample_group":"sample"}]})
+    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(type)},{"sample_group":"sample"},{"value_type":level}]})
+    count_results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(type)},{"sample_group":"sample"},{"value_type":"count"}]})
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
         raise Exception("意外错误，express_id:{}在sg_express中未找到！".format(ObjectId(data)))
+    
     samples = my_result['specimen']
-    with open(fpkm_path, "wb") as f, open(count_path, 'wb') as c:
-        head = '\t'.join(samples)
-        f.write('\t' + head + '\n')
-        c.write('\t' + head + '\n')
-        for result in results:
-            #bind_obj.logger.debug(result)
-            gene_id = result['seq_id']
-            fpkm_write = '{}'.format(gene_id)
-            count_write = '{}'.format(gene_id)
-            for sam in samples:
-                fpkm = sam + '_{}'.format(level)
-                count = sam + '_count'
-                #bind_obj.logger.debug(fpkm)
-                try:
-                    fpkm_write += '\t{}'.format(result[fpkm])
-                    count_write += '\t{}'.format(result[count])
-                except Exception:
-                    print fpkm_write
-                    print sam
-                    print result
-                    raise Exception("{}错误".format(result[fpkm]))
-            fpkm_write += '\n'
-            count_write += '\n'
-            f.write(fpkm_write)
-            c.write(count_write)
+    def write_file(path, collcetion_results):
+        with open(path, "wb") as f:
+            head = '\t'.join(samples)
+            f.write('\t' + head + '\n')
+            for result in collcetion_results:
+                #bind_obj.logger.debug(result)
+                gene_id = result['seq_id']
+                fpkm_write = '{}'.format(gene_id)
+                for sam in samples:
+                    fpkm = sam 
+                    try:
+                        fpkm_write += '\t{}'.format(result[fpkm])
+                        #count_write += '\t{}'.format(result[count])
+                    except Exception:
+                        print fpkm_write
+                        print sam
+                        print result
+                        raise Exception("{}错误".format(result[fpkm]))
+                fpkm_write += '\n'
+                #count_write += '\n'
+                f.write(fpkm_write)
+                #c.write(count_write)
+    write_file(fpkm_path, results)
+    write_file(count_path, count_results)
     paths = ','.join([fpkm_path, count_path])
     return paths
 

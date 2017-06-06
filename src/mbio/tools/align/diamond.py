@@ -120,13 +120,14 @@ class DiamondTool(Tool):
         elif blast_command.return_code == None:
             self.logger.info("重新运行diamond")
             blast_command.rerun()
-            self.wait()
+            self.wait(blast_command)
             if blast_command.return_code == 0:
                 self.logger.info("重新运行diamond成功")
                 # self.end()
                 self.change_version(outputfile)
         else:
             self.set_error("diamond运行出错!")
+            raise Exception("diamond运行出错!")
 
     def run(self):
         """

@@ -71,7 +71,7 @@ class RefrnaAssembleModule(Module):
             stringtie.set_options({
                 "sample_bam": f,
                 "ref_fa": self.option('ref_fa'),
-                "ref_gtf": self.option('ref_gtf').prop['path'],
+                "ref_gtf": self.option('ref_gtf'),
             })
             step = getattr(self.step, 'stringtie_{}'.format(n))
             step.start()
@@ -94,7 +94,7 @@ class RefrnaAssembleModule(Module):
         stringtie_merge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
             "ref_fa": self.option('ref_fa'),
-            "ref_gtf": self.option('ref_gtf').prop['path'],
+            "ref_gtf": self.option('ref_gtf'),
         })
         stringtie_merge.on('end', self.gffcompare_run)
         stringtie_merge.run()
@@ -113,7 +113,7 @@ class RefrnaAssembleModule(Module):
             cufflinks.set_options({
                 "sample_bam": f,
                 "ref_fa": self.option('ref_fa'),
-                "ref_gtf": self.option('ref_gtf').prop['path'],
+                "ref_gtf": self.option('ref_gtf'),
                 "fr_stranded": self.option("fr_stranded"),
             })
             step = getattr(self.step, 'cufflinks_{}'.format(n))
@@ -137,7 +137,7 @@ class RefrnaAssembleModule(Module):
         cuffmerge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
             "ref_fa": self.option('ref_fa'),
-            "ref_gtf": self.option('ref_gtf').prop['path'],
+            "ref_gtf": self.option('ref_gtf'),
         })
         cuffmerge.on('end', self.gffcompare_run)
         cuffmerge.run()
@@ -155,7 +155,7 @@ class RefrnaAssembleModule(Module):
         gffcompare = self.add_tool("assemble.gffcompare")
         gffcompare.set_options({
              "merged_gtf": merged_gtf,
-             "ref_gtf": self.option('ref_gtf').prop['path'],
+             "ref_gtf": self.option('ref_gtf'),
          })
         gffcompare.on('end', self.new_transcripts_run)
         gffcompare.run()

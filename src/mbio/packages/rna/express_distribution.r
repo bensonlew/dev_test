@@ -15,7 +15,7 @@ fpkm_density<-function(fpkm_data, logValue){ #add functions by khl 20170403
     dens=c()
     for(i in 1:length(samples)){
        a=fpkm_data[i]
-       den=density(a[,1],n = 601,from = -10,to = maxfpkm)
+       den=density(a[,1],n = 601,from = 0,to = maxfpkm)
        dens=cbind(dens,den$y)
     }
     dens_new=cbind(den$x,dens)

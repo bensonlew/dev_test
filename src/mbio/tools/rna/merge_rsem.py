@@ -3,7 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-from mbio.packages.denovo_rna.express.express_distribution import *
+from mbio.packages.ref_rna.express.express_distribution import *
 import os
 import re, shutil
 from mbio.packages.ref_rna.express.single_sample import group_express
@@ -70,7 +70,7 @@ class MergeRsemAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = "500G"
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -161,19 +161,48 @@ class MergeRsemTool(Tool):
         else:
             self.set_error("表达量分布图的数据分析出错")
     
-    def group_distribution(self, old_fpkm, new_fpkm,sample_group_info, outputfile, filename): # add by khl 
+    def get_count_distribution(self):
+        """获取count分布图"""
+        #gene
+        count_distribution = self.work_dir + "/sample_count_distribution"
+        if not os.path.exists(count_distribution):
+            os.mkdir(count_distribution)
+        distribution(rfile = './gene_count_distribution.r',input_matrix = self.option("gene_count").prop['path'],outputfile = count_distribution,filename='gene')
+        #transcript
+        distribution(rfile = './tran_count_distribution.r',input_matrix = self.option("tran_count").prop['path'],outputfile = count_distribution,filename='transcript')
+        genecmd = self.r_path1 + " gene_count_distribution.r"
+        trancmd = self.r_path1 + " tran_count_distribution.r"
+        self.logger.info("开始运行count的数据分析")
+        genecmd1 = self.add_command("gene_count_cmd",genecmd).run()
+        trancmd1 = self.add_command("tran_count_cmd",trancmd).run()
+        self.wait()
+        if genecmd1.return_code ==0 and trancmd1.return_code == 0:
+            self.logger.info("count表达量分布图的数据分析成功！")
+        else:
+            self.set_error("count表达量分布图的数据分析出错！")
+        
+    def group_distribution(self, old_fpkm, new_fpkm,old_count, new_count, sample_group_info, outputfile, filename,_type=None): # add by khl 
         import random
-        shutil.copy2(self.distribution_path+"/express_distribution.py",self.work_dir+"/express_distribution.py")
-        shutil.copy2(self.distribution_path+"/express_distribution.r",self.work_dir+"/express_distribution.r")
-        self.logger.info("express_distribution py和r文件复制完毕！")
-        rfile = self.work_dir+"/express_distribution.r"
-        group_express(old_fpkm = old_fpkm, new_fpkm = new_fpkm, sample_group_info = sample_group_info, \
-                        rfile=rfile, outputfile = outputfile, filename = filename)
-        cmd = self.r_path1 + " {}".format(rfile)
-        cmd1 = self.add_command("{}".format(filename), cmd).run()
+        group_express(old_fpkm = old_fpkm, new_fpkm = new_fpkm, old_count=old_count, new_count=new_count,sample_group_info = sample_group_info, \
+                        outputfile = outputfile, filename = filename)
+        #new_fpkm
+        group_fpkm_distribution = self.work_dir+"/group_{}_fpkm_distribution".format(_type)
+        if not os.path.exists(group_fpkm_distribution):
+            os.mkdir(group_fpkm_distribution)
+        group_count_distribution = self.work_dir+"/group_{}_count_distribution".format(_type)
+        if not os.path.exists(group_count_distribution):
+            os.mkdir(group_count_distribution)
+        distribution(rfile = './group_fpkm_distribution.r',input_matrix = new_fpkm,outputfile=group_fpkm_distribution,filename=filename)
+        distribution(rfile = './group_count_distribution.r',input_matrix = new_count,outputfile=group_count_distribution,filename=filename)
+        cmd = self.r_path1 + " group_fpkm_distribution.r"
+        cmd1 = self.r_path1 + " group_count_distribution.r"
+
+        cmd_run = self.add_command("{}".format((filename+"a").lower()), cmd).run()
+        cmd1_run = self.add_command("{}".format((filename+"b").lower()), cmd1).run()
+
         self.logger.info(cmd)
         self.wait()
-        if cmd1.return_code == 0:
+        if cmd_run.return_code == 0  and cmd1_run.return_code == 0:
             self.logger.info("计算group密度分布成功")
         else:
             self.logger.info("计算group密度分布失败")
@@ -185,7 +214,7 @@ class MergeRsemTool(Tool):
             sample_group_info = g.get_group_spname()
             self.logger.info("打印sample_group_info信息")
             self.logger.info(sample_group_info)
-            outputfile = self.work_dir
+            outputfile = self.output_dir
             results=os.listdir(outputfile)
             new_group_path = self.work_dir + "/group"
             if not os.path.exists(new_group_path):
@@ -194,24 +223,29 @@ class MergeRsemTool(Tool):
                 if re.search(r'^(transcripts\.TMM)(.+)(matrix)$', f):
                     self.logger.info("开始计算trans group分布信息")
                     trans_new_fpkm = self.work_dir + "/Group.trans_"+f
+                    trans_new_count = self.work_dir + "/Group.trans_count_"+f
                     self.logger.info("生成trans group 文件")
                     trans_filename = "GroupTrans"
-                    self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=trans_new_fpkm,\
-                            sample_group_info=sample_group_info, outputfile=outputfile, filename = trans_filename)
+                    old_count = self.work_dir + "/transcripts.counts.matrix"
+                    self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=trans_new_fpkm,old_count = old_count,new_count = trans_new_count,
+                            sample_group_info=sample_group_info, outputfile=outputfile, filename = trans_filename,_type='trans')
                     shutil.copy2(trans_new_fpkm, new_group_path+"/Group.trans_"+f)
                 elif re.search(r'^(genes\.TMM)(.+)(matrix)$', f):
                     self.logger.info("开始计算gene group分布信息")
                     genes_new_fpkm = self.work_dir + "/Group.genes_"+f
+                    genes_new_count = self.work_dir + "/Group.genes_count_"+f
+                    old_count = self.work_dir + "/genes.counts.matrix"
                     self.logger.info("生成gene group 文件")
                     genes_filename = "GroupGenes"
-                    self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=genes_new_fpkm,\
-                            sample_group_info=sample_group_info, outputfile=outputfile, filename = genes_filename)
+                    self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=genes_new_fpkm,old_count=old_count,new_count = genes_new_count,
+                            sample_group_info=sample_group_info, outputfile=outputfile, filename = genes_filename,_type='genes')
                     shutil.copy2(genes_new_fpkm, new_group_path+"/Group.genes_"+f)
             self.logger.info("计算基因转录本group成功！")
+            
         else:
             raise Exception("有生物学重复时，请设置样本生物学分组信息！")
         
-    def set_output(self, is_duplicate = None):
+    def set_output(self):
         """
         将结果文件link到output文件夹下面
         :params: is_duplicate, 是否计算生物学重复
@@ -275,8 +309,9 @@ class MergeRsemTool(Tool):
             self.run_class_code()
             self.logger.info("开始生成class_code信息！")
         self.merge_rsem()
-        self.set_output(is_duplicate=False)
+        self.set_output()
         self.get_distribution()
+        self.get_count_distribution()
         if self.option("is_duplicate"):
             self.group_detail()
         self.end()

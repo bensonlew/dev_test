@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# __author__ : konghualei 
+# __author__ : konghualei
 # last modify: 20170301
 
 from biocluster.agent import Agent
@@ -40,15 +40,15 @@ class RsemAgent(Agent):
         self.step.add_steps("rsem")
         self.on("start", self.stepstart)
         self.on("end", self.stepfinish)
-    
+
     def stepstart(self):
         self.step.rsem.start()
         self.step.update()
-    
+
     def stepfinish(self):
         self.step.rsem.finish()
         self.step.update()
-    
+
     def check_options(self):
         """重写参数检测函数"""
         self.logger.info("输出ref_gtf格式")
@@ -59,20 +59,21 @@ class RsemAgent(Agent):
             raise OptionError("请输入单端或双端!")
         if not self.option("ref_gtf").is_set:
             raise OptionError("请输入参考基因组gtf文件!")
-    
+
     def set_resource(self):
         self._cpu = 8
         self._memory = '100G'
-        
+
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         super(RsemAgent, self).end()
-        
+
 class RsemTool(Tool):
     def __init__(self, config):
         super(RsemTool, self).__init__(config)
         # self.version = "1.0.1"
         #self.rsem_path =self.config.SOFTWARE_DIR + '/bioinfo/rna/RSEM-1.2.31/bin/'
+        self.rsem = "/bioinfo/rna/scripts/align_and_estimate_abundance.pl"
         self.rsem_path ='bioinfo/rna/RSEM-1.2.31/bin/'
         self.bowtie_path = self.config.SOFTWARE_DIR + '/bioinfo/align/bowtie2-2.2.9/'
         #self.star_build_path = self.config.SOFTWARE_DIR + "/bioinfo/rna/star-2.5/bin/Linux_x86_64/"
@@ -81,7 +82,7 @@ class RsemTool(Tool):
         self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
         self.set_environ(PATH=self.rsem_path)
         self.set_environ(PATH=self.bowtie_path)
-    
+
     def ref_rsem_build(self):
         self.rsem_index_path = os.path.join(self.work_dir, "rsem_index")
         gtf_format = os.path.basename(self.option('ref_gtf').prop['path'])
@@ -99,13 +100,13 @@ class RsemTool(Tool):
                    self.rsem_index_path, self.bowtie_path)
         self.logger.info(cmd)
         bowtie2_cmd = self.add_command("bowtie2_build", cmd).run()
-        self.wait()
+        self.wait(bowtie2_cmd)
         if bowtie2_cmd.return_code == 0:
             self.logger.info("%s运行完成" % bowtie2_cmd)
             #self.option("fa_build").set_path(self.rsem_index_path)
         else:
             self.set_error("%s运行出错!" % bowtie2_cmd)
-    
+
     def ref_rsem_run(self, fasta_build):
         data = FastqFile()
         if self.option("fq_type") == "PE":
@@ -116,12 +117,12 @@ class RsemTool(Tool):
                    fasta_build, self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
         self.logger.info(cmd)
         exp_cmd = self.add_command("express_run", cmd).run()
-        self.wait()
+        self.wait(exp_cmd)
         if exp_cmd.return_code == 0:
             self.logger.info("{}运行成功！".format(exp_cmd))
         else:
             self.set_error("{}运行失败".format(exp_cmd))
-    
+
     def denovo_bowtie_build(self):
         rsem_fasta = self.work_dir + '/' + os.path.basename(self.option('transcript_fa').prop['path'])
         if os.path.exists(rsem_fasta):
@@ -132,7 +133,7 @@ class RsemTool(Tool):
         cmd = self.rsem + ' --transcripts %s --seqType fq --single test.fq --est_method  RSEM --output_dir %s --trinity_mode --aln_method bowtie2 --prep_reference' % (rsem_fasta, self.work_dir)
         self.logger.info('开始运行bowtie2建索引')
         bowtie_cmd = self.add_command('bowtie_build', cmd).run()
-        self.wait()
+        self.wait(bowtie_cmd)
         if bowtie_cmd.return_code == 0:
             self.logger.info("%s运行完成" % bowtie_cmd)
             self.option('fa_build', rsem_fasta)
@@ -149,12 +150,12 @@ class RsemTool(Tool):
 
         self.logger.info("开始运行_rsem_cmd")
         cmd = self.add_command("rsem_cmd", rsem_cmd).run()
-        self.wait()
+        self.wait(cmd)
         if cmd.return_code == 0:
             self.logger.info("%s运行完成" % cmd)
         else:
             self.set_error("%s运行出错!" % cmd)
-    
+
     def set_output(self):
         """
         将结果文件link到output文件夹下面
@@ -174,7 +175,7 @@ class RsemTool(Tool):
             self.logger.info("设置rsem分析结果目录成功")
         except Exception as e:
             self.logger.info("设置rsem分析结果目录失败{}".format(e))
-    
+
     def run(self):
         super(RsemTool, self).run()
         if self.option("only_bowtie_build") == True:

@@ -10,107 +10,193 @@ from mainapp.libs.signature import check_sig
 from bson.objectid import ObjectId
 from mainapp.libs.param_pack import *
 from biocluster.config import Config
-from mainapp.models.mongo.submit.ref_rna.ref_diff import RefDiff
+
 import types
 from mainapp.models.mongo.meta import Meta
 from mainapp.models.workflow import Workflow
-from mainapp.controllers.project.ref_express_controller import RefExpressController
-from mainapp.controllers.project.ref_rna_controller import RefRnaController
+
 from mbio.api.to_file.ref_rna import *
+from mainapp.models.mongo.ref_rna import RefRna
+from mainapp.controllers.project.ref_rna_controller import RefRnaController
+from pymongo import MongoClient
+import subprocess
+
+
+def isFloat(string):
+    try:
+        temp = float(string)
+        return True
+    except Exception as e:
+        return False
 
 
 class RmatsRerunAction(RefRnaController):
+    '''
+    rmats接口
+    
+    '''
+    
     def __init__(self):
-        super(RmatsRerunAction, self).__init__()
+        super(RmatsRerunAction, self).__init__(instant=False)
     
     def GET(self):
         return 'jlf'
     
+    @check_sig
     def POST(self):
         data = web.input()
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        # print data.express_id
-        # print data.group_detail
-        # print data.control_id
-        # print data.group_id
-        # print data.fc
-        # print data.pvalue_padjust
-        # print data.diff_method
-        # print data.pvalue
-        # print data.diff_method
-        # print data.type
-    
-        # return "diff_express"
-    
-        return_result = self.check_options(data)
-        if return_result:
-            info = {"success": False, "info": '+'.join(return_result)}
-            return json.dumps(info)
-        my_param = dict()
-    
+        post_args = ['group_id', 'group_detail', 'cut_off', 'submit_location', 'splicing_id',
+                     'control_id']
+        print data.control_id
+        for arg in post_args:
+            if not hasattr(data, arg):
+                info = {'success': False, 'info': '%s参数缺少!' % arg}
+                return json.dumps(info)
+        task_name = 'ref_rna.report.rmats'
         task_type = 'workflow'
-        task_name = 'ref_rna.report.diff_express'
-    
-        my_param['splicing_id'] = data.splicing_id
+        control_doc = RefRna().get_main_info(ObjectId(data.control_id), 'sg_specimen_group_compare')
+        print control_doc
+        group_doc = RefRna().get_main_info(ObjectId(data.group_id), 'sg_specimen_group')
+        print group_doc
+        compare_plans = re.sub(r'[\"\[\]\s+\']', '', control_doc['compare_names']).split(',')
+        if len(compare_plans) > 1:
+            info = {"success": False, "info": "只能选一组对照组方案"}
+            return json.dumps(info)
+        case_group_name = compare_plans[0].split('|')[0]
+        print case_group_name
+        control_group_name = compare_plans[0].split('|')[1]
+        print control_group_name
+        case_group_members = group_doc["specimen_names"][
+            group_doc["category_names"].index(case_group_name)].keys()
+        print case_group_members
+        control_group_members = group_doc["specimen_names"][
+            group_doc["category_names"].index(control_group_name)].keys()
+        print control_group_members
+        case_group_bam_lst = []
+        control_group_bam_lst = []
+        for case_sp in case_group_members:
+            doc = RefRna().get_main_info(ObjectId(case_sp), 'sg_specimen')
+            print('现在装载%s样本的bam信息: %s' % (case_sp, doc))
+            case_group_bam_lst.append(
+                doc['bam_path'])
+        for control_sp in control_group_members:
+            doc = RefRna().get_main_info(ObjectId(control_sp), 'sg_specimen')
+            print('现在装载%s样本的bam信息: %s' % (control_sp, doc))
+            control_group_bam_lst.append(
+                doc['bam_path'])
+        case_group_bam_str = ','.join([p.strip() for p in case_group_bam_lst])
+        control_group_bam_str = ','.join([p.strip() for p in control_group_bam_lst])
+        if len(case_group_bam_lst) <= 1 or len(control_group_bam_lst) <= 1:
+            info = {"success": False, "info": "每组必须有2个以上的样本"}
+            return json.dumps(info)
+        if not isFloat(data.cut_off):
+            info = {"success": False, "info": "cut_off必须为浮点数"}
+            return json.dumps(info)
+        if float(data.cut_off) >= 1 or float(data.cut_off) < 0:
+            info = {"success": False, "info": "cut_off必须在[0,1)之间"}
+            return json.dumps(info)
+        my_param = {}
+        print data.group_detail
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
         my_param['control_id'] = data.control_id
-        my_param['fc'] = data.fc
+        my_param['gname'] = group_doc['group_name']
+        my_param['cut_off'] = data.cut_off
         
-        my_param['diff_method'] = data.diff_method
-        my_param['type'] = data.type
-        my_param['task_type'] = task_type
+        
         my_param['submit_location'] = data.submit_location
-    
-        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-        express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
-        task_info = self.ref_rna.get_task_info(express_info['task_id'])
-    
-        if express_info:
-            main_table_name = "DiffExpress_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-            task_id = express_info["task_id"]
-            project_sn = express_info["project_sn"]
-        
+        my_param['task_type'] = task_type
+        splicing_info = RefRna().get_main_info(ObjectId(data.splicing_id), 'sg_splicing_rmats')
+        if splicing_info:
+            old_params = json.loads(splicing_info['params'])
+            task_info = self.ref_rna.get_task_info(splicing_info['task_id'])
+            main_table_name = "SplicingRmats_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+            task_id = splicing_info["task_id"]
+            project_sn = splicing_info["project_sn"]
+            if not 'ref_gtf' in old_params.keys():
+                raise Exception('关联主表没有设置ref gtf路径')
+            if not 'seq_type' in old_params.keys():
+                raise Exception('关联主表没有设置seq_type')
+            if not 'read_len' in old_params.keys():
+                raise Exception('关联主表没有设置read_len')
+            if not 'novel' in old_params.keys():
+                raise Exception('关联主表没有设置novel')
+            if not 'analysis_mode' in old_params.keys():
+                raise Exception('关联主表没有设置analysis_mode')
+            if not 'lib_type' in old_params.keys():
+                raise Exception('关联主表没有设置lib_type')
+            my_param["ref_gtf"] = old_params['ref_gtf']
+            my_param["seq_type"] = old_params['seq_type']
+            my_param["read_len"] = old_params['read_len']
+            my_param["novel"] = old_params['novel']
+            my_param["analysis_mode"] = old_params['analysis_mode']
+            my_param["lib_type"] = old_params['lib_type']
+            if my_param['analysis_mode'] == 'P' and len(case_group_bam_lst) != len(control_group_bam_lst):
+                info = {"success": False, "info": "分析模式为paired的时候，实验组和对照组的样本数必须相等"}
+                return json.dumps(info)
+            
+            chr_set = [e.strip() for e in subprocess.check_output(
+                'awk -F \'\\t\'  \'$0!~/^#/{print $1}\' %s  | uniq | sort |uniq ' % old_params['ref_gtf'],
+                shell=True).strip().split('\n')]
+            group = {case_group_name: 's1', control_group_name: 's2'}
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
-                ('status', 'start'),
+                ('status', 'end'),
+                ('desc', "rmats主表"),
                 ('name', main_table_name),
+                ('chr_set', chr_set),
+                ('group', group),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
             ]
-            collection_name = "sg_express_diff"
+            collection_name = "sg_splicing_rmats"
             main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
             update_info = {str(main_table_id): collection_name}
             update_info = json.dumps(update_info)
-        
             options = {
-                "express_file": data.express_id,
                 "update_info": update_info,
+                "splicing_id": str(main_table_id),
+                "ref_gtf": old_params['ref_gtf'],
+                # "chr_set": splicing_info['chr_set'].__str__,
+                "cut_off": float(data.cut_off),
+                'control_file': data.control_id,
                 "group_id": data.group_id,
-                "group_detail": data.group_detail,
-                "type": data.type,
-                "control_file": data.control_id,
-                'fc': data.fc,
-                "diff_method": data.diff_method,
-                "diff_express_id": str(main_table_id)
+                "group_detail": data.group_detail
             }
-            to_file = ["ref_rna.export_express_matrix_level(express_file)", "ref_rna.export_control_file(control_file)"]
+            to_file = ["ref_rna.export_control_file(control_file)"]
             if data.group_id != 'all':
-                to_file.append("ref_rna.export_group_table_by_detail(group_file)")
+                to_file.append("ref_rna.export_group_table_by_detail(group_id)")
                 options.update({
-                    "group_file": data.group_id,
-                    "group_detail": data.group_detail,
+                    # "group_table": data.group_id,
+                    # "group_detail": data.group_detail,
+                    # "rmats_control": data.control_id,
+                    # "gname": group_doc['group_name'],
+                    "case_group_bam_str": case_group_bam_str,
+                    "control_group_bam_str": control_group_bam_str,
+                    "case_group_name": case_group_name,
+                    "control_group_name": control_group_name
                 })
-            self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
-                                module_type='workflow', to_file=to_file, main_id=diff_express_id,
-                                collection_name="sg_ref_express_diff")
-            task_info = super(DiffExpressAction, self).POST()
+            else:
+                info = {"success": False, "info": "不能选单个样本作为一个组 组必须包含多个样本"}
+                return json.dumps(info)
+            print 'workflow设置的option为: %s' % options
+            self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, task_id=task_id,
+                                project_sn=project_sn, module_type='workflow', to_file=to_file, params=my_param)
+            task_info = super(RmatsRerunAction, self).POST()
             task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
             print task_info
             return json.dumps(task_info)
-    
         else:
-            info = {"success": False, "info": "express_id不存在，请确认参数是否正确！!"}
+            info = {"success": False, "info": "splicing_id不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        pass
+    
+    def check_options(self, data):
+        params_name = ['group_id', 'group_detail', 'cut_off', 'analysis_mode', 'submit_location', 'splicing_id',
+                       'control_id']
+        success = []
+        for names in params_name:
+            if not (hasattr(data, names)):
+                success.append("缺少参数!")
+        
+        return success

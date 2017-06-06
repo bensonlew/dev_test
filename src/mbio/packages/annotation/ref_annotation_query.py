@@ -16,6 +16,9 @@ class Transcript(object):
         self.cog = ''
         self.nog = ''
         self.kog = ''
+        self.cog_ids = ''
+        self.nog_ids = ''
+        self.kog_ids = ''
         self.go = ''
         self.ko_id = ''
         self.ko_name = ''
@@ -27,7 +30,7 @@ class Transcript(object):
 class AllAnnoStat(object):
     def __init__(self):
         self.stat_info = {}
-        self.cog_string = Config().biodb_mongo_client.sanger_biodb.COG_String_V9
+        self.cog_string = Config().biodb_mongo_client.sanger_biodb.COG_V9
         self.kegg_ko = Config().biodb_mongo_client.sanger_biodb.kegg_ko
         self.go = Config().biodb_mongo_client.sanger_biodb.GO
 
@@ -58,12 +61,13 @@ class AllAnnoStat(object):
         if gtf_path:
             self.get_gene(gtf_path=gtf_path)
         with open(outpath, 'wb') as w:
-            head = 'transcript\tgene_id\tgene_name\tlength\tCOG\tNOG\tKOG\tKO_id\tKO_name\tpaths\tPfam\tGP\tNR\tSwissprot\n'
+            head = 'transcript\tgene_id\tgene_name\tlength\tcog\tnog\tkog\tcog_description\tnog_description\tkog_description\tKO_id\tKO_name\tpaths\tpfam\tgo\tnr\tswissprot\n'
             w.write(head)
             for name in self.stat_info:
-                w.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(self.stat_info[name].name, self.stat_info[name].gene_id, self.stat_info[name].gene_name,
-                        self.stat_info[name].length, self.stat_info[name].cog, self.stat_info[name].nog, self.stat_info[name].kog, self.stat_info[name].ko_id, self.stat_info[name].ko_name,
-                        self.stat_info[name].pathway, self.stat_info[name].pfam, self.stat_info[name].go, self.stat_info[name].nr, self.stat_info[name].swissprot))
+                w.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(self.stat_info[name].name, self.stat_info[name].gene_id, self.stat_info[name].gene_name,
+                        self.stat_info[name].length, self.stat_info[name].cog, self.stat_info[name].nog, self.stat_info[name].kog, self.stat_info[name].cog_ids, self.stat_info[name].nog_ids,
+                        self.stat_info[name].kog_ids, self.stat_info[name].ko_id, self.stat_info[name].ko_name, self.stat_info[name].pathway, self.stat_info[name].pfam,
+                        self.stat_info[name].go, self.stat_info[name].nr, self.stat_info[name].swissprot))
 
     def get_gene(self, gtf_path):
         """找到转录本ID对应的基因ID及基因名称"""
@@ -146,7 +150,7 @@ class AllAnnoStat(object):
                     self.stat_info[query_name] = query
 
     def get_cog(self, cog_list):
-        """找到转录本ID对应的cogID、nogID、kogID及功能分类"""
+        """找到转录本ID对应的cogID、nogID、kogID及功能分类和描述"""
         with open(cog_list, 'rb') as r:
             r.readline()
             for line in r:
@@ -156,29 +160,41 @@ class AllAnnoStat(object):
                 nog = line[2]
                 kog = line[3]
                 if query_name in self.stat_info:
-                    self.stat_info[query_name].cog = self.get_cog_group_categories(cog)
-                    self.stat_info[query_name].nog = self.get_cog_group_categories(nog)
-                    self.stat_info[query_name].kog = self.get_cog_group_categories(kog)
+                    self.stat_info[query_name].cog = self.get_cog_group_categories(cog)[0]
+                    self.stat_info[query_name].nog = self.get_cog_group_categories(nog)[0]
+                    self.stat_info[query_name].kog = self.get_cog_group_categories(kog)[0]
+                    self.stat_info[query_name].cog_ids = self.get_cog_group_categories(cog)[1]
+                    self.stat_info[query_name].nog_ids = self.get_cog_group_categories(nog)[1]
+                    self.stat_info[query_name].kog_ids = self.get_cog_group_categories(kog)[1]
                 else:
                     query = Transcript()
                     query.name = query_name
-                    query.cog = self.get_cog_group_categories(cog)
-                    query.nog = self.get_cog_group_categories(nog)
-                    query.kog = self.get_cog_group_categories(kog)
+                    query.cog = self.get_cog_group_categories(cog)[0]
+                    query.nog = self.get_cog_group_categories(nog)[0]
+                    query.kog = self.get_cog_group_categories(kog)[0]
+                    query.cog_ids = self.get_cog_group_categories(cog)[1]
+                    query.nog_ids = self.get_cog_group_categories(nog)[1]
+                    query.kog_ids = self.get_cog_group_categories(kog)[1]
                     self.stat_info[query_name] = query
 
     def get_cog_group_categories(self, group):
-        """找到cog/nog/kogID对应的功能分类"""
+        """找到cog/nog/kogID对应的功能分类及功能分类描述、cog描述"""
         group = group.split(";")
-        funs = []
+        funs, ids = [], []
         for item in group:
             if item:
-                result = self.cog_string.find_one({'orthologous_group': item})
-                fun_cate = result["function_categories"]
-                cog_fun = item + "(" + fun_cate + ")"
-                funs.append(cog_fun)
+                result = self.cog_string.find_one({'cog_id': item})
+                if result:
+                    group = result["cog_categories"]
+                    group_des = result["categories_description"]
+                    cog_des = result["cog_description"]
+                    cog_fun = item + "(" + group + ":" + group_des + ")"
+                    cog_id = item + "(" + cog_des + ")"
+                    funs.append(cog_fun)
+                    ids.append(cog_id)
         funs = "; ".join(funs)
-        return funs
+        ids = "; ".join(ids)
+        return funs, ids
 
     def get_nr(self, blast_nr_table):
         """找到转录本ID对应NR库的最佳hit_name和描述"""
@@ -231,7 +247,7 @@ class AllAnnoStat(object):
                         self.stat_info[query_name] = query
 
     def get_pfam(self, pfam_domain):
-        """找到转录本ID对应的最佳pfamID及domain"""
+        """找到转录本ID对应的最佳pfamID及domain、domain_description"""
         with open(pfam_domain, "rb") as f:
             f.readline()
             for line in f:
@@ -240,13 +256,14 @@ class AllAnnoStat(object):
                 pfam_id = line[2]
                 domain = line[3]
                 pfam_evalue = line[-1]
-                pfam = pfam_id + "(" + domain + ")"
+                domain_description = line[4]
+                pfam = pfam_id + "(" + domain + ":" + domain_description + ")"
                 if query_name in self.stat_info:
                     if self.stat_info[query_name].pfam_evalue:
                         evalue = float(self.stat_info[query_name].pfam_evalue)
                     else:
                         evalue = 0
-                    if evalue > float(pfam_evalue):
+                    if evalue < float(pfam_evalue):
                         self.stat_info[query_name].pfam = pfam
                         self.stat_info[query_name].pfam_evalue = pfam_evalue
                 else:

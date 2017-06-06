@@ -72,7 +72,7 @@ class Ppinetwork(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file2_path)
         return data_list, table_id
 
-    # @report_check
+    @report_check
     def add_network_cluster_degree(self, file1_path, file2_path, table_id=None, major=False):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
@@ -101,7 +101,7 @@ class Ppinetwork(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file1_path)
         return data_list
 
-    # @report_check
+    @report_check
     def add_network_centrality(self, file_path, table_id=None, major=False):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
@@ -131,7 +131,7 @@ class Ppinetwork(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
 
-    # @report_check
+    @report_check
     def add_node_table(self, file_path, table_id=None, major=False):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):

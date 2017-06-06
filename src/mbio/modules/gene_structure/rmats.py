@@ -129,7 +129,8 @@ class RmatsModule(Module):
         return a_b_bam_path_tuple_lst
     
     def multi_rmats_bam_run(self):
-        vs_group_path_pair_lst = self.get_group_str()
+        temp_vs_group_path_pair_lst = self.get_group_str()
+        vs_group_path_pair_lst = [temp_vs_group_path_pair_lst[0]]
         n = 0
         for vs_pair in vs_group_path_pair_lst:
             rmats_bam = self.add_tool('gene_structure.rmats_bam')

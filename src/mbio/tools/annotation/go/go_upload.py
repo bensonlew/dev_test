@@ -54,9 +54,9 @@ class GoUploadAgent(Agent):
             ["./go1234level_statistics.xls", "xls", "Go annotation on 4 levels"],
             ["./go123level_statistics.xls", "xls", "Go annotation on 3 levels"],
             ["./go12level_statistics.xls", "xls", "Go annotation on 2 levels"],
-            ["./go2level.xls", "xls", "Go annotation on level 2"],
-            ["./go3level.xls", "xls", "Go annotation on level 3"],
-            ["./go4level.xls", "xls", "Go annotation on level 4"]
+            # ["./go2level.xls", "xls", "Go annotation on level 2"],
+            # ["./go3level.xls", "xls", "Go annotation on level 3"],
+            # ["./go4level.xls", "xls", "Go annotation on level 4"]
         ])
         super(GoUploadAgent, self).end()
 
@@ -101,7 +101,8 @@ class GoUploadTool(Tool):
                     self.output_dir + '/go12level_statistics.xls')
         except subprocess.CalledProcessError:
             self.set_error("运行goAnnot.py出错")
-        self.run_gosplit()
+        # self.run_gosplit()
+        self.end()
 
     def run_gosplit(self):
         cmd = '{} {}'.format(self.python, self.goSplit)

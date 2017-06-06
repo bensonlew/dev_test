@@ -70,11 +70,12 @@ class KeggRegulate(object):
             out_dir:输出结果的目录
             regulate_dict：ko调控信息:{'up': [ko1,ko2], 'up_down': [ko1,ko2],'down': [ko1,ko2]}
             """
+            colors = ['#EEEE00', '#CC0000', '#388E3C', "#EE6AA7", '#9B30FF', '#7B68EE']
             for path in path_ko:
                 koid = path_ko[path]
                 l = {}
                 kgml_path = out_dir + '/kgml_tmp.kgml'
-                png_path = out_dir + '/png_tmp.png'
+                png_path = out_dir + '/{}.png'.format(path)
                 result = self.get_kgml_and_png(pathway_id=path, kgml_path=kgml_path, png_path=png_path)
                 if result:
                     pathway = KGML_parser.read(open(kgml_path))
@@ -86,15 +87,18 @@ class KeggRegulate(object):
                     if not regulate_dict == None:
                         for theid in l:
                             for graphic in pathway.entries[theid].graphics:
-                                if l[theid] in regulate_dict['up_down']:
-                                    graphic.fgcolor = '#EEEE00'
-                                elif l[theid] in regulate_dict['up']:
-                                    graphic.fgcolor = '#CC0000'
-                                elif l[theid] in regulate_dict['down']:
-                                    graphic.fgcolor = '#388E3C'
-                                else:
-                                    print theid
+                                # modified by qindanhua 20170602 适应基因集的修改，输入的字典名称根据基因集名臣变化，不限制于上下调基因
+                                for n, gs in enumerate(regulate_dict):
+                                    if l[theid] in regulate_dict[gs]:
+                                        graphic.fgcolor = colors[n]
+                                # if l[theid] in regulate_dict['up_down']:
+                                #     graphic.fgcolor = '#EEEE00'
+                                # elif l[theid] in regulate_dict['up']:
+                                #     graphic.fgcolor = '#CC0000'
+                                # elif l[theid] in regulate_dict['down']:
+                                #     graphic.fgcolor = '#388E3C'
+                                # else:
+                                #     print theid
                     canvas = KGMLCanvas(pathway, import_imagemap=True)
                     canvas.draw(out_dir + '/' + path + '.pdf')
                     os.remove(kgml_path)
-                    os.remove(png_path)

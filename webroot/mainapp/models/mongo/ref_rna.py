@@ -79,8 +79,30 @@ class RefRna(Meta):
             return db["_id"]
         except Exception:
             print "没有找到task_id: {}对应的class_code_id".format(task_id)
+    
+    def get_control_id(self,main_id):
+        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = mongodb['sg_specimen_group_compare']
+        try:
+            if isinstance(main_id, types.StringTypes):
+                main_id = ObjectId(main_id)
+            elif isinstance(main_id, ObjectId):
+                main_id = main_id
+            else:
+                raise Exception("输入main_id参数必须为字符串或者ObjectId类型!")
+            data = collection.find_one({"_id":main_id})
+            if "compare_names" in data.keys():
+                compare_names = json.loads(data['compare_names'])
+                print compare_names
+                return compare_names
+            else:
+                print "{}没有分组的对照信息！".format(str(main_id))
+    
+        except Exception:
+            print "{}不存在".format(str(main_id))
+            
 if __name__ == "__main__":
     data=RefRna()
     d = data.get_express_id("tsg_2000","fpkm","featurecounts")
-    print d
-    
+    #print d
+    data.get_control_id("5924f2a77f8b9a201d8b4567")

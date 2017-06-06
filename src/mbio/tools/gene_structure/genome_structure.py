@@ -61,6 +61,14 @@ class GenomeStructureTool(Tool):
         if command.return_code == 0:
             self.logger.info("samtools运行完成")
             self.cmd2()
+        else:
+            command.rerun()
+            self.wait(command)
+            if command.return_code == 0:
+                self.logger.info("samtools运行完成")
+                self.cmd2()
+            else:
+                raise Exception("samtools运行出错")
 
     def cmd2(self):
         cmd = "less -S {}".format(os.path.basename(self.option("in_fasta").prop["path"]) + ".fai")
