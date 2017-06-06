@@ -41,7 +41,7 @@ class PtDedupWorkflow(Workflow):
 		self.tool = []
 		self.tools_analysis = []
 		self.tools_result = []
-		self.tools_dedup_f = []
+		self.tools_dedup = []
 		self.rdata = []
 		self.set_options(self._sheet.options())
 		self.step.add_steps("pt_analysis", "result_info", "retab",
@@ -152,25 +152,31 @@ class PtDedupWorkflow(Workflow):
 			# temp = re.match('WQ([1-9].*)-F.*', self.family_id[p][0])
 			# num = int(temp.group(1))
 			# self.num_list = range(num - self.option('dedup_num'), num + self.option('dedup_num') + 1)
-			name_list = []
+			self.name_list = []
 			api_read_tab.export_tab_file(self.family_id[p][1], self.output_dir)
 			api_read_tab.export_tab_file(self.family_id[p][2], self.output_dir)
 
 
+			# x = api_read_tab.dedup_sample()
+			# if len(x):  # 如果库中能取到前后的样本
+			# 	for k in range(len(x)):
+			# 		api_read_tab.export_tab_file(x[k], self.output_dir)
+			# 		if x[k] != self.family_id[p][0] and x[k] != self.family_id[p][0] + '1':
+			# 			name_list.append(x[k])
+			# if name_list == []:
+			# 	pass
+			# else:
+			# 	self.father.append(self.family_id[p][0])
+			# 	self.mother.append(self.family_id[p][1])
+			# 	self.preg.append(self.family_id[p][2])
+			# 	self.dedup_list.append(name_list)
+			# 	self.tool.append([])
 			x = api_read_tab.dedup_sample()
 			if len(x):  # 如果库中能取到前后的样本
 				for k in range(len(x)):
 					api_read_tab.export_tab_file(x[k], self.output_dir)
-					if x[k] != self.family_id[p][0] and x[k] != self.family_id[p][0] + '1':
-						name_list.append(x[k])
-			if name_list == []:
-				pass
-			else:
-				self.father.append(self.family_id[p][0])
-				self.mother.append(self.family_id[p][1])
-				self.preg.append(self.family_id[p][2])
-				self.dedup_list.append(name_list)
-				self.tool.append([])
+					self.name_list.append(x[k])
+
 
 		for i in range(len(self.family_id)):
 			dad_id = self.family_id[i][0]
@@ -198,91 +204,87 @@ class PtDedupWorkflow(Workflow):
 			n += 1
 		for j in range(len(self.tools_analysis)):
 			self.tools_analysis[j].on('end', self.set_output, 'pt_analysis')
-			self.tools_analysis[j].on('end', self.result_info_run, j)
 
-		# if len(self.tools_analysis) > 1:
-		# 	self.on_rely(self.tools_analysis, self.result_info_run,len(self.tools_analysis))
-		# elif len(self.tools_analysis) == 1:
-		# 	self.tools_analysis[0].on('end', self.result_info_run,len(self.tools_analysis))
-
+		if len(self.tools_analysis) > 1:
+			self.on_rely(self.tools_analysis, self.result_info_run)
+		elif len(self.tools_analysis) == 1:
+			self.tools_analysis[0].on('end', self.result_info_run)
 		for t in self.tools_analysis:
 			t.run()
 
-	def result_info_run(self, event):
-		n = event['data']
-		result_info = self.add_tool("paternity_test.result_info")
-		self.step.add_steps('result_info{}'.format(n))
-		if int(n) == 0:
-			results = os.listdir(self.work_dir + "/PtAnalysis/FamilyMerge/output")
-			for f in results:
-				if re.match(r'.*family_joined_tab\.Rdata$', f):
-					rdata = f
-				else:
-					print "Oops!"
-			self.rdata = self.work_dir + '/PtAnalysis/FamilyMerge/output/' + rdata
-			self.father_sample = rdata.split('_')[0]
-			self.mom_sample = rdata.split('_')[1]
-			self.preg_sample = rdata.split('_')[2]
-		else:
-			results = os.listdir(self.work_dir + "/PtAnalysis{}/FamilyMerge/output".format(n))
-			for f in results:
-				if re.match(r'.*family_joined_tab\.Rdata$', f):
-					rdata = f
-				elif re.match(r'.*family_joined_tab\.txt$', f):
-					pass
-			self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/'.format(n) + rdata
-			self.father_sample = rdata.split('_')[0]
-			self.mom_sample = rdata.split('_')[1]
-			self.preg_sample = rdata.split('_')[2]
+	def result_info_run(self):
+		for n in range(len(self.tools_analysis)):
+			result_info = self.add_tool("paternity_test.result_info")
+			self.step.add_steps('result_info{}'.format(n))
+			if int(n) == 0:
+				results = os.listdir(self.work_dir + "/PtAnalysis/FamilyMerge/output")
+				for f in results:
+					if re.match(r'.*family_joined_tab\.Rdata$', f):
+						rdata = f
+					else:
+						print "Oops!"
+				self.rdata = self.work_dir + '/PtAnalysis/FamilyMerge/output/' + rdata
+				self.father_sample = rdata.split('_')[0]
+				self.mom_sample = rdata.split('_')[1]
+				self.preg_sample = rdata.split('_')[2]
+			else:
+				results = os.listdir(self.work_dir + "/PtAnalysis{}/FamilyMerge/output".format(n))
+				for f in results:
+					if re.match(r'.*family_joined_tab\.Rdata$', f):
+						rdata = f
+					elif re.match(r'.*family_joined_tab\.txt$', f):
+						pass
+				self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/'.format(n) + rdata
+				self.father_sample = rdata.split('_')[0]
+				self.mom_sample = rdata.split('_')[1]
+				self.preg_sample = rdata.split('_')[2]
 
+			result_info.set_options({
+				"tab_merged": self.rdata
+			})
+			step = getattr(self.step, 'result_info{}'.format(n))
+			step.start()
+			self.tools_result.append(result_info)
 
-		if self.father_sample in self.father:
-			q = self.father.index(self.father_sample)
-			result_info.on('end', self.dedup_run, q)
-		elif self.mom_sample in self.mother:
-			q = self.mother.index(self.mom_sample)
-			result_info.on('end', self.dedup_run, q)
-		elif self.preg_sample in self.preg:
-			q = self.preg.index(self.preg_sample)
-			result_info.on('end', self.dedup_run, q)
-		else:
-			result_info.on('end', self.end)
+		for j in range(len(self.tools_result)):
+			self.tools_result[j].on('end', self.set_output, 'result_info')
 
-		result_info.set_options({
-			"tab_merged": self.rdata
-		})
-		step = getattr(self.step, 'result_info{}'.format(n))
-		step.start()
-		result_info.on('end', self.finish_update, 'result_info{}'.format(n))
-		result_info.on('end', self.set_output, 'result_info')
-		result_info.run()
+		if len(self.tools_result) > 1:
+			self.on_rely(self.tools_result, self.dedup_run)
+		elif len(self.tools_result) == 1:
+			self.tools_result[0].on('end', self.dedup_run)
+		for t in self.tools_result:
+			t.run()
 
-	def dedup_run(self, event):
+	def dedup_run(self):
 		n = 0
-		q = event['data']
-		name_list = self.dedup_list[q]
-		dad_list = []
-		self.tools_dedup = []
+		for i in range(len(self.family_id)):
+			dad_id = self.family_id[i][0]
+			mom_id = self.family_id[i][1]
+			preg_id = self.family_id[i][2]
+			self.name_list.remove(dad_id)
+			dad_list = []
 
-		for i in name_list:
-			dad_list.append(self.output_dir + '/'+ i + '.tab')
-		dad_list = ",".join(dad_list)
+			for i in self.name_list:
+				dad_list.append(self.output_dir + '/'+ i + '.tab')
+			dad_list = ",".join(dad_list)
 
-		pt_analysis_dedup = self.add_tool("paternity_test.dedup_analysis")
-		self.step.add_steps('dedup_{}'.format(n))
-		pt_analysis_dedup.set_options({
-				"dad_list": dad_list,  # 数据库的tab文件
-				"mom_tab": self.output_dir + '/' + self.mother[q] +'.tab',
-				"preg_tab": self.output_dir +'/' + self.preg[q]+'.tab',
-				"ref_point": self.option("ref_point"),
-				"err_min": self.option("err_min")
-		}
-		)
-		step = getattr(self.step, 'dedup_{}'.format(n))
-		step.start()
-		pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
-		self.tools_dedup.append(pt_analysis_dedup)
-		n += 1
+
+			pt_analysis_dedup = self.add_tool("paternity_test.dedup_analysis")
+			self.step.add_steps('dedup_{}'.format(n))
+			pt_analysis_dedup.set_options({
+					"dad_list": dad_list,  # 数据库的tab文件
+					"mom_tab": self.output_dir + '/' + mom_id +'.tab',
+					"preg_tab": self.output_dir +'/' + preg_id+'.tab',
+					"ref_point": self.option("ref_point"),
+					"err_min": self.option("err_min")
+			}
+			)
+			step = getattr(self.step, 'dedup_{}'.format(n))
+			step.start()
+			pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
+			self.tools_dedup.append(pt_analysis_dedup)
+			n += 1
 
 		for j in range(len(self.tools_dedup)):
 			self.tools_dedup[j].on('end', self.set_output, 'dedup')
