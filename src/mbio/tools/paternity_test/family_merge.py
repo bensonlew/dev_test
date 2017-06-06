@@ -100,6 +100,7 @@ class FamilyMergeTool(Tool):
         cmd = self.add_command("tab2family_cmd", tab2family_cmd).run()
         self.wait(cmd)
 
+        self.logger.info("tab2family_cmd的返回码是{}".format(cmd.return_code))
         if cmd.return_code == 0:
             self.logger.info("运行家系合并成功")
         else:

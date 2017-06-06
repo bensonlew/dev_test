@@ -2,7 +2,7 @@
 # __author__ = 'moli.zhou'
 # last modified:201703
 
-'''医学检验所-无创产前亲子鉴定流程'''
+'''优化查重部分的效率'''
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
@@ -14,13 +14,13 @@ import shutil
 import gevent
 
 
-class PatchDcBackupWorkflow(Workflow):
+class PtDedupWorkflow(Workflow):
 	def __init__(self, wsheet_object):
 		'''
         :param wsheet_object:
         '''
 		self._sheet = wsheet_object
-		super(PatchDcBackupWorkflow, self).__init__(wsheet_object)
+		super(PtDedupWorkflow, self).__init__(wsheet_object)
 		options = [
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},  # fastq所在路径(文件夹
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
@@ -235,12 +235,6 @@ class PatchDcBackupWorkflow(Workflow):
 			self.mom_sample = rdata.split('_')[1]
 			self.preg_sample = rdata.split('_')[2]
 
-		# self.logger.info(self.father_sample)
-		# self.logger.info(self.father)
-		# self.logger.info(self.mom_sample)
-		# self.logger.info(self.mother)
-		# self.logger.info(self.preg_sample)
-		# self.logger.info(self.preg)
 
 		if self.father_sample in self.father:
 			q = self.father.index(self.father_sample)
@@ -267,51 +261,39 @@ class PatchDcBackupWorkflow(Workflow):
 		n = 0
 		q = event['data']
 		name_list = self.dedup_list[q]
+		dad_list = []
 		self.tools_dedup = []
-		self.logger.info(q)
-		self.logger.info(name_list)
-		# family = self.father[q].split('-')[0]
+
 		for i in name_list:
-			pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
-			self.step.add_steps('dedup_{}'.format(n))
-			pt_analysis_dedup.set_options({
-				"dad_tab": self.output_dir + '/'+ i + '.tab',  # 数据库的tab文件
+			dad_list.append(self.output_dir + '/'+ i + '.tab')
+		dad_list = ",".join(dad_list)
+
+		pt_analysis_dedup = self.add_tool("paternity_test.dedup_analysis")
+		self.step.add_steps('dedup_{}'.format(n))
+		pt_analysis_dedup.set_options({
+				"dad_list": dad_list,  # 数据库的tab文件
 				"mom_tab": self.output_dir + '/' + self.mother[q] +'.tab',
 				"preg_tab": self.output_dir +'/' + self.preg[q]+'.tab',
 				"ref_point": self.option("ref_point"),
 				"err_min": self.option("err_min")
-			}
-			)
-			step = getattr(self.step, 'dedup_{}'.format(n))
-			step.start()
-			pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
-			self.tools_dedup.append(pt_analysis_dedup)
-			n += 1
-		self.tool[q] = self.tools_dedup
+		}
+		)
+		step = getattr(self.step, 'dedup_{}'.format(n))
+		step.start()
+		pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
+		self.tools_dedup.append(pt_analysis_dedup)
+		n += 1
 
-		for j in range(len(self.tool[q])):
-			self.tool[q][j].on('end', self.set_output, 'dedup')
+		for j in range(len(self.tools_dedup)):
+			self.tools_dedup[j].on('end', self.set_output, 'dedup')
 
-		x = len(self.tool) - 1
+		if len(self.tools_dedup) > 1:
+			self.on_rely(self.tools_dedup, self.end)
+		else:
+			self.tools_dedup[0].on("end", self.end)
 
-		if self.list_2D(self.tool):
-			if len(self.tool[x]) > 1:
-				self.on_rely(self.tool[x], self.end)
-			else:
-				self.tool[x][0].on("end", self.end)
-
-			for tool in self.tool:
-				for tool_i in tool:
-					tool_i.run()
-
-	def list_2D(self, name):
-		for m in name:
-			if m == []:
-				temp = False
-				break
-			else:
-				temp = True
-		return temp
+		for tool in self.tools_dedup:
+			tool.run()
 
 	def linkdir(self, dirpath, dirname):
 		"""
@@ -355,11 +337,11 @@ class PatchDcBackupWorkflow(Workflow):
 			# api_main.add_pt_figure(obj.output_dir)
 
 		if event['data'] == "dedup":
-			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
+			self.linkdir(obj.output_dir, self.output_dir)
 
 	def run(self):
 		self.fastq2mongo_run()
-		super(PatchDcBackupWorkflow, self).run()
+		super(PtDedupWorkflow, self).run()
 
 	def end(self):
 		api_main = self.api.sg_paternity_test
@@ -369,6 +351,7 @@ class PatchDcBackupWorkflow(Workflow):
 		results = os.listdir(self.output_dir)
 
 		for i in range(len(self.family_id)):
+			self.logger.info('家系{}开始进行导表'.format(self.family_id[i]))
 			dad_id = self.family_id[i][0]
 			mom_id = self.family_id[i][1]
 			preg_id = self.family_id[i][2]
@@ -416,4 +399,4 @@ class PatchDcBackupWorkflow(Workflow):
 			# 更新单次运行的状态
 			api_main.update_sg_pt_father(self.pt_father_id)
 
-		super(PatchDcBackupWorkflow, self).end()
+		super(PtDedupWorkflow, self).end()
