@@ -136,7 +136,8 @@ class NiptWorkflow(Workflow):
 		super(NiptWorkflow, self).run()
 
 	def end(self):
-		self.api_nipt.add_fastqc(self.main_id, self.output_dir)  # fastqc入库
+		super(NiptWorkflow, self).end()
+
 		for i in os.listdir(self.output_dir):
 			if re.search(r'.*bed.2$', i):
 				self.api_nipt.add_bed_file(self.output_dir + '/'+ i)
@@ -146,4 +147,5 @@ class NiptWorkflow(Workflow):
 				self.api_nipt.add_z_result(self.output_dir + '/' + i,self.main_id)
 			elif re.search(r'.*zz.xls$', i):
 				self.api_nipt.add_z_result(self.output_dir + '/' + i, self.main_id)
-		super(NiptWorkflow, self).end()
+		self.api_nipt.add_fastqc(self.main_id, self.output_dir)  # fastqc入库
+
