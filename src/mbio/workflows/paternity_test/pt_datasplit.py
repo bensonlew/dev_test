@@ -172,7 +172,7 @@ class PtDatasplitWorkflow(Workflow):
 			'UPDATE_STATUS_API': self._update_status_api(),
 			"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
 			"type": "workflow",
-			"name": "paternity_test.patch_dc_backup",
+			"name": "paternity_test.pt_dedup",
 			"instant": False,
 			"IMPORT_REPORT_DATA": True,
 			"IMPORT_REPORT_AFTER_END": False,
