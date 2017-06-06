@@ -20,7 +20,8 @@ class DedupAnalysisAgent(Agent):
     def __init__(self, parent):
         super(DedupAnalysisAgent, self).__init__(parent)
         options = [#输入的参数
-            {"name": "dad_list", "type": "list"},
+            # {"name": "dad_tab", "type": "infile", "format": "paternity_test.tab"},
+            {"name": "dad_list", "type": "string"},
             {"name": "mom_tab", "type": "infile", "format": "paternity_test.tab"},
             {"name": "preg_tab", "type": "infile", "format": "paternity_test.tab"},
             {"name": "ref_point", "type": "infile", "format": "paternity_test.rda"},
@@ -47,8 +48,12 @@ class DedupAnalysisAgent(Agent):
         """
         # if not self.option('query_amino'):
         #     raise OptionError("必须输入氨基酸序列")
-        if not self.option('tab_merged') :
-            raise OptionError("必须提供合并之后的家系表")
+        if not self.option('dad_list') :
+            raise OptionError("必须提供父本tab")
+        if not self.option('mom_tab') :
+            raise OptionError("必须提供母本tab")
+        if not self.option('preg_tab') :
+            raise OptionError("必须提供胎儿tab")
         return True
 
     def set_resource(self):
@@ -84,36 +89,21 @@ class DedupAnalysisTool(Tool):
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
-        for dad_tab in self.option("dad_list"):
+        dad_list = self.option('dad_list').split(',')
+        n = 0
+        for dad_tab in dad_list:
+
             tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {}". \
                 format(self.R_path, self.script_path, dad_tab,
                     self.option("mom_tab").prop['path'], self.option("preg_tab").prop['path'],
                     self.option("err_min"), self.option("ref_point").prop['path'])
             self.logger.info(tab2family_cmd)
             self.logger.info("开始运行家系合并")
-            cmd = self.add_command("tab2family_cmd", tab2family_cmd).run()
+            cmd = self.add_command("tab2family_cmd_{}".format(n), tab2family_cmd).run()
             self.wait(cmd)
 
             if cmd.return_code == 0:
                 self.logger.info("运行家系合并成功")
-            elif cmd.return_code == None:
-                self.logger.info("返回码问题，重新运行cmd")
-                cmd.rerun()
-                self.wait()
-
-                if cmd.return_code == 0:
-                    self.logger.info("运行家系合并成功")
-                elif cmd.return_code == None:
-                    self.logger.info("返回码问题，第三次运行cmd")
-                    tri_tab2family_cmd = self.add_command("tri_tab2family_cmd", tab2family_cmd).rerun()
-                    self.wait(tri_tab2family_cmd)
-
-                    if tri_tab2family_cmd.return_code == 0:
-                        self.logger.info("运行家系合并成功")
-                    else:
-                        raise Exception("运行家系合并出错")
-                else:
-                    raise Exception("运行家系合并出错")
             else:
                 raise Exception("运行家系合并出错")
 
@@ -129,21 +119,15 @@ class DedupAnalysisTool(Tool):
                 format(self.R_path,self.script_path,tab_name)
             self.logger.info(analysis_cmd)
             self.logger.info("开始运行家系的分析")
-            cmd = self.add_command("analysis_cmd", analysis_cmd).run()
+            cmd = self.add_command("analysis_cmd_{}".format(n), analysis_cmd).run()
             self.wait(cmd)
 
             if cmd.return_code == 0:
                 self.logger.info("运行家系分析成功")
-            elif cmd.return_code == None:
-                self.logger.info("返回码问题，重新运行cmd")
-                re_analysis_cmd = self.add_command("re_analysis_cmd", analysis_cmd).rerun()
-                self.wait(re_analysis_cmd)
-                if re_analysis_cmd.return_code == 0:
-                    self.logger.info("运行家系分析成功")
-                else:
-                    raise Exception("运行家系分析出错")
             else:
                 raise Exception("运行家系分析出错")
+
+            n = n+1
 
     def set_output(self):
         """
