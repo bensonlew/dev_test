@@ -10,6 +10,7 @@ from types import StringTypes
 from bson.son import SON
 from biocluster.config import Config
 import xlrd
+import json
 import os
 
 
@@ -281,15 +282,19 @@ class NiptAnalysis(Base):
         collection = self.database['sg_nipt_fastqc']
         insert =[]
         for i in os.listdir(dir):
-            if re.search(r'.*fastqc.html$', i):
-                fasctqc = i
+            insert_data = {}
+            insert_data['nipt_main_id'] = main_id
+            if re.search(r'.*_fastqc.html$', i):
+                # fasctqc = i
+                insert_data['fasctqc'] = i
             elif re.search(r'.*.map.valid_fastqc.html$', i):
                 map_valid_fastqc = i
-            insert_data={
-                'nipt_main_id': main_id,
-                'fasctqc':fasctqc,
-                'map_valid_fastqc':map_valid_fastqc
-            }
+                insert_data['map_valid_fastqc'] = i
+            # insert_data={
+            #     'nipt_main_id': main_id,
+            #     'fasctqc':fasctqc,
+            #     'map_valid_fastqc':map_valid_fastqc
+            # }
             insert.append(insert_data)
         try:
             collection.insert_many(insert)
@@ -300,22 +305,22 @@ class NiptAnalysis(Base):
 
     def add_qc(self,file):
         collection = self.database['sg_nipt_qc']
-        insert = []
+        insert = {}
         with open(file,'rb') as f:
             for line in f:
                 line = line.strip()
                 line = line.split(': ')
                 if re.search('.*num$', line[0]):
-                    insert.append({"num": line[1]})
+                    insert["num"] = line[1]
                 elif re.search('.*n_map$', line[0]):
-                    insert.append({"n_map": line[1]})
+                    insert["n_map"] = line[1]
                 elif re.search('.*n_dedup$', line[0]):
-                    insert.append({"n_dedup": line[1]})
+                    insert["n_dedup"] = line[1]
                 elif re.search('.*valid_reads$', line[0]):
-                    insert.append({"valid_reads": line[1]})
+                    insert["valid_reads"] = line[1]
                 elif re.search('.*properly_paired$', line[0]):
-                    insert.append({"properly_paired": line[1]})
-
+                    insert["properly_paired"] = line[1]
+            
         try:
             collection.insert_one(insert)
         except Exception as e:
