@@ -77,7 +77,8 @@ class RefrnaExpress(Base):
         project_sn = self.bind_object.sheet.project_sn
         # if not express_diff_id:
         # params={"value_type":value_type, "query_type":query_type,"method":method, "group_id":group_id,"group_detail":group_detail}
-
+        if params:
+            params["submit_location"] = "express_rsem"
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
@@ -107,8 +108,8 @@ class RefrnaExpress(Base):
         value_type = params["type"]
         print "value_type"
         print value_type
-        if params:
-            params.update({"submit_location": "express_rsem_{}".format(value_type)})
+        #if params:
+        #    params.update({"submit_location": "express_rsem_{}".format(value_type)})
         express_id = collection.insert_one(insert_data).inserted_id
         print "插入主表id是{}".format(express_id)
 
@@ -261,6 +262,8 @@ class RefrnaExpress(Base):
             task_id = self.bind_object.sheet.id
             project_sn = self.bind_object.sheet.project_sn
             db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+            if params:
+                params["submit_location"]="express_feature"
             insert_data = {
                 'project_sn': project_sn,
                 'task_id': task_id,
@@ -284,8 +287,8 @@ class RefrnaExpress(Base):
             collection = db['sg_express']
             value_type = params["type"]  # fpkm或者是tpm
             method = params["express_method"]
-            if params:
-                params.update({"submit_location": "express_feature"})
+            #if params:
+            #    params.update({"submit_location": "express_feature"})
             express_id = collection.insert_one(insert_data).inserted_id
             print "插入主表id是{}".format(express_id)
 
