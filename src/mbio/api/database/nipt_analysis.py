@@ -278,26 +278,21 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info("插入交互表成功")
         return interaction_id
 
-    def add_fastqc(self,main_id,dir):
+    def add_fastqc(self,main_id,file):
         collection = self.database['sg_nipt_fastqc']
-        insert =[]
-        for i in os.listdir(dir):
-            insert_data = {}
-            insert_data['nipt_main_id'] = main_id
-            if re.search(r'.*_fastqc.html$', i):
-                # fasctqc = i
-                insert_data['fasctqc'] = i
-            elif re.search(r'.*.map.valid_fastqc.html$', i):
-                map_valid_fastqc = i
-                insert_data['map_valid_fastqc'] = i
-            # insert_data={
-            #     'nipt_main_id': main_id,
-            #     'fasctqc':fasctqc,
-            #     'map_valid_fastqc':map_valid_fastqc
-            # }
-            insert.append(insert_data)
+        insert_data = {}
+        insert_data['nipt_main_id'] = main_id
+
+        file_name = file.split('/')[-1]
+        sample_id = file_name.split('.')[0]
+
+        insert_data['sample_id'] = sample_id
+        if re.search(r'.*.map.valid_fastqc.html$', file):
+            insert_data['fastqc_link'] = file_name
+        else:
+            insert_data['fastqc_link'] = file_name
         try:
-            collection.insert_many(insert)
+            collection.insert_one(insert_data)
         except Exception as e:
             raise Exception('插入fastqc表出错：{}'.format(e))
         else:
@@ -306,6 +301,9 @@ class NiptAnalysis(Base):
     def add_qc(self,file):
         collection = self.database['sg_nipt_qc']
         insert = {}
+        file_name =file.split('/')[-1]
+        sample_name = file_name.split('.')[0]
+        insert["sample_id"] = sample_name
         with open(file,'rb') as f:
             for line in f:
                 line = line.strip()
