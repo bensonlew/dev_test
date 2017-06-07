@@ -72,7 +72,7 @@ class DiffExpAgent(Agent):
             raise OptionError("显著性水平不在(0,1)范围内")
         if self.option("diff_fdr_ci") >= 1 or self.option("diff_fdr_ci") <= 0:
             raise OptionError("显著性水平不在(0,1)范围内")
-        if self.option("fc") <= 0:
+        if self.option("fc") < 0:
             raise OptionError("显著性水平不能负数")
         if self.option("diff_rate") > 1 or self.option("diff_rate") <= 0:
             raise OptionError("期望的差异基因比率不在(0，1]范围内")

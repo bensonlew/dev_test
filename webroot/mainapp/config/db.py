@@ -65,13 +65,13 @@ class Config(object):
     def get_mongo_client(self):
         if not self._mongo_client:
             uri = self.rcf.get("MONGO", "uri")
-            self._mongo_client = MongoClient(uri)
+            self._mongo_client = MongoClient(uri, connect=False, maxPoolSize=1000)
         return self._mongo_client
 
     def get_biodb_mongo_client(self):
         if not self._biodb_mongo_client:
             uri = self.rcf.get("MONGO", "bio_uri")
-            self._biodb_mongo_client = MongoClient(uri)
+            self._biodb_mongo_client = MongoClient(uri, connect=False, maxPoolSize=1000)
         return self._biodb_mongo_client
 
     def get_work_dir(self):

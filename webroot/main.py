@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
+import umysqldb
+umysqldb.install_as_MySQLdb()
 import web
 import mainapp.core.auto_load as autoload
 from biocluster.core.function import hostname

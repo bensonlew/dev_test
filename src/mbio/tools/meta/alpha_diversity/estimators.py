@@ -155,7 +155,16 @@ class EstimatorsTool(Tool):
         command = self.add_command("mothur", cmd)
         command.run()
         self.wait(command)
-        if command.return_code == 0:
+        if command.return_code == None:
+            command.rerun()
+            self.wait(command)
+            if command.return_code == 0:
+                self.logger.info("运行mothur完成")
+                self.get_est_table()
+            else:
+                self.set_error("运行mothur运行出错!")
+                return False
+        elif command.return_code == 0:
             self.logger.info("运行mothur完成")
             self.get_est_table()           
         else:

@@ -49,7 +49,7 @@ class String2cogv9Agent(Agent):
                 raise OptionError("BLAST比对数据库不支持")
 
     def set_resource(self):
-        self._cpu = 20
+        self._cpu = 10
         self._memory = '5G'
 
     def end(self):
