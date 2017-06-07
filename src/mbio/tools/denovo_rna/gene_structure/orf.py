@@ -25,7 +25,7 @@ class OrfAgent(Agent):
             {"name": "search_pfam", "type": "bool", "default": True},  # 是否比对Pfam数据库
             {"name": "p_length", "type": "int", "default": 100},  # 最小蛋白长度
             {"name": "Markov_length", "type": "int", "default": 3000},  # 马尔科夫训练长度
-            {"name": "bed", "type": "outfile", "format": "denovo_rna.gene_structure.bed"},  # 输出结果
+            {"name": "bed", "type": "outfile", "format": "gene_structure.bed"},  # 输出结果
             {"name": "cds", "type": "outfile", "format": "sequence.fasta"},  # 输出结果
             {"name": "pep", "type": "outfile", "format": "sequence.fasta"}  # 输出结果
         ]
