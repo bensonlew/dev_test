@@ -116,6 +116,7 @@ class MetaController(object):
             'id': new_task_id,
             "batch": False,
             'stage_id': 0,
+            'interaction': True,
             'name': name,  # 需要配置
             'type': module_type,  # 可以配置
             'client': self.data.client,
