@@ -64,14 +64,15 @@ class MetaController(object):
     @meta_check
     def POST(self):
         workflow_client = Basic(data=self.sheet_data, instant=self.instant)
-        try:
-            run_info = workflow_client.run()
+        run_info = workflow_client.run()
+        print "打印出run_info：", run_info
+        if run_info:
             run_info['info'] = filter_error_info(run_info['info'])
             self._return_msg = workflow_client.return_msg
             return run_info
-        except Exception as e:
+        else:
             self.roll_back()
-            return {"success": False, "info": "运行出错: %s" % filter_error_info(str(e))}
+            return {"success": False, "info": "任务投递出错,请重新尝试！"}
 
     def roll_back(self):
         """
@@ -83,6 +84,8 @@ class MetaController(object):
         try:
             update_info = json.loads(self.sheet_data['options']['update_info'])
             for i in update_info:
+                if i == "batch_id":
+                    continue
                 self.meta.update_status_failed(update_info[i], i)
                 print("INFO: 更新主表状态为failed成功: coll:{} _id:{}".format(update_info[i], i))
         except Exception as e:
@@ -105,13 +108,15 @@ class MetaController(object):
             main_id = self.data.otu_id
             collection_name = 'sg_otu'
         table_info = Meta(db=self.mongodb).get_main_info(main_id=main_id, collection_name=collection_name)
-        print table_info
+        # print table_info
         project_sn = table_info["project_sn"]
         task_id = table_info["task_id"]
         new_task_id = self.get_new_id(task_id)
         self._sheet_data = {
             'id': new_task_id,
+            "batch": False,
             'stage_id': 0,
+            'interaction': True,
             'name': name,  # 需要配置
             'type': module_type,  # 可以配置
             'client': self.data.client,
@@ -142,15 +147,20 @@ class MetaController(object):
             if not hasattr(data, i):
                 return
         print "一键化投递任务{}: {}".format(i, getattr(data, i))
+        if not hasattr(self.data, "batch_task_id"):
+            print "NO BATCH_TASK_ID"
+        else:
+            print "BATCH_task_id " + self.data.batch_task_id
+            self._sheet_data["batch_id"] = self.data.batch_task_id
         update_info = json.loads(self._sheet_data["options"]['update_info'])
         # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
         update_info["batch_id"] = data.batch_id
         self._sheet_data['options']["update_info"] = json.dumps(update_info)
         if self._sheet_data['name'].strip().split(".")[-1] not in ["otu_subsample", "estimators"]:
-            print "test", self._sheet_data['name'].strip().split(".")[-1]
+            # print "test", self._sheet_data['name'].strip().split(".")[-1]
             self._instant = False
             self._sheet_data["instant"] = False
-
+        self._sheet_data["batch"] = True
 
     def get_new_id(self, task_id, otu_id=None):
         """
