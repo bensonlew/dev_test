@@ -86,6 +86,7 @@ class FastqSampleExtractTool(Tool):
             for line in fastq:
                 m = re.match("@(.+)_(\d+)", line)
                 if not m:
+                    self.set_error("fastq文件格式不符合要求，第一行形式应为应为@样本名_序列号")
                     raise Exception('fastq文件格式不符合要求，第一行形式应为应为@样本名_序列号')
                 sample_name = m.group(1)
                 # if sample_name.find(".") != -1:
@@ -97,6 +98,7 @@ class FastqSampleExtractTool(Tool):
                     next(fastq)
                     next(fastq)
                 except:
+                    self.set_error("fastq文件缺失，请检查后几行文件是否完整")
                     raise Exception("fastq文件缺失，请检查后几行文件是否完整")
         with open('info.txt', 'w') as info:
             info.write('#file\tsample\tworkdir\tseqs_num\tbase_num\tmean_length\tmin_length\tmax_length\n')

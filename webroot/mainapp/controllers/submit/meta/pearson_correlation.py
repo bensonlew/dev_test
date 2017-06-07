@@ -35,7 +35,7 @@ class PearsonCorrelation(MetaController):
             return json.dumps(info)
         task_info = self.meta.get_task_info(otu_info['task_id'])
 
-        print(data.top_species)
+        # print(data.top_species)
         params_json = {
             "otu_id": data.otu_id,
             "level_id": int(data.level_id),
@@ -91,7 +91,7 @@ class PearsonCorrelation(MetaController):
         del params_json["group_detail"]
         options.update(params_json)
         # print("lllllloptionlllll")
-        print(options)
+        # print(options)
         # print("ooooooooptionoooooo")
         to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name="CorrelationHeatmap/" + main_table_name,

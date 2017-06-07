@@ -33,10 +33,10 @@ class CopyDemoWorkflow(Workflow):
         self.end()
 
     def end(self):
-        self.step.finish()
-        self.step.update()
-        self.logger.info("运行结束!")
-        self._update("end")
-        self.set_end()
-        self.fire('end')
-        # super(PlotTreeWorkflow, self).end()
+        # self.step.finish()
+        # self.step.update()
+        # self.logger.info("运行结束!")
+        # self._update("end")
+        # self.set_end()
+        # self.fire('end')
+        super(CopyDemoWorkflow, self).end()
