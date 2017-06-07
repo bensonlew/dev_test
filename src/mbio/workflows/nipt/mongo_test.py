@@ -145,7 +145,8 @@ class MongoTestWorkflow(Workflow):
 				self.api_nipt.add_z_result(output_dir + '/' + i, main_id)
 			elif re.search(r'.*_zz.xls$', i):
 				self.api_nipt.add_zz_result(output_dir + '/' + i, main_id)
-		self.api_nipt.add_fastqc(main_id, output_dir)  # fastqc入库
+			elif re.search(r'.*_fastqc.html$', i):
+				self.api_nipt.add_fastqc(main_id, output_dir + '/' + i)  # fastqc入库
 
 	def run(self):
 		self.mongo()
