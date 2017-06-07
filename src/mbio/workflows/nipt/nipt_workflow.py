@@ -147,5 +147,6 @@ class NiptWorkflow(Workflow):
 				self.api_nipt.add_z_result(self.output_dir + '/' + i,self.main_id)
 			elif re.search(r'.*_zz.xls$', i):
 				self.api_nipt.add_zz_result(self.output_dir + '/' + i, self.main_id)
-		self.api_nipt.add_fastqc(self.main_id, self.output_dir)  # fastqc入库
+			elif re.search(r'.*_fastqc.html$', i):
+				self.api_nipt.add_fastqc(self.main_id, self.output_dir + '/' + i)  # fastqc入库
 
