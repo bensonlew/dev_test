@@ -368,7 +368,7 @@ class PtDedupWorkflow(Workflow):
 			self.pt_father_id = api_main.add_pt_father(father_id=self.father_id, err_min=self.option("err_min"),
 			                                           dedup=self.option('dedup_num'))
 
-			dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt'
+			dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt$'
 			dedup1 = '.*_NA_' + preg_id + '_family_analysis.txt'
 			dedup2 = '.*' + mom_id + '_NA_family_analysis.txt'
 			for f in results:
