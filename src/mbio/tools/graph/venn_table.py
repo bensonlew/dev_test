@@ -56,6 +56,13 @@ class VennTableAgent(Agent):
         self._cpu = 10
         self._memory = ''
 
+    def end(self):  # add by wzy 20170608
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "venn图结果目录"],
+        ])
+        super(VennTableAgent, self).end()
+
 
 class VennTableTool(Tool):
     """
