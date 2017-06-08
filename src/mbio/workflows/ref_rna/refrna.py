@@ -161,7 +161,7 @@ class RefrnaWorkflow(Workflow):
         self.step.add_steps("qcstat", "mapping", "assembly", "annotation", "exp", "map_stat",
                             "seq_abs", "network_analysis", "sample_analysis", "altersplicing")
 
-        
+
     def check_options(self):
         """
         检查选项
@@ -201,7 +201,7 @@ class RefrnaWorkflow(Workflow):
             if self.option("assemble_method") not in ["cufflinks", "stringtie"]:
                 raise OptionError("拼接软件应在cufflinks和stringtie中选择")
         return True
-        
+
     def set_step(self, event):
         if 'start' in event['data'].keys():
             event['data']['start'].start()
@@ -213,7 +213,7 @@ class RefrnaWorkflow(Workflow):
         f = open(self.json_path, "r")
         json_dict = json.loads(f.read())
         return json_dict
-        
+
     def run_filecheck(self):
         opts = {
             'fastq_dir': self.option('fastq_dir'),
@@ -259,7 +259,7 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('start', self.set_step, {'start': self.step.qcstat})
         self.qc.on('end', self.set_step, {'end': self.step.qcstat})
         self.qc.run()
-        
+
     def run_seq_abs(self):
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
@@ -360,7 +360,7 @@ class RefrnaWorkflow(Workflow):
         self.annotation.run()
 
     def run_qc_stat(self, event):
-        if event['data']: 
+        if event['data']:
             self.qc_stat_after.set_options({
                 'fastq_dir': self.qc.option('sickle_dir'),
                 'fq_type': self.option('fq_type'),
@@ -445,7 +445,7 @@ class RefrnaWorkflow(Workflow):
             self.snp_rna.fire("end")
             self.altersplicing.start_listener()
             self.altersplicing.fire("end")
-     
+
     def run_assembly(self):
         self.logger.info("开始运行拼接步骤")
         opts = {
@@ -611,7 +611,7 @@ class RefrnaWorkflow(Workflow):
         self.snp_rna.set_options(opts)
         # self.final_tools.append(self.snp_rna)
         self.snp_rna.run()
-        
+
     def run_map_assess(self):
         opts = {
             "bam": self.mapping.option("bam_output"),
@@ -620,7 +620,7 @@ class RefrnaWorkflow(Workflow):
         self.map_qc.set_options(opts)
         self.map_qc.on("end", self.set_output, "map_qc")
         self.map_qc.run()
-    
+
     def run_exp_rsem_default(self):  # 表达量与表达差异模块
         self.logger.info("开始运行表达量模块")
         opts = {
@@ -892,7 +892,7 @@ class RefrnaWorkflow(Workflow):
             return True
         else:
             return True
-        
+
     def move2outputdir(self, olddir, newname, mode='link'):
         """
         移动一个目录下的所有文件/文件夹到workflow输出文件夹下
@@ -922,7 +922,7 @@ class RefrnaWorkflow(Workflow):
                     os.system('cp {} {}'.format(oldfiles[i], newfiles[i]))
                 else:
                     os.system('cp -r {} {}'.format(oldfiles[i], newdir))
-                    
+
     def set_output(self, event):
         obj = event["bind_object"]
         # 设置qc报告文件
@@ -1000,7 +1000,7 @@ class RefrnaWorkflow(Workflow):
         if event["data"] == "pfam":
             self.move2outputdir(obj.output_dir, 'pfam')
             self.logger.info("pfam文件移动完成")
-            
+
     def run(self):
         """
         ref-rna workflow run方法
@@ -1058,7 +1058,7 @@ class RefrnaWorkflow(Workflow):
         self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
         # self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         # self.qc.on('end', self.run_mapping)
-        self.qc.on("end", self.run_star_mapping)
+        # self.qc.on("end", self.run_star_mapping)
         self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
         self.map_gene.on("end", self.run_map_assess_gene)
         self.mapping.on('end', self.run_assembly)
@@ -1075,7 +1075,48 @@ class RefrnaWorkflow(Workflow):
             self.final_tools.append(self.network_trans)
         self.on_rely(self.final_tools, self.end)
         self.run_seq_abs()
-        self.run_gs()
+        # self.run_gs()
+        self.start_listener()
+        self.fire("start")
+
+        # self.qc.start_listener()
+        # self.qc.fire("end")
+        # self.mapping.start_listener()
+        # self.mapping.fire("end")
+        self.run_star_mapping()
+
+        self.rpc_server.run()
+
+    def test_ore(self):
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf")
+        self.filecheck.option("bed", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf.bed")
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/HiseqQc/output/sickle_dir")
+        self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/RnaseqMapping/output")
+        # self.seq_abs.on('end', self.run_annotation)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
+        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
+        # self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
+        # self.qc.on('end', self.run_mapping)
+        self.qc.on("end", self.run_star_mapping)
+        # self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
+        # self.map_gene.on("end", self.run_map_assess_gene)
+        # self.mapping.on('end', self.run_assembly)
+        # self.mapping.on('end', self.run_map_assess)
+        self.assembly.on("end", self.run_exp_rsem_default)
+        self.assembly.on("end", self.run_exp_rsem_alter)
+        self.assembly.on("end", self.run_exp_fc)
+        self.assembly.on("end", self.run_new_transcripts_abs)
+        self.assembly.on("end", self.run_new_gene_abs)
+        if self.taxon_id != "":
+            self.exp.on("end", self.run_network_trans)
+            self.exp.on("end", self.run_network_gene)
+            self.final_tools.append(self.network_gene)
+            self.final_tools.append(self.network_trans)
+        self.on_rely(self.final_tools, self.end)
+        self.run_seq_abs()
+        # self.run_gs()
         # self.qc.start_listener()
         # self.qc.fire("end")
         self.start_listener()
@@ -1085,9 +1126,6 @@ class RefrnaWorkflow(Workflow):
         self.mapping.start_listener()
         self.mapping.fire("end")
         self.rpc_server.run()
-
-    def __check(self):
-        super(RefrnaWorkflow, self).__check()
 
     def run_new_gene_abs_test(self):
         opts = {

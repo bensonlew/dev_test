@@ -57,7 +57,7 @@ class StarIndexAgent(Agent):
             if self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 512:
                 self._memory = '10G'
             elif self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 1024:
-                self._memory = '20G'
+                self._memory = '30G'
             else:
                 self._memory = '60G'
         else:
@@ -82,11 +82,11 @@ class StarIndexTool(Tool):
             if self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 512:
                 ram = str(10 * 1024 * 1024 * 1024)
             elif self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 1024:
-                ram = str(20 * 1024 * 1024)
+                ram = str(30 * 1024 * 1024 * 1024)
             else:
-                ram = str(60 * 1024 * 1024)
+                ram = str(60 * 1024 * 1024 * 1024)
         else:
-            ram = str(60 * 1024 * 1024)
+            ram = str(60 * 1024 * 1024 * 1024)
         cmd = "{}STAR --runMode genomeGenerate --limitGenomeGenerateRAM {} --genomeDir {} --genomeFastaFiles {} --runThreadN 10".format(self.star_path, ram, genomeDir, ref_fa)
         self.logger.info("使用star建立参考基因组索引")
         command = self.add_command("star_index1", cmd)
@@ -95,7 +95,11 @@ class StarIndexTool(Tool):
         if command.return_code == 0:
             self.logger.info("成功构建参考序列索引index1！")
         else:
-            command.rerun()
+            ram = str(60 * 1024 * 1024 * 1024)
+            cmd = "{}STAR --runMode genomeGenerate --limitGenomeGenerateRAM {} --genomeDir {} --genomeFastaFiles {} --runThreadN 10".format(self.star_path, ram, genomeDir, ref_fa)
+            # command.rerun()
+            command = self.add_command("star_index1", cmd)
+            command.run()
             self.wait(command)
             if command.return_code == 0:
                 self.logger.info("成功构建参考序列索引index1！")
