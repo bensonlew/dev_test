@@ -46,7 +46,7 @@ class RefAnnotationModule(Module):
         self.swissprot_annot = self.add_tool("annotation.swissprot")
         self.kegg_upload = self.add_tool('annotation.kegg.kegg_upload')
         self.anno_stat = self.add_tool('rna.ref_anno_stat')
-        self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat', 'swissprot_annot')
+        self.step.add_steps('blast_statistics', 'nr_annot', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat', 'swissprot_annot')
 
     def check_options(self):
         if self.option('anno_statistics'):
@@ -170,8 +170,12 @@ class RefAnnotationModule(Module):
         super(RefAnnotationModule, self).run()
         self.all_end_tool = []  # 所有尾部注释模块，全部结束后运行整体统计
         self.anno_database = []
-        if self.option('nr_annot'):
+        # if self.option('nr_annot'):
+        #     self.anno_database.append('nr')
+        #     self.run_nr_anno()
+        if self.option('blast_nr_xml').is_set:
             self.anno_database.append('nr')
+            self.all_end_tool.append(self.nr_annot)
             self.run_nr_anno()
         if self.option('go_annot'):
             self.anno_database.append('go')
@@ -224,6 +228,7 @@ class RefAnnotationModule(Module):
                 self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
                 self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])
             try:
+                self.logger.info("进行注释查询的统计")
                 self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
             except Exception as e:
                 self.logger.info("统计all_annotation出错：{}".format(e))
