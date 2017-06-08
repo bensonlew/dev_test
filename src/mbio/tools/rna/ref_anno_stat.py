@@ -466,27 +466,27 @@ class RefAnnoStatTool(Tool):
         if not os.path.isdir(olddir):
             raise Exception('需要移动到output目录的文件夹不存在。')
         newdir = os.path.join(self.output_dir, newname)
-        if not os.path.exists(newdir):
-            if mode == 'link':
-                shutil.copytree(olddir, newdir, symlinks=True)
-            elif mode == 'copy':
-                shutil.copytree(olddir, newdir)
+        self.logger.info(newdir)
+        if os.path.exists(newdir):
+            shutil.rmtree(newdir)
+        os.mkdir(newdir)
+        self.logger.info(newdir)
+        allfiles = os.listdir(olddir)
+        oldfiles = [os.path.join(olddir, i) for i in allfiles]
+        newfiles = [os.path.join(newdir, i) for i in allfiles]
+        for i in range(len(allfiles)):
+            if os.path.isfile(oldfiles[i]):
+                os.link(oldfiles[i], newfiles[i])
             else:
-                raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
-        else:
-            allfiles = os.listdir(olddir)
-            oldfiles = [os.path.join(olddir, i) for i in allfiles]
-            newfiles = [os.path.join(newdir, i) for i in allfiles]
-            for newfile in newfiles:
-                if os.path.isfile(newfile) and os.path.exists(newfile):
-                    os.remove(newfile)
-                elif os.path.isdir(newfile) and os.path.exists(newfile):
-                    shutil.rmtree(newfile)
-            for i in range(len(allfiles)):
-                if os.path.isfile(oldfiles[i]):
-                    os.system('cp {} {}'.format(oldfiles[i], newfiles[i]))
-                else:
-                    os.system('cp -r {} {}'.format(oldfiles[i], newdir))
+                newdir = os.path.join(newdir, os.path.basename(oldfiles[i]))
+                if not os.path.exists(newdir):
+                    os.mkdir(newdir)
+                for f in os.listdir(oldfiles[i]):
+                    old = os.path.join(oldfiles[i], f)
+                    new = os.path.join(newdir, f)
+                    if os.path.exists(new):
+                        os.remove(new)
+                    os.link(old, new)
 
     def run(self):
         super(RefAnnoStatTool, self).run()
