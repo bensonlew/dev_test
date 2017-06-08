@@ -158,8 +158,7 @@ class RefrnaWorkflow(Workflow):
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans,
                             self.exp_alter, self.exp_fc]
         self.genome_status = True
-        self.step.add_steps("qcstat", "mapping", "assembly", "annotation", "exp", "map_stat",
-                            "seq_abs", "network_analysis", "sample_analysis", "altersplicing")
+        self.step.add_steps("filecheck_ref", "rna_qc", "mapping", "assembly", "new_annotation", "exp", "snp_rna")
 
 
     def check_options(self):
@@ -232,6 +231,8 @@ class RefrnaWorkflow(Workflow):
         if self.option('group_table').is_set:
             opts.update({'group_table': self.option('group_table')})
         self.filecheck.set_options(opts)
+        self.filecheck.on('start', self.set_step, {'start': self.step.filecheck_ref})
+        self.filecheck.on('end', self.set_step, {'end': self.step.filecheck_ref})
         self.filecheck.run()
 
     def run_gs(self):
@@ -256,8 +257,8 @@ class RefrnaWorkflow(Workflow):
             'fq_type': self.option('fq_type')
         })
         self.qc.on('end', self.set_output, 'qc')
-        self.qc.on('start', self.set_step, {'start': self.step.qcstat})
-        self.qc.on('end', self.set_step, {'end': self.step.qcstat})
+        self.qc.on('start', self.set_step, {'start': self.step.rna_qc})
+        self.qc.on('end', self.set_step, {'end': self.step.rna_qc})
         self.qc.run()
 
     def run_seq_abs(self):
@@ -266,8 +267,8 @@ class RefrnaWorkflow(Workflow):
             "ref_genome_gtf": self.filecheck.option("gtf")
         }
         self.seq_abs.set_options(opts)
-        self.seq_abs.on('start', self.set_step, {'start': self.step.seq_abs})
-        self.seq_abs.on('end', self.set_step, {'end': self.step.seq_abs})
+        # self.seq_abs.on('start', self.set_step, {'start': self.step.seq_abs})
+        # self.seq_abs.on('end', self.set_step, {'end': self.step.seq_abs})
         self.seq_abs.run()
 
     def run_align(self, event):
@@ -416,6 +417,8 @@ class RefrnaWorkflow(Workflow):
         }
         self.mapping.set_options(opts)
         self.mapping.on("end", self.set_output, "mapping")
+        self.mapping.on("start", self.set_step, {"start": self.step.mapping})
+        self.mapping.on("end", self.set_step, {"end": self.step.mapping})
         self.mapping.run()
 
     def run_star_mapping(self):
@@ -596,6 +599,7 @@ class RefrnaWorkflow(Workflow):
         self.logger.info('....anno_opts:%s' % anno_opts)
         self.new_annotation.set_options(anno_opts)
         self.new_annotation.on('end', self.set_output, 'new_annotation')
+        self.new_annotation.on('start', self.set_step, {'start': self.step.annotation})
         self.new_annotation.on('end', self.set_step, {'end': self.step.annotation})
         self.new_annotation.run()
 
@@ -609,6 +613,8 @@ class RefrnaWorkflow(Workflow):
             "in_sam": self.star_mapping.output_dir + "/sam"
         }
         self.snp_rna.set_options(opts)
+        self.snp_rna.on("start", self.set_step, {"start": self.step.snp_rna})
+        self.snp_rna.on("end", self.set_step, {"end": self.step.snp_rna})
         # self.final_tools.append(self.snp_rna)
         self.snp_rna.run()
 
@@ -669,7 +675,7 @@ class RefrnaWorkflow(Workflow):
             "edger_group": self.option("group_table"),
             "method": self.option("diff_method"),
             "diff_fdr_ci": self.option("diff_fdr_ci"),
-            "fc":self.option("fc"),
+            "fc": self.option("fc"),
             "is_duplicate": self.option("is_duplicate"),
             "exp_way": exp_way,
             "strand_dir": self.option("strand_dir")
@@ -725,8 +731,6 @@ class RefrnaWorkflow(Workflow):
             }
             self.network_trans.set_options(opts)
             self.network_trans.on("end", self.set_output, "network_analysis")
-            self.network_trans.on('start', self.set_step, {'start': self.step.network_analysis})
-            self.network_trans.on('end', self.set_step, {'end': self.step.network_analysis})
             self.network_trans.run()
 
     def run_network_gene(self):
@@ -745,8 +749,6 @@ class RefrnaWorkflow(Workflow):
             }
             self.network_gene.set_options(opts)
             self.network_gene.on("end", self.set_output, "network_analysis")
-            self.network_gene.on('start', self.set_step, {'start': self.step.network_analysis})
-            self.network_gene.on('end', self.set_step, {'end': self.step.network_analysis})
             self.network_gene.run()
 
     def run_altersplicing(self):
@@ -1039,8 +1041,8 @@ class RefrnaWorkflow(Workflow):
         self.assembly.on("end", self.run_new_gene_abs)
         if self.taxon_id != "":
             self.exp.on("end", self.run_network_trans)
-            self.exp.on("end", self.run_network_gene)
-            self.final_tools.append(self.network_gene)
+            # self.exp.on("end", self.run_network_gene)
+            # self.final_tools.append(self.network_gene)
             self.final_tools.append(self.network_trans)
         self.on_rely(self.final_tools, self.end)
         self.run_filecheck()
@@ -1051,40 +1053,48 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.option("bed", "/mnt/ilustre/users/sanger-dev/workspace/20170603/Refrna_arab_test/FilecheckRef/Arabidopsis_thaliana.TAIR10.32.gff3.gtf.bed")
         self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170603/Refrna_arab_test/HiseqQc/output/sickle_dir")
         self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170604/Refrna_arab_test/RnaseqMapping/output")
-        self.seq_abs.on('end', self.run_annotation)
-        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        self.new_blast_nr.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170607/Refrna_arab_test_sj/Diamond/output/blast.xml')
+        self.new_blast_string.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170607/Refrna_arab_test_sj/Diamond1/output/blast.xml')
+        # self.seq_abs.on('end', self.run_annotation)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.test_run_new_align, "diamond")
         self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
         self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
         # self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         # self.qc.on('end', self.run_mapping)
         # self.qc.on("end", self.run_star_mapping)
-        self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
-        self.map_gene.on("end", self.run_map_assess_gene)
-        self.mapping.on('end', self.run_assembly)
-        self.mapping.on('end', self.run_map_assess)
-        self.assembly.on("end", self.run_exp_rsem_default)
+        # self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
+        # self.map_gene.on("end", self.run_map_assess_gene)
+        # self.mapping.on('end', self.run_assembly)
+        # self.mapping.on('end', self.run_map_assess)
+        # self.assembly.on("end", self.run_exp_rsem_default)
+        # self.exp.on("end", self.test_run_new_align, "diamond")
         self.assembly.on("end", self.run_exp_rsem_alter)
         self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
         if self.taxon_id != "":
             self.exp.on("end", self.run_network_trans)
-            self.exp.on("end", self.run_network_gene)
-            self.final_tools.append(self.network_gene)
+            # self.exp.on("end", self.run_network_gene)
+            # self.final_tools.append(self.network_gene)
             self.final_tools.append(self.network_trans)
         self.on_rely(self.final_tools, self.end)
         self.run_seq_abs()
+        self.run_assembly()
         # self.run_gs()
         self.start_listener()
         self.fire("start")
-
-        # self.qc.start_listener()
-        # self.qc.fire("end")
+        self.exp.start_listener()
+        self.exp.fire("end")
+        self.altersplicing.start_listener()
+        self.altersplicing.fire("end")
+        self.snp_rna.start_listener()
+        self.snp_rna.fire("end")
+        self.annotation.start_listener()
+        self.annotation.fire("end")
         # self.mapping.start_listener()
         # self.mapping.fire("end")
         self.run_star_mapping()
-
         self.rpc_server.run()
 
     def test_ore(self):
@@ -1165,3 +1175,74 @@ class RefrnaWorkflow(Workflow):
 
     def end(self):
         super(RefrnaWorkflow, self).end()
+
+    def test_run_new_align(self, event):
+        method = event["data"]
+        self.new_blast_modules = []
+        self.gene_list = self.new_gene_abs.option('gene_file')
+        blast_lines = int(self.new_trans_abs.option('query').prop['seq_number']) / 10
+        self.logger.info('.......blast_lines:%s' % blast_lines)
+        blast_opts = {
+            'query': self.new_trans_abs.option('query'),
+            'query_type': 'nucl',
+            'database': None,
+            'blast': 'blastx',
+            'evalue': None,
+            'outfmt': 5,
+            'lines': blast_lines,
+        }
+        if 'go' in self.option('database') or 'nr' in self.option('database'):
+            self.new_blast_nr = self.add_module('align.' + method)
+            blast_opts.update(
+                {
+                    'database': self.option("nr_database"),
+                    'evalue': self.option('nr_blast_evalue')
+                }
+            )
+            self.new_blast_nr.set_options(blast_opts)
+            self.new_blast_modules.append(self.new_blast_nr)
+            # self.new_blast_nr.on('end', self.set_output, 'new_nrblast')
+            # self.new_blast_nr.run()
+            self.new_blast_nr.start_listener()
+            self.new_blast_nr.fire("end")
+        if 'cog' in self.option('database'):
+            self.new_blast_string = self.add_module('align.' + method)
+            blast_opts.update(
+                {'database': 'string', 'evalue': self.option('string_blast_evalue')}
+            )
+            self.new_blast_string.set_options(blast_opts)
+            self.new_blast_modules.append(self.new_blast_string)
+            # self.new_blast_string.on('end', self.set_output, 'new_stringblast')
+            # self.new_blast_string.run()
+            self.new_blast_string.start_listener()
+            self.new_blast_string.fire("end")
+        if 'kegg' in self.option('database'):
+            self.new_blast_kegg = self.add_module('align.' + method)
+            blast_opts.update(
+                {'database': 'kegg', 'evalue': self.option('kegg_blast_evalue')}
+            )
+            self.new_blast_kegg.set_options(blast_opts)
+            self.new_blast_modules.append(self.new_blast_kegg)
+            self.new_blast_kegg.on('end', self.set_output, 'new_keggblast')
+            self.new_blast_kegg.run()
+        if 'swissprot' in self.option('database'):
+            self.new_blast_swissprot = self.add_module('align.blast')
+            blast_opts.update(
+                {'database': 'swissprot', 'evalue': self.option('swissprot_blast_evalue')}
+            )
+            self.new_blast_swissprot.set_options(blast_opts)
+            self.new_blast_modules.append(self.new_blast_swissprot)
+            self.new_blast_swissprot.on('end', self.set_output, 'new_swissprotblast')
+            self.new_blast_swissprot.run()
+        if 'pfam' in self.option("database"):
+            opts = {
+                "fasta": self.new_trans_abs.option('query'),
+                "search_pfam": True,
+                "p_length": self.option("p_length"),
+                "Markov_length": self.option("markov_length")
+            }
+            self.pfam.set_options(opts)
+            self.pfam.on("end", self.set_output, "pfam")
+            self.new_blast_modules.append(self.pfam)
+            self.pfam.run()
+        self.on_rely(self.new_blast_modules, self.run_new_annotation)
