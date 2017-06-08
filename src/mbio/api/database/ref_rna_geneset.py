@@ -385,7 +385,8 @@ class RefRnaGeneset(Base):
                     'kegg_id': regulate_id,
                     'pathway_id': line[0],
                     'ko_ids': line[1],
-                    'pathway_definition': path_def[line[0]]
+                    'pathway_definition': path_def[line[0]],
+                    'link': line[-1]
                 }
                 # print path_def[line[0]]
                 for n, gn in enumerate(genesets_name):
