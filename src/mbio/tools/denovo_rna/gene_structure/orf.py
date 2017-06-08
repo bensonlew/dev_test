@@ -53,7 +53,7 @@ class OrfAgent(Agent):
         """
         所需资源
         """
-        self._cpu = 20
+        self._cpu = 10
         self._memory = '5G'
 
     def end(self):

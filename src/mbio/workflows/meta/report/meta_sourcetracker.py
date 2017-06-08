@@ -230,7 +230,7 @@ class MetaSourcetrackerWorkflow(Workflow):
                 if line[2] != "sink":
                     e.write(str(("\t").join(line)) + "\n")
             for c in self.sink_label:
-                e.write(c + "\t" + c + "\t" + "sink\n")
+                e.write(c + "\t" + "s_" + c + "\t" + "sink\n")  # 为了保证样本名称和分组名称的不一致性 所以强加s_
         self.logger.info("sink分组进行分组求和时产生新的map表的生成结束")
         return new_map
 

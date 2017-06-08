@@ -89,8 +89,8 @@ class Family2bamTool(Tool):
         self.cmd_path = "bioinfo/medical/scripts/"
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
-        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1') #测试机
+        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1/bin') #正式机
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioawk')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/bwa-0.7.15')
@@ -116,6 +116,12 @@ class Family2bamTool(Tool):
         self.logger.info("开始运行转bam文件")
         cmd = self.add_command("fastq2bam_cmd", fastq2bam_cmd).run()
         self.wait(cmd)
+
+        if cmd.return_code == 'None':
+            self.logger.info("返回码问题，重新运行cmd")
+            cmd = self.add_command("cmd", cmd).run()
+            self.wait(cmd)
+
         if cmd.return_code == 0:
             self.logger.info("运行转bam文件成功")
         else:

@@ -94,7 +94,9 @@ class RnaseqMappingModule(Module):
             self.logger.info("hisat开始运行")
             self.tool_run("hisat")
         elif self.option("mapping_method") == "star":
-            self.run_star()
+            self.star_index = self.add_tool("align.star_index")
+            self.star_index.on("end", self.run_star)
+            self.run_star_index()
         else:
             raise Exception("比对软件选择错误,程序退出")
         super(RnaseqMappingModule, self).run()
@@ -154,7 +156,8 @@ class RnaseqMappingModule(Module):
         opts = {
             "ref_genome": "customer_mode",
             "ref_genome_custom": self.option("ref_genome_custom"),  # workflow调用star时统一使用customer_mode
-            "ref_gtf": self.option("ref_gtf")
+            "ref_gtf": self.option("ref_gtf"),
+            "star_index1": self.star_index.option("star_index1")
         }
         for f in self.samples:
             tool = self.add_tool("align.star")
@@ -179,6 +182,17 @@ class RnaseqMappingModule(Module):
         self.on_rely(self.tools, self.set_snp_output)
         for tool in self.tools:
             tool.run()
+
+    def run_star_index(self):
+        self.logger.info("开始构建star的索引")
+        opts = {
+            "ref_genome": "customer_mode",
+            "ref_genome_custom": self.option("ref_genome_custom"),  # workflow调用star时统一使用customer_mode
+            "ref_gtf": self.option("ref_gtf"),
+            "seq_method": self.option("seq_method")
+        }
+        self.star_index.set_options(opts)
+        self.star_index.run()
         
     def set_output(self):
         self.logger.info("set output")

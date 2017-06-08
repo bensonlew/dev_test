@@ -13,8 +13,6 @@ from mainapp.models.data_exchange import Download, Identity
 class DownloadTask(object):
     def POST(self):
         data = web.input()
-        print "收到请求，请求的内容为:"
-        print data
         ip = data.ip
         code = data.identity
         user = data.user
@@ -70,7 +68,7 @@ class DownloadTask(object):
             info["data"] = file_list
             download_info = dict()
             download_info["code"] = code
-            download_info["request_time"] = datetime.datetime.now()
+            download_info["request_time"] = datetime.datetime.now().strftime('%Y-%m-%d %X')
             download_info["ip"] = ip
             download_info["user"] = user
             Identity().add_download_record(download_info)
