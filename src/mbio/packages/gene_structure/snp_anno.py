@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qindanhua'
+from __future__ import division
 import re
 
 
