@@ -95,6 +95,7 @@ class HcHeatmap(Base):
                 self.db['heatmap_detail'].insert_many(insert_data)
             except Exception as e:
                 self.bind_object.logger.info("heatmap数据表导入出错{}".format(e))
+                raise Exception("heatmap数据表导入出错{}".format(e))
             else:
                 self.bind_object.logger.info("heatmap数据表导入完成")
             row_tree_path = self.output_dir + '/row_tre'
@@ -129,6 +130,7 @@ class HcHeatmap(Base):
                                                             'col_list': col_list}})
             except Exception as e:
                 self.bind_object.logger.info("heatmap主表更新出错{}".format(e))
+                raise Exception("heatmap主表更新出错{}".format(e))
             else:
                 self.bind_object.logger.info("heatmap主表更新完成")
             return heatmap_id
