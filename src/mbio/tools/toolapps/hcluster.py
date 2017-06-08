@@ -114,7 +114,7 @@ class HclusterTool(Tool):
             self.logger.info('生成树文件成功')
         except subprocess.CalledProcessError:
             self.logger.info('生成树文件失败')
-            self.set_error('无法生成树文件')
+            raise Exception("数据量太大无法生成树文件")
         filename = self.work_dir + '/hcluster_tree_' + \
             os.path.basename(real_dis_matrix) + '_' + self.option('linkage') + '.tre'
         linkfile = self.output_dir + '/hcluster.tre'
