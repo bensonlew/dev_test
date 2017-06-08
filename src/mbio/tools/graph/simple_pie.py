@@ -9,9 +9,9 @@ from bson import SON
 from biocluster.config import Config
 
 
-class SimpleBar(Base):
+class SimplePie(Base):
     def __init__(self, bind_object):
-        super(SimpleBar, self).__init__(bind_object)
+        super(SimplePie, self).__init__(bind_object)
         self.output_dir = self.bind_object.output_dir
         self.work_dir = self.bind_object.work_dir
         if Config().MONGODB == 'sanger':
@@ -25,26 +25,26 @@ class SimpleBar(Base):
         """
         运行函数
         """
-        self.main_id = self.simple_bar_in()
+        self.main_id = self.simple_pie_in()
         self.table_ids = self.table_in()
         return self.main_id
         pass
 
-    def simple_bar_in(self):
+    def simple_pie_in(self):
         """
-        导入simple_bar图相关信息
+        导入simple_pie图相关信息
         """
 
         all_file = os.listdir(self.output_dir)
         for fr in all_file:
-            if fr.endswith("matrix_bar.xls"):
+            if fr.endswith("matrix_pie.xls"):
                 files = os.path.join(self.output_dir, fr)
                 with open(files) as f:
-                    simple_bar_id = self.db['bar'].insert_one(SON(
+                    simple_pie_id = self.db['pie'].insert_one(SON(
                         project_sn=self.bind_object.sheet.project_sn,
                         task_id=self.bind_object.id,
-                        name='bar',
-                        desc='一个样本多个值的柱形图表格',
+                        name='pie',
+                        desc='一个样本多个值的饼图表格',
                         status='faild',
                         created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     )).inserted_id
@@ -61,21 +61,24 @@ class SimpleBar(Base):
                         sample_data = []
                         line_split = line.strip().split("\t")
                         samples.append(line_split[0])
-                        for i in line_split[1:]:
-                            if i != "":
-                                sample_data.append(float(i))
-                        data = SON(sample_name=line_split[0], bar_id=simple_bar_id, value=sample_data)
+                        for i in range(len(first_line)-1):
+                                dic = dict()
+                                dic["name"] = first_line[i+1]
+                                dic["value"] = float(line_split[i+1])
+                                print dic
+                                sample_data.append(dic)
+                        data = SON(sample_name=line_split[0], pie_id=simple_pie_id, value=sample_data)
                         insert_data.append(data)
-                    self.db['bar_detail'].insert_many(insert_data)
-                    self.db['bar'].update_one({'_id': simple_bar_id},
+                    self.db['pie_detail'].insert_many(insert_data)
+                    self.db['pie'].update_one({'_id': simple_pie_id},
                                                 {'$set': {'status': 'end', 'attrs': samples, 'categories': xAxis}})
-                    return simple_bar_id
+                    return simple_pie_id
 
     def table_in(self):
         """
         导入表格相关信息
         """
-        value_table = self.insert_table(self.output_dir + '/final_value.xls', '柱形图数据表', '柱形图数据表格')
+        value_table = self.insert_table(self.output_dir + '/final_value.xls', '饼图数据表', '饼图的数据表格')
         return [value_table]
 
     def insert_table(self, fp, name, desc):
