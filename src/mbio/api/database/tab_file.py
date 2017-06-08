@@ -153,6 +153,16 @@ class TabFile(Base):
         sample_new = list(set(sample))
         return sample_new
 
+    def dedup_sample_report(self,num):
+        collection = self.database['sg_pt_ref_main']
+        param = "WQ{}-F".format(num) + '.*'
+        sample = []
+
+        for u in collection.find({"sample_id": {"$regex": param},"batch_id": {"$exists":True}}):
+            sample.append(u['sample_id'])
+        sample_new = list(set(sample))
+        return sample_new
+
     def sample_qc(self, file, sample_id):
         qc_detail = list()
         with open(file,'r') as f:
