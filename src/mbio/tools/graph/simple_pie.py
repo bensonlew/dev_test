@@ -72,6 +72,7 @@ class SimplePieTool(Tool):
         """
         输入的文件统一处理成标准格式的文件,第一列为样本名
         """
+        os.system('dos2unix -c Mac {}'.format(self.option('input_table').prop['path']))
         fianl_txt = self.work_dir + "/matrix_table.xls"
         if self.option("method") == "row":
             dic = defaultdict(list)
