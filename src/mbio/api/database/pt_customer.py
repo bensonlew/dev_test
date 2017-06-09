@@ -84,13 +84,16 @@ class PtCustomer(Base):
                     insert.append(insert_data)
                 else:
                     continue
-        try:
-            collection = self.database['sg_pt_customer']
-            collection.insert_many(insert)
-        except Exception as e:
-            self.bind_object.logger.error('导入家系表表出错：{}'.format(e))
-            raise Exception('导入家系表表出错：{}'.format(e))
-        self.bind_object.logger.info("导入家系表成功")
+        if len(insert) == 0:
+            self.bind_object.logger.info("没有新的家系需要导入数据库！")
+        else:
+            try:
+                collection = self.database['sg_pt_customer']
+                collection.insert_many(insert)
+            except Exception as e:
+                self.bind_object.logger.error('导入家系表表出错：{}'.format(e))
+                raise Exception('导入家系表表出错：{}'.format(e))
+            self.bind_object.logger.info("导入家系表成功")
 
     def add_data_dir(self, dir_name, wq_dir, ws_dir, undetermined_dir):
         insert_data = {
