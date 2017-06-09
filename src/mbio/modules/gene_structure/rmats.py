@@ -137,7 +137,7 @@ class RmatsModule(Module):
             n = n + 1
             self.step.add_steps('rmats_bam_{}'.format(n))
             rmats_bam.set_options({
-                "ref_gtf": self.option("ref_gtf").path,
+                "ref_gtf": self.option("ref_gtf"),
                 "seq_type": self.option('seq_type'),
                 "analysis_mode": self.option('analysis_mode'),
                 "read_length": self.option('read_length'),
@@ -145,7 +145,7 @@ class RmatsModule(Module):
                 "B_group_bam": vs_pair[1],
                 "novel_as": self.option('novel_as'),
                 "lib_type": self.option('lib_type'),
-                "as_diff": self.option('as_diff'),
+                "cut_off": self.option('as_diff'),
                 "output_dir": rmats_bam.output_dir,
                 "keep_temp": self.option('keep_temp')
             })
