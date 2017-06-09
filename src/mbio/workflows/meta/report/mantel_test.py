@@ -7,6 +7,7 @@ import glob
 from bson import ObjectId
 from mbio.packages.beta_diversity.filter_newick import get_level_newicktree
 from bson.objectid import ObjectId
+from biocluster.core.exceptions import OptionError
 
 
 class MantelTestWorkflow(Workflow):
@@ -45,6 +46,20 @@ class MantelTestWorkflow(Workflow):
         self.set_options(self._sheet.options())
         self.mantel = self.add_module('statistical.mantel_test')
         self.params = {}
+
+    def check_options(self):
+        env_dir = os.path.join(self.work_dir, 'env_file_input_env.xls')
+        with open(env_dir, "r") as f:
+            data = f.readlines()[1:]
+            for line in data:
+                temp = line.strip().split("\t")[1:]
+                for m in temp:
+                    try:
+                        temp_int = int(m)
+                        temp_float = float(m)
+                        # if isinstance(temp1, str):
+                    except:
+                        raise OptionError("环境因子中数值含有字符型，不能进行mantel_test分析！")
 
     def run(self):
         options = self.get_options()
