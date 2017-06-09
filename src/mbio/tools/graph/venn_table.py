@@ -79,6 +79,8 @@ class VennTableTool(Tool):
         """
         调用脚本venn_table.py,输出venn表格
         """
+        os.system('dos2unix -c Mac {}'.format(self.option('otu_table').prop['path']))  # add by wzy 20170609
+        os.system('dos2unix -c Mac {}'.format(self.option('group_table').prop['path']))
         otu_table = self.option("otu_table").prop['path']
         if self.option("otu_table").format is "meta.otu.tax_summary_dir":
             otu_table = self.option("otu_table").get_table(self.option("level"))
