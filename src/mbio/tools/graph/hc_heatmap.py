@@ -18,8 +18,8 @@ class HcHeatmapAgent(Agent):
 		super(HcHeatmapAgent, self).__init__(parent)
 		options = [
 			{"name": "data_table", "type": "infile", "format": "meta.otu.otu_table"},  # 数据表
-			{"name": "row_method", "type": "string", "default": ""},  # 行聚类方式
-			{"name": "col_method", "type": "string", "default": ""},  # 列聚类方式
+			{"name": "row_method", "type": "string", "default": "no"},  # 行聚类方式,为no时不聚类
+			{"name": "col_method", "type": "string", "default": "no"},  # 列聚类方式,为no时不聚类
 			{"name": "col_number", "type": "string", "default": "10"},  # 列数
 			{"name": "row_number", "type": "string", "default": "10"},  # 行数
 			# {"name": "data_T", "type": "bool", "default": False}
@@ -46,9 +46,9 @@ class HcHeatmapAgent(Agent):
 		"""
 		if not self.option("data_table"):
 			raise OptionError("参数data_table不能为空")
-		if self.option("row_method") not in ['average', 'complete', 'single', '']:
+		if self.option("row_method") not in ['average', 'complete', 'single', 'no']:
 			raise OptionError("请选择正确行聚类方式")
-		if self.option("col_method") not in ['average', 'complete', 'single', '']:
+		if self.option("col_method") not in ['average', 'complete', 'single', 'no']:
 			raise OptionError("请选择正确列聚类方式")
 
 	def set_resource(self):
@@ -121,15 +121,15 @@ class HcHeatmapTool(Tool):
 			self.get_new_data(old_path=self.option('data_table').prop['path'], new_path=self.new_data,
 			                  col_number=self.option("col_number"), row_number=self.option("row_number"),
 			                  t=self.option('data_T'))
-		if self.option('row_method') == '' and self.option('col_method') == '':
+		if self.option('row_method') == 'no' and self.option('col_method') == 'no':
 			self.set_output()
 		else:  # -m ~ col
-			if self.option('row_method') != '' and self.option('col_method') == '':
+			if self.option('row_method') != 'no' and self.option('col_method') == 'no':
 				cmd = '{} -i {} -m_1 {} -trans row -o {}'.format(self.app_path,
 				                                                 self.new_data,
 				                                                self.option('row_method'),
 				                                                self.output_dir)
-			elif self.option('row_method') == '' and self.option('col_method') != '':
+			elif self.option('row_method') == 'no' and self.option('col_method') != 'no':
 				cmd = '{} -i {} -m {} -trans col -o {}'.format(self.app_path,
 				                                               self.new_data,
 				                                               self.option('col_method'),
@@ -164,7 +164,7 @@ class HcHeatmapTool(Tool):
 	def set_output(self):
 		os.link(self.new_data, os.path.join(self.output_dir, "result_data"))
 		file_name = os.listdir(self.output_dir)
-		if self.option('row_method') != '' and self.option('col_method') == '':
+		if self.option('row_method') != 'no' and self.option('col_method') == 'no':
 			for name in file_name:
 				if re.search('(\.tre)$', name):
 					os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "row_tre"))  # col_tre
@@ -173,7 +173,7 @@ class HcHeatmapTool(Tool):
 				# 	os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))  # row_tre
 				# 	os.remove(os.path.join(self.output_dir, name))
 			self.logger.info("存在行聚类树")
-		elif self.option('row_method') == '' and self.option('col_method') != '':
+		elif self.option('row_method') == 'no' and self.option('col_method') != 'no':
 			for name in file_name:
 				if re.search('(\.tre)$', name):
 					os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))
