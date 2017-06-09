@@ -95,6 +95,7 @@ class HclusterTool(Tool):
         """
         运行plot-hcluster_tree.pl
         """
+        os.system('dos2unix -c Mac {}'.format(self.option('otu_table').prop['path']))  # 转换输入文件 zhouxuan 20170609
         real_dis_matrix = self.work_dir + '/distance_matrix.temp'
         self.newname_dict = self.change_sample_name(quotes=False, new_path=self.work_dir + '/distance_matrix.temp')  # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         cmd = self.cmd_path
