@@ -2,6 +2,10 @@
 # __author__ = 'moli.zhou'
 import json
 import datetime
+import urllib2
+
+import gevent
+import sys
 from bson.objectid import ObjectId
 from biocluster.config import Config
 from biocluster.core.function import filter_error_info
@@ -16,12 +20,63 @@ class MedReportTupdate(Log):
         self._config = Config()
         self._client = "client03"
         self._key = "hM4uZcGs9d"
-        self._url = "http://api.tsanger.com/task/add_file"
+        # self._url = "http://api.tsanger.com/task/add_file"
+        self._url = "http://api.tsg.com/task/add_file"
         self._mongo_client = self._config.mongo_client
         self.database = self._mongo_client[Config().MONGODB+'_paternity_test']
 
     def update(self):
-        self.update_status()
+
+        while True:
+            if self._try_times >= self.config.UPDATE_MAX_RETRY:
+                self.logger.info("尝试提交%s次任务成功，终止尝试！" % self._try_times)
+                self._failed = True
+                self._reject = 1
+                break
+            try:
+                if self._success == 0:
+                    gevent.sleep(self.config.UPDATE_RETRY_INTERVAL)
+                self._try_times += 1
+                response = self.send()
+                code = response.getcode()
+                response_text = response.read()
+                self.update_status()
+                print "Return page:\n%s" % response_text
+                sys.stdout.flush()
+            except urllib2.HTTPError, e:
+                self._success = 0
+                self._failed_times += 1
+                self._response_code = e.code
+                self.logger.warning("提交失败：%s, 重试..." % e)
+            except Exception, e:
+                self._success = 0
+                self._failed_times += 1
+                self.logger.warning("提交失败: %s, 重试..." % e)
+            else:
+                try:
+                    response_json = json.loads(response_text)
+                except Exception, e:
+                    self._response_code = code
+                    self._response = response_text
+                    self._success = 0
+                    self._failed_times += 1
+                    self.logger.error("提交失败: 返回数据类型不正确 %s ，重试..." %  e)
+                else:
+                    self._response_code = code
+                    self._response = response_text
+                    if response_json["success"] == "true" \
+                            or response_json["success"] is True or response_json["success"] == 1:
+                        self._success = 1
+                        self.logger.info("提交成功")
+                    else:
+                        self._success = 0
+                        self._failed_times += 1
+                        self._reject = 1
+                        self._failed = True
+                        self.logger.error("提交被拒绝，终止提交:%s" % response_json["message"])
+                    break
+        self._end = True
+        self.model.save()
 
     def update_status(self):
         status = self.data["sync_task_log"]["task"]["status"]
@@ -50,8 +105,6 @@ class MedReportTupdate(Log):
                 try:
                     temp_find = tmp_col.find_one({"_id": obj_id})
                     tb_name = temp_find["name"]
-                    temp_params = temp_find['params']
-                    submit_location = json.loads(temp_params)['submit_location']
                 except:
                     tb_name = ""
                     temp_params = ''
