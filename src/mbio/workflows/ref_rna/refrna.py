@@ -769,8 +769,8 @@ class RefrnaWorkflow(Workflow):
             opts.update({"seq_type": "single"})
         self.altersplicing.set_options(opts)
         self.altersplicing.on("end", self.set_output, "altersplicing")
-        self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
-        self.altersplicing.on('end', self.set_step, {'end': self.step.altersplicing})
+        # self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
+        # self.altersplicing.on('end', self.set_step, {'end': self.step.altersplicing})
         # self.final_tools.append(self.altersplicing)
         self.altersplicing.run()
 
@@ -1053,9 +1053,11 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.option("bed", "/mnt/ilustre/users/sanger-dev/workspace/20170603/Refrna_arab_test/FilecheckRef/Arabidopsis_thaliana.TAIR10.32.gff3.gtf.bed")
         self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170603/Refrna_arab_test/HiseqQc/output/sickle_dir")
         self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170604/Refrna_arab_test/RnaseqMapping/output")
+        self.new_blast_string = self.add_module('align.diamond')
+        self.new_blast_nr = self.add_module('align.diamond')
         self.new_blast_nr.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170607/Refrna_arab_test_sj/Diamond/output/blast.xml')
         self.new_blast_string.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170607/Refrna_arab_test_sj/Diamond1/output/blast.xml')
-        # self.seq_abs.on('end', self.run_annotation)
+        self.seq_abs.on('end', self.run_annotation)
         self.on_rely([self.new_gene_abs, self.new_trans_abs], self.test_run_new_align, "diamond")
         self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
@@ -1090,8 +1092,9 @@ class RefrnaWorkflow(Workflow):
         self.altersplicing.fire("end")
         self.snp_rna.start_listener()
         self.snp_rna.fire("end")
-        self.annotation.start_listener()
-        self.annotation.fire("end")
+        # self.annotation.start_listener()
+        # self.annotation.fire("end")
+        # self.run_annotation()
         # self.mapping.start_listener()
         # self.mapping.fire("end")
         self.run_star_mapping()
@@ -1192,7 +1195,7 @@ class RefrnaWorkflow(Workflow):
             'lines': blast_lines,
         }
         if 'go' in self.option('database') or 'nr' in self.option('database'):
-            self.new_blast_nr = self.add_module('align.' + method)
+            # self.new_blast_nr = self.add_module('align.' + method)
             blast_opts.update(
                 {
                     'database': self.option("nr_database"),
@@ -1206,7 +1209,7 @@ class RefrnaWorkflow(Workflow):
             self.new_blast_nr.start_listener()
             self.new_blast_nr.fire("end")
         if 'cog' in self.option('database'):
-            self.new_blast_string = self.add_module('align.' + method)
+
             blast_opts.update(
                 {'database': 'string', 'evalue': self.option('string_blast_evalue')}
             )
@@ -1246,3 +1249,4 @@ class RefrnaWorkflow(Workflow):
             self.new_blast_modules.append(self.pfam)
             self.pfam.run()
         self.on_rely(self.new_blast_modules, self.run_new_annotation)
+
