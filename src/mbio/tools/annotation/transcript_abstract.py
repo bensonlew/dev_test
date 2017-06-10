@@ -69,6 +69,10 @@ class TranscriptAbstractTool(Tool):
         command = self.add_command("gffread", cmd)
         command.run()
         self.wait()
+        if command.return_code == 0:
+            self.logger.info("exons提取完成")
+        else:
+            self.set_error("运exons提取出错")
 
     def run_exons_length(self):
         """exons的长度"""
@@ -90,6 +94,10 @@ class TranscriptAbstractTool(Tool):
         command = self.add_command("the_longest", cmd)
         command.run()
         self.wait()
+        if command.return_code == 0:
+            self.logger.info("运提取最长序列完成")
+        else:
+            self.set_error("提取最长序列出错")
         output1 = os.path.join(self.work_dir, "exons.fa")
         if os.path.exists(self.output_dir + "/exons.fa"):
             os.remove(self.output_dir + "/exons.fa")
