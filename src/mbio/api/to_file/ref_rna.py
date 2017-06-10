@@ -40,8 +40,14 @@ def export_blast_table(data, option_name, dir_path, bind_obj=None):
     gene_nr_table_path = os.path.join(dir_path, "gene_nr_{}.xls".format(option_name))
     sw_table_path = os.path.join(dir_path, "swissprot_{}.xls".format(option_name))
     gene_sw_table_path = os.path.join(dir_path, "gene_swissprot_{}.xls".format(option_name))
+    stat_collection = db["sg_annotation_stat"]
+    stat_result = stat_collection.find({"_id": ObjectId(data)})
+    if not stat_result.count():
+        raise Exception("stat_id:{}在sg_annotation_stat表中未找到".format(data))
+    for result in stat_result:
+        task_id = result["task_id"]
     blast_collection = db["sg_annotation_blast"]
-    blast_result = blast_collection.find({"stat_id": ObjectId(data)})
+    blast_result = blast_collection.find({"task_id": task_id})
     if not blast_result.count():
         raise Exception("stat_id:{}在sg_annotation_blast表中未找到".format(data))
     for result in blast_result:
@@ -365,7 +371,7 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
         raise Exception("意外错误，express_id:{}在sg_express中未找到！".format(ObjectId(data)))
-    
+
     samples = my_result['specimen']
     def write_file(path, collcetion_results):
         with open(path, "wb") as f:
@@ -376,7 +382,7 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
                 gene_id = result['seq_id']
                 fpkm_write = '{}'.format(gene_id)
                 for sam in samples:
-                    fpkm = sam 
+                    fpkm = sam
                     try:
                         fpkm_write += '\t{}'.format(result[fpkm])
                         #count_write += '\t{}'.format(result[count])
