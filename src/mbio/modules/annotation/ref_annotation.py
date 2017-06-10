@@ -83,6 +83,7 @@ class RefAnnotationModule(Module):
         opts['swissprot_xml'] = self.option('blast_swissprot_xml')
         opts['pfam_domain'] = self.option('pfam_domain')
         opts['ref_genome_gtf'] = self.option('ref_genome_gtf')
+        opts['taxonomy'] = self.option('taxonomy')
         self.anno_stat.set_options(opts)
         self.anno_stat.on('start', self.set_step, {'start': self.step.anno_stat})
         self.anno_stat.on('end', self.set_step, {'end': self.step.anno_stat})
