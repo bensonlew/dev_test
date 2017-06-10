@@ -4,6 +4,7 @@
 import os
 import shutil
 import re
+import subprocess
 from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -21,7 +22,8 @@ class TranscriptAbstractAgent(Agent):
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件
             {"name": "ref_genome_gff", "type": "infile", "format": "gene_structure.gff3"},  # 参考基因组gff文件
             {"name": "query", "type": "outfile", "format": "sequence.fasta"},  # 输出做注释的转录本序列
-            {"name": "gene_file", "type": "outfile", "format": "rna.gene_list"}  # 输出最长转录本
+            {"name": "gene_file", "type": "outfile", "format": "rna.gene_list"},  # 输出最长转录本
+            {"name": "length_file", "type": "outfile", "format": "annotation.cog.cog_list"}  # 输出注释转录本序列的长度
         ]
         self.add_option(options)
         self.step.add_steps("Transcript")
@@ -57,6 +59,7 @@ class TranscriptAbstractTool(Tool):
         self.gffread_path = "bioinfo/rna/cufflinks-2.2.1/"
         self.long_path = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/"
         self.python_path = "program/Python/bin/"
+        self.length = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/fastalength"
 
     def run_gffread(self):
         fasta = self.option("ref_genome_custom").prop["path"]  # 统一按自定义方式传参考基因组
@@ -66,8 +69,19 @@ class TranscriptAbstractTool(Tool):
         command = self.add_command("gffread", cmd)
         command.run()
         self.wait()
-        # output1 = os.path.join(self.work_dir, "exons.fa")
-        # self.option('query', output1)
+
+    def run_exons_length(self):
+        """exons的长度"""
+        exon_path = os.path.join(self.work_dir, "exons.fa")
+        length_path = self.output_dir + "/exons_length.txt"
+        cmd = "{} {} > {}".format(self.length, exon_path, length_path)
+        self.logger.info("开始提取exons的长度")
+        try:
+            subprocess.check_output(cmd, shell=True)
+            self.logger.info("提取exons的长度完成")
+        except subprocess.CalledProcessError:
+            self.set_error("提取exons的长度失败")
+        self.option("length_file", length_path)
 
     def run_long_transcript(self):
         exon_path = os.path.join(self.work_dir, "exons.fa")
@@ -87,7 +101,6 @@ class TranscriptAbstractTool(Tool):
         self.option('query', self.work_dir + '/output/exons.fa')
 
     def get_gene_list(self):
-        # output_path = self.option("query").prop["path"]
         output_path = self.work_dir + "/output/the_longest_exons.fa"
         gene_list_path = self.work_dir + '/output/gene_list.txt'
         gene_lists = []
@@ -112,6 +125,7 @@ class TranscriptAbstractTool(Tool):
     def run(self):
         super(TranscriptAbstractTool, self).run()
         self.run_gffread()
+        self.run_exons_length()
         self.run_long_transcript()
         self.get_gene_list()
         self.end()
