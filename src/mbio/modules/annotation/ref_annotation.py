@@ -27,6 +27,7 @@ class RefAnnotationModule(Module):
             {"name": "gos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},   # 客户上传go注释文件
             {"name": "kos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},  # 客户上传kegg注释文件
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
+            {"name": "length_file", "type": "infile", "format": "annotation.cog.cog_list"},  # 注释转录本序列的长度
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
             {"name": "anno_statistics", "type": "bool", "default": True},
             {"name": "go_annot", "type": "bool", "default": True},
@@ -51,9 +52,11 @@ class RefAnnotationModule(Module):
     def check_options(self):
         if self.option('anno_statistics'):
             if not self.option('gene_file').is_set:
-                raise OptionError('运行注释统计的tool必须要设置gene_file')
+                raise OptionError('进行注释统计的tool必须要设置gene_file')
             if not self.option('ref_genome_gtf').is_set:
                 raise OptionError('缺少gtf文件')
+            if not self.option("length_file").is_set:
+                raise OptionError("缺少注释转录本序列的长度文件")
 
     def set_step(self, event):
         if 'start' in event['data']:
@@ -253,6 +256,7 @@ class RefAnnotationModule(Module):
                 kwargs['blast_swissprot_table'] = swissprot_path
             if db == 'pfam':
                 kwargs['pfam_domain'] = self.option('pfam_domain').prop['path']
+            kwargs['length_path'] = self.option('length_file').prop['path']
         allstat = AllAnnoStat()
         allstat.get_anno_stat(**kwargs)
 
