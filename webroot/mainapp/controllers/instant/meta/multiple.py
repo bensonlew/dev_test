@@ -34,7 +34,7 @@ class Multiple(MetaController):
         groupname = json.loads(data.group_detail).keys()
         groupname.sort()
         category_name = ','.join(groupname)
-        print category_name
+        # print category_name
         my_param = dict()
         my_param['otu_id'] = data.otu_id
         my_param['level_id'] = int(data.level_id)
@@ -61,7 +61,7 @@ class Multiple(MetaController):
             "category_name": category_name
         }
         main_table_id = self.meta.insert_main_table('sg_species_difference_check', mongo_data)
-        print main_table_id, type(main_table_id)
+        # print main_table_id, type(main_table_id)
         update_info = {str(main_table_id): 'sg_species_difference_check'}
         options = {
             "otu_file": data.otu_id,
@@ -82,7 +82,7 @@ class Multiple(MetaController):
         self.set_sheet_data(name=task_name, options=options, main_table_name="DiffStatMultiple/" + main_table_name, module_type=task_type, to_file=to_file)
         task_info = super(Multiple, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
-        print(self.return_msg)
+        # print(self.return_msg)
         return json.dumps(task_info)
 
     def check_options(self, data):

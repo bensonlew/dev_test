@@ -72,7 +72,7 @@ class MetaSourcetracker(MetaController):
             "update_info": json.dumps(update_info),
         }
         to_file = ["meta.export_otu_table_by_level(in_otu_table)", "meta.export_group_table_by_detail_2(map_detail)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+        self.set_sheet_data(name=task_name, options=options, main_table_name="MetaSourcetracker/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(MetaSourcetracker, self).POST()
         task_info['content'] = {

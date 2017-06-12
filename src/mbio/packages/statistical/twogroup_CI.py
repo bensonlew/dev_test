@@ -36,11 +36,11 @@ def stat_info(statfile, groupfile):
             taxon_list.append(sline_list[0])
             for gname in group_num_dict.keys():
                 gmean = gname + "-mean"
-                for foo in shead:
-                    if gmean in foo:
-                        index_site = shead.index(foo)
-                        mean_dict[gname].append(float(sline_list[index_site].strip('\"')))
-                        sd_dict[gname].append(float(sline_list[index_site + 1].strip('\"')))
+                #for foo in shead:
+                    #if gmean in foo:
+                index_site = shead.index(gmean)
+                mean_dict[gname].append(float(sline_list[index_site].strip('\"')))
+                sd_dict[gname].append(float(sline_list[index_site + 1].strip('\"')))
         return mean_dict, sd_dict, taxon_list
 
 

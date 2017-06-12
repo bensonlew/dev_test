@@ -56,6 +56,13 @@ class VennTableAgent(Agent):
         self._cpu = 10
         self._memory = ''
 
+    def end(self):  # add by wzy 20170608
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "venn图结果目录"],
+        ])
+        super(VennTableAgent, self).end()
+
 
 class VennTableTool(Tool):
     """
@@ -72,6 +79,8 @@ class VennTableTool(Tool):
         """
         调用脚本venn_table.py,输出venn表格
         """
+        os.system('dos2unix -c Mac {}'.format(self.option('otu_table').prop['path']))  # add by wzy 20170609
+        os.system('dos2unix -c Mac {}'.format(self.option('group_table').prop['path']))
         otu_table = self.option("otu_table").prop['path']
         if self.option("otu_table").format is "meta.otu.tax_summary_dir":
             otu_table = self.option("otu_table").get_table(self.option("level"))

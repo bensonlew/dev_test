@@ -304,7 +304,7 @@ class MetastatAgent(Agent):
         :return:
         """
         self._cpu = 2
-        self._memory = '4G'
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -344,7 +344,7 @@ class MetastatTool(Tool):
         :return:
         """
         for test in self.option('test').split(','):
-            self.logger.info(t)
+            # self.logger.info(t)
             if test == "chi":
                 self.run_chi()
             elif test == "fisher":

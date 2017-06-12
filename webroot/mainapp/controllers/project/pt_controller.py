@@ -48,6 +48,7 @@ class PtController(MetaController):
             'stage_id': 0,
             'name': name,
             'type': module_type,
+            'interaction': True,
             'client': self.data.client,
             # 'project_sn': project_sn,
             'IMPORT_REPORT_DATA': True,

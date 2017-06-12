@@ -6,6 +6,7 @@ from Bio.KEGG.KGML import KGML_parser
 from Bio.Graphics.KGML_vis import KGMLCanvas
 import collections
 from itertools import islice
+import subprocess
 import gridfs
 import os
 import sys
@@ -173,9 +174,10 @@ class KeggAnnotation(object):
                 print "key==None，该基因没有对应的pathway！"
         print "pathTable finished!!!"
 
-    def getPic(self, pidpath, pathwaydir):
+    def getPic(self, pidpath, pathwaydir, image_magick=None):
         """
         输入文件pid.txt，输出文件夹pathways，作图
+        image_magick:将pdf转为png的软件目录
         """
         fs = gridfs.GridFS(self.mongodb)
         f = open(pidpath)
@@ -209,8 +211,16 @@ class KeggAnnotation(object):
                         for n in l:
                             for graphic in p_kgml.entries[n].graphics:
                                 graphic.fgcolor = '#CC0000'
-                        canvas = KGMLCanvas(p_kgml, import_imagemap=True)
-                        canvas.draw(pathwaydir + '/' + pid + '.pdf')
+                    canvas = KGMLCanvas(p_kgml, import_imagemap=True)
+                    pdf = pathwaydir + '/' + pid + '.pdf'
+                    png = pathwaydir + '/' + pid + '.png'
+                    canvas.draw(pdf)
+                    if image_magick:
+                        cmd = image_magick + ' -flatten -quality 100 -density 130 -background white ' + pdf + ' ' + png
+                        try:
+                            subprocess.check_output(cmd, shell=True)
+                        except subprocess.CalledProcessError:
+                            print '图片格式pdf转png出错'
                 except:
                     print "没找到对应的通路图"
         print "getPic finished!!!"
