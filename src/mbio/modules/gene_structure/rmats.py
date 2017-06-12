@@ -118,10 +118,10 @@ class RmatsModule(Module):
             b_group_path_lst = []
             b_group_samples = group_sample_dic[b_group_name]
             for a_group_sample in a_group_samples:
-                a_group_path_lst.append(sample_path_dic[a_group_sample + '.bam.sorted'])
+                a_group_path_lst.append(sample_path_dic[a_group_sample])
                 # a_group_path_lst.append(sample_path_dic[a_group_sample])
             for b_group_sample in b_group_samples:
-                b_group_path_lst.append(sample_path_dic[b_group_sample + '.bam.sorted'])
+                b_group_path_lst.append(sample_path_dic[b_group_sample])
                 # b_group_path_lst.append(sample_path_dic[b_group_sample])
             a_group_path_str = ','.join(a_group_path_lst)
             b_group_path_str = ','.join(b_group_path_lst)
