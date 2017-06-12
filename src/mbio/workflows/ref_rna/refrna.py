@@ -336,7 +336,8 @@ class RefrnaWorkflow(Workflow):
             "gene_file": self.seq_abs.option("gene_file"),
             "ref_genome_gtf": self.filecheck.option("gtf"),
             "taxonomy": self.option("kegg_database"),
-            "nr_annot": False
+            "nr_annot": False,
+            "length_file": self.seq_abs.option("length_file")
         }
         if self.anno_path != "":  # 本地参考基因组注释文件
             opts.update({
@@ -559,7 +560,8 @@ class RefrnaWorkflow(Workflow):
     def run_new_annotation(self):
         anno_opts = {
             'gene_file': self.new_gene_abs.option('gene_file'),
-            "ref_genome_gtf": self.filecheck.option("gtf")
+            "ref_genome_gtf": self.assembly.option("new_transcripts_gtf"),
+            'length_file': self.new_trans_abs.option('length_file')
         }
         if 'go' in self.option('database'):
             anno_opts.update({
@@ -1108,7 +1110,7 @@ class RefrnaWorkflow(Workflow):
         self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/RnaseqMapping/output")
         # self.star_mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170608/Refrna_ore_test_4/RnaseqMapping2/output/bam")
         # self.seq_abs.on('end', self.run_annotation)
-        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_annotation)
+        # self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_annotation)
         self.new_blast_string = self.add_module('align.diamond')
         self.new_blast_nr = self.add_module('align.diamond')
         self.new_blast_kegg = self.add_module('align.diamond')
@@ -1129,6 +1131,7 @@ class RefrnaWorkflow(Workflow):
                 self.altersplicing.fire("end")
             self.star_mapping.on("end", self.run_snp)
         self.assembly.on("end", self.run_exp_rsem_default)
+        # self.exp.on("end", self.end)
         # self.assembly.on("end", self.run_exp_rsem_alter)
         # self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
@@ -1138,7 +1141,7 @@ class RefrnaWorkflow(Workflow):
             # self.exp.on("end", self.run_network_gene)
             # self.final_tools.append(self.network_gene)
             self.final_tools.append(self.network_trans)
-        self.on_rely(self.final_tools, self.end)
+        self.on_rely(self.network_trans, self.end)
         self.mapping.on('end', self.run_assembly)
         self.run_seq_abs()
         # self.star_mapping.start_listener()
