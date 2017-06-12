@@ -83,6 +83,7 @@ class RefAnnotationModule(Module):
         opts['swissprot_xml'] = self.option('blast_swissprot_xml')
         opts['pfam_domain'] = self.option('pfam_domain')
         opts['ref_genome_gtf'] = self.option('ref_genome_gtf')
+        opts['taxonomy'] = self.option('taxonomy')
         self.anno_stat.set_options(opts)
         self.anno_stat.on('start', self.set_step, {'start': self.step.anno_stat})
         self.anno_stat.on('end', self.set_step, {'end': self.step.anno_stat})
@@ -158,7 +159,7 @@ class RefAnnotationModule(Module):
 
     def run_nr_anno(self):
         options = {
-            'blastout': self.option('blast_swissprot_xml')
+            'blastout': self.option('blast_nr_xml')
         }
         self.nr_annot.set_options(options)
         self.nr_annot.on('start', self.set_step, {'start': self.step.nr_annot})
@@ -170,11 +171,9 @@ class RefAnnotationModule(Module):
         super(RefAnnotationModule, self).run()
         self.all_end_tool = []  # 所有尾部注释模块，全部结束后运行整体统计
         self.anno_database = []
-        # if self.option('nr_annot'):
-        #     self.anno_database.append('nr')
-        #     self.run_nr_anno()
-        if self.option('blast_nr_xml').is_set:
+        if self.option('nr_annot'):
             self.anno_database.append('nr')
+        if self.option('blast_nr_xml').is_set:
             self.all_end_tool.append(self.nr_annot)
             self.run_nr_anno()
         if self.option('go_annot'):
@@ -246,10 +245,12 @@ class RefAnnotationModule(Module):
                 kwargs['gos_list'] = self.go_annot.option('golist_out').prop['path']
             if db == 'kegg':
                 kwargs['kegg_table'] = self.kegg_annot.option('kegg_table').prop['path']
-            if db == 'nr':
-                kwargs['blast_nr_table'] = self.nr_annot.option('blast_table').prop['path']
-            if db == 'swissprot':
-                kwargs['blast_swissprot_table'] = self.swissprot_annot.option('blast_table').prop['path']
+            nr_path = self.output_dir + "/anno_stat/blast/nr.xls"
+            swissprot_path = self.output_dir + "/anno_stat/blast/swissprot.xls"
+            if os.path.exists(nr_path):
+                kwargs['blast_nr_table'] = nr_path
+            if os.path.exists(swissprot_path):
+                kwargs['blast_swissprot_table'] = swissprot_path
             if db == 'pfam':
                 kwargs['pfam_domain'] = self.option('pfam_domain').prop['path']
         allstat = AllAnnoStat()
@@ -262,27 +263,35 @@ class RefAnnotationModule(Module):
         if not os.path.isdir(olddir):
             raise Exception('需要移动到output目录的文件夹不存在。')
         newdir = os.path.join(self.output_dir, newname)
-        if not os.path.exists(newdir):
-            if mode == 'link':
-                shutil.copytree(olddir, newdir, symlinks=True)
-            elif mode == 'copy':
-                shutil.copytree(olddir, newdir)
+        if os.path.exists(newdir):
+            shutil.rmtree(newdir)
+        os.mkdir(newdir)
+        allfiles = os.listdir(olddir)
+        oldfiles = [os.path.join(olddir, i) for i in allfiles]
+        newfiles = [os.path.join(newdir, i) for i in allfiles]
+        for i in range(len(allfiles)):
+            if os.path.isfile(oldfiles[i]):
+                os.link(oldfiles[i], newfiles[i])
             else:
-                raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
-        else:
-            allfiles = os.listdir(olddir)
-            oldfiles = [os.path.join(olddir, i) for i in allfiles]
-            newfiles = [os.path.join(newdir, i) for i in allfiles]
-            for newfile in newfiles:
-                if os.path.isfile(newfile) and os.path.exists(newfile):
-                    os.remove(newfile)
-                elif os.path.isdir(newfile) and os.path.exists(newfile):
-                    shutil.rmtree(newfile)
-            for i in range(len(allfiles)):
-                if os.path.isfile(oldfiles[i]):
-                    os.system('cp {} {}'.format(oldfiles[i], newfiles[i]))
-                else:
-                    os.system('cp -r {} {}'.format(oldfiles[i], newdir))
+                new1 = os.path.join(newdir, os.path.basename(oldfiles[i]))
+                if not os.path.exists(new1):
+                    os.mkdir(new1)
+                for f in os.listdir(oldfiles[i]):
+                    old = os.path.join(oldfiles[i], f)
+                    new2 = os.path.join(new1, f)
+                    if os.path.isfile(old):
+                        if os.path.exists(new2):
+                            os.remove(new2)
+                        os.link(old, new2)
+                    else:
+                        if not os.path.exists(new2):
+                            os.mkdir(new2)
+                        for f in os.listdir(old):
+                            old1 = os.path.join(old, f)
+                            new3 = os.path.join(new2, f)
+                            if os.path.exists(new3):
+                                os.remove(new3)
+                            os.link(old1, new3)
 
     def end(self):
         repaths = [

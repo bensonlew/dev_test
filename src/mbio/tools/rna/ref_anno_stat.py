@@ -44,6 +44,7 @@ class RefAnnoStatAgent(Agent):
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
             {"name": "swissprot_xml", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
+            {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "database", "type": "string", "default": "nr,go,cog,pfam,kegg,swissprot"},
             {"name": "gene_nr_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "gene_string_table", "type": "outfile", "format": "align.blast.blast_table"},
@@ -186,10 +187,11 @@ class RefAnnoStatTool(Tool):
         self.denovo_stat = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/denovo_stat/'
         self.go_annot = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goAnnot.py'
         self.go_split = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goSplit.py'
-        self.kegg_anno = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
+        self.kegg_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
         self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
         self.cog_table = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/cog_annot.py'
-        self.image_magick = self.config.SOFTWARE_DIR + "//program/ImageMagick/bin/convert"
+        self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
+        self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
         self.gene_list = self.option('gene_file').prop['gene_list']
         self.gene_nr_xml = self.work_dir + '/blast/gene_nr.xml'
         if self.option('string_xml').is_set:
@@ -288,21 +290,28 @@ class RefAnnoStatTool(Tool):
             transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_kegg_xml, gene_xml_path=self.gene_kegg_xml)
             xml2table(self.gene_kegg_xml, self.work_dir + '/blast/gene_kegg.xls')
             self.logger.info("完成筛选gene_kegg.xml、gene_kegg.xls")
-        try:
-            kegg_anno = self.load_package('annotation.kegg_annotation')()
-            if self.option("kegg_xml").is_set:
-                kegg_anno.pathSearch(blast_xml=self.gene_kegg_xml, kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
-            else:
-                self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
-                kegg_anno.pathSearch_upload(kegg_ids=self.work_dir + "/gene_kegg.list", kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
-            kegg_anno.pathTable(kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls', pathway_path=self.kegg_stat_path + '/gene_pathway_table.xls', pidpath=self.work_dir + '/gene_pid.txt')
-            kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway, image_magick=self.image_magick)
-            kegg_anno.keggLayer(pathway_table=self.kegg_stat_path + '/gene_pathway_table.xls', layerfile=self.kegg_stat_path + '/gene_kegg_layer.xls', taxonomyfile=self.kegg_stat_path + '/gene_kegg_taxonomy.xls')
-            self.logger.info('finish: kegg stat')
-        except:
-            import traceback
-            self.logger.info('error:{}'.format(traceback.format_exc()))
-            self.set_error("运行kegg脚本出错！")
+        kegg_table = self.kegg_stat_path + '/gene_kegg_table.xls'
+        pidpath = self.work_dir + '/gene_pid.txt'
+        pathway_table = self.kegg_stat_path + '/gene_pathway_table.xls'
+        layerfile = self.kegg_stat_path + '/gene_kegg_layer.xls'
+        taxonomyfile = self.kegg_stat_path + '/gene_kegg_taxonomy.xls'
+        if self.option("taxonomy"):
+            taxonomy = self.taxonomy_path
+        else:
+            taxonomy = None
+        if self.option("kegg_xml").is_set:
+            cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, self.gene_kegg_xml, None, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+        else:
+            self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
+            kegg_ids = self.work_dir + "/gene_kegg.list"
+            cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, None, kegg_ids, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+        self.logger.info("开始运行kegg注释脚本")
+        command = self.add_command("kegg_anno", cmd).run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("运行kegg注释脚本完成")
+        else:
+            self.set_error("运行kegg注释脚本出错")
 
     def run_go_stat(self):
         self.go_stat_path = self.work_dir + '/go_stat/'
