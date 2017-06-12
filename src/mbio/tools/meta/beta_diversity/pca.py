@@ -92,8 +92,8 @@ class PcaAgent(Agent):
         """
         设置所需资源
         """
-        self._cpu = 2
-        self._memory = '3G'
+        self._cpu = 4
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

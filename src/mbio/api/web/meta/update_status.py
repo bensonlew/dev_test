@@ -8,7 +8,6 @@ import re
 import gevent
 import urllib2
 import sys
-import os
 from bson.objectid import ObjectId
 from biocluster.wpm.log import Log
 from biocluster.config import Config
@@ -32,15 +31,15 @@ class UpdateStatus(Log):
         self.mongodb = self._mongo_client[Config().MONGODB]
 
     def get_post_data(self):
-        ana_dir = {}
-        report_dir_des = {}
-        n = 0
+        # ana_dir = {}
+        # report_dir_des = {}
+        # n = 0
         workflow_id = self.data["sync_task_log"]['task']["task_id"]
         my_id = re.split('_', workflow_id)
         my_id.pop(-1)
         my_id.pop(-1)
         data = dict()
-        assert len(my_id) == 2
+        # assert len(my_id) == 2
         content = {
             "task": {
                 "task_id": "_".join(my_id)
@@ -50,28 +49,29 @@ class UpdateStatus(Log):
         if 'files' in self.data['sync_task_log']:
             content['files'] = self.data["sync_task_log"]["files"]
         if 'dirs' in self.data['sync_task_log']:
-            content['dirs'] = self.data['sync_task_log']['dirs']  # add 15 lines by hongdongxuan 20170327, 遍历dirs中路径最短的进行处理
-            min_path_len = len(content['dirs'][0]['path'].rstrip('/').split("/"))
-            for m in content['dirs'][1:]:
-                if len(m['path'].rstrip('/').split("/")) < min_path_len:
-                    min_path_len = len(m['path'].rstrip('/').split("/"))
-            for m in content['dirs']:
-                if len(m['path'].rstrip('/').split("/")) == min_path_len:
-                    n += 1
-                    output_dir = os.path.dirname(m['path'].rstrip('/'))
-                    ana_dir = {'path': output_dir, "size": "", "description": m['description'], "format": ""}
-                    report_dir = os.path.dirname(output_dir.rstrip("/"))
-                    report_dir_des = {'path': report_dir, "size": "", "description": "交互分析结果文件夹", "format": ""}
-            content['dirs'].append(ana_dir)
-            content['dirs'].append(report_dir_des)
-            if n > 1:
-                raise Exception("存在两个最短路径，请进行检查！")
+            content['dirs'] = self.data['sync_task_log']['dirs']
+            # min_path_len = len(content['dirs'][0]['path'].rstrip('/').split("/"))
+            # for m in content['dirs'][1:]:
+            #     if len(m['path'].rstrip('/').split("/")) < min_path_len:
+            #         min_path_len = len(m['path'].rstrip('/').split("/"))
+            # for m in content['dirs']:
+            #     if len(m['path'].rstrip('/').split("/")) == min_path_len:
+            #         n += 1
+            #         output_dir = os.path.dirname(m['path'].rstrip('/'))
+            #         ana_dir = {'path': output_dir, "size": "", "description": m['description'], "format": ""}
+            #         report_dir = os.path.dirname(output_dir.rstrip("/"))
+            #         report_dir_des = {'path': report_dir, "size": "", "description": "交互分析结果文件夹", "format": ""}
+            # content['dirs'].append(ana_dir)
+            # content['dirs'].append(report_dir_des)
+            # if n > 1:
+            #     raise Exception("存在两个最短路径，请进行检查！")
         data['sync_task_log'] = json.dumps(content, cls=CJsonEncoder)
         self.logger.info("CONTENT:{}".format(data['sync_task_log']))
         return urllib.urlencode(data)
 
     def update(self):
 
+        self.update_status()
         while True:
             if self._try_times >= self.config.UPDATE_MAX_RETRY:
                 self.logger.info("尝试提交%s次任务成功，终止尝试！" % self._try_times)
@@ -85,7 +85,7 @@ class UpdateStatus(Log):
                 response = self.send()
                 code = response.getcode()
                 response_text = response.read()
-                self.update_status()
+                # self.update_status()
                 print "Return page:\n%s" % response_text
                 sys.stdout.flush()
             except urllib2.HTTPError, e:
@@ -135,7 +135,8 @@ class UpdateStatus(Log):
         if not self.update_info:
             return
         self.update_info = json.loads(self.update_info)
-        # meta_pipe_detail_id = self.update_info.pop("meta_pipe_detail_id") if 'meta_pipe_detail_id' in self.update_info else None
+        # meta_pipe_detail_id = self.update_info.pop("meta_pipe_detail_id") if 'meta_pipe_detail_id'  \
+        #                                                                      in self.update_info else None
         batch_id = self.update_info.pop("batch_id") if 'batch_id' in self.update_info else None
         for obj_id, collection_name in self.update_info.items():
             obj_id = ObjectId(obj_id)
@@ -160,7 +161,7 @@ class UpdateStatus(Log):
                         tb_name = ""
                         temp_params = ''
                         submit_location = ''
-                    tmp_task_id = list()
+                    # tmp_task_id = list()
                     print 'update_status task_id:', self.task_id
                     tmp_task_id = re.split("_", self.task_id)
                     tmp_task_id.pop()
@@ -204,8 +205,18 @@ class UpdateStatus(Log):
         if not batch_id:
             # self.logger.info("没有batchID，无法更新相关表格")
             return
-        self.logger.info("存在batch_id:{}, collection: {}, _id: {}, status: {}".format(batch_id, collection, _id, status))
+        self.logger.info("存在batch_id:{}, collection: {}, _id: {}, status: {}"
+                         .format(batch_id, collection, _id, status))
         # meta_pipe_detail_id = ObjectId(meta_pipe_detail_id)
         batch_id = ObjectId(batch_id)
-        self.mongodb['sg_pipe_batch'].find_one_and_update({'_id': batch_id}, {"$inc": {"ends_count": 1}})
-        self.mongodb['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)}, {"$set": {'status': status, "desc": desc}})
+        if str(collection) == "sg_otu" and str(status) == "failed" \
+                and self.mongodb['sg_otu'].find_one({"_id": ObjectId(_id)})['type'] == "otu_statistic":
+            self.logger.info("抽平不加")
+            pass
+        elif str(collection) == "sg_alpha_diversity" and str(status) == "failed":
+            self.logger.info("多样性指数不加")
+            pass
+        else:
+            self.mongodb['sg_pipe_batch'].find_one_and_update({'_id': batch_id}, {"$inc": {"ends_count": 1}})
+            self.mongodb['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)},
+                                                               {"$set": {'status': status, "desc": desc}})

@@ -90,6 +90,13 @@ class CorrNetworkCalcTool(Tool):
         self.wait(cmd)
         if cmd.return_code == 0:
             self.logger.info("运行networkcalc成功")
+        elif cmd.return_code is None:
+            self.logger.info("返回码为None，重新运行一次")
+            re_cmd = self.add_command("networkcalc", one_cmd).rerun()
+            if re_cmd.return_code == 0:
+                self.logger.info("重新运行一次成功！")
+            else:
+                self.logger.info("运行networkcalc出错")
         #     return True
         # else:
         #     self.set_error("运行networkcalc出错")

@@ -27,6 +27,7 @@ class RefAnnotationModule(Module):
             {"name": "gos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},   # 客户上传go注释文件
             {"name": "kos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},  # 客户上传kegg注释文件
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
+            {"name": "length_file", "type": "infile", "format": "annotation.cog.cog_list"},  # 注释转录本序列的长度
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
             {"name": "anno_statistics", "type": "bool", "default": True},
             {"name": "go_annot", "type": "bool", "default": True},
@@ -46,14 +47,16 @@ class RefAnnotationModule(Module):
         self.swissprot_annot = self.add_tool("annotation.swissprot")
         self.kegg_upload = self.add_tool('annotation.kegg.kegg_upload')
         self.anno_stat = self.add_tool('rna.ref_anno_stat')
-        self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat', 'swissprot_annot')
+        self.step.add_steps('blast_statistics', 'nr_annot', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat', 'swissprot_annot')
 
     def check_options(self):
         if self.option('anno_statistics'):
             if not self.option('gene_file').is_set:
-                raise OptionError('运行注释统计的tool必须要设置gene_file')
+                raise OptionError('进行注释统计的tool必须要设置gene_file')
             if not self.option('ref_genome_gtf').is_set:
                 raise OptionError('缺少gtf文件')
+            if not self.option("length_file").is_set:
+                raise OptionError("缺少注释转录本序列的长度文件")
 
     def set_step(self, event):
         if 'start' in event['data']:
@@ -83,6 +86,7 @@ class RefAnnotationModule(Module):
         opts['swissprot_xml'] = self.option('blast_swissprot_xml')
         opts['pfam_domain'] = self.option('pfam_domain')
         opts['ref_genome_gtf'] = self.option('ref_genome_gtf')
+        opts['taxonomy'] = self.option('taxonomy')
         self.anno_stat.set_options(opts)
         self.anno_stat.on('start', self.set_step, {'start': self.step.anno_stat})
         self.anno_stat.on('end', self.set_step, {'end': self.step.anno_stat})
@@ -158,7 +162,7 @@ class RefAnnotationModule(Module):
 
     def run_nr_anno(self):
         options = {
-            'blastout': self.option('blast_swissprot_xml')
+            'blastout': self.option('blast_nr_xml')
         }
         self.nr_annot.set_options(options)
         self.nr_annot.on('start', self.set_step, {'start': self.step.nr_annot})
@@ -172,6 +176,8 @@ class RefAnnotationModule(Module):
         self.anno_database = []
         if self.option('nr_annot'):
             self.anno_database.append('nr')
+        if self.option('blast_nr_xml').is_set:
+            self.all_end_tool.append(self.nr_annot)
             self.run_nr_anno()
         if self.option('go_annot'):
             self.anno_database.append('go')
@@ -224,6 +230,7 @@ class RefAnnotationModule(Module):
                 self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
                 self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])
             try:
+                self.logger.info("进行注释查询的统计")
                 self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
             except Exception as e:
                 self.logger.info("统计all_annotation出错：{}".format(e))
@@ -241,12 +248,15 @@ class RefAnnotationModule(Module):
                 kwargs['gos_list'] = self.go_annot.option('golist_out').prop['path']
             if db == 'kegg':
                 kwargs['kegg_table'] = self.kegg_annot.option('kegg_table').prop['path']
-            if db == 'nr':
-                kwargs['blast_nr_table'] = self.nr_annot.option('blast_table').prop['path']
-            if db == 'swissprot':
-                kwargs['blast_swissprot_table'] = self.swissprot_annot.option('blast_table').prop['path']
+            nr_path = self.output_dir + "/anno_stat/blast/nr.xls"
+            swissprot_path = self.output_dir + "/anno_stat/blast/swissprot.xls"
+            if os.path.exists(nr_path):
+                kwargs['blast_nr_table'] = nr_path
+            if os.path.exists(swissprot_path):
+                kwargs['blast_swissprot_table'] = swissprot_path
             if db == 'pfam':
                 kwargs['pfam_domain'] = self.option('pfam_domain').prop['path']
+            kwargs['length_path'] = self.option('length_file').prop['path']
         allstat = AllAnnoStat()
         allstat.get_anno_stat(**kwargs)
 
@@ -257,27 +267,35 @@ class RefAnnotationModule(Module):
         if not os.path.isdir(olddir):
             raise Exception('需要移动到output目录的文件夹不存在。')
         newdir = os.path.join(self.output_dir, newname)
-        if not os.path.exists(newdir):
-            if mode == 'link':
-                shutil.copytree(olddir, newdir, symlinks=True)
-            elif mode == 'copy':
-                shutil.copytree(olddir, newdir)
+        if os.path.exists(newdir):
+            shutil.rmtree(newdir)
+        os.mkdir(newdir)
+        allfiles = os.listdir(olddir)
+        oldfiles = [os.path.join(olddir, i) for i in allfiles]
+        newfiles = [os.path.join(newdir, i) for i in allfiles]
+        for i in range(len(allfiles)):
+            if os.path.isfile(oldfiles[i]):
+                os.link(oldfiles[i], newfiles[i])
             else:
-                raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
-        else:
-            allfiles = os.listdir(olddir)
-            oldfiles = [os.path.join(olddir, i) for i in allfiles]
-            newfiles = [os.path.join(newdir, i) for i in allfiles]
-            for newfile in newfiles:
-                if os.path.isfile(newfile) and os.path.exists(newfile):
-                    os.remove(newfile)
-                elif os.path.isdir(newfile) and os.path.exists(newfile):
-                    shutil.rmtree(newfile)
-            for i in range(len(allfiles)):
-                if os.path.isfile(oldfiles[i]):
-                    os.system('cp {} {}'.format(oldfiles[i], newfiles[i]))
-                else:
-                    os.system('cp -r {} {}'.format(oldfiles[i], newdir))
+                new1 = os.path.join(newdir, os.path.basename(oldfiles[i]))
+                if not os.path.exists(new1):
+                    os.mkdir(new1)
+                for f in os.listdir(oldfiles[i]):
+                    old = os.path.join(oldfiles[i], f)
+                    new2 = os.path.join(new1, f)
+                    if os.path.isfile(old):
+                        if os.path.exists(new2):
+                            os.remove(new2)
+                        os.link(old, new2)
+                    else:
+                        if not os.path.exists(new2):
+                            os.mkdir(new2)
+                        for f in os.listdir(old):
+                            old1 = os.path.join(old, f)
+                            new3 = os.path.join(new2, f)
+                            if os.path.exists(new3):
+                                os.remove(new3)
+                            os.link(old1, new3)
 
     def end(self):
         repaths = [

@@ -49,8 +49,8 @@ class String2cogv9Agent(Agent):
                 raise OptionError("BLAST比对数据库不支持")
 
     def set_resource(self):
-        self._cpu = 20
-        self._memory = '5G'
+        self._cpu = 10
+        self._memory = '20G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

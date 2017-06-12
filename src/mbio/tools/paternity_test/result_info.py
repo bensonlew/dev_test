@@ -104,6 +104,12 @@ class ResultInfoTool(Tool):
             self.logger.info("开始运行结果信息图的绘制")
             cmd = self.add_command("plot_cmd", plot_cmd).run()
             self.wait(cmd)
+
+            if cmd.return_code == 'None':
+                self.logger.info("返回码问题，重新运行cmd")
+                cmd = self.add_command("cmd", cmd).run()
+                self.wait(cmd)
+
             if cmd.return_code == 0:
                 self.logger.info("运行绘制结果图成功")
             else:
@@ -145,6 +151,12 @@ class ResultInfoTool(Tool):
             self.logger.info("开始运行结果图的转化")
             cmd = self.add_command("convert_cmd", convert_cmd).run()
             self.wait(cmd)
+
+            if cmd.return_code == 'None':
+                self.logger.info("返回码问题，重新运行cmd")
+                cmd = self.add_command("cmd", cmd).run()
+                self.wait(cmd)
+
             if cmd.return_code == 0:
                 self.logger.info("运行转化结果图成功")
             else:

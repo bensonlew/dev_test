@@ -50,7 +50,7 @@ class CoverageAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = '50G'
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

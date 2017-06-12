@@ -36,6 +36,7 @@ class KeggRegulate(object):
         output:输出结果的路径
         regulate_dict：gene调控信息:{'up': [gene1,gene2], 'down': [gene1,gene2]}
         """
+        colors = ['red', 'yellow', 'blue', "green", 'purple', 'pink']
         with open(output, 'wb') as w:
             # w.write('Pathway_id\tKo_ids\tup_numbers\tdown_numbers\tup_genes\tdown_genes\n')
             # modified by qindanhua add 7 line 支持两个以上的基因集统计
@@ -53,15 +54,36 @@ class KeggRegulate(object):
                 for gn in genelist_names:
                     write_dict[gn] = []
                 for ko in ko_ids:
-                    genes = ko_gene[ko]
-                    for g in genes:
-                        for gn in genelist_names:
-                            if g in regulate_gene[gn]:
-                                write_dict[gn].append('{}({})'.format(g, ko))
-                w.write('{}\t{}\t'.format(path, ';'.join(ko_ids),))
+                    # print ko
+                    genes = set(ko_gene[ko])
+                    for gn in genelist_names:
+                        geneset = set(regulate_gene[gn])
+                        same_gene = genes & geneset
+                        # print same_genes
+                        if len(same_gene) > 0:
+                            # print same_gene
+                            for sg in same_gene:
+                                write_dict[gn].append('{}({})'.format(sg, ko))
+                # print write_dict
+                count = 0
+                link = 'http://www.genome.jp/kegg-bin/show_pathway?' + path
+                # print link
                 for gn in write_dict:
-                    w.write("{}\t{}\t".format(len(write_dict[gn]), ";".join(write_dict[gn])))
-                w.write("\n")
+                    count += len(write_dict[gn])
+                if count > 0:
+                    w.write('{}\t{}\t'.format(path, ";".join(ko_ids)))
+                    for n, gn in enumerate(write_dict):
+                        geneko = write_dict[gn]
+                        w.write("{}\t{}\t".format(len(write_dict[gn]), ";".join(write_dict[gn])))
+                        for gk in geneko:
+                            gko = gk.split('(')[-1][:-1]
+                            # print gko
+                            color_gk = '/' + gko + '%09' + colors[n]
+                            link += color_gk
+                            # print link
+                        # print link
+                    w.write('{}'.format(link))
+                    w.write("\n")
 
     def get_pictrue(self, path_ko, out_dir, regulate_dict=None):
             """

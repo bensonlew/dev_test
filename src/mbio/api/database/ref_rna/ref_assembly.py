@@ -12,10 +12,6 @@ import pymongo
 from biocluster.config import Config
 
 
-# class RefAssembly(object):
-#     def __init__(self):
-#         super(RefAssembly, self).__init__()
-#         self.db = pymongo.MongoClient(host="192.168.10.189", port=27017).tsanger_ref_rna
 class RefAssembly(Base):
     def __init__(self, bind_object):
         super(RefAssembly, self).__init__(bind_object)
@@ -25,8 +21,6 @@ class RefAssembly(Base):
     def add_assembly_result(self, name=None, params=None, all_gtf_path=None, merged_path=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        # task_id = "tsg_2000"
-        # project_sn = "20000000"
         merged_list = []
         merged_gtf_path = dict()
         merged_gtf_path["gtf"] = merged_path + '/merged.gtf'
@@ -91,10 +85,8 @@ class RefAssembly(Base):
             collection = self.db['sg_transcripts_step']
             collection.insert_many(data_list)
         except Exception:
-            # print ("失败")
             self.bind_object.logger.error("导入步长%s信息失败!" % (Statistics_path))
         else:
-            # print ("成功")
             self.bind_object.logger.info("导入步长%s信息成功!" % (Statistics_path))
 
     def add_transcripts_relations(self, transcript_id, Statistics_path):
@@ -138,10 +130,8 @@ class RefAssembly(Base):
             collection = self.db['sg_transcripts']
             collection.update({'_id': ObjectId(transcript_id)}, {'$set': {'type_of_trans_or_genes': name_list}})
         except Exception:
-            # print ("失败")
             self.bind_object.logger.error("导入class_code信息：失败!")
         else:
-            # print ("成功")
             self.bind_object.logger.info("导入class_code信息：成功!")
 
     def add_transcripts_seq_type(self, transcript_id, code_file):
@@ -154,6 +144,7 @@ class RefAssembly(Base):
             raise Exception('{}所指定的文件不存在，请检查！'.format(code_file))
         data_list = []
         code_list = []
+        all_code = ['=', 'c', 'j', 'e', 'i', 'o', 'p', 'r', 'u', 'x', 's', '.']
         with open(code_file, "r") as fr:
             for line in fr:
                 new_gene_list = []
@@ -176,16 +167,27 @@ class RefAssembly(Base):
                 ]
                 data = SON(data)
                 data_list.append(data)
+        for code in all_code:
+            if code in code_list:
+                pass
+            else:
+                data = [
+                    ('transcripts_id', transcript_id),
+                    ('class_code', code),
+                    ('num', 0),
+                    ('type', "transcripts"),
+                    ('gene_list', []),
+                ]
+                data = SON(data)
+                data_list.append(data)
         try:
             collection = self.db['sg_transcripts_seq_type']
             collection.insert_many(data_list)
             collection = self.db['sg_transcripts']
             collection.update({'_id': ObjectId(transcript_id)}, {'$set': {'seq_type': code_list}})
         except Exception:
-            # print ("失败")
             self.bind_object.logger.error("导入class_code信息：%s失败!" % (code_file))
         else:
-            # print ("成功")
             self.bind_object.logger.info("导入class_code信息：%s成功!" % (code_file))
 
 if __name__ == "__main__":

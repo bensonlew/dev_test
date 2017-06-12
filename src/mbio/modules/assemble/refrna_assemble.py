@@ -215,11 +215,9 @@ class RefrnaAssembleModule(Module):
                 os.system('cp -r %s %s' % (oldfiles[i], newdir))
 
     def set_output(self):
-        self.logger.info("set output")
         for tool in self.sum_tools:
             self.linkdir(tool.output_dir, 'assembly_newtranscripts')
         self.get_numberlist()
-        self.logger.info("完成统计样本中基因转录本个数")
         self.trans_stat()
         self.count_genes_trans_exons()
         if self.option("assemble_method") == "cufflinks":
@@ -254,7 +252,6 @@ class RefrnaAssembleModule(Module):
         os.mkdir(statistics_dir)
         old_dir = self.work_dir + '/assembly_newtranscripts/'
         for files in os.listdir(old_dir):
-            self.logger.info(files)
             if files.endswith("_out.gtf") or files.endswith("_out.fa"):
                 os.system('cp %s %s' % (old_dir + files, gtf_dir + "/" + files))
             elif files.endswith("merged.gtf") or files.endswith("merged.fa"):
@@ -326,8 +323,6 @@ class RefrnaAssembleModule(Module):
                 for step in steps:
                     step_count(files, self.work_dir+"/" + f + ".txt", 10, step,
                                self.work_dir + "/assembly_newtranscripts/trans_count_stat_" + str(step) + ".txt")
-                self.logger.info("步长统计完成")
-                self.logger.info("开始统计class_code")
             if f.endswith("merged.gtf"):
                 files = os.path.join(self.work_dir + '/assembly_newtranscripts', f)
                 code_count = os.path.join(self.work_dir + "/assembly_newtranscripts", "code_num.txt")
@@ -336,7 +331,6 @@ class RefrnaAssembleModule(Module):
                     self.logger.info("完成class_code统计")
                 else:
                     raise Exception("class_code统计失败！")
-        self.logger.info("开始统计基因转录本外显子关系")
 
     def count_genes_trans_exons(self):
         all_file = os.listdir(self.work_dir + '/assembly_newtranscripts')
@@ -357,7 +351,6 @@ class RefrnaAssembleModule(Module):
                     middle_txt = os.path.join(self.work_dir, f + "_" + str(step) + ".txt")
                     final_txt = os.path.join(self.work_dir + '/assembly_newtranscripts', f + "_" + str(step) + ".txt")
                     count_trans_or_exons(files, step, middle_txt, final_txt)
-        self.logger.info("完成统计基因转录本外显子关系")
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

@@ -173,7 +173,7 @@ class GenesetClusterWorkflow(Workflow):
                     with open(sub_cluster_path, 'rb') as heatmap:
                         specimen = heatmap.readline().strip().split("\t")  # 第一行信息
                         
-                        heat_lst = heatmap.readlines()[1:]
+                        heat_lst = heatmap.readlines()  #bug修改
                         for gene_num in heat_lst:
                             gene = gene_num.split('\t')[0]
                             genes.append(gene)  # 获取
