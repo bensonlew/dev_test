@@ -5,7 +5,6 @@
 
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError, FileError
-from mbio.files.sequence.fasta import FastaFile
 import os
 import json
 import shutil
@@ -138,9 +137,6 @@ class RefrnaWorkflow(Workflow):
         self.pfam = self.add_tool("denovo_rna.gene_structure.orf")
         self.anno_path = ""
         if self.option("ref_genome") != "customer_mode":
-            # self.ref_genome = FastaFile()
-            # self.ref_genome.set_path(self.json_dict[self.option("ref_genome")]["ref_genome"])
-            # self.ref_genome.check()
             self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
             self.option("ref_genome_custom", self.ref_genome)
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
@@ -340,7 +336,8 @@ class RefrnaWorkflow(Workflow):
             "gene_file": self.seq_abs.option("gene_file"),
             "ref_genome_gtf": self.filecheck.option("gtf"),
             "taxonomy": self.option("kegg_database"),
-            "nr_annot": False
+            "nr_annot": False,
+            "length_file": self.seq_abs.option("length_file")
         }
         if self.anno_path != "":  # 本地参考基因组注释文件
             opts.update({
@@ -563,7 +560,8 @@ class RefrnaWorkflow(Workflow):
     def run_new_annotation(self):
         anno_opts = {
             'gene_file': self.new_gene_abs.option('gene_file'),
-            "ref_genome_gtf": self.filecheck.option("gtf")
+            "ref_genome_gtf": self.assembly.option("new_transcripts_gtf"),
+            'length_file': self.new_trans_abs.option('length_file')
         }
         if 'go' in self.option('database'):
             anno_opts.update({
@@ -599,8 +597,8 @@ class RefrnaWorkflow(Workflow):
         self.logger.info('....anno_opts:%s' % anno_opts)
         self.new_annotation.set_options(anno_opts)
         self.new_annotation.on('end', self.set_output, 'new_annotation')
-        self.new_annotation.on('start', self.set_step, {'start': self.step.annotation})
-        self.new_annotation.on('end', self.set_step, {'end': self.step.annotation})
+        self.new_annotation.on('start', self.set_step, {'start': self.step.new_annotation})
+        self.new_annotation.on('end', self.set_step, {'end': self.step.new_annotation})
         self.new_annotation.run()
 
     def run_snp(self):
@@ -887,10 +885,15 @@ class RefrnaWorkflow(Workflow):
     def get_group_from_edger_group(self):  # 用来判断是否进行可变剪切分析
         group_spname = self.option("group_table").get_group_spname()
         if self.option("fq_type") == "PE":
+            lst = []
             for key in group_spname.keys():
                 if len(group_spname[key]) <= 3:
                     self.logger.info("某分组中样本数小于等于3，将不进行可变剪切分析")
                     return False
+                else:
+                    lst.append(len(group_spname[key]))
+            if len(set(lst)) != 1:
+                return False  # 各分组，样本数不相同
             return True
         else:
             return True
@@ -1057,7 +1060,7 @@ class RefrnaWorkflow(Workflow):
         self.new_blast_nr = self.add_module('align.diamond')
         self.new_blast_nr.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170607/Refrna_arab_test_sj/Diamond/output/blast.xml')
         self.new_blast_string.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170607/Refrna_arab_test_sj/Diamond1/output/blast.xml')
-        self.seq_abs.on('end', self.run_annotation)
+        # self.seq_abs.on('end', self.run_annotation)
         self.on_rely([self.new_gene_abs, self.new_trans_abs], self.test_run_new_align, "diamond")
         self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
@@ -1090,10 +1093,10 @@ class RefrnaWorkflow(Workflow):
         self.exp.fire("end")
         self.altersplicing.start_listener()
         self.altersplicing.fire("end")
-        self.snp_rna.start_listener()
-        self.snp_rna.fire("end")
-        # self.annotation.start_listener()
-        # self.annotation.fire("end")
+        # self.snp_rna.start_listener()
+        # self.snp_rna.fire("end")
+        self.annotation.start_listener()
+        self.annotation.fire("end")
         # self.run_annotation()
         # self.mapping.start_listener()
         # self.mapping.fire("end")
@@ -1105,39 +1108,54 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.option("bed", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf.bed")
         self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/HiseqQc/output/sickle_dir")
         self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/RnaseqMapping/output")
+        # self.star_mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170608/Refrna_ore_test_4/RnaseqMapping2/output/bam")
         # self.seq_abs.on('end', self.run_annotation)
-        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        # self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_annotation)
+        self.new_blast_string = self.add_module('align.diamond')
+        self.new_blast_nr = self.add_module('align.diamond')
+        self.new_blast_kegg = self.add_module('align.diamond')
+        self.new_blast_swissprot = self.add_module('align.blast')
+        self.new_blast_nr.option('outxml', "/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Diamond/output/blast.xml")
+        self.new_blast_kegg.option('outxml', "/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Diamond2/output/blast.xml")
+        self.new_blast_string.option('outxml', "/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Diamond1/output/blast.xml")
+        self.new_blast_swissprot.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Blast/output/blast.xml')
         self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
         self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
-        # self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
-        # self.qc.on('end', self.run_mapping)
-        self.qc.on("end", self.run_star_mapping)
-        # self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
-        # self.map_gene.on("end", self.run_map_assess_gene)
-        # self.mapping.on('end', self.run_assembly)
-        # self.mapping.on('end', self.run_map_assess)
+        if self.genome_status:  # 进行可变剪切分析
+            if self.get_group_from_edger_group():
+                self.star_mapping.on("end", self.run_altersplicing)
+            else:
+                self.logger.info("不进行可变剪切分析")
+                self.altersplicing.start_listener()
+                self.altersplicing.fire("end")
+            self.star_mapping.on("end", self.run_snp)
         self.assembly.on("end", self.run_exp_rsem_default)
-        self.assembly.on("end", self.run_exp_rsem_alter)
-        self.assembly.on("end", self.run_exp_fc)
+        # self.exp.on("end", self.end)
+        # self.assembly.on("end", self.run_exp_rsem_alter)
+        # self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
         if self.taxon_id != "":
             self.exp.on("end", self.run_network_trans)
-            self.exp.on("end", self.run_network_gene)
-            self.final_tools.append(self.network_gene)
+            # self.exp.on("end", self.run_network_gene)
+            # self.final_tools.append(self.network_gene)
             self.final_tools.append(self.network_trans)
-        self.on_rely(self.final_tools, self.end)
+        self.on_rely(self.network_trans, self.end)
+        self.mapping.on('end', self.run_assembly)
         self.run_seq_abs()
-        # self.run_gs()
-        # self.qc.start_listener()
-        # self.qc.fire("end")
+        # self.star_mapping.start_listener()
+        # self.star_mapping.fire("end")
+        # self.run_new_annotation()
         self.start_listener()
         self.fire("start")
-        self.qc.start_listener()
-        self.qc.fire("end")
+        self.snp_rna.start_listener()
+        self.snp_rna.fire("end")
         self.mapping.start_listener()
         self.mapping.fire("end")
+        self.annotation.start_listener()
+        self.annotation.fire("end")
+
         self.rpc_server.run()
 
     def run_new_gene_abs_test(self):
