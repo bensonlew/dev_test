@@ -50,7 +50,7 @@ class String2cogv9Agent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = '10G'
+        self._memory = '20G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
