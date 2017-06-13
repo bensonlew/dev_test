@@ -101,13 +101,6 @@ class BedAnalysisTool(Tool):
         self.wait(cmd)
         if cmd.return_code == 0:
             self.logger.info("运行one_cmd成功")
-        elif cmd.return_code is None:
-            self.logger.info("返回码为none，重新运行一次！")
-            re_cmd = self.add_command("re_one_cmd", one_cmd).rerun()
-            if re_cmd.return_code == 0:
-                self.logger.info("重新运行一次成功！")
-            else:
-                raise Exception("重新运行one_cmd出错")
         else:
             raise Exception("运行one_cmd出错")
 
