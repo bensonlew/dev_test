@@ -133,7 +133,7 @@ class MetaBaseWorkflow(Workflow):
                 "in_fastq":  self.option("in_fastq")  # modified by shijin
             }
         self.new_sample_extract.set_options(opts)
-        # self.new_sample_extract.on("start", self.set_step, {'start': self.step.pre_sample_extract})
+        self.new_sample_extract.on("start", self.set_step, {'start': self.step.sample_rename})
         # self.new_sample_extract.on("end", self.set_step, {'end': self.step.pre_sample_extract})
         self.new_sample_extract.run()
 
@@ -144,7 +144,7 @@ class MetaBaseWorkflow(Workflow):
             "file_list": self.option("file_list")  # 对样本进行重命名
         }
         self.sample_rename.set_options(opts)
-        self.sample_rename.on("start", self.set_step, {'start': self.step.sample_rename})
+        # self.sample_rename.on("start", self.set_step, {'start': self.step.sample_rename})
         self.sample_rename.run()
 
     def run_samplecheck(self):  # 样本合并
@@ -497,13 +497,13 @@ class MetaBaseWorkflow(Workflow):
         在不同的OTU数目以及不同的样本数量下，有些分析会被跳过不做
         """
         self.update_info = ""
-        self.count_otus = True  # otu/代表序列数量大于等于2
+        self.count_otus = True  # otu/代表序列数量大于等于3 ,change by wzy from 2 to 3
         self.count_samples = 0  # 样本数量是否大于等于2
         counts = 0
         for i in open(self.otu.output_dir + '/otu_reps.fasta'):
             if i[0] == '>':
                 counts += 1
-                if counts > 1:
+                if counts > 2:    # change from 1 to 2 by wzy
                     break
         else:
             self.count_otus = False

@@ -51,6 +51,7 @@ class RefRnaController(MetaController):
         self._sheet_data = {
             'id': new_task_id,
             'stage_id': 0,
+            'interaction': True,
             'name': name,  # 需要配置
             'type': module_type,  # 可以配置
             'client': self.data.client,

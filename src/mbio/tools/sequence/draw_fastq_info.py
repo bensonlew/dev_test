@@ -118,8 +118,19 @@ class DrawFastqInfoTool(Tool):
                 self.logger.info("运行{}完成")
                 fastq_qual_stat("qual_stat")
             else:
-                self.set_error("运行{}运行出错!")
-                return False
+                if command.return_code == None:
+                    command.rerun()
+                    if command.return_code == 0:
+                        self.logger.info("运行{}完成".format(command.name))
+                        fastq_qual_stat("qual_stat")
+                    else:
+                        self.set_error("运行{}运行出错!".format(command.name))
+                        raise Exception("运行draw_fastq_info出错!")
+                        return False
+                else:
+                    self.set_error("运行{}运行出错!".format(command.name))
+                    raise Exception("运行draw_fastq_info出错!")
+                    return False
         elif self.option("fastq").format == "sequence.fastq_dir":
             commands = self.multi_fastq_quality_stats()
             self.wait()
@@ -132,6 +143,20 @@ class DrawFastqInfoTool(Tool):
                     fastq_qual_stat(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
                 else:
                     # self.logger.info("运行出错")
+                    if cmd.return_code == None:
+                        cmd.rerun()
+                        if cmd.return_code == 0:
+                            self.logger.info("运行{}完成".format(cmd.name))
+                            self.logger.info(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
+                            fastq_qual_stat(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
+                        else:
+                            self.set_error("运行{}运行出错!".format(cmd.name))
+                            raise Exception("运行draw_fastq_info出错!")
+                            return False
+                    else:
+                        self.set_error("运行{}运行出错!".format(cmd.name))
+                        raise Exception("运行draw_fastq_info出错!")
+                        return False
                     self.set_error("运行{}出错!".format(cmd.name))
                     return False
         self.set_output()

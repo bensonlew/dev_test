@@ -17,7 +17,7 @@ class Lefse(MetaController):
     @check_sig
     def POST(self):
         data = web.input()
-        print data
+        # print data
         return_result = self.check_options(data)
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}

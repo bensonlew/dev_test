@@ -3,7 +3,7 @@
 from __future__ import division
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-from mbio.packages.annotation.all_annotation_stat import AllAnnoStat
+from mbio.packages.annotation.ref_annotation_query import AllAnnoStat
 import os
 import shutil
 
@@ -30,19 +30,21 @@ class RefAnnotationModule(Module):
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
             {"name": "anno_statistics", "type": "bool", "default": True},
             {"name": "go_annot", "type": "bool", "default": True},
-            {"name": "nr_annot", "type": "bool", "default": True},
+            {"name": "nr_annot", "type": "bool", "default": False},  # 参考基因组注释不提供缺少nr_xml文件，因此将默认值改为False
             {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "gene_kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
             {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
         ]
         self.add_option(options)
-        self.ncbi_taxon = self.add_tool('taxon.ncbi_taxon')
         self.go_annot = self.add_tool('annotation.go.go_annotation')
+        self.go_upload = self.add_tool('annotation.go.go_upload')
         self.string_cog = self.add_tool('annotation.cog.string2cogv9')
         self.kegg_annot = self.add_tool('annotation.kegg.kegg_annotation')
+        self.swissprot_annot = self.add_tool("annotation.swissprot")
+        self.kegg_upload = self.add_tool('annotation.kegg.kegg_upload')
         self.anno_stat = self.add_tool('rna.ref_anno_stat')
-        self.step.add_steps('blast_statistics', 'go_annot', 'kegg_annot', 'cog_annot', 'taxon_annot', 'anno_stat')
+        self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat')
 
     def check_options(self):
         if self.option('anno_statistics'):
@@ -71,11 +73,11 @@ class RefAnnotationModule(Module):
             opts['gos_list_upload'] = self.option('gos_list_upload')
         if 'cog' in self.anno_database:
             opts['string_xml'] = self.option('blast_string_xml')
+            opts['string_table'] = self.option('blast_string_table')
             opts['cog_list'] = self.string_cog.option('cog_list')
             opts['cog_table'] = self.string_cog.option('cog_table')
         if 'nr' in self.anno_database:
             opts['nr_xml'] = self.option('blast_nr_xml')
-            opts['nr_taxon_details'] = self.ncbi_taxon.option('taxon_out')
         opts['swissprot_xml'] = self.option('blast_swissprot_xml')
         opts['pfam_domain'] = self.option('pfam_domain')
         opts['ref_genome_gtf'] = self.option('ref_genome_gtf')
@@ -98,9 +100,21 @@ class RefAnnotationModule(Module):
         self.kegg_annot.on('end', self.set_output, 'kegg_annot')
         self.kegg_annot.run()
 
+    def run_kegg_upload(self):
+        options = {
+            'kos_list_upload': self.option('kos_list_upload'),
+            'taxonomy': self.option('taxonomy')
+        }
+        self.kegg_upload.set_options(options)
+        self.kegg_upload.on('start', self.set_step, {'start': self.step.kegg_upload})
+        self.kegg_upload.on('end', self.set_step, {'end': self.step.kegg_upload})
+        self.kegg_upload.on('end', self.set_output, 'kegg_annot')
+        self.kegg_upload.run()
+
     def run_string2cog(self):
         options = {
-            'blastout': self.option('blast_string_xml')
+            'blastout': self.option('blast_string_xml'),
+            'string_table': self.option('blast_string_table')
         }
         self.string_cog.set_options(options)
         self.string_cog.on('start', self.set_step, {'start': self.step.cog_annot})
@@ -120,6 +134,16 @@ class RefAnnotationModule(Module):
         self.go_annot.on('end', self.set_output, 'go_annot')
         self.go_annot.run()
 
+    def run_go_upload(self):
+        options = {
+            'gos_list_upload': self.option('gos_list_upload')
+        }
+        self.go_upload.set_options(options)
+        self.go_upload.on('start', self.set_step, {'start': self.step.go_upload})
+        self.go_upload.on('end', self.set_step, {'end': self.step.go_upload})
+        self.go_upload.on('end', self.set_output, 'go_annot')
+        self.go_upload.run()
+
     def run_swissprot_anno(self):
         options = {
             'blastout': self.option('blast_swissprot_xml')
@@ -130,32 +154,21 @@ class RefAnnotationModule(Module):
         self.swissprot_annot.on('end', self.set_output, 'swissprot_annot')
         self.swissprot_annot.run()
 
-    def run_ncbi_taxon(self):
-        """
-        """
-        options = {
-            'blastout': self.option('blast_nr_xml'),
-            'blastdb': 'nr'
-        }
-        self.ncbi_taxon.set_options(options)
-        self.ncbi_taxon.on('start', self.set_step, {'start': self.step.taxon_annot})
-        self.ncbi_taxon.on('end', self.set_step, {'end': self.step.taxon_annot})
-        self.ncbi_taxon.on('end', self.set_output, 'ncbi_taxon')
-        self.ncbi_taxon.run()
-
     def run(self):
         super(RefAnnotationModule, self).run()
         self.all_end_tool = []  # 所有尾部注释模块，全部结束后运行整体统计
         self.anno_database = []
         if self.option('nr_annot'):
             self.anno_database.append('nr')
-            self.all_end_tool.append(self.ncbi_taxon)
-            self.run_ncbi_taxon()
         if self.option('go_annot'):
             self.anno_database.append('go')
-            self.all_end_tool.append(self.go_annot)
-            self.run_go_anno()
-        if self.option('blast_string_xml').is_set:
+            if self.option("gos_list_upload").is_set:
+                self.all_end_tool.append(self.go_upload)
+                self.run_go_upload()
+            else:
+                self.all_end_tool.append(self.go_annot)
+                self.run_go_anno()
+        if self.option('blast_string_xml').is_set or self.option('blast_string_table').is_set:
             self.anno_database.append('cog')
             self.all_end_tool.append(self.string_cog)
             self.run_string2cog()
@@ -163,8 +176,13 @@ class RefAnnotationModule(Module):
             self.anno_database.append('kegg')
             self.all_end_tool.append(self.kegg_annot)
             self.run_kegg_anno()
+        if self.option('kos_list_upload').is_set:
+            self.anno_database.append('kegg')
+            self.all_end_tool.append(self.kegg_upload)
+            self.run_kegg_upload()
         if self.option("blast_swissprot_xml").is_set:
             self.anno_database.append('swissprot')
+            self.run_swissprot_anno()  # add
         if self.option("pfam_domain").is_set:
             self.anno_database.append('pfam')
         if len(self.all_end_tool) > 1:
@@ -179,8 +197,6 @@ class RefAnnotationModule(Module):
         obj = event['bind_object']
         if event['data'] == 'blast_stat':
             self.linkdir(obj.output_dir, 'blast_nr_statistics')
-        elif event['data'] == 'ncbi_taxon':
-            self.linkdir(obj.output_dir, 'ncbi_taxonomy')
         elif event['data'] == 'go_annot':
             self.linkdir(obj.output_dir, 'go')
         elif event['data'] == 'string_cog':
@@ -194,17 +210,17 @@ class RefAnnotationModule(Module):
             if 'go' in self.anno_database:
                 self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
                 self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])
-            # try:
-            #     self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
-            # except Exception as e:
-            #     self.logger.info("统计all_annotation出错：{}".format(e))
+            try:
+                self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
+            except Exception as e:
+                self.logger.info("统计all_annotation出错：{}".format(e))
             self.end()
         else:
             pass
 
     def get_all_anno_stat(self, all_anno_path):
         # stat all_annotation.xls
-        kwargs = {'outpath': all_anno_path, 'gene_list': self.option('gene_file').prop['gene_list']}
+        kwargs = {'outpath': all_anno_path, 'gtf_path': self.option('ref_genome_gtf').prop['path']}
         for db in self.anno_database:
             if db == 'cog':
                 kwargs['cog_list'] = self.string_cog.option('cog_list').prop['path']
@@ -214,9 +230,10 @@ class RefAnnotationModule(Module):
                 kwargs['kegg_table'] = self.kegg_annot.option('kegg_table').prop['path']
             if db == 'nr':
                 kwargs['blast_nr_table'] = self.option('blast_nr_table').prop['path']
-                kwargs['nr_taxons'] = self.anno_stat.option('nr_taxons').prop['path']
             if db == 'swissprot':
                 kwargs['blast_swissprot_table'] = self.option('blast_swissprot_table').prop['path']
+            if db == 'pfam':
+                kwargs['pfam_domain'] = self.option('pfam_domain').prop['path']
 
         allstat = AllAnnoStat()
         allstat.get_anno_stat(**kwargs)
@@ -253,7 +270,6 @@ class RefAnnotationModule(Module):
     def end(self):
         repaths = [
             [".", "", "DENOVO_RNA结果文件目录"],
-            ['ncbi_taxonomy/query_taxons_detail.xls', 'xls', '序列详细物种分类文件'],
             ["blast_nr_statistics/output_evalue.xls", "xls", "blast结果E-value统计"],
             ["blast_nr_statistics/output_similar.xls", "xls", "blast结果similarity统计"],
             ["kegg/kegg_table.xls", "xls", "KEGG annotation table"],
@@ -269,7 +285,6 @@ class RefAnnotationModule(Module):
             ["cog/cog_summary.xls", "xls", "COG注释二级统计表"],
             ["cog/cog_table.xls", "xls", "序列COG注释详细表"],
             ["/anno_stat", "", "denovo注释统计结果输出目录"],
-            ["/anno_stat/ncbi_taxonomy/", "dir", "nr统计结果目录"],
             ["/anno_stat/cog_stat/", "dir", "cog统计结果目录"],
             ["/anno_stat/go_stat/", "dir", "go统计结果目录"],
             ["/anno_stat/kegg_stat/", "dir", "kegg统计结果目录"],
@@ -300,11 +315,8 @@ class RefAnnotationModule(Module):
             ["/anno_stat/kegg_stat/gene_kegg_taxonomy.xls", "xls", "KEGG taxonomy summary of gene"],
             ["/anno_stat/kegg_stat/gene_kegg_layer.xls", "xls", "KEGG taxonomy summary of gene"],
             ["/anno_stat/kegg_stat/gene_pathway/", "dir", "基因的标红pathway图"],
-            ['/ncbi_taxonomy/gene_taxons_detail.xls', 'xls', '基因序列详细物种分类文件'],
             ["/anno_stat/blast_nr_statistics/gene_nr_evalue.xls", "xls", "基因序列blast结果E-value统计"],
             ["/anno_stat/blast_nr_statistics/gene_nr_similar.xls", "xls", "基因序列blast结果similarity统计"],
-            ["/anno_stat/ncbi_taxonomy/gene_taxons.xls", "xls", "基因序列nr物种注释表"],
-            ["/anno_stat/ncbi_taxonomy/query_taxons.xls", "xls", "nr物种注释表"],
             ["/anno_stat/all_annotation_statistics.xls", "xls", "注释统计总览表"],
             ["/anno_stat/all_annotation.xls", "xls", "注释统计表"],
         ]
@@ -312,7 +324,6 @@ class RefAnnotationModule(Module):
             [r"kegg/pathways/ko.\d+", 'pdf', '标红pathway图'],
             [r"/blast_nr_statistics/.*_evalue\.xls", "xls", "比对结果E-value分布图"],
             [r"/blast_nr_statistics/.*_similar\.xls", "xls", "比对结果相似度分布图"],
-            ["^/anno_stat/ncbi_taxonomy/nr_taxon_stat", "xls", "nr物种分类统计表"],
         ]
         sdir = self.add_upload_dir(self.output_dir)
         sdir.add_relpath_rules(repaths)

@@ -52,7 +52,7 @@ class PicardRnaAgent(Agent):
         
     def set_resource(self):
         self._cpu = 10
-        self._memory = '100G'
+        self._memory = '50G'
         
     def end(self): 
         super(PicardRnaAgent, self).end()

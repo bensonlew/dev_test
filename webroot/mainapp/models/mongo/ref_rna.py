@@ -47,19 +47,26 @@ class RefRna(Meta):
          mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
          collection=mongodb["sg_express"]
          db=collection.find({"task_id":task_id})
-         try:
-             for d in db:
+         new_id = []
+         for d in db:
                  _id = d["_id"]
+                 #print d
                  params=json.loads(d['params'])
+                 """
                  print params
                  print params['type']
                  print params['express_method']
+                 print _type
+                 print express_method
+                 """
                  if _type == params['type'] and express_method == params['express_method'].lower():
                        return _id
                  else: 
                        pass
-         except Exception:
-                 print "没有找到{}和{}对应的express_id".format(_type,express_method)
+         if not new_id:   #没有找到对应的表达量信息
+             return False
+         
+         
     
     def get_class_code_id(self, task_id):
         """
@@ -72,4 +79,8 @@ class RefRna(Meta):
             return db["_id"]
         except Exception:
             print "没有找到task_id: {}对应的class_code_id".format(task_id)
-         
+if __name__ == "__main__":
+    data=RefRna()
+    d = data.get_express_id("tsg_2000","fpkm","featurecounts")
+    print d
+    
