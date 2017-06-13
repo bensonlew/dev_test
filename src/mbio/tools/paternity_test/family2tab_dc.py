@@ -119,6 +119,7 @@ class Family2tabDcTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("运行转tab文件成功")
         else:
+            self.set_error("运行转tab文件出错")
             raise Exception("运行转tab文件出错")
 
     def set_output(self):
@@ -154,6 +155,7 @@ class Family2tabDcTool(Tool):
                     api.add_pt_tab(tab_path, self.option('batch_id'))
                     api.add_sg_pt_tab_detail(tab_path)
                 else:
+                    self.set_error('可能样本{}重名，请检查！'.format(tab_name))
                     raise Exception('可能样本重名，请检查！')
             elif n:
                 tab_path = self.output_dir + '/' + i
@@ -162,6 +164,7 @@ class Family2tabDcTool(Tool):
                     api.sample_qc_dc(tab_path, tab_name)
                     api.sample_qc_addition_dc(tab_name)
                 else:
+                    self.set_error('可能样本{}重名，请检查！'.format(tab_name))
                     raise Exception('可能样本重名，请检查！')
 
 

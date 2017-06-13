@@ -148,6 +148,7 @@ class Bam2tabTool(Tool):
                     api.add_pt_tab(tab_path, self.option('batch_id'))
                     api.add_sg_pt_tab_detail(tab_path)
                 else:
+                    self.set_error('样本{}重名，请检查！'.format(tab_name))
                     raise Exception('可能样本重名，请检查！')
             elif n:
                 tab_path = self.output_dir + '/' + i
@@ -156,6 +157,7 @@ class Bam2tabTool(Tool):
                     api.sample_qc(tab_path, tab_name)
                     api.sample_qc_addition(tab_name)
                 else:
+                    self.set_error('样本{}重名，请检查！'.format(tab_name))
                     raise Exception('可能样本重名，请检查！')
 
 

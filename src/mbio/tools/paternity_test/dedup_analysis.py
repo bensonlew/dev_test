@@ -105,6 +105,7 @@ class DedupAnalysisTool(Tool):
             if cmd.return_code == 0:
                 self.logger.info("运行家系合并成功")
             else:
+                self.set_error('运行家系{}合并出错'.format(dad_tab))
                 raise Exception("运行家系合并出错")
 
             dad = re.match(".*(WQ[0-9]*-F.*)\.tab",dad_tab)
@@ -125,6 +126,7 @@ class DedupAnalysisTool(Tool):
             if cmd.return_code == 0:
                 self.logger.info("运行家系分析成功")
             else:
+                self.set_error('运行家系{}分析出错'.format(dad_tab))
                 raise Exception("运行家系分析出错")
 
             n = n+1
