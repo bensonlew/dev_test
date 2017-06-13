@@ -83,7 +83,7 @@ class BlastAnnotationTool(Tool):
             name = ""
         self.blast_path = self.output_dir + "/" + name + "blast.xls"
         self.evalue_path = self.output_dir + "/" + name + "evalue.xls"
-        self.similarity_path = self.output_dir + "/" + name + "similarity.xls"
+        self.similarity_path = self.output_dir + "/" + name + "similar.xls"
 
     def run(self):
         super(BlastAnnotationTool, self).run()
