@@ -815,7 +815,9 @@ class RefrnaWorkflow(Workflow):
             exp_diff_opts = {
                 'diff_fpkm': self.exp.output_dir + "/diff/trans_diff/diff_fpkm",
                 'analysis': self.option('exp_analysis'),
-                'diff_list': self.exp.output_dir + "/diff/trans_diff/diff_list"
+                'diff_list': self.exp.output_dir + "/diff/trans_diff/diff_list",
+                "is_genelist": True,
+                "diff_list_dir": self.exp.output_dir + "/diff/trans_diff/diff_list_dir"
             }
             if 'kegg_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
@@ -854,7 +856,9 @@ class RefrnaWorkflow(Workflow):
             exp_diff_opts = {
                 'diff_fpkm': self.exp.output_dir + "/diff/genes_diff/diff_fpkm",
                 'analysis': self.option('exp_analysis'),
-                'diff_list': self.exp.output_dir + "/diff/genes_diff/diff_list"
+                'diff_list': self.exp.output_dir + "/diff/genes_diff/diff_list",
+                "is_genelist": True,
+                "diff_list_dir": self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
             }
             if 'kegg_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
@@ -1033,7 +1037,7 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
         self.qc.on("end", self.run_star_mapping)
-        self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
+        # self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
         self.map_gene.on("end", self.run_map_assess_gene)
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
@@ -1097,6 +1101,8 @@ class RefrnaWorkflow(Workflow):
         # self.snp_rna.fire("end")
         self.annotation.start_listener()
         self.annotation.fire("end")
+        self.new_annotation.start_lisenter()
+        self.new_annotation.fire("end")
         # self.run_annotation()
         # self.mapping.start_listener()
         # self.mapping.fire("end")
@@ -1111,14 +1117,14 @@ class RefrnaWorkflow(Workflow):
         # self.star_mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170608/Refrna_ore_test_4/RnaseqMapping2/output/bam")
         # self.seq_abs.on('end', self.run_annotation)
         # self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_annotation)
-        self.new_blast_string = self.add_module('align.diamond')
-        self.new_blast_nr = self.add_module('align.diamond')
-        self.new_blast_kegg = self.add_module('align.diamond')
-        self.new_blast_swissprot = self.add_module('align.blast')
-        self.new_blast_nr.option('outxml', "/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Diamond/output/blast.xml")
-        self.new_blast_kegg.option('outxml', "/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Diamond2/output/blast.xml")
-        self.new_blast_string.option('outxml', "/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Diamond1/output/blast.xml")
-        self.new_blast_swissprot.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Blast/output/blast.xml')
+        # self.new_blast_string = self.add_module('align.diamond')
+        # self.new_blast_nr = self.add_module('align.diamond')
+        # self.new_blast_kegg = self.add_module('align.diamond')
+        # self.new_blast_swissprot = self.add_module('align.blast')
+        # self.new_blast_nr.option('outxml', "/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Diamond/output/blast.xml")
+        # self.new_blast_kegg.option('outxml', "/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Diamond2/output/blast.xml")
+        # self.new_blast_string.option('outxml', "/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Diamond1/output/blast.xml")
+        # self.new_blast_swissprot.option('outxml', '/mnt/ilustre/users/sanger-dev/workspace/20170610/Refrna_ore_test_4/Blast/output/blast.xml')
         self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
         self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
@@ -1130,7 +1136,7 @@ class RefrnaWorkflow(Workflow):
                 self.altersplicing.start_listener()
                 self.altersplicing.fire("end")
             self.star_mapping.on("end", self.run_snp)
-        self.assembly.on("end", self.run_exp_rsem_default)
+        # self.assembly.on("end", self.run_exp_rsem_default)
         # self.exp.on("end", self.end)
         # self.assembly.on("end", self.run_exp_rsem_alter)
         # self.assembly.on("end", self.run_exp_fc)
@@ -1142,7 +1148,7 @@ class RefrnaWorkflow(Workflow):
             # self.final_tools.append(self.network_gene)
             self.final_tools.append(self.network_trans)
         self.on_rely(self.network_trans, self.end)
-        self.mapping.on('end', self.run_assembly)
+        # self.mapping.on('end', self.run_assembly)
         self.run_seq_abs()
         # self.star_mapping.start_listener()
         # self.star_mapping.fire("end")
@@ -1155,6 +1161,14 @@ class RefrnaWorkflow(Workflow):
         self.mapping.fire("end")
         self.annotation.start_listener()
         self.annotation.fire("end")
+        self.new_annotation.start_listener()
+        self.new_annotation.fire("end")
+        # self.merge_gene_annot.start_listener()
+        # self.merge_gene_annot.fire("end")
+        # self.merge_trans_annot.start_listener()
+        # self.merge_trans_annot.fire("end")
+        self.exp.start_listener()
+        self.exp.fire("end")
 
         self.rpc_server.run()
 

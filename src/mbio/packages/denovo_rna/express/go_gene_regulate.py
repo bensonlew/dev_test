@@ -12,18 +12,18 @@ def up_down_express_list(fp):
     """
     with open(fp) as f:
         header = f.readline().strip()
-        if not header.lower().endswith('pvalue\tfdr\tsignificant\tregulate'):
+        if not header.lower().endswith('pvalue\tpadjust\tsignificant\tregulate\tncbi'):
             raise Exception('错误的表头:{}，表头应与基因差异表达分析结果格式一致'.format(header))
         down = []
         up = []
         for line in f:
             line_sp = line.strip().split('\t')
-            if line_sp[-2] == 'yes':
-                if line_sp[-1] == 'up':
+            if line_sp[-3] == 'yes':
+                if line_sp[-2] == 'up':
                     up.append(line_sp[0])
-                elif line_sp[-1] == 'down':
+                elif line_sp[-2] == 'down':
                     down.append(line_sp[0])
-                elif line_sp[-1] == 'undone':
+                elif line_sp[-2] == 'undone':
                     raise Exception('文件中检查到‘undone’，表明文件没有上下调控信息')
                 else:
                     raise Exception('未知的上下调说明类型:{}，必须为up或者为down'.format(line_sp[-1]))

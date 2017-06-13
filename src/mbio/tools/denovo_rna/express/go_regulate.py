@@ -18,7 +18,7 @@ class GoRegulateAgent(Agent):
     def __init__(self, parent):
         super(GoRegulateAgent, self).__init__(parent)
         options = [
-            {"name": "diff_stat", "type": "infile", "format": "denovo_rna.express.diff_stat_table"},
+            {"name": "diff_stat", "type": "infile", "format": "rna.diff_stat_table"},
             {"name": "go_level_2", "type": "infile", "format": "annotation.go.level2"}
         ]
         self.add_option(options)
