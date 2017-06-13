@@ -90,7 +90,9 @@ class PtDedupWorkflow(Workflow):
 				if self.option('direct_get_path') == 'True':
 					self.logger.info('{}样本已存在于数据库'.format(i))
 				elif self.option('direct_get_path') == 'False':
-					raise Exception('请确认{}样本是否重名'.format(i))
+					self.logger.error('请确认{}样本是否重名'.format(i))
+					# raise Exception('请确认{}样本是否重名'.format(i))
+					self.exit(exitcode=1, data='请确认{}样本是否重名'.format(i), terminated=False)
 			else:
 				fastq2mongo = self.add_module("paternity_test.fastq2mongo_dc")
 				self.step.add_steps('fastq2mongo{}'.format(n))
@@ -139,7 +141,9 @@ class PtDedupWorkflow(Workflow):
 		api_read_tab = self.api.tab_file
 		self.family_id = api_read_tab.family_unanalysised()  # tuple
 		if not self.family_id:
-			raise Exception("没有符合条件的家系")
+			self.logger.error("没有符合条件的家系")
+			self.exit(exitcode=1, data='没有符合条件的家系', terminated=False)
+			# raise Exception("没有符合条件的家系")
 
 		api_read_tab = self.api.tab_file
 		n = 0
