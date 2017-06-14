@@ -8,7 +8,6 @@ import re
 import sys
 from bson.objectid import ObjectId
 from biocluster.wpm.log import Log
-from biocluster.config import Config
 from biocluster.core.function import CJsonEncoder, filter_error_info
 import traceback
 
@@ -24,7 +23,7 @@ class UpdateStatus(Log):
         self._client = "client01"
         self._key = "1ZYw71APsQ"
         self._url = "http://api.sanger.com/task/add_file"
-        self._mongo_client = self._config.mongo_client
+        self._mongo_client = self.config.mongo_client
         self.mongodb = self._mongo_client[self.config.MONGODB]
 
     def __del__(self):
