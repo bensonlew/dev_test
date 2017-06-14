@@ -116,9 +116,7 @@ class DedupAnalysisTool(Tool):
             preg_name = preg.group(1)
 
             tab_name = dad_name + '_' +mom_name+'_'+preg_name+'_family_joined_tab.Rdata'
-            if not tab_name:
-                continue
-            else:
+            if os.path.exists(tab_name):
                 analysis_cmd = "{}Rscript {}data_analysis.R {}".\
                     format(self.R_path,self.script_path,tab_name)
                 self.logger.info(analysis_cmd)
@@ -131,7 +129,8 @@ class DedupAnalysisTool(Tool):
                 else:
                     self.set_error('运行家系{}分析出错'.format(dad_tab))
                     raise Exception("运行家系分析出错")
-
+            else:
+                pass
             n = n+1
 
     def set_output(self):
