@@ -116,18 +116,21 @@ class DedupAnalysisTool(Tool):
             preg_name = preg.group(1)
 
             tab_name = dad_name + '_' +mom_name+'_'+preg_name+'_family_joined_tab.Rdata'
-            analysis_cmd = "{}Rscript {}data_analysis.R {}".\
-                format(self.R_path,self.script_path,tab_name)
-            self.logger.info(analysis_cmd)
-            self.logger.info("开始运行家系的分析")
-            cmd = self.add_command("analysis_cmd_{}".format(n), analysis_cmd).run()
-            self.wait(cmd)
-
-            if cmd.return_code == 0:
-                self.logger.info("运行家系分析成功")
+            if not self.script_path+'/'+ tab_name:
+                continue
             else:
-                self.set_error('运行家系{}分析出错'.format(dad_tab))
-                raise Exception("运行家系分析出错")
+                analysis_cmd = "{}Rscript {}data_analysis.R {}".\
+                    format(self.R_path,self.script_path,tab_name)
+                self.logger.info(analysis_cmd)
+                self.logger.info("开始运行家系的分析")
+                cmd = self.add_command("analysis_cmd_{}".format(n), analysis_cmd).run()
+                self.wait(cmd)
+
+                if cmd.return_code == 0:
+                    self.logger.info("运行家系分析成功")
+                else:
+                    self.set_error('运行家系{}分析出错'.format(dad_tab))
+                    raise Exception("运行家系分析出错")
 
             n = n+1
 
