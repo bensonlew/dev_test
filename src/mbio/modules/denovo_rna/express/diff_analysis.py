@@ -33,9 +33,10 @@ class DiffAnalysisModule(Module):
             {"name": "gene_go_level_2", "type": "infile", "format": "annotation.go.level2"},
             {"name": "diff_stat_dir", "type": "infile", "format": "rna.diff_stat_dir"},
             {"name": "cog_table", "type": "infile", "format": "annotation.cog.cog_table"},
+            {"name":"is_genelist","type":"bool","default":False}, #是否设置gene_list参数
         ]
         self.add_option(options)
-        self.cluster = self.add_tool("denovo_rna.express.cluster")
+        self.cluster = self.add_tool("rna.cluster")
         self.network = self.add_tool("denovo_rna.express.network")
         self._end_info = 0
         self.kegg_rich_tool = []
@@ -43,6 +44,7 @@ class DiffAnalysisModule(Module):
         self.go_rich_tool = []
         self.go_regulate_tool = []
         self.kegg_regulate_tool = []
+        self.cog_class_tool = []
         self.tools = []
 
     def check_options(self):
@@ -105,10 +107,11 @@ class DiffAnalysisModule(Module):
     def cluster_run(self):
         self.cluster.set_options({
             "diff_fpkm": self.option("diff_fpkm"),
-            "distance_method": self.option("distance_method"),
             "log": self.option("log"),
             "method": self.option("method"),
-            "sub_num": self.option("sub_num")
+            "sub_num": self.option("sub_num"),
+            "is_genelist": True,
+            "diff_list_dir": self.option("diff_list_dir")
         })
         self.cluster.on('end', self.set_output, 'cluster')
         self.cluster.on('start', self.set_step, {'start': self.step.cluster})
@@ -184,6 +187,8 @@ class DiffAnalysisModule(Module):
             diff_gene, regulate_dict = tmpfile.get_table_info()
             go_genes = self.option("gene_go_level_2").get_gene()
             same_gene = list(set(diff_gene) & set(go_genes))
+            self.logger.info(str(len(go_genes)))
+            self.logger.info(str(len(diff_gene)))
             if same_gene:
                 self.go_regulate = self.add_tool("denovo_rna.express.go_regulate")
                 self.go_regulate.set_options({
@@ -191,6 +196,8 @@ class DiffAnalysisModule(Module):
                     "go_level_2": self.option("gene_go_level_2")
                 })
                 self.go_regulate_tool.append(self.go_regulate)
+            else:
+                self.logger.info("gene_go_level_2与stat_table中无相同基因")
         if len(self.go_regulate_tool) == 1:
             self.go_regulate.on('end', self.set_output, 'go_regulate')
         elif len(self.go_regulate_tool) == 0:
@@ -340,6 +347,9 @@ class DiffAnalysisModule(Module):
                 tool.run()
         if 'kegg_regulate' in analysis:
             for tool in self.kegg_regulate_tool:
+                tool.run()
+        if 'cog_class' in analysis:
+            for tool in self.cog_class_tool:
                 tool.run()
 
     def end(self):
