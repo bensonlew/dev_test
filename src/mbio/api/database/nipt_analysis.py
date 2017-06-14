@@ -10,8 +10,8 @@ from types import StringTypes
 from bson.son import SON
 from biocluster.config import Config
 import xlrd
-import json
 import os
+from mainapp.libs.param_pack import param_pack
 
 
 class NiptAnalysis(Base):
@@ -38,13 +38,35 @@ class NiptAnalysis(Base):
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
-            collection = self.database["sg_nipt_zz_result"]
+            collection = self.database["sg_zz_result"]
             collection.insert_many(data_list)
         except Exception, e:
             raise Exception("导入%s信息出错:%s" % (file_path, e))
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list, table_id
+
+    def update_main(self,main_id,file_path):
+        with open(file_path, "rb") as r:
+            data1 = r.readlines()[1:]
+            for line1 in data1:
+                temp1 = line1.rstrip().split("\t")
+                insert = {
+                    "zz":eval(temp1[1])
+                }
+
+        try:
+            collection = self.database["sg_main"]
+            collection.update({"_id": main_id}, {'$set': insert})
+        except Exception, e:
+            raise Exception("更新主表出错：{}".format(e))
+        else:
+            self.bind_object.logger.info("更新主表成功!")
+
+    def get_id(self,name):
+        collection = self.database["sg_main"]
+        temp = collection.find_one({"sample_id": name})
+        return temp[u'_id']
 
     # @report_check
     def add_z_result(self, file_path, table_id=None):
@@ -64,7 +86,7 @@ class NiptAnalysis(Base):
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
-            collection = self.database["sg_nipt_z_result"]
+            collection = self.database["sg_z_result"]
             collection.insert_many(data_list)
         except Exception, e:
             raise Exception("导入%s信息出错:%s" % (file_path, e))
@@ -88,7 +110,7 @@ class NiptAnalysis(Base):
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
-            collection = self.database_ref["sg_nipt_bed"]
+            collection = self.database_ref["sg_bed"]
             collection.insert_many(data_list)
         except Exception, e:
             raise Exception("导入%s信息出错:%s" % (file_path, e))
@@ -176,7 +198,7 @@ class NiptAnalysis(Base):
                 sample_type = row_data[type_index]
                 para_list.append(sample_type)
 
-                collection = self.database['nipt_customer']
+                collection = self.database['sg_customer']
                 if collection.find_one({"report_num": para_list[0]}):
                     continue
                 else:
@@ -204,7 +226,7 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info('可能无新的客户信息')
         else:
             try:
-                collection = self.database['nipt_customer']
+                collection = self.database['sg_customer']
                 collection.insert_many(insert)
             except Exception as e:
                 raise Exception('插入客户信息表出错：{}'.format(e))
@@ -215,7 +237,7 @@ class NiptAnalysis(Base):
         """
         用于导出bed文件，用于后面计算
         """
-        collection = self.database_ref['sg_nipt_bed']
+        collection = self.database_ref['sg_bed']
         sample_bed = str(sample) + ".bed"
         file = os.path.join(dir, sample_bed)
         if os.path.exists(file):
@@ -240,7 +262,7 @@ class NiptAnalysis(Base):
                 raise Exception("样本 %s 的bed文件为空！"%(sample))
 
     def add_main(self,member_id,sample_id,batch_id):
-        collection = self.database['sg_nipt_main']
+        collection = self.database['sg_main']
         insert_data={
             'member_id':member_id,
             'sample_id':sample_id,
@@ -256,18 +278,21 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info("插入主表成功")
         return main_id
 
-    def add_interaction(self,main_id,bw,bs,ref_group):
-        collection = self.database['sg_nipt_interaction']
+    def add_interaction(self,main_id,bw,bs,ref_group,sample_id):
+        collection = self.database['sg_interaction']
         params = dict()
         params['bw'] = bw
         params['bs'] = bs
         params['ref_group'] = ref_group
+        new_params = param_pack(params)
         name = 'bw-' + str(bw) + '_bs-' + str(bs)+'_ref-'+str(ref_group)
         insert_data ={
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'nipt_main_id':main_id,
-            'param':params,
-            'name': name
+            'params':new_params,
+            'name': name,
+            "sample_id":sample_id,
+            'status':'start'
         }
 
         try:
@@ -278,8 +303,13 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info("插入交互表成功")
         return interaction_id
 
+    def update_interaction(self,main_id):
+        collection = self.database['sg_interaction']
+        collection.update({"nipt_main_id": main_id},{'$set':{'status':'start'}})
+
+
     def add_fastqc(self,main_id,file):
-        collection = self.database['sg_nipt_fastqc']
+        collection = self.database['sg_fastqc']
         insert_data = {}
         insert_data['nipt_main_id'] = main_id
 
@@ -299,7 +329,7 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info("插入fastqc表成功")
 
     def add_qc(self,file):
-        collection = self.database['sg_nipt_qc']
+        collection = self.database['sg_qc']
         insert = {}
         file_name =file.split('/')[-1]
         sample_name = file_name.split('.')[0]
@@ -325,4 +355,5 @@ class NiptAnalysis(Base):
             raise Exception('插入qc表出错：{}'.format(e))
         else:
             self.bind_object.logger.info("插入qc表成功")
+
 
