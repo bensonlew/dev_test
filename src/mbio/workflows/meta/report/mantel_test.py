@@ -47,19 +47,19 @@ class MantelTestWorkflow(Workflow):
         self.mantel = self.add_module('statistical.mantel_test')
         self.params = {}
 
-    def check_options(self):
-        env_dir = os.path.join(self.work_dir, 'env_file_input_env.xls')
-        with open(env_dir, "r") as f:
-            data = f.readlines()[1:]
-            for line in data:
-                temp = line.strip().split("\t")[1:]
-                for m in temp:
-                    try:
-                        temp_int = int(m)
-                        temp_float = float(m)
-                        # if isinstance(temp1, str):
-                    except:
-                        raise OptionError("环境因子中数值含有字符型，不能进行mantel_test分析！")
+    # def check_options(self):
+    #     env_dir = os.path.join(self.work_dir, 'env_file_input_env.xls')
+    #     with open(env_dir, "r") as f:
+    #         data = f.readlines()[1:]
+    #         for line in data:
+    #             temp = line.strip().split("\t")[1:]
+    #             for m in temp:
+    #                 try:
+    #                     temp_int = int(m)
+    #                     temp_float = float(m)
+    #                     # if isinstance(temp1, str):
+    #                 except:
+    #                     raise OptionError("环境因子中数值含有字符型，不能进行mantel_test分析！")
 
     def run(self):
         options = self.get_options()
@@ -184,5 +184,5 @@ class MantelTestWorkflow(Workflow):
                 otu_file_temp.close()
                 options['otutable'] = temp_otu_file
                 options['newicktree'] = temp_tree_file
-        print(options)
+        # print(options)
         return options
