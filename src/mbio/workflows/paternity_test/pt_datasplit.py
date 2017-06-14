@@ -28,7 +28,9 @@ class PtDatasplitWorkflow(Workflow):
 			# {"name": "data_dir", "type": "infile", "format": "paternity_test.tab"},  # 拆分需要的下机数据压缩文件夹
 			{"name": "data_dir", "type": "string"},
 
-			{"name": "family_table", "type": "infile", "format": "paternity_test.tab"},  # 需要存入mongo里面的家系信息表
+			{"name": "family_table", "type": "infile", "format": "paternity_test.tab"},  # 亲子鉴定的家系表
+			{"name": "customer_table", "type": "infile", "format": "paternity_test.tab"},  # 产前筛查家系表
+
 			{"name": "pt_data_split_id", "type": "string"},
 			{"name": "member_id", "type": "string"},
 			{"name": "update_info", "type": "string"}
@@ -59,7 +61,9 @@ class PtDatasplitWorkflow(Workflow):
 		if not self.option("data_dir"):
 			raise OptionError("缺少拆分需要的下机数据")
 		if not self.option("family_table"):
-			raise OptionError("缺少家系信息表")
+			raise OptionError("缺少亲子鉴定家系信息表，后续不进行亲子鉴定分析")
+		if not self.option("customer_table"):
+			self.logger.info("缺少产前筛查家系信息表，后续不进行亲子鉴定分析")
 		return True
 
 	def run_data_split(self):
@@ -194,6 +198,31 @@ class PtDatasplitWorkflow(Workflow):
 		self.done_wq = "true"
 		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
 
+	def run_ws_wf(self):
+		self.logger.info("给产筛分析的workflow传送数据")
+		data = {
+			'stage_id': 0,
+			'UPDATE_STATUS_API': self._update_status_api(),
+			"id": 'nipt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+			"type": "workflow",
+			"name": "nipt.nipt_workflow",
+			"instant": False,
+			"IMPORT_REPORT_DATA": True,
+			"IMPORT_REPORT_AFTER_END": False,
+			"options": {
+				"customer_table": self.option('customer_table'),
+				"fastq_path": self.ws_dir,
+				"batch_id": self.option('pt_data_split_id'),
+				'member_id': self.option('member_id'),
+				"bw": 10,
+				"bs": 1,
+				"ref_group": 2
+			}
+		}
+		WC().add_task(data)
+		self.done_ws = "true"
+
+
 	def _update_status_api(self):
 		name = self.option('data_dir').split(":")[0]
 		if name == "sanger" or name == "i-sanger":
@@ -202,6 +231,9 @@ class PtDatasplitWorkflow(Workflow):
 			return 'pt.med_report_tupdate'
 
 	def run_merge_fastq_un(self):
+		if self.option("customer_table"):
+			self.logger.info("启动产前筛查流程")
+			self.run_ws_wf()  # 进行nipt分析
 		if self.done_wq != "true":
 			self.run_wq_wf()
 		n = 0
@@ -280,6 +312,8 @@ class PtDatasplitWorkflow(Workflow):
 			db_customer.add_data_dir(self.option('data_dir').split(":")[1], self.wq_dir, self.ws_dir, self.un_dir)
 		if self.done_wq != "true":
 			self.run_wq_wf()
+		if self.option('customer_table') and self.done_ws != "true":
+			self.run_ws_wf()
 		super(PtDatasplitWorkflow, self).end()
 
 	def linkdir(self, dirpath, dirname):  # 暂时无用
