@@ -116,7 +116,7 @@ class DedupAnalysisTool(Tool):
             preg_name = preg.group(1)
 
             tab_name = dad_name + '_' +mom_name+'_'+preg_name+'_family_joined_tab.Rdata'
-            if not self.script_path+'/'+ tab_name:
+            if not tab_name:
                 continue
             else:
                 analysis_cmd = "{}Rscript {}data_analysis.R {}".\
