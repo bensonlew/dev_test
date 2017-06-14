@@ -34,7 +34,7 @@ class AllAnnoStat(object):
         self.kegg_ko = Config().biodb_mongo_client.sanger_biodb.kegg_ko
         self.go = Config().biodb_mongo_client.sanger_biodb.GO
 
-    def get_anno_stat(self, outpath, gtf_path=None, cog_list=None, kegg_table=None, gos_list=None, blast_nr_table=None, blast_swissprot_table=None, pfam_domain=None):
+    def get_anno_stat(self, outpath, gtf_path=None, cog_list=None, kegg_table=None, gos_list=None, blast_nr_table=None, blast_swissprot_table=None, pfam_domain=None, length_path=None):
         """
         传入各个数据库的部分注释结果文件，统计功能注释信息表（即应注释查询模块的功能注释信息表）
         outpath：输出结果路径：功能注释信息表的文件路径
@@ -45,6 +45,7 @@ class AllAnnoStat(object):
         blast_nr_table：blast比对nr库得到的结果文件(blast输出文件格式为6：table)
         blast_swissprot_table: blast比对swissprot库得到的结果文件（blast输出文件格式为6：table）
         pfam_domain: orf预测的结果pfam_domain
+        length_path:注释转录本序列长度
         """
         if blast_nr_table:
             self.get_nr(blast_nr_table=blast_nr_table)
@@ -60,6 +61,8 @@ class AllAnnoStat(object):
             self.get_cog(cog_list=cog_list)
         if gtf_path:
             self.get_gene(gtf_path=gtf_path)
+        if length_path:
+            self.get_length(length_path=length_path)
         with open(outpath, 'wb') as w:
             head = 'transcript\tgene_id\tgene_name\tlength\tcog\tnog\tkog\tcog_description\tnog_description\tkog_description\tKO_id\tKO_name\tpaths\tpfam\tgo\tnr\tswissprot\n'
             w.write(head)
@@ -272,3 +275,12 @@ class AllAnnoStat(object):
                     query.pfam = pfam
                     query.pfam_evalue = pfam_evalue
                     self.stat_info[query_name] = query
+
+    def get_length(self, length_path):
+        """每个转录本id对应的序列长度"""
+        for line in open(length_path, "rb"):
+            line = line.strip().split(" ")
+            tran_id = line[1]
+            length = line[0]
+            if tran_id in self.stat_info:
+                self.stat_info[tran_id].length = length

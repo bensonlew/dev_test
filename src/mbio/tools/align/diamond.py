@@ -166,7 +166,13 @@ class DiamondTool(Tool):
                     m = re.match("<Hit_id>(.+)</Hit_id>", line.lstrip())
                     if m:
                         line = line.replace(self.ori[i],self.repl[i])
+                if line.lstrip().startswith("<Hit_def>"):
+                    m = re.match("<Hit_def>(.+)</Hit_def>", line.lstrip())
+                    if m:
+                        line = line.replace(self.repl[i],self.ori[i])
                         i += 1
                 fw.write(line)
-        os.system("mv {} {}".format(path + "_new", path))
+        # os.system("mv {} {}".format(path + "_new", path))
+        os.remove(path)
+        os.link(path + "_new", path)
         self.end()

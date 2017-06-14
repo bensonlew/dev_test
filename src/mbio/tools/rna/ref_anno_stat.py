@@ -44,6 +44,7 @@ class RefAnnoStatAgent(Agent):
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
             {"name": "swissprot_xml", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
+            {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "database", "type": "string", "default": "nr,go,cog,pfam,kegg,swissprot"},
             {"name": "gene_nr_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "gene_string_table", "type": "outfile", "format": "align.blast.blast_table"},
@@ -186,10 +187,11 @@ class RefAnnoStatTool(Tool):
         self.denovo_stat = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/denovo_stat/'
         self.go_annot = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goAnnot.py'
         self.go_split = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goSplit.py'
-        self.kegg_anno = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
+        self.kegg_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
         self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
         self.cog_table = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/cog_annot.py'
-        self.image_magick = self.config.SOFTWARE_DIR + "//program/ImageMagick/bin/convert"
+        self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
+        self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
         self.gene_list = self.option('gene_file').prop['gene_list']
         self.gene_nr_xml = self.work_dir + '/blast/gene_nr.xml'
         if self.option('string_xml').is_set:
@@ -288,21 +290,28 @@ class RefAnnoStatTool(Tool):
             transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_kegg_xml, gene_xml_path=self.gene_kegg_xml)
             xml2table(self.gene_kegg_xml, self.work_dir + '/blast/gene_kegg.xls')
             self.logger.info("完成筛选gene_kegg.xml、gene_kegg.xls")
-        try:
-            kegg_anno = self.load_package('annotation.kegg_annotation')()
-            if self.option("kegg_xml").is_set:
-                kegg_anno.pathSearch(blast_xml=self.gene_kegg_xml, kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
-            else:
-                self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
-                kegg_anno.pathSearch_upload(kegg_ids=self.work_dir + "/gene_kegg.list", kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
-            kegg_anno.pathTable(kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls', pathway_path=self.kegg_stat_path + '/gene_pathway_table.xls', pidpath=self.work_dir + '/gene_pid.txt')
-            kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway, image_magick=self.image_magick)
-            kegg_anno.keggLayer(pathway_table=self.kegg_stat_path + '/gene_pathway_table.xls', layerfile=self.kegg_stat_path + '/gene_kegg_layer.xls', taxonomyfile=self.kegg_stat_path + '/gene_kegg_taxonomy.xls')
-            self.logger.info('finish: kegg stat')
-        except:
-            import traceback
-            self.logger.info('error:{}'.format(traceback.format_exc()))
-            self.set_error("运行kegg脚本出错！")
+        kegg_table = self.kegg_stat_path + '/gene_kegg_table.xls'
+        pidpath = self.work_dir + '/gene_pid.txt'
+        pathway_table = self.kegg_stat_path + '/gene_pathway_table.xls'
+        layerfile = self.kegg_stat_path + '/gene_kegg_layer.xls'
+        taxonomyfile = self.kegg_stat_path + '/gene_kegg_taxonomy.xls'
+        if self.option("taxonomy"):
+            taxonomy = self.taxonomy_path
+        else:
+            taxonomy = None
+        if self.option("kegg_xml").is_set:
+            cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, self.gene_kegg_xml, None, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+        else:
+            self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
+            kegg_ids = self.work_dir + "/gene_kegg.list"
+            cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, None, kegg_ids, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+        self.logger.info("开始运行kegg注释脚本")
+        command = self.add_command("kegg_anno", cmd).run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("运行kegg注释脚本完成")
+        else:
+            self.set_error("运行kegg注释脚本出错")
 
     def run_go_stat(self):
         self.go_stat_path = self.work_dir + '/go_stat/'
@@ -466,27 +475,27 @@ class RefAnnoStatTool(Tool):
         if not os.path.isdir(olddir):
             raise Exception('需要移动到output目录的文件夹不存在。')
         newdir = os.path.join(self.output_dir, newname)
-        if not os.path.exists(newdir):
-            if mode == 'link':
-                shutil.copytree(olddir, newdir, symlinks=True)
-            elif mode == 'copy':
-                shutil.copytree(olddir, newdir)
+        self.logger.info(newdir)
+        if os.path.exists(newdir):
+            shutil.rmtree(newdir)
+        os.mkdir(newdir)
+        self.logger.info(newdir)
+        allfiles = os.listdir(olddir)
+        oldfiles = [os.path.join(olddir, i) for i in allfiles]
+        newfiles = [os.path.join(newdir, i) for i in allfiles]
+        for i in range(len(allfiles)):
+            if os.path.isfile(oldfiles[i]):
+                os.link(oldfiles[i], newfiles[i])
             else:
-                raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
-        else:
-            allfiles = os.listdir(olddir)
-            oldfiles = [os.path.join(olddir, i) for i in allfiles]
-            newfiles = [os.path.join(newdir, i) for i in allfiles]
-            for newfile in newfiles:
-                if os.path.isfile(newfile) and os.path.exists(newfile):
-                    os.remove(newfile)
-                elif os.path.isdir(newfile) and os.path.exists(newfile):
-                    shutil.rmtree(newfile)
-            for i in range(len(allfiles)):
-                if os.path.isfile(oldfiles[i]):
-                    os.system('cp {} {}'.format(oldfiles[i], newfiles[i]))
-                else:
-                    os.system('cp -r {} {}'.format(oldfiles[i], newdir))
+                newdir = os.path.join(newdir, os.path.basename(oldfiles[i]))
+                if not os.path.exists(newdir):
+                    os.mkdir(newdir)
+                for f in os.listdir(oldfiles[i]):
+                    old = os.path.join(oldfiles[i], f)
+                    new = os.path.join(newdir, f)
+                    if os.path.exists(new):
+                        os.remove(new)
+                    os.link(old, new)
 
     def run(self):
         super(RefAnnoStatTool, self).run()
@@ -526,13 +535,21 @@ class RefAnnoStatTool(Tool):
             anno_num['total']['gene'] = len(self.option('gene_file').prop['gene_list'])
             anno_num['total']['tran'] = len(self.tran_list)
             for db in self.anno_list:
-                w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, len(self.anno_list[db]), len(self.gene_anno_list[db]), '%0.4g' % (len(self.anno_list[db]) / anno_num['total']['tran']), '%0.4g' % (len(self.gene_anno_list[db]) / anno_num['total']['gene'])))
+                tran_db_percent = '%0.4g' % (len(self.anno_list[db]) / anno_num['total']['tran'])
+                tran_db_percent = float(tran_db_percent) * 100
+                gene_db_percent = '%0.4g' % (len(self.gene_anno_list[db]) / anno_num['total']['gene'])
+                gene_db_percent = float(gene_db_percent) * 100
+                w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, len(self.anno_list[db]), len(self.gene_anno_list[db]),  str(tran_db_percent) + '%', str(gene_db_percent) + '%'))
                 tmp += self.anno_list[db]
                 tmp_gene += self.gene_anno_list[db]
             anno_num['total_anno']['gene'] = len(set(tmp_gene))
             anno_num['total_anno']['tran'] = len(set(tmp))
-            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_num['total_anno']['tran'], anno_num['total_anno']['gene'], '%0.4g' % (anno_num['total_anno']['tran'] / anno_num['total']['tran']), '%0.4g' % (anno_num['total_anno']['gene'] / anno_num['total']['gene'])))
-            w.write('total\t{}\t{}\t1\t1\n'.format(anno_num['total']['tran'], anno_num['total']['gene']))
+            tran_total_percent = '%0.4g' % (anno_num['total_anno']['tran'] / anno_num['total']['tran'])
+            tran_total_percent = float(tran_total_percent) * 100
+            gene_total_percent = '%0.4g' % (anno_num['total_anno']['gene'] / anno_num['total']['gene'])
+            gene_total_percent = float(gene_total_percent) * 100
+            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_num['total_anno']['tran'], anno_num['total_anno']['gene'], str(tran_total_percent) + '%',  str(gene_total_percent) + '%'))
+            w.write('total\t{}\t{}\t100%\t100%\n'.format(anno_num['total']['tran'], anno_num['total']['gene']))
 
     def list_num(self, list_file):
         with open(list_file, "rb") as f:
