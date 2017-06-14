@@ -21,19 +21,17 @@ class UpdateStatus(Log):
 
     def __init__(self, data):
         super(UpdateStatus, self).__init__(data)
-        self._config = Config()
         self._client = "client01"
         self._key = "1ZYw71APsQ"
         self._url = "http://api.sanger.com/task/add_file"
-        self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
         self._mongo_client = self._config.mongo_client
-        self.mongodb = self._mongo_client[Config().MONGODB]
+        self.mongodb = self._mongo_client[self.config.MONGODB]
 
     def __del__(self):
         self._mongo_client.close()
 
-    def get_post_data(self):
-
+    @property
+    def post_data(self):
         workflow_id = self.data["sync_task_log"]['task']["task_id"]
         my_id = re.split('_', workflow_id)
         my_id.pop(-1)

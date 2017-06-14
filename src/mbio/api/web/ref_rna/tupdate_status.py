@@ -8,8 +8,7 @@ class TupdateStatus(UpdateStatus):
 
     def __init__(self, data):
         super(TupdateStatus, self).__init__(data)
-        self._config = Config()
         self._client = "client03"
         self._key = "hM4uZcGs9d"
         self._url = "http://api.tsanger.com/task/add_file"
-        self.mongodb = self._mongo_client[Config().MONGODB + '_ref_rna']
+        self.mongodb = self._mongo_client[self.config.MONGODB + '_ref_rna']

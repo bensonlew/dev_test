@@ -12,11 +12,10 @@ class MedReportTupdate(UpdateStatus):
 
     def __init__(self, data):
         super(MedReportTupdate, self).__init__(data)
-        self._config = Config()
         self._client = "client03"
         self._key = "hM4uZcGs9d"
         self._url = "http://api.tsg.com/task/add_file"
-        self.database = self._mongo_client[Config().MONGODB+'_paternity_test']
+        self.database = self._mongo_client[self.config.MONGODB+'_paternity_test']
         
     def update(self, web_api=False):
         super(MedReportTupdate, self).update(web_api=False)
