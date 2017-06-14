@@ -26,28 +26,25 @@ class NiptAnalysis(NiptController):
             return json.dumps(info)
         task_name = 'nipt.report.nipt_analysis'
         task_type = 'workflow'
-        main_table_name = 'Nipt_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        # main_table_name = 'Nipt_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        main_table_name = 'bw-' + data.bw + '_bs-' + data.bs + '_ref-' + data.ref_group
         params_json = {
-            '_id': data.main_id,
             'bw': data.bw,
             'bs': data.bs,
             'ref_group': int(data.ref_group),
-            'submit_location': data.submit_location,
-            'task_type': data.task_type
         }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
             ('batch_id', task_info['batch_id']),
             ('sample_id', task_info['sample_id']),
             ('status', 'start'),
-            ('desc', 'nipt分析中...'),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ('params', params),
             ('name', main_table_name),
             ("nipt_main_id", ObjectId(data.main_id))
         ]
-        main_table_id = Nipt().insert_main_table('sg_nipt_interaction', mongo_data)
-        update_info = {str(main_table_id): 'sg_nipt_interaction'}
+        main_table_id = Nipt().insert_main_table('sg_interaction', mongo_data)
+        update_info = {str(main_table_id): 'sg_interaction'}
         options = {
             "bed_file": task_info['sample_id'],
             "bw": data.bw,
