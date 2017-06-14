@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shijin'
 from biocluster.config import Config
-from update_status import UpdateStatus
+from .update_status import UpdateStatus
 
 
 class TupdateStatus(UpdateStatus):

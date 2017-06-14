@@ -9,7 +9,7 @@ from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
 import os
 
-class FamilyAnalysisAgent(Agent):
+class DedupAnalysisAgent(Agent):
     """
     合并家族之后的一系列分析
     包括父权值、有效率、无效率、错配率等等
@@ -18,13 +18,14 @@ class FamilyAnalysisAgent(Agent):
     last_modify: 2016.11.21
     """
     def __init__(self, parent):
-        super(FamilyAnalysisAgent, self).__init__(parent)
+        super(DedupAnalysisAgent, self).__init__(parent)
         options = [#输入的参数
-            # {"name": "dad_tab", "type": "infile", "format": "tab"},
-            # {"name": "tab_merged", "type": "outfile", "format": "Rdata"}
-
-            {"name": "tab_merged", "type": "infile", "format": "paternity_test.rdata"}, #format:Rdata
-            {"name": "analysis_result", "type": "string"}
+            # {"name": "dad_tab", "type": "infile", "format": "paternity_test.tab"},
+            {"name": "dad_list", "type": "string"},
+            {"name": "mom_tab", "type": "infile", "format": "paternity_test.tab"},
+            {"name": "preg_tab", "type": "infile", "format": "paternity_test.tab"},
+            {"name": "ref_point", "type": "infile", "format": "paternity_test.rda"},
+            {"name": "err_min", "type": "int", "default": 2},
         ]
         self.add_option(options)
         self.step.add_steps("family_analysis")
@@ -47,8 +48,12 @@ class FamilyAnalysisAgent(Agent):
         """
         # if not self.option('query_amino'):
         #     raise OptionError("必须输入氨基酸序列")
-        if not self.option('tab_merged') :
-            raise OptionError("必须提供合并之后的家系表")
+        if not self.option('dad_list') :
+            raise OptionError("必须提供父本tab")
+        if not self.option('mom_tab') :
+            raise OptionError("必须提供母本tab")
+        if not self.option('preg_tab') :
+            raise OptionError("必须提供胎儿tab")
         return True
 
     def set_resource(self):
@@ -67,15 +72,15 @@ class FamilyAnalysisAgent(Agent):
         result_dir.add_regexp_rules([
             ["family_analysis.Rdata", "Rdata", "父权值等计算"],
         ])
-        super(FamilyAnalysisAgent, self).end()
+        super(DedupAnalysisAgent, self).end()
 
 
-class FamilyAnalysisTool(Tool):
+class DedupAnalysisTool(Tool):
     """
     蛋白质互作组预测tool
     """
     def __init__(self, config):
-        super(FamilyAnalysisTool, self).__init__(config)
+        super(DedupAnalysisTool, self).__init__(config)
         self._version = '1.0.1'
 
         self.R_path = 'program/R-3.3.1/bin/'
@@ -84,19 +89,47 @@ class FamilyAnalysisTool(Tool):
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
-        analysis_cmd = "{}Rscript {}data_analysis.R {}".\
-            format(self.R_path,self.script_path,self.option("tab_merged").prop['path'])
-        self.logger.info(analysis_cmd)
-        self.logger.info("开始运行家系的分析")
-        cmd = self.add_command("analysis_cmd", analysis_cmd).run()
-        self.wait(cmd)
+        dad_list = self.option('dad_list').split(',')
+        n = 0
+        for dad_tab in dad_list:
 
-        self.logger.info("analysis_cmd的返回码是{}".format(cmd.return_code))
-        if cmd.return_code == 0:
-            self.logger.info("运行家系分析成功")
-        else:
-            self.set_error("运行家系分析出错")
-            raise Exception("运行家系分析出错")
+            tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {}". \
+                format(self.R_path, self.script_path, dad_tab,
+                    self.option("mom_tab").prop['path'], self.option("preg_tab").prop['path'],
+                    self.option("err_min"), self.option("ref_point").prop['path'])
+            self.logger.info(tab2family_cmd)
+            self.logger.info("开始运行家系合并")
+            cmd = self.add_command("tab2family_cmd_{}".format(n), tab2family_cmd).run()
+            self.wait(cmd)
+
+            if cmd.return_code == 0:
+                self.logger.info("运行家系合并成功")
+            else:
+                self.set_error('运行家系{}合并出错'.format(dad_tab))
+                raise Exception("运行家系合并出错")
+
+            dad = re.match(".*(WQ[0-9]*-F.*)\.tab",dad_tab)
+            dad_name = dad.group(1)
+            mom = re.match(".*(WQ[0-9]*-M.*)\.tab",self.option("mom_tab").prop['path'])
+            mom_name = mom.group(1)
+            preg = re.match(".*(WQ[0-9]*-S.*)\.tab", self.option("preg_tab").prop['path'])
+            preg_name = preg.group(1)
+
+            tab_name = dad_name + '_' +mom_name+'_'+preg_name+'_family_joined_tab.Rdata'
+            analysis_cmd = "{}Rscript {}data_analysis.R {}".\
+                format(self.R_path,self.script_path,tab_name)
+            self.logger.info(analysis_cmd)
+            self.logger.info("开始运行家系的分析")
+            cmd = self.add_command("analysis_cmd_{}".format(n), analysis_cmd).run()
+            self.wait(cmd)
+
+            if cmd.return_code == 0:
+                self.logger.info("运行家系分析成功")
+            else:
+                self.set_error('运行家系{}分析出错'.format(dad_tab))
+                raise Exception("运行家系分析出错")
+
+            n = n+1
 
     def set_output(self):
         """
@@ -113,10 +146,14 @@ class FamilyAnalysisTool(Tool):
                 os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
             elif re.search(r'.*family_analysis\.txt$', f):
                 os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+            elif re.search(r'.*family_joined_tab\.Rdata$', f):
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+            elif re.search(r'.*family_joined_tab\.txt$', f):
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
         self.logger.info('设置文件夹路径成功')
 
     def run(self):
-        super(FamilyAnalysisTool, self).run()
+        super(DedupAnalysisTool, self).run()
         self.run_tf()
         self.set_output()
         self.end()

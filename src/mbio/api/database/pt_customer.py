@@ -2,11 +2,9 @@
 # __author__ = 'zhouxuan'
 import re
 from biocluster.api.database.base import Base, report_check
-import os
 from biocluster.config import Config
-from bson import regex
-from pymongo import MongoClient
 from bson import ObjectId
+import xlrd
 
 class PtCustomer(Base):
     '''
@@ -20,72 +18,82 @@ class PtCustomer(Base):
         self.mongo_client_ref = Config().biodb_mongo_client
         self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
 
-
-    # @report_check
     def add_pt_customer(self, main_id=None, customer_file=None):
         if customer_file == "None":
             self.bind_object.logger.info("缺少家系表")
         if main_id == "None":
             self.bind_object.logger.info("缺少主表id")
-        with open(customer_file, 'r') as f:
-            # num = 0
-            for line in f:
-                # num += 1
-                # if num == 1: #csv格式的文件没有表头 所以不需要这一句
-                # 	continue
-                #line = line.decode("gb2312")
-                line = line.decode("GB18030")
-                line = line.strip()
-                line = line.split(',')
-                if line[0] == "序号":  # 去表头
-                    continue
-                if line[1] == "":
+        bk = xlrd.open_workbook(customer_file)
+        sh = bk.sheet_by_name(u'2017')
+        nrows = sh.nrows
+        insert = []  # 获取各行数据
+        for i in range(0, nrows):
+            row_data = sh.row_values(i)
+            print row_data
+            if i == 0:
+                contrast_num_index = row_data.index(u'\u68c0\u6848\u6d41\u6c34\u53f7')  # 流水号
+                ask_person_index = row_data.index(u'\u59d4\u6258\u65b9')  # 委托方
+                mother_name_index = row_data.index(u'\u6bcd\u672c\u540d\u79f0')  # 母本名称
+                mother_type_index = row_data.index(u'\u6bcd\u672c\u7c7b\u578b')  # 母本类型
+                mom_id_index = row_data.index(u'\u6bcd\u672c\u7f16\u53f7')  # 母本编号
+                father_name_index = row_data.index(u'\u7236\u672c\u540d\u79f0')  # 父本名称
+                father_type_index = row_data.index(u'\u7236\u672c\u7c7b\u578b')  # 父本类型
+                dad_id_index = row_data.index(u'\u7236\u672c\u7f16\u53f7')  # 父本编号
+                ask_time_index = row_data.index(u'\u59d4\u6258\u65e5\u671f')  # 委托日期
+                accept_time_index = row_data.index(u'\u53d7\u7406\u65e5\u671f')  # 受理日期
+                result_time_index = row_data.index(u'\u9274\u5b9a\u65e5\u671f')  # 鉴定日期
+                son_type_index = row_data.index(u'\u8865\u9001\u6837\u672c\u80ce\u513f\u4fe1\u606f')  # 补送样本胎儿信息
+            else:
+                if row_data[contrast_num_index] == "":
                     break
-                if line[4] == "" or line[7] == "":
+                if row_data[mother_type_index] == '' or row_data[father_type_index] == '':
                     continue
-
-                if len(line) >= 22 and line[21] != "":
-                    family_name = "WQ" + line[8].split("-")[1] +"-"+ line[8].split("-")[-1] + "-" + line[5].split("-")[-1] + "-" + line[21].split("-")[-1]
+                if row_data[dad_id_index] != '' and row_data[mom_id_index] != '':
+                    if len(row_data[dad_id_index].split("-")) == 3:
+                        if row_data[son_type_index] == '':
+                            family_name = "WQ" + row_data[dad_id_index].split("-")[1] + "-" + row_data[dad_id_index].split("-")[-1] + "-" + \
+                                          row_data[mom_id_index].split("-")[-1] + "-S"
+                        else:
+                            family_name = "WQ" + row_data[dad_id_index].split("-")[1] + "-" + row_data[dad_id_index].split("-")[-1] + "-" + \
+                                          row_data[mom_id_index].split("-")[-1] + "-" + row_data[son_type_index].split("-")[-1]
+                    else:
+                        if row_data[son_type_index] == '':
+                            family_name = row_data[dad_id_index] + "-" + row_data[mom_id_index].split("-")[-1] + "-S"
+                        else:
+                            family_name = row_data[dad_id_index] + "-" + row_data[mom_id_index].split("-")[-1] + "-" + \
+                                          row_data[son_type_index].split("-")[-1]
+                    collection = self.database["sg_pt_customer"]
+                    result = collection.find_one({"name": family_name})
+                    if result:
+                        continue
+                    insert_data = {
+                        "pt_datasplit_id": ObjectId(main_id),
+                        "pt_serial_number": row_data[contrast_num_index],
+                        "ask_person": row_data[ask_person_index],
+                        "mother_name": row_data[mother_name_index],
+                        "mother_type": row_data[mother_type_index],
+                        "mom_id": row_data[mom_id_index],
+                        "father_name": row_data[father_name_index],
+                        "father_type": row_data[father_type_index],
+                        "dad_id": row_data[dad_id_index],
+                        "ask_time": row_data[ask_time_index],
+                        "accept_time": row_data[accept_time_index],
+                        "result_time": row_data[result_time_index],
+                        "name": family_name
+                    }
+                    insert.append(insert_data)
                 else:
-                    family_name = "WQ" + line[8].split("-")[1] +"-"+ line[8].split("-")[-1] + "-" + line[5].split("-")[-1] + "-S"
-                collection = self.database["sg_pt_customer"]
-                result = collection.find_one({"name": family_name})
-                if result:
                     continue
-                insert_data = {
-                    "pt_datasplit_id": ObjectId(main_id),
-                    "pt_serial_number": line[1],
-                    "ask_person": line[2],
-                    "mother_name": line[3],
-                    "mother_type": line[4],
-                    "mom_id": line[5],
-                    "father_name": line[6],
-                    "father_type": line[7],
-                    "dad_id": line[8],
-                    "ask_time": line[9],
-                    "accept_time": line[10],
-                    "result_time": line[11],
-                    "name": family_name
-                }
-                try:
-                    collection = self.database['sg_pt_customer']
-                    collection.insert_one(insert_data)
-                except Exception as e:
-                    self.bind_object.logger.error('导入家系表表出错：{}'.format(e))
-                    raise Exception('导入家系表表出错：{}'.format(e))
-                # else:
-                #     self.bind_object.logger.info("导入家系表成功")
-        self.bind_object.logger.info("导入家系表成功")
-        # try:
-        #     main_collection = self.database["sg_pt_datasplit"]
-        #     self.bind_object.logger.info("开始刷新主表写状态")
-        #     main_collection.update({"_id": ObjectId(main_id)},
-        #                             {"$set": {
-        #                                 "desc": "pt_datasplit done, start pt_batch"}})
-        # except Exception as e:
-        #     self.bind_object.logger.error("更新sg_pt_datasplit主表出错:{}".format(e))
-        # else:
-        #     self.bind_object.logger.info("更新sg_pt_datasplit表格成功")
+        if len(insert) == 0:
+            self.bind_object.logger.info("没有新的家系需要导入数据库！")
+        else:
+            try:
+                collection = self.database['sg_pt_customer']
+                collection.insert_many(insert)
+            except Exception as e:
+                self.bind_object.logger.error('导入家系表表出错：{}'.format(e))
+                raise Exception('导入家系表表出错：{}'.format(e))
+            self.bind_object.logger.info("导入家系表成功")
 
     def add_data_dir(self, dir_name, wq_dir, ws_dir, undetermined_dir):
         insert_data = {
@@ -128,8 +136,8 @@ class PtCustomer(Base):
                 line = line.split('\t')
                 if re.match('WQ([0-9]*)-.*',line[3]):
                     insert_data ={
-                        "type": line[2],
-                        "sample_id":line[3]
+                        "type": line[2].strip(),
+                        "sample_id":line[3].strip()
                     }
                     collection = self.database_ref['sg_pt_ref_main']
                     if collection.find_one({"sample_id": line[3]}):

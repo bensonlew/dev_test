@@ -113,7 +113,7 @@ class PtReportWorkflow(Workflow):
 		num_list = range(num-self.option('dedup_num'), num+self.option('dedup_num')+1)
 		name_list = []
 		for m in num_list:
-			x = api_read_tab.dedup_sample(m)
+			x = api_read_tab.dedup_sample_report(m)
 			if len(x): #如果库中能取到前后的样本
 				for k in range(len(x)):
 					name_list.append(x[k])
