@@ -4,7 +4,9 @@ from biocluster.config import Config
 from mbio.api.web.meta.update_status import UpdateStatus as US
 from biocluster.core.function import CJsonEncoder, filter_error_info
 from bson.objectid import ObjectId
-import json, re, datetime
+import json
+import datetime
+
 
 class UpdateStatus(US):
 
@@ -21,7 +23,6 @@ class UpdateStatus(US):
     def update_status(self):
         status = self.data["content"]["stage"]["status"]
         desc = filter_error_info(self.data["content"]["stage"]["error"])
-        create_time = str(self.data["content"]["stage"]["created_ts"])
         if not self.update_info:
             return
         for obj_id, collection_name in json.loads(self.update_info).items():
@@ -48,4 +49,3 @@ class UpdateStatus(US):
                     "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
                 collection.find_one_and_update({"table_id": obj_id}, {'$set': insert_data}, upsert=True)
-            self._mongo_client.close()

@@ -21,7 +21,7 @@ class MedReportTupdate(UpdateStatus):
         self.database = self._mongo_client[Config().MONGODB+'_paternity_test']
 
     def update(self):
-        self.update_status()
+        super(MedReportTupdate, self).update(web_api=False)
 
     def update_status(self):
         status = self.data["content"]["stage"]["status"]
@@ -73,4 +73,3 @@ class MedReportTupdate(UpdateStatus):
                 }
                 sg_status_col.update({"_id": obj_id},
                                                   {'$set': insert_data}, upsert=True)
-            self._mongo_client.close()

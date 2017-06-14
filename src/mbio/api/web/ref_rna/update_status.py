@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
 from biocluster.config import Config
-from mbio.api.web.meta.update_status import UpdateStatus
+from mbio.api.web.meta.update_status import UpdateStatus as Us
 
 
-class UpdateStatus(UpdateStatus):
+class UpdateStatus(Us):
 
     def __init__(self, data):
         super(UpdateStatus, self).__init__(data)

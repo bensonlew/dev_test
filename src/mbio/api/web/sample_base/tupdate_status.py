@@ -15,5 +15,3 @@ class TupdateStatus(UpdateStatus):
         self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
         self._mongo_client = self._config.mongo_client
         self.mongodb = self._mongo_client["samplebase"]
-
-    
