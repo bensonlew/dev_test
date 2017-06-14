@@ -6,6 +6,7 @@ import datetime
 from bson import ObjectId
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import group_detail_sort
+from bson import SON
 
 
 class PlotTree(MetaController):
@@ -56,7 +57,7 @@ class PlotTree(MetaController):
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ("params", params)
         ]
-        main_table_id = self.meta.insert_main_table('sg_phylo_tree', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_phylo_tree')
         update_info = {str(main_table_id): 'sg_phylo_tree'}
         options = {'otu_table': data.otu_id,
                    'otu_id': data.otu_id,
@@ -68,7 +69,8 @@ class PlotTree(MetaController):
                    'group_detail': data.group_detail,
                    'params': params,
                    'main_id': str(main_table_id),
-                   'topN': int(data.topn)
+                   'topN': int(data.topn),
+                   'main_table_data': SON(mongo_data)
                    }
         to_file = ['meta.export_otu_table_by_detail(otu_table)', 'meta.export_group_table_by_detail(sample_group)']
         self.set_sheet_data(name=task_name,
@@ -77,5 +79,6 @@ class PlotTree(MetaController):
                             module_type=task_type,
                             to_file=to_file)
         task_info = super(PlotTree, self).POST()
-        task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
+        if task_info['success']:
+            task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         return json.dumps(task_info)

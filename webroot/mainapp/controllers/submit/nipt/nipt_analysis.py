@@ -7,6 +7,7 @@ import datetime
 from mainapp.models.mongo.submit.nipt_mongo import NiptMongo as Nipt
 from mainapp.controllers.project.nipt_controller import NiptController
 from bson import ObjectId
+from bson import SON
 
 
 class NiptAnalysis(NiptController):
@@ -51,9 +52,11 @@ class NiptAnalysis(NiptController):
             "bs": data.bs,
             "update_info": json.dumps(update_info),
             "ref_group": data.ref_group,
-            "nipt_task_id": str(main_table_id)
+            "nipt_task_id": str(main_table_id),
+            'main_table_data': SON(mongo_data)
         }
         self.set_sheet_data_(name=task_name, options=options, module_type=task_type, params=params)
         task_info = super(NiptAnalysis, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         return json.dumps(task_info)
+k

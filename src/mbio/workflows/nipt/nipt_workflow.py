@@ -81,7 +81,7 @@ class NiptWorkflow(Workflow):
 
 		for name in self.sample_id:
 			self.main_id = self.api_nipt.add_main(self.option('member_id'), name, self.option('batch_id'))
-			self.api_nipt.add_interaction(self.main_id, self.option('bw'), self.option('bs'), self.option('ref_group'))
+			self.api_nipt.add_interaction(self.main_id, self.option('bw'), self.option('bs'), self.option('ref_group'),name)
 
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output,'nipt_analysis')
@@ -137,16 +137,19 @@ class NiptWorkflow(Workflow):
 
 	def end(self):
 		super(NiptWorkflow, self).end()
+		for name in self.sample_id:
+			main_id = self.api_nipt.get_id(name)
+			for i in os.listdir(self.output_dir):
+				if re.search(name + '.*bed.2$', i):
+					self.api_nipt.add_bed_file(self.output_dir + '/'+ i)
+				elif re.search(name +'.*qc$', i):
+					self.api_nipt.add_qc(self.output_dir + '/' + i)
+				elif re.search(name +'.*_z.xls$', i):
+					self.api_nipt.add_z_result(self.output_dir + '/' + i,main_id)
+				elif re.search(name +'.*_zz.xls$', i):
+					self.api_nipt.add_zz_result(self.output_dir + '/' + i, main_id)
+					self.api_nipt.update_main(main_id, self.output_dir + '/' + i) #更新zz值到主表中去
+				elif re.search(name +'.*_fastqc.html$', i):
+					self.api_nipt.add_fastqc(main_id, self.output_dir + '/' + i)  # fastqc入库
 
-		for i in os.listdir(self.output_dir):
-			if re.search(r'.*bed.2$', i):
-				self.api_nipt.add_bed_file(self.output_dir + '/'+ i)
-			elif re.search(r'.*qc$', i):
-				self.api_nipt.add_qc(self.output_dir + '/' + i)
-			elif re.search(r'.*_z.xls$', i):
-				self.api_nipt.add_z_result(self.output_dir + '/' + i,self.main_id)
-			elif re.search(r'.*_zz.xls$', i):
-				self.api_nipt.add_zz_result(self.output_dir + '/' + i, self.main_id)
-			elif re.search(r'.*_fastqc.html$', i):
-				self.api_nipt.add_fastqc(self.main_id, self.output_dir + '/' + i)  # fastqc入库
-
+			self.api_nipt.update_interaction(main_id)

@@ -5,6 +5,7 @@ import json
 import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort, filter_json_sort
+from bson import SON
 
 
 class OtuSubsample(MetaController):
@@ -14,8 +15,7 @@ class OtuSubsample(MetaController):
 
     def POST(self):
         data = web.input()
-        postArgs = ['size', 'submit_location', "otu_id",
-                    "task_type", "group_detail", "group_id", "filter_json"]
+        postArgs = ['size', 'submit_location', "otu_id", "task_type", "group_detail", "group_id", "filter_json"]
         for arg in postArgs:
             if not hasattr(data, arg):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
@@ -64,14 +64,14 @@ class OtuSubsample(MetaController):
             "size": data.size,
             'update_info': json.dumps(update_info),
             "params": params,
-            'main_id': str(main_table_id)
+            'main_id': str(main_table_id),
+            # 'main_table_data': SON(mongo_data)
         }
         to_file = "meta.export_otu_table_by_level(in_otu_table)"
         task_name = 'meta.report.otu_subsample'
         self.set_sheet_data(name=task_name, options=options,
                             main_table_name="OTUTaxonAnalysis/" + main_table_name, module_type=task_type,
-                            to_file=to_file)  # modified by hongdongxuan 20170322 在main_table_name前面加上文件输出的文件夹名
+                            to_file=to_file)  # modified by hongdongxuan 20170322 前面加上文件输出的文件夹名
         task_info = super(OtuSubsample, self).POST()
-        task_info['content'] = {
-            'ids': {'id': str(main_table_id), 'name': main_table_name}}
+        task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         return json.dumps(task_info)

@@ -94,11 +94,11 @@ class PanCore(MetaController):
             'ids': [{
                 'id': str(main_pan_table_id),
                 'name': 'Pan_' + time_now
-                }, {
+            }, {
                 'id': str(main_core_table_id),
                 'name': 'Core_' + time_now
-                }]
-            }
+            }]
+        }
         return json.dumps(task_info)
 
     def get_unique(self):

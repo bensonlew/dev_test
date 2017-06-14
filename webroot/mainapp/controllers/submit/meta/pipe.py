@@ -6,6 +6,7 @@ import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
+from bson import SON
 
 
 class Pipe(MetaController):
@@ -81,21 +82,23 @@ class Pipe(MetaController):
             ('all_count', 0),
             ('pipe_main_id', "none")
         ]
-        main_table_id = self.meta.insert_main_table('sg_pipe_batch', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_pipe_batch')
         update_info = {str(main_table_id): 'sg_pipe_batch'}
         options = {
             "data": json.dumps(data),
             "update_info": json.dumps(update_info),
-            "pipe_id": str(main_table_id)
+            "pipe_id": str(main_table_id),
+            "main_table_data": SON(mongo_data)
         }
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
                             module_type=task_type)
         # self._sheet_data["instant"] = True #投递的接口，将workflow改为
         task_info = super(Pipe, self).POST()
-        task_info['content'] = {
-            'ids': {
-                'id': str(main_table_id),
-                'name': main_table_name
+        if task_info['success']:
+            task_info['content'] = {
+                'ids': {
+                    'id': str(main_table_id),
+                    'name': main_table_name
+                }
             }
-        }
         return json.dumps(task_info)
