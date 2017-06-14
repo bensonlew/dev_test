@@ -5,9 +5,9 @@ import os
 # import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-from mbio.files.sequence.file_sample import FileSampleFile
+# from mbio.files.sequence.file_sample import FileSampleFile
 # import json
-from mbio.packages.gene_structure.snp_anno import snp_freq_stat
+# from mbio.packages.gene_structure.snp_anno import snp_anno
 
 
 class SnpRnaModule(Module):
@@ -129,26 +129,36 @@ class SnpRnaModule(Module):
             if i.endswith(".vcf"):
                 vcf_path = os.path.join(obj.output_dir, i)
         self.logger.info(vcf_path)
-        annovar = self.add_tool('gene_structure.annovar')
-        options = {
-            "ref_genome": self.ref_name,
-            "input_file": vcf_path,
-            # "ref_gtf": self.option("ref_gtf").prop["path"]
-        }
-        if self.option("ref_genome") == "customer_mode":
-            options["ref_fasta"] = self.option("ref_genome_custom")
-            options["ref_gtf"] = self.option("ref_gtf")
-        annovar.set_options(options)
-        self.annovars.append(annovar)
-        # annovar.on("end", self.finish_update, "annovar")
-        annovar.on("end", self.set_output, "annovar_" + event['data'])
-        annovar.run()
+        if not os.path.exists(self.work_dir + "/output_vcf"):
+            os.mkdir(self.work_dir + "/output_vcf")
+        self.logger.info(self.work_dir + "/output_vcf/" + event['data'] + ".vcf")
+        output_vcf = self.work_dir + "/output_vcf/" + event['data'] + ".vcf"
+        if not os.path.exists(output_vcf):
+            os.link(vcf_path, output_vcf)
+        self.end_times += 1
+        if self.end_times == len(self.samples):
+            annovar = self.add_tool('gene_structure.annovar')
+            options = {
+                "ref_genome": self.ref_name,
+                "input_file": self.work_dir + "/output_vcf",
+                "combine_vcf": True
+                # "ref_gtf": self.option("ref_gtf").prop["path"]
+            }
+            if self.option("ref_genome") == "customer_mode":
+                options["ref_fasta"] = self.option("ref_genome_custom")
+                options["ref_gtf"] = self.option("ref_gtf")
+            annovar.set_options(options)
+            self.annovars.append(annovar)
+            self.logger.info("set output done")
+            annovar.on("end", self.set_output, "annovar_" + event['data'])
+            annovar.run()
 
     def set_output(self, event):
         self.logger.info("set output started!!!")
         obj = event["bind_object"]
         if event['data'][:7] == 'annovar':
-            output_name = self.output_dir + "/" + "{}.snp_anno.xls".format(event['data'][8:])
+            # output_name = self.output_dir + "/" + "{}.snp_anno.xls".format(event['data'][8:])
+            output_name = self.output_dir + "/" + "snp_anno.xls"
             self.logger.info("llllllllllllooking for event data")
             self.logger.info(event['data'][8:])
             self.logger.info(output_name)
@@ -156,10 +166,10 @@ class SnpRnaModule(Module):
                 os.remove(output_name)
             # snp_freq_stat(obj.work_dir + "snp.vcf", obj.output_dir + "/snp_anno.xls", output_name)
             os.link(obj.output_dir + "/snp_anno.xls", output_name)
-            self.end_times += 1
-            if self.end_times == len(self.samples):
-                self.logger.info("set output done")
-                self.end()
+            # self.end_times += 1
+            # if self.end_times == len(self.samples):
+            self.logger.info("set output done")
+            self.end()
         # self.logger.info("set output done")
 
     def linkdir(self, dirpath, dirname, output_dir):
