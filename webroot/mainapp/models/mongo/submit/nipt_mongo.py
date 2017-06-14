@@ -28,4 +28,7 @@ class NiptMongo(object):
     def insert_main_table(self, collection, data):
         return self.database[collection].insert_one(SON(data)).inserted_id
 
+    def insert_none_table(self, collection, data):
+        return self.database[collection].insert_one({}).inserted_id
+
 
