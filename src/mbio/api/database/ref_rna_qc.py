@@ -22,7 +22,7 @@ class RefRnaQc(Base):
         self._db_name = Config().MONGODB + '_ref_rna'
 
     @report_check
-    def add_samples_info(self, qc_stat, qc_adapt=None, fq_type='se'):
+    def add_samples_info(self, qc_stat, qc_adapt=None, fq_type='se', about_qc='before'):
         """
         :param qc_stat: 统计结果文件夹，即module.output_dir
         :param qc_adapt:去接头率文件，由于需求变动，可不传
@@ -79,8 +79,8 @@ class RefRnaQc(Base):
                         "error_rate": float(line[10]),
                         "q30_rate": float(line[11]),
                         "q20_rate": float(line[12]),
-                        "cg_rate": float(line[13]),
-                        "about_qc": "before",
+                        "gc_rate": float(line[13]),
+                        "about_qc": about_qc,
                         "type": fq_type   # 怎么得知待定
                         }
                 if line[0] in dup_rate:
@@ -249,14 +249,14 @@ class RefRnaQc(Base):
                     "task_id": self.bind_object.sheet.id,
                     "type": type,
                     "specimen_name": line[0],
-                    "total_reads": float(line[1]),
-                    "mapping_reads": float(line[2]),
-                    "multiple_mapped": float(line[3]),
-                    "uniq_mapped": float(line[4]),
-                    "map_to_up": float(line[5]),
-                    "map_to_down": float(line[6]),
-                    "non_splice_reads": float(line[-1]),
-                    "splice_reads": float(line[7]),
+                    "total_reads": int(line[1]),
+                    "mapping_reads": int(line[2]),
+                    "multiple_mapped": int(line[3]),
+                    "uniq_mapped": int(line[4]),
+                    "map_to_up": int(line[5]),
+                    "map_to_down": int(line[6]),
+                    "non_splice_reads": int(line[-1]),
+                    "splice_reads": int(line[7]),
                     "mapping_rate": str(float("%0.4f" % (float(line[2])/float(line[1])))*100) + "%",
                     # "multiple_mapped": line[3],
                     "multiple_rate": str(float("%0.4f" % (float(line[3])/float(line[1])))*100) + "%",
