@@ -6,6 +6,7 @@ from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
 import datetime
+from bson import SON
 
 
 class PearsonCorrelation(MetaController):
@@ -35,7 +36,7 @@ class PearsonCorrelation(MetaController):
             return json.dumps(info)
         task_info = self.meta.get_task_info(otu_info['task_id'])
 
-        print(data.top_species)
+        # print(data.top_species)
         params_json = {
             "otu_id": data.otu_id,
             "level_id": int(data.level_id),
@@ -76,7 +77,7 @@ class PearsonCorrelation(MetaController):
             ("level_id", int(data.level_id)),
             ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':')))
         ]
-        main_table_id = self.meta.insert_main_table('sg_species_env_correlation', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_species_env_correlation')
         update_info = {str(main_table_id): 'sg_species_env_correlation'}
 
         options = {
@@ -85,22 +86,23 @@ class PearsonCorrelation(MetaController):
             "env_file": data.env_id,
             'update_info': json.dumps(update_info),
             "group_detail": data.group_detail,
-            "corr_id": str(main_table_id)
+            "corr_id": str(main_table_id),
+            "main_table_data": SON(mongo_data)
         }
         del params_json["level_id"]
         del params_json["group_detail"]
         options.update(params_json)
         # print("lllllloptionlllll")
-        print(options)
+        # print(options)
         # print("ooooooooptionoooooo")
         to_file = ['meta.export_otu_table_by_detail(otu_file)', "env.export_float_env(env_file)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name="CorrelationHeatmap/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(PearsonCorrelation, self).POST()
-        task_info['content'] = {
-            'ids': {
-                'id': str(main_table_id),
-                'name': main_table_name
+        if task_info['success']:
+            task_info['content'] = {
+                'ids': {
+                    'id': str(main_table_id),
+                    'name': main_table_name
                 }}
-
         return json.dumps(task_info)

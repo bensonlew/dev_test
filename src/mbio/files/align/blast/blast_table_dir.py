@@ -18,12 +18,24 @@ class BlastTableDirFile(Directory):
             self.get_info()
             return True
 
+
     def get_info(self):
         files = os.listdir(self.path)
-        self.set_property('files_num', len(files))
+        full_files = []
+        files_obj = []
+        basenames = []
         if not len(files):
             raise FileError('文件夹为空，请检查！')
         for f in files:
+            base_name = os.path.splitext(f)[0]
             blasttable = BlastTableFile()
-            blasttable.set_path(self.path + '/' + f)
+            path = os.path.join(self.path, f)
+            blasttable.set_path(path)
             blasttable.check()
+            full_files.append(path)
+            files_obj.append(blasttable)
+            basenames.append(base_name)
+        self.set_property('files_num', len(files))  # 文件数量
+        self.set_property('files', full_files)  # 文件路径
+        self.set_property("file_objs", files_obj)  # 文件对象
+        self.set_property("basenames", basenames)  # 文件名去后缀

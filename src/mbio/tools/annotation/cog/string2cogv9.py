@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'wangbixuan'
+# __author__ = 'zengjing'
+# modified 2017.05.04
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
@@ -10,19 +11,17 @@ import subprocess
 
 class String2cogv9Agent(Agent):
     """
-    author: wangbixuan
-    last_modified: 20160719
+    输入比对到string库的table文件或xml文件进行cog注释及统计
     """
 
     def __init__(self, parent):
         super(String2cogv9Agent, self).__init__(parent)
         options = [
             {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"},
+            {"name": "string_table", "type": "infile", "format": "align.blast.blast_table"},
             {"name": "cog_list", "type": "outfile", "format": "annotation.cog.cog_list"},
             {"name": "cog_table", "type": "outfile", "format": "annotation.cog.cog_table"},
             {"name": "cog_summary", "type": "outfile", "format": "annotation.cog.cog_summary"}
-            # {"name": "E_value", "type": "float", "default": "1E-6"},
-            # {"name": "min_Coverage", "type": "string", "default": "50%"}
         ]
         self.add_option(options)
         self.step.add_steps('string2cog')
@@ -38,6 +37,8 @@ class String2cogv9Agent(Agent):
         self.step.update()
 
     def check_options(self):
+        if not self.option("blastout").is_set and not self.option("string_table").is_set:
+            raise OptionError("必须提供比对到string库的xm文件或table文件")
         if self.option("blastout").is_set:
             document = ET.parse(self.option("blastout").prop['path'])
             root = document.getroot()
@@ -46,8 +47,6 @@ class String2cogv9Agent(Agent):
                 pass
             else:
                 raise OptionError("BLAST比对数据库不支持")
-        else:
-            raise OptionError("必须提供BLAST结果文件")
 
     def set_resource(self):
         self._cpu = 20
@@ -71,20 +70,19 @@ class String2cogv9Tool(Tool):
     def __init__(self, config):
         super(String2cogv9Tool, self).__init__(config)
         self._version = '1.0'  # to be changed
-        # self.cmd_path = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/string2cog.py'.format(
-        #    self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
-        #self.cmd_path = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/string2cog_mongo.py'.format(
-        #    self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)  # 修改（sqlite3数据库换成mongo数据库；2016.11.15；zengjing）
-        self.cmd_path = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/string2cog_v9.py'.format(
-            self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)  # 修改（string数据库10.0更换成9.1版本；2017.02.10；zengjing）
+        self.python = self.config.SOFTWARE_DIR + '/program/Python/bin/python'
+        self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
+        self.cog_table = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/cog_annot.py'
 
     def run(self):
         super(String2cogv9Tool, self).run()
         self.run_string2cog()
 
     def run_string2cog(self):
-        cmd = self.cmd_path
-        cmd += ' %s %s' % (self.option("blastout").prop['path'], self.work_dir)
+        if self.option("blastout").is_set:
+            cmd = '{} {} {} {}'.format(self.python, self.cog_xml, self.option('blastout').prop['path'], self.work_dir)
+        else:
+            cmd = '{} {} {} {}'.format(self.python, self.cog_table, self.option('string_table').prop['path'], self.work_dir)
         self.logger.info('运行string2cog.py')
         self.logger.info(cmd)
         try:

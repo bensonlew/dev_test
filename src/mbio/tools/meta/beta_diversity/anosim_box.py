@@ -116,6 +116,16 @@ class AnosimBoxTool(Tool):
             self.get_fliers()
             self.logger.info('整理结果文件结束')
             self.end()
+        elif box_command.return_code is None:
+            self.logger.info('返回吗是none，重新运行一次！')
+            re_cmd = self.add_command('re_box', cmd).rerun()
+            if re_cmd.return_code == 0:
+                self.logger.info("重新运行一次成功！")
+                self.get_fliers()
+                self.logger.info('整理结果文件结束')
+                self.end()
+            else:
+                raise Exception("重新运行一次出错")
         else:
             self.set_error('运行anosim_box.r出错')
 

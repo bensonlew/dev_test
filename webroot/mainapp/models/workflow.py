@@ -34,7 +34,7 @@ class Workflow(object):
         try:
             results = self.db.query("SELECT * FROM tostop WHERE workflow_id=$id", vars={'id': wid})
             if len(results) > 0:
-                insert_data["time"] = datetime.datetime.now()
+                insert_data["time"] = datetime.datetime.now().strftime('%Y-%m-%d %X')
                 insert_data["done"] = 0
                 self.db.update("tostop", vars={'id': wid}, where="workflow_id = $id", **insert_data)
             else:
@@ -56,7 +56,7 @@ class Workflow(object):
         try:
             results = self.db.query("SELECT * FROM pause WHERE workflow_id=$id", vars={'id': wid})
             if len(results) > 0:
-                insert_data["add_time"] = datetime.datetime.now()
+                insert_data["add_time"] = datetime.datetime.now().strftime('%Y-%m-%d %X')
                 insert_data["has_pause"] = 0
                 insert_data["exit_pause"] = 0
                 insert_data["has_continue"] = 0
@@ -79,7 +79,7 @@ class Workflow(object):
             if len(results) > 0:
                 update_data = {
                     "exit_pause": 1,
-                    "exit_pause_time": datetime.datetime.now()
+                    "exit_pause_time": datetime.datetime.now().strftime('%Y-%m-%d %X')
                 }
                 self.db.update("pause", vars={'id': wid}, where="workflow_id = $id", **update_data)
             insert_workflow_data = {

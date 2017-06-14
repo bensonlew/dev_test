@@ -7,6 +7,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.group_stat import GroupStat as G
 from mainapp.libs.param_pack import group_detail_sort
+from bson import SON
 import re
 
 
@@ -17,7 +18,7 @@ class Lefse(MetaController):
     @check_sig
     def POST(self):
         data = web.input()
-        print data
+        # print data
         return_result = self.check_options(data)
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
@@ -60,12 +61,14 @@ class Lefse(MetaController):
                 "lda_filter": data.lda_filter,
                 "lefse_id": str(lefse_id),
                 "start_level": int(data.start_level),
-                "end_level": int(data.end_level),
+                "end_level": int(data.end_level)
             }
             to_file = ["meta.export_otu_table(otu_file)", "meta.export_cascading_table_by_detail(group_file)"]
-            self.set_sheet_data(name='meta.report.lefse', options=options, main_table_name="LEfSe/" + name, module_type='workflow', to_file=to_file)
+            self.set_sheet_data(name='meta.report.lefse', options=options, main_table_name="LEfSe/" + name,
+                                module_type='workflow', to_file=to_file)
             task_info = super(Lefse, self).POST()
-            task_info['content'] = {'ids': {'id': str(lefse_id), 'name': name}}
+            if task_info['success']:
+                task_info['content'] = {'ids': {'id': str(lefse_id), 'name': name}}
             print task_info
             return json.dumps(task_info)
         else:

@@ -24,23 +24,24 @@ class DiffExpAgent(Agent):
     def __init__(self, parent):
         super(DiffExpAgent, self).__init__(parent)
         options = [
-            {"name": "count", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，基因技术矩阵
-            {"name": "fpkm", "type": "infile", "format": "denovo_rna.express.express_matrix"},  # 输入文件，基因表达量矩阵
+            {"name": "count", "type": "infile", "format": "rna.express_matrix"},  # 输入文件，基因技术矩阵
+            {"name": "fpkm", "type": "infile", "format": "rna.express_matrix"},  # 输入文件，基因表达量矩阵
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
             {"name": "min_rowsum_counts", "type": "int", "default": 2},  # 离散值估计检验的最小计数值
-            {"name": "edger_group", "type": "infile", "format": "meta.otu.group_table"},  # 有生物学重复的时候的分组文件
-            {"name": "control_file", "type": "infile", "format": "denovo_rna.express.control_table"},  # 对照组文件，格式同分组文件
+            {"name": "edger_group", "type": "infile", "format": "sample.group_table"},  # 有生物学重复的时候的分组文件
+            {"name": "control_file", "type": "infile", "format": "sample.control_table"},  # 对照组文件，格式同分组文件
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
             {"name": "method", "type": "string", "default": "edgeR"}, # 选择计算的软件
             {"name": "gname", "type": "string", "default": "none"},  # 分组方案名称
             {"name": "fc", "type": "float", "default": 2}, #log底数
             {"name": "diff_fdr_ci", "type": "float", "default": 0.05}, #fdr的选择
             {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
-            {"name": "diff_count", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因计数表
-            {"name": "diff_fpkm", "type": "outfile", "format": "denovo_rna.express.express_matrix"},  # 差异基因表达量表
-            {"name": "diff_list", "type": "outfile", "format": "denovo_rna.express.gene_list"},  # 差异基因名称文件
-            {"name": "diff_list_dir", "type": "outfile", "format": "denovo_rna.express.gene_list_dir"},
-            {"name": "regulate_edgrstat_dir", "type": "outfile", "format": "denovo_rna.express.diff_stat_dir"},
+            {"name": "diff_count", "type": "outfile", "format": "rna.express_matrix"},  # 差异基因计数表
+            {"name": "diff_fpkm", "type": "outfile", "format": "rna.express_matrix"},  # 差异基因表达量表
+            {"name": "diff_list", "type": "outfile", "format": "rna.gene_list"},  # 差异基因名称文件
+            {"name": "diff_list_dir", "type": "outfile", "format": "rna.gene_list_dir"},
+            {"name": "regulate_edgrstat_dir", "type": "outfile", "format": "rna.diff_stat_dir"},
+            {"name":"pvalue_padjust","type":"string","default":"padjust"}  #按照pvalue(diff_ci)还是padjust(diff_fdr_ci)筛选
         ]
         self.add_option(options)
         self.step.add_steps("diff_exp")
@@ -138,7 +139,7 @@ class DiffExpTool(Tool):
     def run_edger(self, dispersion=None):
         if self.option('edger_group').is_set:
             self.option('edger_group').get_edger_group([self.option('gname')], './edger_group')
-            edger_cmd = self.edger + " --matrix %s --method %s --samples_file %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'), './edger_group', self.option('min_rowsum_counts'))
+            edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --samples_file %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'), self.option('dispersion'), './edger_group', self.option('min_rowsum_counts'))
         else:
             edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], self.option('method'), self.option('dispersion'), self.option('min_rowsum_counts'))
             restart_edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'), dispersion, self.option('min_rowsum_counts'))
@@ -203,7 +204,7 @@ class DiffExpTool(Tool):
                 if re.search(r'edgeR.DE_results$', afile):
                     if i[0] in afile and i[1] in afile:
                         # self.logger.info(afile)
-                        stat.diff_stat(express_info=stat.express_info, edgr_result=self.work_dir + '/edger_result/' + afile, control=i[0], other=i[1], output=self.output_dir, group_info=group_info, regulate=True, diff_ci=self.option("diff_ci"))
+                        stat.diff_stat(express_info=stat.express_info, edgr_result=self.work_dir + '/edger_result/' + afile, control=i[0], other=i[1], output=self.output_dir, group_info=group_info, regulate=True, diff_ci=self.option("diff_ci"),fc=self.option('fc'),diff_fdr_ci=self.option('diff_fdr_ci'),pvalue_padjust=self.option("pvalue_padjust"))  #确保按照fc过滤 ，按照diff_ci或diff_fdr_ci判断是否significant  #modify by khl
                         file_name = '/%s_vs_%s_edgr_stat.xls' % (i[0], i[1])
                         os.link(self.output_dir + file_name, self.regulate_stat + file_name)
                         edger_results.remove(afile)
@@ -215,7 +216,7 @@ class DiffExpTool(Tool):
                 self.logger.info(f)
                 control = f.split('.')[-3].split('_vs_')[0]
                 other = f.split('.')[-3].split('_vs_')[1]
-                stat.diff_stat(express_info=stat.express_info, edgr_result=self.work_dir + '/edger_result/' + f, control=control, other=other, output=self.output_dir, group_info=group_info, regulate=False, diff_ci=self.option("diff_ci"), fc=self.option("fc"), diff_fdr_ci=self.option("diff_fdr_ci"))
+                stat.diff_stat(express_info=stat.express_info, edgr_result=self.work_dir + '/edger_result/' + f, control=control, other=other, output=self.output_dir, group_info=group_info, regulate=False, diff_ci=self.option("diff_ci"), fc=self.option("fc"), diff_fdr_ci=self.option("diff_fdr_ci"),pvalue_padjust=self.option('pvalue_padjust')) #modify by khl
 
     def merge(self):
         """

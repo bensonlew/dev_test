@@ -40,6 +40,12 @@ class Meta(object):
     def insert_main_table(self, collection, data):
         return self.db[collection].insert_one(SON(data)).inserted_id
 
+    def insert_none_table(self, collection):
+        return self.db[collection].insert_one({}).inserted_id
+
+    def insert_main_table_new(self, collection, obj_id, data):
+        return self.db[collection].find_one_and_update({"_id": ObjectId(obj_id)}, {'$set': data}, upsert=True)
+
     def update_status_failed(self, collection, doc_id):
         """
         改特定_id主表的status状态从start为failed，主要用于特殊投递任务失败

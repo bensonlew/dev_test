@@ -11,6 +11,7 @@ import datetime
 # from mainapp.libs.param_pack import GetUploadInfo
 from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
+from bson import SON
 
 
 class Rarefaction(MetaController):
@@ -36,7 +37,7 @@ class Rarefaction(MetaController):
                 info = {"success": False, "info": "指数类型不正确{}".format(index)}
                 return json.dumps(info)
         if int(data.level_id) not in range(1, 10):
-            info = {"success": False, "info": "level{}不在规定范围内{}".format(data.level_id)}
+            info = {"success": False, "info": "level{}不在规定范围内!".format(data.level_id)}
             return json.dumps(info)
         my_param = dict()
         my_param['otu_id'] = data.otu_id
@@ -51,9 +52,8 @@ class Rarefaction(MetaController):
         my_param['task_type'] = data.task_type
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['group_id'] = data.group_id
-        params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
-
-        otu_info = self.meta.get_otu_table_info(data.otu_id)
+        # params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
+        # otu_info = self.meta.get_otu_table_info(data.otu_id)
         task_name = 'meta.report.rarefaction'
         task_type = 'workflow'
 
@@ -75,7 +75,7 @@ class Rarefaction(MetaController):
             ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
         ]
         # main_table_id = Estimator().add_rare_collection(data.level_id, params, data.otu_id, main_table_name)
-        main_table_id = self.meta.insert_main_table('sg_alpha_rarefaction_curve', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_alpha_rarefaction_curve')
         update_info = {str(main_table_id): 'sg_alpha_rarefaction_curve'}
 
         options = {
@@ -86,17 +86,18 @@ class Rarefaction(MetaController):
             "level": data.level_id,
             "freq": data.freq,
             "rare_id": str(main_table_id),
-            "group_detail": data.group_detail
-                }
+            "group_detail": data.group_detail,
+            "main_table_data": SON(mongo_data)
+        }
 
         to_file = "meta.export_otu_table_by_detail(otu_table)"
         self.set_sheet_data(name=task_name, options=options, main_table_name="Rarefaction/" + main_table_name,
-                            module_type=task_type, to_file=to_file) # modified by hongdongxuan 20170322 在main_table_name前面加上文件输出的文件夹名
+                            module_type=task_type, to_file=to_file)
         task_info = super(Rarefaction, self).POST()
-        task_info['content'] = {
-            'ids': {
-                'id': str(main_table_id),
-                'name': main_table_name
+        if task_info['success']:
+            task_info['content'] = {
+                'ids': {
+                    'id': str(main_table_id),
+                    'name': main_table_name
                 }}
-
         return json.dumps(task_info)

@@ -75,12 +75,15 @@ class FactorDistanceTool(Tool):
         super(FactorDistanceTool, self).__init__(config)
         self._version = '1.9.1'  # qiime版本
         self.cmd_path = 'program/Python/bin/beta_diversity.py'
+        self.biom = None
         # 设置运行环境变量
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
-        self.biom = self.biom_fac_table()  # 传入otu表需要转化为biom格式
+        # self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64:$LD_LIBRARY_PATH')
+        # self.biom = self.biom_fac_table()  # 传入otu表需要转化为biom格式
 
     def run(self):
         super(FactorDistanceTool, self).run()
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64')
+        self.biom = self.biom_fac_table()
         self.run_beta_diversity()
 
     def run_beta_diversity(self):

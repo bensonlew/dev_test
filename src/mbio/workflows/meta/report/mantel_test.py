@@ -7,6 +7,7 @@ import glob
 from bson import ObjectId
 from mbio.packages.beta_diversity.filter_newick import get_level_newicktree
 from bson.objectid import ObjectId
+from biocluster.core.exceptions import OptionError
 
 
 class MantelTestWorkflow(Workflow):
@@ -169,5 +170,5 @@ class MantelTestWorkflow(Workflow):
                 otu_file_temp.close()
                 options['otutable'] = temp_otu_file
                 options['newicktree'] = temp_tree_file
-        print(options)
+        # print(options)
         return options

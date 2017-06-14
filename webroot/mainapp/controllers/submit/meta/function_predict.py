@@ -5,6 +5,7 @@ import web
 import json
 import datetime
 from bson import ObjectId
+from bson import SON
 from mainapp.libs.param_pack import group_detail_sort
 from mainapp.controllers.project.meta_controller import MetaController
 
@@ -15,7 +16,7 @@ class FunctionPredict(MetaController):
 
     def POST(self):
         data = web.input()
-        print data
+        # print data
         default_argu = ['otu_id', 'submit_location', "group_id", "group_detail", "group_method", "task_type"]
         for argu in default_argu:
             if not hasattr(data, argu):
@@ -50,19 +51,21 @@ class FunctionPredict(MetaController):
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ('params', json.dumps(params_json, sort_keys=True, separators=(',', ':')))
         ]
-        main_table_id = self.meta.insert_main_table('sg_16s', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_16s')
         update_info = {str(main_table_id): 'sg_16s'}
         options = {
             "update_info": json.dumps(update_info),
             "otu_table": data.otu_id,
             "group_detail": data.group_detail,
             "group_method": data.group_method,
-            "predict_id": str(main_table_id)
+            "predict_id": str(main_table_id),
+            "main_table_data": SON(mongo_data)
         }
         to_file = ["function_predict.export_otu_table_by_detail(otu_table)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name="16sFunctionPrediction/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(FunctionPredict, self).POST()
-        task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
+        if task_info['success']:
+            task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         print task_info
         return json.dumps(task_info)
