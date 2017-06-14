@@ -105,14 +105,10 @@ class ResultInfoTool(Tool):
             cmd = self.add_command("plot_cmd", plot_cmd).run()
             self.wait(cmd)
 
-            if cmd.return_code == None:
-                self.logger.info("返回码问题，重新运行cmd")
-                cmd = self.add_command("cmd", cmd).run()
-                self.wait(cmd)
-
             if cmd.return_code == 0:
                 self.logger.info("运行绘制结果图成功")
             else:
+                self.set_error("运行绘制结果图出错")
                 raise Exception("运行绘制结果图出错")
         else:
             self.logger.info("家系中有样本质控不合格")
@@ -152,14 +148,10 @@ class ResultInfoTool(Tool):
             cmd = self.add_command("convert_cmd", convert_cmd).run()
             self.wait(cmd)
 
-            if cmd.return_code == None:
-                self.logger.info("返回码问题，重新运行cmd")
-                cmd = self.add_command("cmd", cmd).run()
-                self.wait(cmd)
-
             if cmd.return_code == 0:
                 self.logger.info("运行转化结果图成功")
             else:
+                self.set_error("运行转化结果图出错")
                 raise Exception("运行转化结果图出错")
 
     def set_output(self):

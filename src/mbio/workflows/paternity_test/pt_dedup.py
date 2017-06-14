@@ -2,7 +2,7 @@
 # __author__ = 'moli.zhou'
 # last modified:201703
 
-'''医学检验所-无创产前亲子鉴定流程'''
+'''优化查重部分的效率'''
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
@@ -14,13 +14,13 @@ import shutil
 import gevent
 
 
-class PatchDcBackupWorkflow(Workflow):
+class PtDedupWorkflow(Workflow):
 	def __init__(self, wsheet_object):
 		'''
         :param wsheet_object:
         '''
 		self._sheet = wsheet_object
-		super(PatchDcBackupWorkflow, self).__init__(wsheet_object)
+		super(PtDedupWorkflow, self).__init__(wsheet_object)
 		options = [
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},  # fastq所在路径(文件夹
 			{"name": "cpu_number", "type": "int", "default": 4},  # cpu个数
@@ -41,7 +41,7 @@ class PatchDcBackupWorkflow(Workflow):
 		self.tool = []
 		self.tools_analysis = []
 		self.tools_result = []
-		self.tools_dedup_f = []
+		self.tools_dedup = []
 		self.rdata = []
 		self.set_options(self._sheet.options())
 		self.step.add_steps("pt_analysis", "result_info", "retab",
@@ -90,7 +90,9 @@ class PatchDcBackupWorkflow(Workflow):
 				if self.option('direct_get_path') == 'True':
 					self.logger.info('{}样本已存在于数据库'.format(i))
 				elif self.option('direct_get_path') == 'False':
-					raise Exception('请确认{}样本是否重名'.format(i))
+					self.logger.error('请确认{}样本是否重名'.format(i))
+					# raise Exception('请确认{}样本是否重名'.format(i))
+					self.exit(exitcode=1, data='请确认{}样本是否重名'.format(i), terminated=False)
 			else:
 				fastq2mongo = self.add_module("paternity_test.fastq2mongo_dc")
 				self.step.add_steps('fastq2mongo{}'.format(n))
@@ -139,7 +141,9 @@ class PatchDcBackupWorkflow(Workflow):
 		api_read_tab = self.api.tab_file
 		self.family_id = api_read_tab.family_unanalysised()  # tuple
 		if not self.family_id:
-			raise Exception("没有符合条件的家系")
+			self.logger.error("没有符合条件的家系")
+			self.exit(exitcode=1, data='没有符合条件的家系', terminated=False)
+			# raise Exception("没有符合条件的家系")
 
 		api_read_tab = self.api.tab_file
 		n = 0
@@ -152,25 +156,31 @@ class PatchDcBackupWorkflow(Workflow):
 			# temp = re.match('WQ([1-9].*)-F.*', self.family_id[p][0])
 			# num = int(temp.group(1))
 			# self.num_list = range(num - self.option('dedup_num'), num + self.option('dedup_num') + 1)
-			name_list = []
+			self.name_list = []
 			api_read_tab.export_tab_file(self.family_id[p][1], self.output_dir)
 			api_read_tab.export_tab_file(self.family_id[p][2], self.output_dir)
 
 
+			# x = api_read_tab.dedup_sample()
+			# if len(x):  # 如果库中能取到前后的样本
+			# 	for k in range(len(x)):
+			# 		api_read_tab.export_tab_file(x[k], self.output_dir)
+			# 		if x[k] != self.family_id[p][0] and x[k] != self.family_id[p][0] + '1':
+			# 			name_list.append(x[k])
+			# if name_list == []:
+			# 	pass
+			# else:
+			# 	self.father.append(self.family_id[p][0])
+			# 	self.mother.append(self.family_id[p][1])
+			# 	self.preg.append(self.family_id[p][2])
+			# 	self.dedup_list.append(name_list)
+			# 	self.tool.append([])
 			x = api_read_tab.dedup_sample()
 			if len(x):  # 如果库中能取到前后的样本
 				for k in range(len(x)):
 					api_read_tab.export_tab_file(x[k], self.output_dir)
-					if x[k] != self.family_id[p][0] and x[k] != self.family_id[p][0] + '1':
-						name_list.append(x[k])
-			if name_list == []:
-				pass
-			else:
-				self.father.append(self.family_id[p][0])
-				self.mother.append(self.family_id[p][1])
-				self.preg.append(self.family_id[p][2])
-				self.dedup_list.append(name_list)
-				self.tool.append([])
+					self.name_list.append(x[k])
+
 
 		for i in range(len(self.family_id)):
 			dad_id = self.family_id[i][0]
@@ -198,88 +208,80 @@ class PatchDcBackupWorkflow(Workflow):
 			n += 1
 		for j in range(len(self.tools_analysis)):
 			self.tools_analysis[j].on('end', self.set_output, 'pt_analysis')
-			self.tools_analysis[j].on('end', self.result_info_run, j)
 
-		# if len(self.tools_analysis) > 1:
-		# 	self.on_rely(self.tools_analysis, self.result_info_run,len(self.tools_analysis))
-		# elif len(self.tools_analysis) == 1:
-		# 	self.tools_analysis[0].on('end', self.result_info_run,len(self.tools_analysis))
-
+		if len(self.tools_analysis) > 1:
+			self.on_rely(self.tools_analysis, self.result_info_run)
+		elif len(self.tools_analysis) == 1:
+			self.tools_analysis[0].on('end', self.result_info_run)
 		for t in self.tools_analysis:
 			t.run()
 
-	def result_info_run(self, event):
-		n = event['data']
-		result_info = self.add_tool("paternity_test.result_info")
-		self.step.add_steps('result_info{}'.format(n))
-		if int(n) == 0:
-			results = os.listdir(self.work_dir + "/PtAnalysis/FamilyMerge/output")
-			for f in results:
-				if re.match(r'.*family_joined_tab\.Rdata$', f):
-					rdata = f
-				else:
-					print "Oops!"
-			self.rdata = self.work_dir + '/PtAnalysis/FamilyMerge/output/' + rdata
-			self.father_sample = rdata.split('_')[0]
-			self.mom_sample = rdata.split('_')[1]
-			self.preg_sample = rdata.split('_')[2]
-		else:
-			results = os.listdir(self.work_dir + "/PtAnalysis{}/FamilyMerge/output".format(n))
-			for f in results:
-				if re.match(r'.*family_joined_tab\.Rdata$', f):
-					rdata = f
-				elif re.match(r'.*family_joined_tab\.txt$', f):
-					pass
-			self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/'.format(n) + rdata
-			self.father_sample = rdata.split('_')[0]
-			self.mom_sample = rdata.split('_')[1]
-			self.preg_sample = rdata.split('_')[2]
+	def result_info_run(self):
+		for n in range(len(self.tools_analysis)):
+			result_info = self.add_tool("paternity_test.result_info")
+			self.step.add_steps('result_info{}'.format(n))
+			if int(n) == 0:
+				results = os.listdir(self.work_dir + "/PtAnalysis/FamilyMerge/output")
+				for f in results:
+					if re.match(r'.*family_joined_tab\.Rdata$', f):
+						rdata = f
+					else:
+						print "Oops!"
+				self.rdata = self.work_dir + '/PtAnalysis/FamilyMerge/output/' + rdata
+				self.father_sample = rdata.split('_')[0]
+				self.mom_sample = rdata.split('_')[1]
+				self.preg_sample = rdata.split('_')[2]
+			else:
+				results = os.listdir(self.work_dir + "/PtAnalysis{}/FamilyMerge/output".format(n))
+				for f in results:
+					if re.match(r'.*family_joined_tab\.Rdata$', f):
+						rdata = f
+					elif re.match(r'.*family_joined_tab\.txt$', f):
+						pass
+				self.rdata = self.work_dir + '/PtAnalysis{}/FamilyMerge/output/'.format(n) + rdata
+				self.father_sample = rdata.split('_')[0]
+				self.mom_sample = rdata.split('_')[1]
+				self.preg_sample = rdata.split('_')[2]
 
-		# self.logger.info(self.father_sample)
-		# self.logger.info(self.father)
-		# self.logger.info(self.mom_sample)
-		# self.logger.info(self.mother)
-		# self.logger.info(self.preg_sample)
-		# self.logger.info(self.preg)
+			result_info.set_options({
+				"tab_merged": self.rdata
+			})
+			step = getattr(self.step, 'result_info{}'.format(n))
+			step.start()
+			self.tools_result.append(result_info)
 
-		if self.father_sample in self.father:
-			q = self.father.index(self.father_sample)
-			result_info.on('end', self.dedup_run, q)
-		elif self.mom_sample in self.mother:
-			q = self.mother.index(self.mom_sample)
-			result_info.on('end', self.dedup_run, q)
-		elif self.preg_sample in self.preg:
-			q = self.preg.index(self.preg_sample)
-			result_info.on('end', self.dedup_run, q)
-		else:
-			result_info.on('end', self.end)
+		for j in range(len(self.tools_result)):
+			self.tools_result[j].on('end', self.set_output, 'result_info')
 
-		result_info.set_options({
-			"tab_merged": self.rdata
-		})
-		step = getattr(self.step, 'result_info{}'.format(n))
-		step.start()
-		result_info.on('end', self.finish_update, 'result_info{}'.format(n))
-		result_info.on('end', self.set_output, 'result_info')
-		result_info.run()
+		if len(self.tools_result) > 1:
+			self.on_rely(self.tools_result, self.dedup_run)
+		elif len(self.tools_result) == 1:
+			self.tools_result[0].on('end', self.dedup_run)
+		for t in self.tools_result:
+			t.run()
 
-	def dedup_run(self, event):
+	def dedup_run(self):
 		n = 0
-		q = event['data']
-		name_list = self.dedup_list[q]
-		self.tools_dedup = []
-		self.logger.info(q)
-		self.logger.info(name_list)
-		# family = self.father[q].split('-')[0]
-		for i in name_list:
-			pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
+		for i in range(len(self.family_id)):
+			dad_id = self.family_id[i][0]
+			mom_id = self.family_id[i][1]
+			preg_id = self.family_id[i][2]
+			self.name_list.remove(dad_id)
+			dad_list = []
+
+			for i in self.name_list:
+				dad_list.append(self.output_dir + '/'+ i + '.tab')
+			dad_list = ",".join(dad_list)
+
+
+			pt_analysis_dedup = self.add_tool("paternity_test.dedup_analysis")
 			self.step.add_steps('dedup_{}'.format(n))
 			pt_analysis_dedup.set_options({
-				"dad_tab": self.output_dir + '/'+ i + '.tab',  # 数据库的tab文件
-				"mom_tab": self.output_dir + '/' + self.mother[q] +'.tab',
-				"preg_tab": self.output_dir +'/' + self.preg[q]+'.tab',
-				"ref_point": self.option("ref_point"),
-				"err_min": self.option("err_min")
+					"dad_list": dad_list,  # 数据库的tab文件
+					"mom_tab": self.output_dir + '/' + mom_id +'.tab',
+					"preg_tab": self.output_dir +'/' + preg_id+'.tab',
+					"ref_point": self.option("ref_point"),
+					"err_min": self.option("err_min")
 			}
 			)
 			step = getattr(self.step, 'dedup_{}'.format(n))
@@ -287,31 +289,17 @@ class PatchDcBackupWorkflow(Workflow):
 			pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
 			self.tools_dedup.append(pt_analysis_dedup)
 			n += 1
-		self.tool[q] = self.tools_dedup
 
-		for j in range(len(self.tool[q])):
-			self.tool[q][j].on('end', self.set_output, 'dedup')
+		for j in range(len(self.tools_dedup)):
+			self.tools_dedup[j].on('end', self.set_output, 'dedup')
 
-		x = len(self.tool) - 1
+		if len(self.tools_dedup) > 1:
+			self.on_rely(self.tools_dedup, self.end)
+		else:
+			self.tools_dedup[0].on("end", self.end)
 
-		if self.list_2D(self.tool):
-			if len(self.tool[x]) > 1:
-				self.on_rely(self.tool[x], self.end)
-			else:
-				self.tool[x][0].on("end", self.end)
-
-			for tool in self.tool:
-				for tool_i in tool:
-					tool_i.run()
-
-	def list_2D(self, name):
-		for m in name:
-			if m == []:
-				temp = False
-				break
-			else:
-				temp = True
-		return temp
+		for tool in self.tools_dedup:
+			tool.run()
 
 	def linkdir(self, dirpath, dirname):
 		"""
@@ -355,11 +343,11 @@ class PatchDcBackupWorkflow(Workflow):
 			# api_main.add_pt_figure(obj.output_dir)
 
 		if event['data'] == "dedup":
-			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
+			self.linkdir(obj.output_dir, self.output_dir)
 
 	def run(self):
 		self.fastq2mongo_run()
-		super(PatchDcBackupWorkflow, self).run()
+		super(PtDedupWorkflow, self).run()
 
 	def end(self):
 		api_main = self.api.sg_paternity_test
@@ -369,6 +357,7 @@ class PatchDcBackupWorkflow(Workflow):
 		results = os.listdir(self.output_dir)
 
 		for i in range(len(self.family_id)):
+			self.logger.info('家系{}开始进行导表'.format(self.family_id[i]))
 			dad_id = self.family_id[i][0]
 			mom_id = self.family_id[i][1]
 			preg_id = self.family_id[i][2]
@@ -383,7 +372,7 @@ class PatchDcBackupWorkflow(Workflow):
 			self.pt_father_id = api_main.add_pt_father(father_id=self.father_id, err_min=self.option("err_min"),
 			                                           dedup=self.option('dedup_num'))
 
-			dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt'
+			dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt$'
 			dedup1 = '.*_NA_' + preg_id + '_family_analysis.txt'
 			dedup2 = '.*' + mom_id + '_NA_family_analysis.txt'
 			for f in results:
@@ -416,4 +405,4 @@ class PatchDcBackupWorkflow(Workflow):
 			# 更新单次运行的状态
 			api_main.update_sg_pt_father(self.pt_father_id)
 
-		super(PatchDcBackupWorkflow, self).end()
+		super(PtDedupWorkflow, self).end()

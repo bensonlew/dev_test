@@ -143,12 +143,22 @@ class TabFile(Base):
                 raise Exception('报错：样本数据{}的tab文件为空，可能还未下机'.format(sample))
 
 
-    def dedup_sample(self, num):
+    def dedup_sample(self):
         collection = self.database['sg_pt_ref_main']
         # param = "WQ{}-F".format(num) + '.*'
         sample = []
 
         for u in collection.find({"sample_id": {"$regex": '.*-F.*'},"batch_id": {"$exists":True}}):
+            sample.append(u['sample_id'])
+        sample_new = list(set(sample))
+        return sample_new
+
+    def dedup_sample_report(self,num):
+        collection = self.database['sg_pt_ref_main']
+        param = "WQ{}-F".format(num) + '.*'
+        sample = []
+
+        for u in collection.find({"sample_id": {"$regex": param},"batch_id": {"$exists":True}}):
             sample.append(u['sample_id'])
         sample_new = list(set(sample))
         return sample_new
@@ -327,6 +337,8 @@ class TabFile(Base):
     def type(self,sample_id):
         collection = self.database['sg_pt_ref_main']
         sample = collection.find_one({"sample_id": sample_id})
+        if not sample:
+            raise Exception('{}样本在库中找不到类型'.format(sample_id))
         return sample['type']
 
     def sample_qc_dc(self, file, sample_id):

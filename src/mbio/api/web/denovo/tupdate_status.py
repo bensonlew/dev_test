@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
 from biocluster.config import Config
-from mbio.api.web.meta.update_status import UpdateStatus
+from ..meta.update_status import UpdateStatus
 
 
 class TupdateStatus(UpdateStatus):
@@ -12,6 +12,4 @@ class TupdateStatus(UpdateStatus):
         self._client = "client03"
         self._key = "hM4uZcGs9d"
         self._url = "http://www.tsanger.com/api/add_file"
-        self._post_data = "%s&%s" % (self.get_sig(), self.get_post_data())
-        self._mongo_client = self._config.mongo_client
         self.mongodb = self._mongo_client[Config().MONGODB + '_rna']
