@@ -6,6 +6,7 @@ import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.group_stat import GroupStat as G
 from bson.objectid import ObjectId
+from bson import SON
 
 
 class TwoSample(MetaController):
@@ -17,7 +18,7 @@ class TwoSample(MetaController):
         return_result = self.check_options(data)
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
-            print json.dumps(info)
+            # print json.dumps(info)
             return json.dumps(info)
         task_name = 'meta.report.two_sample'
         task_type = 'workflow'  # 可以不配置
@@ -52,7 +53,7 @@ class TwoSample(MetaController):
             "status": "start",
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        main_table_id = self.meta.insert_main_table('sg_species_difference_check', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_species_difference_check')
         update_info = {str(main_table_id): 'sg_species_difference_check'}
         options = {
             "otu_file": data.otu_id,
@@ -67,10 +68,12 @@ class TwoSample(MetaController):
             "coverage": float(data.coverage),
             "params": params,
             "update_info": json.dumps(update_info),
-            "main_id": str(main_table_id)
+            "main_id": str(main_table_id),
+            "main_table_data": SON(mongo_data)
         }
         to_file = "meta.export_otu_table_by_level(otu_file)"
-        self.set_sheet_data(name=task_name, options=options, main_table_name="DiffStatTwoSample/" + main_table_name, module_type=task_type, to_file=to_file)
+        self.set_sheet_data(name=task_name, options=options, main_table_name="DiffStatTwoSample/" + main_table_name,
+                            module_type=task_type, to_file=to_file)
         task_info = super(TwoSample, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         return json.dumps(task_info)
@@ -79,7 +82,8 @@ class TwoSample(MetaController):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction', 'type', 'test', 'methor', 'coverage', 'submit_location']
+        params_name = ['otu_id', 'level_id', 'sample1', 'sample2', 'ci', 'correction', 'type', 'test', 'methor',
+                       'coverage', 'submit_location']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
