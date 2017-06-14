@@ -5,6 +5,7 @@ import json
 import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import param_pack, group_detail_sort
+from bson import SON
 from bson import ObjectId
 
 
@@ -51,7 +52,7 @@ class ClusterAnalysis(MetaController):
             ("show", 0),
             ("type", "otu_group_analyse")
         ]
-        main_table_id = self.meta.insert_main_table('sg_otu', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_otu')
         update_info = {str(main_table_id): 'sg_otu'}
         options = {
             "input_otu_id": data.otu_id,
@@ -59,15 +60,12 @@ class ClusterAnalysis(MetaController):
             "group_detail": data.group_detail,
             "level": str(data.level_id),
             'update_info': json.dumps(update_info),
-            'main_id': str(main_table_id)
+            'main_id': str(main_table_id),
+            'main_table_data': SON(mongo_data)
         }
         to_file = "meta.export_otu_table_by_level(in_otu_table)"
         self.set_sheet_data(name=task_name, options=options, main_table_name="CommunityAnalysis/" + main_table_name,
                             module_type='workflow', to_file=to_file)
         task_info = super(ClusterAnalysis, self).POST()
-        task_info['content'] = {
-            'ids': {
-                'id': str(main_table_id),
-                'name': main_table_name
-            }}
+        task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         return json.dumps(task_info)

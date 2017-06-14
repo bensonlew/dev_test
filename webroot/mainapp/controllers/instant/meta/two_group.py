@@ -7,6 +7,7 @@ from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.models.mongo.group_stat import GroupStat as G
 from mainapp.libs.param_pack import group_detail_sort
 from bson.objectid import ObjectId
+from bson import SON
 
 
 class TwoGroup(MetaController):
@@ -56,8 +57,8 @@ class TwoGroup(MetaController):
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "category_name": category_name
         }
-        main_table_id = self.meta.insert_main_table('sg_species_difference_check', mongo_data)
-        print main_table_id, type(main_table_id)
+        main_table_id = self.meta.insert_none_table('sg_species_difference_check')
+        # print main_table_id, type(main_table_id)
         update_info = {str(main_table_id): 'sg_species_difference_check'}
         options = {
             "otu_file": data.otu_id,
@@ -73,7 +74,8 @@ class TwoGroup(MetaController):
             "group_detail": data.group_detail,
             "category_name": category_name,
             "update_info": json.dumps(update_info),
-            "main_id": str(main_table_id)
+            "main_id": str(main_table_id),
+            "main_table_data": SON(mongo_data)
         }
         to_file = ["meta.export_otu_table_by_level(otu_file)", "meta.export_group_table_by_detail(group_file)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name="DiffStatTwoGroup/" + main_table_name, module_type=task_type, to_file=to_file)

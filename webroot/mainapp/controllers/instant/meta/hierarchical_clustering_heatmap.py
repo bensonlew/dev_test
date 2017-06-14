@@ -6,6 +6,7 @@ import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
+from bson import SON
 
 
 class HierarchicalClusteringHeatmap(MetaController):
@@ -26,6 +27,7 @@ class HierarchicalClusteringHeatmap(MetaController):
             return json.dumps(info)
         if data.method not in ["average", "single", "complete", ""]:
             info = {'success': False, "info": "参数method的值为{}，应该为average，single或者complete".format(data.method)}
+            return json.dumps(info)
         task_info = self.meta.get_task_info(otu_info['task_id'])
         params_json = {
             'submit_location': data.submit_location,
@@ -52,7 +54,7 @@ class HierarchicalClusteringHeatmap(MetaController):
             ("show", 0),
             ("type", "otu_HierarchicalClusteringHeatmap")
         ]
-        main_table_id = self.meta.insert_main_table('sg_hc_heatmap', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_hc_heatmap')
         update_info = {str(main_table_id): 'sg_hc_heatmap'}
         options = {
             "input_otu_id": data.otu_id,
@@ -64,15 +66,17 @@ class HierarchicalClusteringHeatmap(MetaController):
             "species_number": data.species_number,  # 筛选物种参数
             "method": data.method,
             "sample_method": data.sample_method,  # 样本聚类方式
-            "add_Algorithm": data.add_Algorithm
+            "add_Algorithm": data.add_Algorithm,
+            'main_table_data': SON(mongo_data)
         }
         to_file = "meta.export_otu_table_by_level(in_otu_table)"
         self.set_sheet_data(name=task_name, options=options, main_table_name="CommunityAnalysis/" + main_table_name,
                             module_type='workflow', to_file=to_file)
         task_info = super(HierarchicalClusteringHeatmap, self).POST()
-        task_info['content'] = {
-            'ids': {
-                'id': str(main_table_id),
-                'name': main_table_name
-            }}
+        if task_info['success']:
+            task_info['content'] = {
+                'ids': {
+                    'id': str(main_table_id),
+                    'name': main_table_name
+                }}
         return json.dumps(task_info)
