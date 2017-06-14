@@ -16,7 +16,7 @@ class NiptAnalysis(NiptController):
 
     def POST(self):
         data = web.input()
-        params_name = ['main_id', 'bw', 'submit_location', 'bs', 'ref_group']
+        params_name = ['main_id', 'bw', 'bs', 'ref_group']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!!" % param}
@@ -44,7 +44,7 @@ class NiptAnalysis(NiptController):
             ('name', main_table_name),
             ("nipt_main_id", ObjectId(data.main_id))
         ]
-        main_table_id = Nipt().insert_main_table('sg_interaction', mongo_data)
+        main_table_id = Nipt().insert_none_table('sg_interaction')
         update_info = {str(main_table_id): 'sg_interaction'}
         options = {
             "bed_file": task_info['sample_id'],
@@ -59,4 +59,3 @@ class NiptAnalysis(NiptController):
         task_info = super(NiptAnalysis, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         return json.dumps(task_info)
-k
