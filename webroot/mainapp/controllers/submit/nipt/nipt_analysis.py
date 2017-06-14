@@ -7,6 +7,7 @@ import datetime
 from mainapp.models.mongo.submit.nipt_mongo import NiptMongo as Nipt
 from mainapp.controllers.project.nipt_controller import NiptController
 from bson import ObjectId
+from bson import SON
 
 
 class NiptAnalysis(NiptController):
@@ -46,7 +47,7 @@ class NiptAnalysis(NiptController):
             ('name', main_table_name),
             ("nipt_main_id", ObjectId(data.main_id))
         ]
-        main_table_id = Nipt().insert_main_table('sg_nipt_interaction', mongo_data)
+        main_table_id = Nipt().insert_none_table('sg_nipt_interaction')
         update_info = {str(main_table_id): 'sg_nipt_interaction'}
         options = {
             "bed_file": task_info['sample_id'],
@@ -54,7 +55,8 @@ class NiptAnalysis(NiptController):
             "bs": data.bs,
             "update_info": json.dumps(update_info),
             "ref_group": data.ref_group,
-            "nipt_task_id": str(main_table_id)
+            "nipt_task_id": str(main_table_id),
+            'main_table_data': SON(mongo_data)
         }
         self.set_sheet_data_(name=task_name, options=options, module_type=task_type, params=params)
         task_info = super(NiptAnalysis, self).POST()
