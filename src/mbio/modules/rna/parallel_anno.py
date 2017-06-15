@@ -93,8 +93,17 @@ class ParallelAnnoModule(Module):
             "blastout": self.option("string_align_dir")
         }
         self.cat_cog.set_options(opts)
-        self.cat_cog.on("end", self.cat_output)
+        self.cat_cog.on("end", self.xml2table)
         self.cat_cog.run()
+
+    def xml2table(self):
+        self.xml2table = self.add_tool("align.xml2table")
+        opts = {
+            "blastout": self.cat_cog.option("blast_result").prop["path"]
+        }
+        self.xml2table.set_options(opts)
+        self.xml2table.on("end", self.cat_output)
+        self.xml2table.run()
 
     def cat_output(self):
         for mod in self.anno_list:
@@ -108,10 +117,11 @@ class ParallelAnnoModule(Module):
             self.add2kegg_table(gene_kegg_path, self.output_dir + "/kegg.list", "gene")
             self.add2go_table(transcript_go_path, self.output_dir + "/go.list", "transcript")
             self.add2go_table(gene_go_path, self.output_dir + "/go.list", "gene")
-        xml = BlastXmlFile()
-        xml.set_path(self.cat_cog.option("blast_result").prop["path"])
-        xml.convert2table(self.output_dir + "/cog.list")
-        self.option("out_cog").set_path(self.output_dir + "/cog.list")
+        # xml = BlastXmlFile()
+        # xml.set_path(self.cat_cog.option("blast_result").prop["path"])
+        # xml.convert2table(self.output_dir + "/cog.list")
+        # self.option("out_cog").set_path(self.output_dir + "/cog.list")
+        self.option("out_cog", self.xml2table.option("blast_table").prop["path"])
         self.option("out_kegg").set_path(self.output_dir + "/kegg.list")
         self.option("out_go").set_path(self.output_dir + "/go.list")
         self.end()

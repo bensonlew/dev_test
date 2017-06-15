@@ -249,14 +249,14 @@ class RefRnaQc(Base):
                     "task_id": self.bind_object.sheet.id,
                     "type": type,
                     "specimen_name": line[0],
-                    "total_reads": int(line[1]),
-                    "mapping_reads": int(line[2]),
-                    "multiple_mapped": int(line[3]),
-                    "uniq_mapped": int(line[4]),
-                    "map_to_up": int(line[5]),
-                    "map_to_down": int(line[6]),
-                    "non_splice_reads": int(line[-1]),
-                    "splice_reads": int(line[7]),
+                    "total_reads": line[1],
+                    "mapping_reads": line[2] + "(" + str(float("%0.4f" % (float(line[2])/float(line[1])))*100) + "%" + ")",
+                    "multiple_mapped": line[3] + "(" + str(float("%0.4f" % (float(line[3])/float(line[1])))*100) + "%" + ")",
+                    "uniq_mapped": line[4] + "(" + str(float("%0.4f" % (float(line[4])/float(line[1])))*100) + "%" + ")",
+                    "map_to_up": line[5] + "(" + str(float("%0.4f" % (float(line[5])/float(line[1])))*100) + "%" + ")",
+                    "map_to_down": line[6] + "(" + str(float("%0.4f" % (float(line[6])/float(line[1])))*100) + "%" + ")",
+                    "non_splice_reads": line[7] + "(" + str(float("%0.4f" % (float(line[7])/float(line[1])))*100) + "%" + ")",
+                    "splice_reads": line[8] + "(" + str(float("%0.4f" % (float(line[8])/float(line[1])))*100) + "%" + ")",
                     "mapping_rate": str(float("%0.4f" % (float(line[2])/float(line[1])))*100) + "%",
                     # "multiple_mapped": line[3],
                     "multiple_rate": str(float("%0.4f" % (float(line[3])/float(line[1])))*100) + "%",
@@ -286,7 +286,7 @@ class RefRnaQc(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
             "name": name if name else "saturation_origin",
-            "status": "start",
+            "status": "end",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "curve_category": ['5', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55', '60', '65', '70', '75', '80', '85', '90', '95', '100'],
             "curve_specimen": {"column1": "[0-0.3)", "column2": "[0.3-0.6)", "column3": "[0.6-3.5)", "column4": "[3.5-15)", "column5": "[15-60)", "column6": ">=60"},
@@ -317,7 +317,7 @@ class RefRnaQc(Base):
                     line.pop(0)
                     line_list.append(line)
                 data = {
-                    "rpkm_id": rpkm_id,
+                    "saturation_id": rpkm_id,
                     "specimen_name": sample_name,
                     "column1": line_list[0],
                     "column2": line_list[1],
@@ -349,7 +349,7 @@ class RefRnaQc(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
             "name": name if name else "coverage_origin",
-            "status": "start",
+            "status": "end",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -404,7 +404,7 @@ class RefRnaQc(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
             "name": name if name else "distribution_origin",
-            "status": "start",
+            "status": "end",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -461,7 +461,7 @@ class RefRnaQc(Base):
     @report_check
     def add_chorm_distribution_table(self, distribution=None, name=None, params=None):
         """
-        :param distribution: 文件夹，即~/MapAssessment/output/distribution,不传的时候只导主表
+        :param distribution: 文件夹，即~/MapAssessment/output/chr_stat,不传的时候只导主表
         :param name: 主表名称。可不传
         :param params:参数，可不传
         :return:
@@ -470,25 +470,28 @@ class RefRnaQc(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
             "name": name if name else "distribution_origin",
-            "status": "start",
+            "status": "end",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        collection = self.db["sg_assessment_chrom_distributione"]
+        collection = self.db["sg_assessment_chrom_distribution"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         if distribution:
-            self.add_distribution_detail(distribution, inserted_id)
+            self.add_chorm_distribution_detail(distribution, inserted_id)
         return inserted_id
 
     @report_check
     def add_chorm_distribution_detail(self, chorm_stat, chorm_stat_id):
         stat_files = glob.glob("{}/*.bam_chr_stat.xls".format(chorm_stat))
         data_list = []
+        distribution = set()
+        specimen_names = []
         for fls in stat_files:
             chrs = []
             # chr_values = []
             sample_name = os.path.basename(fls).split(".")[0]
+            specimen_names.append(sample_name)
             with open(fls, "r") as f:
                 data = {
                     "chrom_distribution_id": chorm_stat_id,
@@ -502,7 +505,7 @@ class RefRnaQc(Base):
                     else:
                         line = line.strip().split()
                         chrs.append(line[0])
-                        # print line
+                        distribution.add(line[0])
                         values["chr_name"] = line[0]
                         values["value"] = line[1]
                         data["chr_values"].append(values)
@@ -512,6 +515,8 @@ class RefRnaQc(Base):
         try:
             collection = self.db["sg_assessment_chrom_distribution_detail"]
             result = collection.insert_many(data_list)
+            main_collection = self.db["sg_assessment_chrom_distribution"]
+            main_collection.update({"_id": ObjectId(chorm_stat_id)}, {"$set": {"distribution": list(distribution), "specimen_name": specimen_names}})
         except Exception, e:
             self.bind_object.logger.info("导入sg_assessment_chrom_distribution_detail出错:%s" % e)
         else:
