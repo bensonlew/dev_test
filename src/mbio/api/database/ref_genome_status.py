@@ -6,13 +6,13 @@ from biocluster.config import Config
 
 
 
-class Sample(Base):
+class GenomeInfo(Base):
     def __init__(self, bind_object):
-        super(Sample, self).__init__(bind_object)
+        super(GenomeInfo, self).__init__(bind_object)
         self._db_name = Config().MONGODB + "_ref_rna"
 
     @report_check
-    def add_genome_info(self, file_path):
+    def add_genome_info(self, file_path, major=True):
         self.bind_object.logger.info("add_genome_info start")
         data = {
                     "project_sn": self.bind_object.sheet.project_sn,
@@ -28,6 +28,8 @@ class Sample(Base):
         except Exception, e:
             self.bind_object.logger.error("导入样品信息数据出错:%s" % e)
         else:
+            if major == True:
+                self.add_genome_info_detail(file_path)
             self.bind_object.logger.info("导入样品信息数据成功:%s" % result.inserted_ids)
 
 
