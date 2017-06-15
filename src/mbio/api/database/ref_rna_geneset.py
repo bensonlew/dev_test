@@ -53,7 +53,7 @@ class RefRnaGeneset(Base):
         data_list = []
         geneset_name = []
         with open(geneset_cog_table, 'r') as f:
-            first_line = f.readline().strip().split("\t")
+            first_line = f.readline().strip("\n").split("\t")
             print first_line
             # print f.next().split("\t")
 

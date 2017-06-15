@@ -128,8 +128,8 @@ class RefSnp(Base):
                 "freq_stat": dict(zip(freq_list, all_freq_stat[s]))
             }
             graph_data_list.append(graph_data)
-            snp_types = snp_pos_stat[s].keys()
-            distributions = snp_type_stat[s].keys()
+            snp_types = snp_type_stat[s].keys()
+            distributions = snp_pos_stat[s].keys()
         try:
             collection = self.db["sg_snp_detail"]
             collection.insert_many(data_list)
