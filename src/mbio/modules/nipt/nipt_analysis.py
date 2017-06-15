@@ -11,7 +11,7 @@ from biocluster.core.exceptions import OptionError
 class NiptAnalysisModule(Module):
 	def __init__(self, work_id):
 		super(NiptAnalysisModule, self).__init__(work_id)
-		self.step.add_steps('fastq2bed', 'bed_analysis','fastqc')
+		self.step.add_steps('fastq2bed', 'bed_analysis','fastqc','identification')
 		options = [
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},
 			{"name": "sample_id", "type": "string"},
@@ -55,12 +55,14 @@ class NiptAnalysisModule(Module):
 		self.fastq2bed.run()
 
 	def bed_run(self):
+		self.bed_analysis = self.add_tool("nipt.bed_analysis")
 		bed_dir = os.path.join(self.work_dir, "FastqProcess/output")
 		self.bed_analysis.set_options({
 			"bed_file": bed_dir+'/'+ self.option('sample_id')+'_R1.bed.2',
 			"bw": self.option('bw'),
 			'bs':self.option('bs'),
-			'ref_group':self.option('ref_group')
+			'ref_group':self.option('ref_group'),
+			"single_chr" :'false'
 		})
 		self.bed_analysis.on('end', self.set_output,'bed_analysis')
 		self.bed_analysis.on('start', self.set_step, {'start': self.step.bed_analysis})
@@ -80,8 +82,24 @@ class NiptAnalysisModule(Module):
 		self.fastqc.on('end', self.set_output,'fastqc')
 		self.fastqc.on('start', self.set_step, {'start': self.step.fastqc})
 		self.fastqc.on('end', self.set_step, {'end': self.step.fastqc})
-		self.fastqc.on('end', self.end)
+		self.fastqc.on('end', self.identification_run)
 		self.fastqc.run()
+
+	def identification_run(self):
+		self.identification = self.add_tool("nipt.bed_analysis")
+		bed_dir = os.path.join(self.work_dir, "FastqProcess/output")
+		self.identification.set_options({
+			"bed_file": bed_dir + '/' + self.option('sample_id') + '_R1.bed.2',
+			"bw": 500,
+			'bs': 500,
+			'ref_group': self.option('ref_group'),
+			"single_chr": 'true'
+		})
+		self.identification.on('end', self.set_output, 'identification')
+		self.identification.on('start', self.set_step, {'start': self.step.bed_analysis})
+		self.identification.on('end', self.set_step, {'end': self.step.bed_analysis})
+		self.identification.on('end', self.end)
+		self.identification.run()
 
 
 	def linkdir(self, dirpath, dirname):
@@ -113,7 +131,8 @@ class NiptAnalysisModule(Module):
 
 	def set_output(self, event):
 		obj = event['bind_object']
-		if event['data'] == 'fastq2bed' or event['data'] == 'bed_analysis' or event['data'] == 'fastqc':
+		if event['data'] == 'fastq2bed' or event['data'] == 'bed_analysis' or event['data'] == 'fastqc' or event['data']\
+				== 'identification':
 			allfiles = os.listdir(obj.output_dir)
 			oldfiles = [os.path.join(obj.output_dir, i) for i in allfiles]
 			newfiles = [os.path.join(self.output_dir, i) for i in allfiles]
