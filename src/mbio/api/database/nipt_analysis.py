@@ -151,10 +151,14 @@ class NiptAnalysis(Base):
                 report_num = row_data[report_num_index]
                 para_list.append(report_num)
                 sample_date = row_data[sample_date_index]
-                if type(sample_date) == 'float':
+                # if sample_date == 'Nf':
+                #     para_list.append(sample_date)
+                # elif sample_date == '/':
+                #     para_list.append(sample_date)
+                if type(sample_date) == float:
                     sample_date_tuple = xlrd.xldate_as_tuple(sample_date, 0)
                     para_list.append(
-                        str(sample_date_tuple[0]) + '/' + str(sample_date_tuple[1]) + '/' + str(sample_date_tuple[2]))
+                        str(sample_date_tuple[0]) + '-' + str(sample_date_tuple[1]) + '-' + str(sample_date_tuple[2]))
                 else:
                     para_list.append(sample_date)
 
@@ -162,13 +166,18 @@ class NiptAnalysis(Base):
                 para_list.append(patient_name)
                 accpeted_date = row_data[accpeted_date_index]
 
-                if type(accpeted_date) == 'float':
+                # if accpeted_date == 'Nf':
+                #     para_list.append(accpeted_date)
+                # elif accpeted_date == '/':
+                #     para_list.append(accpeted_date)
+                if type(accpeted_date) == float:
                     accpeted_date_tuple = xlrd.xldate_as_tuple(accpeted_date, 0)
                     para_list.append(
-                        str(accpeted_date_tuple[0]) + '/' + str(accpeted_date_tuple[1]) + '/' + str(
+                        str(accpeted_date_tuple[0]) + '-' + str(accpeted_date_tuple[1]) + '-' + str(
                             accpeted_date_tuple[2]))
                 else:
                     para_list.append(accpeted_date)
+
 
                 number = row_data[number_index]
                 para_list.append(number)
@@ -188,8 +197,15 @@ class NiptAnalysis(Base):
                 para_list.append(str(tel))
                 status = row_data[status_index]
                 para_list.append(status)
+
                 final_period = row_data[final_period_index]
-                para_list.append(final_period)
+                if type(final_period) == float:
+                    final_period_tuple = xlrd.xldate_as_tuple(final_period, 0)
+                    para_list.append(str(final_period_tuple[0]) + '-' + str(final_period_tuple[1]) + '-' + str(
+                                final_period_tuple[2]))
+                else:
+                    para_list.append(final_period)
+
                 gestation_week = row_data[gestation_week_index]
                 para_list.append(gestation_week)
 
@@ -199,6 +215,13 @@ class NiptAnalysis(Base):
                 para_list.append(sample_type)
 
                 collection = self.database['sg_customer']
+                if para_list[11] == 'Nf':
+                    tel = para_list[11]
+                elif para_list[11] == '/':
+                    tel = para_list[11]
+                else:
+                    tel = int(float(para_list[11]))
+
                 if collection.find_one({"report_num": para_list[0]}):
                     continue
                 else:
@@ -214,7 +237,7 @@ class NiptAnalysis(Base):
                         "IVFET": para_list[8],
                         "hospital": para_list[9],
                         "doctor": para_list[10],
-                        "tel": para_list[11],
+                        "tel": tel,
                         "status": para_list[12],
                         "final_period": para_list[13],
                         "gestation_week": para_list[14],
@@ -305,7 +328,12 @@ class NiptAnalysis(Base):
 
     def update_interaction(self,main_id):
         collection = self.database['sg_interaction']
-        collection.update({"nipt_main_id": main_id},{'$set':{'status':'start'}})
+        try:
+            collection.update({"nipt_main_id": main_id},{'$set':{'status':'start'}})
+        except Exception as e:
+            raise Exception('更新交互表出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info("更新交互表成功")
 
 
     def add_fastqc(self,main_id,file):
@@ -355,5 +383,39 @@ class NiptAnalysis(Base):
             raise Exception('插入qc表出错：{}'.format(e))
         else:
             self.bind_object.logger.info("插入qc表成功")
+
+    def report_result(self,main_id,file):
+        collection = self.database['sg_result']
+        collection_main = self.database['sg_main']
+        insert = {}
+        insert['main_id'] = main_id
+        with open(file,'r') as f:
+            for line in f:
+                line = line.strip()
+                line = line.split('\t')
+                if line[1] == 'total_zz':
+                    insert['sample_id'] = line[0]
+                    if -3 <= float(line[2]) <= 3:
+                        insert['result'] = 'normal'
+                    else:
+                        insert['result'] = 'abnormal'
+                elif line[1] == '13':
+                    insert['chr_13'] = line[2]
+                elif line[1] == '18':
+                    insert['chr_18'] = line[2]
+                elif line[1] == '21':
+                    insert['chr_21'] = line[2]
+        try:
+            collection.insert_one(insert)
+            collection_main.update({'_id':main_id}, {'$set':{'result':insert['result']}})
+        except Exception as e:
+            raise Exception('插入结果表和更新主表出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info("插入结果表和更新主表成功")
+
+
+
+
+
 
 
