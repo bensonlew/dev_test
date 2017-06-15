@@ -33,6 +33,7 @@ class NiptAnalysis(NiptController):
             'bw': data.bw,
             'bs': data.bs,
             'ref_group': int(data.ref_group),
+            'main_id': data.main_id
         }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
@@ -44,7 +45,8 @@ class NiptAnalysis(NiptController):
             ('name', main_table_name),
             ("nipt_main_id", ObjectId(data.main_id))
         ]
-        main_table_id = Nipt().insert_none_table('sg_interaction')
+        # main_table_id = Nipt().insert_none_table('sg_interaction')
+        main_table_id = Nipt().insert_main_table('sg_interaction', mongo_data)
         update_info = {str(main_table_id): 'sg_interaction'}
         options = {
             "bed_file": task_info['sample_id'],
@@ -53,7 +55,7 @@ class NiptAnalysis(NiptController):
             "update_info": json.dumps(update_info),
             "ref_group": data.ref_group,
             "nipt_task_id": str(main_table_id),
-            'main_table_data': SON(mongo_data)
+            # 'main_table_data': SON(mongo_data)
         }
         self.set_sheet_data_(name=task_name, options=options, module_type=task_type, params=params)
         task_info = super(NiptAnalysis, self).POST()
