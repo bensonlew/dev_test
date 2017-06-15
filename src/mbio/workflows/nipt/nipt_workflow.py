@@ -151,5 +151,7 @@ class NiptWorkflow(Workflow):
 					self.api_nipt.update_main(main_id, self.output_dir + '/' + i) #更新zz值到主表中去
 				elif re.search(name +'.*_fastqc.html$', i):
 					self.api_nipt.add_fastqc(main_id, self.output_dir + '/' + i)  # fastqc入库
+				elif re.search(name +'.*_result.txt$', i):
+					self.api_nipt.report_result(main_id, self.output_dir + '/' + i)
 
 			self.api_nipt.update_interaction(main_id)
