@@ -5,8 +5,9 @@ import traceback
 import time
 import json
 from mainapp.models.mongo.meta import Meta
-from mainapp.models.mongo.test import Test
 from biocluster.wpm.client import worker_client, wait
+from biocluster.config import Config
+from bson.objectid import ObjectId
 
 
 class Basic(object):
@@ -15,7 +16,14 @@ class Basic(object):
         self._json = data
         self._id = data["id"]
         self._return_msg = None
-        # self.data = Meta()
+        self._mongo_client = Config().mongo_client
+        if "db_type" in data.keys() and data['db_type'] == '_nipt':
+            self.mongodb = self._mongo_client[Config().MONGODB + '_nipt']
+        elif "db_type" in data.keys() and data['db_type'] == '_ref_rna':
+            self.mongodb = self._mongo_client[Config().MONGODB + '_ref_rna']
+        else:
+            self.mongodb = self._mongo_client[Config().MONGODB]
+
 
     @property
     def id(self):
@@ -78,7 +86,7 @@ class Basic(object):
                     for i in update_info:
                         if i == "batch_id":
                             continue
-                        Meta().insert_main_table_new(update_info[i], i, main_table_data)
+                        self.insert_main_table_new(update_info[i], i, main_table_data)
                 if self.instant:
                     return self.instant_wait(worker)
                 else:
@@ -99,5 +107,5 @@ class Basic(object):
         else:
             raise Exception("运行超时!")
 
-    # def insert_main_table_new(self, collection, obj_id, data):
-    #     return self.db[collection].find_one_and_update({"_id": ObjectId(obj_id)}, {'$set': data}, upsert=True)
+    def insert_main_table_new(self, collection, obj_id, data):
+        return self.mongodb[collection].find_one_and_update({"_id": ObjectId(obj_id)}, {'$set': data}, upsert=True)
