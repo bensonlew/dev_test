@@ -5,22 +5,22 @@ import datetime
 from bson.objectid import ObjectId
 from biocluster.config import Config
 from biocluster.core.function import filter_error_info
-from mbio.api.web.meta.update_status import UpdateStatus
+# from mbio.api.web.meta.update_status import UpdateStatus
+from ..meta.update_status import UpdateStatus
 
 
 class MedReportTupdate(UpdateStatus):
 
     def __init__(self, data):
-        super(UpdateStatus, self).__init__(data)
-        self._config = Config()
+        super(MedReportTupdate, self).__init__(data)
         self._client = "client03"
         self._key = "hM4uZcGs9d"
-        self._url = "http://www.tsanger.com/api/add_file"
-        self._mongo_client = self._config.mongo_client
-        self.database = self._mongo_client[Config().MONGODB + '_nipt']
+        self._url = "http://api.tsg.com/task/add_file"
+        # self._mongo_client = self._config.mongo_client
+        self.database = self._mongo_client[self.config.MONGODB + '_nipt']
 
-    def update(self):
-        self.update_status()
+    def update(self, web_api=False):
+        super(MedReportTupdate, self).update(web_api=False)
 
     def update_status(self):
         status = self.data["sync_task_log"]["task"]["status"]
@@ -34,7 +34,8 @@ class MedReportTupdate(UpdateStatus):
 
         if not self.update_info:
             return
-        for obj_id, collection_name in json.loads(self.update_info).items():
+
+        for obj_id, collection_name in self.update_info.items():
             obj_id = ObjectId(obj_id)
             collection = self.database[collection_name]
             if status != "start":
@@ -76,4 +77,4 @@ class MedReportTupdate(UpdateStatus):
             #         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             #     }
             #     sg_status_col.update({"_id": obj_id}, {'$set': insert_data}, upsert=True)
-            self._mongo_client.close()
+            # self._mongo_client.close()
