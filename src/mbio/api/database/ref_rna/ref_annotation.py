@@ -365,60 +365,76 @@ class RefAnnotation(Base):
         data_list = []
         with open(blast_path, 'r') as f:
             lines = f.readlines()
-            best, filte = [], []
-            for i in range(0, len(lines)):
-                line = lines[i].strip().split("\t")
-                hit = line[10]
-                query = line[5]
-                index = i
-                for j in range(i+1, len(lines)):
-                    second = lines[j].strip().split("\t")
-                    second_hit = second[10]
-                    second_query = second[5]
-                    if query == second_query:
-                        if second_hit != hit:
-                            index = j
-                            break
+            flag, hit = None, None
+            for line in lines[1:]:
+                line = line.strip().split('\t')
+                query_name = line[5]
+                hit_name = line[10]
+                if flag == query_name:
+                    if hit == hit_name:
+                        pass
                     else:
-                        index = j
-                        break
-                best.append(index)
-            for x in best:
-                if x not in filte:
-                    filte.append(x)
-            for i in filte:
-                line = lines[i].strip().split('\t')
-                data = [
-                    ('blast_id', blast_id),
-                    ('seq_type', seq_type),
-                    ('anno_type', anno_type),
-                    ('database', database),
-                    ('score', float(line[0])),
-                    ('e_value', float(line[1])),
-                    ('hsp_len', int(line[2])),
-                    ('identity_rate', round(float(line[3]), 4)),
-                    ('similarity_rate', round(float(line[4]), 4)),
-                    ('query_id', line[5]),
-                    ('q_len', int(line[6])),
-                    ('q_begin', line[7]),
-                    ('q_end', line[8]),
-                    ('q_frame', line[9]),
-                    ('hit_name', line[10]),
-                    ('hit_len', int(line[11])),
-                    ('hsp_begin', line[12]),
-                    ('hsp_end', line[13]),
-                    ('hsp_frame', line[14]),
-                    ('description', line[15])
-                ]
-                data = SON(data)
-                data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_blast_detail']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入注释统计信息：%s出错!" % (blast_path))
-        else:
-            self.bind_object.logger.info("导入注释统计信息：%s成功!" % (blast_path))
+                        flag = query_name
+                        hit = hit_name
+                        data = {
+                            'blast_id': blast_id,
+                            'seq_type': seq_type,
+                            'anno_type': anno_type,
+                            'database': database,
+                            'score': float(line[0]),
+                            'e_value': float(line[1]),
+                            'hsp_len': int(line[2]),
+                            'identity_rate': round(float(line[3]), 4),
+                            'similarity_rate': round(float(line[4]), 4),
+                            'query_id': line[5],
+                            'q_len': int(line[6]),
+                            'q_begin': line[7],
+                            'q_end': line[8],
+                            'q_frame': line[9],
+                            'hit_name': line[10],
+                            'hit_len': int(line[11]),
+                            'hsp_begin': line[12],
+                            'hsp_end': line[13],
+                            'hsp_frame': line[14],
+                            'description': line[15]
+                        }
+                        collection = self.db['sg_annotation_blast_detail']
+                        collection.insert_one(data).inserted_id
+                else:
+                    flag = query_name
+                    hit = hit_name
+                    data = {
+                        'blast_id': blast_id,
+                        'seq_type': seq_type,
+                        'anno_type': anno_type,
+                        'database': database,
+                        'score': float(line[0]),
+                        'e_value': float(line[1]),
+                        'hsp_len': int(line[2]),
+                        'identity_rate': round(float(line[3]), 4),
+                        'similarity_rate': round(float(line[4]), 4),
+                        'query_id': line[5],
+                        'q_len': int(line[6]),
+                        'q_begin': line[7],
+                        'q_end': line[8],
+                        'q_frame': line[9],
+                        'hit_name': line[10],
+                        'hit_len': int(line[11]),
+                        'hsp_begin': line[12],
+                        'hsp_end': line[13],
+                        'hsp_frame': line[14],
+                        'description': line[15]
+                    }
+                    collection = self.db['sg_annotation_blast_detail']
+                    collection.insert_one(data).inserted_id
+        self.bind_object.logger.info("导入blast信息：%s成功!" % (blast_path))
+        # try:
+        #     collection = self.db['sg_annotation_blast_detail']
+        #     collection.insert_many(data_list)
+        # except Exception, e:
+        #     raise Exception("导入blast信息：%s出错!" % (blast_path))
+        # else:
+        #     self.bind_object.logger.info("导入blast信息：%s成功!" % (blast_path))
 
     @report_check
     def add_annotation_nr(self, name=None, params=None, stat_id=None):

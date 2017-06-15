@@ -542,6 +542,8 @@ class RefAnnoStatTool(Tool):
                 w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, len(self.anno_list[db]), len(self.gene_anno_list[db]),  str(tran_db_percent) + '%', str(gene_db_percent) + '%'))
                 tmp += self.anno_list[db]
                 tmp_gene += self.gene_anno_list[db]
+            anno_num['total_anno']['gene'] = len(set(tmp_gene))
+            anno_num['total_anno']['tran'] = len(set(tmp))
             tran_total_percent = '%0.4g' % (anno_num['total_anno']['tran'] / anno_num['total']['tran'])
             tran_total_percent = float(tran_total_percent) * 100
             gene_total_percent = '%0.4g' % (anno_num['total_anno']['gene'] / anno_num['total']['gene'])
