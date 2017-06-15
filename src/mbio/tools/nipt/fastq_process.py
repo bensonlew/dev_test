@@ -116,7 +116,7 @@ class FastqProcessTool(Tool):
             raise Exception("seqtk mergepe出错")
 
         cut_adapt = '/bioinfo/medical/cutadapt-1.10-py27_0/bin/cutadapt --format fastq --zero-cap -q 1 --trim-n ' \
-                    '--minimum-length 30 --times 7 -a GATCGGAAGAGCACACGTCTGAACTCCAGTCAC -o {}_R1.cut.fastq  {}_R1.cutN.fastq'.\
+                    '--minimum-length 30 --times 7 -a GATCGGAAGAGCACACGTCTGAACTCCAGTCAC -o {}.cut.fastq  {}.cutN.fastq'.\
             format(self.option("sample_id"),self.option("sample_id"))
         self.logger.info(cut_adapt)
         cmd = self.add_command("cut_adapt",cut_adapt).run()
@@ -136,7 +136,7 @@ class FastqProcessTool(Tool):
         else:
             raise Exception("cut_50截取出错")
 
-        sam_cutbam="{} view -h -@ 10 {}_R1.cut.bam -o {}.temp.cut.sam".format(self.sam_path,self.option('sample_id'),self.option('sample_id'))
+        sam_cutbam="{} view -h -@ 10 {}.cut.bam -o {}.temp.cut.sam".format(self.sam_path,self.option('sample_id'),self.option('sample_id'))
         self.logger.info(sam_cutbam)
         cmd = self.add_command("sam_cutbam",sam_cutbam).run()
         self.wait(cmd)
@@ -156,7 +156,7 @@ class FastqProcessTool(Tool):
                 else:
                     continue
 
-        sam_cut_uniq='{} view -@ 10 -bS {}.temp.cut.sam -o {}_R1.cut.uniq.bam'\
+        sam_cut_uniq='{} view -@ 10 -bS {}.temp.cut.sam -o {}.cut.uniq.bam'\
             .format(self.sam_path, self.option('sample_id'),self.option('sample_id'))
         self.logger.info(sam_cut_uniq)
         cmd = self.add_command("sam_cut_uniq",sam_cut_uniq).run()
@@ -166,7 +166,7 @@ class FastqProcessTool(Tool):
         else:
             raise Exception("sam_cut_uniq出错") 
 
-        sam_sort='{} sort -@ 10 {}_R1.cut.uniq.bam -o {}_R1.cut.uniq.sort.bam'.format(self.sam_path, self.option('sample_id'),self.option('sample_id'))
+        sam_sort='{} sort -@ 10 {}.cut.uniq.bam -o {}.cut.uniq.sort.bam'.format(self.sam_path, self.option('sample_id'),self.option('sample_id'))
         self.logger.info(sam_sort)
         cmd = self.add_command("sam_sort",sam_sort).run()
         self.wait(cmd)
@@ -175,7 +175,7 @@ class FastqProcessTool(Tool):
         else:
             raise Exception("sam排序出错")
 
-        picard_cmd='/program/sun_jdk1.8.0/bin/java -Xmx10g -Djava.io.tmpdir={} -jar {} MarkDuplicates VALIDATION_STRINGENCY=LENIENT INPUT={}_R1.cut.uniq.sort.bam OUTPUT={}_R1.cut.uniq.sort.md.bam METRICS_FILE={}_R1.cut.uniq.sort.md.metrics'\
+        picard_cmd='/program/sun_jdk1.8.0/bin/java -Xmx10g -Djava.io.tmpdir={} -jar {} MarkDuplicates VALIDATION_STRINGENCY=LENIENT INPUT={}.cut.uniq.sort.bam OUTPUT={}.cut.uniq.sort.md.bam METRICS_FILE={}.cut.uniq.sort.md.metrics'\
             .format(self.work_dir, self.picard_path,self.option('sample_id'),self.option('sample_id'),self.option('sample_id'))
         self.logger.info(picard_cmd)
         cmd = self.add_command("picard_cmd",picard_cmd).run()
@@ -185,7 +185,7 @@ class FastqProcessTool(Tool):
         else:
             raise Exception("picard出错")
 
-        sam_valid = '{} view -F 1024 -@ 10 -bS {}_R1.cut.uniq.sort.md.bam -o {}_R1.valid.bam'\
+        sam_valid = '{} view -F 1024 -@ 10 -bS {}.cut.uniq.sort.md.bam -o {}.valid.bam'\
             .format(self.sam_path, self.option('sample_id'),self.option('sample_id'))
         self.logger.info(sam_valid)
         cmd = self.add_command("sam_valid",sam_valid).run()
@@ -195,7 +195,7 @@ class FastqProcessTool(Tool):
         else:
             raise Exception("sam_valid出错")
 
-        sam_valid_index='{} index {}_R1.valid.bam'.format(self.sam_path, self.option('sample_id'))
+        sam_valid_index='{} index {}.valid.bam'.format(self.sam_path, self.option('sample_id'))
         self.logger.info(sam_valid_index)
         cmd = self.add_command("sam_valid_index",sam_valid_index).run()
         self.wait(cmd)
@@ -204,7 +204,7 @@ class FastqProcessTool(Tool):
         else:
             raise Exception("sam_valid_index出错")
 
-        sam_map='{} view -bF 4 -@ 10 {}_R1.valid.bam -o {}_R1.map.valid.bam'\
+        sam_map='{} view -bF 4 -@ 10 {}.valid.bam -o {}.map.valid.bam'\
             .format(self.sam_path, self.option('sample_id'),self.option('sample_id'))
         self.logger.info(sam_map)
         cmd = self.add_command("sam_map",sam_map).run()
@@ -214,7 +214,7 @@ class FastqProcessTool(Tool):
         else:
             raise Exception("sam_map出错")
 
-        sam_map_index='{} index {}_R1.map.valid.bam'.format(self.sam_path, self.option('sample_id'))
+        sam_map_index='{} index {}.map.valid.bam'.format(self.sam_path, self.option('sample_id'))
         self.logger.info(sam_map_index)
         cmd = self.add_command("re_sam_map_index",sam_map_index).run()
         self.wait(cmd)
