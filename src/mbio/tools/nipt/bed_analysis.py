@@ -25,7 +25,8 @@ class BedAnalysisAgent(Agent):
             {"name": "bed_file", "type": "infile", "format": "nipt.bed"},
             {"name": "bw", "type": "int", "default": 10},
             {"name": "bs", "type": "int", "default": 1},
-            {"name": "ref_group", "type": "int", "default": 2}
+            {"name": "ref_group", "type": "int", "default": 2},
+            {"name": "single_chr", "type": "string"}
         ]
         self.add_option(options)
         self.step.add_steps("bed_analysis")
@@ -114,12 +115,36 @@ class BedAnalysisTool(Tool):
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
         results = os.listdir(self.work_dir + '/nipt_output/')
-        for f in results:
-            if f == "z.xls":
-                os.link(self.work_dir + '/nipt_output/' + f, self.output_dir + '/' + os.path.basename(self.option('bed_file').prop['path']).strip().split(".")[0] + "_z.xls")
-            elif f == "zz.xls":
-                os.link(self.work_dir + '/nipt_output/' + f, self.output_dir + '/' + os.path.basename(self.option('bed_file').prop['path']).strip().split(".")[0] + "_zz.xls")
-        self.logger.info('设置文件夹路径成功')
+        if self.option("single_chr") == 'false':
+            for f in results:
+                if f == "z.xls":
+                    os.link(self.work_dir + '/nipt_output/' + f, self.output_dir + '/' + os.path.basename(self.option('bed_file').prop['path']).strip().split(".")[0] + "_z.xls")
+                elif f == "zz.xls":
+                    os.link(self.work_dir + '/nipt_output/' + f, self.output_dir + '/' + os.path.basename(self.option('bed_file').prop['path']).strip().split(".")[0] + "_zz.xls")
+            self.logger.info('设置文件夹路径成功')
+
+        elif self.option("single_chr") == 'true':
+            file = self.output_dir + '/' + os.path.basename(self.option('bed_file').prop['path']).strip().split(".")[0] + "_result.txt"
+            for f in results:
+                if f == "z.xls":
+                    with open(self.work_dir + '/nipt_output/' + f,'r') as z:
+                        for line in z:
+                            line = line.strip()
+                            line = line.split('\t')
+                            if line[1] == '13' or line[1] == '18' or line[1] == '21':
+                                with open(file, 'a+') as r:
+                                    r.write(line[0] + '\t' + line[1] + '\t' + line[7] + '\n')
+
+                elif f == "zz.xls":
+                    with open(self.work_dir + '/nipt_output/' + f,'r') as zz:
+                        for line in zz:
+                            line = line.strip()
+                            line = line.split('\t')
+                            if line[0] != 'gid':
+                                with open(file, 'a+') as r:
+                                    r.write(line[0] + '\t' + 'total_zz' + '\t' + line[1] + '\n')
+
+            self.logger.info('设置文件夹路径成功')
 
 
     def run(self):
