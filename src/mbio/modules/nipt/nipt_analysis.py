@@ -21,8 +21,6 @@ class NiptAnalysisModule(Module):
 		]
 		self.add_option(options)
 		self.fastq2bed = self.add_tool("nipt.fastq_process")
-		self.bed_analysis = self.add_tool("nipt.bed_analysis")
-		self.fastqc = self.add_tool("nipt.fastqc")
 		self._end_info = 0
 
 	def check_options(self):
@@ -58,11 +56,11 @@ class NiptAnalysisModule(Module):
 		self.bed_analysis = self.add_tool("nipt.bed_analysis")
 		bed_dir = os.path.join(self.work_dir, "FastqProcess/output")
 		self.bed_analysis.set_options({
-			"bed_file": bed_dir+'/'+ self.option('sample_id')+'_R1.bed.2',
+			"bed_file": bed_dir+'/'+ self.option('sample_id')+'.bed.2',
 			"bw": self.option('bw'),
 			'bs':self.option('bs'),
 			'ref_group':self.option('ref_group'),
-			"single_chr" :'false'
+			"single_chr": "false"
 		})
 		self.bed_analysis.on('end', self.set_output,'bed_analysis')
 		self.bed_analysis.on('start', self.set_step, {'start': self.step.bed_analysis})
@@ -71,11 +69,12 @@ class NiptAnalysisModule(Module):
 		self.bed_analysis.run()
 
 	def fastqc_run(self):
+		self.fastqc = self.add_tool("nipt.fastqc")
 		bed_dir = os.path.join(self.work_dir, "FastqProcess/output")
 		self.fastqc.set_options({
 			"sample_id":self.option('sample_id'),
 			"fastq_path":self.option('fastq_path'),
-			"bam_file": bed_dir+'/'+ self.option('sample_id') + '_R1.map.valid.bam',
+			"bam_file": bed_dir+'/'+ self.option('sample_id') + '.map.valid.bam',
 		}
 		)
 
@@ -89,7 +88,7 @@ class NiptAnalysisModule(Module):
 		self.identification = self.add_tool("nipt.bed_analysis")
 		bed_dir = os.path.join(self.work_dir, "FastqProcess/output")
 		self.identification.set_options({
-			"bed_file": bed_dir + '/' + self.option('sample_id') + '_R1.bed.2',
+			"bed_file": bed_dir + '/' + self.option('sample_id') + '.bed.2',
 			"bw": 500,
 			'bs': 500,
 			'ref_group': self.option('ref_group'),
