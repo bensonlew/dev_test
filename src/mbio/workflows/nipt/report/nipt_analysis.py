@@ -34,7 +34,8 @@ class NiptAnalysisWorkflow(Workflow):
             'bed_file': bed_file,
             'bw': self.option('bw'),
             'bs': self.option('bs'),
-            'ref_group': self.option('ref_group')
+            'ref_group': self.option('ref_group'),
+            'single_chr': "false"
         }
         self.niptanalysis.set_options(options)
         self.niptanalysis.on('end', self.set_db)
