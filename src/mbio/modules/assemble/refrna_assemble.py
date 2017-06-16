@@ -32,13 +32,17 @@ class RefrnaAssembleModule(Module):
             {"name": "merged_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 输出的合并文件
             {"name": "cuff_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # compare后的gtf文件
             {"name": "new_transcripts_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新转录本注释文件
+            {"name": "new_transcripts_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本序列文件
             {"name": "new_gene_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新基因注释文件
             {"name": "merged_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本序列文件
+            {"name": "add_code_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 增加class_code后的注释文件
+            {"name": "change_id_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 转换ID后的注释文件
+            {"name": "change_id_fa", "type": "outfile", "format": "sequence.fasta"}  # 转换ID后的序列文件文件
         ]
         self.add_option(options)
         self.tools = []
         self.step.add_steps('stringtie', 'cufflinks', 'stringtie_merge', 'cuffmerge', 'cuffcompare', 'gffcompare',
-                            'new_transcripts')
+                            'new_transcripts', 'refassemble_stat')
         self.sum_tools = []
         self.gtfs = []
 
@@ -66,12 +70,12 @@ class RefrnaAssembleModule(Module):
         samples = os.listdir(self.option('sample_bam_dir').prop['path'])
         for f in samples:
             f = os.path.join(self.option('sample_bam_dir').prop['path'], f)
-            stringtie = self.add_tool('assemble.stringtie')
+            stringtie = self.add_tool('rna.stringtie')
             self.step.add_steps('stringtie_{}'.format(n))
             stringtie.set_options({
                 "sample_bam": f,
-                "ref_fa": self.option('ref_fa'),
-                "ref_gtf": self.option('ref_gtf'),
+                "ref_fa": self.option('ref_fa').prop['path'],
+                "ref_gtf": self.option('ref_gtf').prop['path'],
             })
             step = getattr(self.step, 'stringtie_{}'.format(n))
             step.start()
@@ -90,11 +94,11 @@ class RefrnaAssembleModule(Module):
 
     def stringtie_merge_run(self):
         self.get_list()
-        stringtie_merge = self.add_tool("assemble.stringtie_merge")
+        stringtie_merge = self.add_tool("rna.stringtie_merge")
         stringtie_merge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
-            "ref_fa": self.option('ref_fa'),
-            "ref_gtf": self.option('ref_gtf'),
+            "ref_fa": self.option('ref_fa').prop['path'],
+            "ref_gtf": self.option('ref_gtf').prop['path'],
         })
         stringtie_merge.on('end', self.gffcompare_run)
         stringtie_merge.run()
@@ -108,12 +112,12 @@ class RefrnaAssembleModule(Module):
         samples = os.listdir(self.option('sample_bam_dir').prop['path'])
         for f in samples:
             f = os.path.join(self.option('sample_bam_dir').prop['path'], f)
-            cufflinks = self.add_tool('assemble.cufflinks')
+            cufflinks = self.add_tool('rna.cufflinks')
             self.step.add_steps('cufflinks_{}'.format(n))
             cufflinks.set_options({
                 "sample_bam": f,
-                "ref_fa": self.option('ref_fa'),
-                "ref_gtf": self.option('ref_gtf'),
+                "ref_fa": self.option('ref_fa').prop['path'],
+                "ref_gtf": self.option('ref_gtf').prop['path'],
                 "fr_stranded": self.option("fr_stranded"),
             })
             step = getattr(self.step, 'cufflinks_{}'.format(n))
@@ -133,11 +137,11 @@ class RefrnaAssembleModule(Module):
 
     def cuffmerge_run(self):
         self.get_list()
-        cuffmerge = self.add_tool("assemble.cuffmerge")
+        cuffmerge = self.add_tool("rna.cuffmerge")
         cuffmerge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
-            "ref_fa": self.option('ref_fa'),
-            "ref_gtf": self.option('ref_gtf'),
+            "ref_fa": self.option('ref_fa').prop['path'],
+            "ref_gtf": self.option('ref_gtf').prop['path'],
         })
         cuffmerge.on('end', self.gffcompare_run)
         cuffmerge.run()
@@ -152,10 +156,10 @@ class RefrnaAssembleModule(Module):
             merged_gtf = os.path.join(self.work_dir, "Cuffmerge/output/merged.gtf")
         elif self.option("assemble_method") == "stringtie":
             merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged.gtf")
-        gffcompare = self.add_tool("assemble.gffcompare")
+        gffcompare = self.add_tool("rna.gffcompare")
         gffcompare.set_options({
              "merged_gtf": merged_gtf,
-             "ref_gtf": self.option('ref_gtf'),
+             "ref_gtf": self.option('ref_gtf').prop['path'],
          })
         gffcompare.on('end', self.new_transcripts_run)
         gffcompare.run()
@@ -165,6 +169,7 @@ class RefrnaAssembleModule(Module):
         self.step.update()
 
     def new_transcripts_run(self):
+        self.logger.info(self.option('ref_gtf').prop['path'])
         tmap = ""
         merged_gtf = ""
         if self.option("assemble_method") == "cufflinks":
@@ -172,22 +177,34 @@ class RefrnaAssembleModule(Module):
             merged_gtf = os.path.join(self.work_dir, "Cuffmerge/output/merged.gtf")
         elif self.option("assemble_method") == "stringtie":
             tmap = os.path.join(self.work_dir, "StringtieMerge/output/cuffcmp.merged.gtf.tmap")
-            old_merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged.gtf")
-            merged_gtf = os.path.join(self.work_dir, "merged.gtf")
-            merged_add_code(old_merged_gtf, tmap, merged_gtf)
-            os.system('cp -r %s %s' % (merged_gtf, old_merged_gtf))
-        new_transcripts = self.add_tool("assemble.new_transcripts")
+            merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged.gtf")
+        new_transcripts = self.add_tool("rna.new_transcripts")
         new_transcripts.set_options({
             "tmap": tmap,
             "merged_gtf": merged_gtf,
-            "ref_fa": self.option('ref_fa'),
+            "ref_fa": self.option('ref_fa').prop['path'],
+            "ref_gtf": self.option('ref_gtf').prop['path'],
         })
-        new_transcripts.on('end', self.set_output)
+        new_transcripts.on('end', self.refassemble_stat_run)
         new_transcripts.run()
         self.sum_tools.append(new_transcripts)
         self.step.new_transcripts.finish()
+        self.step.refassemble_stat.start()
         self.step.update()
 
+    def refassemble_stat_run(self):
+        for tool in self.sum_tools:
+            self.linkdir(tool.output_dir, 'assembly_newtranscripts')
+        self.refassemble_stat = self.add_tool("rna.refassemble_stat")
+        self.refassemble_stat.set_options({
+            "all_files_dir": self.work_dir + '/assembly_newtranscripts',
+            "assemble_method": self.option("assemble_method"),
+        })
+        self.refassemble_stat.on('end', self.set_output)
+        self.refassemble_stat.run()
+        self.sum_tools.append(self.refassemble_stat)
+        self.step.refassemble_stat.finish()
+        self.step.update()
 
     def linkdir(self, dirpath, dirname):
         """
@@ -212,22 +229,16 @@ class RefrnaAssembleModule(Module):
             if os.path.isfile(oldfiles[i]):
                 os.link(oldfiles[i], newfiles[i])
             elif os.path.isdir(oldfiles[i]):
-                os.system('cp -r %s %s' % (oldfiles[i], newdir))
+                os.link(oldfiles[i], newdir)
 
     def set_output(self):
-        for tool in self.sum_tools:
-            self.linkdir(tool.output_dir, 'assembly_newtranscripts')
-        self.get_numberlist()
-        self.trans_stat()
-        self.count_genes_trans_exons()
         if self.option("assemble_method") == "cufflinks":
             gtf_file = 'Cufflinks'
             merge = 'Cuffmerge'
-            compare = 'Cuffcompare'
         else:
             gtf_file = 'Stringtie'
             merge = 'StringtieMerge'
-            compare = 'Gffcompare'
+        compare = 'Gffcompare'
         new_transcripts = 'NewTranscripts'
         statistics = 'Statistics'
         gtf_dir = os.path.join(self.output_dir, gtf_file)
@@ -253,20 +264,28 @@ class RefrnaAssembleModule(Module):
         old_dir = self.work_dir + '/assembly_newtranscripts/'
         for files in os.listdir(old_dir):
             if files.endswith("_out.gtf") or files.endswith("_out.fa"):
-                os.system('cp %s %s' % (old_dir + files, gtf_dir + "/" + files))
+                os.link(old_dir + files, gtf_dir + "/" + files)
             elif files.endswith("merged.gtf") or files.endswith("merged.fa"):
-                os.system('cp %s %s' % (old_dir + files, merge_dir + "/" + files))
+                os.link(old_dir + files, merge_dir + "/" + files)
             elif files.startswith("cuffcmp."):
-                os.system('cp %s %s' % (old_dir + files, compare_dir + "/" + files))
-            elif files.endswith(".txt"):
-                os.system('cp %s %s' % (old_dir + files, statistics_dir + "/" + files))
+                os.link(old_dir + files, compare_dir + "/" + files)
             elif files.startswith("new_transcripts.") or files.startswith("new_genes.") or files.startswith("old_trans.gtf") or files.startswith("old_genes.gtf"):
-                os.system('cp %s %s' % (old_dir + files, new_transcripts_dir + "/" + files))
-        self.option("merged_gtf").set_path(merge_dir + '/merged.gtf')
-        self.option("merged_fa").set_path(merge_dir +"/merged.fa")
+                os.link(old_dir + files, new_transcripts_dir + "/" + files)
+        txt_files = os.listdir(self.work_dir + '/RefassembleStat/output')
+        for files in txt_files:
+            move_files = os.path.join(self.work_dir + '/RefassembleStat/output', files)
+            self.logger.info(move_files)
+            self.logger.info(statistics_dir + "/" + files)
+            os.link(move_files, statistics_dir + "/" + files)
+        # self.option("merged_gtf").set_path(merge_dir + '/merged.gtf')
+        # self.option("merged_fa").set_path(merge_dir + "/merged.fa")
         self.option("new_transcripts_gtf").set_path(new_transcripts_dir + "/new_transcripts.gtf")
+        self.option("new_transcripts_fa").set_path(new_transcripts_dir + "/new_transcripts.fa")
         self.option("new_gene_gtf").set_path(new_transcripts_dir + "/new_genes.gtf")
+        self.option("change_id_gtf").set_path(merge_dir + "/change_id_merged.gtf")
+        # self.option("add_code_gtf").set_path(merge_dir + "/add_code_merged.gtf")
         self.option("cuff_gtf").set_path(compare_dir + '/cuffcmp.annotated.gtf')
+        self.option("change_id_fa").set_path(new_transcripts_dir + "/change_id_merged.fa")
         self.end()
 
     def run(self):
@@ -286,71 +305,6 @@ class RefrnaAssembleModule(Module):
                     if m:
                         file_path = os.path.join(gtf.output_dir, f)
                         w.write(file_path + "\n")
-
-    def get_numberlist(self):
-        file_list = []
-        numberlist_path = os.path.join(self.work_dir, "number_list.txt")
-        with open(numberlist_path, "w+") as w:
-            a = os.listdir(self.work_dir+'/assembly_newtranscripts')
-            for f in a:
-                file_list.append(f)
-                if f.endswith("_out.gtf") or f.endswith("merged.gtf"):
-                    files = os.path.join(self.work_dir+'/assembly_newtranscripts', f)
-                    r = open(files)
-                    list1 = set("")
-                    list2 = set("")
-                    for line in r:
-                        m = re.match("#.*", line)
-                        if not m:
-                            arr = line.strip().split("\t")
-                            nine_array = arr[-1].strip().split(";")
-                            gene_id = nine_array[0].strip().split("\"")
-                            trans_id = nine_array[1].strip().split("\"")
-                            if len(trans_id) == 3 and trans_id[1] not in list1:
-                                list1.add(trans_id[1])
-                            if len(gene_id) == 3 and gene_id[1] not in list2:
-                                list2.add(gene_id[1])
-                    num_count = f + "\t" + str(len(list1)) + "\t" + str(len(list2)) + "\n"
-                    w.write(num_count)
-                    r.close()
-
-    def trans_stat(self):
-        all_file = os.listdir(self.work_dir+'/assembly_newtranscripts')
-        for f in all_file:
-            if f.endswith("merged.fa"):
-                files = os.path.join(self.work_dir + '/assembly_newtranscripts', f)
-                steps = [200, 300, 600, 1000]
-                for step in steps:
-                    step_count(files, self.work_dir+"/" + f + ".txt", 10, step,
-                               self.work_dir + "/assembly_newtranscripts/trans_count_stat_" + str(step) + ".txt")
-            if f.endswith("merged.gtf"):
-                files = os.path.join(self.work_dir + '/assembly_newtranscripts', f)
-                code_count = os.path.join(self.work_dir + "/assembly_newtranscripts", "code_num.txt")
-                class_code_count(files, code_count)
-                if len(open(code_count).readline().split('\t')) == 3:
-                    self.logger.info("完成class_code统计")
-                else:
-                    raise Exception("class_code统计失败！")
-
-    def count_genes_trans_exons(self):
-        all_file = os.listdir(self.work_dir + '/assembly_newtranscripts')
-        for f in all_file:
-            if f.endswith("old_genes.gtf") or f.endswith("old_trans.gtf") or f.endswith("new_genes.gtf") or f.endswith("new_transcripts.gtf"):
-                files = os.path.join(self.work_dir + '/assembly_newtranscripts', f)
-                gene_trans = os.path.join(self.work_dir, f + ".trans")
-                trans_exon = os.path.join(self.work_dir, f + ".exon")
-                gene_trans_exon(files, self.option("assemble_method"), gene_trans, trans_exon)
-                # count_trans_or_exons(gene_trans, final_trans_file)
-                # count_trans_or_exons(trans_exon, final_exon_file)
-        gtf_files = os.listdir(self.work_dir)
-        for f in gtf_files:
-            if f.endswith('old_genes.gtf.trans') or f.endswith('new_genes.gtf.trans') or f.endswith('new_transcripts.gtf.exon') or f.endswith('old_trans.gtf.exon'):
-                files = os.path.join(self.work_dir, f)
-                steps = [1, 5, 10, 20]
-                for step in steps:
-                    middle_txt = os.path.join(self.work_dir, f + "_" + str(step) + ".txt")
-                    final_txt = os.path.join(self.work_dir + '/assembly_newtranscripts', f + "_" + str(step) + ".txt")
-                    count_trans_or_exons(files, step, middle_txt, final_txt)
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

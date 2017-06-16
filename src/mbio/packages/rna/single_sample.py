@@ -8,7 +8,7 @@ from collections import defaultdict
 import re
 import os
 import subprocess
-from mbio.packages.denovo_rna.express.express_distribution import distribution
+from mbio.packages.ref_rna.express.express_distribution import distribution
 
 def prepare(input_file, gtf_file, count_matrix, gene_length):
     #对featureCounts生成的文件进一步处理，求fpkm.tpm表达量

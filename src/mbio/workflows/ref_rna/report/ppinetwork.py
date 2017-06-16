@@ -93,10 +93,14 @@ class PpinetworkWorkflow(Workflow):
         print 'start insert'
         api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.option("ppi_id"))   # 节点的属性文件（画网络图用）
         api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.option("ppi_id"))  # 边信息
-        api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.option("ppi_id"))  # 网络全局属性
-        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.option("ppi_id"))  # 节点的聚类与degree，画折线图
-        api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.option("ppi_id"))  # 中心信息
-        api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.option("ppi_id"))  # 度分布
+        api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path,
+                                              table_id=self.option("ppi_id"))  # 网络全局属性
+        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,
+                                                  file2_path=network_clustering_path, file3_path=all_nodes_path,
+                                                  table_id=self.option("ppi_id"))  # 节点的聚类与degree，画折线图
+        api_ppinetwork.add_network_centrality(file_path=network_centrality_path, file1_path=all_nodes_path,
+                                              table_id=self.option("ppi_id"))  # 中心信息
+        api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.option("ppi_id"))
         print 'end insert'
         self.end()
 
