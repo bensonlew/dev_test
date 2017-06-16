@@ -34,11 +34,11 @@ class NiptAnalysis(Base):
             data1 = r.readlines()[1:]
             for line1 in data1:
                 temp1 = line1.rstrip().split("\t")
-                data = [("nipt_interaction_id", table_id), ("sample_id", str(temp1[0])), ("zz", eval(temp1[1]))]
+                data = [("interaction_id", table_id), ("sample_id", str(temp1[0])), ("zz", eval(temp1[1]))]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
-            collection = self.database["sg_zz_result"]
+            collection = self.database["sg_interaction_zzresult"]
             collection.insert_many(data_list)
         except Exception, e:
             raise Exception("导入%s信息出错:%s" % (file_path, e))
@@ -66,7 +66,9 @@ class NiptAnalysis(Base):
     def get_id(self,name):
         collection = self.database["sg_main"]
         temp = collection.find_one({"sample_id": name})
-        return temp[u'_id']
+        collection_inter = self.database["sg_interaction"]
+        temp1 = collection_inter.find_one({"main_id": temp[u'_id']})
+        return temp[u'_id'],temp1[u'id']
 
     # @report_check
     def add_z_result(self, file_path, table_id=None):
@@ -80,13 +82,13 @@ class NiptAnalysis(Base):
             data1 = r.readlines()[1:]
             for line in data1:
                 temp = line.rstrip().split("\t")
-                data = [("nipt_interaction_id", table_id), ("sample_id", str(temp[0])), ("chr", int(temp[1])),
+                data = [("interaction_id", table_id), ("sample_id", str(temp[0])), ("chr", int(temp[1])),
                         ("cn", eval(temp[2])), ("bin", int(temp[3])), ("n", int(temp[4])), ("sd", eval(temp[5])),
                         ("mean", eval(temp[6])), ("z", eval(temp[7]))]
                 data_son = SON(data)
                 data_list.append(data_son)
         try:
-            collection = self.database["sg_z_result"]
+            collection = self.database["sg_interaction_zresult"]
             collection.insert_many(data_list)
         except Exception, e:
             raise Exception("导入%s信息出错:%s" % (file_path, e))
@@ -311,7 +313,7 @@ class NiptAnalysis(Base):
         name = 'bw-' + str(bw) + '_bs-' + str(bs)+'_ref-'+str(ref_group)
         insert_data ={
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'nipt_main_id':main_id,
+            'main_id':main_id,
             'params':new_params,
             'name': name,
             "sample_id":sample_id,
@@ -329,26 +331,25 @@ class NiptAnalysis(Base):
     def update_interaction(self,main_id):
         collection = self.database['sg_interaction']
         try:
-            collection.update({"nipt_main_id": main_id},{'$set':{'status':'start'}})
+            collection.update({"main_id": main_id},{'$set':{'status':'start'}})
         except Exception as e:
             raise Exception('更新交互表出错：{}'.format(e))
         else:
             self.bind_object.logger.info("更新交互表成功")
 
 
-    def add_fastqc(self,main_id,file):
-        collection = self.database['sg_fastqc']
+    def add_fastqc(self,file):
+        collection = self.database['sg_sample_fastqc']
         insert_data = {}
-        insert_data['nipt_main_id'] = main_id
 
         file_name = file.split('/')[-1]
         sample_id = file_name.split('.')[0]
 
         insert_data['sample_id'] = sample_id
         if re.search(r'.*.map.valid_fastqc.html$', file):
-            insert_data['fastqc_link'] = file_name
+            insert_data['fastqc_link'] = file
         else:
-            insert_data['fastqc_link'] = file_name
+            insert_data['fastqc_link'] = file
         try:
             collection.insert_one(insert_data)
         except Exception as e:
@@ -357,7 +358,7 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info("插入fastqc表成功")
 
     def add_qc(self,file):
-        collection = self.database['sg_qc']
+        collection = self.database['sg_sample_qc']
         insert = {}
         file_name =file.split('/')[-1]
         sample_name = file_name.split('.')[0]
@@ -384,11 +385,15 @@ class NiptAnalysis(Base):
         else:
             self.bind_object.logger.info("插入qc表成功")
 
-    def report_result(self,main_id,file):
-        collection = self.database['sg_result']
+    def report_result(self,interaction_id,file,):
+        collection = self.database['sg_interaction_result']
+        collection_interaction = self.database['sg_interaction']
         collection_main = self.database['sg_main']
         insert = {}
-        insert['main_id'] = main_id
+        insert['interaction_id'] = interaction_id
+        temp = collection_interaction.find_one({"_id": interaction_id})
+        main_id = temp[u'"main_id']
+
         with open(file,'r') as f:
             for line in f:
                 line = line.strip()
