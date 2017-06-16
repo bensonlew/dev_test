@@ -130,9 +130,9 @@ class StringtieTool(Tool):
         self.logger.info("设置结果目录")
         try:
             sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-            shutil.copy2(self.work_dir + "/" + sample_name + "_out.fa", self.output_dir +
+            os.link(self.work_dir + "/" + sample_name + "_out.fa", self.output_dir +
             "/" + sample_name + "_out.fa")
-            shutil.copy2(self.work_dir + "/"+sample_name+"_out.gtf", self.output_dir + "/" + sample_name+"_out.gtf")
+            os.link(self.work_dir + "/"+sample_name+"_out.gtf", self.output_dir + "/" + sample_name+"_out.gtf")
             self.option('sample_gtf').set_path(self.work_dir + "/" + sample_name+"_out.gtf")
             self.logger.info("设置组装拼接分析结果目录成功")
 
