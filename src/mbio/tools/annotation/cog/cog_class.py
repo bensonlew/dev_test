@@ -45,7 +45,7 @@ class CogClassTool(Tool):
         self.gene_list = self.option("diff_list").prop["gene_list"]
         self.query_list = []
         self.group_dict = defaultdict(lambda: [])
-        self.categories_dict = {}
+        self.categories_dict = defaultdict(lambda:{})
         self.func_type = {
             'INFORMATION STORAGE AND PROCESSING': ['A', 'B', 'J', 'K', 'L'],
             'CELLULAR PROCESSES AND SIGNALING': ['D', 'M', 'N', 'O', 'T', 'U', 'V', 'W', 'Y', 'Z'],
@@ -100,7 +100,11 @@ class CogClassTool(Tool):
                         if not self.categories_dict[cog_categories].has_key(letter):
                             self.categories_dict[cog_categories][letter] = []
                         if cog_group.startswith(letter):
-                            self.categories_dict[cog_categories][letter].append(query)
+                            if query not in self.categories_dict[cog_categories][letter]:
+                                self.categories_dict[cog_categories][letter].append(query)
+        name = ""  # 修改
+        head = "type\tcategory\t{}_COG\t{}_NOG\t{}_KOG\t{}_COG_LIST\t{}_NOG_LIST\t{}_KOG_LIST".format(name, name, name, name, name, name)
+        self.summary_file.write()
         for thekey in ['INFORMATION STORAGE AND PROCESSING', 'CELLULAR PROCESSES AND SIGNALING',
                        'METABOLISM', 'POORLY CHARACTERIZED']:
             for g in self.func_type[thekey]:

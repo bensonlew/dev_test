@@ -1397,14 +1397,23 @@ class RefrnaWorkflow(Workflow):
         self.api_cor = self.api.refrna_corr_express
         correlation = self.exp.output_dir + "/correlation/genes_correlation"
         group_id = str(self.group_id)
-        group_detail = self.group_detail
+        group_detail = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            group_detail[key] = value
         self.api_cor.add_correlation_table(correlation=correlation, group_id=group_id, group_detail=group_detail,
                                            express_id=self.express_id, detail=True, seq_type="gene")
 
     def export_pca(self):
         self.api_pca = self.api.refrna_corr_express
         pca_path = self.exp.output_dir + "/pca/genes_pca"
-        self.api_pca.add_pca_table(pca_path, group_id=str(self.group_id), group_detail=self.group_detail,
+        group_detail = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            group_detail[key] = value
+        self.api_pca.add_pca_table(pca_path, group_id=str(self.group_id), group_detail=group_detail,
                                    express_id=self.express_id, detail=True, seq_type="gene")
 
     def export_annotation(self):
@@ -1422,15 +1431,19 @@ class RefrnaWorkflow(Workflow):
     def export_as(self):
         self.api_as = self.api.api("ref_rna.refrna_splicing_rmats")
         if self.option("strand_specific"):
-            lib_type = "fr-firststrand"
+            lib_type = "fr-firststrand",
+            am = "fr_firststrand",
         else:
             lib_type = "fr-unstranded"
+            am = "fr_unstranded"
         if self.option("fq_type") == "PE":
             seq_type = "paired"
         else:
             seq_type = "single"
         params = {
             "ana_mode": "P",
+            "analysis_mode": am,
+            "novel": 1,
             "as_diff": 0.001,
             "group_id": str(self.group_id),
             "lib_type": lib_type,
