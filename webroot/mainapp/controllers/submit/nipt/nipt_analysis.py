@@ -43,7 +43,7 @@ class NiptAnalysis(NiptController):
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ('params', params),
             ('name', main_table_name),
-            ("nipt_main_id", ObjectId(data.main_id))
+            ("main_id", ObjectId(data.main_id))
         ]
         # main_table_id = Nipt().insert_none_table('sg_interaction')
         main_table_id = Nipt().insert_main_table('sg_interaction', mongo_data)
