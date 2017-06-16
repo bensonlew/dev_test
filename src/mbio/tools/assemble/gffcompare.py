@@ -106,7 +106,7 @@ class GffcompareTool(Tool):
         """
         self.logger.info("设置结果目录")
         try:
-            shutil.copy2(self.work_dir + "/cuffcmp.annotated.gtf", self.output_dir + "/cuffcmp.annotated.gtf")
+            os.link(self.work_dir + "/cuffcmp.annotated.gtf", self.output_dir + "/cuffcmp.annotated.gtf")
             self.option('cuff_gtf').set_path(self.output_dir + "/cuffcmp.annotated.gtf")
             self.logger.info("设置拼接比较结果目录成功")
         except Exception as e:
