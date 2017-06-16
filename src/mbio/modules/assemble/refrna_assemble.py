@@ -70,7 +70,7 @@ class RefrnaAssembleModule(Module):
         samples = os.listdir(self.option('sample_bam_dir').prop['path'])
         for f in samples:
             f = os.path.join(self.option('sample_bam_dir').prop['path'], f)
-            stringtie = self.add_tool('rna.stringtie')
+            stringtie = self.add_tool('assemble.stringtie')
             self.step.add_steps('stringtie_{}'.format(n))
             stringtie.set_options({
                 "sample_bam": f,
@@ -94,7 +94,7 @@ class RefrnaAssembleModule(Module):
 
     def stringtie_merge_run(self):
         self.get_list()
-        stringtie_merge = self.add_tool("rna.stringtie_merge")
+        stringtie_merge = self.add_tool("assemble.stringtie_merge")
         stringtie_merge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
             "ref_fa": self.option('ref_fa').prop['path'],
@@ -112,7 +112,7 @@ class RefrnaAssembleModule(Module):
         samples = os.listdir(self.option('sample_bam_dir').prop['path'])
         for f in samples:
             f = os.path.join(self.option('sample_bam_dir').prop['path'], f)
-            cufflinks = self.add_tool('rna.cufflinks')
+            cufflinks = self.add_tool('assemble.cufflinks')
             self.step.add_steps('cufflinks_{}'.format(n))
             cufflinks.set_options({
                 "sample_bam": f,
@@ -137,7 +137,7 @@ class RefrnaAssembleModule(Module):
 
     def cuffmerge_run(self):
         self.get_list()
-        cuffmerge = self.add_tool("rna.cuffmerge")
+        cuffmerge = self.add_tool("assemble.cuffmerge")
         cuffmerge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
             "ref_fa": self.option('ref_fa').prop['path'],
@@ -156,7 +156,7 @@ class RefrnaAssembleModule(Module):
             merged_gtf = os.path.join(self.work_dir, "Cuffmerge/output/merged.gtf")
         elif self.option("assemble_method") == "stringtie":
             merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged.gtf")
-        gffcompare = self.add_tool("rna.gffcompare")
+        gffcompare = self.add_tool("assemble.gffcompare")
         gffcompare.set_options({
              "merged_gtf": merged_gtf,
              "ref_gtf": self.option('ref_gtf').prop['path'],
@@ -178,7 +178,7 @@ class RefrnaAssembleModule(Module):
         elif self.option("assemble_method") == "stringtie":
             tmap = os.path.join(self.work_dir, "StringtieMerge/output/cuffcmp.merged.gtf.tmap")
             merged_gtf = os.path.join(self.work_dir, "StringtieMerge/output/merged.gtf")
-        new_transcripts = self.add_tool("rna.new_transcripts")
+        new_transcripts = self.add_tool("assemble.new_transcripts")
         new_transcripts.set_options({
             "tmap": tmap,
             "merged_gtf": merged_gtf,
@@ -195,7 +195,7 @@ class RefrnaAssembleModule(Module):
     def refassemble_stat_run(self):
         for tool in self.sum_tools:
             self.linkdir(tool.output_dir, 'assembly_newtranscripts')
-        self.refassemble_stat = self.add_tool("rna.refassemble_stat")
+        self.refassemble_stat = self.add_tool("assemble.refassemble_stat")
         self.refassemble_stat.set_options({
             "all_files_dir": self.work_dir + '/assembly_newtranscripts',
             "assemble_method": self.option("assemble_method"),
@@ -285,7 +285,7 @@ class RefrnaAssembleModule(Module):
         self.option("change_id_gtf").set_path(merge_dir + "/change_id_merged.gtf")
         # self.option("add_code_gtf").set_path(merge_dir + "/add_code_merged.gtf")
         self.option("cuff_gtf").set_path(compare_dir + '/cuffcmp.annotated.gtf')
-        self.option("change_id_fa").set_path(new_transcripts_dir + "/change_id_merged.fa")
+        self.option("change_id_fa").set_path(merge_dir + "/change_id_merged.fa")
         self.end()
 
     def run(self):
