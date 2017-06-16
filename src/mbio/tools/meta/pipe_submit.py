@@ -467,7 +467,7 @@ class Submit(object):
         # if not self.instant:
         if self._params['submit_location'] != "otu_statistic":
             self.bind_object.logger.info("submit_location: %s" % (self._params['submit_location']))
-            wait_time = self.pipe_count * (self.bind_object.sub_analysis_len + 15) + random.randint(0, self.bind_object.sub_analysis_len * 2)
+            wait_time = self.pipe_count * (self.bind_object.sub_analysis_len + 15) + random.randint(0, self.bind_object.sub_analysis_len * 3)
             self.bind_object.logger.info("等待时间%s" % (wait_time))
             gevent.sleep(wait_time)
 

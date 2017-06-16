@@ -213,7 +213,11 @@ class BetaMultiAnalysisWorkflow(Workflow):
             ["Plsda", "", "PLS_DA分析结果目录"],
             ["Plsda/plsda_sites.xls", "xls", "样本坐标表"],
             ["Plsda/plsda_rotation.xls", "xls", "物种主成分贡献度表"],
+<<<<<<< Updated upstream
             ["Plsda/plsda_importance.xls", "xls", "主成分组别特征值表"],
+=======
+            ["Plsda/plsda_importance.xls", "xls", "主成分解释度表"],
+>>>>>>> Stashed changes
             ["Plsda/plsda_importancepre.xls", "xls", "主成分解释度表"],
             ["Rda", "", "RDA_CCA分析结果目录"],
             [r'Rda/dca.xls', 'xls', 'DCA分析结果'],
