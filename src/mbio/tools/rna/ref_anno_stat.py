@@ -535,13 +535,21 @@ class RefAnnoStatTool(Tool):
             anno_num['total']['gene'] = len(self.option('gene_file').prop['gene_list'])
             anno_num['total']['tran'] = len(self.tran_list)
             for db in self.anno_list:
-                w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, len(self.anno_list[db]), len(self.gene_anno_list[db]), '%0.4g' % (len(self.anno_list[db]) / anno_num['total']['tran']), '%0.4g' % (len(self.gene_anno_list[db]) / anno_num['total']['gene'])))
+                tran_db_percent = '%0.4g' % (len(self.anno_list[db]) / anno_num['total']['tran'])
+                tran_db_percent = float(tran_db_percent) * 100
+                gene_db_percent = '%0.4g' % (len(self.gene_anno_list[db]) / anno_num['total']['gene'])
+                gene_db_percent = float(gene_db_percent) * 100
+                w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, len(self.anno_list[db]), len(self.gene_anno_list[db]),  str(tran_db_percent) + '%', str(gene_db_percent) + '%'))
                 tmp += self.anno_list[db]
                 tmp_gene += self.gene_anno_list[db]
             anno_num['total_anno']['gene'] = len(set(tmp_gene))
             anno_num['total_anno']['tran'] = len(set(tmp))
-            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_num['total_anno']['tran'], anno_num['total_anno']['gene'], '%0.4g' % (anno_num['total_anno']['tran'] / anno_num['total']['tran']), '%0.4g' % (anno_num['total_anno']['gene'] / anno_num['total']['gene'])))
-            w.write('total\t{}\t{}\t1\t1\n'.format(anno_num['total']['tran'], anno_num['total']['gene']))
+            tran_total_percent = '%0.4g' % (anno_num['total_anno']['tran'] / anno_num['total']['tran'])
+            tran_total_percent = float(tran_total_percent) * 100
+            gene_total_percent = '%0.4g' % (anno_num['total_anno']['gene'] / anno_num['total']['gene'])
+            gene_total_percent = float(gene_total_percent) * 100
+            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_num['total_anno']['tran'], anno_num['total_anno']['gene'], str(tran_total_percent) + '%',  str(gene_total_percent) + '%'))
+            w.write('total\t{}\t{}\t100%\t100%\n'.format(anno_num['total']['tran'], anno_num['total']['gene']))
 
     def list_num(self, list_file):
         with open(list_file, "rb") as f:

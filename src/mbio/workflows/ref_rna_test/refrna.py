@@ -1328,22 +1328,22 @@ class RefrnaWorkflow(Workflow):
         api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
         api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.ppi_id)  # 中心信息
         api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.ppi_id)  # 度分布
-        self.ppi_id = api_ppinetwork.add_ppi_main_id(str(self.geneset_id[0]), self.option("combine_score"), "gene", self.taxon_id)
-        self.ppi_id = str(self.ppi_id)
-        all_nodes_path = self.network_gene.output_dir + '/ppinetwork_predict/all_nodes.txt'   # 画图节点属性文件
-        interaction_path = self.network_gene.output_dir + '/ppinetwork_predict/interaction.txt'  # 画图的边文件
-        network_stats_path = self.network_gene.output_dir + '/ppinetwork_predict/network_stats.txt'  # 网络全局属性统计
-        network_centrality_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_centrality.txt'
-        network_clustering_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_clustering.txt'
-        network_transitivity_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_transitivity.txt'
-        degree_distribution_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_degree_distribution.txt'
-        network_node_degree_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_node_degree.txt'
-        api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.ppi_id)   # 节点的属性文件（画网络图用）
-        api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.ppi_id)  # 边信息
-        api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.ppi_id)  # 网络全局属性
-        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
-        api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.ppi_id)  # 中心信息
-        api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.ppi_id)  # 度分布
+        # self.ppi_id = api_ppinetwork.add_ppi_main_id(str(self.geneset_id[0]), self.option("combine_score"), "gene", self.taxon_id)
+        # self.ppi_id = str(self.ppi_id)
+        # all_nodes_path = self.network_gene.output_dir + '/ppinetwork_predict/all_nodes.txt'   # 画图节点属性文件
+        # interaction_path = self.network_gene.output_dir + '/ppinetwork_predict/interaction.txt'  # 画图的边文件
+        # network_stats_path = self.network_gene.output_dir + '/ppinetwork_predict/network_stats.txt'  # 网络全局属性统计
+        # network_centrality_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_centrality.txt'
+        # network_clustering_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_clustering.txt'
+        # network_transitivity_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_transitivity.txt'
+        # degree_distribution_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_degree_distribution.txt'
+        # network_node_degree_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_node_degree.txt'
+        # api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.ppi_id)   # 节点的属性文件（画网络图用）
+        # api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.ppi_id)  # 边信息
+        # api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.ppi_id)  # 网络全局属性
+        # api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
+        # api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.ppi_id)  # 中心信息
+        # api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.ppi_id)  # 度分布
 
     def export_snp(self):
         self.api_snp = self.api.api("ref_rna.ref_snp")

@@ -36,11 +36,11 @@ class DiffStatTableFile(File):
             regulate_dict = defaultdict(list)
             for line in f:
                 line = line.strip('\n').split('\t')
-                if line[-2] == 'yes':
+                if line[-3] == 'yes':
                     diff_gene.append(line[0])
-                if line[-1] == 'up':
+                if line[-2] == 'up':
                     regulate_dict['up'].append(line[0])
-                if line[-1] == 'down':
+                if line[-2] == 'down':
                     regulate_dict['down'].append(line[0])
         return diff_gene, regulate_dict
 

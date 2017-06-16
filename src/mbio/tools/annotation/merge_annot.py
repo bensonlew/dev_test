@@ -58,7 +58,7 @@ class MergeAnnotAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = "5G"
+        self._memory = "10G"
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -81,27 +81,31 @@ class MergeAnnotTool(Tool):
         self.database = self.option("database").split(",")
         self.b2g_user = "biocluster102"
         self.b2g_password = "sanger-dev-123"
-        self.python = self.config.SOFTWARE_DIR + "/program/Python/bin/python"
+        self.python = "/program/Python/bin/python"
+        self.merge_scripts = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/merge.py"
         self.goAnnot = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goAnnot.py"
         self.goSplit = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goSplit.py"
 
     def run_merge(self):
         for db in self.database:
             if db == "go":
-                gos = self.option("gos_dir").split(";")
-                self.merge(dirs=gos, merge_file="query_gos.list")
+                tmp = self.option("gos_dir").split(";")
+                gos = " ".join(tmp)
+                self.merge(dirs=gos, merge_file="query_gos.list", type="go")
                 self.option("golist_out", self.work_dir + "/query_gos.list")
                 self.run_go_anno()
                 self.option("go2level_out", self.work_dir + "/go2level.xls")
                 self.logger.info("合并go注释文件完成")
             if db == "cog":
-                cog = self.option("cog_table_dir").split(";")
-                self.merge(dirs=cog, merge_file="cog_table.xls")
+                tmp = self.option("cog_table_dir").split(";")
+                cog = " ".join(tmp)
+                self.merge(dirs=cog, merge_file="cog_table.xls", type="cog")
                 self.option("cog_table", self.work_dir + "/cog_table.xls")
                 self.logger.info("合并cog注释文件完成")
             if db == "kegg":
-                kegg = self.option("kegg_table_dir").split(";")
-                self.merge(dirs=kegg, merge_file="kegg_table.xls")
+                tmp = self.option("kegg_table_dir").split(";")
+                kegg = " ".join(tmp)
+                self.merge(dirs=kegg, merge_file="kegg_table.xls", type="kegg")
                 self.option("kegg_table", self.work_dir + "/kegg_table.xls")
                 self.logger.info("合并kegg注释文件完成")
         files = ["go2level.xls", "query_gos.list", "cog_table.xls", "kegg_table.xls"]
@@ -116,34 +120,61 @@ class MergeAnnotTool(Tool):
         cmd1 = "{} {} {} {} {} {}".format(self.python, self.goAnnot, self.option("golist_out").prop["path"], "localhost", self.b2g_user, self.b2g_password)
         self.logger.info("运行goAnnot.py")
         self.logger.info(cmd1)
-        try:
-            subprocess.check_output(cmd1, shell=True)
+        cmd1_obj = self.add_command("cmd1", cmd1).run()
+        self.wait(cmd1_obj)
+        if cmd1_obj.return_code == 0:
             self.logger.info("运行goAnnot.py完成")
-        except subprocess.CalledProcessError:
-            self.set_error("运行goAnnot.py出错")
+        else:
+            cmd1_obj.rerun()
+            self.wait(cmd1_obj)
+            if cmd1_obj.return_code == 0:
+                self.logger.info("运行goAnnot.py完成")
+            else:
+                self.set_error("运行goAnnot.py出错")
+                raise Exception("运行goAnnot.py出错")
+        # try:
+        #     subprocess.check_output(cmd1, shell=True)
+        #     self.logger.info("运行goAnnot.py完成")
+        # except subprocess.CalledProcessError:
+        #     self.set_error("运行goAnnot.py出错")
         cmd2 = "{} {} {}".format(self.python, self.goSplit, self.work_dir + '/go_detail.xls')
         self.logger.info("运行goSplit.py")
         self.logger.info(cmd2)
-        try:
-            subprocess.check_output(cmd2, shell=True)
+        cmd2_obj = self.add_command("cmd2", cmd2).run()
+        self.wait(cmd2_obj)
+        if cmd2_obj.return_code == 0:
             self.logger.info("运行goSplit.py完成")
-        except subprocess.CalledProcessError:
-            self.set_error("运行goSplit.py出错")
-
-    def merge(self, dirs, merge_file):
-        filt = []
-        for path in dirs:
-            if os.path.exists(path):
-                with open(path, "rb") as f:
-                    lines = f.readlines()
-                    for line in lines:
-                        if line not in filt:
-                            filt.append(line)
+        else:
+            cmd2_obj.rerun()
+            self.wait(cmd2_obj)
+            if cmd2_obj.return_code == 0:
+                self.logger.info("运行goSplit.py完成")
             else:
-                self.set_error("{}文件不存在".format(path))
-        with open(merge_file, "wb") as w:
-            for line in filt:
-                w.write(line)
+                self.set_error("运行goSplit.py出错")
+                raise Exception("运行goSplit.py出错")
+        # try:
+        #     subprocess.check_output(cmd2, shell=True)
+        #     self.logger.info("运行goSplit.py完成")
+        # except subprocess.CalledProcessError:
+        #     self.set_error("运行goSplit.py出错")
+
+    def merge(self, dirs, merge_file, type):
+        cmd = "{} {} {} {}".format(self.python, self.merge_scripts, dirs, merge_file)
+        cmd3_obj = self.add_command("cmd_merge_{}".format(type), cmd).run()
+        self.wait(cmd3_obj)
+        if cmd3_obj.return_code == 0:
+            self.logger.info("文件合并完成")
+        else:
+            cmd3_obj.rerun()
+            self.wait(cmd3_obj)
+            if cmd3_obj.return_code == 0:
+                self.logger.info("文件合并完成")
+            else:
+                self.set_error("文件合并未完成")
+                raise Exception("文件合并失败")
+
+
+
 
     def run(self):
         super(MergeAnnotTool, self).run()

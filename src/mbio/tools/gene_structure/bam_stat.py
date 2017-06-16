@@ -110,7 +110,7 @@ class BamStatTool(Tool):
                     print sample_name
                     for line in f:
                         if re.match(r"Total", line):
-                            total = line.split()[2]
+                            total = line.split()[1]
                         if re.match(r"Unmapped", line):
                             unmapped = line.split()[2]
                     mapped = int(total) - int(unmapped)

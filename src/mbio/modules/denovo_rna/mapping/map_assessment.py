@@ -256,7 +256,9 @@ class MapAssessmentModule(Module):
                         os.remove(target)
                     os.link(fp, target)
         with open(os.path.join(self.output_dir, "bam_stat.xls"), "w") as w:
-            w.write("sample\ttotal_reads\tmapped_reads\tmultiple_mapped\tuniq_mapped\n")
+            w.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format("sample", "total_reads", "mappped_reads",
+                                                                  "multiple_mapped", "uniq_mapped", "reads_up",
+                                                                  "reads_down", "no_splice", "splice"))
             for f in bam_out:
                 with open(f, "r") as r:
                     r.readline()
