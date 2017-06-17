@@ -128,15 +128,15 @@ class PipeSubmitTool(Tool):
             self.count_ends += 1
         if not ana.instant:
             self.logger.info('投递任务投递成功:{} 任务参数检查获取结果: {}'.format(ana.api, ana._params_check_end))
-        self.update_mongo_ends_count(ana)
+        # self.update_mongo_ends_count(ana)
         if ana.instant:
             self.count_instant_running -= 1
             self.logger.info("当前运行中的即时任务数为: {}".format(
                 self.count_instant_running))
         else:
             self.count_submit_running -= 1
-            self.logger.info("当前运行中的投递任务数为: {}".format(
-                self.count_submit_running))
+            self.logger.info("当前运行中的投递任务数为: {}, which analysis:{}".format(
+                self.count_submit_running, ana._params['submit_location']))
         self.logger.info("END COUNT: {}".format(self.count_ends))
         if self.count_ends == self.all_count:
             self.all_end.set()
@@ -355,7 +355,7 @@ class PipeSubmitTool(Tool):
 
     def update_all_count(self):
         self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
-                                                     {'$set': {"all_count": self.all_count}})
+                                                     {'$set': {"all_count": self.all_count - 1}})
 
     def run(self):
         super(PipeSubmitTool, self).run()
