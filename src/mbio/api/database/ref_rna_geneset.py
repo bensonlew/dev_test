@@ -32,7 +32,7 @@ class RefRnaGeneset(Base):
         insert_data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
-            "status": "start",
+            "status": "end",
             "name": name,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "params": json.dumps(params, sort_keys=True, separators=(',', ':'))

@@ -111,7 +111,8 @@ def export_go_list(data, option_name, dir_path, bind_obj=None):
         raise Exception("意外错误，annotation_go_id:{}在sg_annotation_go中未找到！".format(go_id))
     collection = db["sg_annotation_go_list"]
     results = collection.find({"go_id": ObjectId(go_id)})
-    if not results:
+    one_record = collection.find_one({"go_id": ObjectId(go_id)})
+    if not one_record:
         raise Exception("生成gos_list出错：annotation_id:{}在sg_annotation_gos_list中未找到！".format(ObjectId(go_id)))
     with open(go_list_path, "wb") as w:
         for result in results:
@@ -127,10 +128,10 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
     bind_obj.logger.debug("正在导出参数%s的kegg_table文件，路径:%s" % (option_name, kegg_path))
     geneset_collection = db["sg_geneset"]
     bind_obj.logger.debug(data)
-    # data = data.split(",")[0]
-    # bind_obj.logger.debug(data)
     geneset_result = geneset_collection.find_one({"_id": ObjectId(data)})
     task_id = geneset_result["task_id"]
+    bind_obj.logger.debug("ttttttt")
+    bind_obj.logger.debug(task_id)
     geneset_type = geneset_result["type"]
     # my_result = db["sg_annotation_kegg"].find_one({"task_id": task_id, "seq_type": "new"})
     my_result = db["sg_annotation_kegg"].find({"task_id": task_id})
@@ -138,12 +139,14 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
         w.write('#Query\tKO_ID(Gene id)\tKO_name(Gene name)\tHyperlink\tPaths\n')
         for main_table in my_result:
             kegg_id = main_table["_id"]
+            bind_obj.logger.debug(kegg_id)
             if not my_result:
                 raise Exception("意外错误，annotation_kegg_id:{}在sg_annotation_kegg中未找到！".format(kegg_id))
             # with open(kegg_path, 'wb') as w:
             #     w.write('#Query\tKO_ID(Gene id)\tKO_name(Gene name)\tHyperlink\tPaths\n')
             results = db['sg_annotation_kegg_table'].find({'kegg_id': kegg_id, 'anno_type': geneset_type})
-            if not results:
+            one_record = db['sg_annotation_kegg_table'].find_one({'kegg_id': kegg_id, 'anno_type': geneset_type})
+            if not one_record:
                 raise Exception("生成kegg_table出错：kegg_id:{}在sg_annotation_kegg_table中未找到！".format(ObjectId(kegg_id)))
             for result in results:
                 w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
@@ -255,8 +258,6 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
                     w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\t0\tnone\tnone\tnone\t")
                 # print write_line
                 w.write("\n")
-            else:
-                raise Exception("没有找到基因集的COG注释信息")
     return cog_path
 
 
@@ -294,13 +295,17 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
     go_path = os.path.join(dir_path, 'go_class_table.xls')
     bind_obj.logger.debug("正在导出{}".format(go_path))
     genesets, table_title, task_id, seq_type = get_geneset_detail(data)
-    bind_obj.logger.debug(seq_type)
+    # bind_obj.logger.debug(seq_type)
+    # bind_obj.logger.debug(genesets)
     go_collection = db["sg_annotation_go"]
     go_level_collection = db["sg_annotation_go_level"]
     go_id = go_collection.find_one({"task_id": task_id})["_id"]
     # go_results = go_level_collection.find({'go_id': go_id, "level": 2})
+    # bind_obj.logger.debug(go_id)
     go_results = go_level_collection.find({'go_id': go_id, "level": 2, "anno_type": seq_type})
-
+    one_record = go_level_collection.find_one({'go_id': go_id, "level": 2, "anno_type": seq_type})
+    if not one_record:
+        raise Exception("意外错误:未找到go_id为{}的基因集信息".format(go_id))
     # print table_title
     new_table_title = []
     for tt in table_title:
@@ -311,8 +316,8 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
     with open(go_path, "wb") as w:
         w.write("Term type\tTerm\tGO\t" + "\t".join(new_table_title) + "\n")
         for gr in go_results:
-            # seq_list = set(gr["seq_list"].split(";"))
-            seq_list = set(re.findall(r"(.*?)\(.*?\);", gr["seq_list"]))
+            seq_list = set(gr["seq_list"].split(";"))
+            # seq_list = set(re.findall(r"(.*?)\(.*?\);", gr["seq_list"]))
             # bind_obj.logger.debug(seq_list)
             write_line = {}
             for gt in genesets:
@@ -330,11 +335,6 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
                 # print write_line
                 # w.write("\t".join(write_line[write_line_key]))
                 w.write("\n")
-
-            else:
-                bind_obj.logger.debug("wwwwwwwwww")
-                bind_obj.logger.debug(write_line)
-                raise Exception("没有找到基因集的GO注释信息")
     return go_path
 
 

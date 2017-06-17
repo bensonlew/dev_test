@@ -521,3 +521,47 @@ class RefRnaQc(Base):
             self.bind_object.logger.info("导入sg_assessment_chrom_distribution_detail出错:%s" % e)
         else:
             self.bind_object.logger.info("导入sg_assessment_chrom_distribution_detail成功")
+
+    @report_check
+    def add_tophat_mapping_stat(self, stat_file):
+        files = glob.glob("{}/*".format(stat_file))
+        data_list = []
+        for fs in files:
+            specimen_name = os.path.basename(fs).split(".")[0]
+            print specimen_name
+            f = open(fs, "r")
+            data = {
+                    "project_sn": self.bind_object.sheet.project_sn,
+                    "task_id": self.bind_object.sheet.id,
+                    "type": "genome",
+                    "specimen_name": specimen_name
+            }
+            total_reads = 0
+            map_reads = 0
+            multiple = 0
+            for line in f:
+                # print map_reads
+                if re.match(r"Left", line):
+                    total_reads += int(f.next().split()[-1])
+                    map_reads += int(f.next().split()[2])
+                    multiple += int(f.next().split()[2])
+                if re.match(r"Right", line):
+                    total_reads += int(f.next().split()[-1])
+                    map_reads += int(f.next().split()[2])
+                    multiple += int(f.next().split()[2])
+            print total_reads, map_reads, multiple, total_reads - multiple
+            data["total_reads"] = total_reads
+            # print "(" + str(float("%0.4f" % ( map_reads/total_reads)) * 100) + "%" + ")"
+            data["mapping_reads"] = str(map_reads) + "(" + str(float("%0.4f" % ( map_reads/total_reads)) * 100) + "%" + ")"
+            data["multiple_mapped"] = str(multiple) + "(" + str(float("%0.4f" % ( multiple/total_reads)) * 100) + "%" + ")"
+            data["uniq_mapped"] = str(total_reads - multiple) + "(" + str(float("%0.4f" % ( (total_reads - multiple)/total_reads)) * 100) + "%" + ")"
+            # print data
+            data_list.append(data)
+            f.close()
+        try:
+            collection = self.db["sg_specimen_mapping"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            print("导入比对结果统计信息出错:%s" % e)
+        else:
+            print("导入比对结果统计信息成功")
