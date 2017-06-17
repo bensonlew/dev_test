@@ -1070,7 +1070,7 @@ class RefrnaWorkflow(Workflow):
         self.exp_diff_trans.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list")
         self.exp_diff_gene.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list")
         self.export_qc()
-        self.export_annotation()
+        # self.export_annotation()
         self.export_assembly()
         self.export_snp()
         self.export_map_assess()
