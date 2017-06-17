@@ -103,7 +103,7 @@ class CogClassTool(Tool):
                         if cog_group.startswith(letter):
                             if query not in self.categories_dict[cog_categories][letter]:
                                 self.categories_dict[cog_categories][letter].append(query)
-        name = os.path.splitext(os.path.basename(self.option("cog_table").prop["path"]))[0]
+        name = os.path.splitext(os.path.basename(self.option("diff_list").prop["path"]))[0]
         head = "type\tcategory\t{}_COG\t{}_NOG\t{}_KOG\t{}_COG_LIST\t{}_NOG_LIST\t{}_KOG_LIST\n".format(name, name, name, name, name, name)
         self.summary_file.write(head)
         for thekey in ['INFORMATION STORAGE AND PROCESSING', 'CELLULAR PROCESSES AND SIGNALING',

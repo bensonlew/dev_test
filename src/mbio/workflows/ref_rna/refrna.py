@@ -930,7 +930,7 @@ class RefrnaWorkflow(Workflow):
                     shutil.rmtree(newfile)
             for i in range(len(allfiles)):
                 if os.path.isfile(oldfiles[i]):
-                    os.system('cp {} {}'.format(oldfiles[i], newfiles[i]))
+                    os.link(oldfiles[i], newfiles[i])
                 else:
                     os.system('cp -r {} {}'.format(oldfiles[i], newdir))
 
@@ -1069,53 +1069,53 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf")
         self.exp_diff_trans.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list")
         self.exp_diff_gene.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list")
-        # self.export_qc()
-        # self.export_annotation()
-        # self.export_assembly()
-        # self.export_snp()
-        # self.export_map_assess()
-        # self.export_exp_rsem_default()
+        self.export_qc()
+        self.export_annotation()
+        self.export_assembly()
+        self.export_snp()
+        self.export_map_assess()
+        self.export_exp_rsem_default()
         # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
-        # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+        self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         # self.express_id = "5940fc42a4e1af648d87badf"
-        # self.export_gene_set()
-        # self.export_diff_gene()
-        # self.export_diff_trans()
-        # self.export_cor()
-        # self.export_pca()
-        # self.export_cluster_gene()
-        # self.export_cluster_trans()
-        # self.export_go_regulate()
-        # self.export_kegg_regulate()
-        # self.export_go_enrich()
-        # self.export_kegg_enrich()
-        # self.export_cog_class()
+        self.export_gene_set()
+        self.export_diff_gene()
+        self.export_diff_trans()
+        self.export_cor()
+        self.export_pca()
+        self.export_cluster_gene()
+        self.export_cluster_trans()
+        self.export_go_regulate()
+        self.export_kegg_regulate()
+        self.export_go_enrich()
+        self.export_kegg_enrich()
+        self.export_cog_class()
         # self.transet_id = ["59422beca4e1af08604e5ad8"]
-        # if self.taxon_id != "":
-        #     with open(self.exp.output_dir + "/diff/trans_diff/network_diff_list", "r") as ft:
-        #         ft.readline()
-        #         content = ft.read()
-        #         if content:
-        #             self.export_ppi()
+        if self.taxon_id != "":
+            with open(self.exp.output_dir + "/diff/trans_diff/network_diff_list", "r") as ft:
+                ft.readline()
+                content = ft.read()
+                if content:
+                    self.export_ppi()
         # self.test_export_map_assess()
-        self.group_id = "59422778a4e1af086016beae"
-        self.control_id = "59422778a4e1af086016beaf"
-        self.group_category = ["A", "B"]
-        self.group_detail = [
-        {
-            "59422778a4e1af086016b40c" : "HFL3",
-            "59422778a4e1af086016b40e" : "CL1",
-            "59422778a4e1af086016b40d" : "CL5",
-            "59422778a4e1af086016b40f" : "CL2"
-        },
-        {
-            "59422778a4e1af086016b40a" : "HFL6",
-            "59422778a4e1af086016b409" : "HGL1",
-            "59422778a4e1af086016b40b" : "HFL4",
-            "59422778a4e1af086016b407" : "HGL4",
-            "59422778a4e1af086016b408" : "HGL3"
-        }
-        ]
+        # self.group_id = "59422778a4e1af086016beae"
+        # self.control_id = "59422778a4e1af086016beaf"
+        # self.group_category = ["A", "B"]
+        # self.group_detail = [
+        # {
+        #     "59422778a4e1af086016b40c" : "HFL3",
+        #     "59422778a4e1af086016b40e" : "CL1",
+        #     "59422778a4e1af086016b40d" : "CL5",
+        #     "59422778a4e1af086016b40f" : "CL2"
+        # },
+        # {
+        #     "59422778a4e1af086016b40a" : "HFL6",
+        #     "59422778a4e1af086016b409" : "HGL1",
+        #     "59422778a4e1af086016b40b" : "HFL4",
+        #     "59422778a4e1af086016b407" : "HGL4",
+        #     "59422778a4e1af086016b408" : "HGL3"
+        # }
+        # ]
         self.export_as()
         # if self.get_group_from_edger_group():
         #     self.export_as()
