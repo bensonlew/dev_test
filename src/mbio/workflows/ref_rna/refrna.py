@@ -272,7 +272,7 @@ class RefrnaWorkflow(Workflow):
         method = event["data"]
         self.blast_modules = []
         self.gene_list = self.seq_abs.option('gene_file')
-        blast_lines = int(self.seq_abs.option('query').prop['seq_number']) / 10
+        blast_lines = int(self.seq_abs.option('query').prop['seq_number']) / 10 + 1
         self.logger.info('.......blast_lines:%s' % blast_lines)
         blast_opts = {
             'query': self.seq_abs.option('query'),
@@ -496,7 +496,7 @@ class RefrnaWorkflow(Workflow):
         method = event["data"]
         self.new_blast_modules = []
         self.gene_list = self.new_gene_abs.option('gene_file')
-        blast_lines = int(self.new_trans_abs.option('query').prop['seq_number']) / 10
+        blast_lines = int(self.new_trans_abs.option('query').prop['seq_number']) / 10 + 1
         self.logger.info('.......blast_lines:%s' % blast_lines)
         blast_opts = {
             'query': self.new_trans_abs.option('query'),
@@ -634,10 +634,10 @@ class RefrnaWorkflow(Workflow):
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("change_id_merged_gtf"),
+            "merged_gtf": self.assembly.option("change_id_gtf"),
             "cmp_gtf": self.assembly.option("cuff_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("change_id_merged_fa"),
+            "ref_genome_custom": self.assembly.option("change_id_fa"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
@@ -666,10 +666,10 @@ class RefrnaWorkflow(Workflow):
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("merged_gtf"),
+            "merged_gtf": self.assembly.option("change_id_gtf"),
             "cmp_gtf": self.assembly.option("cuff_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("merged_fa"),
+            "ref_genome_custom": self.assembly.option("change_id_fa"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
@@ -694,10 +694,10 @@ class RefrnaWorkflow(Workflow):
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("merged_gtf"),
+            "merged_gtf": self.assembly.option("change_id_gtf"),
             "cmp_gtf": self.assembly.option("cuff_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("merged_fa"),
+            "ref_genome_custom": self.assembly.option("change_id_fa"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
@@ -1044,7 +1044,7 @@ class RefrnaWorkflow(Workflow):
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp_rsem_default)
-        self.assembly.on("end", self.run_exp_rsem_alter)
+        # self.assembly.on("end", self.run_exp_rsem_alter)
         self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)

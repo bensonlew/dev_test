@@ -6,6 +6,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from collections import defaultdict
+import os
 
 class CogClassAgent(Agent):
     """
@@ -102,9 +103,9 @@ class CogClassTool(Tool):
                         if cog_group.startswith(letter):
                             if query not in self.categories_dict[cog_categories][letter]:
                                 self.categories_dict[cog_categories][letter].append(query)
-        name = ""  # 修改
-        head = "type\tcategory\t{}_COG\t{}_NOG\t{}_KOG\t{}_COG_LIST\t{}_NOG_LIST\t{}_KOG_LIST".format(name, name, name, name, name, name)
-        self.summary_file.write()
+        name = os.path.splitext(os.path.basename(self.option("cog_table").prop["path"]))[0]
+        head = "type\tcategory\t{}_COG\t{}_NOG\t{}_KOG\t{}_COG_LIST\t{}_NOG_LIST\t{}_KOG_LIST\n".format(name, name, name, name, name, name)
+        self.summary_file.write(head)
         for thekey in ['INFORMATION STORAGE AND PROCESSING', 'CELLULAR PROCESSES AND SIGNALING',
                        'METABOLISM', 'POORLY CHARACTERIZED']:
             for g in self.func_type[thekey]:

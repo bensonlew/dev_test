@@ -74,8 +74,8 @@ class RefrnaAssembleModule(Module):
             self.step.add_steps('stringtie_{}'.format(n))
             stringtie.set_options({
                 "sample_bam": f,
-                "ref_fa": self.option('ref_fa').prop['path'],
-                "ref_gtf": self.option('ref_gtf').prop['path'],
+                "ref_fa": self.option('ref_fa'),  # 此处不传prop['path']
+                "ref_gtf": self.option('ref_gtf'),
             })
             step = getattr(self.step, 'stringtie_{}'.format(n))
             step.start()
@@ -97,8 +97,8 @@ class RefrnaAssembleModule(Module):
         stringtie_merge = self.add_tool("assemble.stringtie_merge")
         stringtie_merge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
-            "ref_fa": self.option('ref_fa').prop['path'],
-            "ref_gtf": self.option('ref_gtf').prop['path'],
+            "ref_fa": self.option('ref_fa'),
+            "ref_gtf": self.option('ref_gtf'),
         })
         stringtie_merge.on('end', self.gffcompare_run)
         stringtie_merge.run()
@@ -116,8 +116,8 @@ class RefrnaAssembleModule(Module):
             self.step.add_steps('cufflinks_{}'.format(n))
             cufflinks.set_options({
                 "sample_bam": f,
-                "ref_fa": self.option('ref_fa').prop['path'],
-                "ref_gtf": self.option('ref_gtf').prop['path'],
+                "ref_fa": self.option('ref_fa'),
+                "ref_gtf": self.option('ref_gtf'),
                 "fr_stranded": self.option("fr_stranded"),
             })
             step = getattr(self.step, 'cufflinks_{}'.format(n))
@@ -140,8 +140,8 @@ class RefrnaAssembleModule(Module):
         cuffmerge = self.add_tool("assemble.cuffmerge")
         cuffmerge.set_options({
             "assembly_GTF_list.txt": gtffile_path,
-            "ref_fa": self.option('ref_fa').prop['path'],
-            "ref_gtf": self.option('ref_gtf').prop['path'],
+            "ref_fa": self.option('ref_fa'),
+            "ref_gtf": self.option('ref_gtf'),
         })
         cuffmerge.on('end', self.gffcompare_run)
         cuffmerge.run()
@@ -159,7 +159,7 @@ class RefrnaAssembleModule(Module):
         gffcompare = self.add_tool("assemble.gffcompare")
         gffcompare.set_options({
              "merged_gtf": merged_gtf,
-             "ref_gtf": self.option('ref_gtf').prop['path'],
+             "ref_gtf": self.option('ref_gtf'),
          })
         gffcompare.on('end', self.new_transcripts_run)
         gffcompare.run()
@@ -169,7 +169,7 @@ class RefrnaAssembleModule(Module):
         self.step.update()
 
     def new_transcripts_run(self):
-        self.logger.info(self.option('ref_gtf').prop['path'])
+        self.logger.info(self.option('ref_gtf').prop['path'])  # 此处阻塞
         tmap = ""
         merged_gtf = ""
         if self.option("assemble_method") == "cufflinks":
@@ -182,8 +182,8 @@ class RefrnaAssembleModule(Module):
         new_transcripts.set_options({
             "tmap": tmap,
             "merged_gtf": merged_gtf,
-            "ref_fa": self.option('ref_fa').prop['path'],
-            "ref_gtf": self.option('ref_gtf').prop['path'],
+            "ref_fa": self.option('ref_fa'),
+            "ref_gtf": self.option('ref_gtf'),
         })
         new_transcripts.on('end', self.refassemble_stat_run)
         new_transcripts.run()
@@ -274,8 +274,8 @@ class RefrnaAssembleModule(Module):
         txt_files = os.listdir(self.work_dir + '/RefassembleStat/output')
         for files in txt_files:
             move_files = os.path.join(self.work_dir + '/RefassembleStat/output', files)
-            self.logger.info(move_files)
-            self.logger.info(statistics_dir + "/" + files)
+            # self.logger.info(move_files)
+            # self.logger.info(statistics_dir + "/" + files)
             os.link(move_files, statistics_dir + "/" + files)
         # self.option("merged_gtf").set_path(merge_dir + '/merged.gtf')
         # self.option("merged_fa").set_path(merge_dir + "/merged.fa")

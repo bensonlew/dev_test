@@ -257,17 +257,17 @@ def draw_GO(GOs, out='GO_lineage', obo="/mnt/ilustre/users/sanger-dev/app/databa
     go_relation = terms.get_all_parents_edge(terms=GOs)
     for relation in go_relation:
         for edge in go_relation[relation]:
-            G.add_edge(edge[1].id + '\n' + edge[1].name,
-                       edge[0].id + '\n' + edge[0].name,
+            G.add_edge(edge[1].id + r'\n' + edge[1].name,
+                       edge[0].id + r'\n' + edge[0].name,
                        label=relation, color=relationship_dict[relation][0],
                        style=relationship_dict[relation][1],
                        minlen=1.5, arrowsize=1.3, penwidth=1.5)
-    G.add_nodes_from([terms[i].id + '\n' + terms[i].name for i in GOs])
+    G.add_nodes_from([terms[i].id + r'\n' + terms[i].name for i in GOs])
     G.graph_attr.update(dpi="180")
     G.node_attr.update(shape="box", style="rounded,filled", fillcolor="#efefef")
     G.edge_attr.update(dir="back")
     for i in terms_colors:
-        node = G.get_node(terms[i[0]].id + '\n' + terms[i[0]].name)
+        node = G.get_node(terms[i[0]].id + r'\n' + terms[i[0]].name)
         node.attr['fillcolor'] = i[1]
     G.draw(out + '.png', prog="dot")
 
