@@ -987,8 +987,8 @@ class RefAnnotation(Base):
                     ('kegg_id', kegg_id),
                     ('seq_type', seq_type),
                     ('anno_type', anno_type),
-                    ('first_catergory', line[0]),
-                    ('second_catergory', line[1]),
+                    ('first_category', line[0]),
+                    ('second_category', line[1]),
                     ('num', int(line[2])),
                     ('seq_list', line[3]),
                 ]

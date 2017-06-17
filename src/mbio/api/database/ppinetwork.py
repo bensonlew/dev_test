@@ -73,25 +73,28 @@ class Ppinetwork(Base):
         return data_list, table_id
 
     @report_check
-    def add_network_cluster_degree(self, file1_path, file2_path, table_id=None, major=False):
+    def add_network_cluster_degree(self, file1_path, file2_path, file3_path, table_id=None, major=False):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
                 table_id = ObjectId(table_id)
             else:
                 raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
         data_list = []
-        with open(file1_path, 'rb') as r, open(file2_path, 'rb') as w:
+        with open(file1_path, 'rb') as r, open(file2_path, 'rb') as w, open(file3_path, "rb") as m:
             data1 = r.readlines()[1:]
             data2 = w.readlines()[1:]
+            data3 = m.readlines()[1:]
             for line2 in data2:
                 temp2 = line2.rstrip().split("\t")
                 for line1 in data1:
                     temp1 = line1.rstrip().split("\t")
-                    if temp1[1] == temp2[1]:
-                        data = [("ppi_id", table_id), ("node_id", eval(temp1[0])), ("node_name", temp1[1]),
-                                ("degree", eval(temp1[2])), ("clustering", eval(temp2[2]))]
-                        data_son = SON(data)
-                        data_list.append(data_son)
+                    for line3 in data3:
+                        temp3 = line3.rstrip().split("\t")
+                        if temp1[1] == temp2[1] and temp1[1] == temp3[0]:
+                            data = [("ppi_id", table_id), ("node_id", eval(temp1[0])), ("node_name", temp1[1]),
+                                    ("degree", eval(temp1[2])), ("clustering", eval(temp2[2])), ("gene_id", temp3[2])]
+                            data_son = SON(data)
+                            data_list.append(data_son)
         try:
             collection = self.db["sg_ppinetwork_structure_node"]
             collection.insert_many(data_list)
@@ -102,7 +105,7 @@ class Ppinetwork(Base):
         return data_list
 
     @report_check
-    def add_network_centrality(self, file_path, table_id=None, major=False):
+    def add_network_centrality(self, file_path, file1_path, table_id=None, major=False):
         if not isinstance(table_id, ObjectId):
             if isinstance(table_id, StringTypes):
                 table_id = ObjectId(table_id)
@@ -117,11 +120,17 @@ class Ppinetwork(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("ppi_id", table_id), ("node_id", eval(line_data[0])),
-                            ("node_name", line_data[1]), ("degree_centrality", eval(line_data[2])),
-                            ("closeness_centrality", eval(line_data[3])), ("betweenness_centrality", eval(line_data[4]))]
-                    data_son = SON(data)
-                    data_list.append(data_son)
+                    with open(file1_path, 'rb') as m:
+                        data1 = m.readlines()[1:]
+                        for line1 in data1:
+                            temp = line1.rstrip().split("\t")
+                            if temp[0] == line_data[1]:
+                                data = [("ppi_id", table_id), ("node_id", eval(line_data[0])),
+                                        ("node_name", line_data[1]), ("degree_centrality", eval(line_data[2])),
+                                        ("closeness_centrality", eval(line_data[3])),
+                                        ("betweenness_centrality", eval(line_data[4])), ("gene_id", temp[2])]
+                                data_son = SON(data)
+                                data_list.append(data_son)
         try:
             collection = self.db["sg_ppinetwork_centrality_node"]
             collection.insert_many(data_list)
