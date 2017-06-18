@@ -105,6 +105,9 @@ class KeggRegulateTool(Tool):
         try:
             kegg().get_pictrue(path_ko=path_ko, out_dir=pathways, regulate_dict=regulate_dict)
             kegg().get_regulate_table(ko_gene=ko_genes, path_ko=path_ko, regulate_gene=regulate_gene, output=self.output_dir + '/kegg_regulate_stat.xls')
+            name = os.path.splitext(os.path.basename(self.option("diff_stat").prop["path"]))[0].split("_edgr_stat")[0]
+            cmd_str = "Pathway_id\tKo_ids\t{}_down_numbers\t{}_down_genes\t{}_up_numbers\t{}_up_genes".format(name, name, name, name)
+            os.system("sed -i '1c {}' {}".format(cmd_str, self.output_dir + '/kegg_regulate_stat.xls'))
             self.end()
         except Exception:
             import traceback

@@ -209,17 +209,6 @@ class HiseqQcModule(Module):
             new_name = os.path.join(obj.output_dir, event["data"] + "_" + f)
             os.rename(old_name, new_name)
         if self.end_times == len(self.samples):
-            sickle_dir = os.path.join(self.output_dir, "sickle_dir")
-            sickle_r_dir = os.path.join(self.work_dir, "sickle_r_forRSEM")
-            sickle_l_dir = os.path.join(self.work_dir, "sickle_l_forRSEM")
-            seqprep_dir = os.path.join(self.work_dir, "seqprep_dir")
-            clip_dir = os.path.join(self.work_dir, "clip_dir")
-            dir_list = [sickle_dir, seqprep_dir, clip_dir, sickle_r_dir, sickle_l_dir]
-            # self.logger.info(dir_list)
-            for d in dir_list:
-                if os.path.exists(d):
-                    shutil.rmtree(d)
-                os.mkdir(d)
             sickle_out = []
             seqprep_out = []
             clip_out = []
@@ -235,61 +224,21 @@ class HiseqQcModule(Module):
                 for f in os.listdir(clip.output_dir):
                     f_path = os.path.join(clip.output_dir, f)
                     clip_out.append(f_path)
-            # self.logger.info(sickle_out)
-            self.logger.info(os.path.join(sickle_dir, "list.txt"))
-            with open(os.path.join(sickle_dir, "list.txt"), "w") as w:
-                for f in sickle_out:
-                    f_name = f.split("/")[-1]
-                    if "sickle_r.fastq" in f:
-                        sample_name = f_name.split("_sickle_r.fastq")[0]
-                        w.write("{}\t{}\t{}\n".format(f_name, sample_name, "r"))
-                        os.link(f, os.path.join(sickle_r_dir, f_name))
-                    elif "sickle_l.fastq" in f:
-                        sample_name = f_name.split("_sickle_l.fastq")[0]
-                        w.write("{}\t{}\t{}\n".format(f_name, sample_name, "l"))
-                        os.link(f, os.path.join(sickle_l_dir, f_name))
-                    elif "sickle_s.fastq" in f:
-                        sample_name = f_name.split("_sickle_s.fastq")[0]
-                        w.write("{}\t{}\n".format(f_name, sample_name))
-                    else:
-                        w.write("\n")
-                    target_path = os.path.join(sickle_dir, f_name)
-                    if os.path.exists(target_path):
-                        os.remove(target_path)
-                    os.link(f, target_path)
-            self.option("sickle_dir", sickle_dir)  # 以下部分在rna流程中没有用到，暂时注释掉 by shijin
-            # if self.option("fq_type") == "PE":
-            #     shutil.rmtree(clip_dir)
-            #     for f in seqprep_out:
-            #         f_name = f.split("/")[-1]
-            #         target_path = os.path.join(seqprep_dir, f_name)
-            #         os.link(f, target_path)
-            #     self.option("seqprep_dir").set_path(seqprep_dir)
-            #     self.option('sickle_r_dir', sickle_r_dir)
-            #     self.option('sickle_l_dir', sickle_l_dir)
-                # r_files = os.listdir(self.option('sickle_r_dir').prop['path'])
-                # l_files = os.listdir(self.option('sickle_l_dir').prop['path'])
-                # r_file = ' '.join(r_files)
-                # l_file = ' '.join(l_files)
-                # os.system('cd {} && cat {} > {}/left.fq && cd {} && cat {} > {}/right.fq'.format(sickle_l_dir, l_file, self.work_dir, sickle_r_dir, r_file, self.work_dir))
-                # self.logger.info('cd {} && cat {} > {}/left.fq && cd {} && cat {} > {}/right.fq'.format(sickle_l_dir, l_file, self.work_dir, sickle_r_dir, r_file, self.work_dir))
-                # self.option('fq_l', self.work_dir + '/left.fq')
-                # self.option('fq_r', self.work_dir + '/right.fq')
-            # elif self.option('fq_type') == 'SE':
-            #     shutil.rmtree(seqprep_dir)
-            #     shutil.rmtree(sickle_r_dir)
-            #     shutil.rmtree(sickle_l_dir)
-            #     for f in clip_out:
-            #         f_name = f.split("/")[-1]
-            #         target_path = os.path.join(clip_dir, f_name)
-            #         os.link(f, target_path)
-            #     self.option("clip_dir").set_path(clip_dir)
-                # files = self.option('sickle_dir').prop['fastq_basename']
-                # s_file = ' '.join(files)
-                # os.system('cd {} && cat {} > {}/single.fq'.format(sickle_dir, s_file, self.work_dir))
-                # self.option('fq_s', self.work_dir + '/single.fq')
-                # self.logger.info("done")
-            self.end()
+            opts = {
+                "sickle_dir": os.path.join(self.output_dir, "sickle_dir"),
+                "seqprep_dir": os.path.join(self.work_dir, "sickle_r_forRSEM"),
+                "clip_dir": os.path.join(self.work_dir, "sickle_l_forRSEM"),
+                "sickle_r_dir": os.path.join(self.work_dir, "seqprep_dir"),
+                "sickle_l_dir": os.path.join(self.work_dir, "clip_dir"),
+                "fq_type": self.option("fq_type"),
+                "sickle_out": ",".join(sickle_out),
+                "seqprep_out": ",".join(str(seqprep_out)),
+                "clip_out": ",".join(str(clip_out))
+            }
+            self.output_tool = self.add_tool("sequence.hiseq_output")
+            self.output_tool.add_options(opts)
+            self.output_tool.on("end", self.end)
+            self.output_tool.run()
 
     def run(self):
         self.logger.info('{}'.format(self.events))
@@ -303,6 +252,16 @@ class HiseqQcModule(Module):
         super(HiseqQcModule, self).run()
 
     def end(self):
+        self.option("sickle_dir", self.output_tool.option("sicke_dir_output").prop["path"])
+        if self.option("fq_type") == "PE":
+            self.option('fq_l', self.output_tool.option("fq_l_out").prop["path"])
+            self.option('fq_r', self.output_tool.option("fq_r_out").prop["path"])
+            self.option("seqprep_dir", self.output_tool.option("seqprep_dir_out").prop["path"])
+            self.option('sickle_r_dir', self.output_tool.option("seqprep_dir_out").prop["path"])
+            self.option('sickle_l_dir', self.output_tool.option("seqprep_dir_out").prop["path"])
+        else:
+            self.option("clip_dir", self.output_tool.option("clip_dir").prop["path"])
+            self.option('fq_s', self.output_tool.option("fq_s_out").prop["path"])
         result_dir = self.add_upload_dir(self.output_dir)
         if self.option("fq_type") == "PE":
             result_dir.add_relpath_rules([

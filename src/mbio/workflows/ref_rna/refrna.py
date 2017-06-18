@@ -272,7 +272,7 @@ class RefrnaWorkflow(Workflow):
         method = event["data"]
         self.blast_modules = []
         self.gene_list = self.seq_abs.option('gene_file')
-        blast_lines = int(self.seq_abs.option('query').prop['seq_number']) / 10
+        blast_lines = int(self.seq_abs.option('query').prop['seq_number']) / 10 + 1
         self.logger.info('.......blast_lines:%s' % blast_lines)
         blast_opts = {
             'query': self.seq_abs.option('query'),
@@ -496,7 +496,7 @@ class RefrnaWorkflow(Workflow):
         method = event["data"]
         self.new_blast_modules = []
         self.gene_list = self.new_gene_abs.option('gene_file')
-        blast_lines = int(self.new_trans_abs.option('query').prop['seq_number']) / 10
+        blast_lines = int(self.new_trans_abs.option('query').prop['seq_number']) / 10 + 1
         self.logger.info('.......blast_lines:%s' % blast_lines)
         blast_opts = {
             'query': self.new_trans_abs.option('query'),
@@ -634,10 +634,10 @@ class RefrnaWorkflow(Workflow):
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("merged_gtf"),
+            "merged_gtf": self.assembly.option("change_id_gtf"),
             "cmp_gtf": self.assembly.option("cuff_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("merged_fa"),
+            "ref_genome_custom": self.assembly.option("change_id_fa"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
@@ -666,10 +666,10 @@ class RefrnaWorkflow(Workflow):
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("merged_gtf"),
+            "merged_gtf": self.assembly.option("change_id_gtf"),
             "cmp_gtf": self.assembly.option("cuff_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("merged_fa"),
+            "ref_genome_custom": self.assembly.option("change_id_fa"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
@@ -694,10 +694,10 @@ class RefrnaWorkflow(Workflow):
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("merged_gtf"),
+            "merged_gtf": self.assembly.option("change_id_gtf"),
             "cmp_gtf": self.assembly.option("cuff_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("merged_fa"),
+            "ref_genome_custom": self.assembly.option("change_id_fa"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
@@ -930,7 +930,7 @@ class RefrnaWorkflow(Workflow):
                     shutil.rmtree(newfile)
             for i in range(len(allfiles)):
                 if os.path.isfile(oldfiles[i]):
-                    os.system('cp {} {}'.format(oldfiles[i], newfiles[i]))
+                    os.link(oldfiles[i], newfiles[i])
                 else:
                     os.system('cp -r {} {}'.format(oldfiles[i], newdir))
 
@@ -1044,7 +1044,7 @@ class RefrnaWorkflow(Workflow):
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp_rsem_default)
-        self.assembly.on("end", self.run_exp_rsem_alter)
+        # self.assembly.on("end", self.run_exp_rsem_alter)
         self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
@@ -1067,38 +1067,60 @@ class RefrnaWorkflow(Workflow):
         self.IMPORT_REPORT_DATA = True
         self.IMPORT_REPORT_AFTER_END = False
         self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf")
-        # self.export_qc()
+        self.exp_diff_trans.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list")
+        self.exp_diff_gene.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list")
+        self.export_qc()
         # self.export_annotation()
-        # self.export_assembly()
-        # self.export_snp()
-        # self.export_map_assess()
-        # self.export_exp_rsem_default()
+        self.export_assembly()
+        self.export_snp()
+        self.export_map_assess()
+        self.export_exp_rsem_default()
         # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
-        # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
-        """
-        # self.export_exp_rsem_alter()
-        # self.exp_fc.featurecounts = self.exp_fc.add_tool("rna.featureCounts")
-        # self.exp_fc.mergersem = self.exp_fc.add_tool("rna.merge_rsem")
-        # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
-        # self.export_exp_fc()
-        """
-        # self.export_gene_set()
-        # self.export_diff_gene()
-        # self.export_diff_trans()
-        # self.export_cor()
-        # self.export_pca()
-        # self.export_go_kegg()
-        # if self.taxon_id != "":
-        #     with open(self.exp.output_dir + "/diff/trans_diff/network_diff_list", "r") as ft:
-        #         ft.readline()
-        #         content = ft.read()
-        #         if content:
-        #             self.export_ppi()
-        self.test_export_map_assess()
-        if self.get_group_from_edger_group():
-            self.export_as()
-        else:
-            self.logger.info("不进行as导表")
+        self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+        # self.express_id = "5940fc42a4e1af648d87badf"
+        self.export_gene_set()
+        self.export_diff_gene()
+        self.export_diff_trans()
+        self.export_cor()
+        self.export_pca()
+        self.export_cluster_gene()
+        self.export_cluster_trans()
+        self.export_go_regulate()
+        self.export_kegg_regulate()
+        self.export_go_enrich()
+        self.export_kegg_enrich()
+        self.export_cog_class()
+        # self.transet_id = ["59422beca4e1af08604e5ad8"]
+        if self.taxon_id != "":
+            with open(self.exp.output_dir + "/diff/trans_diff/network_diff_list", "r") as ft:
+                ft.readline()
+                content = ft.read()
+                if content:
+                    self.export_ppi()
+        # self.test_export_map_assess()
+        # self.group_id = "59422778a4e1af086016beae"
+        # self.control_id = "59422778a4e1af086016beaf"
+        # self.group_category = ["A", "B"]
+        # self.group_detail = [
+        # {
+        #     "59422778a4e1af086016b40c" : "HFL3",
+        #     "59422778a4e1af086016b40e" : "CL1",
+        #     "59422778a4e1af086016b40d" : "CL5",
+        #     "59422778a4e1af086016b40f" : "CL2"
+        # },
+        # {
+        #     "59422778a4e1af086016b40a" : "HFL6",
+        #     "59422778a4e1af086016b409" : "HGL1",
+        #     "59422778a4e1af086016b40b" : "HFL4",
+        #     "59422778a4e1af086016b407" : "HGL4",
+        #     "59422778a4e1af086016b408" : "HGL3"
+        # }
+        # ]
+        self.export_as()
+        # if self.get_group_from_edger_group():
+        #     self.export_as()
+        # else:
+        #     self.logger.info("不进行as导表")
         self.end()
 
     def export_qc(self):
@@ -1255,6 +1277,8 @@ class RefrnaWorkflow(Workflow):
         group_id = self.group_id
         path = self.exp.output_dir + "/diff/trans_diff/diff_stat_dir"
         self.transet_id = list()
+        self.trans_gs_id_name = dict()
+        self.gene_gs_id_name = dict()
         for files in os.listdir(path):
             if re.search(r'edgr_stat.xls',files):
                 m_ = re.search(r'(\w+?)_vs_(\w+?).edgr_stat.xls', files)
@@ -1273,7 +1297,7 @@ class RefrnaWorkflow(Workflow):
                                                          express_method="rsem", type="transcript", up_down='up', major=True)
                     if up_down:
                         self.transet_id.append(up_down)
-                        # self.gene_gs_id_name[name + "_vs_" + compare_name] = up_down
+                        self.trans_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
                 else:
                     self.logger.info("转录本name和compare_name匹配错误")
         path = self.exp.output_dir + "/diff/genes_diff/diff_stat_dir"
@@ -1294,7 +1318,7 @@ class RefrnaWorkflow(Workflow):
                                                          compare_name=compare_name, express_method="rsem", type="gene",
                                                          up_down='up', major=True)
                     self.geneset_id.append(up_down)
-                    # self.gene_gs_id_name[name + "_vs_" + compare_name] = up_down
+                    self.gene_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
                 else:
                     self.logger.info("基因name和compare_name匹配错误")
 
@@ -1373,14 +1397,23 @@ class RefrnaWorkflow(Workflow):
         self.api_cor = self.api.refrna_corr_express
         correlation = self.exp.output_dir + "/correlation/genes_correlation"
         group_id = str(self.group_id)
-        group_detail = self.group_detail
+        group_detail = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            group_detail[key] = value
         self.api_cor.add_correlation_table(correlation=correlation, group_id=group_id, group_detail=group_detail,
                                            express_id=self.express_id, detail=True, seq_type="gene")
 
     def export_pca(self):
         self.api_pca = self.api.refrna_corr_express
         pca_path = self.exp.output_dir + "/pca/genes_pca"
-        self.api_pca.add_pca_table(pca_path, group_id=str(self.group_id), group_detail=self.group_detail,
+        group_detail = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            group_detail[key] = value
+        self.api_pca.add_pca_table(pca_path, group_id=str(self.group_id), group_detail=group_detail,
                                    express_id=self.express_id, detail=True, seq_type="gene")
 
     def export_annotation(self):
@@ -1398,15 +1431,19 @@ class RefrnaWorkflow(Workflow):
     def export_as(self):
         self.api_as = self.api.api("ref_rna.refrna_splicing_rmats")
         if self.option("strand_specific"):
-            lib_type = "fr-firststrand"
+            lib_type = "fr-firststrand",
+            am = "fr_firststrand",
         else:
             lib_type = "fr-unstranded"
+            am = "fr_unstranded"
         if self.option("fq_type") == "PE":
             seq_type = "paired"
         else:
             seq_type = "single"
         params = {
             "ana_mode": "P",
+            "analysis_mode": am,
+            "novel": 1,
             "as_diff": 0.001,
             "group_id": str(self.group_id),
             "lib_type": lib_type,
@@ -1434,7 +1471,10 @@ class RefrnaWorkflow(Workflow):
                 group[key] = "s2"
         outpath = self.altersplicing.output_dir
         self.logger.info(params)
-        self.api_as.add_sg_splicing_rmats(params=params, major=True, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
+        if self.get_group_from_edger_group():
+            self.api_as.add_sg_splicing_rmats(params=params, major=True, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
+        else:
+            self.api_as.add_sg_splicing_rmats(params=params, major=False, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
 
     def export_ppi(self):
         api_ppinetwork = self.api.ppinetwork
@@ -1489,26 +1529,31 @@ class RefrnaWorkflow(Workflow):
         my_param['level']= self.option("exp_way")
         my_param['sub_num']= 5
         my_param['group_id']= str(self.group_id)
-        my_param['group_detail']= self.group_detail_sort(self.group_detail)
+        tmp = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            tmp[key] = value
+        my_param['group_detail'] = self.group_detail_sort(tmp)
         my_param['express_method']= "rsem"
         my_param['geneset_id']= str(self.geneset_id[0])
         my_param['genes_distance_method'] = "complete"
         my_param['samples_distance_method'] = "complete"
         self.logger.info("开始导mongo表！")
-        hclust_path = os.path.join(self.exp_diff_gene.output_dir, "hclust")
+        hclust_path = os.path.join(self.exp_diff_gene.output_dir, "cluster/hclust")
         sub_clusters = os.listdir(hclust_path)
         with open(self.exp_diff_gene.cluster.work_dir + '/hc_gene_order') as r:
             genes = [i.strip('\n') for i in r.readlines()]
         with open(self.exp_diff_gene.cluster.work_dir + '/hc_sample_order') as r:
             specimen = [i.strip('\n') for i in r.readlines()]
-        sample_tree = self.exp_diff_gene.output_dir + "/hclust/samples_tree.txt"
-        gene_tree = self.exp_diff_gene.output_dir + "/hclust/genes_tree.txt"
-        api_cluster.add_cluster(my_param, express_id=self.express_id, sample_tree=sample_tree, gene_tree=gene_tree, samples=specimen, genes=genes, project='ref')
+        sample_tree = self.exp_diff_gene.output_dir + "/cluster/hclust/samples_tree.txt"
+        gene_tree = self.exp_diff_gene.output_dir + "/cluster/hclust/genes_tree.txt"
+        id = api_cluster.add_cluster(my_param, express_id=self.express_id, sample_tree=sample_tree, gene_tree=gene_tree, samples=specimen, genes=genes, project='ref')
         for sub_cluster in sub_clusters:
             if re.match('subcluster', sub_cluster):  # 找到子聚类的文件进行迭代
                 sub = sub_cluster.split("_")[1]
                 sub_path = os.path.join(hclust_path, sub_cluster)
-                api_cluster.add_cluster_detail(cluster_id=self.option("geneset_cluster_id"), sub=sub, sub_path=sub_path,project='ref')
+                api_cluster.add_cluster_detail(cluster_id=id, sub=sub, sub_path=sub_path,project='ref')
                 self.logger.info("开始导子聚类函数！")
             if re.search('samples_tree', sub_cluster):  # 找到sample_tree
                 self.logger.info("sample_tree产生")
@@ -1519,38 +1564,42 @@ class RefrnaWorkflow(Workflow):
     def export_cluster_gene(self):
         api_cluster = self.api.denovo_cluster  # #不确定,增加一个database
         my_param = dict()
-        my_param['submit_location']="geneset_cluster_trans"
-        my_param['type']= "transcript"
+        my_param['submit_location']="geneset_cluster_gene"
+        my_param['type'] = "gene"
         # my_param['distance_method']=data.distance_method # 距离算法
-        my_param['method']= "hclust"
-        my_param['log']= 10
-        my_param['level']= self.option("exp_way")
-        my_param['sub_num']= 5
-        my_param['group_id']= str(self.group_id)
-        my_param['group_detail']= self.group_detail_sort(self.group_detail)
-        my_param['express_method']= "rsem"
-        my_param['geneset_id']= str(self.geneset_id[0])
+        my_param['method'] = "hclust"
+        my_param['log'] = 10
+        my_param['level'] = self.option("exp_way")
+        my_param['sub_num'] = 5
+        my_param['group_id'] = str(self.group_id)
+        tmp = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            tmp[key] = value
+        my_param['group_detail'] = self.group_detail_sort(tmp)
+        my_param['express_method'] = "rsem"
+        my_param['geneset_id'] = str(self.geneset_id[0])
         my_param['genes_distance_method'] = "complete"
         my_param['samples_distance_method'] = "complete"
         self.logger.info("开始导mongo表！")
-        hclust_path = os.path.join(self.exp_diff_gene.output_dir, "hclust")
+        hclust_path = os.path.join(self.exp_diff_gene.output_dir, "cluster/hclust")
         sub_clusters = os.listdir(hclust_path)
         with open(self.exp_diff_gene.cluster.work_dir + '/hc_gene_order') as r:
             genes = [i.strip('\n') for i in r.readlines()]
         with open(self.exp_diff_gene.cluster.work_dir + '/hc_sample_order') as r:
             specimen = [i.strip('\n') for i in r.readlines()]
-        sample_tree = self.exp_diff_gene.output_dir + "/hclust/samples_tree.txt"
-        gene_tree = self.exp_diff_gene.output_dir + "/hclust/genes_tree.txt"
-        api_cluster.add_cluster(my_param, express_id=self.express_id, sample_tree=sample_tree, gene_tree=gene_tree, samples=specimen, genes=genes, project='ref')
+        sample_tree = self.exp_diff_gene.output_dir + "/cluster/hclust/samples_tree.txt"
+        gene_tree = self.exp_diff_gene.output_dir + "/cluster/hclust/genes_tree.txt"
+        id = api_cluster.add_cluster(my_param, express_id=self.express_id, sample_tree=sample_tree, gene_tree=gene_tree, samples=specimen, genes=genes, project='ref')
         for sub_cluster in sub_clusters:
             if re.match('subcluster', sub_cluster):  # 找到子聚类的文件进行迭代
                 sub = sub_cluster.split("_")[1]
                 sub_path = os.path.join(hclust_path, sub_cluster)
-                api_cluster.add_cluster_detail(cluster_id=self.option("geneset_cluster_id"), sub=sub, sub_path=sub_path,project='ref')
+                api_cluster.add_cluster_detail(cluster_id=id, sub=sub, sub_path=sub_path,project='ref')
                 self.logger.info("开始导子聚类函数！")
             if re.search('samples_tree', sub_cluster):  # 找到sample_tree
                 self.logger.info("sample_tree产生")
-
             if re.search('genes_tree', sub_cluster):  # 找到gene_tree
                 self.logger.info("gene_tree产生")
 
@@ -1568,13 +1617,176 @@ class RefrnaWorkflow(Workflow):
         table_dict = sort_key
         return table_dict
 
-    def export_go_kegg(self):
+    def export_go_regulate(self):
         self.api_regulate = self.api.ref_rna_geneset
         trans_dir = self.exp_diff_trans.output_dir
         gene_dir = self.exp_diff_gene.output_dir
         trans_go_regulate_dir = trans_dir + "/go_regulate"
-        # for name in self.gene_gs_id_name.keys():
-        #     self.api_regulate.add_main_table(collection_name = "sg_geneset_go_class", params ={}, name = "")
-        #     self.api_regulate.() self.gene_gs_id_name[name]
+        gene_go_regulate_dir = gene_dir + "/go_regulate"
+        for trans_id in self.trans_gs_id_name.keys():
+            params = dict()
+            params["geneset_id"] = str(trans_id)
+            params["anno_type"] = "go"
+            params["submit_location"] = "geneset_class"
+            params["task_type"] = ""
+            params["geneset_type"] = "transcript"
+            inserted_id = self.api_regulate.add_main_table(collection_name = "sg_geneset_go_class", params =params, name = "go_regulate_main_table")
+            for dir in os.listdir(trans_go_regulate_dir):
+                if self.trans_gs_id_name[trans_id] in dir:
+                    dir_path = os.path.join(trans_go_regulate_dir, dir)
+                    self.api_regulate.add_go_regulate_detail(go_regulate_dir=dir_path + "/GO_regulate.xls", go_regulate_id=str(inserted_id))
+        for gene_id in self.gene_gs_id_name.keys():
+            params = dict()
+            params["geneset_id"] = str(gene_id)
+            params["anno_type"] = "go"
+            params["submit_location"] = "geneset_class"
+            params["task_type"] = ""
+            params["geneset_type"] = "gene"
+            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_go_class", params=params, name="go_regulate_main_table")
+            for dir in os.listdir(gene_go_regulate_dir):
+                if self.gene_gs_id_name[gene_id] in dir:
+                    dir_path = os.path.join(trans_go_regulate_dir, dir)
+                    self.api_regulate.add_go_regulate_detail(go_regulate_dir=dir_path + "/GO_regulate.xls", go_regulate_id=str(inserted_id))
 
+    def export_go_enrich(self):
+        self.api_regulate = self.api.ref_rna_geneset
+        trans_dir = self.exp_diff_trans.output_dir
+        gene_dir = self.exp_diff_gene.output_dir
+        trans_go_regulate_dir = trans_dir + "/go_rich"
+        gene_go_regulate_dir = gene_dir + "/go_rich"
+        for trans_id in self.trans_gs_id_name.keys():
+            params = dict()
+            params["geneset_id"] = str(trans_id)
+            params["method"] = "fdr"
+            params["anno_type"] = "go"
+            params["submit_location"] = "geneset_class"
+            params["task_type"] = ""
+            params["geneset_type"] = "transcript"
+            inserted_id = self.api_regulate.add_main_table(collection_name = "sg_geneset_go_enrich", params =params, name = "go_enrich_main_table")
+            for dir in os.listdir(trans_go_regulate_dir):
+                if self.trans_gs_id_name[trans_id] in dir:
+                    dir_path = os.path.join(trans_go_regulate_dir, dir)
+                    self.api_regulate.add_go_enrich_detail(go_enrich_dir=dir_path + "/go_enrich_{}.xls".format(self.trans_gs_id_name[trans_id]), go_enrich_id=str(inserted_id))
+        for gene_id in self.gene_gs_id_name.keys():
+            params = dict()
+            params["geneset_id"] = str(gene_id)
+            params["anno_type"] = "go"
+            params["method"] = "fdr"
+            params["submit_location"] = "geneset_class"
+            params["task_type"] = ""
+            params["geneset_type"] = "gene"
+            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_go_enrich", params=params, name="go_enrich_main_table")
+            for dir in os.listdir(gene_go_regulate_dir):
+                if self.gene_gs_id_name[str(gene_id)] in dir:
+                    dir_path = os.path.join(trans_go_regulate_dir, dir)
+                    self.api_regulate.add_go_enrich_detail(go_enrich_dir=dir_path + "/go_enrich_{}.xls".format(self.gene_gs_id_name[gene_id]), go_enrich_id=str(inserted_id))
 
+    def export_kegg_regulate(self):
+        self.api_regulate = self.api.ref_rna_geneset
+        trans_dir = self.exp_diff_trans.output_dir
+        gene_dir = self.exp_diff_gene.output_dir
+        trans_kegg_regulate_dir = trans_dir + "/kegg_regulate"
+        gene_kegg_regulate_dir = gene_dir + "/kegg_regulate"
+        for trans_id in self.trans_gs_id_name.keys():
+            params = dict()
+            params["geneset_id"] = str(trans_id)
+            params["anno_type"] = "kegg"
+            params["submit_location"] = "geneset_class"
+            params["task_type"] = ""
+            params["geneset_type"] = "transcript"
+            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_kegg_class", params=params, name="kegg_class_main_table")
+            self.logger.info(inserted_id)
+            for dir in os.listdir(trans_kegg_regulate_dir):
+                if self.trans_gs_id_name[str(trans_id)] in dir:
+                    dir_path = os.path.join(trans_kegg_regulate_dir, dir)
+                    self.api_regulate.add_kegg_regulate_detail(kegg_regulate_table=dir_path + "/kegg_regulate_stat.xls", regulate_id=str(inserted_id))
+                    self.api_regulate.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))
+        for gene_id in self.gene_gs_id_name.keys():
+            params = dict()
+            params["geneset_id"] = str(gene_id)
+            params["anno_type"] = "kegg"
+            params["submit_location"] = "geneset_class"
+            params["task_type"] = ""
+            params["geneset_type"] = "gene"
+            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_kegg_class", params=params, name="kegg_class_main_table")
+            for dir in os.listdir(gene_kegg_regulate_dir):
+                if self.gene_gs_id_name[str(gene_id)] in dir:
+                    dir_path = os.path.join(gene_kegg_regulate_dir, dir)
+                    self.api_regulate.add_kegg_regulate_detail(kegg_regulate_table=dir_path + "/kegg_regulate_stat.xls", regulate_id=str(inserted_id))
+                    self.api_regulate.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))
+
+    def export_kegg_enrich(self):
+        self.api_regulate = self.api.ref_rna_geneset
+        trans_dir = self.exp_diff_trans.output_dir
+        gene_dir = self.exp_diff_gene.output_dir
+        trans_kegg_regulate_dir = trans_dir + "/kegg_rich"
+        gene_kegg_regulate_dir = gene_dir + "/kegg_rich"
+        for trans_id in self.trans_gs_id_name.keys():
+            params = dict()
+            params["geneset_id"] = str(trans_id)
+            params["anno_type"] = "kegg"
+            params["submit_location"] = "geneset_class"
+            params["task_type"] = ""
+            params["geneset_type"] = "transcript"
+            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_kegg_enrich", params=params, name="kegg_enrich_main_table")
+            for dir in os.listdir(trans_kegg_regulate_dir):
+                if self.trans_gs_id_name[str(trans_id)] in dir:
+                    for tool in self.exp_diff_trans.kegg_rich_tool:
+                        list_path = tool.option('diff_list').prop["path"]
+                        if dir in list_path:
+                            geneset_list_path = list_path
+                            break
+                    geneset_list_path = "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list_dir/A_vs_B"
+                    dir_path = os.path.join(trans_kegg_regulate_dir, dir)
+                    self.api_regulate.add_kegg_enrich_detail(kegg_enrich_table=dir_path + "/{}.kegg_enrichment.xls".format(
+                        self.trans_gs_id_name[str(trans_id)]), enrich_id=str(inserted_id), geneset_list_path=geneset_list_path, all_list_path=self.exp_diff_trans.option("all_list").prop["path"])
+        for gene_id in self.gene_gs_id_name.keys():
+            params = dict()
+            params["geneset_id"] = str(gene_id)
+            params["anno_type"] = "kegg"
+            params["submit_location"] = "geneset_class"
+            params["task_type"] = ""
+            params["geneset_type"] = "gene"
+            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_kegg_enrich", params=params, name="kegg_enrich_main_table")
+            for dir in os.listdir(gene_kegg_regulate_dir):
+                if self.gene_gs_id_name[str(gene_id)] in dir:
+                    for tool in self.exp_diff_gene.kegg_rich_tool:
+                        list_path = tool.option('diff_list').prop["path"]
+                        if dir in list_path:
+                            geneset_list_path = list_path
+                            break
+                    geneset_list_path = "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list_dir/A_vs_B"
+                    dir_path = os.path.join(gene_kegg_regulate_dir, dir)
+                    self.api_regulate.add_kegg_enrich_detail(kegg_enrich_table=dir_path + "/{}.kegg_enrichment.xls".format(
+                        self.gene_gs_id_name[gene_id]), enrich_id=str(inserted_id), geneset_list_path=geneset_list_path, all_list_path=self.exp_diff_gene.option("all_list").prop["path"])
+
+    def export_cog_class(self):
+        self.api_regulate = self.api.ref_rna_geneset
+        trans_dir = self.exp_diff_trans.output_dir
+        gene_dir = self.exp_diff_gene.output_dir
+        trans_cog_class_dir = trans_dir + "/cog_class"
+        gene_cog_class_dir = gene_dir + "/cog_class"
+        for trans_id in self.trans_gs_id_name.keys():
+            params = dict()
+            params["geneset_id"] = str(trans_id)
+            params["anno_type"] = "cog"
+            params["submit_location"] = "geneset_class"
+            params["task_type"] = ""
+            params["geneset_type"] = "transcript"
+            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_cog_class", params=params, name="cog_class_main_table")
+            for dir in os.listdir(trans_cog_class_dir):
+                if self.trans_gs_id_name[trans_id] in dir:
+                    dir_path = os.path.join(trans_cog_class_dir, dir)
+                    self.api_regulate.add_geneset_cog_detail(geneset_cog_table=dir_path + "/cog_summary.xls", geneset_cog_id=inserted_id)
+        for gene_id in self.gene_gs_id_name.keys():
+            params = dict()
+            params["geneset_id"] = str(gene_id)
+            params["anno_type"] = "kegg"
+            params["submit_location"] = "geneset_class"
+            params["task_type"] = ""
+            params["geneset_type"] = "gene"
+            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_cog_class", params=params, name="cog_class_main_table")
+            for dir in os.listdir(gene_cog_class_dir):
+                if self.gene_gs_id_name[str(gene_id)] in dir:
+                    dir_path = os.path.join(gene_cog_class_dir, dir)
+                    self.api_regulate.add_geneset_cog_detail(geneset_cog_table=dir_path + "/cog_summary.xls", geneset_cog_id=inserted_id)

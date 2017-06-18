@@ -18,7 +18,7 @@ class RefAssembly(Base):
         self._db_name = Config().MONGODB + '_ref_rna'
 
     @report_check
-    def add_assembly_result(self, name=None, params=None, all_gtf_path=None, merged_path=None):
+    def add_assembly_result(self, name=None, params=None, all_gtf_path=None, merged_path=None, Statistics_path=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         merged_list = []
@@ -46,6 +46,10 @@ class RefAssembly(Base):
         }
         collection = self.db['sg_transcripts']
         transcript_id = collection.insert_one(insert_data).inserted_id
+        code_files = Statistics_path + '/code_num.txt'
+        self.add_transcripts_step(transcript_id=transcript_id, Statistics_path=Statistics_path)
+        self.add_transcripts_relations(transcript_id=transcript_id, Statistics_path=Statistics_path)
+        self.add_transcripts_seq_type(transcript_id=transcript_id, code_file=code_files)
         return transcript_id
 
     def add_transcripts_step(self, transcript_id, Statistics_path):
@@ -84,10 +88,10 @@ class RefAssembly(Base):
         try:
             collection = self.db['sg_transcripts_step']
             collection.insert_many(data_list)
-        except Exception:
-            self.bind_object.logger.error("导入步长%s信息失败!" % (Statistics_path))
+        except:
+            raise Exception("导入步长信息失败!")
         else:
-            self.bind_object.logger.info("导入步长%s信息成功!" % (Statistics_path))
+            self.bind_object.logger.info("导入步长信息成功!")
 
     def add_transcripts_relations(self, transcript_id, Statistics_path):
 
@@ -129,8 +133,8 @@ class RefAssembly(Base):
             collection.insert_many(data_list)
             collection = self.db['sg_transcripts']
             collection.update({'_id': ObjectId(transcript_id)}, {'$set': {'type_of_trans_or_genes': name_list}})
-        except Exception:
-            self.bind_object.logger.error("导入class_code信息：失败!")
+        except:
+            raise Exception("导入class_code信息：失败!")
         else:
             self.bind_object.logger.info("导入class_code信息：成功!")
 
@@ -185,10 +189,10 @@ class RefAssembly(Base):
             collection.insert_many(data_list)
             collection = self.db['sg_transcripts']
             collection.update({'_id': ObjectId(transcript_id)}, {'$set': {'seq_type': code_list}})
-        except Exception:
-            self.bind_object.logger.error("导入class_code信息：%s失败!" % (code_file))
+        except:
+            raise Exception("导入class_code信息：%s失败!")
         else:
-            self.bind_object.logger.info("导入class_code信息：%s成功!" % (code_file))
+            self.bind_object.logger.info("导入class_code信息成功!")
 
 if __name__ == "__main__":
 

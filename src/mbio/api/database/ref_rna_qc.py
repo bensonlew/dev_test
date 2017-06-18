@@ -9,7 +9,7 @@ from bson.objectid import ObjectId
 import datetime
 # import pandas
 # import numpy
-# from bson.son import SON
+from bson.son import SON
 import json
 import glob
 import re
@@ -214,7 +214,7 @@ class RefRnaQc(Base):
         }
         col = self.db["sg_specimen_group_compare"]
         try:
-            com_id = col.insert_one(data).inserted_id
+            com_id = col.insert_one(SON(data)).inserted_id
         except Exception,e:
             self.bind_object.logger.error("导入样本对照组信息出错:%s" % e)
         else:
