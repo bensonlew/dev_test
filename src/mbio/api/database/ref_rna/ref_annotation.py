@@ -108,11 +108,11 @@ class RefAnnotation(Base):
 
         def add_go(go_id, go_path, gene_go_path, seq_type):
             if os.path.exists(go_path) and os.path.exists(gene_go_path):
-                for i in range(2, 5):
-                    level = go_path + "/go{}level.xls".format(i)
-                    gene_level = gene_go_path + "/gene_go{}level.xls".format(i)
-                    self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=i, level_path=level)
-                    self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="gene", level=i, level_path=gene_level)
+                # for i in range(2, 5):
+                #     level = go_path + "/go{}level.xls".format(i)
+                #     gene_level = gene_go_path + "/gene_go{}level.xls".format(i)
+                #     self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=i, level_path=level)
+                #     self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="gene", level=i, level_path=gene_level)
                 stat_level2 = go_path + "/go12level_statistics.xls"
                 stat_level3 = go_path + "/go123level_statistics.xls"
                 stat_level4 = go_path + "/go124level_statistics.xls"
@@ -121,6 +121,8 @@ class RefAnnotation(Base):
                 gene_stat_level4 = gene_go_path + "/gene_go1234level_statistics.xls"
                 gos_path = go_path + "/query_gos.list"
                 gene_gos_path = gene_go_path + "/gene_gos.list"
+                self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=2, level_path=stat_level2)
+                self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="gene", level=2, level_path=gene_stat_level2)
                 self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=2, go_path=stat_level2)
                 self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=3, go_path=stat_level3)
                 self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=4, go_path=stat_level4)
