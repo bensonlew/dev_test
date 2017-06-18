@@ -115,7 +115,7 @@ class RefAnnotation(Base):
                 #     self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="gene", level=i, level_path=gene_level)
                 stat_level2 = go_path + "/go12level_statistics.xls"
                 stat_level3 = go_path + "/go123level_statistics.xls"
-                stat_level4 = go_path + "/go124level_statistics.xls"
+                stat_level4 = go_path + "/go1234level_statistics.xls"
                 gene_stat_level2 = gene_go_path + "/gene_go12level_statistics.xls"
                 gene_stat_level3 = gene_go_path + "/gene_go123level_statistics.xls"
                 gene_stat_level4 = gene_go_path + "/gene_go1234level_statistics.xls"
@@ -149,8 +149,8 @@ class RefAnnotation(Base):
                 table_path = kegg_path + "/kegg_table.xls"
                 gene_layer_path = gene_kegg_path + "/gene_kegg_layer.xls"
                 gene_pathway_path = gene_kegg_path + "/gene_pathway_table.xls"
-                gene_kegg_path = gene_kegg_path + "/gene_kegg_table.xls"
                 gene_png_path = gene_kegg_path + "/gene_pathway"
+                gene_table_path = gene_kegg_path + "/gene_kegg_table.xls"
                 self.add_annotation_kegg_categories(kegg_id=kegg_id, seq_type=seq_type, anno_type="transcript", categories_path=layer_path)
                 self.add_annotation_kegg_categories(kegg_id=kegg_id, seq_type=seq_type, anno_type="gene", categories_path=gene_layer_path)
                 self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type=seq_type, anno_type="transcript", level_path=pathway_path, png_dir=png_path)
@@ -854,8 +854,8 @@ class RefAnnotation(Base):
                     ('goterm', line[0]),
                     ('goterm_2', line[1]),
                     ('goid_2', line[2]),
-                    ('seq_number', int(line[-2])),
-                    ('percent', round(line[-2], 4)),
+                    ('seq_number', int(line[-3])),
+                    ('percent', round(float(line[-2]), 4)),
                     ('seq_list', line[-1])
                 ]
                 if level >= 3:
